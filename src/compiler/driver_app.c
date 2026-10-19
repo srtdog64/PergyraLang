@@ -103,10 +103,9 @@ driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
         if (*ast == NULL) break;
         forin_desugar_program(*ast);
         match_subject_single_evaluation_desugar_program(*ast);
-        if (!ast_complete_stable_ids(*ast) ||
-            !ast_wrap_nodes_in_builtin_call(*ast, copies.ids, copies.count, "Clone")) break;
+        if (!ast_complete_stable_ids(*ast)) break;
         driver_debug_stage("semantic_landing");
-        sem = semantic_analyze_with_landings(*ast, stores.ids, stores.count);
+        sem = semantic_analyze_with_landings(*ast, stores.ids, stores.count, copies.ids, copies.count);
     }
     free(stores.ids);
     free(copies.ids);

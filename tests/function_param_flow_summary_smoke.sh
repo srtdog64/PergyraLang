@@ -99,6 +99,7 @@ landed_clones = {
     "by_value_getter_lend_returned_landed_valid": {"Make": 1},
     "by_value_getter_lend_passed_kept_landed_valid": {"Collect": 1},
     "by_value_getter_lend_assigned_landed_valid": {"Collect": 1},
+    "by_value_getter_lend_owner_written_after_lowering_landed_valid": {"Rename": 1},
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
@@ -914,6 +915,7 @@ paired = (
     ("by_value_getter_lend_kept_landed_valid", True),
     ("by_value_getter_lend_passed_kept_landed_valid", True),
     ("by_value_getter_lend_assigned_landed_valid", True),
+    ("by_value_getter_lend_owner_written_after_lowering_landed_valid", True),
     ("by_value_getter_lend_shared_result_returned_invalid", False),
     ("by_value_getter_lend_inout_passed_invalid", False),
     ("by_value_getter_lend_inout_then_returned_invalid", False),
@@ -1563,6 +1565,7 @@ for name, expected in (
     ("by_value_getter_lend_returned_landed_valid", "1ab"),
     ("by_value_getter_lend_passed_kept_landed_valid", "2ab"),
     ("by_value_getter_lend_assigned_landed_valid", "1ab"),
+    ("by_value_getter_lend_owner_written_after_lowering_landed_valid", "22"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

@@ -139,10 +139,13 @@ SemanticResult* semantic_analyze(ASTNode* ast);
  * enabled. Off by default (semantic_analyze) so batch/CI compiles pay nothing;
  * the LSP/editor path passes true. */
 SemanticResult* semantic_analyze_ex(ASTNode* ast, bool emit_advisories);
-/* An analysis that lands the String stores of an earlier analysis's
- * selection, given by store call identity. */
+/* An analysis that lands what earlier analyses selected: the String stores
+ * by store call identity, and the loan copies by the identity of the
+ * expression each wraps in Clone. Identities are the ones semantic analysis
+ * assigns, which the same sources get again on every load. */
 SemanticResult* semantic_analyze_with_landings(ASTNode* ast,
-    const uint32_t* landings, size_t landing_count);
+    const uint32_t* landings, size_t landing_count,
+    const uint32_t* copies, size_t copy_count);
 void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);
 size_t          semantic_result_type_resolution_metadata_entries(

@@ -1,0 +1,38 @@
+// As by_value_getter_lend_owner_written_landed_valid, after a for loop over
+// a call that the driver lowers into new statements before the analysis.
+// The copy lands on the getter call: the lowered statements do not shift
+// the identity the selection names.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func Doubled(values: Array<Int>) -> Array<Int> {
+    let out: Array<Int> = [];
+    ArrayPush(out, values[0] * 2);
+    return out;
+}
+
+func Count(values: Array<Int>) -> Int {
+    let total: Int = 0;
+    for value in Doubled(values) {
+        total = total + value;
+    }
+    return total;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Rename(arena: Arena) -> Int {
+    let first: String = AtomText(arena, 0);
+    ArraySet(arena.atoms, 0, StringConcat("zz", ""));
+    return StringLength(first);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(ToString(Count([1, 2])));
+    Print(ToString(Rename(arena)));
+    return 0;
+}

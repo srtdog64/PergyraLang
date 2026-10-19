@@ -243,23 +243,24 @@ semantic_timing_now(void)
 }
 
 static SemanticResult *semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
-    const uint32_t *landings, size_t landing_count);
+    const uint32_t *landings, size_t landing_count, const uint32_t *copies, size_t copy_count);
 
 SemanticResult *
 semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
 {
-    return semantic_analyze_landed(ast, emit_advisories, NULL, 0);
+    return semantic_analyze_landed(ast, emit_advisories, NULL, 0, NULL, 0);
 }
 
 SemanticResult *
-semantic_analyze_with_landings(ASTNode *ast, const uint32_t *landings, size_t landing_count)
+semantic_analyze_with_landings(ASTNode *ast, const uint32_t *landings, size_t landing_count,
+    const uint32_t *copies, size_t copy_count)
 {
-    return semantic_analyze_landed(ast, false, landings, landing_count);
+    return semantic_analyze_landed(ast, false, landings, landing_count, copies, copy_count);
 }
 
 static SemanticResult *
 semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
-    const uint32_t *landings, size_t landing_count)
+    const uint32_t *landings, size_t landing_count, const uint32_t *copies, size_t copy_count)
 {
     bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
     double t_mark = 0.0;
@@ -301,6 +302,10 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
      * graph before any semantic index or publication generation is admitted. */
     if (!ast_assign_stable_ids(ast))
         semantic_error(ctx, ast, "Syntax node identity space exhausted after import composition");
+    /* The selected copies wrap nodes by the identities just assigned, which
+     * an earlier analysis of the same sources assigned as well. */
+    else if (!ast_wrap_nodes_in_builtin_call(ast, copies, copy_count, "Clone"))
+        semantic_error(ctx, ast, "A selected loan copy could not be wrapped in Clone");
     if (timing) {
         t_preload = semantic_timing_now() - t_mark;
         t_mark = semantic_timing_now();
