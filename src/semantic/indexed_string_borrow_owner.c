@@ -193,12 +193,18 @@ semantic_indexed_string_borrow_source_current(ASTNode *expression,
     return true;
 }
 
-/* `copy_landing`, when given, asks for a String the store cannot alias: the
- * caller lands it as an owned copy instead of refusing it. */
+/* A builtin store of a String no owner proves alive: `wanted` reports that
+ * an owned copy could stand in for the String; `refuse` keeps the refusal
+ * as well, where no owned-copy store operation exists. */
+typedef struct {
+    bool refuse;
+    bool wanted;
+} IndexedStringStoreCopy;
+
 static void
 indexed_string_borrow_argument(ASTNode *expression,
     ASTNode *call, ASTNode *callee, size_t ordinal, bool constructor,
-    SemanticContext *ctx, bool *copy_landing)
+    SemanticContext *ctx, IndexedStringStoreCopy *copy)
 {
     uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
     if (ctx == NULL || ctx->has_error || ctx->current_function_decl == NULL) return;
@@ -378,9 +384,9 @@ indexed_string_borrow_argument(ASTNode *expression,
             } else {
                 /* An Array<String> store of a String no owner proves alive
                  * lands as an owned copy of that String. */
-                if (copy_landing != NULL && call != NULL && callee == NULL && !constructor) {
-                    *copy_landing = true;
-                    return;
+                if (copy != NULL && call != NULL && callee == NULL && !constructor) {
+                    copy->wanted = true;
+                    if (!copy->refuse) return;
                 }
                 /* A declared callee's final summary decides whether it keeps
                  * the String; that owner refuses it after Pass 2 if not. */
@@ -412,12 +418,21 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
 }
 
 void
-semantic_indexed_string_borrow_store_argument(ASTNode *expression,
-    ASTNode *call, size_t ordinal, SemanticContext *ctx, bool *copy_landing)
+semantic_indexed_string_borrow_push_argument(ASTNode *expression,
+    ASTNode *call, SemanticContext *ctx, bool *copy_landing)
 {
-    if (copy_landing == NULL) return;
-    *copy_landing = false;
-    indexed_string_borrow_argument(expression, call, NULL, ordinal, false, ctx, copy_landing);
+    IndexedStringStoreCopy copy = {.refuse = false};
+    indexed_string_borrow_argument(expression, call, NULL, 1, false, ctx, &copy);
+    if (copy_landing != NULL) *copy_landing = copy.wanted;
+}
+
+void
+semantic_indexed_string_borrow_set_argument(ASTNode *expression,
+    ASTNode *call, SemanticContext *ctx, bool *copy_wanted)
+{
+    IndexedStringStoreCopy copy = {.refuse = true};
+    indexed_string_borrow_argument(expression, call, NULL, 2, false, ctx, &copy);
+    if (copy_wanted != NULL) *copy_wanted = copy.wanted;
 }
 
 bool

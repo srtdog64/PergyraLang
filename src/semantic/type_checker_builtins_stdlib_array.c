@@ -273,7 +273,7 @@ type_check_stdlib_array_call(ASTNode *expr,
             type_check_expression(arg1, ctx));
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING)) {
             bool copy_landing = false;
-            semantic_indexed_string_borrow_store_argument(arg1, expr, 1, ctx, &copy_landing);
+            semantic_indexed_string_borrow_push_argument(arg1, expr, ctx, &copy_landing);
             if (copy_landing) {
                 /* The push stores an owned copy of a String no owner proves
                  * alive for the receiver: the call becomes ArrayPushOwnedString,
@@ -446,18 +446,13 @@ type_check_stdlib_array_call(ASTNode *expr,
         arg2 = ast_call_argument(expr, 2);
         val = stdlib_array_normalize_type(
             type_check_expression(arg2, ctx));
-        bool copy_landing = false;
+        bool copy_wanted = false;
         if (type_equals(val, TYPE_STRING))
-            semantic_indexed_string_borrow_store_argument(arg2, expr, 2, ctx, &copy_landing);
-        if (copy_landing) {
-            /* No owned-copy ArraySet exists: a formal's String lands as a
-             * Clone in a second analysis, and this one refuses the store. */
+            semantic_indexed_string_borrow_set_argument(arg2, expr, ctx, &copy_wanted);
+        /* No owned-copy ArraySet exists: the store is refused, and a
+         * formal's String lands as a Clone in a second analysis. */
+        if (copy_wanted)
             semantic_formal_string_store_landing_select_checked(ctx, expr, 2);
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg2,
-                "A String element cannot cross an opaque boundary without a current non-retention proof");
-            return TYPE_UNKNOWN;
-        }
         reject_borrowed_boundary_container_store(
             arg2, val, "array", "ArraySet", ctx);
         if (!type_is_constructed_named(arr, "Array")) {
