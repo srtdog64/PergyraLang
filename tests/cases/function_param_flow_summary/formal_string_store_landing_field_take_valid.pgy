@@ -1,0 +1,26 @@
+// Append takes its by-value rows' names into a local, pushes a String of
+// its ref source onto it and returns the rows rebuilt. The local holds
+// storage from outside the routine, so no private-push proof applies; the
+// escape analysis selects the push and a second analysis lands it as an
+// owned copy, so the ref source does not escape through the result.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Source {
+    title: String;
+}
+
+func Append(rows: Rows, ref source: Source) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, source.title);
+    return Rows(names);
+}
+
+func Main() -> Int {
+    let source: Source = Source(StringConcat("t", ""));
+    let rows: Rows = Append(Rows([StringConcat("a", "")]), source);
+    Print(rows.names[1]);
+    Print(source.title);
+    return 0;
+}

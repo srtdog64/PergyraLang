@@ -1,0 +1,20 @@
+// Count pushes a String element of its ref input into a local Array that
+// never leaves the routine. No proof admits a private push of a String
+// from outside the routine, so the store lands as an owned copy in a
+// second analysis.
+struct Routines {
+    names: Array<String>;
+}
+
+func Count(ref routines: Routines) -> Int {
+    let scratch: Array<String> = [];
+    ArrayPush(scratch, routines.names[0]);
+    return ArrayLength(scratch);
+}
+
+func Main() -> Int {
+    let routines: Routines = Routines([StringConcat("a", "")]);
+    Print(ToString(Count(routines)));
+    Print(routines.names[0]);
+    return 0;
+}

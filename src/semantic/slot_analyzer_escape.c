@@ -13,6 +13,7 @@
 #include "typed_map_query_fact_owner.h"
 #include "function_param_publication_owner.h"
 #include "function_param_flow_summary_internal.h"
+#include "formal_string_store_landing_owner.h"
 #include "../common/match_variant_policy.h"
 
 bool
@@ -370,6 +371,12 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 }
 
                 if (!handled) {
+                    /* A formal's String a store builtin keeps can land as
+                     * an owned copy in a second analysis. */
+                    if (callee_decl == NULL && origin != NULL && selected_name != NULL &&
+                        strcmp(ast_identifier_name(root), selected_name) == 0)
+                        semantic_formal_string_store_landing_select(program_root->ctx, node, i,
+                            root, origin->function_decl);
                     if (!slot_escape_record(entries, count, capacity,
                             ast_identifier_name(root), SLOT_ESCAPE_CALL))
                         return false;

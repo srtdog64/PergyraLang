@@ -1,0 +1,27 @@
+// Append takes its by-value rows' names into a local and pushes a String
+// of its by-value source onto it. The escape analysis selects the push and
+// a second analysis lands it as an owned copy, so Main lends source to
+// Append instead of moving it and may read it afterwards.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Source {
+    title: String;
+    ids: Array<Int>;
+}
+
+func Append(rows: Rows, source: Source) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, source.title);
+    return Rows(names);
+}
+
+func Main() -> Int {
+    let source: Source = Source(StringConcat("t", ""), [1]);
+    let rows: Rows = Append(Rows([StringConcat("a", "")]), source);
+    Print(rows.names[1]);
+    Print(source.title);
+    Print(ToString(ArrayLength(source.ids)));
+    return 0;
+}

@@ -1,0 +1,25 @@
+// Append takes its by-value rows' lists into a local and pushes an Array
+// field of its by-value source onto it. Only a String lands as a copy: no
+// store is selected for a second analysis, the source's storage stays in
+// the result, and Main may not read source after handing it to Append.
+struct Rows {
+    lists: Array<Array<Int>>;
+}
+
+struct Source {
+    ids: Array<Int>;
+}
+
+func Append(rows: Rows, source: Source) -> Rows {
+    let lists: Array<Array<Int>> = rows.lists;
+    ArrayPush(lists, source.ids);
+    return Rows(lists);
+}
+
+func Main() -> Int {
+    let source: Source = Source([1]);
+    let rows: Rows = Append(Rows([[0]]), source);
+    Print(ToString(rows.lists[1][0]));
+    Print(ToString(ArrayLength(source.ids)));
+    return 0;
+}

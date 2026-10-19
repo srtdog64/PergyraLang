@@ -1,6 +1,7 @@
 /* Indexed-String borrow receipts: the storage source a borrowed String's
  * Array names, the receipt check at prepare and finalize, and whether an
  * owner may hand that Array on while a deferred read still uses it. */
+#include "formal_string_store_landing_owner.h"
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
 #include "collection_ownership_fact.h"
@@ -87,6 +88,9 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
         if (private_issued == SIZE_MAX ||
             (prepare && !semantic_indexed_string_prepare_private_push(ctx, row->node)) ||
             !semantic_indexed_string_private_push_current(ctx, row->node)) {
+            /* No proof admits the push: a formal's String can land as an
+             * owned copy in a second analysis. */
+            semantic_formal_string_store_landing_select(ctx, row->node, 1, NULL, row->caller);
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                 (ASTNode *)row->node,

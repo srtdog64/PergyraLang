@@ -72,12 +72,34 @@ owned_push_landings = {
     "string_element_push_copy_landing_valid": ("Selected", 1),
     "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
+    "formal_string_store_landing_local_receiver_valid": ("Gather", 1),
+    "formal_string_store_landing_private_local_valid": ("Count", 1),
+    "named_string_same_empty_borrowed_then_owned_direct_landed_valid": ("Project", 2),
+    "named_string_same_empty_owned_then_borrowed_direct_landed_valid": ("Project", 2),
 }
 # Positive fixtures whose formal String store lands as an owned copy: each
 # routine and the number of Clone calls it must reach MIR with.
 formal_store_landings = {
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
+    "formal_string_store_landing_field_take_valid": {"Append": 1},
+    "formal_string_store_landing_value_source_valid": {"Append": 1},
+    "formal_string_store_landing_value_set_valid": {"Rename": 1},
+    "formal_string_store_landing_value_map_valid": {"Label": 1},
+    "mapnew_ref_string_value_copy_valid": {"Make": 1},
+    "private_array_push_nonempty_alias_landed_valid": {"Build": 1},
+}
+# The analyses a compile runs after the first to land selected String
+# stores: an `inout` output lands in the first, a selection in one more, and
+# a store that is not a formal's String selects none.
+formal_store_landing_rounds = {
+    "formal_string_store_landing_ref_push_valid": 0,
+    "formal_string_store_landing_local_receiver_valid": 1,
+    "formal_string_store_landing_value_map_valid": 1,
+    "formal_array_store_local_receiver_invalid": 0,
+    "formal_array_store_field_take_invalid": 0,
+    "formal_string_store_local_alias_set_invalid": 0,
+    "formal_array_store_inout_output_invalid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -152,9 +174,9 @@ release_lifetime_refusals = {
     "named_string_field_mixed_branch_drop_invalid": [
         (*borrow_refusal, 28, 5), (*borrow_refusal, 30, 27)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
-    "named_string_same_empty_owned_then_borrowed_direct_invalid": [(*borrow_refusal, 7, 5)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
-    "named_string_same_empty_borrowed_then_owned_direct_invalid": [(*borrow_refusal, 6, 5)],
+    "formal_array_store_field_take_invalid": [(*released_refusal, 23, 39)],
+    "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
     "named_string_same_empty_borrowed_then_owned_named_invalid": [(*borrow_refusal, 11, 5)],
     "option_payload_mixed_borrow_invalid": [(*borrow_refusal, 5, 24)],
     "option_payload_unwrap_no_deep_drop_invalid": [(*borrow_refusal, 11, 31)],
@@ -527,7 +549,7 @@ paired = (
     ("mapnew_ref_key_copy_valid", True),
     # The runtime copies String values, but source-retention ordinal 2 is not
     # proved here. This is a conservative source refusal, not runtime UB.
-    ("mapnew_ref_string_value_copy_unready", False),
+    ("mapnew_ref_string_value_copy_valid", True),
     ("mapnew_ref_box_value_storage_invalid", False),
     ("declared_static_array_valid", True),
     ("declared_array_borrow_invalid", False),
@@ -578,7 +600,7 @@ paired = (
     ("private_array_push_nonempty_ref_initial_invalid", False),
     ("private_array_push_nonempty_ref_inserted_invalid", False),
     ("private_array_push_nonempty_nested_retain_invalid", False),
-    ("private_array_push_nonempty_alias_escape_invalid", False),
+    ("private_array_push_nonempty_alias_landed_valid", True),
     ("private_array_push_nonempty_branch_escape_invalid", False),
     ("physical_return_default_string_valid", True),
     ("physical_return_default_record_valid", True),
@@ -668,9 +690,9 @@ paired = (
     ("named_string_same_empty_direct_valid", True),
     ("named_string_same_empty_named_valid", True),
     ("named_string_same_empty_fresh_valid", True),
-    ("named_string_same_empty_owned_then_borrowed_direct_invalid", False),
+    ("named_string_same_empty_owned_then_borrowed_direct_landed_valid", True),
     ("named_string_same_empty_owned_then_borrowed_named_invalid", False),
-    ("named_string_same_empty_borrowed_then_owned_direct_invalid", False),
+    ("named_string_same_empty_borrowed_then_owned_direct_landed_valid", True),
     ("named_string_same_empty_borrowed_then_owned_named_invalid", False),
     ("slot_wrapper_direct_own_invalid", False),
     ("slot_wrapper_direct_ref_valid", True),
@@ -785,7 +807,15 @@ paired = (
     ("by_value_getter_lend_value_read_valid", True),
     ("formal_string_store_landing_ref_push_valid", True),
     ("formal_string_store_landing_map_array_set_valid", True),
-    ("formal_string_store_local_receiver_invalid", False),
+    ("formal_string_store_landing_local_receiver_valid", True),
+    ("formal_string_store_landing_private_local_valid", True),
+    ("formal_string_store_landing_field_take_valid", True),
+    ("formal_string_store_landing_value_source_valid", True),
+    ("formal_string_store_landing_value_set_valid", True),
+    ("formal_string_store_landing_value_map_valid", True),
+    ("formal_array_store_local_receiver_invalid", False),
+    ("formal_array_store_field_take_invalid", False),
+    ("formal_string_store_local_alias_set_invalid", False),
     ("formal_array_store_inout_output_invalid", False),
     ("default_aggregate_move_option_field_read_valid", True),
     ("default_aggregate_move_option_field_alias_store_invalid", False),
@@ -866,6 +896,14 @@ for name, valid in paired:
         [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         timeout=10.0, check=False)
+    if name in formal_store_landing_rounds:
+        staged = subprocess.run(
+            [pgy, "--native-pipeline", "--mir-json", str(source)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            env=dict(os.environ, PGY_DEBUG_PIPELINE_STAGE="1"), timeout=10.0, check=False)
+        rounds = staged.stderr.decode(errors="replace").splitlines().count("[driver stage] semantic_landing")
+        if rounds != formal_store_landing_rounds[name]:
+            raise SystemExit(f"formal store landing {name} ran {rounds} landing analyses")
     if valid:
         if checked.returncode != 0 or '"pgy.mir.v1"' not in checked.stdout.decode(errors="replace"):
             sys.stderr.buffer.write(checked.stderr)
@@ -973,7 +1011,6 @@ for name, valid in paired:
         retained_sites = {
             # These sites are the outer consumer of Make's retained result,
             # not evidence of a refusal directly on the MapSet statement.
-            "mapnew_ref_string_value_copy_unready": [(14, 15), (20, 17)],
             "mapnew_ref_box_value_storage_invalid": [(18, 15), (24, 17)],
             "direct_ref_string_local_retain_invalid": [(8, 20)],
             "direct_ref_string_slot_invalid": [(7, 30)],
@@ -1459,6 +1496,14 @@ for name, expected in (
     ("string_element_clone_ref_output_valid", "ababab1"),
     ("formal_string_store_landing_ref_push_valid", "2ba"),
     ("formal_string_store_landing_map_array_set_valid", "2tt"),
+    ("formal_string_store_landing_local_receiver_valid", "aa"),
+    ("formal_string_store_landing_private_local_valid", "1a"),
+    ("formal_string_store_landing_field_take_valid", "tt"),
+    ("formal_string_store_landing_value_source_valid", "tt1"),
+    ("formal_string_store_landing_value_set_valid", "tt1"),
+    ("formal_string_store_landing_value_map_valid", "tt1"),
+    ("named_string_same_empty_borrowed_then_owned_direct_landed_valid", "TypeName\n"),
+    ("named_string_same_empty_owned_then_borrowed_direct_landed_valid", "TypeName\n"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

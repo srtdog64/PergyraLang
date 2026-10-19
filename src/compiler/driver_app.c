@@ -53,6 +53,42 @@ driver_now_seconds(void)
 #endif
 }
 
+static void driver_debug_stage(const char *stage);
+
+/* An analysis may select String stores that no proof admits; a fresh load
+ * and analysis of the same sources lands them as owned copies. A round that
+ * selects nothing new is the result. Bounded: a selection that keeps growing
+ * leaves the last round's refusals standing. */
+static SemanticResult *
+driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
+    PgySourceModuleGraph **module_graph, char **load_error)
+{
+    SemanticResult *sem = semantic_analyze(*ast);
+    uint32_t *plan = NULL;
+    size_t plan_count = 0;
+    for (size_t round = 0; sem != NULL && sem->string_store_landing_count != 0 && round < 3; round++) {
+        uint32_t *grown = realloc(plan, (plan_count + sem->string_store_landing_count) * sizeof(*plan));
+        if (grown == NULL) break;
+        plan = grown;
+        memcpy(plan + plan_count, sem->string_store_landings, sem->string_store_landing_count * sizeof(*plan));
+        plan_count += sem->string_store_landing_count;
+        semantic_result_destroy(sem);
+        sem = NULL;
+        ast_destroy(*ast);
+        module_loader_destroy_graph(*module_graph);
+        *module_graph = NULL;
+        *ast = module_loader_load_program_with_graph(flags->source_path, module_graph, load_error);
+        if (*ast == NULL) break;
+        forin_desugar_program(*ast);
+        match_subject_single_evaluation_desugar_program(*ast);
+        if (!ast_complete_stable_ids(*ast)) break;
+        driver_debug_stage("semantic_landing");
+        sem = semantic_analyze_with_landings(*ast, plan, plan_count);
+    }
+    free(plan);
+    return sem;
+}
+
 static void
 driver_debug_stage(const char *stage)
 {
@@ -232,7 +268,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
 
     driver_debug_stage("semantic");
     phase_start = driver_now_seconds();
-    sem = semantic_analyze(ast);
+    sem = driver_semantic_analyze_landed(flags, &ast, &module_graph, &load_error);
     if (timings != NULL)
         timings->semantic = driver_now_seconds() - phase_start;
     if (sem == NULL) {

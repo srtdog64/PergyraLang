@@ -242,8 +242,24 @@ semantic_timing_now(void)
     return (double)clock() / (double)CLOCKS_PER_SEC;
 }
 
+static SemanticResult *semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
+    const uint32_t *landings, size_t landing_count);
+
 SemanticResult *
 semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
+{
+    return semantic_analyze_landed(ast, emit_advisories, NULL, 0);
+}
+
+SemanticResult *
+semantic_analyze_with_landings(ASTNode *ast, const uint32_t *landings, size_t landing_count)
+{
+    return semantic_analyze_landed(ast, false, landings, landing_count);
+}
+
+static SemanticResult *
+semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
+    const uint32_t *landings, size_t landing_count)
 {
     bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
     double t_mark = 0.0;
@@ -275,6 +291,8 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
         return NULL;
     }
     ctx->emit_advisories = emit_advisories;
+    ctx->string_store_landing_plan = landings;
+    ctx->string_store_landing_plan_count = landing_count;
 
     if (timing)
         t_mark = semantic_timing_now();
@@ -341,6 +359,9 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
 
     /* Transfer diagnostics to result */
     result->success          = !ctx->has_error;
+    result->string_store_landings = ctx->string_store_landing_selected;
+    result->string_store_landing_count = ctx->string_store_landing_selected_count;
+    ctx->string_store_landing_selected = NULL;
     result->annotated_ast    = ast;
     result->diagnostic_count = ctx->diagnostic_count;
     result->diagnostics      = ctx->diagnostics;
@@ -467,6 +488,7 @@ semantic_result_destroy(SemanticResult *result)
         free(result->diagnostics[i]);
     }
     free(result->diagnostics);
+    free(result->string_store_landings);
     free(result->lifecycle_state_spaces);
     semantic_parallel_capture_facts_clear(
         result->parallel_capture_boundaries,

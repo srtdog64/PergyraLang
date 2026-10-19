@@ -1,10 +1,14 @@
+// Project pushes a String of its by-value nodes and then an owned String
+// into one fresh Array. No private-push proof admits the push of the nodes'
+// String; a second analysis lands it as an owned push, so the Array owns
+// every element and no borrowed element mixes in.
 struct TextNode { type_name: String; }
 struct Arena { atom_table: Array<String>; }
 
 func Project(nodes: Array<TextNode>) -> Arena {
     let atom_table: Array<String> = [];
-    ArrayPushOwnedString(atom_table, Concat("owned", " value"));
     ArrayPush(atom_table, nodes[0].type_name);
+    ArrayPushOwnedString(atom_table, Concat("owned", " value"));
     return Arena(atom_table);
 }
 
@@ -12,5 +16,5 @@ func Main() -> Void {
     let name = Concat("Type", "Name");
     let nodes: Array<TextNode> = [TextNode(name)];
     let arena = Project(nodes);
-    Log(arena.atom_table[1]);
+    Log(arena.atom_table[0]);
 }

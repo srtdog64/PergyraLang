@@ -159,6 +159,12 @@ bool semantic_collection_admit_owned_string_push(
     ASTNode *receiver,
     SemanticContext *ctx);
 
+/* Admission's escape and uniform-ownership conditions, without a refusal:
+ * the preserved-storage condition stays with admission, which records it. */
+bool semantic_collection_owned_string_push_admissible(
+    ASTNode *receiver,
+    SemanticContext *ctx);
+
 bool semantic_collection_restore_moved_member(
     ASTNode *target,
     ASTNode *value,

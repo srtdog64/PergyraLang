@@ -108,6 +108,10 @@ typedef struct SemanticResult
      * held by symbols, IRs, or the backend stay valid until this result is
      * destroyed, which the driver does last. */
     TypeRegistry *owned_types;
+    /* Store calls this analysis selects for an owned String landing; a
+     * second analysis applies them (formal_string_store_landing_owner.h). */
+    uint32_t     *string_store_landings;
+    size_t       string_store_landing_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------
@@ -131,6 +135,10 @@ SemanticResult* semantic_analyze(ASTNode* ast);
  * enabled. Off by default (semantic_analyze) so batch/CI compiles pay nothing;
  * the LSP/editor path passes true. */
 SemanticResult* semantic_analyze_ex(ASTNode* ast, bool emit_advisories);
+/* An analysis that lands the String stores of an earlier analysis's
+ * selection, given by store call identity. */
+SemanticResult* semantic_analyze_with_landings(ASTNode* ast,
+    const uint32_t* landings, size_t landing_count);
 void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);
 size_t          semantic_result_type_resolution_metadata_entries(

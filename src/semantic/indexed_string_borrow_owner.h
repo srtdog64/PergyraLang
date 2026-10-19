@@ -46,11 +46,12 @@ bool semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
 void semantic_indexed_string_borrow_call_argument(ASTNode *expression,
     ASTNode *call, ASTNode *callee, size_t ordinal, bool constructor,
     SemanticContext *ctx);
-/* The String an ArrayPush stores. Where no owner proves that String alive
- * for the receiver, *copy_landing is set instead of a refusal: the push must
- * store an owned copy. Every other refusal is reported as for any argument. */
-void semantic_indexed_string_borrow_push_argument(ASTNode *expression,
-    ASTNode *call, SemanticContext *ctx, bool *copy_landing);
+/* The String argument `ordinal` of an ArrayPush or ArraySet stores. Where no
+ * owner proves that String alive for the receiver, *copy_landing is set
+ * instead of a refusal: the store must keep an owned copy. Every other
+ * refusal is reported as for any argument. */
+void semantic_indexed_string_borrow_store_argument(ASTNode *expression,
+    ASTNode *call, size_t ordinal, SemanticContext *ctx, bool *copy_landing);
 
 bool semantic_indexed_string_borrow_initialize_binding(
     Symbol *binding, ASTNode *declaration, ASTNode *initializer, SemanticContext *ctx);

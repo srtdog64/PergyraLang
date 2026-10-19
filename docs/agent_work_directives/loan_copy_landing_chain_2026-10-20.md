@@ -76,6 +76,36 @@ Status: PLAN, Claude lane, single implementation lane. Base revision
 5. **Self-host emitter.** Deep Clone in the general MIR emitter, under
    self-host generality.
 
+## Application landed for formal String stores
+
+The two-run application of step 3 now exists, first for the String stores
+that started most call escapes.
+
+- **Selection.** Each analysis returns the store calls it selected, by
+  stable id. Calls are selected at three points:
+  - a refused owned push or ArraySet at check time;
+  - a refused private push;
+  - an escape-analyzer CALL on ArrayPush, ArraySet or MapSet.
+
+  The String must be a path of a by-value or `ref` formal.
+- **Application.** The driver reloads the sources and analyses them again
+  with the plan, at most three times. A planned ArrayPush becomes
+  ArrayPushOwnedString when its receiver admits an owned push, so an Array
+  never mixes owned and borrowed elements. Any other planned store wraps its
+  value in `Clone`.
+- **Answered unknowns.**
+  - Stable ids are the same on a fresh load of the same sources.
+  - In plain mode no call is selected after the first error, so the
+    canonical compile still runs once (80 s, 3.4 GB). The cost of the
+    reanalysis shows only once the earlier refusals are gone.
+- **Gates.**
+  - `formal_store_landing_rounds` in the flow smoke counts the landing
+    analyses.
+  - Four former negatives are now admitted through a copy:
+    - `mapnew_ref_string_value_copy_valid`;
+    - `private_array_push_nonempty_alias_landed_valid`;
+    - the two `named_string_same_empty_*_direct_landed_valid` fixtures.
+
 ## Unknowns to settle before step 3
 
 - Do stable ids survive a fresh parse with the same source? The driver

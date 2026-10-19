@@ -1,6 +1,7 @@
 // Gather pushes a String element of its ref input into a local Array and
-// returns it. The receiver is not an inout output, so no owned copy lands
-// and the ref input escapes through the result.
+// returns it. No proof admits that store: the first analysis selects it and
+// a second lands it as an owned push (ArrayPushOwnedString), so the ref
+// input does not escape through the result.
 struct Routines {
     names: Array<String>;
 }
@@ -15,5 +16,6 @@ func Main() -> Int {
     let routines: Routines = Routines([StringConcat("a", "")]);
     let out: Array<String> = Gather(routines);
     Print(out[0]);
+    Print(routines.names[0]);
     return 0;
 }

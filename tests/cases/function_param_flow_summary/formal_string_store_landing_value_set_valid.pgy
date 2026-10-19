@@ -1,0 +1,27 @@
+// Rename takes its by-value rows' names into a local and sets a String of
+// its by-value source into it. The escape analysis selects the store and a
+// second analysis lands it as an owned copy, so Main lends source to
+// Rename instead of moving it and may read it afterwards.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Source {
+    title: String;
+    ids: Array<Int>;
+}
+
+func Rename(rows: Rows, source: Source) -> Rows {
+    let names: Array<String> = rows.names;
+    ArraySet(names, 0, source.title);
+    return Rows(names);
+}
+
+func Main() -> Int {
+    let source: Source = Source(StringConcat("t", ""), [1]);
+    let rows: Rows = Rename(Rows([StringConcat("a", "")]), source);
+    Print(rows.names[0]);
+    Print(source.title);
+    Print(ToString(ArrayLength(source.ids)));
+    return 0;
+}

@@ -112,6 +112,10 @@ struct SemanticContext
     Scope*       scope;          /* Current scope                  */
     ASTNode*     program_root;   /* Root AST for cross-decl lookup */
     uint32_t     synthetic_stable_id_next; /* identities for checker-built nodes; 0 until first use */
+    const uint32_t *string_store_landing_plan; /* store calls an earlier analysis selected */
+    size_t       string_store_landing_plan_count;
+    uint32_t    *string_store_landing_selected; /* store calls this analysis selects */
+    size_t       string_store_landing_selected_count, string_store_landing_selected_capacity;
     const char*  current_module_path; /* Origin module under analysis */
     ASTNode*     current_relation; /* Enclosing relation decl       */
     ASTNode*     current_effect;   /* Enclosing effect decl         */

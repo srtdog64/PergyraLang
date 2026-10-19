@@ -193,7 +193,7 @@ semantic_indexed_string_borrow_source_current(ASTNode *expression,
     return true;
 }
 
-/* `copy_landing`, when given, asks for a String the push cannot alias: the
+/* `copy_landing`, when given, asks for a String the store cannot alias: the
  * caller lands it as an owned copy instead of refusing it. */
 static void
 indexed_string_borrow_argument(ASTNode *expression,
@@ -376,10 +376,9 @@ indexed_string_borrow_argument(ASTNode *expression,
                     fact->return_elements_owned = false;
                 }
             } else {
-                /* An Array<String> push of a String no owner proves alive
+                /* An Array<String> store of a String no owner proves alive
                  * lands as an owned copy of that String. */
-                if (copy_landing != NULL && call != NULL && callee == NULL &&
-                    !constructor && ordinal == 1) {
+                if (copy_landing != NULL && call != NULL && callee == NULL && !constructor) {
                     *copy_landing = true;
                     return;
                 }
@@ -413,12 +412,12 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
 }
 
 void
-semantic_indexed_string_borrow_push_argument(ASTNode *expression,
-    ASTNode *call, SemanticContext *ctx, bool *copy_landing)
+semantic_indexed_string_borrow_store_argument(ASTNode *expression,
+    ASTNode *call, size_t ordinal, SemanticContext *ctx, bool *copy_landing)
 {
     if (copy_landing == NULL) return;
     *copy_landing = false;
-    indexed_string_borrow_argument(expression, call, NULL, 1, false, ctx, copy_landing);
+    indexed_string_borrow_argument(expression, call, NULL, ordinal, false, ctx, copy_landing);
 }
 
 bool

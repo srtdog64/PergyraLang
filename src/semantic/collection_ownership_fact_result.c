@@ -17,6 +17,26 @@
 #include "indexed_string_borrow_owner.h"
 #include "../parser/ast_api.h"
 
+/* An owned String among borrowed elements, or among elements of unknown
+ * ownership moved out of a member, leaves no whole-array cleanup policy. */
+static bool
+owned_string_push_mixes(const PgyCollectionOwnershipFact *fact)
+{
+    return fact != NULL && (fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
+        || (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+            && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE));
+}
+
+bool
+semantic_collection_owned_string_push_admissible(ASTNode *receiver,
+                                                 SemanticContext *ctx)
+{
+    Symbol *binding = NULL;
+    PgyCollectionOwnershipFact *fact =
+        receiver_collection_fact(receiver, ctx, &binding);
+    return !(binding != NULL && binding->has_escaped_array_storage)
+        && !owned_string_push_mixes(fact);
+}
 
 bool
 semantic_collection_admit_owned_string_push(ASTNode *receiver,
@@ -35,9 +55,7 @@ semantic_collection_admit_owned_string_push(ASTNode *receiver,
             name);
         return false;
     }
-    if (fact != NULL && (fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
-        || (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
-            && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE))) {
+    if (owned_string_push_mixes(fact)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE,

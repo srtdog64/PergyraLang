@@ -206,6 +206,7 @@ semantic_context_destroy(SemanticContext *ctx)
 
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
+    free(ctx->string_store_landing_selected);
     function_param_flow_summary_store_destroy(ctx);
     semantic_param_publication_destroy(ctx);
     callable_capability_destroy(ctx);
