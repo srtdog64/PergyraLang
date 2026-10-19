@@ -2,56 +2,55 @@
 
 Owner: Claude lane (main-line work since 2026-10-18,
 [decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-19 KST at `aa4fc2022` on branch `claude/p0-native-checker`.
+2026-10-19 KST at `bc2aefb30` on branch `claude/p0-native-checker`
+(local commits, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`. Its parameter-flow
-analysis completes for the whole program. Downgraded refusals of other
-owners: 3667 (4957 before results lent `ref` inputs, 7778 before
-`ToString` was modelled). Counts by commit:
-[loans and ToString](../evidence/2026-10-19_native_census_loans_tostring.md).
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 5511 downgraded
+refusals with every final owner run (6915 at `a4e2649c8`).
+[Census record](../evidence/2026-10-19_native_census_final_owners.md).
+The CI test harness manifest, which every codegen bootstrap builds first,
+compiles on the native pipeline since `e23761a3a`; main refuses it.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes.** 1360 of the refusals are inside the
-   per-program-shape `direct_mir_*` modules. V1 deletes those routes as
+1. **`direct_mir_*` routes:** 1318 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-   Their refusals are not ownership work.
-2. **Borrowed text stored past its owner.** Most of the rest are borrowed
-   Strings or loans stored into a container that outlives the owner:
-   pushed into an `inout` Array, set into a field or constructor argument
-   of a value the caller keeps. The [String
+2. **Moves (2786).** 803 formal getters whose loan proof fails; 768
+   callees that change, keep or release; 647 getters on locals, moved by
+   [decision](../decisions/2026-10-19_by_value_getter_lends_when_used_again.md)
+   until a transfer is refused while a loan of the same local lives; 586
+   read-and-return callees whose Array descriptor proof fails.
+3. **Borrowed `ref` escapes (1430):** mostly definition-site call escapes.
+4. **String elements:** 315 opaque crossings, 169 preserved-storage, 131
+   released elements, 112 owned pushes. The [String
    landing](../decisions/2026-10-19_string_landing_copy_then_move.md)
-   applies there: a compiler-selected owned copy, visible in MIR, at the
-   stores no loan proof admits. Not started; it spans the flow owner, MIR
-   lowering and both emitters.
-3. **Array storage owners.** 320 preserved-storage refusals, 192 opaque String
-   crossings, 131 released-element uses, 112 owned pushes on escaped
-   storage.
-4. **World member storage, still open.** Stores into a host field fail
-   closed; deep struct `Clone` is decided but not emitted; a by-value
-   receiver its method grows in place is not moved.
-5. **Allocator births.** A pool or builder created from scalar arguments
-   has no checked relation (`pool_builder_birth_invalid`).
-6. **Receiver codegen.** A by-value `self` method called on a `ref`
-   receiver does not build on C or LLVM; the checker admits that shape at
-   `7cd004fab` too.
+   (owned copy at stores no proof admits) is not started.
+5. **Hidden owners:** `collection_owned_element_requirements_finalize`
+   fails on the canonical, so a normal compile never runs the move,
+   allocator lane and named-call owners.
+6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
+   receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
 
 ## Lessons on the record
 
-- An incomplete frame can be the only guard for an unmodelled hazard; land
-  a model only with the refusal it exposes.
+- An incomplete frame is not a safety rule. Main admitted a pool's text
+  read after `AllocatorDestroy` (ASan heap-use-after-free) even though the
+  allocator path was unsupported; `bc2aefb30` refuses it by an owner.
 - A loan is proved at call rows. A shape with no row (a receiver) cannot
-  be lent: `4f1c33b93` let a `ref self` String getter lend and admitted a
-  caller returning past its receiver, fixed in `aa4fc2022`.
-- A returned loan is safe only while its owner is unchanged. Emitted code
-  frees nothing on `ArraySet`, reassignment or a move yet, so a violation
-  leaks instead of failing. The aggregate route checks the owner; the
-  `ref String` route does not (as at `7cd004fab`).
+  be lent: `4f1c33b93` let a `ref self` String getter lend, fixed in
+  `aa4fc2022`.
+- A struct formal is a shallow copy: a store through `arena.atoms` changes
+  the caller's storage. Until `b68ae872c` such a callee read as read-only
+  and its caller read freed memory (ASan, on main too).
+- Emitted code frees nothing on `ArraySet`, reassignment or a move yet, so
+  most owner violations leak instead of failing at run time.
 
-## Known red at base, unchanged on the branch
+## CI comparison
 
-`aggregate_storage_transfer_smoke` (12 C/LLVM checks) and
-`hashmap_owned_string_provenance_smoke` (`map_keys_double_drop`) fail the
-same way at `7cd004fab`. Bootstrap, installed driver, gen2 == gen3 and
-required CI are not established on this branch.
+`make ci-push-linux` at `2333da64c` failed the same 49 of 65 steps as main
+`7cd004fab`. Its first self-host step stopped at the harness manifest,
+which builds since `e23761a3a`; not rerun since.
+`aggregate_storage_transfer_smoke` and `hashmap_owned_string_provenance_smoke`
+were red at `7cd004fab` already. Bootstrap, installed driver, gen2 == gen3
+and required CI are not established on this branch.
