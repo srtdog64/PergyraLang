@@ -1,5 +1,6 @@
 // AtomText lends Touch's by-value arena, and Touch hands the arena to Grow,
-// which pushes onto its atoms, while the loan is still to be read.
+// which pushes onto its atoms, while the loan is still to be read. The loan
+// is copied where it is made, so Grow may change the arena.
 struct Arena {
     atoms: Array<String>;
 }

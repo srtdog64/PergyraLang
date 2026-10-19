@@ -13,6 +13,7 @@
  * iteration sees a move made later in the body. */
 
 #include "default_aggregate_move_owner.h"
+#include "loan_copy_landing_owner.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -47,8 +48,11 @@ typedef struct {
     const ASTNode **reported;
     size_t reported_count, reported_capacity;
     /* Loan verdicts of lending calls, each checked once. */
-    struct { const ASTNode *call; bool admitted; } *lent;
+    struct { const ASTNode *call; bool admitted, owner_changed; } *lent;
     size_t lent_count, lent_capacity;
+    /* Calls whose result a Clone copies into storage of its own. */
+    const ASTNode **copied;
+    size_t copied_count, copied_capacity;
 } MoveWalk;
 
 static void state_free(MoveState *state)
@@ -146,8 +150,9 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
     if (moved->lending_call == NULL) return false;
     for (size_t i = 0; i < walk->lent_count; i++)
         if (walk->lent[i].call == moved->lending_call) return walk->lent[i].admitted;
+    bool owner_changed = false;
     bool admitted = function_param_flow_lent_argument_admitted(walk->ctx, walk->routine,
-        moved->lending_call, moved->binding);
+        moved->lending_call, moved->binding, &owner_changed);
     if (walk->lent_count == walk->lent_capacity) {
         size_t capacity = walk->lent_capacity == 0 ? 8 : walk->lent_capacity * 2;
         void *grown = realloc(walk->lent, capacity * sizeof(*walk->lent));
@@ -155,13 +160,41 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
         walk->lent = grown; walk->lent_capacity = capacity;
     }
     walk->lent[walk->lent_count].call = moved->lending_call;
+    walk->lent[walk->lent_count].owner_changed = owner_changed;
     walk->lent[walk->lent_count++].admitted = admitted;
     return admitted;
+}
+
+static bool call_copied(const MoveWalk *walk, const ASTNode *call)
+{
+    for (size_t i = 0; i < walk->copied_count; i++)
+        if (walk->copied[i] == call) return true;
+    return false;
+}
+
+/* A getter call whose result a Clone copies fully lends nothing on. */
+static bool note_copied_argument(MoveWalk *walk, const ASTNode *call)
+{
+    const ASTNode *argument = semantic_loan_copy_landing_copied_call(walk->ctx, call);
+    if (argument == NULL) return true;
+    if (walk->copied_count == walk->copied_capacity) {
+        size_t capacity = walk->copied_capacity == 0 ? 8 : walk->copied_capacity * 2;
+        const ASTNode **grown = realloc(walk->copied, capacity * sizeof(*grown));
+        if (grown == NULL) { walk->failed = true; return false; }
+        walk->copied = grown;
+        walk->copied_capacity = capacity;
+    }
+    walk->copied[walk->copied_count++] = argument;
+    return true;
 }
 
 static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
 {
     if (lent_use_admitted(walk, moved) || !reported_once(walk, node)) return;
+    /* The refusal stands in this analysis; a next one copies the loan. */
+    for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++)
+        if (walk->lent[i].call == moved->lending_call && walk->lent[i].owner_changed &&
+            !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
@@ -313,6 +346,7 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
                 break;
             }
         }
+        if (lends && call_copied(walk, call)) continue;
         if (!state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL)) return;
     }
 }
@@ -444,6 +478,7 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
     }
     case AST_CALL: {
         ASTNode *callee = ast_call_callee(node);
+        if (!note_copied_argument(walk, node)) return false;
         if (callee != NULL && callee->type == AST_MEMBER_ACCESS && !walk_expression(walk, state, ast_member_object(callee)))
             return false;
         for (size_t p = 0; p < ast_call_arg_count(node); p++)
@@ -532,6 +567,7 @@ bool semantic_default_aggregate_move_finalize(SemanticContext *ctx)
     }
     free(walk.reported);
     free(walk.lent);
+    free(walk.copied);
     ctx->current_function_decl = previous_decl;
     ctx->current_module_path = previous_module;
     if (walk.failed) semantic_error(ctx, ctx->program_root, "Default aggregate move check allocation failed");

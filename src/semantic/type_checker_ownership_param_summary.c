@@ -502,9 +502,10 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
 }
 
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
-    ASTNode *caller, ASTNode *call, uint32_t owner)
+    ASTNode *caller, ASTNode *call, uint32_t owner, bool *owner_changed)
 {
     SemanticParamPublicationView view;
+    if (owner_changed != NULL) *owner_changed = false;
     if (ctx == NULL || caller == NULL || call == NULL || owner == 0 ||
         !semantic_param_publication_admitted_view(ctx, &view)) return false;
     /* A loan of a local stays in the routine. One of a formal may be
@@ -521,9 +522,11 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
     FunctionParamFlowProgramPointIndex *index;
-    return store != NULL && !store->failed &&
-        function_param_flow_program_point_index_build(store, caller, &index) &&
-        loan_owner_unchanged(store, index->claims, caller, owner, true);
+    if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index))
+        return false;
+    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true);
+    if (!unchanged && owner_changed != NULL) *owner_changed = true;
+    return unchanged;
 }
 
 bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call)

@@ -55,23 +55,45 @@ driver_now_seconds(void)
 
 static void driver_debug_stage(const char *stage);
 
-/* An analysis may select String stores that no proof admits; a fresh load
- * and analysis of the same sources lands them as owned copies. A round that
- * selects nothing new is the result. Bounded: a selection that keeps growing
- * leaves the last round's refusals standing. */
+typedef struct {
+    uint32_t *ids;
+    size_t count;
+} DriverLandingPlan;
+
+/* Adds the identities `plan` lacks; `grew` is set when one was added. */
+static bool
+driver_landing_plan_merge(DriverLandingPlan *plan, const uint32_t *ids, size_t count, bool *grew)
+{
+    for (size_t i = 0; i < count; i++) {
+        bool known = false;
+        for (size_t j = 0; j < plan->count && !known; j++) known = plan->ids[j] == ids[i];
+        if (known) continue;
+        uint32_t *grown = realloc(plan->ids, (plan->count + 1) * sizeof(*grown));
+        if (grown == NULL) return false;
+        plan->ids = grown;
+        plan->ids[plan->count++] = ids[i];
+        *grew = true;
+    }
+    return true;
+}
+
+/* An analysis may select String stores and getter loans that no proof
+ * admits; a fresh load and analysis of the same sources lands them as owned
+ * copies: the stores as the checker lands them, the getter calls wrapped in
+ * Clone. A round that selects nothing new is the result. Bounded: a
+ * selection that keeps growing leaves the last round's refusals standing. */
 static SemanticResult *
 driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
     PgySourceModuleGraph **module_graph, char **load_error)
 {
     SemanticResult *sem = semantic_analyze(*ast);
-    uint32_t *plan = NULL;
-    size_t plan_count = 0;
-    for (size_t round = 0; sem != NULL && sem->string_store_landing_count != 0 && round < 3; round++) {
-        uint32_t *grown = realloc(plan, (plan_count + sem->string_store_landing_count) * sizeof(*plan));
-        if (grown == NULL) break;
-        plan = grown;
-        memcpy(plan + plan_count, sem->string_store_landings, sem->string_store_landing_count * sizeof(*plan));
-        plan_count += sem->string_store_landing_count;
+    DriverLandingPlan stores = {0}, copies = {0};
+    for (size_t round = 0; sem != NULL && round < 3; round++) {
+        bool grew = false;
+        if (!driver_landing_plan_merge(&stores, sem->string_store_landings,
+                sem->string_store_landing_count, &grew) ||
+            !driver_landing_plan_merge(&copies, sem->loan_copy_landings,
+                sem->loan_copy_landing_count, &grew) || !grew) break;
         semantic_result_destroy(sem);
         sem = NULL;
         ast_destroy(*ast);
@@ -81,11 +103,13 @@ driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
         if (*ast == NULL) break;
         forin_desugar_program(*ast);
         match_subject_single_evaluation_desugar_program(*ast);
-        if (!ast_complete_stable_ids(*ast)) break;
+        if (!ast_complete_stable_ids(*ast) ||
+            !ast_wrap_nodes_in_builtin_call(*ast, copies.ids, copies.count, "Clone")) break;
         driver_debug_stage("semantic_landing");
-        sem = semantic_analyze_with_landings(*ast, plan, plan_count);
+        sem = semantic_analyze_with_landings(*ast, stores.ids, stores.count);
     }
-    free(plan);
+    free(stores.ids);
+    free(copies.ids);
     return sem;
 }
 

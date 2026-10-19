@@ -77,9 +77,9 @@ owned_push_landings = {
     "named_string_same_empty_borrowed_then_owned_direct_landed_valid": ("Project", 2),
     "named_string_same_empty_owned_then_borrowed_direct_landed_valid": ("Project", 2),
 }
-# Positive fixtures whose formal String store lands as an owned copy: each
-# routine and the number of Clone calls it must reach MIR with.
-formal_store_landings = {
+# Positive fixtures whose landing reaches MIR as Clone calls (a formal's
+# String store, a copied getter loan): each routine and its Clone count.
+landed_clones = {
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
     "formal_string_store_landing_field_take_valid": {"Append": 1},
@@ -91,17 +91,26 @@ formal_store_landings = {
     "formal_string_store_landing_shadowed_struct_valid": {"Collect": 1},
     "formal_string_store_landing_shadowed_method_valid": {"Label": 1},
     "private_array_push_nonempty_alias_landed_valid": {"Build": 1},
+    "by_value_getter_lend_owner_written_landed_valid": {"Rename": 1},
+    "by_value_getter_lend_mutated_landed_valid": {"Touch": 1},
+    "by_value_getter_lend_local_transfer_landed_valid": {"Make": 1},
+    "by_value_getter_lend_owner_written_shadowed_landed_valid": {"Rename": 1},
 }
-# The analyses a compile runs after the first to land selected String
-# stores: an `inout` output lands in the first, a selection in one more, and
-# a store that is not a formal's String selects none.
-formal_store_landing_rounds = {
+# The analyses a compile runs after the first to land what it selected: an
+# `inout` output lands in the first, a String store or getter loan selection
+# in one more, and a store or loan no copy can land selects none.
+landing_rounds = {
     "formal_string_store_landing_ref_push_valid": 0,
     "formal_string_store_landing_local_receiver_valid": 1,
     "formal_string_store_landing_value_map_valid": 1,
     "formal_array_store_local_receiver_invalid": 0,
     "formal_array_store_field_take_invalid": 0,
     "formal_string_store_local_alias_set_invalid": 0,
+    "by_value_getter_lend_owner_written_landed_valid": 1,
+    "by_value_getter_lend_shared_result_owner_changed_invalid": 0,
+    "by_value_getter_lend_kept_invalid": 0,
+    "default_aggregate_move_reuse_invalid": 0,
+    "default_aggregate_move_cloned_growth_invalid": 0,
     "formal_array_store_inout_output_invalid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
@@ -183,6 +192,8 @@ release_lifetime_refusals = {
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
     "struct_clone_shared_field_ref_returned_invalid": [(*borrow_refusal, 18, 20)],
     "struct_clone_subject_field_ref_returned_invalid": [(*borrow_refusal, 19, 21)],
+    "by_value_getter_lend_shared_result_owner_changed_invalid": [(*released_refusal, 23, 20)],
+    "default_aggregate_move_cloned_growth_invalid": [(*released_refusal, 18, 34), (*released_refusal, 19, 34)],
     "named_string_same_empty_borrowed_then_owned_named_invalid": [(*borrow_refusal, 11, 5)],
     "option_payload_mixed_borrow_invalid": [(*borrow_refusal, 5, 24)],
     "option_payload_unwrap_no_deep_drop_invalid": [(*borrow_refusal, 11, 31)],
@@ -271,9 +282,7 @@ release_lifetime_refusals = {
     # replaced element (13:20) or a Grow that pushes onto the arena (19:27)
     # makes the call a move again, as does a loan returned past a local (14:38).
     "by_value_getter_lend_returned_invalid": [(*released_refusal, 14, 38)],
-    "by_value_getter_lend_mutated_invalid": [(*released_refusal, 19, 27)],
     "by_value_getter_lend_kept_invalid": [(*released_refusal, 14, 30)],
-    "by_value_getter_lend_owner_written_invalid": [(*released_refusal, 13, 20)],
     # A store through an access path of a by-value aggregate changes storage
     # the caller's aggregate shares, so the call moves the argument.
     "default_aggregate_move_field_store_invalid": [(*released_refusal, 16, 22)],
@@ -318,7 +327,6 @@ release_lifetime_refusals = {
     # the loan proof sees at the lending call itself (16:53). Make hands its
     # local arena on while the first loan lives (15:35).
     "by_value_getter_lend_growing_invalid": [(*released_refusal, 16, 53)],
-    "by_value_getter_lend_local_transfer_invalid": [(*released_refusal, 15, 35)],
     # An inout formal may change while the loan lives, so it is not lent.
     "by_value_getter_lend_inout_owner_invalid": [(*borrow_refusal, 13, 34)],
 }
@@ -825,6 +833,8 @@ paired = (
     ("formal_string_store_landing_shadowed_function_valid", True),
     ("formal_string_store_landing_shadowed_struct_valid", True),
     ("formal_string_store_landing_shadowed_method_valid", True),
+    ("by_value_getter_lend_shared_result_owner_changed_invalid", False),
+    ("default_aggregate_move_cloned_growth_invalid", False),
     ("struct_clone_array_field_copied_valid", True),
     ("struct_clone_option_payload_copied_valid", True),
     ("struct_clone_nested_field_copied_valid", True),
@@ -892,9 +902,10 @@ paired = (
     ("by_value_getter_lend_local_valid", True),
     ("by_value_getter_lend_forward_valid", True),
     ("by_value_getter_lend_returned_invalid", False),
-    ("by_value_getter_lend_mutated_invalid", False),
+    ("by_value_getter_lend_mutated_landed_valid", True),
     ("by_value_getter_lend_kept_invalid", False),
-    ("by_value_getter_lend_owner_written_invalid", False),
+    ("by_value_getter_lend_owner_written_landed_valid", True),
+    ("by_value_getter_lend_owner_written_shadowed_landed_valid", True),
     ("default_aggregate_move_field_read_valid", True),
     ("default_aggregate_move_field_store_invalid", False),
     ("default_aggregate_move_field_alias_store_invalid", False),
@@ -905,7 +916,7 @@ paired = (
     ("default_aggregate_move_array_element_alias_store_invalid", False),
     ("default_aggregate_move_array_element_read_call_valid", True),
     ("by_value_getter_lend_growing_invalid", False),
-    ("by_value_getter_lend_local_transfer_invalid", False),
+    ("by_value_getter_lend_local_transfer_landed_valid", True),
     ("by_value_getter_lend_inout_owner_invalid", False),
 )
 for name, valid in paired:
@@ -914,14 +925,14 @@ for name, valid in paired:
         [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         timeout=10.0, check=False)
-    if name in formal_store_landing_rounds:
+    if name in landing_rounds:
         staged = subprocess.run(
             [pgy, "--native-pipeline", "--mir-json", str(source)],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
             env=dict(os.environ, PGY_DEBUG_PIPELINE_STAGE="1"), timeout=10.0, check=False)
         rounds = staged.stderr.decode(errors="replace").splitlines().count("[driver stage] semantic_landing")
-        if rounds != formal_store_landing_rounds[name]:
-            raise SystemExit(f"formal store landing {name} ran {rounds} landing analyses")
+        if rounds != landing_rounds[name]:
+            raise SystemExit(f"landing {name} ran {rounds} landing analyses")
     if valid:
         if checked.returncode != 0 or '"pgy.mir.v1"' not in checked.stdout.decode(errors="replace"):
             sys.stderr.buffer.write(checked.stderr)
@@ -965,10 +976,10 @@ for name, valid in paired:
                     callee.get("binding_kind") != binding_kind or
                     callee.get("binding_syntax_id") != (target_id if binding_kind == "declared_callable" else 0)):
                 raise SystemExit(f"selected-callable {name} lost its exact target/leaf identity")
-        if name in formal_store_landings:
+        if name in landed_clones:
             # The landed store must reach MIR with its Clone of the String.
             document = json.loads(checked.stdout)
-            for routine_name, landed in formal_store_landings[name].items():
+            for routine_name, landed in landed_clones[name].items():
                 calls = [node.get("call_target_name") for row in document.get("routines", [])
                          if row.get("name") == routine_name for block in row.get("blocks", [])
                          for instruction in block.get("instructions", [])
@@ -976,7 +987,7 @@ for name, valid in paired:
                          if isinstance(instruction.get(lane), dict)
                          for node in instruction[lane].get("nodes", []) if node.get("kind") == "call"]
                 if calls.count("Clone") != landed:
-                    raise SystemExit(f"formal store landing {name} did not reach MIR with Clone in {routine_name}: {calls}")
+                    raise SystemExit(f"landing {name} did not reach MIR with Clone in {routine_name}: {calls}")
         if name in owned_push_landings:
             # The landed push must reach MIR as the owned-copy operation.
             routine_name, landed = owned_push_landings[name]
@@ -1531,6 +1542,10 @@ for name, expected in (
     ("formal_string_store_landing_shadowed_function_valid", "2ba"),
     ("formal_string_store_landing_shadowed_struct_valid", "1a7"),
     ("formal_string_store_landing_shadowed_method_valid", "tt"),
+    ("by_value_getter_lend_owner_written_landed_valid", "2"),
+    ("by_value_getter_lend_mutated_landed_valid", "4"),
+    ("by_value_getter_lend_local_transfer_landed_valid", "abcd"),
+    ("by_value_getter_lend_owner_written_shadowed_landed_valid", "2"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

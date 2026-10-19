@@ -112,6 +112,10 @@ typedef struct SemanticResult
      * second analysis applies them (formal_string_store_landing_owner.h). */
     uint32_t     *string_store_landings;
     size_t       string_store_landing_count;
+    /* Getter calls whose loan failed only by an owner change; a second
+     * analysis takes each as `Clone(call)` (default_aggregate_move_owner.h). */
+    uint32_t     *loan_copy_landings;
+    size_t       loan_copy_landing_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------

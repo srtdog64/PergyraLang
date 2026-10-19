@@ -1,0 +1,26 @@
+// A program function named Clone does not take over the copy a getter loan
+// lands as: the wrapped call is the builtin, so Rename measures the text
+// AtomText returned, not the function's.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Rename(arena: Arena) -> Int {
+    let first: String = AtomText(arena, 0);
+    ArraySet(arena.atoms, 0, StringConcat("zz", ""));
+    return StringLength(first);
+}
+
+func Clone(text: String) -> String {
+    return "user";
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(ToString(Rename(arena)));
+    return 0;
+}

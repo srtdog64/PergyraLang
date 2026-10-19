@@ -4,6 +4,8 @@
  */
 
 #include "ast.h"
+#include "ast_api.h"
+#include "../common/string_compat.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -16,7 +18,33 @@ typedef struct {
     FuncParam **params;
     size_t param_count;
     size_t param_capacity;
+    /* Nodes whose identity is listed, gathered by an inspecting walk. */
+    const uint32_t *collect_ids;
+    size_t collect_count;
+    ASTNode **collected;
+    size_t collected_count, collected_capacity;
 } AstIdentityState;
+
+static void
+ast_collect_listed(AstIdentityState *state, ASTNode *node)
+{
+    bool listed = false;
+    for (size_t i = 0; i < state->collect_count && !listed; i++)
+        listed = node->stable_id != 0 && state->collect_ids[i] == node->stable_id;
+    if (!listed)
+        return;
+    if (state->collected_count == state->collected_capacity) {
+        size_t capacity = state->collected_capacity == 0 ? 8 : state->collected_capacity * 2;
+        ASTNode **grown = realloc(state->collected, capacity * sizeof(*grown));
+        if (grown == NULL) {
+            state->exhausted = true;
+            return;
+        }
+        state->collected = grown;
+        state->collected_capacity = capacity;
+    }
+    state->collected[state->collected_count++] = node;
+}
 
 static void ast_assign_node(ASTNode *node, AstIdentityState *next_id);
 
@@ -212,6 +240,8 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
     node->stable_id = ast_complete_id(next_id, node->stable_id);
     if (next_id == NULL || next_id->exhausted)
         return;
+    if (next_id->collect_ids != NULL)
+        ast_collect_listed(next_id, node);
 
     switch (node->type) {
     case AST_PROGRAM:
@@ -698,6 +728,50 @@ ast_stable_id_ceiling(ASTNode *root)
         (void)ast_complete_id(&state, state.params[i]->stable_id);
     free(state.params);
     return state.exhausted || state.next_id > UINT32_MAX ? 0 : (uint32_t)state.next_id;
+}
+
+bool
+ast_wrap_nodes_in_builtin_call(ASTNode *root, const uint32_t *ids, size_t count,
+                               const char *callee_name)
+{
+    if (count == 0)
+        return true;
+    if (root == NULL || ids == NULL || callee_name == NULL)
+        return false;
+    AstIdentityState state = {
+        .next_id = 1, .preserve_existing = true, .inspect_only = true,
+        .collect_ids = ids, .collect_count = count,
+    };
+    ast_assign_node(root, &state);
+    for (size_t i = 0; i < state.param_count; i++)
+        (void)ast_complete_id(&state, state.params[i]->stable_id);
+    free(state.params);
+    bool ok = !state.exhausted;
+    uint64_t next = state.next_id;
+    for (size_t i = 0; ok && i < state.collected_count; i++) {
+        ASTNode *node = state.collected[i];
+        ASTNode *callee = next + 2 <= UINT32_MAX ? ast_create_identifier(callee_name) : NULL;
+        ASTNode *moved = callee != NULL ? ast_create_call(callee) : NULL;
+        if (moved == NULL) {
+            ok = false;
+            break;
+        }
+        /* The node keeps its place in its parent and becomes the call; the
+         * new node takes its content, identity and position. */
+        ASTNode content = *node;
+        *node = *moved;
+        *moved = content;
+        node->line = callee->line = moved->line;
+        node->column = callee->column = moved->column;
+        node->origin_path = moved->origin_path != NULL ? pergyra_strdup(moved->origin_path) : NULL;
+        node->stable_id = (uint32_t)next++;
+        callee->stable_id = (uint32_t)next++;
+        ast_add_argument(node, moved);
+        ok = ast_call_arg_count(node) == 1 && ast_call_set_compiler_builtin(node) &&
+            (moved->origin_path == NULL || node->origin_path != NULL);
+    }
+    free(state.collected);
+    return ok;
 }
 
 uint32_t

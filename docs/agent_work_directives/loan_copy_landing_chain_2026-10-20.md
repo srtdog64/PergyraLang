@@ -104,6 +104,27 @@ Status: PLAN, Claude lane, single implementation lane. Base revision
     the self-host driver builds on this branch.
   - Clone of an Array of structs, generic instances and zones.
 
+## Loan copy landed for an owner change (steps 2 and 3)
+
+- **Selection.** The move owner selects a lending call when its loan failed
+  only because the owner changed (`function_param_flow_lent_argument_admitted`
+  reports that). Two more conditions apply:
+  - the call changes no storage it shares with its caller;
+  - a Clone copies its result fully.
+
+  The refusal stands in that analysis (`loan_copy_landing_owner.c`).
+- **Application.** The driver wraps each selected call in place as
+  `Clone(call)`, marked checker-built (`ast_wrap_nodes_in_builtin_call`),
+  before the next analysis. A call whose result such a Clone copies lends
+  nothing, so its argument is not moved.
+- **A call that grows its argument in place is still a move.** Without that
+  rule, seven move negatives such as `default_aggregate_move_reuse_invalid`
+  were admitted. Cloning the result does not undo the growth in the
+  caller's storage.
+- **Still open:** a loan that leaves the routine is still refused. Its copy
+  goes where it leaves, and that needs the escaping value, not the
+  consumer the loan walk reports.
+
 ## Application landed for formal String stores
 
 The two-run application of step 3 now exists, first for the String stores

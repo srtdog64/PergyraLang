@@ -1,5 +1,6 @@
 // AtomText lends Rename's by-value arena, and Rename replaces the lent
-// element before it uses the loan.
+// element before it uses the loan. The loan is copied where it is made, as
+// Clone(AtomText(arena, 0)), so Rename measures the text it read.
 struct Arena {
     atoms: Array<String>;
 }

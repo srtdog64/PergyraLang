@@ -15,6 +15,12 @@ bool ast_assign_stable_ids(ASTNode* root);
 /* Assign only missing identities after growth; existing node/binder IDs stay fixed. */
 bool ast_complete_stable_ids(ASTNode* root);
 uint32_t ast_stable_id_ceiling(ASTNode* root);
+/* Each node whose identity is in `ids` becomes the checker-built builtin
+ * call `callee_name(node)`: the node keeps its place in its parent, a new
+ * node takes its content and identity, and the call takes identities above
+ * the tree's. False when identities or memory run out. */
+bool ast_wrap_nodes_in_builtin_call(ASTNode* root, const uint32_t* ids, size_t count,
+                                    const char* callee_name);
 uint32_t ast_node_stable_id(const ASTNode* node);
 size_t ast_program_statement_count(const ASTNode* node);
 ASTNode** ast_program_statements(const ASTNode* node, size_t* count_out);

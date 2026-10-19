@@ -39,6 +39,11 @@ static bool clone_copies_deeply(SemanticContext *ctx, const Type *type, int dept
     }
 }
 
+bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Type *type)
+{
+    return clone_copies_deeply(ctx, type, 0);
+}
+
 static bool publication_result_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool backing, bool *result_depends, bool *external_retains)
 {
@@ -77,7 +82,7 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
             row->target_name == NULL || strcmp(row->target_name, "Clone") != 0 ||
             input == NULL || input->node != ast_call_argument(call, 0) ||
             !type_equals(input->value_type, row->value_type)) return false;
-        *result_depends = !clone_copies_deeply((SemanticContext *)ctx, input->value_type, 0);
+        *result_depends = !semantic_param_publication_clone_independent((SemanticContext *)ctx, input->value_type);
         *external_retains = false;
         return true;
     }

@@ -362,6 +362,9 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
     result->string_store_landings = ctx->string_store_landing_selected;
     result->string_store_landing_count = ctx->string_store_landing_selected_count;
     ctx->string_store_landing_selected = NULL;
+    result->loan_copy_landings = ctx->loan_copy_landing_selected;
+    result->loan_copy_landing_count = ctx->loan_copy_landing_selected_count;
+    ctx->loan_copy_landing_selected = NULL;
     result->annotated_ast    = ast;
     result->diagnostic_count = ctx->diagnostic_count;
     result->diagnostics      = ctx->diagnostics;
@@ -489,6 +492,7 @@ semantic_result_destroy(SemanticResult *result)
     }
     free(result->diagnostics);
     free(result->string_store_landings);
+    free(result->loan_copy_landings);
     free(result->lifecycle_state_spaces);
     semantic_parallel_capture_facts_clear(
         result->parallel_capture_boundaries,

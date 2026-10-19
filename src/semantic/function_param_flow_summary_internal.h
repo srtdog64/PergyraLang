@@ -149,9 +149,11 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
 /* A read-and-return callee lent `call`'s by-value argument, rooted at the
  * formal `owner`, and `caller` uses that argument again: admitted when the
  * loan stays in `caller`, or leaves it only as `caller`'s own summary returns
- * the formal, and nothing in `caller` changes the owner. */
+ * the formal, and nothing in `caller` changes the owner. When given,
+ * `owner_changed` says that the loan itself was admitted and only a change
+ * of its owner refused it. */
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
-    ASTNode *caller, ASTNode *call, uint32_t owner);
+    ASTNode *caller, ASTNode *call, uint32_t owner, bool *owner_changed);
 /* The backing `call`'s result carries never leaves `caller`. */
 bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call);
 typedef struct {

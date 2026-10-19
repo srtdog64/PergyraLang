@@ -314,6 +314,9 @@ void semantic_param_publication_retire_value(PublishedNode *row);
 bool semantic_param_publication_reserve_storage(void **rows, size_t *capacity, size_t count, size_t size);
 bool semantic_param_publication_checked_result_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool *result_depends, bool *external_retains);
+/* C and LLVM copy every part of a value of `type` into new storage when it
+ * is cloned, so the Clone's result shares nothing with its argument. */
+bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Type *type);
 bool semantic_param_publication_checked_backing_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool *result_depends, bool *external_retains);
 bool semantic_param_publication_record_empty_map_binding(SemanticContext *ctx,

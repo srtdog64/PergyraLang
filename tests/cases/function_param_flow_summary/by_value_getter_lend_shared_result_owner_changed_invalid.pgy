@@ -1,0 +1,31 @@
+// ShelfOf lends Rename's by-value store, and Rename changes the store while
+// the loan lives. A Clone of the Shelf result copies its Array of Box
+// structs only by value, so no copy is landed and the loan is refused.
+struct Box {
+    items: Array<Int>;
+}
+
+struct Shelf {
+    boxes: Array<Box>;
+}
+
+struct Store {
+    shelf: Shelf;
+    names: Array<String>;
+}
+
+func ShelfOf(store: Store) -> Shelf {
+    return store.shelf;
+}
+
+func Rename(store: Store) -> Int {
+    let shelf: Shelf = ShelfOf(store);
+    ArraySet(store.names, 0, StringConcat("zz", ""));
+    return ArrayLength(shelf.boxes);
+}
+
+func Main() -> Int {
+    let store: Store = Store(Shelf([Box([1])]), [StringConcat("ab", "")]);
+    Print(ToString(Rename(store)));
+    return 0;
+}

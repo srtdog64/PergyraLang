@@ -1,0 +1,65 @@
+/* Loan copy landing: which getter call a next analysis clones, and which
+ * call's result a Clone copies into storage of its own. */
+#include "loan_copy_landing_owner.h"
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "builtin_kind.h"
+#include "function_param_publication_owner.h"
+#include "slot_summary.h"
+#include "type_checker_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "../parser/ast_api.h"
+
+/* The call changes no storage it shares with its caller through any
+ * argument: a copy of its result then leaves the caller as it was. A call
+ * that grows or changes such storage in place is a move, whatever becomes
+ * of its result. */
+static bool loan_call_preserves_storage(SemanticContext *ctx, const ASTNode *call)
+{
+    for (size_t p = 0; p < ast_call_arg_count(call); p++) {
+        SemanticPublishedValue argument = semantic_param_publication_value(ctx, ast_call_argument(call, p));
+        if (!argument.ok) return false;
+        if (argument.meta || type_equals(argument.type, TYPE_STRING) ||
+            semantic_classify_ownership_type(argument.type, ctx) == OWNERSHIP_TYPE_COPY_ONLY) continue;
+        ASTNode *callee = semantic_param_publication_callee(ctx, call, p);
+        size_t formal = 0;
+        if (callee == NULL || !semantic_param_publication_formal_for_actual(ctx, call, p, &formal) ||
+            !function_param_flow_preserves_array_storage(ctx, callee, formal)) return false;
+    }
+    return true;
+}
+
+bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call)
+{
+    uint32_t id = ast_node_stable_id(call);
+    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+    if (id == 0 || !result.ok || result.meta || !loan_call_preserves_storage(ctx, call) ||
+        !semantic_param_publication_clone_independent(ctx, result.type)) return true;
+    for (size_t i = 0; i < ctx->loan_copy_landing_selected_count; i++)
+        if (ctx->loan_copy_landing_selected[i] == id) return true;
+    if (ctx->loan_copy_landing_selected_count == ctx->loan_copy_landing_selected_capacity) {
+        size_t capacity = ctx->loan_copy_landing_selected_capacity == 0 ? 16
+            : ctx->loan_copy_landing_selected_capacity * 2;
+        uint32_t *grown = realloc(ctx->loan_copy_landing_selected, capacity * sizeof(*grown));
+        if (grown == NULL) return false;
+        ctx->loan_copy_landing_selected = grown;
+        ctx->loan_copy_landing_selected_capacity = capacity;
+    }
+    ctx->loan_copy_landing_selected[ctx->loan_copy_landing_selected_count++] = id;
+    return true;
+}
+
+const ASTNode *semantic_loan_copy_landing_copied_call(SemanticContext *ctx, const ASTNode *call)
+{
+    uint32_t builtin = 0;
+    bool depends = true, retains = true;
+    const ASTNode *argument = ast_call_arg_count(call) == 1 ? ast_call_argument(call, 0) : NULL;
+    if (argument == NULL || argument->type != AST_CALL ||
+        !ast_call_semantic_callee_builtin_kind(call, &builtin) || builtin != BUILTIN_CLONE ||
+        !ast_call_semantic_callee_is_stdlib(call) ||
+        !semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains) ||
+        depends || retains || !loan_call_preserves_storage(ctx, argument)) return NULL;
+    return argument;
+}

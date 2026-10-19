@@ -138,7 +138,7 @@ bool semantic_indexed_string_named_call_lends(SemanticContext *ctx, ASTNode *rou
         string_formal_within(ctx, call, callee, ordinal,
             SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE) &&
         other_arguments_read(ctx, call, callee, ordinal) &&
-        function_param_flow_lent_argument_admitted(ctx, routine, call, owner);
+        function_param_flow_lent_argument_admitted(ctx, routine, call, owner, NULL);
 }
 
 static bool receipt_admitted(SemanticContext *ctx, const NamedCallReceipt *row)
