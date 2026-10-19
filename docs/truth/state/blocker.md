@@ -7,10 +7,9 @@ Owner: Claude lane (main-line work since 2026-10-18,
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 4401 downgraded
-refusals with every final owner run (6915 at `a4e2649c8`).
-[Census record](../evidence/2026-10-20_native_census_aliases_none_views.md).
-The CI test harness manifest compiles on the native pipeline since
-`e23761a3a`; main refuses it.
+refusals with every final owner run (6915 at `a4e2649c8`;
+[census record](../evidence/2026-10-20_native_census_aliases_none_views.md)).
+The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
@@ -56,9 +55,6 @@ The CI test harness manifest compiles on the native pipeline since
 
 ## CI comparison
 
-- `make ci-push-linux` at `2333da64c` failed the same 49 of 65 steps as
-  main `7cd004fab`. It has not been rerun since.
-- `aggregate_storage_transfer_smoke` and
-  `hashmap_owned_string_provenance_smoke` were already red at `7cd004fab`.
-- Bootstrap, installed driver, gen2 == gen3 and required CI are not
-  established on this branch.
+`make ci-push-linux` at `2333da64c` failed the same 49 of 65 steps as main
+`7cd004fab` (not rerun since). Bootstrap, installed driver, gen2 == gen3
+and required CI are not established on this branch.
