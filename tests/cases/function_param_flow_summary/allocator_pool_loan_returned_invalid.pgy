@@ -1,0 +1,20 @@
+// Make returns text that lives in its own pool.
+func Wrap(value: String, allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 2);
+    TextBuilderAppend(output, "[");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, "]");
+    let wrapped: String = TextBuilderFinish(output, allocator);
+    return wrapped;
+}
+
+func Make(value: String) -> String {
+    let pool: Allocator = AllocatorPool(64);
+    let wrapped: String = Wrap(value, pool);
+    return wrapped;
+}
+
+func Main() -> Int {
+    Print(Make(Concat("a", "b")));
+    return 0;
+}

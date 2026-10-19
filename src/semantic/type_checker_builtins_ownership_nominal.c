@@ -182,6 +182,12 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
     }
 
     semantic_record_effect(ctx, EFFECT_ALLOC);
+    /* The parameter-flow result relation of a pool reads this receipt. */
+    if (requires_capacity && (TYPE_ALLOCATOR->name == NULL ||
+            !ast_call_set_semantic_value_type_name_copy(call, TYPE_ALLOCATOR->name))) {
+        semantic_error(ctx, call, "AllocatorPool result type receipt could not be recorded");
+        return TYPE_UNKNOWN;
+    }
     return TYPE_ALLOCATOR;
 }
 

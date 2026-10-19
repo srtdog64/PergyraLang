@@ -79,6 +79,33 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
         *external_retains = false;
         return true;
     }
+    if (row->builtin == BUILTIN_ALLOCATOR_POOL) {
+        /* A pool is new storage sized by its scalar capacity; it keeps and
+         * depends on nothing. Text finished with it is the allocator lane
+         * owner's to check. */
+        PublishedNode *input = publication_current_value(ctx, row->arguments[ordinal].node);
+        if (!row->kind_present || row->declaration != 0 || row->value_binding != 0 ||
+            row->argument_count != 1 || input == NULL || input->node != ast_call_argument(call, ordinal) ||
+            !publication_physical_scalar(input->value_type) || row->value_type != TYPE_ALLOCATOR ||
+            ast_call_semantic_value_type_name(call) == NULL) return false;
+        *result_depends = false;
+        *external_retains = false;
+        return true;
+    }
+    if (row->builtin == BUILTIN_TEXT_BUILDER_FINISH) {
+        /* The finished String takes the builder's buffer, which holds copies
+         * of what was appended, so it depends on no builder input. A result
+         * lane allocator gives it heap storage of its own; any other
+         * allocator, a pool among them, holds it, so the result depends on
+         * that argument (2026-10-19_finished_text_borrows_its_allocator). */
+        if (!row->kind_present || row->declaration != 0 || row->value_binding != 0 ||
+            row->argument_count != 2 || row->arguments[0].type != TYPE_TEXT_BUILDER ||
+            row->arguments[1].type != TYPE_ALLOCATOR || !type_equals(row->value_type, TYPE_STRING) ||
+            ast_call_semantic_value_type_name(call) == NULL) return false;
+        *result_depends = ordinal == 1 && !semantic_param_publication_checked_finish_independent(ctx, call);
+        *external_retains = false;
+        return true;
+    }
     if (row->builtin == BUILTIN_DIR_WALK) {
         /* DirWalk copies every path it finds into a new Array of new Strings
          * (runtime pgy_dir_walk_push_file) and keeps neither its root nor

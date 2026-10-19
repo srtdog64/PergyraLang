@@ -416,6 +416,8 @@ bool semantic_param_publication_record_result_allocator_binding(SemanticContext 
     ASTNode *declaration, const Type *type);
 void semantic_param_publication_invalidate_allocator_binding(SemanticContext *ctx, const ASTNode *value);
 bool semantic_param_publication_checked_finish_independent(const SemanticContext *ctx, const ASTNode *call);
+/* The call's Allocator argument at `ordinal` is a local result lane. */
+bool semantic_param_publication_result_lane_argument(const SemanticContext *ctx, const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_checked_readfile_independent(const SemanticContext *ctx, const ASTNode *call);
 bool semantic_param_publication_checked_local_owner_constructor(
     const SemanticContext *ctx, const ASTNode *call);

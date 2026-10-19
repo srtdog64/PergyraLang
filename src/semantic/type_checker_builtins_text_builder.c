@@ -167,7 +167,13 @@ type_check_text_builder_builtin(ASTNode *call, SemanticContext *ctx,
 
     builder_symbol->is_consumed = true;
     semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
-    if (kind == BUILTIN_TEXT_BUILDER_FINISH)
+    if (kind == BUILTIN_TEXT_BUILDER_FINISH) {
         semantic_record_effect(ctx, EFFECT_ALLOC);
+        /* The parameter-flow result relation reads this sealed receipt. */
+        if (!ast_call_set_semantic_value_type_name_copy(call, "String")) {
+            semantic_error(ctx, call, "TextBuilderFinish result type receipt could not be recorded");
+            return TYPE_UNKNOWN;
+        }
+    }
     return kind == BUILTIN_TEXT_BUILDER_FINISH ? TYPE_STRING : TYPE_VOID;
 }

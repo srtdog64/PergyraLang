@@ -398,12 +398,16 @@ void semantic_param_publication_invalidate_allocator_binding(SemanticContext *ct
     PublishedNode *row = publication_allocator_binding(ctx, ast_identifier_binding_syntax_id(value));
     if (row != NULL && row->result_allocator_binding) row->allocator_invalidated = true;
 }
-bool semantic_param_publication_checked_finish_independent(const SemanticContext *ctx, const ASTNode *call)
+/* The call's Allocator argument at `ordinal` names a local this routine
+ * made with AllocatorResult() and never rebound or handed to a call that
+ * could rebind it: a result lane, whose finished text owns heap storage. */
+static bool publication_result_lane_argument(const SemanticContext *ctx, const PublishedNode *call_row,
+    size_t ordinal)
 {
-    PublishedNode *finish = publication_checked_intrinsic(ctx, call, BUILTIN_TEXT_BUILDER_FINISH, TYPE_STRING, 2);
-    if (finish == NULL || finish->arguments[0].type != TYPE_TEXT_BUILDER ||
-        finish->arguments[1].type != TYPE_ALLOCATOR || finish->arguments[1].shape != AST_IDENTIFIER) return false;
-    const PublishedCallArgument *arg = &finish->arguments[1];
+    if (call_row == NULL || ordinal >= call_row->argument_count ||
+        call_row->arguments[ordinal].type != TYPE_ALLOCATOR ||
+        call_row->arguments[ordinal].shape != AST_IDENTIFIER) return false;
+    const PublishedCallArgument *arg = &call_row->arguments[ordinal];
     PublishedNode *row = publication_allocator_binding(ctx, arg->binding);
     if (row == NULL || !row->result_allocator_binding || row->allocator_invalidated ||
         row->node == NULL || row->node->type != AST_LET_DECL || row->id != ast_node_stable_id(row->node) ||
@@ -411,7 +415,7 @@ bool semantic_param_publication_checked_finish_independent(const SemanticContext
         row->target_name == NULL || ast_let_name(row->node) == NULL ||
         strcmp(row->target_name, ast_let_name(row->node)) != 0 || ast_identifier_name(arg->node) == NULL ||
         strcmp(row->target_name, ast_identifier_name(arg->node)) != 0 || row->caller == NULL ||
-        row->caller != finish->caller || row->caller_id != ast_node_stable_id(row->caller) ||
+        row->caller != call_row->caller || row->caller_id != ast_node_stable_id(row->caller) ||
         row->allocator_initializer != ast_let_initializer(row->node) || row->allocator_initializer_id == 0 ||
         row->allocator_initializer_id != ast_node_stable_id(row->allocator_initializer) ||
         row->allocator_type_node != ast_let_type(row->node) ||
@@ -421,6 +425,17 @@ bool semantic_param_publication_checked_finish_independent(const SemanticContext
              (ASTNode *)row->allocator_type_node) != TYPE_ALLOCATOR))) return false;
     return publication_checked_intrinsic(ctx, row->allocator_initializer,
         BUILTIN_ALLOCATOR_RESULT, TYPE_ALLOCATOR, 0) != NULL;
+}
+bool semantic_param_publication_checked_finish_independent(const SemanticContext *ctx, const ASTNode *call)
+{
+    PublishedNode *finish = publication_checked_intrinsic(ctx, call, BUILTIN_TEXT_BUILDER_FINISH, TYPE_STRING, 2);
+    return finish != NULL && finish->arguments[0].type == TYPE_TEXT_BUILDER &&
+        publication_result_lane_argument(ctx, finish, 1);
+}
+bool semantic_param_publication_result_lane_argument(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
+{
+    return semantic_param_publication_checked_call(ctx, call) &&
+        publication_result_lane_argument(ctx, publication_result_current(ctx, call), ordinal);
 }
 bool semantic_param_publication_pending(const SemanticContext *ctx)
 { return publication_generation_ready(ctx) && ctx->function_param_publications->pending; }
@@ -441,8 +456,10 @@ bool semantic_param_publication_call_analysis_unmodelled(
 {
     PublishedNode *row = publication_result_current(ctx, call);
     if (row == NULL || row->nominal_result != NULL || row->result_relation) return false;
-    if (row->kind_present && row->builtin == BUILTIN_TEXT_BUILDER_FINISH &&
-        !semantic_param_publication_checked_finish_independent(ctx, call)) return true;
+    if (row->kind_present && row->builtin == BUILTIN_TEXT_BUILDER_FINISH) {
+        bool depends = false, retains = false;
+        return !semantic_param_publication_checked_result_relation(ctx, call, 1, &depends, &retains);
+    }
     if (semantic_param_publication_checked_local_owner_constructor(ctx, call)) return false;
     if (row->selected_callable != NULL &&
         semantic_param_publication_direct_callee(ctx, call) != NULL) return false;

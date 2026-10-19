@@ -1,0 +1,18 @@
+// The text Wrap finished lives in the pool, and Main prints it after
+// destroying the pool.
+func Wrap(value: String, allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 2);
+    TextBuilderAppend(output, "[");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, "]");
+    let wrapped: String = TextBuilderFinish(output, allocator);
+    return wrapped;
+}
+
+func Main() -> Int {
+    let pool: Allocator = AllocatorPool(64);
+    let wrapped: String = Wrap(Concat("a", "b"), pool);
+    AllocatorDestroy(pool);
+    Print(wrapped);
+    return 0;
+}

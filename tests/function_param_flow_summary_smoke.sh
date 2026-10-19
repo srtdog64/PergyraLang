@@ -253,6 +253,15 @@ release_lifetime_refusals = {
     "string_element_returned_by_named_call_past_owner_invalid": [(*borrow_refusal, 19, 24)],
     "string_element_returned_by_named_call_owner_changed_invalid": [(*borrow_refusal, 19, 24)],
     "string_element_returned_in_result_loop_kept_invalid": [(*borrow_refusal, 24, 28)],
+    # Text finished with a non-result allocator lives in it. A pool's text
+    # read after AllocatorDestroy (16:11, 17:11) or returned past the pool
+    # (13:27) is refused; so is a builder finished with a pool and returned
+    # after the destroy (5:18 and 7:12, 6:18 and 8:12 after a rebind).
+    "allocator_pool_read_after_destroy_invalid": [(*borrow_refusal, 16, 11)],
+    "allocator_pool_loan_returned_invalid": [(*borrow_refusal, 13, 27)],
+    "allocator_pool_loan_kept_outside_invalid": [(*borrow_refusal, 17, 11)],
+    "pool_builder_birth_invalid": [(*borrow_refusal, 5, 18), (*borrow_refusal, 7, 12)],
+    "rebound_pool_builder_birth_invalid": [(*borrow_refusal, 6, 18), (*borrow_refusal, 8, 12)],
     "default_aggregate_move_nested_field_write_invalid": [(*released_refusal, 20, 27)],
     # An element of a by-value Array formal is such a path too.
     "default_aggregate_move_array_element_alias_store_invalid": [(*released_refusal, 17, 33)],
@@ -305,6 +314,8 @@ paired = (
     ("secure_implicit_token_keep_invalid", False),
     ("result_builder_birth_valid", True),
     ("retaining_capacity_builder_birth_invalid", False),
+    ("pool_builder_birth_invalid", False),
+    ("rebound_pool_builder_birth_invalid", False),
     ("wrapper_pool_builder_birth_invalid", False),
     ("wrapper_opaque_builder_birth_invalid", False),
     ("wrapper_rebound_builder_birth_invalid", False),
@@ -729,6 +740,12 @@ paired = (
     ("string_element_returned_in_result_loop_valid", True),
     ("string_element_returned_in_result_loop_kept_invalid", False),
     ("string_element_returned_from_dir_walk_rows_valid", True),
+    ("allocator_result_lane_wrapper_valid", True),
+    ("allocator_pool_used_before_destroy_valid", True),
+    ("allocator_formal_finish_forwarded_valid", True),
+    ("allocator_pool_read_after_destroy_invalid", False),
+    ("allocator_pool_loan_returned_invalid", False),
+    ("allocator_pool_loan_kept_outside_invalid", False),
     ("string_element_inout_owner_named_call_invalid", False),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),
@@ -914,7 +931,9 @@ for name, valid in paired:
             "result_frame_formal_nominal_invalid": [(14, 5)],
             "result_frame_formal_array_push_invalid": [(15, 5)],
             "physical_call_alias_nested_retain_invalid": [(16, 52), (22, 28)],
-            "physical_call_alias_scalar_opaque_invalid": [(23, 28)],
+            # Build finishes text with a foreign allocator and returns it after
+            # the destroy: refused there (11:18, 13:12), not at Probe's call.
+            "physical_call_alias_scalar_opaque_invalid": [(11, 18), (13, 12)],
             "physical_call_alias_descriptor_retain_invalid": [(11, 27), (17, 28)],
         }
         if name in retained_sites and (checked.stdout or
@@ -1155,9 +1174,7 @@ required_backing_message = (
     "required return backing relation is incomplete or stale"
 )
 for name in (
-    "pool_builder_birth_invalid",
     "opaque_builder_birth_invalid",
-    "rebound_pool_builder_birth_invalid",
 ):
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
     checked = subprocess.run(

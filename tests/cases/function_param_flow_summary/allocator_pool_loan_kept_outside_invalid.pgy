@@ -1,0 +1,19 @@
+// kept is declared before the pool, holds text that lives in it, and is
+// printed after the pool is destroyed.
+func Wrap(value: String, allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 2);
+    TextBuilderAppend(output, "[");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, "]");
+    let wrapped: String = TextBuilderFinish(output, allocator);
+    return wrapped;
+}
+
+func Main() -> Int {
+    let kept: String = "";
+    let pool: Allocator = AllocatorPool(64);
+    kept = Wrap(Concat("a", "b"), pool);
+    AllocatorDestroy(pool);
+    Print(kept);
+    return 0;
+}

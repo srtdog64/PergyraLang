@@ -152,6 +152,8 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
  * the formal, and nothing in `caller` changes the owner. */
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     ASTNode *caller, ASTNode *call, uint32_t owner);
+/* The backing `call`'s result carries never leaves `caller`. */
+bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call);
 typedef struct {
     ASTNode *node;
     uint32_t id, binding;

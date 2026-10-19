@@ -1,0 +1,23 @@
+// Quote hands its allocator on to Wrap and returns Wrap's text, so its
+// own summary returns the allocator too; Main passes a result lane.
+func Wrap(value: String, allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 2);
+    TextBuilderAppend(output, "[");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, "]");
+    let wrapped: String = TextBuilderFinish(output, allocator);
+    return wrapped;
+}
+
+func Quote(value: String, allocator: Allocator) -> String {
+    let inner: String = Wrap(value, allocator);
+    return Wrap(inner, allocator);
+}
+
+func Main() -> Int {
+    let allocator: Allocator = AllocatorResult();
+    let quoted: String = Quote(Concat("a", "b"), allocator);
+    AllocatorDestroy(allocator);
+    Print(quoted);
+    return 0;
+}

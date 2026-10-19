@@ -248,10 +248,17 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
         row->arguments[0].type == TYPE_TEXT_BUILDER && row->arguments[1].type == TYPE_ALLOCATOR;
     bool checked_destroy = publication_checked_intrinsic(ctx, call,
         BUILTIN_ALLOCATOR_DESTROY, TYPE_VOID, 1) != NULL && row->arguments[0].type == TYPE_ALLOCATOR;
+    /* A declared routine that takes the allocator by value or by `ref` can
+     * finish text with it but cannot rebind the caller's binding, so the
+     * binding stays a result lane. Any other call may replace it. */
     if (!checked_finish && !checked_destroy)
-        for (size_t p = 0; p < count; p++)
-            if (row->arguments[p].type == TYPE_ALLOCATOR)
-                semantic_param_publication_invalidate_allocator_binding(ctx, row->arguments[p].node);
+        for (size_t p = 0; p < count; p++) {
+            if (row->arguments[p].type != TYPE_ALLOCATOR) continue;
+            FuncParam *formal = row->selected_callable != NULL && ast_func_body(row->selected_callable) != NULL
+                ? ast_func_param(row->selected_callable, row->arguments[p].formal_ordinal) : NULL;
+            if (formal != NULL && (formal->mode == PARAM_MODE_DEFAULT || formal->mode == PARAM_MODE_REF)) continue;
+            semantic_param_publication_invalidate_allocator_binding(ctx, row->arguments[p].node);
+        }
     if (row->kind_present && row->builtin == BUILTIN_READ && row->value_present && !row->physical_scalar &&
         !publication_record_read_payload_loan(ctx, call)) return false;
     if (row->value_present && row->string_value && semantic_indexed_string_independent_result(call, ctx))

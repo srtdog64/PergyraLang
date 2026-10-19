@@ -12,6 +12,7 @@
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
 #include "default_aggregate_move_owner.h"
+#include "allocator_lane_loan_owner.h"
 #include "string_window_extent.h"
 #include "indexed_string_named_call_owner.h"
 #include "diag_codes.h"
@@ -593,6 +594,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         || !semantic_collection_owned_element_requirements_finalize(ctx)
         || !semantic_string_window_extent_finalize(ctx)
         || !semantic_default_aggregate_move_finalize(ctx)
+        || !semantic_allocator_lane_loan_finalize(ctx)
         || !semantic_indexed_string_named_call_finalize(ctx)) {
         free(topo_order);
         return false;

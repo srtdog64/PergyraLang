@@ -1,0 +1,23 @@
+// Wrap finishes text with the allocator it is given, so its result
+// borrows that allocator. Escape passes a result lane, whose finished text
+// owns heap storage, so the text outlives the allocator's destroy.
+func Wrap(value: String, allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 2);
+    TextBuilderAppend(output, "[");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, "]");
+    let wrapped: String = TextBuilderFinish(output, allocator);
+    return wrapped;
+}
+
+func Escape(value: String) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let escaped: String = Wrap(value, allocator);
+    AllocatorDestroy(allocator);
+    return escaped;
+}
+
+func Main() -> Int {
+    Print(Escape(Concat("a", "b")));
+    return 0;
+}

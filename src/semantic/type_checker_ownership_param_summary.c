@@ -510,6 +510,15 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
         loan_owner_unchanged(store, index->claims, caller, owner, true);
 }
 
+bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call)
+{
+    SemanticParamPublicationView view;
+    ASTNode *escape = NULL;
+    return ctx != NULL && caller != NULL && call != NULL &&
+        semantic_param_publication_admitted_view(ctx, &view) &&
+        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape);
+}
+
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row, ASTNode **escape_site)
 {

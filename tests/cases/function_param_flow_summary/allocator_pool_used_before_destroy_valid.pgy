@@ -1,0 +1,25 @@
+// Wrap's text lives in the pool it is given. WriteText reads it, then
+// destroys the pool as its last statement, so the text is dead by then.
+func Wrap(value: String, allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 2);
+    TextBuilderAppend(output, "[");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, "]");
+    let wrapped: String = TextBuilderFinish(output, allocator);
+    return wrapped;
+}
+
+func WriteText(value: String) -> Bool {
+    let pool: Allocator = AllocatorPool(64);
+    let wrapped: String = Wrap(value, pool);
+    Print(wrapped);
+    AllocatorDestroy(pool);
+    return true;
+}
+
+func Main() -> Int {
+    if WriteText(Concat("a", "b")) {
+        return 0;
+    }
+    return 1;
+}
