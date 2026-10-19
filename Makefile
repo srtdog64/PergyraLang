@@ -583,6 +583,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/string_window_extent_finalize.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
+                   $(SEMANTIC_DIR)/indexed_string_borrow_receipts.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_named_call_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_preservation_owner.c \
@@ -693,9 +694,12 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_summary.c \
+                   $(SEMANTIC_DIR)/function_param_flow_entry_index.c \
                    $(SEMANTIC_DIR)/function_param_flow_program_point_index_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_consumer_navigation.c \
+                   $(SEMANTIC_DIR)/function_param_flow_declared_result_frame.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_dependencies.c \
+                   $(SEMANTIC_DIR)/function_param_flow_backing_destinations.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_flow_claim_publication.c \
@@ -706,6 +710,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_publication_deferred.c \
                    $(SEMANTIC_DIR)/typed_map_query_fact_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \
+                   $(SEMANTIC_DIR)/function_param_flow_backing_rows_capture.c \
                    $(SEMANTIC_DIR)/function_param_flow_intent_call.c \
                    $(SEMANTIC_DIR)/function_param_flow_input_claims.c \
                    $(SEMANTIC_DIR)/iteration_type_fact.c \

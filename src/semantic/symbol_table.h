@@ -100,8 +100,8 @@ struct Symbol
     uint32_t   decl_line;
     uint32_t   decl_col;
     uint32_t   decl_syntax_id;
-    /* Distinct for every Symbol created, so a binding a loop recheck
-     * declares again is a new incarnation of the same syntax. */
+    /* Given by the root scope when the Symbol is first declared, distinct
+     * for every declared Symbol; 0 until then. */
     uint64_t   birth_serial;
     bool       is_forward_placeholder;
     bool       is_used;
@@ -250,6 +250,10 @@ struct Scope
     /* Native routine-exit obligations, held by the nearest function scope. */
     IndexedStringDeferredRead *indexed_string_deferred_reads;
     size_t indexed_string_deferred_read_count, indexed_string_deferred_read_capacity;
+    /* Held by the root scope: the last Symbol.birth_serial it gave out. A
+     * binding a loop recheck declares again is a new Symbol with a new
+     * serial, a new incarnation of the same syntax. */
+    uint64_t declaration_serials;
 };
 
 /* -----------------------------------------------------------------

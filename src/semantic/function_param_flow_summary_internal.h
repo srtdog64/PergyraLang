@@ -120,6 +120,13 @@ size_t backing_node(ReturnedBacking *state, ASTNode *node);
 bool backing_work(ReturnedBacking *state, size_t at);
 void backing_consumers(ReturnedBacking *state, ASTNode *node);
 const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node);
+/* Row lookups the origin, destination and consumer walks share. */
+size_t backing_receiver_summary(ReturnedBacking *state, ASTNode *call, ASTNode *receiver);
+FunctionParamFlowBackingBinding *backing_identifier_row(ReturnedBacking *state, ASTNode *value);
+bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue value);
+/* Where a value's backing goes: its destinations, or every alias `id` of it. */
+void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations);
+void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id);
 void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement);
 /* Applies an intent call's effect on its arguments' storage; false when the
  * call selects no intent. */
@@ -345,6 +352,10 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
 bool function_param_flow_no_store_call_append(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *call);
 bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, ASTNode *decl);
+/* An unsupported callee relation a frame recorded still describes the
+ * call and the callee's unsupported summary. */
+bool function_param_flow_unsupported_relation_current(FunctionParamFlowSummaryStore *store,
+    const FunctionParamFlowPendingRelation *edge);
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
 bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
     ASTNode *call, FunctionParamFlowBackingFact *consumer);
@@ -419,6 +430,10 @@ FunctionParamFlowSummaryStore *function_param_flow_store_get(const SlotFunctionL
 unsigned function_param_flow_summary_for_call(const SlotFunctionLookup *lookup,
     const ASTNode *call, size_t ordinal);
 
+/* The entry for (routine, formal), added UNSEEN when it is new; SIZE_MAX
+ * when the formal does not exist or the table cannot grow. */
+size_t function_param_flow_add(FunctionParamFlowSummaryStore *store,
+    ASTNode *function_decl, size_t param_index);
 size_t function_param_flow_find(const FunctionParamFlowSummaryStore *store,
     uint32_t function_id, size_t param_index);
 unsigned function_param_array_storage_unproved_in_program_points(

@@ -9,11 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdatomic.h>
 #include "../common/string_compat.h"
 #include "symbol_table.h"
-
-static atomic_uint_fast64_t symbol_birth_serials;
 
 #define INITIAL_SYMBOL_CAPACITY 16
 #define INITIAL_SYMBOL_INDEX_CAPACITY 32
@@ -175,7 +172,6 @@ symbol_alloc_named(const char *name, SymbolKind kind, Type *type,
     sym->type = type;
     sym->decl_line = line;
     sym->decl_col = col;
-    sym->birth_serial = (uint64_t)atomic_fetch_add(&symbol_birth_serials, 1) + 1;
     return sym;
 }
 
@@ -296,6 +292,12 @@ scope_declare(Scope *scope, Symbol *symbol)
     }
 
     scope->symbols[scope->symbol_count++] = symbol;
+    /* The root scope numbers each Symbol when it is first declared. */
+    if (symbol->birth_serial == 0) {
+        Scope *root = scope;
+        while (root->parent != NULL) root = root->parent;
+        symbol->birth_serial = ++root->declaration_serials;
+    }
     return true;
 }
 
