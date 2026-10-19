@@ -19,8 +19,12 @@ func Inspect(ref holder: Holder) -> Echoed {
     return Echoed(echoed);
 }
 
-func Main() -> Void {
+func MakeInspected() -> Echoed {
     let holder = Holder(Concat("q", ""));
-    let inspected = Inspect(holder);
+    return Inspect(holder);
+}
+
+func Main() -> Void {
+    let inspected = MakeInspected();
     Log(StringLength(inspected.text));
 }

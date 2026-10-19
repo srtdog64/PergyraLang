@@ -1,0 +1,21 @@
+// LabelOf's Label holds a String of its borrowed aggregate, so the Label is
+// a loan of that aggregate. Main reads it while it still owns the
+// aggregate, which nothing changes.
+struct Facts {
+    names: Array<String>;
+}
+
+struct Label {
+    text: String;
+}
+
+func LabelOf(ref facts: Facts) -> Label {
+    return Label(facts.names[0]);
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts([StringConcat("ab", "c")]);
+    let label: Label = LabelOf(facts);
+    Print(label.text);
+    return 0;
+}

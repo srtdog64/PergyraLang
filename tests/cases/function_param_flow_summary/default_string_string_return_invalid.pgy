@@ -5,8 +5,11 @@ func ReadRecord(ref record: TextRecord, field: String) -> String {
 func KeepRecord(ref record: TextRecord) -> TextRecord {
     return TextRecord(ReadRecord(record, "field"));
 }
-func Main() -> Void {
+func MakeRecord() -> TextRecord {
     let record = TextRecord(Concat("heap", " text"));
-    let kept = KeepRecord(record);
+    return KeepRecord(record);
+}
+func Main() -> Void {
+    let kept = MakeRecord();
     Log(kept.text);
 }

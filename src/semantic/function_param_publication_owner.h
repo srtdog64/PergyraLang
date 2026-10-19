@@ -78,11 +78,7 @@ bool semantic_param_publication_slot_token_operand(const SemanticContext *ctx, c
 bool semantic_param_publication_record_slot_token_operand(SemanticContext *ctx, ASTNode *call,
     size_t ordinal, const Symbol *slot, const Symbol *token, const Type *slot_type);
 bool semantic_param_publication_ref_call_current(
-    const SemanticContext *ctx, const PendingRefCall *row);
-/* String or Option<String>: the result types through which a routine can
- * lend String data of a borrowed input, proved as a returned loan. */
-bool semantic_param_publication_string_loan_type(const Type *type);
-typedef struct {
+    const SemanticContext *ctx, const PendingRefCall *row);typedef struct {
     ASTNode *call, *caller;
     uint32_t call_id, caller_id, callee_id;
     size_t caller_index, callee_index;

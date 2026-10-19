@@ -9,8 +9,12 @@ func Leak(ref record: InputRecord) -> HeldText {
     return Wrap(record.text);
 }
 
-func Main() -> Void {
+func MakeLeak() -> HeldText {
     let record = InputRecord(Concat("heap", " text"));
-    let leaked = Leak(record);
+    return Leak(record);
+}
+
+func Main() -> Void {
+    let leaked = MakeLeak();
     Log(StringLength(leaked.text));
 }

@@ -1,0 +1,19 @@
+// A `ref self` String getter returns its receiver's field; with no
+// receiver loan proof the return stays refused, even for a String.
+class Holder {
+    let text: String;
+
+    func Text(ref self) -> String {
+        return text;
+    }
+}
+
+func MakeText() -> String {
+    let holder = Holder(Concat("q", "r"));
+    return holder.Text();
+}
+
+func Main() -> Int {
+    Print(MakeText());
+    return 0;
+}

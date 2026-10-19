@@ -8,7 +8,11 @@ func Probe(ref record: TextRecord) -> Array<String> {
     return Wrap(record.text);
 }
 
-func Main() -> Void {
+func MakeProbe() -> Array<String> {
     let record = TextRecord(Concat("heap", " text"));
-    Log(ArrayLength(Probe(record)));
+    return Probe(record);
+}
+
+func Main() -> Void {
+    Log(ArrayLength(MakeProbe()));
 }

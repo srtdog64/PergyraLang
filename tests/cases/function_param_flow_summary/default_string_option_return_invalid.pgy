@@ -6,8 +6,11 @@ func KeepRecord(ref record: TextRecord) -> TextRecord {
     let result = ReadRecord(record, "field");
     return TextRecord(UnwrapOption(result));
 }
-func Main() -> Void {
+func MakeRecord() -> TextRecord {
     let record = TextRecord(Concat("heap", " text"));
-    let kept = KeepRecord(record);
+    return KeepRecord(record);
+}
+func Main() -> Void {
+    let kept = MakeRecord();
     Log(StringLength(kept.text));
 }

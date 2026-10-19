@@ -90,15 +90,15 @@ release_lifetime_refusals = {
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     # An inout fill of a by-value parameter from a second input moves it.
     "inout_owned_param_input_return_moves_invalid": [(*released_refusal, 32, 38)],
-    # The 8:6 return escape is the by-value parameter carrying the ref input's
-    # stored field; without it only the assignment refusal would remain.
+    # Take's result carries the ref input's stored field, a loan Main then
+    # grows (17:23); without that relation only the assignment refusal
+    # would remain.
     "owned_param_field_store_ref_return_invalid": [
-        (*borrow_refusal, 0, 0), (*borrow_refusal, 8, 6), (*borrow_refusal, 17, 44)],
-    # 22:6 is the enum payload carrying the ref input out of Route; an enum
-    # constructor without its result relation would lose it.
-    "enum_payload_constructor_ref_field_return_invalid": [
-        (*borrow_refusal, 18, 6), (*borrow_refusal, 22, 6),
-        (*borrow_refusal, 26, 30), (*borrow_refusal, 31, 34)],
+        (*borrow_refusal, 0, 0), (*borrow_refusal, 17, 23)],
+    # Route's enum payload lends the ref input; Main's call is refused for
+    # that loan (31:28). An enum constructor without its result relation
+    # would lend nothing and lose the refusal.
+    "enum_payload_constructor_ref_field_return_invalid": [(*borrow_refusal, 31, 28)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -175,13 +175,10 @@ release_lifetime_refusals = {
     "nonowner_risk_safe_then_owned_invalid": [(*borrow_refusal, 16, 13)],
     "nonowner_risk_owned_then_safe_invalid": [(*borrow_refusal, 15, 13)],
     "nonowner_risk_lambda_capture_invalid": [(*borrow_refusal, 16, 56)],
-    # The String-field getter returns its receiver's storage. EchoWrapper's
-    # String value lends it, a loan its callers prove; Inspect stores that
-    # loan in the struct it returns, which is the escape (17:6), refused
-    # again where Main passes its holder (24:29). Do not treat this as a
-    # physical-storage grant.
-    "receiver_result_string_field_escape_invalid": [
-        (*borrow_refusal, 17, 6), (*borrow_refusal, 24, 29)],
+    # The String-field getter returns its receiver's storage. EchoWrapper
+    # and Inspect lend it on; MakeInspected returns that loan past the
+    # holder it owns (24:5). Do not treat this as a physical-storage grant.
+    "receiver_result_string_field_escape_invalid": [(*borrow_refusal, 24, 5)],
     # A host field is `self` storage; these returns of it are refused as
     # `self` escapes, not by an incomplete frame.
     "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
@@ -193,22 +190,23 @@ release_lifetime_refusals = {
     # A match binding carries the matched enum's storage; returning it moves
     # the by-value enum argument.
     "match_payload_return_moves_invalid": [(*released_refusal, 29, 28)],
-    # A receiver the action changes follows its self formal's summary: the
-    # action returns its subject's storage, so the borrowed world escapes.
-    "subject_action_returns_self_ref_invalid": [(*borrow_refusal, 25, 6), (*borrow_refusal, 31, 28)],
+    # A receiver the action changes follows its self formal's summary: Get
+    # lends its world's subject storage, and the action writes that world,
+    # so the loan's owner changes under it (31:24).
+    "subject_action_returns_self_ref_invalid": [(*borrow_refusal, 31, 24)],
     # Split is modelled (every part copied), so the action's self summary is
-    # exact: it returns its subject's storage, which the borrowed world
-    # cannot hand out.
-    "receiver_unsupported_ref_return_invalid": [(*borrow_refusal, 26, 6), (*borrow_refusal, 32, 28)],
+    # exact: Get lends its world's subject storage, and the action writes
+    # that world, so the loan's owner changes under it (32:24).
+    "receiver_unsupported_ref_return_invalid": [(*borrow_refusal, 32, 24)],
     # A unit enum constant carries no storage; the frame completes and the
     # returned Array still moves its argument.
     "unit_enum_constant_constructor_moves_invalid": [(*released_refusal, 20, 15)],
-    # A Slice view is its receiver's storage: returning a view of a borrowed
-    # Array is the one return escape, not every escape.
-    "slice_view_ref_return_invalid": [(*borrow_refusal, 3, 6), (*borrow_refusal, 9, 35)],
-    # A String getter of a borrowed aggregate lends its result; the struct
-    # LabelOf returns carries that loan past the borrow.
-    "aggregate_string_loan_struct_escape_invalid": [(*borrow_refusal, 18, 6), (*borrow_refusal, 28, 32)],
+    # A Slice view is its receiver's storage, so Window lends its Array;
+    # MakeWindow returns that loan past the Array it owns.
+    "slice_view_ref_return_invalid": [(*borrow_refusal, 9, 5)],
+    # LabelOf's Label lends its borrowed aggregate; MakeLabel returns that
+    # loan past the aggregate it owns.
+    "aggregate_string_loan_struct_escape_invalid": [(*borrow_refusal, 29, 5)],
     # The loan's owner is Make's own aggregate, so its return is refused.
     "aggregate_string_loan_local_owner_invalid": [(*borrow_refusal, 13, 5)],
     # A loan used only in Main still needs an owner Main does not change:
@@ -216,6 +214,10 @@ release_lifetime_refusals = {
     "aggregate_string_loan_owner_mutated_invalid": [(*borrow_refusal, 14, 24)],
     "aggregate_string_loan_owner_moved_invalid": [(*borrow_refusal, 18, 24)],
     "aggregate_string_loan_owner_kept_invalid": [(*borrow_refusal, 21, 24)],
+    # No caller proves a loan of a receiver, so a `ref self` method's
+    # return of its own storage stays refused where it returns.
+    "receiver_ref_self_local_return_invalid": [(*borrow_refusal, 19, 10)],
+    "receiver_ref_self_string_return_invalid": [(*borrow_refusal, 6, 10)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -708,6 +710,11 @@ paired = (
     ("aggregate_string_loan_by_value_owner_valid", True),
     ("ref_string_option_loan_forward_valid", True),
     ("tostring_interpolation_ref_valid", True),
+    ("results_lend_struct_view_valid", True),
+    ("results_lend_slice_view_valid", True),
+    ("results_lend_array_result_valid", True),
+    ("receiver_ref_self_local_return_invalid", False),
+    ("receiver_ref_self_string_return_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:
@@ -824,13 +831,13 @@ for name, valid in paired:
             "direct_ref_string_alias_named_invalid": [(5, 14)],
             "recursive_record_wrapper_control_invalid": [(11, 6), (17, 23)],
             "nested_call_retaining_input_invalid": [(7, 6), (8, 24), (13, 17)],
-            # Leak lends its record's String; Keep stores that loan in the
-            # record it returns, so Keep is refused before any unsafe caller
-            # artifact is emitted or executed.
-            "result_frame_formal_return_invalid": [(11, 6), (17, 21)],
-            "result_frame_formal_some_invalid": [(11, 6), (18, 21)],
-            "result_frame_formal_nominal_invalid": [(8, 6), (9, 12), (14, 23)],
-            "result_frame_formal_array_push_invalid": [(9, 6), (10, 12), (15, 23)],
+            # Leak lends its record's String through each result shape; the
+            # Make routine returns that loan past the record it owns, and is
+            # refused before any unsafe caller artifact is emitted or executed.
+            "result_frame_formal_return_invalid": [(17, 5)],
+            "result_frame_formal_some_invalid": [(18, 5)],
+            "result_frame_formal_nominal_invalid": [(14, 5)],
+            "result_frame_formal_array_push_invalid": [(15, 5)],
             "physical_call_alias_nested_retain_invalid": [(16, 52), (22, 28)],
             "physical_call_alias_scalar_opaque_invalid": [(23, 28)],
             "physical_call_alias_descriptor_retain_invalid": [(11, 27), (17, 28)],
@@ -917,8 +924,8 @@ for name, valid in paired:
             "array_result_nonown_default_local_alias_own_invalid": [(3, 6)],
             "array_result_nonown_default_mixed_return_own_invalid": [(3, 6)],
             "array_result_nonown_inout_field_own_invalid": [(3, 6)],
-            "array_result_nonown_ref_nested_projection_invalid": [(3, 5), (1, 6), (14, 36)],
-            "array_result_nonown_ref_mapget_descriptor_invalid": [(1, 6), (1, 6), (1, 6)],
+            "array_result_nonown_ref_nested_projection_invalid": [(3, 5), (14, 28)],
+            "array_result_nonown_ref_mapget_descriptor_invalid": [(1, 6), (1, 6)],
             "array_result_local_owned_element_index_assign_invalid": [(6, 27)],
             "array_result_local_owned_element_field_retention_invalid": [(8, 21)],
             "array_result_owned_element_inout_escape_invalid": [(10, 18), (8, 6), (17, 21)],
@@ -927,7 +934,7 @@ for name, valid in paired:
             "array_result_owned_element_direct_return_invalid": [(10, 16), (16, 26)],
             "array_result_owned_element_tuple_direct_invalid": [(9, 33)],
             "array_result_owned_element_tuple_binding_invalid": [(9, 21)],
-            "array_result_owned_element_tuple_return_invalid": [(8, 17), (7, 6), (13, 33)],
+            "array_result_owned_element_tuple_return_invalid": [(8, 17), (13, 28)],
             "array_result_owned_element_option_some_invalid": [(9, 44)],
             "array_result_owned_element_result_ok_invalid": [(9, 50)],
             "array_result_owned_element_result_err_invalid": [(9, 48)],
@@ -972,10 +979,10 @@ print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 
 # These calls must still refuse at the unsafe nested actual or alias-forwarding
 # site. Only compile and inspect diagnostics; the external Keep is never run.
-# ToString hands back its String argument, so Leak lends its record's String
-# and Keep's returned record carries that loan out.
+# ToString hands back its String argument, so Leak and Keep lend the record's
+# String and MakeKept returns that loan past the record it owns.
 for name, site in (
-    ("stdlib_tostring_string_forward_invalid", (13, 6)),
+    ("stdlib_tostring_string_forward_invalid", (22, 5)),
     ("stdlib_replace_nested_retaining_invalid", (11, 45)),
     ("stdlib_substring_nested_retaining_invalid", (11, 41)),
 ):

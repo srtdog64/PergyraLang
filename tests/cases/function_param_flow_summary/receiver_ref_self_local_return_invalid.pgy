@@ -1,0 +1,33 @@
+// A receiver is not a call row, so no caller proves a loan of `self`: a
+// `ref self` method that returns its zone stays refused where it returns.
+subject Keeper {
+    let names: Array<String>;
+    action Count(self) -> Void {
+        let n: Int = ArrayLength(names);
+    }
+}
+
+zone KeepZone {
+    subject slot keeper: Keeper
+    authority keeper
+}
+
+world KeepWorld {
+    zone keeping: KeepZone
+    activate keeping
+
+    func Zone(ref self) -> KeepZone {
+        return keeping;
+    }
+}
+
+func MakeZone() -> KeepZone {
+    let world: KeepWorld = KeepWorld(KeepZone(Keeper([StringConcat("a", "b")])));
+    return world.Zone();
+}
+
+func Main() -> Int {
+    let zone_copy: KeepZone = MakeZone();
+    Print("ok");
+    return 0;
+}

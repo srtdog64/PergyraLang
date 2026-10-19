@@ -33,15 +33,6 @@ static bool array_result_borrowed_formal(Type *function_type, const Type *formal
         semantic_classify_ownership_type(formal_type, ctx) == OWNERSHIP_TYPE_BORROW_TRACKED;
 }
 
-/* A routine whose value is a String, or an Option of one, can hand back
- * only String data it borrows from a `ref` input: a loan its callers prove
- * by the returned-loan walk, as for a `ref String` input. */
-static bool string_loan_result(const Type *function_type)
-{
-    return function_type != NULL &&
-        semantic_param_publication_string_loan_type(type_function_return_type(function_type));
-}
-
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view)
 {
     if (!semantic_param_publication_view_current(ctx, view)) return false;
@@ -103,12 +94,12 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
         ctx->current_function_decl = row->caller;
         ctx->current_module_path = row->module;
         const PendingRoutine *callee = publication_routine(ctx->function_param_publications, row->callee_id);
-        /* A borrowed aggregate given to a routine whose value is a String
-         * comes back, if at all, as a String loan. */
-        bool string_loan = type_equals(row->type, TYPE_STRING) ||
+        /* A routine with a body hands a borrowed input back, if at all, as a
+         * loan of it, which this caller proves (results lend `ref` inputs). */
+        bool loan = type_equals(row->type, TYPE_STRING) ||
             (ast_func_body(row->callee) != NULL && callee != NULL && callee->decl == row->callee &&
-             string_loan_result(callee->function_type));
-        bool retaining = string_loan
+             semantic_classify_ownership_type(row->type, ctx) == OWNERSHIP_TYPE_BORROW_TRACKED);
+        bool retaining = loan
             ? ast_func_body(row->callee) == NULL
                 || ((semantic_param_summary_has_call_escape(mask) || semantic_param_summary_has_channel_escape(mask))
                     && !semantic_param_publication_value_has_static_string_backing(ctx, row->site))
@@ -119,7 +110,7 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
             continue;
         }
         ASTNode *loan_escape = NULL;
-        bool escaped_loan = string_loan && !retaining &&
+        bool escaped_loan = loan && !retaining &&
             semantic_param_summary_has_return_escape(mask) &&
             !function_param_flow_return_loan_admitted(ctx, view, row, &loan_escape);
         if (escaped_loan)
@@ -222,9 +213,11 @@ semantic_check_param_summary_escapes(ASTNode *node,
                     OWNERSHIP_CONSUMER_HELPER_CALL, ast_declaration_name(node), NULL);
             continue;
         }
-        /* A String value returned from a borrowed aggregate is a loan the
-         * callers prove, as a `ref String` input's is. */
-        if (!string_ref && !string_loan_result(function_type) &&
+        /* A returned borrowed `ref` input is a loan its callers prove,
+         * whatever the result type (2026-10-19_results_lend_ref_inputs). A
+         * handle or subject is not lent, and a receiver is not a call row,
+         * so no caller proves a loan of `self`. */
+        if ((self_param || (!string_ref && ownership_class != OWNERSHIP_TYPE_BORROW_TRACKED)) &&
             semantic_param_summary_has_return_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,

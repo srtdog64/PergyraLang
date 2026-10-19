@@ -1,5 +1,6 @@
-// The getter's String is a loan of the borrowed aggregate. Wrapping it in
-// a struct the caller returns lets the loan outlive the borrow.
+// The getter's String is a loan of the borrowed aggregate, and so is the
+// Label that LabelOf builds from it. MakeLabel returns that Label past the
+// aggregate it owns.
 struct Facts {
     names: Array<String>;
 }
@@ -23,9 +24,13 @@ func LabelOf(ref facts: Facts) -> Label {
     return Label(UnwrapOption(name));
 }
 
+func MakeLabel() -> Label {
+    let facts: Facts = Facts([StringConcat("ab", "c")]);
+    return LabelOf(facts);
+}
+
 func Main() -> Int {
-    let facts: Facts = Facts(["abc"]);
-    let label: Label = LabelOf(facts);
+    let label: Label = MakeLabel();
     Print(label.text);
     return 0;
 }

@@ -13,8 +13,12 @@ func Keep(ref record: InputRecord) -> InputRecord {
     return InputRecord(UnwrapOption(leaked));
 }
 
-func Main() -> Void {
+func MakeKept() -> InputRecord {
     let record = InputRecord(Concat("heap", " text"));
-    let kept = Keep(record);
+    return Keep(record);
+}
+
+func Main() -> Void {
+    let kept = MakeKept();
     Log(StringLength(kept.text));
 }

@@ -247,21 +247,14 @@ bool semantic_param_publication_ref_call_current(const SemanticContext *ctx, con
     PublishedNode *actual = publication_current_value(ctx, row->site);
     PublishedNode *result = publication_current_value(ctx, row->call);
     const PendingRoutine *callee = publication_routine(ctx->function_param_publications, row->callee_id);
-    if (actual == NULL || result == NULL || callee == NULL || formal >= callee->count) return false;
-    if (!semantic_param_publication_string_loan_type(callee->return_type) ||
+    if (actual == NULL || result == NULL || callee == NULL || formal >= callee->count ||
         !type_equals(result->value_type, callee->return_type)) return false;
     if (type_equals(row->type, TYPE_STRING))
         return actual->string_value && type_equals(callee->types[formal], TYPE_STRING);
-    /* A borrowed aggregate lends String data only through a String-valued
-     * result; the loan walk then proves the result as a `ref String`'s. */
+    /* A borrowed aggregate is lent by its formal's type; the loan walk then
+     * proves the result as a `ref String`'s. */
     return actual->category == (uint32_t)OWNERSHIP_TYPE_BORROW_TRACKED &&
         type_equals(actual->value_type, row->type) && type_equals(callee->types[formal], row->type);
-}
-bool semantic_param_publication_string_loan_type(const Type *type)
-{
-    if (type_equals(type, TYPE_STRING)) return true;
-    return type_is_constructed_named(type, "Option") && type_constructed_arg_count(type) == 1 &&
-        type_equals(type_constructed_arg(type, 0), TYPE_STRING);
 }
 bool semantic_param_publication_record_body_call(SemanticContext *ctx, ASTNode *call)
 {
