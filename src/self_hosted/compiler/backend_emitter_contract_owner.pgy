@@ -52,7 +52,7 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 8 { return "src/codegen/transpiler_func_class_flow_emit.c"; }
     if index == 9 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
     if index == 10 { return "src/codegen/transpiler_class_decl_emit.c"; }
-    if index == 11 { return "src/codegen/transpiler_expr_stdlib_builtin.c"; }
+    if index == 11 { return "src/codegen/transpiler_clone_value_emit.c"; }
     if index == 12 { return "src/codegen/transpiler_mir_pin_emit.c"; }
     if index == 13 { return "src/codegen/transpiler_mir_pin_emit.c"; }
     if index == 14 { return "src/codegen/transpiler_block_emit.c"; }
@@ -129,7 +129,7 @@ func CompilerBackendEmitterForbiddenPathAt(index: Int) -> String {
     if index == 7 { return "src/codegen/transpiler_func_class_flow_emit.c"; }
     if index == 8 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
     if index == 9 { return "src/codegen/transpiler_class_decl_emit.c"; }
-    if index == 10 { return "src/codegen/transpiler_expr_stdlib_builtin.c"; }
+    if index == 10 { return "src/codegen/transpiler_clone_value_emit.c"; }
     if index == 11 { return "src/codegen/llvm_runtime_row.c"; }
     return "";
 }
@@ -240,6 +240,6 @@ func CompilerBackendEmitterContractReady() -> Bool {
             "src/codegen/transpiler_mir_resource_op_core.c",
             "strncmp(fn, \"pgy_claim_secure_\"") &&
         CompilerBackendEmitterForbiddenRowKnown(
-            "src/codegen/transpiler_expr_stdlib_builtin.c",
+            "src/codegen/transpiler_clone_value_emit.c",
             "mir_abi_resource_runtime_fn_by_kind(");
 }

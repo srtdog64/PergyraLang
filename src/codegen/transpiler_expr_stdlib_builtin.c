@@ -31,6 +31,8 @@
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 #include "transpiler_specialization_registry.h"
+#include "transpiler_clone_value_emit.h"
+#include "transpiler_call_subject_arg_policy.h"
 
 static bool
 transpiler_stdlib_copy_type_name(char *out, size_t out_size,
@@ -49,15 +51,7 @@ transpiler_stdlib_copy_type_name(char *out, size_t out_size,
     return true;
 }
 
-static const char *
-transpiler_stdlib_slot_runtime_fn(TranspilerCtx *ctx,
-                                  const char *inner_type,
-                                  const char *operation)
-{
-    return transpiler_slot_runtime_fn(ctx, false, inner_type, operation);
-}
-
-static bool
+bool
 transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
                                            const char *type_name,
                                            const char *family,
@@ -114,7 +108,7 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
  * nested-array element would otherwise leak literal angle brackets into the
  * callee name (pgy_array_push_Array<Int> -- invalid C). Scalar inners are
  * unchanged (sanitize is the identity on a bare name). */
-static void
+void
 transpiler_array_inner_sanitize_suffix(char *inner_buf,
                                        size_t inner_buf_size,
                                        const char **inner_out)
@@ -529,74 +523,17 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             if ((tn == NULL || strcmp(tn, "Unknown") == 0)
                 && ctx->expected_type != NULL)
                 tn = ctx->expected_type;
-            if (tn != NULL && transpiler_type_name_is_array(tn)) {
-                const char *inner = NULL;
-                char inner_buf[128];
-                if (!transpiler_resolve_unary_constructed_inner(ctx,
-                        tn, "Array", inner_buf, sizeof(inner_buf), &inner)) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: Clone requires concrete Array<T> metadata");
-                    free(src);
-                    return NULL;
-                }
-                if (transpiler_type_name_is_array(inner) && transpiler_array_copy_leaf_suffix(ctx, inner) == NULL) {
-                    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                        "C backend: Clone has no concrete nested-array copy operation");
-                    free(src);
-                    return NULL;
-                }
-                transpiler_array_inner_sanitize_suffix(
-                    inner_buf, sizeof(inner_buf), &inner);
-                int tmp_id = ++ctx->tmp_counter;
-                char *result = strdup_fmt(
-                    "({ PgyArray_%s _pgy_array_clone_%d = %s; "
-                    "pgy_array_clone_%s(&_pgy_array_clone_%d); })",
-                    inner, tmp_id, src, inner, tmp_id);
+            /* A parameter carried by address is cloned from its value. */
+            if (transpiler_call_arg_is_carried_by_address(ctx, arg0)) {
+                char *pointee = strdup_fmt("(*%s)", src);
                 free(src);
-                return result;
-            }
-            if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
-                char inner_buf[128];
-                const char *inner = NULL;
-                const char *claim_fn;
-                const char *read_fn;
-                const char *write_fn;
-                if (slot_inner_type_name_copy(tn, inner_buf, sizeof(inner_buf)))
-                    inner = inner_buf;
-                if (inner == NULL || inner[0] == '\0') {
-                    free(src);
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: Clone requires concrete Slot<T> metadata");
+                if (pointee == NULL)
                     return NULL;
-                }
-                claim_fn = transpiler_stdlib_slot_runtime_fn(ctx, inner, "Claim");
-                read_fn = transpiler_stdlib_slot_runtime_fn(ctx, inner, "Read");
-                write_fn = transpiler_stdlib_slot_runtime_fn(ctx, inner, "Write");
-                if (claim_fn == NULL || read_fn == NULL || write_fn == NULL) {
-                    free(src);
-                    return NULL;
-                }
-                char *result = strdup_fmt(
-                    "({ PgySlot_%s _c = %s(); "
-                    "%s(&_c, %s(&%s)); _c; })",
-                    inner, claim_fn, write_fn, read_fn, src);
-                free(src);
-                return result;
+                src = pointee;
             }
-            /* Clone of a String is a new String with the same text. */
-            if (tn != NULL && strcmp(tn, "String") == 0) {
-                char *result = strdup_fmt("StringConcat(%s, \"\")", src);
-                free(src);
-                return result;
-            }
-            return src;
+            char *result = transpiler_emit_clone_value(ctx, tn, src);
+            free(src);
+            return result;
         }
         if (stdlib_op == TRANSPILER_STDLIB_OP_PRINT) {
             char *arg = transpiler_stdlib_emit_arg(ctx, arg0, "Print",

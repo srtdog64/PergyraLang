@@ -1,9 +1,43 @@
 /* Checked result dependence belongs to the typed publication receipt. */
 #include "function_param_publication_internal.h"
 #include "type_checker_internal.h"
+#include "type_checker_call_constructor_internal.h"
+#include "../parser/ast_api.h"
 #include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
+
+/* Whether C and LLVM copy every part of a value of `type` into new storage
+ * (2026-10-19_struct_clone_is_deep): a physical scalar; a String
+ * (StringConcat with ""); an Array of physical scalars or Strings
+ * (pgy_array_clone_<T>, every String copied); an Option of such a value; a
+ * non-generic struct or class of such fields, and a subject of them as the
+ * argument itself. The backends copy any other part by value, so it may
+ * share storage with the argument. */
+static bool clone_copies_deeply(SemanticContext *ctx, const Type *type, int depth)
+{
+    if (type == NULL || depth > 16) return false;
+    if (type_equals(type, TYPE_STRING) || publication_physical_scalar(type)) return true;
+    if (type_is_constructed_named(type, "Array")) {
+        const Type *element = type_get_constructed_arg(type, 0);
+        return type_equals(element, TYPE_STRING) || publication_physical_scalar(element);
+    }
+    if (type_is_constructed_named(type, "Option"))
+        return clone_copies_deeply(ctx, type_get_constructed_arg(type, 0), depth + 1);
+    /* A generic instance is a constructed type, not a class type. A subject
+     * is copied field by field only as the Clone argument itself: as a
+     * field it keeps its identity and is copied by value. */
+    ASTNode *decl = type->kind == TYPE_KIND_CLASS ? semantic_host_decl_for_type(ctx, type) : NULL;
+    NominalDeclKind kind = decl != NULL && decl->type == AST_CLASS_DECL ? ast_class_nominal_kind(decl) : NOMINAL_DECL_OBJECT;
+    if (kind != NOMINAL_DECL_STRUCT && kind != NOMINAL_DECL_CLASS && !(kind == NOMINAL_DECL_SUBJECT && depth == 0))
+        return false;
+    for (size_t i = 0;; i++) {
+        const char *name = NULL;
+        Type *field = constructor_decl_field_resolved_type_at(decl, i, &name, ctx);
+        if (name == NULL) return true;
+        if (!clone_copies_deeply(ctx, field, depth + 1)) return false;
+    }
+}
 
 static bool publication_result_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool backing, bool *result_depends, bool *external_retains)
@@ -33,11 +67,9 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
         *result_depends = true; *external_retains = false; return true;
     }
     if (row->builtin == BUILTIN_CLONE) {
-        /* C and LLVM lower Clone of an Array of physical scalars or Strings
-         * to the runtime pgy_array_clone_<T>: new storage, every String
-         * copied. Clone of a String is StringConcat with "": a new String.
-         * Any other Clone copies a value shallowly, so its result shares
-         * the argument's storage. Clone keeps nothing itself. */
+        /* A Clone the backends copy deeply shares nothing with its
+         * argument; any other may share its storage. Clone keeps nothing
+         * itself. */
         PublishedNode *input = row->argument_count == 1 ?
             publication_current_value(ctx, row->arguments[0].node) : NULL;
         if (!row->stdlib || !row->kind_present || row->declaration != 0 || row->value_binding != 0 ||
@@ -45,10 +77,7 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
             row->target_name == NULL || strcmp(row->target_name, "Clone") != 0 ||
             input == NULL || input->node != ast_call_argument(call, 0) ||
             !type_equals(input->value_type, row->value_type)) return false;
-        const Type *element = type_is_constructed_named(input->value_type, "Array") ?
-            type_get_constructed_arg(input->value_type, 0) : NULL;
-        *result_depends = !type_equals(input->value_type, TYPE_STRING) && (element == NULL ||
-            (!type_equals(element, TYPE_STRING) && !publication_physical_scalar(element)));
+        *result_depends = !clone_copies_deeply((SemanticContext *)ctx, input->value_type, 0);
         *external_retains = false;
         return true;
     }

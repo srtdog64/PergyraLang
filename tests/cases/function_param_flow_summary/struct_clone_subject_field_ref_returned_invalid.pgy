@@ -1,0 +1,23 @@
+// A subject field keeps its identity: Clone copies it by value, so Copy's
+// result may share the ref input's storage, and Main may not change the
+// input while the copy lives.
+subject Session {
+    let ids: Array<Int>;
+}
+
+struct Holder {
+    session: Session;
+    tag: String;
+}
+
+func Copy(ref holder: Holder) -> Holder {
+    return Clone(holder);
+}
+
+func Main() -> Int {
+    let a: Holder = Holder(Session([1]), StringConcat("t", ""));
+    let b: Holder = Copy(a);
+    ArrayPush(a.session.ids, 2);
+    Print(ToString(ArrayLength(b.session.ids)));
+    return 0;
+}

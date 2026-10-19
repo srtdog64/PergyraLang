@@ -1,0 +1,18 @@
+// Clone of a struct copies a nested struct field, and that field's Array.
+struct Box {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Box;
+    tag: String;
+}
+
+func Main() -> Int {
+    let a: Outer = Outer(Box([1]), StringConcat("t", ""));
+    let b: Outer = Clone(a);
+    ArraySet(b.inner.items, 0, 9);
+    Print(ToString(a.inner.items[0]));
+    Print(b.tag);
+    return 0;
+}

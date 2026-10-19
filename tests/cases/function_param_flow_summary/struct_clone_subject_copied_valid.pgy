@@ -1,0 +1,17 @@
+// Clone of a subject copies its fields: pushes onto the copy's Array leave
+// the original's storage alone. A shallow copy shared it, and the pushes
+// freed the storage the original then read.
+subject Session {
+    let ids: Array<Int>;
+}
+
+func Main() -> Int {
+    let a: Session = Session([1]);
+    let b: Session = Clone(a);
+    ArraySet(b.ids, 0, 9);
+    ArrayPush(b.ids, 2);
+    ArrayPush(b.ids, 3);
+    Print(ToString(a.ids[0]));
+    Print(ToString(ArrayLength(b.ids)));
+    return 0;
+}

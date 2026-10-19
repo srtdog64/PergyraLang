@@ -1,0 +1,16 @@
+// Clone of a generic struct instance is not known to copy every field, so
+// its result may share the ref input's storage and cannot be returned.
+struct Crate<T> {
+    items: Array<T>;
+}
+
+func Copy(ref crate: Crate<Int>) -> Crate<Int> {
+    return Clone(crate);
+}
+
+func Main() -> Int {
+    let a: Crate<Int> = Crate([1]);
+    let b: Crate<Int> = Copy(a);
+    Print(ToString(b.items[0]));
+    return 0;
+}

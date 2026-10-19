@@ -76,6 +76,34 @@ Status: PLAN, Claude lane, single implementation lane. Base revision
 5. **Self-host emitter.** Deep Clone in the general MIR emitter, under
    self-host generality.
 
+## Deep Clone landed (step 1, C and LLVM)
+
+- **Copied deeply:**
+  - a String;
+  - an Array, by its runtime clone;
+  - an Option's payload;
+  - every field of a non-generic struct or class, recursively;
+  - every field of a subject that is itself the Clone argument.
+
+  One owner per backend does the copy: `transpiler_clone_value_emit.c` for
+  C and `llvm_expr_clone_value.c` for LLVM. A parameter carried by address
+  is copied from its value.
+- **Independent result.** The result relation calls a Clone independent of
+  its argument only when every part is copied
+  (`clone_copies_deeply`). Four kinds of value still share storage:
+  - a generic struct instance;
+  - the elements of an Array of structs;
+  - a subject field, which keeps its identity;
+  - a zone.
+- **Falsifier.** Before this change, a struct or subject Clone followed by
+  pushes onto the copy's Array made the original read freed storage (ASan
+  heap-use-after-free on main `7cd004fab`). Both main and this branch
+  admitted those programs.
+- **Still open:**
+  - deep Clone in the self-host emitter (step 5). It cannot be run until
+    the self-host driver builds on this branch.
+  - Clone of an Array of structs, generic instances and zones.
+
 ## Application landed for formal String stores
 
 The two-run application of step 3 now exists, first for the String stores

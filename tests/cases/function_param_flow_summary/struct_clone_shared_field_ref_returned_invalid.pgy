@@ -1,0 +1,22 @@
+// Clone of a struct with an Array of structs copies that Array's elements
+// by value, so Copy's result may share the ref input's storage: Main may not
+// change the input while the copy lives.
+struct Box {
+    items: Array<Int>;
+}
+
+struct Shelf {
+    boxes: Array<Box>;
+}
+
+func Copy(ref shelf: Shelf) -> Shelf {
+    return Clone(shelf);
+}
+
+func Main() -> Int {
+    let a: Shelf = Shelf([Box([1])]);
+    let b: Shelf = Copy(a);
+    ArrayPush(a.boxes, Box([2]));
+    Print(ToString(ArrayLength(b.boxes)));
+    return 0;
+}

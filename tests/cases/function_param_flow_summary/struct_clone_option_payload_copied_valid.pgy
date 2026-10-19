@@ -1,0 +1,15 @@
+// Clone of an Option copies its payload: a change to the copy's Array does
+// not reach the original's.
+struct Box {
+    items: Array<Int>;
+}
+
+func Main() -> Int {
+    let a: Option<Box> = Some(Box([1]));
+    let c: Option<Box> = Clone(a);
+    let inner: Box = UnwrapOption(c);
+    ArraySet(inner.items, 0, 9);
+    let original: Box = UnwrapOption(a);
+    Print(ToString(original.items[0]));
+    return 0;
+}

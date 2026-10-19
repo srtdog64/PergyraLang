@@ -1,0 +1,20 @@
+// Copy returns a Clone of its ref input. Every field is copied, so the
+// result keeps nothing of the input, and Main may change the input while
+// the copy lives.
+struct Box {
+    items: Array<Int>;
+    name: String;
+}
+
+func Copy(ref box: Box) -> Box {
+    return Clone(box);
+}
+
+func Main() -> Int {
+    let a: Box = Box([1], StringConcat("a", ""));
+    let b: Box = Copy(a);
+    ArrayPush(a.items, 2);
+    Print(ToString(ArrayLength(b.items)));
+    Print(b.name);
+    return 0;
+}

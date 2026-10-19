@@ -1,0 +1,19 @@
+// Copy returns a Clone of its ref input, whose Option<String> field is
+// copied with its payload, so the result keeps nothing of the input.
+struct Box {
+    label: Option<String>;
+    ids: Array<Int>;
+}
+
+func Copy(ref box: Box) -> Box {
+    return Clone(box);
+}
+
+func Main() -> Int {
+    let a: Box = Box(Some(StringConcat("l", "")), [1]);
+    let b: Box = Copy(a);
+    ArrayPush(a.ids, 2);
+    Print(UnwrapOption(b.label));
+    Print(ToString(ArrayLength(b.ids)));
+    return 0;
+}

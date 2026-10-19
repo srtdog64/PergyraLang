@@ -1,0 +1,19 @@
+// Clone of a struct copies its Array and String fields: pushes onto the
+// copy's Array leave the original's storage alone. A shallow copy shared it,
+// and the pushes freed the storage the original then read.
+struct Box {
+    items: Array<Int>;
+    name: String;
+}
+
+func Main() -> Int {
+    let a: Box = Box([1], StringConcat("a", ""));
+    let b: Box = Clone(a);
+    ArraySet(b.items, 0, 9);
+    ArrayPush(b.items, 2);
+    ArrayPush(b.items, 3);
+    Print(ToString(a.items[0]));
+    Print(ToString(ArrayLength(a.items)));
+    Print(b.name);
+    return 0;
+}

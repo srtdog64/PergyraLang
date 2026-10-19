@@ -788,6 +788,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_event_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_extern.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_clone_value_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_builtin_policy.c \
                    $(CODEGEN_DIR)/transpiler_expr_type_infer_call_policy.c \
                    $(CODEGEN_DIR)/transpiler_expr_builtin_dispatch.c \
@@ -1313,6 +1314,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_boundary_projection_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_common.c \
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_clone_value.c \
                         $(CODEGEN_DIR)/llvm_expr_array_hof.c \
                         $(CODEGEN_DIR)/llvm_expr_array_raw_nominal_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_allocator_calls.c \

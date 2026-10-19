@@ -265,7 +265,7 @@ llvm_slice_value_suffix(LLVMGenCtx *ctx, LLVMValueRef slice)
     return NULL;
 }
 
-static const char *
+const char *
 llvm_array_value_suffix(LLVMGenCtx *ctx, LLVMValueRef array)
 {
     LLVMTypeRef ty;
