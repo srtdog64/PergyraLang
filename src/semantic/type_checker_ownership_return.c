@@ -80,6 +80,13 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 
     semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
 
+    /* An Array handoff the return value makes ends this routine's path;
+     * a closure's return ends only the closure. */
+    bool closure_return = false;
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent)
+        if (scope->kind == SCOPE_FUNCTION && scope->is_lambda) closure_return = true;
+    size_t handoffs_from = closure_return ? SIZE_MAX : semantic_array_storage_return_value_begin(ctx);
+
     if (value != NULL && value->type == AST_LAMBDA_EXPR
         && ctx->current_return != NULL
         && ctx->current_return->kind == TYPE_KIND_FUNCTION) {
@@ -94,6 +101,7 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             type_check_expression_at_typed_site(value,
                 ctx->inferring_return ? NULL : ctx->current_return, ctx));
     }
+    semantic_array_storage_return_value_checked(ctx, handoffs_from);
     /* A returned world-owned zone is the same live value escape as a local
      * initializer or call argument; Clone's resolved boundary remains legal. */
     if (value != NULL && value->type == AST_MEMBER_ACCESS)

@@ -226,6 +226,11 @@ release_lifetime_refusals = {
     # Report keeps the context and returns, so the later use reads a moved
     # value; the same call to a Never routine ends that path instead.
     "aggregate_move_void_call_invalid": [(*released_refusal, 26, 18)],
+    # A handoff a return value makes ends the path: the next iteration's
+    # Contains is not refused for it (only the handoff itself, 30:20). Two
+    # calls in one return value still run in order (24:45).
+    "array_handoff_return_value_loop_invalid": [(*borrow_refusal, 30, 20)],
+    "array_handoff_same_return_value_invalid": [(*borrow_refusal, 24, 45)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -728,6 +733,8 @@ paired = (
     ("array_push_loan_inout_invalid", False),
     ("aggregate_move_never_call_valid", True),
     ("aggregate_move_void_call_invalid", False),
+    ("array_handoff_return_value_loop_invalid", False),
+    ("array_handoff_same_return_value_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

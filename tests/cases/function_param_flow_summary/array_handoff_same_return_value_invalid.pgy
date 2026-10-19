@@ -1,0 +1,31 @@
+// Both calls are made by one return value, so the second runs after the
+// first, which returns the Array in its facts and so does not preserve it.
+struct Facts {
+    ok: Bool;
+    message: String;
+    ids: Array<Int>;
+}
+
+func RowsError(message: String, ids: Array<Int>) -> Facts {
+    return Facts(false, message, ids);
+}
+
+func Grow(inout ids: Array<Int>, value: Int) -> Int {
+    ArrayPush(ids, value);
+    return ArrayLength(ids);
+}
+
+func Pick(facts: Facts, count: Int) -> Facts {
+    return facts;
+}
+
+func Build(count: Int) -> Facts {
+    let ids: Array<Int> = [];
+    return Pick(RowsError("negative", ids), Grow(ids, count));
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(3);
+    Print(ToString(ArrayLength(facts.ids)));
+    return 0;
+}

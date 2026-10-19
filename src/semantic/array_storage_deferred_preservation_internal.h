@@ -7,6 +7,9 @@ typedef struct {
     ArrayStoragePendingCallReceipt source;
     bool preserved;
     bool elements_preserved;
+    /* Nonzero for a call made by a return value: nothing sequenced from
+     * here on runs after it, since the routine has returned. */
+    size_t terminal_end;
 } ArrayStoragePendingCall;
 
 typedef struct {

@@ -95,6 +95,11 @@ bool semantic_array_storage_record_pending_call_consumer(SemanticContext *ctx,
     const Symbol *binding, ASTNode *call, size_t actual_ordinal);
 bool semantic_array_storage_has_pending_elements(SemanticContext *ctx,
     uint32_t binding_id);
+/* A routine's return value is checked between these two calls: every
+ * handoff it records ends the path, so it constrains nothing sequenced
+ * after the value. Not for a return inside a closure. */
+size_t semantic_array_storage_return_value_begin(const SemanticContext *ctx);
+void semantic_array_storage_return_value_checked(SemanticContext *ctx, size_t first);
 
 /* A returned Array descriptor is separate from its elements' backing. A
  * call-result birth stays provisional until every reachable return in the

@@ -107,6 +107,25 @@ semantic_array_storage_record_pending_payload(SemanticContext *ctx,
     return record_pending_call_kind(ctx, binding, call, callee_decl, ordinal, true);
 }
 
+size_t
+semantic_array_storage_return_value_begin(const SemanticContext *ctx)
+{
+    const ArrayStorageDeferredPreservationStore *store =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    return store != NULL && store->active ? store->next_sequence : SIZE_MAX;
+}
+
+void
+semantic_array_storage_return_value_checked(SemanticContext *ctx, size_t first)
+{
+    ArrayStorageDeferredPreservationStore *store =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    if (store == NULL || !store->active || first == SIZE_MAX) return;
+    for (size_t i = 0; i < store->call_count; i++)
+        if (store->calls[i].source.sequence >= first && store->calls[i].terminal_end == 0)
+            store->calls[i].terminal_end = store->next_sequence;
+}
+
 bool
 semantic_array_storage_record_pending_call_consumer(SemanticContext *ctx,
     const Symbol *binding, ASTNode *call, size_t actual_ordinal)
@@ -317,6 +336,7 @@ semantic_array_storage_pending_preserved(SemanticContext *ctx,
         const ArrayStoragePendingCall *pending = &store->calls[i];
         if (!pending->source.payload && pending->source.binding_id == binding_id
             && pending->source.sequence < sequence
+            && (pending->terminal_end == 0 || sequence < pending->terminal_end)
             && (!pending->preserved || (!store->consuming_checked_calls &&
                 (semantic_array_storage_pending_call_failures(ctx, &pending->source)
                  & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) != 0)))
@@ -341,6 +361,7 @@ semantic_array_storage_pending_owned_elements(SemanticContext *ctx,
         const ArrayStoragePendingCall *pending = &store->calls[i];
         if (pending->source.binding_id == binding_id
             && pending->source.sequence < sequence
+            && (pending->terminal_end == 0 || sequence < pending->terminal_end)
             && semantic_array_storage_pending_call_elements_required(&pending->source)
             && (!pending->elements_preserved || (!store->consuming_checked_calls &&
                 (semantic_array_storage_pending_call_failures(ctx, &pending->source)

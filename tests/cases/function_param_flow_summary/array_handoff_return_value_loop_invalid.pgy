@@ -1,0 +1,42 @@
+// RowsError returns its by-value Array in the failure facts, so that call
+// does not preserve the Array, and it is refused itself (30:20). It is made
+// by a return value inside the loop: nothing after it runs, so the next
+// iteration's Contains does not need it to preserve the Array, and is not
+// refused.
+struct Facts {
+    ok: Bool;
+    message: String;
+    ids: Array<Int>;
+}
+
+func RowsError(message: String, ids: Array<Int>) -> Facts {
+    return Facts(false, message, ids);
+}
+
+func Contains(ref ids: Array<Int>, value: Int) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(ids) {
+        if ids[i] == value { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func Build(count: Int) -> Facts {
+    let ids: Array<Int> = [];
+    let n: Int = 0;
+    while n < count {
+        if Contains(ids, n) {
+            return RowsError("duplicate", ids);
+        }
+        ArrayPush(ids, n);
+        n = n + 1;
+    }
+    return Facts(true, "", ids);
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(3);
+    Print(ToString(ArrayLength(facts.ids)));
+    return 0;
+}
