@@ -1,0 +1,21 @@
+// Sum binds its arena's Array field to a local and only reads it, in a
+// later statement that names the local alone. Main may use its arena again.
+struct Arena {
+    ids: Array<Int>;
+}
+
+func Sum(arena: Arena) -> Int {
+    let ids: Array<Int> = arena.ids;
+    let total: Int = 0;
+    for i in 0..ArrayLength(ids) {
+        total = total + ids[i];
+    }
+    return total;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([1, 2]);
+    let total: Int = Sum(arena);
+    Print(ToString(arena.ids[0] + total));
+    return 0;
+}

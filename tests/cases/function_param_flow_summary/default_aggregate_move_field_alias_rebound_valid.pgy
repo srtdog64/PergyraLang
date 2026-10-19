@@ -1,0 +1,20 @@
+// Reset binds its arena's Array field to a local and then assigns the
+// local new storage. The assignment changes only the local; Main may use
+// its arena again.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func Reset(arena: Arena) -> Int {
+    let atoms: Array<String> = arena.atoms;
+    atoms = [StringConcat("x", "y")];
+    return ArrayLength(atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cd", "")]);
+    let count: Int = Reset(arena);
+    Print(arena.atoms[0]);
+    Print(arena.atoms[1]);
+    return count;
+}

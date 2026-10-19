@@ -1,0 +1,21 @@
+// Grow iterates its by-value Array of Blocks and pushes onto each block's
+// ids, storage Main's blocks name, so the call moves the Array. Before the
+// loop variable was an alias this was admitted and Main read freed storage.
+struct Block {
+    ids: Array<Int>;
+}
+
+func Grow(blocks: Array<Block>) -> Int {
+    for block in blocks {
+        ArrayPush(block.ids, 7);
+        ArrayPush(block.ids, 8);
+    }
+    return ArrayLength(blocks);
+}
+
+func Main() -> Int {
+    let blocks: Array<Block> = [Block([1])];
+    let count: Int = Grow(blocks);
+    Print(ToString(blocks[0].ids[0] + count));
+    return 0;
+}

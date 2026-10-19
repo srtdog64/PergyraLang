@@ -1,0 +1,25 @@
+// Grow iterates its arena's blocks and pushes onto each block's ids. The
+// loop variable shares that storage with Main's arena, so the call moves
+// the arena.
+struct Block {
+    ids: Array<Int>;
+}
+
+struct Arena {
+    blocks: Array<Block>;
+}
+
+func Grow(arena: Arena) -> Int {
+    for block in arena.blocks {
+        ArrayPush(block.ids, 7);
+        ArrayPush(block.ids, 8);
+    }
+    return ArrayLength(arena.blocks);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([Block([1])]);
+    let count: Int = Grow(arena);
+    Print(ToString(arena.blocks[0].ids[0] + count));
+    return 0;
+}

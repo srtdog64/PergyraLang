@@ -1,0 +1,24 @@
+// Count iterates its arena's blocks and only reads each block's ids. Main
+// may use its arena again.
+struct Block {
+    ids: Array<Int>;
+}
+
+struct Arena {
+    blocks: Array<Block>;
+}
+
+func Count(arena: Arena) -> Int {
+    let total: Int = 0;
+    for block in arena.blocks {
+        total = total + ArrayLength(block.ids) + block.ids[0];
+    }
+    return total;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([Block([1]), Block([2, 3])]);
+    let total: Int = Count(arena);
+    Print(ToString(arena.blocks[0].ids[0] + total));
+    return 0;
+}

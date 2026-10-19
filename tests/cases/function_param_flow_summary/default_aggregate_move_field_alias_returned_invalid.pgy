@@ -1,0 +1,24 @@
+// Take binds its arena's inner struct to a local and returns the local.
+// The result shares the inner ids storage of Main's arena; Main pushes onto
+// it, so the call moves the arena.
+struct Inner {
+    ids: Array<Int>;
+}
+
+struct Arena {
+    inner: Inner;
+}
+
+func Take(arena: Arena) -> Inner {
+    let inner: Inner = arena.inner;
+    return inner;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena(Inner([1]));
+    let inner: Inner = Take(arena);
+    ArrayPush(inner.ids, 2);
+    ArrayPush(inner.ids, 3);
+    Print(ToString(arena.inner.ids[0] + inner.ids[2]));
+    return 0;
+}

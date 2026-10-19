@@ -1,0 +1,29 @@
+// Grow binds its arena's inner struct to a local and hands it to Same,
+// which returns it. Grow pushes onto the result's ids, storage Main's arena
+// shares, so the call moves the arena.
+struct Inner {
+    ids: Array<Int>;
+}
+
+struct Arena {
+    inner: Inner;
+}
+
+func Same(inner: Inner) -> Inner {
+    return inner;
+}
+
+func Grow(arena: Arena) -> Int {
+    let inner: Inner = arena.inner;
+    let kept: Inner = Same(inner);
+    ArrayPush(kept.ids, 7);
+    ArrayPush(kept.ids, 8);
+    return ArrayLength(kept.ids);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena(Inner([1]));
+    let grown: Int = Grow(arena);
+    Print(ToString(arena.inner.ids[0] + grown));
+    return 0;
+}

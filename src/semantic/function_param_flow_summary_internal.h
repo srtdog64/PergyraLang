@@ -439,7 +439,7 @@ size_t function_param_flow_add(FunctionParamFlowSummaryStore *store,
 size_t function_param_flow_find(const FunctionParamFlowSummaryStore *store,
     uint32_t function_id, size_t param_index);
 unsigned function_param_array_storage_unproved_in_program_points(
-    ASTNode *const *roots, size_t count, const SlotSummaryOrigin *origin,
-    const SlotFunctionLookup *lookup, bool *payload_read);
+    ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, bool *payload_read);
 
 #endif
