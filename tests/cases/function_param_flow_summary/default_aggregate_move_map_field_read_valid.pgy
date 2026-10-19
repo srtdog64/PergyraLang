@@ -1,0 +1,21 @@
+// Count only reads its by-value table's map: a membership test and a size.
+// Main may use its table again.
+struct Table {
+    counts: HashMap<String, Int>;
+}
+
+func Count(table: Table, key: String) -> Int {
+    if MapHas(table.counts, key) {
+        return MapSize(table.counts);
+    }
+    return 0;
+}
+
+func Main() -> Int {
+    let counts: HashMap<String, Int> = MapNew();
+    MapSet(counts, "a", 1);
+    let table: Table = Table(counts);
+    let first: Int = Count(table, "a");
+    Print(ToString(first + MapSize(table.counts)));
+    return 0;
+}
