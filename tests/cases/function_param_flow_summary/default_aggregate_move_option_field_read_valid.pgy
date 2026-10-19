@@ -1,0 +1,21 @@
+// NameOf unwraps its by-value item's Option<String> field. UnwrapOption keeps
+// nothing and gives back a String, so it only reads the item, and Main may
+// use its item again.
+struct Item {
+    name: Option<String>;
+    ids: Array<Int>;
+}
+
+func NameOf(item: Item) -> String {
+    if IsSome(item.name) {
+        return UnwrapOption(item.name);
+    }
+    return "";
+}
+
+func Main() -> Int {
+    let item: Item = Item(Some(StringConcat("ab", "")), [1]);
+    let name: String = NameOf(item);
+    Print(Concat(name, ToString(ArrayLength(item.ids))));
+    return 0;
+}

@@ -1,0 +1,23 @@
+// Grow unwraps its by-value holder's Option<Block> field and pushes onto the
+// Block's ids. The unwrapped Block shares that storage with Main's holder,
+// so the call moves the holder.
+struct Block {
+    ids: Array<Int>;
+}
+
+struct Holder {
+    block: Option<Block>;
+}
+
+func Grow(holder: Holder) -> Int {
+    let block: Block = UnwrapOption(holder.block);
+    ArrayPush(block.ids, 7);
+    return ArrayLength(block.ids);
+}
+
+func Main() -> Int {
+    let holder: Holder = Holder(Some(Block([1])));
+    let grown: Int = Grow(holder);
+    Print(ToString(grown + ArrayLength(UnwrapOption(holder.block).ids)));
+    return 0;
+}

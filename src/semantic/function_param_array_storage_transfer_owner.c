@@ -319,7 +319,7 @@ static unsigned storage_path_indices(ASTNode *node, const SlotSummaryOrigin *ori
  * through this copy that store changes storage the caller's descriptor
  * still names. Any other builtin keeps its storage when it only borrows the
  * argument for the call, or keeps nothing and returns new storage, as Clone
- * of an Array of Strings or scalars does. */
+ * of an Array of Strings or scalars does, or a String or copy-only value. */
 static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordinal,
     const SlotFunctionLookup *lookup)
 {
@@ -341,9 +341,11 @@ static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordina
         return FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED;
     if (semantic_typed_map_query_receiver_read(ctx, call, ordinal) ||
         semantic_param_publication_argument_borrowed_for_call(ctx, call, ordinal)) return 0;
+    /* Its result may depend on the path only when it is a String or a
+     * copy-only value, as UnwrapOption of an Option<String> field is. */
     bool depends = true, retains = true;
     return semantic_param_publication_checked_result_relation(ctx, call, ordinal, &depends, &retains) &&
-        !depends && !retains ? 0 : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+        !retains && (!depends || storage_path_value_read(call, lookup)) ? 0 : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
 }
 
 static unsigned
