@@ -27,8 +27,10 @@ compiles on the native pipeline since `e23761a3a`; main refuses it.
    landing](../decisions/2026-10-19_string_landing_copy_then_move.md)
    (owned copy at stores no proof admits) is not started.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize`
-   fails on the canonical, so a normal compile never runs the move,
-   allocator lane and named-call owners.
+   fails on the canonical (three refusals, a field taken out before an
+   `own` retire: [OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)),
+   so a normal compile never runs the move, allocator lane and named-call
+   owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
 
