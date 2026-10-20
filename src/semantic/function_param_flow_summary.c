@@ -239,7 +239,8 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
     storage_unproved = function_param_array_storage_unproved_in_program_points(
-        statements, statement_count, roots, root_count, &origin, &lookup, &payload_read);
+        statements, statement_count, roots, root_count, &origin, &lookup,
+        candidate | store->entries[index].mask, &payload_read);
     bool scalar_return = (candidate & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
         semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, function_decl);
     bool anchored = false;

@@ -498,8 +498,10 @@ size_t function_param_flow_add(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, size_t param_index);
 size_t function_param_flow_find(const FunctionParamFlowSummaryStore *store,
     uint32_t function_id, size_t param_index);
+/* `summary` is what the formal's summary says so far; its RETURN bit lets a
+ * returned value carry an alias of the formal. */
 unsigned function_param_array_storage_unproved_in_program_points(
     ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
-    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, bool *payload_read);
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read);
 
 #endif

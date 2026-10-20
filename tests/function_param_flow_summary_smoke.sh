@@ -175,6 +175,8 @@ release_lifetime_refusals = {
     "option_payload_result_grown_invalid": [(*released_refusal, 23, 41)],
     "optional_wrap_result_grown_invalid": [(*released_refusal, 30, 48), (*released_refusal, 30, 74)],
     "by_value_getter_result_local_returned_grown_invalid": [(*released_refusal, 34, 48), (*released_refusal, 34, 74)],
+    "by_value_formal_rebound_to_result_grown_invalid": [(*released_refusal, 25, 42), (*released_refusal, 25, 62)],
+    "path_alias_returned_in_constructor_grown_invalid": [(*released_refusal, 35, 48), (*released_refusal, 35, 74)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     # An inout fill of a by-value parameter from a second input moves it.
@@ -861,6 +863,11 @@ paired = (
     ("by_value_getter_lend_option_string_unwrapped_valid", True),
     ("by_value_getter_lend_string_collected_valid", True),
     ("by_value_getter_lend_result_path_grown_landed_valid", True),
+    ("by_value_formal_rebound_to_result_valid", True),
+    ("by_value_formal_rebound_to_result_grown_invalid", False),
+    ("alias_rebound_to_result_valid", True),
+    ("path_alias_returned_in_constructor_valid", True),
+    ("path_alias_returned_in_constructor_grown_invalid", False),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
@@ -1688,6 +1695,9 @@ for name, expected in (
     ("by_value_getter_lend_option_string_unwrapped_valid", "3ab"),
     ("by_value_getter_lend_string_collected_valid", "3ab"),
     ("by_value_getter_lend_result_path_grown_landed_valid", "10"),
+    ("by_value_formal_rebound_to_result_valid", "7"),
+    ("alias_rebound_to_result_valid", "8"),
+    ("path_alias_returned_in_constructor_valid", "7"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

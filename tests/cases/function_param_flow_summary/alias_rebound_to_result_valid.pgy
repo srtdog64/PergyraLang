@@ -1,0 +1,25 @@
+// Bump keeps its by-value build in a local, rebinds the local to the Build
+// WithCount returns from it, and only reads it. The local holds the storage
+// Main's build shares and changes none of it, so Main's later use is
+// admitted.
+struct Build {
+    items: Array<Int>;
+    count: Int;
+}
+
+func WithCount(build: Build, count: Int) -> Build {
+    return Build(build.items, count);
+}
+
+func Bump(build: Build) -> Int {
+    let current: Build = build;
+    current = WithCount(current, current.count + 2);
+    return ArrayLength(current.items) + current.count;
+}
+
+func Main() -> Int {
+    let build: Build = Build([1, 2], 0);
+    let n: Int = Bump(build);
+    Print(ToString(n + ArrayLength(build.items) + build.items[1]));
+    return 0;
+}

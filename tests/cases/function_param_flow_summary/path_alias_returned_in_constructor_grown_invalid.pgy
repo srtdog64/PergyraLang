@@ -1,0 +1,37 @@
+// Wrap keeps a path of its by-value outer in a local and returns it inside
+// a Holder. Grow pushes onto the Holder's items, which share storage with
+// Main's outer: Main's later use is refused.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+struct Holder {
+    part: Inner;
+    tag: Int;
+}
+
+func Wrap(outer: Outer) -> Holder {
+    let inner: Inner = outer.inner;
+    return Holder(inner, 1);
+}
+
+func Grow(outer: Outer) -> Int {
+    let held: Holder = Wrap(outer);
+    ArrayPush(held.part.items, 9);
+    ArrayPush(held.part.items, 9);
+    ArrayPush(held.part.items, 9);
+    ArrayPush(held.part.items, 9);
+    return ArrayLength(held.part.items);
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Grow(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}
