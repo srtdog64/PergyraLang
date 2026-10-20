@@ -117,6 +117,19 @@ no typed fact, so the capture now keeps each argument's answers until it
 returns. The verify mode reads every reuse again and fails the store on a
 different answer.
 
+Every lookup of an existing program-point index checked its claims again in
+full: each claim row against the typed facts, each row's empty-consumer
+answer, and the control projection (15.96 million checks in one analysis,
+about 100 claim rows each). The claims change only when a row is added or
+promoted after the index's snapshot, which writes rows and the projection
+once while the index is built and before any check of it. So the claims
+keep a generation that those two writes change, and a passed check holds
+again while the generation and the index's local count are the same and
+the claims have not failed. The verify mode checks every reuse in full
+and fails the store on a divergence. The unit fails when the generation,
+the local count or the failed flag is not compared, or when either write
+does not change the generation.
+
 ## Results
 
 | Run (one census-mode analysis, same input) | Wall | Peak |
@@ -125,6 +138,7 @@ different answer.
 | memo, checks kept outside a solve only | 1542 s | 3.47 GB |
 | memo, checks kept in a solve without pending relations | 1547 s | 3.47 GB |
 | and the owner-row test order and the argument answers below | 1206 s (unchanged run: 2607 s) | 3.47 GB |
+| and the index claims check reuse below | 235 s (unchanged run: 2582 s) | 3.47 GB |
 
 - Each memo run was started together with an unchanged run, with up to
   two other analyses running on the 16-core machine.

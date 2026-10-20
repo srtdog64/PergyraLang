@@ -222,6 +222,14 @@ struct FunctionParamFlowIndexClaims {
     size_t count;
     size_t readfile_first_plus_one;
     bool failed;
+    /* Changes with every row added or promoted. The snapshot writes rows and
+     * the control projection once, while the index is built and before any
+     * check of it, so these are the only writes a passed check can miss. */
+    size_t generation;
+    /* The generation and index local count of the last index claims check
+     * that passed (function_param_flow_index_claims_current). */
+    size_t checked_generation, checked_locals;
+    bool checked;
 };
 
 typedef struct {

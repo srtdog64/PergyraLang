@@ -29,7 +29,8 @@ static bool current(void) { return function_param_flow_rows_memo_current(&store,
 
 int main(void)
 {
-    Lexer *lexer = lexer_create("func Pair(a: Int, b: Int) -> Int { return Other(a); }\n");
+    Lexer *lexer = lexer_create("func Pair(a: Int, b: Int) -> Int { return Other(a); }\n"
+        "func Plain(a: Int) -> Int { return a; }\n");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
     CHECK(program != NULL && !parser_has_error(parser));
@@ -130,6 +131,57 @@ int main(void)
     function_param_flow_rows_memo_record(&store, 0, &reached, true);
     CHECK(store.program_point_indexes[0].rows_memo.passed && !current());
     CHECK(kept_after_record(true) && current());
+
+    /* The index claims check answers again until a row is added or
+     * promoted, the locals change or the claims fail. A row changed behind
+     * the owners' back shows which answers were reused. The routine has no
+     * call, whose claim would need typed call facts this context lacks. */
+    ASTNode *plain = ast_program_statement(program, 1);
+    CHECK(plain != NULL && plain->type == AST_FUNC_DECL);
+    if (plain == NULL) return 1;
+    ASTNode *body = ast_func_body(plain);
+    ASTNode *roots[1] = {ast_block_statement(body, 0)};
+    uint32_t root_ids[1] = {ast_node_stable_id(roots[0])};
+    FunctionParamFlowProgramPointIndex *claimed = calloc(1, sizeof(*claimed));
+    CHECK(claimed != NULL);
+    if (claimed == NULL) return 1;
+    claimed->function_decl = plain;
+    claimed->function_id = ast_node_stable_id(plain);
+    claimed->dependency_body = body;
+    claimed->dependency_body_id = ast_node_stable_id(body);
+    claimed->dependency_roots = roots;
+    claimed->dependency_root_ids = root_ids;
+    claimed->dependency_root_count = 1;
+    CHECK(function_param_flow_index_claims_snapshot(store.ctx, claimed, body));
+    CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
+    FunctionParamFlowIndexClaims *rows = claimed->claims;
+    uint32_t first_id = rows->rows[0].id;
+    rows->rows[0].id = first_id + 1000;
+    CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
+    ASTNode *added = ast_func_return_type(plain);
+    CHECK(added != NULL && function_param_flow_claim_capture(store.ctx, rows, added, false));
+    CHECK(!function_param_flow_index_claims_current(store.ctx, claimed));
+    rows->rows[0].id = first_id;
+    CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
+    rows->rows[0].id = first_id + 1000;
+    CHECK(function_param_flow_claim_capture(store.ctx, rows, added, true));
+    CHECK(!function_param_flow_index_claims_current(store.ctx, claimed));
+    rows->rows[0].id = first_id;
+    CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
+    ASTNode *locals[1] = {roots[0]};
+    claimed->local_definitions = locals;
+    claimed->local_count = 1;
+    CHECK(!function_param_flow_index_claims_current(store.ctx, claimed));
+    claimed->local_count = 0;
+    CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
+    rows->failed = true;
+    CHECK(!function_param_flow_index_claims_current(store.ctx, claimed));
+    rows->failed = false;
+    claimed->local_definitions = NULL;
+    claimed->dependency_roots = NULL;
+    claimed->dependency_root_ids = NULL;
+    function_param_flow_program_point_index_destroy(claimed);
+    free(claimed);
     semantic_context_destroy(store.ctx);
     store.ctx = NULL;
 

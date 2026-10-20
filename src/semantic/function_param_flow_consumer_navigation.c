@@ -450,10 +450,9 @@ bool function_param_flow_consumer_empty_current(const SemanticContext *ctx,
     return false;
 }
 
-bool function_param_flow_index_claims_current(SemanticContext *ctx,
+static bool index_claims_full_check(SemanticContext *ctx,
     const FunctionParamFlowProgramPointIndex *index)
 {
-    if (index == NULL) return false;
     const FunctionParamFlowIndexClaims *claims = index->claims;
     const FunctionParamFlowControlProjection *projection = index->control_projection;
     ASTNode *const *roots = index->dependency_roots;
@@ -524,4 +523,28 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
             if (projection->steps[s].root_ordinal != r) return false;
     }
     return true;
+}
+
+/* Typed facts are sealed while the flow store lives, so a passed check holds
+ * again until a claim row, the projection or the index's locals change. With
+ * PGY_VERIFY_FLOW_CURRENCY_MEMO every reuse is checked in full as well, and
+ * a divergence fails the store. */
+bool function_param_flow_index_claims_current(SemanticContext *ctx,
+    const FunctionParamFlowProgramPointIndex *index)
+{
+    static int verify = -1;
+    if (index == NULL || index->claims == NULL) return false;
+    if (verify < 0) verify = getenv("PGY_VERIFY_FLOW_CURRENCY_MEMO") != NULL;
+    FunctionParamFlowIndexClaims *claims = index->claims;
+    bool reused = claims->checked && !claims->failed && claims->checked_generation == claims->generation &&
+        claims->checked_locals == index->local_count;
+    if (reused && !verify) return true;
+    bool current = index_claims_full_check(ctx, index);
+    if (reused && !current)
+        function_param_flow_fail(ctx->function_param_flow_summaries, index->function_decl,
+            "index claims currency memo diverged from its full check");
+    claims->checked = current;
+    claims->checked_generation = claims->generation;
+    claims->checked_locals = index->local_count;
+    return current;
 }

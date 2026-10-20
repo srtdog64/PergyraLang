@@ -31,6 +31,7 @@ bool function_param_flow_claim_capture(SemanticContext *ctx,
     if (rows == NULL) { claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim allocation failed"); return false; }
     claims->rows = rows;
     row = &rows[claims->count++];
+    claims->generation++;
     *row = (FunctionParamFlowIndexClaim){.node = node, .id = ast_node_stable_id(node), .shape = node->type,
         .child_count = children, .control_step_ordinal = SIZE_MAX, .control_root_ordinal = SIZE_MAX};
     row->children = children == 0 ? NULL : calloc(children, sizeof(*row->children));
@@ -79,6 +80,7 @@ bool function_param_flow_claim_capture(SemanticContext *ctx,
     }
     if (!semantic) return row->id != 0;
 promote:
+    claims->generation++;
     row->semantic_promoted = true;
     row->execution_present = semantic_param_publication_execution(ctx, node, &row->reachable);
     row->physical_value = semantic_param_publication_value_is_physical_scalar(ctx, node);
