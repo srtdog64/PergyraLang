@@ -1,0 +1,32 @@
+// Label keeps an Option<String> that NameAt returns from its by-value arena
+// and may replace it with another. An Option of a String holds none of the
+// arena's storage, so replacing it changes nothing of the arena: Main's
+// arena keeps its storage and its later use is admitted.
+struct Arena {
+    names: Array<String>;
+}
+
+func NameAt(arena: Arena, index: Int) -> Option<String> {
+    if index >= ArrayLength(arena.names) {
+        return None();
+    }
+    return Some(arena.names[index]);
+}
+
+func Label(arena: Arena, second: Bool) -> Int {
+    let label: Option<String> = NameAt(arena, 0);
+    if second {
+        label = NameAt(arena, 1);
+    }
+    if !IsSome(label) {
+        return 0;
+    }
+    return StringLength(UnwrapOption(label));
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cde", "")]);
+    Print(ToString(Label(arena, true)));
+    Print(arena.names[0]);
+    return 0;
+}

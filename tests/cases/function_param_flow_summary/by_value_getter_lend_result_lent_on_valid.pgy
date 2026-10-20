@@ -1,0 +1,32 @@
+// Part lends Report's by-value outer, and Report lends the loan on to NameOf,
+// which returns one of its Strings. Nothing changes outer or the loan, so
+// the loan holds while Report uses outer again, and Main keeps its outer.
+struct Inner {
+    names: Array<String>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func NameOf(inner: Inner, index: Int) -> String {
+    return inner.names[index];
+}
+
+func Report(outer: Outer) -> String {
+    let part: Inner = Part(outer);
+    let name: String = NameOf(part, 0);
+    return Concat(name, ToString(outer.count + ArrayLength(outer.inner.names)));
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([StringConcat("ab", "")]), 1);
+    Print(Report(outer));
+    Print(outer.inner.names[0]);
+    return 0;
+}

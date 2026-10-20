@@ -1,0 +1,22 @@
+// Count unwraps its box's optional inner struct and only reads it, so Main's
+// box keeps its storage and its later use is admitted.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Box {
+    inner: Option<Inner>;
+}
+
+func Count(box: Box) -> Int {
+    let inner: Inner = UnwrapOption(box.inner);
+    return ArrayLength(inner.items) + inner.items[0];
+}
+
+func Main() -> Int {
+    let box: Box = Box(Some(Inner([1, 2])));
+    let n: Int = Count(box);
+    let inner: Inner = UnwrapOption(box.inner);
+    Print(ToString(n + ArrayLength(inner.items) + inner.items[1]));
+    return 0;
+}

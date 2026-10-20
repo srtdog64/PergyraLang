@@ -1,0 +1,32 @@
+// Part only reads and returns its outer's inner struct, but Grow pushes onto
+// that result's items. They share storage with Grow's by-value outer and so
+// with Main's outer: Grow changes the storage it receives, and Main's later
+// use is refused.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Grow(outer: Outer) -> Int {
+    let part: Inner = Part(outer);
+    ArrayPush(part.items, 9);
+    ArrayPush(part.items, 9);
+    ArrayPush(part.items, 9);
+    ArrayPush(part.items, 9);
+    return ArrayLength(part.items);
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Grow(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

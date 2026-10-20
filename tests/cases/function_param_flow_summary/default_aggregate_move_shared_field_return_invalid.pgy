@@ -1,17 +1,20 @@
-// A struct passed by value to a callee that returns one of its Array fields
-// is moved: the result shares that field's storage, so growing the result
-// can free the storage the argument still names.
+// Keep returns a new Rows built from its by-value argument's fields: the
+// result shares their storage, so growing the result can free the storage
+// the argument still names. Clone does not copy the nested grid whole, so
+// no copy can stand in for the loan and Main's later use of rows is refused.
 struct Rows {
     ids: Array<Int>;
+    grid: Array<Array<Int>>;
 }
 
 func Keep(rows: Rows) -> Rows {
-    return Rows(rows.ids);
+    return Rows(rows.ids, rows.grid);
 }
 
 func Main() -> Int {
     let ids: Array<Int> = [1];
-    let rows: Rows = Rows(ids);
+    let grid: Array<Array<Int>> = [[1]];
+    let rows: Rows = Rows(ids, grid);
     let kept: Rows = Keep(rows);
     ArrayPush(kept.ids, 2);
     Print(ToString(rows.ids[0]));

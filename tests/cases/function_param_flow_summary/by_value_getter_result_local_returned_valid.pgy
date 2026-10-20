@@ -1,0 +1,36 @@
+// Pick keeps Part's result in a local and returns it: the local is that
+// result, which holds Pick's by-value outer, and Pick's summary returns the
+// outer as a getter's does. Report only reads Pick's result, so Main's
+// outer keeps its storage and its later use is admitted.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Pick(outer: Outer) -> Inner {
+    let part: Inner = Part(outer);
+    if outer.count > 5 {
+        return Inner([7]);
+    }
+    return part;
+}
+
+func Report(outer: Outer) -> Int {
+    let picked: Inner = Pick(outer);
+    return ArrayLength(picked.items) + outer.count;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Report(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

@@ -1,0 +1,26 @@
+// Collect builds Facts from its by-value arena's count and pushes them onto
+// a local Array. A count is a copy, so the Facts hold none of the arena's
+// storage and the push keeps nothing of it: Main's arena keeps its storage
+// and its later use is admitted.
+struct Arena {
+    names: Array<String>;
+    count: Int;
+}
+
+struct Facts {
+    count: Int;
+    label: String;
+}
+
+func Collect(arena: Arena) -> Int {
+    let rows: Array<Facts> = [];
+    ArrayPush(rows, Facts(arena.count, "x"));
+    return ArrayLength(rows) + arena.count;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")], 2);
+    Print(ToString(Collect(arena)));
+    Print(arena.names[0]);
+    return 0;
+}

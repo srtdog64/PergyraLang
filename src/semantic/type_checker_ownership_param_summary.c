@@ -18,10 +18,16 @@
 #include <string.h>
 
 
+/* The bindings a loan's backing reached. */
+typedef struct {
+    uint32_t *ids;
+    size_t count;
+} LoanCarriers;
+
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
-    ASTNode **escape_site, ASTNode **escape_carrier);
+    ASTNode **escape_site, ASTNode **escape_carrier, LoanCarriers *carriers);
 
 static bool array_result_borrowed_formal(Type *function_type, const Type *formal_type,
     ParamMode mode, SemanticContext *ctx)
@@ -437,7 +443,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
-    ASTNode **escape_site, ASTNode **escape_carrier)
+    ASTNode **escape_site, ASTNode **escape_carrier, LoanCarriers *carriers)
 {
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
@@ -481,6 +487,14 @@ static bool sparse_loan_admitted(SemanticContext *ctx,
         function_param_flow_program_point_index_build(store, caller, &index) &&
         (((effects & ~allowed_effects) == 0 && !owner_walk) ||
          (return_loan != NULL && returned_loan_sources_admitted(store, index, view, return_loan, effects)));
+    for (size_t b = 0; admitted && carriers != NULL && b < fact.binding_count; b++) {
+        if (fact.bindings[b].binding == 0 || fact.bindings[b].origins == NULL ||
+            (fact.bindings[b].origins[0] & UINT64_C(1)) == 0) continue;
+        uint32_t *grown = realloc(carriers->ids, (carriers->count + 1) * sizeof(*grown));
+        if (grown == NULL) { admitted = false; break; }
+        carriers->ids = grown;
+        carriers->ids[carriers->count++] = fact.bindings[b].binding;
+    }
     for (size_t n = 0; n < fact.node_count; n++) free(fact.nodes[n].origins);
     for (size_t b = 0; b < fact.binding_count; b++) { free(fact.bindings[b].origins); free(fact.bindings[b].destinations); }
     free(fact.nodes); free(fact.bindings); free(fact.pending_relations);
@@ -499,7 +513,7 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     if (!registered || (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
         !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal)) return false;
-    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL);
+    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL, NULL);
 }
 
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
@@ -519,16 +533,36 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             allowed = function_param_flow_summary_for_param(ctx, caller, p) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
     }
     ASTNode *escape = NULL, *carrier = NULL;
-    if (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape, &carrier)) {
+    LoanCarriers carriers = {0};
+    if (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape, &carrier, &carriers)) {
         if (failure != NULL) failure->escape_carrier = carrier;
+        free(carriers.ids);
         return false;
     }
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
     FunctionParamFlowProgramPointIndex *index;
-    if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index))
+    if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index)) {
+        free(carriers.ids);
         return false;
+    }
     bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true);
+    /* The loan shares the owner's storage, so a change through a local the
+     * loan reached changes the owner. A String or copy-only local holds
+     * none of it. */
+    for (size_t k = 0; unchanged && k < carriers.count; k++) {
+        bool holds = true;
+        for (size_t c = 0; c < index->claims->count; c++) {
+            const FunctionParamFlowIndexClaim *row = &index->claims->rows[c];
+            if (row->id != carriers.ids[k] || row->node == NULL || row->node->type != AST_LET_DECL) continue;
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, ast_let_initializer(row->node));
+            holds = !value.ok || value.meta || (!type_equals(value.type, TYPE_STRING) &&
+                semantic_classify_ownership_type(value.type, ctx) != OWNERSHIP_TYPE_COPY_ONLY);
+            break;
+        }
+        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true);
+    }
+    free(carriers.ids);
     if (!unchanged && failure != NULL) failure->owner_changed = true;
     return unchanged;
 }
@@ -539,7 +573,7 @@ bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller
     ASTNode *escape = NULL;
     return ctx != NULL && caller != NULL && call != NULL &&
         semantic_param_publication_admitted_view(ctx, &view) &&
-        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape, NULL);
+        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape, NULL, NULL);
 }
 
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
@@ -553,5 +587,5 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     bool registered = false;
     for (size_t c = 0; c < view->read_loan_count; c++) if (&view->read_loans[c] == row) registered = true;
     return registered && sparse_loan_admitted(ctx, view, (ASTNode *)row->caller,
-        (ASTNode *)row->call, owner, NULL, 0, escape_site, NULL);
+        (ASTNode *)row->call, owner, NULL, 0, escape_site, NULL, NULL);
 }

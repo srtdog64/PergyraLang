@@ -1,0 +1,32 @@
+// Wrap returns its outer's inner struct in an Option. Grow unwraps the
+// result and pushes onto its items, which share storage with Main's outer:
+// Main's later use is refused.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Wrap(outer: Outer) -> Option<Inner> {
+    return Some(outer.inner);
+}
+
+func Grow(outer: Outer) -> Int {
+    let wrapped: Option<Inner> = Wrap(outer);
+    let inner: Inner = UnwrapOption(wrapped);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    return ArrayLength(inner.items);
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Grow(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

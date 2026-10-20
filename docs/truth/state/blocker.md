@@ -6,32 +6,31 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2532 downgraded
-refusals with every final owner run (2870 before the formal store
-landing; [census record](../evidence/2026-10-20_native_census_loan_creation_fallback.md)).
-A census runs up to four analyses in about 850 s; the
-[rows check memo](../../agent_work_directives/flow_rows_check_memo_2026-10-20.md)
-and claims reuse cut one from 2582 s to 235 s. The CI harness manifest
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2479 downgraded
+refusals with every final owner run (2532 before call results became
+paths of a formal;
+[census record](../evidence/2026-10-20_native_census_call_result_paths.md)).
+A census runs four analyses in about 810 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 782 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 701 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (972):**
-   - 466 getters whose loan proof fails;
-   - 230 callees that change, keep or release;
-   - 211 read-and-return callees whose storage proof fails;
-   - 65 getters on locals.
-3. **Borrowed `ref` escapes (890):** mostly a `ref` formal whose own
-   summary has a call escape. An `inout` argument's unconditional call
-   escape carries loan safety; relaxing it clears at most 32.
+2. **Moves (813 outside `direct_mir_*`).** Over the whole input: 576
+   getters whose loan proof fails, 197 callees that change, keep or
+   release, 123 read-only callees whose storage proof fails, 17 getters on
+   locals. Of the 395 refusals the call-result rule added, 225 follow
+   `SemanticAstIntentTransitionFactsFromArtifact`,
+   `SemanticAstLocalBindingFactsFromArtifact` and the `TypedAstArena*Text`
+   getters; not yet classified.
+3. **Borrowed `ref` escapes (421 outside `direct_mir_*`):** mostly a
+   `ref` formal whose own summary has a call escape.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
    ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)).
-   Left: 265 opaque crossings, 131 released elements, 25 owned pushes on
-   escaped storage.
+   Left: 175 opaque crossings, 131 released elements, 25 owned pushes.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
@@ -45,8 +44,9 @@ compiles natively since `e23761a3a`.
   read after `AllocatorDestroy` (ASan heap-use-after-free); `bc2aefb30`
   refuses it by an owner.
 - **Proofs must walk every place a formal's storage can go.** Main skipped
-  a `for` loop's iterable, so pushing onto each element of a by-value
-  Array was admitted (ASan heap-use-after-free); `99a31fe0f` follows it.
+  a `for` loop's iterable (fixed in `99a31fe0f`) and did not follow a
+  getter's result, so growing it was admitted (ASan heap-use-after-free;
+  [call-result rule](../decisions/2026-10-20_call_result_holding_formal_storage_is_its_path.md)).
 - **Census each commit that changes what a frame models or what lands.**
   Two censuses on this branch were invalid (`98f4b7747`, `5cf9d7553`): one
   failed flow store turns every later refusal into fail-closed noise.

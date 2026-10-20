@@ -1,0 +1,38 @@
+// Wrap returns a Holder built from a local that keeps Part's result: the
+// Holder holds Wrap's by-value outer, and Wrap returns it as a getter does.
+// Report only reads the Holder, so Main's outer keeps its storage and its
+// later use is admitted.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+struct Holder {
+    part: Inner;
+    tag: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Wrap(outer: Outer) -> Holder {
+    let part: Inner = Part(outer);
+    return Holder(part, outer.count + 1);
+}
+
+func Report(outer: Outer) -> Int {
+    let held: Holder = Wrap(outer);
+    return ArrayLength(held.part.items) + held.tag;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Report(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

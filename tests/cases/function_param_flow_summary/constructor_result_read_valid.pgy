@@ -1,0 +1,24 @@
+// WithCount returns a new Arena built from its arena's atoms: the result
+// holds the arena's storage and WithCount returns it, as a getter does.
+// Report only reads the result, so Main's arena keeps its storage and its
+// later use is admitted.
+struct Arena {
+    atoms: Array<Int>;
+    count: Int;
+}
+
+func WithCount(arena: Arena, count: Int) -> Arena {
+    return Arena(arena.atoms, count);
+}
+
+func Report(arena: Arena) -> Int {
+    let next: Arena = WithCount(arena, 3);
+    return ArrayLength(next.atoms) + next.count;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([1, 2], 0);
+    let n: Int = Report(arena);
+    Print(ToString(n + ArrayLength(arena.atoms) + arena.atoms[1]));
+    return 0;
+}

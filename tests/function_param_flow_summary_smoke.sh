@@ -106,6 +106,8 @@ landed_clones = {
     "aggregate_move_void_call_landed_valid": {"Report": 1},
     "by_value_getter_lend_inout_passed_landed_valid": {"Use": 1},
     "by_value_getter_lend_inout_then_returned_landed_valid": {"Use": 1},
+    "by_value_getter_lend_result_grown_landed_valid": {"Main": 1},
+    "default_aggregate_move_shared_field_return_landed_valid": {"Main": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -140,6 +142,11 @@ landing_rounds = {
     "array_push_loan_inout_invalid": 0,
     "aggregate_move_void_call_landed_valid": 1,
     "aggregate_move_void_call_invalid": 0,
+    "by_value_getter_lend_result_grown_landed_valid": 1,
+    "default_aggregate_move_shared_field_return_landed_valid": 1,
+    "default_aggregate_move_shared_field_return_invalid": 0,
+    "by_value_getter_lend_result_lent_on_valid": 0,
+    "by_value_getter_lend_string_reassigned_valid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -152,8 +159,18 @@ release_lifetime_refusals = {
     "default_aggregate_move_reuse_invalid": [(*released_refusal, 21, 28), (*released_refusal, 22, 34)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
-    # Returning a field's storage shares it with the result, which also moves.
-    "default_aggregate_move_shared_field_return_invalid": [(*released_refusal, 17, 28)],
+    # Returning a field's storage shares it with the result, which lends the
+    # argument; growing the result changes it when no copy stands in.
+    "default_aggregate_move_shared_field_return_invalid": [(*released_refusal, 20, 28)],
+    # A call result that holds a formal's storage is a path of that formal:
+    # growing it changes the storage the caller's copy shares.
+    "by_value_getter_result_grown_invalid": [(*released_refusal, 30, 48), (*released_refusal, 30, 74)],
+    "by_value_getter_result_passed_grown_invalid": [(*released_refusal, 32, 48), (*released_refusal, 32, 74)],
+    "by_value_getter_result_reassigned_grown_invalid": [(*released_refusal, 30, 48), (*released_refusal, 30, 74)],
+    "constructor_result_grown_invalid": [(*released_refusal, 25, 42), (*released_refusal, 25, 62)],
+    "option_payload_result_grown_invalid": [(*released_refusal, 23, 41)],
+    "optional_wrap_result_grown_invalid": [(*released_refusal, 30, 48), (*released_refusal, 30, 74)],
+    "by_value_getter_result_local_returned_grown_invalid": [(*released_refusal, 34, 48), (*released_refusal, 34, 74)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     # An inout fill of a by-value parameter from a second input moves it.
@@ -816,6 +833,26 @@ paired = (
     ("clone_struct_array_ref_input_result_invalid", False),
     ("default_aggregate_move_read_only_struct_valid", True),
     ("default_aggregate_move_shared_field_return_invalid", False),
+    ("default_aggregate_move_shared_field_return_landed_valid", True),
+    ("by_value_getter_result_grown_invalid", False),
+    ("by_value_getter_result_passed_grown_invalid", False),
+    ("by_value_getter_result_reassigned_grown_invalid", False),
+    ("constructor_result_grown_invalid", False),
+    ("by_value_getter_result_read_valid", True),
+    ("constructor_result_read_valid", True),
+    ("by_value_getter_lend_result_grown_landed_valid", True),
+    ("option_payload_result_grown_invalid", False),
+    ("option_payload_result_read_valid", True),
+    ("optional_wrap_result_grown_invalid", False),
+    ("optional_wrap_result_read_valid", True),
+    ("by_value_getter_lend_result_lent_on_valid", True),
+    ("by_value_getter_lend_string_reassigned_valid", True),
+    ("by_value_getter_result_local_returned_valid", True),
+    ("constructor_of_getter_result_returned_valid", True),
+    ("by_value_getter_result_local_returned_grown_invalid", False),
+    ("constructor_of_formal_values_stored_valid", True),
+    ("path_alias_lent_to_string_getter_valid", True),
+    ("option_string_result_reassigned_valid", True),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
@@ -1626,6 +1663,19 @@ for name, expected in (
     ("by_value_getter_lend_passed_kept_landed_valid", "2ab"),
     ("by_value_getter_lend_assigned_landed_valid", "1ab"),
     ("by_value_getter_lend_owner_written_after_lowering_landed_valid", "22"),
+    ("by_value_getter_lend_result_grown_landed_valid", "10"),
+    ("default_aggregate_move_shared_field_return_landed_valid", "1"),
+    ("by_value_getter_result_read_valid", "6"),
+    ("constructor_result_read_valid", "9"),
+    ("option_payload_result_read_valid", "7"),
+    ("optional_wrap_result_read_valid", "6"),
+    ("by_value_getter_lend_result_lent_on_valid", "ab2ab"),
+    ("by_value_getter_lend_string_reassigned_valid", "ab!1ab"),
+    ("by_value_getter_result_local_returned_valid", "6"),
+    ("constructor_of_getter_result_returned_valid", "7"),
+    ("constructor_of_formal_values_stored_valid", "3ab"),
+    ("path_alias_lent_to_string_getter_valid", "abab"),
+    ("option_string_result_reassigned_valid", "3ab"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

@@ -1,0 +1,27 @@
+// WithCount returns a new Arena built from its arena's atoms. Grow pushes
+// onto the result's atoms, which share storage with Grow's by-value arena
+// and so with Main's arena: Main's later use is refused.
+struct Arena {
+    atoms: Array<Int>;
+    count: Int;
+}
+
+func WithCount(arena: Arena, count: Int) -> Arena {
+    return Arena(arena.atoms, count);
+}
+
+func Grow(arena: Arena) -> Int {
+    let next: Arena = WithCount(arena, 3);
+    ArrayPush(next.atoms, 9);
+    ArrayPush(next.atoms, 9);
+    ArrayPush(next.atoms, 9);
+    ArrayPush(next.atoms, 9);
+    return ArrayLength(next.atoms) + next.count;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([1, 2], 0);
+    let n: Int = Grow(arena);
+    Print(ToString(n + ArrayLength(arena.atoms) + arena.atoms[1]));
+    return 0;
+}

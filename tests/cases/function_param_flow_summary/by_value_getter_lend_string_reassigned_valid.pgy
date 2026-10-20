@@ -1,0 +1,24 @@
+// AtomText lends Label's by-value arena, and Label replaces the String it
+// got before it uses the arena again. A String holds none of the arena's
+// storage, so replacing it changes nothing of the arena: the loan holds and
+// nothing is copied.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Label(arena: Arena) -> String {
+    let text: String = AtomText(arena, 0);
+    text = Concat(text, "!");
+    return Concat(text, ToString(ArrayLength(arena.atoms)));
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(Label(arena));
+    Print(arena.atoms[0]);
+    return 0;
+}

@@ -1,0 +1,28 @@
+// Report keeps a path of its by-value outer in a local and lends it to
+// NameOf, which returns one of its Strings. A String holds none of the
+// outer's storage, so the alias is only read and returned as a String:
+// Main's outer keeps its storage and its later use is admitted.
+struct Inner {
+    names: Array<String>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func NameOf(inner: Inner, index: Int) -> String {
+    return inner.names[index];
+}
+
+func Report(outer: Outer) -> String {
+    let inner: Inner = outer.inner;
+    return NameOf(inner, 0);
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([StringConcat("ab", "")]), 1);
+    Print(Report(outer));
+    Print(outer.inner.names[0]);
+    return 0;
+}

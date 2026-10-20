@@ -1,0 +1,34 @@
+// Grow hands Part's result straight to Fill, which pushes onto its items.
+// Those items share storage with Grow's by-value outer and so with Main's
+// outer: Main's later use is refused.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Fill(inner: Inner) -> Int {
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    return ArrayLength(inner.items);
+}
+
+func Grow(outer: Outer) -> Int {
+    return Fill(Part(outer));
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Grow(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

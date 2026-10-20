@@ -1,0 +1,26 @@
+// Grow unwraps its box's optional inner struct and pushes onto its items,
+// which share storage with Main's box: Main's later use is refused.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Box {
+    inner: Option<Inner>;
+}
+
+func Grow(box: Box) -> Int {
+    let inner: Inner = UnwrapOption(box.inner);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    return ArrayLength(inner.items);
+}
+
+func Main() -> Int {
+    let box: Box = Box(Some(Inner([1, 2])));
+    let n: Int = Grow(box);
+    let inner: Inner = UnwrapOption(box.inner);
+    Print(ToString(n + ArrayLength(inner.items) + inner.items[1]));
+    return 0;
+}
