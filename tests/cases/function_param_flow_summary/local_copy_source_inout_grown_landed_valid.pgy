@@ -1,0 +1,26 @@
+// Main binds a local to outer's inner, then hands outer to Grow as an inout
+// argument while it still uses the local. Grow pushes onto outer's items in
+// place, so the local is copied where it is bound and keeps its two items.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Grow(inout outer: Outer) -> Void {
+    ArrayPush(outer.inner.items, 9);
+    ArrayPush(outer.inner.items, 9);
+    ArrayPush(outer.inner.items, 9);
+    ArrayPush(outer.inner.items, 9);
+}
+
+func Main() -> Int {
+    var outer: Outer = Outer(Inner([1, 2]), 0);
+    let other: Inner = outer.inner;
+    Grow(outer);
+    Print(ToString(ArrayLength(other.items) + other.items[1] + ArrayLength(outer.inner.items)));
+    return 0;
+}

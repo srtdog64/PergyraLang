@@ -258,8 +258,14 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH
             && semantic_collection_reject_unsafe_owned_string_mutation(
-                arg0, op_name, ctx))
+                arg0, op_name, ctx)) {
+            /* An Array<String> that owns its elements takes a String as an
+             * owned copy, which the next analysis lands. The value is still
+             * checked, so its facts are published for later owners. */
+            semantic_formal_string_store_landing_select_owned(ctx, expr);
+            (void)type_check_expression(ast_call_argument(expr, 1), ctx);
             return TYPE_UNKNOWN;
+        }
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
             && !semantic_collection_admit_owned_string_push(arg0, ctx))
             return TYPE_UNKNOWN;
@@ -434,8 +440,11 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (!semantic_array_storage_admit_mutation(arg0, ctx))
             return TYPE_UNKNOWN;
         if (semantic_collection_reject_unsafe_owned_string_mutation(
-                arg0, "ArraySet", ctx))
+                arg0, "ArraySet", ctx)) {
+            (void)type_check_expression(arg1, ctx);
+            (void)type_check_expression(ast_call_argument(expr, 2), ctx);
             return TYPE_UNKNOWN;
+        }
         require_assignable(
             type_check_expression(arg1, ctx),
             TYPE_INT, arg1, ctx);

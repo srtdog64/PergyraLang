@@ -37,6 +37,11 @@ void semantic_formal_string_store_landing_select(SemanticContext *ctx, const AST
  * formal. */
 void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNode *call, size_t value_ordinal);
 
+/* A plain String push into an Array<String> that owns its elements is
+ * refused; the call is selected so that a next analysis lands it as an
+ * owned String push (ArrayPushOwnedString) when the receiver admits one. */
+void semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call);
+
 /* The same selection while the store call is checked, before it has a
  * publication row: no owner proves its String alive for the receiver, and
  * no owned-copy store of it was admitted. */

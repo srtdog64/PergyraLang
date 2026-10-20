@@ -154,6 +154,13 @@ void semantic_formal_string_store_landing_select_checked(SemanticContext *ctx, A
         store_landing_record(ctx, ast_node_stable_id(call));
 }
 
+void semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call)
+{
+    if (call != NULL && ast_call_arg_count(call) == 2 && ast_node_stable_id(call) != 0 &&
+        type_equals(store_landing_receiver_element(ast_call_argument(call, 0), ctx), TYPE_STRING))
+        store_landing_record(ctx, ast_node_stable_id(call));
+}
+
 void semantic_formal_string_store_landing_select(SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, const ASTNode *root, const ASTNode *routine)
 {

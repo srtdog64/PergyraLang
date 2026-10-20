@@ -1,0 +1,16 @@
+// Main copies its names with Clone, which makes an Array<String> that owns
+// its elements, and pushes a String onto the copy. A plain push would mix a
+// borrowed String into owned elements, so the push lands as an owned String
+// push, and the copy owns the pushed String as it owns the others.
+struct Book {
+    names: Array<String>;
+}
+
+func Main() -> Int {
+    let book: Book = Book([StringConcat("a", ""), StringConcat("b", "")]);
+    let names: Array<String> = Clone(book.names);
+    ArrayPush(names, StringConcat("c", ""));
+    Print(ToString(ArrayLength(names) + ArrayLength(book.names)));
+    Print(names[2]);
+    return 0;
+}

@@ -1,0 +1,27 @@
+// Main binds a local to outer's inner, then hands outer's inner to Fill,
+// which pushes onto it: the local is copied where it is bound, and Main's
+// later use of outer's inner is refused as a use of a moved value.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Fill(inner: Inner) -> Int {
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    return ArrayLength(inner.items);
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let other: Inner = outer.inner;
+    let n: Int = Fill(outer.inner);
+    Print(ToString(n + ArrayLength(other.items) + other.items[1] + outer.inner.items[1]));
+    return 0;
+}

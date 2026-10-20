@@ -1,0 +1,27 @@
+// Main binds a local to store's shelf and pushes onto the local's boxes
+// while it still uses store. A Clone of a Shelf copies its Array of Box
+// structs only by value, so no copy is landed: Main's later use of store is
+// refused.
+struct Box {
+    items: Array<Int>;
+}
+
+struct Shelf {
+    boxes: Array<Box>;
+}
+
+struct Store {
+    shelf: Shelf;
+    count: Int;
+}
+
+func Main() -> Int {
+    let store: Store = Store(Shelf([Box([1]), Box([2])]), 0);
+    let shelf: Shelf = store.shelf;
+    ArrayPush(shelf.boxes, Box([9]));
+    ArrayPush(shelf.boxes, Box([9]));
+    ArrayPush(shelf.boxes, Box([9]));
+    ArrayPush(shelf.boxes, Box([9]));
+    Print(ToString(ArrayLength(shelf.boxes) + store.shelf.boxes[1].items[0]));
+    return 0;
+}

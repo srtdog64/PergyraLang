@@ -1,0 +1,19 @@
+// Main binds a local to outer's inner, then sets an element of outer's
+// items while it still uses the local. The local is an independent value,
+// so it is copied where it is bound and keeps its first item.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let other: Inner = outer.inner;
+    outer.inner.items[0] = 5;
+    Print(ToString(other.items[0] * 10 + outer.inner.items[0]));
+    return 0;
+}

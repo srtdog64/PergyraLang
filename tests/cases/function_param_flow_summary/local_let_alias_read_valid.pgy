@@ -1,0 +1,17 @@
+// Main binds a local to outer's inner and only reads both: nothing changes
+// the shared storage, so no copy is landed.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let other: Inner = outer.inner;
+    Print(ToString(ArrayLength(other.items) + other.items[1] + ArrayLength(outer.inner.items) + outer.inner.items[0]));
+    return 0;
+}

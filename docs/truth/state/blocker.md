@@ -6,37 +6,34 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2066 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2055 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-21_native_census_every_loan_checked.md)).
-A census runs four analyses in about 820 s. The CI harness manifest
+[census record](../evidence/2026-10-21_native_census_flow_sensitive_copies.md)).
+A census runs four analyses in about 820 s on an idle machine. The CI harness manifest
 compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 616 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 600 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (486 outside `direct_mir_*`).** Over the whole input: 238
-   getters whose loan proof fails, 220 callees that change, keep or
-   release, 35 read-only callees whose storage proof fails, 20 getters on
-   locals.
-3. **Borrowed `ref` escapes (424 outside `direct_mir_*`):** mostly a
+2. **Moves (419 outside `direct_mir_*`).** Whole input: 270 callees that
+   change, keep or release, 125 getters whose loan proof fails, 70 local
+   copies whose other side changed (mostly an `inout` argument counted
+   whole), 35 read-only callees whose storage proof fails.
+3. **Borrowed `ref` escapes (426 outside `direct_mir_*`):** mostly a
    `ref` formal whose own summary has a call escape.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
    ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)).
-   Left: 175 opaque crossings, 131 released elements, 25 owned pushes.
+   Left: 174 opaque crossings, 131 released elements, 23 owned pushes.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
    So a normal compile never runs the move, lane and named-call owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
-7. **Local copies share storage unchecked:** a push through `let b =
-   a.inner`, then a read of `a`, is admitted (ASan use-after-free; [first
-   attempt](../evidence/2026-10-21_native_census_copy_lend_not_landed.md)).
 
 ## Lessons on the record
 
@@ -50,6 +47,9 @@ compiles natively since `e23761a3a`.
 - **Census each commit that changes what a frame models or what lands.**
   Two censuses on this branch were invalid (`98f4b7747`, `5cf9d7553`): one
   failed flow store turns every later refusal into fail-closed noise.
+- **Local copies share storage.** Main admitted a push through
+  `let b = a.inner`, then a read of `a` (ASan use-after-free;
+  [rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)).
 - **Emitted code frees nothing** on `ArraySet`, reassignment or a move yet,
   so most owner violations leak instead of failing at run time.
 

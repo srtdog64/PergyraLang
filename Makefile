@@ -585,6 +585,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_receipts.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_owner.c \
+                   $(SEMANTIC_DIR)/default_aggregate_move_rule.c \
+                   $(SEMANTIC_DIR)/default_aggregate_copy_owner.c \
                    $(SEMANTIC_DIR)/allocator_lane_loan_owner.c \
                    $(SEMANTIC_DIR)/formal_string_store_landing_owner.c \
                    $(SEMANTIC_DIR)/loan_copy_landing_owner.c \

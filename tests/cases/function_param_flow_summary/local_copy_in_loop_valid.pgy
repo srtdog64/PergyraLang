@@ -1,0 +1,25 @@
+// Each turn of the loop binds a fresh local to outer's inner, reads it, and
+// then pushes onto outer's items. The local of a turn is not used after the
+// push, and the next turn binds a new one: no copy is landed.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        let other: Inner = outer.inner;
+        total = total + ArrayLength(other.items);
+        ArrayPush(outer.inner.items, 9);
+        i = i + 1;
+    }
+    Print(ToString(total + ArrayLength(outer.inner.items)));
+    return 0;
+}

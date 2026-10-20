@@ -13,47 +13,21 @@
  * iteration sees a move made later in the body. */
 
 #include "default_aggregate_move_owner.h"
+#include "default_aggregate_move_internal.h"
+#include "default_aggregate_move_rule.h"
 #include "loan_copy_landing_owner.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "builtin_kind.h"
 #include "diag_codes.h"
 #include "function_param_flow_summary_internal.h"
 #include "function_param_publication_owner.h"
 #include "slot_summary.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
-
-typedef struct {
-    uint32_t binding;
-    char *fields;          /* ".a.b" below the binding; "" is the whole value */
-    const char *callee;
-    const char *param;
-    /* The read-and-return call that lent this path, or NULL for a move. */
-    ASTNode *lending_call;
-} MovedPath;
-
-typedef struct {
-    MovedPath *rows;
-    size_t count, capacity;
-} MoveState;
-
-typedef struct {
-    SemanticContext *ctx;
-    ASTNode *routine;
-    bool failed;
-    /* Each refused use is reported once even though loops are walked twice. */
-    const ASTNode **reported;
-    size_t reported_count, reported_capacity;
-    /* Loan verdicts of lending calls, each checked once. */
-    struct { const ASTNode *call; bool admitted; FunctionParamFlowLoanFailure failure; } *lent;
-    size_t lent_count, lent_capacity;
-    /* Calls whose result a Clone copies into storage of its own. */
-    const ASTNode **copied;
-    size_t copied_count, copied_capacity;
-} MoveWalk;
 
 static void state_free(MoveState *state)
 {
@@ -62,16 +36,18 @@ static void state_free(MoveState *state)
     *state = (MoveState){0};
 }
 
-static bool state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param, ASTNode *lending_call)
+bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
+    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier)
 {
     /* Each loan of a path is a row of its own, so a later use needs every
-     * one admitted. A move on any path is a move, whatever lent it. */
+     * one admitted. A move on any path is a move, whatever lent it, and
+     * names the call that moved it. Copy rows are kept apart. */
     bool moved = false;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *row = &state->rows[i];
-        if (row->binding != binding || strcmp(row->fields, fields) != 0) continue;
-        if (lending_call == NULL) { row->lending_call = NULL; moved = true; }
+        if (row->binding != binding || strcmp(row->fields, fields) != 0 || (row->carrier != 0) != (carrier != 0)) continue;
+        if (carrier != 0) { if (row->carrier == carrier && row->lending_call == lending_call) return true; continue; }
+        if (lending_call == NULL) { *row = (MovedPath){binding, row->fields, callee, param, NULL, 0}; moved = true; }
         else if (row->lending_call == NULL || row->lending_call == lending_call) return true;
     }
     if (moved) return true;
@@ -84,7 +60,7 @@ static bool state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const 
     char *copy = malloc(strlen(fields) + 1);
     if (copy == NULL) { walk->failed = true; return false; }
     strcpy(copy, fields);
-    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call};
+    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call, carrier};
     return true;
 }
 
@@ -92,29 +68,26 @@ static bool state_copy(MoveWalk *walk, MoveState *out, const MoveState *in)
 {
     *out = (MoveState){0};
     for (size_t i = 0; i < in->count; i++)
-        if (!state_add(walk, out, in->rows[i].binding, in->rows[i].fields,
-                in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call)) return false;
+        if (!move_walk_state_add(walk, out, in->rows[i].binding, in->rows[i].fields,
+                in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call, in->rows[i].carrier)) return false;
     return true;
 }
 
 static bool state_union(MoveWalk *walk, MoveState *into, const MoveState *from)
 {
     for (size_t i = 0; i < from->count; i++)
-        if (!state_add(walk, into, from->rows[i].binding, from->rows[i].fields,
-                from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call)) return false;
+        if (!move_walk_state_add(walk, into, from->rows[i].binding, from->rows[i].fields,
+                from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call, from->rows[i].carrier)) return false;
     return true;
 }
 
-/* `prefix` names the same value as `fields` or a value containing it. */
-static bool path_contains(const char *prefix, const char *fields)
+bool move_walk_path_contains(const char *prefix, const char *fields)
 {
     size_t n = strlen(prefix);
     return strncmp(prefix, fields, n) == 0 && (fields[n] == '\0' || fields[n] == '.');
 }
 
-/* Access path of an identifier, member chain or element access. An element
- * names its whole Array. Returns false for any other expression. */
-static bool access_path(const ASTNode *node, uint32_t *binding, char *buf, size_t size)
+bool move_walk_access_path(const ASTNode *node, uint32_t *binding, char *buf, size_t size)
 {
     if (node == NULL) return false;
     if (node->type == AST_IDENTIFIER) {
@@ -123,9 +96,9 @@ static bool access_path(const ASTNode *node, uint32_t *binding, char *buf, size_
         buf[0] = '\0';
         return *binding != 0;
     }
-    if (node->type == AST_ARRAY_ACCESS) return access_path(ast_array_access_array(node), binding, buf, size);
+    if (node->type == AST_ARRAY_ACCESS) return move_walk_access_path(ast_array_access_array(node), binding, buf, size);
     if (node->type != AST_MEMBER_ACCESS || ast_member_name(node) == NULL) return false;
-    if (!access_path(ast_member_object(node), binding, buf, size)) return false;
+    if (!move_walk_access_path(ast_member_object(node), binding, buf, size)) return false;
     size_t used = strlen(buf), name = strlen(ast_member_name(node));
     if (used + name + 2 > size) return false;
     buf[used] = '.';
@@ -151,7 +124,7 @@ static bool reported_once(MoveWalk *walk, const ASTNode *node)
  * changes its owner. */
 static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
 {
-    if (moved->lending_call == NULL) return false;
+    if (moved->lending_call == NULL || moved->callee == NULL) return false;
     for (size_t i = 0; i < walk->lent_count; i++)
         if (walk->lent[i].call == moved->lending_call) return walk->lent[i].admitted;
     FunctionParamFlowLoanFailure failure = {0};
@@ -206,6 +179,8 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         if (!(at_exit ? semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)
                       : semantic_loan_copy_landing_select(walk->ctx, moved->lending_call))) walk->failed = true;
     }
+    /* A copy whose other side changed is copied where it was made. */
+    if (moved->callee == NULL && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
     if (!reported_once(walk, node)) return;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
@@ -216,6 +191,19 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         strcpy(display, name);
         strcat(display, moved->fields);
         name = display;
+    }
+    if (moved->callee == NULL) {
+        semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
+            PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
+            "'%s' shares its storage with the copy made on line %u, and one of them changed it.\n"
+            "Reason:\n"
+            "- a copy of a struct or collection value shares the storage it holds\n"
+            "- after one side grows or changes that storage, the other may read freed storage\n"
+            "Fix:\n"
+            "- change only one of the two while the other is still used\n"
+            "- or build the copy from fresh values",
+            name != NULL ? name : "value", moved->lending_call->line);
+        return;
     }
     semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
         PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
@@ -234,67 +222,13 @@ static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *nod
 {
     char fields[512];
     uint32_t binding = 0;
-    if (!access_path(node, &binding, fields, sizeof(fields))) return;
+    if (!move_walk_access_path(node, &binding, fields, sizeof(fields))) return;
     for (size_t i = 0; i < state->count; i++) {
         const MovedPath *moved = &state->rows[i];
-        if (moved->binding == binding &&
-            (path_contains(moved->fields, fields) || path_contains(fields, moved->fields)))
+        if (moved->carrier == 0 && moved->binding == binding &&
+            (move_walk_path_contains(moved->fields, fields) || move_walk_path_contains(fields, moved->fields)))
             refuse_use(walk, node, moved);
     }
-}
-
-/* An enum value is copied with its payloads, so one whose payloads hold
- * storage shares it as a struct does. */
-static bool aggregate_type(SemanticContext *ctx, const Type *type)
-{
-    if (type == NULL || type == TYPE_UNKNOWN) return false;
-    if (type->kind == TYPE_KIND_CLASS) return type->nominal_flavor == TYPE_NOMINAL_STRUCT;
-    if (type->kind == TYPE_KIND_ENUM)
-        return semantic_classify_ownership_type(type, ctx) == OWNERSHIP_TYPE_BORROW_TRACKED;
-    return type->kind == TYPE_KIND_TUPLE || type->kind == TYPE_KIND_CONSTRUCTED;
-}
-
-/* The callee changes, keeps, returns or releases storage it receives through
- * this default-mode parameter. For an Array formal the descriptor-transfer
- * owner answers exactly: element values that escape (Strings are immutable)
- * are the String owners' concern, not a move. Any other aggregate moves
- * unless its summary only reads it and the same owner proves that no store
- * through its access paths changes the storage it shares with the caller.
- * A summary that is missing or not final counts as a change. */
-static bool formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal)
-{
-    FuncParam *param = ast_func_param(callee, formal);
-    if (param == NULL || param->mode != PARAM_MODE_DEFAULT || ast_func_body(callee) == NULL) return false;
-    unsigned mask = function_param_flow_summary_for_param(ctx, callee, formal);
-    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
-    if (store == NULL || store->failed) return true;
-    size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
-    if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE) return true;
-    if ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0) return true;
-    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
-    if (type_name != NULL && strcmp(type_name, "Array") == 0)
-        return store->entries[index].array_storage_unproved;
-    return (mask & ~SLOT_PARAM_SUMMARY_READ) != 0 || store->entries[index].array_storage_unproved;
-}
-
-/* The callee only reads this default-mode argument and returns it or a part
- * of it. A call the caller follows with another use of the argument lends
- * it instead of moving it (2026-10-19_by_value_getter_lends_when_used_again).
- * The loan proof refuses the lend when that call or a later one changes the
- * storage. An Array formal keeps the descriptor-transfer answer. */
-static bool formal_lends(SemanticContext *ctx, ASTNode *callee, size_t formal)
-{
-    FuncParam *param = ast_func_param(callee, formal);
-    if (param == NULL || param->mode != PARAM_MODE_DEFAULT || ast_func_body(callee) == NULL) return false;
-    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
-    if (type_name != NULL && strcmp(type_name, "Array") == 0) return false;
-    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
-    if (store == NULL || store->failed) return false;
-    size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
-    if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE) return false;
-    unsigned mask = store->entries[index].mask;
-    return (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
-        (mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) == 0;
 }
 
 static ParamMode routine_param_mode(const ASTNode *routine, uint32_t binding, bool *found)
@@ -315,13 +249,15 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         ASTNode *arg = ast_call_argument(call, p);
         char fields[512];
         uint32_t binding = 0;
-        if (!access_path(arg, &binding, fields, sizeof(fields))) continue;
+        if (!move_walk_access_path(arg, &binding, fields, sizeof(fields))) continue;
         ASTNode *callee = semantic_param_publication_callee(walk->ctx, call, p);
         size_t formal = 0;
         if (callee == NULL || !semantic_param_publication_formal_for_actual(walk->ctx, call, p, &formal)) continue;
+        /* An `inout` callee changes the storage in place. */
+        if (ast_func_param(callee, formal)->mode == PARAM_MODE_MUT_REF) move_walk_copy_changed(walk, state, arg);
         SemanticPublishedValue value = semantic_param_publication_value(walk->ctx, arg);
-        if (!value.ok || value.meta || !aggregate_type(walk->ctx, value.type) ||
-            !formal_moves(walk->ctx, callee, formal)) continue;
+        if (!value.ok || value.meta || !semantic_default_aggregate_value(walk->ctx, value.type) ||
+            !semantic_default_aggregate_formal_moves(walk->ctx, callee, formal)) continue;
         FuncParam *param = ast_func_param(callee, formal);
         const char *callee_name = ast_declaration_name(callee) != NULL ? ast_declaration_name(callee) : "callee";
         const char *param_name = param != NULL && param->name != NULL ? param->name : "parameter";
@@ -330,7 +266,7 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         /* A formal or a local is lent. The loan proof refuses a later use
          * when the loan leaves the routine, or when another call hands a
          * local on while the loan lives. */
-        bool lends = formal_lends(walk->ctx, callee, formal);
+        bool lends = semantic_default_aggregate_formal_lends(walk->ctx, callee, formal);
         /* A `ref` formal can be lent on, never moved: nothing may change it
          * while its loan lives. An `inout` one can change, so it is neither. */
         if (parameter && mode == PARAM_MODE_REF && lends) continue;
@@ -349,7 +285,8 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
             continue;
         }
         if (lends && call_copied(walk, call)) continue;
-        if (!state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL)) return;
+        if (!move_walk_state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL, 0)) return;
+        if (!lends) move_walk_copy_changed(walk, state, arg);
     }
 }
 
@@ -357,11 +294,11 @@ static void reinitialize(MoveWalk *walk, MoveState *state, ASTNode *target)
 {
     char fields[512];
     uint32_t binding = 0;
-    if (!access_path(target, &binding, fields, sizeof(fields))) return;
+    if (!move_walk_access_path(target, &binding, fields, sizeof(fields))) return;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *moved = &state->rows[i];
         /* Writing a part of a moved value writes into freed storage. */
-        if (moved->binding == binding && path_contains(moved->fields, fields) &&
+        if (moved->carrier == 0 && moved->binding == binding && move_walk_path_contains(moved->fields, fields) &&
             strcmp(moved->fields, fields) != 0) {
             refuse_use(walk, target, moved);
             return;
@@ -370,10 +307,11 @@ static void reinitialize(MoveWalk *walk, MoveState *state, ASTNode *target)
     size_t kept = 0;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *moved = &state->rows[i];
-        if (moved->binding == binding && path_contains(fields, moved->fields)) { free(moved->fields); continue; }
+        if (moved->binding == binding && move_walk_path_contains(fields, moved->fields)) { free(moved->fields); continue; }
         state->rows[kept++] = *moved;
     }
     state->count = kept;
+    if (fields[0] == '\0') move_walk_copy_rebound(state, binding);
 }
 
 /* Uses inside a nested expression, then the index expressions of a path. */
@@ -382,7 +320,7 @@ static bool walk_expression(MoveWalk *walk, MoveState *state, ASTNode *node)
     if (node == NULL || walk->failed) return !walk->failed;
     char fields[512];
     uint32_t binding = 0;
-    if (access_path(node, &binding, fields, sizeof(fields))) {
+    if (move_walk_access_path(node, &binding, fields, sizeof(fields))) {
         check_use(walk, state, node);
         for (ASTNode *at = node; at != NULL && at->type != AST_IDENTIFIER;
              at = at->type == AST_MEMBER_ACCESS ? ast_member_object(at) : ast_array_access_array(at))
@@ -400,7 +338,7 @@ static bool walk_children(MoveWalk *walk, MoveState *state, ASTNode *node, bool 
     if (!supported || count == SIZE_MAX) {
         /* A construct whose children this owner cannot enumerate may use a
          * moved value; refuse while any move is live rather than skip it. */
-        for (size_t i = 0; i < state->count; i++) refuse_use(walk, node, &state->rows[i]);
+        for (size_t i = 0; i < state->count; i++) if (state->rows[i].carrier == 0) refuse_use(walk, node, &state->rows[i]);
         return !walk->failed;
     }
     for (size_t c = 0; c < count && !*terminated; c++) {
@@ -469,7 +407,7 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
     case AST_IDENTIFIER: case AST_MEMBER_ACCESS: case AST_ARRAY_ACCESS: {
         char fields[512];
         uint32_t binding = 0;
-        if (access_path(node, &binding, fields, sizeof(fields))) return walk_expression(walk, state, node);
+        if (move_walk_access_path(node, &binding, fields, sizeof(fields))) return walk_expression(walk, state, node);
         /* Not a binding path (a callable name, a call result's field): only
          * its operand expressions can use a moved value. */
         if (node->type == AST_MEMBER_ACCESS) return walk_expression(walk, state, ast_member_object(node));
@@ -486,22 +424,46 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         for (size_t p = 0; p < ast_call_arg_count(node); p++)
             if (!walk_expression(walk, state, ast_call_argument(node, p))) return false;
         apply_call_moves(walk, state, node);
+        /* An Array push or set, an owned String push or a slot write changes
+         * its receiver in place; a push or set copies its value into it. */
+        size_t stored = 0;
+        uint32_t kind = 0, holder = 0;
+        char fields[512];
+        ASTNode *receiver = ast_call_arg_count(node) > 0 ? ast_call_argument(node, 0) : NULL;
+        bool store = receiver != NULL && semantic_param_publication_checked_array_store(walk->ctx, node, &stored);
+        if (store || (receiver != NULL && (semantic_param_publication_checked_slot_write(walk->ctx, node) ||
+                (ast_call_semantic_callee_builtin_kind(node, &kind) && kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING))))
+            move_walk_copy_changed(walk, state, receiver);
+        if (store && move_walk_access_path(receiver, &holder, fields, sizeof(fields)))
+            move_walk_copy_record(walk, state, ast_call_argument(node, stored), holder);
         /* A call that never returns ends this path, as a return does: what
          * it moved is never used after it. */
         SemanticPublishedValue result = semantic_param_publication_value(walk->ctx, node);
         if (result.ok && type_equals(result.type, TYPE_NEVER)) *terminated = true;
         return !walk->failed;
     }
-    case AST_ASSIGNMENT:
+    case AST_ASSIGNMENT: {
         if (!walk_expression(walk, state, ast_assignment_value(node))) return false;
+        bool element = false;
         for (ASTNode *at = ast_assignment_target(node); at != NULL &&
              (at->type == AST_MEMBER_ACCESS || at->type == AST_ARRAY_ACCESS);
              at = at->type == AST_MEMBER_ACCESS ? ast_member_object(at) : ast_array_access_array(at))
-            if (at->type == AST_ARRAY_ACCESS && !walk_expression(walk, state, ast_array_access_index(at))) return false;
+            if (at->type == AST_ARRAY_ACCESS && (element = true) && !walk_expression(walk, state, ast_array_access_index(at))) return false;
+        /* An element store writes the storage its Array shares. */
+        if (element) move_walk_copy_changed(walk, state, ast_assignment_target(node));
         reinitialize(walk, state, ast_assignment_target(node));
+        char fields[512];
+        uint32_t holder = 0;
+        if (move_walk_access_path(ast_assignment_target(node), &holder, fields, sizeof(fields)))
+            move_walk_copy_record(walk, state, ast_assignment_value(node), holder);
         return !walk->failed;
+    }
     case AST_LET_DECL:
-        return walk_expression(walk, state, ast_let_initializer(node));
+        if (!walk_expression(walk, state, ast_let_initializer(node))) return false;
+        /* Each run of a let binds a fresh value. */
+        move_walk_copy_rebound(state, ast_node_stable_id(node));
+        move_walk_copy_record(walk, state, ast_let_initializer(node), ast_node_stable_id(node));
+        return !walk->failed;
     case AST_RETURN:
         if (!walk_expression(walk, state, ast_return_value(node))) return false;
         *terminated = true;

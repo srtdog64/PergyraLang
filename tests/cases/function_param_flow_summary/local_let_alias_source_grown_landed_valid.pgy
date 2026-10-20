@@ -1,0 +1,22 @@
+// Main binds a local to outer's inner, then pushes onto outer's own items
+// while it still uses the local. The pushes would change the local's
+// storage: the local is copied where it is bound and keeps its two items.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let other: Inner = outer.inner;
+    ArrayPush(outer.inner.items, 9);
+    ArrayPush(outer.inner.items, 9);
+    ArrayPush(outer.inner.items, 9);
+    ArrayPush(outer.inner.items, 9);
+    Print(ToString(ArrayLength(outer.inner.items) + ArrayLength(other.items) + other.items[1]));
+    return 0;
+}

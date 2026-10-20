@@ -1,0 +1,27 @@
+// Grow binds a local to its by-value outer's inner, pushes onto it, and
+// still reads outer: the local is copied where it is bound, so Grow leaves
+// outer, and Main's outer, as they were.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Grow(outer: Outer) -> Int {
+    let other: Inner = outer.inner;
+    ArrayPush(other.items, 9);
+    ArrayPush(other.items, 9);
+    ArrayPush(other.items, 9);
+    ArrayPush(other.items, 9);
+    return ArrayLength(other.items) + ArrayLength(outer.inner.items) + outer.inner.items[1];
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Grow(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}
