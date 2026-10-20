@@ -1,0 +1,32 @@
+// Grow matches its by-value request and pushes onto the payload it binds,
+// which shares storage with Main's request: Main's later use is refused.
+struct Rows {
+    items: Array<Int>;
+}
+
+enum Request {
+    Empty(Bool),
+    Full(Rows, Bool),
+}
+
+func Grow(request: Request) -> Int {
+    match request {
+        case Empty(flag): return 0;
+        case Full(rows, flag):
+            ArrayPush(rows.items, 9);
+            ArrayPush(rows.items, 9);
+            ArrayPush(rows.items, 9);
+            ArrayPush(rows.items, 9);
+            return ArrayLength(rows.items);
+    }
+}
+
+func Main() -> Int {
+    let request: Request = Full(Rows([1, 2]), true);
+    let n: Int = Grow(request);
+    match request {
+        case Empty(flag): Print("e");
+        case Full(rows, flag): Print(ToString(n + rows.items[1]));
+    }
+    return 0;
+}

@@ -168,6 +168,7 @@ static bool storage_path_value_read(const ASTNode *node, const SlotFunctionLooku
 }
 
 static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk);
+static unsigned storage_match_unproved(ASTNode *match, StorageWalk *walk);
 
 /* Index expressions and a view's bounds along a path are ordinary uses; an
  * index step reads an element of the storage. A call result the path starts
@@ -313,6 +314,9 @@ array_storage_use_unproved(ASTNode *node, StorageWalk *walk)
         if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) return bad;
         ADD(ast_for_body(node)); return bad;
     case AST_MATCH_STMT:
+        if (storage_path_at(ast_match_subject(node), walk) != STORAGE_ROOT_NONE &&
+            !storage_path_value_read(ast_match_subject(node), walk->lookup))
+            return storage_match_unproved(node, walk);
         ADD(ast_match_subject(node)); ADD(ast_match_default_body(node));
         EACH(ast_match_case_count(node), ast_match_case_at(node, i));
     case AST_MATCH_CASE:
@@ -375,6 +379,35 @@ array_storage_use_unproved(ASTNode *node, StorageWalk *walk)
 #undef FORMAL
 #undef ADD
 #undef EACH
+}
+
+/* Matching a value that holds the formal binds parts of it: a payload
+ * binding aliases the storage it holds, as a loop variable does. A pattern
+ * names nothing of the formal; its guard and body are uses. */
+static unsigned storage_match_unproved(ASTNode *match, StorageWalk *walk)
+{
+    unsigned bad = storage_path_indices(ast_match_subject(match), walk);
+    for (size_t c = 0; c < ast_match_case_count(match) && bad != FUNCTION_PARAM_ARRAY_ALL_UNPROVED; c++) {
+        ASTNode *arm = ast_match_case_at(match, c);
+        if (arm == NULL || arm->type != AST_MATCH_CASE) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+        for (size_t p = 0; p < ast_match_case_pattern_count(arm); p++) {
+            ASTNode *pattern = ast_match_case_pattern_at(arm, p);
+            bool payload = pattern != NULL && pattern->type == AST_CALL;
+            for (size_t a = 0; pattern != NULL && a < (payload ? ast_call_arg_count(pattern) : 1); a++) {
+                ASTNode *binding = payload ? ast_call_argument(pattern, a) : pattern;
+                uint32_t id = binding != NULL && binding->type == AST_IDENTIFIER ? ast_node_stable_id(binding) : 0;
+                bool binds = id != 0 && ast_identifier_binding_syntax_id(binding) == id;
+                /* A unit variant or a literal binds nothing. */
+                if (!binds && !payload && (binding->type == AST_IDENTIFIER || binding->type == AST_MEMBER_ACCESS ||
+                        binding->type == AST_NUMBER || binding->type == AST_STRING || binding->type == AST_BOOLEAN)) continue;
+                if (!binds || !storage_alias_add(walk, id, ast_identifier_name(binding)))
+                    return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+            }
+        }
+        bad |= array_storage_use_unproved(ast_match_case_guard(arm), walk);
+        if (bad != FUNCTION_PARAM_ARRAY_ALL_UNPROVED) bad |= array_storage_use_unproved(ast_match_case_body(arm), walk);
+    }
+    return bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED ? bad : bad | array_storage_use_unproved(ast_match_default_body(match), walk);
 }
 
 /* A path, or a result that holds one, handed to a call. */

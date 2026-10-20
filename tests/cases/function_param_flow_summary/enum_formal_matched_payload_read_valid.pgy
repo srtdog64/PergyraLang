@@ -1,0 +1,28 @@
+// Count matches its by-value request and only reads the payload it binds.
+// The binding aliases the request's storage and changes none of it, so
+// Main's request keeps its storage and its later use is admitted.
+struct Rows {
+    items: Array<Int>;
+}
+
+enum Request {
+    Empty(Bool),
+    Full(Rows, Bool),
+}
+
+func Count(request: Request) -> Int {
+    match request {
+        case Empty(flag): return 0;
+        case Full(rows, flag): return ArrayLength(rows.items);
+    }
+}
+
+func Main() -> Int {
+    let request: Request = Full(Rows([1, 2]), true);
+    let n: Int = Count(request);
+    match request {
+        case Empty(flag): Print("e");
+        case Full(rows, flag): Print(ToString(n + rows.items[1]));
+    }
+    return 0;
+}

@@ -6,10 +6,10 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2213 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2182 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-20_native_census_rebound_formal_and_returned_alias.md)).
+[census record](../evidence/2026-10-20_native_census_match_payload_aliases.md)).
 A census runs four analyses in about 815 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
@@ -17,9 +17,9 @@ compiles natively since `e23761a3a`.
 
 1. **`direct_mir_*` routes:** 622 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (627 outside `direct_mir_*`).** Over the whole input: 338
+2. **Moves (596 outside `direct_mir_*`).** Over the whole input: 347
    getters whose loan proof fails, 219 callees that change, keep or
-   release, 81 read-only callees whose storage proof fails, 22 getters on
+   release, 41 read-only callees whose storage proof fails, 22 getters on
    locals. Of the 122 refusals the call-result rule added, 96 follow
    `SemanticAstLocalBindingFactsFromArtifact` and the `TypedAstArena*Text`
    getters; not yet classified.

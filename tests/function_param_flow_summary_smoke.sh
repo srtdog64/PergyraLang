@@ -177,6 +177,7 @@ release_lifetime_refusals = {
     "by_value_getter_result_local_returned_grown_invalid": [(*released_refusal, 34, 48), (*released_refusal, 34, 74)],
     "by_value_formal_rebound_to_result_grown_invalid": [(*released_refusal, 25, 42), (*released_refusal, 25, 62)],
     "path_alias_returned_in_constructor_grown_invalid": [(*released_refusal, 35, 48), (*released_refusal, 35, 74)],
+    "enum_formal_matched_payload_grown_invalid": [(*released_refusal, 27, 11)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     # An inout fill of a by-value parameter from a second input moves it.
@@ -868,6 +869,8 @@ paired = (
     ("alias_rebound_to_result_valid", True),
     ("path_alias_returned_in_constructor_valid", True),
     ("path_alias_returned_in_constructor_grown_invalid", False),
+    ("enum_formal_matched_payload_read_valid", True),
+    ("enum_formal_matched_payload_grown_invalid", False),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
@@ -1698,6 +1701,7 @@ for name, expected in (
     ("by_value_formal_rebound_to_result_valid", "7"),
     ("alias_rebound_to_result_valid", "8"),
     ("path_alias_returned_in_constructor_valid", "7"),
+    ("enum_formal_matched_payload_read_valid", "4"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")
