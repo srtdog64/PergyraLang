@@ -9,8 +9,10 @@ The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2870 downgraded
 refusals with every final owner run (4401 at `2d30ec766`;
 [census record](../evidence/2026-10-20_native_census_landings.md)).
-A census runs up to four analyses of about 41 minutes each. The CI
-harness manifest compiles natively since `e23761a3a`.
+A census runs up to four analyses; the
+[rows check memo](../../agent_work_directives/flow_rows_check_memo_2026-10-20.md)
+cuts one from 2605 s to 1547 s. The CI harness manifest compiles natively
+since `e23761a3a`.
 
 ## Open fronts, in order
 

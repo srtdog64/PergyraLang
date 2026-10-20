@@ -465,6 +465,7 @@ function_param_flow_program_point_index_destroy(
         free(index->control_projection->root_claim_ordinals);
         free(index->control_projection);
     }
+    function_param_flow_rows_memo_destroy(index);
     memset(index, 0, sizeof(*index));
 }
 
@@ -491,6 +492,8 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
             store->program_point_index_count,
             store->indexed_statement_visits,
             store->indexed_program_points);
+        fprintf(stderr, "pgy: function-param-flow-rows-memo records=%zu reuses=%zu\n",
+            store->rows_memo_records, store->rows_memo_reuses);
     }
     function_param_flow_program_point_indexes_destroy(store);
     for (size_t i = 0; i < store->count; i++) free(store->entries[i].output_dependencies);

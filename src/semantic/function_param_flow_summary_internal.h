@@ -238,6 +238,27 @@ typedef struct {
     bool ready;
 } FunctionParamFlowControlProjection;
 
+/* What a rows check reads of one routine's store state: the entry and the
+ * frame of each formal, the declared result frame and the claims. It is
+ * settled when every entry is complete and every frame is built and neither
+ * building nor pending; a settled entry or frame never changes again. The
+ * version changes whenever a refresh finds the shape different. */
+typedef struct {
+    size_t *entries;
+    FunctionParamFlowBackingFact **frames;
+    size_t claim_count, version;
+    bool claims_failed, settled, known;
+} FunctionParamFlowRowsShape;
+/* A routine's last passed rows check: its shape version, the callees it
+ * reached, and the checks of state outside any shape that a reuse repeats
+ * (no-store graphs and read-only receivers). */
+typedef struct {
+    bool passed;
+    size_t version;
+    ASTNode **callees, **no_store_routines, **receiver_calls;
+    size_t callee_count, no_store_count, receiver_count;
+} FunctionParamFlowRowsMemo;
+
 typedef struct
 {
     uint32_t function_id;
@@ -269,6 +290,8 @@ typedef struct
     FunctionParamFlowBackingFact *declared_result;
     FunctionParamFlowIndexClaims *claims;
     FunctionParamFlowControlProjection *control_projection;
+    FunctionParamFlowRowsShape rows_shape;
+    FunctionParamFlowRowsMemo rows_memo;
 } FunctionParamFlowProgramPointIndex;
 
 struct FunctionParamFlowSummaryStore
@@ -308,6 +331,8 @@ struct FunctionParamFlowSummaryStore
     size_t admitted_no_store_replayed_epoch, admitted_no_store_replayed_count;
     size_t indexed_statement_visits;
     size_t indexed_program_points;
+    /* Rows check memo telemetry: checks kept and reused. */
+    size_t rows_memo_records, rows_memo_reuses;
 };
 
 void function_param_flow_program_point_index_destroy(
@@ -373,6 +398,19 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
 bool function_param_flow_unsupported_relation_current(FunctionParamFlowSummaryStore *store,
     const FunctionParamFlowPendingRelation *edge);
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
+/* Rows check memo (function_param_flow_rows_check_memo.c). `current`: the
+ * last passed check of index `ordinal` still holds, its shape unchanged and
+ * its repeated checks passing. `record` keeps a check in place of the last
+ * one, when it passed on a settled shape, and in a solve only without
+ * pending relations; it takes the lists of `reached` either way. `note` adds a node to a list once. */
+bool function_param_flow_rows_memo_current(FunctionParamFlowSummaryStore *store, size_t ordinal);
+void function_param_flow_rows_memo_record(FunctionParamFlowSummaryStore *store, size_t ordinal,
+    FunctionParamFlowRowsMemo *reached, bool passed);
+bool function_param_flow_rows_memo_note(ASTNode ***list, size_t *count, ASTNode *node);
+/* The verify mode's comparison: a full check reached what the memo holds. */
+bool function_param_flow_rows_memo_matches(const FunctionParamFlowSummaryStore *store, size_t ordinal,
+    const FunctionParamFlowRowsMemo *reached);
+void function_param_flow_rows_memo_destroy(FunctionParamFlowProgramPointIndex *index);
 bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
     ASTNode *call, FunctionParamFlowBackingFact *consumer);
 FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(

@@ -56,6 +56,22 @@ static bool rows_capture_index(FunctionParamFlowSummaryStore *store, RowsCapture
     return true;
 }
 
+/* Appends `callee` to the validation queue unless it is already there. */
+static bool rows_capture_enqueue(FunctionParamFlowSummaryStore *store, ASTNode *current,
+    ASTNode ***queue, size_t *count, size_t *capacity, ASTNode *callee)
+{
+    for (size_t reached = 0; reached < *count; reached++) if ((*queue)[reached] == callee) return true;
+    if (*count == *capacity) {
+        if (*capacity > SIZE_MAX / 2 / sizeof(**queue)) { function_param_flow_fail(store, current, "backing validation queue size overflow"); return false; }
+        ASTNode **grown = realloc(*queue, *capacity * 2 * sizeof(**queue));
+        if (grown == NULL) { function_param_flow_fail(store, current, "backing validation queue allocation failed"); return false; }
+        *queue = grown;
+        *capacity *= 2;
+    }
+    (*queue)[(*count)++] = callee;
+    return true;
+}
+
 bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *store, ASTNode *decl,
     FunctionParamFlowInputCapture capture, void *user)
 {
@@ -88,6 +104,20 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
         if (frame_count != parameter_count || (parameter_count != 0 && frames == NULL) ||
             parameter_count > SIZE_MAX - 63 ||
             claims == NULL) { valid = false; break; }
+        /* A passed check whose shapes are unchanged answers again. With
+         * PGY_VERIFY_FLOW_CURRENCY_MEMO it is also checked in full, and a
+         * divergence fails the store. */
+        size_t ordinal = (size_t)(index - store->program_point_indexes);
+        bool memo_reused = capture == NULL && function_param_flow_rows_memo_current(store, ordinal);
+        if (memo_reused) store->rows_memo_reuses++;
+        if (memo_reused && !seen.verify) {
+            const FunctionParamFlowRowsMemo *memo = &store->program_point_indexes[ordinal].rows_memo;
+            for (size_t c = 0; c < memo->callee_count && valid; c++)
+                valid = rows_capture_enqueue(store, current, &queue, &count, &capacity, memo->callees[c]);
+            continue;
+        }
+        FunctionParamFlowRowsMemo memo_notes = {0};
+        bool notes_kept = capture == NULL;
         for (size_t input = 0; input < frame_count + (result != NULL) && valid; input++) {
             bool result_frame = input == frame_count;
             FunctionParamFlowBackingFact *fact = result_frame ? result : frames[input];
@@ -121,12 +151,14 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 (fact->outputs[destination_words - 1] & ~final_mask) != 0) { valid = false; break; }
             if (result_frame && (fact->effects[0] != 0 || fact->outputs[0] != 0)) { valid = false; break; }
             if (fact->analysis_unsupported) {
+                /* A row holds the call, or holds the intent call it is a step of. */
                 bool owned = false;
-                for (size_t n = 0; n < fact->node_count; n++)
-                    if ((fact->nodes[n].node == fact->unsupported_relation.call &&
-                         fact->nodes[n].id == fact->unsupported_relation.call_id) ||
-                        function_param_flow_intent_step_call(store->ctx, fact->nodes[n].node,
-                            fact->unsupported_relation.call)) owned = true;
+                for (size_t n = 0; n < fact->node_count && !owned; n++)
+                    owned = fact->nodes[n].node == fact->unsupported_relation.call &&
+                        fact->nodes[n].id == fact->unsupported_relation.call_id;
+                for (size_t n = 0; n < fact->node_count && !owned; n++)
+                    owned = function_param_flow_intent_step_call(store->ctx, fact->nodes[n].node,
+                        fact->unsupported_relation.call);
                 if (!owned || fact->complete || fact->pending || fact->building ||
                     !function_param_flow_unsupported_relation_current(store, &fact->unsupported_relation)) { valid = false; break; }
             }
@@ -135,9 +167,10 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 ASTNode *callee = semantic_param_publication_callee(store->ctx, edge->call, edge->ordinal);
                 size_t formal = 0;
                 bool owned = false;
-                for (size_t n = 0; n < fact->node_count; n++)
-                    if ((fact->nodes[n].node == edge->call && fact->nodes[n].id == edge->call_id) ||
-                        function_param_flow_intent_step_call(store->ctx, fact->nodes[n].node, edge->call)) owned = true;
+                for (size_t n = 0; n < fact->node_count && !owned; n++)
+                    owned = fact->nodes[n].node == edge->call && fact->nodes[n].id == edge->call_id;
+                for (size_t n = 0; n < fact->node_count && !owned; n++)
+                    owned = function_param_flow_intent_step_call(store->ctx, fact->nodes[n].node, edge->call);
                 valid = owned && edge->call != NULL && edge->call->type == AST_CALL && edge->call_id != 0 &&
                     edge->call_id == ast_node_stable_id(edge->call) && edge->callee_id != 0 &&
                     callee != NULL && edge->callee_id == ast_node_stable_id(callee) &&
@@ -258,6 +291,9 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                             received == row->receiver && ast_node_stable_id(received) == row->receiver_id &&
                             semantic_param_publication_value(store->ctx, received).type == row->receiver_type &&
                             ast_func_param_stable_id(ast_func_param(callee, 0)) == row->receiver_formal_id;
+                        if (valid && !row->receiver_summarized)
+                            notes_kept = notes_kept && function_param_flow_rows_memo_note(
+                                &memo_notes.receiver_calls, &memo_notes.receiver_count, edge_call);
                     } else if (result_edge && p == edge_arity) {
                         const Type *type = NULL;
                         callee = semantic_param_publication_declared_result(store->ctx, edge_call, &type);
@@ -316,6 +352,9 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                                             !entry->output_dependencies[q]) output_current = false;
                                         if (!output_current || (source->private_stores_closed &&
                                             !function_param_flow_no_store_graph_capture(store, callee, capture, user))) break;
+                                        if (source->private_stores_closed)
+                                            notes_kept = notes_kept && function_param_flow_rows_memo_note(
+                                                &memo_notes.no_store_routines, &memo_notes.no_store_count, callee);
                                         kind = (entry->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ?
                                             FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT :
                                             FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT;
@@ -328,20 +367,16 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                         }
                     }
                     if (!valid || callee == NULL) continue;
-                    size_t reached = 0;
-                    while (reached < count && queue[reached] != callee) reached++;
-                    if (reached != count) continue;
-                    if (count == capacity) {
-                        if (capacity > SIZE_MAX / 2 / sizeof(*queue)) { function_param_flow_fail(store, current, "backing validation queue size overflow"); valid = false; break; }
-                        capacity *= 2;
-                        ASTNode **grown = realloc(queue, capacity * sizeof(*queue));
-                        if (grown == NULL) { function_param_flow_fail(store, current, "backing validation queue allocation failed"); valid = false; break; }
-                        queue = grown;
-                    }
-                    queue[count++] = callee;
+                    notes_kept = notes_kept && function_param_flow_rows_memo_note(
+                        &memo_notes.callees, &memo_notes.callee_count, callee);
+                    valid = rows_capture_enqueue(store, current, &queue, &count, &capacity, callee);
                 }
             }
         }
+        if (memo_reused && (!valid ||
+                (notes_kept && !function_param_flow_rows_memo_matches(store, ordinal, &memo_notes))))
+            function_param_flow_fail(store, current, "rows check memo diverged from its full check");
+        if (capture == NULL) function_param_flow_rows_memo_record(store, ordinal, &memo_notes, valid && notes_kept);
     }
     free(queue);
     free(seen.decls); free(seen.positions);
