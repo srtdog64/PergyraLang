@@ -8,11 +8,12 @@ typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 
 /* A String of a by-value or `ref` formal that a store builtin puts into an
- * `inout` output leaves the routine; no proof admits it. Nor does one for a
- * store call an earlier analysis selected, wherever its receiver is. Before
- * the value argument is checked, it is replaced by `Clone(value)`, an owned
- * copy (2026-10-19_string_landing_copy_then_move). False only when the
- * landing was due and could not be built. */
+ * `inout` output leaves the routine; no proof admits it. Nor does the value
+ * of a store call an earlier analysis selected, wherever its receiver is;
+ * the selection planned only values Clone copies whole. Before the value
+ * argument is checked, it is replaced by `Clone(value)`, an owned copy
+ * (2026-10-19_string_landing_copy_then_move). False only when the landing
+ * was due and could not be built. */
 bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal,
     size_t value_ordinal, SemanticContext *ctx);
 
@@ -28,6 +29,13 @@ bool semantic_formal_string_store_landing_owned_push(ASTNode *call, SemanticCont
  * that argument's path. */
 void semantic_formal_string_store_landing_select(SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, const ASTNode *root, const ASTNode *routine);
+
+/* A by-value or `ref` formal's backing frame found the value of an Array
+ * store (argument `value_ordinal`) carrying the formal's backing into an
+ * `inout` output. The call is selected when Clone copies the value whole:
+ * the next analysis stores that copy, and the output keeps nothing of the
+ * formal. */
+void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNode *call, size_t value_ordinal);
 
 /* The same selection while the store call is checked, before it has a
  * publication row: no owner proves its String alive for the receiver, and

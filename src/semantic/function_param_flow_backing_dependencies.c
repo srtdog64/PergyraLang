@@ -6,6 +6,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "array_storage_release_owner.h"
+#include "formal_string_store_landing_owner.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -447,10 +448,11 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
             held_root = held_root->type == AST_MEMBER_ACCESS ? ast_member_object(held_root) : ast_array_access_array(held_root);
         uint32_t held_id = held_root == NULL ? 0 : semantic_param_publication_binding(state->store->ctx, held_root);
         FunctionParamFlowBackingBinding *holder = held_id == 0 ? NULL : backing_binding(state, held_id, false);
-        bool held = holder != NULL && holder->local;
+        bool held = holder != NULL && holder->local, held_output = false;
         for (size_t p = 0; holder != NULL && !held && p < ast_func_param_count(state->decl); p++) {
             FuncParam *param = ast_func_param(state->decl, p);
             held = param != NULL && ast_func_param_stable_id(param) == holder->binding && param->mode != PARAM_MODE_REF;
+            held_output = held && param->mode == PARAM_MODE_MUT_REF;
         }
         if (held) {
             /* The pushed or set value lives in the Array afterwards, so its
@@ -461,6 +463,11 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                 if (!semantic_param_publication_checked_argument(state->store->ctx, node, p)) fact->complete = false;
             const uint64_t *bits = fact->complete ? backing_origin(state, ast_call_argument(node, stored)) : NULL;
             if (bits == NULL) { fact->complete = false; break; }
+            /* The formal's backing an inout output keeps leaves the routine:
+             * the next analysis stores a copy instead
+             * (2026-10-20_formal_storage_kept_by_output_is_copied). */
+            if (held_output && (bits[0] & UINT64_C(1)) != 0)
+                semantic_formal_store_landing_select_held(state->store->ctx, node, stored);
             backing_store(state, ast_call_argument(node, 0), bits, false, ast_call_argument(node, stored));
             for (size_t p = 0; p < ast_call_arg_count(node); p++)
                 backing_consumers(state, ast_call_argument(node, p));

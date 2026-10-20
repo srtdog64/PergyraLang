@@ -1,16 +1,18 @@
-// Collect pushes a loan of its borrowed facts into the inout Array it
-// was given: an output, so the push is a call escape. Fill owns the facts
-// and they die before Main reads the Array.
+// Collect pushes a loan of its borrowed facts into the inout Array it was
+// given, and Fill's facts die before Main reads the Array. The Label also
+// holds an Array of Arrays, which Clone copies by value, so no copy can
+// land: the push is a call escape.
 struct Facts {
     names: Array<String>;
 }
 
 struct Label {
     text: String;
+    grid: Array<Array<Int>>;
 }
 
 func LabelOf(ref facts: Facts) -> Label {
-    return Label(facts.names[0]);
+    return Label(facts.names[0], [[1]]);
 }
 
 func Collect(ref facts: Facts, inout out: Array<Label>) -> Void {

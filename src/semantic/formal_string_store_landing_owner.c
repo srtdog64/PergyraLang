@@ -64,6 +64,15 @@ static bool store_landing_value_landable(const ASTNode *value, SemanticContext *
         type_equals(store_landing_path_type(value, ctx), TYPE_STRING);
 }
 
+/* The element type of a store receiver that is an Array path, from its
+ * declarations: a planned push of a String the value does not name as a
+ * formal path is still a String push, though the value is not checked yet. */
+static const Type *store_landing_receiver_element(const ASTNode *receiver, SemanticContext *ctx)
+{
+    const Type *array = store_landing_path_type(receiver, ctx);
+    return type_is_constructed_named(array, "Array") ? type_get_constructed_arg(array, 0) : NULL;
+}
+
 static bool store_landing_planned(const ASTNode *call, const SemanticContext *ctx)
 {
     for (size_t i = 0; i < ctx->string_store_landing_plan_count; i++)
@@ -75,7 +84,8 @@ bool semantic_formal_string_store_landing_owned_push(ASTNode *call, SemanticCont
 {
     return call != NULL && ctx != NULL && ast_call_arg_count(call) == 2 &&
         store_landing_planned(call, ctx) &&
-        store_landing_value_landable(ast_call_argument(call, 1), ctx) &&
+        (store_landing_value_landable(ast_call_argument(call, 1), ctx) ||
+         type_equals(store_landing_receiver_element(ast_call_argument(call, 0), ctx), TYPE_STRING)) &&
         semantic_collection_owned_string_push_admissible(ast_call_argument(call, 0), ctx);
 }
 
@@ -87,10 +97,12 @@ bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal
     if (args == NULL || receiver_ordinal >= count || value_ordinal >= count) return true;
     ASTNode *value = args[value_ordinal];
     FuncParam *receiver = store_landing_root_formal(args[receiver_ordinal], ctx);
-    /* Into an `inout` output the String always leaves; into anything else
-     * only an earlier analysis's flow facts can say it does. */
-    if (((receiver == NULL || receiver->mode != PARAM_MODE_MUT_REF) && !store_landing_planned(call, ctx)) ||
-        !store_landing_value_landable(value, ctx)) return true;
+    /* Into an `inout` output a formal's String always leaves; into anything
+     * else only an earlier analysis's flow facts can say it does, and they
+     * plan only values Clone copies whole. */
+    if (!store_landing_planned(call, ctx) &&
+        !(receiver != NULL && receiver->mode == PARAM_MODE_MUT_REF && store_landing_value_landable(value, ctx)))
+        return true;
     if (ctx->synthetic_stable_id_next == 0)
         ctx->synthetic_stable_id_next = ast_stable_id_ceiling(ctx->program_root);
     if (ctx->synthetic_stable_id_next == 0 || ctx->synthetic_stable_id_next > UINT32_MAX - 2) return false;
@@ -122,6 +134,15 @@ static void store_landing_record(SemanticContext *ctx, uint32_t id)
         ctx->string_store_landing_selected_capacity = capacity;
     }
     ctx->string_store_landing_selected[ctx->string_store_landing_selected_count++] = id;
+}
+
+void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNode *call, size_t value_ordinal)
+{
+    if (ctx == NULL || call == NULL || value_ordinal >= ast_call_arg_count(call) || ast_node_stable_id(call) == 0) return;
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, ast_call_argument(call, value_ordinal));
+    if (!value.ok || value.meta || publication_physical_scalar(value.type) ||
+        !semantic_param_publication_clone_independent(ctx, value.type)) return;
+    store_landing_record(ctx, ast_node_stable_id(call));
 }
 
 void semantic_formal_string_store_landing_select_checked(SemanticContext *ctx, ASTNode *call,

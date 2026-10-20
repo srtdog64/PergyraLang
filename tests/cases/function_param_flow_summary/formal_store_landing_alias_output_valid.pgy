@@ -1,0 +1,25 @@
+// Append stores its by-value context's String into an inout output through a
+// local alias, which the check-time selection cannot see. The backing frame
+// finds the store, so the next analysis stores a copy, and Main may append
+// from its context again.
+struct Context {
+    path: String;
+    count: Int;
+}
+
+func Append(context: Context, inout paths: Array<String>) -> Int {
+    let path: String = context.path;
+    ArrayPush(paths, path);
+    return ArrayLength(paths);
+}
+
+func Main() -> Int {
+    let context: Context = Context(StringConcat("src", ".pgy"), 1);
+    var paths: Array<String> = [];
+    let a: Int = Append(context, paths);
+    let b: Int = Append(context, paths);
+    Print(paths[1]);
+    Print(context.path);
+    Print(ToString(a + b));
+    return 0;
+}

@@ -74,6 +74,7 @@ owned_push_landings = {
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
     "formal_string_store_landing_local_receiver_valid": ("Gather", 1),
     "formal_string_store_landing_private_local_valid": ("Count", 1),
+    "formal_store_landing_alias_output_valid": ("Append", 1),
     "named_string_same_empty_borrowed_then_owned_direct_landed_valid": ("Project", 2),
     "named_string_same_empty_owned_then_borrowed_direct_landed_valid": ("Project", 2),
 }
@@ -100,6 +101,9 @@ landed_clones = {
     "by_value_getter_lend_passed_kept_landed_valid": {"Collect": 1},
     "by_value_getter_lend_assigned_landed_valid": {"Collect": 1},
     "by_value_getter_lend_owner_written_after_lowering_landed_valid": {"Rename": 1},
+    "formal_store_landing_struct_output_valid": {"Reserve": 1},
+    "array_push_loan_inout_landed_valid": {"Collect": 1},
+    "aggregate_move_void_call_landed_valid": {"Report": 1},
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
@@ -120,6 +124,13 @@ landing_rounds = {
     "default_aggregate_move_reuse_invalid": 0,
     "default_aggregate_move_cloned_growth_invalid": 0,
     "formal_array_store_inout_output_invalid": 0,
+    "formal_store_landing_struct_output_valid": 1,
+    "formal_store_landing_alias_output_valid": 1,
+    "formal_store_landing_struct_output_shallow_invalid": 0,
+    "array_push_loan_inout_landed_valid": 1,
+    "array_push_loan_inout_invalid": 0,
+    "aggregate_move_void_call_landed_valid": 1,
+    "aggregate_move_void_call_invalid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -273,12 +284,16 @@ release_lifetime_refusals = {
     "receiver_ref_self_string_return_invalid": [(*borrow_refusal, 6, 10)],
     # A push stores its value in the Array it names: a local Array carries
     # the loan where it goes (here past its owner, 27:5), and an inout Array
-    # is an output, a call escape of the loan (16:6, 22:13).
+    # is an output, a call escape of the loan when no copy can land (18:6,
+    # 24:13).
     "array_push_loan_past_owner_invalid": [(*borrow_refusal, 27, 5)],
-    "array_push_loan_inout_invalid": [(*borrow_refusal, 16, 6), (*borrow_refusal, 22, 13)],
+    "array_push_loan_inout_invalid": [(*borrow_refusal, 18, 6), (*borrow_refusal, 24, 13)],
+    # A stored struct Clone copies only by value lands nothing, so the
+    # caller's later use of its context reads a moved value.
+    "formal_store_landing_struct_output_shallow_invalid": [(*released_refusal, 26, 28)],
     # Report keeps the context and returns, so the later use reads a moved
     # value; the same call to a Never routine ends that path instead.
-    "aggregate_move_void_call_invalid": [(*released_refusal, 26, 18)],
+    "aggregate_move_void_call_invalid": [(*released_refusal, 28, 18)],
     # A handoff a return value makes ends the path: the next iteration's
     # Contains is not refused for it (only the handoff itself, 30:20). Two
     # calls in one return value still run in order (24:45).
@@ -904,6 +919,7 @@ paired = (
     ("array_push_loan_inout_invalid", False),
     ("aggregate_move_never_call_valid", True),
     ("aggregate_move_void_call_invalid", False),
+    ("aggregate_move_void_call_landed_valid", True),
     ("array_handoff_return_value_loop_invalid", False),
     ("array_handoff_same_return_value_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
@@ -933,6 +949,10 @@ paired = (
     ("by_value_getter_lend_growing_invalid", False),
     ("by_value_getter_lend_local_transfer_landed_valid", True),
     ("by_value_getter_lend_inout_owner_invalid", False),
+    ("formal_store_landing_struct_output_valid", True),
+    ("formal_store_landing_alias_output_valid", True),
+    ("formal_store_landing_struct_output_shallow_invalid", False),
+    ("array_push_loan_inout_landed_valid", True),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
@@ -1543,6 +1563,10 @@ for name, expected in (
     ("formal_string_store_landing_local_receiver_valid", "aa"),
     ("formal_string_store_landing_private_local_valid", "1a"),
     ("formal_string_store_landing_field_take_valid", "tt"),
+    ("formal_store_landing_struct_output_valid", "src.pgysrc.pgy1"),
+    ("formal_store_landing_alias_output_valid", "src.pgysrc.pgy3"),
+    ("array_push_loan_inout_landed_valid", "ab7"),
+    ("aggregate_move_void_call_landed_valid", "3"),
     ("formal_string_store_landing_value_source_valid", "tt1"),
     ("formal_string_store_landing_value_set_valid", "tt1"),
     ("formal_string_store_landing_value_map_valid", "tt1"),

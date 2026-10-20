@@ -1,0 +1,29 @@
+// The stored struct holds an Array of structs, which Clone copies by value:
+// a copy would still share the context's storage. Nothing lands, and Main's
+// later use of the context it handed on is refused.
+struct Part {
+    name: String;
+}
+
+struct Context {
+    parts: Array<Part>;
+}
+
+struct Observation {
+    parts: Array<Part>;
+    offset: Int;
+}
+
+func Reserve(context: Context, offset: Int, inout observations: Array<Observation>) -> Int {
+    ArrayPush(observations, Observation(context.parts, offset));
+    return ArrayLength(observations);
+}
+
+func Main() -> Int {
+    let context: Context = Context([Part(StringConcat("a", "b"))]);
+    var observations: Array<Observation> = [];
+    let n: Int = Reserve(context, 1, observations);
+    Print(context.parts[0].name);
+    Print(ToString(n));
+    return 0;
+}

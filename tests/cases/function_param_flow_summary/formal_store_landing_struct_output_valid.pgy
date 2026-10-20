@@ -1,0 +1,38 @@
+// Reserve stores a struct holding its by-value context's String into an
+// inout output. No proof admits that store, so the next analysis stores a
+// Clone of the struct: the output keeps nothing of the context, and callers
+// may use their context again.
+struct Context {
+    path: String;
+    observe: Bool;
+}
+
+struct Observation {
+    path: String;
+    offset: Int;
+}
+
+func Reserve(context: Context, offset: Int, inout observations: Array<Observation>) -> Int {
+    if !context.observe {
+        return 0 - 1;
+    }
+    let slot: Int = ArrayLength(observations);
+    ArrayPush(observations, Observation(context.path, offset));
+    return slot;
+}
+
+func Parse(context: Context, inout observations: Array<Observation>) -> Int {
+    let a: Int = Reserve(context, 1, observations);
+    let b: Int = Reserve(context, 2, observations);
+    return a + b;
+}
+
+func Main() -> Int {
+    let context: Context = Context(StringConcat("src", ".pgy"), true);
+    var observations: Array<Observation> = [];
+    let n: Int = Parse(context, observations);
+    Print(observations[1].path);
+    Print(context.path);
+    Print(ToString(n));
+    return 0;
+}
