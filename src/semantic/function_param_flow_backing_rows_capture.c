@@ -3,6 +3,7 @@
 #include "function_param_flow_summary_internal.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "function_param_publication_owner.h"
@@ -12,12 +13,25 @@
 #include "../common/match_variant_policy.h"
 #include "indexed_string_borrow_owner.h"
 
-/* Indexes one rows capture already found current. The capture only reads, so
- * an index stays current until it returns; positions survive index growth. */
+/* An argument's typed answers: checked with a current value, and the callee
+ * it binds to. */
+typedef struct {
+    const ASTNode *call;
+    size_t ordinal;
+    ASTNode *callee;
+    bool checked;
+} RowsCaptureArgument;
+
+/* Indexes one rows capture already found current, and argument answers it
+ * already read. The capture only reads, so both stay current until it
+ * returns; positions survive index growth. Arguments are an open-addressing
+ * table keyed by call and ordinal. */
 typedef struct {
     ASTNode **decls;
     size_t *positions;
     size_t count, capacity;
+    RowsCaptureArgument *arguments;
+    size_t argument_count, argument_capacity;
     bool verify;
 } RowsCaptureIndexes;
 
@@ -54,6 +68,56 @@ static bool rows_capture_index(FunctionParamFlowSummaryStore *store, RowsCapture
     seen->decls[seen->count] = decl;
     seen->positions[seen->count++] = (size_t)(*index - store->program_point_indexes);
     return true;
+}
+
+static size_t rows_capture_argument_slot(const RowsCaptureIndexes *seen, const ASTNode *call, size_t ordinal)
+{
+    size_t mask = seen->argument_capacity - 1;
+    size_t slot = (((size_t)(uintptr_t)call >> 4) * (size_t)2654435761u + ordinal * (size_t)40503u) & mask;
+    while (seen->arguments[slot].call != NULL &&
+        (seen->arguments[slot].call != call || seen->arguments[slot].ordinal != ordinal)) slot = (slot + 1) & mask;
+    return slot;
+}
+
+/* Argument `ordinal` of `call`: whether it is checked with a current value,
+ * and in `callee` the routine it binds to. Read once per capture; with
+ * PGY_VERIFY_FLOW_CURRENCY_MEMO every reuse is read again and a different
+ * answer fails the store. A table that cannot grow only stops caching. */
+static bool rows_capture_argument(FunctionParamFlowSummaryStore *store, RowsCaptureIndexes *seen,
+    ASTNode *call, size_t ordinal, ASTNode **callee)
+{
+    if (seen->argument_capacity != 0) {
+        RowsCaptureArgument *known = &seen->arguments[rows_capture_argument_slot(seen, call, ordinal)];
+        if (known->call == call && !seen->verify) { *callee = known->callee; return known->checked; }
+    }
+    bool checked = semantic_param_publication_checked_argument(store->ctx, call, ordinal) &&
+        semantic_param_publication_value(store->ctx, ast_call_argument(call, ordinal)).ok;
+    *callee = semantic_param_publication_callee(store->ctx, call, ordinal);
+    if (seen->argument_capacity != 0) {
+        RowsCaptureArgument *known = &seen->arguments[rows_capture_argument_slot(seen, call, ordinal)];
+        if (known->call == call) {
+            if (known->checked != checked || known->callee != *callee)
+                function_param_flow_fail(store, call, "rows capture argument reuse diverged from its full read");
+            return checked;
+        }
+    }
+    if (seen->argument_count + 1 > seen->argument_capacity / 2) {
+        size_t next = seen->argument_capacity == 0 ? 64 : seen->argument_capacity * 2;
+        if (next < seen->argument_capacity || next > SIZE_MAX / sizeof(*seen->arguments)) return checked;
+        RowsCaptureArgument *grown = calloc(next, sizeof(*grown));
+        if (grown == NULL) return checked;
+        RowsCaptureArgument *old = seen->arguments;
+        size_t old_capacity = seen->argument_capacity;
+        seen->arguments = grown;
+        seen->argument_capacity = next;
+        for (size_t i = 0; i < old_capacity; i++)
+            if (old[i].call != NULL) seen->arguments[rows_capture_argument_slot(seen, old[i].call, old[i].ordinal)] = old[i];
+        free(old);
+    }
+    seen->arguments[rows_capture_argument_slot(seen, call, ordinal)] =
+        (RowsCaptureArgument){call, ordinal, *callee, checked};
+    seen->argument_count++;
+    return checked;
 }
 
 /* Appends `callee` to the validation queue unless it is already there. */
@@ -304,9 +368,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                             callee_index->declared_result == NULL ||
                             callee_index->declared_result->declared_result_type != type) { valid = false; break; }
                     } else {
-                        valid = semantic_param_publication_checked_argument(store->ctx, edge_call, p) &&
-                            semantic_param_publication_value(store->ctx, ast_call_argument(edge_call, p)).ok;
-                        callee = semantic_param_publication_callee(store->ctx, edge_call, p);
+                        valid = rows_capture_argument(store, &seen, edge_call, p, &callee);
                         if (valid && result_edge) {
                             unsigned char kind = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_UNPROVED;
                             ASTNode *arg = ast_call_argument(edge_call, p);
@@ -379,7 +441,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
         if (capture == NULL) function_param_flow_rows_memo_record(store, ordinal, &memo_notes, valid && notes_kept);
     }
     free(queue);
-    free(seen.decls); free(seen.positions);
+    free(seen.decls); free(seen.positions); free(seen.arguments);
     return valid;
 }
 

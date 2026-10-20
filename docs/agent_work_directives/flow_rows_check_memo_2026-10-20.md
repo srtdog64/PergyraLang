@@ -110,6 +110,13 @@ test, which is a typed call lookup, even when another row held the call
 holds the call first, and tries the intent step test only when no row
 does. The answer is the same: both tests read only sealed facts.
 
+One rows capture also asked the same typed questions of an argument once
+per frame of its routine (about four times on average): is it checked
+with a current value, and which routine does it bind to. A capture writes
+no typed fact, so the capture now keeps each argument's answers until it
+returns. The verify mode reads every reuse again and fails the store on a
+different answer.
+
 ## Results
 
 | Run (one census-mode analysis, same input) | Wall | Peak |
@@ -117,6 +124,7 @@ does. The answer is the same: both tests read only sealed facts.
 | `db8350709` | 2605 s / 2613 s | 3.47 GB |
 | memo, checks kept outside a solve only | 1542 s | 3.47 GB |
 | memo, checks kept in a solve without pending relations | 1547 s | 3.47 GB |
+| and the owner-row test order and the argument answers below | 1206 s (unchanged run: 2607 s) | 3.47 GB |
 
 - Each memo run was started together with an unchanged run, with up to
   two other analyses running on the 16-core machine.
