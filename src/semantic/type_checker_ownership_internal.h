@@ -30,6 +30,7 @@ typedef enum OwnershipConsumerKind {
 
 OwnershipTypeClass
 semantic_classify_ownership_type(const Type *type, SemanticContext *ctx);
+bool semantic_ownership_type_holds_no_container(const Type *type, SemanticContext *ctx);
 
 const char *
 semantic_ownership_value_label(OwnershipTypeClass klass);

@@ -1,7 +1,7 @@
-// Collect builds Facts from its by-value arena's count and pushes them onto
-// a local Array. A count is a copy, so the Facts hold none of the arena's
-// storage and the push keeps nothing of it: Main's arena keeps its storage
-// and its later use is admitted.
+// Collect builds a Facts from its by-value arena's count and a fresh Array
+// and pushes it onto a local Array. A count is a copy, so the Facts hold
+// none of the arena's storage and the push keeps nothing of it: Main's
+// arena keeps its storage and its later use is admitted.
 struct Arena {
     names: Array<String>;
     count: Int;
@@ -9,12 +9,12 @@ struct Arena {
 
 struct Facts {
     count: Int;
-    label: String;
+    items: Array<Int>;
 }
 
 func Collect(arena: Arena) -> Int {
     let rows: Array<Facts> = [];
-    ArrayPush(rows, Facts(arena.count, "x"));
+    ArrayPush(rows, Facts(arena.count, [1, 2]));
     return ArrayLength(rows) + arena.count;
 }
 

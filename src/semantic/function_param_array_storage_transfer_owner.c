@@ -163,15 +163,12 @@ static int storage_path_at(const ASTNode *node, const StorageWalk *walk)
     return root == STORAGE_ROOT_FORMAL && !walk->paths && !storage_path_step(node) ? STORAGE_ROOT_NONE : root;
 }
 
-/* A String or copy-only value, or an Option of one, read through a path
- * carries no storage. */
+/* A value that holds no container storage, a String for one, read through
+ * a path carries none of the formal's. */
 static bool storage_path_value_read(const ASTNode *node, const SlotFunctionLookup *lookup)
 {
     SemanticPublishedValue value = semantic_param_publication_value(lookup->ctx, node);
-    const Type *type = value.ok && !value.meta && type_is_constructed_named(value.type, "Option")
-        ? type_get_constructed_arg(value.type, 0) : value.type;
-    return value.ok && !value.meta && type != NULL && (type_equals(type, TYPE_STRING) ||
-        semantic_classify_ownership_type(type, lookup->ctx) == OWNERSHIP_TYPE_COPY_ONLY);
+    return value.ok && !value.meta && semantic_ownership_type_holds_no_container(value.type, lookup->ctx);
 }
 
 static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk);

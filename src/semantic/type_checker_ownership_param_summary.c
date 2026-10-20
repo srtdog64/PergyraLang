@@ -548,16 +548,15 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     }
     bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true);
     /* The loan shares the owner's storage, so a change through a local the
-     * loan reached changes the owner. A String or copy-only local holds
-     * none of it. */
+     * loan reached changes the owner. A local of a String, an Option of one
+     * or a struct of such fields holds none of it. */
     for (size_t k = 0; unchanged && k < carriers.count; k++) {
         bool holds = true;
         for (size_t c = 0; c < index->claims->count; c++) {
             const FunctionParamFlowIndexClaim *row = &index->claims->rows[c];
             if (row->id != carriers.ids[k] || row->node == NULL || row->node->type != AST_LET_DECL) continue;
             SemanticPublishedValue value = semantic_param_publication_value(ctx, ast_let_initializer(row->node));
-            holds = !value.ok || value.meta || (!type_equals(value.type, TYPE_STRING) &&
-                semantic_classify_ownership_type(value.type, ctx) != OWNERSHIP_TYPE_COPY_ONLY);
+            holds = !value.ok || value.meta || !semantic_ownership_type_holds_no_container(value.type, ctx);
             break;
         }
         unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true);

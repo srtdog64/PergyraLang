@@ -1,0 +1,30 @@
+// NameAt lends Collect's by-value arena, and Collect unwraps the Option it
+// returns into a String while it still uses the arena. An Option of a String
+// holds none of the arena's storage, so unwrapping it changes nothing of the
+// arena: the loan holds and nothing is copied.
+struct Arena {
+    names: Array<String>;
+}
+
+func NameAt(arena: Arena, index: Int) -> Option<String> {
+    if index >= ArrayLength(arena.names) {
+        return None();
+    }
+    return Some(arena.names[index]);
+}
+
+func Collect(arena: Arena) -> Int {
+    let name: Option<String> = NameAt(arena, 0);
+    let text: String = "";
+    if IsSome(name) {
+        text = UnwrapOption(name);
+    }
+    return StringLength(text) + ArrayLength(arena.names);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(ToString(Collect(arena)));
+    Print(arena.names[0]);
+    return 0;
+}

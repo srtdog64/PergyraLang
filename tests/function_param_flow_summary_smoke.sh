@@ -147,6 +147,7 @@ landing_rounds = {
     "default_aggregate_move_shared_field_return_invalid": 0,
     "by_value_getter_lend_result_lent_on_valid": 0,
     "by_value_getter_lend_string_reassigned_valid": 0,
+    "by_value_getter_lend_option_string_unwrapped_valid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -853,6 +854,8 @@ paired = (
     ("constructor_of_formal_values_stored_valid", True),
     ("path_alias_lent_to_string_getter_valid", True),
     ("option_string_result_reassigned_valid", True),
+    ("string_struct_result_reassigned_valid", True),
+    ("by_value_getter_lend_option_string_unwrapped_valid", True),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
@@ -1676,6 +1679,8 @@ for name, expected in (
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),
     ("option_string_result_reassigned_valid", "3ab"),
+    ("string_struct_result_reassigned_valid", "3ab"),
+    ("by_value_getter_lend_option_string_unwrapped_valid", "3ab"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

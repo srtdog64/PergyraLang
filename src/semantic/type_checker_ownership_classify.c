@@ -7,6 +7,9 @@
 
 #include "type_checker_ownership_internal.h"
 #include "type_checker_resolution_internal.h"
+#include "type_checker_call_constructor_internal.h"
+#include "type_checker_internal.h"
+#include "../parser/ast_api.h"
 
 enum { OWNERSHIP_ENUM_PAYLOAD_DEPTH_LIMIT = 8 };
 
@@ -64,6 +67,29 @@ semantic_classify_ownership_type(const Type *type, SemanticContext *ctx)
     if (type_requires_boundary_borrow_tracking(type, ctx))
         return OWNERSHIP_TYPE_BORROW_TRACKED;
     return OWNERSHIP_TYPE_COPY_ONLY;
+}
+
+/* A value of `type` holds no Array or other container storage: a String,
+ * a copy-only value, an Option of one, or a non-generic struct whose fields
+ * all are. A copy of it shares only immutable Strings. */
+bool
+semantic_ownership_type_holds_no_container(const Type *type, SemanticContext *ctx)
+{
+    for (int depth = 0; type != NULL && depth <= OWNERSHIP_ENUM_PAYLOAD_DEPTH_LIMIT; depth++) {
+        if (type_equals(type, TYPE_STRING) ||
+            semantic_classify_ownership_type(type, ctx) == OWNERSHIP_TYPE_COPY_ONLY) return true;
+        if (!type_is_constructed_named(type, "Option")) break;
+        type = type_get_constructed_arg(type, 0);
+    }
+    ASTNode *decl = type != NULL && type->kind == TYPE_KIND_CLASS ? semantic_host_decl_for_type(ctx, type) : NULL;
+    if (decl == NULL || decl->type != AST_CLASS_DECL || ast_class_nominal_kind(decl) != NOMINAL_DECL_STRUCT)
+        return false;
+    for (size_t i = 0;; i++) {
+        const char *name = NULL;
+        Type *field = constructor_decl_field_resolved_type_at(decl, i, &name, ctx);
+        if (name == NULL) return true;
+        if (field == NULL || field == type || !semantic_ownership_type_holds_no_container(field, ctx)) return false;
+    }
 }
 
 const char *

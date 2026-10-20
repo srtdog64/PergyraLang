@@ -1,0 +1,37 @@
+// Check may replace a local Seal with one SealAt builds from its by-value
+// arena. A Seal holds only a Bool and a String, none of the arena's
+// storage, so replacing it changes nothing of the arena: Main's arena keeps
+// its storage and its later use is admitted.
+struct Arena {
+    names: Array<String>;
+}
+
+struct Seal {
+    ok: Bool;
+    name: String;
+}
+
+func SealAt(arena: Arena, index: Int) -> Seal {
+    if index >= ArrayLength(arena.names) {
+        return Seal(false, "");
+    }
+    return Seal(true, arena.names[index]);
+}
+
+func Check(arena: Arena, second: Bool) -> Int {
+    let seal: Seal = Seal(false, "");
+    if second {
+        seal = SealAt(arena, 1);
+    }
+    if !seal.ok {
+        return 0;
+    }
+    return StringLength(seal.name);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cde", "")]);
+    Print(ToString(Check(arena, true)));
+    Print(arena.names[0]);
+    return 0;
+}

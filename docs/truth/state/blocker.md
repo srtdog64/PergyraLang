@@ -6,11 +6,11 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2479 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2218 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-20_native_census_call_result_paths.md)).
-A census runs four analyses in about 810 s. The CI harness manifest
+[census record](../evidence/2026-10-20_native_census_container_free_values.md)).
+A census runs four analyses in about 815 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
