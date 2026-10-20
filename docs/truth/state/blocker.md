@@ -18,9 +18,9 @@ compiles natively since `e23761a3a`.
 1. **`direct_mir_*` routes:** 600 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
 2. **Moves (419 outside `direct_mir_*`).** Whole input: 270 callees that
-   change, keep or release, 125 getters whose loan proof fails, 70 local
-   copies whose other side changed (mostly an `inout` argument counted
-   whole), 35 read-only callees whose storage proof fails.
+   change, keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
+   125 getters whose loan proof fails, 70 local copies whose other side
+   changed (mostly an `inout` argument counted whole), 35 read-only callees.
 3. **Borrowed `ref` escapes (426 outside `direct_mir_*`):** mostly a
    `ref` formal whose own summary has a call escape.
 4. **Strings that leave their owner.** Owned copies land for a formal's
