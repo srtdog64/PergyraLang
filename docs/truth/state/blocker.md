@@ -15,13 +15,12 @@ compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 701 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 622 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (813 outside `direct_mir_*`).** Over the whole input: 576
-   getters whose loan proof fails, 197 callees that change, keep or
-   release, 123 read-only callees whose storage proof fails, 17 getters on
-   locals. Of the 395 refusals the call-result rule added, 225 follow
-   `SemanticAstIntentTransitionFactsFromArtifact`,
+2. **Moves (632 outside `direct_mir_*`).** Over the whole input: 339
+   getters whose loan proof fails, 219 callees that change, keep or
+   release, 85 read-only callees whose storage proof fails, 22 getters on
+   locals. Of the 122 refusals the call-result rule added, 96 follow
    `SemanticAstLocalBindingFactsFromArtifact` and the `TypedAstArena*Text`
    getters; not yet classified.
 3. **Borrowed `ref` escapes (421 outside `direct_mir_*`):** mostly a

@@ -288,9 +288,12 @@ static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
  * owner may still be lent on to a `ref` formal. With `lends_on`, a by-value
  * formal that only reads it and returns it or a part of it lends it on too,
  * unless the owner is a local and that call's result leaves the routine
- * (2026-10-19_by_value_getter_lends_when_used_again). */
+ * (2026-10-19_by_value_getter_lends_when_used_again). With
+ * `own_descriptor`, a push or set with `binding` itself as the receiver
+ * changes only that binding's own descriptor. */
 static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
-    FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on)
+    FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
+    bool own_descriptor)
 {
     bool owner_formal = false;
     for (size_t p = 0; p < ast_func_param_count(caller); p++)
@@ -327,9 +330,10 @@ static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
                 size_t stored = 0;
                 uint32_t kind = 0;
                 if (p == 0 && (semantic_param_publication_checked_array_store(store->ctx, node, &stored) ||
-                        semantic_param_publication_checked_slot_write(store->ctx, node) ||
                         (ast_call_semantic_callee_builtin_kind(node, &kind) &&
-                         kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING))) return false;
+                         kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING)) &&
+                    !(own_descriptor && argument_node->type == AST_IDENTIFIER)) return false;
+                if (p == 0 && semantic_param_publication_checked_slot_write(store->ctx, node)) return false;
                 continue;
             }
             if (callee == NULL || !semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal)) return false;
@@ -400,7 +404,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
             }
             if ((dependency != NULL || by_value_formal) &&
-                !loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal)) admitted = false;
+                !loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false)) admitted = false;
             if (dependency == NULL && !by_value_formal) admitted = false;
             /* A loan that stays here needs only an owner no write reaches. */
             if (effects == 0) continue;
@@ -546,20 +550,23 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
         free(carriers.ids);
         return false;
     }
-    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true);
+    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true, false);
     /* The loan shares the owner's storage, so a change through a local the
      * loan reached changes the owner. A local of a String, an Option of one
-     * or a struct of such fields holds none of it. */
+     * or a struct of such fields holds none of it, and a local Array literal
+     * that holds parts of the loan has a descriptor of its own: a push or set
+     * on it changes nothing it holds. */
     for (size_t k = 0; unchanged && k < carriers.count; k++) {
-        bool holds = true;
+        bool holds = true, literal = false;
         for (size_t c = 0; c < index->claims->count; c++) {
             const FunctionParamFlowIndexClaim *row = &index->claims->rows[c];
             if (row->id != carriers.ids[k] || row->node == NULL || row->node->type != AST_LET_DECL) continue;
             SemanticPublishedValue value = semantic_param_publication_value(ctx, ast_let_initializer(row->node));
             holds = !value.ok || value.meta || !semantic_ownership_type_holds_no_container(value.type, ctx);
+            literal = ast_let_initializer(row->node) != NULL && ast_let_initializer(row->node)->type == AST_ARRAY_LITERAL;
             break;
         }
-        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true);
+        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal);
     }
     free(carriers.ids);
     if (!unchanged && failure != NULL) failure->owner_changed = true;

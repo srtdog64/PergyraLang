@@ -1,0 +1,34 @@
+// NameAt lends Collect's by-value arena. Collect unwraps the name into a
+// local String and pushes it, and then another, onto a local Array literal
+// while it still uses the arena. The literal has a descriptor of its own, so
+// pushing onto it changes nothing of the arena: the loan holds and nothing
+// is copied.
+struct Arena {
+    names: Array<String>;
+}
+
+func NameAt(arena: Arena, index: Int) -> Option<String> {
+    if index >= ArrayLength(arena.names) {
+        return None();
+    }
+    return Some(arena.names[index]);
+}
+
+func Collect(arena: Arena) -> Int {
+    let names: Array<String> = [];
+    let value: String = "";
+    let value_opt: Option<String> = NameAt(arena, 0);
+    if IsSome(value_opt) {
+        value = UnwrapOption(value_opt);
+    }
+    ArrayPush(names, value);
+    ArrayPush(names, StringConcat("zz", ""));
+    return ArrayLength(names) + ArrayLength(arena.names);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(ToString(Collect(arena)));
+    Print(arena.names[0]);
+    return 0;
+}

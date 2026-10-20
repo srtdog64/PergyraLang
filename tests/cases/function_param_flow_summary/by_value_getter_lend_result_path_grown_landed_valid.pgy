@@ -1,0 +1,28 @@
+// Part lends Main's local outer, and Main keeps the loan's items in a local
+// and pushes onto them while it still uses outer. That local is a path of
+// the loan, not an Array literal, so its descriptor is outer's storage: the
+// loan is copied where it is made, and outer keeps its two items.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let part: Inner = Part(outer);
+    let items: Array<Int> = part.items;
+    ArrayPush(items, 9);
+    ArrayPush(items, 9);
+    ArrayPush(items, 9);
+    ArrayPush(items, 9);
+    Print(ToString(ArrayLength(items) + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

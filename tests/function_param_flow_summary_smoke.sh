@@ -108,6 +108,7 @@ landed_clones = {
     "by_value_getter_lend_inout_then_returned_landed_valid": {"Use": 1},
     "by_value_getter_lend_result_grown_landed_valid": {"Main": 1},
     "default_aggregate_move_shared_field_return_landed_valid": {"Main": 1},
+    "by_value_getter_lend_result_path_grown_landed_valid": {"Main": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -148,6 +149,8 @@ landing_rounds = {
     "by_value_getter_lend_result_lent_on_valid": 0,
     "by_value_getter_lend_string_reassigned_valid": 0,
     "by_value_getter_lend_option_string_unwrapped_valid": 0,
+    "by_value_getter_lend_string_collected_valid": 0,
+    "by_value_getter_lend_result_path_grown_landed_valid": 1,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -856,6 +859,8 @@ paired = (
     ("option_string_result_reassigned_valid", True),
     ("string_struct_result_reassigned_valid", True),
     ("by_value_getter_lend_option_string_unwrapped_valid", True),
+    ("by_value_getter_lend_string_collected_valid", True),
+    ("by_value_getter_lend_result_path_grown_landed_valid", True),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
@@ -1681,6 +1686,8 @@ for name, expected in (
     ("option_string_result_reassigned_valid", "3ab"),
     ("string_struct_result_reassigned_valid", "3ab"),
     ("by_value_getter_lend_option_string_unwrapped_valid", "3ab"),
+    ("by_value_getter_lend_string_collected_valid", "3ab"),
+    ("by_value_getter_lend_result_path_grown_landed_valid", "10"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")
