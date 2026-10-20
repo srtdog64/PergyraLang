@@ -109,6 +109,13 @@ landed_clones = {
     "by_value_getter_lend_result_grown_landed_valid": {"Main": 1},
     "default_aggregate_move_shared_field_return_landed_valid": {"Main": 1},
     "by_value_getter_lend_result_path_grown_landed_valid": {"Main": 1},
+    "by_value_getter_lend_result_passed_grown_landed_valid": {"Main": 1},
+    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": {"Main": 2},
+    "by_value_getter_second_lend_grown_landed_valid": {"Main": 1},
+    "by_value_getter_second_lend_formal_grown_landed_valid": {"Grow": 1},
+    "by_value_getter_lend_in_constructor_grown_landed_valid": {"Main": 1},
+    "by_value_getter_lend_owner_in_constructor_grown_landed_valid": {"Main": 1},
+    "by_value_getter_two_lends_grown_landed_valid": {"Main": 2},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -150,7 +157,18 @@ landing_rounds = {
     "by_value_getter_lend_string_reassigned_valid": 0,
     "by_value_getter_lend_option_string_unwrapped_valid": 0,
     "by_value_getter_lend_string_collected_valid": 0,
+    "option_string_result_reassigned_valid": 0,
+    "string_struct_result_reassigned_valid": 0,
     "by_value_getter_lend_result_path_grown_landed_valid": 1,
+    "by_value_getter_lend_result_passed_grown_landed_valid": 1,
+    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": 2,
+    "by_value_getter_second_lend_grown_landed_valid": 1,
+    "by_value_getter_second_lend_formal_grown_landed_valid": 1,
+    "by_value_getter_lend_in_constructor_grown_landed_valid": 1,
+    "by_value_getter_lend_owner_in_constructor_grown_landed_valid": 1,
+    "by_value_getter_two_lends_grown_landed_valid": 1,
+    "by_value_getter_lend_result_passed_grown_invalid": 0,
+    "by_value_getter_second_lend_grown_invalid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -178,6 +196,8 @@ release_lifetime_refusals = {
     "by_value_formal_rebound_to_result_grown_invalid": [(*released_refusal, 25, 42), (*released_refusal, 25, 62)],
     "path_alias_returned_in_constructor_grown_invalid": [(*released_refusal, 35, 48), (*released_refusal, 35, 74)],
     "enum_formal_matched_payload_grown_invalid": [(*released_refusal, 27, 11)],
+    "by_value_getter_lend_result_passed_grown_invalid": [(*released_refusal, 33, 48), (*released_refusal, 33, 83)],
+    "by_value_getter_second_lend_grown_invalid": [(*released_refusal, 30, 101)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     # An inout fill of a by-value parameter from a second input moves it.
@@ -871,6 +891,15 @@ paired = (
     ("path_alias_returned_in_constructor_grown_invalid", False),
     ("enum_formal_matched_payload_read_valid", True),
     ("enum_formal_matched_payload_grown_invalid", False),
+    ("by_value_getter_lend_result_passed_grown_landed_valid", True),
+    ("by_value_getter_lend_in_constructor_passed_grown_landed_valid", True),
+    ("by_value_getter_second_lend_grown_landed_valid", True),
+    ("by_value_getter_second_lend_formal_grown_landed_valid", True),
+    ("by_value_getter_lend_in_constructor_grown_landed_valid", True),
+    ("by_value_getter_lend_owner_in_constructor_grown_landed_valid", True),
+    ("by_value_getter_two_lends_grown_landed_valid", True),
+    ("by_value_getter_lend_result_passed_grown_invalid", False),
+    ("by_value_getter_second_lend_grown_invalid", False),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
@@ -1702,6 +1731,13 @@ for name, expected in (
     ("alias_rebound_to_result_valid", "8"),
     ("path_alias_returned_in_constructor_valid", "7"),
     ("enum_formal_matched_payload_read_valid", "4"),
+    ("by_value_getter_lend_result_passed_grown_landed_valid", "10"),
+    ("by_value_getter_lend_in_constructor_passed_grown_landed_valid", "10"),
+    ("by_value_getter_second_lend_grown_landed_valid", "12"),
+    ("by_value_getter_second_lend_formal_grown_landed_valid", "14"),
+    ("by_value_getter_lend_in_constructor_grown_landed_valid", "10"),
+    ("by_value_getter_lend_owner_in_constructor_grown_landed_valid", "8"),
+    ("by_value_getter_two_lends_grown_landed_valid", "14"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

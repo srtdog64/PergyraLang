@@ -1,0 +1,31 @@
+// Part lends Main's local outer, and Main hands the loan straight to Fill,
+// which pushes onto its items. The loan shares outer's storage, so the
+// pushes would change outer: the loan is copied where it leaves, and outer
+// keeps its two items.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Fill(inner: Inner) -> Int {
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    ArrayPush(inner.items, 9);
+    return ArrayLength(inner.items);
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Fill(Part(outer));
+    Print(ToString(n + ArrayLength(outer.inner.items) + outer.inner.items[1]));
+    return 0;
+}

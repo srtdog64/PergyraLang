@@ -1,0 +1,33 @@
+// Part lends Grow's by-value outer twice, and Grow pushes onto the second
+// loan's items while it still uses the first loan and outer. The second
+// loan is copied where it is made, so Grow leaves outer, and Main's outer,
+// as they were.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Grow(outer: Outer) -> Int {
+    let first: Inner = Part(outer);
+    let second: Inner = Part(outer);
+    ArrayPush(second.items, 9);
+    ArrayPush(second.items, 9);
+    ArrayPush(second.items, 9);
+    ArrayPush(second.items, 9);
+    return ArrayLength(second.items) + first.items[1] + ArrayLength(outer.inner.items) + outer.inner.items[1];
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let n: Int = Grow(outer);
+    Print(ToString(n + ArrayLength(outer.inner.items)));
+    return 0;
+}

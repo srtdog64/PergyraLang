@@ -1,0 +1,32 @@
+// ShelfOf lends Main's local store twice, and Main pushes onto the second
+// loan's boxes while it still uses store. A Clone of a Shelf copies its
+// Array of Box structs only by value, so no copy is landed: Main's later use
+// of store is refused.
+struct Box {
+    items: Array<Int>;
+}
+
+struct Shelf {
+    boxes: Array<Box>;
+}
+
+struct Store {
+    shelf: Shelf;
+    count: Int;
+}
+
+func ShelfOf(store: Store) -> Shelf {
+    return store.shelf;
+}
+
+func Main() -> Int {
+    let store: Store = Store(Shelf([Box([1]), Box([2])]), 0);
+    let first: Shelf = ShelfOf(store);
+    let second: Shelf = ShelfOf(store);
+    ArrayPush(second.boxes, Box([9]));
+    ArrayPush(second.boxes, Box([9]));
+    ArrayPush(second.boxes, Box([9]));
+    ArrayPush(second.boxes, Box([9]));
+    Print(ToString(ArrayLength(second.boxes) + ArrayLength(first.boxes) + store.shelf.boxes[1].items[0]));
+    return 0;
+}

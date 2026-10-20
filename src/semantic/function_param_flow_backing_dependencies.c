@@ -510,7 +510,10 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                      * receives; an inout one is the caller's own place. */
                     ASTNode *carrier = param != NULL && param->mode != PARAM_MODE_MUT_REF ? arg : NULL;
                     backing_effect_carried(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE), carrier);
-                    if (param == NULL || param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_MUT_REF)
+                    /* A loan handed to a formal whose storage proof fails changes the
+                     * loan's owner: the move owner sees only access paths. */
+                    if (param == NULL || param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_MUT_REF ||
+                        (state->loan_seed != NULL && !function_param_flow_preserves_array_storage(state->store->ctx, callee, formal)))
                         backing_effect_carried(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier);
                     if (!function_param_flow_callee_relation_ready(&state->lookup, node, i))
                         function_param_flow_callee_unfinished(&state->lookup, node, i, fact);

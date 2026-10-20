@@ -2,28 +2,26 @@
 
 Owner: Claude lane (main-line work since 2026-10-18,
 [decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-20 KST on branch `claude/p0-native-checker` (local commits, not
+2026-10-21 KST on branch `claude/p0-native-checker` (local commits, not
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2182 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2066 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-20_native_census_match_payload_aliases.md)).
-A census runs four analyses in about 815 s. The CI harness manifest
+[census record](../evidence/2026-10-21_native_census_every_loan_checked.md)).
+A census runs four analyses in about 820 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 622 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 616 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (596 outside `direct_mir_*`).** Over the whole input: 347
-   getters whose loan proof fails, 219 callees that change, keep or
-   release, 41 read-only callees whose storage proof fails, 22 getters on
-   locals. Of the 122 refusals the call-result rule added, 96 follow
-   `SemanticAstLocalBindingFactsFromArtifact` and the `TypedAstArena*Text`
-   getters; not yet classified.
-3. **Borrowed `ref` escapes (421 outside `direct_mir_*`):** mostly a
+2. **Moves (486 outside `direct_mir_*`).** Over the whole input: 238
+   getters whose loan proof fails, 220 callees that change, keep or
+   release, 35 read-only callees whose storage proof fails, 20 getters on
+   locals.
+3. **Borrowed `ref` escapes (424 outside `direct_mir_*`):** mostly a
    `ref` formal whose own summary has a call escape.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
@@ -36,6 +34,9 @@ compiles natively since `e23761a3a`.
    So a normal compile never runs the move, lane and named-call owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
+7. **Local copies share storage unchecked.** Main and this branch admit
+   a push through `let b = a.inner` (or an assignment, constructor or
+   Array literal of it) and a later read of `a` (ASan heap-use-after-free).
 
 ## Lessons on the record
 

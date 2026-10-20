@@ -65,12 +65,16 @@ static void state_free(MoveState *state)
 static bool state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
     const char *callee, const char *param, ASTNode *lending_call)
 {
-    for (size_t i = 0; i < state->count; i++)
-        if (state->rows[i].binding == binding && strcmp(state->rows[i].fields, fields) == 0) {
-            /* A move on any path is a move, whatever lent it elsewhere. */
-            if (lending_call == NULL) state->rows[i].lending_call = NULL;
-            return true;
-        }
+    /* Each loan of a path is a row of its own, so a later use needs every
+     * one admitted. A move on any path is a move, whatever lent it. */
+    bool moved = false;
+    for (size_t i = 0; i < state->count; i++) {
+        MovedPath *row = &state->rows[i];
+        if (row->binding != binding || strcmp(row->fields, fields) != 0) continue;
+        if (lending_call == NULL) { row->lending_call = NULL; moved = true; }
+        else if (row->lending_call == NULL || row->lending_call == lending_call) return true;
+    }
+    if (moved) return true;
     if (state->count == state->capacity) {
         size_t capacity = state->capacity == 0 ? 8 : state->capacity * 2;
         MovedPath *grown = realloc(state->rows, capacity * sizeof(*grown));
@@ -190,10 +194,10 @@ static bool note_copied_argument(MoveWalk *walk, const ASTNode *call)
 
 static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
 {
-    if (lent_use_admitted(walk, moved) || !reported_once(walk, node)) return;
-    /* The refusal stands in this analysis; a next one copies the loan: where
-     * it is made when its owner changed, where it leaves when it left and a
-     * copy can stand in there, and otherwise where it is made. */
+    if (lent_use_admitted(walk, moved)) return;
+    /* The refusal stands in this analysis; a next one copies each refused
+     * loan: where it is made when its owner changed, where it leaves when it
+     * left and a copy can stand in there, and otherwise where it is made. */
     for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++) {
         const FunctionParamFlowLoanFailure *failure = &walk->lent[i].failure;
         if (walk->lent[i].call != moved->lending_call) continue;
@@ -202,6 +206,7 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         if (!(at_exit ? semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)
                       : semantic_loan_copy_landing_select(walk->ctx, moved->lending_call))) walk->failed = true;
     }
+    if (!reported_once(walk, node)) return;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
@@ -233,10 +238,8 @@ static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *nod
     for (size_t i = 0; i < state->count; i++) {
         const MovedPath *moved = &state->rows[i];
         if (moved->binding == binding &&
-            (path_contains(moved->fields, fields) || path_contains(fields, moved->fields))) {
+            (path_contains(moved->fields, fields) || path_contains(fields, moved->fields)))
             refuse_use(walk, node, moved);
-            return;
-        }
     }
 }
 
@@ -345,14 +348,6 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
                     callee_name, param_name, callee_name);
             continue;
         }
-        for (size_t i = 0; i < state->count; i++) {
-            const MovedPath *moved = &state->rows[i];
-            if (moved->binding == binding &&
-                (path_contains(moved->fields, fields) || path_contains(fields, moved->fields))) {
-                refuse_use(walk, arg, moved);
-                break;
-            }
-        }
         if (lends && call_copied(walk, call)) continue;
         if (!state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL)) return;
     }
@@ -405,7 +400,7 @@ static bool walk_children(MoveWalk *walk, MoveState *state, ASTNode *node, bool 
     if (!supported || count == SIZE_MAX) {
         /* A construct whose children this owner cannot enumerate may use a
          * moved value; refuse while any move is live rather than skip it. */
-        if (state->count != 0) refuse_use(walk, node, &state->rows[0]);
+        for (size_t i = 0; i < state->count; i++) refuse_use(walk, node, &state->rows[i]);
         return !walk->failed;
     }
     for (size_t c = 0; c < count && !*terminated; c++) {

@@ -1,0 +1,28 @@
+// Part lends Main's local outer, and Main builds a new Outer from outer's
+// own inner and pushes onto it. Building a value from the loan's owner
+// counts as a change of the owner, so the loan is copied where it is made
+// and keeps outer's two items.
+struct Inner {
+    items: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    count: Int;
+}
+
+func Part(outer: Outer) -> Inner {
+    return outer.inner;
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(Inner([1, 2]), 0);
+    let part: Inner = Part(outer);
+    let other: Outer = Outer(outer.inner, 1);
+    ArrayPush(other.inner.items, 9);
+    ArrayPush(other.inner.items, 9);
+    ArrayPush(other.inner.items, 9);
+    ArrayPush(other.inner.items, 9);
+    Print(ToString(ArrayLength(other.inner.items) + part.items[1]));
+    return 0;
+}
