@@ -1,15 +1,20 @@
-// An intent's step action uses a stdlib call the analysis does not model,
-// so the action's formal is unsupported. The relation through the step
-// belongs to the frame that calls the intent, which is then unsupported: a
-// conservative summary, not a stale proof.
+// An intent's step action copies its Array argument and sorts the copy.
+// ArraySort on a local that is not an Array literal is a stdlib call the
+// analysis does not model, so the action's frame for that formal is
+// unsupported, and so is the frame of Route that hands the Array to the
+// intent: its unsupported relation is the step's action call. No row of
+// Route holds that call; the row that holds the intent call owns it, so
+// Route's rows stay current and its result is admitted: a conservative
+// summary, not a stale proof.
 struct Taken {
-    parts: Array<String>;
+    items: Array<Int>;
 }
 
 subject Runner {
     var outcome: Option<Taken>;
-    action Run(self, path: String) -> Bool {
-        self.outcome = Some(Taken(Split(path, ",")));
+    action Run(self, items: Array<Int>) -> Bool {
+        let sorted: Array<Int> = Clone(items);
+        self.outcome = Some(Taken(ArraySort(sorted)));
         return true;
     }
 }
@@ -19,21 +24,21 @@ zone RunZone {
     authority runner
 }
 
-intent RunPath(run_zone: RunZone, runner: Runner, path: String) {
+intent RunItems(run_zone: RunZone, runner: Runner, items: Array<Int>) {
     exclusive;
     step Run {
         using: run_zone;
-        on ran: runner.Run(path);
+        on ran: runner.Run(items);
         expect: ran;
     }
     success: true;
     failure: false;
 }
 
-func Route(zone: RunZone, runner: Runner, path: String) -> Taken {
-    let ran: Bool = RunPath(zone, runner, path);
+func Route(zone: RunZone, runner: Runner, items: Array<Int>) -> Taken {
+    let ran: Bool = RunItems(zone, runner, items);
     if !ran || !IsSome(runner.outcome) {
-        let empty: Array<String> = [];
+        let empty: Array<Int> = [];
         return Taken(empty);
     }
     return UnwrapOption(runner.outcome);
@@ -42,7 +47,8 @@ func Route(zone: RunZone, runner: Runner, path: String) -> Taken {
 func Main() -> Int {
     let zone: RunZone = RunZone(Runner(None));
     let runner: Runner = Runner(None);
-    let taken: Taken = Route(zone, runner, "a,b");
-    Print(ToString(ArrayLength(taken.parts)));
+    let items: Array<Int> = [3, 1, 2];
+    let taken: Taken = Route(zone, runner, items);
+    Print(ToString(taken.items[0]));
     return 0;
 }
