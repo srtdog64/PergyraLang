@@ -34,9 +34,9 @@ compiles natively since `e23761a3a`.
    So a normal compile never runs the move, lane and named-call owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
-7. **Local copies share storage unchecked.** Main and this branch admit
-   a push through `let b = a.inner` (or an assignment, constructor or
-   Array literal of it) and a later read of `a` (ASan heap-use-after-free).
+7. **Local copies share storage unchecked:** a push through `let b =
+   a.inner`, then a read of `a`, is admitted (ASan use-after-free; [first
+   attempt](../evidence/2026-10-21_native_census_copy_lend_not_landed.md)).
 
 ## Lessons on the record
 
