@@ -6,11 +6,14 @@
 typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 
-/* A loan whose owner changes while it lives is copied where it is made
- * (2026-10-20_escaping_loan_copies_where_it_fails): the getter call `call`
- * is selected for a next analysis to take as `Clone(call)`, when that Clone
- * copies the call's result fully and the call changes no storage it shares
- * with its caller. False only when the selection could not be recorded. */
+/* A loan whose owner changes while it lives, or that leaves where no copy
+ * can stand in, is copied where it is made
+ * (2026-10-20_escaping_loan_copies_where_it_fails,
+ * 2026-10-20_loan_copied_where_made_when_its_exit_cannot_be): the getter
+ * call `call` is selected for a next analysis to take as `Clone(call)`, when
+ * that Clone copies the call's result fully and the call changes no storage
+ * it shares with its caller. False only when the selection could not be
+ * recorded. */
 bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call);
 
 /* A loan that leaves the routine is copied where it leaves: the expression
@@ -18,6 +21,10 @@ bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call
  * take as `Clone(carrier)`, when that Clone copies it fully. False only
  * when the selection could not be recorded. */
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier);
+
+/* Whether a Clone of `carrier` copies its value fully, so that a copy can
+ * stand in where the loan leaves. */
+bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNode *carrier);
 
 /* The call whose result the builtin Clone `call` copies fully, and which
  * changes no storage it shares with its caller, so that nothing of what it

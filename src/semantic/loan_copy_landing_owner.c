@@ -56,13 +56,17 @@ bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call
     return loan_copy_landing_record(ctx, id);
 }
 
+bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNode *carrier)
+{
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, carrier);
+    return ast_node_stable_id(carrier) != 0 && value.ok && !value.meta &&
+        semantic_param_publication_clone_independent(ctx, value.type);
+}
+
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier)
 {
-    uint32_t id = ast_node_stable_id(carrier);
-    SemanticPublishedValue value = semantic_param_publication_value(ctx, carrier);
-    if (id == 0 || !value.ok || value.meta ||
-        !semantic_param_publication_clone_independent(ctx, value.type)) return true;
-    return loan_copy_landing_record(ctx, id);
+    return !semantic_loan_copy_landing_carrier_copies(ctx, carrier) ||
+        loan_copy_landing_record(ctx, ast_node_stable_id(carrier));
 }
 
 const ASTNode *semantic_loan_copy_landing_copied_call(SemanticContext *ctx, const ASTNode *call)

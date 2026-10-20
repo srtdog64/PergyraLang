@@ -6,9 +6,9 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2637 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2532 downgraded
 refusals with every final owner run (2870 before the formal store
-landing; [census record](../evidence/2026-10-20_native_census_formal_store_landing.md)).
+landing; [census record](../evidence/2026-10-20_native_census_loan_creation_fallback.md)).
 A census runs up to four analyses in about 850 s; the
 [rows check memo](../../agent_work_directives/flow_rows_check_memo_2026-10-20.md)
 and claims reuse cut one from 2582 s to 235 s. The CI harness manifest
@@ -18,11 +18,11 @@ compiles natively since `e23761a3a`.
 
 1. **`direct_mir_*` routes:** 782 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (1077):**
-   - 571 getters whose loan proof fails;
-   - 227 callees that change, keep or release;
+2. **Moves (972):**
+   - 466 getters whose loan proof fails;
+   - 230 callees that change, keep or release;
    - 211 read-and-return callees whose storage proof fails;
-   - 68 getters on locals.
+   - 65 getters on locals.
 3. **Borrowed `ref` escapes (890):** mostly a `ref` formal whose own
    summary has a call escape. An `inout` argument's unconditional call
    escape carries loan safety; relaxing it clears at most 32.

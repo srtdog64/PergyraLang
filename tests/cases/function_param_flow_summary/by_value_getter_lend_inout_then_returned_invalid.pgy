@@ -1,9 +1,13 @@
 // BoxOf lends Use's by-value arena. The loan first leaves as Touch's inout
-// argument, which no copy can stand in for, and then as Use's result. No
-// copy is landed for the later exit while the first one stands, so the
-// later use of the arena is refused without another analysis.
+// argument, which no copy can stand in for, and then as Use's result. The
+// Box holds an Array of structs, which Clone copies by value, so no copy
+// lands where the loan is made either: the later use is refused.
+struct Part {
+    name: String;
+}
+
 struct Box {
-    names: Array<String>;
+    parts: Array<Part>;
 }
 
 struct Arena {
@@ -15,18 +19,18 @@ func BoxOf(arena: Arena) -> Box {
 }
 
 func Touch(inout box: Box) -> Int {
-    return ArrayLength(box.names);
+    return ArrayLength(box.parts);
 }
 
 func Use(arena: Arena) -> Box {
     var box: Box = BoxOf(arena);
     let n: Int = Touch(box);
-    Print(ToString(n + ArrayLength(arena.box.names)));
+    Print(ToString(n + ArrayLength(arena.box.parts)));
     return box;
 }
 
 func Main() -> Int {
-    let arena: Arena = Arena(Box([StringConcat("ab", "")]));
-    Print(ToString(ArrayLength(Use(arena).names)));
+    let arena: Arena = Arena(Box([Part(StringConcat("ab", ""))]));
+    Print(ToString(ArrayLength(Use(arena).parts)));
     return 0;
 }

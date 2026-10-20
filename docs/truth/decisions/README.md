@@ -28,3 +28,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-20 | [A getter's loan that cannot be proved: copy or move?](2026-10-20_open_escaping_loan_copy_or_move.md) | answered 2026-10-20 |
 | 2026-10-20 | [An unprovable getter loan is copied where the proof fails](2026-10-20_escaping_loan_copies_where_it_fails.md) | in force |
 | 2026-10-20 | [A formal's storage an output keeps is copied where it is stored](2026-10-20_formal_storage_kept_by_output_is_copied.md) | in force |
+| 2026-10-20 | [A loan is copied where it is made when its exit cannot be](2026-10-20_loan_copied_where_made_when_its_exit_cannot_be.md) | in force |

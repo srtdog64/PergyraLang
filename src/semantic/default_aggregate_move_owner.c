@@ -192,14 +192,15 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
 {
     if (lent_use_admitted(walk, moved) || !reported_once(walk, node)) return;
     /* The refusal stands in this analysis; a next one copies the loan: where
-     * it is made when its owner changed, where it leaves when it left. */
+     * it is made when its owner changed, where it leaves when it left and a
+     * copy can stand in there, and otherwise where it is made. */
     for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++) {
         const FunctionParamFlowLoanFailure *failure = &walk->lent[i].failure;
         if (walk->lent[i].call != moved->lending_call) continue;
-        if (failure->owner_changed && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call))
-            walk->failed = true;
-        if (failure->escape_carrier != NULL &&
-            !semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)) walk->failed = true;
+        bool at_exit = !failure->owner_changed && failure->escape_carrier != NULL &&
+            semantic_loan_copy_landing_carrier_copies(walk->ctx, failure->escape_carrier);
+        if (!(at_exit ? semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)
+                      : semantic_loan_copy_landing_select(walk->ctx, moved->lending_call))) walk->failed = true;
     }
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))

@@ -104,6 +104,13 @@ landed_clones = {
     "formal_store_landing_struct_output_valid": {"Reserve": 1},
     "array_push_loan_inout_landed_valid": {"Collect": 1},
     "aggregate_move_void_call_landed_valid": {"Report": 1},
+    "by_value_getter_lend_inout_passed_landed_valid": {"Use": 1},
+    "by_value_getter_lend_inout_then_returned_landed_valid": {"Use": 1},
+}
+# Positive fixtures whose loan is copied where it leaves: the routine and
+# the value its Clone must wrap, not the call that made the loan.
+landed_at_exit = {
+    "by_value_getter_lend_kept_landed_valid": ("Collect", "first"),
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
@@ -120,7 +127,9 @@ landing_rounds = {
     "by_value_getter_lend_returned_landed_valid": 1,
     "by_value_getter_lend_shared_result_returned_invalid": 0,
     "by_value_getter_lend_inout_passed_invalid": 0,
+    "by_value_getter_lend_inout_passed_landed_valid": 1,
     "by_value_getter_lend_inout_then_returned_invalid": 0,
+    "by_value_getter_lend_inout_then_returned_landed_valid": 1,
     "default_aggregate_move_reuse_invalid": 0,
     "default_aggregate_move_cloned_growth_invalid": 0,
     "formal_array_store_inout_output_invalid": 0,
@@ -305,8 +314,8 @@ release_lifetime_refusals = {
     # replaced element (13:20) or a Grow that pushes onto the arena (19:27)
     # makes the call a move again, as does a loan returned past a local (14:38).
     "by_value_getter_lend_shared_result_returned_invalid": [(*released_refusal, 24, 38)],
-    "by_value_getter_lend_inout_passed_invalid": [(*released_refusal, 23, 38)],
-    "by_value_getter_lend_inout_then_returned_invalid": [(*released_refusal, 24, 46)],
+    "by_value_getter_lend_inout_passed_invalid": [(*released_refusal, 28, 38)],
+    "by_value_getter_lend_inout_then_returned_invalid": [(*released_refusal, 28, 46)],
     # A store through an access path of a by-value aggregate changes storage
     # the caller's aggregate shares, so the call moves the argument.
     "default_aggregate_move_field_store_invalid": [(*released_refusal, 16, 22)],
@@ -934,7 +943,9 @@ paired = (
     ("by_value_getter_lend_owner_written_after_lowering_landed_valid", True),
     ("by_value_getter_lend_shared_result_returned_invalid", False),
     ("by_value_getter_lend_inout_passed_invalid", False),
+    ("by_value_getter_lend_inout_passed_landed_valid", True),
     ("by_value_getter_lend_inout_then_returned_invalid", False),
+    ("by_value_getter_lend_inout_then_returned_landed_valid", True),
     ("by_value_getter_lend_owner_written_landed_valid", True),
     ("by_value_getter_lend_owner_written_shadowed_landed_valid", True),
     ("default_aggregate_move_field_read_valid", True),
@@ -1023,6 +1034,29 @@ for name, valid in paired:
                          for node in instruction[lane].get("nodes", []) if node.get("kind") == "call"]
                 if calls.count("Clone") != landed:
                     raise SystemExit(f"landing {name} did not reach MIR with Clone in {routine_name}: {calls}")
+        if name in landed_at_exit:
+            routine_name, carrier = landed_at_exit[name]
+            document = json.loads(checked.stdout)
+            wrapped = []
+            for row in document.get("routines", []):
+                if row.get("name") != routine_name:
+                    continue
+                for block in row.get("blocks", []):
+                    for instruction in block.get("instructions", []):
+                        for lane in ("expr0_graph", "expr1_graph"):
+                            graph = instruction.get(lane)
+                            if not isinstance(graph, dict):
+                                continue
+                            nodes = graph.get("nodes", [])
+                            for node in nodes:
+                                left, right = node.get("left"), node.get("right")
+                                if (node.get("kind") == "call_argument" and isinstance(left, int) and
+                                        isinstance(right, int) and 0 <= left < len(nodes) and
+                                        0 <= right < len(nodes) and nodes[left].get("kind") == "call" and
+                                        nodes[left].get("call_target_name") == "Clone"):
+                                    wrapped.append((nodes[right].get("kind"), nodes[right].get("text")))
+            if wrapped != [("leaf", carrier)]:
+                raise SystemExit(f"landing {name} did not copy where the loan leaves: {wrapped}")
         if name in owned_push_landings:
             # The landed push must reach MIR as the owned-copy operation.
             routine_name, landed = owned_push_landings[name]
@@ -1567,6 +1601,8 @@ for name, expected in (
     ("formal_store_landing_alias_output_valid", "src.pgysrc.pgy3"),
     ("array_push_loan_inout_landed_valid", "ab7"),
     ("aggregate_move_void_call_landed_valid", "3"),
+    ("by_value_getter_lend_inout_passed_landed_valid", "2"),
+    ("by_value_getter_lend_inout_then_returned_landed_valid", "21"),
     ("formal_string_store_landing_value_source_valid", "tt1"),
     ("formal_string_store_landing_value_set_valid", "tt1"),
     ("formal_string_store_landing_value_map_valid", "tt1"),

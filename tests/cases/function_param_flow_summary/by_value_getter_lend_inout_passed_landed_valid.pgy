@@ -1,0 +1,31 @@
+// BoxOf lends Use's by-value arena, and Use hands the loan to Touch as an
+// inout argument, the caller's own place, where no copy can stand in. The
+// next analysis copies the loan where it is made, Clone(BoxOf(arena)), so
+// the later use of the arena is admitted.
+struct Box {
+    names: Array<String>;
+}
+
+struct Arena {
+    box: Box;
+}
+
+func BoxOf(arena: Arena) -> Box {
+    return arena.box;
+}
+
+func Touch(inout box: Box) -> Int {
+    return ArrayLength(box.names);
+}
+
+func Use(arena: Arena) -> Int {
+    var box: Box = BoxOf(arena);
+    let n: Int = Touch(box);
+    return n + ArrayLength(arena.box.names);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena(Box([StringConcat("ab", "")]));
+    Print(ToString(Use(arena)));
+    return 0;
+}
