@@ -1,0 +1,30 @@
+// WithGraph lends graph inside the facts it returns. Main copies graph's
+// rows into a local and grows the copy while facts still holds the rows'
+// storage. The loan's owner changed, so the change is refused and the next
+// analysis copies facts where WithGraph makes it.
+struct Graph {
+    rows: Array<Int>;
+    n: Int;
+}
+
+struct Facts {
+    graph: Graph;
+    ok: Bool;
+}
+
+func WithGraph(graph: Graph) -> Facts {
+    return Facts(graph, true);
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [7];
+    let graph: Graph = Graph(rows, 0);
+    let facts: Facts = WithGraph(graph);
+    var grown: Array<Int> = graph.rows;
+    ArrayPush(grown, 1);
+    ArrayPush(grown, 2);
+    ArrayPush(grown, 3);
+    ArrayPush(grown, 4);
+    Print(ToString(facts.graph.rows[0] * 10 + ArrayLength(grown)));
+    return 0;
+}

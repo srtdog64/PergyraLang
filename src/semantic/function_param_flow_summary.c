@@ -223,8 +223,6 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
     roots = program_points->roots_by_param[store->entries[index].param_index];
     root_count = program_points->root_counts[store->entries[index].param_index];
     /* Demands below may grow the index table and move `program_points`. */
-    ASTNode *const *statements = program_points->dependency_roots;
-    size_t statement_count = program_points->dependency_root_count;
     bool private_stores = program_points->private_local_stores;
     bool graph_required = private_stores || program_points->no_store_call_count != 0;
     bool graph_closed = !program_points->mutable_output_required &&
@@ -236,9 +234,7 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
     }
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
-    storage_unproved = function_param_array_storage_unproved_in_program_points(
-        statements, statement_count, roots, root_count, &origin, &lookup,
-        candidate | store->entries[index].mask, &payload_read);
+    storage_unproved = 0;
     bool scalar_return = (candidate & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
         semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, function_decl);
     bool anchored = false;
@@ -334,6 +330,22 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
         store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
     }
 
+    /* The storage walk reads the summary the backing frame settled: an alias
+     * returned inside a result is the formal's own return once that frame
+     * proves it, a getter's loan rather than unproved storage. The frame's
+     * demands may have rebuilt the index, so its roots are read again. */
+    if (!function_param_flow_program_point_index_build(store, function_decl, &program_points)
+        || program_points == NULL || store->entries[index].param_index >= program_points->param_count) {
+        function_param_flow_fail(store, function_decl, "parameter program-point index is unavailable or stale");
+        store->entries[index].mask = SLOT_PARAM_SUMMARY_ALL;
+        store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
+    storage_unproved |= function_param_array_storage_unproved_in_program_points(
+        program_points->dependency_roots, program_points->dependency_root_count,
+        program_points->roots_by_param[store->entries[index].param_index],
+        program_points->root_counts[store->entries[index].param_index], &origin, &lookup,
+        candidate | store->entries[index].mask, &payload_read);
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
     candidate |= previous;

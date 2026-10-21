@@ -146,6 +146,10 @@ landing_rounds = {
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
     "moved_argument_two_branches_landed_valid": 1,
     "by_value_getter_lend_into_own_formal_landed_valid": 1,
+    "returned_alias_lends_formal_valid": 0,
+    "lent_path_copy_grown_landed_valid": 1,
+    "match_payload_return_moves_landed_valid": 1,
+    "default_aggregate_move_field_alias_returned_landed_valid": 1,
     "array_slice_view_returned_landed_valid": 1,
     "by_value_formal_rebound_to_result_grown_landed_valid": 1,
     "by_value_getter_lend_inout_owner_landed_valid": 1,
@@ -244,6 +248,7 @@ builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_m
 release_lifetime_refusals = {
     # A call that grows its default-mode aggregate argument in place moves it.
     "default_aggregate_move_reuse_invalid": [(*released_refusal, 21, 28), (*released_refusal, 22, 34)],
+    "returned_alias_lends_formal_grown_invalid": [(*released_refusal, 29, 15)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # Returning a field's storage shares it with the result, which lends the
@@ -368,7 +373,6 @@ release_lifetime_refusals = {
     "intent_subject_keeps_string_invalid": [(*borrow_refusal, 42, 24), (*borrow_refusal, 43, 27)],
     # A match binding carries the matched enum's storage; returning it moves
     # the by-value enum argument.
-    "match_payload_return_moves_invalid": [(*released_refusal, 29, 28)],
     # A receiver the action changes follows its self formal's summary: Get
     # lends its world's subject storage, and the action writes that world,
     # so the loan's owner changes under it (31:24).
@@ -470,7 +474,6 @@ release_lifetime_refusals = {
     # A local or loop variable that takes a path of the arena is an alias of
     # its storage: returned (22:35), handed to a routine that returns it
     # (27:35), or iterated and pushed onto (23:39, 19:33), the call moves.
-    "default_aggregate_move_field_alias_returned_invalid": [(*released_refusal, 22, 35)],
     "default_aggregate_move_loop_element_store_invalid": [(*released_refusal, 23, 39)],
     "default_aggregate_move_array_loop_element_store_invalid": [(*released_refusal, 19, 33)],
     # A callee that returns its String element lends it: refused when the
@@ -1087,7 +1090,7 @@ paired = (
     ("default_aggregate_move_option_field_alias_store_landed_valid", True),
     ("default_aggregate_move_field_alias_read_valid", True),
     ("default_aggregate_move_field_alias_rebound_valid", True),
-    ("default_aggregate_move_field_alias_returned_invalid", False),
+    ("default_aggregate_move_field_alias_returned_landed_valid", True),
     ("default_aggregate_move_field_alias_passed_on_landed_valid", True),
     ("default_aggregate_move_loop_element_read_valid", True),
     ("default_aggregate_move_loop_element_store_invalid", False),
@@ -1105,7 +1108,7 @@ paired = (
     ("intent_action_stores_by_value_moves_landed_valid", True),
     ("intent_subject_keeps_string_invalid", False),
     ("match_payload_return_valid", True),
-    ("match_payload_return_moves_invalid", False),
+    ("match_payload_return_moves_landed_valid", True),
     ("world_member_subject_action_route_valid", True),
     ("subject_action_returns_self_ref_invalid", False),
     ("receiver_unsupported_ref_return_invalid", False),
@@ -1150,6 +1153,9 @@ paired = (
     ("borrowed_inout_array_kept_in_result_landed_valid", True),
     ("moved_argument_two_branches_landed_valid", True),
     ("by_value_getter_lend_into_own_formal_landed_valid", True),
+    ("returned_alias_lends_formal_valid", True),
+    ("lent_path_copy_grown_landed_valid", True),
+    ("returned_alias_lends_formal_grown_invalid", False),
     ("output_field_store_of_ref_formal_by_value_clone_invalid", False),
     ("array_handoff_error_return_after_append_valid", True),
     ("array_handoff_after_rebinding_call_invalid", False),
@@ -1918,6 +1924,10 @@ for name, expected in (
     ("borrowed_inout_array_kept_in_result_landed_valid", "23"),
     ("moved_argument_two_branches_landed_valid", "21"),
     ("by_value_getter_lend_into_own_formal_landed_valid", "1"),
+    ("returned_alias_lends_formal_valid", "22"),
+    ("lent_path_copy_grown_landed_valid", "75"),
+    ("match_payload_return_moves_landed_valid", "a"),
+    ("default_aggregate_move_field_alias_returned_landed_valid", "4"),
     ("unit_enum_constant_constructor_moves_landed_valid", "a"),
     ("path_alias_returned_in_constructor_grown_landed_valid", "10"),
     ("option_payload_result_grown_landed_valid", "10"),

@@ -1,3 +1,6 @@
+// Since 2026-10-22 the callee lends what it returns through a local, and
+// the loan is copied where it is made because its owner changes after
+// (returned_alias_is_the_formals_return). Below: the original shape.
 // The returned payload shares the matched value's storage, so the call
 // moves the request and a second call on it is refused.
 struct Decl {

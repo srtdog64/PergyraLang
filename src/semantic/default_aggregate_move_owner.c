@@ -113,7 +113,7 @@ bool move_walk_access_path(const ASTNode *node, uint32_t *binding, char *buf, si
     return true;
 }
 
-static bool reported_once(MoveWalk *walk, const ASTNode *node)
+bool move_walk_reported_once(MoveWalk *walk, const ASTNode *node)
 {
     for (size_t i = 0; i < walk->reported_count; i++) if (walk->reported[i] == node) return false;
     if (walk->reported_count == walk->reported_capacity) {
@@ -192,7 +192,7 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
     if (moved->callee == NULL && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
     if (moved->argument != NULL && !semantic_loan_copy_landing_select_carrier(walk->ctx, moved->argument))
         walk->failed = true;
-    if (!reported_once(walk, node)) return;
+    if (!move_walk_reported_once(walk, node)) return;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
@@ -285,7 +285,7 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
             /* Borrowed storage cannot move: the next analysis passes a copy
              * (2026-10-22_borrowed_storage_handed_on_is_copied). */
             if (!semantic_loan_copy_landing_select_carrier(walk->ctx, arg)) walk->failed = true;
-            if (reported_once(walk, arg))
+            if (move_walk_reported_once(walk, arg))
                 semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
                     PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE, arg,
                     "Borrowed parameter storage cannot be moved into '%s'.\n"

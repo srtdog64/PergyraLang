@@ -5,9 +5,9 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-22 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 956 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 904 downgraded
 refusals with every final owner run
-([census record](../evidence/2026-10-22_native_census_loan_copy_carrier.md)).
+([census record](../evidence/2026-10-22_native_census_returned_alias_lends.md)).
 A census runs four analyses in 840 to 1150 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
@@ -15,8 +15,8 @@ compiles natively since `e23761a3a`.
 
 1. **`direct_mir_*` routes:** 289 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (217 outside `direct_mir_*`)** of values `Clone` copies only by
-   value, as `AstTreeArtifact` ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
+2. **Moves (166 outside `direct_mir_*`)**, mostly getter loans whose proof
+   fails, of values `Clone` copies only by value ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
    and 70 local copies whose other side changed (`inout` counted whole).
 3. **Borrowed `ref` escapes (149 outside `direct_mir_*`):** about half are
    getter loans handed to an `inout` formal (a grower), half seeded by

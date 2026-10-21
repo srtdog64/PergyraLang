@@ -43,3 +43,5 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-22 | [A moved argument used again is copied where the call takes it](2026-10-22_moved_argument_used_again_is_copied.md) | in force |
 | 2026-10-22 | [Borrowed storage handed to a changing or keeping callee is copied there](2026-10-22_borrowed_storage_handed_on_is_copied.md) | in force |
 | 2026-10-22 | [A loan copy never stands at an own or ref argument](2026-10-22_loan_copy_never_stands_at_own_or_ref_argument.md) | in force |
+| 2026-10-22 | [An alias returned inside a result is the formal's own return](2026-10-22_returned_alias_is_the_formals_return.md) | in force |
+| 2026-10-22 | [A copy changed under a loan of its source copies the loan](2026-10-22_copy_changed_under_a_loan_is_copied.md) | in force |
