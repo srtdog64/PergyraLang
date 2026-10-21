@@ -45,3 +45,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-22 | [A loan copy never stands at an own or ref argument](2026-10-22_loan_copy_never_stands_at_own_or_ref_argument.md) | in force |
 | 2026-10-22 | [An alias returned inside a result is the formal's own return](2026-10-22_returned_alias_is_the_formals_return.md) | in force |
 | 2026-10-22 | [A copy changed under a loan of its source copies the loan](2026-10-22_copy_changed_under_a_loan_is_copied.md) | in force |
+| 2026-10-22 | [A `ref` call's loan no proof admits is copied where it is made](2026-10-22_ref_call_loan_copied_where_made.md) | in force |

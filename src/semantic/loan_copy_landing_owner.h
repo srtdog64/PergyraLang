@@ -31,4 +31,10 @@ bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNo
  * read stays shared; NULL when `call` is no such Clone of such a call. */
 const ASTNode *semantic_loan_copy_landing_copied_call(SemanticContext *ctx, const ASTNode *call);
 
+/* Whether the getter call `call` in `caller` is the argument of such a
+ * Clone: its loan ends where it is made, so nothing of the owner it borrows
+ * from is shared after the copy
+ * (2026-10-22_ref_call_loan_copied_where_made). */
+bool semantic_loan_copy_landing_ends_loan(SemanticContext *ctx, ASTNode *caller, const ASTNode *call);
+
 #endif

@@ -1,0 +1,32 @@
+// As borrowed_owner_loan_grown_landed_valid, but an Env holds Groups, which
+// hold Arrays, so Clone copies it only by value. No copy can stand in where
+// Borrow makes the loan, and the loan stays refused where it leaves.
+struct Group {
+    items: Array<Int>;
+}
+
+struct Env {
+    rows: String;
+    groups: Array<Group>;
+}
+
+func Borrow(ref env: Env) -> Env {
+    let groups: Array<Group> = [];
+    return Env(env.rows, groups);
+}
+
+func Append(inout env: Env, row: String) -> Void {
+    env.rows = Concat(env.rows, row);
+}
+
+func Nest(inout env: Env) -> Int {
+    var inner: Env = Borrow(env);
+    Append(inner, "bc");
+    return StringLength(inner.rows) * 10 + StringLength(env.rows);
+}
+
+func Main() -> Int {
+    var env: Env = Env("a", []);
+    Print(ToString(Nest(env)));
+    return 0;
+}

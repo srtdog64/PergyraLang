@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "builtin_kind.h"
+#include "function_param_flow_summary_internal.h"
 #include "function_param_publication_owner.h"
 #include "slot_summary.h"
 #include "type_checker_internal.h"
@@ -80,4 +81,20 @@ const ASTNode *semantic_loan_copy_landing_copied_call(SemanticContext *ctx, cons
         !semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains) ||
         depends || retains || !loan_call_preserves_storage(ctx, argument)) return NULL;
     return argument;
+}
+
+bool semantic_loan_copy_landing_ends_loan(SemanticContext *ctx, ASTNode *caller, const ASTNode *call)
+{
+    SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (store == NULL || store->failed || store->solving || call == NULL ||
+        !function_param_flow_program_point_index_build(store, caller, &index)) return false;
+    for (size_t c = 0; c < index->claims->count; c++) {
+        const ASTNode *node = index->claims->rows[c].node;
+        if (node != NULL && node->type == AST_CALL && ast_call_arg_count(node) == 1 &&
+            ast_call_argument(node, 0) == call)
+            return semantic_loan_copy_landing_copied_call(ctx, node) == call;
+    }
+    return false;
 }

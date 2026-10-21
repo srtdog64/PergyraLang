@@ -1,11 +1,10 @@
-extern "C" { func Fill(inout text: String) -> Void; }
+// The first analysis refuses the loan this program's ref call lends; the
+// next copies it where the call makes it (Clone copies the result whole).
 func Echo(ref text: String) -> String { return text; }
 func Publish(ref output: Slot<String>) -> Void {
     var held: String = "literal";
-    using held as first;
-    using first as second;
-    Fill(held);
-    Write(output, Echo(second));
+    held = Concat("heap", " text");
+    Write(output, Echo(held));
 }
 func Main() -> Void {
     let output: Slot<String> = ClaimSlot();
@@ -13,4 +12,3 @@ func Main() -> Void {
     Log(Read(output));
     Release(output);
 }
-
