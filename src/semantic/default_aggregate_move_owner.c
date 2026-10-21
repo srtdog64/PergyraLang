@@ -37,17 +37,22 @@ static void state_free(MoveState *state)
 }
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier)
+    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, ASTNode *argument)
 {
     /* Each loan of a path is a row of its own, so a later use needs every
      * one admitted. A move on any path is a move, whatever lent it, and
-     * names the call that moved it. Copy rows are kept apart. */
+     * names the call that moved it; moves by different arguments, as in two
+     * branches, stay apart so that each one's copy is selected. Copy rows
+     * are kept apart. */
     bool moved = false;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *row = &state->rows[i];
         if (row->binding != binding || strcmp(row->fields, fields) != 0 || (row->carrier != 0) != (carrier != 0)) continue;
         if (carrier != 0) { if (row->carrier == carrier && row->lending_call == lending_call) return true; continue; }
-        if (lending_call == NULL) { *row = (MovedPath){binding, row->fields, callee, param, NULL, 0}; moved = true; }
+        if (lending_call == NULL) {
+            if (row->lending_call == NULL && row->argument != argument) continue;
+            *row = (MovedPath){binding, row->fields, callee, param, NULL, 0, argument}; moved = true;
+        }
         else if (row->lending_call == NULL || row->lending_call == lending_call) return true;
     }
     if (moved) return true;
@@ -60,7 +65,7 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
     char *copy = malloc(strlen(fields) + 1);
     if (copy == NULL) { walk->failed = true; return false; }
     strcpy(copy, fields);
-    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call, carrier};
+    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call, carrier, argument};
     return true;
 }
 
@@ -69,7 +74,8 @@ static bool state_copy(MoveWalk *walk, MoveState *out, const MoveState *in)
     *out = (MoveState){0};
     for (size_t i = 0; i < in->count; i++)
         if (!move_walk_state_add(walk, out, in->rows[i].binding, in->rows[i].fields,
-                in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call, in->rows[i].carrier)) return false;
+                in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call, in->rows[i].carrier,
+                in->rows[i].argument)) return false;
     return true;
 }
 
@@ -77,7 +83,8 @@ static bool state_union(MoveWalk *walk, MoveState *into, const MoveState *from)
 {
     for (size_t i = 0; i < from->count; i++)
         if (!move_walk_state_add(walk, into, from->rows[i].binding, from->rows[i].fields,
-                from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call, from->rows[i].carrier)) return false;
+                from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call, from->rows[i].carrier,
+                from->rows[i].argument)) return false;
     return true;
 }
 
@@ -179,8 +186,12 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         if (!(at_exit ? semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)
                       : semantic_loan_copy_landing_select(walk->ctx, moved->lending_call))) walk->failed = true;
     }
-    /* A copy whose other side changed is copied where it was made. */
+    /* A copy whose other side changed is copied where it was made. A moved
+     * argument used again is copied where the call takes it
+     * (2026-10-22_moved_argument_used_again_is_copied). */
     if (moved->callee == NULL && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
+    if (moved->argument != NULL && !semantic_loan_copy_landing_select_carrier(walk->ctx, moved->argument))
+        walk->failed = true;
     if (!reported_once(walk, node)) return;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
@@ -271,6 +282,9 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
          * while its loan lives. An `inout` one can change, so it is neither. */
         if (parameter && mode == PARAM_MODE_REF && lends) continue;
         if (parameter && mode != PARAM_MODE_DEFAULT && mode != PARAM_MODE_OWN) {
+            /* Borrowed storage cannot move: the next analysis passes a copy
+             * (2026-10-22_borrowed_storage_handed_on_is_copied). */
+            if (!semantic_loan_copy_landing_select_carrier(walk->ctx, arg)) walk->failed = true;
             if (reported_once(walk, arg))
                 semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
                     PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE, arg,
@@ -285,7 +299,8 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
             continue;
         }
         if (lends && call_copied(walk, call)) continue;
-        if (!move_walk_state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL, 0)) return;
+        if (!move_walk_state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL, 0,
+                lends ? NULL : arg)) return;
         if (!lends) move_walk_copy_changed(walk, state, arg);
     }
 }

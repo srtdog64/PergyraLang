@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // The constructor returns the by-value Array next to a unit variant, so the
 // call moves the Array and growing it afterwards is refused.
 enum Stage {

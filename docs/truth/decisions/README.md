@@ -35,8 +35,10 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-21 | [A flow pass evaluates only entries whose reads changed](2026-10-21_flow_passes_evaluate_only_changed_reads.md) | in force |
 | 2026-10-21 | [A change through one side of a local copy refuses the other](2026-10-21_local_copies_refuse_the_other_side_after_a_change.md) | in force |
 | 2026-10-21 | [A String argument no proof admits is copied at the call](2026-10-21_string_argument_no_proof_admits_is_copied.md) | in force |
-| 2026-10-21 | [Copy a moved argument the caller uses again?](2026-10-21_open_copy_a_moved_argument_used_again.md) | OPEN |
+| 2026-10-21 | [Copy a moved argument the caller uses again?](2026-10-21_open_copy_a_moved_argument_used_again.md) | answered 2026-10-22 |
 | 2026-10-21 | [The rows check's intent-step owner clauses lost their falsifier](2026-10-21_open_intent_step_owner_clauses_unfalsified.md) | OPEN |
 | 2026-10-21 | [Each formal's Array preservation verdict is published](2026-10-21_array_preservation_published_per_formal.md) | in force |
 | 2026-10-22 | [A re-entered loop exports the transfer of its last check](2026-10-22_reentered_loop_exports_last_transfer.md) | in force |
 | 2026-10-22 | [A formal's storage assigned into an output is copied there](2026-10-22_formal_storage_assigned_into_output_is_copied.md) | in force |
+| 2026-10-22 | [A moved argument used again is copied where the call takes it](2026-10-22_moved_argument_used_again_is_copied.md) | in force |
+| 2026-10-22 | [Borrowed storage handed to a changing or keeping callee is copied there](2026-10-22_borrowed_storage_handed_on_is_copied.md) | in force |

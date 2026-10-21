@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // Rename assigns an element of its by-value arena's Array field. The
 // element lives in storage Main's arena shares, so the call moves the arena.
 struct Arena {

@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // Part only reads and returns its outer's inner struct, but Grow pushes onto
 // that result's items. They share storage with Grow's by-value outer and so
 // with Main's outer: Grow changes the storage it receives, and Main's later

@@ -21,6 +21,9 @@ typedef struct {
     /* Nonzero for a copy row: the binding that shares this path's storage
      * since `lending_call` copied it. A copy row refuses nothing itself. */
     uint32_t carrier;
+    /* For a move: the argument the moving call took, where a copy stands
+     * when the path is used again. */
+    ASTNode *argument;
 } MovedPath;
 
 typedef struct {
@@ -44,7 +47,7 @@ typedef struct {
 } MoveWalk;
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier);
+    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, ASTNode *argument);
 /* Access path of an identifier, member chain or element access. An element
  * names its whole Array. Returns false for any other expression. */
 bool move_walk_access_path(const ASTNode *node, uint32_t *binding, char *buf, size_t size);

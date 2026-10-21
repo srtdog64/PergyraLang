@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // A by-value parameter that an inout callee fills from a second by-value
 // input carries that input's storage; returning it moves the second
 // argument, so the caller cannot use it again.

@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // Grow assigns Part's result to a local it already has and pushes onto the
 // result's items, which share storage with Grow's by-value outer and so
 // with Main's outer: Main's later use is refused.

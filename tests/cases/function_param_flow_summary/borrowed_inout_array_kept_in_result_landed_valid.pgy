@@ -1,0 +1,24 @@
+// Validate only borrows its inout ids, and MakeFact keeps what it receives in
+// the struct it returns. Borrowed storage cannot move, so the next analysis
+// passes MakeFact a copy of ids; the caller's ids stay its own.
+struct Fact {
+    ok: Bool;
+    ids: Array<Int>;
+}
+
+func MakeFact(ok: Bool, ids: Array<Int>) -> Fact {
+    return Fact(ok, ids);
+}
+
+func Validate(inout ids: Array<Int>, n: Int) -> Fact {
+    ArrayPush(ids, n);
+    return MakeFact(n > 0, ids);
+}
+
+func Main() -> Int {
+    var ids: Array<Int> = [1];
+    let fact: Fact = Validate(ids, 2);
+    ArrayPush(ids, 3);
+    Print(ToString(ArrayLength(fact.ids) * 10 + ArrayLength(ids)));
+    return 0;
+}

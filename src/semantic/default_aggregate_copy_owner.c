@@ -28,7 +28,7 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
     char fields[512];
     uint32_t binding = 0;
     if (move_walk_access_path(value, &binding, fields, sizeof(fields))) {
-        (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL, value, carrier);
+        (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL, value, carrier, NULL);
         return;
     }
     if (value->type == AST_ARRAY_LITERAL || value->type == AST_TUPLE_LITERAL) {
@@ -68,7 +68,7 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
             if (!source && copy.carrier != work[w].binding) continue;
             done[i] = true;
             Changed other = source ? (Changed){copy.carrier, ""} : (Changed){copy.binding, copy.fields};
-            if (!move_walk_state_add(walk, state, other.binding, other.fields, NULL, NULL, copy.lending_call, 0)) break;
+            if (!move_walk_state_add(walk, state, other.binding, other.fields, NULL, NULL, copy.lending_call, 0, NULL)) break;
             work[count++] = other;
         }
     free(work);

@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // An intent whose step action stores a by-value argument in its subject
 // shares that argument's storage with the subject, so the caller's Array is
 // moved into the call and cannot be grown afterwards.

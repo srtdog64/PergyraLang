@@ -1,0 +1,29 @@
+// Each branch hands the same context to a callee that grows it, and Main
+// uses the context after the branch. Both calls take a copy, selected in
+// one analysis, so a single landing analysis admits Main.
+struct Context {
+    rows: Array<Int>;
+}
+
+func GrowOne(context: Context) -> Int {
+    ArrayPush(context.rows, 1);
+    return ArrayLength(context.rows);
+}
+
+func GrowTwo(context: Context) -> Int {
+    ArrayPush(context.rows, 2);
+    ArrayPush(context.rows, 2);
+    return ArrayLength(context.rows);
+}
+
+func Main() -> Int {
+    let context: Context = Context([0]);
+    let n: Int = 0;
+    if ArrayLength(context.rows) > 0 {
+        n = GrowOne(context);
+    } else {
+        n = GrowTwo(context);
+    }
+    Print(ToString(n * 10 + ArrayLength(context.rows)));
+    return 0;
+}

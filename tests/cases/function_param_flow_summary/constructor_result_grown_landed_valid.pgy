@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // WithCount returns a new Arena built from its arena's atoms. Grow pushes
 // onto the result's atoms, which share storage with Grow's by-value arena
 // and so with Main's arena: Main's later use is refused.

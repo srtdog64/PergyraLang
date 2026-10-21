@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // Append takes its by-value rows' lists into a local and pushes an Array
 // field of its by-value source onto it. Only a String lands as a copy: no
 // store is selected for a second analysis, the source's storage stays in

@@ -1,3 +1,5 @@
+// Since 2026-10-22 the moving call takes a copy of the argument, so the
+// later use is admitted (moved_argument_used_again_is_copied). Below: the move.
 // Bump rebinds its by-value build to the Build WithCount returns, which
 // holds the build's items, and pushes onto them. They share storage with
 // Main's build: Main's later use is refused.
