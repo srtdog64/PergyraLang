@@ -1,0 +1,22 @@
+// Label returns a String literal, not an owned element. A second callee
+// that keeps the Array needs owned elements, and is refused (19:5).
+func Label() -> String {
+    return "label";
+}
+
+func Mark(inout out: Array<String>) -> Void {
+    ArrayPush(out, Label());
+}
+
+func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void {
+    ArrayPush(shelf, out);
+}
+
+func Main() -> Int {
+    let out: Array<String> = [];
+    let shelf: Array<Array<String>> = [];
+    Mark(out);
+    Stash(out, shelf);
+    Print(ToString(ArrayLength(shelf)));
+    return 0;
+}

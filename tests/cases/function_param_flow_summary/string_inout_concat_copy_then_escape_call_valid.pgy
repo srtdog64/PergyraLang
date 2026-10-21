@@ -1,0 +1,20 @@
+// The helper pushes Concat("", src[0]), a new String nothing else owns, so
+// the Array's elements stay owned and the second callee may keep it.
+func Copy(inout out: Array<String>, ref src: Array<String>) -> Void {
+    ArrayPush(out, Concat("", src[0]));
+}
+
+func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void {
+    ArrayPush(shelf, out);
+}
+
+func Main() -> Int {
+    let src: Array<String> = [];
+    ArrayPushOwnedString(src, Concat("a", "b"));
+    let out: Array<String> = [];
+    let shelf: Array<Array<String>> = [];
+    Copy(out, src);
+    Stash(out, shelf);
+    Print(shelf[0][0]);
+    return 0;
+}

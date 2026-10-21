@@ -106,14 +106,22 @@ semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
     StdlibCollectionBuiltinKind kind = stdlib_collection_builtin_kind(ast_identifier_name(callee));
     bool length = kind == STDLIB_COLLECTION_ARRAY_LENGTH;
     if (ast_call_arg_count(call) != (length ? 1u : 2u)) return false;
-    /* A plain push of a fresh Clone, as a landed copy is, adds a String
-     * nothing else owns, the same as an owned push. */
+    /* A plain push of a fresh String adds one nothing else owns, the same
+     * as an owned push: a builtin Clone (a landed copy is one) or a stdlib
+     * Concat call, which both backends emit as a new allocation. A literal,
+     * a `+` (a region may own it) or another call's result is not fresh. */
     uint32_t builtin = 0;
     const ASTNode *pushed = length ? NULL : ast_call_argument(call, 1);
-    bool cloned = kind == STDLIB_COLLECTION_ARRAY_PUSH && pushed != NULL
-        && pushed->type == AST_CALL && ast_call_semantic_callee_builtin_kind(pushed, &builtin)
-        && builtin == BUILTIN_CLONE;
-    if (!length && !cloned && kind != STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) return false;
+    const ASTNode *producer = pushed != NULL && pushed->type == AST_CALL ? ast_call_callee(pushed) : NULL;
+    const char *made_by = producer != NULL && producer->type == AST_IDENTIFIER
+        ? ast_identifier_name(producer) : NULL;
+    bool fresh = kind == STDLIB_COLLECTION_ARRAY_PUSH && made_by != NULL
+        && ((ast_call_semantic_callee_builtin_kind(pushed, &builtin) && builtin == BUILTIN_CLONE)
+            || (ast_call_semantic_callee_is_stdlib(pushed)
+                && ast_call_semantic_callee_decl_id(pushed) == 0
+                && ast_call_semantic_callee_value_binding_id(pushed) == 0
+                && (strcmp(made_by, "Concat") == 0 || strcmp(made_by, "StringConcat") == 0)));
+    if (!length && !fresh && kind != STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) return false;
     SemanticPublishedValue array = semantic_param_publication_value(ctx, ast_call_argument(call, 0));
     SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
     if (!array.ok || array.meta || !type_is_constructed_named(array.type, "Array")

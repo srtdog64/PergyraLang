@@ -1,0 +1,20 @@
+// UnwrapOption hands back the payload it holds, here a literal, not a new
+// String. A second callee that keeps the Array needs owned elements, and
+// is refused (17:5).
+func Mark(inout out: Array<String>) -> Void {
+    let label: Option<String> = Some("label");
+    ArrayPush(out, UnwrapOption(label));
+}
+
+func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void {
+    ArrayPush(shelf, out);
+}
+
+func Main() -> Int {
+    let out: Array<String> = [];
+    let shelf: Array<Array<String>> = [];
+    Mark(out);
+    Stash(out, shelf);
+    Print(ToString(ArrayLength(shelf)));
+    return 0;
+}
