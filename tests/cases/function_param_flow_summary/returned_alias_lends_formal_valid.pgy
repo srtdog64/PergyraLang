@@ -1,0 +1,32 @@
+// WithGraph takes its graph into a local and returns it inside the facts.
+// The backing frame proves that return, so the call lends graph: Main may
+// read graph again while facts holds it. Clone copies an Array of structs
+// only by value, so no copy could have stood in for a move here.
+struct Row {
+    name: String;
+    ids: Array<Int>;
+}
+
+struct Graph {
+    rows: Array<Row>;
+    n: Int;
+}
+
+struct Facts {
+    graph: Graph;
+    ok: Bool;
+}
+
+func WithGraph(graph: Graph) -> Facts {
+    let sealed: Graph = graph;
+    return Facts(sealed, true);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let rows: Array<Row> = [Row("a", ids), Row("b", ids)];
+    let graph: Graph = Graph(rows, 0);
+    let facts: Facts = WithGraph(graph);
+    Print(ToString(ArrayLength(facts.graph.rows) * 10 + ArrayLength(graph.rows)));
+    return 0;
+}

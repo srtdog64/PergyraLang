@@ -17,7 +17,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
 
 void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier)
@@ -47,6 +49,39 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
     }
 }
 
+/* A change through a copy reaches the copied path's storage. A loan taken
+ * from that path still holds the storage, and no later use of the path
+ * need follow to refuse it: the loan's owner changed, so the change is
+ * refused now and the next analysis copies the loan where it is made
+ * (2026-10-22_copy_changed_under_a_loan_is_copied). */
+static void copy_changed_under_loan(MoveWalk *walk, const MoveState *state, const ASTNode *path,
+    const MovedPath *copy, uint32_t binding, const char *fields)
+{
+    for (size_t l = 0; l < state->count; l++) {
+        const MovedPath *loan = &state->rows[l];
+        if (loan->carrier != 0 || loan->callee == NULL || loan->lending_call == NULL || loan->binding != binding ||
+            !(move_walk_path_contains(loan->fields, fields) || move_walk_path_contains(fields, loan->fields))) continue;
+        if (!semantic_loan_copy_landing_select(walk->ctx, loan->lending_call)) walk->failed = true;
+        const ASTNode *root = path;
+        while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
+            root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
+        const char *name = root != NULL && root->type == AST_IDENTIFIER ? ast_identifier_name(root) : NULL;
+        if (move_walk_reported_once(walk, path))
+            semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
+                PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)path,
+                "'%s' changes storage that the result of '%s' on line %u still holds.\n"
+                "Reason:\n"
+                "- '%s' copies, on line %u, a value that call lent from\n"
+                "- a copy shares the storage it holds, so the change may leave that result reading freed storage\n"
+                "Fix:\n"
+                "- change a fresh copy instead\n"
+                "- or finish using that result before the change",
+                name != NULL ? name : "value", loan->callee, loan->lending_call->line,
+                name != NULL ? name : "value", copy->lending_call != NULL ? copy->lending_call->line : 0);
+        return;
+    }
+}
+
 void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *path)
 {
     char fields[512];
@@ -68,6 +103,7 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
             if (!source && copy.carrier != work[w].binding) continue;
             done[i] = true;
             Changed other = source ? (Changed){copy.carrier, ""} : (Changed){copy.binding, copy.fields};
+            if (!source) copy_changed_under_loan(walk, state, path, &copy, other.binding, other.fields);
             if (!move_walk_state_add(walk, state, other.binding, other.fields, NULL, NULL, copy.lending_call, 0, NULL)) break;
             work[count++] = other;
         }

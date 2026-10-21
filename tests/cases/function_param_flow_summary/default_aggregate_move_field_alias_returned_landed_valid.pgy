@@ -1,3 +1,6 @@
+// Since 2026-10-22 the callee lends what it returns through a local, and
+// the loan is copied where it is made because its owner changes after
+// (returned_alias_is_the_formals_return). Below: the original shape.
 // Take binds its arena's inner struct to a local and returns the local.
 // The result shares the inner ids storage of Main's arena; Main pushes onto
 // it, so the call moves the arena.

@@ -1,0 +1,32 @@
+// The same lend, but Main grows graph's rows while facts still holds them:
+// the loan's owner changes, so the later read of facts is refused.
+struct Row {
+    name: String;
+    ids: Array<Int>;
+}
+
+struct Graph {
+    rows: Array<Row>;
+    n: Int;
+}
+
+struct Facts {
+    graph: Graph;
+    ok: Bool;
+}
+
+func WithGraph(graph: Graph) -> Facts {
+    let sealed: Graph = graph;
+    return Facts(sealed, true);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let rows: Array<Row> = [Row("a", ids)];
+    let graph: Graph = Graph(rows, 0);
+    let facts: Facts = WithGraph(graph);
+    var grown: Array<Row> = graph.rows;
+    ArrayPush(grown, Row("b", ids));
+    Print(ToString(ArrayLength(facts.graph.rows) + ArrayLength(grown)));
+    return 0;
+}
