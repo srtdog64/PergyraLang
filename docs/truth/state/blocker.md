@@ -21,8 +21,10 @@ compiles natively since `e23761a3a`.
    change, keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
    135 getters whose loan proof fails, 70 local copies whose other side
    changed (mostly an `inout` argument counted whole), 35 read-only callees.
-3. **Borrowed `ref` escapes (400 outside `direct_mir_*`):** mostly a
-   `ref` formal whose own summary has a call escape.
+3. **Borrowed `ref` escapes (400 outside `direct_mir_*`):** mostly a call
+   escape that starts at a formal's value stored by `ArrayPush`, `ArraySet`
+   or `MapSet`, even into a local or returned collection: the slot escape
+   summary counts every builtin store as a call (204 `ref` formals).
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
@@ -38,15 +40,13 @@ compiles natively since `e23761a3a`.
 ## Lessons on the record
 
 - **An incomplete frame is not a safety rule.** Main admitted a pool's text
-  read after `AllocatorDestroy` (ASan heap-use-after-free); `bc2aefb30`
-  refuses it by an owner.
+  read after `AllocatorDestroy` (ASan use-after-free); `bc2aefb30` refuses it.
 - **Proofs must walk every place a formal's storage can go.** Main skipped
   a `for` loop's iterable (fixed in `99a31fe0f`) and did not follow a
   getter's result, so growing it was admitted (ASan heap-use-after-free;
   [call-result rule](../decisions/2026-10-20_call_result_holding_formal_storage_is_its_path.md)).
-- **Census each commit that changes what a frame models or what lands.**
-  Two censuses on this branch were invalid (`98f4b7747`, `5cf9d7553`): one
-  failed flow store turns every later refusal into fail-closed noise.
+- **Census each commit that changes what a frame models or what lands:**
+  one failed flow store turns every later refusal into fail-closed noise.
 - **Local copies share storage.** Main admitted a push through
   `let b = a.inner`, then a read of `a` (ASan use-after-free;
   [rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)).
