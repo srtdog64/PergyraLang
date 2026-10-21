@@ -224,6 +224,14 @@ typedef struct IndexedStringDeferredRead {
     size_t assignment_count, assignment_capacity;
 } IndexedStringDeferredRead;
 
+/* An Array release that a defer cleanup makes when the routine exits.
+ * `settled` once the binding's block has ended: nothing names it after. */
+typedef struct DeferredArrayRelease {
+    ASTNode *receiver;
+    uint32_t binding_id;
+    bool owned_strings, settled;
+} DeferredArrayRelease;
+
 struct Scope
 {
     Scope*    parent;
@@ -250,6 +258,8 @@ struct Scope
     /* Native routine-exit obligations, held by the nearest function scope. */
     IndexedStringDeferredRead *indexed_string_deferred_reads;
     size_t indexed_string_deferred_read_count, indexed_string_deferred_read_capacity;
+    DeferredArrayRelease *deferred_array_releases;
+    size_t deferred_array_release_count, deferred_array_release_capacity;
     /* Held by the root scope: the last Symbol.birth_serial it gave out. A
      * binding a loop recheck declares again is a new Symbol with a new
      * serial, a new incarnation of the same syntax. */

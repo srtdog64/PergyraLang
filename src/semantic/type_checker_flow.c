@@ -10,6 +10,7 @@
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loops.h"
 #include "function_param_publication_owner.h"
+#include "array_storage_defer_release_owner.h"
 #include "../common/numeric_parse.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING statement census: per-kind INCLUSIVE time for
@@ -299,7 +300,10 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
 
         flags = flow_record_statement_result(flags, stmt_flags);
     }
-
+    /* Callers inside a routine open a scope for the block, so falling
+     * through here ends the bindings it declared. */
+    if (flow_has_fallthrough(flags))
+        (void)semantic_array_storage_defer_releases_at_block_exit(node, ctx);
     return flags;
 }
 

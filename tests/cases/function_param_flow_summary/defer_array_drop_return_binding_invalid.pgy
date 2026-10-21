@@ -1,0 +1,13 @@
+// Returning rows hands its storage to the caller, which the defer then
+// frees (7:5).
+func Build() -> Array<Int> {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { ArrayDrop(rows); };
+    return rows;
+}
+
+func Main() -> Int {
+    Print(ToString(ArrayLength(Build())));
+    return 0;
+}

@@ -1,0 +1,29 @@
+// Reset gives its inout Array new storage, so it does not preserve the
+// descriptor. The error call's own handoff is not judged against itself,
+// but Reset came before it, and the error call is refused for it (21:23).
+struct Facts {
+    ok: Bool;
+    ids: Array<Int>;
+}
+
+func Fail(ids: Array<Int>) -> Facts {
+    return Facts(false, ids);
+}
+
+func Reset(inout ids: Array<Int>) -> Void {
+    ids = [];
+}
+
+func Build(n: Int) -> Facts {
+    let ids: Array<Int> = [];
+    ArrayPush(ids, n);
+    Reset(ids);
+    if n > 0 { return Fail(ids); }
+    return Facts(true, ids);
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(3);
+    Print(ToString(ArrayLength(facts.ids)));
+    return 0;
+}

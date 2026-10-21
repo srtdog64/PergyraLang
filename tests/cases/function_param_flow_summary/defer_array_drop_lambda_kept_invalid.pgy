@@ -1,0 +1,14 @@
+// A lambda's defer runs when the lambda returns. KeepRows may keep rows,
+// so the lambda's fallthrough is refused at the defer's use of rows (9:27).
+extern "C" { func KeepRows(rows: Array<Int>) -> Void; }
+
+func Main() -> Int {
+    let run: func() -> Void = () => {
+        let rows: Array<Int> = [];
+        ArrayPush(rows, 7);
+        defer { ArrayDrop(rows); };
+        KeepRows(rows);
+    };
+    run();
+    return 0;
+}

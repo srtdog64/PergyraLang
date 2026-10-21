@@ -1,0 +1,23 @@
+// Swap may give rows other storage, so it does not preserve the descriptor,
+// and whether it does is decided after every body is checked. The defer's
+// release at the return is judged after Swap, like an ArrayDrop written
+// there, and refused (15:23).
+func Swap(inout rows: Array<Int>, inout other: Array<Int>) -> Void {
+    let t: Array<Int> = rows;
+    rows = other;
+    other = t;
+}
+
+func Build() -> Int {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    let other: Array<Int> = [];
+    defer { ArrayDrop(rows); };
+    Swap(rows, other);
+    return ArrayLength(other);
+}
+
+func Main() -> Int {
+    Print(ToString(Build()));
+    return 0;
+}

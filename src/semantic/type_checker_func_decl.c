@@ -10,6 +10,7 @@
 #include "diag_codes.h"
 #include "type_checker_module_contract_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "array_storage_defer_release_owner.h"
 
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
@@ -395,8 +396,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (has_body_flow && body_flow.has_fallthrough) {
-        semantic_future_require_scope_retired(
-            ctx->scope, node, ctx, "function fallthrough");
+        semantic_future_require_scope_retired(ctx->scope, node, ctx, "function fallthrough");
+        (void)semantic_array_storage_defer_releases_at_exit(node, NULL, ctx);
     }
 
     semantic_collection_record_owned_string_result_summary(node, ctx);
@@ -506,7 +507,6 @@ type_check_function_effect_contract(ASTNode *node, SemanticContext *ctx,
             name != NULL ? name : "<anonymous>",
             missing_buf, declared_buf, derived_buf);
     }
-
 
     {
         const char *within_zone = ast_func_within_zone(node);

@@ -11,6 +11,7 @@
 #include "diag_codes.h"
 #include "slot_summary.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_defer_release_owner.h"
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "indexed_string_borrow_owner.h"
@@ -51,18 +52,27 @@ semantic_array_storage_pending_call_consumer_current(SemanticContext *ctx,
 {
     if (source == NULL || consumer == NULL || consumer->type != AST_CALL
         || source->call != consumer || source->call_id != consumer_id
-        || source->binding_id != binding_id || source->sequence >= sequence
-        || source->ordinal >= ast_call_arg_count(source->call)
+        || source->binding_id != binding_id || source->sequence >= sequence)
+        return false;
+    /* The consumer's own handoff of the Array is the call being admitted,
+     * not a prior one; a defer that releases it is admitted at each exit.
+     * A String element's handoff is judged with its own receipt, whose
+     * verdict is whether the callee keeps the element. */
+    size_t prefix = source->payload ? sequence : source->sequence;
+    if (source->ordinal >= ast_call_arg_count(source->call)
         || source->argument != ast_call_argument(source->call, source->ordinal)
         || !semantic_array_storage_pending_call_current(ctx, source)
-        || !semantic_array_storage_pending_preserved(ctx, binding_id, sequence))
+        || !semantic_array_storage_pending_preserved(ctx, binding_id, prefix))
         return false;
     if (!semantic_array_storage_pending_call_elements_required(source))
         return true;
     /* Earlier calls may have left borrowed elements in the array. A callee
      * that only reads or writes it in place takes no element ownership, so
-     * it needs no owned-element proof; release or escape does. */
-    if (!source->payload && source->callee_decl != NULL) {
+     * it needs no owned-element proof; release or escape does, and so does
+     * one that keeps the descriptor, as its own handoff left out above. */
+    if (!source->payload && source->callee_decl != NULL
+        && (semantic_array_storage_pending_call_failures(ctx, source)
+            & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) == 0) {
         unsigned effects = function_param_flow_summary_for_param(ctx,
             source->callee_decl, source->formal_ordinal);
         if ((effects & (SLOT_PARAM_SUMMARY_RELEASE | SLOT_PARAM_SUMMARY_RETURN_ESCAPE
@@ -82,7 +92,7 @@ semantic_array_storage_pending_call_consumer_current(SemanticContext *ctx,
         semantic_indexed_string_named_call_lends(ctx, (ASTNode *)row->caller, source->call,
             source->callee_decl, source->ordinal, binding_id))
         return true;
-    return semantic_array_storage_pending_owned_elements(ctx, binding_id, sequence);
+    return semantic_array_storage_pending_owned_elements(ctx, binding_id, prefix);
 }
 
 bool
@@ -340,6 +350,10 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
         && type_equals(type, binding->type)
         && !binding->is_host_field && !binding->is_consumed
         && !binding->has_escaped_array_storage;
+    /* An own handoff in a defer cleanup takes the Array when the routine exits. */
+    if (mode == PARAM_MODE_OWN && named_descriptor && ctx->in_defer_cleanup
+        && !semantic_array_storage_record_defer_release(source, string_array, ctx))
+        return;
     bool pending_same_binding = binding != NULL && binding_id != 0
         && source != NULL && ast_identifier_binding_syntax_id(source) == binding_id
         && !binding->is_host_field && !binding->is_consumed
@@ -389,8 +403,8 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
         ? semantic_array_storage_record_pending_call(ctx, handoff, call, callee_decl, ordinal)
         : (semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal) &&
             function_param_flow_preserves_array_storage(ctx, callee_decl, formal)));
-    /* The linked consumer follows this handoff, so its prefix includes the
-     * callee that can outlive an already registered cleanup. */
+    /* The linked consumer follows this handoff; its prefix holds the
+     * earlier calls. A defer release is admitted again at each exit. */
     if (handoff != NULL && (pending_same_binding || reserved)
         && (!preserving
             || !semantic_array_storage_record_pending_call_consumer(ctx, handoff, call, ordinal))) {

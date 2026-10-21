@@ -9,6 +9,7 @@
 #include "callable_capability_inference.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_defer_release_owner.h"
 #include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
 
@@ -101,6 +102,8 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             type_check_expression_at_typed_site(value,
                 ctx->inferring_return ? NULL : ctx->current_return, ctx));
     }
+    /* Defer cleanups run after the value; its calls stay ordered before them. */
+    (void)semantic_array_storage_defer_releases_at_exit(node, value, ctx);
     semantic_array_storage_return_value_checked(ctx, handoffs_from);
     /* A returned world-owned zone is the same live value escape as a local
      * initializer or call argument; Clone's resolved boundary remains legal. */

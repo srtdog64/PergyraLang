@@ -3,6 +3,7 @@
 #include "callable_capability_inference.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "array_storage_defer_release_owner.h"
 
 static Type *
 lambda_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
@@ -156,6 +157,7 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
         if (flow_summary.has_fallthrough) {
             semantic_future_require_scope_retired(
                 ctx->scope, lambda_body, ctx, "lambda fallthrough");
+            (void)semantic_array_storage_defer_releases_at_exit(lambda_body, NULL, ctx);
         }
         ctx->current_return = saved_return;
         ctx->in_async_func = saved_in_async;

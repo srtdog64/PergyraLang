@@ -223,6 +223,7 @@ scope_destroy(Scope *scope)
     for (size_t i = 0; i < scope->indexed_string_deferred_read_count; i++)
         free(scope->indexed_string_deferred_reads[i].assignments);
     free(scope->indexed_string_deferred_reads);
+    free(scope->deferred_array_releases);
     free(scope);
 }
 

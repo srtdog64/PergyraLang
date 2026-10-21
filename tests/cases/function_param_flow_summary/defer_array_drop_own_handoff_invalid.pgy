@@ -1,0 +1,20 @@
+// Eat takes rows and frees it; the defer would free it again when Build
+// returns (14:5).
+func Eat(own rows: Array<Int>) -> Int {
+    let n: Int = ArrayLength(rows);
+    ArrayDrop(rows);
+    return n;
+}
+
+func Build() -> Int {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { ArrayDrop(rows); };
+    let n: Int = Eat(rows);
+    return n;
+}
+
+func Main() -> Int {
+    Print(ToString(Build()));
+    return 0;
+}

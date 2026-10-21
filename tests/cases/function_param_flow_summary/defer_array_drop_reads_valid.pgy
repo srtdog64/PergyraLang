@@ -1,0 +1,22 @@
+// The defer releases rows when Build returns. Peek only reads it and the
+// pushes keep it in place, so it still owns its storage at each return.
+func Peek(ref rows: Array<Int>) -> Int {
+    return ArrayLength(rows);
+}
+
+func Build() -> Int {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { ArrayDrop(rows); };
+    let n: Int = Peek(rows);
+    ArrayPush(rows, n);
+    if rows[0] == 0 {
+        return 0;
+    }
+    return rows[0] + rows[1];
+}
+
+func Main() -> Int {
+    Print(ToString(Build()));
+    return 0;
+}

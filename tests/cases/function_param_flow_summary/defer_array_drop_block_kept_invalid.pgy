@@ -1,0 +1,28 @@
+// The defer runs when Build returns, after its block has ended. Keep's
+// facts outlive the block and hold rows, so the block's end is refused
+// at the defer's use of rows (18:27).
+struct Facts {
+    ok: Bool;
+    rows: Array<Int>;
+}
+
+func Keep(rows: Array<Int>) -> Facts {
+    return Facts(true, rows);
+}
+
+func Build() -> Facts {
+    var held: Facts = Facts(false, []);
+    if true {
+        let rows: Array<Int> = [];
+        ArrayPush(rows, 41);
+        defer { ArrayDrop(rows); };
+        held = Keep(rows);
+    }
+    return held;
+}
+
+func Main() -> Int {
+    let facts: Facts = Build();
+    Print(ToString(facts.rows[0]));
+    return 0;
+}

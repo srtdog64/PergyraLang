@@ -262,8 +262,12 @@ release_lifetime_refusals = {
     "array_result_owned_defer_drop_then_direct_drop_invalid": [(*borrow_refusal, 10, 27)],
     "array_result_owned_defer_drop_then_own_invalid": [(*borrow_refusal, 14, 17)],
     "array_result_owned_defer_late_array_alias_invalid": [(*borrow_refusal, 12, 16)],
-    "array_result_owned_defer_late_scalar_retention_invalid": [(*borrow_refusal, 17, 9)],
-    "array_result_owned_defer_named_array_retainer_invalid": [(*borrow_refusal, 19, 9)],
+    # The defer's release at the block's end is ordered after the retaining
+    # call and refused for it (16:39, 18:39); the call itself is refused
+    # only where an earlier call did not preserve the Array (17:9).
+    "array_result_owned_defer_late_scalar_retention_invalid": [
+        (*borrow_refusal, 17, 9), (*borrow_refusal, 16, 39)],
+    "array_result_owned_defer_named_array_retainer_invalid": [(*borrow_refusal, 18, 39)],
     "array_result_owned_element_array_assign_invalid": [(*borrow_refusal, 10, 28)],
     "array_result_owned_element_defer_after_drop_invalid": [(*borrow_refusal, 10, 27)],
     "array_result_owned_element_defer_lifo_drop_then_read_invalid": [(*borrow_refusal, 10, 35)],
@@ -278,12 +282,16 @@ release_lifetime_refusals = {
     "array_result_owned_element_slot_initializer_invalid": [(*borrow_refusal, 9, 36)],
     "array_result_owned_element_spawn_invalid": [(*borrow_refusal, 13, 52)],
     "array_result_owned_element_write_view_invalid": [(*borrow_refusal, 11, 25)],
-    "array_result_owned_defer_alias_retainer_invalid": [(*borrow_refusal, 17, 5)],
-    "array_result_owned_defer_direct_retainer_invalid": [(*borrow_refusal, 16, 5)],
+    # A defer's release is admitted again where the routine exits: the
+    # alias moved rows (13:6), KeepRows may keep it (9:6), the return hands
+    # it on (10:5), the constructor holds it (12:5), or RetainRows, judged
+    # after every body, does not preserve it (15:35).
+    "array_result_owned_defer_alias_retainer_invalid": [(*borrow_refusal, 13, 6)],
+    "array_result_owned_defer_direct_retainer_invalid": [(*borrow_refusal, 15, 35)],
     "array_result_owned_defer_host_own_invalid": [(*borrow_refusal, 19, 28)],
-    "array_result_owned_defer_return_invalid": [(*borrow_refusal, 10, 12)],
-    "array_result_owned_defer_direct_opaque_invalid": [(*borrow_refusal, 11, 35)],
-    "array_result_owned_defer_constructor_return_invalid": [(*borrow_refusal, 11, 35)],
+    "array_result_owned_defer_return_invalid": [(*borrow_refusal, 10, 5)],
+    "array_result_owned_defer_direct_opaque_invalid": [(*borrow_refusal, 9, 6)],
+    "array_result_owned_defer_constructor_return_invalid": [(*borrow_refusal, 12, 5)],
     "array_release_host_own_reuse_invalid": [
         (*released_refusal, 19, 21), (*builtin_refusal, 19, 21)],
     "physical_return_opaque_invalid": [
@@ -295,10 +303,10 @@ release_lifetime_refusals = {
         (*borrow_refusal, 17, 20), (*borrow_refusal, 19, 27)],
     "named_string_field_make_nodes_drop_invalid": [
         (*borrow_refusal, 31, 34), (*borrow_refusal, 33, 27)],
-    "named_string_field_forward_project_drop_invalid": [
-        (*borrow_refusal, 34, 5), (*borrow_refusal, 36, 27)],
-    "named_string_field_mixed_branch_drop_invalid": [
-        (*borrow_refusal, 28, 5), (*borrow_refusal, 30, 27)],
+    # The call that keeps the Array is the one admitted; the deep drop after
+    # it is refused for it.
+    "named_string_field_forward_project_drop_invalid": [(*borrow_refusal, 36, 27)],
+    "named_string_field_mixed_branch_drop_invalid": [(*borrow_refusal, 30, 27)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_array_store_field_take_invalid": [(*released_refusal, 23, 39)],
@@ -404,10 +412,30 @@ release_lifetime_refusals = {
     # value; the same call to a Never routine ends that path instead.
     "aggregate_move_void_call_invalid": [(*released_refusal, 28, 18)],
     # A handoff a return value makes ends the path: the next iteration's
-    # Contains is not refused for it (only the handoff itself, 30:20). Two
-    # calls in one return value still run in order (24:45).
-    "array_handoff_return_value_loop_invalid": [(*borrow_refusal, 30, 20)],
+    # Contains is not refused for it, and the handoff is not judged against
+    # its own call. A call before it that may rebind the Array still refuses
+    # it (21:23), and two calls in one return value still run in order (24:45).
+    "array_handoff_after_rebinding_call_invalid": [(*borrow_refusal, 21, 23)],
     "array_handoff_same_return_value_invalid": [(*borrow_refusal, 24, 45)],
+    # A defer releases its Array when the routine exits, so at each exit the
+    # Array must still own its storage: an own handoff (14:5), returning the
+    # binding (7:5), a fallthrough after an extern keeps it (5:6), or a
+    # constructor (13:5) refuses that exit. A call judged after every body
+    # (a retaining Keep, a rebinding Swap) refuses the defer's release,
+    # ordered after it at the exit (17:23, 20:23, 15:23).
+    "defer_array_drop_return_keep_invalid": [(*borrow_refusal, 17, 23)],
+    "defer_array_drop_reader_then_keep_invalid": [(*borrow_refusal, 20, 23)],
+    "defer_array_drop_own_handoff_invalid": [(*borrow_refusal, 14, 5)],
+    "defer_array_drop_return_binding_invalid": [(*borrow_refusal, 7, 5)],
+    "defer_array_drop_fallthrough_kept_invalid": [(*borrow_refusal, 5, 6)],
+    "defer_owned_strings_return_constructor_invalid": [(*borrow_refusal, 13, 5)],
+    "defer_array_drop_after_rebinding_call_invalid": [(*borrow_refusal, 15, 23)],
+    # The block ends rows while the facts Keep returned still hold it (18:27).
+    "defer_array_drop_block_kept_invalid": [(*borrow_refusal, 18, 27)],
+    # An own handoff in the cleanup takes rows at exit like a release (21:17).
+    "defer_own_handoff_cleanup_kept_invalid": [(*borrow_refusal, 21, 17)],
+    # A lambda falls through to its own defer (9:27).
+    "defer_array_drop_lambda_kept_invalid": [(*borrow_refusal, 9, 27)],
     # A by-value formal lends what a read-and-return call takes from it when
     # the routine uses it again, and only while the loan stays here and
     # nothing changes it: a push of the loan into an inout Array (14:30), a
@@ -1100,8 +1128,26 @@ paired = (
     ("aggregate_move_never_call_valid", True),
     ("aggregate_move_void_call_invalid", False),
     ("aggregate_move_void_call_landed_valid", True),
-    ("array_handoff_return_value_loop_invalid", False),
+    ("array_handoff_return_value_loop_valid", True),
+    ("array_handoff_error_return_after_append_valid", True),
+    ("array_handoff_after_rebinding_call_invalid", False),
     ("array_handoff_same_return_value_invalid", False),
+    ("defer_array_drop_reads_valid", True),
+    ("defer_array_drop_fallthrough_valid", True),
+    ("defer_owned_strings_read_valid", True),
+    ("defer_array_drop_return_keep_invalid", False),
+    ("defer_array_drop_reader_then_keep_invalid", False),
+    ("defer_array_drop_own_handoff_invalid", False),
+    ("defer_array_drop_return_binding_invalid", False),
+    ("defer_array_drop_fallthrough_kept_invalid", False),
+    ("defer_owned_strings_return_constructor_invalid", False),
+    ("defer_array_drop_after_rebinding_call_invalid", False),
+    ("defer_array_drop_block_kept_invalid", False),
+    ("defer_own_handoff_cleanup_reads_valid", True),
+    ("defer_own_handoff_cleanup_kept_invalid", False),
+    ("defer_array_drop_lambda_reads_valid", True),
+    ("defer_array_drop_struct_reader_valid", True),
+    ("defer_array_drop_lambda_kept_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
     ("by_value_getter_lend_valid", True),
     ("by_value_getter_lend_local_valid", True),
@@ -1358,13 +1404,15 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"array path-state negative {name} lost its exact refusal")
         array_release_multi_sites = {
-            "array_release_owned_strings_move_invalid": {(13, 5), (14, 17)},
-            "array_release_inout_foreign_owned_strings_invalid": {(14, 22), (15, 26)},
-            "array_release_prefix_foreign_inout_invalid": {(19, 5), (20, 9)},
-            "array_release_factory_retaining_reader_invalid": {(25, 24), (27, 27)},
+            # A call that keeps the Array is not refused for its own handoff;
+            # what uses the Array after it is (the move, push or drop).
+            "array_release_owned_strings_move_invalid": {(14, 17)},
+            "array_release_inout_foreign_owned_strings_invalid": {(15, 26)},
+            "array_release_prefix_foreign_inout_invalid": {(20, 9)},
+            "array_release_factory_retaining_reader_invalid": {(27, 27)},
             "array_release_loop_second_iteration_escape_invalid": {(20, 30)},
-            "array_release_inout_retaining_reader_invalid": {(12, 26), (21, 9), (22, 27)},
-            "array_result_owned_retain_before_deepdrop_invalid": {(18, 24), (19, 27)},
+            "array_release_inout_retaining_reader_invalid": {(12, 26), (22, 27)},
+            "array_result_owned_retain_before_deepdrop_invalid": {(19, 27)},
             # The in-place helper call takes no element ownership; the deep
             # drop of the array it left with a borrowed String is the refusal.
             "array_result_owned_named_inout_shallow_push_invalid": {(17, 27)},
@@ -1843,6 +1891,14 @@ for name, expected in (
     ("owned_copy_string_push_landed_valid", "5c"),
     ("local_copy_source_sorted_landed_valid", "31"),
     ("array_sort_after_handoff_ref_reader_valid", "4"),
+    ("array_handoff_return_value_loop_valid", "3"),
+    ("array_handoff_error_return_after_append_valid", "10x"),
+    ("defer_array_drop_reads_valid", "42"),
+    ("defer_array_drop_fallthrough_valid", "8"),
+    ("defer_owned_strings_read_valid", "ab!"),
+    ("defer_own_handoff_cleanup_reads_valid", "42"),
+    ("defer_array_drop_lambda_reads_valid", "7"),
+    ("defer_array_drop_struct_reader_valid", "42"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

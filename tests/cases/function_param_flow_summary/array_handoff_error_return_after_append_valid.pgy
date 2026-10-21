@@ -1,0 +1,70 @@
+// The shape of a fact builder: IndexFor reads the Arrays by ref, Append
+// grows them through inout, and each error path returns them in the facts.
+// The error call keeps both Arrays, but no call before it kept or rebound
+// them, so each return is admitted. The String Array's elements are owned
+// copies pushed by Append.
+struct Facts {
+    ok: Bool;
+    ids: Array<Int>;
+    names: Array<String>;
+}
+
+func Fail(code: String, ids: Array<Int>, names: Array<String>) -> Facts {
+    return Facts(false, ids, names);
+}
+
+func IndexFor(ref ids: Array<Int>, id: Int) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(ids) {
+        if ids[i] == id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func Append(inout ids: Array<Int>, inout names: Array<String>, id: Int,
+            actuals: Array<String>) -> Bool {
+    if IsSome(IndexFor(ids, id)) { return true; }
+    if id < 0 { return false; }
+    ArrayPush(ids, id);
+    let i: Int = 0;
+    while i < ArrayLength(actuals) {
+        ArrayPushOwnedString(names, actuals[i]);
+        i = i + 1;
+    }
+    return true;
+}
+
+func Build(n: Int) -> Facts {
+    let ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let actuals: Array<String> = [];
+    ArrayPush(actuals, "x");
+    if n < 0 {
+        return Fail("negative", ids, names);
+    }
+    let node: Int = 0;
+    while node < n {
+        if !IsSome(IndexFor(ids, node)) {
+            if node == 7 {
+                return Fail("seven", ids, names);
+            }
+            if !Append(ids, names, node, actuals) {
+                return Fail("append", ids, names);
+            }
+        }
+        node = node + 1;
+    }
+    if n > 100 {
+        return Fail("large", ids, names);
+    }
+    return Facts(true, ids, names);
+}
+
+func Main() -> Int {
+    let built: Facts = Build(3);
+    let failed: Facts = Build(9);
+    Print(ToString(ArrayLength(built.ids) + ArrayLength(failed.ids)));
+    Print(built.names[2]);
+    return 0;
+}

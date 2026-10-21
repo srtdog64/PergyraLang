@@ -1,0 +1,11 @@
+// The lambda only reads rows before its defer releases it.
+func Main() -> Int {
+    let run: func() -> Void = () => {
+        let rows: Array<Int> = [];
+        ArrayPush(rows, 7);
+        defer { ArrayDrop(rows); };
+        Print(ToString(ArrayLength(rows) + 6));
+    };
+    run();
+    return 0;
+}

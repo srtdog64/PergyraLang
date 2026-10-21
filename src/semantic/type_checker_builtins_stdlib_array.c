@@ -9,6 +9,7 @@
 #include "type_checker_internal.h"
 #include "collection_owned_element_requirement_owner.h"
 #include "array_storage_release_owner.h"
+#include "array_storage_defer_release_owner.h"
 #include "indexed_string_borrow_owner.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
@@ -345,6 +346,7 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (arr == TYPE_UNKNOWN || reject_array_storage_invalidation_with_live_slice(
                 arg0, "ArrayDrop", ctx)
             || !semantic_array_storage_admit_drop(arg0, arr, ctx)
+            || !semantic_array_storage_record_defer_release(arg0, false, ctx)
             || !semantic_collection_owned_element_requirement_record_storage_drop(expr, arg0, ctx))
             return TYPE_UNKNOWN;
         return TYPE_VOID;
@@ -362,7 +364,8 @@ type_check_stdlib_array_call(ASTNode *expr,
                 arg0, "ArrayDropOwnedStrings", ctx))
             return TYPE_UNKNOWN;
         if (!semantic_indexed_string_borrow_owner_transfer_allowed(arg0, ctx)
-            || !semantic_collection_admit_owned_string_drop(arg0, ctx))
+            || !semantic_collection_admit_owned_string_drop(arg0, ctx)
+            || !semantic_array_storage_record_defer_release(arg0, true, ctx))
             return TYPE_UNKNOWN;
         inner = type_is_constructed_named(arr, "Array")
             ? type_get_constructed_arg(arr, 0) : NULL;

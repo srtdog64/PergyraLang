@@ -1,0 +1,25 @@
+// Keep returns rows inside the facts, and the defer then frees rows when
+// Build returns: the caller would read freed storage. Keep's handoff is
+// judged after every body; the defer's release, ordered after it at the
+// return, is refused there (17:23).
+struct Facts {
+    ok: Bool;
+    rows: Array<Int>;
+}
+
+func Keep(rows: Array<Int>) -> Facts {
+    return Facts(true, rows);
+}
+
+func Build() -> Facts {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { ArrayDrop(rows); };
+    return Keep(rows);
+}
+
+func Main() -> Int {
+    let facts: Facts = Build();
+    Print(ToString(facts.rows[0]));
+    return 0;
+}

@@ -1,0 +1,23 @@
+// Summarize reads rows and returns a fresh struct. Whether it preserves
+// rows is decided after every body is checked, with the defer's release at
+// the return ordered after it, so the release stays admitted.
+struct Count {
+    n: Int;
+}
+
+func Summarize(rows: Array<Int>) -> Count {
+    return Count(ArrayLength(rows));
+}
+
+func Build() -> Int {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { ArrayDrop(rows); };
+    let count: Count = Summarize(rows);
+    return count.n + rows[0];
+}
+
+func Main() -> Int {
+    Print(ToString(Build()));
+    return 0;
+}

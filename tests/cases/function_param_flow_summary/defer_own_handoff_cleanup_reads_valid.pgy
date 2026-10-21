@@ -1,0 +1,19 @@
+// The defer hands rows to Eat when Build returns; until then rows is only
+// read, so it still owns its storage at the exit.
+func Eat(own rows: Array<Int>) -> Int {
+    let n: Int = ArrayLength(rows);
+    ArrayDrop(rows);
+    return n;
+}
+
+func Build() -> Int {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { Eat(rows); };
+    return rows[0] + 1;
+}
+
+func Main() -> Int {
+    Print(ToString(Build()));
+    return 0;
+}

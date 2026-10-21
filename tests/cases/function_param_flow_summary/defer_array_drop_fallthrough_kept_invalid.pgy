@@ -1,0 +1,15 @@
+// KeepRows may keep rows, and the defer frees it when Run falls through.
+// The routine's exit is refused (5:6).
+extern "C" { func KeepRows(rows: Array<Int>) -> Void; }
+
+func Run() -> Void {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 7);
+    defer { ArrayDrop(rows); };
+    KeepRows(rows);
+}
+
+func Main() -> Int {
+    Run();
+    return 0;
+}

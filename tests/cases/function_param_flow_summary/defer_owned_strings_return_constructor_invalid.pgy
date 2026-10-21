@@ -1,0 +1,20 @@
+// The facts keep names, and the defer frees its Strings and storage when
+// Build returns (13:5).
+struct Names {
+    ok: Bool;
+    rows: Array<String>;
+}
+
+func Build() -> Names {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", "b"));
+    defer { ArrayDropOwnedStrings(names); };
+    let facts: Names = Names(true, names);
+    return facts;
+}
+
+func Main() -> Int {
+    let facts: Names = Build();
+    Print(facts.rows[0]);
+    return 0;
+}

@@ -1,0 +1,29 @@
+// Peek before the handoff preserves rows, so the handoff is admitted as a
+// call. The defer still frees rows after Keep returned it, and its release
+// at the return is refused (20:23).
+struct Facts {
+    ok: Bool;
+    rows: Array<Int>;
+}
+
+func Keep(rows: Array<Int>) -> Facts {
+    return Facts(true, rows);
+}
+
+func Peek(ref rows: Array<Int>) -> Int {
+    return ArrayLength(rows);
+}
+
+func Build() -> Facts {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { ArrayDrop(rows); };
+    Peek(rows);
+    return Keep(rows);
+}
+
+func Main() -> Int {
+    let facts: Facts = Build();
+    Print(ToString(facts.rows[0]));
+    return 0;
+}

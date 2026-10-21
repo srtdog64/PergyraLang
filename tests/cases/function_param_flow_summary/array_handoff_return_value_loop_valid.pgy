@@ -1,8 +1,8 @@
 // RowsError returns its by-value Array in the failure facts, so that call
-// does not preserve the Array, and it is refused itself (30:20). It is made
-// by a return value inside the loop: nothing after it runs, so the next
-// iteration's Contains does not need it to preserve the Array, and is not
-// refused.
+// does not preserve the Array. Contains, the call before it, does, and its
+// own handoff is the call being admitted, not one before it. It is made by a return value inside the loop: nothing
+// after it runs, so the next iteration's Contains does not need it to
+// preserve the Array either.
 struct Facts {
     ok: Bool;
     message: String;

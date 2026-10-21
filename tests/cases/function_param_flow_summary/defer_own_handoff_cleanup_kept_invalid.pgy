@@ -1,0 +1,29 @@
+// The defer hands rows to Eat, which frees it, after Keep's facts took it.
+// That handoff at the return is refused (21:17).
+struct Facts {
+    ok: Bool;
+    rows: Array<Int>;
+}
+
+func Keep(rows: Array<Int>) -> Facts {
+    return Facts(true, rows);
+}
+
+func Eat(own rows: Array<Int>) -> Int {
+    let n: Int = ArrayLength(rows);
+    ArrayDrop(rows);
+    return n;
+}
+
+func Build() -> Facts {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 41);
+    defer { Eat(rows); };
+    return Keep(rows);
+}
+
+func Main() -> Int {
+    let facts: Facts = Build();
+    Print(ToString(facts.rows[0]));
+    return 0;
+}
