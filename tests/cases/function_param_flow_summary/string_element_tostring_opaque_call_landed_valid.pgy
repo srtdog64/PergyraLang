@@ -1,5 +1,6 @@
-// ToString(String) returns its input. The retained text is an element of the
-// owned array that is dropped before the retainer reads it.
+// ToString(String) returns its input, an element of the owned array that is
+// dropped before Keep's output is read. No proof admits the argument, so the
+// next analysis passes a copy of it and the output keeps a String of its own.
 func Keep(inout out: Array<String>, text: String) -> Void {
     ArrayPush(out, text);
 }

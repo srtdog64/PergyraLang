@@ -82,6 +82,8 @@ owned_push_landings = {
 # Positive fixtures whose landing reaches MIR as Clone calls (a formal's
 # String store, a copied getter loan): each routine and its Clone count.
 landed_clones = {
+    "string_element_tostring_opaque_call_landed_valid": {"Main": 1},
+    "string_argument_kept_copy_landed_valid": {"Block": 1},
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
     "formal_string_store_landing_field_take_valid": {"Append": 1},
@@ -138,6 +140,8 @@ landed_at_exit = {
 # `inout` output lands in the first, a String store or getter loan selection
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
+    "string_element_tostring_opaque_call_landed_valid": 1,
+    "string_argument_kept_copy_landed_valid": 1,
     "formal_string_store_landing_ref_push_valid": 0,
     "formal_string_store_landing_local_receiver_valid": 1,
     "formal_string_store_landing_value_map_valid": 1,
@@ -891,7 +895,7 @@ paired = (
     ("slot_wrapper_destructure_own_invalid", False),
     ("slot_wrapper_destructure_ref_valid", True),
     ("string_scalar_tostring_opaque_call_valid", True),
-    ("string_element_tostring_opaque_call_invalid", False),
+    ("string_element_tostring_opaque_call_landed_valid", True),
     ("string_param_field_opaque_call_valid", True),
     ("string_own_param_field_opaque_call_invalid", False),
     ("string_inout_helper_repeat_call_valid", True),
@@ -1066,6 +1070,7 @@ paired = (
     ("string_join_borrowed_parts_valid", True),
     ("string_join_shadowed_returns_part_invalid", False),
     ("ref_loan_local_after_output_call_valid", True),
+    ("string_argument_kept_copy_landed_valid", True),
     ("ref_loan_local_after_output_call_channel_invalid", False),
     ("aggregate_string_loan_getter_valid", True),
     ("aggregate_string_loan_struct_escape_invalid", False),

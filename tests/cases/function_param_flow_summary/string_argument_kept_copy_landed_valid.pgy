@@ -1,0 +1,30 @@
+// EmitStep gets a String element of an Array its caller holds through an
+// own formal, beside an inout argument, so no proof shows the Array stays
+// unchanged for the call. The next analysis passes a copy of the String.
+struct StepFacts {
+    names: Array<String>;
+    aliases: Array<String>;
+}
+
+struct Execution {
+    steps: StepFacts;
+}
+
+func EmitStep(inout body: Array<String>, alias: String, steps: StepFacts, row: Int) -> Int {
+    ArrayPush(body, Concat(alias, steps.names[row]));
+    return ArrayLength(body);
+}
+
+func Block(own execution: Execution) -> Int {
+    let steps: StepFacts = execution.steps;
+    let body: Array<String> = [];
+    let n: Int = EmitStep(body, steps.aliases[0], steps, 0);
+    Print(body[0]);
+    return n;
+}
+
+func Main() -> Int {
+    let e: Execution = Execution(StepFacts([Concat("a", "")], [Concat("b", "")]));
+    Print(ToString(Block(e)));
+    return 0;
+}

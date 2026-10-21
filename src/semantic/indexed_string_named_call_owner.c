@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include "diag_codes.h"
+#include "loan_copy_landing_owner.h"
 #include "function_param_flow_summary_internal.h"
 #include "function_param_publication_owner.h"
 #include "slot_summary.h"
@@ -161,6 +162,10 @@ bool semantic_indexed_string_named_call_finalize(SemanticContext *ctx)
         const NamedCallReceipt *row = &store->rows[i];
         ctx->current_function_decl = row->routine;
         if (receipt_admitted(ctx, row)) continue;
+        /* No proof admits it, so a next analysis passes a copy of the String
+         * (2026-10-21_string_argument_no_proof_admits_is_copied). */
+        if (!semantic_loan_copy_landing_select_carrier(ctx, row->expression))
+            semantic_error(ctx, row->expression, "String argument copy landing selection failed");
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, row->expression,
             "A String element cannot cross an opaque boundary without a current non-retention proof");
