@@ -33,9 +33,6 @@ function_param_flow_fail(FunctionParamFlowSummaryStore *store,
         reason != NULL ? reason : "unknown owner failure");
 }
 
-static unsigned function_param_flow_evaluate(
-    FunctionParamFlowSummaryStore *store,
-    size_t index);
 
 static bool function_param_flow_output_replay(FunctionParamFlowSummaryStore *store,
     size_t entry_index, bool pending_proof);
@@ -144,19 +141,20 @@ function_param_flow_demand_index(FunctionParamFlowSummaryStore *store,
         store->cache_hits++;
         return store->entries[index].mask;
     }
+    unsigned mask;
     if (state == FUNCTION_PARAM_FLOW_COMPUTING) {
         store->active_had_recursion = true;
         store->recursion_hits++;
-        return store->entries[index].mask;
-    }
-    if (state == FUNCTION_PARAM_FLOW_EVALUATED)
-        return store->entries[index].mask;
-    return function_param_flow_evaluate(store, index);
+        mask = store->entries[index].mask;
+    } else if (state == FUNCTION_PARAM_FLOW_EVALUATED)
+        mask = store->entries[index].mask;
+    else mask = function_param_flow_evaluate(store, index);
+    return function_param_flow_closure_read(store, index) ? mask : SLOT_PARAM_SUMMARY_ALL;
 }
 
-static unsigned
-function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
-                             size_t index)
+unsigned
+function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
+                                  size_t index)
 {
     ASTNode *function_decl;
     FuncParam *param;
@@ -444,15 +442,24 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
      * still share the same cap. Body-evaluation telemetry stays cumulative. */
     store->work_units = 0;
     store->closure_frame_node_visits = 0;
+    store->closure_read_count = 0;
+    store->evaluating_plus_one = 0;
 
+    /* After the first pass, a pass evaluates only the entries whose routine
+     * read an entry that changed after the read. */
+    bool marked;
     do {
         store->changed = false;
-        for (size_t i = store->active_start; i < store->count; i++)
+        for (size_t i = store->active_start; i < store->count; i++) {
+            if (passes != 0 && !store->entries[i].dirty) { store->skipped_evaluations++; continue; }
             store->entries[i].state = FUNCTION_PARAM_FLOW_UNSEEN;
+            store->entries[i].dirty = false;
+        }
         for (size_t i = store->active_start; i < store->count; i++)
             (void)function_param_flow_evaluate(store, i);
         passes++;
         store->fixed_point_passes++;
+        marked = false;
         if (store->failed)
             break;
         if (passes > (store->count - store->active_start + 1) * 7 + 1) {
@@ -462,10 +469,15 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
                 store->entries[i].mask = SLOT_PARAM_SUMMARY_ALL;
             break;
         }
-        if (!store->changed && store->active_had_recursion &&
-            !function_param_flow_complete_pending_relations(store))
+        for (size_t i = store->active_start; i < store->count; i++) marked |= store->entries[i].dirty;
+        /* With no entry marked, every entry's last evaluation read what the
+         * entries it read hold now: the closure is at its fixed point. */
+        if (!marked) store->changed = false;
+        if (!marked && store->active_had_recursion &&
+            (!function_param_flow_worklist_verified(store, function_decl) ||
+             !function_param_flow_complete_pending_relations(store)))
             function_param_flow_fail(store, function_decl, "recursive backing relations are incomplete or stale");
-    } while (store->active_had_recursion && store->changed);
+    } while (store->active_had_recursion && marked);
 
     function_param_flow_complete_return_relations(store);
     if (store->closure_frame_node_visits > store->max_closure_frame_node_visits)

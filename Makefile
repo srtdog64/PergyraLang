@@ -700,6 +700,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_entry_index.c \
+                   $(SEMANTIC_DIR)/function_param_flow_closure_worklist.c \
                    $(SEMANTIC_DIR)/function_param_flow_program_point_index_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_consumer_navigation.c \
                    $(SEMANTIC_DIR)/function_param_flow_declared_result_frame.c \
@@ -1817,7 +1818,7 @@ ALL_BUILD_OBJECTS = $(sort \
 define pgy_clean_build_artifacts
 $(BASH) -c "if [ -d '$(BUILD_DIR)' ]; then find '$(BUILD_DIR)' -type f \( -name '*.o' -o -name '*.d' \) -delete; fi"
 endef
-ALL_DEP_FILES = $(ALL_BUILD_OBJECTS:.o=.d) $(BUILD_DIR)/tests/readonly_map_query_fact_phase_unit.d $(BUILD_DIR)/tests/flow_rows_check_memo_unit.d $(BUILD_DIR)/tests/collection_owned_local_transition_unit.d
+ALL_DEP_FILES = $(ALL_BUILD_OBJECTS:.o=.d) $(BUILD_DIR)/tests/readonly_map_query_fact_phase_unit.d $(BUILD_DIR)/tests/flow_rows_check_memo_unit.d $(BUILD_DIR)/tests/flow_closure_worklist_unit.d $(BUILD_DIR)/tests/collection_owned_local_transition_unit.d
 ifeq ($(LLVM_ENABLED),1)
 ALL_DEP_FILES += $(BUILD_DIR)/tests/llvm_map_receiver_metadata_unit.d
 endif
@@ -2024,6 +2025,19 @@ $(BIN_DIR)/flow_rows_check_memo_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/
 .PHONY: flow-rows-check-memo-test
 flow-rows-check-memo-test: $(BIN_DIR)/flow_rows_check_memo_unit$(EXEEXT)
 	$(call pgy_run_native,$(BIN_DIR)/flow_rows_check_memo_unit$(EXEEXT))
+
+$(BUILD_DIR)/tests/flow_closure_worklist_unit.o: tests/semantic/flow_closure_worklist_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/flow_closure_worklist_unit.o | $(BIN_DIR)
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: flow-closure-worklist-test
+flow-closure-worklist-test: $(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT))
 
 $(BUILD_DIR)/tests/collection_owned_local_transition_unit.o: tests/compiler/collection_owned_local_transition_unit.c
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2756,10 +2770,10 @@ iteration-type-fact-test-smoke: $(PGY)
 compatibility-evolution-native-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/compatibility_evolution_native_smoke.sh
 
-function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test
+function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
-	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
+	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
 
 .PHONY: readonly-map-query-test-smoke
 readonly-map-query-test-smoke: $(PGY) $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)

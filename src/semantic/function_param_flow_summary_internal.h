@@ -46,7 +46,18 @@ typedef struct
     FunctionParamFlowSummaryState state;
     /* Demand epoch of this completed entry's last successful output replay. */
     size_t output_current_epoch;
+    /* In the solving closure: an entry this one's routine read changed after
+     * the read, so the next pass evaluates this entry again. */
+    bool dirty;
+    /* Head (plus one) of the closure's list of routines that read this entry. */
+    size_t readers_plus_one;
 } FunctionParamFlowSummaryEntry;
+
+/* One routine that read a closure entry, recorded after the read returned. */
+typedef struct {
+    ASTNode *reader;
+    size_t next_plus_one;
+} FunctionParamFlowClosureRead;
 
 typedef struct {
     ASTNode *node;
@@ -341,6 +352,12 @@ struct FunctionParamFlowSummaryStore
     size_t indexed_program_points;
     /* Rows check memo telemetry: checks kept and reused. */
     size_t rows_memo_records, rows_memo_reuses;
+    /* Reads inside the solving closure, the entry being evaluated (plus one),
+     * and the evaluations a pass skipped because nothing they read changed. */
+    FunctionParamFlowClosureRead *closure_reads;
+    size_t closure_read_count, closure_read_capacity;
+    size_t evaluating_plus_one;
+    size_t skipped_evaluations;
 };
 
 void function_param_flow_program_point_index_destroy(
@@ -498,6 +515,27 @@ size_t function_param_flow_add(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, size_t param_index);
 size_t function_param_flow_find(const FunctionParamFlowSummaryStore *store,
     uint32_t function_id, size_t param_index);
+/* The routine being evaluated read closure entry `read`; false when the read
+ * list cannot grow, after the store failed closed. */
+bool function_param_flow_closure_read(FunctionParamFlowSummaryStore *store, size_t read);
+/* Closure entry `changed` changed: every evaluated entry of a routine that read
+ * it is evaluated again in the next pass. */
+void function_param_flow_closure_changed(FunctionParamFlowSummaryStore *store, size_t changed);
+/* What a reader of an entry can see. Outputs only grow, so their count
+ * stands for the set. */
+typedef struct {
+    unsigned mask;
+    bool storage, elements, unproved, pending, unsupported, ready, outputs_present;
+    FunctionParamFlowOutputProducer producer;
+    size_t outputs;
+} FunctionParamFlowEntryFacts;
+FunctionParamFlowEntryFacts function_param_flow_entry_facts(const FunctionParamFlowSummaryEntry *entry);
+bool function_param_flow_entry_facts_equal(FunctionParamFlowEntryFacts a, FunctionParamFlowEntryFacts b);
+/* One entry's summary from its body; `function_param_flow_evaluate` runs it as
+ * the reader of what it demands. */
+unsigned function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store, size_t index);
+unsigned function_param_flow_evaluate(FunctionParamFlowSummaryStore *store, size_t index);
+bool function_param_flow_worklist_verified(FunctionParamFlowSummaryStore *store, ASTNode *site);
 /* `summary` is what the formal's summary says so far; its RETURN bit lets a
  * returned value carry an alias of the formal. */
 unsigned function_param_array_storage_unproved_in_program_points(

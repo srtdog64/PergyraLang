@@ -484,8 +484,9 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
             store->count, store->body_evaluations, store->cache_hits,
             store->recursion_hits, store->fixed_point_passes);
         fprintf(stderr, "pgy: function-param-flow-work work_units=%zu work_budget=%zu"
-            " max_closure_frame_node_visits=%zu\n",
-            store->work_units, store->work_budget, store->max_closure_frame_node_visits);
+            " max_closure_frame_node_visits=%zu skipped_evaluations=%zu\n",
+            store->work_units, store->work_budget, store->max_closure_frame_node_visits,
+            store->skipped_evaluations);
         fprintf(stderr,
             "pgy: function-param-flow-sparse functions=%zu"
             " statement_visits=%zu program_points=%zu\n",
@@ -500,6 +501,7 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
     free(store->entries);
     free(store->hash);
     free(store->admitted_no_store_indexes);
+    free(store->closure_reads);
     free(store);
     ctx->function_param_flow_summaries = NULL;
 }

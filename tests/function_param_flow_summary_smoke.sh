@@ -2006,6 +2006,36 @@ if (wide.returncode != 0 or wide_work is None or int(wide_work[2]) != 4096 or
         int(wide_work[1]) > int(wide_work[2]) or int(wide_work[3]) <= int(wide_work[2])):
     sys.stderr.buffer.write(wide.stderr)
     raise SystemExit("a small closure with wide frames was charged for its frame node visits")
+# After the first pass, a pass evaluates only the entries whose routine read an
+# entry that changed after the read. Walk reads its own slot summary before its
+# write is seen, so it needs a second pass; its 1400 leaves read nothing that
+# changes. Evaluating every entry again would spend past the unchanged cap.
+tip_count = 1400
+tips = "\n".join(f"func Tip{i}(ref values: Array<Int>) -> Int {{ return values[0]; }}"
+                 for i in range(tip_count))
+tip_calls = "\n".join(f"    Tip{i}(values);" for i in range(tip_count))
+walk_path = pressure_dir / "recursive-fan-out.pgy"
+walk_path.write_text(
+    "subject Vec2 {\n    let x: Int;\n    let y: Int;\n}\n"
+    "func Walk(ref slot: Slot<Vec2>, ref values: Array<Int>, n: Int) -> Void {\n"
+    "    if n > 0 { Walk(slot, values, n - 1); }\n" + tip_calls + "\n"
+    "    Write(slot, Vec2(1, 2));\n}\n" + tips + "\n"
+    "func Main() -> Void {\n    let slot: Slot<Vec2> = Vec2(0, 0);\n"
+    "    let values: Array<Int> = [7];\n    Walk(slot, values, 3);\n    Release(slot);\n}\n",
+    encoding="utf-8")
+walk = subprocess.run([pgy, "--native-pipeline", "--hir", str(walk_path)],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                      env=pressure_env, timeout=30.0, check=False)
+(pressure_dir / "recursive-fan-out.err").write_bytes(walk.stderr)
+walk_flow = re.search(rb"function-param-flow entries=(\d+) body_evaluations=(\d+) "
+                      rb"cache_hits=(\d+) recursion_hits=(\d+)", walk.stderr)
+walk_work = re.search(rb"function-param-flow-work work_units=(\d+) work_budget=(\d+)"
+                      rb" max_closure_frame_node_visits=(\d+) skipped_evaluations=(\d+)", walk.stderr)
+if (walk.returncode != 0 or walk_flow is None or walk_work is None or int(walk_work[2]) != 4096 or
+        int(walk_flow[4]) < 1 or int(walk_work[4]) < tip_count or
+        int(walk_flow[2]) >= int(walk_flow[1]) + tip_count):
+    sys.stderr.buffer.write(walk.stderr)
+    raise SystemExit("a recursive closure evaluated again entries whose reads did not change")
 print(f"[function-param-flow-summary] independent/oversized demand controls: PASS; {pressure_dir}")
 PY
 
