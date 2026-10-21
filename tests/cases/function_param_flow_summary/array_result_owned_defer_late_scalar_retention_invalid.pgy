@@ -5,7 +5,7 @@ func OwnedRows() -> Array<String> {
 }
 
 func Retain(inout output: String, text: String) -> Void {
-    output = text;
+    let kept: String = text; output = kept;
 }
 
 func Main() -> Void {

@@ -4,7 +4,7 @@ func Alias(ref text: String) -> String {
     let second = first;
     return second;
 }
-func Store(inout output: String, text: String) -> Void { output = text; }
+func Store(inout output: String, text: String) -> Void { let kept: String = text; output = kept; }
 func ReadRecord(ref record: TextRecord) -> Bool {
     var output: String = "";
     Store(output, Alias(record.text));

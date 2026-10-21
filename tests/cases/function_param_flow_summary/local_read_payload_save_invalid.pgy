@@ -1,4 +1,4 @@
-func Save(inout output: String, text: String) -> Void { output = text; }
+func Save(inout output: String, text: String) -> Void { let kept: String = text; output = kept; }
 func Main() -> Void {
     var output: String = "";
     let slot: Slot<String> = ClaimSlot();

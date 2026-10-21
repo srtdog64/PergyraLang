@@ -10,7 +10,7 @@ func Store(
     p57: Int, p58: Int, p59: Int, p60: Int, p61: Int, p62: Int, p63: Int, p64: Int,
     inout output: String
 ) -> Void {
-    output = text;
+    let kept: String = text; output = kept;
 }
 func Main() -> Void {
     var output: String = "";

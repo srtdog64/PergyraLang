@@ -5,6 +5,7 @@
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "collection_ownership_fact.h"
+#include "loan_copy_landing_owner.h"
 #include "../parser/ast_api.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -148,6 +149,28 @@ void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNo
     if (!value.ok || value.meta || publication_physical_scalar(value.type) ||
         !semantic_param_publication_clone_independent(ctx, value.type)) return;
     store_landing_record(ctx, ast_node_stable_id(call));
+}
+
+bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const ASTNode *routine,
+    const ASTNode *target, const ASTNode *value)
+{
+    while (target != NULL && (target->type == AST_MEMBER_ACCESS || target->type == AST_ARRAY_ACCESS))
+        target = target->type == AST_MEMBER_ACCESS ? ast_member_object(target) : ast_array_access_array(target);
+    uint32_t root = target != NULL && target->type == AST_IDENTIFIER
+        ? semantic_param_publication_binding(ctx, target) : 0;
+    /* A local assigned back, as `out.names = names` after pushes into
+     * `names`, got the formal's backing from a store into it: that store is
+     * where a copy stands, and copying the local would end the write-back. */
+    uint32_t local = value != NULL && value->type == AST_IDENTIFIER
+        ? semantic_param_publication_binding(ctx, value) : 0;
+    bool output = false;
+    for (size_t p = 0; root != 0 && p < ast_func_param_count(routine); p++) {
+        FuncParam *param = ast_func_param(routine, p);
+        if (param == NULL) continue;
+        output |= param->mode == PARAM_MODE_MUT_REF && ast_func_param_stable_id(param) == root;
+        if (ast_func_param_stable_id(param) == local) local = 0;
+    }
+    return !output || local != 0 || semantic_loan_copy_landing_select_carrier(ctx, value);
 }
 
 void semantic_formal_string_store_landing_select_checked(SemanticContext *ctx, ASTNode *call,

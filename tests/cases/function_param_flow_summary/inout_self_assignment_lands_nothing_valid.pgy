@@ -1,0 +1,19 @@
+// Bump assigns its own inout formal a value built from that formal's own
+// storage. That is not another output, so nothing is copied there and no
+// landing analysis runs.
+struct Rows {
+    values: Array<Int>;
+    count: Int;
+}
+
+func Bump(inout rows: Rows) -> Void {
+    rows = Rows(rows.values, rows.count + 1);
+}
+
+func Main() -> Int {
+    let values: Array<Int> = [1];
+    var rows: Rows = Rows(values, 0);
+    Bump(rows);
+    Print(ToString(rows.count));
+    return 0;
+}

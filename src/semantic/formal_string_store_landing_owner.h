@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
@@ -37,6 +38,15 @@ void semantic_formal_string_store_landing_select(SemanticContext *ctx, const AST
  * the next analysis stores that copy, and the output keeps nothing of the
  * formal. */
 void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNode *call, size_t value_ordinal);
+
+/* The same for an assignment: `value` carries the backing of the frame's
+ * input, a by-value or `ref` formal of `routine`, into an `inout` formal,
+ * whole or through a field or element. The value is selected for a next
+ * analysis to assign as `Clone(value)` when that Clone copies it whole; a
+ * local assigned back lands nothing. False only when the selection could
+ * not be recorded. */
+bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const ASTNode *routine,
+    const ASTNode *target, const ASTNode *value);
 
 /* A plain String push into an Array<String> that owns its elements is
  * refused; the call is selected so that a next analysis lands it as an

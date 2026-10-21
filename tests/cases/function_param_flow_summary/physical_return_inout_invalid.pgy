@@ -1,7 +1,7 @@
 struct TextRecord { text: String; }
 func Observe(ref text: String) -> String { return text; }
 func ReadRecord(ref record: TextRecord, field: String, inout output: String) -> Bool {
-    output = Observe(record.text);
+    let observed: String = Observe(record.text); output = observed;
     return StringLength(field) > 0;
 }
 func Main() -> Void {

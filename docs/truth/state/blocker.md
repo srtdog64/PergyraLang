@@ -2,24 +2,25 @@
 
 Owner: Claude lane, main-line work since 2026-10-18
 ([decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-21 KST on branch `claude/p0-native-checker` (local, not pushed).
+2026-10-22 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1050 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1035 downgraded
 refusals with every final owner run
-([census record](../evidence/2026-10-21_native_census_unit_variant_holds_no_storage.md)).
-A census runs four analyses in about 820 s on an idle machine. The CI
-harness manifest compiles natively since `e23761a3a`.
+([census record](../evidence/2026-10-22_native_census_assigned_output_copy.md)).
+A census runs four analyses in 840 to 1150 s. The CI harness manifest
+compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 306 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 295 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (266 outside `direct_mir_*`)**, mostly callees that change,
+2. **Moves (265 outside `direct_mir_*`)**, mostly callees that change,
    keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
    and 70 local copies whose other side changed (`inout` counted whole).
-3. **Borrowed `ref` escapes (150 outside `direct_mir_*`):** seeded by stores
-   into an `inout` output, builtins with no relation, and own/inout handoffs.
+3. **Borrowed `ref` escapes (147 outside `direct_mir_*`):** about half are
+   getter loans handed to an `inout` formal (a grower), half seeded by
+   stores into an `inout` output or calls with no relation.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
@@ -45,8 +46,7 @@ harness manifest compiles natively since `e23761a3a`.
 - **Proofs must walk every place a formal's storage can go:** a `for`
   iterable (`99a31fe0f`) and a getter's result (ASan use-after-free;
   [rule](../decisions/2026-10-20_call_result_holding_formal_storage_is_its_path.md)).
-- **Local copies share storage:** a push through `let b = a.inner`, then a read
-  of `a` ([rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)).
+- **Local copies share storage** ([rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)).
 - **A defer runs at every exit, not where it is written.** The branch admitted
   `defer { ArrayDrop(rows); }` then `return Keep(rows)` (ASan heap-use-after-free;
   [record](../evidence/2026-10-21_defer_release_admitted_at_each_exit.md)).

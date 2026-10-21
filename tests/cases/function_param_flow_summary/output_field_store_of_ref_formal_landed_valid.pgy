@@ -1,0 +1,35 @@
+// Join keeps branch's code String in its inout output through a field
+// assignment, so the next analysis assigns a copy there and the output
+// keeps nothing of branch. Merge then hands its own ref formal to Join.
+struct Verdict {
+    ok: Bool;
+    code: String;
+}
+
+struct Flow {
+    verdict: Verdict;
+    count: Int;
+}
+
+func Fail(code: String) -> Verdict {
+    return Verdict(false, code);
+}
+
+func Join(inout target: Flow, ref branch: Flow) -> Void {
+    if !branch.verdict.ok {
+        target.verdict = Fail(branch.verdict.code);
+    }
+    target.count = target.count + branch.count;
+}
+
+func Merge(inout target: Flow, ref branch: Flow) -> Void {
+    Join(target, branch);
+}
+
+func Main() -> Int {
+    var target: Flow = Flow(Verdict(true, ""), 0);
+    let branch: Flow = Flow(Fail(Concat("x", "")), 1);
+    Merge(target, branch);
+    Print(Concat(target.verdict.code, ToString(target.count)));
+    return 0;
+}

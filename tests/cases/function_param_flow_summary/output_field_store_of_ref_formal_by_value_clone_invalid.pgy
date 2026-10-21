@@ -1,0 +1,32 @@
+// Clone copies an Array of structs only by value, so a copy assigned into
+// the inout output would still share the rows' storage with branch: nothing
+// lands, and Merge may not hand its ref formal to Join.
+struct Row {
+    name: String;
+    ids: Array<Int>;
+}
+
+struct Flow {
+    rows: Array<Row>;
+    count: Int;
+}
+
+func Join(inout target: Flow, ref branch: Flow) -> Void {
+    target.rows = branch.rows;
+    target.count = target.count + branch.count;
+}
+
+func Merge(inout target: Flow, ref branch: Flow) -> Void {
+    Join(target, branch);
+}
+
+func Main() -> Int {
+    let empty: Array<Row> = [];
+    var target: Flow = Flow(empty, 0);
+    let ids: Array<Int> = [1];
+    let rows: Array<Row> = [Row("a", ids)];
+    let branch: Flow = Flow(rows, 1);
+    Merge(target, branch);
+    Print(ToString(target.count));
+    return 0;
+}

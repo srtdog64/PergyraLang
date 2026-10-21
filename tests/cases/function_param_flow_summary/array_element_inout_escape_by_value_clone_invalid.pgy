@@ -1,0 +1,25 @@
+// Capture keeps an element of its ref Array in its inout output. Clone
+// copies a Group's Array of structs only by value, so no copy can stand
+// there, and Main may not hand its Array on while it keeps using it.
+struct Row {
+    name: String;
+    ids: Array<Int>;
+}
+
+struct Group {
+    rows: Array<Row>;
+}
+
+func Capture(inout output: Group, ref groups: Array<Group>) -> Void {
+    output = groups[0];
+}
+
+func Main() -> Void {
+    let ids: Array<Int> = [1];
+    let rows: Array<Row> = [Row("a", ids)];
+    let groups: Array<Group> = [Group(rows)];
+    let empty: Array<Row> = [];
+    var output: Group = Group(empty);
+    Capture(output, groups);
+    Log(ArrayLength(output.rows) + ArrayLength(groups));
+}

@@ -12,7 +12,7 @@ struct Route {
 }
 
 func Fill(inout rows: Rows, other: Rows) -> Int {
-    rows = Rows(other.values, rows.count);
+    let next: Rows = Rows(other.values, rows.count); rows = next;
     return rows.count;
 }
 

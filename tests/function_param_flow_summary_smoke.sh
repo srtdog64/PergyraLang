@@ -141,6 +141,9 @@ landed_at_exit = {
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
     "string_push_after_loop_walk_landed_valid": 1,
+    "output_field_store_of_ref_formal_landed_valid": 1,
+    "inout_self_assignment_lands_nothing_valid": 0,
+    "array_result_owned_element_inout_escape_landed_valid": 1,
     "string_element_tostring_opaque_call_landed_valid": 1,
     "string_argument_kept_copy_landed_valid": 1,
     "formal_string_store_landing_ref_push_valid": 0,
@@ -636,7 +639,8 @@ paired = (
     ("array_result_local_owned_element_container_copy_landing_valid", True),
     ("array_result_local_owned_element_index_assign_invalid", False),
     ("array_result_local_owned_element_field_retention_invalid", False),
-    ("array_result_owned_element_inout_escape_invalid", False),
+    ("array_result_owned_element_inout_escape_landed_valid", True),
+    ("array_element_inout_escape_by_value_clone_invalid", False),
     ("array_result_owned_element_direct_return_invalid", False),
     ("array_result_owned_element_tuple_direct_invalid", False),
     ("array_result_owned_element_tuple_binding_invalid", False),
@@ -1142,6 +1146,9 @@ paired = (
     ("aggregate_move_void_call_landed_valid", True),
     ("array_handoff_return_value_loop_valid", True),
     ("inout_call_after_inner_loop_valid", True),
+    ("output_field_store_of_ref_formal_landed_valid", True),
+    ("inout_self_assignment_lands_nothing_valid", True),
+    ("output_field_store_of_ref_formal_by_value_clone_invalid", False),
     ("array_handoff_error_return_after_append_valid", True),
     ("array_handoff_after_rebinding_call_invalid", False),
     ("array_handoff_same_return_value_invalid", False),
@@ -1451,7 +1458,6 @@ for name, valid in paired:
             "array_result_nonown_ref_mapget_descriptor_invalid": [(1, 6), (1, 6)],
             "array_result_local_owned_element_index_assign_invalid": [(6, 27)],
             "array_result_local_owned_element_field_retention_invalid": [(8, 21)],
-            "array_result_owned_element_inout_escape_invalid": [(10, 18), (8, 6), (17, 21)],
             # CaptureDirect lends an element; Main drops the Array's Strings
             # while that loan is still to be logged.
             "array_result_owned_element_direct_return_invalid": [(10, 16), (16, 26)],
@@ -1905,6 +1911,9 @@ for name, expected in (
     ("array_sort_after_handoff_ref_reader_valid", "4"),
     ("array_handoff_return_value_loop_valid", "3"),
     ("inout_call_after_inner_loop_valid", "3"),
+    ("output_field_store_of_ref_formal_landed_valid", "x1"),
+    ("inout_self_assignment_lands_nothing_valid", "1"),
+    ("array_result_owned_element_inout_escape_landed_valid", "owned value"),
     ("array_handoff_error_return_after_append_valid", "10x"),
     ("defer_array_drop_reads_valid", "42"),
     ("defer_array_drop_fallthrough_valid", "8"),

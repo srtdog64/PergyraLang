@@ -1,3 +1,6 @@
+// Capture keeps an element of its ref Array in its inout output, so the
+// next analysis assigns a copy there; Main may then release the Array's
+// Strings before it prints the output.
 func OwnedRows() -> Array<String>
 {
     let rows: Array<String> = [];
@@ -16,5 +19,5 @@ func Main() -> Void
     var output: String = "";
     Capture(output, rows);
     ArrayDropOwnedStrings(rows);
-    Log(output);
+    Print(output);
 }

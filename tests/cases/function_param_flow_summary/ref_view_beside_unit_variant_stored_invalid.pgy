@@ -24,7 +24,7 @@ func Describe(r: Request) -> Int {
 
 func Run(inout world: World, ref view: View) -> Void {
     world.count = world.count + Describe(Plain) + 1;
-    world.label = view.name;
+    let name: String = view.name; world.label = name;
 }
 
 func Main() -> Int {
