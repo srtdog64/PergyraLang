@@ -21,10 +21,10 @@ compiles natively since `e23761a3a`.
    change, keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
    135 getters whose loan proof fails, 70 local copies whose other side
    changed (mostly an `inout` argument counted whole), 35 read-only callees.
-3. **Borrowed `ref` escapes (400 outside `direct_mir_*`):** mostly a call
-   escape that starts at a formal's value stored by `ArrayPush`, `ArraySet`
-   or `MapSet`, even into a local or returned collection: the slot escape
-   summary counts every builtin store as a call (204 `ref` formals).
+3. **Borrowed `ref` escapes (400 outside `direct_mir_*`):** seeded by
+   builtins with no relation (`StringJoin` and others). Relating it clears
+   196, but one closure already spends 3493 of the 4096 flow units
+   ([record](../evidence/2026-10-21_native_census_string_join_hits_work_cap.md)).
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
