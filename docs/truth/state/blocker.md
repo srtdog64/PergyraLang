@@ -22,19 +22,16 @@ compiles natively since `e23761a3a`.
    and 70 local copies whose other side changed (`inout` counted whole).
 3. **Borrowed `ref` escapes (355 outside `direct_mir_*`):** call escapes
    seeded by other builtins with no relation, inside recursive closures.
-4. **CI prerequisite:** the readonly-map fact-phase unit test passes on
-   main `7cd004fab` but here has 768 faults and a NULL read: its forged
-   faults follow a currency replay `a4362529e` reuses within one demand.
-5. **Strings that leave their owner.** Owned copies land for a formal's
+4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
    ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)).
    Left: 173 opaque crossings, 131 released elements, 23 owned pushes.
-6. **Hidden owners:** `collection_owned_element_requirements_finalize`
+5. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
    So a normal compile never runs the move, lane and named-call owners.
-7. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
+6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
 
 ## Lessons on the record

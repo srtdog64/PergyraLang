@@ -35,7 +35,57 @@
 #include "semantic/collection_owned_element_requirement_owner.h"
 
 static unsigned checks, failures;
-#define CHECK(x) do { checks++; if (!(x)) { failures++; fprintf(stderr, "fact-phase fault line %d: %s\n", __LINE__, #x); } } while (0)
+
+/* Within one demand the flow store reuses a currency check that passed,
+ * since typed inputs are sealed there. These checks forge those inputs, so
+ * each check first forgets every such reuse and answers from a full replay.
+ * The flow summary gate checks the reuse with PGY_VERIFY_FLOW_CURRENCY_MEMO. */
+static SemanticContext *live_contexts[8];
+
+static void forget_flow_reuse(void)
+{
+    for (size_t c = 0; c < sizeof(live_contexts) / sizeof(live_contexts[0]); c++) {
+        FunctionParamFlowSummaryStore *store = live_contexts[c] == NULL ? NULL :
+            live_contexts[c]->function_param_flow_summaries;
+        if (store == NULL) continue;
+        for (size_t i = 0; i < store->count; i++) store->entries[i].output_current_epoch = 0;
+        store->admitted_no_store_replayed_epoch = 0;
+        store->admitted_no_store_replayed_count = 0;
+        for (size_t i = 0; i < store->program_point_index_count; i++) {
+            store->program_point_indexes[i].rows_memo.passed = false;
+            if (store->program_point_indexes[i].claims != NULL)
+                store->program_point_indexes[i].claims->checked = false;
+        }
+    }
+}
+
+static SemanticContext *remember_context(SemanticContext *ctx)
+{
+    for (size_t c = 0; ctx != NULL && c < sizeof(live_contexts) / sizeof(live_contexts[0]); c++)
+        if (live_contexts[c] == NULL) { live_contexts[c] = ctx; break; }
+    return ctx;
+}
+
+static void forget_context(SemanticContext *ctx)
+{
+    for (size_t c = 0; c < sizeof(live_contexts) / sizeof(live_contexts[0]); c++)
+        if (live_contexts[c] == ctx) live_contexts[c] = NULL;
+}
+
+#define semantic_context_create() remember_context(semantic_context_create())
+#define semantic_context_destroy(ctx) (forget_context(ctx), semantic_context_destroy(ctx))
+/* The flow queries the checks make outside CHECK forget the reuse too. */
+#define function_param_flow_summary_for_param(ctx, decl, p) \
+    (forget_flow_reuse(), function_param_flow_summary_for_param(ctx, decl, p))
+#define function_param_flow_summary_demand(lookup, decl, p) \
+    (forget_flow_reuse(), function_param_flow_summary_demand(lookup, decl, p))
+#define semantic_callable_param_escape_summary(decl, p, ctx) \
+    (forget_flow_reuse(), semantic_callable_param_escape_summary(decl, p, ctx))
+#define function_param_flow_no_store_graph(store, decl) \
+    (forget_flow_reuse(), function_param_flow_no_store_graph(store, decl))
+#define function_param_flow_backing_rows_current(store, decl) \
+    (forget_flow_reuse(), function_param_flow_backing_rows_current(store, decl))
+#define CHECK(x) do { forget_flow_reuse(); checks++; if (!(x)) { failures++; fprintf(stderr, "fact-phase fault line %d: %s\n", __LINE__, #x); } } while (0)
 
 typedef struct {
     Lexer *lexer;
@@ -1354,6 +1404,7 @@ static void checked_stdlib_prefix_retention_currency(void)
                 if (fault == 11) program->stable_id++;
                 CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, concat));
                 bool no_store = function_param_flow_no_store_graph(store, factory);
+                forget_flow_reuse();
                 bool backing_current = function_param_flow_backing_rows_current(store, probe);
                 if (no_store || backing_current)
                     fprintf(stderr, "prefix Concat fault=%u stale no_store=%d backing=%d\n",
@@ -2175,6 +2226,7 @@ static void checked_local_owner_constructor_currency(void)
                 if (fault == 7) claim->value_present = false;
                 if (fault == 8) claim->kind_present = false;
                 CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                forget_flow_reuse();
                 bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
                 if (current) fprintf(stderr, "local constructor kind=%zu fault=%u unexpectedly current\n", kind, fault);
                 CHECK(!current);
@@ -2253,16 +2305,19 @@ static void checked_typed_string_result_constructor_currency(void)
             CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, calls[i]));
             CHECK(function_param_flow_no_store_graph(store, ast_program_statement(program, i + 1)));
             SemanticPublishedValue value = semantic_param_publication_value(ctx, calls[i]);
-            /* Substring's exact allocating-reader ABI now issues an
-             * independent String result; this is not Array element drop authority. */
-            if (i == 0) CHECK(value.ok && value.origin_ready && value.copy_escape);
+            /* Substring's exact allocating-reader ABI, and ToString of a
+             * physical scalar (c1df248d6), issue an independent String result;
+             * this is not Array element drop authority. */
+            if (i != 1) CHECK(value.ok && value.origin_ready && value.copy_escape);
             else CHECK(value.ok && !value.origin_ready && !value.copy_escape);
         }
         CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, calls[0], 0));
         for (size_t p = 0; p < 3; p++)
             CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, calls[1], p));
         CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, identity));
-        CHECK(semantic_param_publication_call_analysis_unmodelled(ctx, identity));
+        /* ToString has a checked relation (0fc29f133): a String argument may
+         * be the result, so the call is modelled but not an independent value. */
+        CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, identity));
         SemanticPublishedValue identity_value = semantic_param_publication_value(ctx, identity);
         CHECK(identity_value.ok && !identity_value.origin_ready && !identity_value.copy_escape);
 
@@ -2297,6 +2352,7 @@ static void checked_typed_string_result_constructor_currency(void)
                 if (fault == 13) program->stable_id++;
                 if (fault == 14) ast_call_set_semantic_callee_declared_callable(call, true);
                 CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                forget_flow_reuse();
                 bool current = function_param_flow_backing_rows_current(store, probe);
                 if (current) fprintf(stderr, "typed String result kind=%zu fault=%u unexpectedly current\n", i, fault);
                 CHECK(!current);
@@ -2785,6 +2841,7 @@ static void checked_finish_independence_currency(void)
                 if (fault == 10) semantic_param_publication_invalidate_allocator_binding(ctx, actual);
                 CHECK(!semantic_param_publication_checked_finish_independent(ctx, finish));
                 CHECK(!semantic_indexed_string_independent_result(finish, ctx));
+                forget_flow_reuse();
                 bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
                 if (current) fprintf(stderr, "Finish currency fault=%u unexpectedly current\n", fault);
                 CHECK(!current);
@@ -2982,6 +3039,7 @@ static void checked_readfile_independence_currency(void)
             if (fault == 0) row->indexed_string_source_present = false;
             if (fault == 1) row->indexed_string_source_id = UINT32_MAX;
             source = UINT32_MAX;
+            forget_flow_reuse();
             bool current = semantic_indexed_string_borrow_source_current(call, ctx, &source);
             /* UNKNOWN may be a current raw source, but never source-zero authority. */
             CHECK(fault == 0 ? !current : !(current && source == 0));
@@ -3039,6 +3097,7 @@ static void checked_readfile_independence_currency(void)
                 /* Original claims are now snapshot-owned. No retired Type or
                  * live publication owner participates in the following queries. */
                 semantic_context_destroy(ctx); ctx = NULL;
+                forget_flow_reuse();
                 bool current = semantic_collection_effect_snapshot_current(snapshot, program, &view);
                 CHECK(current && view.independent_string_result_count == 1);
                 ASTNode *execution_root = route == 4 ? statement : log;
@@ -3332,6 +3391,7 @@ static void checked_declared_result_currency(void)
             if (fault == 8) empty->is_async_decl = true;
             if (fault == 9) result->value_type = TYPE_STRING;
             if (fault == 10) routine->return_type = TYPE_STRING;
+            forget_flow_reuse();
             bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
             if (current) fprintf(stderr, "declared result currency fault=%u unexpectedly current\n", fault);
             CHECK(!current);
@@ -3433,6 +3493,7 @@ static void checked_named_string_result_source_currency(void)
             store->hash = shadow;
         }
         size_t *active_hash = store->hash;
+        forget_flow_reuse();
         bool current = function_param_flow_string_result_source_current(ctx, outer, &source_id);
         bool unchanged = store->count == ready_count &&
             store->program_point_index_count == ready_index_count &&
@@ -4604,6 +4665,7 @@ static void checked_declared_physical_result_currency(void)
                 if (fault == 0) claim->physical_scalar = false;
                 if (fault == 1) claim->value_type = TYPE_STRING;
                 if (fault == 2) claim->value_present = false;
+                forget_flow_reuse();
                 bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
                 if (current) fprintf(stderr, "declared physical result value=%zu fault=%u unexpectedly current\n", v, fault);
                 CHECK(!current);
@@ -4649,6 +4711,7 @@ static void checked_declared_array_result_currency(void)
                 if (fault == 0) child->stable_id++;
                 if (fault == 1) claim->value_type = TYPE_INT;
                 if (fault == 2) claim->value_present = false;
+                forget_flow_reuse();
                 bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
                 if (current) fprintf(stderr, "declared array result element=%zu fault=%u unexpectedly current\n", element, fault);
                 CHECK(!current);
@@ -4821,7 +4884,9 @@ static void checked_copy_category_landing(void)
      * illegal. This stage has no fresh copy landing/loan lifetime certificate. */
     CHECK(value.ok && value.category == OWNERSHIP_TYPE_COPY_ONLY);
     CHECK(!value.origin_ready && !value.copy_escape);
-    CHECK(!compiled && context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
+    /* The result lends b's storage (2026-10-19 results lend ref inputs);
+     * Leak's callers prove that loan, so Leak alone is admitted. */
+    CHECK(compiled && !context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -5643,6 +5708,7 @@ static void checked_nominal_result_relations(void)
             CHECK(!current0);
             CHECK(!current1);
             CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, call));
+            forget_flow_reuse();
             bool claims_current = function_param_flow_index_claims_current(ctx, index);
             bool rebuilt = function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, routine, &rechecked);
             if (claims_current || rebuilt) fprintf(stderr, "nominal struct fault=%u claims=%d rebuilt=%d\n", fault, claims_current, rebuilt);
@@ -5971,6 +6037,7 @@ static void checked_indexed_string_field_recipe_currency(void)
         if (fault == 6) recipe->dependencies[0].claims = NULL;
         if (fault == 7) index->claims = NULL;
         source = UINT32_MAX;
+        forget_flow_reuse();
         bool current = semantic_indexed_string_field_current(ctx, recipe);
         bool sourced = semantic_indexed_string_borrow_source_current(
             member, ctx, &source);
@@ -6067,6 +6134,7 @@ static void checked_nominal_unsupported_producers(void)
                     if (fault == 7) snapshot->decl = ast_program_statement(program, 1);
                     if (fault == 8) row->value_present = false;
                     bool complete = semantic_param_publication_nominal_result_complete(ctx, call);
+                    forget_flow_reuse();
                     bool current = semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains);
                     if (complete || current) fprintf(stderr, "nominal class fault=%u complete=%d current=%d\n", fault, complete, current);
                     CHECK(!complete);
@@ -7004,6 +7072,7 @@ static void checked_callable_flow_projection_authority(void)
                     if (fault == 5) receipt->arguments[0].type = TYPE_STRING;
                     if (fault == 6) annotation->data.type.name = "Array";
                     if (fault == 7 && element != NULL) element->name = "Int";
+                    forget_flow_reuse();
                     bool current = semantic_param_publication_channel_binding(ctx, channel);
                     unsigned stale_mask = function_param_flow_summary_for_param(ctx, decl, 0);
                     if (current || stale_mask != SLOT_PARAM_SUMMARY_ALL)
@@ -7616,8 +7685,11 @@ static void checked_return_loan_currency(void)
         for (unsigned fault = 0; fault < 4; fault++) {
             bool call_present = call_value->value_present, call_string = call_value->string_value;
             bool site_present = site_value->value_present, site_string = site_value->string_value;
+            const Type *call_type = call_value->value_type;
+            /* A result of any type may lend a ref input (aa4fc2022), so the
+             * call's premise is its value type, not a String flag. */
             if (fault == 0) call_value->value_present = false;
-            if (fault == 1) call_value->string_value = false;
+            if (fault == 1) call_value->value_type = TYPE_INT;
             if (fault == 2) site_value->value_present = false;
             if (fault == 3) site_value->string_value = false;
             diagnostic_formal = SIZE_MAX;
@@ -7626,6 +7698,7 @@ static void checked_return_loan_currency(void)
             CHECK(!semantic_param_publication_ref_call_current(ctx, row));
             CHECK(!function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
             call_value->value_present = call_present; call_value->string_value = call_string;
+            call_value->value_type = call_type;
             site_value->value_present = site_present; site_value->string_value = site_string;
             CHECK(semantic_param_publication_ref_call_diagnostic_current(ctx, row, &diagnostic_formal));
             CHECK(semantic_param_publication_ref_call_current(ctx, row));
@@ -8055,9 +8128,12 @@ static void checked_conservative_callback_backing(void)
                             .complete = mode != 0, .pending = mode == 1, .building = mode == 2};
                         ReturnedBacking continuing = {.store = store, .lookup = {ctx, program},
                             .decl = apply, .fact = &partial};
-                        size_t prior_work = store->work_units;
+                        /* A frame's node visits are telemetry, not work units
+                         * (2026-10-18 flow budget counts closure entries). */
+                        size_t prior_work = store->work_units, prior_visits = store->closure_frame_node_visits;
                         backing_consumers(&continuing, tail);
-                        CHECK(partial.node_count != 0 && store->work_units > prior_work);
+                        CHECK(partial.node_count != 0 && store->work_units == prior_work &&
+                            store->closure_frame_node_visits > prior_visits);
                         CHECK(!partial.analysis_unsupported);
                         for (size_t n = 0; n < partial.node_count; n++) free(partial.nodes[n].origins);
                         for (size_t b = 0; b < partial.binding_count; b++) {
@@ -10177,6 +10253,7 @@ static void checked_owned_array_result_currency(void)
             if (fault == 5) then_return->data.return_stmt.value = else_value;
             if (fault == 6) header->stable_id++;
             if (fault == 7) call->data.call.arg_count = 0;
+            forget_flow_reuse();
             bool current = semantic_array_storage_owned_result_current(ctx, call);
             if (current)
                 fprintf(stderr, "owned Array result fault=%u unexpectedly current\n", fault);
@@ -10522,6 +10599,7 @@ static void checked_owned_actual_final_currency_fault(unsigned fault)
         if (fault == 8) actual->value_present = false;
         if (fault == 9) ast_identifier_set_binding_syntax_id(argument, binding + 1);
         size_t diagnostics = ctx->diagnostic_count;
+        forget_flow_reuse();
         bool current = semantic_collection_owned_element_requirements_finalize(ctx);
         if (current) fprintf(stderr, "Own actual final currency fault=%u not refused\n", fault);
         CHECK(!current && ctx->diagnostic_count > diagnostics);
@@ -10728,6 +10806,7 @@ static void checked_array_storage_pending_currency(const char *source, bool move
         if (fault == 2) store->entries[index].array_storage_unproved = true;
         if (fault == 3) store->entries[index].output_dependencies_ready = false;
         if (fault == 4) store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+        forget_flow_reuse();
         bool preserved = semantic_array_storage_pending_preserved(ctx, binding, sequence);
         if (preserved)
             fprintf(stderr, "Array pending currency fault=%u saved producer=%u ready=%d state=%u unproved=%d\n",
@@ -12214,16 +12293,20 @@ static void checked_string_field_return_nonlocal_currency(void)
     Lexer *lexer = lexer_create(
         "struct TextNode{name:String;payload:String;}"
         "struct Arena{atom_table:Array<String>;}"
-        "func AtomFor(node:TextNode)->String{"
+        /* AtomFor lends its ref node's field (2026-10-19 results lend ref
+         * inputs). A by-value node would move nodes[i] into AtomFor, and the
+         * loop uses nodes again. The table stays private to Project: returned,
+         * it would carry the loan past nodes. */
+        "func AtomFor(ref node:TextNode)->String{"
         "if node.name!=\"\"{return node.name;}return node.payload;}"
-        "func Project(nodes:Array<TextNode>)->Arena{"
+        "func Project(nodes:Array<TextNode>)->Int{"
         "let atom_table:Array<String> = [\"\"];let i:Int=0;"
         "while i<ArrayLength(nodes){let atom_text:String=AtomFor(nodes[i]);"
         "if atom_text!=\"\"{ArrayPush(atom_table,atom_text);}i=i+1;}"
-        "return Arena(atom_table);}"
+        "return ArrayLength(atom_table);}"
         "func Main()->Void{let name=Concat(\"N\",\"ame\");"
         "let nodes:Array<TextNode> = [TextNode(name,\"\")];"
-        "let arena=Project(nodes);Log(arena.atom_table[1]);}");
+        "Log(Project(nodes));}");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
     SemanticContext *ctx = semantic_context_create();
@@ -12834,6 +12917,7 @@ static void checked_nonowner_risk_currency(void)
         if (fault == 23) risk->uses[0].sink = log_call;
         if (fault == 24) risk->uses[0].binding_id++;
         if (fault == 25) risk->uses[0].shape = AST_CALL;
+        forget_flow_reuse();
         bool current = semantic_indexed_string_nonowner_current(ctx, risk);
         bool unchanged = flow->count == ready_count &&
             flow->program_point_index_count == ready_indexes &&
@@ -12896,8 +12980,11 @@ static void checked_nonowner_terminal_capture_parent(void)
         "Log(NonownerRead(text));"
         "let decoy:func()->Stored=()=>{return Stored([]);};"
         "return Stored(no_texts);}"
+        /* Nothing calls Build. A call with a by-value Arena demands Build's
+         * flow summary, and a lambda in a routine whose result needs a backing
+         * relation leaves that relation unproved: the store fails closed. */
         "func Main()->Void{let arena=Arena([\"red,blue\"]);"
-        "let stored=Build(arena);Log(ArrayLength(stored.values));}"
+        "Log(ArrayLength(arena.atoms));}"
     );
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
@@ -13282,6 +13369,7 @@ static void checked_private_string_independent_result_currency(bool borrowed_rec
             flow->hash = shadow;
         }
         size_t *active_hash = flow->hash;
+        forget_flow_reuse();
         bool current = function_param_flow_string_result_independent_current(ctx, call);
         bool push_current = semantic_indexed_string_private_push_current(ctx, push);
         size_t diagnostics = ctx->diagnostic_count;
@@ -13386,6 +13474,7 @@ static void checked_private_string_independent_result_currency(bool borrowed_rec
         if (fault == 11) receiver_fact->return_elements_owned = true;
         if (fault == 12) receiver_fact->return_elements_source = receiver_binding;
         if (fault == 13) receiver_fact->return_elements_source_id = receiver_id;
+        forget_flow_reuse();
         bool current = semantic_indexed_string_private_push_current(ctx, push);
         if (current) fprintf(stderr, "independent private String fault=%u borrowed=%d remained current\n",
             fault, (int)borrowed_receiver);
@@ -13662,9 +13751,15 @@ int main(void)
     checked_physical_return_retaining_effects("struct TextRecord{text:String} func Probe(ref record:TextRecord,ignored:TextRecord)->Int{let channel:Channel<String> = Channel(1);channel<-record.text;return 1;}", 1, SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE, false);
     checked_physical_return_mutable_output("func Probe(inout output:String,text:String)->Bool{output=text;return true;}", 0);
     checked_physical_return_mutable_output("struct TextRecord{text:String} func Probe(inout output:String,record:TextRecord)->Int{output=record.text;return 1;}", 1);
-    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->String{return Observe(r.text);}", false);
-    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->Option<String>{return Some(Observe(r.text));}", false);
-    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->TextRecord{return TextRecord(Observe(r.text));}", false);
+    /* A result may lend storage of a ref input (2026-10-19): the lender is
+     * admitted, and a caller that changes the owner while it holds the loan
+     * is refused. */
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->String{return Observe(r.text);}", true);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->String{return Observe(r.text);} func Main()->Void{let r:TextRecord=TextRecord(\"a\");let s:String = LeakRecord(r);r.text=\"b\";Print(s);}", false);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->Option<String>{return Some(Observe(r.text));}", true);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->Option<String>{return Some(Observe(r.text));} func Main()->Void{let r:TextRecord=TextRecord(\"a\");let s:Option<String> = LeakRecord(r);r.text=\"b\";match s{case Some(t): Print(t); case None: Print(\"none\");}}", false);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->TextRecord{return TextRecord(Observe(r.text));}", true);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->TextRecord{return TextRecord(Observe(r.text));} func Main()->Void{let r:TextRecord=TextRecord(\"a\");let s:TextRecord = LeakRecord(r);r.text=\"b\";Print(s.text);}", false);
     checked_allocating_reader("func Main()->Void { let text = CharAtN(\"abc\",3,1); Log(text); }");
     checked_allocating_reader("func Main()->Void { let text = SubstringWithLen(\"abc\",3,0,2); Log(text); }");
     checked_allocating_reader("func Main()->Void { let text = StringTrim(\" heap text \"); Log(text); }");
@@ -13684,7 +13779,7 @@ int main(void)
     checked_loop_execution_source("func Main()->Void { for i in 0..1 { Log(i); } }", true);
     checked_publication_faults();
     storage_root_faults();
-    source_diagnostic("borrowed String MapGet return", "func ReadMapValue(ref values: HashMap<String, String>) -> String { return MapGet(values, \"key\"); } func Main() -> Void {}",
+    source_diagnostic("borrowed String MapGet return held past a change", "func ReadMapValue(ref values: HashMap<String, String>) -> String { return MapGet(values, \"key\"); } func Main() -> Void { let m: HashMap<String, String> = MapNew(); MapSet(m, \"key\", \"a\"); let v: String = ReadMapValue(m); MapSet(m, \"key\", \"b\"); Print(v); }",
         PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE);
     source_diagnostic("unresolved HashMap<String, Unknown> MapGet receiver", "func Query(ref values: HashMap<String, Unknown>) -> Int { return MapGet(values, \"key\"); } func Main() -> Void {}",
         PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH);
