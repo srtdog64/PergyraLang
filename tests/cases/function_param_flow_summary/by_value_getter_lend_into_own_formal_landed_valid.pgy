@@ -1,0 +1,31 @@
+// Get lends its holder's rows, and Main hands that loan to Take's own
+// formal, which keeps it. An own argument must be a named variable, so no
+// copy can stand there; the next analysis copies the loan where Get makes
+// it, and the holder's rows stay its own.
+struct Rows {
+    items: Array<Int>;
+}
+
+struct Holder {
+    rows: Rows;
+    n: Int;
+}
+
+func Take(own rows: Rows, inout out: Array<Rows>) -> Void {
+    ArrayPush(out, rows);
+}
+
+func Get(holder: Holder) -> Rows {
+    return holder.rows;
+}
+
+func Main() -> Int {
+    let holder: Holder = Holder(Rows([1]), 0);
+    var out: Array<Rows> = [];
+    let rows: Rows = Get(holder);
+    Take(rows, out);
+    var first: Rows = out[0];
+    ArrayPush(first.items, 5);
+    Print(ToString(ArrayLength(holder.rows.items)));
+    return 0;
+}

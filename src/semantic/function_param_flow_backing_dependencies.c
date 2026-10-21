@@ -516,9 +516,9 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                 else {
                     FuncParam *param = ast_func_param(callee, formal);
                     unsigned mask = function_param_flow_summary_for_call(&state->lookup, node, i);
-                    /* A copy can stand in for an argument a callee only
-                     * receives; an inout one is the caller's own place. */
-                    ASTNode *carrier = param != NULL && param->mode != PARAM_MODE_MUT_REF ? arg : NULL;
+                    /* A copy can stand in for an argument a by-value formal receives;
+                     * inout is the caller's place, own and ref take a named variable. */
+                    ASTNode *carrier = param != NULL && param->mode == PARAM_MODE_DEFAULT ? arg : NULL;
                     backing_effect_carried(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE), carrier);
                     /* A loan handed to a formal whose storage proof fails changes the
                      * loan's owner: the move owner sees only access paths. */

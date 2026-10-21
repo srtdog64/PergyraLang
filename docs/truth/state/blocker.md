@@ -5,28 +5,27 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-22 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 961 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 956 downgraded
 refusals with every final owner run
-([census record](../evidence/2026-10-22_native_census_moved_argument_copy.md)).
+([census record](../evidence/2026-10-22_native_census_loan_copy_carrier.md)).
 A census runs four analyses in 840 to 1150 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 291 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 289 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (218 outside `direct_mir_*`)** of values `Clone` copies only by
-   value (`AstTreeArtifact` and others holding Arrays of structs); used-again
-   moves of others are copied ([decision](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)).
-   And 70 local copies whose other side changed (`inout` counted whole).
-3. **Borrowed `ref` escapes (146 outside `direct_mir_*`):** about half are
+2. **Moves (217 outside `direct_mir_*`)** of values `Clone` copies only by
+   value, as `AstTreeArtifact` ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
+   and 70 local copies whose other side changed (`inout` counted whole).
+3. **Borrowed `ref` escapes (149 outside `direct_mir_*`):** about half are
    getter loans handed to an `inout` formal (a grower), half seeded by
    stores into an `inout` output or calls with no relation.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
    ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)).
-   Left: 86 opaque crossings, 8 released elements, 23 owned pushes.
+   Left: 85 opaque crossings, 8 released elements, 23 owned pushes.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
