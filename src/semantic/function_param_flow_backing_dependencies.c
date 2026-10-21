@@ -95,6 +95,15 @@ bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue va
     return value.ok && !value.meta && value.type != NULL && value.type->kind == TYPE_KIND_ENUM &&
         semantic_classify_ownership_type(value.type, state->store->ctx) == OWNERSHIP_TYPE_COPY_ONLY;
 }
+
+/* A bare unit variant is bound to its enum's declaration (a payload variant
+ * is a constructor), and holds no storage whatever the other variants do. */
+static bool backing_unit_variant(ReturnedBacking *state, SemanticPublishedValue value, uint32_t binding)
+{
+    ASTNode *decl = value.ok && !value.meta && value.type != NULL && value.type->kind == TYPE_KIND_ENUM
+        ? semantic_find_enum_decl_by_name(state->store->ctx, value.type->name) : NULL;
+    return decl != NULL && decl->type == AST_ENUM_DECL && binding != 0 && ast_node_stable_id(decl) == binding;
+}
 void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement,
     ASTNode *carrier)
 {
@@ -163,7 +172,8 @@ const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
             (value.ok && (value.meta || value.origin_ready))) return &zero;
         if (!value.ok || binding == 0) { fact->complete = false; return NULL; }
         FunctionParamFlowBackingBinding *source = backing_identifier_row(state, node);
-        if (source == NULL && backing_storage_free_enum(state, value)) return &zero;
+        if (source == NULL && (backing_storage_free_enum(state, value) ||
+                backing_unit_variant(state, value, binding))) return &zero;
         if (source == NULL) { fact->complete = false; return NULL; }
         source->origin_read_epoch = fact->epoch;
         uint64_t bits = source->origins[0];

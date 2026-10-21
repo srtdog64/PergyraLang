@@ -6,10 +6,10 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1070 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1050 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-21_native_census_loop_walk_push_lands_next_analysis.md)).
+[census record](../evidence/2026-10-21_native_census_unit_variant_holds_no_storage.md)).
 A census runs four analyses in about 820 s on an idle machine. The CI
 harness manifest compiles natively since `e23761a3a`.
 
@@ -20,7 +20,7 @@ harness manifest compiles natively since `e23761a3a`.
 2. **Moves (266 outside `direct_mir_*`)**, mostly callees that change,
    keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
    and 70 local copies whose other side changed (`inout` counted whole).
-3. **Borrowed `ref` escapes (193 outside `direct_mir_*`):** seeded by stores
+3. **Borrowed `ref` escapes (150 outside `direct_mir_*`):** seeded by stores
    into an `inout` output, builtins with no relation, and own/inout handoffs.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed

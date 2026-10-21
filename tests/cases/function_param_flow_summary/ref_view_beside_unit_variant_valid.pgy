@@ -1,0 +1,45 @@
+// Run reads a bare unit variant, Plain, of an enum whose other variant
+// holds an Array. The variant holds no storage, so Run's frame stays
+// complete and its ref view does not escape into the inout output; Outer
+// may pass its own ref on.
+enum Request {
+    Plain,
+    Detailed(Array<String>),
+}
+
+struct World {
+    count: Int;
+}
+
+struct View {
+    name: String;
+}
+
+func Ready(ref view: View) -> Bool {
+    return view.name != "";
+}
+
+func Describe(r: Request) -> Int {
+    match r {
+        case Plain: return 0;
+        case Detailed(rows): return ArrayLength(rows);
+    }
+    return 0;
+}
+
+func Run(inout world: World, ref view: View) -> Void {
+    if !Ready(view) { return; }
+    world.count = world.count + Describe(Plain) + 1;
+}
+
+func Outer(inout world: World, ref view: View) -> Void {
+    Run(world, view);
+}
+
+func Main() -> Int {
+    var world: World = World(0);
+    let view: View = View("x");
+    Outer(world, view);
+    Print(ToString(world.count));
+    return 0;
+}

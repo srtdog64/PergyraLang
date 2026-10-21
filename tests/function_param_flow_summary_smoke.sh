@@ -437,6 +437,9 @@ release_lifetime_refusals = {
     "defer_own_handoff_cleanup_kept_invalid": [(*borrow_refusal, 21, 17)],
     # A lambda falls through to its own defer (9:27).
     "defer_array_drop_lambda_kept_invalid": [(*borrow_refusal, 9, 27)],
+    # Storing the ref view into the inout output escapes it (25:6, 33:16).
+    "ref_view_beside_unit_variant_stored_invalid": [
+        (*borrow_refusal, 25, 6), (*borrow_refusal, 33, 16)],
     # A by-value formal lends what a read-and-return call takes from it when
     # the routine uses it again, and only while the loan stays here and
     # nothing changes it: a push of the loan into an inout Array (14:30), a
@@ -937,6 +940,8 @@ paired = (
     ("string_inout_literal_then_escape_call_landed_valid", True),
     ("string_inout_concat_copy_then_escape_call_valid", True),
     ("string_push_after_loop_walk_landed_valid", True),
+    ("ref_view_beside_unit_variant_valid", True),
+    ("ref_view_beside_unit_variant_stored_invalid", False),
     ("string_inout_returned_literal_then_escape_call_invalid", False),
     ("string_inout_unwrapped_literal_then_escape_call_invalid", False),
     ("string_inout_returned_literal_then_own_release_invalid", False),
@@ -1909,6 +1914,7 @@ for name, expected in (
     ("string_inout_helper_then_escape_call_landed_valid", "1"),
     ("string_inout_concat_copy_then_escape_call_valid", "ab"),
     ("string_push_after_loop_walk_landed_valid", "cd"),
+    ("ref_view_beside_unit_variant_valid", "1"),
     ("string_inout_literal_then_escape_call_landed_valid", "1"),
     ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
 ):

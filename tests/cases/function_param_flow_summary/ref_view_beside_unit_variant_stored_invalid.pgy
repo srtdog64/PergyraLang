@@ -1,0 +1,36 @@
+// The same routine, but it stores the ref view's name into the inout
+// output: that is an escape, and Run and its call are refused (25:6, 33:16).
+enum Request {
+    Plain,
+    Detailed(Array<String>),
+}
+
+struct World {
+    count: Int;
+    label: String;
+}
+
+struct View {
+    name: String;
+}
+
+func Describe(r: Request) -> Int {
+    match r {
+        case Plain: return 0;
+        case Detailed(rows): return ArrayLength(rows);
+    }
+    return 0;
+}
+
+func Run(inout world: World, ref view: View) -> Void {
+    world.count = world.count + Describe(Plain) + 1;
+    world.label = view.name;
+}
+
+func Main() -> Int {
+    var world: World = World(0, "");
+    let view: View = View(Concat("x", ""));
+    Run(world, view);
+    Print(world.label);
+    return 0;
+}
