@@ -30,3 +30,11 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-20 | [A formal's storage an output keeps is copied where it is stored](2026-10-20_formal_storage_kept_by_output_is_copied.md) | in force |
 | 2026-10-20 | [A loan is copied where it is made when its exit cannot be](2026-10-20_loan_copied_where_made_when_its_exit_cannot_be.md) | in force |
 | 2026-10-21 | [Loop-local Array retirement preserves the birth check](2026-10-21_loop_local_array_cleanup.md) | bounded implementation contract |
+| 2026-10-21 | [ArraySort and ArrayReverse permute their receiver in place](2026-10-21_array_sort_permutes_in_place.md) | in force |
+| 2026-10-21 | [Every loan of a path is checked](2026-10-21_every_loan_of_a_path_is_checked.md) | in force |
+| 2026-10-21 | [A flow pass evaluates only entries whose reads changed](2026-10-21_flow_passes_evaluate_only_changed_reads.md) | in force |
+| 2026-10-21 | [A change through one side of a local copy refuses the other](2026-10-21_local_copies_refuse_the_other_side_after_a_change.md) | in force |
+| 2026-10-21 | [A String argument no proof admits is copied at the call](2026-10-21_string_argument_no_proof_admits_is_copied.md) | in force |
+| 2026-10-21 | [Copy a moved argument the caller uses again?](2026-10-21_open_copy_a_moved_argument_used_again.md) | OPEN |
+| 2026-10-21 | [The rows check's intent-step owner clauses lost their falsifier](2026-10-21_open_intent_step_owner_clauses_unfalsified.md) | OPEN |
+| 2026-10-21 | [Each formal's Array preservation verdict is published](2026-10-21_array_preservation_published_per_formal.md) | in force |

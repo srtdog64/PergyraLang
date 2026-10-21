@@ -1,15 +1,13 @@
 # Current blocker
 
-Owner: Claude lane (main-line work since 2026-10-18,
-[decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-21 KST on branch `claude/p0-native-checker` (local commits, not
-pushed).
+Owner: Claude lane, main-line work since 2026-10-18
+([decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
+2026-10-21 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1050 downgraded
-refusals with every final owner run (2532 before call results became
-paths of a formal;
-[census record](../evidence/2026-10-21_native_census_unit_variant_holds_no_storage.md)).
+refusals with every final owner run
+([census record](../evidence/2026-10-21_native_census_unit_variant_holds_no_storage.md)).
 A census runs four analyses in about 820 s on an idle machine. The CI
 harness manifest compiles natively since `e23761a3a`.
 
@@ -33,8 +31,10 @@ harness manifest compiles natively since `e23761a3a`.
    So a normal compile never runs the move, lane and named-call owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, `graph.blocks[0].name = x` (C emits a non-lvalue), and an
-   `Array<String>` born `[]` in a `while` body, which MIR validation refuses
-   (`invalid-empty-birth`; the canonical has one).
+   `Array<String>` born `[]` in a `while` body. MIR now retires one after
+   builtin uses (GPT `c9513d5b2`); a declared call needs the Array verdict
+   the snapshot now publishes ([field](../decisions/2026-10-21_array_preservation_published_per_formal.md)),
+   which GPT carries into MIR next.
 7. **Preserved Array storage (43 outside `direct_mir_*`):** calls after an
    earlier call that may keep or rebind the Array (`EmitStmtList` 8).
 
@@ -50,8 +50,8 @@ harness manifest compiles natively since `e23761a3a`.
 - **A defer runs at every exit, not where it is written.** The branch admitted
   `defer { ArrayDrop(rows); }` then `return Keep(rows)` (ASan heap-use-after-free;
   [record](../evidence/2026-10-21_defer_release_admitted_at_each_exit.md)).
-- **Emitted code frees nothing** on `ArraySet`, reassignment or a move yet,
-  so most owner violations leak instead of failing at run time.
+- **Emitted code frees nothing** on `ArraySet`, reassignment or a move: most
+  owner violations leak instead of failing at run time.
 
 ## CI comparison
 
