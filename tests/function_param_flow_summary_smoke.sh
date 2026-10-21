@@ -931,8 +931,9 @@ paired = (
     ("string_param_field_opaque_call_valid", True),
     ("string_own_param_field_opaque_call_invalid", False),
     ("string_inout_helper_repeat_call_valid", True),
-    ("string_inout_helper_then_own_release_invalid", False),
-    ("string_inout_helper_then_escape_call_invalid", False),
+    ("string_inout_helper_then_own_release_landed_valid", True),
+    ("string_inout_helper_then_escape_call_landed_valid", True),
+    ("string_inout_literal_then_escape_call_invalid", False),
     ("default_aggregate_move_reassign_valid", True),
     ("default_aggregate_move_reuse_invalid", False),
     ("default_aggregate_move_loop_reuse_invalid", False),
@@ -1899,6 +1900,8 @@ for name, expected in (
     ("defer_own_handoff_cleanup_reads_valid", "42"),
     ("defer_array_drop_lambda_reads_valid", "7"),
     ("defer_array_drop_struct_reader_valid", "42"),
+    ("string_inout_helper_then_own_release_landed_valid", ""),
+    ("string_inout_helper_then_escape_call_landed_valid", "1"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

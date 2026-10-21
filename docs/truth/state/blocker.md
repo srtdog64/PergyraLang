@@ -6,10 +6,10 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1140 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1125 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-21_native_census_handoff_judged_by_earlier_calls.md)).
+[census record](../evidence/2026-10-21_native_census_cloned_push_keeps_elements_owned.md)).
 A census runs four analyses in about 820 s on an idle machine. The CI
 harness manifest compiles natively since `e23761a3a`.
 
@@ -35,7 +35,7 @@ harness manifest compiles natively since `e23761a3a`.
    receiver, `graph.blocks[0].name = x` (C emits a non-lvalue), and an
    `Array<String>` born `[]` in a `while` body, which MIR validation refuses
    (`invalid-empty-birth`; the canonical has one).
-7. **Preserved Array storage (66 outside `direct_mir_*`):** calls after an
+7. **Preserved Array storage (53 outside `direct_mir_*`):** calls after an
    earlier call that may keep or rebind the Array (`EmitStmtList` 8).
 
 ## Lessons on the record

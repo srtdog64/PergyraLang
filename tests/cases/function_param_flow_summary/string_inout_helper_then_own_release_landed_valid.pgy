@@ -1,5 +1,5 @@
-// The helper stores a borrowed String literal into the array. Handing the
-// array to an owning callee that releases its elements would free the literal.
+// The helper's formal String goes into an inout output, so it lands as an
+// owned copy: Drain releases that copy, not the caller's literal.
 func Keep(inout out: Array<String>, text: String) -> Void {
     ArrayPush(out, text);
 }

@@ -1,5 +1,5 @@
-// After a helper leaves a borrowed String in the array, a second callee that
-// lets the array escape into longer-lived storage still needs owned elements.
+// The helper's formal String lands as an owned copy in the array, so the
+// second callee may keep the array: every element it holds is owned.
 func Keep(inout out: Array<String>, text: String) -> Void {
     ArrayPush(out, text);
 }

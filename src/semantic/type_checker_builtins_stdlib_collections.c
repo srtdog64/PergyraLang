@@ -105,8 +105,15 @@ semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
     ASTNode *callee = ast_call_callee(call);
     StdlibCollectionBuiltinKind kind = stdlib_collection_builtin_kind(ast_identifier_name(callee));
     bool length = kind == STDLIB_COLLECTION_ARRAY_LENGTH;
-    if (!length && kind != STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) return false;
     if (ast_call_arg_count(call) != (length ? 1u : 2u)) return false;
+    /* A plain push of a fresh Clone, as a landed copy is, adds a String
+     * nothing else owns, the same as an owned push. */
+    uint32_t builtin = 0;
+    const ASTNode *pushed = length ? NULL : ast_call_argument(call, 1);
+    bool cloned = kind == STDLIB_COLLECTION_ARRAY_PUSH && pushed != NULL
+        && pushed->type == AST_CALL && ast_call_semantic_callee_builtin_kind(pushed, &builtin)
+        && builtin == BUILTIN_CLONE;
+    if (!length && !cloned && kind != STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) return false;
     SemanticPublishedValue array = semantic_param_publication_value(ctx, ast_call_argument(call, 0));
     SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
     if (!array.ok || array.meta || !type_is_constructed_named(array.type, "Array")
