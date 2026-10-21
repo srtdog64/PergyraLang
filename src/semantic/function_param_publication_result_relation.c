@@ -139,6 +139,14 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
         *external_retains = false;
         return true;
     }
+    if (row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib && row->target_name != NULL &&
+        (strcmp(row->target_name, "StringJoin") == 0 || strcmp(row->target_name, "Join") == 0)) {
+        /* StringJoin (and Join) copies every part into one new String
+         * (runtime StringJoin) and keeps neither argument. */
+        *result_depends = false;
+        *external_retains = false;
+        return true;
+    }
     if (row->builtin == BUILTIN_ALLOCATOR_POOL) {
         /* A pool is new storage sized by its scalar capacity; it keeps and
          * depends on nothing. Text finished with it is the allocator lane

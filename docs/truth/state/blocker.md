@@ -6,10 +6,10 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 2027 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1832 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-21_native_census_array_sort_modelled.md)).
+[census record](../evidence/2026-10-21_native_census_string_join_related.md)).
 A census runs four analyses in about 820 s on an idle machine. The CI harness manifest
 compiles natively since `e23761a3a`.
 
@@ -17,24 +17,24 @@ compiles natively since `e23761a3a`.
 
 1. **`direct_mir_*` routes:** 600 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (413 outside `direct_mir_*`).** Whole input: 254 callees that
-   change, keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
-   135 getters whose loan proof fails, 70 local copies whose other side
-   changed (mostly an `inout` argument counted whole), 35 read-only callees.
-3. **Borrowed `ref` escapes (400 outside `direct_mir_*`):** seeded by
-   builtins with no relation (`StringJoin` and others). Relating it clears
-   196, but one closure already spends 3493 of the 4096 flow units
-   ([record](../evidence/2026-10-21_native_census_string_join_hits_work_cap.md)).
-4. **Strings that leave their owner.** Owned copies land for a formal's
+2. **Moves (268 outside `direct_mir_*`)**, mostly callees that change,
+   keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
+   and 70 local copies whose other side changed (`inout` counted whole).
+3. **Borrowed `ref` escapes (355 outside `direct_mir_*`):** call escapes
+   seeded by other builtins with no relation, inside recursive closures.
+4. **CI prerequisite:** the readonly-map fact-phase unit test passes on
+   main `7cd004fab` but here has 768 faults and a NULL read: its forged
+   faults follow a currency replay `a4362529e` reuses within one demand.
+5. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
    ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)).
-   Left: 174 opaque crossings, 131 released elements, 23 owned pushes.
-5. **Hidden owners:** `collection_owned_element_requirements_finalize`
+   Left: 173 opaque crossings, 131 released elements, 23 owned pushes.
+6. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
    So a normal compile never runs the move, lane and named-call owners.
-6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
+7. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, and `graph.blocks[0].name = x` (C emits a non-lvalue).
 
 ## Lessons on the record

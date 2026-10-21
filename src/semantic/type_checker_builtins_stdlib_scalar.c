@@ -121,6 +121,8 @@ stdlib_scalar_check_string_join(ASTNode *expr, const char *name,
             "StringJoin requires Array<String> as first argument");
     }
     stdlib_scalar_require_string_arg(expr, 1, ctx);
+    if (!ast_call_set_semantic_value_type_name_copy(expr, "String"))
+        semantic_error(ctx, expr, "StringJoin result type snapshot allocation failed");
     return TYPE_STRING;
 }
 

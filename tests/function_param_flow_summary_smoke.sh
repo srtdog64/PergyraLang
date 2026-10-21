@@ -359,6 +359,12 @@ release_lifetime_refusals = {
     # A Slice view is its receiver's storage, so Window lends its Array;
     # MakeWindow returns that loan past the Array it owns.
     "slice_view_ref_return_invalid": [(*borrow_refusal, 9, 5)],
+    # A routine named Join is not the stdlib one: StringJoin's relation does
+    # not apply, so Label still returns a part of its borrowed Array.
+    "string_join_shadowed_returns_part_invalid": [
+        (*borrow_refusal, 5, 17), (*borrow_refusal, 4, 6), (*borrow_refusal, 4, 6),
+        (*borrow_refusal, 8, 6), (*borrow_refusal, 8, 6), (*borrow_refusal, 9, 17),
+        (*borrow_refusal, 14, 31)],
     # LabelOf's Label lends its borrowed aggregate; MakeLabel returns that
     # loan past the aggregate it owns.
     "aggregate_string_loan_struct_escape_invalid": [(*borrow_refusal, 29, 5)],
@@ -1053,6 +1059,8 @@ paired = (
     ("intent_step_sorted_copy_route_valid", True),
     ("slice_view_scalar_read_valid", True),
     ("slice_view_ref_return_invalid", False),
+    ("string_join_borrowed_parts_valid", True),
+    ("string_join_shadowed_returns_part_invalid", False),
     ("aggregate_string_loan_getter_valid", True),
     ("aggregate_string_loan_struct_escape_invalid", False),
     ("aggregate_string_loan_local_owner_invalid", False),

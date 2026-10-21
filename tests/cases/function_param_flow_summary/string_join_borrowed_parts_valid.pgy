@@ -1,0 +1,22 @@
+// StringJoin and its alias Join copy every part into a new String and keep
+// neither argument, so a result built from borrowed parts carries nothing
+// of the borrow, and the caller still owns its parts.
+func Label(ref parts: Array<String>) -> String {
+    return StringJoin(parts, ", ");
+}
+
+func Title(ref parts: Array<String>) -> String {
+    return Join(parts, " / ");
+}
+
+func Main() -> Int {
+    let colors: Array<String> = ["red", "green"];
+    let label: String = Label(colors);
+    Print(label);
+    Print(colors[0]);
+    let shapes: Array<String> = ["square", "circle"];
+    let title: String = Title(shapes);
+    Print(title);
+    Print(shapes[1]);
+    return 0;
+}

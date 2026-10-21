@@ -1,0 +1,17 @@
+// A routine named Join shadows the stdlib alias of StringJoin and returns
+// one of its parts. The stdlib relation does not apply to it, so Label
+// returns a part of its borrowed Array and the borrow escapes.
+func Join(ref parts: Array<String>, separator: String) -> String {
+    return parts[0];
+}
+
+func Label(ref parts: Array<String>) -> String {
+    return Join(parts, ", ");
+}
+
+func Main() -> Int {
+    let parts: Array<String> = ["red", "green"];
+    let label: String = Label(parts);
+    Print(label);
+    return 0;
+}
