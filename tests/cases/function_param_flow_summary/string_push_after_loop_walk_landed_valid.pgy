@@ -1,0 +1,66 @@
+// The inner loop is walked twice. Its first walk pushes the arena's String
+// as borrowed, before Fill gives generic_names a history; the second walk
+// wants an owned copy. The push lands in the next analysis, an owned push
+// from its first walk, and C and LLVM print the same.
+struct Arena {
+    atoms: Array<String>;
+}
+
+struct Artifact {
+    count: Int;
+    arena: Arena;
+}
+
+struct Facts {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func AtomText(arena: Arena, id: Int) -> Option<String> {
+    if id < 0 || id >= ArrayLength(arena.atoms) { return None; }
+    return Some(arena.atoms[id]);
+}
+
+func Fill(arena: Arena, inout names: Array<String>) -> Bool {
+    if ArrayLength(arena.atoms) == 0 { return false; }
+    ArrayPush(names, arena.atoms[0]);
+    return true;
+}
+
+func Build(artifact: Artifact) -> Facts {
+    let names: Array<String> = [];
+    let ok: Bool = true;
+    let node: Int = 0;
+    while node < artifact.count && ok {
+        let generic_names: Array<String> = [];
+        let child: Int = 0;
+        while child < 3 && ok {
+            if child == 0 {
+                if !Fill(artifact.arena, generic_names) {
+                    ok = false;
+                    continue;
+                }
+                child = child + 1;
+                continue;
+            }
+            let name_opt: Option<String> = AtomText(artifact.arena, child - 1);
+            if !IsSome(name_opt) || StringLength(UnwrapOption(name_opt)) == 0 {
+                ok = false;
+                continue;
+            }
+            ArrayPush(names, UnwrapOption(name_opt));
+            child = child + 1;
+        }
+        node = node + 1;
+    }
+    return Facts(ok, names);
+}
+
+func Main() -> Int {
+    let atoms: Array<String> = [];
+    ArrayPushOwnedString(atoms, Concat("a", "b"));
+    ArrayPushOwnedString(atoms, Concat("c", "d"));
+    let f: Facts = Build(Artifact(1, Arena(atoms)));
+    Print(f.names[1]);
+    return 0;
+}

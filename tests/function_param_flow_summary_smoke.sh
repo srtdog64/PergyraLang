@@ -140,6 +140,7 @@ landed_at_exit = {
 # `inout` output lands in the first, a String store or getter loan selection
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
+    "string_push_after_loop_walk_landed_valid": 1,
     "string_element_tostring_opaque_call_landed_valid": 1,
     "string_argument_kept_copy_landed_valid": 1,
     "formal_string_store_landing_ref_push_valid": 0,
@@ -935,6 +936,7 @@ paired = (
     ("string_inout_helper_then_escape_call_landed_valid", True),
     ("string_inout_literal_then_escape_call_landed_valid", True),
     ("string_inout_concat_copy_then_escape_call_valid", True),
+    ("string_push_after_loop_walk_landed_valid", True),
     ("string_inout_returned_literal_then_escape_call_invalid", False),
     ("string_inout_unwrapped_literal_then_escape_call_invalid", False),
     ("string_inout_returned_literal_then_own_release_invalid", False),
@@ -1906,6 +1908,7 @@ for name, expected in (
     ("string_inout_helper_then_own_release_landed_valid", ""),
     ("string_inout_helper_then_escape_call_landed_valid", "1"),
     ("string_inout_concat_copy_then_escape_call_valid", "ab"),
+    ("string_push_after_loop_walk_landed_valid", "cd"),
     ("string_inout_literal_then_escape_call_landed_valid", "1"),
     ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
 ):

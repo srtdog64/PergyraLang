@@ -283,8 +283,14 @@ type_check_stdlib_array_call(ASTNode *expr,
             semantic_indexed_string_borrow_push_argument(arg1, expr, ctx, &copy_landing);
             if (copy_landing) {
                 /* The push stores an owned copy of a String no owner proves
-                 * alive for the receiver: the call becomes ArrayPushOwnedString,
-                 * with that operation's receiver admission and effect. */
+                 * alive for the receiver: the call becomes ArrayPushOwnedString.
+                 * Sealed as a plain push by a loop's earlier walk, it lands in
+                 * the next analysis from its first walk, refused in this one. */
+                if (ast_call_semantic_collection_effect(expr, NULL, NULL, NULL)) {
+                    semantic_formal_string_store_landing_select_owned(ctx, expr);
+                    semantic_error(ctx, arg1, "A String an earlier loop walk pushed as borrowed now needs an owned copy");
+                    return TYPE_UNKNOWN;
+                }
                 if (!semantic_collection_admit_owned_string_push(arg0, ctx)) {
                     /* A formal's String can still land as a Clone a plain
                      * push keeps, in a second analysis. */
