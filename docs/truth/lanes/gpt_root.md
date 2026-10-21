@@ -10,8 +10,12 @@ Since 2026-10-16 ([decision](../decisions/2026-10-16_main_only_integration.md)).
 - Validation copy: see [identified gates](../state/gates.md). Older Linux
   roots are lookup evidence, not the current source/executable owner.
 - Current native candidate and evidence: [main](../state/main.md).
-- Next: consume the semantic producer after Claude's publication commit;
-  [field proposal, complete consumer changes and shared gate](../../agent_work_directives/mir_loop_cleanup_array_preservation_projection_2026-10-21.md).
-  Do not infer Array preservation from a Slot mask or pre-empt that producer.
-- No independent intermediate review was launched for this incomplete part.
+- Published Array verdict is consumed by native MIR; do not repeat that
+  implementation. [Plan](../../agent_work_directives/mir_array_preservation_consumer_integration_2026-10-22.md)
+  and [integrated run/repair evidence](../evidence/2026-10-22_array_preservation_native_consumer_integration.md).
+- Claude `c877a46e4` is integrated with the consumer on main. Its next
+  getter-loan classification stays Claude-owned; do not copy active WIP.
+- Next: the current canonical/installed-driver blocker, not a new precision
+  track. General self-host cleanup consumption/Task B remain open.
+- No independent intermediate review or extra implementation track launched.
   No new implementation branch/worktree or parallel track was created.

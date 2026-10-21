@@ -1,8 +1,8 @@
 # Gates
 
-Owner: GPT root lane. Observed 2026-10-21 KST on the native loop candidate
+Owner: GPT root lane. Observed 2026-10-22 KST on the integrated source
 identified in [main](main.md). Full receipts and executable hashes:
-[native loop cleanup](../evidence/2026-10-21_native_mir_loop_local_cleanup.md).
+[Array consumer and loan/copy integration](../evidence/2026-10-22_array_preservation_native_consumer_integration.md).
 
 ## Finish line (OPEN)
 
@@ -18,16 +18,19 @@ Ordinary cascading errors are not that census or distinct-defect progress.
 
 ## Scoped regression evidence, not closure
 
-Build copy: `/root/gpt-loop-local-20261021-A`, non-Git archive copy.
+Build copy: `/root/gpt-mir-preservation-20261022`, pinned non-Git archive copy.
 
 | Receipt | Observed result |
 |---|---|
-| Native loop gate | PASS C/LLVM; borrowed/owned payloads, return/continue/break, nested loops, explicit drops; escape/defer refuse |
-| MIR / AIR units | 691/0 and 161/0 |
-| MIR ASan+UBSan | 691/0, unit-suite leaks OFF |
-| Emitted cleanup fixture | C ASan+UBSan; LLVM IR ASan + runtime ASan/UBSan; both leaks ON, stderr empty |
+| Native loop gate | PASS C/LLVM, including later-declared default/ref readers and Void observer; existing exits/drops retained, escape/defer refuse |
+| MIR / AIR / HIR units | 702/0, 163/0, 58/0; stale/missing/cross-formal/duplicate evidence faults included |
+| Semantic / transpile / DIR / RIR | 3237/0, 1014/0, 15/0, 44/0 |
+| MIR/AIR ASan+UBSan | 702/0 and 163/0, unit-suite leaks OFF |
+| Emitted declared-call cleanup | C ASan+UBSan; LLVM IR ASan + runtime ASan/UBSan; both leaks ON, stderr empty |
+| 28 move/loan runtime controls | emitted C ASan+UBSan exact outputs, leaks OFF; original24 plus four follow-ups |
+| Named copy-under-loan UAF | reproduced before c877; same input now prints75 under ASan; non-deep-copy counterpart refuses C/LLVM without artifacts |
 | Function-flow target | PASS ordinary and currency/worklist modes; phase13429/0, memo48/0, worklist31/0 |
-| Speculation / header / documentation | PASS; documentation state/lane sizes checked at this update |
+| Header / documentation / diff | PASS; documentation state/lane sizes checked at this update |
 
 ## Integration limits, not waived
 
@@ -35,12 +38,11 @@ Build copy: `/root/gpt-loop-local-20261021-A`, non-Git archive copy.
 |---|---|
 | `make test-mir` | RED at match-binding installed-driver step; units, loop, topology and destructure gates passed |
 | String-result control | RED in semantic analysis; same refusal also seen with existing Claude compiler |
-| Self-host cleanup reader | source guard added; runtime probe blocked by imported borrowed-ref refusals |
-| Declared non-retaining call | still refuses loop rebirth until semantic publication reaches MIR |
-| Part-level independent review | not run; producer/consumer part is still incomplete |
+| Self-host cleanup reader | legacy reader still refuses this instruction; no executed general installed consumer |
+| Part-level independent review | not run; scoped native tests are not safety/V1 closure |
 
-[Next producer/consumer handoff](../../agent_work_directives/mir_loop_cleanup_array_preservation_projection_2026-10-21.md):
-Claude publishes the existing preservation result; GPT carries/consumes it.
+[Native producer/consumer connection](../../agent_work_directives/mir_array_preservation_consumer_integration_2026-10-22.md)
+is implemented. Resume the current canonical/installed-driver blocker.
 Task B has no route deletion or installed general-emitter evidence yet.
 This native candidate is not self-host substitution or V1 closure.
 

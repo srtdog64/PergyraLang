@@ -1,14 +1,14 @@
 # Main and CI
 
-Owner: GPT root lane. Checked 2026-10-21 KST after the native loop candidate.
+Owner: GPT root lane. Checked 2026-10-22 KST after native consumer integration.
 
 | Item | Observed value |
 |---|---|
-| Compiler source checkpoint | `c9513d5b27f4038e3a548109fc57e19254208177` |
-| Integrated source parent | `fa66a2fb231bb6b5e1f15e0ffa8a2f175f89194d`, including Claude `914b3bbb0` |
-| Compiler status | native loop-cleanup candidate; [evidence and remaining boundaries](../evidence/2026-10-21_native_mir_loop_local_cleanup.md) |
-| Published main, verified 2026-10-21 | `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` |
-| History relation | published main is an ancestor of the compiler checkpoint; 167 local commits ahead, 0 behind at that checkpoint |
+| Compiler source checkpoint | `f25b7bb6e286944c99c89c0dd8a53527f9c2564a` |
+| Integrated sources | MIR consumer `cc560937b` and whole Claude loan/copy fix `c877a46e4` |
+| Compiler status | scoped native connection and named UAF repair verified; [receipts and open integration](../evidence/2026-10-22_array_preservation_native_consumer_integration.md) |
+| Published main, verified 2026-10-22 | `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` |
+| History relation | published main is an ancestor of the compiler checkpoint; 178 local commits ahead, 0 behind at that checkpoint |
 | Required CI | [run38860052641](https://github.com/srtdog64/PergyraLang/actions/runs/38860052641): failure |
 | Latest Platform full | [run39150389845](https://github.com/srtdog64/PergyraLang/actions/runs/39150389845): failure on the same published SHA |
 
@@ -16,6 +16,11 @@ This state update follows the compiler checkpoint without changing its
 source. No candidate CI was triggered and nothing known red was pushed.
 Bootstrap, installed-driver C/LLVM and gen2 == gen3 remain unestablished on
 the current source. See [gates](gates.md), not the historical handoff cards.
+
+The published Array verdict is already consumed by native MIR; it is not a
+pending producer handoff. The last independent census remains Claude-owned
+in [blocker](blocker.md). Later exploratory work on that lane is not merged
+without a completed commit handoff. No new branch/worktree was created.
 
 Remaining unrelated work is preserved/excluded: the separate
 `docs/01_intent_first_design.md` change,
