@@ -1,46 +1,48 @@
 # Gates
 
-Owner: GPT root lane. Observed 2026-10-18 KST on an uncommitted post-gap V10
-candidate atop `4a5372b0c8dfbf30ed6891b03c4bf6c7fb37a613`.
+Owner: GPT root lane. Observed 2026-10-21 KST on the native loop candidate
+identified in [main](main.md). Full receipts and executable hashes:
+[native loop cleanup](../evidence/2026-10-21_native_mir_loop_local_cleanup.md).
 
 ## Finish line (OPEN)
 
 | Gate | Last result |
 |---|---|
-| Full unchanged fixed/current canonical | RED:18,435 errors/16 warnings/MIR0 on final V10; first refusal at `diagnostic_owner.pgy:573:39` |
+| Full unchanged canonical | RED before MIR; ordinary baseline/current input diagnostics match; no fresh downgraded census |
 | Current bootstrap and gen2 == gen3 | not established on current main |
 | Installed current C/LLVM driver | not established on current main |
 | Required CI, all required jobs executed at one published SHA | see [main](main.md) |
 
-The earlier `b8e66a387` driver/fixed point is branch-specific
-[history](../evidence/2026-10-16_b8e66a387_fixed_point.md), not current-main proof.
+The [Claude blocker](blocker.md) owns the last all-final-owner census.
+Ordinary cascading errors are not that census or distinct-defect progress.
 
 ## Scoped regression evidence, not closure
 
-Build copy: `/root/pgy-nonowner-20261018.5t1W96`.
-Full receipts: [post-gap V10](../evidence/2026-10-18_v10_capture_allocation_bounds_post_gap.md),
-[root replay](../evidence/2026-10-18_v10_root_replay.md).
+Build copy: `/root/gpt-loop-local-20261021-A`, non-Git archive copy.
 
 | Receipt | Observed result |
 |---|---|
-| Candidate binaries | pgy `6b5b00ba...56d0`; AIR `d014758f...c2b1`; MIR `2f1d170f...b720` |
-| Root final rerun | phase13422/0, MIR683/0, AIR161/0, RIR44/0, DIR15/0, semantic3230/0, transpile1014/0 |
-| Four representative post-certificate mutations | instruction identity, observability flag, boundary count and row count all refuse and restore |
-| Allocation lifecycle | missing storage, empty reimport, partial allocation rollback and capacity-tail release PASS; focused leaks ON |
-| Current sanitizers | AIR161/0 and MIR683/0 under ASan+UBSan; unit-suite leaks OFF |
-| Root strict/portable/sanitized | C/LLVM function-flow PASS; fresh five-unit replay and missing-input restoration PASS; separate ASan+UBSan unit gates PASS |
-| Prior context, not rerun post-gap | 40-source sanitizer corpus and broad backend observations |
+| Native loop gate | PASS C/LLVM; borrowed/owned payloads, return/continue/break, nested loops, explicit drops; escape/defer refuse |
+| MIR / AIR units | 691/0 and 161/0 |
+| MIR ASan+UBSan | 691/0, unit-suite leaks OFF |
+| Emitted cleanup fixture | C ASan+UBSan; LLVM IR ASan + runtime ASan/UBSan; both leaks ON, stderr empty |
+| Function-flow target | PASS ordinary and currency/worklist modes; phase13429/0, memo48/0, worklist31/0 |
+| Speculation / header / documentation | PASS; documentation state/lane sizes checked at this update |
 
-## Broader current-branch gates
+## Integration limits, not waived
 
 | Gate | Last result |
 |---|---|
-| Default strict backend compare | RED: ABI precheck 186 passed/4 failed across two LLVM fixtures |
-| Explicit all discovered backend cases | RED: 895/975 passed; default registry also omits three fixture directories |
-| Production-header gate | size/header portions PASS; self-host parity manifest RED on opaque String boundary |
-| Fresh portable post-gap V10 replay | PASS on 20 inputs with two missing-input refusals and restoration |
-| Immutable V10 export | 270 source/context files and 135 evidence files frozen; [export receipt](../evidence/2026-10-18_v10_frozen_review_export.md) |
-| Independent review | [APPROVE, V10 bounds only](../evidence/2026-10-18_v10_independent_review.md); no new reviewer execution |
+| `make test-mir` | RED at match-binding installed-driver step; units, loop, topology and destructure gates passed |
+| String-result control | RED in semantic analysis; same refusal also seen with existing Claude compiler |
+| Self-host cleanup reader | source guard added; runtime probe blocked by imported borrowed-ref refusals |
+| Declared non-retaining call | still refuses loop rebirth until semantic publication reaches MIR |
+| Part-level independent review | not run; producer/consumer part is still incomplete |
 
-The previous V9 size-mismatch sanitizer failures are repaired in this
-candidate. The broader failures above are not attributed wholesale to V10.
+[Next producer/consumer handoff](../../agent_work_directives/mir_loop_cleanup_array_preservation_projection_2026-10-21.md):
+Claude publishes the existing preservation result; GPT carries/consumes it.
+Task B has no route deletion or installed general-emitter evidence yet.
+This native candidate is not self-host substitution or V1 closure.
+
+Earlier V10 and backend matrices are
+[historical evidence](../evidence/2026-10-18_v10_root_replay.md), not rerun here.

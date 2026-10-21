@@ -2,11 +2,16 @@
 
 Since 2026-10-16 ([decision](../decisions/2026-10-16_main_only_integration.md)).
 
-- Owns: main, its integration and Git, the WSL build lease and processes,
-  and every compiler source change on main.
-- Edits in `docs/truth/`: `state/*.md` and this file.
+- Owns: main integration/Git and its WSL validation processes. Assigned MIR,
+  lowering/codegen and Task B scopes follow the
+  [2026-10-21 split](../../agent_work_directives/mir_loop_local_birth_and_direct_mir_split_2026-10-21.md).
+- Edits in `docs/truth/`: owned state files, this lane and its new records.
+  `state/blocker.md` and semantic sources remain Claude-owned.
 - Validation copy: see [identified gates](../state/gates.md). Older Linux
   roots are lookup evidence, not the current source/executable owner.
-- Subagent scopes are fixed by the plan linked from [blocker](../state/blocker.md).
-  Root runs commands and gates; agents do not own separate worktrees.
-- Current work: [state/blocker.md](../state/blocker.md).
+- Current native candidate and evidence: [main](../state/main.md).
+- Next: consume the semantic producer after Claude's publication commit;
+  [field proposal, complete consumer changes and shared gate](../../agent_work_directives/mir_loop_cleanup_array_preservation_projection_2026-10-21.md).
+  Do not infer Array preservation from a Slot mask or pre-empt that producer.
+- No independent intermediate review was launched for this incomplete part.
+  No new implementation branch/worktree or parallel track was created.

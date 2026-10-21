@@ -1,23 +1,25 @@
 # Main and CI
 
-Owner: GPT root lane. Checked 2026-10-18 KST after local V10 checkpoint.
+Owner: GPT root lane. Checked 2026-10-21 KST after the native loop candidate.
 
 | Item | Observed value |
 |---|---|
-| Local main | `5be40a9c3`; [compiler checkpoint](../evidence/2026-10-18_v10_local_checkpoint.md) |
-| Compiler base | `8404061d78f2d2bf9f2c325be1a67f83ab9904bf` |
-| Compiler status | V10 bounds repaired and scoped frozen review APPROVE; canonical RED |
-| Documentation integration | resolved and committed at `4a5372b0c`; compiler WIP excluded |
-| Merge base | `7dda8a0c2`; main advanced 16 commits, so not fast-forward |
-| Recovery | handoff-only stash `a4fdbab27a0500c6f6516615b52a56327ac75e6b` |
-| Published main, last checked 2026-10-18 | `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` |
-| Required CI | [run38860052641](https://github.com/srtdog64/PergyraLang/actions/runs/38860052641): RED |
+| Compiler source checkpoint | `c9513d5b27f4038e3a548109fc57e19254208177` |
+| Integrated source parent | `fa66a2fb231bb6b5e1f15e0ffa8a2f175f89194d`, including Claude `914b3bbb0` |
+| Compiler status | native loop-cleanup candidate; [evidence and remaining boundaries](../evidence/2026-10-21_native_mir_loop_local_cleanup.md) |
+| Published main, verified 2026-10-21 | `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` |
+| History relation | published main is an ancestor of the compiler checkpoint; 167 local commits ahead, 0 behind at that checkpoint |
+| Required CI | [run38860052641](https://github.com/srtdog64/PergyraLang/actions/runs/38860052641): failure |
+| Latest Platform full | [run39150389845](https://github.com/srtdog64/PergyraLang/actions/runs/39150389845): failure on the same published SHA |
 
-That run failed codegen-bootstrap, Windows and macOS. Required dependent
-bootstrap, installed-driver/backend and Linux jobs were skipped, not passed.
-The docs merge did not publish compiler changes or establish CI green.
+This state update follows the compiler checkpoint without changing its
+source. No candidate CI was triggered and nothing known red was pushed.
+Bootstrap, installed-driver C/LLVM and gen2 == gen3 remain unestablished on
+the current source. See [gates](gates.md), not the historical handoff cards.
 
-The separate `docs/01_intent_first_design.md` change is preserved/excluded:
+Remaining unrelated work is preserved/excluded: the separate
+`docs/01_intent_first_design.md` change,
 SHA256 `100AFB338B73369DC0F2E73B248763065EE7B666C2BEEBEEDE25FB96ACC23867`.
-No known-red push. [Finish-line evidence](gates.md) still requires real
-bootstrap and installed C/LLVM execution on one published SHA.
+The untracked 2026-10-18 indexed-String ownership-chain directive is also
+preserved and excluded. No compiler source/test WIP remains after the
+checkpoint; resolve live status when resuming.
