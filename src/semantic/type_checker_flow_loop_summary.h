@@ -4,6 +4,8 @@
 #include "type_checker_flow_internal.h"
 
 void loop_flow_summary_begin_function(SemanticContext *ctx);
+/* Exports one transfer row per loop of the function being checked. */
+void loop_flow_summary_publish_function(SemanticContext *ctx);
 void loop_flow_summary_end_function(SemanticContext *ctx);
 void loop_flow_summary_note_body_check(SemanticContext *ctx,
                                        const ASTNode *node,

@@ -17,6 +17,7 @@
 typedef struct
 {
     const ASTNode *node;
+    uint32_t function_id;
     ResourceConsumeSnapshot entry;
     ResourceConsumeSnapshot exit;
     uint32_t effect_base;
@@ -24,6 +25,7 @@ typedef struct
     FlowFlags flags;
 } LoopFlowSummary;
 
+/* `last_summary` is one past the summary the loop's latest check used. */
 typedef struct
 {
     const ASTNode *node;
@@ -31,6 +33,7 @@ typedef struct
     size_t body_checks;
     size_t summary_hits;
     size_t summaries_recorded;
+    size_t last_summary;
 } LoopFlowTrace;
 
 struct LoopFlowSummaryStore
@@ -122,31 +125,22 @@ loop_flow_capture_states(SemanticContext *ctx,
 }
 
 static bool
-loop_flow_capture_summary(SemanticContext *ctx,
-                          const ASTNode *node,
-                          const ResourceConsumeSnapshot *entry,
-                          const ResourceConsumeSnapshot *exit,
-                          uint32_t effect_base,
-                          uint32_t effect_delta,
-                          FlowFlags flags)
+loop_flow_capture_summary(SemanticContext *ctx, const LoopFlowSummary *summary)
 {
     size_t entry_start = 0;
     size_t exit_start = 0;
     size_t entry_count = 0;
     size_t exit_count = 0;
     PgyLoopFlowSummaryFact *fact;
-    uint32_t function_id;
 
-    if (ctx == NULL || node == NULL || entry == NULL || exit == NULL)
+    if (ctx == NULL || summary == NULL || summary->node == NULL)
         return false;
-    function_id = ctx->current_function_decl != NULL
-        ? ast_node_stable_id(ctx->current_function_decl) : 0;
     /* Match ResourceFlowUniverse's unit-level policy: only a function-owned
      * loop has a downstream routine identity.  Top-level loop checking still
      * proceeds, but it must not manufacture an unresolvable IR row. */
-    if (function_id == 0)
+    if (summary->function_id == 0)
         return true;
-    if (entry->count > SIZE_MAX - exit->count
+    if (summary->entry.count > SIZE_MAX - summary->exit.count
         || ctx->loop_flow_summary_fact_count == SIZE_MAX)
         return false;
     if (!loop_flow_fact_reserve(
@@ -155,20 +149,20 @@ loop_flow_capture_summary(SemanticContext *ctx,
             ctx->loop_flow_summary_fact_count + 1,
             sizeof(*ctx->loop_flow_summary_facts)))
         return false;
-    if (!loop_flow_capture_states(ctx, entry, &entry_start, &entry_count))
+    if (!loop_flow_capture_states(ctx, &summary->entry, &entry_start, &entry_count))
         return false;
-    if (!loop_flow_capture_states(ctx, exit, &exit_start, &exit_count))
+    if (!loop_flow_capture_states(ctx, &summary->exit, &exit_start, &exit_count))
         return false;
 
     fact = &ctx->loop_flow_summary_facts[
         ctx->loop_flow_summary_fact_count++];
     memset(fact, 0, sizeof(*fact));
-    fact->function_syntax_id = function_id;
-    fact->loop_syntax_id = ast_node_stable_id(node);
-    fact->kind = node->type == AST_FOR_LOOP ? 1u : 0u;
-    fact->effect_base = effect_base;
-    fact->effect_delta = effect_delta;
-    fact->flags = (uint32_t)flags;
+    fact->function_syntax_id = summary->function_id;
+    fact->loop_syntax_id = ast_node_stable_id(summary->node);
+    fact->kind = summary->node->type == AST_FOR_LOOP ? 1u : 0u;
+    fact->effect_base = summary->effect_base;
+    fact->effect_delta = summary->effect_delta;
+    fact->flags = (uint32_t)summary->flags;
     fact->entry_state_start = entry_start;
     fact->entry_state_count = entry_count;
     fact->exit_state_start = exit_start;
@@ -188,6 +182,29 @@ loop_flow_summary_store_destroy(LoopFlowSummaryStore *store)
     free(store->summaries);
     free(store->traces);
     free(store);
+}
+
+/* A loop the fixed point of an enclosing loop checks again from another
+ * entry has one private summary per entry, but downstream stages take one
+ * transfer per loop: the one its latest check used, which saw the enclosing
+ * loop's last entry. Exported in summary order, as recorded. */
+void
+loop_flow_summary_publish_function(SemanticContext *ctx)
+{
+    LoopFlowSummaryStore *store =
+        ctx != NULL ? ctx->loop_flow_summaries : NULL;
+    if (store == NULL)
+        return;
+    for (size_t i = 0; i < store->summary_count; i++) {
+        const LoopFlowTrace *trace = NULL;
+        for (size_t t = 0; t < store->trace_count && trace == NULL; t++)
+            if (store->traces[t].node == store->summaries[i].node)
+                trace = &store->traces[t];
+        if (trace == NULL || trace->last_summary != i + 1)
+            continue;
+        if (!loop_flow_capture_summary(ctx, &store->summaries[i]))
+            ctx->loop_flow_summary_capture_failed = true;
+    }
 }
 
 void
@@ -290,8 +307,12 @@ loop_flow_summary_try_apply(SemanticContext *ctx,
         if (flags_out != NULL)
             *flags_out = summary->flags;
         LoopFlowTrace *trace = loop_flow_trace(ctx, node, NULL);
-        if (trace != NULL)
-            trace->summary_hits++;
+        if (trace == NULL) {
+            ctx->loop_flow_summary_capture_failed = true;
+            return true;
+        }
+        trace->summary_hits++;
+        trace->last_summary = i + 1;
         return true;
     }
     return false;
@@ -313,23 +334,36 @@ loop_flow_summary_record(SemanticContext *ctx,
     if (store == NULL || entry == NULL || exit == NULL
         || !entry->valid || !exit->valid)
         return;
+    /* A failure here leaves the loop's export stale or missing, so the
+     * exported carrier fails closed at the semantic result boundary. */
+    LoopFlowTrace *trace = loop_flow_trace(ctx, node, NULL);
+    if (trace == NULL) {
+        ctx->loop_flow_summary_capture_failed = true;
+        return;
+    }
     for (size_t i = 0; i < store->summary_count; i++) {
         if (store->summaries[i].node == node
             && type_effect_mask_compare(store->summaries[i].effect_base,
                                         effect_base) == 0
-            && resource_snapshots_equal(&store->summaries[i].entry, entry))
+            && resource_snapshots_equal(&store->summaries[i].entry, entry)) {
+            trace->last_summary = i + 1;
             return;
+        }
     }
     if (store->summary_count == store->summary_capacity) {
         size_t next = store->summary_capacity == 0
             ? 8 : store->summary_capacity * 2;
         LoopFlowSummary *grown;
         if (next <= store->summary_capacity
-            || next > SIZE_MAX / sizeof(LoopFlowSummary))
+            || next > SIZE_MAX / sizeof(LoopFlowSummary)) {
+            ctx->loop_flow_summary_capture_failed = true;
             return;
+        }
         grown = realloc(store->summaries, next * sizeof(LoopFlowSummary));
-        if (grown == NULL)
+        if (grown == NULL) {
+            ctx->loop_flow_summary_capture_failed = true;
             return;
+        }
         store->summaries = grown;
         store->summary_capacity = next;
     }
@@ -340,22 +374,18 @@ loop_flow_summary_record(SemanticContext *ctx,
     if (!summary->entry.valid || !summary->exit.valid) {
         destroy_resource_snapshot(&summary->entry);
         destroy_resource_snapshot(&summary->exit);
+        ctx->loop_flow_summary_capture_failed = true;
         return;
     }
     summary->node = node;
+    summary->function_id = ctx->current_function_decl != NULL
+        ? ast_node_stable_id(ctx->current_function_decl) : 0;
     summary->effect_base = effect_base;
     summary->effect_delta = effect_delta;
     summary->flags = flags;
     store->summary_count++;
-    if (!loop_flow_capture_summary(ctx, node, entry, exit,
-                                   effect_base, effect_delta, flags)) {
-        ctx->loop_flow_summary_capture_failed = true;
-        /* The private summary remains usable for this semantic pass, while
-         * the exported carrier fails closed at the semantic result boundary. */
-    }
-    LoopFlowTrace *trace = loop_flow_trace(ctx, node, NULL);
-    if (trace != NULL)
-        trace->summaries_recorded++;
+    trace->summaries_recorded++;
+    trace->last_summary = store->summary_count;
 }
 
 void

@@ -38,3 +38,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-21 | [Copy a moved argument the caller uses again?](2026-10-21_open_copy_a_moved_argument_used_again.md) | OPEN |
 | 2026-10-21 | [The rows check's intent-step owner clauses lost their falsifier](2026-10-21_open_intent_step_owner_clauses_unfalsified.md) | OPEN |
 | 2026-10-21 | [Each formal's Array preservation verdict is published](2026-10-21_array_preservation_published_per_formal.md) | in force |
+| 2026-10-22 | [A re-entered loop exports the transfer of its last check](2026-10-22_reentered_loop_exports_last_transfer.md) | in force |

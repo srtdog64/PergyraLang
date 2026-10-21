@@ -31,10 +31,10 @@ harness manifest compiles natively since `e23761a3a`.
    So a normal compile never runs the move, lane and named-call owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, `graph.blocks[0].name = x` (C emits a non-lvalue), and an
-   `Array<String>` born `[]` in a `while` body. MIR now retires one after
-   builtin uses (GPT `c9513d5b2`); a declared call needs the Array verdict
-   the snapshot now publishes ([field](../decisions/2026-10-21_array_preservation_published_per_formal.md)),
-   which GPT carries into MIR next.
+   `Array<String>` born `[]` in a `while` body: MIR retires one after builtin
+   uses (GPT `c9513d5b2`); declared calls wait on GPT carrying the published
+   [Array verdict](../decisions/2026-10-21_array_preservation_published_per_formal.md).
+   A re-entered inner loop no longer stops HIR ([rule](../decisions/2026-10-22_reentered_loop_exports_last_transfer.md)).
 7. **Preserved Array storage (43 outside `direct_mir_*`):** calls after an
    earlier call that may keep or rebind the Array (`EmitStmtList` 8).
 

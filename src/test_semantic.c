@@ -151,6 +151,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_intent_compensation_coverage.cases.h"
 #include "tests/semantic/test_semantic_member_location.cases.h"
 #include "tests/semantic/test_semantic_array_preservation_facet.cases.h"
+#include "tests/semantic/test_semantic_loop_flow_reentry.cases.h"
 
 
 /* -----------------------------------------------------------------
@@ -190,6 +191,7 @@ main(void)
     test_qubit_slot_semantics();
     test_semantic_ownership_boundaries();
     test_array_preservation_facet();
+    test_loop_flow_reentry();
     test_quantum_extensions();
     test_match_stmt();
     test_event_semantics();

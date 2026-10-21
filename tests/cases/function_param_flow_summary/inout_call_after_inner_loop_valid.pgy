@@ -1,0 +1,25 @@
+// The outer loop's fixed point checks the inner loop again once Accept has
+// used `ids`, from another entry. The checker keeps a transfer for each
+// entry, but exports only the one the last check used: two rows for one
+// loop made HIR refuse Main.
+func Accept(inout ids: Array<Int>, id: Int) -> Bool {
+    ArrayPush(ids, id);
+    return true;
+}
+
+func Main() -> Int {
+    var ids: Array<Int> = [];
+    let node_id: Int = 0;
+    while node_id < 3 {
+        let actual_i: Int = 0;
+        while actual_i < 2 {
+            actual_i = actual_i + 1;
+        }
+        if !Accept(ids, node_id) {
+            return 1;
+        }
+        node_id = node_id + 1;
+    }
+    Print(ToString(ArrayLength(ids)));
+    return 0;
+}

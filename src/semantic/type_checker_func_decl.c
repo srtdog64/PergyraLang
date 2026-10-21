@@ -477,6 +477,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error(ctx, node,
             "ResourceFlowUniverse fact snapshot allocation failed");
     }
+    loop_flow_summary_publish_function(ctx);
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
     semantic_bound_party_end_function(ctx);
