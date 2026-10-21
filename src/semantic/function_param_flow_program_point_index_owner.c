@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+static bool function_param_flow_locals_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node);
 
 bool function_param_flow_current_begin(SemanticContext *ctx, bool *previous)
 {
@@ -261,7 +262,8 @@ function_param_flow_program_point_index_build(
         }
     }
 
-    if (!function_param_flow_index_claims_snapshot(store->ctx, index, body)) return false;
+    if (!function_param_flow_index_claims_snapshot(store->ctx, index, body) ||
+        !function_param_flow_locals_record(index, body)) return false;
     index->mutable_output_required = function_param_flow_mutable_output_required(store->ctx, function_decl, index, body);
     index->dependency_roots_ready = true;
     *index_out = index;
@@ -481,6 +483,18 @@ static bool function_param_flow_local_record(FunctionParamFlowProgramPointIndex 
     index->local_count++;
     return true;
 }
+/* Every local the routine declares, wherever it stands: assigning one rebinds
+ * it. The mutable-output walk stops at its first answer, so it records none. */
+static bool function_param_flow_locals_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node)
+{
+    if (node == NULL) return true;
+    if (node->type == AST_LET_DECL && !function_param_flow_local_record(index, node)) return false;
+    bool supported = false;
+    size_t count = function_param_flow_claim_child_count(node, &supported);
+    for (size_t i = 0; supported && count != SIZE_MAX && i < count; i++)
+        if (!function_param_flow_locals_record(index, function_param_flow_claim_child(node, i))) return false;
+    return true;
+}
 bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *decl, FunctionParamFlowProgramPointIndex *index, ASTNode *node)
 {
     if (node == NULL) return false;
@@ -489,8 +503,7 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
     if (semantic_param_publication_execution(ctx, node, &reachable) && !reachable) return false;
     switch (node->type) {
     case AST_LET_DECL:
-        return !function_param_flow_local_record(index, node) ||
-            function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
+        return function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
     case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
     case AST_CALL: {
         ASTNode *receiver = NULL;

@@ -365,6 +365,10 @@ release_lifetime_refusals = {
         (*borrow_refusal, 5, 17), (*borrow_refusal, 4, 6), (*borrow_refusal, 4, 6),
         (*borrow_refusal, 8, 6), (*borrow_refusal, 8, 6), (*borrow_refusal, 9, 17),
         (*borrow_refusal, 14, 31)],
+    # The local declared after the output call is a local, so its loan of
+    # graph escapes only where it really does: into the channel.
+    "ref_loan_local_after_output_call_channel_invalid": [
+        (*borrow_refusal, 11, 6), (*borrow_refusal, 28, 25)],
     # LabelOf's Label lends its borrowed aggregate; MakeLabel returns that
     # loan past the aggregate it owns.
     "aggregate_string_loan_struct_escape_invalid": [(*borrow_refusal, 29, 5)],
@@ -1061,6 +1065,8 @@ paired = (
     ("slice_view_ref_return_invalid", False),
     ("string_join_borrowed_parts_valid", True),
     ("string_join_shadowed_returns_part_invalid", False),
+    ("ref_loan_local_after_output_call_valid", True),
+    ("ref_loan_local_after_output_call_channel_invalid", False),
     ("aggregate_string_loan_getter_valid", True),
     ("aggregate_string_loan_struct_escape_invalid", False),
     ("aggregate_string_loan_local_owner_invalid", False),

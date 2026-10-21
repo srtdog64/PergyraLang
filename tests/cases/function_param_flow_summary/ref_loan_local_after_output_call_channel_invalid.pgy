@@ -1,0 +1,30 @@
+// The local declared after the output call holds a loan of the ref graph;
+// sending it into a channel lets graph's storage escape, so it stays refused.
+struct Graph {
+    names: Array<String>;
+}
+
+func NameAt(ref graph: Graph, i: Int) -> String {
+    return graph.names[i];
+}
+
+func Send(ref graph: Graph, inout captured: Array<String>) -> Int {
+    let count: Int = Count(graph, captured);
+    let actual: String = "Unknown";
+    actual = NameAt(graph, 0);
+    let channel: Channel<String> = Channel(1);
+    channel <- actual;
+    return count;
+}
+
+func Count(ref graph: Graph, inout captured: Array<String>) -> Int {
+    ArrayPush(captured, "x");
+    return ArrayLength(graph.names);
+}
+
+func Main() -> Int {
+    let g: Graph = Graph(["a", "b"]);
+    let captured: Array<String> = [];
+    Print(ToString(Send(g, captured)));
+    return 0;
+}

@@ -1,0 +1,42 @@
+// A local declared after a call that hands on the inout output is still a
+// local: assigning it a loan of the ref graph rebinds it and stores nothing
+// into graph or into the output.
+struct Graph {
+    names: Array<String>;
+}
+
+struct Fact {
+    applies: Bool;
+    name: String;
+    start: Int;
+}
+
+func NameAt(ref graph: Graph, i: Int) -> String {
+    return graph.names[i];
+}
+
+func Capture(ref graph: Graph, i: Int, inout captured: Array<String>, capture: Bool) -> Fact {
+    if i >= ArrayLength(graph.names) {
+        return Fact(false, "", 0);
+    }
+    let nested: Fact = Capture(graph, i + 1, captured, false);
+    let actual: String = "Unknown";
+    if nested.applies {
+        actual = nested.name;
+    } else {
+        actual = NameAt(graph, i);
+    }
+    if capture {
+        ArrayPush(captured, "x");
+    }
+    return Fact(true, actual, ArrayLength(captured));
+}
+
+func Main() -> Int {
+    let g: Graph = Graph(["a", "b"]);
+    let captured: Array<String> = [];
+    let f: Fact = Capture(g, 0, captured, true);
+    Print(f.name);
+    Print(ToString(f.start));
+    return 0;
+}
