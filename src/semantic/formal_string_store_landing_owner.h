@@ -8,7 +8,8 @@ typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 
 /* A String of a by-value or `ref` formal that a store builtin puts into an
- * `inout` output leaves the routine; no proof admits it. Nor does the value
+ * `inout` output leaves the routine; no proof admits it, nor one for a
+ * literal stored as an `Array<String>` element there. Nor does the value
  * of a store call an earlier analysis selected, wherever its receiver is;
  * the selection planned only values Clone copies whole. Before the value
  * argument is checked, it is replaced by `Clone(value)`, an owned copy

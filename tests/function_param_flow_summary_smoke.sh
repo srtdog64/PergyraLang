@@ -626,7 +626,7 @@ paired = (
     ("array_result_owned_retain_before_deepdrop_invalid", False),
     ("array_result_local_owned_element_external_keep_invalid", False),
     ("array_result_local_owned_element_constructor_invalid", False),
-    ("array_result_owned_named_inout_shallow_push_invalid", False),
+    ("array_result_owned_named_inout_shallow_push_landed_valid", True),
     ("array_result_owned_named_inout_shallow_set_invalid", False),
     ("array_result_owned_named_inout_index_assign_invalid", False),
     ("array_result_local_owned_element_container_copy_landing_valid", True),
@@ -933,7 +933,7 @@ paired = (
     ("string_inout_helper_repeat_call_valid", True),
     ("string_inout_helper_then_own_release_landed_valid", True),
     ("string_inout_helper_then_escape_call_landed_valid", True),
-    ("string_inout_literal_then_escape_call_invalid", False),
+    ("string_inout_literal_then_escape_call_landed_valid", True),
     ("string_inout_concat_copy_then_escape_call_valid", True),
     ("string_inout_returned_literal_then_escape_call_invalid", False),
     ("string_inout_unwrapped_literal_then_escape_call_invalid", False),
@@ -1420,7 +1420,6 @@ for name, valid in paired:
             "array_result_owned_retain_before_deepdrop_invalid": {(19, 27)},
             # The in-place helper call takes no element ownership; the deep
             # drop of the array it left with a borrowed String is the refusal.
-            "array_result_owned_named_inout_shallow_push_invalid": {(17, 27)},
             "array_result_owned_named_inout_shallow_set_invalid": {(17, 27)},
             "array_result_owned_named_inout_index_assign_invalid": {(17, 27)},
             "array_field_detach_duplicate_alias_own_invalid": {(13, 20), (13, 35)},
@@ -1907,6 +1906,8 @@ for name, expected in (
     ("string_inout_helper_then_own_release_landed_valid", ""),
     ("string_inout_helper_then_escape_call_landed_valid", "1"),
     ("string_inout_concat_copy_then_escape_call_valid", "ab"),
+    ("string_inout_literal_then_escape_call_landed_valid", "1"),
+    ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

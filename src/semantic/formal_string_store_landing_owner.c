@@ -97,11 +97,16 @@ bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal
     if (args == NULL || receiver_ordinal >= count || value_ordinal >= count) return true;
     ASTNode *value = args[value_ordinal];
     FuncParam *receiver = store_landing_root_formal(args[receiver_ordinal], ctx);
-    /* Into an `inout` output a formal's String always leaves; into anything
-     * else only an earlier analysis's flow facts can say it does, and they
-     * plan only values Clone copies whole. */
-    if (!store_landing_planned(call, ctx) &&
-        !(receiver != NULL && receiver->mode == PARAM_MODE_MUT_REF && store_landing_value_landable(value, ctx)))
+    /* Into an `inout` output a formal's String always leaves, and so does a
+     * literal stored as an Array<String> element: the caller's Array would
+     * hold static text it cannot own. Into anything else only an earlier
+     * analysis's flow facts can say a value leaves, and they plan only
+     * values Clone copies whole. */
+    bool output = receiver != NULL && receiver->mode == PARAM_MODE_MUT_REF;
+    bool literal = output && value != NULL && value->type == AST_STRING &&
+        type_equals(store_landing_receiver_element(args[receiver_ordinal], ctx), TYPE_STRING);
+    if (!store_landing_planned(call, ctx) && !literal &&
+        !(output && store_landing_value_landable(value, ctx)))
         return true;
     if (ctx->synthetic_stable_id_next == 0)
         ctx->synthetic_stable_id_next = ast_stable_id_ceiling(ctx->program_root);

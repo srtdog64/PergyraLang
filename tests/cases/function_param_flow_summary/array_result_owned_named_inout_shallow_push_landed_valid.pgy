@@ -1,3 +1,5 @@
+// Corrupt's literal lands as an owned copy in the caller's Array, so the
+// deep drop releases the copy, not static text.
 func OwnedRows() -> Array<String>
 {
     let rows: Array<String> = [];

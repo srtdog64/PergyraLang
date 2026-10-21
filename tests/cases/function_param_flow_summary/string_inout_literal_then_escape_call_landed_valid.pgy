@@ -1,6 +1,5 @@
-// The helper pushes a String literal into the array, a borrowed element no
-// landing copies. A second callee that keeps the array still needs owned
-// elements, and is refused (15:5).
+// A literal pushed into an inout output lands as an owned copy, so the
+// second callee may keep the array: every element it holds is owned.
 func Mark(inout out: Array<String>) -> Void {
     ArrayPush(out, "a");
 }
