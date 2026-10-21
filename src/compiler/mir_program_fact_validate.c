@@ -1,11 +1,58 @@
 #include "mir_program_fact_validate.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "mir_base_helpers.h"
 #include "mir_abi_layout.h"
 #include "mir_public_surface.h"
 #include "../semantic/slot_summary.h"
+#include "../semantic/semantic.h"
+#include "../common/string_compat.h"
+
+bool mir_validate_function_flow_hir_projection(const HIRProgram *hir,
+    const SemanticResult *semantic, char **error_message)
+{
+    size_t matched = 0;
+    bool *seen = NULL;
+    if (hir == NULL || semantic == NULL ||
+        hir->routine_count > hir->routine_capacity ||
+        (hir->routine_count > 0 && hir->routines == NULL) ||
+        (semantic->function_param_flow_fact_count > 0 && semantic->function_param_flow_facts == NULL)) goto invalid;
+    if (semantic->function_param_flow_fact_count > 0) {
+        seen = calloc(semantic->function_param_flow_fact_count, sizeof(*seen));
+        if (seen == NULL) goto invalid;
+    }
+    for (size_t r = 0; r < hir->routine_count; r++) {
+        const HIRRoutine *routine = &hir->routines[r];
+        if (routine->function_param_flow_summary_count > routine->function_param_flow_summary_capacity ||
+            (routine->function_param_flow_summary_count > 0 && routine->function_param_flow_summaries == NULL)) goto invalid;
+        for (size_t p = 0; p < routine->function_param_flow_summary_count; p++) {
+            const HIRFunctionParamFlowSummary *row = &routine->function_param_flow_summaries[p];
+            size_t matches = 0, match_index = 0;
+            for (size_t f = 0; f < semantic->function_param_flow_fact_count; f++) {
+                const PgyFunctionParamFlowFact *fact = &semantic->function_param_flow_facts[f];
+                if (fact->function_syntax_id == routine->source_syntax_id &&
+                    fact->parameter_index == row->parameter_index && fact->mask == row->mask &&
+                    fact->array_preserved == row->array_preserved) {
+                    matches++;
+                    match_index = f;
+                }
+            }
+            if (matches != 1 || seen[match_index]) goto invalid;
+            seen[match_index] = true;
+            matched++;
+        }
+    }
+    if (matched != semantic->function_param_flow_fact_count) goto invalid;
+    free(seen);
+    return true;
+invalid:
+    free(seen);
+    if (error_message != NULL)
+        *error_message = pergyra_strdup("HIR function parameter flow differs from the admitted semantic snapshot");
+    return false;
+}
 
 bool
 mir_validate_non_cfg_fallback_state(const MIRRoutine *routine,
@@ -50,6 +97,13 @@ mir_validate_function_param_flow_summaries(const MIRRoutine *routine,
 {
     if (routine == NULL)
         return false;
+    const HIRRoutine *hir = routine->hir_routine;
+    if (hir != NULL && (routine->function_param_flow_summary_count != hir->function_param_flow_summary_count ||
+            hir->function_param_flow_summary_count > hir->function_param_flow_summary_capacity ||
+            (hir->function_param_flow_summary_count > 0 && hir->function_param_flow_summaries == NULL))) {
+        if (error_message != NULL) *error_message = pergyra_strdup("MIR function parameter flow has stale HIR row storage");
+        return false;
+    }
     if (routine->function_param_flow_summary_count == 0)
         return routine->function_param_flow_summaries == NULL
             || routine->function_param_flow_summary_capacity != 0;
@@ -78,12 +132,29 @@ mir_validate_function_param_flow_summaries(const MIRRoutine *routine,
     for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {
         const MIRFunctionParamFlowSummary *summary =
             &routine->function_param_flow_summaries[i];
+        if ((summary->array_preserved & ~PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL) != 0 ||
+            summary->array_preserved == PGY_FUNCTION_PARAM_ARRAY_ELEMENTS_PRESERVED) {
+            if (error_message != NULL) *error_message = pergyra_strdup("MIR function parameter flow has invalid Array preservation bits");
+            return false;
+        }
         if ((summary->mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0) {
             if (error_message != NULL)
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' function parameter flow summary %zu has unknown mask bits",
                     routine->name != NULL ? routine->name : "(anonymous)", i);
             return false;
+        }
+        if (hir != NULL) {
+            size_t matches = 0;
+            for (size_t p = 0; p < hir->function_param_flow_summary_count; p++) {
+                const HIRFunctionParamFlowSummary *source = &hir->function_param_flow_summaries[p];
+                if (source->parameter_index == summary->parameter_index && source->mask == summary->mask &&
+                    source->array_preserved == summary->array_preserved) matches++;
+            }
+            if (matches != 1) {
+                if (error_message != NULL) *error_message = pergyra_strdup("MIR function parameter flow differs from its admitted HIR row");
+                return false;
+            }
         }
         if (summary->parameter_index >= routine->param_count) {
             if (error_message != NULL)

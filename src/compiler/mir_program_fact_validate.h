@@ -3,6 +3,9 @@
 
 #include "mir.h"
 
+bool mir_validate_function_flow_hir_projection(const HIRProgram *hir,
+    const SemanticResult *semantic, char **error_message);
+
 bool mir_validate_non_cfg_fallback_state(
     const MIRRoutine *routine,
     char **error_message);

@@ -12,7 +12,7 @@ CASES="$ROOT_DIR/tests/self_hosted/parity/fixture/loop_local_collection_cleanup"
 fail() { echo "[loop-local-collection] $*; evidence: $WORK" >&2; exit 1; }
 for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
     [[ "$backend" == c || "$backend" == llvm ]] || fail "unknown backend $backend"
-    for name in positive explicit sanitized; do
+    for name in positive explicit sanitized declared; do
         artifact="$WORK/$name.$backend.exe"
         pgy_run_with_timeout 45 "$WORK/$name.$backend.build.out" "$WORK/$name.$backend.build.err" \
             "$PGY" --native-pipeline "--backend=$backend" \
@@ -25,6 +25,7 @@ for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
         expected=1026
         [[ "$name" != explicit ]] || expected=3
         [[ "$name" != sanitized ]] || expected=ok
+        [[ "$name" != declared ]] || expected=6
         [[ "$actual" == "$expected" ]] || fail "$name/$backend output $actual"
     done
     for invalid in escaped deferred; do
@@ -43,4 +44,4 @@ for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
     [[ ! -e "$artifact" ]] || fail "$invalid storage published an artifact"
     done
 done
-echo "[loop-local-collection] PASS: borrowed/owned, continue/break/return, nested loops and explicit drops; escape/defer refuse; evidence: $WORK"
+echo "[loop-local-collection] PASS: builtin/declared reads, borrowed/owned, continue/break/return, nested loops and explicit drops; escape/defer refuse; evidence: $WORK"

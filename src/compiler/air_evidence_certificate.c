@@ -150,6 +150,7 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         mix_u64(&hash, row->parameter_index);
         mix_u64(&hash, row->parameter_count);
         mix_u64(&hash, row->mask);
+        mix_u64(&hash, row->array_preserved);
     }
 
     for (size_t i = 0; i < intent_count; i++) {

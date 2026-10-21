@@ -65,13 +65,13 @@ air_dump(const AIRProgram *air, FILE *out)
         if (row == NULL)
             continue;
         fprintf(out,
-                "  function_param_flow[%zu] syntax_id=%u routine=%s parameter=%zu/%zu mask=0x%x\n",
+                "  function_param_flow[%zu] syntax_id=%u routine=%s parameter=%zu/%zu mask=0x%x array-preserved=%u\n",
                 i,
                 (unsigned)row->source_syntax_id,
                 row->routine != NULL ? row->routine : "<unknown>",
                 row->parameter_index,
                 row->parameter_count,
-                (unsigned)row->mask);
+                (unsigned)row->mask, row->array_preserved);
     }
     for (size_t i = 0; i < air_intent_node_count(air); i++) {
         const AIRIntentNode *intent = air_intent_node_at(air, i);

@@ -1,10 +1,89 @@
 #include "../../compiler/mir_hir_fact_transfer.h"
 #include "../../compiler/hir_collection_owned_local_transition_adapter.h"
 #include "../../compiler/mir_loop_collection_cleanup.h"
+#include "../../compiler/mir_program_fact_validate.h"
+#include "../../semantic/slot_summary.h"
 
 static void
 test_mir_collection_ownership_validation(void)
 {
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_mir_from_source(
+            "func Main()->Int{var n:Int=0;while n<3{var rows:Array<String> = [];"
+            "ArrayPush(rows,\"x\");n=n+Count(rows,0)+Other(rows);}return n;}"
+            "func Count(ref rows:Array<String>,number:Int)->Int{return ArrayLength(rows)+number;}"
+            "func Other(ref rows:Array<String>)->Int{return ArrayLength(rows);}",
+            &hir, &rir, &mir);
+        MIRRoutine *caller = lowered ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *callee = lowered ? find_mir_routine_mut(mir, "Count", MIR_SCOPE_FUNCTION) : NULL;
+        MIRFunctionParamFlowSummary *row = NULL;
+        for (size_t i = 0; callee != NULL && i < callee->function_param_flow_summary_count; i++)
+            if (callee->function_param_flow_summaries[i].parameter_index == 0) row = &callee->function_param_flow_summaries[i];
+        bool control = row != NULL && row->array_preserved == PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL &&
+            mir_validate(mir, NULL) && mir_validate_loop_collection_cleanup(caller, NULL);
+        TEST("MIR loop cleanup consumes a later declared callee's published Array verdict");
+        EXPECT(control);
+        for (unsigned fault = 0; control && fault < 7; fault++) {
+            MIRFunctionParamFlowSummary saved = *row;
+            size_t saved_count = callee->function_param_flow_summary_count;
+            if (fault < 4) row->array_preserved = fault;
+            if (fault == 3) row->array_preserved = 4;
+            if (fault == 4) row->parameter_index = 1;
+            if (fault == 5) row->mask |= SLOT_PARAM_SUMMARY_WRITE;
+            if (fault == 6) callee->function_param_flow_summary_count = 0;
+            bool rejected = !mir_validate(mir, NULL) && !mir_validate_loop_collection_cleanup(caller, NULL);
+            *row = saved;
+            callee->function_param_flow_summary_count = saved_count;
+            TEST("MIR cleanup refuses absent, partial, malformed, cross-formal and changed callee evidence");
+            EXPECT(rejected && mir_validate(mir, NULL));
+        }
+        if (control) {
+            SemanticResult snapshot = {0};
+            for (size_t r = 0; r < hir->routine_count; r++)
+                snapshot.function_param_flow_fact_count += hir->routines[r].function_param_flow_summary_count;
+            snapshot.function_param_flow_facts = calloc(snapshot.function_param_flow_fact_count,
+                sizeof(*snapshot.function_param_flow_facts));
+            size_t at = 0;
+            for (size_t r = 0; snapshot.function_param_flow_facts != NULL && r < hir->routine_count; r++)
+                for (size_t p = 0; p < hir->routines[r].function_param_flow_summary_count; p++) {
+                    const HIRFunctionParamFlowSummary *source = &hir->routines[r].function_param_flow_summaries[p];
+                    snapshot.function_param_flow_facts[at++] = (PgyFunctionParamFlowFact){
+                        hir->routines[r].source_syntax_id, source->parameter_index, source->mask, source->array_preserved};
+                }
+            bool projected = mir_validate_function_flow_hir_projection(hir, &snapshot, NULL);
+            HIRFunctionParamFlowSummary *changed = &((HIRRoutine *)callee->hir_routine)->function_param_flow_summaries[0];
+            uint32_t preserved = changed->array_preserved;
+            changed->array_preserved ^= PGY_FUNCTION_PARAM_ARRAY_DESCRIPTOR_PRESERVED;
+            bool stale = !mir_validate_function_flow_hir_projection(hir, &snapshot, NULL);
+            changed->array_preserved = preserved;
+            TEST("MIR entry refuses a changed HIR verdict against the original semantic snapshot");
+            EXPECT(projected && stale && mir_validate_function_flow_hir_projection(hir, &snapshot, NULL));
+            MIRRoutine *other = find_mir_routine_mut(mir, "Other", MIR_SCOPE_FUNCTION);
+            HIRRoutine *projected_other = other != NULL ? (HIRRoutine *)other->hir_routine : NULL;
+            bool duplicate_refused = false;
+            if (projected_other != NULL && projected_other->function_param_flow_summary_count > 0) {
+                uint32_t identity = projected_other->source_syntax_id;
+                HIRFunctionParamFlowSummary saved = projected_other->function_param_flow_summaries[0];
+                projected_other->source_syntax_id = callee->source_syntax_id;
+                projected_other->function_param_flow_summaries[0] = *changed;
+                duplicate_refused = !mir_validate_function_flow_hir_projection(hir, &snapshot, NULL);
+                projected_other->function_param_flow_summaries[0] = saved;
+                projected_other->source_syntax_id = identity;
+            }
+            TEST("MIR entry refuses duplicate HIR rows replacing a distinct semantic formal");
+            EXPECT(duplicate_refused && mir_validate_function_flow_hir_projection(hir, &snapshot, NULL));
+            size_t count = snapshot.function_param_flow_fact_count;
+            snapshot.function_param_flow_fact_count = 0;
+            TEST("MIR entry refuses missing semantic rows rather than trusting HIR alone");
+            EXPECT(!mir_validate_function_flow_hir_projection(hir, &snapshot, NULL));
+            snapshot.function_param_flow_fact_count = count;
+            free(snapshot.function_param_flow_facts);
+        }
+        mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+    }
     {
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;

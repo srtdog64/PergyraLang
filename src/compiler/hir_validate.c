@@ -199,6 +199,14 @@ hir_validate_function_param_flow_summaries(const HIRRoutine *routine,
          i++) {
         const HIRFunctionParamFlowSummary *summary =
             &routine->function_param_flow_summaries[i];
+        if ((summary->array_preserved & ~PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL) != 0 ||
+            summary->array_preserved == PGY_FUNCTION_PARAM_ARRAY_ELEMENTS_PRESERVED) {
+            if (error_message != NULL)
+                *error_message = hir_validate_strdup_fmt(
+                    "HIR routine '%s' function parameter flow summary[%zu] has invalid Array preservation bits",
+                    routine->name, i);
+            return false;
+        }
         if (summary->parameter_index >= routine->parameter_count) {
             if (error_message != NULL)
                 *error_message = hir_validate_strdup_fmt(

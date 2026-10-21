@@ -195,6 +195,8 @@ hir_append_function_param_flow_summary(
         fact->parameter_index;
     routine->function_param_flow_summaries[
         routine->function_param_flow_summary_count].mask = fact->mask;
+    routine->function_param_flow_summaries[
+        routine->function_param_flow_summary_count].array_preserved = fact->array_preserved;
     routine->function_param_flow_summary_count++;
     return true;
 }

@@ -93,6 +93,7 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
                 &routine->function_param_flow_summaries[j];
             air_mir_binding_mix_u64(&hash, row->parameter_index);
             air_mir_binding_mix_u64(&hash, row->mask);
+            air_mir_binding_mix_u64(&hash, row->array_preserved);
         }
         air_mir_binding_mix_u64(&hash, routine->block_count);
         for (size_t j = 0; j < routine->block_count; j++) {
@@ -264,6 +265,11 @@ air_collect_function_param_flow_summaries(AIRProgram *air,
                 "AIR MIR function parameter flow row %zu has unknown mask bits", i);
             return false;
         }
+        if (source != NULL && ((source->array_preserved & ~PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL) != 0 ||
+                source->array_preserved == PGY_FUNCTION_PARAM_ARRAY_ELEMENTS_PRESERVED)) {
+            air_set_error(error_message, "AIR MIR function parameter flow row %zu has invalid Array preservation bits", i);
+            return false;
+        }
         if (source == NULL
             || source->parameter_index >= mir_routine_param_count(routine)) {
             air_set_error(error_message,
@@ -285,6 +291,7 @@ air_collect_function_param_flow_summaries(AIRProgram *air,
         target->parameter_index = source->parameter_index;
         target->parameter_count = mir_routine_param_count(routine);
         target->mask = source->mask;
+        target->array_preserved = source->array_preserved;
         if (target->routine == NULL) {
             air_set_error(error_message,
                           "AIR MIR function parameter flow routine name allocation failed");

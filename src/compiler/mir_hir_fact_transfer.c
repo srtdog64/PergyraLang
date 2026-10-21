@@ -423,6 +423,8 @@ mir_copy_function_param_flow_summaries(MIRRoutine *routine,
             summary->parameter_index;
         routine->function_param_flow_summaries[
             routine->function_param_flow_summary_count].mask = summary->mask;
+        routine->function_param_flow_summaries[
+            routine->function_param_flow_summary_count].array_preserved = summary->array_preserved;
         routine->function_param_flow_summary_count++;
     }
     return true;
