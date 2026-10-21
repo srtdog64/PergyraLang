@@ -276,6 +276,11 @@ function_param_flow_summary_snapshot(SemanticContext *ctx)
         facts[count].function_syntax_id = entry->function_id;
         facts[count].parameter_index = entry->param_index;
         facts[count].mask = entry->mask;
+        /* Elements are preserved only as part of a preserved descriptor. */
+        unsigned failures = function_param_flow_array_preservation_settled(store, i);
+        facts[count].array_preserved = (failures & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) != 0 ? 0
+            : PGY_FUNCTION_PARAM_ARRAY_DESCRIPTOR_PRESERVED
+                | ((failures & FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED) != 0 ? 0 : PGY_FUNCTION_PARAM_ARRAY_ELEMENTS_PRESERVED);
         count++;
     }
     if (count == 0) {

@@ -463,6 +463,26 @@ function_param_array_storage_unproved_in_program_points(
     return next == count ? bad : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
 }
 
+static unsigned
+array_preservation_bits(const FunctionParamFlowSummaryEntry *entry)
+{
+    return (entry->array_storage_unproved ? FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED : 0)
+        | (entry->array_elements_unproved ? FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED : 0);
+}
+
+/* A settled entry's verdict, read without demanding a summary. Every entry
+ * is walked in the first pass, and the walk refuses a formal that is not an
+ * Array storage formal. */
+unsigned
+function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *store, size_t index)
+{
+    const FunctionParamFlowSummaryEntry *entry = &store->entries[index];
+    if (entry->state != FUNCTION_PARAM_FLOW_COMPLETE || entry->analysis_unsupported
+        || !entry->output_dependencies_ready || !function_param_flow_output_current(store, index, false))
+        return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    return array_preservation_bits(entry);
+}
+
 unsigned
 function_param_flow_array_preservation_failures(SemanticContext *ctx,
     ASTNode *function_decl, size_t param_index)
@@ -477,12 +497,10 @@ function_param_flow_array_preservation_failures(SemanticContext *ctx,
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     if (store == NULL || store->failed) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     size_t index = function_param_flow_find(store, ast_node_stable_id(function_decl), param_index);
-    if (index == SIZE_MAX || store->entries[index].function_decl != function_decl
-        || (!store->solving && (store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE
-            || store->entries[index].analysis_unsupported || !store->entries[index].output_dependencies_ready
-            || !function_param_flow_output_current(store, index, false)))) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
-    return (store->entries[index].array_storage_unproved ? FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED : 0)
-        | (store->entries[index].array_elements_unproved ? FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED : 0);
+    if (index == SIZE_MAX || store->entries[index].function_decl != function_decl)
+        return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    return store->solving ? array_preservation_bits(&store->entries[index])
+        : function_param_flow_array_preservation_settled(store, index);
 }
 
 bool

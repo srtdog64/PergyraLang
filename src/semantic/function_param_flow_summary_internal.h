@@ -541,5 +541,7 @@ bool function_param_flow_worklist_verified(FunctionParamFlowSummaryStore *store,
 unsigned function_param_array_storage_unproved_in_program_points(
     ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
     const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read);
+/* One entry's settled Array preservation failures, for the published snapshot. */
+unsigned function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *store, size_t index);
 
 #endif
