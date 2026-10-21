@@ -1,0 +1,19 @@
+// SortedFirst binds a local to its by-value holder's items and sorts it in
+// place, which permutes the storage Main's holder shares: the call moves the
+// holder, and Main's later use is refused.
+struct Holder {
+    items: Array<Int>;
+}
+
+func SortedFirst(holder: Holder) -> Int {
+    let items: Array<Int> = holder.items;
+    ArraySort(items);
+    return items[0];
+}
+
+func Main() -> Int {
+    let holder: Holder = Holder([3, 1, 2]);
+    let first: Int = SortedFirst(holder);
+    Print(ToString(first * 10 + holder.items[0]));
+    return 0;
+}

@@ -469,9 +469,6 @@ bool semantic_param_publication_call_analysis_unmodelled(
         bool depends = false, retains = false;
         return !semantic_param_publication_checked_result_relation(ctx, call, 1, &depends, &retains);
     }
-    /* A store into a private local Array of scalars is modelled by its own
-     * route, ArraySort's returned Array included. */
-    if (semantic_param_publication_private_physical_array_mutation(ctx, call, NULL)) return false;
     if (semantic_param_publication_checked_none(ctx, call)) return false;
     if (semantic_param_publication_checked_local_owner_constructor(ctx, call)) return false;
     if (row->selected_callable != NULL &&

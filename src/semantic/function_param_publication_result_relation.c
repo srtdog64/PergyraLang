@@ -44,6 +44,22 @@ bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Ty
     return clone_copies_deeply(ctx, type, 0);
 }
 
+/* ArraySort and ArrayReverse permute their Array's elements in place and
+ * return the same Array (C: the receiver expression; LLVM: the receiver's
+ * reloaded value). */
+static bool publication_array_permutation(const PublishedNode *row)
+{
+    return row != NULL && row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib && row->kind_present &&
+        row->declaration == 0 && row->value_binding == 0 && row->target_shape == AST_IDENTIFIER &&
+        row->target_binding == 0 && row->argument_count == 1 && row->target_name != NULL &&
+        (strcmp(row->target_name, "ArraySort") == 0 || strcmp(row->target_name, "ArrayReverse") == 0);
+}
+
+bool semantic_param_publication_checked_array_permutation(const SemanticContext *ctx, const ASTNode *call)
+{
+    return publication_array_permutation(publication_result_current(ctx, call));
+}
+
 static bool publication_result_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool backing, bool *result_depends, bool *external_retains)
 {
@@ -70,6 +86,15 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
             result_name == NULL || row->value_type->name == NULL ||
             strcmp(result_name, row->value_type->name) != 0) return false;
         *result_depends = true; *external_retains = false; return true;
+    }
+    if (publication_array_permutation(row)) {
+        /* The result is the receiver itself; the permutation keeps nothing. */
+        PublishedNode *input = publication_current_value(ctx, row->arguments[0].node);
+        if (input == NULL || input->node != ast_call_argument(call, 0) ||
+            !type_equals(input->value_type, row->value_type)) return false;
+        *result_depends = true;
+        *external_retains = false;
+        return true;
     }
     if (row->builtin == BUILTIN_CLONE) {
         /* A Clone the backends copy deeply shares nothing with its

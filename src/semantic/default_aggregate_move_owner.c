@@ -424,14 +424,16 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         for (size_t p = 0; p < ast_call_arg_count(node); p++)
             if (!walk_expression(walk, state, ast_call_argument(node, p))) return false;
         apply_call_moves(walk, state, node);
-        /* An Array push or set, an owned String push or a slot write changes
-         * its receiver in place; a push or set copies its value into it. */
+        /* An Array push, set, sort or reverse, an owned String push or a slot
+         * write changes its receiver in place; a push or set copies its value
+         * into it. */
         size_t stored = 0;
         uint32_t kind = 0, holder = 0;
         char fields[512];
         ASTNode *receiver = ast_call_arg_count(node) > 0 ? ast_call_argument(node, 0) : NULL;
         bool store = receiver != NULL && semantic_param_publication_checked_array_store(walk->ctx, node, &stored);
         if (store || (receiver != NULL && (semantic_param_publication_checked_slot_write(walk->ctx, node) ||
+                semantic_param_publication_checked_array_permutation(walk->ctx, node) ||
                 (ast_call_semantic_callee_builtin_kind(node, &kind) && kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING))))
             move_walk_copy_changed(walk, state, receiver);
         if (store && move_walk_access_path(receiver, &holder, fields, sizeof(fields)))

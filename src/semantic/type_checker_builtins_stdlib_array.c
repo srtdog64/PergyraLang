@@ -539,6 +539,9 @@ type_check_stdlib_array_call(ASTNode *expr,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
                 "%s requires Array<T>, got '%s'", name,
                 type_name_or_unknown(arr));
+        /* The result is the receiver: its relation reads this type name. */
+        else if (arr->name != NULL && !ast_call_set_semantic_value_type_name_copy(expr, arr->name))
+            semantic_error(ctx, expr, "Array permutation result type snapshot allocation failed");
         return arr;
     }
     if (kind == STDLIB_COLLECTION_ARRAY_MAP

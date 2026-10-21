@@ -317,6 +317,9 @@ bool semantic_param_publication_checked_result_relation(const SemanticContext *c
 /* C and LLVM copy every part of a value of `type` into new storage when it
  * is cloned, so the Clone's result shares nothing with its argument. */
 bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Type *type);
+/* A checked ArraySort or ArrayReverse: it writes its receiver's elements in
+ * place and returns that receiver. */
+bool semantic_param_publication_checked_array_permutation(const SemanticContext *ctx, const ASTNode *call);
 bool semantic_param_publication_checked_backing_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool *result_depends, bool *external_retains);
 bool semantic_param_publication_record_empty_map_binding(SemanticContext *ctx,

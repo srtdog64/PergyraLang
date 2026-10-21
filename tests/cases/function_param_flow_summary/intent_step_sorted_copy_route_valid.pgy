@@ -1,11 +1,7 @@
-// An intent's step action copies its Array argument and sorts the copy.
-// ArraySort on a local that is not an Array literal is a stdlib call the
-// analysis does not model, so the action's frame for that formal is
-// unsupported, and so is the frame of Route that hands the Array to the
-// intent: its unsupported relation is the step's action call. No row of
-// Route holds that call; the row that holds the intent call owns it, so
-// Route's rows stay current and its result is admitted: a conservative
-// summary, not a stale proof.
+// An intent's step action copies its Array argument and sorts the copy,
+// which permutes the copy in place and returns it. Route hands the Array to
+// the intent and returns the step's outcome: the sorted copy shares nothing
+// with Route's Array, so Route's result is admitted.
 struct Taken {
     items: Array<Int>;
 }

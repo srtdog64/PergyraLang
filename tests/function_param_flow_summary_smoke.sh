@@ -127,6 +127,7 @@ landed_clones = {
     "local_copy_of_copy_grown_landed_valid": {"Main": 1},
     "local_copy_source_element_set_landed_valid": {"Main": 1},
     "local_copy_source_inout_grown_landed_valid": {"Main": 1},
+    "local_copy_source_sorted_landed_valid": {"Main": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -197,6 +198,9 @@ landing_rounds = {
     "local_copied_path_then_moved_invalid": 1,
     "local_copy_changed_then_moved_invalid": 1,
     "owned_copy_string_push_landed_valid": 1,
+    "local_copy_source_sorted_landed_valid": 1,
+    "array_sort_after_handoff_ref_reader_valid": 0,
+    "by_value_formal_array_sorted_invalid": 0,
     "by_value_getter_lend_result_passed_grown_invalid": 0,
     "by_value_getter_second_lend_grown_invalid": 0,
 }
@@ -231,6 +235,7 @@ release_lifetime_refusals = {
     "local_let_alias_grown_invalid": [(*released_refusal, 25, 73)],
     "local_copied_path_then_moved_invalid": [(*released_refusal, 25, 85)],
     "local_copy_changed_then_moved_invalid": [(*released_refusal, 26, 42)],
+    "by_value_formal_array_sorted_invalid": [(*released_refusal, 17, 45)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     # An inout fill of a by-value parameter from a second input moves it.
@@ -950,6 +955,9 @@ paired = (
     ("local_copied_path_then_moved_invalid", False),
     ("local_copy_changed_then_moved_invalid", False),
     ("owned_copy_string_push_landed_valid", True),
+    ("local_copy_source_sorted_landed_valid", True),
+    ("array_sort_after_handoff_ref_reader_valid", True),
+    ("by_value_formal_array_sorted_invalid", False),
     ("by_value_getter_lend_result_passed_grown_invalid", False),
     ("by_value_getter_second_lend_grown_invalid", False),
     ("recursive_ref_read_only_walk_valid", True),
@@ -1042,7 +1050,7 @@ paired = (
     ("receiver_unsupported_ref_return_invalid", False),
     ("unit_enum_constant_constructor_valid", True),
     ("unit_enum_constant_constructor_moves_invalid", False),
-    ("intent_step_unsupported_route_valid", True),
+    ("intent_step_sorted_copy_route_valid", True),
     ("slice_view_scalar_read_valid", True),
     ("slice_view_ref_return_invalid", False),
     ("aggregate_string_loan_getter_valid", True),
@@ -1806,6 +1814,8 @@ for name, expected in (
     ("local_copy_in_loop_valid", "9"),
     ("local_copy_rebound_valid", "9"),
     ("owned_copy_string_push_landed_valid", "5c"),
+    ("local_copy_source_sorted_landed_valid", "31"),
+    ("array_sort_after_handoff_ref_reader_valid", "4"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")
