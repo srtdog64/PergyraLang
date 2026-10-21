@@ -20,6 +20,8 @@ typedef struct {
     uint32_t condition_id, value_id;
     bool has_true, has_false;
     size_t true_target, false_target;
+    uint32_t loop_id;
+    size_t loop_exit;
 } HIRExecutionBlock;
 
 struct HIRCFGExecutionWitness {
@@ -239,7 +241,8 @@ static bool hir_cfg_execution_seal(HIRRoutine *routine)
         w->blocks[b] = (HIRExecutionBlock){block->id, at, block->statement_count,
             block->terminator_kind, block->terminator_condition, block->terminator_value,
             ast_node_stable_id(block->terminator_condition), ast_node_stable_id(block->terminator_value),
-            block->has_succ_true, block->has_succ_false, block->succ_true, block->succ_false};
+            block->has_succ_true, block->has_succ_false, block->succ_true, block->succ_false,
+            block->source_loop_syntax_id, block->source_loop_exit};
         for (size_t s = 0; s < block->statement_count; s++) {
             w->statements[at++] = (HIRExecutionStatement){block->statements[s], ast_node_stable_id(block->statements[s])};
         }
@@ -287,7 +290,9 @@ bool hir_cfg_execution_current(const HIRRoutine *routine)
             saved->value != block->terminator_value || saved->condition_id != ast_node_stable_id(block->terminator_condition) ||
             saved->value_id != ast_node_stable_id(block->terminator_value) || saved->has_true != block->has_succ_true ||
             saved->has_false != block->has_succ_false || saved->true_target != block->succ_true ||
-            saved->false_target != block->succ_false) return false;
+            saved->false_target != block->succ_false ||
+            saved->loop_id != block->source_loop_syntax_id ||
+            saved->loop_exit != block->source_loop_exit) return false;
         for (size_t s = 0; s < block->statement_count; s++, at++)
             if (w->statements[at].node != block->statements[s] ||
                 w->statements[at].id != ast_node_stable_id(block->statements[s])) return false;

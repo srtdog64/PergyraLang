@@ -1,0 +1,16 @@
+struct Keeper { rows: Array<String>; }
+
+func Main() -> Int
+{
+    var keeper = Keeper([]);
+    var n: Int = 0;
+    while n < 3
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        keeper.rows = rows;
+        n = n + 1;
+    }
+    Print(keeper.rows[0]);
+    return 0;
+}

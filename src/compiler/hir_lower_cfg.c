@@ -370,6 +370,8 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             block = &(*blocks)[(size_t)current_block];
             hir_cfg_set_goto(block, (size_t)cond_block);
             (*blocks)[(size_t)cond_block].is_loop_header = true;
+            (*blocks)[(size_t)cond_block].source_loop_syntax_id = ast_node_stable_id(node);
+            (*blocks)[(size_t)cond_block].source_loop_exit = (size_t)exit_block;
             ASTNode *condition = ast_while_condition(node);
             if (condition != NULL && condition->type == AST_BOOLEAN) {
                 /* A literal has only one feasible edge. In particular a
@@ -413,6 +415,8 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             block = &(*blocks)[(size_t)current_block];
             hir_cfg_set_goto(block, (size_t)header_block);
             (*blocks)[(size_t)header_block].is_loop_header = true;
+            (*blocks)[(size_t)header_block].source_loop_syntax_id = ast_node_stable_id(node);
+            (*blocks)[(size_t)header_block].source_loop_exit = (size_t)exit_block;
             hir_cfg_set_branch(&(*blocks)[(size_t)header_block],
                            node,
                            (size_t)body_block,

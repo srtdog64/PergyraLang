@@ -1,9 +1,57 @@
 #include "../../compiler/mir_hir_fact_transfer.h"
 #include "../../compiler/hir_collection_owned_local_transition_adapter.h"
+#include "../../compiler/mir_loop_collection_cleanup.h"
 
 static void
 test_mir_collection_ownership_validation(void)
 {
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const char *source = "func Main()->Int{var n:Int=0;while n<3{"
+            "var rows:Array<String> = [];ArrayPush(rows,\"x\");n=n+ArrayLength(rows);}return n;}";
+        bool lowered = lower_mir_from_source(source, &hir, &rir, &mir);
+        MIRRoutine *r = lowered ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+        MIRInstruction *cleanup = NULL;
+        for (size_t b = 0; r != NULL && b < r->block_count; b++)
+            for (size_t i = 0; i < r->blocks[b].instruction_count; i++)
+                if (r->blocks[b].instructions[i].collection_cleanup_kind != 0)
+                    cleanup = &r->blocks[b].instructions[i];
+        bool control = cleanup != NULL && mir_validate(mir, NULL) &&
+            mir_validate_loop_collection_cleanup(r, NULL);
+        TEST("MIR loop-local Array has checked iteration cleanup before its next birth");
+        EXPECT(control);
+        for (unsigned fault = 0; control && fault < 6; fault++) {
+            MIRInstruction saved = *cleanup;
+            if (fault == 0) cleanup->collection_cleanup_kind = 0;
+            if (fault == 1) cleanup->collection_cleanup_target = r->entry_block;
+            if (fault == 2) cleanup->binding_syntax_id++;
+            if (fault == 3) cleanup->collection_cleanup_kind = 2;
+            if (fault == 4) cleanup->arg0 = "unrelated.1";
+            if (fault == 5) cleanup->use_count = 0;
+            bool rejected = !mir_validate_loop_collection_cleanup(r, NULL) && !mir_validate(mir, NULL);
+            *cleanup = saved;
+            TEST("MIR missing, redirected, cross-binding, glue, storage and liveness faults refuse");
+            EXPECT(rejected && mir_validate(mir, NULL));
+        }
+        mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+    }
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_mir_from_source("func Main()->Int{var n:Int=0;while n<1{n=n+1;}"
+            "var rows:Array<String> = [];ArrayPush(rows,\"x\");return ArrayLength(rows);}", &hir, &rir, &mir);
+        MIRRoutine *r = lowered ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+        size_t automatic = 0;
+        for (size_t b = 0; r != NULL && b < r->block_count; b++)
+            for (size_t i = 0; i < r->blocks[b].instruction_count; i++)
+                automatic += r->blocks[b].instructions[i].collection_cleanup_kind != 0;
+        TEST("MIR a dominating finished loop does not own a later local's lifetime");
+        EXPECT(lowered && r != NULL && automatic == 0 && mir_validate(mir, NULL));
+        mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+    }
     {
         HIRProgram *field_hir = NULL;
         RIRProgram *field_rir = NULL;

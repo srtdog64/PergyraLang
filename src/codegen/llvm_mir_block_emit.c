@@ -27,6 +27,36 @@
 #include "../compiler/mir_cfg_contract_cleanup_root_membership.h"
 #include "../parser/ast_api.h"
 
+/* A conditional retirement selects a null receiver on the other edge. The
+ * existing drop ABI accepts null, so predecessor identities and phi edges do
+ * not change, and the already-evaluated condition is never evaluated twice. */
+static bool llvm_mir_collection_retirements(LLVMGenCtx *ctx, const MIRBasicBlock *block,
+    LLVMMirVar *vars, size_t count, size_t target, LLVMValueRef condition, bool inverse)
+{
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->collection_cleanup_kind == 0 || inst->collection_cleanup_target != target) continue;
+        LLVMValueRef storage = llvm_mir_get_var(vars, count, inst->arg0);
+        const char *name = inst->collection_cleanup_kind == 2 ?
+            "pgy_array_drop_owned_String" : "pgy_array_drop_storage_raw_export";
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, name);
+        if (storage == NULL || fn == NULL || fn->fn == NULL) {
+            llvm_set_mir_topology_invalid(ctx, "MIR collection retirement is missing SSA storage or runtime ABI");
+            return false;
+        }
+        if (condition != NULL) {
+            LLVMValueRef selected = inverse ? LLVMBuildNot(ctx->builder, condition, "retire.edge") : condition;
+            storage = LLVMBuildSelect(ctx->builder, selected, storage,
+                LLVMConstNull(LLVMTypeOf(storage)), "retire.storage");
+        }
+        LLVMValueRef args[] = {storage,
+            LLVMBuildIntCast2(ctx->builder, LLVMSizeOf(ctx->type_i8ptr), ctx->type_i64, false, "retire.element.size")};
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
+            inst->collection_cleanup_kind == 2 ? 1 : 2, "");
+    }
+    return true;
+}
+
 static bool
 llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
 {
@@ -425,6 +455,10 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 if (cond != NULL) {
                     LLVMBasicBlockRef true_bb = llvm_block_heads[mir_block->succ_true];
                     LLVMBasicBlockRef false_bb = llvm_block_heads[mir_block->succ_false];
+                    if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                            mir_block->succ_true, cond, false) ||
+                        !llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                            mir_block->succ_false, cond, true)) return;
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
                     llvm_block_tails[mir_block->id] =
@@ -433,6 +467,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     emitted_terminator = true;
                 }
             } else if (mir_block->has_succ_true) {
+                if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                        mir_block->succ_true, NULL, false)) return;
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
                 llvm_block_tails[mir_block->id] =
@@ -499,6 +535,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     return;
                 llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                 if (val != NULL) {
+                    if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                            SIZE_MAX, NULL, false)) return;
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
                     if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
@@ -524,6 +562,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     return;
                 }
             } else {
+                if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                        SIZE_MAX, NULL, false)) return;
                 if (!llvm_mir_emit_exit_defers(ctx, mir_block))
                     return;
                 llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
@@ -634,6 +674,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 LLVMBuildUnreachable(ctx->builder);
             return;
         } else if (mir_block->has_succ_true) {
+            if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                    mir_block->succ_true, NULL, false)) return;
             if (!llvm_mir_emit_loop_backedge_increment(routine, mir_block, ctx))
                 return;
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))

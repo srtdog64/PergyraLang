@@ -1,0 +1,55 @@
+func Early() -> Int
+{
+    var n: Int = 0;
+    while n < 2
+    {
+        var rows: Array<String> = [];
+        ArrayPush(rows, "x");
+        return ArrayLength(rows);
+    }
+    return 0;
+}
+
+func Branch(skip: Bool) -> Int
+{
+    var n: Int = 0;
+    var total: Int = 0;
+    while n < 3
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        n = n + 1;
+        if skip { continue; }
+        total = total + ArrayLength(rows);
+        if n == 2 { break; }
+    }
+    return total;
+}
+
+func Nested() -> Int
+{
+    var n: Int = 0;
+    var total: Int = 0;
+    while n < 2
+    {
+        var rows: Array<String> = [];
+        ArrayPush(rows, "x");
+        var j: Int = 0;
+        while j < 3
+        {
+            total = total + ArrayLength(rows);
+            j = j + 1;
+        }
+        n = n + 1;
+    }
+    return total;
+}
+
+func Main() -> Int
+{
+    Print(ToString(Early()));
+    Print(ToString(Branch(true)));
+    Print(ToString(Branch(false)));
+    Print(ToString(Nested()));
+    return 0;
+}

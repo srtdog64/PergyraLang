@@ -13,6 +13,7 @@
 #include "../semantic/semantic.h"
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
+#include "mir_loop_collection_cleanup.h"
 #include "mir_resource_runtime_population.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
@@ -503,6 +504,10 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                        mir_populate_use_edges(&routine, error_message));
         MIR_TIMED_STEP(MIR_TIMING_CLEANUP_EDGES,
                        mir_materialize_cleanup_edges(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_RECOMPUTE,
+                       mir_recompute_analysis(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_CLEANUP_EDGES,
+                       mir_synthesize_loop_collection_cleanup(&routine, error_message));
         MIR_TIMED_STEP(MIR_TIMING_RECOMPUTE,
                        mir_recompute_analysis(&routine));
 #undef MIR_TIMED_STEP

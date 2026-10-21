@@ -12,7 +12,27 @@
 #include "transpiler_mir_phi_emit.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_resource_hook_emit.h"
+#include "transpiler_mir_ssa_names.h"
 #include "../semantic/diag_codes.h"
+
+static bool transpiler_emit_collection_retirements(TranspilerCtx *ctx,
+    const MIRBasicBlock *block, size_t target, int indent)
+{
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->collection_cleanup_kind == 0 || inst->collection_cleanup_target != target) continue;
+        char *value = transpiler_render_ssa_name(ctx, inst->arg0);
+        if (value == NULL) {
+            transpiler_set_mir_topology_invalid(ctx, "MIR collection retirement has no current SSA storage");
+            return false;
+        }
+        write_indent_to(ctx->out, indent);
+        codebuf_write(ctx->out, "%s(&%s);\n",
+            inst->collection_cleanup_kind == 2 ? "pgy_array_drop_owned_String" : "pgy_array_drop_String", value);
+        free(value);
+    }
+    return true;
+}
 
 static void
 transpiler_mir_set_pin_cleanup_error(TranspilerCtx *ctx,
@@ -84,11 +104,17 @@ transpiler_emit_mir_branch_terminator(const MIRRoutine *mir_routine,
 
     write_indent(ctx);
     transpiler_write_condition_head(ctx, "if", cond, " {\n");
+    if (!transpiler_emit_collection_retirements(ctx, block, block->succ_true, ctx->indent + 1)) {
+        free(cond); return false;
+    }
     write_indent_to(ctx->out, ctx->indent + 1);
     codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
                   name, block->succ_true);
     write_indent(ctx);
     codebuf_write(ctx->out, "} else {\n");
+    if (!transpiler_emit_collection_retirements(ctx, block, block->succ_false, ctx->indent + 1)) {
+        free(cond); return false;
+    }
     if (block->has_succ_false) {
         transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent + 1,
             block_index, block, &mir_routine->blocks[block->succ_false]);
@@ -176,6 +202,9 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     }
 
     transpiler_emit_mut_ref_writebacks(ctx);
+    if (!transpiler_emit_collection_retirements(ctx, block, SIZE_MAX, ctx->indent)) {
+        free(ret_expr); return false;
+    }
     if (!transpiler_emit_mir_embedded_zone_local_cleanups(
             ctx, ctx->out, ctx->indent)) {
         free(ret_expr);
@@ -243,6 +272,8 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
                                            size_t block_reason_cap)
 {
     if (block->has_succ_true) {
+        if (!transpiler_emit_collection_retirements(ctx, block, block->succ_true, ctx->indent))
+            return false;
         transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent,
             block_index, block, &mir_routine->blocks[block->succ_true]);
         if (!transpiler_mir_emit_loop_backedge_increment(ctx->out, ctx,

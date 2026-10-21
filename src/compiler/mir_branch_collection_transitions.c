@@ -11,6 +11,7 @@
 #include "../semantic/builtin_kind.h"
 #include "mir_json_expression_graph_materialize.h"
 #include "mir_hir_fact_transfer.h"
+#include "mir_loop_collection_cleanup.h"
 
 #include "mir_branch_source_facts_internal.h"
 
@@ -458,6 +459,8 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
     if (!mir_validate_collection_effect_evidence(routine->program, routine,
                                                   error_message))
         return false;
+    if (!mir_validate_loop_collection_cleanup(routine, error_message))
+        return false;
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         const MIRBasicBlock *block = &routine->blocks[block_id];
         for (size_t inst_row = 0;
@@ -575,8 +578,13 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                             "predecessor");
                     }
                     if (routine->blocks[predecessor].is_reachable) {
+                        MIRCollectionTransitionState incoming = outputs[predecessor];
+                        if (incoming != MIR_COLLECTION_STATE_BOTTOM &&
+                            mir_loop_collection_cleanup_edge(&routine->blocks[predecessor],
+                                fact->binding_syntax_id, block_id))
+                            incoming = MIR_COLLECTION_STATE_RETIRED;
                         joined = (MIRCollectionTransitionState)(
-                            joined | outputs[predecessor]);
+                            joined | incoming);
                     }
                 }
                 if (joined == MIR_COLLECTION_STATE_BOTTOM)

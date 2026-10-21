@@ -336,6 +336,13 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
     } else {
         fputs("null", out);
     }
+    if (inst->collection_cleanup_kind != 0) {
+        fprintf(out, ",\"collection_cleanup\":{\"binding_syntax_id\":%u,\"kind\":%u,\"target\":",
+            inst->binding_syntax_id, inst->collection_cleanup_kind);
+        if (inst->collection_cleanup_target == SIZE_MAX) fputs("null", out);
+        else fprintf(out, "%zu", inst->collection_cleanup_target);
+        fputs("}", out);
+    }
     if (emit_local_refs)
         mir_json_emit_instruction_local_ref(out, routine, inst);
     if (!mir_json_emit_instruction_runtime_abi(out, inst)

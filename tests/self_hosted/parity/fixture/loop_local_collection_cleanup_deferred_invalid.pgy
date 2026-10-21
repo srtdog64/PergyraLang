@@ -1,0 +1,13 @@
+func Main() -> Int
+{
+    var n: Int = 0;
+    while true
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        defer { Print(ToString(ArrayLength(rows))); }
+        n = n + 1;
+        if n == 3 { break; }
+    }
+    return 0;
+}

@@ -110,6 +110,12 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
                 air_mir_binding_mix_u64(&hash, instruction->id);
                 air_mir_binding_mix_u64(&hash, instruction->kind);
                 air_mir_binding_mix_u64(&hash, instruction->source_stable_id);
+                air_mir_binding_mix_u64(&hash, instruction->collection_cleanup_kind);
+                if (instruction->collection_cleanup_kind != 0) {
+                    air_mir_binding_mix_u64(&hash, instruction->collection_cleanup_target);
+                    air_mir_binding_mix_u64(&hash, instruction->binding_syntax_id);
+                    air_mir_binding_mix_text(&hash, instruction->arg0);
+                }
                 air_mir_binding_mix_bool(&hash,
                                          instruction->machine_layer_fact_required);
                 air_mir_binding_mix_bool(&hash,

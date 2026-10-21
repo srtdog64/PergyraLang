@@ -669,6 +669,7 @@ mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
     if (left < 0)
         free(text);
     if (left >= 0 && expr->type == AST_IDENTIFIER) {
+        graph->nodes[left].source_binding_syntax_id = ast_identifier_binding_syntax_id(expr);
         uint32_t syntax_id = 0;
         int ordinal = -1;
 

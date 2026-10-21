@@ -237,6 +237,8 @@ struct HIRBasicBlock
     const char             *pin_view_name;
     ASTNode                *pin_block_ast;
     bool                    is_loop_header;
+    uint32_t                source_loop_syntax_id;
+    size_t                  source_loop_exit;
     bool                    is_reachable;
     size_t                  loop_depth;
     HIRBlockTerminatorKind  terminator_kind;

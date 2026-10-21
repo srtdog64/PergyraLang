@@ -139,6 +139,10 @@ typedef struct
     uint32_t         collection_ownership_effect_kind;
     uint32_t         collection_ownership_receiver_binding_id;
     uint32_t         collection_ownership_source_binding_id;
+    /* Lowering-owned iteration retirement, separate from source-call receipts.
+     * Target SIZE_MAX means the routine exit; other targets are exact CFG edges. */
+    uint32_t         collection_cleanup_kind; /* 0 none, 1 backing, 2 owned Strings */
+    size_t           collection_cleanup_target;
     const char     **uses;
     size_t           use_count;
     size_t           use_capacity;

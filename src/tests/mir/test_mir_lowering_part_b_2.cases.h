@@ -228,6 +228,7 @@
                 if (grown == NULL)
                     break;
                 block->instructions = grown;
+                block->instruction_capacity = block->instruction_count + 1;
                 memset(&block->instructions[block->instruction_count], 0, sizeof(MIRInstruction));
                 block->instructions[block->instruction_count].id = routine->instruction_count++;
                 block->instructions[block->instruction_count].kind = MIR_INST_STMT;

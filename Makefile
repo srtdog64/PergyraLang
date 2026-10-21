@@ -1066,6 +1066,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_generic_method_specialization_validate.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_branch_collection_transitions.c \
+                   $(COMPILER_DIR)/mir_loop_collection_cleanup.c \
                    $(COMPILER_DIR)/collection_owned_local_transition_owner.c \
                    $(COMPILER_DIR)/hir_collection_owned_local_transition_adapter.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
@@ -1690,6 +1691,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_generic_method_specialization_validate.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_branch_collection_transitions.o \
+                   $(BUILD_DIR)/compiler/mir_loop_collection_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_provenance.o \
@@ -2433,6 +2435,11 @@ native-string-result-control-ownership-test-smoke: $(PGY)
 	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
 	"$(BASH)" tests/string_result_control_ownership_smoke.sh
 
+native-loop-local-collection-cleanup-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
+	"$(BASH)" tests/loop_local_collection_cleanup_smoke.sh
+
 native-compiler-boundary-regression-test-smoke: \
 	native-match-scrutinee-single-evaluation-test-smoke \
 	native-c-callable-macro-hygiene-test-smoke \
@@ -2440,6 +2447,7 @@ native-compiler-boundary-regression-test-smoke: \
 	native-string-result-control-ownership-test-smoke
 
 .PHONY: native-match-scrutinee-single-evaluation-test-smoke \
+	native-loop-local-collection-cleanup-test-smoke \
 	native-c-callable-macro-hygiene-test-smoke \
 	native-imported-private-nominal-test-smoke \
 	native-string-result-control-ownership-test-smoke \
@@ -2516,6 +2524,7 @@ test-rir: $(RIR_TEST)
 test-mir: $(MIR_TEST) $(PGY)
 	@echo "=== MIR Test ==="
 	$(call pgy_run_native,$(MIR_TEST))
+	$(MAKE) native-loop-local-collection-cleanup-test-smoke
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}" \
 	"$(BASH)" tests/domain_runtime_topology_smoke.sh

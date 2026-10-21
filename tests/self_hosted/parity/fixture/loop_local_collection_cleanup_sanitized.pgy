@@ -1,0 +1,15 @@
+func Main() -> Int
+{
+    var n: Int = 0;
+    while n < 40
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        if ArrayLength(rows) != 1 { return 1; }
+        n = n + 1;
+        if n < 20 { continue; }
+        if n == 30 { break; }
+    }
+    Print("ok");
+    return 0;
+}

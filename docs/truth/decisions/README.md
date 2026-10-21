@@ -29,3 +29,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-20 | [An unprovable getter loan is copied where the proof fails](2026-10-20_escaping_loan_copies_where_it_fails.md) | in force |
 | 2026-10-20 | [A formal's storage an output keeps is copied where it is stored](2026-10-20_formal_storage_kept_by_output_is_copied.md) | in force |
 | 2026-10-20 | [A loan is copied where it is made when its exit cannot be](2026-10-20_loan_copied_where_made_when_its_exit_cannot_be.md) | in force |
+| 2026-10-21 | [Loop-local Array retirement preserves the birth check](2026-10-21_loop_local_array_cleanup.md) | bounded implementation contract |

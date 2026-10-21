@@ -219,6 +219,8 @@ transpiler_emit_return_capture(TranspilerCtx *ctx,
             return NULL;
         }
         cleanup |= return_block->is_pin_region;
+        for (size_t i = 0; i < return_block->instruction_count; i++)
+            cleanup |= return_block->instructions[i].collection_cleanup_kind != 0;
         for (int i = 0; i < ctx->typed_var_count; i++)
             cleanup |= ctx->typed_vars[i].requires_embedded_zone_cleanup &&
                 ctx->typed_vars[i].embedded_zone_cleanup_routine == routine;

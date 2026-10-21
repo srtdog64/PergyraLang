@@ -11,6 +11,8 @@ typedef struct {
     uint32_t call_target_syntax_id;
     uint32_t runtime_call_abi_id;
     uint32_t binding_syntax_id;
+    /* Native source identity; not the wire's formal-parameter binding row. */
+    uint32_t source_binding_syntax_id;
     const char *binding_kind;
     int binding_ordinal;
     int left;
