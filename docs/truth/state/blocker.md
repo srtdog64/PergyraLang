@@ -6,10 +6,10 @@ Owner: Claude lane (main-line work since 2026-10-18,
 pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1297 downgraded
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 1159 downgraded
 refusals with every final owner run (2532 before call results became
 paths of a formal;
-[census record](../evidence/2026-10-21_native_census_string_argument_copied.md)).
+[census record](../evidence/2026-10-21_native_census_string_release_joined_by_path.md)).
 A census runs four analyses in about 820 s on an idle machine. The CI harness manifest
 compiles natively since `e23761a3a`.
 
@@ -17,16 +17,16 @@ compiles natively since `e23761a3a`.
 
 1. **`direct_mir_*` routes:** 315 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (268 outside `direct_mir_*`)**, mostly callees that change,
+2. **Moves (266 outside `direct_mir_*`)**, mostly callees that change,
    keep or release ([OPEN](../decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)),
    and 70 local copies whose other side changed (`inout` counted whole).
-3. **Borrowed `ref` escapes (198 outside `direct_mir_*`):** seeded by stores
+3. **Borrowed `ref` escapes (193 outside `direct_mir_*`):** seeded by stores
    into an `inout` output, builtins with no relation, and own/inout handoffs.
 4. **Strings that leave their owner.** Owned copies land for a formal's
    String stored into an `inout` output or a local, and for an indexed
    String pushed into an Array
    ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)).
-   Left: 86 opaque crossings, 131 released elements, 23 owned pushes.
+   Left: 86 opaque crossings, 8 released elements, 23 owned pushes.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).

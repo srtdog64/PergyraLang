@@ -1,0 +1,19 @@
+// The then branch releases names and falls through to the read of text.
+func Clear(own names: Array<String>) -> Void {
+    ArrayDropOwnedStrings(names);
+}
+
+func Pick(i: Int) -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("re", "d"));
+    let text: String = names[0];
+    if i < 0 {
+        Clear(names);
+    }
+    return StringLength(text);
+}
+
+func Main() -> Int {
+    Print(ToString(Pick(1)));
+    return 0;
+}

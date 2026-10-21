@@ -4,6 +4,7 @@
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static bool
@@ -148,6 +149,13 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         destroy_resource_snapshot(&base);
         return FLOW_NONE;
     }
+    /* A branch that does not fall through takes its String invalidations
+     * with it: after the if, a String is released only when a path that
+     * reaches the join released it. Without the capture the old join stays. */
+    bool strings_joined = resource_snapshot_capture_deferred_strings(&base, ctx);
+    bool *string_released = strings_joined && base.deferred_string_count != 0 ?
+        calloc(base.deferred_string_count, sizeof(bool)) : NULL;
+    if (base.deferred_string_count != 0 && string_released == NULL) strings_joined = false;
 
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -183,12 +191,14 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         }
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
         destroy_resource_snapshot(&then_snap);
+        if (strings_joined) resource_snapshot_join_deferred_strings(&base, string_released);
         flags |= FLOW_FALLTHROUGH;
     }
 
     if (ast_if_else_branch(node) != NULL) {
         FlowFlags else_flags = FLOW_NONE;
         restore_resource_states(&base);
+        if (strings_joined && !resource_snapshot_restore_deferred_strings(&base, ctx)) strings_joined = false;
         ctx->current_function_effects = effect_base;
         if (!else_reachable)
             ctx->future_lifecycle_unreachable_depth++;
@@ -214,10 +224,13 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
             }
             merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
             destroy_resource_snapshot(&else_snap);
+            if (strings_joined) resource_snapshot_join_deferred_strings(&base, string_released);
             flags |= FLOW_FALLTHROUGH;
         }
     } else if (else_reachable) {
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
+        for (size_t i = 0; strings_joined && i < base.deferred_string_count; i++)
+            string_released[i] |= base.deferred_strings[i].invalidated;
         flags |= FLOW_FALLTHROUGH;
         else_effect_delta = EFFECT_NONE;
     }
@@ -249,6 +262,10 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         restore_resource_states(&fallthrough);
     else
         restore_resource_states(&base);
+    for (size_t i = 0; strings_joined && has_fallthrough && i < base.deferred_string_count; i++)
+        base.deferred_strings[i].invalidated = string_released[i];
+    if (strings_joined) (void)resource_snapshot_restore_deferred_strings(&base, ctx);
+    free(string_released);
 
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&fallthrough);

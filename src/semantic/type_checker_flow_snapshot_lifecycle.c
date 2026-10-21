@@ -52,6 +52,17 @@ resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap, 
     return true;
 }
 
+/* ORs each captured String's current invalidation into `joined`, one entry per
+ * captured row. The rows name Strings of scopes enclosing the capture, which
+ * are still live while a branch of that scope is joined. */
+void
+resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, bool *joined)
+{
+    if (snap == NULL || !snap->deferred_strings_captured || joined == NULL) return;
+    for (size_t i = 0; i < snap->deferred_string_count; i++)
+        joined[i] |= snap->deferred_strings[i].symbol->indexed_string_borrow_invalidated;
+}
+
 void
 restore_resource_states(const ResourceConsumeSnapshot *snap)
 {

@@ -48,6 +48,7 @@ bool resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap,
     SemanticContext *ctx);
 bool resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap,
     SemanticContext *ctx);
+void resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, bool *joined);
 void restore_resource_states(const ResourceConsumeSnapshot *snap);
 void restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                                          SemanticContext *ctx);

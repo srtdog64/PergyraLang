@@ -371,6 +371,10 @@ release_lifetime_refusals = {
         (*borrow_refusal, 14, 31)],
     # The local declared after the output call is a local, so its loan of
     # graph escapes only where it really does: into the channel.
+    # A release on a path that reaches the read stays after the if.
+    "string_released_in_then_falling_invalid": [(*borrow_refusal, 13, 25)],
+    "string_released_in_else_falling_invalid": [(*borrow_refusal, 15, 25)],
+    "string_released_before_returning_if_invalid": [(*borrow_refusal, 15, 25)],
     "ref_loan_local_after_output_call_channel_invalid": [
         (*borrow_refusal, 11, 6), (*borrow_refusal, 28, 25)],
     # LabelOf's Label lends its borrowed aggregate; MakeLabel returns that
@@ -1071,6 +1075,10 @@ paired = (
     ("string_join_shadowed_returns_part_invalid", False),
     ("ref_loan_local_after_output_call_valid", True),
     ("string_argument_kept_copy_landed_valid", True),
+    ("string_released_in_returning_branch_valid", True),
+    ("string_released_in_then_falling_invalid", False),
+    ("string_released_in_else_falling_invalid", False),
+    ("string_released_before_returning_if_invalid", False),
     ("ref_loan_local_after_output_call_channel_invalid", False),
     ("aggregate_string_loan_getter_valid", True),
     ("aggregate_string_loan_struct_escape_invalid", False),
