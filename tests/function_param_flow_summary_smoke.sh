@@ -134,6 +134,7 @@ landed_clones = {
     "local_copy_source_sorted_landed_valid": {"Main": 1},
     "collection_value_store_grown_landed_valid": {
         "MapStore": 1, "SetStore": 1, "ListPushStore": 1, "ListSetStore": 1, "QueueStore": 1},
+    "formal_field_copy_changed_at_exit_landed_valid": {"Grow": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -331,9 +332,13 @@ release_lifetime_refusals = {
     "collection_value_store_shallow_grown_invalid": [(*released_refusal, 14, 35)],
     # A value assigned into a field shares that field: a change through
     # either side refuses the other.
+    # A copy of an inout formal's field changed and not assigned back
+    # refuses each exit: two returns and the end of a body.
+    "formal_field_copy_changed_at_exit_invalid": [
+        (*released_refusal, 14, 29), (*released_refusal, 15, 5), (*released_refusal, 18, 6)],
     "local_copy_held_at_field_changed_invalid": [
-        (*released_refusal, 28, 26), (*released_refusal, 36, 20), (*released_refusal, 43, 20),
-        (*released_refusal, 51, 24)],
+        (*released_refusal, 28, 26), (*released_refusal, 28, 5), (*released_refusal, 36, 20),
+        (*released_refusal, 36, 5), (*released_refusal, 43, 20), (*released_refusal, 51, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # Returning a field's storage shares it with the result, which lends the
@@ -1083,6 +1088,9 @@ paired = (
     ("collection_value_store_shallow_grown_invalid", False),
     ("local_copy_held_at_other_field_valid", True),
     ("local_copy_held_at_field_changed_invalid", False),
+    ("formal_field_copy_changed_at_exit_invalid", False),
+    ("formal_field_copy_changed_at_exit_landed_valid", True),
+    ("formal_field_copy_stored_back_valid", True),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),

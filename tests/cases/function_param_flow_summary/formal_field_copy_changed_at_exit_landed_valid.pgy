@@ -1,0 +1,21 @@
+// As formal_field_copy_changed_at_exit_invalid, but the copied field is an
+// Array<Int>, which Clone copies whole: the next analysis copies it where
+// it is bound, so the caller's place keeps its own storage.
+struct Facts {
+    rows: Array<Int>;
+    count: Int;
+}
+
+func Grow(inout facts: Facts) -> Int {
+    let rows: Array<Int> = facts.rows;
+    var n: Int = 0;
+    while n < 40 { ArrayPush(rows, n); n = n + 1; }
+    return ArrayLength(rows);
+}
+
+func Main() -> Int {
+    var facts: Facts = Facts([7], 0);
+    Log(Grow(facts));
+    Log(facts.rows[0] + ArrayLength(facts.rows));
+    return 0;
+}

@@ -684,6 +684,7 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         return !walk->failed;
     case AST_RETURN:
         if (!walk_expression(walk, state, ast_return_value(node))) return false;
+        move_walk_copy_inout_at_exit(walk, state, node);
         *terminated = true;
         return true;
     case AST_BREAK: case AST_CONTINUE: case AST_FAIL_STMT:
@@ -745,6 +746,7 @@ bool semantic_default_aggregate_move_finalize(SemanticContext *ctx)
         MoveState state = {0};
         bool terminated = false;
         (void)walk_node(&walk, &state, ast_func_body(row->decl), &terminated);
+        if (!terminated) move_walk_copy_inout_at_exit(&walk, &state, row->decl);
         state_free(&state);
     }
     free(walk.reported);

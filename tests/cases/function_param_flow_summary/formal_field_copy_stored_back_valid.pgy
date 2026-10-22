@@ -1,0 +1,66 @@
+// As formal_field_copy_changed_at_exit_invalid, but nothing the caller
+// reads after the call shares changed storage at an exit: the copy is
+// assigned back or only read, the formal is by value or `own` (a change
+// through a copy moves the caller's argument instead), or the formal is
+// only lent.
+struct Facts {
+    rows: Array<Int>;
+    table: HashMap<String, Int>;
+}
+
+struct Box {
+    names: Array<String>;
+}
+
+struct Arena {
+    box: Box;
+}
+
+func StoreBack(inout facts: Facts) -> Int {
+    let table: HashMap<String, Int> = facts.table;
+    MapSet(table, "k", 1);
+    facts.table = table;
+    return MapSize(facts.table);
+}
+
+func ReadCopy(inout facts: Facts) -> Int {
+    let table: HashMap<String, Int> = facts.table;
+    return MapSize(table);
+}
+
+func ByValue(facts: Facts) -> Int {
+    let table: HashMap<String, Int> = facts.table;
+    MapSet(table, "k", 1);
+    return MapSize(table);
+}
+
+func Consume(own facts: Facts) -> Int {
+    let table: HashMap<String, Int> = facts.table;
+    MapSet(table, "k", 1);
+    return MapSize(table);
+}
+
+func BoxOf(arena: Arena) -> Box {
+    return arena.box;
+}
+
+func Lent(inout arena: Arena) -> Int {
+    let box: Box = BoxOf(arena);
+    return ArrayLength(box.names);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts([1], table);
+    Log(StoreBack(facts));
+    Log(ReadCopy(facts));
+    let once: HashMap<String, Int> = MapNew();
+    let passed: Facts = Facts([2], once);
+    Log(ByValue(passed));
+    let owned: HashMap<String, Int> = MapNew();
+    let consumed: Facts = Facts([3], owned);
+    Log(Consume(consumed));
+    var arena: Arena = Arena(Box([StringConcat("ab", "")]));
+    Log(Lent(arena));
+    return 0;
+}

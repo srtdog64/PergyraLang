@@ -117,6 +117,40 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
     free(done);
 }
 
+/* An inout formal is the caller's own place, which the caller reads after
+ * the call returns. Where a copy of one of its paths changed since, and the
+ * path was not assigned since, that place may hold storage the change
+ * freed: the exit is refused, and the next analysis copies the path where
+ * it was copied when Clone copies it whole. A by-value formal changed
+ * through a copy moves the caller's argument instead (its summary), and an
+ * own one is not read again. */
+void move_walk_copy_inout_at_exit(MoveWalk *walk, const MoveState *state, ASTNode *exit)
+{
+    for (size_t p = 0; p < ast_func_param_count(walk->routine); p++) {
+        const FuncParam *param = ast_func_param(walk->routine, p);
+        if (param == NULL || param->mode != PARAM_MODE_MUT_REF) continue;
+        for (size_t i = 0; i < state->count; i++) {
+            const MovedPath *row = &state->rows[i];
+            /* An inout formal is never moved or lent: either is refused
+             * where it is made. Its only other rows are copies changed. */
+            if (row->binding != ast_func_param_stable_id(param) || row->carrier != 0 || row->lending_call == NULL)
+                continue;
+            if (!semantic_loan_copy_landing_select(walk->ctx, row->lending_call)) walk->failed = true;
+            if (!move_walk_reported_once(walk, exit)) continue;
+            semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
+                PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, exit,
+                "'%s%s' shares its storage with the copy made on line %u, which changed it, when this function returns.\n"
+                "Reason:\n"
+                "- inout parameter '%s' is the caller's own place, which the caller reads after the call\n"
+                "- the change may have freed the storage that place still holds\n"
+                "Fix:\n"
+                "- assign the changed copy back to '%s%s' before returning\n"
+                "- or change a fresh value instead",
+                param->name, row->fields, row->lending_call->line, param->name, param->name, row->fields);
+        }
+    }
+}
+
 void move_walk_copy_rebound(MoveState *state, uint32_t binding)
 {
     size_t kept = 0;
