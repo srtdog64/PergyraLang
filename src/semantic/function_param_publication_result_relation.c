@@ -60,6 +60,14 @@ bool semantic_param_publication_checked_array_permutation(const SemanticContext 
     return publication_array_permutation(publication_result_current(ctx, call));
 }
 
+/* A checked ArrayPop shortens its receiver in place and returns nothing:
+ * it keeps no part of the receiver after the call. */
+bool semantic_param_publication_checked_array_pop(const SemanticContext *ctx, const ASTNode *call)
+{
+    const PublishedNode *row = publication_result_current(ctx, call);
+    return row != NULL && row->target_name != NULL && strcmp(row->target_name, "ArrayPop") == 0;
+}
+
 /* A HashMap, Set, List or Queue call that writes the storage its receiver
  * shares with a copy: a set or a removal, or a push that may grow it. A set
  * or push also copies its value into that storage: `*stored` is that

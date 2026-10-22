@@ -1,0 +1,37 @@
+// Tag returns a Build that lends the ref input's label, and Lower hands
+// that loan to Trim, which pops an alias of the Build's names and returns
+// a new Build. ArrayPop keeps nothing of the receiver it shortens, so the
+// loan stays a return of Lower's input and Main's call admits it.
+struct Build {
+    names: Array<String>;
+    tag: String;
+}
+
+struct Source {
+    label: String;
+}
+
+func Trim(build: Build, keep: Int) -> Build {
+    let names: Array<String> = build.names;
+    while ArrayLength(names) > keep {
+        ArrayPop(names);
+    }
+    return Build(names, build.tag);
+}
+
+func Tag(ref input: Source, build: Build) -> Build {
+    return Build(build.names, input.label);
+}
+
+func Lower(ref input: Source, build: Build) -> Build {
+    let tagged: Build = Tag(input, build);
+    return Trim(tagged, 0);
+}
+
+func Main() -> Int {
+    let input: Source = Source(Concat("a", "b"));
+    let empty: Array<String> = [];
+    let build: Build = Lower(input, Build(empty, ""));
+    Print(build.tag);
+    return 0;
+}

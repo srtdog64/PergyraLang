@@ -47,11 +47,10 @@ size_t function_param_flow_receiver_formal_summary(ReturnedBacking *state, ASTNo
     return index;
 }
 
-/* A receiver the method may change or keep follows the method's summary
- * for its receiver formal. The edge is recorded on the call's row so the
- * currency check revalidates it. Returns that summary's entry, or SIZE_MAX
- * while it is not complete; an unsupported summary makes the frame
- * unsupported. */
+/* A receiver the method may change or keep follows the method's summary for
+ * its receiver formal. The edge is recorded on the call's row so the currency
+ * check revalidates it. Returns that summary's entry, or SIZE_MAX while it is
+ * not complete; an unsupported summary makes the frame unsupported. */
 size_t backing_receiver_summary(ReturnedBacking *state, ASTNode *call, ASTNode *receiver)
 {
     ASTNode *decl = semantic_param_publication_direct_callee(state->store->ctx, call);
@@ -491,7 +490,8 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
             }
             const uint64_t *bits = backing_origin(state, arg);
             bool local = semantic_param_publication_argument_borrowed_for_call(state->store->ctx, node, i) ||
-                semantic_typed_map_query_receiver_read(state->store->ctx, node, i);
+                semantic_typed_map_query_receiver_read(state->store->ctx, node, i) ||
+                semantic_param_publication_checked_array_pop(state->store->ctx, node);
             ASTNode *receiver = ast_call_argument(node, 0);
             uint32_t owner_id = state->loan_seed != NULL ? state->loan_owner_slot_id : state->fact->input_id;
             bool owner_store = i == 1 && owner_id != 0 &&

@@ -1085,6 +1085,7 @@ paired = (
     ("formal_field_copy_stored_back_valid", True),
     ("string_element_kept_by_callee_landed_valid", True),
     ("array_descriptor_kept_then_read_invalid", False),
+    ("ref_loan_through_popping_helper_valid", True),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),

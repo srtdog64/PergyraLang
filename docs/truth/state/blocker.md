@@ -6,8 +6,8 @@ Claude's other canonical fronts remain separate. Work follows the
 KST on local `main`; nothing is pushed while this state is red.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 361 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_string_element_copy.md)).
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 350 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_array_pop_receiver.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
@@ -19,10 +19,10 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    and 51 local copies whose other side changed, 6 more at [`inout` exits](../decisions/2026-10-22_inout_place_changed_through_a_copy.md).
    Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)).
    GPT has the deep `Clone` of String and scalar maps ([request](../../agent_work_directives/hashmap_deep_clone_backend_2026-10-22.md)).
-3. **Borrowed `ref` escapes (63 outside `direct_mir_*`):** 37 loans still
-   refused after landing, cause not split ([most are copied now](../decisions/2026-10-22_ref_call_loan_copied_where_made.md)),
-   27 `ref` formals escaping through callees (the `SelfMirLower*` chain
-   pops its by-value `build`), 4 callees that keep the value.
+3. **Borrowed `ref` escapes (52 outside `direct_mir_*`):** callees whose formal
+   reaches a call escape (driver and MIR emission chains; [not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md)),
+   and returned loans a copy of the call cannot end because the callee stores
+   the String into an `inout` output (`...NumericStringAllocationRecordResolvedCall`).
 4. **Strings that leave their owner.** Owned copies land where a String
    leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)).
    Left: 3 opaque crossings, 8 released elements, 23 owned pushes.

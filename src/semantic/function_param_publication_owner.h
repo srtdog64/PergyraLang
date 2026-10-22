@@ -320,6 +320,11 @@ bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Ty
 /* A checked ArraySort or ArrayReverse: it writes its receiver's elements in
  * place and returns that receiver. */
 bool semantic_param_publication_checked_array_permutation(const SemanticContext *ctx, const ASTNode *call);
+/* A checked ArrayPop: it shortens its receiver and keeps nothing of it, as
+ * an ArrayPush keeps nothing of the receiver it grows, so a backing frame
+ * counts its receiver as used for the call only. It still changes the
+ * receiver's descriptor: storage proofs do not read it as a preserving use. */
+bool semantic_param_publication_checked_array_pop(const SemanticContext *ctx, const ASTNode *call);
 /* A checked HashMap, Set, List or Queue set, removal or push: it writes the
  * storage its receiver shares with a copy, and a set or push copies the
  * argument `*stored` into it (0 for a removal). */
