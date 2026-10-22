@@ -12,10 +12,11 @@ Owner: GPT root lane. Checked 2026-10-23 KST; no inferred speedup claim.
 
 ## Current observations
 
-The fixed final-owner census at `674fb5903` took 1028.91 s and 3,981,132 KiB
-on the unchanged canonical driver input. It refused before HIR with 310
+The fixed final-owner census at `4716f9539` took 1432.40 s and 3,976,804 KiB
+on the unchanged canonical driver input. It refused before HIR with 309
 semantic rows. This is a closure census, not a successful compiler runtime or
-a controlled performance comparison.
+a controlled performance comparison. The earlier 310-row run took 1028.91 s;
+the two timings are not a speed comparison.
 
 The current native String-copy physical-release gate took 11.49 s and
 161,176 KiB. C and LLVM output matched; deleting emitted cleanup made leak
