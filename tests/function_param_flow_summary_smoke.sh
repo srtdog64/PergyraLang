@@ -258,6 +258,7 @@ landing_rounds = {
     "local_copy_grown_source_unused_valid": 0,
     "local_copy_in_loop_valid": 0,
     "local_copy_rebound_valid": 0,
+    "local_copy_inout_read_only_callee_valid": 0,
     "local_let_alias_grown_invalid": 0,
     "local_copied_path_then_moved_landed_valid": 1,
     "local_copy_changed_then_moved_landed_valid": 1,
@@ -281,6 +282,9 @@ release_lifetime_refusals = {
     # A loan of a borrowed owner that leaves stays refused where Clone copies
     # its result only by value.
     "borrowed_owner_loan_grown_by_value_clone_invalid": [(*borrow_refusal, 24, 5)],
+    # An inout callee that changes the map a caller's local copy shares
+    # refuses the copy's later uses.
+    "local_copy_inout_callee_changes_invalid": [(*released_refusal, 18, 12), (*released_refusal, 19, 19)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # Returning a field's storage shares it with the result, which lends the
@@ -1037,6 +1041,8 @@ paired = (
     ("local_copy_grown_source_unused_valid", True),
     ("local_copy_in_loop_valid", True),
     ("local_copy_rebound_valid", True),
+    ("local_copy_inout_read_only_callee_valid", True),
+    ("local_copy_inout_callee_changes_invalid", False),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),
@@ -1942,6 +1948,7 @@ for name, expected in (
     ("returned_alias_lends_formal_valid", "22"),
     ("lent_path_copy_grown_landed_valid", "75"),
     ("borrowed_owner_loan_grown_landed_valid", "31"),
+    ("local_copy_inout_read_only_callee_valid", "10"),
     ("aggregate_string_loan_local_owner_landed_valid", "ab7"),
     ("aggregate_string_loan_owner_kept_landed_valid", "ab7ab7"),
     ("aggregate_string_loan_owner_moved_landed_valid", "ab71"),

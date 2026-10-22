@@ -86,3 +86,46 @@ test_array_preservation_facet(void)
     parser_destroy(parser);
     lexer_destroy(lexer);
 }
+
+/* An `inout` formal is the caller's place: it is preserved only when the
+ * callee writes nothing through it. */
+static void
+test_inout_preservation_facet(void)
+{
+    const char *source =
+        "struct State { marks: HashMap<String, Int>; count: Int; }\n"
+        "func Look(inout state: State) -> Int {\n"
+        "    let marks: HashMap<String, Int> = state.marks;\n"
+        "    if MapHas(marks, \"a\") { return 1; }\n"
+        "    return 0;\n"
+        "}\n"
+        "func Mark(inout state: State) -> Void { MapSet(state.marks, \"a\", 1); }\n"
+        "func Bump(inout state: State) -> Void { state.count = state.count + 1; }\n"
+        "func Main() -> Void {\n"
+        "    let marks: HashMap<String, Int> = {};\n"
+        "    var state: State = State(marks, 0);\n"
+        "    Mark(state);\n"
+        "    Bump(state);\n"
+        "    Log(Look(state) + state.count);\n"
+        "}\n";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticResult *result = semantic_analyze(program);
+    uint32_t look = 0, mark = 0, bump = 0;
+    bool admitted = !parser_has_error(parser) && result != NULL && result->success;
+    bool has_look = admitted && array_preservation_fact_for(result, "Look", &look);
+    bool has_mark = admitted && array_preservation_fact_for(result, "Mark", &mark);
+    bool has_bump = admitted && array_preservation_fact_for(result, "Bump", &bump);
+
+    TEST("an inout formal the callee only reads is published fully preserved");
+    EXPECT(has_look && look == PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL);
+    TEST("an inout formal whose map the callee sets is published unpreserved");
+    EXPECT(admitted && (!has_mark || mark == 0));
+    TEST("an inout formal whose field the callee assigns is published unpreserved");
+    EXPECT(admitted && (!has_bump || bump == 0));
+    semantic_result_destroy(result);
+    ast_destroy(program);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+}

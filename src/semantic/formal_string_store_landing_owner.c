@@ -152,7 +152,7 @@ void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNo
 }
 
 bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const ASTNode *routine,
-    const ASTNode *target, const ASTNode *value)
+    uint32_t input, const ASTNode *target, const ASTNode *value)
 {
     while (target != NULL && (target->type == AST_MEMBER_ACCESS || target->type == AST_ARRAY_ACCESS))
         target = target->type == AST_MEMBER_ACCESS ? ast_member_object(target) : ast_array_access_array(target);
@@ -167,7 +167,7 @@ bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const A
     for (size_t p = 0; root != 0 && p < ast_func_param_count(routine); p++) {
         FuncParam *param = ast_func_param(routine, p);
         if (param == NULL) continue;
-        output |= param->mode == PARAM_MODE_MUT_REF && ast_func_param_stable_id(param) == root;
+        output |= param->mode == PARAM_MODE_MUT_REF && ast_func_param_stable_id(param) == root && root != input;
         if (ast_func_param_stable_id(param) == local) local = 0;
     }
     return !output || local != 0 || semantic_loan_copy_landing_select_carrier(ctx, value);
