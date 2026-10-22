@@ -97,10 +97,15 @@ scope. The plan, the measurements and the current state are in
   value) shares its storage with the caller. When the callee mutates that
   storage in place or returns it, the call moves the argument: the caller may
   pass a fresh value or reassign the binding from the result (`x = F(x)`),
-  and any other later use of the moved value is refused at that use. The
-  compiler infers the move from the callee's summary; there is no annotation,
-  and the diagnostic names the callee and parameter that moved the value
-  ([decision](docs/truth/decisions/2026-10-18_default_aggregate_move.md)).
+  with no copy at a last use. When the caller uses the value again, the
+  [2026-10-22 decision](docs/truth/decisions/2026-10-22_moved_argument_used_again_is_copied.md)
+  permits a compiler-inserted `Clone` only when it copies the whole value
+  independently; a shallow or unsupported copy stays refused. The compiler
+  infers the move from the callee's summary, records any copy in MIR, and
+  names the moving callee/parameter in a refusal. There is no new annotation.
+  This supersedes the unconditional later-use refusal in the
+  [original decision](docs/truth/decisions/2026-10-18_default_aggregate_move.md);
+  copy admission alone is not evidence that the copy is automatically freed.
 - Record any annotation/copy increase in the whole-chain plan with its real
   authority, transfer, interoperability or observable-cost reason, missing
   fact, last consumer and removal condition. Measure added/deleted ceremony
