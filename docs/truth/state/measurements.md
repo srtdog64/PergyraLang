@@ -21,8 +21,9 @@ a controlled comparison or a measurement of the new MIR cleanup pass.
 
 The isolated emitted declared-call ownership fixture passes leak detection.
 MIR/AIR units and 28 move/loan probes use leaks OFF. This is not a whole-
-compiler leak or memory bound. No canonical MIR cleanup cost, fresh GPT all-
-final-owner census cost or installed-driver memory result is established.
+compiler leak or memory bound. The fixed final-owner census at `57baf8426`
+took 1154.78 s and 3,980,968 KiB while refusing before HIR; no successful
+canonical MIR cleanup cost or installed-driver memory result is established.
 
 ## Historical, not current-main evidence
 

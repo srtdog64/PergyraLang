@@ -3,19 +3,20 @@
 Owner: GPT root lane for main integration and the one reached ownership
 producer at a time. Work follows the
 [decision](../decisions/2026-10-18_native_checker_in_v1.md). Checked 2026-10-22
-KST at executable commit `701a1fe51`; nothing is pushed while this state is
+KST at executable commit `57baf8426`; nothing is pushed while this state is
 red.
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: the 350-refusal baseline
-was reduced to 342 with every final owner run
-([scalar-root record](../evidence/2026-10-22_expression_graph_scalar_root_projection_census.md)).
-Exactly eight graph-view moves disappeared and no refusal was added. This run
-took 951.49 s and stayed within the 30-minute integration budget.
+was reduced to 332 with every final owner run
+([error-storage record](../evidence/2026-10-22_mir_program_error_storage_census.md)).
+Exactly ten initial/error graph-storage moves disappeared in the latest slice
+and no refusal was added. This run took 1154.78 s and stayed within the
+30-minute integration budget.
 
 ## Open fronts, in order
 
-1. **Moves (94 outside `direct_mir_*`)**, mostly getter loans whose proof
+1. **Moves (84 outside `direct_mir_*`)**, mostly getter loans whose proof
    fails, of values `Clone` copies only by value ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
    and 51 local copies whose other side changed, 6 more at [`inout` exits](../decisions/2026-10-22_inout_place_changed_through_a_copy.md).
    Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)).
