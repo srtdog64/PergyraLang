@@ -10,6 +10,7 @@
 #include "function_param_flow_summary_internal.h"
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
+#include "loan_copy_landing_owner.h"
 
 #include <stdlib.h>
 
@@ -432,6 +433,13 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
                     && semantic_array_storage_pending_owned_elements(ctx,
                         drop->binding_id, drop->sequence))))
             continue;
+        /* A String element handed to a callee that may keep it, with no proof
+         * that the loan stays, is copied where it is passed, as any String
+         * argument no proof admits is (2026-10-21_string_argument_no_proof_admits_is_copied). */
+        if (drop->operation == ARRAY_STORAGE_CALL_AFTER_PENDING && drop->call_index < store->call_count &&
+            store->calls[drop->call_index].source.payload &&
+            !semantic_loan_copy_landing_select_carrier(ctx, store->calls[drop->call_index].source.argument))
+            semantic_error(ctx, drop->receiver, "String element copy landing selection failed");
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
             drop->receiver, "%s requires preserved array storage; a prior call may retain or rebind the descriptor",

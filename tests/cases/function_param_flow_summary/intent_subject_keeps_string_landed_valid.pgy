@@ -1,6 +1,9 @@
 // An action called on a subject may keep the String it is given in the
 // subject. Through the intent, the caller's result then holds the owned
 // element, which is freed before the result is read.
+// No proof admits the callee keeping or returning the String element, so
+// the next analysis copies the element where the call takes it, and the
+// Array's later release or change no longer reaches it.
 struct Taken {
     path: String;
 }

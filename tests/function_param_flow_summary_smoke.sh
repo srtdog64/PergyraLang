@@ -135,6 +135,18 @@ landed_clones = {
     "collection_value_store_grown_landed_valid": {
         "MapStore": 1, "SetStore": 1, "ListPushStore": 1, "ListSetStore": 1, "QueueStore": 1},
     "formal_field_copy_changed_at_exit_landed_valid": {"Grow": 1},
+    # The element passed to Join, and the result returned.
+    "string_element_kept_by_callee_landed_valid": {"Lines": 2},
+    "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
+    "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
+    "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
+    "string_element_inout_owner_named_call_landed_valid": {"Replaced": 1, "Main": 1},
+    "readfile_result_borrowed_identity_landed_valid": {"Main": 1},
+    "named_string_identity_owned_element_retain_landed_valid": {"Main": 1},
+    "named_string_field_make_nodes_drop_landed_valid": {"Main": 1},
+    "intent_subject_keeps_string_landed_valid": {"Main": 1},
+    "array_result_owned_element_host_method_retainer_landed_valid": {"Main": 1},
+    "array_result_owned_defer_late_scalar_retention_landed_valid": {"Main": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -330,12 +342,14 @@ release_lifetime_refusals = {
         (*released_refusal, 58, 20), (*released_refusal, 66, 21)],
     # A value stored into a map that Clone copies only by value stays shared.
     "collection_value_store_shallow_grown_invalid": [(*released_refusal, 14, 35)],
-    # A value assigned into a field shares that field: a change through
-    # either side refuses the other.
+    # A whole Array read after a call kept its descriptor: no element copy.
+    "array_descriptor_kept_then_read_invalid": [(*borrow_refusal, 22, 16)],
     # A copy of an inout formal's field changed and not assigned back
     # refuses each exit: two returns and the end of a body.
     "formal_field_copy_changed_at_exit_invalid": [
         (*released_refusal, 14, 29), (*released_refusal, 15, 5), (*released_refusal, 18, 6)],
+    # A value assigned into a field shares that field: a change through
+    # either side refuses the other.
     "local_copy_held_at_field_changed_invalid": [
         (*released_refusal, 28, 26), (*released_refusal, 28, 5), (*released_refusal, 36, 20),
         (*released_refusal, 36, 5), (*released_refusal, 43, 20), (*released_refusal, 51, 24)],
@@ -371,17 +385,10 @@ release_lifetime_refusals = {
     "array_result_owned_defer_drop_then_direct_drop_invalid": [(*borrow_refusal, 10, 27)],
     "array_result_owned_defer_drop_then_own_invalid": [(*borrow_refusal, 14, 17)],
     "array_result_owned_defer_late_array_alias_invalid": [(*borrow_refusal, 12, 16)],
-    # The defer's release at the block's end is ordered after the retaining
-    # call and refused for it (16:39, 18:39); the call itself is refused
-    # only where an earlier call did not preserve the Array (17:9).
-    "array_result_owned_defer_late_scalar_retention_invalid": [
-        (*borrow_refusal, 17, 9), (*borrow_refusal, 16, 39)],
     "array_result_owned_defer_named_array_retainer_invalid": [(*borrow_refusal, 18, 39)],
     "array_result_owned_element_defer_after_drop_invalid": [(*borrow_refusal, 10, 27)],
     "array_result_owned_element_defer_lifo_drop_then_read_invalid": [(*borrow_refusal, 10, 35)],
     "array_result_owned_element_defer_mutable_reassign_invalid": [(*borrow_refusal, 12, 27)],
-    "array_result_owned_element_host_method_retainer_invalid": [
-        (*borrow_refusal, 20, 12), (*borrow_refusal, 21, 27)],
     "array_result_owned_element_inner_defer_then_drop_invalid": [(*borrow_refusal, 12, 27)],
     # A defer's release is admitted again where the routine exits: the
     # alias moved rows (13:6), KeepRows may keep it (9:6), the return hands
@@ -400,10 +407,6 @@ release_lifetime_refusals = {
         (*borrow_refusal, 10, 20)],
     "selector_method_retaining_receiver_invalid": [(*borrow_refusal, 19, 15)],
     "named_string_identity_loop_reassignment_invalid": [(*borrow_refusal, 17, 27)],
-    "named_string_identity_owned_element_retain_invalid": [
-        (*borrow_refusal, 17, 20), (*borrow_refusal, 19, 27)],
-    "named_string_field_make_nodes_drop_invalid": [
-        (*borrow_refusal, 31, 34), (*borrow_refusal, 33, 27)],
     # The call that keeps the Array is the one admitted; the deep drop after
     # it is refused for it.
     "named_string_field_forward_project_drop_invalid": [(*borrow_refusal, 36, 27)],
@@ -428,8 +431,6 @@ release_lifetime_refusals = {
     # the retention that lacks a permanent-literal proof after the handoff.
     "option_payload_literal_array_helper_handoff_invalid": [(*borrow_refusal, 14, 26)],
     "option_payload_mixed_array_return_invalid": [(*borrow_refusal, 11, 30)],
-    "readfile_result_borrowed_identity_invalid": [
-        (*borrow_refusal, 10, 25), (*borrow_refusal, 11, 27)],
     "readfile_result_defer_released_path_invalid": [(*borrow_refusal, 12, 27)],
     "nonowner_risk_alias_owned_insert_invalid": [
         (*borrow_refusal, 16, 21), (*borrow_refusal, 18, 30)],
@@ -449,9 +450,6 @@ release_lifetime_refusals = {
     # `self` escapes, not by an incomplete frame.
     "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
     "method_self_array_field_return_invalid": [(*borrow_refusal, 7, 10)],
-    # Storage passed through an intent's step action to its subject stays
-    # refused once the intent call's frame completes.
-    "intent_subject_keeps_string_invalid": [(*borrow_refusal, 42, 24), (*borrow_refusal, 43, 27)],
     # A match binding carries the matched enum's storage; returning it moves
     # the by-value enum argument.
     # A receiver the action changes follows its self formal's summary: Get
@@ -541,12 +539,6 @@ release_lifetime_refusals = {
     # (27:35), or iterated and pushed onto (23:39, 19:33), the call moves.
     "default_aggregate_move_loop_element_store_invalid": [(*released_refusal, 23, 39)],
     "default_aggregate_move_array_loop_element_store_invalid": [(*released_refusal, 19, 33)],
-    # A callee that returns its String element lends it: refused when the
-    # loan outlives the Array (a return, 19:24; an Array returned past it,
-    # 24:28) or the Array changes while it lives (19:24).
-    "string_element_returned_by_named_call_past_owner_invalid": [(*borrow_refusal, 19, 24)],
-    "string_element_returned_by_named_call_owner_changed_invalid": [(*borrow_refusal, 19, 24)],
-    "string_element_returned_in_result_loop_kept_invalid": [(*borrow_refusal, 24, 28)],
     # Text finished with a non-result allocator lives in it. A pool's text
     # read after AllocatorDestroy (16:11, 17:11) or returned past the pool
     # (13:27) is refused; so is a builder finished with a pool and returned
@@ -589,7 +581,7 @@ paired = (
     ("readfile_result_distinct_loop_valid", True),
     ("readfile_result_multipart_defer_valid", True),
     ("readfile_result_control_flow_valid", True),
-    ("readfile_result_borrowed_identity_invalid", False),
+    ("readfile_result_borrowed_identity_landed_valid", True),
     ("readfile_result_defer_released_path_invalid", False),
     ("nonowner_risk_option_reader_valid", True),
     ("nonowner_risk_shallow_loop_valid", True),
@@ -728,14 +720,14 @@ paired = (
     ("array_result_owned_defer_drop_then_direct_drop_invalid", False),
     ("array_result_owned_defer_drop_then_own_invalid", False),
     ("array_result_owned_defer_late_array_alias_invalid", False),
-    ("array_result_owned_defer_late_scalar_retention_invalid", False),
+    ("array_result_owned_defer_late_scalar_retention_landed_valid", True),
     ("array_result_owned_defer_named_array_retainer_invalid", False),
     ("array_result_owned_element_array_assign_landed_valid", True),
     ("array_result_owned_element_defer_after_drop_invalid", False),
     ("array_result_owned_element_defer_lifo_drop_then_read_invalid", False),
     ("array_result_owned_element_defer_mutable_reassign_invalid", False),
     ("array_result_owned_element_device_write_landed_valid", True),
-    ("array_result_owned_element_host_method_retainer_invalid", False),
+    ("array_result_owned_element_host_method_retainer_landed_valid", True),
     ("array_result_owned_element_local_return_landed_valid", True),
     ("array_result_owned_element_secure_slot_initializer_landed_valid", True),
     ("array_result_owned_element_secure_slot_write_landed_valid", True),
@@ -917,13 +909,13 @@ paired = (
     ("nested_call_independent_result_valid", True),
     ("named_string_identity_substring_push_valid", True),
     ("named_string_identity_loop_reassignment_invalid", False),
-    ("named_string_identity_owned_element_retain_invalid", False),
+    ("named_string_identity_owned_element_retain_landed_valid", True),
     ("named_string_all_def0_branch_valid", True),
     ("named_string_all_def0_loop_concat_valid", True),
     ("named_string_all_def0_known_zero_valid", True),
     ("named_string_all_def0_branch_copy_landing_valid", True),
     ("named_string_field_empty_arena_valid", True),
-    ("named_string_field_make_nodes_drop_invalid", False),
+    ("named_string_field_make_nodes_drop_landed_valid", True),
     ("named_string_field_forward_project_drop_invalid", False),
     ("named_string_field_mixed_branch_drop_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
@@ -1091,6 +1083,8 @@ paired = (
     ("formal_field_copy_changed_at_exit_invalid", False),
     ("formal_field_copy_changed_at_exit_landed_valid", True),
     ("formal_field_copy_stored_back_valid", True),
+    ("string_element_kept_by_callee_landed_valid", True),
+    ("array_descriptor_kept_then_read_invalid", False),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),
@@ -1109,10 +1103,10 @@ paired = (
     ("owned_param_field_store_ref_return_invalid", False),
     ("string_element_read_only_named_call_valid", True),
     ("string_element_returned_by_named_call_valid", True),
-    ("string_element_returned_by_named_call_past_owner_invalid", False),
-    ("string_element_returned_by_named_call_owner_changed_invalid", False),
+    ("string_element_returned_by_named_call_past_owner_landed_valid", True),
+    ("string_element_returned_by_named_call_owner_changed_landed_valid", True),
     ("string_element_returned_in_result_loop_valid", True),
-    ("string_element_returned_in_result_loop_kept_invalid", False),
+    ("string_element_returned_in_result_loop_kept_landed_valid", True),
     ("string_element_returned_from_dir_walk_rows_valid", True),
     ("allocator_result_lane_wrapper_valid", True),
     ("allocator_pool_used_before_destroy_valid", True),
@@ -1171,7 +1165,7 @@ paired = (
     ("default_aggregate_move_loop_element_read_valid", True),
     ("default_aggregate_move_loop_element_store_invalid", False),
     ("default_aggregate_move_array_loop_element_store_invalid", False),
-    ("string_element_inout_owner_named_call_invalid", False),
+    ("string_element_inout_owner_named_call_landed_valid", True),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),
     ("string_element_push_copy_landing_mixed_invalid", False),
@@ -1182,7 +1176,7 @@ paired = (
     ("world_member_host_field_clone_valid", True),
     ("intent_step_action_route_valid", True),
     ("intent_action_stores_by_value_moves_landed_valid", True),
-    ("intent_subject_keeps_string_invalid", False),
+    ("intent_subject_keeps_string_landed_valid", True),
     ("match_payload_return_valid", True),
     ("match_payload_return_moves_landed_valid", True),
     ("world_member_subject_action_route_valid", True),

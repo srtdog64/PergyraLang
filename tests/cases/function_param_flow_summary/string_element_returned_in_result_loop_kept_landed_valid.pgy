@@ -1,5 +1,8 @@
 // TargetOf returns a String of rows inside a Target, and Main keeps every
 // Target in an Array it returns past rows.
+// No proof admits the callee keeping or returning the String element, so
+// the next analysis copies the element where the call takes it, and the
+// Array's later release or change no longer reaches it.
 struct Target {
     path: String;
 }

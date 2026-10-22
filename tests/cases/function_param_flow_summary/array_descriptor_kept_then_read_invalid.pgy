@@ -1,0 +1,28 @@
+// As string_element_kept_by_callee_landed_valid, but the prior call keeps
+// the whole Array's descriptor in an inout holder, and the later call
+// takes the whole Array: no element copy stands in, so it stays refused.
+struct Holder {
+    rows: Array<String>;
+}
+
+func Keep(inout holder: Holder, rows: Array<String>) -> Int {
+    holder.rows = rows;
+    return ArrayLength(rows);
+}
+
+func Count(rows: Array<String>) -> Int {
+    return ArrayLength(rows);
+}
+
+func Twice() -> Int {
+    let rows: Array<String> = [Concat("a", "")];
+    let empty: Array<String> = [];
+    var holder: Holder = Holder(empty);
+    let n: Int = Keep(holder, rows);
+    return n + Count(rows) + ArrayLength(holder.rows);
+}
+
+func Main() -> Int {
+    Log(Twice());
+    return 0;
+}
