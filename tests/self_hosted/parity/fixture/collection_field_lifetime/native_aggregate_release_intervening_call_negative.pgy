@@ -1,0 +1,13 @@
+struct Carrier { values: Array<String>; }
+
+func RetireCarrier(inout carrier: Carrier) -> Void {
+    let values: Array<String> = carrier.values;
+    ArrayDropOwnedStrings(values);
+    Log("intervening-call");
+    carrier.values = values;
+}
+
+func Main() -> Void {
+    let carrier: Carrier = Carrier([]);
+    RetireCarrier(carrier);
+}

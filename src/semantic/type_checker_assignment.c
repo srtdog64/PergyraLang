@@ -129,7 +129,12 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     if (target_typed_first)
         target_type = tracked_value_place ? value_binding->type
             : type_check_expression(target, ctx);
-    value_type = type_check_expression_at_typed_site(value, target_type, ctx);
+    Type *released_member_restore_type =
+        semantic_collection_released_member_restore_value_type(
+            target, value, ctx);
+    value_type = released_member_restore_type != NULL
+        ? released_member_restore_type
+        : type_check_expression_at_typed_site(value, target_type, ctx);
     semantic_bound_party_note_value_use(ctx, value);
     if (value_type == NULL)
         value_type = TYPE_UNKNOWN;

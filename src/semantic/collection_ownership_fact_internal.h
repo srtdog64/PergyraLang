@@ -27,4 +27,17 @@ collection_member_move_identity(const ASTNode *member_access,
                                 SemanticContext *ctx,
                                 uint32_t *root_binding_id_out,
                                 uint32_t *field_syntax_id_out);
+
+bool
+collection_member_move_from_current_inout_parameter(
+    const PgyCollectionOwnershipFact *fact,
+    const Symbol *binding,
+    SemanticContext *ctx);
+
+bool
+collection_member_move_release_path_current(
+    const PgyCollectionOwnershipFact *fact,
+    const Symbol *binding,
+    const ASTNode *receiver,
+    SemanticContext *ctx);
 #endif

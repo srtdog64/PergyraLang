@@ -5133,7 +5133,7 @@ self-host-array-index-receiver-admission-test-smoke: self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/array_mutation_receiver_use_contract.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke collection-native-member-release-restore-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
 
@@ -5145,6 +5145,10 @@ self-host-nominal-constructor-field-identity-test-smoke: $(PGY)
 .PHONY: collection-native-storage-escape-test-smoke
 collection-native-storage-escape-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_storage_escape_owner.sh
+
+.PHONY: collection-native-member-release-restore-test-smoke
+collection-native-member-release-restore-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_member_release_restore_owner.sh
 
 .PHONY: self-host-collection-formal-key-consumption-test-smoke
 self-host-collection-formal-key-consumption-test-smoke: $(PGY)

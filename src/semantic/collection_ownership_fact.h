@@ -94,7 +94,10 @@ typedef enum
 typedef enum
 {
     PGY_COLLECTION_DISPOSITION_LIVE = 1,
-    PGY_COLLECTION_DISPOSITION_RETIRED
+    PGY_COLLECTION_DISPOSITION_RETIRED,
+    /* The backing and owned elements were retired, but an empty descriptor
+     * still has to return to the exact aggregate field it was moved from. */
+    PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE
 } PgyCollectionDisposition;
 
 typedef enum
@@ -137,9 +140,6 @@ typedef struct PgyCollectionOwnershipFact
     uint64_t source_birth_serial;
 } PgyCollectionOwnershipFact;
 
-bool collection_binding_is_current_parameter(const SemanticContext *ctx,
-    uint32_t binding_syntax_id);
-
 bool semantic_collection_ownership_initialize_binding(
     Symbol *binding,
     const ASTNode *initializer,
@@ -168,6 +168,18 @@ bool semantic_collection_owned_string_push_admissible(
 bool semantic_collection_restore_moved_member(
     ASTNode *target,
     ASTNode *value,
+    SemanticContext *ctx);
+
+/* A released field carrier is not a general readable value.  This query
+ * admits only the exact move-back assignment long enough to type that empty
+ * descriptor; semantic_collection_restore_moved_member closes the fact. */
+Type *semantic_collection_released_member_restore_value_type(
+    ASTNode *target,
+    ASTNode *value,
+    SemanticContext *ctx);
+
+bool semantic_collection_require_no_released_member_move(
+    ASTNode *function_decl,
     SemanticContext *ctx);
 
 bool semantic_collection_admit_owned_string_drop(
