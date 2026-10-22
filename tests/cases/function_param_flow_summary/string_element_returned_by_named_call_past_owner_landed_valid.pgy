@@ -1,5 +1,8 @@
 // Pick's names is a local, and the String Kept lends from it is returned
 // past the Array that owns it.
+// No proof admits the callee keeping or returning the String element, so
+// the next analysis copies the element where the call takes it, and the
+// Array's later release or change no longer reaches it.
 func Names(n: Int) -> Array<String> {
     let out: Array<String> = [];
     let i: Int = 0;

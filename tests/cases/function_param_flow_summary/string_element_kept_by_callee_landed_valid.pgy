@@ -1,0 +1,26 @@
+// Join returns its line when the accumulator is empty, so block may be an
+// element of the local parts and is returned. No proof admits that loan,
+// so the next analysis copies the element where it is passed, as any
+// String argument no proof admits is copied.
+func Join(acc: String, line: String) -> String {
+    if StringLength(acc) == 0 { return line; }
+    return Concat(acc, Concat("|", line));
+}
+
+func Lines() -> String {
+    let parts: Array<String> = [];
+    ArrayPush(parts, Concat("a", "1"));
+    ArrayPush(parts, Concat("b", "2"));
+    let block: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(parts) {
+        block = Join(block, parts[i]);
+        i = i + 1;
+    }
+    return block;
+}
+
+func Main() -> Int {
+    Print(Lines());
+    return 0;
+}

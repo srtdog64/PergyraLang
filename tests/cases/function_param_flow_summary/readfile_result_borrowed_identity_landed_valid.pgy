@@ -1,3 +1,6 @@
+// No proof admits the callee keeping or returning the String element, so
+// the next analysis copies the element where the call takes it, and the
+// Array's later release or change no longer reaches it.
 func Identity(text: String) -> String {
     return text;
 }

@@ -6,8 +6,8 @@ Claude's other canonical fronts remain separate. Work follows the
 KST on local `main`; nothing is pushed while this state is red.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 385 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_inout_place_at_exit.md)).
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 361 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_string_element_copy.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
@@ -37,8 +37,8 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    uses (GPT `c9513d5b2`); declared calls wait on GPT carrying the published
    [Array verdict](../decisions/2026-10-21_array_preservation_published_per_formal.md).
    A re-entered inner loop no longer stops HIR ([rule](../decisions/2026-10-22_reentered_loop_exports_last_transfer.md)).
-7. **Preserved Array storage (41 outside `direct_mir_*`):** calls after an
-   earlier call that may keep or rebind the Array (`EmitStmtList` 8).
+7. **Preserved Array storage (20 outside `direct_mir_*`):** mostly calls
+   after an `inout` callee wrote the Array's elements (`EmitStmtList` 8).
 
 ## Lessons on the record
 
