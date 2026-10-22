@@ -94,6 +94,9 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         !IsSome(SemanticAstExpressionSurfaceIndexForNode(
             facts, artifact.count
         )) &&
+        !IsSome(SemanticExpressionGraphRootAt(
+            facts.expression_graph, surface_count, AstExpressionLaneAtom()
+        )) &&
         SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
         !SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
         !SemanticAstExpressionSurfaceCallPresent(facts, "Substring") &&

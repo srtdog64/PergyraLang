@@ -22,5 +22,12 @@ Since 2026-10-16 ([decision](../decisions/2026-10-16_main_only_integration.md)).
   `direct_mir_*`, re-run its focused falsifier and the fixed census, then reach
   zero before the actual bootstrap and installed driver. No generality or
   unrelated precision track opens first.
+- Active move slice: keep `SemanticExpressionGraphFacts` as the graph owner,
+  project only scalar root IDs while `SemanticAstExpressionSurfaceFactsWithGraph`
+  validates its three lanes, and leave the graph-carrying view to consumers
+  that actually need the graph. The surface validator is the last consumer;
+  whole-graph `Clone`, a second graph owner and a missing-root default are
+  forbidden. The expression-surface C/LLVM parity gate and a missing-root
+  rejection falsify the change before the fixed canonical census is repeated.
 - No independent intermediate review or extra implementation track launched.
   No new implementation branch/worktree or parallel track was created.

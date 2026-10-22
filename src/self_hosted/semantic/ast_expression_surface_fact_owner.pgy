@@ -381,23 +381,20 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
             SemanticAstExpressionGraphAuxiliaryLaneRequired(
                 artifact, node_id
             );
-        let atom_view: SemanticExpressionGraphView =
-            SemanticExpressionGraphViewAt(
-                sealed, i, AstExpressionLaneAtom()
-            );
-        let value_view: SemanticExpressionGraphView =
-            SemanticExpressionGraphViewAt(
-                sealed, i, AstExpressionLaneValue()
-            );
-        let auxiliary_view: SemanticExpressionGraphView =
-            SemanticExpressionGraphViewAt(
-                sealed, i, AstExpressionLaneAuxiliary()
+        let atom_root: Option<Int> = SemanticExpressionGraphRootAt(
+            sealed, i, AstExpressionLaneAtom()
+        );
+        let value_root: Option<Int> = SemanticExpressionGraphRootAt(
+            sealed, i, AstExpressionLaneValue()
+        );
+        let auxiliary_root: Option<Int> = SemanticExpressionGraphRootAt(
+            sealed, i, AstExpressionLaneAuxiliary()
         );
         if migrated_atom {
             migrated_root_count = migrated_root_count + 1;
-            if !atom_view.ok ||
+            if !IsSome(atom_root) ||
                 !SemanticAstExpressionGraphRootSpellingMatches(
-                    sealed, atom_view.root_id, facts.normalized_atoms[i]
+                    sealed, UnwrapOption(atom_root), facts.normalized_atoms[i]
                 ) {
                 if failure_lane == "" {
                     failure_node_id = node_id;
@@ -405,9 +402,9 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                 }
                 valid = false;
             }
-        } else if producer_only_atom && atom_view.ok {
+        } else if producer_only_atom && IsSome(atom_root) {
             migrated_root_count = migrated_root_count + 1;
-        } else if atom_view.ok {
+        } else if IsSome(atom_root) {
             if failure_lane == "" {
                 failure_node_id = node_id;
                 failure_lane = "atom_unexpected";
@@ -416,9 +413,9 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         }
         if migrated_value {
             migrated_root_count = migrated_root_count + 1;
-            if !value_view.ok ||
+            if !IsSome(value_root) ||
                 !SemanticAstExpressionGraphRootSpellingMatches(
-                    sealed, value_view.root_id, facts.normalized_values[i]
+                    sealed, UnwrapOption(value_root), facts.normalized_values[i]
                 ) {
                 if failure_lane == "" {
                     failure_node_id = node_id;
@@ -426,7 +423,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                 }
                 valid = false;
             }
-        } else if value_view.ok {
+        } else if IsSome(value_root) {
             if failure_lane == "" {
                 failure_node_id = node_id;
                 failure_lane = "value_unexpected";
@@ -435,9 +432,9 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         }
         if migrated_auxiliary {
             migrated_root_count = migrated_root_count + 1;
-            if !auxiliary_view.ok ||
+            if !IsSome(auxiliary_root) ||
                 !SemanticAstExpressionGraphRootSpellingMatches(
-                    sealed, auxiliary_view.root_id,
+                    sealed, UnwrapOption(auxiliary_root),
                     facts.normalized_auxiliary_values[i]
                 ) {
                 if failure_lane == "" {
@@ -446,7 +443,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                 }
                 valid = false;
             }
-        } else if auxiliary_view.ok {
+        } else if IsSome(auxiliary_root) {
             if failure_lane == "" {
                 failure_node_id = node_id;
                 failure_lane = "auxiliary_unexpected";
