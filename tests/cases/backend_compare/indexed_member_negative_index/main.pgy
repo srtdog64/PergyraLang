@@ -1,0 +1,18 @@
+struct Cell
+{
+    value: Int;
+}
+func Index() -> Int
+{
+    return -1;
+}
+func Value() -> Int
+{
+    Print("RHS MUST NOT RUN");
+    return 9;
+}
+func Main() -> Void
+{
+    var cells: Array<Cell> = [Cell(1)];
+    cells[Index()].value = Value();
+}

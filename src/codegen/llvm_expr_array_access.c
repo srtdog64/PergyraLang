@@ -8,6 +8,55 @@
 #include "llvm_internal_api.h"
 #include "llvm_mir_local_type_lookup.h"
 
+/* Loads and writable member places share one bounds/backing check. The
+ * descriptor is a value, but the returned address belongs to its backing,
+ * never to a temporary copy of the element. */
+LLVMValueRef
+llvm_emit_checked_collection_address(LLVMGenCtx *ctx, LLVMValueRef aggregate,
+                                     LLVMTypeRef elem_type, LLVMValueRef index,
+                                     const char *struct_name)
+{
+    if (ctx == NULL || aggregate == NULL || elem_type == NULL || index == NULL ||
+        (struct_name != NULL && strncmp(struct_name, "PgyArray_", 9) != 0 &&
+         strncmp(struct_name, "PgySlice_", 9) != 0))
+        return NULL;
+    LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(ctx->builder);
+    LLVMValueRef function = insert_block != NULL ? LLVMGetBasicBlockParent(insert_block) : NULL;
+    LLVMFuncEntry *bounds_panic = llvm_lookup_function(ctx, "pgy_runtime_panic_out_of_bounds_export");
+    LLVMFuncEntry *backing_panic = llvm_lookup_function(ctx, "pgy_runtime_panic_internal_invariant_export");
+    if (function == NULL || bounds_panic == NULL || backing_panic == NULL)
+        return NULL;
+    LLVMValueRef data = llvm_array_data_ptr(ctx, aggregate);
+    LLVMValueRef length = llvm_array_length_i64(ctx, aggregate);
+    if (data == NULL || length == NULL)
+        return NULL;
+    LLVMValueRef index64 = index;
+    if (LLVMTypeOf(index64) != ctx->type_i64)
+        index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64, ctx->type_i64, llvm_tmp_name(ctx));
+    bool slice = struct_name != NULL && strncmp(struct_name, "PgySlice_", 9) == 0;
+    LLVMBasicBlockRef out_of_bounds = LLVMAppendBasicBlockInContext(ctx->context, function, "collection.index.panic");
+    LLVMBasicBlockRef in_bounds = LLVMAppendBasicBlockInContext(ctx->context, function, "collection.index.ok");
+    LLVMValueRef invalid_index = LLVMBuildICmp(ctx->builder, LLVMIntUGE, index64, length, llvm_tmp_name(ctx));
+    LLVMBuildCondBr(ctx->builder, invalid_index, out_of_bounds, in_bounds);
+    LLVMPositionBuilderAtEnd(ctx->builder, out_of_bounds);
+    LLVMValueRef reason = LLVMBuildGlobalStringPtr(ctx->builder,
+        slice ? "slice out of bounds" : "array index out of bounds", llvm_tmp_name(ctx));
+    LLVMBuildCall2(ctx->builder, bounds_panic->fn_type, bounds_panic->fn, &reason, 1, "");
+    LLVMBuildUnreachable(ctx->builder);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, in_bounds);
+    LLVMBasicBlockRef missing_backing = LLVMAppendBasicBlockInContext(ctx->context, function, "collection.backing.panic");
+    LLVMBasicBlockRef live_backing = LLVMAppendBasicBlockInContext(ctx->context, function, "collection.backing.ok");
+    LLVMBuildCondBr(ctx->builder, LLVMBuildIsNull(ctx->builder, data, llvm_tmp_name(ctx)), missing_backing, live_backing);
+    LLVMPositionBuilderAtEnd(ctx->builder, missing_backing);
+    reason = LLVMBuildGlobalStringPtr(ctx->builder,
+        slice ? "slice get on slice without backing storage" : "array get on array without backing storage", llvm_tmp_name(ctx));
+    LLVMBuildCall2(ctx->builder, backing_panic->fn_type, backing_panic->fn, &reason, 1, "");
+    LLVMBuildUnreachable(ctx->builder);
+    LLVMPositionBuilderAtEnd(ctx->builder, live_backing);
+    return LLVMBuildInBoundsGEP2(ctx->builder, elem_type, data, &index64, 1, llvm_tmp_name(ctx));
+}
+
 LLVMValueRef
 llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
 {

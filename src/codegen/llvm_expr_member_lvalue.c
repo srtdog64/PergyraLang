@@ -7,7 +7,10 @@
 
 #include "llvm_expr_member_lvalue.h"
 
+#include <string.h>
+
 #include "llvm_internal_api.h"
+#include "llvm_mir_local_type_lookup.h"
 
 LLVMValueRef
 llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
@@ -47,6 +50,31 @@ llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
         base_ptr = llvm_emit_member_lvalue_ptr(obj_node, ctx, NULL);
         if (base_ptr == NULL)
             return NULL;
+    } else if (obj_node->type == AST_ARRAY_ACCESS) {
+        LLVMTypeRef element_type = llvm_mir_local_array_access_type(
+            ctx->current_mir_routine, ctx, obj_node);
+        if (ctx->has_error)
+            return NULL;
+        if (element_type != NULL && element_type != cls->struct_type) {
+            llvm_set_error_at_with_hints(ctx, obj_node, PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED, PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM indexed member place disagrees with its MIR element layout");
+            return NULL;
+        }
+        LLVMValueRef aggregate = llvm_emit_expression(ast_array_access_array(obj_node), ctx);
+        LLVMValueRef index = llvm_emit_expression(ast_array_access_index(obj_node), ctx);
+        LLVMTypeRef aggregate_type = aggregate != NULL ? LLVMTypeOf(aggregate) : NULL;
+        const char *storage = aggregate_type != NULL && LLVMGetTypeKind(aggregate_type) == LLVMStructTypeKind
+            ? LLVMGetStructName(aggregate_type) : NULL;
+        if (storage != NULL && (strncmp(storage, "PgyArray_", 9) == 0 || strncmp(storage, "PgySlice_", 9) == 0))
+            base_ptr = llvm_emit_checked_collection_address(ctx, aggregate, cls->struct_type, index, storage);
+        if (base_ptr == NULL) {
+            if (!ctx->has_error)
+                llvm_set_error_at_with_hints(ctx, obj_node, PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED, PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM indexed member place requires checked Array/Slice backing metadata");
+            return NULL;
+        }
     } else {
         return NULL;
     }

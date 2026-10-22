@@ -73,6 +73,9 @@ static StdlibCollectionBuiltinKind stdlib_collection_builtin_kind(const char *na
     return match != NULL ? match->kind : STDLIB_COLLECTION_UNKNOWN;
 }
 
+static bool stdlib_collection_builtin_mutates_storage(
+    StdlibCollectionBuiltinKind kind);
+
 bool
 semantic_stdlib_array_argument_preserves_storage(const ASTNode *call, size_t ordinal)
 {
@@ -151,6 +154,19 @@ static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKin
         || kind == STDLIB_COLLECTION_ARRAY_POP
         || kind == STDLIB_COLLECTION_ARRAY_SORT
         || kind == STDLIB_COLLECTION_ARRAY_REVERSE;
+}
+
+bool semantic_stdlib_collection_argument_mutates_storage(
+    const ASTNode *call, size_t ordinal)
+{
+    ASTNode *callee = call != NULL ? ast_call_callee(call) : NULL;
+    if (call == NULL || ordinal != 0 || !ast_call_semantic_callee_is_stdlib(call) ||
+        ast_call_semantic_callee_decl_id(call) != 0 ||
+        ast_call_semantic_callee_value_binding_id(call) != 0 ||
+        callee == NULL || callee->type != AST_IDENTIFIER)
+        return false;
+    return stdlib_collection_builtin_mutates_storage(
+        stdlib_collection_builtin_kind(ast_identifier_name(callee)));
 }
 
 static bool

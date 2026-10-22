@@ -1,50 +1,42 @@
 # Gates
 
-Owner: GPT root lane. Observed 2026-10-22 KST on the integrated source
-identified in [main](main.md). Full receipts and executable hashes:
-[Array consumer and loan/copy integration](../evidence/2026-10-22_array_preservation_native_consumer_integration.md).
+Owner: GPT root lane. Observed 2026-10-22 KST on local main `b1e2b532d`
+plus the root codegen and assignment-backing candidate named in [main](main.md).
 
 ## Finish line (OPEN)
 
 | Gate | Last result |
 |---|---|
-| Full unchanged canonical | RED before MIR; ordinary baseline/current input diagnostics match; no fresh downgraded census |
-| Current bootstrap and gen2 == gen3 | not established on current main |
-| Installed current C/LLVM driver | not established on current main |
-| Required CI, all required jobs executed at one published SHA | see [main](main.md) |
+| Fixed DRV-2 final-owner census | RED: 383 refusals, owned by [blocker](blocker.md) |
+| Full unchanged canonical | RED before MIR by the fixed census; the ordinary compile was not repeated after the semantic-only integration |
+| Current bootstrap and gen2 == gen3 | not reached because canonical admission is red |
+| Installed current C/LLVM driver | not built on the current source |
+| Required CI, all jobs at one published SHA | old published runs remain red; no candidate push |
 
-The [Claude blocker](blocker.md) owns the last all-final-owner census.
-Ordinary cascading errors are not that census or distinct-defect progress.
+Ordinary cascading errors are not the independent final-owner census or a
+distinct-defect count.
 
-## Scoped regression evidence, not closure
+## Current exact-candidate evidence
 
-Build copy: `/root/gpt-mir-preservation-20261022`, pinned non-Git archive copy.
+The current root candidate compiler is
+`/tmp/pgy-root-loan-20261022-a/bin/pgy`, SHA-256
+`64c9cac91c53dcb47e873ceb0fd3739146d5778ed6095de82e5bd006845a711b`.
 
 | Receipt | Observed result |
 |---|---|
-| Native loop gate | PASS C/LLVM, including later-declared default/ref readers and Void observer; existing exits/drops retained, escape/defer refuse |
-| MIR / AIR / HIR units | 702/0, 163/0, 58/0; stale/missing/cross-formal/duplicate evidence faults included |
-| Semantic / transpile / DIR / RIR | 3237/0, 1014/0, 15/0, 44/0 |
-| MIR/AIR ASan+UBSan | 702/0 and 163/0, unit-suite leaks OFF |
-| Emitted declared-call cleanup | C ASan+UBSan; LLVM IR ASan + runtime ASan/UBSan; both leaks ON, stderr empty |
-| 28 move/loan runtime controls | emitted C ASan+UBSan exact outputs, leaks OFF; original24 plus four follow-ups |
-| Named copy-under-loan UAF | reproduced before c877; same input now prints75 under ASan; non-deep-copy counterpart refuses C/LLVM without artifacts |
-| Function-flow target | PASS ordinary and currency/worklist modes; phase13429/0, memo48/0, worklist31/0 |
-| Header / documentation / diff | PASS; documentation state/lane sizes checked at this update |
+| Native root-candidate build | PASS in 113.61 s, peak 175828 KiB |
+| Function parameter flow integration | PASS in 393.30 s, peak 254592 KiB (over the 5-minute focused budget) |
+| Clone focused C/LLVM probes | positive prints `a41`; shallow-copy growth refuses at 26:40 with no artifact |
+| Array/member + receiver ABI gate | PASS in 8.9 s on C and LLVM, including target/index/RHS order, bounds and backing-loan controls |
+| Semantic/transpiler units | PASS: 3240/0 and 1014/0 |
+| Documentation quality | PASS, including truth size caps and generated validation manifest |
+| Previous native unit matrix | PASS on `0d77e1562`; not repeated after this semantic-only integration |
+| Assignment backing-loan falsifiers | PASS: both refuse on C and LLVM before artifact publication; prior ASan runs establish the rejected failure mode |
+| Same-backing read-only control | PASS on C and LLVM, prints `7` |
+| Codegen bootstrap | not rerun while the exact fixed census remains red; no current gen2 artifact |
 
-## Integration limits, not waived
-
-| Gate | Last result |
-|---|---|
-| `make test-mir` | RED at match-binding installed-driver step; units, loop, topology and destructure gates passed |
-| String-result control | RED in semantic analysis; same refusal also seen with existing Claude compiler |
-| Self-host cleanup reader | legacy reader still refuses this instruction; no executed general installed consumer |
-| Part-level independent review | not run; scoped native tests are not safety/V1 closure |
-
-[Native producer/consumer connection](../../agent_work_directives/mir_array_preservation_consumer_integration_2026-10-22.md)
-is implemented. Resume the current canonical/installed-driver blocker.
-Task B has no route deletion or installed general-emitter evidence yet.
-This native candidate is not self-host substitution or V1 closure.
-
-Earlier V10 and backend matrices are
-[historical evidence](../evidence/2026-10-18_v10_root_replay.md), not rerun here.
+The backing-loan receipt is
+[recorded here](../evidence/2026-10-22_indexed_assignment_backing_loan.md).
+V1 still requires a zero canonical census, actual bootstrap and installed-
+driver execution, then exact-SHA remote CI. No timeout, input or safety
+condition was relaxed.

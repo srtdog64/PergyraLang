@@ -1,0 +1,60 @@
+struct Cell
+{
+    value: Int;
+}
+struct Block
+{
+    payload: Cell;
+    name: String;
+}
+struct Graph
+{
+    blocks: Array<Block>;
+}
+struct Frame
+{
+    graph: Graph;
+}
+class Bag
+{
+    let names: Array<String>;
+    func Count(self) -> Int
+    {
+        return ArrayLength(names);
+    }
+}
+func Index(inout trace: Int) -> Int
+{
+    trace = trace * 10 + 1;
+    return 0;
+}
+func Value(inout trace: Int) -> Int
+{
+    trace = trace * 10 + 2;
+    return 99;
+}
+func Update(inout frame: Frame, inout trace: Int) -> Void
+{
+    frame.graph.blocks[Index(trace)].payload.value = Value(trace);
+    frame.graph.blocks[0].name = "zz";
+}
+func Width(ref bag: Bag) -> Int
+{
+    return bag.Count();
+}
+func WidthInout(inout bag: Bag) -> Int
+{
+    return bag.Count();
+}
+func Main() -> Void
+{
+    var frame = Frame(Graph([Block(Cell(1), "ab")]));
+    var trace: Int = 0;
+    var bag = Bag(["a", "b"]);
+    Update(frame, trace);
+    Log(frame.graph.blocks[0].name);
+    Log(ToString(frame.graph.blocks[0].payload.value));
+    Log(ToString(trace));
+    Log(ToString(Width(bag)));
+    Log(ToString(WidthInout(bag)));
+}

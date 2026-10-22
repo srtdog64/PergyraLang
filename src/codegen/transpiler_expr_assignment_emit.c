@@ -205,16 +205,18 @@ transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
         invalidation = emit_assignment_projection_invalidation(
             ctx, target_node);
         post_sync = emit_world_embedded_assignment_sync(ctx, target_node);
-        if (post_sync != NULL) {
-            result = strdup_fmt("({ %s%s = %s; %s%s; })",
-                invalidation != NULL ? invalidation : "",
-                target, value, post_sync, target);
-        } else if (invalidation != NULL) {
-            result = strdup_fmt("({ %s%s = %s; })",
-                invalidation, target, value);
-        } else {
-            result = strdup_fmt("%s = %s", target, value);
-        }
+        /* LLVM fixes the target before evaluating the RHS. Capture its
+         * address once as well: a member target may contain an effectful
+         * index, and reading the assignment result must not run it again. */
+        int target_id = ++ctx->tmp_counter;
+        result = strdup_fmt(
+            "({ %s__auto_type _pgy_assign_target_%d = &(%s); "
+            "__auto_type _pgy_assign_value_%d = (%s); "
+            "*_pgy_assign_target_%d = _pgy_assign_value_%d; "
+            "%s_pgy_assign_value_%d; })",
+            invalidation != NULL ? invalidation : "", target_id, target,
+            target_id, value, target_id, target_id,
+            post_sync != NULL ? post_sync : "", target_id);
         free(invalidation);
         free(post_sync);
         free(target);

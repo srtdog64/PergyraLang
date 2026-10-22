@@ -110,6 +110,11 @@ LLVMValueRef llvm_emit_inline_array_get(LLVMGenCtx *ctx,
                                         LLVMTypeRef elem_type,
                                         LLVMValueRef index,
                                         const char *struct_name);
+LLVMValueRef llvm_emit_checked_collection_address(LLVMGenCtx *ctx,
+                                                  LLVMValueRef aggregate,
+                                                  LLVMTypeRef elem_type,
+                                                  LLVMValueRef index,
+                                                  const char *struct_name);
 LLVMValueRef llvm_build_checked_fptosi(LLVMGenCtx *ctx, LLVMValueRef value,
                                        LLVMTypeRef target_int_type,
                                        const char *name);

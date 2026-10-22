@@ -398,7 +398,7 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self.count = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= &(self.count); __auto_type _pgy_assign_value_");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (self.count);");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (delta);");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self.count;");
@@ -433,7 +433,7 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->count = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= &(self->count); __auto_type _pgy_assign_value_");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (self->count);");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (delta);");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->count;");
@@ -631,7 +631,7 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->round = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= &(self->round); __auto_type _pgy_assign_value_");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (self->round);");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (BattleZone_Next(self));");
 
@@ -672,7 +672,7 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->storm = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= &(self->storm); __auto_type _pgy_assign_value_");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (self->storm);");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (self->battle.round);");
         EXPECT_STR_CONTAINS(ctx->out->data, "= (GameWorld_Pulse(self));");

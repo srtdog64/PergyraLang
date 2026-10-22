@@ -31,6 +31,8 @@ typedef struct {
     size_t count, capacity;
 } MoveState;
 
+typedef struct MoveAssignmentBackingLoan MoveAssignmentBackingLoan;
+
 typedef struct {
     SemanticContext *ctx;
     ASTNode *routine;
@@ -44,6 +46,9 @@ typedef struct {
     /* Calls whose result a Clone copies into storage of its own. */
     const ASTNode **copied;
     size_t copied_count, copied_capacity;
+    /* Stack-local loans held while an indexed assignment has captured an
+     * address into collection backing but has not performed its store. */
+    MoveAssignmentBackingLoan *assignment_loan;
 } MoveWalk;
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,

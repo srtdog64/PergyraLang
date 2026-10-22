@@ -1,8 +1,9 @@
 # Current blocker
 
-Owner: Claude lane, main-line work since 2026-10-18
-([decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-22 KST on branch `claude/p0-native-checker` (local, not pushed).
+Owner: GPT root lane for integration and the reached indexed-assignment seam;
+Claude's other canonical fronts remain separate. Work follows the
+[decision](../decisions/2026-10-18_native_checker_in_v1.md). Checked 2026-10-22
+KST on local `main`; nothing is pushed while this state is red.
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 383 downgraded
@@ -56,5 +57,4 @@ compiles natively since `e23761a3a`.
 ## CI comparison
 
 `make ci-push-linux` at `2333da64c` failed the same 49 of 65 steps as main
-`7cd004fab` (not rerun since). Bootstrap, installed driver, gen2 == gen3
-and required CI are not established on this branch.
+`7cd004fab` (not rerun). Bootstrap, installed driver, fixed point and CI remain OPEN.

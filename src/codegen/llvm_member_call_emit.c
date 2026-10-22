@@ -191,8 +191,14 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         }
                     } else {
                         if (has_var) {
+                            LLVMValueRef base_ptr = llvm_identifier_base_ptr(
+                                ctx, var_name, cls);
+                            if (base_ptr == NULL)
+                                return llvm_member_call_error_recovery(ctx,
+                                    node, class_name, method_name,
+                                    "requires a value receiver storage address");
                             args[0] = LLVMBuildLoad2(ctx->builder,
-                                var.type, var.alloca, llvm_tmp_name(ctx));
+                                cls->struct_type, base_ptr, llvm_tmp_name(ctx));
                         } else {
                             LLVMValueRef base_ptr =
                                 llvm_current_self_base_ptr(ctx, parent_cls);

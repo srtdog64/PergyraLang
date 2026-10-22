@@ -287,6 +287,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     }
                     if (use_self_cell && !already_pointer)
                         codebuf_write(args_buf, "&%s", obj_expr);
+                    else if (!use_self_cell && already_pointer)
+                        codebuf_write(args_buf, "(*(%s))", obj_expr);
                     else
                         codebuf_write(args_buf, "%s", obj_expr);
                     free(obj_expr);

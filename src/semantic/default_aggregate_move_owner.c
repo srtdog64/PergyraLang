@@ -26,8 +26,17 @@
 #include "function_param_flow_summary_internal.h"
 #include "function_param_publication_owner.h"
 #include "slot_summary.h"
+#include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
+
+struct MoveAssignmentBackingLoan {
+    uint32_t binding;
+    char fields[512];
+    const ASTNode *receiver;
+    const ASTNode *assignment;
+    MoveAssignmentBackingLoan *previous;
+};
 
 static void state_free(MoveState *state)
 {
@@ -254,6 +263,132 @@ static ParamMode routine_param_mode(const ASTNode *routine, uint32_t binding, bo
 
 static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *terminated);
 
+static bool assignment_loan_overlaps(const MoveAssignmentBackingLoan *loan,
+    uint32_t binding, const char *fields)
+{
+    return loan != NULL && loan->binding == binding &&
+        (move_walk_path_contains(loan->fields, fields) ||
+         move_walk_path_contains(fields, loan->fields));
+}
+
+/* Copies are shallow, so a mutation through either side of a copy can
+ * invalidate an address captured through the other. Follow the copy rows the
+ * existing copy owner recorded instead of inventing another alias analysis. */
+static MoveAssignmentBackingLoan *assignment_loan_for_path(MoveWalk *walk,
+    const MoveState *state, const ASTNode *path, MoveAssignmentBackingLoan *loans)
+{
+    char fields[512];
+    uint32_t binding = 0;
+    if (loans == NULL || !move_walk_access_path(path, &binding, fields, sizeof(fields))) return NULL;
+    typedef struct { uint32_t binding; const char *fields; } SharedPath;
+    size_t rows = state->count;
+    SharedPath *work = malloc((rows + 1) * sizeof(*work));
+    bool *done = calloc(rows + 1, sizeof(*done));
+    if (work == NULL || done == NULL) {
+        free(work);
+        free(done);
+        walk->failed = true;
+        return NULL;
+    }
+    size_t count = 1;
+    work[0] = (SharedPath){binding, fields};
+    for (size_t at = 0; at < count; at++) {
+        for (MoveAssignmentBackingLoan *loan = loans; loan != NULL; loan = loan->previous) {
+            if (assignment_loan_overlaps(loan, work[at].binding, work[at].fields)) {
+                free(work);
+                free(done);
+                return loan;
+            }
+        }
+        for (size_t i = 0; i < rows; i++) {
+            const MovedPath *copy = &state->rows[i];
+            if (done[i] || copy->carrier == 0) continue;
+            bool source = copy->binding == work[at].binding &&
+                (move_walk_path_contains(copy->fields, work[at].fields) ||
+                 move_walk_path_contains(work[at].fields, copy->fields));
+            if (!source && copy->carrier != work[at].binding) continue;
+            done[i] = true;
+            work[count++] = source
+                ? (SharedPath){copy->carrier, ""}
+                : (SharedPath){copy->binding, copy->fields};
+        }
+    }
+    free(work);
+    free(done);
+    return NULL;
+}
+
+static void refuse_assignment_loan_change(MoveWalk *walk,
+    const MoveAssignmentBackingLoan *loan, ASTNode *site)
+{
+    if (loan == NULL || !move_walk_reported_once(walk, site)) return;
+    const ASTNode *root = loan->receiver;
+    while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
+        root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
+    char display[512];
+    const char *name = root != NULL && root->type == AST_IDENTIFIER ? ast_identifier_name(root) : NULL;
+    if (name != NULL && strlen(name) + strlen(loan->fields) < sizeof(display)) {
+        strcpy(display, name);
+        strcat(display, loan->fields);
+        name = display;
+    }
+    semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW, site,
+        "Cannot change '%s' while an indexed assignment keeps its backing address.\n"
+        "Reason:\n"
+        "- the assignment evaluates its target before its value\n"
+        "- this operation may write, grow, release or transfer the same backing before the store\n"
+        "Fix:\n"
+        "- finish the backing-changing operation before starting the indexed assignment\n"
+        "- or compute the index and value first, then perform the indexed store",
+        name != NULL ? name : "collection backing");
+}
+
+static bool call_argument_changes_assignment_backing(MoveWalk *walk,
+    ASTNode *call, size_t ordinal)
+{
+    if (!semantic_param_publication_checked_call(walk->ctx, call) ||
+        !semantic_param_publication_checked_argument(walk->ctx, call, ordinal)) return true;
+    if (semantic_stdlib_collection_argument_mutates_storage(call, ordinal)) return true;
+    SemanticPublishedValue argument = semantic_param_publication_value(
+        walk->ctx, ast_call_argument(call, ordinal));
+    if (!argument.ok || argument.meta) return true;
+    if (type_equals(argument.type, TYPE_STRING) ||
+        semantic_classify_ownership_type(argument.type, walk->ctx) == OWNERSHIP_TYPE_COPY_ONLY) return false;
+    uint32_t kind = 0;
+    if (ast_call_semantic_callee_builtin_kind(call, &kind) && kind == BUILTIN_CLONE) return false;
+    ASTNode *callee = semantic_param_publication_callee(walk->ctx, call, ordinal);
+    size_t formal = 0;
+    if (callee == NULL) return !semantic_param_publication_argument_borrowed_for_call(
+        walk->ctx, call, ordinal);
+    if (!semantic_param_publication_formal_for_actual(walk->ctx, call, ordinal, &formal)) return true;
+    FuncParam *param = ast_func_param(callee, formal);
+    if (param == NULL) return true;
+    unsigned summary = function_param_flow_summary_for_call(
+        &(SlotFunctionLookup){walk->ctx, walk->ctx->program_root}, call, ordinal);
+    unsigned changes = SLOT_PARAM_SUMMARY_WRITE | SLOT_PARAM_SUMMARY_RELEASE |
+        SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+        SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+    if (param->mode == PARAM_MODE_MUT_REF || param->mode == PARAM_MODE_OWN ||
+        (summary & changes) != 0) return true;
+    return argument.ok && type_is_constructed_named(argument.type, "Array") &&
+        !function_param_flow_preserves_array_storage(walk->ctx, callee, formal);
+}
+
+static void check_assignment_loan_call(MoveWalk *walk, const MoveState *state,
+    ASTNode *call)
+{
+    if (walk->assignment_loan == NULL) return;
+    for (size_t p = 0; p < ast_call_arg_count(call); p++) {
+        ASTNode *argument = ast_call_argument(call, p);
+        MoveAssignmentBackingLoan *loan = assignment_loan_for_path(
+            walk, state, argument, walk->assignment_loan);
+        if (walk->failed) return;
+        if (loan != NULL && call_argument_changes_assignment_backing(walk, call, p))
+            refuse_assignment_loan_change(walk, loan, argument);
+    }
+}
+
 static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
 {
     for (size_t p = 0; p < ast_call_arg_count(call); p++) {
@@ -441,6 +576,8 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
             return false;
         for (size_t p = 0; p < ast_call_arg_count(node); p++)
             if (!walk_expression(walk, state, ast_call_argument(node, p))) return false;
+        check_assignment_loan_call(walk, state, node);
+        if (walk->failed) return false;
         apply_call_moves(walk, state, node);
         /* An Array push, set, sort or reverse, an owned String push or a slot
          * write changes its receiver in place; a push or set copies its value
@@ -463,18 +600,69 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         return !walk->failed;
     }
     case AST_ASSIGNMENT: {
-        if (!walk_expression(walk, state, ast_assignment_value(node))) return false;
         bool element = false;
-        for (ASTNode *at = ast_assignment_target(node); at != NULL &&
-             (at->type == AST_MEMBER_ACCESS || at->type == AST_ARRAY_ACCESS);
-             at = at->type == AST_MEMBER_ACCESS ? ast_member_object(at) : ast_array_access_array(at))
-            if (at->type == AST_ARRAY_ACCESS && (element = true) && !walk_expression(walk, state, ast_array_access_index(at))) return false;
+        MoveAssignmentBackingLoan loan = {.assignment = node};
+        bool loan_started = false;
+        ASTNode *target = ast_assignment_target(node);
+        /* Evaluate a place exactly as the backends do: receiver first, then
+         * each index from inner to outer, then the RHS. The first indexed
+         * receiver lends its backing until the final store. */
+        ASTNode *stack[128];
+        size_t depth = 0;
+        for (ASTNode *at = target; at != NULL &&
+             (at->type == AST_MEMBER_ACCESS || at->type == AST_ARRAY_ACCESS);) {
+            if (depth == sizeof(stack) / sizeof(stack[0])) {
+                semantic_error(walk->ctx, at, "Indexed assignment target is too deeply nested");
+                break;
+            }
+            stack[depth++] = at;
+            at = at->type == AST_MEMBER_ACCESS ? ast_member_object(at) : ast_array_access_array(at);
+            if (at != NULL && at->type != AST_MEMBER_ACCESS && at->type != AST_ARRAY_ACCESS &&
+                at->type != AST_IDENTIFIER && !walk_expression(walk, state, at)) return false;
+        }
+        for (size_t i = depth; i > 0; i--) {
+            ASTNode *part = stack[i - 1];
+            if (part->type != AST_ARRAY_ACCESS) continue;
+            ASTNode *receiver = ast_array_access_array(part);
+            check_use(walk, state, receiver);
+            if (!loan_started) {
+                if (move_walk_access_path(receiver, &loan.binding, loan.fields, sizeof(loan.fields))) {
+                    loan.receiver = receiver;
+                    loan.previous = walk->assignment_loan;
+                    walk->assignment_loan = &loan;
+                    loan_started = true;
+                } else if (move_walk_reported_once(walk, part)) {
+                    semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, part,
+                        "Indexed assignment requires a stable named backing path.\n"
+                        "Reason:\n"
+                        "- the target address must remain valid through index and value evaluation\n"
+                        "- this receiver has no current ownership path the final move owner can track\n"
+                        "Fix:\n"
+                        "- bind the collection to a named owner before assigning through its element");
+                }
+            }
+            element = true;
+            if (!walk_expression(walk, state, ast_array_access_index(part))) {
+                if (loan_started) walk->assignment_loan = loan.previous;
+                return false;
+            }
+        }
+        if (!walk_expression(walk, state, ast_assignment_value(node))) {
+            if (loan_started) walk->assignment_loan = loan.previous;
+            return false;
+        }
+        MoveAssignmentBackingLoan *prior = loan_started ? loan.previous : walk->assignment_loan;
+        MoveAssignmentBackingLoan *conflict = assignment_loan_for_path(walk, state, target, prior);
+        if (conflict != NULL) refuse_assignment_loan_change(walk, conflict, target);
+        if (loan_started) walk->assignment_loan = loan.previous;
+        if (walk->failed) return false;
         /* An element store writes the storage its Array shares. */
-        if (element) move_walk_copy_changed(walk, state, ast_assignment_target(node));
-        reinitialize(walk, state, ast_assignment_target(node));
+        if (element) move_walk_copy_changed(walk, state, target);
+        reinitialize(walk, state, target);
         char fields[512];
         uint32_t holder = 0;
-        if (move_walk_access_path(ast_assignment_target(node), &holder, fields, sizeof(fields)))
+        if (move_walk_access_path(target, &holder, fields, sizeof(fields)))
             move_walk_copy_record(walk, state, ast_assignment_value(node), holder);
         return !walk->failed;
     }
