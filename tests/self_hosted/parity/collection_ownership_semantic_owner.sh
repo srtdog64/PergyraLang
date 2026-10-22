@@ -234,6 +234,7 @@ NEGATIVE_CASES=(
     map_keys_shallow_set
     map_keys_shallow_pop
     map_keys_double_drop
+    ast_graph_atom_late_owned_growth_invalid
     collection_field_owned_push
     collection_field_deep_drop
     unknown_string_array_alias_drop
@@ -546,6 +547,7 @@ MOVE_CLONE_CASES=(
     string_array_clone_independence
     collection_field_move_valid
     collection_field_restore_valid
+    ast_graph_atom_prebind_valid
     borrowed_string_array_shallow_copy
     unknown_string_array_alias_without_drop
     readonly_map_query_snapshot_transfer_valid
@@ -580,6 +582,8 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
         printf '1\n99\n' >"$expected"
     elif [[ "$name" == string_array_clone_independence ]]; then
         printf 'alpha\n' >"$expected"
+    elif [[ "$name" == ast_graph_atom_prebind_valid ]]; then
+        printf 'graph\ntree\n' >"$expected"
     elif [[ "$name" == borrowed_string_array_shallow_copy ||
             "$name" == unknown_string_array_alias_without_drop ||
             "$name" == readonly_map_query_snapshot_transfer_valid ]]; then

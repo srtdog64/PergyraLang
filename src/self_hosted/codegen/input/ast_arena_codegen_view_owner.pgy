@@ -151,7 +151,10 @@ func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) ->
     if count <= 0 {
         return false;
     }
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    let no_expression_graph_texts: Array<String> = [""];
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(
+        nodes, count, no_expression_graph_texts
+    );
     if !CodegenAstArenaIsProgramRoot(arena, 0) {
         return false;
     }

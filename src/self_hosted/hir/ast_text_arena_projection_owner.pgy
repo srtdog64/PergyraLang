@@ -142,7 +142,11 @@ func CodegenAstTextChildren(
     return children;
 }
 
-func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> AstArena {
+func CodegenAstTextTypedArenaFromNodes(
+    nodes: Array<CodegenAstTextNode>,
+    count: Int,
+    own atom_table: Array<String>
+) -> AstArena {
     let kinds: Array<Int> = [];
     let nominal_subkinds: Array<Int> = [];
     let atoms: Array<Int> = [];
@@ -162,7 +166,10 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
     );
     let indents: Array<Int> = [];
     let provenance_texts: Array<String> = [];
-    let atom_table: Array<String> = [""];
+    // Slot zero remains the empty sentinel. Graph text slots are reserved and
+    // filled before this handoff. The graph rows remain in the same artifact,
+    // so these immutable String descriptors borrow from that retained owner.
+    // Tree-derived atoms follow the existing shallow table contract.
     let i: Int = 0;
     while i < count {
         ArrayPush(kinds, nodes[i].kind);
@@ -215,7 +222,10 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
 }
 
 func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    let no_expression_graph_texts: Array<String> = [""];
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(
+        nodes, count, no_expression_graph_texts
+    );
     let expected_parents: Array<Int> = CodegenAstTextParentRows(nodes, count);
     if !TypedAstArenaParallelRowsReady(arena) || TypedAstArenaNodeCount(arena) != count {
         return false;
@@ -412,14 +422,34 @@ func AstTreeArtifactIdentityDigest(
     return (1073741824L + hash) as Int;
 }
 
-func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
+func AstTreeArtifactFromTextWithExpressionGraphs(
+    tree_text: String,
+    own expression_graphs: AstExpressionGraphRows
+) -> AstTreeArtifact {
     let nodes: Array<CodegenAstTextNode> = [];
     let count_box: Array<Int> = [0];
     CodegenAstTextNodeInventory(tree_text, nodes, count_box);
     let count: Int = count_box[0];
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    let expression_graphs: AstExpressionGraphRows =
-        AstExpressionGraphRowsEmpty();
+    // Reserve before borrowing graph elements: no later insertion of graph
+    // text can grow this table or invalidate its retained source. Both the
+    // borrowed descriptors and their graph owner leave in one artifact.
+    let graph_atom_table: Array<String> = [""];
+    let graph_node: Int = 0;
+    while graph_node < ArrayLength(expression_graphs.arena.node_texts) {
+        ArrayPush(graph_atom_table, "");
+        graph_node = graph_node + 1;
+    }
+    graph_node = 0;
+    while graph_node < ArrayLength(expression_graphs.arena.node_texts) {
+        ArraySet(
+            graph_atom_table, graph_node + 1,
+            expression_graphs.arena.node_texts[graph_node]
+        );
+        graph_node = graph_node + 1;
+    }
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(
+        nodes, count, graph_atom_table
+    );
     let source_modules: AstSourceModuleFacts = AstSourceModuleFactsUnknown();
     return AstTreeArtifact(
         tree_text, arena, count, expression_graphs, source_modules,
@@ -427,6 +457,35 @@ func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
             tree_text, count, expression_graphs, source_modules
         )
     );
+}
+
+func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
+    let expression_graphs: AstExpressionGraphRows =
+        AstExpressionGraphRowsEmpty();
+    return AstTreeArtifactFromTextWithExpressionGraphs(
+        tree_text, expression_graphs
+    );
+}
+
+// Graph texts occupy one exact prefix after the empty sentinel. Consumers
+// validate both the layout and the text before using the derived atom index.
+func AstTreeArtifactExpressionGraphTextAtomIndex(
+    artifact: AstTreeArtifact,
+    graph_node: Int
+) -> Option<Int> {
+    let graph_count: Int =
+        ArrayLength(artifact.expression_graphs.arena.node_texts);
+    if graph_node < 0 || graph_node >= graph_count {
+        return None;
+    }
+    let atom: Int = graph_node + 1;
+    if graph_count + 1 > ArrayLength(artifact.arena.atom_table) || atom < 1 ||
+        atom >= ArrayLength(artifact.arena.atom_table) ||
+        artifact.arena.atom_table[atom] !=
+            artifact.expression_graphs.arena.node_texts[graph_node] {
+        return None;
+    }
+    return Some(atom);
 }
 
 // The identity digest is nonzero only for expression graph rows that were

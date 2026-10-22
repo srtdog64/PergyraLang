@@ -65,11 +65,18 @@ func AstTreeArtifactBindExpressionOwnerKinds(
                     (kind == TypedAstKindBareCallStmtTag() ||
                         kind == TypedAstKindUnknownTag()) {
                     if kind == TypedAstKindUnknownTag() {
+                        let graph_atom: Option<Int> =
+                            AstTreeArtifactExpressionGraphTextAtomIndex(
+                                artifact, root
+                            );
+                        if !IsSome(graph_atom) {
+                            failed = true;
+                            continue;
+                        }
                         ArraySet(
                             kinds, node_cursor, TypedAstKindBareCallStmtTag()
                         );
-                        ArrayPush(atom_table, graph_text);
-                        ArraySet(atoms, node_cursor, ArrayLength(atom_table) - 1);
+                        ArraySet(atoms, node_cursor, UnwrapOption(graph_atom));
                         ArraySet(has_atoms, node_cursor, 1);
                     } else if node_cursor >= ArrayLength(has_atoms) ||
                         node_cursor >= ArrayLength(atoms) ||

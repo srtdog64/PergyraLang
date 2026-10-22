@@ -1,0 +1,48 @@
+struct GraphTextRows {
+    texts: Array<String>;
+}
+
+struct AtomIndexRows {
+    atom_table: Array<String>;
+    atoms: Array<Int>;
+}
+
+struct GraphAtomArtifact {
+    arena: AtomIndexRows;
+    graphs: GraphTextRows;
+}
+
+// Graph strings are installed before the table escapes. The graph owner and
+// its borrowed String descriptors then travel in the same aggregate.
+func GraphAtomArtifactBuild(own graphs: GraphTextRows) -> GraphAtomArtifact {
+    let table: Array<String> = [""];
+    let graph_node: Int = 0;
+    while graph_node < ArrayLength(graphs.texts) {
+        ArrayPush(table, "");
+        graph_node = graph_node + 1;
+    }
+    graph_node = 0;
+    while graph_node < ArrayLength(graphs.texts) {
+        ArraySet(table, graph_node + 1, graphs.texts[graph_node]);
+        graph_node = graph_node + 1;
+    }
+    ArrayPush(table, "tree");
+    return GraphAtomArtifact(AtomIndexRows(table, [1]), graphs);
+}
+
+func GraphAtomIndexBind(artifact: GraphAtomArtifact) -> GraphAtomArtifact {
+    let arena: AtomIndexRows = artifact.arena;
+    let atom_table: Array<String> = arena.atom_table;
+    let atoms: Array<Int> = arena.atoms;
+    ArraySet(atoms, 0, 1);
+    return GraphAtomArtifact(AtomIndexRows(atom_table, atoms), artifact.graphs);
+}
+
+func Main() -> Void {
+    let source: Array<String> = ["graph"];
+    let graphs: GraphTextRows = GraphTextRows(source);
+    let artifact: GraphAtomArtifact = GraphAtomArtifactBuild(graphs);
+    let bound: GraphAtomArtifact = GraphAtomIndexBind(artifact);
+    Log(bound.arena.atom_table[bound.arena.atoms[0]]);
+    Log(bound.arena.atom_table[2]);
+}

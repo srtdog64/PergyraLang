@@ -246,15 +246,19 @@ func ParseRootProgram(source_path: String) -> String {
 func ParserProgramArtifactFromBuild(
     build: ParserProgramBuild
 ) -> AstTreeArtifact {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
+    let expression_graphs: AstExpressionGraphRows = build.expression_graphs;
+    let artifact: AstTreeArtifact =
+        AstTreeArtifactFromTextWithExpressionGraphs(
+            build.tree_text, expression_graphs
+        );
     let source_modules: AstSourceModuleFacts =
         AstSourceModuleFactsFromTopLevelPaths(
             artifact.arena, build.declaration_module_paths
         );
     let typed: AstTreeArtifact = AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        build.expression_graphs, source_modules, AstTreeArtifactIdentityDigest(
-            artifact.tree_text, artifact.count, build.expression_graphs,
+        artifact.expression_graphs, source_modules, AstTreeArtifactIdentityDigest(
+            artifact.tree_text, artifact.count, artifact.expression_graphs,
             source_modules
         )
     );
