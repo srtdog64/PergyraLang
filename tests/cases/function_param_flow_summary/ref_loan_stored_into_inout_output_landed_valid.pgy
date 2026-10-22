@@ -1,0 +1,35 @@
+// As ref_loan_field_written_back_valid, but the names are stored into the
+// caller's inout output, which did not hold them: the ref index's storage
+// reaches an output, and the next analysis copies it where it is stored.
+struct Carriers {
+    names: Array<String>;
+    count: Int;
+}
+
+struct Index {
+    labels: Array<String>;
+}
+
+func CarriersFrom(ref index: Index) -> Carriers {
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(index.labels) {
+        ArrayPush(names, index.labels[i]);
+        i = i + 1;
+    }
+    return Carriers(names, i);
+}
+
+func Fill(ref index: Index, inout out: Carriers) -> Void {
+    let carriers: Carriers = CarriersFrom(index);
+    out.names = carriers.names;
+}
+
+func Main() -> Int {
+    let index: Index = Index([Concat("a", "")]);
+    let none: Array<String> = [];
+    var out: Carriers = Carriers(none, 0);
+    Fill(index, out);
+    Log(ArrayLength(out.names));
+    return 0;
+}

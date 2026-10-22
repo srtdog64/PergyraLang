@@ -185,6 +185,11 @@ void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, uns
     backing_effect(state, origins, effect);
     if (first && state->escape_site != NULL) state->escape_carrier = carrier;
 }
+bool backing_origins_held(const ReturnedBacking *state, const uint64_t *origins, const uint64_t *held)
+{
+    for (size_t w = 0; w < state->fact->origin_words; w++) if ((origins[w] & ~held[w]) != 0) return false;
+    return true;
+}
 bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins)
 {
     for (size_t w = 0; w < state->fact->origin_words; w++) if (origins[w] != 0) return true;

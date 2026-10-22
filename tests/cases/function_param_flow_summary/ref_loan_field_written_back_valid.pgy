@@ -1,0 +1,42 @@
+// Plan takes Carriers that lend its ref index's labels, copies the names
+// field into a local, pushes more names and assigns it back. The store puts
+// into carriers only what carriers already held, so nothing more of index
+// reaches an output: the loan stays a return of Plan's index.
+struct Carriers {
+    names: Array<String>;
+    count: Int;
+}
+
+struct Index {
+    labels: Array<String>;
+}
+
+func CarriersFrom(ref index: Index) -> Carriers {
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(index.labels) {
+        ArrayPush(names, index.labels[i]);
+        i = i + 1;
+    }
+    return Carriers(names, i);
+}
+
+func Plan(ref index: Index, extra: Array<String>) -> Carriers {
+    let carriers: Carriers = CarriersFrom(index);
+    let names: Array<String> = carriers.names;
+    let i: Int = 0;
+    while i < ArrayLength(extra) {
+        ArrayPush(names, extra[i]);
+        i = i + 1;
+    }
+    carriers.names = names;
+    return carriers;
+}
+
+func Main() -> Int {
+    let index: Index = Index([Concat("a", "")]);
+    let extra: Array<String> = [Concat("b", "")];
+    let plan: Carriers = Plan(index, extra);
+    Log(ArrayLength(plan.names));
+    return 0;
+}

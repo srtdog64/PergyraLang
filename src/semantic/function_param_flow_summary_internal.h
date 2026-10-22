@@ -134,6 +134,10 @@ void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned ef
 void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, unsigned effect,
     ASTNode *carrier);
 bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins);
+/* `held` has every origin in `origins` already. Storing them again into a
+ * place that holds them adds no call escape: `carriers.names = names` after
+ * `let names = carriers.names` puts back what `carriers` held. */
+bool backing_origins_held(const ReturnedBacking *state, const uint64_t *origins, const uint64_t *held);
 FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert);
 size_t backing_node(ReturnedBacking *state, ASTNode *node);
 bool backing_work(ReturnedBacking *state, size_t at);

@@ -137,6 +137,8 @@ landed_clones = {
     "formal_field_copy_changed_at_exit_landed_valid": {"Grow": 1},
     # The element passed to Join, and the result returned.
     "string_element_kept_by_callee_landed_valid": {"Lines": 2},
+    "ref_loan_field_written_back_valid": {"Plan": 1},
+    "ref_loan_stored_into_inout_output_landed_valid": {"Fill": 1},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
@@ -348,6 +350,9 @@ release_lifetime_refusals = {
     "inout_callee_same_field_changed_invalid": [
         (*released_refusal, 38, 20), (*released_refusal, 44, 20), (*released_refusal, 50, 20),
         (*released_refusal, 56, 20), (*released_refusal, 62, 20)],
+    # A lent local stored into an inout output that did not hold it escapes
+    # the ref index: Fill's summary and its caller both refuse.
+    "ref_loan_local_stored_into_inout_output_invalid": [(*borrow_refusal, 22, 6), (*borrow_refusal, 29, 10)],
     # A copy of an inout formal's field changed and not assigned back
     # refuses each exit: two returns and the end of a body.
     "formal_field_copy_changed_at_exit_invalid": [
@@ -1092,6 +1097,9 @@ paired = (
     ("ref_loan_through_popping_helper_valid", True),
     ("inout_callee_other_field_changed_valid", True),
     ("inout_callee_same_field_changed_invalid", False),
+    ("ref_loan_field_written_back_valid", True),
+    ("ref_loan_stored_into_inout_output_landed_valid", True),
+    ("ref_loan_local_stored_into_inout_output_invalid", False),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),

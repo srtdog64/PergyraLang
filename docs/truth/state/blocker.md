@@ -5,8 +5,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-22 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 322 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_inout_field_changes.md)).
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 299 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_held_origin_store.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
@@ -18,10 +18,10 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    and 28 local copies whose other side changed ([`inout` callees by field](../decisions/2026-10-22_inout_callee_changes_only_the_fields_it_writes.md)), 1 more at an `inout` exit.
    Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)).
    GPT has the deep `Clone` of String and scalar maps ([request](../../agent_work_directives/hashmap_deep_clone_backend_2026-10-22.md)).
-3. **Borrowed `ref` escapes (52 outside `direct_mir_*`):** callees whose formal
-   reaches a call escape (driver and MIR emission chains; [not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md)),
-   and returned loans a copy of the call cannot end because the callee stores
-   the String into an `inout` output (`...NumericStringAllocationRecordResolvedCall`).
+3. **Borrowed `ref` escapes (32 outside `direct_mir_*`):** callees whose formal
+   reaches a call escape (driver and MIR emission chains; [not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md),
+   [not a write-back](../decisions/2026-10-22_store_of_held_origins_adds_no_call_escape.md)), and returned loans
+   a callee stores into an `inout` output (`...NumericStringAllocationRecordResolvedCall`).
 4. **Strings that leave their owner.** Owned copies land where a String
    leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)).
    Left: 3 opaque crossings, 8 released elements, 23 owned pushes.
