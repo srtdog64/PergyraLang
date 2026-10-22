@@ -6,7 +6,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 258 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_inout_ref_lends_nothing.md)).
+refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_inout_ref_lends_nothing.md)),
+and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
@@ -24,11 +25,10 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)),
    and as a Clone where the owned push is refused ([rule](../decisions/2026-10-23_refused_owned_string_push_lands_as_clone.md)).
    Left: 3 opaque crossings, 8 released elements.
-5. **Hidden owners:** `collection_owned_element_requirements_finalize`
-   has three refusals on the canonical, from a field taken out before an
-   `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
-   So a normal compile never runs the move, lane and named-call owners, nor the shallow String store receipts
-   (`MirExpressionIdentityEpochRebindGraphForArtifact` stores a String with no independent-result proof).
+5. **Hidden owners:** `collection_owned_element_requirements_finalize` has three refusals on the canonical, from a
+   field taken out before an `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
+   So a normal compile never runs the move, lane and named-call owners, nor the String receipts pass: 900 shallow
+   String stores have no independent-result proof, and a refused one selects no copy (String proof lane: GPT).
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, `graph.blocks[0].name = x` (C emits a non-lvalue),
    `let (a, b) = (s, 0)` (C lacks `PgyTuple_String_Int_t`), and an

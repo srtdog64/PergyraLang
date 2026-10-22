@@ -37,8 +37,9 @@ canonicalization chain were refused for `routines` and `admitted`.
 ## Left on the record
 
 The store of `SemanticCallableCanonicalDeclaredName(...)` into those
-Arrays has no independent-result proof. That check runs only in an
-analysis with no earlier error, so the canonical census does not report
-it yet; `ref_string_through_inout_reader_shallow_store_invalid` shows it.
+Arrays has no independent-result proof. The String receipts pass that
+checks it runs only after every final owner admits the program, so the
+canonical census does not report it yet;
+`ref_string_through_inout_reader_shallow_store_invalid` shows it.
 
 Replaces: nothing.
