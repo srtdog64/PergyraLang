@@ -10,9 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* An Array formal other than `own` is proved as a descriptor. A by-value or
- * `ref` formal of any other type, `self` included, is proved through its
- * access paths. An `own` or `inout` one is not proved. */
+/* An Array formal other than `own` is proved as a descriptor. A by-value,
+ * `ref` or `inout` formal of any other type, `self` included, is proved
+ * through its access paths; an `inout` one only when nothing is written
+ * through it (2026-10-22_unwritten_inout_formal_preserves_storage). An
+ * `own` one is not proved. */
 static bool
 array_storage_formal_kind(const ASTNode *decl, size_t index, bool *paths)
 {
@@ -22,8 +24,8 @@ array_storage_formal_kind(const ASTNode *decl, size_t index, bool *paths)
     *paths = type_name == NULL || strcmp(type_name, "Array") != 0;
     if (!*paths) return true;
     bool self_param = param->type == NULL && param->name != NULL && strcmp(param->name, "self") == 0;
-    return (param->type != NULL || self_param) &&
-        (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF);
+    return (param->type != NULL || self_param) && (param->mode == PARAM_MODE_DEFAULT ||
+        param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_MUT_REF);
 }
 
 /* One formal's walk. A local or loop variable that takes a path of the
@@ -111,10 +113,12 @@ static int storage_path_root(const ASTNode *node, const StorageWalk *walk);
 /* A call's result holds what an argument names when the callee may return
  * it: a routine whose formal's summary returns it, or a builtin or
  * constructor whose result keeps or depends on it. Clone's result is new
- * storage. A String or copy-only result or argument holds nothing. */
+ * storage, as is a typed Map query's (MapKeys copies every key). A String
+ * or copy-only result or argument holds nothing. */
 static int storage_result_root(const ASTNode *call, const StorageWalk *walk)
 {
-    if (storage_path_value_read(call, walk->lookup)) return STORAGE_ROOT_NONE;
+    if (storage_path_value_read(call, walk->lookup) ||
+        semantic_typed_map_query_result_independent(walk->lookup->ctx, call)) return STORAGE_ROOT_NONE;
     int root = STORAGE_ROOT_NONE;
     for (size_t i = 0; i < ast_call_arg_count(call) && root != STORAGE_ROOT_ALIAS; i++) {
         int held = storage_path_root(ast_call_argument(call, i), walk);
@@ -325,6 +329,10 @@ array_storage_use_unproved(ASTNode *node, StorageWalk *walk)
         ASTNode *target = ast_assignment_target(node);
         root = storage_path_at(target, walk);
         if (root == STORAGE_ROOT_NONE) { ADD(target); ADD(ast_assignment_value(node)); return bad; }
+        /* An `inout` formal is the caller's place: any write through it
+         * changes the caller's value. */
+        if (walk->paths && ast_func_param(walk->origin->function_decl, walk->origin->param_index)->mode ==
+                PARAM_MODE_MUT_REF) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
         /* A bare formal or alias that takes another value holding the
          * formal stays what it was, as in `build = Add(build, row)`. */
         ASTNode *value = ast_assignment_value(node);

@@ -191,6 +191,7 @@ main(void)
     test_qubit_slot_semantics();
     test_semantic_ownership_boundaries();
     test_array_preservation_facet();
+    test_inout_preservation_facet();
     test_loop_flow_reentry();
     test_quantum_extensions();
     test_match_stmt();

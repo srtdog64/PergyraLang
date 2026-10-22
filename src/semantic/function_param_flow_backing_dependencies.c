@@ -384,7 +384,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
         bool replacement = indexed && function_param_flow_local_replacement(state->store->ctx, index, node);
         bool carried = bits != NULL && state->loan_seed == NULL && (bits[0] & UINT64_C(1)) != 0;
         if (!indexed || (carried && !semantic_formal_store_landing_select_assigned(state->store->ctx, state->decl,
-            target, ast_assignment_value(node)))) fact->complete = false;
+            state->fact->input_id, target, ast_assignment_value(node)))) fact->complete = false;
         if (bits != NULL) backing_store(state, target, bits, replacement, ast_assignment_value(node));
         backing_consumers(state, ast_assignment_value(node)); break;
     }

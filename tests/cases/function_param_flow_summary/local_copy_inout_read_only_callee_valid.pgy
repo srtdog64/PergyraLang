@@ -1,0 +1,38 @@
+// Probe takes Record's state as an inout argument but writes nothing through
+// it (MapKeys copies every key into a new Array), so Record's local copy of
+// the state's marks is unchanged by the call and its uses after it are
+// admitted.
+struct State {
+    marks: HashMap<String, Int>;
+    count: Int;
+}
+
+func Probe(inout state: State, key: String) -> Bool {
+    let marks: HashMap<String, Int> = state.marks;
+    let keys: Array<String> = MapKeys(marks);
+    let index: Int = 0;
+    let found: Bool = false;
+    while index < ArrayLength(keys) {
+        if MapHas(marks, keys[index]) && MapGet(marks, keys[index]) == 1 { found = true; }
+        index = index + 1;
+    }
+    ArrayDropOwnedStrings(keys);
+    return found;
+}
+
+func Record(inout state: State, key: String) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    if Probe(state, key) { return 0; }
+    MapSet(marks, key, 1);
+    state.marks = marks;
+    return 1;
+}
+
+func Main() -> Int {
+    let marks: HashMap<String, Int> = {};
+    var state: State = State(marks, 0);
+    let first: Int = Record(state, "a");
+    let second: Int = Record(state, "a");
+    Print(ToString(first * 10 + second));
+    return 0;
+}
