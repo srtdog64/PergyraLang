@@ -1,0 +1,53 @@
+// As local_copy_collection_changed_invalid, but only the changed side is
+// used after each change, and a pop moves only the copy's own head or
+// length: the source stays readable after a QueuePop or ArrayPop.
+func MapSetCopy(seed: Int) -> Int {
+    let source: HashMap<String, Int> = MapNew();
+    MapSet(source, "k", seed);
+    let copy: HashMap<String, Int> = source;
+    MapSet(copy, "j", 2);
+    return MapGet(copy, "k");
+}
+
+func MapRemoveCopy(seed: Int) -> Bool {
+    let source: HashMap<String, Int> = MapNew();
+    MapSet(source, "k", seed);
+    let copy: HashMap<String, Int> = source;
+    MapRemove(copy, "k");
+    MapSet(copy, "j", 3);
+    return MapHas(copy, "k");
+}
+
+func ListPushSource(seed: Int) -> Int {
+    let source: List<Int> = ListNew();
+    ListPush(source, seed);
+    let copy: List<Int> = source;
+    let first: Int = ListGet(copy, 0);
+    ListPush(source, 2);
+    return first + ListGet(source, 1);
+}
+
+func QueuePopCopy(seed: Int) -> Int {
+    let source: Queue<Int> = QueueNew();
+    QueuePush(source, seed);
+    QueuePush(source, 2);
+    let copy: Queue<Int> = source;
+    let taken: Int = QueuePop(copy);
+    return taken * 10 + QueuePop(source);
+}
+
+func ArrayPopCopy(seed: Int) -> Int {
+    let source: Array<Int> = [seed, 2];
+    let copy: Array<Int> = source;
+    ArrayPop(copy);
+    return ArrayLength(copy) * 10 + source[1];
+}
+
+func Main() -> Int {
+    Log(MapSetCopy(1));
+    Log(MapRemoveCopy(1));
+    Log(ListPushSource(1));
+    Log(QueuePopCopy(1));
+    Log(ArrayPopCopy(1));
+    return 0;
+}

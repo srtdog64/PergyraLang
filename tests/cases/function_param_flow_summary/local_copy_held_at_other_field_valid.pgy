@@ -1,0 +1,49 @@
+// A value assigned into one field of a struct, or stored into a map a
+// field holds, shares that field's storage only: a change through a copy
+// of another field, or through the assigned value, leaves the rest of the
+// struct and the value readable.
+struct Facts {
+    table: HashMap<String, Int>;
+    carry: HashMap<String, Int>;
+}
+
+struct Index {
+    rows: HashMap<Int, Array<Int>>;
+    carry: HashMap<String, Int>;
+}
+
+func OtherFieldChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    let carrying: HashMap<String, Int> = facts.carry;
+    MapSet(carrying, "c", 1);
+    return MapSize(fresh);
+}
+
+func AssignedValueChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    MapSet(fresh, "k", 1);
+    return MapSize(facts.carry);
+}
+
+func StoredThenOtherFieldChanged(inout index: Index) -> Int {
+    let row: Array<Int> = [1];
+    MapSet(index.rows, 1, row);
+    let carrying: HashMap<String, Int> = index.carry;
+    MapSet(carrying, "c", 1);
+    return ArrayLength(row);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let carry: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts(table, carry);
+    Log(OtherFieldChanged(facts));
+    Log(AssignedValueChanged(facts));
+    let rows: HashMap<Int, Array<Int>> = MapNew();
+    let indexed: HashMap<String, Int> = MapNew();
+    var index: Index = Index(rows, indexed);
+    Log(StoredThenOtherFieldChanged(index));
+    return 0;
+}

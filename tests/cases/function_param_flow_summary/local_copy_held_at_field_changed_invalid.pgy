@@ -1,0 +1,66 @@
+// As local_copy_held_at_other_field_valid, but each change reaches the
+// field the value was assigned into: the field read after a change through
+// the value, and the value read after a change through a copy of the
+// field, through the whole holder or through a path inside the field, are
+// refused.
+struct Facts {
+    table: HashMap<String, Int>;
+    carry: HashMap<String, Int>;
+}
+
+struct Bag {
+    counts: HashMap<String, Int>;
+}
+
+struct Holder {
+    bag: Bag;
+    other: HashMap<String, Int>;
+}
+
+func Touch(inout facts: Facts) -> Void {
+    MapSet(facts.carry, "t", 1);
+}
+
+func AssignedValueChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    MapSet(fresh, "k", 1);
+    return MapSize(facts.table);
+}
+
+func FieldCopyChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    let again: HashMap<String, Int> = facts.table;
+    MapSet(again, "k", 1);
+    return MapSize(fresh);
+}
+
+func HolderChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    Touch(facts);
+    return MapSize(fresh);
+}
+
+func InnerPathChanged(inout holder: Holder) -> Int {
+    let counts: HashMap<String, Int> = MapNew();
+    let bag: Bag = Bag(counts);
+    holder.bag = bag;
+    MapSet(holder.bag.counts, "k", 1);
+    return MapSize(bag.counts);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let carry: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts(table, carry);
+    Log(AssignedValueChanged(facts));
+    Log(FieldCopyChanged(facts));
+    Log(HolderChanged(facts));
+    let counts: HashMap<String, Int> = MapNew();
+    let other: HashMap<String, Int> = MapNew();
+    var holder: Holder = Holder(Bag(counts), other);
+    Log(InnerPathChanged(holder));
+    return 0;
+}

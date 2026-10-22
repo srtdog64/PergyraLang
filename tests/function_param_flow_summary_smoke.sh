@@ -132,6 +132,8 @@ landed_clones = {
     "local_copy_source_element_set_landed_valid": {"Main": 1},
     "local_copy_source_inout_grown_landed_valid": {"Main": 1},
     "local_copy_source_sorted_landed_valid": {"Main": 1},
+    "collection_value_store_grown_landed_valid": {
+        "MapStore": 1, "SetStore": 1, "ListPushStore": 1, "ListSetStore": 1, "QueueStore": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
@@ -316,8 +318,22 @@ release_lifetime_refusals = {
     "string_window_pair_other_call_invalid": [
         ("PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN", "semantic:string_window:extent_unproven", 14, 12)],
     # An inout callee that changes the map a caller's local copy shares
-    # refuses the copy's later uses.
-    "local_copy_inout_callee_changes_invalid": [(*released_refusal, 18, 12), (*released_refusal, 19, 19)],
+    # refuses the copy's later uses, as a MapSet in the routine does.
+    "local_copy_inout_callee_changes_invalid": [
+        (*released_refusal, 13, 19), (*released_refusal, 19, 12), (*released_refusal, 20, 19)],
+    # A HashMap, Set, List or Queue set, removal or push through a local copy
+    # refuses the source's next use, one site per change.
+    "local_copy_collection_changed_invalid": [
+        (*released_refusal, 9, 19), (*released_refusal, 17, 19), (*released_refusal, 25, 19),
+        (*released_refusal, 33, 19), (*released_refusal, 41, 20), (*released_refusal, 49, 20),
+        (*released_refusal, 58, 20), (*released_refusal, 66, 21)],
+    # A value stored into a map that Clone copies only by value stays shared.
+    "collection_value_store_shallow_grown_invalid": [(*released_refusal, 14, 35)],
+    # A value assigned into a field shares that field: a change through
+    # either side refuses the other.
+    "local_copy_held_at_field_changed_invalid": [
+        (*released_refusal, 28, 26), (*released_refusal, 36, 20), (*released_refusal, 43, 20),
+        (*released_refusal, 51, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # Returning a field's storage shares it with the result, which lends the
@@ -1061,6 +1077,12 @@ paired = (
     ("local_copy_rebound_valid", True),
     ("local_copy_inout_read_only_callee_valid", True),
     ("local_copy_inout_callee_changes_invalid", False),
+    ("local_copy_collection_changed_invalid", False),
+    ("local_copy_collection_changed_side_used_valid", True),
+    ("collection_value_store_grown_landed_valid", True),
+    ("collection_value_store_shallow_grown_invalid", False),
+    ("local_copy_held_at_other_field_valid", True),
+    ("local_copy_held_at_field_changed_invalid", False),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),

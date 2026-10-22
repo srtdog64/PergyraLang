@@ -1,0 +1,17 @@
+// As collection_value_store_grown_landed_valid, but the stored value is an
+// Array of structs that hold Arrays, which Clone copies only by value: no
+// copy can stand in at the store, so the read through the map after the
+// value grew stays refused.
+struct Row {
+    cells: Array<Int>;
+}
+
+func Main() -> Int {
+    let held: HashMap<Int, Array<Row>> = MapNew();
+    let rows: Array<Row> = [Row([1])];
+    MapSet(held, 1, rows);
+    ArrayPush(rows, Row([2]));
+    let back: Array<Row> = MapGet(held, 1);
+    Log(ArrayLength(back));
+    return 0;
+}
