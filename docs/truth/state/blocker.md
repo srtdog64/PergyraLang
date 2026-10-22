@@ -2,32 +2,32 @@
 
 Owner: GPT root lane for main integration and the one reached ownership
 producer at a time. Work follows the
-[decision](../decisions/2026-10-18_native_checker_in_v1.md). Checked 2026-10-22
-KST at executable commit `57baf8426`; nothing is pushed while this state is
+[decision](../decisions/2026-10-18_native_checker_in_v1.md). Checked 2026-10-23
+KST at source/census commit `4450c83fb`; nothing is pushed while this state is
 red.
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: the 350-refusal baseline
-was reduced to 332 with every final owner run
-([error-storage record](../evidence/2026-10-22_mir_program_error_storage_census.md)).
-Exactly ten initial/error graph-storage moves disappeared in the latest slice
-and no refusal was added. This run took 1154.78 s and stayed within the
+was reduced to 319 with every final owner run
+([result-storage record](../evidence/2026-10-23_mir_result_storage_ownership_census.md)).
+Exactly 13 retained-result rows disappeared in the latest slice and no refusal
+was added. This run took 942.63 s and stayed within the
 30-minute integration budget.
 
 ## Open fronts, in order
 
-1. **Moves (84 outside `direct_mir_*`)**, mostly getter loans whose proof
+1. **Moves (83 outside `direct_mir_*`)**, mostly getter loans whose proof
    fails, of values `Clone` copies only by value ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
    and 51 local copies whose other side changed, 6 more at [`inout` exits](../decisions/2026-10-22_inout_place_changed_through_a_copy.md).
    Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)).
    GPT has the deep `Clone` of String and scalar maps ([request](../../agent_work_directives/hashmap_deep_clone_backend_2026-10-22.md)).
-2. **Borrowed `ref` escapes (57 outside `direct_mir_*`):** callees whose formal
+2. **Borrowed `ref` escapes (52 outside `direct_mir_*`):** callees whose formal
    reaches a call escape (driver and MIR emission chains; [not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md)),
    and returned loans a copy of the call cannot end because the callee stores
    the String into an `inout` output (`...NumericStringAllocationRecordResolvedCall`).
 3. **Strings that leave their owner.** Owned copies land where a String
    leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)).
-   Left: 3 opaque crossings, 8 released elements, 23 owned pushes.
+   Left: 3 opaque crossings, 8 released elements, 17 owned pushes.
 4. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
@@ -45,16 +45,10 @@ and no refusal was added. This run took 1154.78 s and stayed within the
    cover their programs. Do not fix those per-program shape routes or count
    their deletion before the ownership fronts outside them are closed.
 
-## Lessons on the record
-
-- **An incomplete frame is not a safety rule.** Main admitted a pool's text
-  read after `AllocatorDestroy` (ASan use-after-free); `bc2aefb30` refuses it.
-- **Proofs must walk every place a formal's storage can go:** a `for`
-  iterable (`99a31fe0f`) and a getter's result (ASan use-after-free;
-  [rule](../decisions/2026-10-20_call_result_holding_formal_storage_is_its_path.md)).
-- **Local copies share storage** ([rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)).
-- **A defer runs at every exit, not where it is written.** The branch admitted
-  `defer { ArrayDrop(rows); }` then `return Keep(rows)` (ASan heap-use-after-free;
-  [record](../evidence/2026-10-21_defer_release_admitted_at_each_exit.md)).
-- **Emitted code frees nothing** on `ArraySet`, reassignment or a move: most
-  owner violations leak instead of failing at run time.
+The next reached seam is the remaining move of `analysis` into
+`SelfMirAppendRoutine`. A broad `ref` mode is disproved: it added eight new
+boundary refusals. Before editing, map the two actual destructure readers
+(`SelfMirDestructureTypeFactsReadyForRoutine` and
+`SelfMirDestructureTypeFactRowsAppendRoutine`) and their callers, then preserve
+default aggregate inference while making any retained output independently
+owned. The fixed census must add no row.
