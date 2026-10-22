@@ -359,6 +359,10 @@ bool semantic_param_publication_record_channel_binding(SemanticContext *ctx,
 bool semantic_param_publication_channel_binding(const SemanticContext *ctx, const ASTNode *declaration);
 bool semantic_param_publication_return_backing_required(
     const SemanticContext *ctx, const ASTNode *decl, size_t ordinal, bool *required);
+/* The routine returns Void or a physical scalar: its result holds no storage
+ * of any input, whatever its parameter modes. */
+bool semantic_param_publication_routine_return_storage_free(
+    const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_routine_return_dependency_is_scalar(
     const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_routine_no_output_header_ready(

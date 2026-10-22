@@ -1,4 +1,8 @@
-struct TextNode { type_name: String; }
+// As named_string_field_forward_project_drop_landed_valid, but the node
+// holds an Array of structs, which Clone copies only by value: no copy
+// stands in for the String Fill keeps, so the drop stays refused.
+struct Tag { name: String; }
+struct TextNode { type_name: String; tags: Array<Tag>; }
 struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
 
 func OwnedRows() -> Array<String> {
@@ -8,7 +12,8 @@ func OwnedRows() -> Array<String> {
 }
 
 func Fill(source: Array<String>, inout nodes: Array<TextNode>) -> Void {
-    ArrayPush(nodes, TextNode(source[0]));
+    let tags: Array<Tag> = [];
+    ArrayPush(nodes, TextNode(source[0], tags));
 }
 
 func Project(nodes: Array<TextNode>) -> Arena {

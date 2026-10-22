@@ -139,12 +139,17 @@ bool semantic_param_publication_routine_no_output_header_ready(const SemanticCon
         if (ast_func_param(decl, p)->mode != PARAM_MODE_REF && ast_func_param(decl, p)->mode != PARAM_MODE_DEFAULT) return false;
     return true;
 }
+bool semantic_param_publication_routine_return_storage_free(const SemanticContext *ctx, const ASTNode *decl)
+{
+    if (!semantic_param_publication_routine_relation_header_ready(ctx, decl)) return false;
+    const PendingRoutine *row = publication_routine(ctx->function_param_publications, ast_node_stable_id(decl));
+    return row->return_type == TYPE_VOID || publication_physical_scalar(row->return_type);
+}
 bool semantic_param_publication_routine_return_dependency_is_scalar(
     const SemanticContext *ctx, const ASTNode *decl)
 {
-    if (!semantic_param_publication_routine_no_output_header_ready(ctx, decl)) return false;
-    const PendingRoutine *row = publication_routine(ctx->function_param_publications, ast_node_stable_id(decl));
-    return row->return_type == TYPE_VOID || publication_physical_scalar(row->return_type);
+    return semantic_param_publication_routine_no_output_header_ready(ctx, decl) &&
+        semantic_param_publication_routine_return_storage_free(ctx, decl);
 }
 bool semantic_param_publication_value_is_physical_scalar(const SemanticContext *ctx, const ASTNode *value)
 {

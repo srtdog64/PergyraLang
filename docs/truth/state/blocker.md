@@ -5,8 +5,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-23 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 269 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_refused_owned_push_clone.md)).
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 265 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_storage_free_return.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
@@ -17,10 +17,10 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    fails, of values `Clone` copies only by value ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
    and 25 local copies whose other side changed ([`inout` callees by field](../decisions/2026-10-22_inout_callee_changes_only_the_fields_it_writes.md)), 1 more at an `inout` exit.
    Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)). GPT has the deep `Clone` of String and scalar maps ([request](../../agent_work_directives/hashmap_deep_clone_backend_2026-10-22.md)).
-3. **Borrowed `ref` escapes (29 outside `direct_mir_*`):** callees whose formal
-   reaches a call escape (driver and MIR emission chains; [not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md),
-   [not a write-back](../decisions/2026-10-22_store_of_held_origins_adds_no_call_escape.md)), and returned loans
-   a callee stores into an `inout` output (`...NumericStringAllocationRecordResolvedCall`). For GPT: `SelfMirRoutineBuildStorageRetireAfterLastConsumer(own build)` retires a build that lends `input`.
+3. **Borrowed `ref` escapes (25 outside `direct_mir_*`):** chains from a few roots: `MirExpressionIdentityEpochRebindGraphForArtifact`
+   (`routines`, about 9), world method and action calls the flow summary does not follow (`compatibility_view`, 4), MIR lowering
+   (`input`, 3) ([not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md), [not a write-back](../decisions/2026-10-22_store_of_held_origins_adds_no_call_escape.md),
+   [not a copy into an output](../decisions/2026-10-23_complete_frame_decides_return_of_storage_free_routine.md)). For GPT: `SelfMirRoutineBuildStorageRetireAfterLastConsumer(own build)` retires a build that lends `input`.
 4. **Strings that leave their owner.** Owned copies land where a String
    leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)),
    and as a Clone where the owned push is refused ([rule](../decisions/2026-10-23_refused_owned_string_push_lands_as_clone.md)).

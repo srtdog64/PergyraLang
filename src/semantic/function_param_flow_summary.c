@@ -279,7 +279,12 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
         bool unsupported = !complete && !pending && function_param_flow_backing_unsupported(store, function_decl, origin.param_index);
         store->entries[index].analysis_unsupported = unsupported;
         if (unsupported) { candidate |= SLOT_PARAM_SUMMARY_ALL; storage_unproved = FUNCTION_PARAM_ARRAY_ALL_UNPROVED; }
-        if (!unsupported && (return_backing_required || (complete && scalar_return)))
+        /* Where the result holds no storage, the slot summary's RETURN only
+         * says the input reached some call result; a complete frame followed
+         * that result to each output or escape it reached. */
+        bool storage_free_return = complete &&
+            semantic_param_publication_routine_return_storage_free(store->ctx, function_decl);
+        if (!unsupported && (return_backing_required || storage_free_return))
             candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
         else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
         /* A pending frame is proved or failed when its recursive closure

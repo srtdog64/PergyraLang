@@ -143,6 +143,11 @@ landed_clones = {
     "string_local_pushed_into_field_array_landed_valid": {"Build": 1, "Plan": 1},
     # Among borrowed literals a plain push keeps a Clone; an owned push has none.
     "string_element_push_copy_landing_mixed_landed_valid": {"Selected": 1},
+    # The node Fill keeps holds a copy of the Array's String, so the drop is safe.
+    "named_string_field_forward_project_drop_landed_valid": {"Fill": 1},
+    "named_string_field_mixed_branch_drop_landed_valid": {"Fill": 1},
+    # The verdict each Void routine stores into its inout output, as a copy.
+    "ref_input_through_call_result_into_inout_output_landed_valid": {"JoinCopied": 1, "JoinLanded": 1},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
@@ -420,10 +425,9 @@ release_lifetime_refusals = {
         (*borrow_refusal, 10, 20)],
     "selector_method_retaining_receiver_invalid": [(*borrow_refusal, 19, 15)],
     "named_string_identity_loop_reassignment_invalid": [(*borrow_refusal, 17, 27)],
-    # The call that keeps the Array is the one admitted; the deep drop after
-    # it is refused for it.
-    "named_string_field_forward_project_drop_invalid": [(*borrow_refusal, 36, 27)],
-    "named_string_field_mixed_branch_drop_invalid": [(*borrow_refusal, 30, 27)],
+    # A call keeps the Array's String in a node Clone copies only by value;
+    # the deep drop after it is refused for it.
+    "named_string_field_shallow_node_drop_invalid": [(*borrow_refusal, 41, 27)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -929,8 +933,10 @@ paired = (
     ("named_string_all_def0_branch_copy_landing_valid", True),
     ("named_string_field_empty_arena_valid", True),
     ("named_string_field_make_nodes_drop_landed_valid", True),
-    ("named_string_field_forward_project_drop_invalid", False),
-    ("named_string_field_mixed_branch_drop_invalid", False),
+    ("named_string_field_forward_project_drop_landed_valid", True),
+    ("named_string_field_mixed_branch_drop_landed_valid", True),
+    ("named_string_field_shallow_node_drop_invalid", False),
+    ("ref_input_through_call_result_into_inout_output_landed_valid", True),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -2090,6 +2096,7 @@ for name, expected in (
     ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
     ("string_local_pushed_into_field_array_landed_valid", "yx"),
     ("string_element_push_copy_landing_mixed_landed_valid", "header023"),
+    ("ref_input_through_call_result_into_inout_output_landed_valid", "f26"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

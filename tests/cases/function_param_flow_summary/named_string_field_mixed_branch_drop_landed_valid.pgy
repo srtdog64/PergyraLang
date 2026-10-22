@@ -1,0 +1,36 @@
+// Fill keeps a String of rows in the node it pushes into its inout output.
+// The next analysis pushes a Clone of the node, so dropping rows after the
+// calls frees nothing the node holds (named_string_field_shallow_node_drop_invalid
+// is the node Clone copies only by value).
+struct TextNode { type_name: String; }
+struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Fill(source: Array<String>, inout nodes: Array<TextNode>) -> Void {
+    ArrayPush(nodes, TextNode(source[0]));
+}
+
+func Project(nodes: Array<TextNode>, useBorrowed: Bool) -> Arena {
+    let provenance_texts: Array<String> = [];
+    let atom_table: Array<String> = [""];
+    if useBorrowed {
+        ArrayPush(atom_table, nodes[0].type_name);
+    } else {
+        ArrayPush(atom_table, Concat("independent", " value"));
+    }
+    return Arena(atom_table, provenance_texts);
+}
+
+func Main() -> Void {
+    let rows: Array<String> = OwnedRows();
+    let nodes: Array<TextNode> = [];
+    Fill(rows, nodes);
+    let arena: Arena = Project(nodes, true);
+    ArrayDropOwnedStrings(rows);
+    Log(arena.atom_table[1]);
+}
