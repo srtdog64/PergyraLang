@@ -313,10 +313,13 @@ static MoveAssignmentBackingLoan *assignment_loan_for_path(MoveWalk *walk,
             bool source = copy->binding == work[at].binding &&
                 (move_walk_path_contains(copy->fields, work[at].fields) ||
                  move_walk_path_contains(work[at].fields, copy->fields));
-            if (!source && copy->carrier != work[at].binding) continue;
+            bool carrier = copy->carrier == work[at].binding &&
+                (move_walk_path_contains(copy->carrier_fields, work[at].fields) ||
+                 move_walk_path_contains(work[at].fields, copy->carrier_fields));
+            if (!source && !carrier) continue;
             done[i] = true;
             work[count++] = source
-                ? (SharedPath){copy->carrier, ""}
+                ? (SharedPath){copy->carrier, copy->carrier_fields}
                 : (SharedPath){copy->binding, copy->fields};
         }
     }
