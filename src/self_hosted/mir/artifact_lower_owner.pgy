@@ -48,7 +48,9 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         facts.routines.node_ids,
         analysis.signatures.function_node_ids[signature_index]
     );
-    ArrayPush(facts.routines.names, analysis.signatures.names[signature_index]);
+    ArrayPushOwnedString(
+        facts.routines.names, analysis.signatures.names[signature_index]
+    );
     let receiver: SelfMirRoutineReceiverFact = SelfMirRoutineReceiverForOwner(
         facts.declarations, analysis.signatures.owner_names[signature_index]
     );
@@ -58,16 +60,20 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             "MIR receiver carriage requires one exact declaration owner"
         );
     }
-    ArrayPush(facts.routines.owners, receiver.owner);
-    ArrayPush(facts.routines.kinds, receiver.routine_kind);
+    ArrayPushOwnedString(facts.routines.owners, receiver.owner);
+    ArrayPushOwnedString(facts.routines.kinds, receiver.routine_kind);
     let source_module_path: String = analysis.signatures.module_paths[signature_index];
     if source_module_path == "" {
         return SelfMirProgramFactsError(facts, "mir_source_module_path_missing", "MIR routine requires admitted source module provenance");
     }
-    ArrayPush(facts.routines.source_module_paths, source_module_path);
-    ArrayPush(facts.routines.receiver_carriages, receiver.carriage);
+    ArrayPushOwnedString(
+        facts.routines.source_module_paths, source_module_path
+    );
+    ArrayPushOwnedString(
+        facts.routines.receiver_carriages, receiver.carriage
+    );
     let owner: String = receiver.owner;
-    ArrayPush(
+    ArrayPushOwnedString(
         facts.routines.return_types,
         analysis.signatures.return_types[signature_index]
     );
@@ -82,11 +88,11 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
     let generic_i: Int = 0;
     let generic_start: Int = analysis.signatures.generic_starts[signature_index];
     while generic_i < analysis.signatures.generic_counts[signature_index] {
-        ArrayPush(
+        ArrayPushOwnedString(
             facts.routines.generic_names,
             analysis.signatures.generic_names[generic_start + generic_i]
         );
-        ArrayPush(facts.routines.generic_constraints,
+        ArrayPushOwnedString(facts.routines.generic_constraints,
             analysis.signatures.generic_constraint_type_names[
                 generic_start + generic_i]);
         generic_i = generic_i + 1;
@@ -103,13 +109,15 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
     let param_start: Int = analysis.signatures.param_starts[signature_index];
     while param_i < analysis.signatures.param_counts[signature_index] {
         let row: Int = param_start + param_i;
-        ArrayPush(facts.routines.param_names, analysis.signatures.param_names[row]);
+        ArrayPushOwnedString(
+            facts.routines.param_names, analysis.signatures.param_names[row]
+        );
         ArrayPush(facts.routines.param_node_ids, analysis.signatures.param_node_ids[row]);
         let param_type: String = analysis.signatures.param_types[row];
         if owner != "" && analysis.signatures.param_names[row] == "self" {
-            ArrayPush(facts.routines.param_types, "");
+            ArrayPushOwnedString(facts.routines.param_types, "");
         } else {
-            ArrayPush(facts.routines.param_types, param_type);
+            ArrayPushOwnedString(facts.routines.param_types, param_type);
         }
         let abi_kind: Int = CallableParameterAbiKind(
             analysis.signatures.param_modes[row],
@@ -139,8 +147,12 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
     ArrayPush(facts.routines.local_counts, ArrayLength(inventory.names));
     let local_i: Int = 0;
     while local_i < ArrayLength(inventory.names) {
-        ArrayPush(facts.routines.local_names, inventory.names[local_i]);
-        ArrayPush(facts.routines.local_types, inventory.types[local_i]);
+        ArrayPushOwnedString(
+            facts.routines.local_names, inventory.names[local_i]
+        );
+        ArrayPushOwnedString(
+            facts.routines.local_types, inventory.types[local_i]
+        );
         ArrayPush(facts.routines.local_binding_syntax_ids,
             inventory.binding_syntax_ids[local_i]);
         local_i = local_i + 1;
@@ -179,11 +191,11 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
                 facts.routines.iteration_node_ids,
                 input.iterations.node_ids[iteration_row]
             );
-            ArrayPush(
+            ArrayPushOwnedString(
                 facts.routines.iteration_binding_types,
                 input.iterations.binding_type_names[iteration_row]
             );
-            ArrayPush(
+            ArrayPushOwnedString(
                 facts.routines.iteration_iterable_types,
                 input.iterations.iterable_type_names[iteration_row]
             );
