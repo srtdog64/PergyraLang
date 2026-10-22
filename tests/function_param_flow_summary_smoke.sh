@@ -148,6 +148,8 @@ landed_clones = {
     "named_string_field_mixed_branch_drop_landed_valid": {"Fill": 1},
     # The verdict each Void routine stores into its inout output, as a copy.
     "ref_input_through_call_result_into_inout_output_landed_valid": {"JoinCopied": 1, "JoinLanded": 1},
+    # The box Touch changes through an inout callee is copied where Main passes it.
+    "by_value_field_alias_written_by_inout_callee_landed_valid": {"Main": 1},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
@@ -428,6 +430,13 @@ release_lifetime_refusals = {
     # A call keeps the Array's String in a node Clone copies only by value;
     # the deep drop after it is refused for it.
     "named_string_field_shallow_node_drop_invalid": [(*borrow_refusal, 41, 27)],
+    # An inout callee that only reads the local escapes nothing of the ref
+    # input: only the store of a String it lends is refused.
+    "ref_string_through_inout_reader_shallow_store_invalid": [(*borrow_refusal, 44, 28)],
+    # One that hands the local to an own formal keeps it: every caller refuses.
+    "ref_string_through_inout_keeper_invalid": [
+        (*borrow_refusal, 43, 6), (*borrow_refusal, 59, 6), (*borrow_refusal, 60, 28),
+        (*borrow_refusal, 66, 26)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -937,6 +946,9 @@ paired = (
     ("named_string_field_mixed_branch_drop_landed_valid", True),
     ("named_string_field_shallow_node_drop_invalid", False),
     ("ref_input_through_call_result_into_inout_output_landed_valid", True),
+    ("ref_string_through_inout_reader_shallow_store_invalid", False),
+    ("ref_string_through_inout_keeper_invalid", False),
+    ("by_value_field_alias_written_by_inout_callee_landed_valid", True),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

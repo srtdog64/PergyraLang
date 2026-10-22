@@ -1,0 +1,69 @@
+// As ref_string_through_inout_reader_shallow_store_invalid, but the inout
+// callee hands the Array to an own formal: it keeps the Strings index
+// lends, so the call escapes index and every caller stays refused.
+struct Index {
+    owners: Array<String>;
+    labels: Array<String>;
+}
+
+func Canon(owner: String, name: String) -> String {
+    if owner == "" {
+        return name;
+    }
+    return Concat(owner, Concat(".", name));
+}
+
+struct Holder {
+    kept: Array<String>;
+}
+
+func Keep(own holder: Holder) -> Int {
+    return ArrayLength(holder.kept);
+}
+
+func Rewrite(inout names: Array<String>) -> Void {
+    let holder: Holder = Holder(names);
+    Log(Keep(holder));
+}
+
+struct Rows {
+    names: Array<String>;
+}
+
+func Rebind(names: Array<String>) -> Rows {
+    let copied: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        ArrayPush(copied, names[i]);
+        i = i + 1;
+    }
+    return Rows(copied);
+}
+
+func Names(ref index: Index) -> Rows {
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(index.labels) {
+        ArrayPush(names, "");
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(index.labels) {
+        ArraySet(names, i, Canon(index.owners[i], index.labels[i]));
+        i = i + 1;
+    }
+    Rewrite(names);
+    return Rebind(names);
+}
+
+func Outer(ref index: Index) -> Int {
+    let rows: Rows = Names(index);
+    return ArrayLength(rows.names);
+}
+
+func Main() -> Int {
+    let index: Index = Index([Concat("", ""), Concat("o", "")], [Concat("a", ""), Concat("c", "")]);
+    Print(ToString(Outer(index)));
+    Print(index.labels[1]);
+    return 0;
+}

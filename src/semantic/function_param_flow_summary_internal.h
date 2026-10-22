@@ -150,6 +150,15 @@ bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue va
 /* Where a value's backing goes: its destinations, or every alias `id` of it. */
 void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations);
 void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id);
+/* Handing a value that carries the frame's input to an inout formal is no
+ * call escape by itself when the input is `ref`: a local holds of a ref
+ * only what the ref lends without a refusal at the store (Strings,
+ * scalars), never an alias of its storage, so a callee rewriting the
+ * argument changes nothing of the input. What the callee keeps of the
+ * formal is its summary's call or channel escape, added at the call. A
+ * by-value input shares its caller's storage, and an alias of it written
+ * by the callee changes the caller: that stays an escape. */
+bool backing_inout_argument_leaves_input(const ReturnedBacking *state);
 void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement,
     ASTNode *carrier);
 /* Applies an intent call's effect on its arguments' storage; false when the

@@ -1,0 +1,61 @@
+// Names stores Strings the ref index lends (through Canon, which may return
+// its argument) into a local Array and hands it to an inout callee that
+// only reads it: the call escapes nothing of index, so only the store
+// itself is refused, for a String it cannot prove independent.
+struct Index {
+    owners: Array<String>;
+    labels: Array<String>;
+}
+
+func Canon(owner: String, name: String) -> String {
+    if owner == "" {
+        return name;
+    }
+    return Concat(owner, Concat(".", name));
+}
+
+func Rewrite(inout names: Array<String>) -> Void {
+    Log(ArrayLength(names));
+}
+
+struct Rows {
+    names: Array<String>;
+}
+
+func Rebind(names: Array<String>) -> Rows {
+    let copied: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        ArrayPush(copied, names[i]);
+        i = i + 1;
+    }
+    return Rows(copied);
+}
+
+func Names(ref index: Index) -> Rows {
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(index.labels) {
+        ArrayPush(names, "");
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(index.labels) {
+        ArraySet(names, i, Canon(index.owners[i], index.labels[i]));
+        i = i + 1;
+    }
+    Rewrite(names);
+    return Rebind(names);
+}
+
+func Outer(ref index: Index) -> Int {
+    let rows: Rows = Names(index);
+    return ArrayLength(rows.names);
+}
+
+func Main() -> Int {
+    let index: Index = Index([Concat("", ""), Concat("o", "")], [Concat("a", ""), Concat("c", "")]);
+    Print(ToString(Outer(index)));
+    Print(index.labels[1]);
+    return 0;
+}
