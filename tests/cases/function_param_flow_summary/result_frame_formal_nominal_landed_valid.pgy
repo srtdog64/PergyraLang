@@ -1,3 +1,5 @@
+// The first analysis refuses the loan this program's ref call lends; the
+// next copies it where the call makes it (Clone copies the result whole).
 struct InputRecord { text: String; }
 struct HeldText { text: String; }
 

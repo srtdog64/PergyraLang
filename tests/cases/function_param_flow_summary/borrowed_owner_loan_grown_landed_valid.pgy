@@ -1,0 +1,29 @@
+// Borrow lends env's rows inside the Env it returns, and Nest grows that
+// loan through an inout call while its own env is an inout borrowed from
+// Main. No proof admits a loan of a borrowed owner that leaves, so the next
+// analysis copies the loan where Borrow makes it: Clone copies an Env whole.
+struct Env {
+    rows: String;
+    epochs: Array<String>;
+}
+
+func Borrow(ref env: Env) -> Env {
+    let epochs: Array<String> = [];
+    return Env(env.rows, epochs);
+}
+
+func Append(inout env: Env, row: String) -> Void {
+    env.rows = Concat(env.rows, row);
+}
+
+func Nest(inout env: Env) -> Int {
+    var inner: Env = Borrow(env);
+    Append(inner, "bc");
+    return StringLength(inner.rows) * 10 + StringLength(env.rows);
+}
+
+func Main() -> Int {
+    var env: Env = Env("a", []);
+    Print(ToString(Nest(env)));
+    return 0;
+}

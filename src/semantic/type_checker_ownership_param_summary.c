@@ -13,10 +13,10 @@
 #include "slot_analyzer_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "typed_map_query_fact_owner.h"
+#include "loan_copy_landing_owner.h"
 #include "diag_codes.h"
 #include <stdlib.h>
 #include <string.h>
-
 
 /* The bindings a loan's backing reached. */
 typedef struct {
@@ -120,10 +120,13 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
         bool escaped_loan = loan && !retaining &&
             semantic_param_summary_has_return_escape(mask) &&
             !function_param_flow_return_loan_admitted(ctx, view, row, &loan_escape);
-        if (escaped_loan)
-            semantic_validate_borrowed_escape(loan_escape != NULL ? loan_escape : row->call,
+        /* The next analysis copies the refused loan where it is made
+         * (2026-10-22_ref_call_loan_copied_where_made). */
+        if (escaped_loan && semantic_validate_borrowed_escape(loan_escape != NULL ? loan_escape : row->call,
                 row->site, ctx, row->type, row->borrowed,
-                OWNERSHIP_CONSUMER_HELPER_CALL, NULL, row->destination, NULL, true, NULL, row->fix);
+                OWNERSHIP_CONSUMER_HELPER_CALL, NULL, row->destination, NULL, true, NULL, row->fix) &&
+            !semantic_loan_copy_landing_select(ctx, row->call))
+            semantic_error(ctx, row->call, "Loan copy landing selection could not be recorded");
         if (retaining)
             semantic_validate_borrowed_escape(row->site->line != 0 ? row->site : row->call,
                 row->site, ctx, row->type, row->borrowed,
@@ -197,10 +200,8 @@ semantic_check_param_summary_escapes(ASTNode *node,
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref && !view_ref)
             continue;
 
-        summary_mask = semantic_callable_param_escape_summary(
-            node, i, ctx);
-        type_function_set_param_escape_summary(function_type, i,
-            summary_mask);
+        summary_mask = semantic_callable_param_escape_summary(node, i, ctx);
+        type_function_set_param_escape_summary(function_type, i, summary_mask);
 
         if (string_ref
                 ? semantic_param_summary_has_call_escape(summary_mask)
@@ -517,7 +518,8 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     if (!registered || (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
         !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal)) return false;
-    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL, NULL);
+    return semantic_loan_copy_landing_ends_loan(ctx, row->caller, row->call) ||
+        sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL, NULL);
 }
 
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
