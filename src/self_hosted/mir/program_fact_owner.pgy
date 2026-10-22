@@ -199,9 +199,10 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
     );
 }
 
+// Initial facts own no semantic graph. The successful lowering path attaches
+// the admitted graph once, after every growable MIR row has stopped changing.
 func SelfMirProgramFactsEmpty(
-    artifact_node_count: Int,
-    expression_graph: SemanticExpressionGraphFacts
+    artifact_node_count: Int
 ) -> SelfMirProgramFacts {
     return SelfMirProgramFacts(
         true, "", "", artifact_node_count,
@@ -214,7 +215,7 @@ func SelfMirProgramFactsEmpty(
         SelfMirCfgRowsEmpty(),
         SelfMirInstructionAbiReceiptRowsEmpty(),
         SelfMirCollectionOwnershipReceiptRowsEmpty(),
-        expression_graph, MirIntentExecutionPlanFromFacts(
+        SemanticExpressionGraphFactsEmpty(), MirIntentExecutionPlanFromFacts(
             MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty())
     );
 }
@@ -227,9 +228,8 @@ func SelfMirProgramFactsError(
     code: String,
     message: String
 ) -> SelfMirProgramFacts {
-    let failed: SelfMirProgramFacts = SelfMirProgramFactsEmpty(
-        facts.artifact_node_count, facts.expression_graph
-    );
+    let failed: SelfMirProgramFacts =
+        SelfMirProgramFactsEmpty(facts.artifact_node_count);
     failed.ok = false;
     failed.diagnostic_code = code;
     failed.diagnostic_message = message;

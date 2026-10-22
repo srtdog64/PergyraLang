@@ -17,9 +17,9 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis
 ) -> SelfMirProgramDomainProjection {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(
-        artifact.count, analysis.expression_surfaces.expression_graph
-    );
+    // Domain projection owns no expression graph. The successful MIR program
+    // attaches the admitted graph after all rows stop growing.
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
     let enum_facts: SemanticAstEnumFacts = analysis.enums;
     if !enum_facts.ok {
         return SelfMirProgramDomainProjection(

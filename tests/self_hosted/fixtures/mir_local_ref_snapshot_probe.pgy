@@ -57,7 +57,8 @@ func Main() -> Void {
         appended.expr0_starts[1] != 1 || appended.expr0_counts[1] != 1 ||
         appended.expr0_nodes[0] != 0 || appended.expr0_refs[0] != "parameter:99:0" ||
         appended.expr0_nodes[1] != 0 || appended.expr0_refs[1] != "declaration:200:0" { Exit(1); }
-    let wire: SelfMirProgramFacts = SelfMirProgramFactsEmpty(1, graph);
+    let wire: SelfMirProgramFacts = SelfMirProgramFactsEmpty(1);
+    wire.expression_graph = graph;
     wire.routines.local_starts = [0]; wire.routines.local_counts = [0];
     wire.routines.param_starts = [0]; wire.routines.param_counts = [0];
     wire.routines.block_starts = [0]; wire.routines.block_counts = [0];

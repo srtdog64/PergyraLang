@@ -26,5 +26,14 @@ Since 2026-10-16 ([decision](../decisions/2026-10-16_main_only_integration.md)).
   roots without retaining graph storage. The fixed census fell 350 -> 342;
   all eight removed rows were the intended `ViewAt` moves and no row was
   added. [Receipt](../evidence/2026-10-22_expression_graph_scalar_root_projection_census.md).
+- MIR error-storage slice: `SelfMirProgramFactsError` owns a fresh
+  diagnostic-only value; initial validation and domain projection carry no
+  expression graph, and the successful final program attaches the admitted
+  graph once. Failed facts stop at `SelfMirProgramFactsValidationErrorObserved`;
+  successful facts continue to MIR projection. Retaining or cloning the graph
+  before that final attach is forbidden. The fixed census fell 342 -> 332,
+  with ten intended removals and no added refusal. The C/LLVM probe is wired
+  behind the current rung driver but remains blocked by the red canonical.
+  [Receipt](../evidence/2026-10-22_mir_program_error_storage_census.md).
 - No independent intermediate review or extra implementation track launched.
   No new implementation branch/worktree or parallel track was created.
