@@ -1,3 +1,5 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
 func MixedOptional(storage: Array<String>, fresh: Bool) -> Option<String> {
     if fresh {
         return Some(Substring(storage[0], 0, StringLength(storage[0])));

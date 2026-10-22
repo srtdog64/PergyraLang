@@ -5,15 +5,14 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-22 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 634 downgraded
-refusals with every final owner run
-([census record](../evidence/2026-10-22_native_census_unwritten_inout_formal.md)).
-A census runs four analyses in 840 to 1150 s. The CI harness manifest
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 434 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-22_native_census_string_crossing_copy.md)).
+A census runs four analyses in 840 to 1370 s. The CI harness manifest
 compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 150 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 42 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
 2. **Moves (153 outside `direct_mir_*`)**, mostly getter loans whose proof
    fails, of values `Clone` copies only by value ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md)),
@@ -22,22 +21,21 @@ compiles natively since `e23761a3a`.
    refused after landing, cause not split ([most are copied now](../decisions/2026-10-22_ref_call_loan_copied_where_made.md)),
    27 `ref` formals escaping through callees (the `SelfMirLower*` chain
    pops its by-value `build`), 4 callees that keep the value.
-4. **Strings that leave their owner.** Owned copies land for a formal's
-   String stored into an `inout` output or a local, and for an indexed
-   String pushed ([decision](../decisions/2026-10-19_string_landing_copy_then_move.md)). Left: 86 opaque
-   crossings, mostly assigned or passed to a constructor, where no copy
-   lands yet; 8 released elements, 23 owned pushes.
+4. **Strings that leave their owner.** Owned copies land where a String
+   leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)).
+   Left: 3 opaque crossings, 8 released elements, 23 owned pushes.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize`
    has three refusals on the canonical, from a field taken out before an
    `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
    So a normal compile never runs the move, lane and named-call owners.
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
-   receiver, `graph.blocks[0].name = x` (C emits a non-lvalue), and an
+   receiver, `graph.blocks[0].name = x` (C emits a non-lvalue),
+   `let (a, b) = (s, 0)` (C lacks `PgyTuple_String_Int_t`), and an
    `Array<String>` born `[]` in a `while` body: MIR retires one after builtin
    uses (GPT `c9513d5b2`); declared calls wait on GPT carrying the published
    [Array verdict](../decisions/2026-10-21_array_preservation_published_per_formal.md).
    A re-entered inner loop no longer stops HIR ([rule](../decisions/2026-10-22_reentered_loop_exports_last_transfer.md)).
-7. **Preserved Array storage (43 outside `direct_mir_*`):** calls after an
+7. **Preserved Array storage (41 outside `direct_mir_*`):** calls after an
    earlier call that may keep or rebind the Array (`EmitStmtList` 8).
 
 ## Lessons on the record

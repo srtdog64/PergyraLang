@@ -266,6 +266,13 @@ swe_classify(StringWindowExtentStore *store, const ASTNode *source,
              const ASTNode *extent, const SweRoutine *routine,
              SweRequirement *requirement_out, SweFieldPair *field_out)
 {
+    /* Clone copies a String whole, so its length is its argument's: a copy
+     * landed where the String leaves its owner proves what the String did
+     * (2026-10-22_string_crossing_copied_where_it_crosses). */
+    uint32_t builtin = 0;
+    if (source != NULL && source->type == AST_CALL && ast_call_arg_count(source) == 1 &&
+        ast_call_semantic_callee_builtin_kind(source, &builtin) && builtin == BUILTIN_CLONE)
+        source = ast_call_argument(source, 0);
     int64_t value = 0;
     if (swe_integer_literal(extent, &value)) {
         if (value == 0 || value == 1)

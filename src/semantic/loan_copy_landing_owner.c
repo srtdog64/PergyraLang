@@ -64,6 +64,11 @@ bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNo
         semantic_param_publication_clone_independent(ctx, value.type);
 }
 
+bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNode *expression)
+{
+    return ast_node_stable_id(expression) == 0 || loan_copy_landing_record(ctx, ast_node_stable_id(expression));
+}
+
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier)
 {
     return !semantic_loan_copy_landing_carrier_copies(ctx, carrier) ||

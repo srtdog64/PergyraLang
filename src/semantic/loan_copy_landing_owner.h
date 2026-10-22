@@ -22,6 +22,13 @@ bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call
  * when the selection could not be recorded. */
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier);
 
+/* The same for a String the type checker refuses where it leaves its owner,
+ * before any value is published: the caller has checked `expression` is a
+ * String, which Clone copies whole
+ * (2026-10-22_string_crossing_copied_where_it_crosses). False only when the
+ * selection could not be recorded. */
+bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNode *expression);
+
 /* Whether a Clone of `carrier` copies its value fully, so that a copy can
  * stand in where the loan leaves. */
 bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNode *carrier);

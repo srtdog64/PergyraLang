@@ -1,3 +1,5 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
 struct TextRecord { text: String; }
 struct Rows { ids: Array<Int>; }
 

@@ -1,3 +1,5 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
 func OwnedRows() -> Array<String> {
     let rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
@@ -6,8 +8,8 @@ func OwnedRows() -> Array<String> {
 
 func Main() -> Void {
     let rows: Array<String> = OwnedRows();
-    let output: SecureSlot<String> = ClaimSecureSlot();
-    Write(output, rows[0], output_token);
+    let pair = (rows[0], 0);
+    let (output, marker) = pair;
     ArrayDropOwnedStrings(rows);
-    Release(output, output_token);
+    Log(output);
 }

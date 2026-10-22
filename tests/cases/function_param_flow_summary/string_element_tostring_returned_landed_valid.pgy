@@ -1,3 +1,5 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
 // ToString of a String returns its input, so the element of the local Array
 // would leave the routine that owns it.
 func FirstName() -> String {
