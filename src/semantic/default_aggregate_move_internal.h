@@ -70,5 +70,8 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
 bool move_walk_reported_once(MoveWalk *walk, const ASTNode *node);
 /* `binding` takes a fresh value: its copies and the rows on it end. */
 void move_walk_copy_rebound(MoveState *state, uint32_t binding);
+/* At an exit of the routine, an inout formal's path that shares storage
+ * with a copy changed since is refused. */
+void move_walk_copy_inout_at_exit(MoveWalk *walk, const MoveState *state, ASTNode *exit);
 
 #endif
