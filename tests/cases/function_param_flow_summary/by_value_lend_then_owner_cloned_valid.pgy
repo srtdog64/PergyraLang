@@ -1,0 +1,56 @@
+// Append takes env by value and returns nothing, but its summary lends env
+// (a getter's result it binds); Declare then clones env before using it
+// again. Clone only reads its argument, so the owner is unchanged and the
+// loan holds.
+struct Env {
+    global_rows: String;
+    local_rows: String;
+    names: Array<String>;
+}
+
+struct State {
+    local_rows: String;
+    owned_epochs: Array<String>;
+}
+
+func View(ref state: State, base_env: Env) -> Env {
+    return Env(base_env.global_rows, state.local_rows, base_env.names);
+}
+
+func AppendEpoch(inout epochs: Array<String>, own rows: String) -> Void {
+    ArrayPushOwnedString(epochs, rows);
+    let retired: Array<String> = [rows];
+    ArrayDropOwnedStrings(retired);
+}
+
+func Append(inout state: State, env: Env, row: String) -> Void {
+    let rows: String = Concat(row, "=v");
+    let view: Env = View(state, env);
+    let combined: String = Concat(rows, view.local_rows);
+    let epochs: Array<String> = state.owned_epochs;
+    AppendEpoch(epochs, combined);
+    state.owned_epochs = epochs;
+    state.local_rows = state.owned_epochs[ArrayLength(state.owned_epochs) - 1];
+    let retired: Array<String> = [rows];
+    ArrayDropOwnedStrings(retired);
+}
+
+func Use(env: Env) -> Int {
+    return StringLength(env.global_rows) + ArrayLength(env.names);
+}
+
+func Declare(name: String, inout state: State, env: Env) -> String {
+    Append(state, env, name);
+    let copy: Env = Clone(env);
+    let value: Int = Use(copy) + Use(env);
+    return Concat(name, ToString(value));
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["n"];
+    let env: Env = Env("g", "", names);
+    var state: State = State("", []);
+    let text: String = Declare("a", state, env);
+    Print(Concat(text, ToString(ArrayLength(state.owned_epochs))));
+    return 0;
+}

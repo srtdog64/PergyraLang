@@ -48,3 +48,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-22 | [A `ref` call's loan no proof admits is copied where it is made](2026-10-22_ref_call_loan_copied_where_made.md) | in force |
 | 2026-10-22 | [An `inout` formal written through nowhere preserves the caller's storage](2026-10-22_unwritten_inout_formal_preserves_storage.md) | in force |
 | 2026-10-22 | [A String leaving its Array owner with no copy operation is copied there](2026-10-22_string_crossing_copied_where_it_crosses.md) | in force |
+| 2026-10-22 | [A Clone of a lent owner reads it and changes nothing](2026-10-22_clone_reads_a_lent_owner.md) | in force |

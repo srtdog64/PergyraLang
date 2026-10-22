@@ -324,15 +324,15 @@ static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
             if ((argument_node->type == AST_MEMBER_ACCESS || argument_node->type == AST_ARRAY_ACCESS) &&
                 read.ok && !read.meta && (type_equals(read.type, TYPE_STRING) ||
                     semantic_classify_ownership_type(read.type, store->ctx) == OWNERSHIP_TYPE_COPY_ONLY)) continue;
-            /* A builtin that borrows its argument for the call only reads it,
-             * except the receivers the retention registry lists for writers:
-             * ArrayPush, ArraySet, ArrayPushOwnedString and Write. */
-            if (callee == NULL && semantic_param_publication_argument_borrowed_for_call(store->ctx, node, p)) {
+            /* A builtin that borrows its argument for the call, or a Clone of
+             * it, only reads it, except the receivers the retention registry
+             * lists for writers: ArrayPush, ArraySet, ArrayPushOwnedString, Write. */
+            uint32_t kind = 0;
+            bool clone = callee == NULL && ast_call_semantic_callee_builtin_kind(node, &kind) && kind == BUILTIN_CLONE;
+            if (callee == NULL && (clone || semantic_param_publication_argument_borrowed_for_call(store->ctx, node, p))) {
                 size_t stored = 0;
-                uint32_t kind = 0;
                 if (p == 0 && (semantic_param_publication_checked_array_store(store->ctx, node, &stored) ||
-                        (ast_call_semantic_callee_builtin_kind(node, &kind) &&
-                         kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING)) &&
+                        kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING) &&
                     !(own_descriptor && argument_node->type == AST_IDENTIFIER)) return false;
                 if (p == 0 && semantic_param_publication_checked_slot_write(store->ctx, node)) return false;
                 continue;
