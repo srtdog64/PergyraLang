@@ -1,0 +1,28 @@
+// FirstRow lends rows; a Clone of rows copies its Array of Rows only by
+// value, and growing a path of the copy reallocates storage the loan holds.
+// The Clone reads rows, but the change through its copy is refused.
+struct Row {
+    ids: Array<Int>;
+}
+
+struct Rows {
+    rows: Array<Row>;
+    count: Int;
+}
+
+func FirstRow(rows: Rows) -> Row {
+    return rows.rows[0];
+}
+
+func Main() -> Int {
+    let rows: Rows = Rows([Row([1, 2])], 1);
+    let first: Row = FirstRow(rows);
+    let copy: Rows = Clone(rows);
+    var grown: Array<Int> = copy.rows[0].ids;
+    ArrayPush(grown, 3);
+    ArrayPush(grown, 4);
+    ArrayPush(grown, 5);
+    ArrayPush(grown, 6);
+    Print(ToString(first.ids[1] + rows.count + ArrayLength(grown)));
+    return 0;
+}

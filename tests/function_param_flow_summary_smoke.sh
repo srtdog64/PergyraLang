@@ -152,6 +152,8 @@ landing_rounds = {
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
+    "by_value_lend_then_owner_cloned_valid": 1,
+    "by_value_lend_then_shallow_clone_grown_invalid": 1,
     "array_result_local_owned_element_constructor_landed_valid": 1,
     "array_result_local_owned_element_external_keep_landed_valid": 1,
     "array_result_local_owned_element_field_retention_landed_valid": 1,
@@ -309,6 +311,8 @@ release_lifetime_refusals = {
     # its result only by value.
     "borrowed_owner_loan_grown_by_value_clone_invalid": [(*borrow_refusal, 24, 5)],
     # A window pair whose text passes through a routine stays unproved.
+    # A change through a by-value Clone of a lent owner reaches the loan.
+    "by_value_lend_then_shallow_clone_grown_invalid": [(*released_refusal, 26, 40)],
     "string_window_pair_other_call_invalid": [
         ("PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN", "semantic:string_window:extent_unproven", 14, 12)],
     # An inout callee that changes the map a caller's local copy shares
@@ -1201,6 +1205,8 @@ paired = (
     ("borrowed_owner_loan_grown_landed_valid", True),
     ("string_crossing_window_pair_landed_valid", True),
     ("string_window_pair_other_call_invalid", False),
+    ("by_value_lend_then_owner_cloned_valid", True),
+    ("by_value_lend_then_shallow_clone_grown_invalid", False),
     ("stdlib_tostring_string_forward_landed_valid", True),
     ("borrowed_owner_loan_grown_by_value_clone_invalid", False),
     ("output_field_store_of_ref_formal_by_value_clone_invalid", False),
@@ -1954,6 +1960,7 @@ for name, expected in (
     ("lent_path_copy_grown_landed_valid", "75"),
     ("borrowed_owner_loan_grown_landed_valid", "31"),
     ("string_crossing_window_pair_landed_valid", "row"),
+    ("by_value_lend_then_owner_cloned_valid", "a41"),
     ("local_copy_inout_read_only_callee_valid", "10"),
     ("array_result_local_owned_element_constructor_landed_valid", "owned value\n"),
     ("array_result_local_owned_element_field_retention_landed_valid", "owned value\n"),
