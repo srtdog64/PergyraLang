@@ -13,8 +13,10 @@
  *
  * Fail-closed asymmetry (the soundness core, docs/197 §2 #6): a site is REGION
  * only under a certificate; every other site -- and any lookup miss -- resolves
- * to HEAP, which is today's byte-identical emission. Analysis incompleteness can
- * only cost performance, never correctness.
+ * to HEAP, which preserves the existing lifetime rather than freeing early.
+ * An unproved heap allocation can still leak: this asymmetry is not a
+ * whole-program reclamation or bounded-memory guarantee. A known REGION row
+ * must not be silently downgraded when its active scope is missing.
  *
  * Kept in its own file (not folded into verified_projection_plan.{h,c}) so the
  * region artifact has its own owner/consumer boundary, mirroring the house split

@@ -98,11 +98,25 @@ never received the evidence pipeline to make it live.
 ### 1.4 What emitted programs actually do for transient allocations
 
 - **Strings**: the heap `StringConcat` path remains the compatibility lowering,
-  but the certified direct `Print("a" + "b")` class now uses
-  `pgy_region_string_concat` inside a function-scope region. This eliminates
-  chained-concat intermediate leaks for the migrated class. Any binding or
-  escape that is not certified stays on the existing heap path; the backend
-  never guesses a region lifetime.
+  but certified transient concatenations and checked `Clone(String)` results
+  consumed by a synchronous non-retaining call use `pgy_region_string_concat`
+  inside a function-scope region. A String Clone copies all input bytes, so
+  nested String copies can each receive a site receipt. This does not grant
+  borrowing to an arbitrary aggregate Clone. Admission uses the resolved
+  builtin, selected target and checked result type, not the word `Clone`.
+  Any binding or escape that is not certified stays on the existing heap
+  path; the backend never guesses a region lifetime. An issued region grant
+  whose active function scope is missing or different is a backend error,
+  not permission to substitute a heap allocation.
+  The existing normal/early function exits destroy the region's physical
+  blocks. This is not last-use reclamation inside an unbounded loop, nor
+  cleanup of returned Strings or aggregate fields. Missing analysis can
+  therefore still retain heap memory; it is not a proof of leak freedom.
+  `tests/string_clone_release_smoke.sh` checks independent output and actual
+  release on native C (ASan/UBSan + LSan) and LLVM (LSan), separately from a
+  returned-String control. `string-clone-region-unit-test` injects scope faults
+  at the real emitters; the semantic unit gate refuses unproved identities
+  and types. These gates do not establish installed self-host parity.
 - **Spawn**: per-task `calloc(PgyTask)` + argument pack — the measured
   2-mallocs-per-task cost on the fine-grain critical path
   (benchmarks/PARALLEL_RESULTS.md; the WO-RT-4 chain established the producer

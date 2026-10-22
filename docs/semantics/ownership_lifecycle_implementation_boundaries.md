@@ -1,6 +1,6 @@
 # 소유권 생애 알고리즘: 구현 경계와 착수 조건
 
-상태: **구현 전 경계 지도. production 연결 OPEN.** 2026-10-09.
+상태: **일반 값 정리의 production 연결 OPEN; 제한된 String 임시값 해제는 별도 경로.**
 이 문서는 새 의미 owner, 새 SoT 행, 다음 self-host rung을 만들지 않는다.
 [27](27_ownership_clean.md)·[28](28_memory_boundary_composition.md)·
 [29](29_action_scoped_references.md)와 각 Rocq 모델이 의미를 소유한다.
@@ -8,6 +8,12 @@
 실제로 연결하기 전에 필요한 증거를 모은다. 항목 수는 진척 지표가 아니다.
 graph 모델의 slot/index는 내부 저장소 좌표다. 기존 Pergyra `Slot` 경계 의미를
 대체하거나 일반 값·링크마다 새 `Slot`을 요구하지 않는다.
+
+검사된 String 복사본의 함수 수명 연결은 [197 §1.4](../197_region_arena_strategy.md)에
+한정한다. 반환값·필드·일반 지역 변수의 생애까지 닫은 것은 아니다.
+[ProofSpine](proofs/ProofSpine.md)의 cleanup 연결 검사는 실제 Rocq 정리 네 개의
+타입을 소비한다. 이는 아래 일반 모델의 계약 검사이며 C/LLVM의 할당·해제 구현이
+그 모델을 정제한다는 증명은 아니다. 모델 검사와 실제 누수 검사를 구분한다.
 
 ## 1. 무엇을 자동화하는가
 

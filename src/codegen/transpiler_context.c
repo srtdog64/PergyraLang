@@ -364,12 +364,16 @@ transpiler_region_concat(TranspilerCtx *ctx,
     PgyRegionDisposition disposition;
     uint32_t scope_id = 0;
 
-    if (ctx != NULL && ctx->region_scope_active
+    if (ctx != NULL
         && pgy_verified_region_plan_lookup(
             ctx->region_plan, ast_node_stable_id(site),
             &disposition, &scope_id)
-        && disposition == PGY_REGION_DISPOSITION_REGION
-        && scope_id == ctx->region_scope_id) {
+        && disposition == PGY_REGION_DISPOSITION_REGION) {
+        if (!ctx->region_scope_active || scope_id != ctx->region_scope_id) {
+            transpiler_set_mir_topology_invalid(ctx,
+                "C region allocation is outside its admitted function scope");
+            return NULL;
+        }
         return pergyra_strdup_printf(
             "pgy_region_string_concat(&__pgy_region_%u, %s, %s)",
             (unsigned)scope_id,

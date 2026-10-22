@@ -2909,10 +2909,28 @@ parallel-pool-inactive-witness-test-smoke:
 region-arena-test-smoke:
 	"$(BASH)" tests/region_arena_smoke.sh
 
+string-clone-release-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" CC=clang "$(BASH)" tests/string_clone_release_smoke.sh
+
+ALL_DEP_FILES += $(BUILD_DIR)/tests/string_clone_region_unit.d
+$(BUILD_DIR)/tests/string_clone_region_unit.o: tests/compiler/string_clone_region_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/string_clone_region_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/string_clone_region_unit.o | $(BIN_DIR)
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+string-clone-region-unit-test: $(BIN_DIR)/string_clone_region_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/string_clone_region_unit$(EXEEXT))
+
+.PHONY: string-clone-region-unit-test
+test-mir: string-clone-region-unit-test
+
 region-backend-wiring-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/region_backend_wiring_smoke.sh
 
-.PHONY: region-arena-test-smoke region-backend-wiring-test-smoke
+.PHONY: region-arena-test-smoke region-backend-wiring-test-smoke string-clone-release-test-smoke
 
 # Verified region plan logic gate (WO-REG-1 REG-1b, docs/197): row build /
 # lookup / dispose / conflict refusal / fail-closed AIR-certificate gate. Pure
@@ -2935,8 +2953,17 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_decl_accessors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_decl_accessors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
+REGION_ESCAPE_UNIT_SOURCES := tests/region_escape_unit.c \
+    src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c \
+    src/common/numeric_parse.c src/parser/ast.c src/parser/ast_identity.c \
+    src/parser/ast_destroy.c src/parser/ast_destroy_domain.c \
+    src/parser/ast_constructors.c src/parser/ast_decl_accessors.c \
+    src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c \
+    src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c \
+    src/parser/ast_async_lambda_accessors.c
+
+$(REGION_ESCAPE_UNIT_BIN): $(REGION_ESCAPE_UNIT_SOURCES) src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ $(REGION_ESCAPE_UNIT_SOURCES)
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)

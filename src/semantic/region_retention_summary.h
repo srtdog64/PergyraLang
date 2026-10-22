@@ -17,6 +17,9 @@ typedef enum PgyRegionRetentionKind {
 
 struct ASTNode;
 
+/* Checked String Clone copies bytes, unlike an unproved aggregate Clone. */
+bool semantic_region_is_string_clone(const struct ASTNode *call);
+
 typedef bool (*PgyRegionRetentionSummaryLookup)(
     const struct ASTNode *call,
     size_t argument_index,

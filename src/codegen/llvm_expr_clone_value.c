@@ -9,6 +9,7 @@
 #include "llvm_internal_emit_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "../compiler/mir_decl_headers.h"
+#include "../compiler/verified_region_plan.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -28,8 +29,29 @@ llvm_clone_unsupported(ASTNode *node, LLVMGenCtx *ctx, const char *what, const c
 }
 
 static LLVMValueRef
-llvm_clone_string(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef value)
+llvm_clone_string(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef value, int depth)
 {
+    PgyRegionDisposition disposition;
+    uint32_t scope_id = 0;
+    /* An aggregate's receipt must not be inherited by one of its fields. */
+    if (depth == 0 && pgy_verified_region_plan_lookup(ctx->region_plan,
+            ast_node_stable_id(node), &disposition, &scope_id)
+        && disposition == PGY_REGION_DISPOSITION_REGION) {
+        if (!ctx->region_scope_active || scope_id != ctx->region_scope_id ||
+            ctx->region_alloca == NULL || ctx->region_owner_function != ctx->current_function) {
+            llvm_set_mir_topology_invalid(ctx,
+                "LLVM String Clone is outside its admitted function scope");
+            return NULL;
+        }
+        LLVMFuncEntry *region = llvm_lookup_function(ctx, "pgy_region_string_concat_export");
+        if (region == NULL || LLVMTypeOf(value) != ctx->type_i8ptr)
+            return llvm_clone_unsupported(node, ctx,
+                "requires its admitted region runtime and String value", "String");
+        LLVMValueRef args[] = { ctx->region_alloca, value,
+            LLVMBuildGlobalStringPtr(ctx->builder, "", llvm_tmp_name(ctx)) };
+        return LLVMBuildCall2(ctx->builder, region->fn_type, region->fn,
+            args, 3, llvm_tmp_name(ctx));
+    }
     LLVMFuncEntry *concat = llvm_lookup_function(ctx, "StringConcat");
     if (concat == NULL || LLVMTypeOf(value) != ctx->type_i8ptr)
         return llvm_clone_unsupported(node, ctx, "requires runtime function 'StringConcat'", "String");
@@ -119,7 +141,7 @@ llvm_clone_value_at(ASTNode *node, LLVMGenCtx *ctx, const char *type_name,
     if (type_name == NULL)
         return value;
     if (strcmp(type_name, "String") == 0)
-        return llvm_clone_string(node, ctx, value);
+        return llvm_clone_string(node, ctx, value, depth);
     if (strncmp(type_name, "Option<", 7) == 0)
         return llvm_clone_option(node, ctx, type_name, value, depth);
     ASTNode *decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, type_name);

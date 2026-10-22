@@ -429,13 +429,17 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
         PgyRegionDisposition region_disposition;
         uint32_t region_scope_id = 0;
-        if (ctx->region_scope_active
-            && pgy_verified_region_plan_lookup(
+        if (pgy_verified_region_plan_lookup(
                 ctx->region_plan, ast_node_stable_id(node),
                 &region_disposition,
                 &region_scope_id)
-            && region_disposition == PGY_REGION_DISPOSITION_REGION
-            && region_scope_id == ctx->region_scope_id) {
+            && region_disposition == PGY_REGION_DISPOSITION_REGION) {
+            if (!ctx->region_scope_active || region_scope_id != ctx->region_scope_id ||
+                ctx->region_alloca == NULL || ctx->region_owner_function != ctx->current_function) {
+                llvm_set_mir_topology_invalid(ctx,
+                    "LLVM String concatenation is outside its admitted function scope");
+                return NULL;
+            }
             LLVMFuncEntry *region_fn = llvm_lookup_function(
                 ctx, "pgy_region_string_concat_export");
             if (region_fn == NULL) {

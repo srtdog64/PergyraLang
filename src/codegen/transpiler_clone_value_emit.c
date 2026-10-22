@@ -210,8 +210,11 @@ transpiler_clone_value_at(TranspilerCtx *ctx, const char *type_name,
 }
 
 char *
-transpiler_emit_clone_value(TranspilerCtx *ctx, const char *type_name,
+transpiler_emit_clone_value(TranspilerCtx *ctx, const ASTNode *site, const char *type_name,
                             const char *value)
 {
+    /* A site receipt describes this result, never its aggregate fields. */
+    if (type_name != NULL && strcmp(type_name, "String") == 0 && value != NULL)
+        return transpiler_region_concat(ctx, site, value, "\"\"");
     return transpiler_clone_value_at(ctx, type_name, value, 0);
 }

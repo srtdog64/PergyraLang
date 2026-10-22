@@ -181,6 +181,10 @@ jobs:
           test -x bin/pgy-self-driver
           test -s bin/pgy-self-driver.machine-layer-manifest.json
 
+      - name: Install String lifetime gate toolchain
+        timeout-minutes: 5
+        run: sudo apt-get install -y clang llvm-dev llvm
+
       - name: Calibrate ASan and run the bounded compiler battery
         # The sanitized compiler is built into bin-asan-*/, so its adjacent
         # lookup cannot discover bin/pgy-self-driver. Pin the admitted exact
@@ -188,6 +192,13 @@ jobs:
         env:
           PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
         run: make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan
+
+      - name: Check actual String copy release on native C and LLVM
+        timeout-minutes: 5
+        env:
+          PGY_BIN: ${{ github.workspace }}/bin/pgy
+          CC: clang
+        run: bash tests/string_clone_release_smoke.sh
 
       - name: Run EMITTED programs under ASan+UBSan
         # The step above sanitizes the compiler; this sanitizes what it emits.

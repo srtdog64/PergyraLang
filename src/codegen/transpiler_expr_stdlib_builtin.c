@@ -531,7 +531,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     return NULL;
                 src = pointee;
             }
-            char *result = transpiler_emit_clone_value(ctx, tn, src);
+            char *result = transpiler_emit_clone_value(ctx, call, tn, src);
             free(src);
             return result;
         }

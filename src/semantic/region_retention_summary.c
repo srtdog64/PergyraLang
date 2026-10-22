@@ -72,6 +72,22 @@ semantic_region_retention_summary_for_stdlib(
 }
 
 bool
+semantic_region_is_string_clone(const struct ASTNode *call)
+{
+    uint32_t builtin_kind = 0;
+    const char *type_name;
+    if (call == NULL || call->type != AST_CALL || ast_call_arg_count(call) != 1 ||
+        !ast_call_semantic_callee_is_stdlib(call) ||
+        ast_call_semantic_callee_decl_id(call) != 0 ||
+        ast_call_semantic_callee_value_binding_id(call) != 0 ||
+        !ast_call_semantic_callee_builtin_kind(call, &builtin_kind) ||
+        builtin_kind != (uint32_t)BUILTIN_CLONE)
+        return false;
+    type_name = ast_call_semantic_value_type_name(call);
+    return type_name != NULL && strcmp(type_name, "String") == 0;
+}
+
+bool
 semantic_region_retention_summary_for_builtin(
     uint32_t builtin_kind,
     size_t argument_index,

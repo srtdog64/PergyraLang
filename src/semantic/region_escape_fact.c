@@ -49,6 +49,10 @@ region_escape_argument_is_borrowed(
 
     if (call == NULL || call->type != AST_CALL)
         return false;
+    /* Only the checked String specialization copies all of this storage.
+     * Do not publish a blanket borrowed receipt for aggregate Clone. */
+    if (semantic_region_is_string_clone(call))
+        return argument_index == 0;
     if (ast_call_semantic_callee_builtin_kind(call, &builtin_kind)
         && builtin_kind != (uint32_t)BUILTIN_NOT_BUILTIN)
         return semantic_region_retention_summary_for_builtin(
@@ -156,6 +160,9 @@ region_escape_walk(RegionEscapeCollector *collector,
                 if (region_escape_is_string_concat(arg))
                     region_escape_append_concat_spine(
                         collector, arg, scope_id, function_syntax_id);
+                else if (semantic_region_is_string_clone(arg))
+                    region_escape_append(collector, arg, scope_id,
+                                         function_syntax_id);
             }
         }
         for (size_t i = 0; i < ast_call_arg_count(node); i++)
