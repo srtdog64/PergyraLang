@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <string.h>
-
 #include "diag_codes.h"
 #include "indexed_string_borrow_owner.h"
 #include "function_param_publication_internal.h"
@@ -14,6 +13,7 @@
 #include "collection_ownership_fact.h"
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_named_call_owner.h"
+#include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
@@ -111,7 +111,6 @@ borrow_source_join(uint32_t current, uint32_t incoming)
     return INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
 }
 
-
 bool
 semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     SemanticContext *ctx)
@@ -145,7 +144,6 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     }
     return true;
 }
-
 
 bool
 semantic_indexed_string_borrow_source_current(ASTNode *expression,
@@ -218,10 +216,13 @@ indexed_string_borrow_argument(ASTNode *expression,
         return;
     }
     if (source_id == 0) return;
-    /* A shallow store has no callee that can prove non-retention. This also
-     * covers a borrowed formal whose payload owner is in the caller's frame. */
+    /* A shallow store has no callee that can prove non-retention, so a next
+     * analysis copies the String; this also covers a borrowed formal whose
+     * payload owner is in the caller's frame. */
     if (call == NULL && callee == NULL
         && source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
+        if (!semantic_loan_copy_landing_select_string(ctx, expression))
+            semantic_error(ctx, expression, "String copy landing selection failed");
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             expression, "A borrowed String element cannot be retained beyond its Array owner without a copy");
@@ -398,9 +399,13 @@ indexed_string_borrow_argument(ASTNode *expression,
                         expression, "A String argument has no current named-call receipt");
                     return;
                 }
-                /* A retained scalar element invalidates the String lifetime,
-                 * even though the Array descriptor itself never escaped. */
+                /* A retained scalar element invalidates the String lifetime, even
+                 * though the Array descriptor never escaped. A builtin store's caller
+                 * lands its copy; elsewhere a next analysis copies the String here. */
                 fact->return_elements_owned = false;
+                if (!(copy != NULL && call != NULL && callee == NULL && !constructor) &&
+                    !semantic_loan_copy_landing_select_string(ctx, expression))
+                    semantic_error(ctx, expression, "String copy landing selection failed");
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                     PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                     expression, "A String element cannot cross an opaque boundary without a current non-retention proof");

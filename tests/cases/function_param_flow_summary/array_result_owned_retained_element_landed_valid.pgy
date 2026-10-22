@@ -1,0 +1,17 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
+extern "C" { func Keep(text: String) -> Void; }
+
+func OwnedRows() -> Array<String>
+{
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    Keep(rows[0]);
+    return rows;
+}
+
+func Main() -> Void
+{
+    let rows: Array<String> = OwnedRows();
+    ArrayDropOwnedStrings(rows);
+}

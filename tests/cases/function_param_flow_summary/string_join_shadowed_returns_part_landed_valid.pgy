@@ -1,3 +1,5 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
 // A routine named Join shadows the stdlib alias of StringJoin and returns
 // one of its parts. The stdlib relation does not apply to it, so Label
 // returns a part of its borrowed Array and the borrow escapes.

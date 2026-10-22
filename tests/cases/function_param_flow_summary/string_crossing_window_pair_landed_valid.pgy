@@ -1,0 +1,20 @@
+// Wrap builds a Window from an element of its local Array. The String
+// would outlive the Array, so the next analysis copies it where Window takes
+// it, and the window pair still holds: Clone keeps the String's length.
+struct Window {
+    text: String;
+    text_extent: Int;
+}
+
+func Wrap(n: Int) -> Window {
+    var parts: Array<String> = [];
+    ArrayPush(parts, Concat("row", ToString(n)));
+    let text: String = parts[0];
+    return Window(text, StringLength(text));
+}
+
+func Main() -> Int {
+    let window: Window = Wrap(5);
+    Print(SubstringWithLen(window.text, window.text_extent, 0, 3));
+    return 0;
+}

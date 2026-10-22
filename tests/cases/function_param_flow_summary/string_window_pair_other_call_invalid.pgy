@@ -1,0 +1,21 @@
+// As string_crossing_window_pair_landed_valid, but the text passes through a
+// routine that may change its length, so the window pair stays unproved.
+struct Window {
+    text: String;
+    text_extent: Int;
+}
+
+func Twice(s: String) -> String {
+    return Concat(s, s);
+}
+
+func Wrap(n: Int) -> Window {
+    let text: String = Concat("row", ToString(n));
+    return Window(Twice(text), StringLength(text));
+}
+
+func Main() -> Int {
+    let window: Window = Wrap(5);
+    Print(SubstringWithLen(window.text, window.text_extent, 0, 3));
+    return 0;
+}

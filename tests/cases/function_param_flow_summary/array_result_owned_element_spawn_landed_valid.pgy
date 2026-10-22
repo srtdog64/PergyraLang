@@ -1,3 +1,5 @@
+// The first analysis refuses this String where it leaves its Array owner;
+// the next copies it there (Clone copies a String whole).
 func OwnedRows() -> Array<String> {
     let rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
