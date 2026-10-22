@@ -33,53 +33,22 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             "MIR producer requires verified semantic destructure type facts"
         );
     }
-    let rows: SelfMirRoutineRows = facts.routines;
-    let node_ids: Array<Int> = rows.node_ids;
-    let names: Array<String> = rows.names;
-    let kinds: Array<String> = rows.kinds;
-    let owners: Array<String> = rows.owners;
-    let source_module_paths: Array<String> = rows.source_module_paths;
-    let receiver_carriages: Array<String> = rows.receiver_carriages;
-    let return_types: Array<String> = rows.return_types;
-    let generic_starts: Array<Int> = rows.generic_starts;
-    let generic_counts: Array<Int> = rows.generic_counts;
-    let generic_names: Array<String> = rows.generic_names;
-    let generic_constraints: Array<String> = rows.generic_constraints;
-    let param_starts: Array<Int> = rows.param_starts;
-    let param_counts: Array<Int> = rows.param_counts;
-    let param_names: Array<String> = rows.param_names;
-    let param_node_ids: Array<Int> = rows.param_node_ids;
-    let param_types: Array<String> = rows.param_types;
-    let param_abi_kinds: Array<Int> = rows.param_abi_kinds;
-    let param_resource_kinds: Array<Int> = rows.param_resource_kinds;
-    let block_starts: Array<Int> = rows.block_starts;
-    let block_counts: Array<Int> = rows.block_counts;
-    let local_starts: Array<Int> = rows.local_starts;
-    let local_counts: Array<Int> = rows.local_counts;
-    let local_names: Array<String> = rows.local_names;
-    let local_types: Array<String> = rows.local_types;
-    let local_binding_syntax_ids: Array<Int> =
-        rows.local_binding_syntax_ids;
-    let iteration_starts: Array<Int> = rows.iteration_starts;
-    let iteration_counts: Array<Int> = rows.iteration_counts;
-    let iteration_node_ids: Array<Int> = rows.iteration_node_ids;
-    let iteration_binding_types: Array<String> = rows.iteration_binding_types;
-    let iteration_iterable_types: Array<String> = rows.iteration_iterable_types;
-    let iteration_collection_hoists: Array<Int> =
-        rows.iteration_collection_hoists;
-    let collection_ownership_facts: SelfMirCollectionOwnershipFactRows =
-        rows.collection_ownership_facts;
-    let destructure_type_facts: SelfMirDestructureTypeFactRows =
+    // `facts` is the one functional-update owner. Grow its fields in place;
+    // copying every descriptor into a second `rows` value before growth would
+    // leave stale aliases whenever an Array reallocates.
+    facts.routines.destructure_type_facts =
         SelfMirDestructureTypeFactRowsAppendRoutine(
-            rows.destructure_type_facts, analysis, initializer_types,
-            function_node_id
+            facts.routines.destructure_type_facts, analysis,
+            initializer_types, function_node_id
         );
-    let loop_flows: SelfMirLoopFlowRows = SelfMirLoopFlowRowsAppendRoutine(
-        rows.loop_flows, analysis.statements,
-        function_node_id
+    facts.routines.loop_flows = SelfMirLoopFlowRowsAppendRoutine(
+        facts.routines.loop_flows, analysis.statements, function_node_id
     );
-    ArrayPush(node_ids, analysis.signatures.function_node_ids[signature_index]);
-    ArrayPush(names, analysis.signatures.names[signature_index]);
+    ArrayPush(
+        facts.routines.node_ids,
+        analysis.signatures.function_node_ids[signature_index]
+    );
+    ArrayPush(facts.routines.names, analysis.signatures.names[signature_index]);
     let receiver: SelfMirRoutineReceiverFact = SelfMirRoutineReceiverForOwner(
         facts.declarations, analysis.signatures.owner_names[signature_index]
     );
@@ -89,59 +58,72 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             "MIR receiver carriage requires one exact declaration owner"
         );
     }
-    ArrayPush(owners, receiver.owner);
-    ArrayPush(kinds, receiver.routine_kind);
+    ArrayPush(facts.routines.owners, receiver.owner);
+    ArrayPush(facts.routines.kinds, receiver.routine_kind);
     let source_module_path: String = analysis.signatures.module_paths[signature_index];
     if source_module_path == "" {
         return SelfMirProgramFactsError(facts, "mir_source_module_path_missing", "MIR routine requires admitted source module provenance");
     }
-    ArrayPush(source_module_paths, source_module_path);
-    ArrayPush(receiver_carriages, receiver.carriage);
+    ArrayPush(facts.routines.source_module_paths, source_module_path);
+    ArrayPush(facts.routines.receiver_carriages, receiver.carriage);
     let owner: String = receiver.owner;
-    ArrayPush(return_types, analysis.signatures.return_types[signature_index]);
-    ArrayPush(generic_starts, ArrayLength(generic_names));
     ArrayPush(
-        generic_counts, analysis.signatures.generic_counts[signature_index]
+        facts.routines.return_types,
+        analysis.signatures.return_types[signature_index]
+    );
+    ArrayPush(
+        facts.routines.generic_starts,
+        ArrayLength(facts.routines.generic_names)
+    );
+    ArrayPush(
+        facts.routines.generic_counts,
+        analysis.signatures.generic_counts[signature_index]
     );
     let generic_i: Int = 0;
     let generic_start: Int = analysis.signatures.generic_starts[signature_index];
     while generic_i < analysis.signatures.generic_counts[signature_index] {
         ArrayPush(
-            generic_names,
+            facts.routines.generic_names,
             analysis.signatures.generic_names[generic_start + generic_i]
         );
-        ArrayPush(generic_constraints,
+        ArrayPush(facts.routines.generic_constraints,
             analysis.signatures.generic_constraint_type_names[
                 generic_start + generic_i]);
         generic_i = generic_i + 1;
     }
-    ArrayPush(param_starts, ArrayLength(param_names));
-    ArrayPush(param_counts, analysis.signatures.param_counts[signature_index]);
+    ArrayPush(
+        facts.routines.param_starts,
+        ArrayLength(facts.routines.param_names)
+    );
+    ArrayPush(
+        facts.routines.param_counts,
+        analysis.signatures.param_counts[signature_index]
+    );
     let param_i: Int = 0;
     let param_start: Int = analysis.signatures.param_starts[signature_index];
     while param_i < analysis.signatures.param_counts[signature_index] {
         let row: Int = param_start + param_i;
-        ArrayPush(param_names, analysis.signatures.param_names[row]);
-        ArrayPush(param_node_ids, analysis.signatures.param_node_ids[row]);
+        ArrayPush(facts.routines.param_names, analysis.signatures.param_names[row]);
+        ArrayPush(facts.routines.param_node_ids, analysis.signatures.param_node_ids[row]);
         let param_type: String = analysis.signatures.param_types[row];
         if owner != "" && analysis.signatures.param_names[row] == "self" {
-            ArrayPush(param_types, "");
+            ArrayPush(facts.routines.param_types, "");
         } else {
-            ArrayPush(param_types, param_type);
+            ArrayPush(facts.routines.param_types, param_type);
         }
         let abi_kind: Int = CallableParameterAbiKind(
             analysis.signatures.param_modes[row],
             analysis.signatures.param_names[row], param_type,
             analysis.constructors);
-        ArrayPush(param_abi_kinds, abi_kind);
+        ArrayPush(facts.routines.param_abi_kinds, abi_kind);
         ArrayPush(
-            param_resource_kinds,
+            facts.routines.param_resource_kinds,
             SelfMirParamResourceKindForType(param_type)
         );
         param_i = param_i + 1;
     }
-    ArrayPush(block_starts, ArrayLength(facts.cfg.blocks.ids));
-    ArrayPush(block_counts, ArrayLength(build.cfg.blocks.ids));
+    ArrayPush(facts.routines.block_starts, ArrayLength(facts.cfg.blocks.ids));
+    ArrayPush(facts.routines.block_counts, ArrayLength(build.cfg.blocks.ids));
     let inventory: SelfMirRoutineLocalInventory =
         SelfMirRoutineLocalInventoryFromInput(input, function_node_id);
     if !inventory.ok {
@@ -150,17 +132,23 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             inventory.diagnostic_message
         );
     }
-    ArrayPush(local_starts, ArrayLength(local_names));
-    ArrayPush(local_counts, ArrayLength(inventory.names));
+    ArrayPush(
+        facts.routines.local_starts,
+        ArrayLength(facts.routines.local_names)
+    );
+    ArrayPush(facts.routines.local_counts, ArrayLength(inventory.names));
     let local_i: Int = 0;
     while local_i < ArrayLength(inventory.names) {
-        ArrayPush(local_names, inventory.names[local_i]);
-        ArrayPush(local_types, inventory.types[local_i]);
-        ArrayPush(local_binding_syntax_ids,
+        ArrayPush(facts.routines.local_names, inventory.names[local_i]);
+        ArrayPush(facts.routines.local_types, inventory.types[local_i]);
+        ArrayPush(facts.routines.local_binding_syntax_ids,
             inventory.binding_syntax_ids[local_i]);
         local_i = local_i + 1;
     }
-    ArrayPush(iteration_starts, ArrayLength(iteration_node_ids));
+    ArrayPush(
+        facts.routines.iteration_starts,
+        ArrayLength(facts.routines.iteration_node_ids)
+    );
     let statement_range: SemanticAstLocalBindingFunctionRange =
         SemanticAstStatementRangeForFunction(
             analysis.statements, function_node_id
@@ -188,81 +176,64 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             }
             let iteration_row: Int = UnwrapOption(iteration_row_opt);
             ArrayPush(
-                iteration_node_ids, input.iterations.node_ids[iteration_row]
+                facts.routines.iteration_node_ids,
+                input.iterations.node_ids[iteration_row]
             );
             ArrayPush(
-                iteration_binding_types,
+                facts.routines.iteration_binding_types,
                 input.iterations.binding_type_names[iteration_row]
             );
             ArrayPush(
-                iteration_iterable_types,
+                facts.routines.iteration_iterable_types,
                 input.iterations.iterable_type_names[iteration_row]
             );
             ArrayPush(
-                iteration_collection_hoists,
+                facts.routines.iteration_collection_hoists,
                 input.iterations.collection_hoists[iteration_row]
             );
             iteration_count = iteration_count + 1;
         }
         statement_i = statement_i + 1;
     }
-    ArrayPush(iteration_counts, iteration_count);
-    collection_ownership_facts =
+    ArrayPush(facts.routines.iteration_counts, iteration_count);
+    facts.routines.collection_ownership_facts =
         SelfMirCollectionOwnershipFactRowsAppendRoutine(
-            collection_ownership_facts, collection_ownership,
+            facts.routines.collection_ownership_facts, collection_ownership,
             function_node_id, inventory.ok, inventory.names,
             inventory.types, inventory.binding_syntax_ids,
             analysis.signatures.param_types,
             analysis.signatures.param_node_ids, analysis.constructors
         );
-    if collection_ownership_facts.routine_counts[
-            ArrayLength(collection_ownership_facts.routine_counts) - 1
+    if facts.routines.collection_ownership_facts.routine_counts[
+            ArrayLength(
+                facts.routines.collection_ownership_facts.routine_counts
+            ) - 1
         ] < 0 {
         return SelfMirProgramFactsError(
             facts, "mir_collection_ownership_fact_invalid",
             "MIR collection ownership rows are missing or inconsistent"
         );
     }
-    let collection_ownership_receipts:
-        SelfMirCollectionOwnershipReceiptRows =
-            SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
-                facts.collection_ownership_receipts,
-                collection_ownership, analysis.expression_surfaces,
-                function_node_id, build.cfg.instructions,
-                build.cfg.local_refs
-            );
-    if !collection_ownership_receipts.valid {
+    facts.collection_ownership_receipts =
+        SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
+            facts.collection_ownership_receipts,
+            collection_ownership, analysis.expression_surfaces,
+            function_node_id, build.cfg.instructions,
+            build.cfg.local_refs
+        );
+    if !facts.collection_ownership_receipts.valid {
         return SelfMirProgramFactsError(
             facts, "mir_collection_ownership_receipt_invalid",
             "MIR collection ownership receipt identity did not attach exactly once"
         );
     }
-    return SelfMirProgramFacts(
-        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
-        facts.artifact_node_count, facts.declarations,
-        facts.domain_topology,
-        facts.domain_runtime_assignments,
-        facts.generic_specializations, facts.parallel_captures,
-        SelfMirRoutineRows(
-            node_ids, names, kinds, owners, source_module_paths,
-            receiver_carriages, return_types,
-            generic_starts, generic_counts, generic_names, generic_constraints,
-            param_starts, param_counts, param_names, param_node_ids, param_types,
-            param_abi_kinds, param_resource_kinds,
-            block_starts, block_counts, local_starts, local_counts,
-            local_names, local_types, local_binding_syntax_ids,
-            iteration_starts, iteration_counts, iteration_node_ids,
-            iteration_binding_types, iteration_iterable_types,
-            iteration_collection_hoists, collection_ownership_facts,
-            destructure_type_facts, loop_flows
-        ),
-        SelfMirAppendCfg(facts.cfg, build.cfg),
+    facts.cfg = SelfMirAppendCfg(facts.cfg, build.cfg);
+    facts.instruction_abi_receipts =
         SelfMirInstructionAbiReceiptRowsAppend(
             facts.instruction_abi_receipts,
             build.cfg.instructions.abi_type_names, facts.declarations
-        ), collection_ownership_receipts,
-        facts.expression_graph, facts.intent_execution
-    );
+        );
+    return facts;
 }
 
 func SelfMirArtifactPressureStage(enabled: Bool, stage: String) -> Void {

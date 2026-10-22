@@ -112,25 +112,27 @@ func SelfMirGenericSpecializationRowsReady(ref rows: SelfMirGenericSpecializatio
 
 func SelfMirGenericSpecializationRowsFromSemantic(ref analysis: SemanticAstArtifactAnalysis,
     ref semantic_rows: SemanticAstGenericSpecializationFacts) -> SelfMirGenericSpecializationRows {
-    let rows: SelfMirGenericSpecializationRows = SelfMirGenericSpecializationRowsEmpty();
     if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
         semantic_rows, analysis.expression_surfaces) {
-        return rows;
+        return SelfMirGenericSpecializationRowsEmpty();
     }
-    let source_owner_node_ids: Array<Int> = rows.source_owner_node_ids;
-    let source_lanes: Array<Int> = rows.source_lanes;
-    let source_call_ordinals: Array<Int> = rows.source_call_ordinals;
-    let signature_indexes: Array<Int> = rows.signature_indexes;
-    let target_kinds: Array<Int> = rows.target_kinds;
-    let owner_names: Array<String> = rows.owner_names;
-    let callable_names: Array<String> = rows.callable_names;
-    let specialized_symbols: Array<String> = rows.specialized_symbols;
-    let generic_param_starts: Array<Int> = rows.generic_param_starts;
-    let generic_param_counts: Array<Int> = rows.generic_param_counts;
-    let generic_param_names: Array<String> = rows.generic_param_names;
-    let actual_starts: Array<Int> = rows.actual_starts;
-    let actual_counts: Array<Int> = rows.actual_counts;
-    let actual_type_names: Array<String> = rows.actual_type_names;
+    // Build each owned row family before assembling the result. Taking these
+    // arrays from an already-constructed `rows` value would leave two live
+    // descriptors while the local one grows and could invalidate the result.
+    let source_owner_node_ids: Array<Int> = [];
+    let source_lanes: Array<Int> = [];
+    let source_call_ordinals: Array<Int> = [];
+    let signature_indexes: Array<Int> = [];
+    let target_kinds: Array<Int> = [];
+    let owner_names: Array<String> = [];
+    let callable_names: Array<String> = [];
+    let specialized_symbols: Array<String> = [];
+    let generic_param_starts: Array<Int> = [];
+    let generic_param_counts: Array<Int> = [];
+    let generic_param_names: Array<String> = [];
+    let actual_starts: Array<Int> = [];
+    let actual_counts: Array<Int> = [];
+    let actual_type_names: Array<String> = [];
     let target_syntax_ids: Array<Int> = [];
     let call_node_ids: Array<Int> = [];
     let i: Int = 0;

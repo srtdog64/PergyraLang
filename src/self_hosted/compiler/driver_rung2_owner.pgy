@@ -33,7 +33,6 @@ struct DriverRung2VerifiedFacts {
 }
 struct DriverRung2MirProjection {
     facts: SelfMirProgramFacts;
-    analysis: SemanticAstArtifactAnalysis;
 }
 func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
@@ -146,7 +145,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "mir-facts:done");
-    return DriverRung2MirProjection(mir_facts, verified.analysis);
+    return DriverRung2MirProjection(mir_facts);
 }
 
 func DriverRung2MirProjectionFromAdmittedAnalysisObserved(

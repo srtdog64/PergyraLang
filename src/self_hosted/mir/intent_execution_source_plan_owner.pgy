@@ -111,30 +111,58 @@ func SelfMirIntentExecutionPlanAppend(
         ArrayPush(steps.transition_ids, intents.steps.node_ids[step]);
         ArrayPush(steps.routine_syntax_ids, routine_id);
         ArrayPush(steps.step_syntax_ids, intents.steps.node_ids[step]);
-        ArrayPush(steps.step_names, name);
+        ArrayPushOwnedString(steps.step_names, name);
         ArrayPush(steps.predecessor_transition_ids, predecessor);
         ArrayPush(steps.predecessor_step_syntax_ids, predecessor);
-        ArrayPush(steps.predecessor_step_names, intents.transitions.predecessor_names[step]);
+        ArrayPushOwnedString(
+            steps.predecessor_step_names,
+            intents.transitions.predecessor_names[step]
+        );
         ArrayPush(steps.action_syntax_ids, intents.steps.target_declaration_node_ids[step]);
         ArrayPush(steps.outcome_instruction_block_ids, branch_block);
         ArrayPush(steps.outcome_instruction_ids, facts.cfg.instructions.ids[outcome]);
-        ArrayPush(steps.outcome_result_names, intents.steps.outcome_names[step]);
-        ArrayPush(steps.outcome_type_names, intents.steps.outcome_type_names[step]);
-        ArrayPush(steps.outcome_enum_names, intents.transitions.outcome_enum_names[step]);
+        ArrayPushOwnedString(
+            steps.outcome_result_names, intents.steps.outcome_names[step]
+        );
+        ArrayPushOwnedString(
+            steps.outcome_type_names, intents.steps.outcome_type_names[step]
+        );
+        ArrayPushOwnedString(
+            steps.outcome_enum_names,
+            intents.transitions.outcome_enum_names[step]
+        );
         ArrayPush(steps.outcome_enum_syntax_ids, intents.transitions.outcome_enum_node_ids[step]);
         ArrayPush(steps.branch_block_ids, branch_block);
         ArrayPush(steps.branch_instruction_ids, facts.cfg.instructions.ids[branch]);
         ArrayPush(steps.success_variant_indices, intents.transitions.success_variant_indices[step]);
-        ArrayPush(steps.success_variant_names, intents.transitions.success_variant_names[step]);
-        ArrayPush(steps.success_payload_names, intents.transitions.success_payload_names[step]);
-        ArrayPush(steps.success_payload_type_names, intents.transitions.success_payload_type_names[step]);
+        ArrayPushOwnedString(
+            steps.success_variant_names,
+            intents.transitions.success_variant_names[step]
+        );
+        ArrayPushOwnedString(
+            steps.success_payload_names,
+            intents.transitions.success_payload_names[step]
+        );
+        ArrayPushOwnedString(
+            steps.success_payload_type_names,
+            intents.transitions.success_payload_type_names[step]
+        );
         ArrayPush(steps.success_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
             facts.declarations, intents.transitions.success_payload_type_names[step]));
         ArrayPush(steps.success_successor_block_ids, facts.cfg.blocks.succ_true[block_row]);
         ArrayPush(steps.failure_variant_indices, intents.transitions.failure_variant_indices[step]);
-        ArrayPush(steps.failure_variant_names, intents.transitions.failure_variant_names[step]);
-        ArrayPush(steps.failure_payload_names, intents.transitions.failure_payload_names[step]);
-        ArrayPush(steps.failure_payload_type_names, intents.transitions.failure_payload_type_names[step]);
+        ArrayPushOwnedString(
+            steps.failure_variant_names,
+            intents.transitions.failure_variant_names[step]
+        );
+        ArrayPushOwnedString(
+            steps.failure_payload_names,
+            intents.transitions.failure_payload_names[step]
+        );
+        ArrayPushOwnedString(
+            steps.failure_payload_type_names,
+            intents.transitions.failure_payload_type_names[step]
+        );
         ArrayPush(steps.failure_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
             facts.declarations, intents.transitions.failure_payload_type_names[step]));
         ArrayPush(steps.failure_successor_block_ids, facts.cfg.blocks.succ_false[block_row]);
@@ -189,7 +217,7 @@ func SelfMirIntentExecutionPlanAppend(
                     ArrayPush(c.graph_root_ids, root - facts.cfg.instructions.expr0_graphs.node_starts[instruction]);
                     ArrayPush(c.graph_digests, SelfMirExpressionGraphDigest(
                         facts.cfg.instructions.expr0_graphs, facts.expression_graph, instruction));
-                    ArrayPush(c.call_target_names, target_name);
+                    ArrayPushOwnedString(c.call_target_names, target_name);
                     ArrayPush(c.call_target_syntax_ids, UnwrapOption(target_id));
                     steps.compensations = c;
                     compensation_count = compensation_count + 1;
@@ -213,7 +241,7 @@ func SelfMirIntentExecutionPlanAppend(
         }
         let zone_id: Int = 0;
         if zone_name != "" { zone_id = SelfMirIntentPayloadDeclarationId(facts.declarations, zone_name); }
-        ArrayPush(steps.where_zone_names, zone_name);
+        ArrayPushOwnedString(steps.where_zone_names, zone_name);
         ArrayPush(steps.where_zone_syntax_ids, zone_id);
         step = step + 1;
     }
@@ -257,25 +285,43 @@ func SelfMirIntentExecutionPlanAppend(
         }
         ArrayPush(terminals.terminal_transition_ids, expression_id);
         ArrayPush(terminals.routine_syntax_ids, routine_id);
-        ArrayPush(terminals.roles, intents.transitions.terminal_roles[terminal]);
+        ArrayPushOwnedString(
+            terminals.roles, intents.transitions.terminal_roles[terminal]
+        );
         ArrayPush(terminals.source_transition_ids, intents.steps.node_ids[source]);
         ArrayPush(terminals.source_step_syntax_ids, intents.steps.node_ids[source]);
-        ArrayPush(terminals.source_step_names, intents.steps.names[source]);
+        ArrayPushOwnedString(
+            terminals.source_step_names, intents.steps.names[source]
+        );
         ArrayPush(terminals.source_variant_indices, variant_index);
-        ArrayPush(terminals.source_variant_names, variant);
-        ArrayPush(terminals.source_payload_names, payload);
-        ArrayPush(terminals.source_payload_type_names, payload_type);
+        ArrayPushOwnedString(terminals.source_variant_names, variant);
+        ArrayPushOwnedString(terminals.source_payload_names, payload);
+        ArrayPushOwnedString(terminals.source_payload_type_names, payload_type);
         ArrayPush(terminals.source_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(facts.declarations, payload_type));
         ArrayPush(terminals.result_instruction_block_ids, SelfMirIntentInstructionBlock(facts, routine, instruction));
         ArrayPush(terminals.result_instruction_ids, facts.cfg.instructions.ids[instruction]);
-        ArrayPush(terminals.result_definition_names, definition);
-        ArrayPush(terminals.result_type_names, intents.return_type_names[intent_index]);
-        ArrayPush(terminals.result_enum_names, intents.transitions.terminal_result_enum_names[terminal]);
+        ArrayPushOwnedString(terminals.result_definition_names, definition);
+        ArrayPushOwnedString(
+            terminals.result_type_names, intents.return_type_names[intent_index]
+        );
+        ArrayPushOwnedString(
+            terminals.result_enum_names,
+            intents.transitions.terminal_result_enum_names[terminal]
+        );
         ArrayPush(terminals.result_enum_syntax_ids, intents.transitions.terminal_result_enum_node_ids[terminal]);
         ArrayPush(terminals.result_variant_indices, intents.transitions.terminal_variant_indices[terminal]);
-        ArrayPush(terminals.result_variant_names, intents.transitions.terminal_variant_names[terminal]);
-        ArrayPush(terminals.result_payload_names, intents.transitions.terminal_payload_source_names[terminal]);
-        ArrayPush(terminals.result_payload_type_names, intents.transitions.terminal_payload_type_names[terminal]);
+        ArrayPushOwnedString(
+            terminals.result_variant_names,
+            intents.transitions.terminal_variant_names[terminal]
+        );
+        ArrayPushOwnedString(
+            terminals.result_payload_names,
+            intents.transitions.terminal_payload_source_names[terminal]
+        );
+        ArrayPushOwnedString(
+            terminals.result_payload_type_names,
+            intents.transitions.terminal_payload_type_names[terminal]
+        );
         ArrayPush(terminals.result_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
             facts.declarations, intents.transitions.terminal_payload_type_names[terminal]));
         ArrayPush(terminals.expression_syntax_ids, expression_id);
