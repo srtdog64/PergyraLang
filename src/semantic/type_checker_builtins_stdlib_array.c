@@ -292,9 +292,9 @@ type_check_stdlib_array_call(ASTNode *expr,
                     return TYPE_UNKNOWN;
                 }
                 if (!semantic_collection_admit_owned_string_push(arg0, ctx)) {
-                    /* A formal's String can still land as a Clone a plain
-                     * push keeps, in a second analysis. */
-                    semantic_formal_string_store_landing_select_checked(ctx, expr, 1);
+                    /* With no owned push, the String lands as a Clone a plain push
+                     * keeps, in a second analysis: a copy nothing releases. */
+                    semantic_formal_string_store_landing_select_owned(ctx, expr);
                     return TYPE_UNKNOWN;
                 }
                 if (!array_push_become_owned_string(expr)) {

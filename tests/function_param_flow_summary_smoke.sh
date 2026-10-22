@@ -139,6 +139,10 @@ landed_clones = {
     "string_element_kept_by_callee_landed_valid": {"Lines": 2},
     "ref_loan_field_written_back_valid": {"Plan": 1},
     "ref_loan_stored_into_inout_output_landed_valid": {"Fill": 1},
+    # The borrowed String each push into an Array taken from a field keeps.
+    "string_local_pushed_into_field_array_landed_valid": {"Build": 1, "Plan": 1},
+    # Among borrowed literals a plain push keeps a Clone; an owned push has none.
+    "string_element_push_copy_landing_mixed_landed_valid": {"Selected": 1},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
@@ -1100,6 +1104,7 @@ paired = (
     ("ref_loan_field_written_back_valid", True),
     ("ref_loan_stored_into_inout_output_landed_valid", True),
     ("ref_loan_local_stored_into_inout_output_invalid", False),
+    ("string_local_pushed_into_field_array_landed_valid", True),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),
@@ -1183,7 +1188,7 @@ paired = (
     ("string_element_inout_owner_named_call_landed_valid", True),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),
-    ("string_element_push_copy_landing_mixed_invalid", False),
+    ("string_element_push_copy_landing_mixed_landed_valid", True),
     ("world_ref_self_scalar_result_valid", True),
     ("world_ref_self_member_return_invalid", False),
     ("method_self_array_field_length_valid", True),
@@ -2083,6 +2088,8 @@ for name, expected in (
     ("ref_view_beside_unit_variant_valid", "1"),
     ("string_inout_literal_then_escape_call_landed_valid", "1"),
     ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
+    ("string_local_pushed_into_field_array_landed_valid", "yx"),
+    ("string_element_push_copy_landing_mixed_landed_valid", "header023"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")
