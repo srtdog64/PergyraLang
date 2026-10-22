@@ -1,34 +1,36 @@
 # Current blocker
 
 Owner: GPT root lane for main integration and the one reached ownership
-producer at a time. Checked 2026-10-23 KST at source commit `4716f9539`;
+producer at a time. Checked 2026-10-23 KST at local commit `f90dd7157`;
 nothing is pushed while this state is red.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`. The fixed final-owner
-census is now 309. The graph-atom slice removed exactly one semantic refusal
-from the 310 baseline, added none and produced no hard census error
-([receipt](../evidence/2026-10-23_ast_graph_atom_prebind_census.md)). The run
-took 1432.40 s, inside the 30-minute integration budget.
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`. The exact inout-member
+release bridge removed the first targeted deep-drop barrier without weakening
+the four negative cases. The product diagnostic now reaches the next existing
+opaque String boundary. Instrumentation found none of the eight targeted
+release rows, but deeper hard errors make its final count incomparable to the
+prior fixed 309 census; no `309 -> 301` claim is made
+([receipt](../evidence/2026-10-23_inout_member_release_restore.md)).
 
 ## Active executable rung
 
-- Invariant: borrowed String descriptors and their source owner travel through
-  one artifact, and no consumer grows the escaped descriptor array.
-- Closed slice: graph-text atom slots are filled before escape; both binders
-  consume validated scalar indices and preserve the empty sentinel.
-- Next falsifier: `AstDestructurePatternBindingNameRowsDrop` cannot release
-  escaped owned-String storage in `names`.
-- Required before editing: map all eight remaining `ArrayDropOwnedStrings`
-  rows to their producers, element provenance, aliases and last consumers.
-  Group them only if source proves one common ownership contract.
+- Invariant: a String element crosses an opaque call boundary only with a
+  current proof that the callee cannot retain its storage or element pointer.
+- Closed slice: exact straight-line release/restoration of a field moved from
+  the current `inout` aggregate; unresolved release state cannot reach MIR.
+- Next falsifier: line 236 in `AstTreeArtifactBindDestructurePayloads` reports
+  `A String element cannot cross an opaque boundary without a current
+  non-retention proof`.
+- Required before editing: map that argument's producer and element ownership,
+  the opaque callee/boundary summary, current non-retention proof owner, every
+  reached consumer and the last consumer. Enumerate the whole same-contract
+  family only after source proves that identity.
 - Forbidden fallback: broad `ref`, whole-analysis `Clone`, a per-program
-  `direct_mir_*` route, borrowed deep drop, or weakening the refusal.
-- Acceptance: one mapped release contract, focused positive/negative evidence,
-  and the same fixed census with no semantic addition.
+  `direct_mir_*` route, borrowed crossing, or weakening the refusal.
+- Acceptance: one owner-issued non-retention contract, a behavioral negative
+  for the old opaque crossing, and exact canonical evidence with no new
+  semantic refusal.
 
-The remaining 309 include String owner crossings, release sites, preserved
-Array storage, move/loan proofs, and 42 `direct_mir_*` routes. They are not 309
-independent defects. Bootstrap, installed-driver C/LLVM, gen2 == gen3 and CI
-remain downstream and cannot be called green before canonical admission is
-zero.
+Bootstrap, installed-driver C/LLVM, gen2 == gen3 and CI remain downstream and
+cannot be called green before canonical admission is zero.

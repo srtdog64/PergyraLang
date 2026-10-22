@@ -12,16 +12,21 @@ Owner: GPT root lane. Checked 2026-10-23 KST; no inferred speedup claim.
 
 ## Current observations
 
-The fixed final-owner census at `4716f9539` took 1432.40 s and 3,976,804 KiB
-on the unchanged canonical driver input. It refused before HIR with 309
-semantic rows. This is a closure census, not a successful compiler runtime or
-a controlled performance comparison. The earlier 310-row run took 1028.91 s;
-the two timings are not a speed comparison.
+At `f90dd7157`, the exact baseline canonical product run took 141.23 s and
+3,493,988 KiB; the exact candidate took 180.18 s and 3,494,172 KiB. An
+unrelated compiler process was active in the shared WSL environment, so these
+figures are observations only and are not a speed or memory regression claim.
+Both runs failed before MIR with the same 33647-error/21-warning summary; only
+the first diagnostic and timing line differed.
 
-The current native String-copy physical-release gate took 11.49 s and
-161,176 KiB. C and LLVM output matched; deleting emitted cleanup made leak
-detection fail. This proves that fixture's cleanup path, not whole-compiler
-memory safety or the installed-driver bound.
+The reporting-instrumented candidate took 177.10 s and 3,514,512 KiB. It found
+none of the eight targeted release rows, then exposed a deeper hard layer. Its
+final total is not comparable to the prior fixed 309 census.
+
+The minimal inout-member release/restoration C output passed ASan+UBSan with
+leak detection enabled. The output-bearing fixture exposed 7 bytes of existing
+temporary-String leakage, so this evidence covers the no-temporary release
+path, not general temporary cleanup or whole-compiler memory safety.
 
 ## Historical, not current-main evidence
 
