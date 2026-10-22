@@ -1,12 +1,13 @@
 # Gates
 
-Owner: GPT root lane. Observed 2026-10-22 KST on local main `43413d0f4`.
+Owner: GPT root lane. Observed 2026-10-22 KST at executable commit
+`701a1fe51`.
 
 ## Finish line (OPEN)
 
 | Gate | Last result |
 |---|---|
-| Fixed DRV-2 final-owner census | RED: 350 refusals, owned by [blocker](blocker.md) |
+| Fixed DRV-2 final-owner census | RED: 342 refusals, owned by [blocker](blocker.md) |
 | Full unchanged canonical | RED before MIR; ordinary compile emitted no artifact and first refused escaped `atom_table` storage |
 | Current bootstrap and gen2 == gen3 | not reached because canonical admission is red |
 | Installed current C/LLVM driver | not built on the current source |
@@ -32,11 +33,12 @@ The current root candidate compiler is
 | Previous native unit matrix | PASS on `0d77e1562`; not repeated after this semantic-only integration |
 | Assignment backing-loan falsifiers | PASS: both refuse on C and LLVM before artifact publication; prior ASan runs establish the rejected failure mode |
 | Same-backing read-only control | PASS on C and LLVM, prints `7` |
-| Fixed final-owner census | RED 350; exact refusal parity with prior run, 0 hard errors/flow failures; 1801.23 s and 3979288 KiB |
+| Scalar expression-root C/LLVM falsifier | PASS on C and LLVM, both print `20`; missing root is `None` |
+| Fixed final-owner census | RED 342; exactly 8 intended removals and 0 additions, 0 hard errors; 951.49 s and 3981392 KiB |
 | Codegen bootstrap | not rerun while the exact fixed census remains red; no current gen2 artifact |
 
-The integrated receipt is
-[recorded here](../evidence/2026-10-22_integrated_indexed_assignment_carrier_paths.md).
+The latest census receipt is
+[recorded here](../evidence/2026-10-22_expression_graph_scalar_root_projection_census.md).
 V1 still requires a zero canonical census, actual bootstrap and installed-
 driver execution, then exact-SHA remote CI. No timeout, input or safety
 condition was relaxed.
