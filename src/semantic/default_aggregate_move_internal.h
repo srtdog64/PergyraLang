@@ -19,8 +19,11 @@ typedef struct {
      * other side changed (with no callee), or NULL for a move. */
     ASTNode *lending_call;
     /* Nonzero for a copy row: the binding that shares this path's storage
-     * since `lending_call` copied it. A copy row refuses nothing itself. */
+     * since `lending_call` copied it, at `carrier_fields` below it ("" is
+     * the whole value; NULL on other rows). A copy row refuses nothing
+     * itself. */
     uint32_t carrier;
+    char *carrier_fields;
     /* For a move: the argument the moving call took, where a copy stands
      * when the path is used again. */
     ASTNode *argument;
@@ -47,7 +50,8 @@ typedef struct {
 } MoveWalk;
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, ASTNode *argument);
+    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, const char *carrier_fields,
+    ASTNode *argument);
 /* Access path of an identifier, member chain or element access. An element
  * names its whole Array. Returns false for any other expression. */
 bool move_walk_access_path(const ASTNode *node, uint32_t *binding, char *buf, size_t size);
@@ -55,8 +59,9 @@ bool move_walk_access_path(const ASTNode *node, uint32_t *binding, char *buf, si
 bool move_walk_path_contains(const char *prefix, const char *fields);
 
 /* Records that `value`, or each path a value built from it copies, now
- * shares storage with `carrier`. */
-void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier);
+ * shares storage with the path `carrier_fields` of `carrier`. */
+void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier,
+    const char *carrier_fields);
 /* The storage `path` names changes in place: every other side of a copy
  * that shares it, directly or through other copies, is refused at its next
  * use. */

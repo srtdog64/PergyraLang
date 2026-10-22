@@ -31,13 +31,14 @@
 
 static void state_free(MoveState *state)
 {
-    for (size_t i = 0; i < state->count; i++) free(state->rows[i].fields);
+    for (size_t i = 0; i < state->count; i++) { free(state->rows[i].fields); free(state->rows[i].carrier_fields); }
     free(state->rows);
     *state = (MoveState){0};
 }
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, ASTNode *argument)
+    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, const char *carrier_fields,
+    ASTNode *argument)
 {
     /* Each loan of a path is a row of its own, so a later use needs every
      * one admitted. A move on any path is a move, whatever lent it, and
@@ -48,10 +49,14 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *row = &state->rows[i];
         if (row->binding != binding || strcmp(row->fields, fields) != 0 || (row->carrier != 0) != (carrier != 0)) continue;
-        if (carrier != 0) { if (row->carrier == carrier && row->lending_call == lending_call) return true; continue; }
+        if (carrier != 0) {
+            if (row->carrier == carrier && row->lending_call == lending_call &&
+                strcmp(row->carrier_fields, carrier_fields) == 0) return true;
+            continue;
+        }
         if (lending_call == NULL) {
             if (row->lending_call == NULL && row->argument != argument) continue;
-            *row = (MovedPath){binding, row->fields, callee, param, NULL, 0, argument}; moved = true;
+            *row = (MovedPath){binding, row->fields, callee, param, NULL, 0, NULL, argument}; moved = true;
         }
         else if (row->lending_call == NULL || row->lending_call == lending_call) return true;
     }
@@ -63,9 +68,11 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
         state->rows = grown; state->capacity = capacity;
     }
     char *copy = malloc(strlen(fields) + 1);
-    if (copy == NULL) { walk->failed = true; return false; }
+    char *held = carrier != 0 ? malloc(strlen(carrier_fields) + 1) : NULL;
+    if (copy == NULL || (carrier != 0 && held == NULL)) { free(copy); free(held); walk->failed = true; return false; }
     strcpy(copy, fields);
-    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call, carrier, argument};
+    if (held != NULL) strcpy(held, carrier_fields);
+    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call, carrier, held, argument};
     return true;
 }
 
@@ -75,7 +82,7 @@ static bool state_copy(MoveWalk *walk, MoveState *out, const MoveState *in)
     for (size_t i = 0; i < in->count; i++)
         if (!move_walk_state_add(walk, out, in->rows[i].binding, in->rows[i].fields,
                 in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call, in->rows[i].carrier,
-                in->rows[i].argument)) return false;
+                in->rows[i].carrier_fields, in->rows[i].argument)) return false;
     return true;
 }
 
@@ -84,7 +91,7 @@ static bool state_union(MoveWalk *walk, MoveState *into, const MoveState *from)
     for (size_t i = 0; i < from->count; i++)
         if (!move_walk_state_add(walk, into, from->rows[i].binding, from->rows[i].fields,
                 from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call, from->rows[i].carrier,
-                from->rows[i].argument)) return false;
+                from->rows[i].carrier_fields, from->rows[i].argument)) return false;
     return true;
 }
 
@@ -303,7 +310,7 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         }
         if (lends && call_copied(walk, call)) continue;
         if (!move_walk_state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL, 0,
-                lends ? NULL : arg)) return;
+                NULL, lends ? NULL : arg)) return;
         if (!lends) move_walk_copy_changed(walk, state, arg);
     }
 }
@@ -325,7 +332,9 @@ static void reinitialize(MoveWalk *walk, MoveState *state, ASTNode *target)
     size_t kept = 0;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *moved = &state->rows[i];
-        if (moved->binding == binding && move_walk_path_contains(fields, moved->fields)) { free(moved->fields); continue; }
+        if (moved->binding == binding && move_walk_path_contains(fields, moved->fields)) {
+            free(moved->fields); free(moved->carrier_fields); continue;
+        }
         state->rows[kept++] = *moved;
     }
     state->count = kept;
@@ -442,20 +451,21 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         for (size_t p = 0; p < ast_call_arg_count(node); p++)
             if (!walk_expression(walk, state, ast_call_argument(node, p))) return false;
         apply_call_moves(walk, state, node);
-        /* An Array push, set, sort or reverse, an owned String push or a slot
-         * write changes its receiver in place; a push or set copies its value
-         * into it. */
+        /* An Array push, set, sort or reverse, an owned String push, a slot
+         * write and a HashMap, Set, List or Queue set, removal or push change
+         * their receiver in place; a push or set copies its value into it. */
         size_t stored = 0;
         uint32_t kind = 0, holder = 0;
         char fields[512];
         ASTNode *receiver = ast_call_arg_count(node) > 0 ? ast_call_argument(node, 0) : NULL;
-        bool store = receiver != NULL && semantic_param_publication_checked_array_store(walk->ctx, node, &stored);
+        bool store = receiver != NULL && (semantic_param_publication_checked_array_store(walk->ctx, node, &stored) ||
+            semantic_param_publication_checked_collection_change(walk->ctx, node, &stored));
         if (store || (receiver != NULL && (semantic_param_publication_checked_slot_write(walk->ctx, node) ||
                 semantic_param_publication_checked_array_permutation(walk->ctx, node) ||
                 (ast_call_semantic_callee_builtin_kind(node, &kind) && kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING))))
             move_walk_copy_changed(walk, state, receiver);
-        if (store && move_walk_access_path(receiver, &holder, fields, sizeof(fields)))
-            move_walk_copy_record(walk, state, ast_call_argument(node, stored), holder);
+        if (store && stored != 0 && move_walk_access_path(receiver, &holder, fields, sizeof(fields)))
+            move_walk_copy_record(walk, state, ast_call_argument(node, stored), holder, fields);
         /* A call that never returns ends this path, as a return does: what
          * it moved is never used after it. */
         SemanticPublishedValue result = semantic_param_publication_value(walk->ctx, node);
@@ -475,14 +485,14 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         char fields[512];
         uint32_t holder = 0;
         if (move_walk_access_path(ast_assignment_target(node), &holder, fields, sizeof(fields)))
-            move_walk_copy_record(walk, state, ast_assignment_value(node), holder);
+            move_walk_copy_record(walk, state, ast_assignment_value(node), holder, fields);
         return !walk->failed;
     }
     case AST_LET_DECL:
         if (!walk_expression(walk, state, ast_let_initializer(node))) return false;
         /* Each run of a let binds a fresh value. */
         move_walk_copy_rebound(state, ast_node_stable_id(node));
-        move_walk_copy_record(walk, state, ast_let_initializer(node), ast_node_stable_id(node));
+        move_walk_copy_record(walk, state, ast_let_initializer(node), ast_node_stable_id(node), "");
         return !walk->failed;
     case AST_RETURN:
         if (!walk_expression(walk, state, ast_return_value(node))) return false;

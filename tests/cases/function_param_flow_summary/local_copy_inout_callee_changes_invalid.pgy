@@ -1,6 +1,7 @@
 // As local_copy_inout_read_only_callee_valid, but Probe sets an entry of
 // the state's marks in place: Record's local copy shares that map, so its
-// uses after the call are refused (Clone copies a HashMap only by value).
+// uses after the call are refused (Clone copies a HashMap only by value),
+// and so is Probe's own copy read after its MapSet.
 struct State {
     marks: HashMap<String, Int>;
     count: Int;

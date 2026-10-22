@@ -1,0 +1,79 @@
+// A local copy of a HashMap, Set, List or Queue shares the storage the
+// source holds: a set, removal or push through the copy changes it in
+// place, so the source's next use is refused (one routine per change).
+func MapSetCopy(seed: Int) -> Int {
+    let source: HashMap<String, Int> = MapNew();
+    MapSet(source, "k", seed);
+    let copy: HashMap<String, Int> = source;
+    MapSet(copy, "j", 2);
+    return MapGet(source, "k");
+}
+
+func MapRemoveCopy(seed: Int) -> Bool {
+    let source: HashMap<String, Int> = MapNew();
+    MapSet(source, "k", seed);
+    let copy: HashMap<String, Int> = source;
+    MapRemove(copy, "k");
+    return MapHas(source, "k");
+}
+
+func SetAddCopy(seed: Int) -> Bool {
+    let source: Set<Int> = SetNew();
+    SetAdd(source, seed);
+    let copy: Set<Int> = source;
+    SetAdd(copy, seed + 1);
+    return SetHas(source, seed);
+}
+
+func SetRemoveCopy(seed: Int) -> Bool {
+    let source: Set<Int> = SetNew();
+    SetAdd(source, seed);
+    let copy: Set<Int> = source;
+    SetRemove(copy, seed);
+    return SetHas(source, seed);
+}
+
+func ListPushCopy(seed: Int) -> Int {
+    let source: List<Int> = ListNew();
+    ListPush(source, seed);
+    let copy: List<Int> = source;
+    ListPush(copy, 2);
+    return ListGet(source, 0);
+}
+
+func ListSetCopy(seed: Int) -> Int {
+    let source: List<Int> = ListNew();
+    ListPush(source, seed);
+    let copy: List<Int> = source;
+    ListSet(copy, 0, 2);
+    return ListGet(source, 0);
+}
+
+func ListRemoveCopy(seed: Int) -> Int {
+    let source: List<Int> = ListNew();
+    ListPush(source, seed);
+    ListPush(source, 2);
+    let copy: List<Int> = source;
+    ListRemove(copy, 0);
+    return ListGet(source, 0);
+}
+
+func QueuePushCopy(seed: Int) -> Int {
+    let source: Queue<Int> = QueueNew();
+    QueuePush(source, seed);
+    let copy: Queue<Int> = source;
+    QueuePush(copy, 2);
+    return QueuePop(source);
+}
+
+func Main() -> Int {
+    Log(MapSetCopy(1));
+    Log(MapRemoveCopy(1));
+    Log(SetAddCopy(1));
+    Log(SetRemoveCopy(1));
+    Log(ListPushCopy(1));
+    Log(ListSetCopy(1));
+    Log(ListRemoveCopy(1));
+    Log(QueuePushCopy(1));
+    return 0;
+}

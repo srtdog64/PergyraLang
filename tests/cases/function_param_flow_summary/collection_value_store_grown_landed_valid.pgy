@@ -1,0 +1,57 @@
+// A HashMap set, a Set add and a List or Queue push or set copy an Array
+// value into the collection, which then shares the value's storage. The
+// value grows after each store, so the next analysis copies it where it is
+// stored (Clone copies an Array<Int> whole), one Clone per routine.
+func MapStore() -> Int {
+    let held: HashMap<Int, Array<Int>> = MapNew();
+    let row: Array<Int> = [1];
+    MapSet(held, 1, row);
+    ArrayPush(row, 2);
+    let back: Array<Int> = MapGet(held, 1);
+    return ArrayLength(back) * 10 + ArrayLength(row);
+}
+
+func SetStore() -> Int {
+    let held: Set<Array<Int>> = SetNew();
+    let row: Array<Int> = [1];
+    SetAdd(held, row);
+    ArrayPush(row, 2);
+    return SetSize(held) * 10 + ArrayLength(row);
+}
+
+func ListPushStore() -> Int {
+    let held: List<Array<Int>> = ListNew();
+    let row: Array<Int> = [1];
+    ListPush(held, row);
+    ArrayPush(row, 2);
+    let back: Array<Int> = ListGet(held, 0);
+    return ArrayLength(back) * 10 + ArrayLength(row);
+}
+
+func ListSetStore() -> Int {
+    let held: List<Array<Int>> = ListNew();
+    ListPush(held, [0]);
+    let row: Array<Int> = [1];
+    ListSet(held, 0, row);
+    ArrayPush(row, 2);
+    let back: Array<Int> = ListGet(held, 0);
+    return ArrayLength(back) * 10 + ArrayLength(row);
+}
+
+func QueueStore() -> Int {
+    let held: Queue<Array<Int>> = QueueNew();
+    let row: Array<Int> = [1];
+    QueuePush(held, row);
+    ArrayPush(row, 2);
+    let back: Array<Int> = QueuePop(held);
+    return ArrayLength(back) * 10 + ArrayLength(row);
+}
+
+func Main() -> Int {
+    Log(MapStore());
+    Log(SetStore());
+    Log(ListPushStore());
+    Log(ListSetStore());
+    Log(QueueStore());
+    return 0;
+}

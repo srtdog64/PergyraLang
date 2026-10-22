@@ -22,7 +22,8 @@
 #include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
 
-void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier)
+void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier,
+    const char *carrier_fields)
 {
     if (value == NULL || carrier == 0 || walk->failed) return;
     SemanticPublishedValue copied = semantic_param_publication_value(walk->ctx, value);
@@ -30,13 +31,14 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
     char fields[512];
     uint32_t binding = 0;
     if (move_walk_access_path(value, &binding, fields, sizeof(fields))) {
-        (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL, value, carrier, NULL);
+        (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL, value, carrier, carrier_fields, NULL);
         return;
     }
     if (value->type == AST_ARRAY_LITERAL || value->type == AST_TUPLE_LITERAL) {
         bool array = value->type == AST_ARRAY_LITERAL;
         for (size_t i = 0; i < (array ? ast_array_literal_count(value) : ast_tuple_literal_count(value)); i++)
-            move_walk_copy_record(walk, state, array ? ast_array_literal_element(value, i) : ast_tuple_literal_element(value, i), carrier);
+            move_walk_copy_record(walk, state, array ? ast_array_literal_element(value, i) : ast_tuple_literal_element(value, i),
+                carrier, carrier_fields);
         return;
     }
     /* A constructor, an Option wrap or a Clone that copies only by value
@@ -45,7 +47,7 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
         bool depends = false, retains = false;
         if (semantic_param_publication_callee(walk->ctx, value, p) == NULL &&
             semantic_param_publication_checked_result_relation(walk->ctx, value, p, &depends, &retains) && depends)
-            move_walk_copy_record(walk, state, ast_call_argument(value, p), carrier);
+            move_walk_copy_record(walk, state, ast_call_argument(value, p), carrier, carrier_fields);
     }
 }
 
@@ -100,11 +102,15 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
             MovedPath copy = state->rows[i];
             bool source = copy.binding == work[w].binding &&
                 (move_walk_path_contains(copy.fields, work[w].fields) || move_walk_path_contains(work[w].fields, copy.fields));
-            if (!source && copy.carrier != work[w].binding) continue;
+            /* The carrier side shares the storage only at the carrier's path. */
+            if (!source && (copy.carrier != work[w].binding ||
+                    !(move_walk_path_contains(copy.carrier_fields, work[w].fields) ||
+                      move_walk_path_contains(work[w].fields, copy.carrier_fields)))) continue;
             done[i] = true;
-            Changed other = source ? (Changed){copy.carrier, ""} : (Changed){copy.binding, copy.fields};
+            Changed other = source ? (Changed){copy.carrier, copy.carrier_fields} : (Changed){copy.binding, copy.fields};
             if (!source) copy_changed_under_loan(walk, state, path, &copy, other.binding, other.fields);
-            if (!move_walk_state_add(walk, state, other.binding, other.fields, NULL, NULL, copy.lending_call, 0, NULL)) break;
+            if (!move_walk_state_add(walk, state, other.binding, other.fields, NULL, NULL, copy.lending_call, 0, NULL, NULL))
+                break;
             work[count++] = other;
         }
     free(work);
@@ -116,7 +122,7 @@ void move_walk_copy_rebound(MoveState *state, uint32_t binding)
     size_t kept = 0;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *row = &state->rows[i];
-        if (row->binding == binding || row->carrier == binding) { free(row->fields); continue; }
+        if (row->binding == binding || row->carrier == binding) { free(row->fields); free(row->carrier_fields); continue; }
         state->rows[kept++] = *row;
     }
     state->count = kept;

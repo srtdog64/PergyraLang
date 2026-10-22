@@ -320,6 +320,11 @@ bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Ty
 /* A checked ArraySort or ArrayReverse: it writes its receiver's elements in
  * place and returns that receiver. */
 bool semantic_param_publication_checked_array_permutation(const SemanticContext *ctx, const ASTNode *call);
+/* A checked HashMap, Set, List or Queue set, removal or push: it writes the
+ * storage its receiver shares with a copy, and a set or push copies the
+ * argument `*stored` into it (0 for a removal). */
+bool semantic_param_publication_checked_collection_change(const SemanticContext *ctx, const ASTNode *call,
+    size_t *stored);
 bool semantic_param_publication_checked_backing_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool *result_depends, bool *external_retains);
 bool semantic_param_publication_record_empty_map_binding(SemanticContext *ctx,

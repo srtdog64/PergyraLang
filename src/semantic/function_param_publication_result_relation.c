@@ -60,6 +60,26 @@ bool semantic_param_publication_checked_array_permutation(const SemanticContext 
     return publication_array_permutation(publication_result_current(ctx, call));
 }
 
+/* A HashMap, Set, List or Queue call that writes the storage its receiver
+ * shares with a copy: a set or a removal, or a push that may grow it. A set
+ * or push also copies its value into that storage: `*stored` is that
+ * argument, 0 for a removal. A pop moves only the receiver's own head or
+ * length. */
+bool semantic_param_publication_checked_collection_change(const SemanticContext *ctx, const ASTNode *call,
+    size_t *stored)
+{
+    static const struct { const char *name; size_t stored; } changes[] = {
+        {"MapSet", 2}, {"MapRemove", 0}, {"SetAdd", 1}, {"SetRemove", 0},
+        {"ListPush", 1}, {"ListSet", 2}, {"ListRemove", 0}, {"QueuePush", 1},
+    };
+    /* The names are reserved: no program declaration can take one. */
+    const PublishedNode *row = publication_result_current(ctx, call);
+    if (row == NULL || row->target_name == NULL) return false;
+    for (size_t i = 0; i < sizeof(changes) / sizeof(changes[0]); i++)
+        if (strcmp(row->target_name, changes[i].name) == 0) { *stored = changes[i].stored; return true; }
+    return false;
+}
+
 static bool publication_result_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool backing, bool *result_depends, bool *external_retains)
 {
