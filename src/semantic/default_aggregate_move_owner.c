@@ -272,10 +272,11 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         size_t formal = 0;
         if (callee == NULL || !semantic_param_publication_formal_for_actual(walk->ctx, call, p, &formal)) continue;
         /* An `inout` callee changes the storage in place, unless nothing is
-         * written through its formal. */
+         * written through its formal, and a struct only in the fields written
+         * through it. */
         if (ast_func_param(callee, formal)->mode == PARAM_MODE_MUT_REF &&
             function_param_flow_array_preservation_failures(walk->ctx, callee, formal) != 0)
-            move_walk_copy_changed(walk, state, arg);
+            move_walk_copy_inout_changed(walk, state, arg, callee, formal);
         SemanticPublishedValue value = semantic_param_publication_value(walk->ctx, arg);
         if (!value.ok || value.meta || !semantic_default_aggregate_value(walk->ctx, value.type) ||
             !semantic_default_aggregate_formal_moves(walk->ctx, callee, formal)) continue;

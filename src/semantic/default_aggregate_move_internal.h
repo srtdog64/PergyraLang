@@ -66,6 +66,10 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
  * that shares it, directly or through other copies, is refused at its next
  * use. */
 void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *path);
+/* An inout call changes `arg`: a struct in the fields its callee's formal
+ * does not preserve, anything else whole. */
+void move_walk_copy_inout_changed(MoveWalk *walk, MoveState *state, const ASTNode *arg, ASTNode *callee,
+    size_t formal);
 /* True the first time `node` is reported: loops are walked twice. */
 bool move_walk_reported_once(MoveWalk *walk, const ASTNode *node);
 /* `binding` takes a fresh value: its copies and the rows on it end. */

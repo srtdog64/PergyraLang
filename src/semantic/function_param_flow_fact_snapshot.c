@@ -507,6 +507,7 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
     free(store->hash);
     free(store->admitted_no_store_indexes);
     free(store->closure_reads);
+    free(store->field_verdicts);
     free(store);
     ctx->function_param_flow_summaries = NULL;
 }

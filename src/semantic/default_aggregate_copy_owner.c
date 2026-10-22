@@ -14,13 +14,19 @@
 #include "default_aggregate_move_internal.h"
 #include "default_aggregate_move_rule.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
 #include "loan_copy_landing_owner.h"
+#include "slot_summary.h"
+#include "type_checker_call_constructor_internal.h"
 #include "type_checker_internal.h"
+
+static void copy_changed_at(MoveWalk *walk, MoveState *state, const ASTNode *path, uint32_t binding,
+    const char *fields);
 
 void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier,
     const char *carrier_fields)
@@ -89,6 +95,40 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
     char fields[512];
     uint32_t binding = 0;
     if (walk->failed || !move_walk_access_path(path, &binding, fields, sizeof(fields))) return;
+    copy_changed_at(walk, state, path, binding, fields);
+}
+
+/* An inout callee changes a struct argument only in the fields whose paths
+ * its formal does not preserve; any other argument changes whole. */
+void move_walk_copy_inout_changed(MoveWalk *walk, MoveState *state, const ASTNode *arg, ASTNode *callee,
+    size_t formal)
+{
+    char fields[512], path[512];
+    uint32_t binding = 0;
+    SemanticPublishedValue value = semantic_param_publication_value(walk->ctx, arg);
+    ASTNode *decl = value.ok && !value.meta && value.type != NULL && value.type->kind == TYPE_KIND_CLASS ?
+        semantic_host_decl_for_type(walk->ctx, value.type) : NULL;
+    if (walk->failed || decl == NULL || decl->type != AST_CLASS_DECL ||
+        !move_walk_access_path(arg, &binding, fields, sizeof(fields))) {
+        move_walk_copy_changed(walk, state, arg);
+        return;
+    }
+    for (size_t i = 0; !walk->failed; i++) {
+        const char *name = NULL;
+        (void)constructor_decl_field_resolved_type_at(decl, i, &name, walk->ctx);
+        if (name == NULL) return;
+        if (function_param_flow_field_preservation_failures(walk->ctx, callee, formal, name) == 0) continue;
+        if ((size_t)snprintf(path, sizeof(path), "%s.%s", fields, name) >= sizeof(path)) {
+            move_walk_copy_changed(walk, state, arg);
+            return;
+        }
+        copy_changed_at(walk, state, arg, binding, path);
+    }
+}
+
+static void copy_changed_at(MoveWalk *walk, MoveState *state, const ASTNode *path, uint32_t binding,
+    const char *fields)
+{
     typedef struct { uint32_t binding; const char *fields; } Changed;
     size_t rows = state->count;
     Changed *work = malloc((rows + 1) * sizeof(*work));

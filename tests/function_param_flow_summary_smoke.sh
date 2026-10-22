@@ -344,6 +344,10 @@ release_lifetime_refusals = {
     "collection_value_store_shallow_grown_invalid": [(*released_refusal, 14, 35)],
     # A whole Array read after a call kept its descriptor: no element copy.
     "array_descriptor_kept_then_read_invalid": [(*borrow_refusal, 22, 16)],
+    # An inout callee that writes the field a caller copied, five ways.
+    "inout_callee_same_field_changed_invalid": [
+        (*released_refusal, 38, 20), (*released_refusal, 44, 20), (*released_refusal, 50, 20),
+        (*released_refusal, 56, 20), (*released_refusal, 62, 20)],
     # A copy of an inout formal's field changed and not assigned back
     # refuses each exit: two returns and the end of a body.
     "formal_field_copy_changed_at_exit_invalid": [
@@ -351,8 +355,8 @@ release_lifetime_refusals = {
     # A value assigned into a field shares that field: a change through
     # either side refuses the other.
     "local_copy_held_at_field_changed_invalid": [
-        (*released_refusal, 28, 26), (*released_refusal, 28, 5), (*released_refusal, 36, 20),
-        (*released_refusal, 36, 5), (*released_refusal, 43, 20), (*released_refusal, 51, 24)],
+        (*released_refusal, 30, 26), (*released_refusal, 30, 5), (*released_refusal, 38, 20),
+        (*released_refusal, 38, 5), (*released_refusal, 48, 20), (*released_refusal, 56, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # Returning a field's storage shares it with the result, which lends the
@@ -1086,6 +1090,8 @@ paired = (
     ("string_element_kept_by_callee_landed_valid", True),
     ("array_descriptor_kept_then_read_invalid", False),
     ("ref_loan_through_popping_helper_valid", True),
+    ("inout_callee_other_field_changed_valid", True),
+    ("inout_callee_same_field_changed_invalid", False),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),

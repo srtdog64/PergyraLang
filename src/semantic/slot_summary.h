@@ -50,5 +50,11 @@ unsigned function_param_flow_array_preservation_failures(SemanticContext *ctx,
 bool function_param_flow_preserves_array_storage(SemanticContext *ctx,
                                                 ASTNode *function_decl,
                                                 size_t param_index);
+/* The preservation failures of one top-level field of a settled struct
+ * formal: its paths, the aliases taken from them, and the whole formal
+ * handed on. Any other field's paths are ignored. A cycle reads as
+ * unproved. */
+unsigned function_param_flow_field_preservation_failures(SemanticContext *ctx,
+    ASTNode *function_decl, size_t param_index, const char *field);
 
 #endif /* PERGYRA_SLOT_SUMMARY_H */

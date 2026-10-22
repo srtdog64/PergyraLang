@@ -358,6 +358,10 @@ struct FunctionParamFlowSummaryStore
     size_t closure_read_count, closure_read_capacity;
     size_t evaluating_plus_one;
     size_t skipped_evaluations;
+    /* Field verdicts of settled struct formals, asked for after the solve;
+     * a verdict being computed reads as unproved. */
+    struct FunctionParamFlowFieldVerdict *field_verdicts;
+    size_t field_verdict_count, field_verdict_capacity;
 };
 
 void function_param_flow_program_point_index_destroy(
@@ -541,6 +545,12 @@ bool function_param_flow_worklist_verified(FunctionParamFlowSummaryStore *store,
 unsigned function_param_array_storage_unproved_in_program_points(
     ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
     const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read);
+/* The same walk proving only the paths through one top-level `field` of a
+ * struct formal; false when the formal is not proved through paths. */
+bool function_param_array_storage_field_unproved_in_program_points(
+    ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, const char *field,
+    unsigned *failures);
 /* One entry's settled Array preservation failures, for the published snapshot. */
 unsigned function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *store, size_t index);
 

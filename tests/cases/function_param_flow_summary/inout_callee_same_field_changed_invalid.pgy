@@ -1,0 +1,71 @@
+// As inout_callee_other_field_changed_valid, but each callee writes the marks
+// field the caller copied: directly, through a local copy assigned back,
+// through a nested inout call, by assigning the field, or by assigning the
+// whole formal. Each later use of the caller's copy is refused.
+struct State {
+    marks: HashMap<String, Int>;
+    paths: Array<String>;
+}
+
+func Mark(inout state: State, key: String) -> Void {
+    MapSet(state.marks, key, 1);
+}
+
+func MarkAlias(inout state: State, key: String) -> Void {
+    let marks: HashMap<String, Int> = state.marks;
+    MapSet(marks, key, 1);
+    state.marks = marks;
+}
+
+func MarkNested(inout state: State, key: String) -> Void {
+    Mark(state, key);
+}
+
+func Reset(inout state: State) -> Void {
+    let fresh: HashMap<String, Int> = MapNew();
+    state.marks = fresh;
+}
+
+func Replace(inout state: State) -> Void {
+    let fresh: HashMap<String, Int> = MapNew();
+    let paths: Array<String> = [];
+    state = State(fresh, paths);
+}
+
+func AfterMark(inout state: State) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    Mark(state, "a");
+    return MapSize(marks);
+}
+
+func AfterAlias(inout state: State) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    MarkAlias(state, "a");
+    return MapSize(marks);
+}
+
+func AfterNested(inout state: State) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    MarkNested(state, "a");
+    return MapSize(marks);
+}
+
+func AfterReset(inout state: State) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    Reset(state);
+    return MapSize(marks);
+}
+
+func AfterReplace(inout state: State) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    Replace(state);
+    return MapSize(marks);
+}
+
+func Main() -> Int {
+    let marks: HashMap<String, Int> = MapNew();
+    let paths: Array<String> = [];
+    var state: State = State(marks, paths);
+    Log(AfterMark(state) + AfterAlias(state) + AfterNested(state) + AfterReset(state) + AfterReplace(state));
+    return 0;
+}
