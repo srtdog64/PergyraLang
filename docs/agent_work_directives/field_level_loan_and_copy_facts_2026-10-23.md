@@ -70,9 +70,24 @@ in `SelfMirCanonicalInstructionIds` (census 215 -> 226). Kept version:
 
 ## Slice 2 plan
 
-To be fixed after slice 1 lands: field paths on the loan frame's origins
-for struct values built by constructors and read through member paths, and
-the storage walk's per-field verdict at the call escape.
+Findings at `d35052591`:
+
+- `SemanticExpressionGraphFactsFromAstRows` builds the graph's call-target
+  rows fresh (`[]` and pushes of constants) and `Clone`s the topology's
+  rows; the artifact's storage reaches the graph, if at all, through the
+  String elements of `texts` and of the surface rows.
+- `SemanticExpressionGraphCallTargetCaptureFromSignatures` sets elements of
+  `graph.arena.call_target_kinds` and `call_target_names` in place through
+  local copies of those formal paths. Those Arrays are the fresh ones.
+- The loan frame gives the whole surfaces value the artifact's origin, and
+  `function_param_flow_field_preservation_failures` answers per top-level
+  field only (`arena` covers both the topology and the call-target rows).
+
+Two ways to the proof, both multi-step: field paths on the loan frame's
+origins, through constructors and through callee results (a per-field
+return relation in the summaries); or a String-only lend, a loan that
+reaches the value only as String bytes, which no Array write changes and
+only a release could. Not started.
 
 ## Unknowns
 
