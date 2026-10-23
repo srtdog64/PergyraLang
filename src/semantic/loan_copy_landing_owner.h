@@ -5,6 +5,7 @@
 
 typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
+typedef struct Type Type;
 
 /* A loan whose owner changes while it lives, or that leaves where no copy
  * can stand in, is copied where it is made
@@ -28,6 +29,13 @@ bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNo
  * (2026-10-22_string_crossing_copied_where_it_crosses). False only when the
  * selection could not be recorded. */
 bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNode *expression);
+
+/* The same for a by-value argument of `type` the type checker refuses beside
+ * an `inout` argument naming the same variable, before any value is
+ * published: selected only when Clone copies a value of `type` whole
+ * (2026-10-23_by_value_argument_beside_its_inout_is_copied). False only when
+ * the selection could not be recorded. */
+bool semantic_loan_copy_landing_select_typed(SemanticContext *ctx, const ASTNode *expression, const Type *type);
 
 /* Whether a Clone of `carrier` copies its value fully, so that a copy can
  * stand in where the loan leaves. */

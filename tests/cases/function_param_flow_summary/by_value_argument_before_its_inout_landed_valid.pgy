@@ -1,0 +1,13 @@
+// As the by-value argument beside its inout, with the by-value formal
+// first: it is copied too, before the callee changes the inout one.
+func Both(b: Array<Int>, inout a: Array<Int>) -> Int {
+    ArraySet(a, 0, 5);
+    return b[0];
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    let k: Int = Both(rows, rows);
+    Print(ToString(k * 10 + rows[0]));
+    return 0;
+}

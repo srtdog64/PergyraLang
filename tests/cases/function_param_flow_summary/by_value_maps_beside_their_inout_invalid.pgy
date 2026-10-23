@@ -1,0 +1,16 @@
+// The same Array of maps goes to an inout formal and to a by-value formal
+// of one call. Clone does not copy maps whole, so no copy can stand in and
+// the call is refused.
+func Both(inout a: Array<HashMap<String, Int>>, b: Array<HashMap<String, Int>>) -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    ArrayPush(a, table);
+    return ArrayLength(b);
+}
+
+func Main() -> Int {
+    let first: HashMap<String, Int> = MapNew();
+    let tables: Array<HashMap<String, Int>> = [first];
+    let k: Int = Both(tables, tables);
+    Print(ToString(k));
+    return 0;
+}

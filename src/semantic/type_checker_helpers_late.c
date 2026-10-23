@@ -17,6 +17,8 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
+#include "default_aggregate_move_rule.h"
+#include "loan_copy_landing_owner.h"
 #include "../common/string_compat.h"
 
 #include <stdlib.h>
@@ -325,6 +327,30 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
             }
         }
+        /* A by-value aggregate shares its storage with the variable it names,
+         * as a ref does: beside an inout argument naming the same variable,
+         * the callee's change reaches it. The by-value argument is copied
+         * where the call takes it when Clone copies it whole
+         * (2026-10-23_by_value_argument_beside_its_inout_is_copied). */
+        if (borrow_param != NULL && arg_expr != NULL && arg_expr->type == AST_IDENTIFIER &&
+            (borrow_param->mode == PARAM_MODE_DEFAULT || borrow_param->mode == PARAM_MODE_MUT_REF) &&
+            ast_identifier_binding_syntax_id(arg_expr) != 0 && semantic_default_aggregate_value(ctx, arg_type))
+            for (size_t p = 0; p < i; p++) {
+                ASTNode *prior = ast_call_argument(expr, p);
+                FuncParam *prior_param = ast_func_param(callable_decl, p);
+                if (prior == NULL || prior->type != AST_IDENTIFIER || prior_param == NULL ||
+                    ast_identifier_binding_syntax_id(prior) != ast_identifier_binding_syntax_id(arg_expr) ||
+                    (prior_param->mode != PARAM_MODE_DEFAULT && prior_param->mode != PARAM_MODE_MUT_REF) ||
+                    (prior_param->mode == PARAM_MODE_MUT_REF) == (borrow_param->mode == PARAM_MODE_MUT_REF)) continue;
+                ASTNode *by_value = borrow_param->mode == PARAM_MODE_DEFAULT ? arg_expr : prior;
+                if (!semantic_loan_copy_landing_select_typed(ctx, by_value, arg_type))
+                    semantic_error(ctx, by_value, "By-value argument copy landing selection failed");
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, by_value,
+                    "'%s' is passed to an inout parameter and to a by-value parameter in the same call; the by-value argument shares the storage the callee changes",
+                    ast_identifier_name(arg_expr));
+                break;
+            }
         if (effective_generic_types != NULL
             && callable_decl != NULL
             && i < ast_func_param_count(callable_decl)) {

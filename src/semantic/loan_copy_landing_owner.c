@@ -69,6 +69,12 @@ bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNod
     return ast_node_stable_id(expression) == 0 || loan_copy_landing_record(ctx, ast_node_stable_id(expression));
 }
 
+bool semantic_loan_copy_landing_select_typed(SemanticContext *ctx, const ASTNode *expression, const Type *type)
+{
+    return ast_node_stable_id(expression) == 0 || !semantic_param_publication_clone_independent(ctx, type) ||
+        loan_copy_landing_record(ctx, ast_node_stable_id(expression));
+}
+
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier)
 {
     return !semantic_loan_copy_landing_carrier_copies(ctx, carrier) ||
