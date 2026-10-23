@@ -76,6 +76,14 @@ bool semantic_formal_string_store_landing_record_risk_owner(
     SemanticContext *ctx, const ASTNode *call, const ASTNode *value,
     uint32_t risk_owner_binding_id);
 
+/* Whether this analysis already selected the seed store for the current
+ * routine.  After another routine owns the first refusal, the indexed String
+ * checker may discover one seed here; the program-point owner, not a later
+ * checker walk, decides which immediately following stores share its bounded
+ * snapshot. */
+bool semantic_formal_string_store_landing_current_routine_seeded(
+    const SemanticContext *ctx);
+
 /* The same selection while the store call is checked, before it has a
  * publication row: no owner proves its String alive for the receiver, and
  * no owned-copy store of it was admitted. */

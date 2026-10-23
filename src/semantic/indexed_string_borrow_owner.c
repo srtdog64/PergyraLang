@@ -206,8 +206,18 @@ indexed_string_borrow_argument(ASTNode *expression,
     SemanticContext *ctx, IndexedStringStoreCopy *copy)
 {
     uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
-    if (ctx == NULL || ctx->current_function_decl == NULL ||
-        !semantic_loan_copy_landing_refusal_tail_current(ctx)) return;
+    if (ctx == NULL || ctx->current_function_decl == NULL) return;
+    bool refusal_tail_current =
+        semantic_loan_copy_landing_refusal_tail_current(ctx);
+    /* A first exact store refusal owns the diagnostic. After its tail moves
+     * to another routine, only that routine's first proven store becomes a
+     * seed. The program-point owner later expands the seed across its bounded
+     * contiguous store run; checking every later store here would cross an
+     * intervening-statement ownership boundary. Non-store callers retain the
+     * old fail-fast boundary. */
+    if (!refusal_tail_current && (copy == NULL
+            || semantic_formal_string_store_landing_current_routine_seeded(ctx)))
+        return;
     bool current = semantic_indexed_string_borrow_source_current(expression, ctx, &source_id);
     IndexedStringDefinitionRecord definition_use =
         semantic_indexed_string_definition_record_use(ctx, expression, call, ordinal);
@@ -403,7 +413,7 @@ indexed_string_borrow_argument(ASTNode *expression,
                         return;
                     }
                     copy->wanted = true;
-                    if (!copy->refuse) return;
+                    if (!copy->refuse || !refusal_tail_current) return;
                 }
                 /* A declared callee's final summary decides whether it keeps
                  * the String; that owner refuses it after Pass 2 if not. */

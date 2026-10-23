@@ -172,3 +172,67 @@ that started most call escapes.
   75 s and 3.4 GB today.
 - Whether other loan owners (named-call String lend, ref-result loans)
   should select through the same owner.
+
+## 2026-10-24 closure-blocking landing fixpoint
+
+- **Objective:** keep the existing ownership decision while collecting every
+  exact moving-argument copy in one semantic analysis, rather than replaying
+  the unchanged canonical program once per later use.
+- **Priority:** preserve move safety and exact copy identity; batch the complete
+  reached chain; then restore the 30-minute integration budget. Runtime and
+  patch size are secondary.
+- **Fact owner:** `default_aggregate_move_owner.c` owns the ordered move state;
+  `loan_copy_landing_owner.c` owns exact copy-plan identities. The driver plan
+  merge is their last legitimate consumer before reloading and rechecking.
+- **Intended change:** after an exact moving argument has been accepted into
+  the next-round copy plan, retire only that move from the planning shadow
+  state. The current result remains deferred and unusable. This lets the walk
+  discover the next move of the same place in the same analysis.
+- **Forbidden fallback:** warning-only acceptance, a blanket copy, a shallow or
+  unsupported Clone, manual source ceremony, a reduced canonical input, or a
+  larger timeout.
+- **Falsifier and gate:** three sequential moving calls followed by a use must
+  select all three copies in one landing round and execute as `2221`; existing
+  move/alias negatives must stay refused. The unchanged canonical input must
+  then run with an identified rebuilt compiler inside the existing budget.
+
+### Constructor snapshot currentness seam
+
+- **Observed blocker:** on the unchanged canonical input, exact moving copies
+  batch correctly, but one String store continues to appear per reload after
+  round 4.  The Windows-mounted run reached round 8 and timed out at 30:10;
+  a Linux-native run reproduced the same identities through round 10.
+- **Fact owners:** `SemanticNominalResultSnapshot` owns nominal type and source
+  identity currentness. `collection_owned_element_member_requirement_owner.c`
+  is the last consumer that needs transferred `Array<String>` element
+  ownership, and it already replays the exact receipt.
+- **Intended change:** keep the receipt and its identities in the snapshot,
+  but do not replay its later-generation ownership premise in the generic
+  snapshot-current query. Replay remains mandatory at the owned-element
+  consumer.
+- **Forbidden fallback:** deleting the receipt, upgrading a non-owned receipt,
+  admitting an owned field without consumer replay, or suppressing the
+  refusal.
+- **Falsifier:** a constructor snapshot queried before deferred preservation
+  stays available to flow summaries, while the owning aggregate consumer still
+  rejects its missing String-element proof at the exact source argument.
+
+### Cross-routine store seed collection
+
+- **Observed blocker:** after the constructor seam was repaired, the unchanged
+  canonical input still selected one exact formal-String store per complete
+  reload. The first refusal stopped the indexed-String checker at the next
+  routine, so that routine never published a seed for the existing bounded
+  program-point expansion.
+- **Owner boundary:** the indexed-String checker may prove and publish only the
+  first seed in each later routine. `formal_string_store_landing_owner.c`
+  remains the owner that expands a seed across immediately following stores.
+  An intervening executable statement ends that snapshot and requires a later
+  analysis.
+- **Forbidden fallback:** continuing arbitrary store checks after the first
+  diagnostic, crossing a non-store program point, or changing the expected
+  landing count to hide that boundary.
+- **Falsifiers:** two independent routines each select their first store in one
+  landing analysis; three contiguous stores in one routine still batch once;
+  two stores separated by `Log` still require two landing analyses. All three
+  retain C/LLVM-equal runtime output.

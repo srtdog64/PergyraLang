@@ -1,0 +1,44 @@
+// ViewFrom builds a View whose String field IdentityNames returns. The
+// constructor snapshot is queried before deferred Array preservation ends.
+// It stays type-current, but its owned consumer must replay the exact receipt.
+struct Facts {
+    names: Array<String>;
+    kinds: Array<String>;
+}
+
+struct View {
+    ok: Bool;
+    ids: Array<String>;
+}
+
+func IdentityNames(facts: Facts) -> Array<String> {
+    let names: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(facts.names) {
+        if facts.kinds[row] == "class" {
+            ArrayPush(names, facts.names[row]);
+        }
+        row = row + 1;
+    }
+    return names;
+}
+
+func ViewFrom(facts: Facts) -> View {
+    return View(true, IdentityNames(facts));
+}
+
+func Checked(facts: Facts, ref rows: Array<String>) -> View {
+    let view: View = ViewFrom(facts);
+    if ArrayLength(rows) != ArrayLength(view.ids) {
+        Print("rows differ");
+    }
+    return view;
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts(["A", "B"], ["class", "enum"]);
+    let rows: Array<String> = ["A"];
+    let view: View = Checked(facts, rows);
+    Print(view.ids[0]);
+    return 0;
+}

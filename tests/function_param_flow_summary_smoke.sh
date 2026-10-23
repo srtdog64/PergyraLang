@@ -101,6 +101,9 @@ landed_clones = {
         "FormalStringStoreBatchApply": 3},
     "formal_string_store_multiple_formals_batch_valid": {
         "FormalStringStoreMultiApply": 4},
+    "formal_string_store_cross_routine_batch_valid": {
+        "FormalStringStoreCrossRoutineFirst": 1,
+        "FormalStringStoreCrossRoutineSecond": 1},
     "formal_string_store_batch_boundary_valid": {
         "FormalStringStoreBoundaryApply": 2},
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
@@ -235,6 +238,7 @@ landing_rounds = {
     "string_copy_landing_function_boundary_valid": 2,
     "formal_string_store_same_routine_batch_valid": 1,
     "formal_string_store_multiple_formals_batch_valid": 1,
+    "formal_string_store_cross_routine_batch_valid": 1,
     "formal_string_store_batch_boundary_valid": 2,
     "output_field_store_of_ref_formal_landed_valid": 1,
     "inout_self_assignment_lands_nothing_valid": 0,
@@ -253,6 +257,7 @@ landing_rounds = {
     "string_inout_returned_literal_then_own_release_landed_valid": 1,
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
     "moved_argument_two_branches_landed_valid": 1,
+    "moved_argument_chain_batch_landed_valid": 1,
     "by_value_getter_lend_into_own_formal_landed_valid": 1,
     "returned_alias_lends_formal_valid": 0,
     "loan_carrier_unchanged_by_call_before_loan_valid": 0,
@@ -629,6 +634,9 @@ release_lifetime_refusals = {
     "text_builder_append_of_released_element_invalid": [(*borrow_refusal, 10, 31)],
     # One map of Arrays in two parts of a value: no copy can stand in.
     "one_storage_in_two_array_map_parts_invalid": [(*released_refusal, 11, 26)],
+    # Snapshot currentness must not replay ownership early. The actual owned
+    # element consumer still replays the receipt and emits this refusal.
+    "constructor_string_field_snapshot_before_finalize_invalid": [(*borrow_refusal, 14, 6)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
@@ -1197,6 +1205,7 @@ paired = (
     ("distinct_fields_of_a_local_copy_in_two_parts_valid", True),
     ("one_storage_in_two_map_parts_landed_valid", True),
     ("one_storage_in_two_array_map_parts_invalid", False),
+    ("constructor_string_field_snapshot_before_finalize_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -1381,6 +1390,7 @@ paired = (
     ("string_copy_landing_function_boundary_valid", True),
     ("formal_string_store_same_routine_batch_valid", True),
     ("formal_string_store_multiple_formals_batch_valid", True),
+    ("formal_string_store_cross_routine_batch_valid", True),
     ("formal_string_store_batch_boundary_valid", True),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
@@ -1525,6 +1535,7 @@ paired = (
     ("inout_self_assignment_lands_nothing_valid", True),
     ("borrowed_inout_array_kept_in_result_landed_valid", True),
     ("moved_argument_two_branches_landed_valid", True),
+    ("moved_argument_chain_batch_landed_valid", True),
     ("by_value_getter_lend_into_own_formal_landed_valid", True),
     ("returned_alias_lends_formal_valid", True),
     ("lent_path_copy_grown_landed_valid", True),
@@ -2209,6 +2220,7 @@ for name, expected in (
     ("string_copy_landing_function_boundary_valid", "ABCD"),
     ("formal_string_store_same_routine_batch_valid", "a1b2c3"),
     ("formal_string_store_multiple_formals_batch_valid", "domainTypeOpSymbol"),
+    ("formal_string_store_cross_routine_batch_valid", "firstsecond"),
     ("formal_string_store_batch_boundary_valid", "1\nab"),
     ("formal_string_store_landing_ref_push_valid", "2ba"),
     ("formal_string_store_landing_map_array_set_valid", "2tt"),
@@ -2336,6 +2348,7 @@ for name, expected in (
     ("inout_self_assignment_lands_nothing_valid", "1"),
     ("borrowed_inout_array_kept_in_result_landed_valid", "23"),
     ("moved_argument_two_branches_landed_valid", "21"),
+    ("moved_argument_chain_batch_landed_valid", "2221"),
     ("by_value_getter_lend_into_own_formal_landed_valid", "1"),
     ("returned_alias_lends_formal_valid", "22"),
     ("lent_path_copy_grown_landed_valid", "75"),

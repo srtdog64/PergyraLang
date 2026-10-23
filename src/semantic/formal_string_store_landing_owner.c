@@ -112,6 +112,19 @@ bool semantic_formal_string_store_landing_record_risk_owner(
     return true;
 }
 
+bool semantic_formal_string_store_landing_current_routine_seeded(
+    const SemanticContext *ctx)
+{
+    uint32_t routine_id = ctx != NULL && ctx->current_function_decl != NULL
+        && ctx->current_function_decl->type == AST_FUNC_DECL
+        ? ast_node_stable_id(ctx->current_function_decl) : 0;
+    if (routine_id == 0) return false;
+    for (size_t i = 0; i < ctx->string_store_landing_selected_count; i++)
+        if (ctx->string_store_landing_selected_routines[i] == routine_id)
+            return true;
+    return false;
+}
+
 /* The element type of a store receiver that is an Array path, from its
  * declarations: a planned push of a String the value does not name as a
  * formal path is still a String push, though the value is not checked yet. */

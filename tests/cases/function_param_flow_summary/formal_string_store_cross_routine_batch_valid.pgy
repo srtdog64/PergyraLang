@@ -1,0 +1,46 @@
+// Both routines have an exact risk-owner receipt in the same analysis. Their
+// independent ArraySet copies land together instead of requiring one complete
+// whole-program reload per routine.
+struct FormalStringStoreCrossRoutineRows {
+    names: Array<String>;
+}
+
+struct FormalStringStoreCrossRoutineFact {
+    name: String;
+}
+
+func FormalStringStoreCrossRoutineFirst(
+    rows: FormalStringStoreCrossRoutineRows,
+    ref fact: FormalStringStoreCrossRoutineFact
+) -> FormalStringStoreCrossRoutineRows {
+    let names: Array<String> = rows.names;
+    ArraySet(names, 0, fact.name);
+    return FormalStringStoreCrossRoutineRows(names);
+}
+
+func FormalStringStoreCrossRoutineSecond(
+    rows: FormalStringStoreCrossRoutineRows,
+    ref fact: FormalStringStoreCrossRoutineFact
+) -> FormalStringStoreCrossRoutineRows {
+    let names: Array<String> = rows.names;
+    ArraySet(names, 0, fact.name);
+    return FormalStringStoreCrossRoutineRows(names);
+}
+
+func Main() -> Int {
+    let first: FormalStringStoreCrossRoutineRows =
+        FormalStringStoreCrossRoutineRows(Clone(["x"]));
+    let second: FormalStringStoreCrossRoutineRows =
+        FormalStringStoreCrossRoutineRows(Clone(["y"]));
+    let first_fact: FormalStringStoreCrossRoutineFact =
+        FormalStringStoreCrossRoutineFact("first");
+    let second_fact: FormalStringStoreCrossRoutineFact =
+        FormalStringStoreCrossRoutineFact("second");
+    let first_result: FormalStringStoreCrossRoutineRows =
+        FormalStringStoreCrossRoutineFirst(first, first_fact);
+    let second_result: FormalStringStoreCrossRoutineRows =
+        FormalStringStoreCrossRoutineSecond(second, second_fact);
+    Print(first_result.names[0]);
+    Print(second_result.names[0]);
+    return 0;
+}

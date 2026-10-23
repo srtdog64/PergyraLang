@@ -97,6 +97,17 @@ static bool state_union(MoveWalk *walk, MoveState *into, const MoveState *from)
     return true;
 }
 
+static void state_remove_at(MoveState *state, size_t at)
+{
+    if (state == NULL || at >= state->count) return;
+    free(state->rows[at].fields);
+    free(state->rows[at].carrier_fields);
+    if (at + 1 < state->count)
+        memmove(&state->rows[at], &state->rows[at + 1],
+            (state->count - at - 1) * sizeof(*state->rows));
+    state->count--;
+}
+
 bool move_walk_path_contains(const char *prefix, const char *fields)
 {
     size_t n = strlen(prefix);
@@ -158,9 +169,9 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
     return admitted;
 }
 
-static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
+static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
 {
-    if (lent_use_admitted(walk, moved)) return;
+    if (lent_use_admitted(walk, moved)) return false;
     /* The refusal stands in this analysis; a next one copies each refused
      * loan: where it is made when its owner changed, where it leaves when it
      * left and a copy can stand in there, and otherwise where it is made. */
@@ -176,9 +187,16 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
      * argument used again is copied where the call takes it
      * (2026-10-22_moved_argument_used_again_is_copied). */
     if (moved->callee == NULL && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
-    if (moved->argument != NULL && !semantic_loan_copy_landing_select_carrier(walk->ctx, moved->argument))
-        walk->failed = true;
-    if (!move_walk_reported_once(walk, node)) return;
+    bool argument_copy_planned = false;
+    if (moved->argument != NULL) {
+        if (!semantic_loan_copy_landing_select_carrier(
+                walk->ctx, moved->argument))
+            walk->failed = true;
+        argument_copy_planned = !walk->failed
+            && semantic_loan_copy_landing_selected(
+                walk->ctx, moved->argument);
+    }
+    if (!move_walk_reported_once(walk, node)) return argument_copy_planned;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
@@ -190,28 +208,67 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         name = display;
     }
     if (moved->callee == NULL) {
-        semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
-            PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
-            "'%s' shares its storage with the copy made on line %u, and one of them changed it.\n"
-            "Reason:\n"
-            "- a copy of a struct or collection value shares the storage it holds\n"
-            "- after one side grows or changes that storage, the other may read freed storage\n"
-            "Fix:\n"
-            "- change only one of the two while the other is still used\n"
-            "- or build the copy from fresh values",
-            name != NULL ? name : "value", moved->lending_call->line);
-        return;
+        if (argument_copy_planned) {
+            semantic_loan_copy_landing_error_with_hints(walk->ctx,
+                PGY_CODE_SEM_MOVE_FROM_RELEASED,
+                PGY_CAUSE_MOVE_FROM_RELEASED,
+                PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
+                "'%s' shares its storage with the copy made on line %u, and one of them changed it.\n"
+                "Reason:\n"
+                "- a copy of a struct or collection value shares the storage it holds\n"
+                "- after one side grows or changes that storage, the other may read freed storage\n"
+                "Fix:\n"
+                "- change only one of the two while the other is still used\n"
+                "- or build the copy from fresh values",
+                name != NULL ? name : "value", moved->lending_call->line);
+            semantic_loan_copy_landing_refusal_tail_seal(walk->ctx);
+        } else {
+            semantic_error_with_hints(walk->ctx,
+                PGY_CODE_SEM_MOVE_FROM_RELEASED,
+                PGY_CAUSE_MOVE_FROM_RELEASED,
+                PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
+                "'%s' shares its storage with the copy made on line %u, and one of them changed it.\n"
+                "Reason:\n"
+                "- a copy of a struct or collection value shares the storage it holds\n"
+                "- after one side grows or changes that storage, the other may read freed storage\n"
+                "Fix:\n"
+                "- change only one of the two while the other is still used\n"
+                "- or build the copy from fresh values",
+                name != NULL ? name : "value", moved->lending_call->line);
+        }
+        return argument_copy_planned;
     }
-    semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
-        PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
-        "'%s' was moved into '%s' and cannot be used again.\n"
-        "Reason:\n"
-        "- parameter '%s' of '%s' changes or returns the storage it receives\n"
-        "- the caller's copy shares that storage, so it may already be freed or changed\n"
-        "Fix:\n"
-        "- reassign the value from the call result, as in x = %s(x)\n"
-        "- or pass a fresh value to the call",
-        name != NULL ? name : "value", moved->callee, moved->param, moved->callee, moved->callee);
+    if (argument_copy_planned) {
+        semantic_loan_copy_landing_error_with_hints(walk->ctx,
+            PGY_CODE_SEM_MOVE_FROM_RELEASED,
+            PGY_CAUSE_MOVE_FROM_RELEASED,
+            PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
+            "'%s' was moved into '%s' and cannot be used again.\n"
+            "Reason:\n"
+            "- parameter '%s' of '%s' changes or returns the storage it receives\n"
+            "- the caller's copy shares that storage, so it may already be freed or changed\n"
+            "Fix:\n"
+            "- reassign the value from the call result, as in x = %s(x)\n"
+            "- or pass a fresh value to the call",
+            name != NULL ? name : "value", moved->callee, moved->param,
+            moved->callee, moved->callee);
+        semantic_loan_copy_landing_refusal_tail_seal(walk->ctx);
+    } else {
+        semantic_error_with_hints(walk->ctx,
+            PGY_CODE_SEM_MOVE_FROM_RELEASED,
+            PGY_CAUSE_MOVE_FROM_RELEASED,
+            PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, (ASTNode *)node,
+            "'%s' was moved into '%s' and cannot be used again.\n"
+            "Reason:\n"
+            "- parameter '%s' of '%s' changes or returns the storage it receives\n"
+            "- the caller's copy shares that storage, so it may already be freed or changed\n"
+            "Fix:\n"
+            "- reassign the value from the call result, as in x = %s(x)\n"
+            "- or pass a fresh value to the call",
+            name != NULL ? name : "value", moved->callee, moved->param,
+            moved->callee, moved->callee);
+    }
+    return argument_copy_planned;
 }
 
 static ParamMode
@@ -230,12 +287,12 @@ routine_param_mode(const ASTNode *routine, uint32_t binding, bool *found)
 }
 
 /* A use of `node` conflicts with a moved path when either contains the other. */
-static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *node)
+static void check_use(MoveWalk *walk, MoveState *state, const ASTNode *node)
 {
     char fields[512];
     uint32_t binding = 0;
     if (!move_walk_access_path(node, &binding, fields, sizeof(fields))) return;
-    for (size_t i = 0; i < state->count; i++) {
+    for (size_t i = 0; i < state->count;) {
         const MovedPath *moved = &state->rows[i];
         if (moved->carrier == 0 && moved->binding == binding &&
             (move_walk_path_contains(moved->fields, fields) || move_walk_path_contains(fields, moved->fields))) {
@@ -252,9 +309,17 @@ static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *nod
                 node == ast_call_argument(walk->argument_call, walk->argument_ordinal) &&
                 strlen(moved->fields) > length && move_walk_path_contains(fields, moved->fields) &&
                 function_param_read_paths_miss(walk->ctx, walk->argument_call, walk->argument_ordinal,
-                    moved->fields + length)) continue;
-            refuse_use(walk, node, moved);
+                    moved->fields + length)) { i++; continue; }
+            if (refuse_use(walk, node, moved)) {
+                /* The current analysis remains deferred, but its exact plan
+                 * will wrap this moving argument in Clone before any result
+                 * is consumed. Model that promised next analysis now so a
+                 * later move of the same place is selected in this batch. */
+                state_remove_at(state, i);
+                continue;
+            }
         }
+        i++;
     }
 }
 
@@ -265,14 +330,18 @@ static void reinitialize(MoveWalk *walk, MoveState *state, ASTNode *target)
     char fields[512];
     uint32_t binding = 0;
     if (!move_walk_access_path(target, &binding, fields, sizeof(fields))) return;
-    for (size_t i = 0; i < state->count; i++) {
+    for (size_t i = 0; i < state->count;) {
         MovedPath *moved = &state->rows[i];
         /* Writing a part of a moved value writes into freed storage. */
         if (moved->carrier == 0 && moved->binding == binding && move_walk_path_contains(moved->fields, fields) &&
             strcmp(moved->fields, fields) != 0) {
-            refuse_use(walk, target, moved);
+            if (refuse_use(walk, target, moved)) {
+                state_remove_at(state, i);
+                continue;
+            }
             return;
         }
+        i++;
     }
     size_t kept = 0;
     for (size_t i = 0; i < state->count; i++) {
@@ -310,7 +379,12 @@ static bool walk_children(MoveWalk *walk, MoveState *state, ASTNode *node, bool 
     if (!supported || count == SIZE_MAX) {
         /* A construct whose children this owner cannot enumerate may use a
          * moved value; refuse while any move is live rather than skip it. */
-        for (size_t i = 0; i < state->count; i++) if (state->rows[i].carrier == 0) refuse_use(walk, node, &state->rows[i]);
+        for (size_t i = 0; i < state->count;)
+            if (state->rows[i].carrier == 0
+                && refuse_use(walk, node, &state->rows[i]))
+                state_remove_at(state, i);
+            else
+                i++;
         return !walk->failed;
     }
     for (size_t c = 0; c < count && !*terminated; c++) {
