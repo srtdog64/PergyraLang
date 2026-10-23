@@ -15,8 +15,10 @@
 
 #include "codegen_scalar_arithmetic_policy.h"
 #include "llvm_backend_type_map_internal.h"
+#include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "../parser/ast_api.h"
 
 static LLVMTypeRef
@@ -371,27 +373,22 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         return phi;
     }
 
-    LLVMValueRef left  = llvm_emit_expression(left_expr, ctx);
-    LLVMValueRef right = llvm_emit_expression(right_expr, ctx);
-    if (left == NULL || right == NULL)
-        return llvm_scalar_expr_error(ctx, node,
-            "LLVM binary expression could not lower operand expression");
-
-    LLVMTypeRef left_type  = LLVMTypeOf(left);
-    LLVMTypeRef right_type = LLVMTypeOf(right);
-
+    /* A nominal operand can be resolved without loading/copying its storage.
+     * Otherwise resolve from its emitted value, retaining it for the call so
+     * a nested operator result is not mistaken for that operator's receiver. */
+    LLVMValueRef left = NULL;
     {
         const char *suffix = pgy_operator_overload_suffix(
             op_type);
-        const char *type_name = llvm_expr_custom_type_name(
-            left_expr, ctx);
-
-        if (type_name == NULL && left_type == right_type) {
-            const char *primitive_suffix = llvm_type_to_suffix(ctx, left_type);
-            if (primitive_suffix != NULL
-                && strcmp(primitive_suffix, "Unknown") != 0) {
-                type_name = primitive_suffix;
-            }
+        const char *type_name = llvm_expr_custom_type_name(left_expr, ctx);
+        if (type_name == NULL) {
+            left = llvm_emit_expression(left_expr, ctx);
+            if (left == NULL)
+                return llvm_scalar_expr_error(ctx, node,
+                    "LLVM binary expression could not lower left operand");
+            const char *primitive = llvm_type_to_suffix(ctx, LLVMTypeOf(left));
+            if (primitive != NULL && strcmp(primitive, "Unknown") != 0)
+                type_name = primitive;
         }
 
         if (type_name != NULL && suffix != NULL) {
@@ -413,17 +410,54 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             snprintf(fn_name, fn_len, "operator_%s_%s", suffix, type_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             if (fn != NULL) {
-                LLVMValueRef args[] = { left, right };
-                if (fn->ret_type == ctx->type_void) {
-                    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                /* Nested argument emission can grow the function registry. */
+                LLVMFuncEntry target = *fn;
+                ASTNode *decl = llvm_find_decl_in_active_inventory(
+                    ctx, AST_FUNC_DECL, fn_name);
+                ASTNode *operands[2] = {left_expr, right_expr};
+                LLVMValueRef role_args[2];
+                LLVMValueRef *args;
+                unsigned argc = 2;
+                if (decl != NULL) {
+                    LLVMValueRef evaluated_values[2] = {left, NULL};
+                    args = llvm_build_boundary_call_args(
+                        ctx, decl, NULL, operands, 2, evaluated_values, &argc);
+                    if (args == NULL)
+                        return llvm_scalar_expr_error(ctx, node,
+                            "LLVM operator arguments require the admitted function ABI");
+                } else {
+                    /* A role bridge has a value receiver, not a free routine's
+                     * subject parameter ABI. Keep that existing contract. */
+                    role_args[0] = left != NULL
+                        ? left : llvm_emit_expression(left_expr, ctx);
+                    role_args[1] = role_args[0] != NULL
+                        ? llvm_emit_expression(right_expr, ctx) : NULL;
+                    if (role_args[0] == NULL || role_args[1] == NULL)
+                        return llvm_scalar_expr_error(ctx, node,
+                            "LLVM role operator could not lower operand expression");
+                    args = role_args;
+                }
+                if (target.ret_type == ctx->type_void) {
+                    LLVMBuildCall2(ctx->builder, target.fn_type, target.fn, args, argc, "");
                     return llvm_void_expression_placeholder(ctx, node,
                         "operator-overload-call");
                 }
-                return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-                                      args, 2, llvm_tmp_name(ctx));
+                return LLVMBuildCall2(ctx->builder, target.fn_type, target.fn,
+                                      args, argc, llvm_tmp_name(ctx));
             }
         }
     }
+
+    if (left == NULL)
+        left = llvm_emit_expression(left_expr, ctx);
+    LLVMValueRef right = left != NULL
+        ? llvm_emit_expression(right_expr, ctx) : NULL;
+    if (left == NULL || right == NULL)
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM binary expression could not lower operand expression");
+
+    LLVMTypeRef left_type  = LLVMTypeOf(left);
+    LLVMTypeRef right_type = LLVMTypeOf(right);
 
     if (op_type == TOKEN_PLUS
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {

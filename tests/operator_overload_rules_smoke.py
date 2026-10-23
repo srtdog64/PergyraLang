@@ -12,6 +12,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+from operator_subject_abi_fixtures import fixtures as subject_fixtures
+
 
 RULES = [
     ("+", "add", "Add add OperatorAdd operator_add"),
@@ -41,6 +43,7 @@ role R{type_name} for {type_name} {{
 
 
 def fixtures():
+    yield from subject_fixtures()
     for variant in range(8):
         declarations, calls, want = [], [], []
         for index, (op, _, aliases) in enumerate(RULES):
@@ -109,12 +112,15 @@ func Main() -> Void { Log(Box(1) + 2); }
 
 
 def check_result(label, backend, result, exe, want):
-    if want is None:
+    if not isinstance(want, str):
+        diagnostic = want if want is not None else {
+            "stage": "semantic", "code": "PGY_SEM_BINOP_TYPE_MISMATCH",
+        }
+        diagnostic = diagnostic.get(backend, diagnostic)
         if result.returncode == 0 or exe.exists():
             raise AssertionError(f"{label}/{backend}: invalid overload admitted")
         diagnostics = json.loads(result.stderr)
-        if not any(row.get("stage") == "semantic"
-                   and row.get("code") == "PGY_SEM_BINOP_TYPE_MISMATCH"
+        if not any(all(row.get(key) == value for key, value in diagnostic.items())
                    for row in diagnostics):
             raise AssertionError(f"{label}/{backend}: wrong rejection: {result.stderr}")
     else:
@@ -162,14 +168,14 @@ def main():
                 except (AssertionError, json.JSONDecodeError) as error:
                     failures.append(f"{label}/{backend}: {error}")
                 else:
-                    passed += want is not None
-                    rejected += want is None
+                    passed += isinstance(want, str)
+                    rejected += not isinstance(want, str)
         if failures:
             raise SystemExit("\n".join(failures) +
                              f"\n[operator-rules] {len(failures)} failed; "
                              f"{passed} runtime, {rejected} rejection cases passed")
-        scope = args.case or "72 role aliases + 11 free suffixes"
-        print(f"[operator-rules] {passed} exact-output runs, {rejected} semantic rejections "
+        scope = args.case or "role aliases, free suffixes and subject ABI"
+        print(f"[operator-rules] {passed} exact-output runs, {rejected} diagnostic rejections "
               f"PASS ({', '.join(backends)}; {scope})")
 
 

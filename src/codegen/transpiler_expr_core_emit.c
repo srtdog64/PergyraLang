@@ -58,8 +58,11 @@ transpiler_binary_emit_operand(TranspilerCtx *ctx,
 
 static char *
 transpiler_binary_operation(ASTNode *expr, TranspilerCtx *ctx,
-                            const char *left, const char *right)
+                            const char *left, const char *right,
+                            ASTNode **out_overload)
 {
+    if (out_overload != NULL)
+        *out_overload = NULL;
     ASTNode *left_expr = ast_binary_left(expr);
     ASTNode *right_expr = ast_binary_right(expr);
     PgyTokenType op_type = ast_binary_operator(expr).type;
@@ -132,6 +135,8 @@ transpiler_binary_operation(ASTNode *expr, TranspilerCtx *ctx,
 
         overload = find_operator_overload_decl(ctx, stable_lt, op_type);
         if (overload != NULL) {
+            if (out_overload != NULL)
+                *out_overload = overload;
             const char *suffix = pgy_operator_overload_suffix(op_type);
             char *operator_name = strdup_fmt("operator_%s_%s",
                 suffix, stable_lt);
@@ -218,7 +223,7 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
     if (op == TOKEN_AND || op == TOKEN_OR || op == TOKEN_COALESCE
         || (transpiler_binary_literal_operand(left_expr)
             && transpiler_binary_literal_operand(right_expr))) {
-        result = transpiler_binary_operation(expr, ctx, left, right);
+        result = transpiler_binary_operation(expr, ctx, left, right, NULL);
     } else {
         char *names[2] = {NULL, NULL};
         for (unsigned i = 0; i < 2; ++i) {
@@ -235,9 +240,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
                      || strstr(right, names[i]) != NULL);
         }
         if (names[0] != NULL && names[1] != NULL) {
+            ASTNode *overload = NULL;
             char *operation = transpiler_binary_operation(
-                expr, ctx, names[0], names[1]);
-            if (operation != NULL)
+                expr, ctx, names[0], names[1], &overload);
+            if (operation != NULL && transpiler_operator_prepare_arguments(
+                    ctx, expr, overload, &left, &right))
                 result = strdup_fmt(
                     "({ __auto_type %s = (%s); __auto_type %s = (%s); %s; })",
                     names[0], left, names[1], right, operation);

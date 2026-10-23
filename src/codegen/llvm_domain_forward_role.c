@@ -218,7 +218,10 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
             for_type_name);
         return false;
     }
-    if (llvm_lookup_function(ctx, opname) != NULL)
+    /* A free routine may not have been forward-declared yet. Its admitted
+     * signature still owns the symbol, including subject pointer carriage. */
+    if (llvm_decl_exists_in_context(ctx, AST_FUNC_DECL, opname)
+        || llvm_lookup_function(ctx, opname) != NULL)
         return true;
 
     if (!llvm_mir_decl_method_metadata_complete_for(ctx,

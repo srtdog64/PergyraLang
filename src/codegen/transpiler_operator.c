@@ -6,13 +6,86 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../compiler/mir_decl_headers.h"
 #include "../semantic/operator_overload_rules.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_call_subject_arg_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_operator.h"
+
+/* Match the free function's ABI before the binary owner sequences operands.
+ * Role bridges keep their own value-receiver ABI. The input texts still name
+ * original storage (or a constructor compound literal), never copied locals. */
+bool
+transpiler_operator_prepare_arguments(TranspilerCtx *ctx,
+                                      ASTNode *expr, ASTNode *decl,
+                                      char **left, char **right)
+{
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return true;
+    const MIRRoutine *routine = transpiler_find_mir_function(ctx, decl);
+    bool is_extern = transpiler_decl_is_extern_function(ctx, decl);
+    if (!is_extern && !transpiler_mir_routine_signature_metadata_complete_for(
+            ctx, routine, decl, TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
+            "MIR-only C path missing operator signature for '%s'", NULL,
+            "MIR-only C path missing operator parameter type for '%s'"))
+        return false;
+    size_t count = is_extern ? ast_func_param_count(decl)
+        : transpiler_mir_routine_param_count(routine);
+    if (count != 2) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C operator '%s' requires two admitted parameters",
+            ast_declaration_name(decl));
+        return false;
+    }
+    ASTNode *nodes[2] = {ast_binary_left(expr), ast_binary_right(expr)};
+    char **texts[2] = {left, right};
+    for (size_t i = 0; i < 2; i++) {
+        FuncParam *param = is_extern ? ast_func_param(decl, i)
+            : transpiler_mir_routine_param(routine, i);
+        const char *type = is_extern ? NULL
+            : transpiler_mir_routine_param_type_name(routine, i);
+        if (param == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "C operator '%s' is missing parameter ABI metadata",
+                ast_declaration_name(decl));
+            return false;
+        }
+        MIRParamCarriage carriage = is_extern
+            ? mir_param_carriage_from_source_mode(param->mode)
+            : transpiler_mir_routine_param_carriage(routine, i);
+        if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            && nodes[i]->type != AST_IDENTIFIER
+            && nodes[i]->type != AST_MEMBER_ACCESS
+            && nodes[i]->type != AST_ARRAY_ACCESS) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                "C operator argument %zu requires assignable inout storage", i + 1);
+            return false;
+        }
+        bool indirect = !is_extern
+            && transpiler_mir_routine_param_passes_indirect(routine, i);
+        if (indirect || carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            || transpiler_call_arg_needs_subject_address(
+                ctx, param, type, NULL, NULL)) {
+            char *address = transpiler_call_arg_address(
+                ctx, nodes[i], *texts[i], ast_declaration_name(decl), i);
+            if (address == NULL)
+                return false;
+            free(*texts[i]);
+            *texts[i] = address;
+        }
+    }
+    return true;
+}
 
 ASTNode *
 find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
