@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
+void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
     uint64_t *destinations, bool member_qualifier)
 {
     if (value == NULL || state->fact->analysis_unsupported) return;
