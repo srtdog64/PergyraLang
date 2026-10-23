@@ -186,6 +186,9 @@ landed_clones = {
     # One Array to several keeping formals of a call: each earlier argument is copied.
     "array_handed_to_two_keeping_formals_landed_valid": {"Build": 1},
     "array_handed_to_three_keeping_formals_landed_valid": {"Main": 2},
+    # Detaching and retiring an inout aggregate's fields moves the caller's
+    # original value; its later-used shallow alias becomes independent.
+    "array_field_detach_caller_alias_landed_valid": {"Main": 1},
     # One storage in two parts of a value: the earlier part is copied.
     "one_storage_in_two_constructor_parts_returned_landed_valid": {"Make": 1},
     "one_storage_through_alias_in_two_parts_landed_valid": {"Make": 1},
@@ -257,6 +260,8 @@ landing_rounds = {
     "by_value_array_to_two_reading_formals_valid": 0,
     "array_handed_to_two_keeping_formals_landed_valid": 1,
     "array_handed_to_three_keeping_formals_landed_valid": 1,
+    "array_field_detach_two_own_valid": 0,
+    "array_field_detach_caller_alias_landed_valid": 1,
     "one_storage_in_two_constructor_parts_returned_landed_valid": 1,
     "one_storage_through_alias_in_two_parts_landed_valid": 1,
     "one_storage_in_two_literal_elements_landed_valid": 1,
@@ -835,6 +840,8 @@ paired = (
     ("array_field_detach_partial_branch_own_invalid", False),
     ("array_field_detach_opaque_hold_own_invalid", False),
     ("array_field_detach_live_root_alias_own_invalid", False),
+    ("array_field_detach_two_own_valid", True),
+    ("array_field_detach_caller_alias_landed_valid", True),
     ("array_alias_then_numeric_cast_invalid", False),
     ("array_string_member_live_root_own_invalid", False),
     ("array_string_member_cross_field_own_invalid", False),
@@ -2226,6 +2233,8 @@ for name, expected in (
     ("by_value_array_to_two_reading_formals_valid", "32"),
     ("array_handed_to_two_keeping_formals_landed_valid", "1"),
     ("array_handed_to_three_keeping_formals_landed_valid", "102"),
+    ("array_field_detach_two_own_valid", "1\n1\n0\n0\n"),
+    ("array_field_detach_caller_alias_landed_valid", "1110"),
     ("one_storage_in_two_constructor_parts_returned_landed_valid", "211"),
     ("one_storage_through_alias_in_two_parts_landed_valid", "211"),
     ("one_storage_in_two_literal_elements_landed_valid", "22"),

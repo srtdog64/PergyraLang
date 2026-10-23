@@ -1,0 +1,33 @@
+// Retire detaches both fields and consumes their old storage. The caller's
+// shallow aggregate alias is used afterwards, so the move owner must land
+// one whole-value Clone at that alias before the inout call can release the
+// original fields.
+struct State { ids: Array<Int>; invalid: Array<Bool>; }
+
+func SinkIds(own ids: Array<Int>) -> Void {
+    Print(ToString(ArrayLength(ids)));
+    ArrayDrop(ids);
+}
+
+func SinkInvalid(own invalid: Array<Bool>) -> Void {
+    Print(ToString(ArrayLength(invalid)));
+    ArrayDrop(invalid);
+}
+
+func Retire(inout state: State) -> Void {
+    let ids: Array<Int> = state.ids;
+    let invalid: Array<Bool> = state.invalid;
+    state.ids = [];
+    state.invalid = [];
+    SinkIds(ids);
+    SinkInvalid(invalid);
+}
+
+func Main() -> Int {
+    let state: State = State([7], [true]);
+    let alias: State = state;
+    Retire(state);
+    Print(ToString(ArrayLength(alias.ids)));
+    Print(ToString(ArrayLength(state.ids)));
+    return 0;
+}

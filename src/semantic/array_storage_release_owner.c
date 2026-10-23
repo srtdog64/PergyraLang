@@ -383,9 +383,13 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     if (mode == PARAM_MODE_OWN && array && binding != NULL
         && binding->array_storage_member_move_source != NULL) {
         size_t owned_formal = 0;
-        bool releases = exact_named
-            && semantic_param_publication_formal_for_actual(
-                ctx, call, ordinal, &owned_formal)
+        bool mapped = exact_named
+            && (semantic_param_publication_pending(ctx)
+                ? semantic_param_publication_selected_formal_for_actual(
+                    ctx, call, callee_decl, ordinal, &owned_formal)
+                : semantic_param_publication_formal_for_actual(
+                    ctx, call, ordinal, &owned_formal));
+        bool releases = mapped
             && semantic_collection_owned_parameter_releases_storage(
                 ctx, callee_decl, owned_formal);
         if (!releases) {
