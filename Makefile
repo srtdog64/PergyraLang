@@ -713,6 +713,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_publication_private_array_mutation.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_flow_claim_publication.c \
+                   $(SEMANTIC_DIR)/function_param_flow_loan_order.c \
                    $(SEMANTIC_DIR)/function_param_publication_owner.c \
                    $(SEMANTIC_DIR)/function_param_publication_values.c \
                    $(SEMANTIC_DIR)/function_param_publication_routines.c \

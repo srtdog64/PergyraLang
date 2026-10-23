@@ -183,6 +183,7 @@ landing_rounds = {
     "loan_read_last_before_owner_changed_valid": 0,
     "loan_carrier_handed_on_by_early_return_valid": 0,
     "loan_carrier_read_into_returned_constructor_valid": 0,
+    "loan_payload_bound_by_match_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -398,10 +399,11 @@ release_lifetime_refusals = {
     # would remain.
     "owned_param_field_store_ref_return_invalid": [
         (*borrow_refusal, 0, 0), (*borrow_refusal, 17, 23)],
-    # Route's enum payload lends the ref input; Main's call is refused for
-    # that loan (31:28). An enum constructor without its result relation
+    # Route's enum payload lends the ref input, and a case body replaces
+    # Main's admission while the payload lives; Main's call is refused for
+    # that loan (32:28). An enum constructor without its result relation
     # would lend nothing and lose the refusal.
-    "enum_payload_constructor_ref_field_return_invalid": [(*borrow_refusal, 31, 28)],
+    "enum_payload_constructor_ref_field_owner_changed_invalid": [(*borrow_refusal, 32, 28)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -489,6 +491,9 @@ release_lifetime_refusals = {
     # A value built from a carrier holds the loan: given to a callee that
     # writes it, the loan leaves into a writer.
     "loan_carrier_read_into_constructor_a_callee_writes_invalid": [(*released_refusal, 38, 39)],
+    # A payload a match binds carries the subject's loan: written, it changes
+    # the owner the subject lends.
+    "loan_payload_bound_by_match_written_invalid": [(*released_refusal, 32, 47), (*released_refusal, 35, 36)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1026,6 +1031,8 @@ paired = (
     ("loan_carrier_handed_into_output_before_owner_changed_invalid", False),
     ("loan_carrier_read_into_returned_constructor_valid", True),
     ("loan_carrier_read_into_constructor_a_callee_writes_invalid", False),
+    ("loan_payload_bound_by_match_valid", True),
+    ("loan_payload_bound_by_match_written_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -1368,7 +1375,8 @@ paired = (
     ("defer_array_drop_lambda_reads_valid", True),
     ("defer_array_drop_struct_reader_valid", True),
     ("defer_array_drop_lambda_kept_invalid", False),
-    ("enum_payload_constructor_ref_field_return_invalid", False),
+    ("enum_payload_constructor_ref_field_return_valid", True),
+    ("enum_payload_constructor_ref_field_owner_changed_invalid", False),
     ("by_value_getter_lend_valid", True),
     ("by_value_getter_lend_local_valid", True),
     ("by_value_getter_lend_forward_valid", True),
@@ -2052,6 +2060,7 @@ for name, expected in (
     ("by_value_getter_lend_string_reassigned_valid", "ab!1ab"),
     ("by_value_getter_result_local_returned_valid", "6"),
     ("constructor_of_getter_result_returned_valid", "7"),
+    ("enum_payload_constructor_ref_field_return_valid", "owner"),
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),
     ("option_string_result_reassigned_valid", "3ab"),

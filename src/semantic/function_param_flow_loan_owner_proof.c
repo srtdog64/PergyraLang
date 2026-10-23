@@ -12,7 +12,7 @@
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "slot_analyzer_internal.h"
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow_loan_order.h"
 #include "typed_map_query_fact_owner.h"
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +65,10 @@ bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *sto
     for (size_t c = 0; c < claims->count; c++) {
         ASTNode *node = claims->rows[c].node;
         if (span != NULL && function_param_flow_claim_outside_loan(claims, c, span, ast_func_body(caller))) continue;
+        /* A match case pattern binds parts of the subject and evaluates
+         * nothing; its bindings carry what the subject carries, and each
+         * such carrier has a proof of its own. */
+        if (node->type == AST_CALL && function_param_flow_claim_in_match_pattern(claims, c)) continue;
         if (node->type == AST_ASSIGNMENT) {
             const ASTNode *target = NULL;
             if (!function_param_flow_loan_storage_root(store, claims, caller, ast_assignment_target(node), &target) ||

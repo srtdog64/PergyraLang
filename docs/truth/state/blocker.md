@@ -5,8 +5,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-23 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 221 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_carrier_constructor.md)),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 217 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_match_pattern.md)),
 and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
@@ -14,8 +14,8 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
 
 1. **`direct_mir_*` routes:** 42 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (65 outside `direct_mir_*`)**, mostly getter loans whose proof fails, of values `Clone` copies only by value
-   ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md); not changes [before the loan](../decisions/2026-10-23_loan_owner_changes_before_the_loan_do_not_count.md) or [after its locals' statement](../decisions/2026-10-23_loan_ends_with_the_statement_that_holds_its_locals.md), [nor a constructor](../decisions/2026-10-23_constructor_of_loan_owner_fields_reads_the_owner.md) ([of a carrier](../decisions/2026-10-23_carrier_fields_read_into_any_constructor.md)), [nor after the last read](../decisions/2026-10-23_loan_owner_changes_after_the_last_read_do_not_count.md)),
+2. **Moves (61 outside `direct_mir_*`)**, mostly getter loans whose proof fails, of values `Clone` copies only by value
+   ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md); not changes [before the loan](../decisions/2026-10-23_loan_owner_changes_before_the_loan_do_not_count.md) or [after its locals' statement](../decisions/2026-10-23_loan_ends_with_the_statement_that_holds_its_locals.md), [nor a constructor](../decisions/2026-10-23_constructor_of_loan_owner_fields_reads_the_owner.md) ([of a carrier](../decisions/2026-10-23_carrier_fields_read_into_any_constructor.md)), [nor after the last read](../decisions/2026-10-23_loan_owner_changes_after_the_last_read_do_not_count.md), [nor a match pattern](../decisions/2026-10-23_match_pattern_is_no_change_of_a_loan_owner.md)),
    and 25 local copies whose other side changed ([`inout` callees by field](../decisions/2026-10-22_inout_callee_changes_only_the_fields_it_writes.md)), 1 more at an `inout` exit.
    Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)). GPT has the deep `Clone` of String and scalar maps ([request](../../agent_work_directives/hashmap_deep_clone_backend_2026-10-22.md)).
 3. **Borrowed `ref` escapes (18 outside `direct_mir_*`):** `compatibility_view` (4) into `direct_mir_*` and `CompilerArtifactBegin`
