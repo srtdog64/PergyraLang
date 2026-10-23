@@ -22,7 +22,8 @@ for row in \
     local_pair_positive:3,2 \
     distinct_maps_positive:1,0 \
     empty_descriptor_positive:1,0 \
-    explicit_clone_positive:2,1; do
+    explicit_clone_positive:2,1 \
+    sibling_descriptor_copy_positive:99,1; do
     name="${row%%:*}"
     values="${row#*:}"
     printf '%s\n%s\n' "${values%%,*}" "${values#*,}" >"$WORK_DIR/$name.expected"

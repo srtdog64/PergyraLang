@@ -6,6 +6,8 @@
 #include "mir_call_fact.h"
 #include "mir_json_expression_graph_materialize.h"
 #include "mir_source_emit_predicates.h"
+#include "mir_program_fact_validate.h"
+#include "../semantic/slot_summary.h"
 #include "../common/pgy_builtin_type_table.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
@@ -30,16 +32,46 @@ static const BorrowRow borrow_rows[] = {
 
 /* The retention row alone says nothing about a returned view. Require the
  * existing type owner to prove a scalar/Void result as well. */
-static bool scalar_result(const char *name)
+static bool scalar_type(const char *type)
 {
-    const char *type = pgy_builtin_simple_return_type(name);
-    if (builtin_resolve(name) == BUILTIN_ARRAY_PUSH_OWNED_STRING) return true;
     return type != NULL && (strcmp(type, "Void") == 0 || strcmp(type, "Int") == 0 ||
         strcmp(type, "Long") == 0 || strcmp(type, "Bool") == 0 ||
         strcmp(type, "Float") == 0 || strcmp(type, "Double") == 0);
 }
 
-static bool borrowed_argument(const MIRJsonExpressionGraph *g, size_t value)
+static bool declared_argument(const MIRRoutine *caller, uint32_t identity, size_t ordinal, size_t arity)
+{
+    const MIRProgram *program = caller->program;
+    const MIRRoutine *callee = NULL;
+    if (program == NULL || program->routine_count > program->routine_capacity ||
+        (program->routine_count > 0 && program->routines == NULL)) return false;
+    for (size_t r = 0; r < program->routine_count; r++)
+        if (program->routines[r].source_syntax_id == identity) {
+            if (callee != NULL) return false;
+            callee = &program->routines[r];
+        }
+    if (callee == NULL || callee->hir_routine == NULL || callee->kind != MIR_SCOPE_FUNCTION ||
+        callee->is_action_like || callee->owner_name != NULL || !callee->has_signature ||
+        callee->generic_param_count != 0 || callee->param_count != arity || ordinal >= arity ||
+        callee->param_type_names == NULL || callee->param_type_names[ordinal] == NULL ||
+        strcmp(callee->param_type_names[ordinal], "Array<String>") != 0 || callee->param_abi_facts == NULL ||
+        !scalar_type(callee->return_type_name) || callee->return_callable_sig.is_callable ||
+        !mir_validate_function_param_flow_summaries(callee, NULL)) return false;
+    const MIRParamAbiFact *abi = &callee->param_abi_facts[ordinal];
+    if ((abi->carriage != MIR_PARAM_CARRIAGE_VALUE && abi->carriage != MIR_PARAM_CARRIAGE_READONLY_REF) ||
+        abi->resource_kind != MIR_PARAM_RESOURCE_NONE) return false;
+    for (size_t p = 0; p < callee->function_param_flow_summary_count; p++) {
+        const MIRFunctionParamFlowSummary *row = &callee->function_param_flow_summaries[p];
+        if (row->parameter_index == ordinal)
+            /* Own/async formals have no preservation grant from the producer.
+             * An inout formal is excluded by its ABI carriage above. */
+            return row->array_preserved == PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL &&
+                (row->mask & ~(unsigned)SLOT_PARAM_SUMMARY_READ) == 0;
+    }
+    return false;
+}
+
+static bool borrowed_argument(const MIRRoutine *r, const MIRJsonExpressionGraph *g, size_t value)
 {
     for (size_t p = value + 1; p < g->count; p++) {
         const MIRJsonExpressionGraphNode *arg = &g->nodes[p];
@@ -54,16 +86,19 @@ static bool borrowed_argument(const MIRJsonExpressionGraph *g, size_t value)
         if (call < 0 || (size_t)call >= g->count) return false;
         const MIRJsonExpressionGraphNode *node = &g->nodes[call];
         if (strcmp(node->kind, "call") != 0 || strcmp(node->call_target_kind, "direct") != 0 ||
-            node->call_target_syntax_id != 0 || node->left < 0 ||
-            (size_t)node->left >= g->count || g->nodes[node->left].binding_syntax_id != 0 ||
-            g->nodes[node->left].source_binding_syntax_id != 0 ||
-            !scalar_result(node->call_target_name)) return false;
+            node->left < 0 || (size_t)node->left >= g->count) return false;
         size_t arity = ordinal + 1;
         for (size_t q = p + 1; q < g->count; q++)
             if (strcmp(g->nodes[q].kind, "call_argument") == 0 && g->nodes[q].left == (int)p) {
                 arity++;
                 p = q;
             }
+        if (node->call_target_syntax_id != 0)
+            return declared_argument(r, node->call_target_syntax_id, ordinal, arity);
+        if (g->nodes[node->left].binding_syntax_id != 0 ||
+            g->nodes[node->left].source_binding_syntax_id != 0 ||
+            (!scalar_type(pgy_builtin_simple_return_type(node->call_target_name)) &&
+             builtin_resolve(node->call_target_name) != BUILTIN_ARRAY_PUSH_OWNED_STRING)) return false;
         for (size_t row = 0; row < sizeof(borrow_rows) / sizeof(borrow_rows[0]); row++)
             if (strcmp(borrow_rows[row].name, node->call_target_name) == 0 &&
                 (borrow_rows[row].argument == SIZE_MAX || borrow_rows[row].argument == ordinal) &&
@@ -113,7 +148,7 @@ static bool private_uses(const MIRRoutine *r, uint32_t binding, const char *valu
                         graph.nodes[n].source_binding_syntax_id == binding) {
                         source_use = true;
                         if (!region[b] || mir_instruction_source_is_defer_stmt(inst) ||
-                            !borrowed_argument(&graph, n)) valid = false;
+                            !borrowed_argument(r, &graph, n)) valid = false;
                     }
                 mir_json_expression_graph_dispose(&graph);
                 if (!valid) return false;

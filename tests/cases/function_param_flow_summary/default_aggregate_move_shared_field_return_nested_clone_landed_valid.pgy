@@ -1,7 +1,7 @@
-// Keep returns a new Rows built from its by-value argument's fields: the
-// result shares their storage, so growing the result can free the storage
-// the argument still names. Clone does not copy the nested grid whole, so
-// no copy can stand in for the loan and Main's later use of rows is refused.
+// Keep returns a new Rows built from its by-value argument's fields. The
+// result initially shares their storage. Because the concrete Rows layout is
+// copied wholly by both backends, the move owner lands one Clone at the call
+// before kept.ids changes and Main reads rows again.
 struct Rows {
     ids: Array<Int>;
     grid: Array<Array<Int>>;

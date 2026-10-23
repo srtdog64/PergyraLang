@@ -10,20 +10,35 @@ import "expression_normalization_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_identity_fact_owner.pgy";
 
-func SemanticExpressionGraphViewAt(
+// Root-only consumers must not retain or transfer the graph storage.
+func SemanticExpressionGraphRootAt(
     facts: SemanticExpressionGraphFacts,
     surface_index: Int,
     lane: Int
-) -> SemanticExpressionGraphView {
+) -> Option<Int> {
     let root_index: Int = surface_index * 3 + lane;
     if !facts.ok || surface_index < 0 || lane < 0 || lane > 2 ||
         root_index < 0 || root_index >= ArrayLength(facts.roots) ||
         root_index >= ArrayLength(facts.has_roots) ||
         !facts.has_roots[root_index] {
+        return None;
+    }
+    return Some(facts.roots[root_index]);
+}
+
+func SemanticExpressionGraphViewAt(
+    facts: SemanticExpressionGraphFacts,
+    surface_index: Int,
+    lane: Int
+) -> SemanticExpressionGraphView {
+    let root: Option<Int> = SemanticExpressionGraphRootAt(
+        facts, surface_index, lane
+    );
+    if !IsSome(root) {
         return SemanticExpressionGraphView(false, 0, facts);
     }
     return SemanticExpressionGraphView(
-        true, facts.roots[root_index], facts
+        true, UnwrapOption(root), facts
     );
 }
 

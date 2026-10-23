@@ -84,6 +84,9 @@ owned_push_landings = {
 landed_clones = {
     "string_element_tostring_opaque_call_landed_valid": {"Main": 1},
     "string_argument_kept_copy_landed_valid": {"Block": 1},
+    "string_copy_landing_same_function_batch_valid": {"Build": 2},
+    "string_copy_landing_function_boundary_valid": {
+        "BuildFirst": 2, "BuildSecond": 2},
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
     "borrowed_owner_loan_grown_landed_valid": {"Nest": 1},
@@ -182,6 +185,8 @@ landed_at_exit = {
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
     "string_push_after_loop_walk_landed_valid": 1,
+    "string_copy_landing_same_function_batch_valid": 1,
+    "string_copy_landing_function_boundary_valid": 2,
     "output_field_store_of_ref_formal_landed_valid": 1,
     "inout_self_assignment_lands_nothing_valid": 0,
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
@@ -314,12 +319,12 @@ landing_rounds = {
     "formal_store_landing_alias_output_valid": 1,
     "formal_store_landing_struct_output_shallow_invalid": 0,
     "array_push_loan_inout_landed_valid": 1,
-    "array_push_loan_inout_invalid": 0,
+    "array_push_loan_inout_nested_clone_landed_valid": 1,
     "aggregate_move_void_call_landed_valid": 1,
-    "aggregate_move_void_call_invalid": 0,
+    "aggregate_move_void_call_nested_clone_landed_valid": 1,
     "by_value_getter_lend_result_grown_landed_valid": 1,
     "default_aggregate_move_shared_field_return_landed_valid": 1,
-    "default_aggregate_move_shared_field_return_invalid": 0,
+    "default_aggregate_move_shared_field_return_nested_clone_landed_valid": 1,
     "by_value_getter_lend_result_lent_on_valid": 0,
     "by_value_getter_lend_string_reassigned_valid": 0,
     "by_value_getter_lend_option_string_unwrapped_valid": 0,
@@ -410,9 +415,6 @@ release_lifetime_refusals = {
         (*released_refusal, 38, 5), (*released_refusal, 48, 20), (*released_refusal, 56, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
-    # Returning a field's storage shares it with the result, which lends the
-    # argument; growing the result changes it when no copy stands in.
-    "default_aggregate_move_shared_field_return_invalid": [(*released_refusal, 20, 28)],
     # A call result that holds a formal's storage is a path of that formal:
     # growing it changes the storage the caller's copy shares.
     "enum_formal_matched_payload_grown_invalid": [(*released_refusal, 27, 11)],
@@ -621,17 +623,11 @@ release_lifetime_refusals = {
     "receiver_ref_self_local_return_invalid": [(*borrow_refusal, 19, 10)],
     "receiver_ref_self_string_return_invalid": [(*borrow_refusal, 6, 10)],
     # A push stores its value in the Array it names: a local Array carries
-    # the loan where it goes (here past its owner, 27:5), and an inout Array
-    # is an output, a call escape of the loan when no copy can land (18:6,
-    # 24:13).
+    # the loan where it goes (here past its owner, 27:5).
     "array_push_loan_past_owner_invalid": [(*borrow_refusal, 27, 5)],
-    "array_push_loan_inout_invalid": [(*borrow_refusal, 18, 6), (*borrow_refusal, 24, 13)],
     # A stored struct Clone copies only by value lands nothing, so the
     # caller's later use of its context reads a moved value.
     "formal_store_landing_struct_output_shallow_invalid": [(*released_refusal, 26, 28)],
-    # Report keeps the context and returns, so the later use reads a moved
-    # value; the same call to a Never routine ends that path instead.
-    "aggregate_move_void_call_invalid": [(*released_refusal, 28, 18)],
     # A handoff a return value makes ends the path: the next iteration's
     # Contains is not refused for it, and the handoff is not judged against
     # its own call. A call before it that may rebind the Array still refuses
@@ -1224,7 +1220,7 @@ paired = (
     ("clone_string_array_ref_input_result_valid", True),
     ("clone_struct_array_ref_input_result_invalid", False),
     ("default_aggregate_move_read_only_struct_valid", True),
-    ("default_aggregate_move_shared_field_return_invalid", False),
+    ("default_aggregate_move_shared_field_return_nested_clone_landed_valid", True),
     ("default_aggregate_move_shared_field_return_landed_valid", True),
     ("by_value_getter_result_grown_landed_valid", True),
     ("by_value_getter_result_passed_grown_landed_valid", True),
@@ -1298,6 +1294,8 @@ paired = (
     ("ref_loan_stored_into_inout_output_landed_valid", True),
     ("ref_loan_local_stored_into_inout_output_invalid", False),
     ("string_local_pushed_into_field_array_landed_valid", True),
+    ("string_copy_landing_same_function_batch_valid", True),
+    ("string_copy_landing_function_boundary_valid", True),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),
@@ -1425,9 +1423,9 @@ paired = (
     ("receiver_ref_self_string_return_invalid", False),
     ("array_push_loan_local_view_valid", True),
     ("array_push_loan_past_owner_invalid", False),
-    ("array_push_loan_inout_invalid", False),
+    ("array_push_loan_inout_nested_clone_landed_valid", True),
     ("aggregate_move_never_call_valid", True),
-    ("aggregate_move_void_call_invalid", False),
+    ("aggregate_move_void_call_nested_clone_landed_valid", True),
     ("aggregate_move_void_call_landed_valid", True),
     ("array_handoff_return_value_loop_valid", True),
     ("inout_call_after_inner_loop_valid", True),
@@ -2107,6 +2105,8 @@ for name, expected in (
     ("string_element_clone_returned_valid", "abefef"),
     ("string_element_clone_getter_owner_changed_valid", "abcd"),
     ("string_element_clone_ref_output_valid", "ababab1"),
+    ("string_copy_landing_same_function_batch_valid", "LR"),
+    ("string_copy_landing_function_boundary_valid", "ABCD"),
     ("formal_string_store_landing_ref_push_valid", "2ba"),
     ("formal_string_store_landing_map_array_set_valid", "2tt"),
     ("formal_string_store_landing_local_receiver_valid", "aa"),

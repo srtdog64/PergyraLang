@@ -419,8 +419,10 @@ test_expression_emit(void)
                                     make_number(0, 1)),
             ctx);
         EXPECT(strcmp(result,
-                      "({ PgyArray_Int _pgy_arr_get_1 = values; "
-                      "pgy_array_get_Int(&_pgy_arr_get_1, 0); })") == 0);
+                      "(*({ PgyArray_Int _pgy_arr_get_1 = values; "
+                      "size_t _pgy_arr_index_1 = (size_t)(0); "
+                      "(void)pgy_array_get_Int(&_pgy_arr_get_1, _pgy_arr_index_1); "
+                      "&_pgy_arr_get_1.data[_pgy_arr_index_1]; }))") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
     }

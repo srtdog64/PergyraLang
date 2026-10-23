@@ -1,0 +1,20 @@
+func Main() -> Int
+{
+    var n: Int = 0;
+    var total: Int = 0;
+    while n < 3
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        total = total + Count(rows) + ReadCount(rows);
+        Observe(rows);
+        n = n + 1;
+    }
+    Print(ToString(total));
+    return 0;
+}
+
+// Keep declarations after Main: admission must not depend on source order.
+func Count(rows: Array<String>) -> Int { return ArrayLength(rows); }
+func ReadCount(ref rows: Array<String>) -> Int { return ArrayLength(rows); }
+func Observe(ref rows: Array<String>) -> Void { var size = ArrayLength(rows); }

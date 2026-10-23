@@ -1,0 +1,14 @@
+struct Pair
+{
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Main() -> Void
+{
+    let rows: Array<Int> = [1];
+    let pair: Pair = Pair(rows, rows);
+    ArraySet(pair.first, 0, 99);
+    Log(pair.first[0]);
+    Log(pair.second[0]);
+}

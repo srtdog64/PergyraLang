@@ -3,8 +3,10 @@
 
   Status: proof-spine; not whole-language verification. This file connects the
   proof-pack artifacts as named nodes. It does not import or restate every
-  underlying model; the live smoke gate binds each node to the corresponding
-  file and theorem names.
+  underlying model. Named-node connectivity alone is a schematic claim, not
+  evidence that an implementation or a theorem has the required type.
+  OwnershipCleanupSpineAudit.v instantiates the cleanup nodes with concrete
+  propositions and supplies proofs imported from the actual model owners.
 
   Purpose:
     complete proof spine => every named proof-pack node is present
@@ -49,7 +51,11 @@ Inductive ProofNode : Type :=
   | NodeAsyncScopeCore
   | NodeCapabilityFlowCore
   | NodeSuspensionRevalidationCore
-  | NodeDeterministicSubsetCore.
+  | NodeDeterministicSubsetCore
+  | NodeOwnershipCleanCore
+  | NodeOwnershipCleanComposition
+  | NodeOwnershipCleanReadOnly
+  | NodeOwnershipCleanExits.
 
 Inductive SpineClaim : Type :=
   | RuntimeSafetyConnected
@@ -65,6 +71,7 @@ Inductive SpineClaim : Type :=
   | StructuredAsyncConnected
   | ParallelProgressConnected
   | AsyncDirectionConnected
+  | OwnershipCleanupConnected
   | WholeLanguageVerified.
 
 Inductive RemainingObligation : Type :=
@@ -113,7 +120,11 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeAsyncScopeCore /\
   HasNode s NodeCapabilityFlowCore /\
   HasNode s NodeSuspensionRevalidationCore /\
-  HasNode s NodeDeterministicSubsetCore.
+  HasNode s NodeDeterministicSubsetCore /\
+  HasNode s NodeOwnershipCleanCore /\
+  HasNode s NodeOwnershipCleanComposition /\
+  HasNode s NodeOwnershipCleanReadOnly /\
+  HasNode s NodeOwnershipCleanExits.
 
 Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
   match c with
@@ -195,6 +206,11 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeSlotCalculus /\
       HasNode s NodeDeterministicSubsetCore /\
       HasNode s NodeParallelReductionCore
+  | OwnershipCleanupConnected =>
+      HasNode s NodeOwnershipCleanCore /\
+      HasNode s NodeOwnershipCleanComposition /\
+      HasNode s NodeOwnershipCleanReadOnly /\
+      HasNode s NodeOwnershipCleanExits
   | WholeLanguageVerified => False
   end.
 
@@ -328,6 +344,13 @@ Theorem complete_spine_connects_async_direction :
 Proof.
   intros s Hcomplete.
   unfold PermitsClaim.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_ownership_cleanup :
+  forall s, ProofSpineComplete s -> PermitsClaim s OwnershipCleanupConnected.
+Proof.
+  intros s Hcomplete. unfold PermitsClaim.
   repeat split; apply complete_spine_has_node; exact Hcomplete.
 Qed.
 

@@ -1,0 +1,16 @@
+struct Cell { value: Int; }
+
+func Grow(inout cells: Array<Cell>) -> Int {
+    var i: Int = 0;
+    while (i < 128) {
+        ArrayPush(cells, Cell(2));
+        i = i + 1;
+    }
+    return 7;
+}
+
+func Main() -> Void {
+    var cells: Array<Cell> = [Cell(1)];
+    cells[0].value = Grow(cells);
+    Log(cells[0].value);
+}

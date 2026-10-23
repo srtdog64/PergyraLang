@@ -1,0 +1,10 @@
+func RetainedCopy() -> String
+{
+    return Clone("retained");
+}
+
+func Main() -> Void
+{
+    let kept: String = RetainedCopy();
+    Print(kept);
+}

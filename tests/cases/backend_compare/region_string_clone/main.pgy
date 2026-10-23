@@ -1,0 +1,22 @@
+func CopyAndObserve(early: Bool) -> Int
+{
+    Print(Clone("copy"));
+    Print(Clone(Clone("-")));
+    if early
+    {
+        return 1;
+    }
+    return 2;
+}
+
+func Main() -> Void
+{
+    var count: Int = 0;
+    var total: Int = 0;
+    while count < 100
+    {
+        total = total + CopyAndObserve(count % 2 == 0);
+        count = count + 1;
+    }
+    Log(total);
+}

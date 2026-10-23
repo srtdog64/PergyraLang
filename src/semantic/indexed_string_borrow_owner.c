@@ -205,7 +205,8 @@ indexed_string_borrow_argument(ASTNode *expression,
     SemanticContext *ctx, IndexedStringStoreCopy *copy)
 {
     uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
-    if (ctx == NULL || ctx->has_error || ctx->current_function_decl == NULL) return;
+    if (ctx == NULL || ctx->current_function_decl == NULL ||
+        !semantic_loan_copy_landing_refusal_tail_current(ctx)) return;
     bool current = semantic_indexed_string_borrow_source_current(expression, ctx, &source_id);
     IndexedStringDefinitionRecord definition_use =
         semantic_indexed_string_definition_record_use(ctx, expression, call, ordinal);
@@ -221,11 +222,13 @@ indexed_string_borrow_argument(ASTNode *expression,
      * payload owner is in the caller's frame. */
     if (call == NULL && callee == NULL
         && source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
-        if (!semantic_loan_copy_landing_select_string(ctx, expression))
+        bool selected = semantic_loan_copy_landing_select_string(ctx, expression);
+        if (!selected)
             semantic_error(ctx, expression, "String copy landing selection failed");
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             expression, "A borrowed String element cannot be retained beyond its Array owner without a copy");
+        if (selected) semantic_loan_copy_landing_refusal_tail_seal(ctx);
         return;
     }
     bool named = !constructor && callee != NULL && callee->type == AST_FUNC_DECL
@@ -403,12 +406,16 @@ indexed_string_borrow_argument(ASTNode *expression,
                  * though the Array descriptor never escaped. A builtin store's caller
                  * lands its copy; elsewhere a next analysis copies the String here. */
                 fact->return_elements_owned = false;
-                if (!(copy != NULL && call != NULL && callee == NULL && !constructor) &&
-                    !semantic_loan_copy_landing_select_string(ctx, expression))
-                    semantic_error(ctx, expression, "String copy landing selection failed");
+                bool selected = false;
+                if (!(copy != NULL && call != NULL && callee == NULL && !constructor)) {
+                    selected = semantic_loan_copy_landing_select_string(ctx, expression);
+                    if (!selected)
+                        semantic_error(ctx, expression, "String copy landing selection failed");
+                }
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                     PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                     expression, "A String element cannot cross an opaque boundary without a current non-retention proof");
+                if (selected) semantic_loan_copy_landing_refusal_tail_seal(ctx);
             }
         }
     }

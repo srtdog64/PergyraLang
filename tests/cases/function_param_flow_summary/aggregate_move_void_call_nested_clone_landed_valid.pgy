@@ -1,7 +1,7 @@
 // Report moves its by-value context (it keeps the context in its sink) and
-// returns, so Check's later use of the context reads a moved value. The
-// context holds an Array of Arrays, which Clone copies by value, so no copy
-// lands.
+// returns, so Check's later use needs an independent value. Context contains
+// only a String and one nested Array layer with Int leaves, which both
+// backends copy wholly; the next analysis lands one Clone at Report.
 struct Context {
     name: String;
     rows: Array<Array<Int>>;

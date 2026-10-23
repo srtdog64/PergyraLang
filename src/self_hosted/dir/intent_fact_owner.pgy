@@ -20,6 +20,43 @@ import "intent_priority_fact_owner.pgy";
 import "intent_result_contract_owner.pgy";
 import "intent_exact_identity_contract_owner.pgy";
 import "intent_participant_contract_owner.pgy";
+
+// DIR retains the admitted transition table after semantic analysis continues.
+// Clone the exact scalar and String arrays at that crossing; the Bool column is
+// copied explicitly because the current self-host Clone route is Int/String.
+func SelfDirIntentTransitionFactsOwnedForResult(
+    ref source: SemanticAstIntentTransitionFacts) -> SemanticAstIntentTransitionFacts {
+    let requireds: Array<Bool> = []; let row: Int = 0;
+    while row < ArrayLength(source.step_requireds) {
+        ArrayPush(requireds, source.step_requireds[row]);
+        row = row + 1;
+    }
+    return SemanticAstIntentTransitionFacts(
+        source.ok, Concat("", source.diagnostic_message), source.artifact_node_count,
+        Clone(source.intent_starts), Clone(source.intent_counts), requireds,
+        Clone(source.step_node_ids), Clone(source.step_names),
+        Clone(source.predecessor_names),
+        Clone(source.predecessor_step_node_ids),
+        Clone(source.predecessor_step_indices), Clone(source.outcome_enum_names),
+        Clone(source.outcome_enum_node_ids), Clone(source.success_pattern_node_ids),
+        Clone(source.success_variant_names), Clone(source.success_variant_indices),
+        Clone(source.success_payload_names), Clone(source.success_payload_type_names),
+        Clone(source.failure_pattern_node_ids), Clone(source.failure_variant_names),
+        Clone(source.failure_variant_indices), Clone(source.failure_payload_names),
+        Clone(source.failure_payload_type_names), Clone(source.terminal_starts),
+        Clone(source.terminal_counts), Clone(source.terminal_roles),
+        Clone(source.terminal_expression_node_ids),
+        Clone(source.terminal_source_step_names),
+        Clone(source.terminal_source_step_node_ids),
+        Clone(source.terminal_source_step_indices),
+        Clone(source.terminal_result_enum_names),
+        Clone(source.terminal_result_enum_node_ids),
+        Clone(source.terminal_variant_names), Clone(source.terminal_variant_indices),
+        Clone(source.terminal_payload_source_names),
+        Clone(source.terminal_payload_type_names)
+    );
+}
+
 func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref signature_facts: SemanticAstIntentSignatureFacts,
@@ -42,7 +79,8 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
         );
     }
     if !SemanticAstIntentTransitionFactsReady(artifact, transition_facts) {
-        return SelfDirIntentFactsError(transition_facts.diagnostic_message, artifact.count
+        return SelfDirIntentFactsError(
+            Concat("", transition_facts.diagnostic_message), artifact.count
         );
     }
 
@@ -311,6 +349,8 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
         intent_index = intent_index + 1;
     }
 
+    let retained_transitions: SemanticAstIntentTransitionFacts =
+        SelfDirIntentTransitionFactsOwnedForResult(transition_facts);
     let facts: SelfDirIntentFacts = SelfDirIntentFacts(
         true, true, "", artifact.count, artifact.identity_digest,
         intent_node_ids, intent_names, intent_result_modes, intent_return_type_names,
@@ -343,7 +383,7 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
             requires_declaration_indices, authorized_starts, authorized_counts,
             authorized_names, step_provenance
         ),
-        transition_facts, 0, edge_count
+        retained_transitions, 0, edge_count
     );
     return SelfDirIntentFactsSeal(facts);
 }

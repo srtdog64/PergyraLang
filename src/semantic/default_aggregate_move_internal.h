@@ -34,6 +34,8 @@ typedef struct {
     size_t count, capacity;
 } MoveState;
 
+typedef struct MoveAssignmentBackingLoan MoveAssignmentBackingLoan;
+
 typedef struct {
     SemanticContext *ctx;
     ASTNode *routine;
@@ -50,6 +52,9 @@ typedef struct {
     /* The call and argument ordinal of the argument being walked, if any. */
     ASTNode *argument_call;
     size_t argument_ordinal;
+    /* Stack-local loans held while an indexed assignment has captured an
+     * address into collection backing but has not performed its store. */
+    MoveAssignmentBackingLoan *assignment_loan;
 } MoveWalk;
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,

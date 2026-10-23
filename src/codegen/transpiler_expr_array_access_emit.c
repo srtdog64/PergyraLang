@@ -73,10 +73,16 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
         char arr_suffix[128];
         sanitize_c_suffix(inner, arr_suffix, sizeof(arr_suffix));
         int tmp_id = ++ctx->tmp_counter;
+        /* Keep the checked backing place addressable. A value use still
+         * copies CType, while a member store must not write a temporary
+         * element returned by a statement expression. */
         result = strdup_fmt(
-            "({ PgyArray_%s _pgy_arr_get_%d = %s; "
-            "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
-            arr_suffix, tmp_id, array, arr_suffix, tmp_id, index);
+            "(*({ PgyArray_%s _pgy_arr_get_%d = %s; "
+            "size_t _pgy_arr_index_%d = (size_t)(%s); "
+            "(void)pgy_array_get_%s(&_pgy_arr_get_%d, _pgy_arr_index_%d); "
+            "&_pgy_arr_get_%d.data[_pgy_arr_index_%d]; }))",
+            arr_suffix, tmp_id, array, tmp_id, index,
+            arr_suffix, tmp_id, tmp_id, tmp_id, tmp_id);
     } else if (transpiler_type_name_is_slice(array_type)) {
         char inner_buf[128];
         const char *inner = NULL;
@@ -99,9 +105,12 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
         sanitize_c_suffix(inner, slice_suffix, sizeof(slice_suffix));
         int tmp_id = ++ctx->tmp_counter;
         result = strdup_fmt(
-            "({ PgySlice_%s _pgy_slice_get_%d = %s; "
-            "pgy_slice_get_%s(&_pgy_slice_get_%d, %s); })",
-            slice_suffix, tmp_id, array, slice_suffix, tmp_id, index);
+            "(*({ PgySlice_%s _pgy_slice_get_%d = %s; "
+            "size_t _pgy_slice_index_%d = (size_t)(%s); "
+            "(void)pgy_slice_get_%s(&_pgy_slice_get_%d, _pgy_slice_index_%d); "
+            "&_pgy_slice_get_%d.data[_pgy_slice_index_%d]; }))",
+            slice_suffix, tmp_id, array, tmp_id, index,
+            slice_suffix, tmp_id, tmp_id, tmp_id, tmp_id);
     } else {
         /* Semantic admits only Array<T>/Slice<T> receivers here; any other
          * type reaching this emitter is a compiler defect.  Fail closed

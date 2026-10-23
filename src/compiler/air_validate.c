@@ -303,6 +303,11 @@ air_validate_function_param_flow_summary_inventory(
     for (size_t i = 0; i < count; i++) {
         const AIRFunctionParamFlowSummary *row =
             air_function_param_flow_summary_at(air, i);
+        if (row != NULL && ((row->array_preserved & ~PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL) != 0 ||
+                row->array_preserved == PGY_FUNCTION_PARAM_ARRAY_ELEMENTS_PRESERVED)) {
+            air_set_invariant_error(error_message, "AIR function parameter flow row %zu has invalid Array preservation bits", i);
+            return false;
+        }
         if (row != NULL && (row->mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0) {
             air_set_invariant_error(error_message,
                 "AIR function parameter flow row %zu has unknown mask bits", i);

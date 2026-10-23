@@ -13,6 +13,7 @@
   and the preserved `docs/01_intent_first_design.md` change), Codex
   worktrees, `bin/pgy.exe`, `bin/pgy-self-driver.exe`.
 - **Edits in `docs/truth/`:** this file, `decisions/`, `evidence/`, and
-  the `state/` files while it holds the main-line work.
+  [state/native_checker.md](../state/native_checker.md); main's state files
+  are the GPT root lane's.
 - **Earlier:** P0 v16 lane, handed to GPT on 2026-10-16
   (`docs/agent_work_directives/p0_v16_handoff_claude_to_gpt_2026-10-16.md`).

@@ -1,7 +1,7 @@
 // Collect pushes a loan of its borrowed facts into the inout Array it was
-// given, and Fill's facts die before Main reads the Array. The Label also
-// holds an Array of Arrays, which Clone copies by value, so no copy can
-// land: the push is a call escape.
+// given, and Fill's facts die before Main reads the Array. Label contains one
+// nested Array layer whose concrete leaves are Int, so both backends copy the
+// whole Label and the next analysis lands a Clone at the push.
 struct Facts {
     names: Array<String>;
 }

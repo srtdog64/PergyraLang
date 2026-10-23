@@ -1,0 +1,27 @@
+// A failed MIR program owns only its diagnostic and no admitted graph storage.
+
+import "../../../src/self_hosted/mir/program_fact_owner.pgy";
+
+func Main() -> Void {
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsEmpty();
+    ArrayPush(graph.roots, 0);
+    ArrayPush(graph.has_roots, true);
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(7);
+    facts.expression_graph = graph;
+    let failed: SelfMirProgramFacts = SelfMirProgramFactsError(
+        facts, "expected_code", "expected message"
+    );
+    if failed.ok || failed.artifact_node_count != 7 ||
+        failed.diagnostic_code != "expected_code" ||
+        failed.diagnostic_message != "expected message" ||
+        !failed.expression_graph.ok ||
+        ArrayLength(failed.expression_graph.roots) != 0 ||
+        ArrayLength(failed.expression_graph.has_roots) != 0 ||
+        SemanticExpressionGraphArenaNodeCount(
+            failed.expression_graph.arena
+        ) != 0 {
+        Die("failed MIR program retained non-diagnostic storage");
+    }
+    Log("mir-program-error-storage=fresh");
+}

@@ -355,6 +355,67 @@ static void test_per_function_scope(void)
     semantic_region_escape_facts_free(sites);
 }
 
+static void check_site_count(const ASTNode *root, size_t expected, const char *message)
+{
+    PgyRegionEscapeFact *sites = NULL;
+    CHECK(collect_sites(root, &sites) == expected, message);
+    semantic_region_escape_facts_free(sites);
+}
+
+static void test_checked_string_clone(void)
+{
+    ASTNode text = mk_string("copy");
+    ASTNode name = mk_ident("Clone");
+    ASTNode *copy_args[] = { &text };
+    ASTNode copy = mk_call(&name, copy_args, 1);
+    ASTNode print_name = mk_ident("Print");
+    ASTNode *print_args[] = { &copy };
+    ASTNode print = mk_call(&print_name, print_args, 1);
+    ast_call_set_semantic_callee_builtin_kind(&print, (uint32_t)BUILTIN_PRINT);
+    check_site_count(&print, 0, "Clone spelling alone grants no region");
+    ast_call_set_semantic_callee_builtin_kind(&copy, (uint32_t)BUILTIN_CLONE);
+    ast_call_set_semantic_callee_is_stdlib(&copy, true);
+    check_site_count(&print, 0, "Clone without its checked result type grants no region");
+    CHECK(ast_call_set_semantic_value_type_name_copy(&copy, "String"), "String result records");
+    check_site_count(&print, 1, "checked String copy consumed synchronously is region-owned");
+    check_site_count(&copy, 0, "a bare copy is not granted a lifetime by its own identity");
+    name.data.identifier.name = "renamed_in_syntax";
+    check_site_count(&print, 1, "resolved builtin identity, not spelling, owns the grant");
+    ast_call_set_semantic_callee_decl_id(&copy, 41);
+    check_site_count(&print, 0, "user declaration cannot impersonate String Clone");
+    ast_call_set_semantic_callee_decl_id(&copy, 0);
+    ast_call_set_semantic_callee_value_binding_id(&copy, 43);
+    check_site_count(&print, 0, "bound callable cannot impersonate String Clone");
+    ast_call_set_semantic_callee_value_binding_id(&copy, 0);
+    ast_call_set_semantic_callee_is_stdlib(&copy, false);
+    check_site_count(&print, 0, "unselected builtin cannot acquire a copy receipt");
+    ast_call_set_semantic_callee_is_stdlib(&copy, true);
+    copy.data.call.arg_count = 0;
+    check_site_count(&print, 0, "wrong-arity Clone grants no region");
+    copy.data.call.arg_count = 1;
+    ast_call_set_semantic_callee_builtin_kind(&copy, (uint32_t)BUILTIN_STRING_LENGTH);
+    check_site_count(&print, 0, "another builtin is not a copying allocation");
+    ast_call_set_semantic_callee_builtin_kind(&copy, (uint32_t)BUILTIN_CLONE);
+    CHECK(ast_call_set_semantic_value_type_name_copy(&copy, "Array<String>"), "aggregate result records");
+    check_site_count(&print, 0, "aggregate Clone cannot inherit the String lifetime rule");
+    CHECK(ast_call_set_semantic_value_type_name_copy(&copy, "String"), "String result restores");
+    ast_call_set_semantic_callee_builtin_kind(&print, (uint32_t)BUILTIN_NOT_BUILTIN);
+    check_site_count(&print, 0, "unknown retaining consumer grants no region");
+    ast_call_set_semantic_callee_builtin_kind(&print, (uint32_t)BUILTIN_PRINT);
+
+    ASTNode *outer_args[] = { &copy };
+    ASTNode outer = mk_call(&name, outer_args, 1);
+    ast_call_set_semantic_callee_builtin_kind(&outer, (uint32_t)BUILTIN_CLONE);
+    ast_call_set_semantic_callee_is_stdlib(&outer, true);
+    CHECK(ast_call_set_semantic_value_type_name_copy(&outer, "String"), "nested String result records");
+    print_args[0] = &outer;
+    check_site_count(&print, 2, "nested checked String copies each acquire their own site receipt");
+    CHECK(ast_call_set_semantic_value_type_name_copy(&outer, "Unknown"), "unknown result records");
+    check_site_count(&print, 0, "unknown Clone neither borrows its input nor certifies its result");
+    ast_call_clear_semantic_value_type_name(&copy);
+    ast_call_clear_semantic_value_type_name(&outer);
+}
+
 int main(void)
 {
     test_retention_summary_owner();
@@ -366,6 +427,7 @@ int main(void)
     test_non_print_not_certified();
     test_bare_concat_not_certified();
     test_per_function_scope();
+    test_checked_string_clone();
     if (failures) {
         fprintf(stderr, "%d region-escape checks failed\n", failures);
         return 1;

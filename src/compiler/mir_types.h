@@ -377,6 +377,7 @@ typedef struct
 {
     size_t   parameter_index;
     uint32_t mask;
+    uint32_t array_preserved;
 } MIRFunctionParamFlowSummary;
 
 typedef PgyIterationTypeFact MIRIterationTypeFact;

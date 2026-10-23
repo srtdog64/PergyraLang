@@ -1,0 +1,15 @@
+struct Cell { value: Int; }
+
+func Index(ref cells: Array<Cell>) -> Int {
+    return ArrayLength(cells) - 1;
+}
+
+func Value(ref cells: Array<Cell>) -> Int {
+    return cells[0].value + 4;
+}
+
+func Main() -> Void {
+    var cells: Array<Cell> = [Cell(3)];
+    cells[Index(cells)].value = Value(cells);
+    Log(ToString(cells[0].value));
+}

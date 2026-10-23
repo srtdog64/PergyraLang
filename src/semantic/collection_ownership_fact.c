@@ -399,6 +399,13 @@ semantic_collection_admit_owned_string_drop(
         receiver_collection_fact(receiver, ctx, &binding);
     const char *name = binding != NULL && binding->name != NULL
         ? binding->name : "<array>";
+    bool current_inout_member_move = fact != NULL
+        && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+        && binding != NULL && !binding->is_consumed
+        && collection_member_move_from_current_inout_parameter(
+            fact, binding, ctx)
+        && collection_member_move_release_path_current(
+            fact, binding, receiver, ctx);
 
     if (receiver == NULL)
         return false;
@@ -418,7 +425,8 @@ semantic_collection_admit_owned_string_drop(
 
     /* Element ownership alone cannot retire storage retained by a field or
      * container. Unknown storage production is a separate bootstrap boundary. */
-    if (binding != NULL && binding->has_escaped_array_storage) {
+    if (binding != NULL && binding->has_escaped_array_storage
+        && !current_inout_member_move) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             receiver, "ArrayDropOwnedStrings cannot release escaped array storage in '%s'",
@@ -491,14 +499,16 @@ semantic_collection_admit_owned_string_drop(
             return false;
         }
         if (fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE) {
-            /* Aggregate-parameter element carriage is not owned by this
-             * local-transition rung yet.  Preserve the pre-existing boundary
-             * admission without forging OWNED: direct local aggregate moves
-             * still fail below, while the later parameter/return rung must
-             * replace this explicit UNKNOWN boundary with a stable fact. */
-            if (collection_binding_is_current_parameter(
-                    ctx, fact->source_binding_syntax_id))
+            /* UNKNOWN is not promoted to OWNED.  The native bootstrap may
+             * execute only an exact current-inout member move whose direct
+             * body path deep-drops the carrier and restores that same empty
+             * descriptor.  The self-host aggregate analyzer still owns
+             * element provenance and call-site admission. */
+            if (current_inout_member_move) {
+                fact->disposition =
+                    PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE;
                 return true;
+            }
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE,
@@ -551,6 +561,11 @@ semantic_collection_admit_owned_string_drop(
     if (fact->element_ownership != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
         && fact->element_ownership != PGY_STRING_ARRAY_OWNED_ELEMENTS)
         return false;
+    if (current_inout_member_move) {
+        fact->disposition =
+            PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE;
+        return true;
+    }
     fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
     return true;
 }

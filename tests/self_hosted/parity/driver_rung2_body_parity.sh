@@ -133,6 +133,8 @@ if [[ -n "$PREBUILT_DRIVER" ]]; then
 else
     compile_driver c "$C_DRIVER"
 fi
+PGY_BIN="$PGY" PGY_SELF_DRIVER_BIN="$C_DRIVER" "$BASH" \
+    "$ROOT_DIR/tests/self_hosted/parity/mir_program_error_storage_owner.sh"
 if ! (cd "$ROOT_DIR" && "$MANIFEST_DRIVER" --fixture-manifest >"$FIXTURE_ROWS"); then
     echo "[self-host-parity:driver-rung2] fixture manifest emission failed" >&2
     exit 1

@@ -295,10 +295,11 @@ air_dump_json_function_param_flow_summaries(const AIRProgram *air, FILE *out)
                     ? (unsigned)row->source_syntax_id : 0u);
         air_json_string(out, row != NULL ? row->routine : "");
         fprintf(out,
-                ",\"parameter_index\":%zu,\"parameter_count\":%zu,\"mask\":\"0x%x\"}",
+                ",\"parameter_index\":%zu,\"parameter_count\":%zu,\"mask\":\"0x%x\",\"array_preserved\":%u}",
                 row != NULL ? row->parameter_index : 0,
                 row != NULL ? row->parameter_count : 0,
-                row != NULL ? (unsigned)row->mask : 0u);
+                row != NULL ? (unsigned)row->mask : 0u,
+                row != NULL ? row->array_preserved : 0u);
     }
     fputs("]", out);
 }

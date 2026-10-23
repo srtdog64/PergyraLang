@@ -146,60 +146,12 @@ llvm_emit_inline_array_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,
                           LLVMTypeRef elem_type, LLVMValueRef index,
                           const char *struct_name)
 {
-    LLVMValueRef current_fn;
-    LLVMFuncEntry *panic_fn;
-    LLVMBasicBlockRef insert_block;
-    LLVMValueRef data_ptr;
-    LLVMValueRef length;
-    LLVMValueRef index64;
-    LLVMValueRef oob;
-    LLVMValueRef elem_ptr;
-    LLVMValueRef reason_arg;
-    LLVMBasicBlockRef fail_bb;
-    LLVMBasicBlockRef ok_bb;
-
-    if (ctx == NULL || aggregate == NULL || elem_type == NULL || index == NULL)
-        return NULL;
     if (struct_name != NULL && strncmp(struct_name, "PgyArray_", 9) != 0)
         return NULL;
-
-    insert_block = LLVMGetInsertBlock(ctx->builder);
-    if (insert_block == NULL)
+    LLVMValueRef elem_ptr = llvm_emit_checked_collection_address(ctx,
+        aggregate, elem_type, index, struct_name);
+    if (elem_ptr == NULL)
         return NULL;
-    current_fn = LLVMGetBasicBlockParent(insert_block);
-    panic_fn = llvm_lookup_function(ctx,
-        "pgy_runtime_panic_out_of_bounds_export");
-    if (current_fn == NULL || panic_fn == NULL)
-        return NULL;
-
-    data_ptr = llvm_array_data_ptr(ctx, aggregate);
-    length = llvm_array_length_i64(ctx, aggregate);
-    if (data_ptr == NULL || length == NULL)
-        return NULL;
-
-    index64 = index;
-    if (LLVMTypeOf(index64) != ctx->type_i64)
-        index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64, ctx->type_i64,
-            llvm_tmp_name(ctx));
-
-    oob = LLVMBuildICmp(ctx->builder, LLVMIntUGE, index64, length,
-        llvm_tmp_name(ctx));
-    fail_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
-        "array.index.panic");
-    ok_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
-        "array.index.ok");
-    LLVMBuildCondBr(ctx->builder, oob, fail_bb, ok_bb);
-
-    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
-    reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
-        "array index out of bounds", llvm_tmp_name(ctx));
-    LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
-        &reason_arg, 1, "");
-    LLVMBuildUnreachable(ctx->builder);
-
-    LLVMPositionBuilderAtEnd(ctx->builder, ok_bb);
-    elem_ptr = LLVMBuildInBoundsGEP2(ctx->builder, elem_type, data_ptr,
-        &index64, 1, llvm_tmp_name(ctx));
     return LLVMBuildLoad2(ctx->builder, elem_type, elem_ptr, llvm_tmp_name(ctx));
 }
 

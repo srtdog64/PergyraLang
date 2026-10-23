@@ -400,6 +400,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         (void)semantic_array_storage_defer_releases_at_exit(node, NULL, ctx);
     }
 
+    (void)semantic_collection_require_no_released_member_move(node, ctx);
+
     semantic_collection_record_owned_string_result_summary(node, ctx);
     type_function_set_body_summary(func_type,
         ctx->current_function_body_summary);

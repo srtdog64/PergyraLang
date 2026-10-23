@@ -14,6 +14,7 @@
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
 #include "mir_loop_collection_cleanup.h"
+#include "mir_program_fact_validate.h"
 #include "mir_resource_runtime_population.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
@@ -87,6 +88,8 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         return NULL;
     }
     if (!hir_collection_effect_snapshot_current(semantic, hir, error_message))
+        return NULL;
+    if (!mir_validate_function_flow_hir_projection(hir, semantic, error_message))
         return NULL;
     if ((hir->relation_count != 0 || hir->effect_count != 0
          || hir->zone_count != 0)
@@ -506,10 +509,6 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                        mir_materialize_cleanup_edges(&routine));
         MIR_TIMED_STEP(MIR_TIMING_RECOMPUTE,
                        mir_recompute_analysis(&routine));
-        MIR_TIMED_STEP(MIR_TIMING_CLEANUP_EDGES,
-                       mir_synthesize_loop_collection_cleanup(&routine, error_message));
-        MIR_TIMED_STEP(MIR_TIMING_RECOMPUTE,
-                       mir_recompute_analysis(&routine));
 #undef MIR_TIMED_STEP
         if (getenv("PGY_DEBUG_MIR_TIMING") != NULL) {
             double routine_total = mir_timing_total();
@@ -571,6 +570,20 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
     if (!mir_import_region_escape_facts(mir, hir, error_message)) {
         mir_destroy(mir);
         return NULL;
+    }
+
+    /* Declared-call cleanup consumes settled callee rows. Every routine must
+     * exist before this join, including callees declared after their caller. */
+    for (size_t r = 0; r < mir->routine_count; r++) {
+        MIRRoutine *routine = &mir->routines[r];
+        size_t before = routine->instruction_count;
+        if (!mir_synthesize_loop_collection_cleanup(routine, error_message) ||
+            (routine->instruction_count != before && !mir_recompute_analysis(routine))) {
+            if (error_message != NULL && *error_message == NULL)
+                *error_message = pergyra_strdup("MIR loop cleanup analysis could not be finalized");
+            mir_destroy(mir);
+            return NULL;
+        }
     }
 
     mir_link_decl_method_routines(mir);

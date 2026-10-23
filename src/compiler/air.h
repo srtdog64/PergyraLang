@@ -317,6 +317,7 @@ typedef struct {
     size_t      parameter_index;
     size_t      parameter_count;
     uint32_t    mask;
+    uint32_t    array_preserved;
 } AIRFunctionParamFlowSummary;
 
 #define AIR_LIFECYCLE_NAME_LEN   64

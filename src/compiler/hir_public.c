@@ -119,10 +119,10 @@ hir_dump(const HIRProgram *hir, FILE *out)
                     const HIRFunctionParamFlowSummary *summary =
                         &routine->function_param_flow_summaries[j];
                     fprintf(out,
-                            "           function-param-flow[%02zu] parameter-index=%zu mask=%u\n",
+                            "           function-param-flow[%02zu] parameter-index=%zu mask=%u array-preserved=%u\n",
                             j,
                             summary->parameter_index,
-                            summary->mask);
+                            summary->mask, summary->array_preserved);
                 }
             }
             if (routine->signature_type_ref_count > 0) {

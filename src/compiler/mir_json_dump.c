@@ -584,9 +584,10 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {
         if (i > 0)
             fputc(',', out);
-        fprintf(out, "{\"parameter_index\":%zu,\"mask\":%u}",
+        fprintf(out, "{\"parameter_index\":%zu,\"mask\":%u,\"array_preserved\":%u}",
                 routine->function_param_flow_summaries[i].parameter_index,
-                routine->function_param_flow_summaries[i].mask);
+                routine->function_param_flow_summaries[i].mask,
+                routine->function_param_flow_summaries[i].array_preserved);
     }
     fputc(']', out);
     if (routine->owner_name != NULL) {

@@ -181,17 +181,25 @@ func AstTreeArtifactBindDestructurePayloads(
             );
         bound_ok = view.ok;
         if view.ok {
-            ArrayPush(
-                atom_table,
-                artifact.expression_graphs.arena.node_texts[view.pattern_root]
+            let pattern_atom: Option<Int> =
+                AstTreeArtifactExpressionGraphTextAtomIndex(
+                    artifact, view.pattern_root
+                );
+            let initializer_atom: Option<Int> =
+                AstTreeArtifactExpressionGraphTextAtomIndex(
+                    artifact, view.initializer_root
+                );
+            if !IsSome(pattern_atom) || !IsSome(initializer_atom) {
+                bound_ok = false;
+                continue;
+            }
+            ArraySet(
+                atoms, node_id, UnwrapOption(pattern_atom)
             );
-            ArraySet(atoms, node_id, ArrayLength(atom_table) - 1);
             ArraySet(has_atoms, node_id, 1);
-            ArrayPush(
-                atom_table,
-                artifact.expression_graphs.arena.node_texts[view.initializer_root]
+            ArraySet(
+                values, node_id, UnwrapOption(initializer_atom)
             );
-            ArraySet(values, node_id, ArrayLength(atom_table) - 1);
             ArraySet(has_values, node_id, 1);
             ordinal = ordinal + 1;
         }

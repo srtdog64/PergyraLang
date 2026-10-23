@@ -5,7 +5,7 @@ func Main() -> Int
     {
         var rows: Array<String> = [];
         ArrayPushOwnedString(rows, "x");
-        if ArrayLength(rows) != 1 { return 1; }
+        if IterationLength(rows) != 1 { return 1; }
         n = n + 1;
         if n < 20 { continue; }
         if n == 30 { break; }
@@ -13,3 +13,5 @@ func Main() -> Int
     Print("ok");
     return 0;
 }
+
+func IterationLength(ref rows: Array<String>) -> Int { return ArrayLength(rows); }

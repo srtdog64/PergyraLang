@@ -1,0 +1,36 @@
+struct GraphTextRows {
+    texts: Array<String>;
+}
+
+struct AtomTableRows {
+    atom_table: Array<String>;
+}
+
+struct GraphAtomArtifact {
+    arena: AtomTableRows;
+    graphs: GraphTextRows;
+}
+
+func GraphAtomArtifactBuild(own graphs: GraphTextRows) -> GraphAtomArtifact {
+    let table: Array<String> = ["", graphs.texts[0]];
+    return GraphAtomArtifact(AtomTableRows(table), graphs);
+}
+
+// Once the table is stored in the artifact, a copied field descriptor may not
+// grow through the owned-String path and leave the aggregate's copy stale.
+func GraphAtomBindWithLateOwnedGrowth(
+    artifact: GraphAtomArtifact
+) -> GraphAtomArtifact {
+    let arena: AtomTableRows = artifact.arena;
+    let atom_table: Array<String> = arena.atom_table;
+    ArrayPushOwnedString(atom_table, Concat("late", "-owned"));
+    return GraphAtomArtifact(AtomTableRows(atom_table), artifact.graphs);
+}
+
+func Main() -> Void {
+    let source: Array<String> = ["graph"];
+    let graphs: GraphTextRows = GraphTextRows(source);
+    let artifact: GraphAtomArtifact = GraphAtomArtifactBuild(graphs);
+    let bound: GraphAtomArtifact = GraphAtomBindWithLateOwnedGrowth(artifact);
+    Log(bound.arena.atom_table[0]);
+}

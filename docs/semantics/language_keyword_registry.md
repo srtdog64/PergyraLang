@@ -33,9 +33,10 @@ structure, not missing authority. MODULE is a context bit, not a new fact axis.
 The enum values, row shape, stable word IDs and LSP wire names are unchanged.
 Representative category assertions and the overload/owner distinction live in
 [`docs/42`](../42_keyword_orthogonality.md#11-registry-primary-categories-are-not-fact-ownership).
-`tests/axis_keyword_adequacy_smoke.sh` compares actual category values and the
-actual representative Rocq mapping; its negative controls do not prove the
-semantic adequacy of every word.
+`tests/language_keyword_registry_probe.c` checks native registry values and
+lookup behavior. `proofs/FormalKernel.v` is a separate representative
+vocabulary model, not a verified projection of every registry row or parser
+production. Neither check proves the semantic adequacy of every word.
 
 The fact family's closure status is owned by
 [`sot_owner_spine_registry.md`](sot_owner_spine_registry.md#language-word-registry-closed--2026-09-26),
@@ -61,20 +62,20 @@ primary categories does not itself establish a new closure or driver claim.
   lexical classification through the legacy `LanguageKeyword*` compatibility
   view. The split is physical ownership only: every projection is regenerated
   together from the same registry SoT.
-- Native parser selector literals are checked bidirectionally against all 77
-  contextual/soft rows. Ordinary identifier data, builtin/type names, effect
+- Native parser selectors are compared with the contextual/soft registry rows.
+  Rows explicitly marked unimplemented do not require a selector. Ordinary
+  identifier data, builtin/type names, effect
   values, and duration suffixes are not language-word rows. The closed values
   of `with caps`/`with effects` are instead owned by
   [`callable_contract_vocabulary.md`](callable_contract_vocabulary.md); this
   keeps semantic mask membership out of the lexer authority.
-- LSP completion labels are built from `COMPLETION` flags. The current view has
-  28 labels.
-- Lowercase language hover content is allowed only for the 26 rows marked
+- LSP completion labels are built from `COMPLETION` flags; the generated
+  inventory owns the current exposure counts.
+- Lowercase language hover content is allowed only for rows marked
   `HOVER`. The seven PascalCase builtin hover entries remain a separate LSP
   presentation fact and are not language keywords.
-- The canonical TextMate view contains the exact spelling-and-scope 93-row
-  `HIGHLIGHT` projection generated from the registry: all 71 reserved rows
-  plus 23 contextual rows. `domain` and `sync` were removed because no parser
+- The canonical TextMate view is the exact spelling-and-scope `HIGHLIGHT`
+  projection generated from the registry. `domain` and `sync` were removed because no parser
   owner accepts them, and `channel` because its row was removed outright. This is editor projection evidence, not parser
   implementation evidence.
 
@@ -97,8 +98,7 @@ The executable gates reject:
 - unsorted or duplicate spelling and reserved/contextual/soft collisions;
 - duplicate stable word IDs or token IDs, invalid class/token combinations,
   or missing reserved debug identity;
-- invalid primary categories, native/generator numeric identity drift,
-  representative documentation/model category drift, or invalid self-host
+- invalid primary categories, native/generator numeric identity drift, or invalid self-host
   numeric category/name pairs;
 - native/self-host reserved-token drift and stale generated projections;
 - parser selectors missing from the registry or registry contextual/soft rows

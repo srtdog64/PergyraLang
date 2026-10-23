@@ -196,15 +196,17 @@ test_air_carries_function_param_flow_summary(void)
                 "AIR parameter-flow certificate rejects changed source identity",
                 "AIR parameter-flow certificate rejects changed routine name",
                 "AIR parameter-flow certificate rejects changed parameter count",
-                "AIR parameter-flow certificate rejects changed parameter index"
+                "AIR parameter-flow certificate rejects changed parameter index",
+                "AIR parameter-flow certificate rejects changed Array preservation"
             };
             const bool certified = pgy_air_evidence_certificate_ready(air, &certificate_error);
-            for (size_t fault = 0; fault < 5; fault++) {
+            for (size_t fault = 0; fault < 6; fault++) {
                 if (fault == 0) row->mask ^= SLOT_PARAM_SUMMARY_READ;
                 if (fault == 1) row->source_syntax_id++;
                 if (fault == 2) row->routine = "DifferentRoutine";
                 if (fault == 3) row->parameter_count++;
                 if (fault == 4) row->parameter_index = row->parameter_count;
+                if (fault == 5) row->array_preserved ^= PGY_FUNCTION_PARAM_ARRAY_DESCRIPTOR_PRESERVED;
                 bool refused = !pgy_air_evidence_certificate_ready(air, &certificate_error)
                     && certificate_error != NULL;
                 *row = saved;
@@ -253,6 +255,12 @@ test_air_carries_function_param_flow_summary(void)
             air_destroy(invalid_copy);
             mir_flow_row->mask = original_mir_mask;
             free(error); error = NULL;
+            const uint32_t original_preserved = mir_flow_row->array_preserved;
+            mir_flow_row->array_preserved ^= PGY_FUNCTION_PARAM_ARRAY_DESCRIPTOR_PRESERVED;
+            bool changed_preservation = !air_mir_evidence_binding_current(air, mir);
+            mir_flow_row->array_preserved = original_preserved;
+            TEST("AIR binding rejects changed source MIR Array preservation and restores");
+            EXPECT(changed_preservation && air_mir_evidence_binding_current(air, mir));
             const size_t original_index = row->parameter_index;
             row->parameter_index = row->parameter_count;
             negative_rejected = !air_verify(air, &error);
