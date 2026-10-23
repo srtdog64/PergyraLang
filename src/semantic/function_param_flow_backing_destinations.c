@@ -285,5 +285,6 @@ bool backing_inout_argument_leaves_input(const ReturnedBacking *state)
 {
     size_t input = state->fact->input_ordinal;
     return state->loan_seed == NULL && !state->checking_declared_result && input < ast_func_param_count(state->decl) &&
-        ast_func_param(state->decl, input)->mode == PARAM_MODE_REF;
+        (ast_func_param(state->decl, input)->mode == PARAM_MODE_REF ||
+         ast_func_param(state->decl, input)->mode == PARAM_MODE_MUT_REF);
 }

@@ -155,7 +155,10 @@ void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t 
  * only what the ref lends without a refusal at the store (Strings,
  * scalars), never an alias of its storage, so a callee rewriting the
  * argument changes nothing of the input. What the callee keeps of the
- * formal is its summary's call or channel escape, added at the call. A
+ * formal is its summary's call or channel escape, added at the call. An
+ * `inout` input is the caller's own place, which the routine may change:
+ * a callee rewriting it changes what the caller lent for change, and an
+ * alias of it written there is refused at the next use or at the exit. A
  * by-value input shares its caller's storage, and an alias of it written
  * by the callee changes the caller: that stays an escape. */
 bool backing_inout_argument_leaves_input(const ReturnedBacking *state);

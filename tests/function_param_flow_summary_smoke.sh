@@ -186,6 +186,7 @@ landing_rounds = {
     "loan_payload_bound_by_match_valid": 0,
     "loan_payload_binding_passed_to_reader_valid": 0,
     "local_copy_other_side_passed_to_reader_of_other_rows_valid": 0,
+    "inout_defers_handed_to_recursive_emitter_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -510,6 +511,11 @@ release_lifetime_refusals = {
     # Under a by-value formal the change reaches the caller's value through
     # the storage the formal shares: the copy must land, and none can here.
     "local_copy_of_by_value_formal_passed_to_reader_of_other_rows_invalid": [(*released_refusal, 36, 41)],
+    # An inout Array handed on whole as an inout argument keeps what the
+    # callee keeps: an alias of it written by an inout callee, or a callee
+    # that keeps its descriptor, still refuses the next call that takes it.
+    "inout_defers_alias_written_by_inout_callee_invalid": [(*borrow_refusal, 12, 30)],
+    "inout_defers_kept_by_callee_before_nested_call_invalid": [(*borrow_refusal, 13, 25), (*borrow_refusal, 14, 30)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1057,6 +1063,9 @@ paired = (
     ("local_copy_other_side_passed_through_to_reader_of_changed_rows_invalid", False),
     ("local_copy_other_side_aliased_whole_by_callee_invalid", False),
     ("local_copy_of_by_value_formal_passed_to_reader_of_other_rows_invalid", False),
+    ("inout_defers_handed_to_recursive_emitter_valid", True),
+    ("inout_defers_alias_written_by_inout_callee_invalid", False),
+    ("inout_defers_kept_by_callee_before_nested_call_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -2085,6 +2094,7 @@ for name, expected in (
     ("by_value_getter_result_local_returned_valid", "6"),
     ("constructor_of_getter_result_returned_valid", "7"),
     ("enum_payload_constructor_ref_field_return_valid", "owner"),
+    ("inout_defers_handed_to_recursive_emitter_valid", "dd"),
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),
     ("option_string_result_reassigned_valid", "3ab"),

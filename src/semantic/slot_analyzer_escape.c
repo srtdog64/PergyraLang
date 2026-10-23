@@ -322,8 +322,16 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                         return false;
                     }
                     FuncParam *param = ast_func_param(callee_decl, formal);
+                    /* The routine's own inout formal handed on as an inout
+                     * argument is the caller's place, which the routine may
+                     * change: what the callee keeps of it is its summary's. */
+                    FuncParam *own = origin != NULL ? ast_func_param(origin->function_decl, origin->param_index) : NULL;
+                    bool inout_handoff = param != NULL && param->mode == PARAM_MODE_MUT_REF && own != NULL &&
+                        own->mode == PARAM_MODE_MUT_REF && arg == root && origin->param_name != NULL &&
+                        strcmp(ast_identifier_name(root), origin->param_name) == 0 &&
+                        ast_identifier_binding_syntax_id(root) == ast_func_param_stable_id(own);
                     if (param != NULL && param->name != NULL) {
-                        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_DEFAULT) {
+                        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_DEFAULT || inout_handoff) {
                             bool direct_self_reborrow = origin != NULL
                                 && param->mode == PARAM_MODE_REF && arg == root
                                 && callee_decl == origin->function_decl

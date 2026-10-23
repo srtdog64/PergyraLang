@@ -1,0 +1,27 @@
+// An alias of the inout defers is written by an inout callee, then the
+// defers are read: the alias's change would show through them.
+func Mark(inout names: Array<String>) -> Int {
+    ArraySet(names, 0, "marked");
+    return 0;
+}
+
+func Emit(depth: Int, inout cur: Array<Int>, inout defers: Array<String>) -> String {
+    let result: String = "";
+    while cur[0] < depth {
+        ArraySet(cur, 0, cur[0] + 1);
+        let nested: String = Emit(depth - 1, cur, defers);
+        let alias: Array<String> = defers;
+        let marked: Int = Mark(alias);
+        ArraySet(defers, 0, Concat(defers[0], "d"));
+        result = Concat(result, nested);
+    }
+    return result;
+}
+
+func Main() -> Int {
+    let cur: Array<Int> = [0];
+    let defers: Array<String> = [""];
+    let text: String = Emit(2, cur, defers);
+    Print(Concat(text, defers[0]));
+    return 0;
+}

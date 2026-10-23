@@ -5,8 +5,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-23 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 209 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_callee_read_paths.md)),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 198 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_inout_handoff.md)),
 and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
@@ -36,8 +36,8 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    uses (GPT `c9513d5b2`); declared calls wait on GPT carrying the published
    [Array verdict](../decisions/2026-10-21_array_preservation_published_per_formal.md).
    A re-entered inner loop no longer stops HIR ([rule](../decisions/2026-10-22_reentered_loop_exports_last_transfer.md)).
-7. **Preserved Array storage (20 outside `direct_mir_*`):** mostly calls
-   after an `inout` callee wrote the Array's elements (`EmitStmtList` 8).
+7. **Preserved Array storage (9 outside `direct_mir_*`):** `ParseDeclsInto` 4, `SemanticExpressionGraphDomainQuery*` 3,
+   and 2 where one Array goes to four by-value formals of one call (`SemanticAstGenericSpecializationError`). An [`inout` hand-off keeps what the callee keeps](../decisions/2026-10-23_inout_formal_handed_to_inout_formal_keeps_what_the_callee_keeps.md).
 
 ## Lessons on the record
 
