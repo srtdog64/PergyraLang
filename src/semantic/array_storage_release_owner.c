@@ -15,6 +15,7 @@
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "indexed_string_borrow_owner.h"
+#include "loan_copy_landing_owner.h"
 #include "indexed_string_field_lineage_internal.h"
 #include "indexed_string_nonowner_risk_internal.h"
 #include "indexed_string_definition_recipe.h"
@@ -333,12 +334,14 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     const Type *result_type, ParamMode mode, bool constructor,
     ASTNode *call, ASTNode *callee_decl, size_t ordinal, SemanticContext *ctx)
 {
-    if (ctx == NULL || ctx->has_error) return;
-    if (type_equals(type, TYPE_STRING)) {
+    if (ctx == NULL) return;
+    if (type_equals(type, TYPE_STRING) &&
+        semantic_loan_copy_landing_refusal_tail_current(ctx)) {
         semantic_indexed_string_borrow_call_argument(source, call, callee_decl,
             ordinal, constructor, ctx);
         return;
     }
+    if (ctx->has_error) return;
     Symbol *binding = source != NULL && source->type == AST_IDENTIFIER && ctx != NULL
         ? scope_lookup(ctx->scope, ast_identifier_name(source)) : NULL;
     uint32_t binding_id = binding != NULL ? binding->decl_syntax_id : 0;

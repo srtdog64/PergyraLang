@@ -29,6 +29,13 @@ bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNo
  * selection could not be recorded. */
 bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNode *expression);
 
+/* String-copy discovery may continue after its own refusal only inside the
+ * same routine, so one bounded analysis can collect that routine's remaining
+ * exact landing identities. A later diagnostic or routine boundary closes
+ * the tail immediately. */
+bool semantic_loan_copy_landing_refusal_tail_current(const SemanticContext *ctx);
+void semantic_loan_copy_landing_refusal_tail_seal(SemanticContext *ctx);
+
 /* Whether a Clone of `carrier` copies its value fully, so that a copy can
  * stand in where the loan leaves. */
 bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNode *carrier);

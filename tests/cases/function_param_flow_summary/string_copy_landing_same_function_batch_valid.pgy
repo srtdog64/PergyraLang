@@ -1,0 +1,21 @@
+// Both borrowed elements leave the same Array owner in one routine. The
+// landing owner records both exact Clone sites in one bounded analysis.
+struct PairText {
+    left: String,
+    right: String
+}
+
+func Build() -> PairText {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("L", ""));
+    ArrayPushOwnedString(rows, Concat("R", ""));
+    let result: PairText = PairText(rows[0], rows[1]);
+    ArrayDropOwnedStrings(rows);
+    return result;
+}
+
+func Main() -> Int {
+    let rebuilt: PairText = Build();
+    Print(Concat(rebuilt.left, rebuilt.right));
+    return 0;
+}

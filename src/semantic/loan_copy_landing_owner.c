@@ -48,6 +48,34 @@ static bool loan_copy_landing_record(SemanticContext *ctx, uint32_t id)
     return true;
 }
 
+bool semantic_loan_copy_landing_refusal_tail_current(const SemanticContext *ctx)
+{
+    if (ctx == NULL) return false;
+    if (!ctx->has_error) return true;
+    return ctx->loan_copy_landing_selected_count != 0 &&
+        ctx->loan_copy_landing_tail_diagnostic_revision != 0 &&
+        ctx->diagnostic_emission_revision != SIZE_MAX &&
+        ctx->loan_copy_landing_tail_diagnostic_revision ==
+            ctx->diagnostic_emission_revision &&
+        ctx->current_function_decl != NULL &&
+        ctx->loan_copy_landing_tail_function_id != 0 &&
+        ctx->loan_copy_landing_tail_function_id ==
+            ast_node_stable_id(ctx->current_function_decl);
+}
+
+void semantic_loan_copy_landing_refusal_tail_seal(SemanticContext *ctx)
+{
+    if (ctx != NULL && ctx->loan_copy_landing_selected_count != 0 &&
+        ctx->diagnostic_emission_revision != 0 &&
+        ctx->diagnostic_emission_revision != SIZE_MAX &&
+        ctx->current_function_decl != NULL) {
+        ctx->loan_copy_landing_tail_diagnostic_revision =
+            ctx->diagnostic_emission_revision;
+        ctx->loan_copy_landing_tail_function_id =
+            ast_node_stable_id(ctx->current_function_decl);
+    }
+}
+
 bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call)
 {
     uint32_t id = ast_node_stable_id(call);

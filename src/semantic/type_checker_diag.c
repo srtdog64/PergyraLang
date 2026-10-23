@@ -91,6 +91,9 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
         return;
     vsnprintf(message, (size_t)len + 1, fmt, ap);
 
+    if (ctx->diagnostic_emission_revision != SIZE_MAX)
+        ctx->diagnostic_emission_revision++;
+
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         Diagnostic *existing = ctx->diagnostics[i];
         if (existing == NULL)

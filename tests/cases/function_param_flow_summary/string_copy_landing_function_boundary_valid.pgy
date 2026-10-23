@@ -1,0 +1,32 @@
+// Copy discovery stops at a routine boundary. Each Build routine therefore
+// owns one landing round even though both have the same two-copy shape.
+struct PairText {
+    left: String,
+    right: String
+}
+
+func BuildFirst() -> PairText {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("A", ""));
+    ArrayPushOwnedString(rows, Concat("B", ""));
+    let result: PairText = PairText(rows[0], rows[1]);
+    ArrayDropOwnedStrings(rows);
+    return result;
+}
+
+func BuildSecond() -> PairText {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("C", ""));
+    ArrayPushOwnedString(rows, Concat("D", ""));
+    let result: PairText = PairText(rows[0], rows[1]);
+    ArrayDropOwnedStrings(rows);
+    return result;
+}
+
+func Main() -> Int {
+    let first: PairText = BuildFirst();
+    let second: PairText = BuildSecond();
+    Print(Concat(Concat(first.left, first.right),
+        Concat(second.left, second.right)));
+    return 0;
+}

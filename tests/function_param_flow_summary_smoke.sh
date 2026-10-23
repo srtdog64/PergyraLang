@@ -84,6 +84,9 @@ owned_push_landings = {
 landed_clones = {
     "string_element_tostring_opaque_call_landed_valid": {"Main": 1},
     "string_argument_kept_copy_landed_valid": {"Block": 1},
+    "string_copy_landing_same_function_batch_valid": {"Build": 2},
+    "string_copy_landing_function_boundary_valid": {
+        "BuildFirst": 2, "BuildSecond": 2},
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
     "borrowed_owner_loan_grown_landed_valid": {"Nest": 1},
@@ -158,6 +161,8 @@ landed_at_exit = {
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
     "string_push_after_loop_walk_landed_valid": 1,
+    "string_copy_landing_same_function_batch_valid": 1,
+    "string_copy_landing_function_boundary_valid": 2,
     "output_field_store_of_ref_formal_landed_valid": 1,
     "inout_self_assignment_lands_nothing_valid": 0,
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
@@ -1084,6 +1089,8 @@ paired = (
     ("formal_field_copy_changed_at_exit_landed_valid", True),
     ("formal_field_copy_stored_back_valid", True),
     ("string_element_kept_by_callee_landed_valid", True),
+    ("string_copy_landing_same_function_batch_valid", True),
+    ("string_copy_landing_function_boundary_valid", True),
     ("array_descriptor_kept_then_read_invalid", False),
     ("ref_loan_through_popping_helper_valid", True),
     ("local_let_alias_grown_invalid", False),
@@ -1894,6 +1901,8 @@ for name, expected in (
     ("string_element_clone_returned_valid", "abefef"),
     ("string_element_clone_getter_owner_changed_valid", "abcd"),
     ("string_element_clone_ref_output_valid", "ababab1"),
+    ("string_copy_landing_same_function_batch_valid", "LR"),
+    ("string_copy_landing_function_boundary_valid", "ABCD"),
     ("formal_string_store_landing_ref_push_valid", "2ba"),
     ("formal_string_store_landing_map_array_set_valid", "2tt"),
     ("formal_string_store_landing_local_receiver_valid", "aa"),
