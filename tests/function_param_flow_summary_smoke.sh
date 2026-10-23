@@ -178,6 +178,7 @@ landing_rounds = {
     "moved_argument_two_branches_landed_valid": 1,
     "by_value_getter_lend_into_own_formal_landed_valid": 1,
     "returned_alias_lends_formal_valid": 0,
+    "loan_carrier_unchanged_by_call_before_loan_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -449,6 +450,16 @@ release_lifetime_refusals = {
     # An indexed assignment after the loan writes through it into the owner's
     # storage; the parser leaves the assignment without a source position.
     "loan_owner_written_by_indexed_assignment_after_loan_invalid": [(*released_refusal, 29, 42)],
+    # A view kept past its loop in a local, an Array or an inout callee's
+    # Array declared before the loop, or read in the statement that moves its
+    # owner, still lends the owner when it moves: each later use refuses.
+    "loan_kept_outside_its_loop_invalid": [
+        (*released_refusal, 35, 33), (*released_refusal, 39, 34), (*released_refusal, 40, 26)],
+    "loan_pushed_outside_its_loop_invalid": [
+        (*released_refusal, 34, 33), (*released_refusal, 38, 34), (*released_refusal, 39, 26)],
+    "loan_kept_by_inout_callee_outside_its_loop_invalid": [
+        (*released_refusal, 33, 33), (*released_refusal, 37, 34), (*released_refusal, 38, 26)],
+    "loan_read_in_the_statement_that_moves_its_owner_invalid": [(*released_refusal, 36, 47)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -966,6 +977,12 @@ paired = (
     ("loan_owner_assigned_in_loop_before_loan_invalid", False),
     ("loan_owner_assigned_from_its_own_loan_invalid", False),
     ("loan_owner_written_by_indexed_assignment_after_loan_invalid", False),
+    ("loan_carrier_unchanged_by_call_before_loan_valid", True),
+    ("loan_scope_ended_before_owner_moved_valid", True),
+    ("loan_kept_outside_its_loop_invalid", False),
+    ("loan_pushed_outside_its_loop_invalid", False),
+    ("loan_kept_by_inout_callee_outside_its_loop_invalid", False),
+    ("loan_read_in_the_statement_that_moves_its_owner_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

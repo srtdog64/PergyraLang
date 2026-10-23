@@ -1,0 +1,57 @@
+// As CompileSourceDirTextVerified: the analysis is made by a call with a
+// call result and an enum case as arguments, whose roots name no local,
+// then a projection lends the analysis, which is passed on beside it. The
+// analyzing call runs before the loan, so neither the owner's proof nor
+// the projection's own proof counts it, and no copy lands.
+enum Purpose {
+    LowersBodies,
+    InspectsOnly,
+}
+
+struct Artifact {
+    rows: Array<Int>;
+}
+
+struct Surfaces {
+    count: Int;
+}
+
+struct Analysis {
+    rows: Array<Int>;
+    ok: Bool;
+}
+
+struct Projection {
+    rows: Array<Int>;
+}
+
+func SurfacesOf(artifact: Artifact) -> Surfaces {
+    return Surfaces(ArrayLength(artifact.rows));
+}
+
+func Analyze(artifact: Artifact, surfaces: Surfaces, purpose: Purpose) -> Analysis {
+    return Analysis([surfaces.count, 2], ArrayLength(artifact.rows) > 0);
+}
+
+func ProjectFrom(artifact: Artifact, analysis: Analysis) -> Projection {
+    return Projection(analysis.rows);
+}
+
+func Emit(artifact: Artifact, analysis: Analysis, projection: Projection) -> Int {
+    return ArrayLength(artifact.rows) + analysis.rows[0] + ArrayLength(projection.rows);
+}
+
+func Compile() -> Int {
+    let artifact: Artifact = Artifact([1, 2, 3]);
+    let analysis: Analysis = Analyze(artifact, SurfacesOf(artifact), Purpose.InspectsOnly);
+    if !analysis.ok {
+        return 0;
+    }
+    let projection: Projection = ProjectFrom(artifact, analysis);
+    return Emit(artifact, analysis, projection);
+}
+
+func Main() -> Int {
+    Print(ToString(Compile()));
+    return 0;
+}

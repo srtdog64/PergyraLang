@@ -254,19 +254,23 @@ struct FunctionParamFlowIndexClaims {
      * that passed (function_param_flow_index_claims_current). */
     size_t checked_generation, checked_locals;
     bool checked;
-    /* For function_param_flow_claim_runs_before: each row's parent row, built
-     * for one generation, and the row of the last site asked about. */
+    /* For the loan order: each row's parent row, built for one generation,
+     * and the row of the last node asked about. */
     size_t *order_parent, order_generation, order_site_row;
     const ASTNode *order_site;
 };
-/* `claim` runs before `site` every time the routine runs: it starts first in
- * the source, holds no part of `site`, and only blocks, branches, `with`
- * scopes and plain statements or expressions enclose it, never a loop, a
- * deferred or concurrent body or a closure, whose code could run after
- * `site`; the chain of enclosing claims reaches `body`, the routine's body.
- * False when `site` is no claim of `claims`. */
-bool function_param_flow_claim_runs_before(FunctionParamFlowIndexClaims *claims, size_t claim, const ASTNode *site,
-    const ASTNode *body);
+/* A lent argument's loan: the lending call, and the row of the statement
+ * after which no local the loan reached is in scope (SIZE_MAX if none). */
+typedef struct {
+    const ASTNode *call;
+    size_t scope;
+} FunctionParamFlowLoanSpan;
+FunctionParamFlowLoanSpan function_param_flow_loan_span(FunctionParamFlowIndexClaims *claims, const ASTNode *call,
+    const uint32_t *carriers, size_t carrier_count, const ASTNode *body);
+/* `claim` runs, each time the routine runs, before the loan is made or after
+ * its scope ended; `body` is the routine's body. */
+bool function_param_flow_claim_outside_loan(FunctionParamFlowIndexClaims *claims, size_t claim,
+    const FunctionParamFlowLoanSpan *span, const ASTNode *body);
 
 typedef struct {
     ASTNode *node;

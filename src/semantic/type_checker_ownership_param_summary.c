@@ -19,10 +19,7 @@
 #include <string.h>
 
 /* The bindings a loan's backing reached. */
-typedef struct {
-    uint32_t *ids;
-    size_t count;
-} LoanCarriers;
+typedef struct { uint32_t *ids; size_t count; } LoanCarriers;
 
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
@@ -291,17 +288,18 @@ static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
  * unless the owner is a local and that call's result leaves the routine
  * (2026-10-19_by_value_getter_lends_when_used_again). With
  * `own_descriptor`, a push or set with `binding` itself as the receiver
- * changes only that binding's own descriptor. */
+ * changes only that binding's own descriptor. A claim run outside `span`
+ * changes nothing under the loan. */
 static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
-    bool own_descriptor, const ASTNode *since)
+    bool own_descriptor, const FunctionParamFlowLoanSpan *span)
 {
     bool owner_formal = false;
     for (size_t p = 0; p < ast_func_param_count(caller); p++)
         if (ast_func_param_stable_id(ast_func_param(caller, p)) == binding) owner_formal = true;
     for (size_t c = 0; c < claims->count; c++) {
         ASTNode *node = claims->rows[c].node;
-        if (since != NULL && function_param_flow_claim_runs_before(claims, c, since, ast_func_body(caller))) continue;
+        if (span != NULL && function_param_flow_claim_outside_loan(claims, c, span, ast_func_body(caller))) continue;
         if (node->type == AST_ASSIGNMENT) {
             const ASTNode *target = NULL;
             if (!returned_loan_storage_root(store, claims, caller, ast_assignment_target(node), &target) ||
@@ -553,7 +551,8 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
         free(carriers.ids);
         return false;
     }
-    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true, false, call);
+    FunctionParamFlowLoanSpan span = function_param_flow_loan_span(index->claims, call, carriers.ids, carriers.count, ast_func_body(caller));
+    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true, false, &span);
     /* The loan shares the owner's storage, so a change through a local the
      * loan reached changes the owner. A local of a String, an Option of one
      * or a struct of such fields holds none of it, and a local Array literal
@@ -569,7 +568,7 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             literal = ast_let_initializer(row->node) != NULL && ast_let_initializer(row->node)->type == AST_ARRAY_LITERAL;
             break;
         }
-        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal, call);
+        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal, &span);
     }
     free(carriers.ids);
     if (!unchanged && failure != NULL) failure->owner_changed = true;

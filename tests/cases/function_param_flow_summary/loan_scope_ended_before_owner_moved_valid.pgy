@@ -1,0 +1,48 @@
+// As SemanticAstExpressionSurfaceFactsWithGraph: views of the copy live only
+// in the loop body, and the copy moves into the result after the loop, when
+// no local holding a view is in scope. The loan proof holds although Clone
+// copies the graph only by value.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    ready: Bool;
+    rows: Array<Cell>;
+}
+
+struct Graph {
+    arena: Arena;
+}
+
+struct View {
+    rows: Array<Cell>;
+}
+
+struct Holder {
+    total: Int;
+    graph: Graph;
+}
+
+func ViewAt(graph: Graph, i: Int) -> View {
+    return View(graph.arena.rows);
+}
+
+func WithGraph(graph: Graph) -> Holder {
+    let sealed: Graph = graph;
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        let view: View = ViewAt(sealed, i);
+        total = total + view.rows[i].value;
+        i = i + 1;
+    }
+    return Holder(total, sealed);
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(Arena(false, [Cell(1), Cell(2), Cell(3)]));
+    let held: Holder = WithGraph(graph);
+    Print(ToString(held.total + ArrayLength(held.graph.arena.rows)));
+    return 0;
+}

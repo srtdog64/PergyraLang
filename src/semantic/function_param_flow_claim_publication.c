@@ -386,49 +386,126 @@ static bool claim_order_straight(ASTNodeType shape)
     }
 }
 
-bool function_param_flow_claim_runs_before(FunctionParamFlowIndexClaims *claims, size_t claim, const ASTNode *site,
-    const ASTNode *body)
+/* Each row's parent row, built once per claims generation. */
+static bool claim_order_parents(FunctionParamFlowIndexClaims *claims)
 {
-    if (claims == NULL || claims->failed || site == NULL || body == NULL || claim >= claims->count) return false;
-    if (claims->order_parent == NULL || claims->order_generation != claims->generation) {
-        size_t *parent = realloc(claims->order_parent, (claims->count == 0 ? 1 : claims->count) * sizeof(*parent));
-        if (parent == NULL) return false;
-        for (size_t r = 0; r < claims->count; r++) parent[r] = SIZE_MAX;
-        for (size_t r = 0; r < claims->count; r++)
-            for (size_t c = 0; c < claims->rows[r].child_count; c++) {
-                size_t child = claims->rows[r].child_claim_ordinals[c];
-                if (child < claims->count) parent[child] = r;
-            }
-        claims->order_parent = parent;
-        claims->order_generation = claims->generation;
-        claims->order_site = NULL;
-    }
+    if (claims->order_parent != NULL && claims->order_generation == claims->generation) return true;
+    size_t *parent = realloc(claims->order_parent, (claims->count == 0 ? 1 : claims->count) * sizeof(*parent));
+    if (parent == NULL) return false;
+    for (size_t r = 0; r < claims->count; r++) parent[r] = SIZE_MAX;
+    for (size_t r = 0; r < claims->count; r++)
+        for (size_t c = 0; c < claims->rows[r].child_count; c++) {
+            size_t child = claims->rows[r].child_claim_ordinals[c];
+            if (child < claims->count) parent[child] = r;
+        }
+    claims->order_parent = parent;
+    claims->order_generation = claims->generation;
+    claims->order_site = NULL;
+    return true;
+}
+
+static size_t claim_row(FunctionParamFlowIndexClaims *claims, const ASTNode *site)
+{
     if (claims->order_site != site) {
         claims->order_site_row = SIZE_MAX;
         for (size_t r = 0; r < claims->count; r++) if (claims->rows[r].node == site) claims->order_site_row = r;
         claims->order_site = site;
     }
-    /* An assignment starts at its target, whose root identifier carries the
-     * position the parser leaves off the assignment. A node with no source
-     * position, as a desugaring makes, is not ordered. */
-    const ASTNode *node = claims->rows[claim].node;
+    return claims->order_site_row;
+}
+
+/* An assignment starts at its target, whose root identifier carries the
+ * position the parser leaves off the assignment. A node with no source
+ * position, as a desugaring makes, is not ordered. */
+static const ASTNode *claim_position(const ASTNode *node)
+{
     while (node != NULL && node->line == 0 && (node->type == AST_ASSIGNMENT || node->type == AST_MEMBER_ACCESS ||
            node->type == AST_ARRAY_ACCESS))
         node = node->type == AST_ASSIGNMENT ? ast_assignment_target(node) :
             node->type == AST_MEMBER_ACCESS ? ast_member_object(node) : ast_array_access_array(node);
-    if (claims->order_site_row == SIZE_MAX || node == NULL || node->line == 0 || site->line == 0 ||
-        node->line > site->line || (node->line == site->line && node->column >= site->column)) return false;
-    /* The chain must reach the routine's body: a node no claim records
-     * could be a loop the chain would miss. */
-    bool reached = false;
-    for (size_t at = claims->order_parent[claim], steps = 0; at != SIZE_MAX && !reached;
-         at = claims->order_parent[at], steps++) {
-        reached = claims->rows[at].node == body;
-        if (steps > claims->count || (!reached && !claim_order_straight(claims->rows[at].shape))) return false;
+    return node == NULL || node->line == 0 ? NULL : node;
+}
+
+static bool claim_starts_before(const ASTNode *first, const ASTNode *second)
+{
+    first = claim_position(first);
+    second = claim_position(second);
+    return first != NULL && second != NULL &&
+        (first->line < second->line || (first->line == second->line && first->column < second->column));
+}
+
+/* `row` is `scope` or a part of it. */
+static bool claim_within(const FunctionParamFlowIndexClaims *claims, size_t row, size_t scope)
+{
+    for (size_t at = row, steps = 0; at != SIZE_MAX && steps <= claims->count; at = claims->order_parent[at], steps++)
+        if (at == scope) return true;
+    return false;
+}
+
+/* Only blocks, branches, `with` scopes and plain statements or expressions
+ * enclose `row` up to the routine's body, never a loop, a deferred or
+ * concurrent body or a closure: `row` runs once, in source order, each time
+ * the routine runs. The chain must reach the body: a node no claim records
+ * could be a loop the chain would miss. */
+static bool claim_runs_once(const FunctionParamFlowIndexClaims *claims, size_t row, const ASTNode *body)
+{
+    for (size_t at = claims->order_parent[row], steps = 0; at != SIZE_MAX; at = claims->order_parent[at], steps++) {
+        if (claims->rows[at].node == body) return true;
+        if (steps > claims->count || !claim_order_straight(claims->rows[at].shape)) return false;
     }
-    if (!reached) return false;
-    for (size_t at = claims->order_site_row, steps = 0; at != SIZE_MAX && steps <= claims->count;
-         at = claims->order_parent[at], steps++)
-        if (at == claim) return false;
+    return false;
+}
+
+/* A statement that ends a loan made in it: it runs once, holds the lending
+ * call and the `let` of every local the loan reached, and holds only plain
+ * code, types and `while` loops, so no deferred, concurrent or closure body
+ * keeps one of those locals past its end. */
+static bool claim_loan_scope(const FunctionParamFlowIndexClaims *claims, size_t scope,
+    const uint32_t *carriers, size_t carrier_count, const ASTNode *body)
+{
+    size_t parent = claims->order_parent[scope];
+    if (parent == SIZE_MAX || claims->rows[parent].shape != AST_BLOCK || !claim_runs_once(claims, scope, body))
+        return false;
+    for (size_t k = 0; k < carrier_count; k++) {
+        bool inside = false;
+        for (size_t r = 0; r < claims->count && !inside; r++)
+            inside = r != scope && claims->rows[r].id == carriers[k] && claims->rows[r].shape == AST_LET_DECL &&
+                claim_within(claims, r, scope);
+        if (!inside) return false;
+    }
+    for (size_t r = 0; r < claims->count; r++) {
+        ASTNodeType shape = claims->rows[r].shape;
+        if (claim_within(claims, r, scope) && !claim_order_straight(shape) && shape != AST_TYPE &&
+            shape != AST_WHILE_LOOP && shape != AST_BREAK && shape != AST_CONTINUE) return false;
+    }
     return true;
+}
+
+FunctionParamFlowLoanSpan function_param_flow_loan_span(FunctionParamFlowIndexClaims *claims, const ASTNode *call,
+    const uint32_t *carriers, size_t carrier_count, const ASTNode *body)
+{
+    FunctionParamFlowLoanSpan span = {call, SIZE_MAX};
+    if (claims == NULL || claims->failed || call == NULL || body == NULL || !claim_order_parents(claims)) return span;
+    for (size_t at = claim_row(claims, call), steps = 0; at != SIZE_MAX && steps <= claims->count;
+         at = claims->order_parent[at], steps++) {
+        if (claims->rows[at].node == body) break;
+        if (claim_loan_scope(claims, at, carriers, carrier_count, body)) { span.scope = at; break; }
+    }
+    return span;
+}
+
+/* A claim that runs once and starts before the lending call, holding no part
+ * of it, has finished when the loan is made and does not run again. One
+ * that starts after the statement that ends the loan, outside it, runs
+ * after that statement finished, when no local the loan reached is in scope. */
+bool function_param_flow_claim_outside_loan(FunctionParamFlowIndexClaims *claims, size_t claim,
+    const FunctionParamFlowLoanSpan *span, const ASTNode *body)
+{
+    if (claims == NULL || claims->failed || span == NULL || span->call == NULL || body == NULL ||
+        claim >= claims->count || !claim_order_parents(claims)) return false;
+    if (span->scope < claims->count && claim_starts_before(claims->rows[span->scope].node, claims->rows[claim].node) &&
+        !claim_within(claims, claim, span->scope)) return true;
+    size_t site = claim_row(claims, span->call);
+    return site != SIZE_MAX && claim_starts_before(claims->rows[claim].node, span->call) &&
+        claim_runs_once(claims, claim, body) && !claim_within(claims, site, claim);
 }
