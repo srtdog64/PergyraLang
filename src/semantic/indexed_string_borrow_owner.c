@@ -14,6 +14,7 @@
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_named_call_owner.h"
 #include "loan_copy_landing_owner.h"
+#include "formal_string_store_landing_owner.h"
 #include "type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
@@ -391,6 +392,16 @@ indexed_string_borrow_argument(ASTNode *expression,
                 /* An Array<String> store of a String no owner proves alive
                  * lands as an owned copy of that String. */
                 if (copy != NULL && call != NULL && callee == NULL && !constructor) {
+                    if (!semantic_formal_string_store_landing_record_risk_owner(
+                            ctx, call, expression, owner->decl_syntax_id)) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            expression,
+                            "String store landing risk-owner evidence could not be recorded");
+                        return;
+                    }
                     copy->wanted = true;
                     if (!copy->refuse) return;
                 }

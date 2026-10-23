@@ -257,6 +257,7 @@ semantic_collection_owned_element_requirement_record_argument(
     size_t pending_sequence = 0;
     ArrayStorageReturnElementReceipt element_use = {0};
     bool forwarded_formal = false;
+    bool detached_member_requires_release = false;
     if (!collection_owned_record_default_aggregate_actual(call, callee_decl,
             argument_index, formal_index, argument, argument_type,
             parameter_mode, ctx))
@@ -318,6 +319,10 @@ semantic_collection_owned_element_requirement_record_argument(
         }
         fact = semantic_collection_ownership_fact_find(ctx, caller_id, binding_id);
         exclusive_storage = binding->has_exclusive_array_storage;
+        detached_member_requires_release = exclusive_storage
+            && binding->array_storage_member_move_source != NULL
+            && binding->array_storage_member_move_source_id != 0
+            && binding->array_storage_member_move_root_binding_id != 0;
         if (semantic_array_storage_has_pending(binding)
             || (fact != NULL && fact->return_elements_source != NULL)
             || semantic_array_storage_has_pending_elements(ctx, binding_id)) {
@@ -373,6 +378,7 @@ semantic_collection_owned_element_requirement_record_argument(
         .pending_binding_id = pending_binding_id,
         .element_use = element_use,
         .forwarded_formal = forwarded_formal,
+        .detached_member_requires_release = detached_member_requires_release,
         .pending_sequence = pending_sequence};
     if (collection_owned_is_string_array(argument_type))
         semantic_indexed_string_borrow_invalidate_deep_drop(argument, ctx);
@@ -448,6 +454,16 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
             return collection_owned_requirement_failure(ctx, actual.argument,
                 "owned-call actual type changed before finalization");
         OwnedElementParameter target = store->parameters[actual.target];
+        if (actual.detached_member_requires_release
+            && !semantic_collection_owned_parameter_releases_storage(
+                ctx, actual.callee_decl, actual.formal_ordinal)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                actual.argument,
+                "A detached aggregate field may cross own parameter syntax %u only when callable syntax %u retires its storage",
+                actual.formal_id, actual.callee_id);
+            return false;
+        }
         const ASTNode *dependency = actual.element_use.dependency_call;
         bool storage_dependency = dependency != NULL && dependency->type == AST_CALL;
         if (storage_dependency && !semantic_array_storage_owned_result_current(ctx, dependency)) {

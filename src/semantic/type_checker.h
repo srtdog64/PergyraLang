@@ -58,6 +58,16 @@ typedef struct ArrayStorageDeferredPreservationStore ArrayStorageDeferredPreserv
 typedef struct StringWindowExtentStore StringWindowExtentStore;
 typedef struct IndexedStringNamedCallStore IndexedStringNamedCallStore;
 
+/* Transient risk-owner evidence for one formal-String landing batch.  The
+ * indexed String owner records only live Array<String> bindings whose owned
+ * elements made this formal-rooted value require an independent stored copy
+ * in the current routine. */
+typedef struct {
+    uint32_t routine_id;
+    uint32_t formal_id;
+    uint32_t risk_owner_binding_id;
+} FormalStringStoreLandingRiskOwner;
+
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
 typedef enum
@@ -115,7 +125,11 @@ struct SemanticContext
     const uint32_t *string_store_landing_plan; /* store calls an earlier analysis selected */
     size_t       string_store_landing_plan_count;
     uint32_t    *string_store_landing_selected; /* store calls this analysis selects */
+    uint32_t    *string_store_landing_selected_routines; /* exact routine owner per selected call */
+    uint32_t    *string_store_landing_selected_formals; /* nonzero only for a formal String escape */
     size_t       string_store_landing_selected_count, string_store_landing_selected_capacity;
+    FormalStringStoreLandingRiskOwner *string_store_landing_risk_owners;
+    size_t       string_store_landing_risk_owner_count, string_store_landing_risk_owner_capacity;
     uint32_t    *loan_copy_landing_selected; /* getter calls whose result a next analysis clones */
     size_t       loan_copy_landing_selected_count, loan_copy_landing_selected_capacity;
     bool         loan_copy_landing_has_deferred_error;

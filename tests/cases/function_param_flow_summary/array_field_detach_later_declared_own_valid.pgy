@@ -1,0 +1,23 @@
+// A later-declared callee still supplies the exact storage-release summary
+// before program finalization seals this field-detach handoff.
+struct State { ids: Array<Int>; }
+
+func Retire(inout state: State) -> Void
+{
+    let ids: Array<Int> = state.ids;
+    state.ids = [];
+    SinkIds(ids);
+}
+
+func SinkIds(own ids: Array<Int>) -> Void
+{
+    Log(ArrayLength(ids));
+    ArrayDrop(ids);
+}
+
+func Main() -> Void
+{
+    let state: State = State([7, 8]);
+    Retire(state);
+    Log(ArrayLength(state.ids));
+}

@@ -45,6 +45,10 @@ typedef struct {
     size_t pending_sequence;
     ArrayStorageReturnElementReceipt element_use;
     bool forwarded_formal;
+    /* An exact field take is only provisionally exclusive during Pass 2.
+     * Finalization must confirm that the selected own formal really retires
+     * the detached backing, including when its body is declared later. */
+    bool detached_member_requires_release;
 } OwnedElementActualSnapshot;
 
 typedef struct {
