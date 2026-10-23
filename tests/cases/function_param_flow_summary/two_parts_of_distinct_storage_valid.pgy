@@ -1,0 +1,18 @@
+// Two parts of a value from distinct storage, one a Clone, need nothing.
+struct Pair {
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Make() -> Pair {
+    let rows: Array<Int> = [1];
+    let other: Array<Int> = [2, 3];
+    return Pair(Clone(rows), Pair(rows, other).second);
+}
+
+func Main() -> Int {
+    let pair: Pair = Make();
+    ArrayPush(pair.first, 7);
+    Print(ToString(pair.second[0] + ArrayLength(pair.first) * 10));
+    return 0;
+}

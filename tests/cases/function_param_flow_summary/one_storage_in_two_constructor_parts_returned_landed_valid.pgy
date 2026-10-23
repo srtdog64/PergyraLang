@@ -1,0 +1,19 @@
+// Make returns a Pair whose two fields would share one buffer. Main cannot
+// see that: growing one field would free the buffer the other still names.
+// The earlier part is copied where the constructor takes it.
+struct Pair {
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Make() -> Pair {
+    let rows: Array<Int> = [1];
+    return Pair(rows, rows);
+}
+
+func Main() -> Int {
+    let pair: Pair = Make();
+    ArrayPush(pair.first, 7);
+    Print(ToString(pair.second[0] + ArrayLength(pair.second) * 10 + ArrayLength(pair.first) * 100));
+    return 0;
+}

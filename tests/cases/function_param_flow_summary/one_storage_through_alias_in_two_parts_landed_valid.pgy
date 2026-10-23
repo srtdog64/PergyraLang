@@ -1,0 +1,20 @@
+// As one storage in two constructor parts, but the second part is a local
+// copy of the first: the copy shares its storage, so the earlier part is
+// copied too.
+struct Pair {
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Make() -> Pair {
+    let rows: Array<Int> = [1];
+    let alias: Array<Int> = rows;
+    return Pair(rows, alias);
+}
+
+func Main() -> Int {
+    let pair: Pair = Make();
+    ArrayPush(pair.first, 7);
+    Print(ToString(pair.second[0] + ArrayLength(pair.second) * 10 + ArrayLength(pair.first) * 100));
+    return 0;
+}

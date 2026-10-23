@@ -78,6 +78,9 @@ void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *pat
  * does not preserve, anything else whole. */
 void move_walk_copy_inout_changed(MoveWalk *walk, MoveState *state, const ASTNode *arg, ASTNode *callee,
     size_t formal);
+/* Two parts of the value `value` builds name one storage: the earlier one
+ * is refused and copied where the value takes it. */
+void move_walk_copy_parts_distinct(MoveWalk *walk, const MoveState *state, ASTNode *value);
 /* True the first time `node` is reported: loops are walked twice. */
 bool move_walk_reported_once(MoveWalk *walk, const ASTNode *node);
 /* `binding` takes a fresh value: its copies and the rows on it end. */

@@ -1,0 +1,17 @@
+// One map in two fields of a returned value: Clone does not copy maps whole,
+// so no copy can stand in and the constructor is refused.
+struct MapPair {
+    first: HashMap<String, Int>;
+    second: HashMap<String, Int>;
+}
+
+func Make() -> MapPair {
+    let rows: HashMap<String, Int> = MapNew();
+    return MapPair(rows, rows);
+}
+
+func Main() -> Int {
+    let pair: MapPair = Make();
+    Print(ToString(MapSize(pair.first)));
+    return 0;
+}
