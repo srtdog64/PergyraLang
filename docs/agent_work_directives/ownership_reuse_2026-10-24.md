@@ -1,6 +1,7 @@
 # Ownership decision reuse
 
-Status: implementation candidate; results belong to the lane's
+Status: IMPLEMENTATION COMPLETE for these two bounded reuse slices;
+results belong to the lane's
 [state](../truth/state/ownership_reuse.md).
 Base: `fdc661ff9bbc97033cc2a9615ab4ab3e0d7f5f99`, shared main.
 The user authorizes small verified local commits, not a push. Main's worker

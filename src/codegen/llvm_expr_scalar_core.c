@@ -16,7 +16,6 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
-#include "../compiler/verified_region_plan.h"
 #include "../parser/ast_api.h"
 
 static LLVMTypeRef
@@ -427,19 +426,10 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     if (op_type == TOKEN_PLUS
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
-        PgyRegionDisposition region_disposition;
-        uint32_t region_scope_id = 0;
-        if (pgy_verified_region_plan_lookup(
-                ctx->region_plan, ast_node_stable_id(node),
-                &region_disposition,
-                &region_scope_id)
-            && region_disposition == PGY_REGION_DISPOSITION_REGION) {
-            if (!ctx->region_scope_active || region_scope_id != ctx->region_scope_id ||
-                ctx->region_alloca == NULL || ctx->region_owner_function != ctx->current_function) {
-                llvm_set_mir_topology_invalid(ctx,
-                    "LLVM String concatenation is outside its admitted function scope");
-                return NULL;
-            }
+        LLVMRegionAllocation allocation = llvm_mir_region_allocation_scope(
+            ctx, node, "String concatenation");
+        if (allocation == LLVM_REGION_ALLOCATION_INVALID) return NULL;
+        if (allocation == LLVM_REGION_ALLOCATION_ACTIVE) {
             LLVMFuncEntry *region_fn = llvm_lookup_function(
                 ctx, "pgy_region_string_concat_export");
             if (region_fn == NULL) {
