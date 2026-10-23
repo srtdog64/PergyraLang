@@ -205,6 +205,9 @@ landed_clones = {
     "one_storage_through_alias_in_two_parts_landed_valid": {"Make": 1},
     "one_storage_in_two_literal_elements_landed_valid": {"Grid": 1},
     "one_storage_in_two_map_parts_landed_valid": {"Make": 1},
+    # The two recursive results are copied; Fresh's new String is not, as the
+    # flow summaries stay open across the mutually recursive demand.
+    "mutual_recursion_declared_result_stored_valid": {"Main": 2},
     # Maps Clone copies slot by slot: each copy the rules select lands.
     "default_aggregate_move_map_field_set_landed_valid": {"Main": 1},
     "formal_field_map_copy_changed_at_exit_landed_valid": {"GrowAndReturn": 1, "GrowAndFallOff": 1},
@@ -1211,6 +1214,7 @@ paired = (
     ("one_storage_in_two_array_map_parts_invalid", False),
     ("constructor_string_field_snapshot_before_finalize_invalid", False),
     ("declared_result_member_chain_qualifier_valid", True),
+    ("mutual_recursion_declared_result_stored_valid", True),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -2309,6 +2313,7 @@ for name, expected in (
     ("two_parts_of_distinct_storage_valid", "22"),
     ("one_storage_in_two_map_parts_landed_valid", "0"),
     ("declared_result_member_chain_qualifier_valid", "no names"),
+    ("mutual_recursion_declared_result_stored_valid", "Array<Int>ap<String>x!"),
     ("default_aggregate_move_map_field_set_landed_valid", "1"),
     ("formal_field_map_copy_changed_at_exit_landed_valid", "0\n0\n"),
     ("inout_callee_same_map_field_changed_landed_valid", "3\n"),
