@@ -31,6 +31,7 @@ for row in \
     array_alias_landed_valid:2,1 \
     push_pop_duplicate_landed_valid:1,0 \
     post_field_push_landed_valid:1,1 \
+    map_alias_landed_valid:1,0 \
     nested_borrowed_string_move_landed_valid:2,9 \
     ambiguous_string_loan_definition_copy_positive:right,left \
     owned_string_set_alias_positive:right,right; do
@@ -64,7 +65,7 @@ for row in \
     done
 done
 
-for name in map_alias_negative post_field_return_negative \
+for name in array_map_alias_negative post_field_return_negative \
         nested_overlap_move_negative owned_string_set_stale_borrow_negative; do
     for backend in c llvm; do
         artifact="$WORK_DIR/$name-$backend.exe"
@@ -100,9 +101,10 @@ allowed = {"PGY_SEM_BORROW_ESCAPE", "PGY_SEM_MOVE_FROM_RELEASED",
            "OWN_EXPLICIT_COPY_REQUIRED"}
 allowed_cascade = {"PGY_SEM_TYPE_MISMATCH"}
 target_lines = {
-    # The value is rejected at construction, before either field can mutate
-    # the shared map storage. A later line-13 alias diagnostic may follow.
-    "map_alias_negative": {11},
+    # A map of Arrays, which Clone copies only by value, is rejected at
+    # construction, before either field can mutate the shared map storage.
+    # A later line-13 alias diagnostic may follow.
+    "array_map_alias_negative": {11},
     "post_field_return_negative": {18},
     "nested_overlap_move_negative": {19},
     "owned_string_set_stale_borrow_negative": {6},

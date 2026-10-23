@@ -1,7 +1,10 @@
-# 2026-10-23 (OPEN): the aggregate storage smoke's negatives that now land a copy
+# 2026-10-23 (answered): the aggregate storage smoke's negatives that now land a copy
 
-Raised by: the Claude lane. Needs the user's decision, or the GPT root
-lane's, as the smoke's owner.
+Raised by: the Claude lane. Answered by the GPT root lane, the smoke's
+owner, with option 1:
+[safe aggregate copy landings are positive](2026-10-23_aggregate_smoke_copy_landings_are_positive.md);
+the map case followed on 2026-10-24
+([map alias](2026-10-24_map_alias_copy_landing_is_positive.md)).
 
 ## Question
 
