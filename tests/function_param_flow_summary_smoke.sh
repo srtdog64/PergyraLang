@@ -271,12 +271,12 @@ landing_rounds = {
     "formal_store_landing_alias_output_valid": 1,
     "formal_store_landing_struct_output_shallow_invalid": 0,
     "array_push_loan_inout_landed_valid": 1,
-    "array_push_loan_inout_invalid": 0,
+    "array_push_loan_inout_nested_clone_landed_valid": 1,
     "aggregate_move_void_call_landed_valid": 1,
-    "aggregate_move_void_call_invalid": 0,
+    "aggregate_move_void_call_nested_clone_landed_valid": 1,
     "by_value_getter_lend_result_grown_landed_valid": 1,
     "default_aggregate_move_shared_field_return_landed_valid": 1,
-    "default_aggregate_move_shared_field_return_invalid": 0,
+    "default_aggregate_move_shared_field_return_nested_clone_landed_valid": 1,
     "by_value_getter_lend_result_lent_on_valid": 0,
     "by_value_getter_lend_string_reassigned_valid": 0,
     "by_value_getter_lend_option_string_unwrapped_valid": 0,
@@ -360,9 +360,6 @@ release_lifetime_refusals = {
         (*released_refusal, 36, 5), (*released_refusal, 43, 20), (*released_refusal, 51, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
-    # Returning a field's storage shares it with the result, which lends the
-    # argument; growing the result changes it when no copy stands in.
-    "default_aggregate_move_shared_field_return_invalid": [(*released_refusal, 20, 28)],
     # A call result that holds a formal's storage is a path of that formal:
     # growing it changes the storage the caller's copy shares.
     "enum_formal_matched_payload_grown_invalid": [(*released_refusal, 27, 11)],
@@ -483,17 +480,11 @@ release_lifetime_refusals = {
     "receiver_ref_self_local_return_invalid": [(*borrow_refusal, 19, 10)],
     "receiver_ref_self_string_return_invalid": [(*borrow_refusal, 6, 10)],
     # A push stores its value in the Array it names: a local Array carries
-    # the loan where it goes (here past its owner, 27:5), and an inout Array
-    # is an output, a call escape of the loan when no copy can land (18:6,
-    # 24:13).
+    # the loan where it goes (here past its owner, 27:5).
     "array_push_loan_past_owner_invalid": [(*borrow_refusal, 27, 5)],
-    "array_push_loan_inout_invalid": [(*borrow_refusal, 18, 6), (*borrow_refusal, 24, 13)],
     # A stored struct Clone copies only by value lands nothing, so the
     # caller's later use of its context reads a moved value.
     "formal_store_landing_struct_output_shallow_invalid": [(*released_refusal, 26, 28)],
-    # Report keeps the context and returns, so the later use reads a moved
-    # value; the same call to a Never routine ends that path instead.
-    "aggregate_move_void_call_invalid": [(*released_refusal, 28, 18)],
     # A handoff a return value makes ends the path: the next iteration's
     # Contains is not refused for it, and the handoff is not judged against
     # its own call. A call before it that may rebind the Array still refuses
@@ -1023,7 +1014,7 @@ paired = (
     ("clone_string_array_ref_input_result_valid", True),
     ("clone_struct_array_ref_input_result_invalid", False),
     ("default_aggregate_move_read_only_struct_valid", True),
-    ("default_aggregate_move_shared_field_return_invalid", False),
+    ("default_aggregate_move_shared_field_return_nested_clone_landed_valid", True),
     ("default_aggregate_move_shared_field_return_landed_valid", True),
     ("by_value_getter_result_grown_landed_valid", True),
     ("by_value_getter_result_passed_grown_landed_valid", True),
@@ -1220,9 +1211,9 @@ paired = (
     ("receiver_ref_self_string_return_invalid", False),
     ("array_push_loan_local_view_valid", True),
     ("array_push_loan_past_owner_invalid", False),
-    ("array_push_loan_inout_invalid", False),
+    ("array_push_loan_inout_nested_clone_landed_valid", True),
     ("aggregate_move_never_call_valid", True),
-    ("aggregate_move_void_call_invalid", False),
+    ("aggregate_move_void_call_nested_clone_landed_valid", True),
     ("aggregate_move_void_call_landed_valid", True),
     ("array_handoff_return_value_loop_valid", True),
     ("inout_call_after_inner_loop_valid", True),

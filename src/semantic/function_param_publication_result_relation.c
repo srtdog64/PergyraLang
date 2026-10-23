@@ -9,8 +9,9 @@
 
 /* Whether C and LLVM copy every part of a value of `type` into new storage
  * (2026-10-19_struct_clone_is_deep): a physical scalar; a String
- * (StringConcat with ""); an Array of physical scalars or Strings
- * (pgy_array_clone_<T>, every String copied); an Option of such a value; a
+ * (StringConcat with ""); an Array of physical scalars or Strings, or one
+ * additional Array layer over those leaves (the nested clone-into runtime
+ * copies each inner Array); an Option of such a value; a
  * non-generic struct or class of such fields, and a subject of them as the
  * argument itself. The backends copy any other part by value, so it may
  * share storage with the argument. */
@@ -20,7 +21,10 @@ static bool clone_copies_deeply(SemanticContext *ctx, const Type *type, int dept
     if (type_equals(type, TYPE_STRING) || publication_physical_scalar(type)) return true;
     if (type_is_constructed_named(type, "Array")) {
         const Type *element = type_get_constructed_arg(type, 0);
-        return type_equals(element, TYPE_STRING) || publication_physical_scalar(element);
+        if (type_equals(element, TYPE_STRING) || publication_physical_scalar(element)) return true;
+        if (!type_is_constructed_named(element, "Array")) return false;
+        const Type *leaf = type_get_constructed_arg(element, 0);
+        return type_equals(leaf, TYPE_STRING) || publication_physical_scalar(leaf);
     }
     if (type_is_constructed_named(type, "Option"))
         return clone_copies_deeply(ctx, type_get_constructed_arg(type, 0), depth + 1);

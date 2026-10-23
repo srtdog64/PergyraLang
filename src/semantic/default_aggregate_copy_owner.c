@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "function_param_publication_internal.h"
 #include "function_param_publication_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
@@ -39,6 +40,40 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
         for (size_t i = 0; i < (array ? ast_array_literal_count(value) : ast_tuple_literal_count(value)); i++)
             move_walk_copy_record(walk, state, array ? ast_array_literal_element(value, i) : ast_tuple_literal_element(value, i),
                 carrier, carrier_fields);
+        return;
+    }
+    /* A checked nominal constructor maps each actual to one distinct result
+     * field. Preserve that field identity in the copy graph: two fields may
+     * receive the same descriptor, but a later change through one field must
+     * select a copy for the other field rather than treating both as the
+     * aggregate root. The current snapshot owns named-argument reordering and
+     * rejects stale constructor metadata. */
+    PublishedNode *published = value->type == AST_CALL ? publication_result_current(walk->ctx, value) : NULL;
+    if (published != NULL && published->nominal_result != NULL) {
+        const SemanticNominalResultSnapshot *snapshot = published->nominal_result;
+        if (carrier_fields == NULL || snapshot->field_count != ast_call_arg_count(value)) {
+            walk->failed = true;
+            return;
+        }
+        for (size_t p = 0; p < snapshot->field_count && !walk->failed; p++) {
+            const char *name = snapshot->fields[p].field_name;
+            size_t base = strlen(carrier_fields);
+            size_t length = name != NULL ? strlen(name) : 0;
+            if (name == NULL || base > SIZE_MAX - length - 2) {
+                walk->failed = true;
+                return;
+            }
+            char *field_path = malloc(base + length + 2);
+            if (field_path == NULL) {
+                walk->failed = true;
+                return;
+            }
+            memcpy(field_path, carrier_fields, base);
+            field_path[base] = '.';
+            memcpy(field_path + base + 1, name, length + 1);
+            move_walk_copy_record(walk, state, ast_call_argument(value, p), carrier, field_path);
+            free(field_path);
+        }
         return;
     }
     /* A constructor, an Option wrap or a Clone that copies only by value
