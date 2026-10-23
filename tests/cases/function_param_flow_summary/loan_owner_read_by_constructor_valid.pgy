@@ -1,0 +1,40 @@
+// As SemanticAstExpressionTypedBindingContractReady: facts lend the base
+// artifact, then a second artifact is built from the base's fields and lent
+// in turn. The constructor stores the base's paths in a new value and changes
+// nothing of the base, so the loan proof holds although Clone copies the
+// artifact only by value.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    rows: Array<Cell>;
+}
+
+struct Artifact {
+    text: String;
+    arena: Arena;
+    count: Int;
+}
+
+struct Facts {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+func FactsFrom(artifact: Artifact) -> Facts {
+    return Facts(artifact.arena.rows, ArrayLength(artifact.arena.rows) > 0);
+}
+
+func Check() -> Int {
+    let base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
+    let missing: Facts = FactsFrom(base);
+    let typed: Artifact = Artifact(base.text, base.arena, base.count + 1);
+    let facts: Facts = FactsFrom(typed);
+    return missing.rows[0].value + ArrayLength(facts.rows) + typed.count + base.count;
+}
+
+func Main() -> Int {
+    Print(ToString(Check()));
+    return 0;
+}

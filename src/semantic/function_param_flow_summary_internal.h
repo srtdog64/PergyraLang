@@ -271,6 +271,14 @@ FunctionParamFlowLoanSpan function_param_flow_loan_span(FunctionParamFlowIndexCl
  * its scope ended; `body` is the routine's body. */
 bool function_param_flow_claim_outside_loan(FunctionParamFlowIndexClaims *claims, size_t claim,
     const FunctionParamFlowLoanSpan *span, const ASTNode *body);
+/* The loan owner proof (function_param_flow_loan_owner_proof.c): the
+ * storage root of a place through local aliases, and whether `caller`
+ * changes `binding` while a loan of it lives. */
+bool function_param_flow_loan_storage_root(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowIndexClaims *claims, ASTNode *caller, const ASTNode *place, const ASTNode **root);
+bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
+    bool own_descriptor, const FunctionParamFlowLoanSpan *span);
 
 typedef struct {
     ASTNode *node;

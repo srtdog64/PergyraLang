@@ -1,0 +1,42 @@
+// As loan_owner_constructor_copy_changed_invalid, the value written by a
+// callee it is passed to: it does not stay in the routine unwritten, so the
+// constructor counts as a change of the base.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    rows: Array<Cell>;
+}
+
+struct Artifact {
+    text: String;
+    arena: Arena;
+    count: Int;
+}
+
+struct Facts {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+func FactsFrom(artifact: Artifact) -> Facts {
+    return Facts(artifact.arena.rows, ArrayLength(artifact.arena.rows) > 0);
+}
+
+func Touch(artifact: Artifact) -> Int {
+    artifact.arena.rows[0] = Cell(7);
+    return 0;
+}
+
+func Check() -> Int {
+    let base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
+    let missing: Facts = FactsFrom(base);
+    let touched: Int = Touch(Artifact(base.text, base.arena, base.count));
+    return missing.rows[0].value + touched + base.count;
+}
+
+func Main() -> Int {
+    Print(ToString(Check()));
+    return 0;
+}

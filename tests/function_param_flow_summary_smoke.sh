@@ -115,7 +115,7 @@ landed_clones = {
     "default_aggregate_move_shared_field_return_landed_valid": {"Main": 1},
     "by_value_getter_lend_result_path_grown_landed_valid": {"Main": 1},
     "by_value_getter_lend_result_passed_grown_landed_valid": {"Main": 1},
-    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": {"Main": 2},
+    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": {"Main": 1},
     "by_value_getter_second_lend_grown_landed_valid": {"Main": 1},
     "by_value_getter_second_lend_formal_grown_landed_valid": {"Grow": 1},
     "by_value_getter_lend_in_constructor_grown_landed_valid": {"Main": 1},
@@ -179,6 +179,7 @@ landing_rounds = {
     "by_value_getter_lend_into_own_formal_landed_valid": 1,
     "returned_alias_lends_formal_valid": 0,
     "loan_carrier_unchanged_by_call_before_loan_valid": 0,
+    "loan_owner_read_by_constructor_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -295,7 +296,7 @@ landing_rounds = {
     "string_struct_result_reassigned_valid": 0,
     "by_value_getter_lend_result_path_grown_landed_valid": 1,
     "by_value_getter_lend_result_passed_grown_landed_valid": 1,
-    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": 2,
+    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": 1,
     "by_value_getter_second_lend_grown_landed_valid": 1,
     "by_value_getter_second_lend_formal_grown_landed_valid": 1,
     "by_value_getter_lend_in_constructor_grown_landed_valid": 1,
@@ -460,6 +461,17 @@ release_lifetime_refusals = {
     "loan_kept_by_inout_callee_outside_its_loop_invalid": [
         (*released_refusal, 33, 33), (*released_refusal, 37, 34), (*released_refusal, 38, 26)],
     "loan_read_in_the_statement_that_moves_its_owner_invalid": [(*released_refusal, 36, 47)],
+    # A constructor reads a loan's owner, but a value it builds from the
+    # owner's fields shares their storage: changed under the loan, written by
+    # a callee or returned, it refuses. An in-place permutation is no constructor.
+    "loan_owner_constructor_copy_changed_invalid": [(*released_refusal, 31, 21)],
+    "loan_owner_constructor_copy_written_by_callee_invalid": [
+        (*released_refusal, 35, 44), (*released_refusal, 35, 55), (*released_refusal, 35, 67),
+        (*released_refusal, 36, 51)],
+    "loan_owner_constructor_copy_returned_invalid": [
+        (*released_refusal, 34, 31), (*released_refusal, 34, 42), (*released_refusal, 34, 54),
+        (*released_refusal, 34, 91)],
+    "loan_owner_permuted_in_place_invalid": [(*released_refusal, 30, 57), (*released_refusal, 31, 65)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -983,6 +995,11 @@ paired = (
     ("loan_pushed_outside_its_loop_invalid", False),
     ("loan_kept_by_inout_callee_outside_its_loop_invalid", False),
     ("loan_read_in_the_statement_that_moves_its_owner_invalid", False),
+    ("loan_owner_read_by_constructor_valid", True),
+    ("loan_owner_constructor_copy_changed_invalid", False),
+    ("loan_owner_constructor_copy_written_by_callee_invalid", False),
+    ("loan_owner_constructor_copy_returned_invalid", False),
+    ("loan_owner_permuted_in_place_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

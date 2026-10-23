@@ -1,0 +1,37 @@
+// ArrayReverse reverses the base's rows in place and returns them while the
+// facts lend the base: it is no constructor, and the facts would read the
+// reversed rows.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    rows: Array<Cell>;
+}
+
+struct Artifact {
+    text: String;
+    arena: Arena;
+    count: Int;
+}
+
+struct Facts {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+func FactsFrom(artifact: Artifact) -> Facts {
+    return Facts(artifact.arena.rows, ArrayLength(artifact.arena.rows) > 0);
+}
+
+func Check() -> Int {
+    let base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
+    let missing: Facts = FactsFrom(base);
+    let reversed: Array<Cell> = ArrayReverse(base.arena.rows);
+    return missing.rows[0].value + ArrayLength(reversed) + base.count;
+}
+
+func Main() -> Int {
+    Print(ToString(Check()));
+    return 0;
+}

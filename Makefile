@@ -607,6 +607,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_view.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_slot_claim.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
+                   $(SEMANTIC_DIR)/function_param_flow_loan_owner_proof.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_return.c \
                     $(SEMANTIC_DIR)/type_checker_channel_transport.c \
                     $(SEMANTIC_DIR)/type_checker_visibility.c \
