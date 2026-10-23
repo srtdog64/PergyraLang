@@ -1,0 +1,28 @@
+// As the self-hosted expression parser: Expr takes its cursor by value and
+// hands it to an inout Primary, which sets the cursor's element and recurses
+// back into Expr. Nothing on the cycle pushes into the cursor, so its buffer
+// stays where Main's cursor names it and nothing is copied.
+func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    ArraySet(cursor_out, 0, start + ArrayLength(cursor_out));
+    return Substring(content, start, 1);
+}
+
+func Primary(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    if start + 1 < StringLength(content) && Substring(content, start, 1) == "(" {
+        let inner: String = Expr(content, start + 1, cursor_out);
+        ArraySet(cursor_out, 0, cursor_out[0] + 1);
+        return Concat("[", Concat(inner, "]"));
+    }
+    return ReadIdent(content, start, cursor_out);
+}
+
+func Expr(content: String, start: Int, cursor_out: Array<Int>) -> String {
+    return Primary(content, start, cursor_out);
+}
+
+func Main() -> Int {
+    let cursor: Array<Int> = [0];
+    let text: String = Expr("(a)", 0, cursor);
+    Print(Concat(text, ToString(cursor[0])));
+    return 0;
+}

@@ -1,0 +1,24 @@
+// Pass hands its by-value Array formal on to a by-value callee that only
+// reads it: the formal keeps its storage, so Main uses rows again with no
+// copy.
+func Sum(rows: Array<Int>) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        total = total + rows[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Sum(rows);
+    return k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1, 2];
+    let k: Int = Pass(rows);
+    Print(ToString(rows[0] + ArrayLength(rows) + k));
+    return 0;
+}

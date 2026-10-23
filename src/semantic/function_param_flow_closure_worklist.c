@@ -66,6 +66,7 @@ void function_param_flow_closure_changed(FunctionParamFlowSummaryStore *store, s
 FunctionParamFlowEntryFacts function_param_flow_entry_facts(const FunctionParamFlowSummaryEntry *entry)
 {
     FunctionParamFlowEntryFacts facts = {entry->mask, entry->array_storage_unproved, entry->array_elements_unproved,
+        entry->array_buffer_unkept,
         entry->returned_backing_unproved, entry->returned_backing_pending, entry->analysis_unsupported,
         entry->output_dependencies_ready, entry->output_dependencies != NULL, entry->output_producer, 0};
     for (size_t p = 0; facts.outputs_present && p < entry->output_count; p++)
@@ -75,7 +76,7 @@ FunctionParamFlowEntryFacts function_param_flow_entry_facts(const FunctionParamF
 
 bool function_param_flow_entry_facts_equal(FunctionParamFlowEntryFacts a, FunctionParamFlowEntryFacts b)
 {
-    return a.mask == b.mask && a.storage == b.storage && a.elements == b.elements &&
+    return a.mask == b.mask && a.storage == b.storage && a.elements == b.elements && a.buffer == b.buffer &&
         a.unproved == b.unproved && a.pending == b.pending && a.unsupported == b.unsupported &&
         a.ready == b.ready && a.outputs_present == b.outputs_present && a.producer == b.producer &&
         a.outputs == b.outputs;

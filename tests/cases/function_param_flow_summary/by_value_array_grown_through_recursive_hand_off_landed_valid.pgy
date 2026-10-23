@@ -1,0 +1,22 @@
+// Expr takes its trail by value and hands it to an inout Primary that may
+// push into it, on a cycle back through Expr. The push may free the buffer
+// Main's trail names: Expr moves its formal, and each caller that uses the
+// trail again takes a copy.
+func Primary(start: Int, inout trail: Array<Int>) -> Int {
+    if start > 0 {
+        return Expr(start - 1, trail);
+    }
+    ArrayPush(trail, start);
+    return 0;
+}
+
+func Expr(start: Int, trail: Array<Int>) -> Int {
+    return Primary(start, trail);
+}
+
+func Main() -> Int {
+    let trail: Array<Int> = [5];
+    let k: Int = Expr(2, trail);
+    Print(ToString(trail[0] + ArrayLength(trail) + k));
+    return 0;
+}

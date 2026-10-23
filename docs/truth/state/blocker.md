@@ -46,12 +46,12 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
 - **Proofs must walk every place a formal's storage can go:** a `for`
   iterable (`99a31fe0f`) and a getter's result (ASan use-after-free;
   [rule](../decisions/2026-10-20_call_result_holding_formal_storage_is_its_path.md)).
-- **Local copies share storage** ([rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)).
+- **Local copies share storage** ([rule](../decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)), and so does a by-value Array an
+  `inout` callee pushes into (ASan; [record](../evidence/2026-10-23_by_value_array_buffer_through_inout.md); element writes [OPEN](../decisions/2026-10-23_open_by_value_array_element_write_through_inout.md)).
 - **A defer runs at every exit, not where it is written.** The branch admitted
   `defer { ArrayDrop(rows); }` then `return Keep(rows)` (ASan heap-use-after-free;
   [record](../evidence/2026-10-21_defer_release_admitted_at_each_exit.md)).
-- **Emitted code frees nothing** on `ArraySet`, reassignment or a move: most
-  owner violations leak instead of failing at run time.
+- **Emitted code frees nothing** on `ArraySet`, reassignment or a move: most owner violations leak instead of failing at run time.
 
 ## CI comparison
 

@@ -49,5 +49,6 @@ bool semantic_stdlib_array_argument_preserves_storage(const ASTNode *call,
                                                        size_t ordinal);
 bool semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
     size_t ordinal, SemanticContext *ctx);
+bool semantic_stdlib_array_argument_keeps_buffer(const ASTNode *call, size_t ordinal);
 
 #endif

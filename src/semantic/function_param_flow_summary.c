@@ -167,6 +167,7 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
     unsigned previous;
     unsigned storage_unproved;
     bool payload_read;
+    bool buffer_unkept = false;
 
     if (store == NULL || index >= store->count)
         return SLOT_PARAM_SUMMARY_ALL;
@@ -279,6 +280,7 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
         bool unsupported = !complete && !pending && function_param_flow_backing_unsupported(store, function_decl, origin.param_index);
         store->entries[index].analysis_unsupported = unsupported;
         if (unsupported) { candidate |= SLOT_PARAM_SUMMARY_ALL; storage_unproved = FUNCTION_PARAM_ARRAY_ALL_UNPROVED; }
+        buffer_unkept |= unsupported;
         /* Where the result holds no storage, the slot summary's RETURN only
          * says the input reached some call result; a complete frame followed
          * that result to each output or escape it reached. */
@@ -350,7 +352,7 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
         program_points->dependency_roots, program_points->dependency_root_count,
         program_points->roots_by_param[store->entries[index].param_index],
         program_points->root_counts[store->entries[index].param_index], &origin, &lookup,
-        candidate | store->entries[index].mask, &payload_read);
+        candidate | store->entries[index].mask, &payload_read, &buffer_unkept);
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
     candidate |= previous;
@@ -365,6 +367,10 @@ function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
     }
     if ((storage_unproved & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) && !store->entries[index].array_storage_unproved) {
         store->entries[index].array_storage_unproved = true;
+        store->changed = true;
+    }
+    if (buffer_unkept && !store->entries[index].array_buffer_unkept) {
+        store->entries[index].array_buffer_unkept = true;
         store->changed = true;
     }
     if ((storage_unproved & FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED) && !store->entries[index].array_elements_unproved) {

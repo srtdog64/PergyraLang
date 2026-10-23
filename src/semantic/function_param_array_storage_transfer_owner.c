@@ -47,6 +47,7 @@ typedef struct {
     /* A field walk proves one top-level field of a struct formal; NULL for
      * the whole formal. */
     const char *focus;
+    bool *buffer_unkept; /* the Array formal's buffer may be reallocated or freed */
 } StorageWalk;
 
 /* RESULT is a call result that holds storage of a path of the formal. */
@@ -258,22 +259,34 @@ static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordina
         !retains ? 0 : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
 }
 
+/* An Array formal keeps its descriptor as the callee's formal does. An
+ * `inout` callee may push into the argument's place, and only an `inout`
+ * formal (`place`) is its caller's place: a by-value one shares the buffer
+ * its caller names, so it needs the `inout` formal to keep its buffer. A push
+ * or a hand-off to a formal that may not keep it marks this formal's buffer
+ * (2026-10-23_by_value_array_handed_to_inout_formal_moves). */
 static unsigned
 array_storage_call_argument_unproved(ASTNode *call, size_t ordinal,
-    const SlotFunctionLookup *lookup)
+    const SlotFunctionLookup *lookup, bool place, bool *buffer_unkept)
 {
     ASTNode *callee = ast_call_callee(call);
     uint32_t identity = ast_call_semantic_callee_decl_id(call);
     if (!semantic_param_publication_checked_argument(lookup->ctx, call, ordinal))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
-    if (semantic_stdlib_array_argument_preserves_storage(call, ordinal))
-        return semantic_stdlib_array_argument_preserves_elements(call, ordinal, lookup->ctx)
-            ? 0 : FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
+    if (semantic_stdlib_array_argument_preserves_storage(call, ordinal)) {
+        *buffer_unkept |= !semantic_stdlib_array_argument_keeps_buffer(call, ordinal);
+        return semantic_stdlib_array_argument_preserves_elements(call, ordinal, lookup->ctx) ? 0 : FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
+    }
     if (identity == 0 || ast_call_semantic_callee_value_binding_id(call) != 0
         || callee == NULL || callee->type != AST_IDENTIFIER)
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     ASTNode *decl = slot_analyzer_find_function_decl(lookup, ast_identifier_name(callee));
     if (decl == NULL || ast_node_stable_id(decl) != identity)
+        return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    FuncParam *param = ast_func_param(decl, ordinal);
+    bool kept = function_param_flow_array_buffer_kept(lookup->ctx, decl, ordinal);
+    *buffer_unkept |= !kept;
+    if (!place && (param == NULL || (param->mode == PARAM_MODE_MUT_REF && !kept)))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     return function_param_flow_array_preservation_failures(lookup->ctx, decl, ordinal);
 }
@@ -456,7 +469,9 @@ static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk)
                 ? storage_path_indices(arg, walk)
                 : storage_path_call_argument_unproved(call, i, walk->lookup, root == STORAGE_ROOT_ALIAS,
                     whole ? walk->focus : NULL) | storage_path_indices(arg, walk);
-        } else bad |= array_storage_formal(arg, walk) ? array_storage_call_argument_unproved(call, i, walk->lookup)
+        } else bad |= array_storage_formal(arg, walk) ? array_storage_call_argument_unproved(call, i, walk->lookup,
+                ast_func_param(walk->origin->function_decl, walk->origin->param_index)->mode == PARAM_MODE_MUT_REF,
+                walk->buffer_unkept)
             : array_storage_use_unproved(arg, walk);
     }
     return bad;
@@ -467,14 +482,14 @@ static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk)
 static unsigned
 storage_unproved_walk(ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
     const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read,
-    const char *focus)
+    const char *focus, bool *buffer_unkept)
 {
-    if (payload_read == NULL) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    if (payload_read == NULL || buffer_unkept == NULL) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     *payload_read = false;
     FuncParam *param = origin != NULL
         ? ast_func_param(origin->function_decl, origin->param_index) : NULL;
     StorageWalk walk = {origin, lookup, payload_read, false,
-        (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0, NULL, NULL, 0, 0, focus};
+        (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0, NULL, NULL, 0, 0, focus, buffer_unkept};
     if (lookup == NULL || lookup->ctx == NULL || param == NULL
         || !array_storage_formal_kind(origin->function_decl, origin->param_index, &walk.paths)
         || ast_func_body(origin->function_decl) == NULL || origin->function_decl->is_async_decl
@@ -500,10 +515,11 @@ storage_unproved_walk(ASTNode *const *statements, size_t statement_count, ASTNod
 unsigned
 function_param_array_storage_unproved_in_program_points(
     ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
-    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read)
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read,
+    bool *buffer_unkept)
 {
     return storage_unproved_walk(statements, statement_count, roots, count, origin, lookup, summary,
-        payload_read, NULL);
+        payload_read, NULL, buffer_unkept);
 }
 
 bool
@@ -512,11 +528,11 @@ function_param_array_storage_field_unproved_in_program_points(
     const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, const char *field,
     unsigned *failures)
 {
-    bool paths = false, payload_read = false;
+    bool paths = false, payload_read = false, buffer_unkept = false;
     if (origin == NULL || field == NULL || failures == NULL ||
         !array_storage_formal_kind(origin->function_decl, origin->param_index, &paths) || !paths) return false;
     *failures = storage_unproved_walk(statements, statement_count, roots, count, origin, lookup, summary,
-        &payload_read, field);
+        &payload_read, field, &buffer_unkept);
     return true;
 }
 
@@ -538,6 +554,22 @@ function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *st
         || !entry->output_dependencies_ready || !function_param_flow_output_current(store, index, false))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     return array_preservation_bits(entry);
+}
+
+bool
+function_param_flow_array_buffer_kept(SemanticContext *ctx, ASTNode *function_decl, size_t param_index)
+{
+    bool paths = true;
+    if (ctx == NULL || function_decl == NULL || ast_func_body(function_decl) == NULL || function_decl->is_async_decl ||
+        !array_storage_formal_kind(function_decl, param_index, &paths) || paths) return false;
+    (void)function_param_flow_summary_for_param(ctx, function_decl, param_index);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    size_t index = store == NULL || store->failed ? SIZE_MAX
+        : function_param_flow_find(store, ast_node_stable_id(function_decl), param_index);
+    if (index == SIZE_MAX || store->entries[index].function_decl != function_decl) return false;
+    const FunctionParamFlowSummaryEntry *entry = &store->entries[index];
+    return !entry->array_buffer_unkept && (store->solving || (entry->state == FUNCTION_PARAM_FLOW_COMPLETE &&
+        !entry->analysis_unsupported && entry->output_dependencies_ready && function_param_flow_output_current(store, index, false)));
 }
 
 unsigned
