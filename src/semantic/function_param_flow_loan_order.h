@@ -32,6 +32,11 @@ bool function_param_flow_loan_storage_root(FunctionParamFlowSummaryStore *store,
 bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
     bool own_descriptor, bool carrier, const FunctionParamFlowLoanSpan *span);
+/* Every row of `claims` runs where it is written: plain code, types and
+ * `while` loops, no deferred, concurrent or closure body. */
+bool function_param_flow_claims_in_place(const FunctionParamFlowIndexClaims *claims);
+/* The row that holds `row`, or SIZE_MAX. */
+size_t function_param_flow_claim_parent_row(FunctionParamFlowIndexClaims *claims, size_t row);
 /* `claim` is a match case pattern or a part of one: it binds parts of the
  * subject and evaluates nothing. */
 bool function_param_flow_claim_in_match_pattern(FunctionParamFlowIndexClaims *claims, size_t claim);

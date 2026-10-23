@@ -47,6 +47,9 @@ typedef struct {
     /* Calls whose result a Clone copies into storage of its own. */
     const ASTNode **copied;
     size_t copied_count, copied_capacity;
+    /* The call and argument ordinal of the argument being walked, if any. */
+    ASTNode *argument_call;
+    size_t argument_ordinal;
 } MoveWalk;
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,

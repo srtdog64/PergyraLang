@@ -152,6 +152,20 @@ static bool claim_loan_scope(const FunctionParamFlowIndexClaims *claims, size_t 
     return true;
 }
 
+bool function_param_flow_claims_in_place(const FunctionParamFlowIndexClaims *claims)
+{
+    if (claims == NULL || claims->failed) return false;
+    for (size_t r = 0; r < claims->count; r++)
+        if (!claim_shape_in_place(claims->rows[r].shape)) return false;
+    return true;
+}
+
+size_t function_param_flow_claim_parent_row(FunctionParamFlowIndexClaims *claims, size_t row)
+{
+    if (claims == NULL || claims->failed || row >= claims->count || !claim_order_parents(claims)) return SIZE_MAX;
+    return claims->order_parent[row];
+}
+
 FunctionParamFlowLoanSpan function_param_flow_loan_span(SemanticContext *ctx, FunctionParamFlowIndexClaims *claims,
     const ASTNode *call, const uint32_t *carriers, size_t carrier_count, const ASTNode *body)
 {
@@ -168,8 +182,7 @@ FunctionParamFlowLoanSpan function_param_flow_loan_span(SemanticContext *ctx, Fu
     /* Every read of a local the loan reached, listed only when every row of
      * the routine runs in place: a closure or deferred body could read one
      * after the code written after it. */
-    bool listed = span.call_row != SIZE_MAX;
-    for (size_t r = 0; listed && r < claims->count; r++) listed = claim_shape_in_place(claims->rows[r].shape);
+    bool listed = span.call_row != SIZE_MAX && function_param_flow_claims_in_place(claims);
     for (size_t r = 0; listed && r < claims->count; r++) {
         uint32_t binding = claims->rows[r].shape == AST_IDENTIFIER ?
             semantic_param_publication_binding(ctx, claims->rows[r].node) : 0;
