@@ -298,6 +298,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 origin->private_stores_owner_id == ast_node_stable_id(origin->function_decl) &&
                 semantic_param_publication_private_array_push(ctx, node, origin->function_decl);
             local |= private_store;
+            /* ArrayPop shortens its receiver in place and keeps nothing of it
+             * (2026-10-22_array_pop_keeps_nothing_of_its_receiver). */
+            local |= semantic_param_publication_checked_array_pop(ctx, node);
             bool read = semantic_typed_map_query_receiver_read(ctx, node, i);
             bool result_depends = false, external_retains = true;
             bool relation = semantic_param_publication_checked_result_relation(ctx, node, i, &result_depends, &external_retains);

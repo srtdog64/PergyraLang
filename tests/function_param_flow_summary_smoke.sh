@@ -199,6 +199,7 @@ landing_rounds = {
     "by_value_cursor_set_through_recursive_parser_valid": 0,
     "by_value_array_popped_by_inout_callee_valid": 0,
     "by_value_array_handed_to_generic_reader_valid": 0,
+    "inout_string_chain_popped_by_recursive_parser_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -531,6 +532,9 @@ release_lifetime_refusals = {
     # A by-value Array formal handed to an inout callee moves; a later use
     # of maps Clone cannot copy whole is refused.
     "by_value_array_of_maps_grown_by_inout_callee_invalid": [(*released_refusal, 18, 32)],
+    # ArrayPop keeps nothing of an inout chain; a callee that keeps the chain
+    # before popping it still refuses the nested call that takes it.
+    "inout_string_chain_kept_before_pop_invalid": [(*borrow_refusal, 13, 9)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1090,6 +1094,8 @@ paired = (
     ("by_value_cursor_set_through_recursive_parser_valid", True),
     ("by_value_array_popped_by_inout_callee_valid", True),
     ("by_value_array_handed_to_generic_reader_valid", True),
+    ("inout_string_chain_popped_by_recursive_parser_valid", True),
+    ("inout_string_chain_kept_before_pop_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -2127,6 +2133,7 @@ for name, expected in (
     ("by_value_cursor_set_through_recursive_parser_valid", "[a]3"),
     ("by_value_array_popped_by_inout_callee_valid", "22"),
     ("by_value_array_handed_to_generic_reader_valid", "3"),
+    ("inout_string_chain_popped_by_recursive_parser_valid", "00000101101011110"),
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),
     ("option_string_result_reassigned_valid", "3ab"),

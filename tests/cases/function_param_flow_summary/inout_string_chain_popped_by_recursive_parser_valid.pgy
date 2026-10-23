@@ -1,0 +1,35 @@
+// As ParseDeclsInto's import chain: a recursive parser pushes a fresh String
+// onto its inout chain, hands the chain to the nested call, and pops it
+// after. ArrayPop keeps nothing of the chain, so the nested call needs no
+// proof that the chain's Strings are owned.
+func Path(chain: Array<String>) -> String {
+    let text: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(chain) {
+        text = Concat(text, chain[i]);
+        i = i + 1;
+    }
+    return text;
+}
+
+func Decls(depth: Int, inout chain: Array<String>, inout out_blocks: Array<String>) -> Void {
+    let i: Int = 0;
+    while i < 2 {
+        if depth < 2 {
+            ArrayPush(chain, ToString(i));
+            Decls(depth + 1, chain, out_blocks);
+            ArrayPop(chain);
+        } else {
+            ArrayPush(out_blocks, Path(chain));
+        }
+        i = i + 1;
+    }
+}
+
+func Main() -> Int {
+    let chain: Array<String> = [];
+    let blocks: Array<String> = [];
+    Decls(0, chain, blocks);
+    Print(Concat(Path(blocks), ToString(ArrayLength(chain))));
+    return 0;
+}
