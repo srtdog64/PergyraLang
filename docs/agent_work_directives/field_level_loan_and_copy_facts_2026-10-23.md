@@ -89,6 +89,14 @@ return relation in the summaries); or a String-only lend, a loan that
 reaches the value only as String bytes, which no Array write changes and
 only a release could. Not started.
 
+Upper bound, measured at `d35052591` with an unsound scratch change: with
+no call escape at all for a loan handed to a formal whose storage proof
+fails, the census gave 211 instead of 209. None of the 12 refusals went:
+the analyzer's surfaces formal also carries a call escape in its summary,
+from `CallTargetCapture`'s writes through local aliases of its formal's
+Arrays, and the change added five refusals elsewhere. Slice 2 as planned
+does not reach them; it waits until that summary bit is understood.
+
 ## Unknowns
 
 - Whether the callees in slice 1 read the changed rows through a helper
