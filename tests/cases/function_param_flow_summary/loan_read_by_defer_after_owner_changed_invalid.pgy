@@ -1,0 +1,41 @@
+// A defer written before the change reads the facts at the exit, after it.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+func Check(analysis: Analysis) -> Int {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    defer { Print(ToString(facts.graph.rows[0].value)); }
+    ArraySet(analysis.graph.rows, 0, Cell(9));
+    return analysis.graph.rows[0].value;
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    Print(ToString(Check(analysis)));
+    let bad: Analysis = Analysis(Graph([Cell(1)]), false);
+    Print(ToString(Check(bad)));
+    return 0;
+}

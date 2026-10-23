@@ -259,26 +259,32 @@ struct FunctionParamFlowIndexClaims {
     size_t *order_parent, order_generation, order_site_row;
     const ASTNode *order_site;
 };
-/* A lent argument's loan: the lending call, and the row of the statement
- * after which no local the loan reached is in scope (SIZE_MAX if none). */
+/* A lent argument's loan: the lending call and its row, the row of the
+ * statement after which no local the loan reached is in scope (SIZE_MAX if
+ * none), and the rows that read such a local, when `uses_listed` (freed by
+ * function_param_flow_loan_span_release). Rows belong to the claims
+ * generation `generation`. */
 typedef struct {
     const ASTNode *call;
-    size_t scope;
+    size_t generation, call_row, scope;
+    size_t *uses, use_count;
+    bool uses_listed;
 } FunctionParamFlowLoanSpan;
-FunctionParamFlowLoanSpan function_param_flow_loan_span(FunctionParamFlowIndexClaims *claims, const ASTNode *call,
-    const uint32_t *carriers, size_t carrier_count, const ASTNode *body);
-/* `claim` runs, each time the routine runs, before the loan is made or after
- * its scope ended; `body` is the routine's body. */
+FunctionParamFlowLoanSpan function_param_flow_loan_span(SemanticContext *ctx, FunctionParamFlowIndexClaims *claims,
+    const ASTNode *call, const uint32_t *carriers, size_t carrier_count, const ASTNode *body);
+void function_param_flow_loan_span_release(FunctionParamFlowLoanSpan *span);
+/* `claim` runs, each time the routine runs, before the loan is made, after
+ * its scope ended or after its last read; `body` is the routine's body. */
 bool function_param_flow_claim_outside_loan(FunctionParamFlowIndexClaims *claims, size_t claim,
     const FunctionParamFlowLoanSpan *span, const ASTNode *body);
 /* The loan owner proof (function_param_flow_loan_owner_proof.c): the
  * storage root of a place through local aliases, and whether `caller`
- * changes `binding` while a loan of it lives. */
+ * changes `binding` while a loan of it, or one it carries, lives. */
 bool function_param_flow_loan_storage_root(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, const ASTNode *place, const ASTNode **root);
 bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
-    bool own_descriptor, const FunctionParamFlowLoanSpan *span);
+    bool own_descriptor, bool carrier, const FunctionParamFlowLoanSpan *span);
 
 typedef struct {
     ASTNode *node;

@@ -1,0 +1,45 @@
+// As SelfMirProgramFactsFromArtifact: empty facts lend the analysis's graph
+// and are read only on the early error return. The analysis changes after
+// that last read, when nothing reads the loan, so the loan proof holds.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+func Check(analysis: Analysis) -> Int {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    if !analysis.ok {
+        return FactsError(facts, 1).code + facts.graph.rows[0].value;
+    }
+    ArraySet(analysis.graph.rows, 0, Cell(9));
+    return analysis.graph.rows[0].value;
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    Print(ToString(Check(analysis)));
+    let bad: Analysis = Analysis(Graph([Cell(1)]), false);
+    Print(ToString(Check(bad)));
+    return 0;
+}

@@ -52,10 +52,12 @@ bool function_param_flow_loan_storage_root(FunctionParamFlowSummaryStore *store,
  * (2026-10-19_by_value_getter_lends_when_used_again). With
  * `own_descriptor`, a push or set with `binding` itself as the receiver
  * changes only that binding's own descriptor. A claim run outside `span`
- * changes nothing under the loan. */
+ * changes nothing under the loan. A `carrier` holds the loan rather than
+ * owning other loans: handing it on is the loan's own escape, which the
+ * loan frame refuses unless the loan may leave. */
 bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
-    bool own_descriptor, const FunctionParamFlowLoanSpan *span)
+    bool own_descriptor, bool carrier, const FunctionParamFlowLoanSpan *span)
 {
     bool owner_formal = false;
     for (size_t p = 0; p < ast_func_param_count(caller); p++)
@@ -124,7 +126,7 @@ bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *sto
             /* A read-and-return call on a local whose result leaves the
              * routine hands the local on: it changes the owner of every
              * other loan of it. */
-            if (lends_on && mode != PARAM_MODE_REF && (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
+            if (lends_on && !carrier && mode != PARAM_MODE_REF && (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
                 !owner_formal && !function_param_flow_call_result_stays(store->ctx, caller, node)) return false;
         }
     }

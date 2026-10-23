@@ -180,6 +180,8 @@ landing_rounds = {
     "returned_alias_lends_formal_valid": 0,
     "loan_carrier_unchanged_by_call_before_loan_valid": 0,
     "loan_owner_read_by_constructor_valid": 0,
+    "loan_read_last_before_owner_changed_valid": 0,
+    "loan_carrier_handed_on_by_early_return_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -472,6 +474,17 @@ release_lifetime_refusals = {
         (*released_refusal, 34, 31), (*released_refusal, 34, 42), (*released_refusal, 34, 54),
         (*released_refusal, 34, 91)],
     "loan_owner_permuted_in_place_invalid": [(*released_refusal, 30, 57), (*released_refusal, 31, 65)],
+    # A loan read after its owner changed, in a loop that also changes it, or
+    # by a defer that runs at the exit is read after the change: each refuses.
+    "loan_read_after_owner_changed_invalid": [(*released_refusal, 31, 29)],
+    "loan_read_in_loop_that_changes_owner_invalid": [(*released_refusal, 35, 33)],
+    "loan_read_by_defer_after_owner_changed_invalid": [(*released_refusal, 31, 29), (*released_refusal, 32, 35)],
+    # A read lasts until its statement ends: the call it is an argument of
+    # reads it after a later argument changed the owner.
+    "loan_read_by_call_after_its_owner_changed_in_its_arguments_invalid": [(*released_refusal, 41, 37)],
+    # Facts that carry a loan handed into an inout output take the loan out
+    # with them: the owner's later change refuses.
+    "loan_carrier_handed_into_output_before_owner_changed_invalid": [(*released_refusal, 33, 29)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1000,6 +1013,13 @@ paired = (
     ("loan_owner_constructor_copy_written_by_callee_invalid", False),
     ("loan_owner_constructor_copy_returned_invalid", False),
     ("loan_owner_permuted_in_place_invalid", False),
+    ("loan_read_last_before_owner_changed_valid", True),
+    ("loan_read_after_owner_changed_invalid", False),
+    ("loan_read_in_loop_that_changes_owner_invalid", False),
+    ("loan_read_by_defer_after_owner_changed_invalid", False),
+    ("loan_read_by_call_after_its_owner_changed_in_its_arguments_invalid", False),
+    ("loan_carrier_handed_on_by_early_return_valid", True),
+    ("loan_carrier_handed_into_output_before_owner_changed_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

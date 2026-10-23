@@ -299,7 +299,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
             }
             if ((dependency != NULL || by_value_formal) &&
-                !function_param_flow_loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false, NULL)) admitted = false;
+                !function_param_flow_loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false, false, NULL)) admitted = false;
             if (dependency == NULL && !by_value_formal) admitted = false;
             /* A loan that stays here needs only an owner no write reaches. */
             if (effects == 0) continue;
@@ -446,8 +446,9 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
         free(carriers.ids);
         return false;
     }
-    FunctionParamFlowLoanSpan span = function_param_flow_loan_span(index->claims, call, carriers.ids, carriers.count, ast_func_body(caller));
-    bool unchanged = function_param_flow_loan_owner_unchanged(store, index->claims, caller, owner, true, false, &span);
+    FunctionParamFlowLoanSpan span = function_param_flow_loan_span(ctx, index->claims, call, carriers.ids, carriers.count,
+        ast_func_body(caller));
+    bool unchanged = function_param_flow_loan_owner_unchanged(store, index->claims, caller, owner, true, false, false, &span);
     /* The loan shares the owner's storage, so a change through a local the
      * loan reached changes the owner. A local of a String, an Option of one
      * or a struct of such fields holds none of it, and a local Array literal
@@ -463,9 +464,10 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             literal = ast_let_initializer(row->node) != NULL && ast_let_initializer(row->node)->type == AST_ARRAY_LITERAL;
             break;
         }
-        unchanged = !holds || function_param_flow_loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal, &span);
+        unchanged = !holds || function_param_flow_loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal, true, &span);
     }
     free(carriers.ids);
+    function_param_flow_loan_span_release(&span);
     if (!unchanged && failure != NULL) failure->owner_changed = true;
     return unchanged;
 }
