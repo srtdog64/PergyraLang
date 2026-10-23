@@ -182,6 +182,7 @@ landing_rounds = {
     "loan_owner_read_by_constructor_valid": 0,
     "loan_read_last_before_owner_changed_valid": 0,
     "loan_carrier_handed_on_by_early_return_valid": 0,
+    "loan_carrier_read_into_returned_constructor_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -485,6 +486,9 @@ release_lifetime_refusals = {
     # Facts that carry a loan handed into an inout output take the loan out
     # with them: the owner's later change refuses.
     "loan_carrier_handed_into_output_before_owner_changed_invalid": [(*released_refusal, 33, 29)],
+    # A value built from a carrier holds the loan: given to a callee that
+    # writes it, the loan leaves into a writer.
+    "loan_carrier_read_into_constructor_a_callee_writes_invalid": [(*released_refusal, 38, 39)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1020,6 +1024,8 @@ paired = (
     ("loan_read_by_call_after_its_owner_changed_in_its_arguments_invalid", False),
     ("loan_carrier_handed_on_by_early_return_valid", True),
     ("loan_carrier_handed_into_output_before_owner_changed_invalid", False),
+    ("loan_carrier_read_into_returned_constructor_valid", True),
+    ("loan_carrier_read_into_constructor_a_callee_writes_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

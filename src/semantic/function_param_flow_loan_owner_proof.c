@@ -105,9 +105,11 @@ bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *sto
              * changes nothing of the owner. A change through that value is a
              * change of a local copy, refused while the loan lives
              * (default_aggregate_copy_owner), and the value stays in the
-             * routine, where no callee writes or keeps it. */
+             * routine, where no callee writes or keeps it. Built from a
+             * carrier, the value holds the loan, whose flow the loan frame
+             * follows wherever the value goes. */
             if (callee == NULL && semantic_param_publication_nominal_result_complete(store->ctx, node) &&
-                function_param_flow_call_result_stays(store->ctx, caller, node)) continue;
+                (carrier || function_param_flow_call_result_stays(store->ctx, caller, node))) continue;
             if (callee == NULL || !semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal)) return false;
             /* A write changes the owner under the loan; so does a move into an
              * `own` formal, or into a by-value formal that keeps or releases

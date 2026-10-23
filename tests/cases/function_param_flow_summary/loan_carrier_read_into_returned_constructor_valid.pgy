@@ -1,0 +1,52 @@
+// As SelfMirProgramDomainFactsFromReadyArtifact: facts that lend the analysis
+// are read into a new facts value the routine returns. The value holds the
+// loan, which may leave with the analysis's own summary; building it changes
+// nothing of the facts.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+struct Projection {
+    facts: Facts;
+    ok: Bool;
+}
+
+func Check(analysis: Analysis) -> Projection {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    if !analysis.ok {
+        return Projection(FactsError(facts, 1), false);
+    }
+    let count: Int = ArrayLength(analysis.graph.rows);
+    return Projection(Facts(facts.graph, count), true);
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    let made: Projection = Check(analysis);
+    Print(ToString(made.facts.code + made.facts.graph.rows[0].value));
+    let bad: Analysis = Analysis(Graph([Cell(1)]), false);
+    Print(ToString(Check(bad).facts.code));
+    return 0;
+}
