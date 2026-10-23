@@ -1,4 +1,4 @@
-struct TextRecord { stable: String; selected: String; }
+struct TextRecord { text: String; }
 struct Rows { ids: Array<Int>; }
 
 func OwnedRows() -> Array<String> {
@@ -6,21 +6,20 @@ func OwnedRows() -> Array<String> {
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }
-
-func MakeRecord(text: String) -> TextRecord {
-    return TextRecord(selected: text, stable: "stable");
+func MakeRecord(text: String, independent: Bool) -> TextRecord {
+    if independent { return TextRecord("stable"); }
+    return TextRecord(text);
 }
-
 func Inspect(text: String, count: Int, ref first: Rows, ref second: Rows) -> Int {
     return StringLength(text) + count + ArrayLength(first.ids) + ArrayLength(second.ids);
 }
 
 func Main() -> Void {
     let rows: Array<String> = OwnedRows();
-    let record: TextRecord = MakeRecord(rows[0]);
+    let record: TextRecord = MakeRecord(rows[0], false);
     let first: Rows = Rows([1]);
     let second: Rows = Rows([2]);
     let no_texts: Array<String> = [];
     ArrayDropOwnedStrings(rows);
-    Log(Inspect(record.selected, 1, first, second));
+    Log(Inspect(record.text, 1, first, second));
 }

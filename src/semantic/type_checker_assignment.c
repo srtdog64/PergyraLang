@@ -111,10 +111,15 @@ assignment_field_write_path(ASTNode *node, SemanticContext *ctx)
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
+    size_t diagnostic_base = ctx->diagnostic_count;
     Type *value_type;
     Type *target_type = NULL;
     ASTNode *target = ast_assignment_target(expr);
     ASTNode *value = ast_assignment_value(expr);
+    /* Empty replacement closes an exact inout-member extraction before the
+     * lvalue read. Without this ordering the moved-member guard would reject
+     * the very assignment that separates the two descriptors. */
+    semantic_array_storage_prepare_member_replacement(target, value, ctx);
     semantic_string_window_extent_record_assignment(ctx, target);
     Symbol *value_binding = target != NULL && target->type == AST_IDENTIFIER
         ? lookup_identifier_symbol(target, ctx) : NULL;
@@ -311,7 +316,8 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
             (target_sym->is_parameter && target_sym->param_mode == PARAM_MODE_MUT_REF));
     }
     if (callable_carrier_store) callable_capability_record_retained_value(ctx, expr, value, value_type);
-    if (!ctx->has_error && target != NULL && target->type == AST_IDENTIFIER) {
+    if (ctx->diagnostic_count == diagnostic_base
+        && target != NULL && target->type == AST_IDENTIFIER) {
         Symbol *target_sym = lookup_identifier_symbol(target, ctx);
         /* The target is a write place, not a read of its old generation.
          * Restore liveness only after the RHS and all assignment contracts

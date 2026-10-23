@@ -38,6 +38,8 @@ void semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     ASTNode *call, ASTNode *callee_decl, size_t ordinal, SemanticContext *ctx);
 void semantic_array_storage_assignment(ASTNode *target, const Type *target_type,
     ASTNode *value, const Type *value_type, SemanticContext *ctx);
+void semantic_array_storage_prepare_member_replacement(ASTNode *target,
+    ASTNode *value, SemanticContext *ctx);
 bool semantic_array_storage_admit_drop(ASTNode *receiver, Type *array_type,
                                       SemanticContext *ctx);
 

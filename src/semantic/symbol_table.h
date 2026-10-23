@@ -16,6 +16,7 @@
 /* Forward declarations */
 typedef struct Symbol  Symbol;
 typedef struct Scope   Scope;
+typedef struct ASTNode ASTNode;
 
 /*
  * Symbol kinds
@@ -114,6 +115,13 @@ struct Symbol
     bool       has_pending_inout_preservation;
     /* Provisional Array-return storage authority, distinct from input preservation. */
     bool       has_pending_array_result;
+    /* A non-String Array copied out of an inout aggregate field is not
+     * release authority until that exact field receives fresh storage.  The
+     * AST owns this pointer; the remaining identities reject shadow/reuse. */
+    const ASTNode *array_storage_member_move_source;
+    uint32_t   array_storage_member_move_source_id;
+    uint32_t   array_storage_member_move_root_binding_id;
+    uint64_t   array_storage_member_move_root_birth_serial;
     /* Stable semantic identity for Array storage and String element borrows.
      * These are syntax identities, never Symbol pointers or runtime addresses. */
     uint32_t   collection_storage_source_syntax_id;

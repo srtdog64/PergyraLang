@@ -562,8 +562,10 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_assign.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact.c \
+                   $(SEMANTIC_DIR)/collection_member_path_owner.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_result.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_member_transfer.c \
+                   $(SEMANTIC_DIR)/collection_moved_member_restoration_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_field_lineage.c \
                    $(SEMANTIC_DIR)/indexed_string_field_flow.c \
@@ -582,10 +584,14 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/string_window_extent_relations.c \
                    $(SEMANTIC_DIR)/string_window_extent_finalize.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
+                   $(SEMANTIC_DIR)/collection_owned_element_aggregate_capture_owner.c \
+                   $(SEMANTIC_DIR)/collection_owned_element_graph_index_owner.c \
+                   $(SEMANTIC_DIR)/collection_owned_element_member_requirement_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_defer_release_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_receipts.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_owner.c \
+                   $(SEMANTIC_DIR)/default_aggregate_call_move_owner.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_rule.c \
                    $(SEMANTIC_DIR)/default_aggregate_copy_owner.c \
                    $(SEMANTIC_DIR)/allocator_lane_loan_owner.c \
@@ -594,6 +600,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_named_call_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_preservation_owner.c \
                    $(SEMANTIC_DIR)/array_storage_result_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_deferred_string_read_owner.c \
                    $(SEMANTIC_DIR)/array_storage_element_lifetime_owner.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
@@ -1067,6 +1074,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_branch_collection_transitions.c \
                    $(COMPILER_DIR)/mir_loop_collection_cleanup.c \
+                   $(COMPILER_DIR)/mir_inout_member_copyout_owner.c \
                    $(COMPILER_DIR)/collection_owned_local_transition_owner.c \
                    $(COMPILER_DIR)/hir_collection_owned_local_transition_adapter.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
@@ -1692,6 +1700,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_branch_collection_transitions.o \
                    $(BUILD_DIR)/compiler/mir_loop_collection_cleanup.o \
+                   $(BUILD_DIR)/compiler/mir_inout_member_copyout_owner.o \
                    $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_provenance.o \
@@ -5133,7 +5142,7 @@ self-host-array-index-receiver-admission-test-smoke: self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/array_mutation_receiver_use_contract.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke collection-native-member-release-restore-test-smoke
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
 
@@ -5145,10 +5154,6 @@ self-host-nominal-constructor-field-identity-test-smoke: $(PGY)
 .PHONY: collection-native-storage-escape-test-smoke
 collection-native-storage-escape-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_storage_escape_owner.sh
-
-.PHONY: collection-native-member-release-restore-test-smoke
-collection-native-member-release-restore-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_member_release_restore_owner.sh
 
 .PHONY: self-host-collection-formal-key-consumption-test-smoke
 self-host-collection-formal-key-consumption-test-smoke: $(PGY)

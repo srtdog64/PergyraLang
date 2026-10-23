@@ -1,0 +1,14 @@
+func Main() -> Int
+{
+    var n: Int = 0;
+    var escaped: String = "";
+    while n < 3
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, Concat("row", ToString(n)));
+        escaped = rows[0];
+        n = n + 1;
+    }
+    Print(escaped);
+    return 0;
+}

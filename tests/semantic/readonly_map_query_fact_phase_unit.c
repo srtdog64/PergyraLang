@@ -10522,6 +10522,11 @@ static void checked_array_birth_preserved_sources(void)
         "let rows=MapKeys(map);let moved=rows;ArrayDropOwnedStrings(moved);}",
         "func Main()->Void{let borrowed:Array<String> = [\"a\"];let rows=Clone(borrowed);"
         "ArrayDropOwnedStrings(rows);}",
+        /* Clone's checked builtin/type identity is available before the full
+         * publication row is sealed. Its provisional birth must therefore
+         * admit mutation, while finalization still replays the complete row. */
+        "func Main()->Void{let borrowed:Array<String> = [\"a\"];let rows=Clone(borrowed);"
+        "ArrayPushOwnedString(rows,Concat(\"b\",\"c\"));ArrayDropOwnedStrings(rows);}",
         /* Existing UNKNOWN call-return admission, not physical-result ownership proof. */
         "func Factory()->Array<Int>{return [7];}"
         "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"

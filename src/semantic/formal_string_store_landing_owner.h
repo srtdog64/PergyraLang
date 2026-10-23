@@ -24,6 +24,14 @@ bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal
  * String as it owns its other elements, and no plain push mixes into it. */
 bool semantic_formal_string_store_landing_owned_push(ASTNode *call, SemanticContext *ctx);
 
+/* A planned ArraySet on an owned Array<String> becomes the compiler-owned
+ * replacement operation. The runtime copies before retiring the old element,
+ * so no source-level Clone or manual drop is exposed. */
+bool semantic_formal_string_store_landing_owned_set(ASTNode *call,
+    SemanticContext *ctx);
+bool semantic_formal_string_store_landing_select_owned_set(
+    SemanticContext *ctx, const ASTNode *call);
+
 /* The flow summary of `routine` found its formal `root` escaping through
  * argument `ordinal` of a store builtin. When that argument is the stored
  * String, the call is selected for a second analysis to land, wherever the
@@ -51,7 +59,7 @@ bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const A
 /* A plain String push into an Array<String> that owns its elements is
  * refused; the call is selected so that a next analysis lands it as an
  * owned String push (ArrayPushOwnedString) when the receiver admits one. */
-void semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call);
+bool semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call);
 
 /* The same selection while the store call is checked, before it has a
  * publication row: no owner proves its String alive for the receiver, and

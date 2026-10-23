@@ -19,9 +19,19 @@ bool semantic_collection_owned_element_requirement_record_deep_drop(
     SemanticContext *ctx);
 bool semantic_collection_owned_element_requirement_record_storage_drop(
     ASTNode *call, ASTNode *receiver, SemanticContext *ctx);
+/* Whether the current typed requirement store records a storage-release
+ * obligation for this exact own formal.  Missing or stale rows grant
+ * nothing; callers use this to keep provisional storage borrowed. */
+bool semantic_collection_owned_parameter_releases_storage(
+    SemanticContext *ctx, ASTNode *function_decl, size_t formal_index);
+bool semantic_collection_owned_element_requirement_record_member_push(
+    ASTNode *call, ASTNode *receiver, SemanticContext *ctx);
 bool semantic_collection_owned_element_requirement_record_argument(
     ASTNode *call, ASTNode *callee_decl, size_t argument_index, size_t formal_index,
     ASTNode *argument, const Type *argument_type, ParamMode parameter_mode,
+    SemanticContext *ctx);
+bool semantic_collection_owned_element_requirement_record_return(
+    ASTNode *statement, ASTNode *value, const Type *value_type,
     SemanticContext *ctx);
 bool semantic_collection_owned_element_requirements_finalize(
     SemanticContext *ctx);

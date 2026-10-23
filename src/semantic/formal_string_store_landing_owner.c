@@ -4,6 +4,7 @@
 #include "type_checker_call_constructor_internal.h"
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
+#include "function_param_flow_summary_internal.h"
 #include "collection_ownership_fact.h"
 #include "loan_copy_landing_owner.h"
 #include "../parser/ast_api.h"
@@ -90,6 +91,17 @@ bool semantic_formal_string_store_landing_owned_push(ASTNode *call, SemanticCont
         semantic_collection_owned_string_push_admissible(ast_call_argument(call, 0), ctx);
 }
 
+bool semantic_formal_string_store_landing_owned_set(ASTNode *call,
+    SemanticContext *ctx)
+{
+    return call != NULL && ctx != NULL && ast_call_arg_count(call) == 3
+        && store_landing_planned(call, ctx)
+        && type_equals(store_landing_receiver_element(
+            ast_call_argument(call, 0), ctx), TYPE_STRING)
+        && semantic_collection_owned_string_set_required(
+            ast_call_argument(call, 0), ctx);
+}
+
 bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal,
     size_t value_ordinal, SemanticContext *ctx)
 {
@@ -125,21 +137,34 @@ bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal
     return true;
 }
 
-static void store_landing_record(SemanticContext *ctx, uint32_t id)
+static bool store_landing_record(SemanticContext *ctx, uint32_t id)
 {
     for (size_t i = 0; i < ctx->string_store_landing_selected_count; i++)
-        if (ctx->string_store_landing_selected[i] == id) return;
+        if (ctx->string_store_landing_selected[i] == id) return true;
     for (size_t i = 0; i < ctx->string_store_landing_plan_count; i++)
-        if (ctx->string_store_landing_plan[i] == id) return;
+        if (ctx->string_store_landing_plan[i] == id) return true;
     if (ctx->string_store_landing_selected_count == ctx->string_store_landing_selected_capacity) {
         size_t capacity = ctx->string_store_landing_selected_capacity == 0 ? 16
             : ctx->string_store_landing_selected_capacity * 2;
         uint32_t *grown = realloc(ctx->string_store_landing_selected, capacity * sizeof(*grown));
-        if (grown == NULL) return;
+        if (grown == NULL) return false;
         ctx->string_store_landing_selected = grown;
         ctx->string_store_landing_selected_capacity = capacity;
     }
     ctx->string_store_landing_selected[ctx->string_store_landing_selected_count++] = id;
+    return true;
+}
+
+bool semantic_formal_string_store_landing_select_owned_set(
+    SemanticContext *ctx, const ASTNode *call)
+{
+    return call != NULL && ctx != NULL && ast_call_arg_count(call) == 3
+        && ast_node_stable_id(call) != 0
+        && type_equals(store_landing_receiver_element(
+            ast_call_argument(call, 0), ctx), TYPE_STRING)
+        && semantic_collection_owned_string_set_required(
+            ast_call_argument(call, 0), ctx)
+        && store_landing_record(ctx, ast_node_stable_id(call));
 }
 
 void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNode *call, size_t value_ordinal)
@@ -182,11 +207,61 @@ void semantic_formal_string_store_landing_select_checked(SemanticContext *ctx, A
         store_landing_record(ctx, ast_node_stable_id(call));
 }
 
-void semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call)
+bool semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call)
 {
-    if (call != NULL && ast_call_arg_count(call) == 2 && ast_node_stable_id(call) != 0 &&
-        type_equals(store_landing_receiver_element(ast_call_argument(call, 0), ctx), TYPE_STRING))
-        store_landing_record(ctx, ast_node_stable_id(call));
+    const Type *element = call != NULL && ast_call_arg_count(call) == 2
+        ? store_landing_receiver_element(ast_call_argument(call, 0), ctx)
+        : NULL;
+    if (!type_equals(element, TYPE_STRING) && call != NULL
+        && ast_call_arg_count(call) == 2) {
+        /* Summary finalization runs after the routine scope has gone away.
+         * Its immutable publication is then the type owner; the type-check
+         * path above remains the owner while the call itself is checked. */
+        SemanticPublishedValue receiver = semantic_param_publication_value(
+            ctx, ast_call_argument(call, 0));
+        if (receiver.ok && !receiver.meta
+            && type_is_constructed_named(receiver.type, "Array"))
+            element = type_get_constructed_arg(receiver.type, 0);
+    }
+    if (call == NULL || ast_call_arg_count(call) != 2 ||
+        ast_node_stable_id(call) == 0 || !type_equals(element, TYPE_STRING)) return false;
+    if (!semantic_param_publication_inputs_ready(ctx))
+        return store_landing_record(ctx, ast_node_stable_id(call));
+
+    const ASTNode *receiver = ast_call_argument(call, 0);
+    uint32_t binding = receiver != NULL && receiver->type == AST_IDENTIFIER
+        ? semantic_param_publication_binding(ctx, receiver) : 0;
+    PublishedNode *selected = publication_node(ctx->function_param_publications,
+        call, false);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (binding == 0 || selected == NULL || selected->caller == NULL ||
+        !function_param_flow_program_point_index_build(
+            ctx->function_param_flow_summaries, (ASTNode *)selected->caller, &index) ||
+        index == NULL || !function_param_flow_index_claims_current(ctx, index)) return false;
+
+    size_t selected_call = 0;
+    for (size_t i = 0; i < index->claims->count; i++) {
+        ASTNode *candidate = index->claims->rows[i].node;
+        if (candidate == NULL || candidate->type != AST_CALL ||
+            ast_call_arg_count(candidate) != 2) continue;
+        ASTNode *callee = ast_call_callee(candidate);
+        ASTNode *candidate_receiver = ast_call_argument(candidate, 0);
+        ASTNode *candidate_value = ast_call_argument(candidate, 1);
+        if (callee == NULL || callee->type != AST_IDENTIFIER ||
+            ast_identifier_binding_syntax_id(callee) != 0 ||
+            ast_identifier_name(callee) == NULL ||
+            strcmp(ast_identifier_name(callee), "ArrayPush") != 0 ||
+            candidate_receiver == NULL || candidate_receiver->type != AST_IDENTIFIER ||
+            semantic_param_publication_binding(ctx, candidate_receiver) != binding)
+            continue;
+        SemanticPublishedValue value = semantic_param_publication_value(ctx,
+            candidate_value);
+        if (!value.ok || value.meta || !type_equals(value.type, TYPE_STRING) ||
+            ast_node_stable_id(candidate) == 0 ||
+            !store_landing_record(ctx, ast_node_stable_id(candidate))) return false;
+        if (candidate == call) selected_call++;
+    }
+    return selected_call == 1;
 }
 
 void semantic_formal_string_store_landing_select(SemanticContext *ctx, const ASTNode *call,

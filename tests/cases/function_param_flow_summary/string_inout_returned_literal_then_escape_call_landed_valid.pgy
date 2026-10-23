@@ -1,13 +1,11 @@
-// Label returns a String literal, not an owned element. A second callee
-// that keeps the Array needs owned elements, and is refused (19:5).
+// Label returns a String literal. The compiler-owned store landing gives Mark
+// an owned element, and Stash clones the aggregate at the retaining boundary.
 func Label() -> String {
     return "label";
 }
-
 func Mark(inout out: Array<String>) -> Void {
     ArrayPush(out, Label());
 }
-
 func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void {
     ArrayPush(shelf, out);
 }

@@ -7,70 +7,24 @@
 #include "array_storage_element_lifetime_owner.h"
 #include "indexed_string_borrow_owner.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "collection_owned_element_requirement_internal.h"
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "collection_ownership_fact.h"
+#include "collection_ownership_fact_internal.h"
+#include "default_aggregate_move_rule.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "function_param_publication_internal.h"
 #include "type_checker_internal.h"
 #include "../parser/ast_api.h"
 
-typedef struct
-{
-    uint32_t function_id;
-    uint32_t parameter_id;
-    unsigned requirements;
-} OwnedElementParameter;
-
-typedef struct
-{
-    size_t source;
-    size_t target;
-} OwnedElementForwardingEdge;
-
-typedef struct
-{
-    ASTNode *call;
-    uint32_t call_id;
-    ASTNode *callee_decl;
-    uint32_t callee_id;
-    size_t ordinal;
-    size_t formal_ordinal;
-    FuncParam *formal;
-    uint32_t formal_id;
-    ASTNode *formal_type;
-    uint32_t formal_type_id;
-    ASTNode *argument;
-    uint32_t argument_id;
-    const Type *argument_type;
-    size_t target;
-    PgyStringArrayOwnership element_ownership;
-    bool exclusive_storage;
-    /* Nonzero when an own transfer follows a deferred storage handoff. */
-    uint32_t pending_binding_id;
-    size_t pending_sequence;
-    ArrayStorageReturnElementReceipt element_use;
-    bool forwarded_formal;
-} OwnedElementActualSnapshot;
-
-struct CollectionOwnedElementRequirementStore
-{
-    ASTNode *program;
-    OwnedElementParameter *parameters;
-    size_t parameter_count;
-    size_t parameter_capacity;
-    OwnedElementForwardingEdge *edges;
-    size_t edge_count;
-    size_t edge_capacity;
-    OwnedElementActualSnapshot *actuals;
-    size_t actual_count;
-    size_t actual_capacity;
-};
-
-static bool
-requirement_failure(SemanticContext *ctx, ASTNode *site, const char *detail)
+bool
+collection_owned_requirement_failure(
+    SemanticContext *ctx, ASTNode *site, const char *detail)
 {
     if (ctx != NULL)
         semantic_error(ctx, site,
@@ -79,8 +33,8 @@ requirement_failure(SemanticContext *ctx, ASTNode *site, const char *detail)
     return false;
 }
 
-static bool
-is_string_array(const Type *type)
+bool
+collection_owned_is_string_array(const Type *type)
 {
     Type *inner;
     if (!type_is_constructed_named(type, "Array"))
@@ -89,9 +43,9 @@ is_string_array(const Type *type)
     return inner != NULL && type_equals(inner, TYPE_STRING);
 }
 
-static void *
-requirement_rows_reserve(void *rows, size_t *capacity,
-                         size_t needed, size_t row_size)
+void *
+collection_owned_requirement_rows_reserve(
+    void *rows, size_t *capacity, size_t needed, size_t row_size)
 {
     size_t next;
     void *grown;
@@ -112,10 +66,10 @@ requirement_rows_reserve(void *rows, size_t *capacity,
     return grown;
 }
 
-static bool
-requirement_parameter_row(CollectionOwnedElementRequirementStore *store,
-                           uint32_t function_id, uint32_t parameter_id,
-                           size_t *row_out)
+bool
+collection_owned_requirement_parameter_row(
+    CollectionOwnedElementRequirementStore *store,
+    uint32_t function_id, uint32_t parameter_id, size_t *row_out)
 {
     OwnedElementParameter *grown;
     if (function_id == 0 || parameter_id == 0)
@@ -129,7 +83,7 @@ requirement_parameter_row(CollectionOwnedElementRequirementStore *store,
     }
     if (store->parameter_count == SIZE_MAX)
         return false;
-    grown = requirement_rows_reserve(store->parameters,
+    grown = collection_owned_requirement_rows_reserve(store->parameters,
         &store->parameter_capacity, store->parameter_count + 1,
         sizeof(*store->parameters));
     if (grown == NULL)
@@ -165,6 +119,18 @@ semantic_collection_owned_element_requirements_destroy(
     free(store->parameters);
     free(store->edges);
     free(store->actuals);
+    free(store->member_pushes);
+    free(store->aggregate_actuals);
+    free(store->aggregate_returns);
+    free(store->aggregate_requirement_memos);
+    free(store->aggregate_assignment_rows);
+    free(store->aggregate_assignment_buckets);
+    free(store->aggregate_return_next_plus_one);
+    free(store->aggregate_return_buckets);
+    free(store->aggregate_actual_next_plus_one);
+    free(store->aggregate_actual_buckets);
+    free(store->aggregate_proof_memos);
+    free(store->aggregate_proof_memo_buckets);
     free(store);
 }
 
@@ -174,13 +140,13 @@ semantic_collection_owned_element_requirements_begin(
 {
     if (ctx == NULL || program == NULL || program->type != AST_PROGRAM
         || ast_node_stable_id(program) == 0)
-        return requirement_failure(ctx, program, "missing program identity");
+        return collection_owned_requirement_failure(ctx, program, "missing program identity");
     semantic_collection_owned_element_requirements_destroy(
         ctx->collection_owned_element_requirements);
     ctx->collection_owned_element_requirements = calloc(1,
         sizeof(*ctx->collection_owned_element_requirements));
     if (ctx->collection_owned_element_requirements == NULL)
-        return requirement_failure(ctx, program, "store allocation failed");
+        return collection_owned_requirement_failure(ctx, program, "store allocation failed");
     ctx->collection_owned_element_requirements->program = program;
     return true;
 }
@@ -198,11 +164,11 @@ semantic_collection_owned_element_requirement_record_deep_drop(
     /* Only the resolved stdlib deep-drop branch calls this entrypoint. A
      * same-spelling source function never reaches this semantic operation. */
     if (ctx == NULL || receiver == NULL
-        || receiver->type != AST_IDENTIFIER || !is_string_array(array_type))
-        return requirement_failure(ctx, call, "missing typed deep-drop receiver");
+        || receiver->type != AST_IDENTIFIER || !collection_owned_is_string_array(array_type))
+        return collection_owned_requirement_failure(ctx, call, "missing typed deep-drop receiver");
     binding = scope_lookup(ctx->scope, ast_identifier_name(receiver));
     if (binding == NULL)
-        return requirement_failure(ctx, call, "missing deep-drop receiver binding");
+        return collection_owned_requirement_failure(ctx, call, "missing deep-drop receiver binding");
     if (!binding->is_parameter
         || binding->param_mode != PARAM_MODE_OWN)
         return true;
@@ -217,10 +183,10 @@ semantic_collection_owned_element_requirement_record_deep_drop(
         || binding_id == 0 || binding_id != binding->decl_syntax_id
         || own_formal_for_binding(ctx->current_function_decl, binding_id)
             == NULL)
-        return requirement_failure(ctx, call, "missing deep-drop formal identity");
-    if (!requirement_parameter_row(store,
+        return collection_owned_requirement_failure(ctx, call, "missing deep-drop formal identity");
+    if (!collection_owned_requirement_parameter_row(store,
             ast_node_stable_id(ctx->current_function_decl), binding_id, &row))
-        return requirement_failure(ctx, call, "seed allocation or identity failed");
+        return collection_owned_requirement_failure(ctx, call, "seed allocation or identity failed");
     store->parameters[row].requirements |= 3u;
     return true;
 }
@@ -231,18 +197,45 @@ semantic_collection_owned_element_requirement_record_storage_drop(
 {
     Symbol *binding = lookup_identifier_symbol(receiver, ctx);
     if (binding == NULL)
-        return requirement_failure(ctx, call, "missing ArrayDrop binding identity");
+        return collection_owned_requirement_failure(ctx, call, "missing ArrayDrop binding identity");
     if (!binding->is_parameter)
         return true;
     CollectionOwnedElementRequirementStore *store = ctx->collection_owned_element_requirements;
     size_t row;
     if (store == NULL || binding->param_mode != PARAM_MODE_OWN
         || own_formal_for_binding(ctx->current_function_decl, binding->decl_syntax_id) == NULL
-        || !requirement_parameter_row(store, ast_node_stable_id(ctx->current_function_decl),
+        || !collection_owned_requirement_parameter_row(store, ast_node_stable_id(ctx->current_function_decl),
             binding->decl_syntax_id, &row))
-        return requirement_failure(ctx, call, "missing ArrayDrop own-formal identity");
+        return collection_owned_requirement_failure(ctx, call, "missing ArrayDrop own-formal identity");
     store->parameters[row].requirements |= 2u;
     return true;
+}
+
+bool
+semantic_collection_owned_parameter_releases_storage(
+    SemanticContext *ctx, ASTNode *function_decl, size_t formal_index)
+{
+    CollectionOwnedElementRequirementStore *store = ctx != NULL
+        ? ctx->collection_owned_element_requirements : NULL;
+    FuncParam *formal = function_decl != NULL
+        && function_decl->type == AST_FUNC_DECL
+        && formal_index < ast_func_param_count(function_decl)
+        ? ast_func_param(function_decl, formal_index) : NULL;
+    uint32_t function_id = function_decl != NULL
+        ? ast_node_stable_id(function_decl) : 0;
+    uint32_t parameter_id = formal != NULL
+        ? ast_func_param_stable_id(formal) : 0;
+    if (store == NULL || store->program != ctx->program_root
+        || function_id == 0 || parameter_id == 0
+        || formal->mode != PARAM_MODE_OWN)
+        return false;
+    for (size_t i = 0; i < store->parameter_count; i++) {
+        const OwnedElementParameter *row = &store->parameters[i];
+        if (row->function_id == function_id
+            && row->parameter_id == parameter_id)
+            return (row->requirements & 2u) != 0;
+    }
+    return false;
 }
 
 bool
@@ -264,7 +257,12 @@ semantic_collection_owned_element_requirement_record_argument(
     size_t pending_sequence = 0;
     ArrayStorageReturnElementReceipt element_use = {0};
     bool forwarded_formal = false;
-    if (parameter_mode != PARAM_MODE_OWN || !type_is_constructed_named(argument_type, "Array"))
+    if (!collection_owned_record_default_aggregate_actual(call, callee_decl,
+            argument_index, formal_index, argument, argument_type,
+            parameter_mode, ctx))
+        return false;
+    if (parameter_mode != PARAM_MODE_OWN
+        || !type_is_constructed_named(argument_type, "Array"))
         return true;
     store = ctx != NULL ? ctx->collection_owned_element_requirements : NULL;
     function_id = ast_node_stable_id(callee_decl);
@@ -282,33 +280,33 @@ semantic_collection_owned_element_requirement_record_argument(
         || argument_index >= ast_call_arg_count(call)
         || ast_call_argument(call, argument_index) != argument
         || ast_node_stable_id(argument) == 0)
-        return requirement_failure(ctx, call, "missing owned-call declaration identity");
+        return collection_owned_requirement_failure(ctx, call, "missing owned-call declaration identity");
     target_parameter = ast_func_param(callee_decl, formal_index);
     if (target_parameter == NULL || target_parameter->mode != PARAM_MODE_OWN
         || ast_func_param_stable_id(target_parameter) == 0
         || target_parameter->type == NULL
         || ast_node_stable_id(target_parameter->type) == 0)
-        return requirement_failure(ctx, call, "missing owned-call formal identity");
+        return collection_owned_requirement_failure(ctx, call, "missing owned-call formal identity");
     /* Temporary actuals remain owned by the existing named-source boundary. */
     if (argument->type != AST_IDENTIFIER)
         return true;
     /* Parameter placeholders may still be UNKNOWN for forward declarations.
      * Only an exact typed deep-drop seed will activate this target later. */
-    if (!requirement_parameter_row(store, function_id,
+    if (!collection_owned_requirement_parameter_row(store, function_id,
             ast_func_param_stable_id(target_parameter), &target))
-        return requirement_failure(ctx, call, "target allocation failed");
+        return collection_owned_requirement_failure(ctx, call, "target allocation failed");
     if (argument->type == AST_IDENTIFIER) {
         Symbol *binding = scope_lookup(ctx->scope, ast_identifier_name(argument));
         const PgyCollectionOwnershipFact *fact;
         binding_id = ast_identifier_binding_syntax_id(argument);
         if (binding == NULL || binding_id == 0
             || binding_id != binding->decl_syntax_id)
-            return requirement_failure(ctx, call, "missing actual binding identity");
-        if (is_string_array(argument_type)
+            return collection_owned_requirement_failure(ctx, call, "missing actual binding identity");
+        if (collection_owned_is_string_array(argument_type)
             && !semantic_indexed_string_borrow_owner_transfer_allowed(argument, ctx)) return false;
         if (binding->is_host_field || (binding->is_parameter
             && binding->param_mode != PARAM_MODE_OWN))
-            return requirement_failure(ctx, call, "borrowed or hosted array cannot be transferred by own");
+            return collection_owned_requirement_failure(ctx, call, "borrowed or hosted array cannot be transferred by own");
         /* An own handoff consumes storage even when the callee has no
          * element-drop seed. Do not forward a known stored descriptor alias. */
         if (binding->has_escaped_array_storage) {
@@ -328,8 +326,8 @@ semantic_collection_owned_element_requirement_record_argument(
         }
         if (fact != NULL) {
             ownership = fact->element_ownership;
-        } else if (!binding->is_parameter && is_string_array(argument_type)) {
-            return requirement_failure(ctx, call, "missing local collection fact");
+        } else if (!binding->is_parameter && collection_owned_is_string_array(argument_type)) {
+            return collection_owned_requirement_failure(ctx, call, "missing local collection fact");
         }
         if (binding->is_parameter && binding->param_mode == PARAM_MODE_OWN) {
             forwarded_formal = true;
@@ -337,30 +335,30 @@ semantic_collection_owned_element_requirement_record_argument(
             OwnedElementForwardingEdge *grown;
             if (own_formal_for_binding(ctx->current_function_decl, binding_id)
                     == NULL
-                || !requirement_parameter_row(store, caller_id, binding_id, &source))
-                return requirement_failure(ctx, call, "forwarding source identity failed");
+                || !collection_owned_requirement_parameter_row(store, caller_id, binding_id, &source))
+                return collection_owned_requirement_failure(ctx, call, "forwarding source identity failed");
             if (store->edge_count == SIZE_MAX)
-                return requirement_failure(ctx, call, "forwarding edge allocation failed");
-            grown = requirement_rows_reserve(store->edges,
+                return collection_owned_requirement_failure(ctx, call, "forwarding edge allocation failed");
+            grown = collection_owned_requirement_rows_reserve(store->edges,
                 &store->edge_capacity, store->edge_count + 1,
                 sizeof(*store->edges));
             if (grown == NULL)
-                return requirement_failure(ctx, call, "forwarding edge allocation failed");
+                return collection_owned_requirement_failure(ctx, call, "forwarding edge allocation failed");
             store->edges = grown;
             store->edges[store->edge_count++] =
                 (OwnedElementForwardingEdge){source, target};
         }
     }
-    if (is_string_array(argument_type) && !forwarded_formal
+    if (collection_owned_is_string_array(argument_type) && !forwarded_formal
         && !semantic_array_storage_capture_element_use(argument, ctx, &element_use))
-        return requirement_failure(ctx, call, "missing current element-use identity");
+        return collection_owned_requirement_failure(ctx, call, "missing current element-use identity");
     if (store->actual_count == SIZE_MAX)
-        return requirement_failure(ctx, call, "actual snapshot allocation failed");
-    OwnedElementActualSnapshot *grown = requirement_rows_reserve(store->actuals,
+        return collection_owned_requirement_failure(ctx, call, "actual snapshot allocation failed");
+    OwnedElementActualSnapshot *grown = collection_owned_requirement_rows_reserve(store->actuals,
         &store->actual_capacity, store->actual_count + 1,
         sizeof(*store->actuals));
     if (grown == NULL)
-        return requirement_failure(ctx, call, "actual snapshot allocation failed");
+        return collection_owned_requirement_failure(ctx, call, "actual snapshot allocation failed");
     store->actuals = grown;
     store->actuals[store->actual_count++] = (OwnedElementActualSnapshot){
         .call = call, .call_id = ast_node_stable_id(call),
@@ -376,7 +374,7 @@ semantic_collection_owned_element_requirement_record_argument(
         .element_use = element_use,
         .forwarded_formal = forwarded_formal,
         .pending_sequence = pending_sequence};
-    if (is_string_array(argument_type))
+    if (collection_owned_is_string_array(argument_type))
         semantic_indexed_string_borrow_invalidate_deep_drop(argument, ctx);
     return !ctx->has_error;
 }
@@ -389,10 +387,10 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
     size_t remaining;
     bool changed = true;
     if (store == NULL || store->program != ctx->program_root)
-        return requirement_failure(ctx, ctx != NULL ? ctx->program_root : NULL,
+        return collection_owned_requirement_failure(ctx, ctx != NULL ? ctx->program_root : NULL,
             "missing analyzed-program store");
     if (store->edge_count == SIZE_MAX)
-        return requirement_failure(ctx, store->program, "forwarding bound overflow");
+        return collection_owned_requirement_failure(ctx, store->program, "forwarding bound overflow");
     remaining = store->edge_count + 1;
     while (changed && remaining > 0) {
         changed = false;
@@ -408,7 +406,9 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
         remaining--;
     }
     if (changed)
-        return requirement_failure(ctx, store->program, "forwarding did not converge");
+        return collection_owned_requirement_failure(ctx, store->program, "forwarding did not converge");
+    if (!collection_owned_validate_member_pushes(ctx, store))
+        return false;
     for (size_t i = 0; i < store->actual_count; i++) {
         OwnedElementActualSnapshot actual = store->actuals[i];
         SemanticPublishedValue current;
@@ -439,13 +439,13 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
             || ast_node_stable_id(actual.formal_type) != actual.formal_type_id
             || store->parameters[actual.target].function_id != actual.callee_id
             || store->parameters[actual.target].parameter_id != actual.formal_id)
-            return requirement_failure(ctx, actual.call,
+            return collection_owned_requirement_failure(ctx, actual.call,
                 "owned-call identity or formal changed before finalization");
         current = semantic_param_publication_value(ctx, actual.argument);
         if (!current.ok || current.meta || current.type == NULL
             || !type_is_constructed_named(current.type, "Array")
             || !type_equals(current.type, actual.argument_type))
-            return requirement_failure(ctx, actual.argument,
+            return collection_owned_requirement_failure(ctx, actual.argument,
                 "owned-call actual type changed before finalization");
         OwnedElementParameter target = store->parameters[actual.target];
         const ASTNode *dependency = actual.element_use.dependency_call;
@@ -456,7 +456,7 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
                 actual.argument, "An own Array actual requires current returned storage");
             return false;
         }
-        if ((target.requirements & 1u) != 0 && !actual.forwarded_formal && is_string_array(actual.argument_type)
+        if ((target.requirements & 1u) != 0 && !actual.forwarded_formal && collection_owned_is_string_array(actual.argument_type)
             && !semantic_array_storage_element_use_current(actual.argument, ctx, &actual.element_use)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
@@ -477,7 +477,7 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
                 actual.argument, "An own Array handoff requires preserved storage after prior calls");
             return false;
         }
-        if (is_string_array(actual.argument_type) && actual.pending_binding_id != 0
+        if (collection_owned_is_string_array(actual.argument_type) && actual.pending_binding_id != 0
             && !semantic_array_storage_pending_owned_elements(ctx,
                 actual.pending_binding_id, actual.pending_sequence)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,

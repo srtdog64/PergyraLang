@@ -1,5 +1,6 @@
 #ifndef PGY_FUNCTION_PARAM_PUBLICATION_OWNER_H
 #define PGY_FUNCTION_PARAM_PUBLICATION_OWNER_H
+#include "array_storage_element_lifetime_owner.h"
 #include "type_checker.h"
 /* Private snapshots owned by publication.c. Escape diagnostics borrow only
  * its checked admitted view; other consumers use the checked queries. */
@@ -92,6 +93,8 @@ typedef struct {
     ASTNode *type_node;
     uint32_t type_id;
     char *field_name, *argument_name, *field_type_name, *argument_type_name, *type_syntax_name;
+    bool string_array_elements_present;
+    ArrayStorageReturnElementReceipt string_array_elements;
 } SemanticNominalResultField;
 typedef struct {
     ASTNode *decl;

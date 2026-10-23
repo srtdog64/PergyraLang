@@ -322,6 +322,9 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
         case PGY_COLLECTION_EFFECT_DROP:
             kind = "drop";
             break;
+        case PGY_COLLECTION_EFFECT_OWNED_STRING_SET:
+            kind = "owned-string-set";
+            break;
         default:
             kind = "invalid";
             break;

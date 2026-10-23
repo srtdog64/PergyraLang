@@ -18,6 +18,7 @@ typedef enum {
     LLVM_ARRAY_BUILTIN_POP,
     LLVM_ARRAY_BUILTIN_PUSH,
     LLVM_ARRAY_BUILTIN_SET,
+    LLVM_ARRAY_BUILTIN_SET_OWNED_STRING,
     LLVM_ARRAY_BUILTIN_SLICE_COPY,
     LLVM_ARRAY_BUILTIN_SORT,
     LLVM_ARRAY_BUILTIN_REVERSE,
@@ -43,6 +44,7 @@ static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
     {"ArrayPushOwnedString", 2, LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING},
     {"ArrayReverse", 1, LLVM_ARRAY_BUILTIN_REVERSE},
     {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
+    {"ArraySetOwnedString", 3, LLVM_ARRAY_BUILTIN_SET_OWNED_STRING},
     {"ArraySort", 1, LLVM_ARRAY_BUILTIN_SORT},
     {"CompilerRetireArrayStorage", 1, LLVM_ARRAY_BUILTIN_DROP_STORAGE},
     {"SliceCopy", 1, LLVM_ARRAY_BUILTIN_SLICE_COPY},
@@ -529,7 +531,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (op == LLVM_ARRAY_BUILTIN_SET) {
+    if (op == LLVM_ARRAY_BUILTIN_SET
+        || op == LLVM_ARRAY_BUILTIN_SET_OWNED_STRING) {
+        bool owned_string = op == LLVM_ARRAY_BUILTIN_SET_OWNED_STRING;
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
@@ -539,6 +543,10 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM ArraySet requires registered Array<T> receiver", out);
         const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
         bool use_raw_nominal = llvm_array_entry_uses_raw_nominal(ctx, entry);
+        if (owned_string && (suffix == NULL
+                || strcmp(suffix, "String") != 0 || use_raw_nominal))
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySetOwnedString requires Array<String>", out);
         if ((suffix == NULL || strcmp(suffix, "Unknown") == 0)
             && !use_raw_nominal) {
             llvm_array_required_elem_suffix(ctx, node, entry, callee_name);
@@ -570,9 +578,11 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (use_raw_nominal)
             return llvm_array_emit_raw_nominal_set(ctx, node, callee_name,
                 arr_alloca, entry, index64, value, out);
-        /* Contract: checked ArraySet lowers to pgy_array_set_<suffix>. */
+        /* Owned String replacement clones its input before retiring the old
+         * element; ordinary ArraySet remains a shallow value mutation. */
         LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
-            callee_name, "pgy_array_set", suffix,
+            callee_name, owned_string
+                ? "pgy_array_set_owned" : "pgy_array_set", suffix,
             "LLVM ArraySet requires registered runtime function", out);
         if (fn == NULL)
             return true;

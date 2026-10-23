@@ -84,7 +84,8 @@ func SemanticAstCollectionAggregateReleasePlanFromRequirements(
         SemanticAstCollectionAggregateTraceEmpty();
     let row: Int = 0;
     while row < ArrayLength(requirements.local_ids) {
-        if requirements.formal_modes[row] != 1 &&
+        if requirements.formal_modes[row] != 0 &&
+            requirements.formal_modes[row] != 1 &&
             requirements.formal_modes[row] != 2 {
             plan.ok = false;
             plan.diagnostic_syntax_id = requirements.local_ids[row];
@@ -104,13 +105,19 @@ func SemanticAstCollectionAggregateReleasePlanFromRequirements(
         ArrayPush(plan.owned_push_expression_nodes, -1);
         ArrayPush(plan.drop_syntax_ids, -1);
         ArrayPush(plan.drop_expression_nodes, -1);
-        let path_row: Int =
-            SemanticAstCollectionAggregateTracePathAppend(
-                requirements.field_ids[row], -1, trace);
-        if path_row < 0 {
-            plan.ok = false;
-            plan.diagnostic_syntax_id = requirements.local_ids[row];
-            return plan;
+        let path_row: Int = -1;
+        let path_index: Int = requirements.path_counts[row] - 1;
+        while path_index >= 0 {
+            path_row = SemanticAstCollectionAggregateTracePathAppend(
+                requirements.path_field_ids[
+                    requirements.path_starts[row] + path_index],
+                path_row, trace);
+            if path_row < 0 {
+                plan.ok = false;
+                plan.diagnostic_syntax_id = requirements.local_ids[row];
+                return plan;
+            }
+            path_index = path_index - 1;
         }
         let signature: Option<Int> =
             SemanticAstFunctionSignatureIndexForNode(

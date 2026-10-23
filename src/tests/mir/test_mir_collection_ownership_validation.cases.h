@@ -124,11 +124,34 @@ test_mir_collection_ownership_validation(void)
             "var rows:Array<String> = [];ArrayPush(rows,\"x\");return ArrayLength(rows);}", &hir, &rir, &mir);
         MIRRoutine *r = lowered ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
         size_t automatic = 0;
+        MIRInstruction *cleanup = NULL;
         for (size_t b = 0; r != NULL && b < r->block_count; b++)
             for (size_t i = 0; i < r->blocks[b].instruction_count; i++)
-                automatic += r->blocks[b].instructions[i].collection_cleanup_kind != 0;
-        TEST("MIR a dominating finished loop does not own a later local's lifetime");
-        EXPECT(lowered && r != NULL && automatic == 0 && mir_validate(mir, NULL));
+                if (r->blocks[b].instructions[i].collection_cleanup_kind != 0) {
+                    automatic++;
+                    cleanup = &r->blocks[b].instructions[i];
+                }
+        bool control = lowered && r != NULL && automatic == 1 && cleanup != NULL
+            && cleanup->collection_cleanup_target == SIZE_MAX
+            && cleanup->collection_cleanup_kind == 1
+            && mir_validate_loop_collection_cleanup(r, NULL)
+            && mir_validate(mir, NULL);
+        TEST("MIR a local born after a finished loop is retired on function exit");
+        EXPECT(control);
+        for (unsigned fault = 0; control && fault < 6; fault++) {
+            MIRInstruction saved = *cleanup;
+            if (fault == 0) cleanup->collection_cleanup_kind = 0;
+            if (fault == 1) cleanup->collection_cleanup_target = r->entry_block;
+            if (fault == 2) cleanup->binding_syntax_id++;
+            if (fault == 3) cleanup->collection_cleanup_kind = 2;
+            if (fault == 4) cleanup->arg0 = "unrelated.1";
+            if (fault == 5) cleanup->use_count = 0;
+            bool rejected = !mir_validate_loop_collection_cleanup(r, NULL)
+                && !mir_validate(mir, NULL);
+            *cleanup = saved;
+            TEST("MIR function-local cleanup faults refuse before emission");
+            EXPECT(rejected && mir_validate(mir, NULL));
+        }
         mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
     }
     {

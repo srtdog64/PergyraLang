@@ -225,9 +225,11 @@ indexed_string_borrow_argument(ASTNode *expression,
         bool selected = semantic_loan_copy_landing_select_string(ctx, expression);
         if (!selected)
             semantic_error(ctx, expression, "String copy landing selection failed");
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-            expression, "A borrowed String element cannot be retained beyond its Array owner without a copy");
+        if (selected)
+            semantic_loan_copy_landing_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expression,
+                "A borrowed String element cannot be retained beyond its Array owner without a copy");
         if (selected) semantic_loan_copy_landing_refusal_tail_seal(ctx);
         return;
     }
@@ -412,9 +414,15 @@ indexed_string_borrow_argument(ASTNode *expression,
                     if (!selected)
                         semantic_error(ctx, expression, "String copy landing selection failed");
                 }
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-                    PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-                    expression, "A String element cannot cross an opaque boundary without a current non-retention proof");
+                if (selected)
+                    semantic_loan_copy_landing_error_with_hints(ctx,
+                        PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expression,
+                        "A String element cannot cross an opaque boundary without a current non-retention proof");
+                else
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                        expression, "A String element cannot cross an opaque boundary without a current non-retention proof");
                 if (selected) semantic_loan_copy_landing_refusal_tail_seal(ctx);
             }
         }
@@ -554,9 +562,9 @@ semantic_indexed_string_borrow_record_assignment(
     }
 }
 
-void
-semantic_indexed_string_borrow_invalidate_deep_drop(
-    ASTNode *receiver, SemanticContext *ctx)
+static void
+indexed_string_borrow_invalidate_owner_source(
+    ASTNode *receiver, SemanticContext *ctx, bool owner_release)
 {
     Symbol *owner = identifier_symbol(receiver, ctx);
     uint32_t source_id;
@@ -565,8 +573,10 @@ semantic_indexed_string_borrow_invalidate_deep_drop(
     source_id = collection_storage_source_id(owner);
     if (source_id == 0)
         return;
-    if (ctx->in_defer_cleanup && !semantic_array_storage_record_deferred_string_read(receiver, source_id,
-            owner, false, true, ctx)) return;
+    if (ctx->in_defer_cleanup
+        && !semantic_array_storage_record_deferred_string_read(
+            receiver, source_id, owner, false, owner_release, ctx))
+        return;
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
             Symbol *candidate = scope->symbols[i];
@@ -582,6 +592,20 @@ semantic_indexed_string_borrow_invalidate_deep_drop(
     }
 }
 
+void
+semantic_indexed_string_borrow_invalidate_deep_drop(
+    ASTNode *receiver, SemanticContext *ctx)
+{
+    indexed_string_borrow_invalidate_owner_source(receiver, ctx, true);
+}
+
+void
+semantic_indexed_string_borrow_invalidate_owned_set(
+    ASTNode *receiver, SemanticContext *ctx)
+{
+    indexed_string_borrow_invalidate_owner_source(receiver, ctx, false);
+}
+
 bool
 semantic_indexed_string_borrow_validate_use(
     Symbol *binding, ASTNode *use, SemanticContext *ctx)
@@ -593,11 +617,22 @@ semantic_indexed_string_borrow_validate_use(
         binding->indexed_string_borrow_source_syntax_id == 0 ||
         !binding->indexed_string_borrow_invalidated)
         return true;
+    if (binding->indexed_string_borrow_source_syntax_id ==
+            INDEXED_STRING_BORROW_UNKNOWN_SOURCE &&
+        semantic_indexed_string_definition_select_independent_storage(
+            ctx, binding->decl_syntax_id)) {
+        semantic_loan_copy_landing_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, use,
+            "An ambiguous String loan that survives an owned Array replacement is copied at each reaching definition");
+        semantic_loan_copy_landing_refusal_tail_seal(ctx);
+        return false;
+    }
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, use,
-        "String '%s' borrows an Array<String> element that was released.\n"
+        "String '%s' borrows an Array<String> element that was replaced or released.\n"
         "Reason:\n"
-        "- ArrayDropOwnedStrings retired the exact storage source that owns this String payload\n"
+        "- an ownership-aware ArraySet or ArrayDropOwnedStrings retired a payload from the exact storage source\n"
         "- using the indexed alias afterwards would read freed memory\n"
         "Fix:\n"
         "- copy the String with Concat(\"\", value) before the deep drop\n"

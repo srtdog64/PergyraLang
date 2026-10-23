@@ -363,7 +363,8 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
         semantic_error(ctx, ast, "Collection effect snapshot transfer failed closed");
 
     /* Transfer diagnostics to result */
-    result->success          = !ctx->has_error;
+    result->success          = !ctx->has_error &&
+        !ctx->loan_copy_landing_has_deferred_error;
     result->string_store_landings = ctx->string_store_landing_selected;
     result->string_store_landing_count = ctx->string_store_landing_selected_count;
     ctx->string_store_landing_selected = NULL;

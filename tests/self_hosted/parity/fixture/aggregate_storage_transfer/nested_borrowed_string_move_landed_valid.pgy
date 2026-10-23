@@ -1,0 +1,21 @@
+struct Arena {
+    texts: Array<String>;
+}
+
+struct Rows {
+    arena: Arena;
+}
+
+func AppendOwned(target: Rows) -> Rows {
+    let texts: Array<String> = target.arena.texts;
+    ArrayPushOwnedString(texts, Concat("new", "-owned"));
+    return Rows(Arena(texts));
+}
+
+func Main() -> Int {
+    let rows: Rows = Rows(Arena(["borrowed"]));
+    rows = AppendOwned(rows);
+    Log(ArrayLength(rows.arena.texts));
+    Log(StringLength(rows.arena.texts[1]));
+    return 0;
+}

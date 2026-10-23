@@ -23,7 +23,17 @@ for row in \
     distinct_maps_positive:1,0 \
     empty_descriptor_positive:1,0 \
     explicit_clone_positive:2,1 \
-    sibling_descriptor_copy_positive:99,1; do
+    sibling_descriptor_copy_positive:99,1 \
+    nested_sibling_member_paths_positive:1,1 \
+    nested_owned_string_move_positive:2,1 \
+    nested_parent_after_field_move_landed_valid:1,2 \
+    duplicate_array_landed_valid:2,1 \
+    array_alias_landed_valid:2,1 \
+    push_pop_duplicate_landed_valid:1,0 \
+    post_field_push_landed_valid:1,1 \
+    nested_borrowed_string_move_landed_valid:2,9 \
+    ambiguous_string_loan_definition_copy_positive:right,left \
+    owned_string_set_alias_positive:right,right; do
     name="${row%%:*}"
     values="${row#*:}"
     printf '%s\n%s\n' "${values%%,*}" "${values#*,}" >"$WORK_DIR/$name.expected"
@@ -54,9 +64,8 @@ for row in \
     done
 done
 
-for name in duplicate_array_negative array_alias_negative \
-        map_alias_negative push_pop_duplicate_negative \
-        post_field_push_negative post_field_return_negative; do
+for name in map_alias_negative post_field_return_negative \
+        nested_overlap_move_negative owned_string_set_stale_borrow_negative; do
     for backend in c llvm; do
         artifact="$WORK_DIR/$name-$backend.exe"
         log="$WORK_DIR/$name-$backend.refusal.log"
@@ -91,12 +100,10 @@ allowed = {"PGY_SEM_BORROW_ESCAPE", "PGY_SEM_MOVE_FROM_RELEASED",
            "OWN_EXPLICIT_COPY_REQUIRED"}
 allowed_cascade = {"PGY_SEM_TYPE_MISMATCH"}
 target_lines = {
-    "duplicate_array_negative": {10},
-    "array_alias_negative": {10, 11},
-    "map_alias_negative": {10, 11},
-    "push_pop_duplicate_negative": {12},
-    "post_field_push_negative": {11, 12},
-    "post_field_return_negative": {11, 13},
+    "map_alias_negative": {13},
+    "post_field_return_negative": {18},
+    "nested_overlap_move_negative": {19},
+    "owned_string_set_stale_borrow_negative": {6},
 }
 location = errors[0].get("location")
 if errors[0].get("code") not in allowed or any(

@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LOOP_RETIRE "loop-local-collection-retire"
+#define LOOP_RETIRE "local-collection-retire"
 
 typedef struct { const char *name; size_t argument, arity; } BorrowRow;
 #define PGY_RETENTION_ARGUMENT_ANY SIZE_MAX
@@ -95,10 +95,12 @@ static bool borrowed_argument(const MIRRoutine *r, const MIRJsonExpressionGraph 
             }
         if (node->call_target_syntax_id != 0)
             return declared_argument(r, node->call_target_syntax_id, ordinal, arity);
+        BuiltinKind builtin = builtin_resolve(node->call_target_name);
         if (g->nodes[node->left].binding_syntax_id != 0 ||
             g->nodes[node->left].source_binding_syntax_id != 0 ||
             (!scalar_type(pgy_builtin_simple_return_type(node->call_target_name)) &&
-             builtin_resolve(node->call_target_name) != BUILTIN_ARRAY_PUSH_OWNED_STRING)) return false;
+             builtin != BUILTIN_ARRAY_PUSH_OWNED_STRING &&
+             builtin != BUILTIN_CONCAT)) return false;
         for (size_t row = 0; row < sizeof(borrow_rows) / sizeof(borrow_rows[0]); row++)
             if (strcmp(borrow_rows[row].name, node->call_target_name) == 0 &&
                 (borrow_rows[row].argument == SIZE_MAX || borrow_rows[row].argument == ordinal) &&
@@ -106,6 +108,27 @@ static bool borrowed_argument(const MIRRoutine *r, const MIRJsonExpressionGraph 
         return false;
     }
     return false;
+}
+
+/* Array<String> indexing materializes a temporary String descriptor.  It is
+ * still a synchronous read when that exact descriptor flows directly into an
+ * argument whose retention contract ends with the call.  Any stored, returned,
+ * deferred, multiply-used, or otherwise transformed indexed value remains
+ * outside this permission. */
+static bool borrowed_indexed_argument(const MIRRoutine *r,
+    const MIRJsonExpressionGraph *g, size_t value)
+{
+    size_t index_node = SIZE_MAX;
+    size_t matches = 0;
+
+    for (size_t p = value + 1; p < g->count; p++) {
+        const MIRJsonExpressionGraphNode *node = &g->nodes[p];
+        if (strcmp(node->kind, "index") != 0 || node->left != (int)value)
+            continue;
+        index_node = p;
+        matches++;
+    }
+    return matches == 1 && borrowed_argument(r, g, index_node);
 }
 
 static bool dominates(const HIRRoutine *hir, size_t dom, size_t block)
@@ -133,7 +156,10 @@ static bool private_uses(const MIRRoutine *r, uint32_t binding, const char *valu
             if (inst->has_collection_ownership_receipt &&
                 inst->collection_ownership_receiver_binding_id == binding) {
                 if (inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_DROP) return false;
-                owned |= inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                owned |= inst->collection_ownership_effect_kind ==
+                        PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+                    || inst->collection_ownership_effect_kind ==
+                        PGY_COLLECTION_EFFECT_OWNED_STRING_SET;
                 borrowed |= inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION;
             }
             ASTNode *roots[2];
@@ -148,7 +174,10 @@ static bool private_uses(const MIRRoutine *r, uint32_t binding, const char *valu
                         graph.nodes[n].source_binding_syntax_id == binding) {
                         source_use = true;
                         if (!region[b] || mir_instruction_source_is_defer_stmt(inst) ||
-                            !borrowed_argument(r, &graph, n)) valid = false;
+                            (!borrowed_argument(r, &graph, n) &&
+                             !borrowed_indexed_argument(r, &graph, n))) {
+                            valid = false;
+                        }
                     }
                 mir_json_expression_graph_dispose(&graph);
                 if (!valid) return false;
@@ -256,25 +285,40 @@ static bool loop_cleanup(MIRRoutine *r, bool issue, char **error)
                 hir->cfg.blocks[h].source_loop_exit < hir->cfg.block_count &&
                 !dominates(hir, hir->cfg.blocks[h].source_loop_exit, birth) &&
                 dominates(hir, h, birth) && (header == SIZE_MAX || dominates(hir, header, h))) header = h;
-        if (header == SIZE_MAX) continue;
-        size_t exit = hir->cfg.blocks[header].source_loop_exit;
-        if (exit >= hir->cfg.block_count) goto invalid;
+        size_t exit = header == SIZE_MAX
+            ? SIZE_MAX : hir->cfg.blocks[header].source_loop_exit;
+        if (header != SIZE_MAX && exit >= hir->cfg.block_count) goto invalid;
         bool *region = calloc(r->block_count, sizeof(*region));
         size_t *queue = calloc(r->block_count, sizeof(*queue));
         if (region == NULL || queue == NULL) { free(region); free(queue); goto invalid; }
-        size_t count = 1;
-        queue[0] = birth;
-        region[birth] = true;
-        for (size_t q = 0; q < count; q++) {
-            const MIRBasicBlock *block = &r->blocks[queue[q]];
-            size_t targets[2] = {block->has_succ_true ? block->succ_true : SIZE_MAX,
-                                 block->has_succ_false ? block->succ_false : SIZE_MAX};
-            for (size_t s = 0; s < 2; s++) {
-                size_t target = targets[s];
-                if (target >= hir->cfg.block_count || target == header || target == exit ||
-                    region[target] || !r->blocks[target].is_reachable || !dominates(hir, birth, target)) continue;
-                region[target] = true;
-                queue[count++] = target;
+        size_t count = 0;
+        if (header == SIZE_MAX) {
+            /* A fresh local outside a loop owns one function-scope lifetime.
+             * Its region is every reachable block dominated by its exact
+             * birth.  A use after a non-dominated join is rejected by
+             * private_uses rather than being cleaned on only one path. */
+            for (size_t b = 0; b < r->block_count; b++)
+                if (r->blocks[b].is_reachable && dominates(hir, birth, b)) {
+                    region[b] = true;
+                    queue[count++] = b;
+                }
+        } else {
+            /* A birth inside a loop owns one iteration.  Do not carry it
+             * across the backedge or the loop exit. */
+            queue[count++] = birth;
+            region[birth] = true;
+            for (size_t q = 0; q < count; q++) {
+                const MIRBasicBlock *block = &r->blocks[queue[q]];
+                size_t targets[2] = {block->has_succ_true ? block->succ_true : SIZE_MAX,
+                                     block->has_succ_false ? block->succ_false : SIZE_MAX};
+                for (size_t s = 0; s < 2; s++) {
+                    size_t target = targets[s];
+                    if (target >= hir->cfg.block_count || target == header || target == exit ||
+                        region[target] || !r->blocks[target].is_reachable ||
+                        !dominates(hir, birth, target)) continue;
+                    region[target] = true;
+                    queue[count++] = target;
+                }
             }
         }
         uint32_t kind = 0;

@@ -473,6 +473,24 @@ bool function_param_flow_syntax_claims_snapshot(SemanticContext *ctx,
     return *claims != NULL && function_param_flow_claim_snapshot(ctx, *claims, node, false,
         NULL, SIZE_MAX, false, false, NULL);
 }
+
+static bool function_param_flow_claim_current_failure(
+    const FunctionParamFlowIndexClaim *row, size_t ordinal,
+    const char *reason)
+{
+    if (getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
+        fprintf(stderr,
+            "pgy: function-param-flow-claim-stale row=%zu shape=%d"
+            " id=%u line=%u column=%u reason=%s\n",
+            ordinal, row != NULL ? (int)row->shape : -1,
+            row != NULL ? row->id : 0,
+            row != NULL && row->node != NULL ? row->node->line : 0,
+            row != NULL && row->node != NULL ? row->node->column : 0,
+            reason);
+    }
+    return false;
+}
+
 bool function_param_flow_claims_current(const SemanticContext *ctx,
     const FunctionParamFlowIndexClaims *claims, bool semantic)
 {
@@ -483,9 +501,13 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
         size_t children = row->node == NULL ? 0 : function_param_flow_claim_child_count(row->node, &supported);
         if (row->node == NULL || (row->child_count != 0 && (row->children == NULL || row->child_ids == NULL)) ||
             row->shape != row->node->type || row->id != ast_node_stable_id(row->node) ||
-            !supported || row->child_count != children) return false;
+            !supported || row->child_count != children)
+            return function_param_flow_claim_current_failure(row, i,
+                "syntax identity or child count changed");
         if (semantic && row->snapshot_complete && row->child_count != 0 &&
-            row->child_claim_ordinals == NULL) return false;
+            row->child_claim_ordinals == NULL)
+            return function_param_flow_claim_current_failure(row, i,
+                "sealed child ordinals are missing");
         for (size_t c = 0; c < row->child_count; c++) {
             if (row->children[c] != function_param_flow_claim_child(row->node, c) ||
                 row->child_ids[c] != ast_node_stable_id(row->children[c])) return false;
@@ -494,14 +516,21 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
                 if (row->children[c] == NULL ? child != SIZE_MAX :
                     child >= claims->count || claims->rows[child].node != row->children[c] ||
                     claims->rows[child].id != row->child_ids[c] ||
-                    !claims->rows[child].snapshot_complete || claims->rows[child].snapshot_active) return false;
+                    !claims->rows[child].snapshot_complete || claims->rows[child].snapshot_active)
+                    return function_param_flow_claim_current_failure(row, i,
+                        "child identity or snapshot changed");
             }
         }
-        if (row->shape == AST_IDENTIFIER && row->binding != ast_identifier_binding_syntax_id(row->node)) return false;
-        if (row->shape == AST_LET_DECL && row->local_alias != ast_let_is_alias(row->node)) return false;
-        if (row->shape == AST_MATCH_CASE && row->match_family != ast_match_case_semantic_subject_family(row->node)) return false;
-        if (row->shape == AST_BINARY && row->syntax_operator != (int)row->node->data.binary.op.type) return false;
-        if (row->shape == AST_UNARY && row->syntax_operator != (int)row->node->data.unary.op.type) return false;
+        if (row->shape == AST_IDENTIFIER && row->binding != ast_identifier_binding_syntax_id(row->node))
+            return function_param_flow_claim_current_failure(row, i, "identifier binding changed");
+        if (row->shape == AST_LET_DECL && row->local_alias != ast_let_is_alias(row->node))
+            return function_param_flow_claim_current_failure(row, i, "local alias classification changed");
+        if (row->shape == AST_MATCH_CASE && row->match_family != ast_match_case_semantic_subject_family(row->node))
+            return function_param_flow_claim_current_failure(row, i, "match family changed");
+        if (row->shape == AST_BINARY && row->syntax_operator != (int)row->node->data.binary.op.type)
+            return function_param_flow_claim_current_failure(row, i, "binary operator changed");
+        if (row->shape == AST_UNARY && row->syntax_operator != (int)row->node->data.unary.op.type)
+            return function_param_flow_claim_current_failure(row, i, "unary operator changed");
         if (row->shape == AST_PARALLEL_BLOCK && row->parallel_join != ast_parallel_is_join_form(row->node)) return false;
         if (row->shape == AST_BOOLEAN && row->syntax_literal_flags != (unsigned)ast_boolean_value(row->node)) return false;
         if (row->shape == AST_NUMBER && (row->syntax_number != ast_number_value(row->node) ||
@@ -511,27 +540,34 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
             row->shape == AST_MEMBER_ACCESS ? ast_member_name(row->node) :
             row->shape == AST_TYPE ? ast_type_name(row->node) : row->shape == AST_STRING ? ast_string_value(row->node) : NULL;
         if ((syntax_name == NULL) != (row->syntax_name == NULL) ||
-            (syntax_name != NULL && strcmp(syntax_name, row->syntax_name) != 0)) return false;
+            (syntax_name != NULL && strcmp(syntax_name, row->syntax_name) != 0))
+            return function_param_flow_claim_current_failure(row, i, "syntax name changed");
         if (row->shape == AST_TYPE || row->shape == AST_CALL) {
             GenericParams *args = row->shape == AST_TYPE ? ast_type_generic_args(row->node) : ast_call_generic_args(row->node);
             size_t count = args == NULL ? 0 : args->count;
-            if (count != row->generic_name_count || (count != 0 && row->generic_names == NULL)) return false;
+            if (count != row->generic_name_count || (count != 0 && row->generic_names == NULL))
+                return function_param_flow_claim_current_failure(row, i, "generic arity changed");
             for (size_t p = 0; p < count; p++)
-                if (row->generic_names[p] == NULL || strcmp(row->generic_names[p], args->params[p]->name) != 0) return false;
+                if (row->generic_names[p] == NULL || strcmp(row->generic_names[p], args->params[p]->name) != 0)
+                    return function_param_flow_claim_current_failure(row, i, "generic argument changed");
         }
         if (row->shape == AST_CAST || row->shape == AST_TYPE_TEST) {
             const char *target = row->shape == AST_CAST ? ast_cast_target_type(row->node) : ast_type_test_target_type(row->node);
             if ((target == NULL) != (row->cast_target == NULL) ||
-                (target != NULL && strcmp(target, row->cast_target) != 0)) return false;
+                (target != NULL && strcmp(target, row->cast_target) != 0))
+                return function_param_flow_claim_current_failure(row, i, "cast target changed");
         }
-        if (row->readfile_result && !function_param_flow_readfile_claim_current(NULL, claims, row)) return false;
+        if (row->readfile_result && !function_param_flow_readfile_claim_current(NULL, claims, row))
+            return function_param_flow_claim_current_failure(row, i, "ReadFile syntax receipt changed");
         if (!semantic || !row->semantic_promoted) continue;
         bool reachable = false;
         bool execution_present = semantic_param_publication_execution(ctx, row->node, &reachable);
         if (row->execution_present != execution_present ||
-            (execution_present && row->reachable != reachable)) return false;
+            (execution_present && row->reachable != reachable))
+            return function_param_flow_claim_current_failure(row, i, "execution reachability changed");
         if (row->unit_enum_selection != (row->shape == AST_MEMBER_ACCESS &&
-            semantic_param_publication_checked_unit_enum_selection(ctx, row->node))) return false;
+            semantic_param_publication_checked_unit_enum_selection(ctx, row->node)))
+            return function_param_flow_claim_current_failure(row, i, "unit enum classification changed");
         if (execution_present && !reachable) continue;
         if (row->shape == AST_LET_DECL && row->channel_binding != semantic_param_publication_channel_binding(ctx, row->node)) return false;
         if (row->shape == AST_LET_DECL && row->empty_map_binding != semantic_param_publication_empty_map_binding(ctx, row->node)) return false;
@@ -541,35 +577,48 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
         }
         SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
         if (row->value_ready != value.ok || row->value_meta != (value.ok && value.meta) ||
-            row->value_origin_ready != (value.ok && value.origin_ready) || row->value_type != value.type) return false;
-        if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
-        if (row->slot_token_operand != semantic_param_publication_slot_token_operand(ctx, row->node)) return false;
+            row->value_origin_ready != (value.ok && value.origin_ready) || row->value_type != value.type)
+            return function_param_flow_claim_current_failure(row, i, "published value changed");
+        if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node))
+            return function_param_flow_claim_current_failure(row, i, "physical scalar classification changed");
+        if (row->slot_token_operand != semantic_param_publication_slot_token_operand(ctx, row->node))
+            return function_param_flow_claim_current_failure(row, i, "slot-token classification changed");
         if (row->shape == AST_ARRAY_LITERAL) {
             /* Replay the same current typed premise as the no-output selector.
              * Child count/identity above seal every element evaluation. */
-            if (!value.ok || value.meta) return false;
+            if (!value.ok || value.meta)
+                return function_param_flow_claim_current_failure(row, i, "array literal value is no longer concrete");
         }
         if (row->shape == AST_CALL) {
             if (row->readfile_result != semantic_param_publication_checked_readfile_independent(ctx, row->node) ||
-                (row->readfile_result && !function_param_flow_readfile_claim_current(ctx, claims, row))) return false;
+                (row->readfile_result && !function_param_flow_readfile_claim_current(ctx, claims, row)))
+                return function_param_flow_claim_current_failure(row, i, "ReadFile semantic receipt changed");
             uint32_t kind = 0, receiver = 0, source = 0;
             bool present = ast_call_semantic_collection_effect(row->node, &kind, &receiver, &source);
             if (present != row->collection_effect_present || kind != row->collection_effect_kind ||
-                receiver != row->collection_effect_receiver || source != row->collection_effect_source) return false;
-            if (row->slot_write != semantic_param_publication_checked_slot_write(ctx, row->node)) return false;
-            if (row->local_owner_constructor != semantic_param_publication_checked_local_owner_constructor(ctx, row->node)) return false;
-            if (!semantic_param_publication_checked_call(ctx, row->node)) return false;
-            if (row->private_array_push != semantic_param_publication_private_array_push(ctx, row->node, NULL)) return false;
+                receiver != row->collection_effect_receiver || source != row->collection_effect_source)
+                return function_param_flow_claim_current_failure(row, i, "collection effect changed");
+            if (row->slot_write != semantic_param_publication_checked_slot_write(ctx, row->node))
+                return function_param_flow_claim_current_failure(row, i, "slot write classification changed");
+            if (row->local_owner_constructor != semantic_param_publication_checked_local_owner_constructor(ctx, row->node))
+                return function_param_flow_claim_current_failure(row, i, "local owner constructor changed");
+            if (!semantic_param_publication_checked_call(ctx, row->node))
+                return function_param_flow_claim_current_failure(row, i, "call receipt is missing");
+            if (row->private_array_push != semantic_param_publication_private_array_push(ctx, row->node, NULL))
+                return function_param_flow_claim_current_failure(row, i, "private push classification changed");
             bool depends = false, retains = false;
             bool relation = semantic_param_publication_checked_result_relation(ctx, row->node, 0, &depends, &retains);
             if (row->result_relation != relation || (relation &&
-                (row->result_depends != depends || row->external_retains != retains))) return false;
+                (row->result_depends != depends || row->external_retains != retains)))
+                return function_param_flow_claim_current_failure(row, i, "result relation changed");
             bool backing = semantic_param_publication_checked_backing_relation(ctx, row->node, 0, &depends, &retains);
             if (row->backing_relation != backing || (backing &&
-                (row->backing_depends != depends || row->backing_external_retains != retains))) return false;
+                (row->backing_depends != depends || row->backing_external_retains != retains)))
+                return function_param_flow_claim_current_failure(row, i, "backing relation changed");
             if ((relation || backing) && (row->result_type_name == NULL ||
                 ast_call_semantic_value_type_name(row->node) == NULL ||
-                strcmp(row->result_type_name, ast_call_semantic_value_type_name(row->node)) != 0)) return false;
+                strcmp(row->result_type_name, ast_call_semantic_value_type_name(row->node)) != 0))
+                return function_param_flow_claim_current_failure(row, i, "result type projection changed");
         }
         if (row->shape == AST_CAST) {
             const char *target = ast_cast_target_type(row->node);

@@ -1,6 +1,7 @@
 /* Descriptor and element preservation over the same demanded indexed roots. */
 #include "function_param_flow_summary_internal.h"
 #include "function_param_publication_internal.h"
+#include "formal_string_store_landing_owner.h"
 #include "type_checker_resolution_metadata_internal.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
@@ -44,6 +45,9 @@ typedef struct {
     uint32_t *alias_ids;
     const char **alias_names;
     size_t alias_count, alias_capacity;
+    uint32_t *scoped_string_stack_calls;
+    size_t scoped_string_stack_count, scoped_string_stack_capacity;
+    bool scoped_string_stack_failed, direct_string_pop_seen;
 } StorageWalk;
 
 /* RESULT is a call result that holds storage of a path of the formal. */
@@ -85,6 +89,123 @@ array_storage_formal(const ASTNode *node, const StorageWalk *walk)
         || ast_identifier_binding_syntax_id(node) != ast_func_param_stable_id(param)) return false;
     SemanticPublishedValue value = semantic_param_publication_value(walk->lookup->ctx, node);
     return value.ok && !value.meta && type_is_constructed_named(value.type, "Array");
+}
+
+/* A borrowed String may be kept in an inout Array only for a lexical stack
+ * interval whose matching pop is unavoidable.  Calls inside that interval
+ * are checked by the ordinary formal walk; this prepass owns only the local
+ * push/pop pairing and the pushed binding's continued identity. */
+typedef struct { uint32_t push, source; bool valid; } ScopedStringPush;
+
+static bool scoped_string_call_add(StorageWalk *walk, uint32_t id)
+{
+    if (id == 0) return false;
+    if (walk->scoped_string_stack_count == walk->scoped_string_stack_capacity) {
+        size_t capacity = walk->scoped_string_stack_capacity == 0 ? 4
+            : walk->scoped_string_stack_capacity * 2;
+        uint32_t *grown = realloc(walk->scoped_string_stack_calls,
+            capacity * sizeof(*grown));
+        if (grown == NULL) return false;
+        walk->scoped_string_stack_calls = grown;
+        walk->scoped_string_stack_capacity = capacity;
+    }
+    walk->scoped_string_stack_calls[walk->scoped_string_stack_count++] = id;
+    return true;
+}
+
+static int scoped_string_formal_mutation(ASTNode *node, StorageWalk *walk,
+    uint32_t *source)
+{
+    if (node == NULL || node->type != AST_CALL || ast_call_arg_count(node) == 0
+        || !array_storage_formal(ast_call_argument(node, 0), walk)) return 0;
+    if (semantic_param_publication_checked_array_pop(walk->lookup->ctx, node))
+        return -1;
+    size_t stored = SIZE_MAX;
+    if (!semantic_param_publication_checked_array_store(walk->lookup->ctx,
+            node, &stored) || stored != 1 || ast_call_arg_count(node) != 2)
+        return 0;
+    ASTNode *value = ast_call_argument(node, 1);
+    if (value == NULL || (value->type != AST_STRING
+            && value->type != AST_IDENTIFIER)) return 0;
+    *source = value->type == AST_IDENTIFIER
+        ? ast_identifier_binding_syntax_id(value) : 0;
+    return value->type == AST_STRING || *source != 0 ? 1 : 0;
+}
+
+static bool scoped_string_pair_barrier(ASTNode *node, StorageWalk *walk,
+    uint32_t source)
+{
+    if (node == NULL) return false;
+    uint32_t ignored = 0;
+    if (scoped_string_formal_mutation(node, walk, &ignored) != 0
+        || node->type == AST_RETURN || node->type == AST_BREAK
+        || node->type == AST_CONTINUE || node->type == AST_FAIL_STMT
+        || node->type == AST_GIVE_STMT) return true;
+    if (source != 0 && node->type == AST_ASSIGNMENT) {
+        ASTNode *target = ast_assignment_target(node);
+        if (target != NULL && target->type == AST_IDENTIFIER
+            && ast_identifier_binding_syntax_id(target) == source) return true;
+    }
+    bool supported = false;
+    size_t count = function_param_flow_claim_child_count(node, &supported);
+    if (!supported || count == SIZE_MAX) return true;
+    for (size_t i = 0; i < count; i++)
+        if (scoped_string_pair_barrier(
+                function_param_flow_claim_child(node, i), walk, source))
+            return true;
+    return false;
+}
+
+static void scoped_string_stack_scan(StorageWalk *walk, ASTNode *node);
+
+static void scoped_string_stack_block(StorageWalk *walk, ASTNode *block)
+{
+    size_t count = ast_block_statement_count(block), depth = 0;
+    ScopedStringPush *stack = count == 0 ? NULL : calloc(count, sizeof(*stack));
+    if (count != 0 && stack == NULL) { walk->scoped_string_stack_failed = true; return; }
+    for (size_t i = 0; i < count && !walk->scoped_string_stack_failed; i++) {
+        ASTNode *stmt = ast_block_statement(block, i);
+        uint32_t source = 0;
+        int mutation = scoped_string_formal_mutation(stmt, walk, &source);
+        if (mutation > 0) stack[depth++] = (ScopedStringPush){ast_node_stable_id(stmt), source, true};
+        else if (mutation < 0) {
+            walk->direct_string_pop_seen = true;
+            if (depth != 0) {
+                ScopedStringPush pushed = stack[--depth];
+                if (pushed.valid) {
+                    if (!scoped_string_call_add(walk, ast_node_stable_id(stmt))
+                        || !scoped_string_call_add(walk, pushed.push))
+                        walk->scoped_string_stack_failed = true;
+                }
+            }
+        } else {
+            for (size_t p = 0; p < depth; p++)
+                if (stack[p].valid && scoped_string_pair_barrier(
+                        stmt, walk, stack[p].source)) stack[p].valid = false;
+            scoped_string_stack_scan(walk, stmt);
+        }
+    }
+    free(stack);
+}
+
+static void scoped_string_stack_scan(StorageWalk *walk, ASTNode *node)
+{
+    if (node == NULL || walk->scoped_string_stack_failed) return;
+    if (node->type == AST_BLOCK) { scoped_string_stack_block(walk, node); return; }
+    bool supported = false;
+    size_t count = function_param_flow_claim_child_count(node, &supported);
+    if (!supported || count == SIZE_MAX) { walk->scoped_string_stack_failed = true; return; }
+    for (size_t i = 0; i < count; i++)
+        scoped_string_stack_scan(walk, function_param_flow_claim_child(node, i));
+}
+
+static bool scoped_string_stack_call(const StorageWalk *walk, const ASTNode *call)
+{
+    uint32_t id = ast_node_stable_id(call);
+    for (size_t i = 0; !walk->scoped_string_stack_failed
+         && id != 0 && i < walk->scoped_string_stack_count; i++)
+        if (walk->scoped_string_stack_calls[i] == id) return true;
+    return false;
 }
 
 static unsigned array_storage_use_unproved(ASTNode *node, StorageWalk *walk);
@@ -237,15 +358,40 @@ static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordina
 
 static unsigned
 array_storage_call_argument_unproved(ASTNode *call, size_t ordinal,
-    const SlotFunctionLookup *lookup)
+    StorageWalk *walk)
 {
+    const SlotFunctionLookup *lookup = walk->lookup;
     ASTNode *callee = ast_call_callee(call);
     uint32_t identity = ast_call_semantic_callee_decl_id(call);
     if (!semantic_param_publication_checked_argument(lookup->ctx, call, ordinal))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
-    if (semantic_stdlib_array_argument_preserves_storage(call, ordinal))
-        return semantic_stdlib_array_argument_preserves_elements(call, ordinal, lookup->ctx)
-            ? 0 : FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
+    if (semantic_stdlib_array_argument_preserves_storage(call, ordinal)) {
+        if (semantic_stdlib_array_argument_preserves_elements(call, ordinal,
+                lookup->ctx))
+            return 0;
+        if (scoped_string_stack_call(walk, call)) return 0;
+        /* A plain push into an Array<String> formal leaves its new element
+         * in the caller's array.  The summary cannot call that element
+         * preserved until the store owns a copy.  Select this exact checked
+         * ArrayPush for the driver's next analysis; that round rewrites it
+         * to ArrayPushOwnedString and re-proves the same formal. */
+        size_t stored = SIZE_MAX;
+        SemanticPublishedValue receiver = semantic_param_publication_value(
+            lookup->ctx, ast_call_argument(call, 0));
+        if (!walk->scoped_string_stack_failed && !walk->direct_string_pop_seen
+            && ordinal == 0 && ast_call_arg_count(call) == 2
+            && semantic_param_publication_checked_array_store(
+                lookup->ctx, call, &stored)
+            && stored == 1 && receiver.ok && !receiver.meta
+            && type_is_constructed_named(receiver.type, "Array")
+            && type_equals(type_get_constructed_arg(receiver.type, 0),
+                TYPE_STRING)
+            && !semantic_formal_string_store_landing_select_owned(
+                lookup->ctx, call))
+            semantic_error(lookup->ctx, call,
+                "Owned String push landing selection failed");
+        return FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
+    }
     if (identity == 0 || ast_call_semantic_callee_value_binding_id(call) != 0
         || callee == NULL || callee->type != AST_IDENTIFIER)
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
@@ -430,7 +576,7 @@ static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk)
                 ? storage_path_indices(arg, walk)
                 : storage_path_call_argument_unproved(call, i, walk->lookup, root == STORAGE_ROOT_ALIAS) |
                     storage_path_indices(arg, walk);
-        } else bad |= array_storage_formal(arg, walk) ? array_storage_call_argument_unproved(call, i, walk->lookup)
+        } else bad |= array_storage_formal(arg, walk) ? array_storage_call_argument_unproved(call, i, walk)
             : array_storage_use_unproved(arg, walk);
     }
     return bad;
@@ -448,7 +594,8 @@ function_param_array_storage_unproved_in_program_points(
     FuncParam *param = origin != NULL
         ? ast_func_param(origin->function_decl, origin->param_index) : NULL;
     StorageWalk walk = {origin, lookup, payload_read, false,
-        (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0, NULL, NULL, 0, 0};
+        (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0, NULL, NULL, 0, 0,
+        NULL, 0, 0, false, false};
     if (lookup == NULL || lookup->ctx == NULL || param == NULL
         || !array_storage_formal_kind(origin->function_decl, origin->param_index, &walk.paths)
         || ast_func_body(origin->function_decl) == NULL || origin->function_decl->is_async_decl
@@ -456,6 +603,7 @@ function_param_array_storage_unproved_in_program_points(
         || ast_func_param_stable_id(param) == 0 || (roots == NULL && count != 0)
         || (statements == NULL && statement_count != 0))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    scoped_string_stack_scan(&walk, ast_func_body(origin->function_decl));
     unsigned bad = 0;
     size_t next = 0;
     for (size_t s = 0; s < statement_count && bad != FUNCTION_PARAM_ARRAY_ALL_UNPROVED; s++) {
@@ -468,6 +616,7 @@ function_param_array_storage_unproved_in_program_points(
     }
     free(walk.alias_ids);
     free(walk.alias_names);
+    free(walk.scoped_string_stack_calls);
     return next == count ? bad : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
 }
 

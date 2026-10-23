@@ -1,0 +1,19 @@
+struct Arena {
+    texts: Array<String>;
+    kinds: Array<Int>;
+}
+
+struct Rows {
+    arena: Arena;
+}
+
+func Main() -> Int {
+    let texts: Array<String> = [];
+    ArrayPushOwnedString(texts, Concat("owned", "-text"));
+    let kinds: Array<Int> = [7];
+    let rows: Rows = Rows(Arena(texts, kinds));
+    let moved: Array<String> = rows.arena.texts;
+    Log(ToString(ArrayLength(rows.arena.kinds)));
+    Log(ToString(ArrayLength(moved)));
+    return 0;
+}

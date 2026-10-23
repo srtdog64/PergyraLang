@@ -5,8 +5,10 @@
 
 #include "array_storage_release_owner.h"
 #include "diag_codes.h"
+#include "formal_string_store_landing_owner.h"
 #include "function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
+#include "loan_copy_landing_owner.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_internal.h"
 #include "../common/string_compat.h"
@@ -241,6 +243,30 @@ static const ASTNode *nonowner_terminal_statement(
     return statement;
 }
 
+/* Owned promotion may terminate at the same exact nominal-result handoff as
+ * the non-owning receipt.  Recheck it without appending a receipt because the
+ * promoted local is retired from this fact family immediately afterwards. */
+static bool nonowner_owned_terminal_current(SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims,
+    const FunctionParamFlowIndexClaim *call_row, size_t actual)
+{
+    if (ctx == NULL || claims == NULL || call_row == NULL ||
+        call_row->shape != AST_CALL || call_row->node == NULL ||
+        call_row->collection_effect_present)
+        return false;
+    ASTNode *call = call_row->node;
+    const ASTNode *statement = nonowner_terminal_statement(claims, call);
+    if (statement == NULL || actual >= ast_call_arg_count(call) ||
+        !semantic_param_publication_nominal_result_complete(ctx, call) ||
+        !semantic_param_publication_checked_argument(ctx, call, actual))
+        return false;
+    PublishedNode *published = publication_result_current(ctx, call);
+    bool depends = false, retains = true;
+    return published != NULL && published->nominal_result != NULL &&
+        semantic_param_publication_checked_result_relation(ctx, call, actual,
+            &depends, &retains) && depends && !retains;
+}
+
 static bool nonowner_terminal_current(SemanticContext *ctx,
     IndexedStringNonownerRisk *risk, const FunctionParamFlowIndexClaims *claims,
     const FunctionParamFlowIndexClaim *call_row, size_t actual, bool seal,
@@ -363,6 +389,287 @@ static bool nonowner_uses_current(SemanticContext *ctx,
                     use->actual_ordinal))) return false;
     }
     return true;
+}
+
+/* An empty local Array<String> can become an owned-element collection through
+ * an `inout` call without a local collection-effect row.  The existing array
+ * preservation owner already walks the exact callee/formal chain and refuses
+ * shallow stores, unsupported aliases and callees that can lose or borrow an
+ * element.  Starting from an empty array, that complete preservation proof
+ * means every element present after the call was produced by an admitted
+ * owned/fresh store in that chain.  This query only connects that proof to the
+ * caller's exact actual; it does not infer ownership from `inout` alone. */
+static bool nonowner_inout_owned_elements(SemanticContext *ctx,
+    const IndexedStringNonownerRisk *risk, ASTNode *call, size_t actual)
+{
+    if (ctx == NULL || risk == NULL || call == NULL || call->type != AST_CALL ||
+        actual >= ast_call_arg_count(call) ||
+        !semantic_param_publication_checked_argument(ctx, call, actual))
+        return false;
+    ASTNode *argument = ast_call_argument(call, actual);
+    if (argument == NULL || argument->type != AST_IDENTIFIER ||
+        ast_identifier_binding_syntax_id(argument) != risk->binding_id)
+        return false;
+    SemanticPublishedValue value = semantic_param_publication_value(ctx,
+        argument);
+    ASTNode *callee = semantic_param_publication_callee(ctx, call, actual);
+    size_t formal = SIZE_MAX;
+    if (!value.ok || value.meta || !type_equals(value.type, risk->array_type) ||
+        callee == NULL || callee->type != AST_FUNC_DECL ||
+        !semantic_param_publication_formal_for_actual(ctx, call, actual,
+            &formal) || formal >= ast_func_param_count(callee) ||
+        !semantic_param_publication_routine_inputs_current(ctx, callee, true))
+        return false;
+    FuncParam *parameter = ast_func_param(callee, formal);
+    if (parameter == NULL || parameter->mode != PARAM_MODE_MUT_REF ||
+        ast_func_param_stable_id(parameter) == 0)
+        return false;
+    return function_param_flow_array_preservation_failures(ctx, callee,
+        formal) == 0;
+}
+
+/* A declared read-only call can observe the collection between owned stores
+ * without changing the postcondition.  Default aggregate parameters share
+ * storage, so their summary must prove no write/release/escape; `ref` is held
+ * to the same condition here. */
+static bool nonowner_declared_read_preserves_elements(SemanticContext *ctx,
+    const IndexedStringNonownerRisk *risk, ASTNode *call, size_t actual)
+{
+    if (ctx == NULL || risk == NULL || call == NULL || call->type != AST_CALL ||
+        actual >= ast_call_arg_count(call) ||
+        !semantic_param_publication_checked_argument(ctx, call, actual))
+        return false;
+    ASTNode *argument = ast_call_argument(call, actual);
+    ASTNode *callee = semantic_param_publication_callee(ctx, call, actual);
+    size_t formal = SIZE_MAX;
+    if (argument == NULL || argument->type != AST_IDENTIFIER ||
+        ast_identifier_binding_syntax_id(argument) != risk->binding_id ||
+        callee == NULL || callee->type != AST_FUNC_DECL ||
+        !semantic_param_publication_formal_for_actual(ctx, call, actual,
+            &formal) || formal >= ast_func_param_count(callee) ||
+        !semantic_param_publication_routine_inputs_current(ctx, callee, true))
+        return false;
+    FuncParam *parameter = ast_func_param(callee, formal);
+    if (parameter == NULL ||
+        (parameter->mode != PARAM_MODE_DEFAULT &&
+            parameter->mode != PARAM_MODE_REF) ||
+        ast_func_param_stable_id(parameter) == 0 ||
+        function_param_flow_array_preservation_failures(ctx, callee,
+            formal) != 0)
+        return false;
+    unsigned summary = function_param_flow_summary_for_param(ctx, callee,
+        formal);
+    return (summary & ~SLOT_PARAM_SUMMARY_READ) == 0;
+}
+
+/* The landing owner may replace every borrowed String push recorded by this
+ * risk with an owned-copy push. In that case the non-owning proof is no longer
+ * the right fact family: the collection transition owns the stored payloads.
+ * Retire the old receipt only after the current function index proves that
+ * every effect touching this receiver belongs to the owned push/set/drop
+ * lifecycle, with at least one owned store. The use
+ * inventory spans all unknown String uses in the routine, not just stores into
+ * this receiver, so it is checked for currency but is not paired by position.
+ * A mixed or malformed effect remains fail-closed. */
+static bool nonowner_promoted_to_owned(SemanticContext *ctx,
+    const IndexedStringNonownerRisk *risk)
+{
+    if (ctx == NULL || ctx->has_error || risk == NULL || risk->prepared ||
+        risk->claims != NULL || risk->use_count == 0 ||
+        risk->use_count > risk->use_capacity || risk->uses == NULL ||
+        !semantic_param_publication_inputs_ready(ctx) ||
+        !semantic_param_publication_routine_inputs_current(ctx,
+            risk->caller, true) || !nonowner_birth_current(ctx, risk)) return false;
+
+    SlotFunctionLookup lookup = {ctx, ctx->program_root};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (store == NULL || store->failed || store->solving ||
+        store->validating_current ||
+        !function_param_flow_program_point_index_build(store,
+            (ASTNode *)risk->caller, &index) || index == NULL ||
+        index->function_decl != risk->caller ||
+        index->function_id != risk->caller_id || index->claims == NULL ||
+        !function_param_flow_index_roots_current(index) ||
+        !function_param_flow_index_claims_current(ctx, index)) return false;
+
+    const FunctionParamFlowIndexClaims *claims = index->claims;
+    if (claims->failed || claims->rows == NULL || claims->count == 0)
+        return false;
+
+    for (size_t u = 0; u < risk->use_count; u++) {
+        const IndexedStringNonownerUse *use = &risk->uses[u];
+        const FunctionParamFlowIndexClaim *value = NULL, *sink = NULL;
+        if (!nonowner_raw_use_current(ctx, use)) return false;
+        for (size_t i = 0; i < claims->count; i++) {
+            const FunctionParamFlowIndexClaim *row = &claims->rows[i];
+            if (row->node == use->value) {
+                if (value != NULL) return false;
+                value = row;
+            }
+            if (row->node == use->sink) {
+                if (sink != NULL) return false;
+                sink = row;
+            }
+        }
+        if (value == NULL || value->id != use->value_id ||
+            value->shape != use->shape || value->binding != use->binding_id ||
+            !value->semantic_promoted || !value->snapshot_semantic_complete ||
+            !value->value_ready || value->value_meta ||
+            value->value_type != TYPE_STRING || sink == NULL ||
+            sink->id != use->sink_id || sink->shape != AST_CALL ||
+            use->actual_ordinal >= ast_call_arg_count(use->sink) ||
+            ast_call_argument(use->sink, use->actual_ordinal) != use->value ||
+            use->actual_ordinal + 1 >= sink->child_count ||
+            sink->children[use->actual_ordinal + 1] != use->value ||
+            sink->child_ids[use->actual_ordinal + 1] != use->value_id ||
+            (ast_call_semantic_callee_declared_callable(use->sink) &&
+                !semantic_param_publication_checked_argument(ctx, use->sink,
+                    use->actual_ordinal))) return false;
+    }
+
+    size_t owned_transition_count = 0;
+    for (size_t i = 0; i < claims->count; i++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[i];
+        if (row->shape != AST_CALL) continue;
+        uint32_t kind = 0, receiver = 0, source = 0;
+        bool effect = ast_call_semantic_collection_effect(row->node,
+            &kind, &receiver, &source);
+        if (effect != row->collection_effect_present ||
+            kind != row->collection_effect_kind ||
+            receiver != row->collection_effect_receiver ||
+            source != row->collection_effect_source) return false;
+        bool touches = effect && (receiver == risk->binding_id ||
+            source == risk->binding_id);
+        if (touches) {
+            const ASTNode *callee = ast_call_callee(row->node);
+            const char *name = callee != NULL &&
+                callee->type == AST_IDENTIFIER
+                ? ast_identifier_name(callee) : NULL;
+            bool push = kind == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH &&
+                name != NULL && strcmp(name, "ArrayPushOwnedString") == 0 &&
+                ast_call_arg_count(row->node) == 2;
+            bool set = kind == PGY_COLLECTION_EFFECT_OWNED_STRING_SET &&
+                name != NULL && strcmp(name, "ArraySetOwnedString") == 0 &&
+                ast_call_arg_count(row->node) == 3;
+            bool drop = kind == PGY_COLLECTION_EFFECT_DROP && name != NULL &&
+                strcmp(name, "ArrayDropOwnedStrings") == 0 &&
+                ast_call_arg_count(row->node) == 1;
+            if ((!push && !set && !drop) ||
+                receiver != risk->binding_id || source != 0 ||
+                callee == NULL || callee->type != AST_IDENTIFIER ||
+                ast_identifier_binding_syntax_id(callee) != 0 ||
+                ast_call_semantic_callee_declared_callable(row->node) ||
+                ast_call_argument(row->node, 0) == NULL ||
+                ast_call_argument(row->node, 0)->type != AST_IDENTIFIER ||
+                ast_identifier_binding_syntax_id(
+                    ast_call_argument(row->node, 0)) != risk->binding_id)
+                return false;
+            if (push || set) {
+                if (owned_transition_count == SIZE_MAX) return false;
+                owned_transition_count++;
+            }
+        }
+
+        for (size_t actual = 0; actual < ast_call_arg_count(row->node);
+             actual++) {
+            ASTNode *argument = ast_call_argument(row->node, actual);
+            if (argument == NULL || argument->type != AST_IDENTIFIER ||
+                ast_identifier_binding_syntax_id(argument) !=
+                    risk->binding_id)
+                continue;
+            if (touches && actual == 0) continue;
+            if (semantic_stdlib_array_argument_preserves_storage(
+                    row->node, actual) &&
+                semantic_stdlib_array_argument_preserves_elements(
+                    row->node, actual, ctx))
+                continue;
+            if (nonowner_declared_read_preserves_elements(ctx, risk,
+                    row->node, actual))
+                continue;
+            if (nonowner_inout_owned_elements(ctx, risk, row->node,
+                    actual)) {
+                if (owned_transition_count == SIZE_MAX) return false;
+                owned_transition_count++;
+                continue;
+            }
+            if (!nonowner_owned_terminal_current(ctx, claims, row, actual))
+                return false;
+        }
+    }
+
+    return owned_transition_count != 0;
+}
+
+/* When the exclusion proof itself is insufficient, upgrade every plain
+ * String push into this receiver in the next landing round. The existing
+ * landing owner records all pushes for the binding together, so the next
+ * analysis cannot mix borrowed and owned elements. */
+static bool nonowner_select_owned_pushes(SemanticContext *ctx,
+    const IndexedStringNonownerRisk *risk, ASTNode **first)
+{
+    if (first != NULL) *first = NULL;
+    if (ctx == NULL || ctx->has_error || risk == NULL || first == NULL ||
+        !semantic_param_publication_inputs_ready(ctx) ||
+        !semantic_param_publication_routine_inputs_current(ctx,
+            risk->caller, true) || !nonowner_birth_current(ctx, risk)) return false;
+    SlotFunctionLookup lookup = {ctx, ctx->program_root};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (store == NULL || store->failed || store->solving ||
+        store->validating_current ||
+        !function_param_flow_program_point_index_build(store,
+            (ASTNode *)risk->caller, &index) || index == NULL ||
+        index->function_decl != risk->caller ||
+        index->function_id != risk->caller_id || index->claims == NULL ||
+        !function_param_flow_index_roots_current(index) ||
+        !function_param_flow_index_claims_current(ctx, index)) return false;
+
+    for (size_t i = 0; i < index->claims->count; i++) {
+        const FunctionParamFlowIndexClaim *row = &index->claims->rows[i];
+        if (row->shape != AST_CALL) continue;
+        uint32_t kind = 0, receiver = 0, source = 0;
+        bool effect = ast_call_semantic_collection_effect(row->node,
+            &kind, &receiver, &source);
+        if (effect != row->collection_effect_present ||
+            kind != row->collection_effect_kind ||
+            receiver != row->collection_effect_receiver ||
+            source != row->collection_effect_source) return false;
+        if (!effect || (receiver != risk->binding_id &&
+            source != risk->binding_id)) continue;
+
+        const ASTNode *callee = ast_call_callee(row->node);
+        const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+            ? ast_identifier_name(callee) : NULL;
+        bool plain = kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+            name != NULL && strcmp(name, "ArrayPush") == 0 &&
+            ast_call_arg_count(row->node) == 2 && row->private_array_push;
+        bool owned_push = kind == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH &&
+            name != NULL && strcmp(name, "ArrayPushOwnedString") == 0 &&
+            ast_call_arg_count(row->node) == 2;
+        bool owned_set = kind == PGY_COLLECTION_EFFECT_OWNED_STRING_SET &&
+            name != NULL && strcmp(name, "ArraySetOwnedString") == 0 &&
+            ast_call_arg_count(row->node) == 3;
+        bool drop = kind == PGY_COLLECTION_EFFECT_DROP && name != NULL &&
+            strcmp(name, "ArrayDropOwnedStrings") == 0 &&
+            ast_call_arg_count(row->node) == 1;
+        if ((!plain && !owned_push && !owned_set && !drop) ||
+            receiver != risk->binding_id || source != 0 || callee == NULL ||
+            callee->type != AST_IDENTIFIER ||
+            ast_identifier_binding_syntax_id(callee) != 0 ||
+            ast_call_semantic_callee_declared_callable(row->node) ||
+            ast_call_argument(row->node, 0) == NULL ||
+            ast_call_argument(row->node, 0)->type != AST_IDENTIFIER ||
+            ast_identifier_binding_syntax_id(
+                ast_call_argument(row->node, 0)) != risk->binding_id)
+            return false;
+        if (plain) {
+            if (*first != NULL) continue;
+            *first = row->node;
+        }
+    }
+    return *first != NULL &&
+        semantic_formal_string_store_landing_select_owned(ctx, *first);
 }
 
 /* Use the original captured child edges, including dormant branches. The
@@ -584,7 +891,26 @@ bool semantic_indexed_string_nonowner_receipts(SemanticContext *ctx, bool prepar
     for (size_t i = 0; i < store->node_capacity; i++) {
         IndexedStringNonownerRisk *risk = store->nodes[i].indexed_string_nonowner;
         if (risk == NULL) continue;
-        if (issued == SIZE_MAX || (prepare && !semantic_indexed_string_nonowner_prepare(ctx, risk)) ||
+        if (prepare && store->indexed_string_nonowner_count != 0 &&
+            nonowner_promoted_to_owned(ctx, risk)) {
+            store->nodes[i].indexed_string_nonowner = NULL;
+            store->indexed_string_nonowner_count--;
+            semantic_indexed_string_nonowner_destroy(risk);
+            continue;
+        }
+        bool prepared = !prepare ||
+            semantic_indexed_string_nonowner_prepare(ctx, risk);
+        if (!prepared && prepare) {
+            ASTNode *landing = NULL;
+            if (nonowner_select_owned_pushes(ctx, risk, &landing)) {
+                semantic_loan_copy_landing_error_with_hints(ctx,
+                    PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, landing,
+                    "A borrowed String array without a complete exclusion proof stores owned copies");
+                return false;
+            }
+        }
+        if (issued == SIZE_MAX || !prepared ||
             !semantic_indexed_string_nonowner_current(ctx, risk)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,

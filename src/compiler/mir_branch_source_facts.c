@@ -232,18 +232,55 @@ mir_collection_binding_type_name(const MIRRoutine *routine,
 
 static bool
 mir_collection_member_source_matches(const MIRRoutine *routine,
+                                     uint32_t destination_binding_syntax_id,
                                      uint32_t source_binding_syntax_id,
                                      uint32_t field_syntax_id)
 {
     const char *source_type = mir_collection_binding_type_name(
         routine, source_binding_syntax_id);
+    const ASTNode *members[64];
+    const ASTNode *source = NULL;
     const MIRDeclHeader *header = NULL;
+    size_t member_count = 0;
+    size_t definitions = 0;
     size_t base_length;
 
     if (routine == NULL || routine->program == NULL || source_type == NULL
-        || source_type[0] == '\0' || field_syntax_id == 0) {
+        || source_type[0] == '\0' || destination_binding_syntax_id == 0
+        || source_binding_syntax_id == 0 || field_syntax_id == 0) {
         return false;
     }
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *instruction = &block->instructions[i];
+            if (instruction->binding_syntax_id
+                    != destination_binding_syntax_id)
+                continue;
+            if (instruction->kind != MIR_INST_DEF
+                || instruction->source_stable_id
+                    != destination_binding_syntax_id
+                || instruction->expr0 == NULL
+                || instruction->expr0->type != AST_MEMBER_ACCESS)
+                return false;
+            source = instruction->expr0;
+            definitions++;
+        }
+    }
+    if (definitions != 1 || source == NULL)
+        return false;
+    const ASTNode *root = source;
+    while (root != NULL && root->type == AST_MEMBER_ACCESS) {
+        if (member_count == sizeof(members) / sizeof(members[0]))
+            return false;
+        members[member_count++] = root;
+        root = ast_member_object(root);
+    }
+    if (root == NULL || root->type != AST_IDENTIFIER || member_count == 0
+        || ast_identifier_binding_syntax_id(root)
+            != source_binding_syntax_id)
+        return false;
+
     base_length = strcspn(source_type, "<");
     for (size_t i = 0; i < routine->program->decl_header_count; i++) {
         const MIRDeclHeader *candidate = &routine->program->decl_headers[i];
@@ -257,14 +294,44 @@ mir_collection_member_source_matches(const MIRRoutine *routine,
     }
     if (header == NULL)
         return false;
-    for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
-        const MIRDeclField *field = mir_decl_header_field(header, i);
-        const char *field_type = mir_decl_field_type_name(field);
-        if (mir_decl_field_source_syntax_id(field) == field_syntax_id
-            && field_type != NULL
-            && strcmp(field_type, "Array<String>") == 0) {
-            return true;
+    for (size_t depth = member_count; depth > 0; depth--) {
+        const char *member_name = ast_member_name(members[depth - 1]);
+        const MIRDeclField *selected = NULL;
+        if (member_name == NULL)
+            return false;
+        for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
+            const MIRDeclField *candidate = mir_decl_header_field(header, i);
+            const char *name = mir_decl_field_name(candidate);
+            if (name == NULL || strcmp(name, member_name) != 0)
+                continue;
+            if (selected != NULL)
+                return false;
+            selected = candidate;
         }
+        if (selected == NULL)
+            return false;
+        const char *field_type = mir_decl_field_type_name(selected);
+        if (depth == 1)
+            return mir_decl_field_source_syntax_id(selected) == field_syntax_id
+                && field_type != NULL
+                && strcmp(field_type, "Array<String>") == 0;
+        if (field_type == NULL || field_type[0] == '\0')
+            return false;
+        size_t child_length = strcspn(field_type, "<");
+        const MIRDeclHeader *child = NULL;
+        for (size_t d = 0; d < routine->program->decl_header_count; d++) {
+            const MIRDeclHeader *candidate = &routine->program->decl_headers[d];
+            const char *name = mir_decl_header_name(candidate);
+            if (name == NULL || strlen(name) != child_length
+                || strncmp(name, field_type, child_length) != 0)
+                continue;
+            if (child != NULL)
+                return false;
+            child = candidate;
+        }
+        if (child == NULL)
+            return false;
+        header = child;
     }
     return false;
 }
@@ -454,7 +521,8 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                     && fact->source_binding_syntax_id
                         != fact->binding_syntax_id
                     && mir_collection_member_source_matches(
-                        routine, fact->source_binding_syntax_id,
+                        routine, fact->binding_syntax_id,
+                        fact->source_binding_syntax_id,
                         fact->origin_syntax_id)
                     && (fact->disposition
                             == PGY_COLLECTION_DISPOSITION_LIVE

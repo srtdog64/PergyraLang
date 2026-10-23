@@ -162,13 +162,27 @@ bool semantic_indexed_string_named_call_finalize(SemanticContext *ctx)
         const NamedCallReceipt *row = &store->rows[i];
         ctx->current_function_decl = row->routine;
         if (receipt_admitted(ctx, row)) continue;
+        /* A prior driver round already put a fully independent Clone at this
+         * exact boundary. Re-selecting its synthetic wrapper would request
+         * Clone(Clone(...)) outside the original stable-id namespace. */
+        if (semantic_loan_copy_landing_satisfied(ctx, row->expression))
+            continue;
         /* No proof admits it, so a next analysis passes a copy of the String
          * (2026-10-21_string_argument_no_proof_admits_is_copied). */
-        if (!semantic_loan_copy_landing_select_carrier(ctx, row->expression))
+        bool selected = semantic_loan_copy_landing_select_carrier(
+            ctx, row->expression);
+        if (!selected)
             semantic_error(ctx, row->expression, "String argument copy landing selection failed");
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, row->expression,
-            "A String element cannot cross an opaque boundary without a current non-retention proof");
+        if (selected)
+            semantic_loan_copy_landing_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, row->expression,
+                "A String element cannot cross an opaque boundary without a current non-retention proof");
+        else
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                row->expression,
+                "A String element cannot cross an opaque boundary without a current non-retention proof");
     }
     ctx->current_function_decl = saved;
     return !ctx->has_error;

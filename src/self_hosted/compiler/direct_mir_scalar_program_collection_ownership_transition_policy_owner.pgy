@@ -85,6 +85,9 @@ func DirectMirCollectionOwnershipNextState(
          state == DirectMirCollectionOwnershipStateOwned()) {
         return DirectMirCollectionOwnershipStateRetired();
     }
+    if effect == 4 && state == DirectMirCollectionOwnershipStateOwned() {
+        return DirectMirCollectionOwnershipStateOwned();
+    }
     // A member move owns its descriptor/storage but carries no proof that
     // every String element is releasable. Shallow mutation preserves that
     // uncertainty; deep release or owned-element mixing must not be inferred.

@@ -164,6 +164,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = NULL;
                         Type *field_type = NULL;
+                        ArrayStorageReturnElementReceipt string_array_elements = {0};
+                        bool string_array_elements_present = false;
                         const char *arg_nm =
                             ast_call_argument_name(expr, i);
                         if (arg_nm != NULL) {
@@ -191,6 +193,12 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         arg_type = constructor_call_normalize_type(
                             type_check_expression_at_typed_site(
                                 arg, field_type, ctx));
+                        if (type_is_constructed_named(arg_type, "Array")
+                            && type_equals(type_get_constructed_arg(
+                                arg_type, 0), TYPE_STRING))
+                            string_array_elements_present =
+                                semantic_array_storage_capture_element_use(
+                                    arg, ctx, &string_array_elements);
                         semantic_array_storage_call_argument(arg, arg_type, sym->type,
                             PARAM_MODE_DEFAULT, true, expr, decl, i, ctx);
                         callable_capability_record_retained_value(ctx, expr, arg, arg_type);
@@ -347,6 +355,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 row->field_type_name = strdup(field_type->name);
                                 row->argument_type_name = strdup(arg_type->name);
                                 row->type_syntax_name = ast_capture_inline(row->type_node);
+                                row->string_array_elements_present =
+                                    string_array_elements_present;
+                                row->string_array_elements =
+                                    string_array_elements;
                                 metadata_ok = row->field_name != NULL && row->field_type_name != NULL &&
                                     row->argument_type_name != NULL && row->type_syntax_name != NULL &&
                                     (arg_nm == NULL || row->argument_name != NULL);

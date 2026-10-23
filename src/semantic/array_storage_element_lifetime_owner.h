@@ -44,6 +44,12 @@ bool semantic_array_storage_capture_element_use(ASTNode *value,
     SemanticContext *ctx, ArrayStorageReturnElementReceipt *receipt);
 bool semantic_array_storage_element_use_current(ASTNode *value,
     SemanticContext *ctx, const ArrayStorageReturnElementReceipt *receipt);
+/* A nominal constructor consumes the source descriptor after this receipt is
+ * issued. The constructor snapshot, not the retired source binding, then owns
+ * the element premise. This query still replays the exact source/dependency;
+ * it never upgrades a non-owned receipt. */
+bool semantic_array_storage_transferred_element_use_current(ASTNode *value,
+    SemanticContext *ctx, const ArrayStorageReturnElementReceipt *receipt);
 /* A String actual can borrow one Array<String> element without transferring
  * its descriptor; the source identity and callee effect remain separate. */
 bool semantic_array_storage_payload_call_capture(SemanticContext *ctx,

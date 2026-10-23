@@ -121,24 +121,12 @@ func SemanticCallSpineViewFromGraph(
         UnwrapOption(callee_kind) == AstExpressionNodeGenericCallee() {
         return SemanticCallSpineView(false, 0, 0, reversed, no_actuals);
     }
-    let i: Int = 0;
-    let last: Int = ArrayLength(reversed) - 1;
-    while i < last {
-        let argument: Int = reversed[i];
-        ArraySet(reversed, i, reversed[last]);
-        ArraySet(reversed, last, argument);
-        i = i + 1;
-        last = last - 1;
-    }
-    i = 0;
-    last = ArrayLength(reversed_actuals) - 1;
-    while i < last {
-        let actual: String = reversed_actuals[i];
-        ArraySet(reversed_actuals, i, reversed_actuals[last]);
-        ArraySet(reversed_actuals, last, actual);
-        i = i + 1;
-        last = last - 1;
-    }
+    // Both rows were collected from the call spine in reverse order.
+    // The permutation owner swaps elements without manufacturing a second
+    // String owner while a hand-written pair of ArraySet calls temporarily
+    // aliases one String backing across two slots.
+    ArrayReverse(reversed);
+    ArrayReverse(reversed_actuals);
     return SemanticCallSpineView(
         true, node, base_callee, reversed, reversed_actuals
     );

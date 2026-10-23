@@ -8,11 +8,14 @@ func Make() -> MapPair
 {
     let rows: HashMap<String, Int> = MapNew();
     let alias: HashMap<String, Int> = rows;
-    return MapPair(rows, alias);
+    let pair: MapPair = MapPair(rows, alias);
+    MapSet(pair.first, "key", 1);
+    return pair;
 }
 
 func Main() -> Void
 {
     let pair: MapPair = Make();
     Log(MapSize(pair.first));
+    Log(MapSize(pair.second));
 }

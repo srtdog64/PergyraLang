@@ -1,0 +1,12 @@
+func Build(insert: Bool) -> Int {
+    let rows: Array<String> = [];
+    if insert {
+        ArrayPushOwnedString(rows, "owned");
+        return ArrayLength(rows);
+    }
+    return ArrayLength(rows);
+}
+
+func Main() -> Void {
+    Log(Build(true));
+}

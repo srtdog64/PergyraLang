@@ -2,7 +2,7 @@
  * operation; unresolved metadata and descriptor aliases refuse release. */
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
-#include "collection_ownership_fact.h"
+#include "collection_ownership_fact_internal.h"
 #include "type_checker_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "collection_owned_element_requirement_owner.h"
@@ -21,6 +21,8 @@
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_permanent_element.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 unsigned
@@ -372,6 +374,25 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
         && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee_decl)
         && ast_call_semantic_callee_value_binding_id(call) == 0
         && ast_call_semantic_callee_declared_callable(call);
+    /* Replacing an inout aggregate field with fresh storage separates the
+     * old descriptor from the caller's field, but it does not by itself
+     * prove that an own callee retires that detached storage.  Keep the
+     * carrier borrowed unless this exact callee/formal has a current release
+     * summary.  The ordinary ownership-boundary checker then reports every
+     * unsafe actual; this owner only withdraws the provisional grant. */
+    if (mode == PARAM_MODE_OWN && array && binding != NULL
+        && binding->array_storage_member_move_source != NULL) {
+        size_t owned_formal = 0;
+        bool releases = exact_named
+            && semantic_param_publication_formal_for_actual(
+                ctx, call, ordinal, &owned_formal)
+            && semantic_collection_owned_parameter_releases_storage(
+                ctx, callee_decl, owned_formal);
+        if (!releases) {
+            binding->has_exclusive_array_storage = false;
+            binding->has_escaped_array_storage = true;
+        }
+    }
     /* Descriptor preservation comes from the callee body, not its result
      * shape. Release authority remains a separate, stricter decision. */
     bool exact_user_inout = mode == PARAM_MODE_MUT_REF
@@ -458,8 +479,82 @@ semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializer,
             || source->has_escaped_array_storage || !source->is_consumed;
         binding->has_exclusive_array_storage = !binding->has_escaped_array_storage
             && source->has_exclusive_array_storage;
+    } else if (initializer != NULL && initializer->type == AST_MEMBER_ACCESS
+        && !collection_array_string_type(binding->type)) {
+        PgyCollectionMemberPath path;
+        if (collection_member_move_path_identity(initializer, ctx, &path)) {
+            Symbol *root = scope_lookup(ctx->scope,
+                ast_identifier_name(path.root));
+            if (root != NULL && root->is_parameter
+                && root->param_mode == PARAM_MODE_MUT_REF
+                && root->decl_syntax_id == path.root_binding_id) {
+                binding->array_storage_member_move_source = initializer;
+                binding->array_storage_member_move_source_id =
+                    ast_node_stable_id(initializer);
+                binding->array_storage_member_move_root_binding_id =
+                    path.root_binding_id;
+                binding->array_storage_member_move_root_birth_serial =
+                    root->birth_serial;
+            }
+        }
     }
     semantic_array_storage_escape((ASTNode *)initializer, binding->type, ctx);
+}
+
+static bool
+array_storage_member_move_root_current(const Symbol *binding,
+                                       SemanticContext *ctx)
+{
+    if (binding == NULL || ctx == NULL
+        || binding->array_storage_member_move_source == NULL
+        || binding->array_storage_member_move_source_id == 0
+        || binding->array_storage_member_move_root_binding_id == 0)
+        return false;
+    PgyCollectionMemberPath path;
+    if (!collection_member_move_path_identity(
+            binding->array_storage_member_move_source, ctx, &path)
+        || path.root_binding_id !=
+            binding->array_storage_member_move_root_binding_id)
+        return false;
+    Symbol *root = scope_lookup(ctx->scope,
+        ast_identifier_name(path.root));
+    return root != NULL && root->is_parameter
+        && root->param_mode == PARAM_MODE_MUT_REF
+        && root->decl_syntax_id == path.root_binding_id
+        && (binding->array_storage_member_move_root_birth_serial == 0
+            || root->birth_serial == 0
+            || binding->array_storage_member_move_root_birth_serial
+                == root->birth_serial);
+}
+
+void
+semantic_array_storage_prepare_member_replacement(ASTNode *target,
+    ASTNode *value, SemanticContext *ctx)
+{
+    if (ctx == NULL || target == NULL || target->type != AST_MEMBER_ACCESS
+        || value == NULL || value->type != AST_ARRAY_LITERAL
+        || ast_array_literal_count(value) != 0)
+        return;
+    for (Scope *scope = ctx->scope; scope != NULL;
+         scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
+        for (size_t i = 0; i < scope->symbol_count; i++) {
+            Symbol *binding = scope->symbols[i];
+            if (binding == NULL || binding->is_consumed
+                || !type_is_constructed_named(binding->type, "Array")
+                || !array_storage_member_move_root_current(binding, ctx)
+                || !collection_member_move_path_matches_source(
+                    binding->array_storage_member_move_source,
+                    binding->array_storage_member_move_source_id,
+                    binding->array_storage_member_move_root_binding_id,
+                    target, ctx, false))
+                continue;
+            /* The old backing now has one local carrier and the inout field
+             * has a distinct empty backing. Branch joins retain this grant
+             * only when every live path performed the exact replacement. */
+            binding->has_escaped_array_storage = false;
+            binding->has_exclusive_array_storage = true;
+        }
+    }
 }
 
 void
@@ -542,6 +637,20 @@ semantic_array_storage_admit_mutation(ASTNode *receiver, SemanticContext *ctx)
         && binding->has_exclusive_array_storage
         && semantic_array_storage_record_pending_drop(ctx, receiver, binding,
             ARRAY_STORAGE_MUTATE_STORAGE)) return true;
+    if (getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
+        const char *routine = ctx->current_function_decl == NULL ? NULL
+            : ast_declaration_name(ctx->current_function_decl);
+        fprintf(stderr,
+            "pgy: array-mutation-storage-unproved routine=%s receiver=%s"
+            " line=%u column=%u consumed=%d escaped=%d exclusive=%d\n",
+            routine != NULL ? routine : "<unknown>",
+            binding != NULL && binding->name != NULL ? binding->name : "<unknown>",
+            receiver != NULL ? receiver->line : 0,
+            receiver != NULL ? receiver->column : 0,
+            binding != NULL && binding->is_consumed,
+            binding != NULL && binding->has_escaped_array_storage,
+            binding != NULL && binding->has_exclusive_array_storage);
+    }
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
         receiver, "Array mutation requires current returned-storage ownership; the result's source or transfer is unproved");

@@ -69,6 +69,11 @@ bool semantic_indexed_string_definition_selected(SemanticContext *ctx,
     const ASTNode *value);
 bool semantic_indexed_string_definition_source_current(SemanticContext *ctx,
     const ASTNode *value, uint32_t *source);
+/* An UNKNOWN local that survives a destructive Array<String> operation is
+ * made independent at every reaching definition.  Exact-source aliases are
+ * deliberately excluded: their stale-use refusal remains the safety gate. */
+bool semantic_indexed_string_definition_select_independent_storage(
+    SemanticContext *ctx, uint32_t binding_id);
 bool indexed_string_definition_claims_roles(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe, bool prepare);
 bool indexed_string_definition_classify_uses(SemanticContext *ctx,

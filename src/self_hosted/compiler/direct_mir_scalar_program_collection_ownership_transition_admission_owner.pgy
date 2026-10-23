@@ -63,6 +63,7 @@ func DirectMirCollectionOwnershipInstructionReceiptFromJson(
     if UnwrapOption(kind) == "owned-string-push" { effect = 1; }
     else if UnwrapOption(kind) == "shallow-mutation" { effect = 2; }
     else if UnwrapOption(kind) == "drop" { effect = 3; }
+    else if UnwrapOption(kind) == "owned-string-set" { effect = 4; }
     if effect == 0 {
         return DirectMirCollectionOwnershipInstructionReceiptInvalid();
     }

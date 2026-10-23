@@ -17,6 +17,7 @@
 #include "mir_intent_execution.h"
 #include "mir_validation.h"
 #include "mir_hir_fact_transfer.h"
+#include "mir_inout_member_copyout_owner.h"
 
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
@@ -137,6 +138,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
             return false;
         if (!mir_validate_collection_ownership_transitions(
                 routine, error_message))
+            return false;
+        if (!mir_validate_inout_member_copyouts(routine, error_message))
             return false;
         if (!mir_validate_intent_execution_plan(routine, error_message))
             return false;

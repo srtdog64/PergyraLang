@@ -408,10 +408,9 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                                 true, enum_facts.value_scope
                             );
                         if generic.applies && !generic.ok {
-                            let diagnostic_code: String =
-                                generic.diagnostic_code;
-                            let diagnostic_message: String =
-                                generic.diagnostic_message;
+                            // Return payload outlives the temporary environment.
+                            let diagnostic_code: String = Concat("", generic.diagnostic_code);
+                            let diagnostic_message: String = Concat("", generic.diagnostic_message);
                             SemanticAstExpressionEnvironmentClear(
                                 names, types, modes
                             );

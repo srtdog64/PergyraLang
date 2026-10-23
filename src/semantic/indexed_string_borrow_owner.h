@@ -64,6 +64,11 @@ void semantic_indexed_string_borrow_record_assignment(
     SemanticContext *ctx);
 void semantic_indexed_string_borrow_invalidate_deep_drop(
     ASTNode *receiver, SemanticContext *ctx);
+/* An owned element replacement retires one payload. Conservatively
+ * invalidate every local String loan from that Array source; a later use
+ * fails while direct reads used to compute the replacement remain valid. */
+void semantic_indexed_string_borrow_invalidate_owned_set(
+    ASTNode *receiver, SemanticContext *ctx);
 bool semantic_indexed_string_borrow_validate_use(
     Symbol *binding, ASTNode *use, SemanticContext *ctx);
 bool semantic_indexed_string_borrow_owner_transfer_allowed(

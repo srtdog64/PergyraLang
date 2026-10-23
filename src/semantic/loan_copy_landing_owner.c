@@ -3,6 +3,7 @@
 #include "loan_copy_landing_owner.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "builtin_kind.h"
@@ -32,8 +33,10 @@ static bool loan_call_preserves_storage(SemanticContext *ctx, const ASTNode *cal
     return true;
 }
 
-static bool loan_copy_landing_record(SemanticContext *ctx, uint32_t id)
+static bool loan_copy_landing_record(SemanticContext *ctx,
+    const ASTNode *node)
 {
+    uint32_t id = ast_node_stable_id(node);
     for (size_t i = 0; i < ctx->loan_copy_landing_selected_count; i++)
         if (ctx->loan_copy_landing_selected[i] == id) return true;
     if (ctx->loan_copy_landing_selected_count == ctx->loan_copy_landing_selected_capacity) {
@@ -45,6 +48,17 @@ static bool loan_copy_landing_record(SemanticContext *ctx, uint32_t id)
         ctx->loan_copy_landing_selected_capacity = capacity;
     }
     ctx->loan_copy_landing_selected[ctx->loan_copy_landing_selected_count++] = id;
+    if (getenv("PGY_DEBUG_PIPELINE_STAGE") != NULL) {
+        const char *routine = ctx->current_function_decl != NULL
+            ? ast_declaration_name(ctx->current_function_decl) : NULL;
+        fprintf(stderr,
+            "[semantic landing select] node=%u kind=%d line=%d col=%d routine=%s routine_id=%u\n",
+            id, node != NULL ? (int)node->type : -1,
+            node != NULL ? node->line : 0, node != NULL ? node->column : 0,
+            routine != NULL ? routine : "<none>",
+            ctx->current_function_decl != NULL
+                ? ast_node_stable_id(ctx->current_function_decl) : 0);
+    }
     return true;
 }
 
@@ -82,7 +96,7 @@ bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call
     SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
     if (id == 0 || !result.ok || result.meta || !loan_call_preserves_storage(ctx, call) ||
         !semantic_param_publication_clone_independent(ctx, result.type)) return true;
-    return loan_copy_landing_record(ctx, id);
+    return loan_copy_landing_record(ctx, call);
 }
 
 bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNode *carrier)
@@ -92,15 +106,49 @@ bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNo
         semantic_param_publication_clone_independent(ctx, value.type);
 }
 
+bool semantic_loan_copy_landing_satisfied(SemanticContext *ctx,
+    const ASTNode *carrier)
+{
+    uint32_t builtin = 0;
+    bool depends = true, retains = true;
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, carrier);
+    bool relation = carrier != NULL && carrier->type == AST_CALL
+        && semantic_param_publication_checked_result_relation(
+            ctx, carrier, 0, &depends, &retains);
+    return carrier != NULL && carrier->type == AST_CALL
+        && ast_call_compiler_builtin(carrier)
+        && ast_call_arg_count(carrier) == 1
+        && ast_call_semantic_callee_builtin_kind(carrier, &builtin)
+        && builtin == BUILTIN_CLONE
+        && ast_call_semantic_callee_is_stdlib(carrier)
+        && ast_call_semantic_callee_decl_id(carrier) == 0
+        && ast_call_semantic_callee_value_binding_id(carrier) == 0
+        && value.ok && !value.meta
+        && semantic_param_publication_clone_independent(ctx, value.type)
+        && relation
+        && !depends && !retains;
+}
+
 bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNode *expression)
 {
-    return ast_node_stable_id(expression) == 0 || loan_copy_landing_record(ctx, ast_node_stable_id(expression));
+    return semantic_loan_copy_landing_satisfied(ctx, expression)
+        || ast_node_stable_id(expression) == 0
+        || loan_copy_landing_record(ctx, expression);
 }
 
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier)
 {
-    return !semantic_loan_copy_landing_carrier_copies(ctx, carrier) ||
-        loan_copy_landing_record(ctx, ast_node_stable_id(carrier));
+    return semantic_loan_copy_landing_satisfied(ctx, carrier)
+        || !semantic_loan_copy_landing_carrier_copies(ctx, carrier) ||
+        loan_copy_landing_record(ctx, carrier);
+}
+
+bool semantic_loan_copy_landing_select_typed_carrier(SemanticContext *ctx,
+    const ASTNode *carrier, const Type *type)
+{
+    uint32_t id = ast_node_stable_id(carrier);
+    return id != 0 && semantic_param_publication_clone_independent(ctx, type)
+        && loan_copy_landing_record(ctx, carrier);
 }
 
 const ASTNode *semantic_loan_copy_landing_copied_call(SemanticContext *ctx, const ASTNode *call)

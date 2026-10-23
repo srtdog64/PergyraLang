@@ -27,6 +27,17 @@ function_param_flow_fail(FunctionParamFlowSummaryStore *store,
     if (store == NULL || store->failed)
         return;
     store->failed = true;
+    if (getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
+        const char *function_name = ast_declaration_name(site);
+        fprintf(stderr,
+            "pgy: function-param-flow-fail function=%s line=%u column=%u"
+            " reason=%s prior_error=%d\n",
+            function_name != NULL ? function_name : "<unknown>",
+            site != NULL ? site->line : 0,
+            site != NULL ? site->column : 0,
+            reason != NULL ? reason : "unknown owner failure",
+            store->ctx->has_error);
+    }
     if (store->ctx->has_error) return;
     semantic_error(store->ctx, site,
         "Function parameter flow summary failed closed: %s",
@@ -503,6 +514,22 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     store->solving = false;
     if (store->failed)
         return SLOT_PARAM_SUMMARY_ALL;
+    const char *trace_name = getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW_ENTRY");
+    const char *function_name = ast_declaration_name(
+        store->entries[root_index].function_decl);
+    if (trace_name != NULL && function_name != NULL &&
+        strcmp(trace_name, function_name) == 0) {
+        FunctionParamFlowSummaryEntry *entry = &store->entries[root_index];
+        fprintf(stderr,
+            "pgy: function-param-flow-entry function=%s param=%zu mask=%u"
+            " storage=%d elements=%d backing_unproved=%d pending=%d"
+            " unsupported=%d output_ready=%d producer=%d\n",
+            function_name, entry->param_index, entry->mask,
+            entry->array_storage_unproved, entry->array_elements_unproved,
+            entry->returned_backing_unproved, entry->returned_backing_pending,
+            entry->analysis_unsupported, entry->output_dependencies_ready,
+            (int)entry->output_producer);
+    }
     return store->entries[root_index].mask;
 }
 

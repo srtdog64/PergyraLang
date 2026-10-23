@@ -30,50 +30,6 @@ current_function_syntax_id(const SemanticContext *ctx)
         ? ast_node_stable_id(ctx->current_function_decl) : 0;
 }
 
-bool
-collection_member_move_identity(const ASTNode *member_access,
-                                SemanticContext *ctx,
-                                uint32_t *root_binding_id_out,
-                                uint32_t *field_syntax_id_out)
-{
-    ASTNode *root;
-    Symbol *binding;
-    ASTNode *decl;
-    const char *field_name;
-    uint32_t root_binding_id;
-
-    if (root_binding_id_out != NULL)
-        *root_binding_id_out = 0;
-    if (field_syntax_id_out != NULL)
-        *field_syntax_id_out = 0;
-    if (member_access == NULL || member_access->type != AST_MEMBER_ACCESS
-        || ctx == NULL)
-        return false;
-    root = ast_member_object(member_access);
-    if (root == NULL || root->type != AST_IDENTIFIER)
-        return false;
-    binding = scope_lookup(ctx->scope, ast_identifier_name(root));
-    root_binding_id = receiver_binding_syntax_id(root, binding);
-    field_name = ast_member_name(member_access);
-    decl = binding != NULL
-        ? semantic_host_decl_for_type(ctx, binding->type) : NULL;
-    if (root_binding_id == 0 || field_name == NULL || decl == NULL
-        || decl->type != AST_CLASS_DECL)
-        return false;
-    for (size_t i = 0; i < projection_source_field_count(decl); i++) {
-        PgyDeclField field = projection_source_field_at(decl, i);
-        if (field.name != NULL && strcmp(field.name, field_name) == 0
-            && field.declaration_syntax_id != 0) {
-            if (root_binding_id_out != NULL)
-                *root_binding_id_out = root_binding_id;
-            if (field_syntax_id_out != NULL)
-                *field_syntax_id_out = field.declaration_syntax_id;
-            return true;
-        }
-    }
-    return false;
-}
-
 static bool
 array_literal_is_empty(const ASTNode *expr)
 {
@@ -227,19 +183,19 @@ semantic_collection_ownership_initialize_binding(
         fact.origin = PGY_COLLECTION_ORIGIN_BORROWED_LITERAL;
     } else if (initializer != NULL
                && initializer->type == AST_MEMBER_ACCESS) {
-        uint32_t root_binding_id = 0;
-        uint32_t field_syntax_id = 0;
+        PgyCollectionMemberPath path;
         /* Ordinary value extraction is a move, not a hidden borrow or copy.
          * The source field identity stays stable so a later access fails at
          * the source rather than forbidding valid mutation through the owner. */
-        if (collection_member_move_identity(initializer, ctx,
-                &root_binding_id, &field_syntax_id)) {
+        if (collection_member_move_path_identity(initializer, ctx, &path)) {
             Symbol *root = scope_lookup(ctx->scope,
-                ast_identifier_name(ast_member_object(initializer)));
+                ast_identifier_name(path.root));
             fact.origin = PGY_COLLECTION_ORIGIN_MEMBER_MOVE;
-            fact.source_binding_syntax_id = root_binding_id;
-            fact.origin_syntax_id = field_syntax_id;
+            fact.source_binding_syntax_id = path.root_binding_id;
+            fact.origin_syntax_id = path.field_ids[path.field_count - 1];
             fact.source_birth_serial = root != NULL ? root->birth_serial : 0;
+            fact.member_move_source = initializer;
+            fact.member_move_source_id = ast_node_stable_id(initializer);
         }
     } else if (initializer != NULL
                && initializer->type == AST_IDENTIFIER && ctx != NULL) {
@@ -295,7 +251,9 @@ semantic_collection_ownership_initialize_binding(
             || source_fact->origin_syntax_id != fact.origin_syntax_id
             || source_fact->source_binding_syntax_id != fact.source_binding_syntax_id
             || source_fact->element_ownership != fact.element_ownership
-            || source_fact->origin != fact.origin)
+            || source_fact->origin != fact.origin
+            || source_fact->member_move_source != fact.member_move_source
+            || source_fact->member_move_source_id != fact.member_move_source_id)
             return false;
         /* The rechecked birth moved the field of the source's current
          * incarnation. */

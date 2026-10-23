@@ -85,6 +85,9 @@ mir_collection_receipt_shape_ready(const MIRInstruction *inst,
     case PGY_COLLECTION_EFFECT_DROP:
         expected = strcmp(name, "ArrayDropOwnedStrings") == 0;
         break;
+    case PGY_COLLECTION_EFFECT_OWNED_STRING_SET:
+        expected = strcmp(name, "ArraySetOwnedString") == 0;
+        break;
     default:
         expected = false;
         break;
@@ -106,6 +109,7 @@ mir_collection_relevant_call_for_binding(const MIRInstruction *inst,
 
     if (name == NULL
         || (strcmp(name, "ArrayPushOwnedString") != 0
+            && strcmp(name, "ArraySetOwnedString") != 0
             && strcmp(name, "ArrayPush") != 0
             && strcmp(name, "ArraySet") != 0
             && strcmp(name, "ArrayPop") != 0
@@ -141,7 +145,9 @@ mir_collection_binding_requires_transition_validation(
                     || inst->collection_ownership_effect_kind
                         == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
                     || inst->collection_ownership_effect_kind
-                        == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION)) {
+                        == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
+                    || inst->collection_ownership_effect_kind
+                        == PGY_COLLECTION_EFFECT_OWNED_STRING_SET)) {
                 return true;
             }
         }
@@ -199,6 +205,10 @@ mir_collection_transition_apply(const MIRInstruction *inst,
                         | MIR_COLLECTION_STATE_OWNED)) != 0)
             return false;
         *state = MIR_COLLECTION_STATE_RETIRED;
+        return true;
+    case PGY_COLLECTION_EFFECT_OWNED_STRING_SET:
+        if (*state != MIR_COLLECTION_STATE_OWNED)
+            return false;
         return true;
     default:
         return false;
@@ -422,6 +432,53 @@ mir_collection_validate_owned_local_transitions(
                         || inst->collection_ownership_effect_kind != PGY_COLLECTION_EFFECT_DROP)
                         goto done;
                     op.kind = PGY_COLLECTION_TRANSITION_DROP;
+                    op.binding_syntax_id = receiver_id;
+                    op.syntax_id = ast_node_stable_id(inst->expr0);
+                } else if (pgy_collection_owned_local_fact_tracked(fact)
+                    && name != NULL
+                    && strcmp(name, "ArraySetOwnedString") == 0) {
+                    failure_stage = "owned-string-set-receipt";
+                    failure_binding = receiver_id;
+                    uint32_t effect = 0, issued_receiver = 0,
+                        issued_source = 0;
+                    if (inst->kind != MIR_INST_STMT
+                        || ast_call_arg_count(inst->expr0) != 3) {
+                        failure_stage = "owned-string-set-statement";
+                        goto done;
+                    }
+                    if (ast_call_semantic_callee_decl_id(inst->expr0) != 0
+                        || ast_call_semantic_callee_value_binding_id(
+                            inst->expr0) != 0) {
+                        failure_stage = "owned-string-set-target";
+                        goto done;
+                    }
+                    if (!ast_call_semantic_collection_effect(inst->expr0,
+                            &effect, &issued_receiver, &issued_source)) {
+                        failure_stage = "owned-string-set-missing-semantic-receipt";
+                        goto done;
+                    }
+                    if (effect != PGY_COLLECTION_EFFECT_OWNED_STRING_SET) {
+                        failure_stage = "owned-string-set-semantic-effect";
+                        goto done;
+                    }
+                    if (issued_receiver != receiver_id) {
+                        failure_stage = "owned-string-set-semantic-receiver";
+                        goto done;
+                    }
+                    if (issued_source != 0) {
+                        failure_stage = "owned-string-set-semantic-source";
+                        goto done;
+                    }
+                    if (!mir_collection_receipt_shape_ready(inst, receiver_id)) {
+                        failure_stage = "owned-string-set-shape";
+                        goto done;
+                    }
+                    if (inst->collection_ownership_effect_kind !=
+                            PGY_COLLECTION_EFFECT_OWNED_STRING_SET) {
+                        failure_stage = "owned-string-set-mir-receipt";
+                        goto done;
+                    }
+                    op.kind = PGY_COLLECTION_TRANSITION_OWNED_STRING_SET;
                     op.binding_syntax_id = receiver_id;
                     op.syntax_id = ast_node_stable_id(inst->expr0);
                 } else if (inst->has_collection_ownership_receipt

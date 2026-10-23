@@ -1,15 +1,12 @@
-// UnwrapOption hands back the payload it holds, here a literal, not a new
-// String. A second callee that keeps the Array needs owned elements, and
-// is refused (17:5).
+// UnwrapOption hands back its payload. The compiler-owned store landing copies
+// that String into Mark's array, and Stash clones the retained aggregate.
 func Mark(inout out: Array<String>) -> Void {
     let label: Option<String> = Some("label");
     ArrayPush(out, UnwrapOption(label));
 }
-
 func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void {
     ArrayPush(shelf, out);
 }
-
 func Main() -> Int {
     let out: Array<String> = [];
     let shelf: Array<Array<String>> = [];

@@ -247,6 +247,18 @@ func RewriteSemanticOwnedStringArrayCall(
         return Concat(CollectionRuntimeCOwnedStringPushFn(),
             Concat("(", Concat(array_arg, Concat(", ", Concat(value_arg, ")")))));
     }
+    if source_name == "ArraySetOwnedString" {
+        if argc != 3 { Die("ArraySetOwnedString requires exactly three arguments"); }
+        let array_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[0], "Array<String>", "inout", env);
+        let index_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], "Int", "default", env);
+        let value_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[2], "String", "default", env);
+        return Concat(CollectionRuntimeCOwnedStringSetFn(),
+            Concat("(", Concat(array_arg, Concat(", ", Concat(index_arg,
+            Concat(", ", Concat(value_arg, ")")))))));
+    }
     if source_name == "ArrayDropOwnedStrings" {
         if argc != 1 { Die("ArrayDropOwnedStrings requires exactly one argument"); }
         let array_arg: String = RewriteSemanticCallArgument(
@@ -316,6 +328,7 @@ func RewriteSemanticDirectCall(
         return RewriteSemanticSetCall(graph, view, source_name, env);
     }
     if source_name == "ArrayPushOwnedString" ||
+        source_name == "ArraySetOwnedString" ||
         source_name == "ArrayDropOwnedStrings" {
         return RewriteSemanticOwnedStringArrayCall(
             graph, view, source_name, env
