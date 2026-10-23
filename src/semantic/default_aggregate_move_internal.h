@@ -34,6 +34,24 @@ typedef struct {
     size_t count, capacity;
 } MoveState;
 
+typedef struct {
+    uint32_t binding;
+    const char *fields;
+    size_t copy_row;       /* SIZE_MAX for the starting path */
+    bool from_source;
+} MoveCopyReach;
+
+/* The original copy rows and their field strings stay live until end. The
+ * consumer may append rows/reallocate state->rows, but not retire old rows.
+ * Each original edge is visited once, in breadth-first source-row order. */
+typedef struct {
+    const MoveState *state;
+    MoveCopyReach *queue;
+    bool *seen;
+    size_t row_count, count, parent, row;
+    bool root_pending;
+} MoveCopyTraversal;
+
 typedef struct MoveAssignmentBackingLoan {
     uint32_t binding;
     char fields[512];
@@ -71,6 +89,11 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
 bool move_walk_access_path(const ASTNode *node, uint32_t *binding, char *buf, size_t size);
 /* `prefix` names the same value as `fields` or a value containing it. */
 bool move_walk_path_contains(const char *prefix, const char *fields);
+
+bool move_walk_copy_begin(MoveWalk *walk, const MoveState *state,
+    uint32_t binding, const char *fields, MoveCopyTraversal *traversal);
+bool move_walk_copy_next(MoveCopyTraversal *traversal, MoveCopyReach *reach);
+void move_walk_copy_end(MoveCopyTraversal *traversal);
 
 /* Records that `value`, or each path a value built from it copies, now
  * shares storage with the path `carrier_fields` of `carrier`. */

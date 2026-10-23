@@ -2055,6 +2055,19 @@ $(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)
 flow-closure-worklist-test: $(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT)
 	$(call pgy_run_native,$(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT))
 
+ALL_DEP_FILES += $(BUILD_DIR)/tests/default_aggregate_copy_graph_unit.d
+$(BUILD_DIR)/tests/default_aggregate_copy_graph_unit.o: tests/semantic/default_aggregate_copy_graph_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/default_aggregate_copy_graph_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/default_aggregate_copy_graph_unit.o | $(BIN_DIR)
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: default-aggregate-copy-graph-test
+default-aggregate-copy-graph-test: $(BIN_DIR)/default_aggregate_copy_graph_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/default_aggregate_copy_graph_unit$(EXEEXT))
+
 $(BUILD_DIR)/tests/collection_owned_local_transition_unit.o: tests/compiler/collection_owned_local_transition_unit.c
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
@@ -2793,7 +2806,7 @@ iteration-type-fact-test-smoke: $(PGY)
 compatibility-evolution-native-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/compatibility_evolution_native_smoke.sh
 
-function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test
+function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test default-aggregate-copy-graph-test
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
 	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh

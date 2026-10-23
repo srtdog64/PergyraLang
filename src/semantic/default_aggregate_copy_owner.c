@@ -29,6 +29,70 @@
 static void copy_changed_at(MoveWalk *walk, MoveState *state, const ASTNode *path, uint32_t binding,
     const char *fields);
 
+void move_walk_copy_end(MoveCopyTraversal *traversal)
+{
+    free(traversal->queue);
+    free(traversal->seen);
+    *traversal = (MoveCopyTraversal){0};
+}
+
+bool move_walk_copy_begin(MoveWalk *walk, const MoveState *state,
+    uint32_t binding, const char *fields, MoveCopyTraversal *traversal)
+{
+    *traversal = (MoveCopyTraversal){0};
+    if (state->count == SIZE_MAX || state->count + 1 > SIZE_MAX / sizeof(*traversal->queue)) {
+        walk->failed = true;
+        return false;
+    }
+    traversal->queue = malloc((state->count + 1) * sizeof(*traversal->queue));
+    traversal->seen = calloc(state->count + 1, sizeof(*traversal->seen));
+    if (traversal->queue == NULL || traversal->seen == NULL) {
+        move_walk_copy_end(traversal);
+        walk->failed = true;
+        return false;
+    }
+    traversal->state = state;
+    traversal->row_count = state->count;
+    traversal->queue[0] = (MoveCopyReach){binding, fields, SIZE_MAX, false};
+    traversal->count = 1;
+    traversal->root_pending = true;
+    return true;
+}
+
+bool move_walk_copy_next(MoveCopyTraversal *traversal, MoveCopyReach *reach)
+{
+    if (traversal->root_pending) {
+        traversal->root_pending = false;
+        *reach = traversal->queue[0];
+        return true;
+    }
+    while (traversal->parent < traversal->count) {
+        MoveCopyReach path = traversal->queue[traversal->parent];
+        while (traversal->row < traversal->row_count) {
+            size_t i = traversal->row++;
+            /* Resolve the row again: the previous consumer may have grown
+             * state->rows. Field strings themselves belong to the state. */
+            const MovedPath *copy = &traversal->state->rows[i];
+            if (traversal->seen[i] || copy->carrier == 0) continue;
+            bool source = copy->binding == path.binding &&
+                (move_walk_path_contains(copy->fields, path.fields) ||
+                 move_walk_path_contains(path.fields, copy->fields));
+            bool carrier = copy->carrier == path.binding &&
+                (move_walk_path_contains(copy->carrier_fields, path.fields) ||
+                 move_walk_path_contains(path.fields, copy->carrier_fields));
+            if (!source && !carrier) continue;
+            traversal->seen[i] = true;
+            *reach = source ? (MoveCopyReach){copy->carrier, copy->carrier_fields, i, true}
+                : (MoveCopyReach){copy->binding, copy->fields, i, false};
+            traversal->queue[traversal->count++] = *reach;
+            return true;
+        }
+        traversal->parent++;
+        traversal->row = 0;
+    }
+    return false;
+}
+
 void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier,
     const char *carrier_fields)
 {
@@ -164,32 +228,18 @@ void move_walk_copy_inout_changed(MoveWalk *walk, MoveState *state, const ASTNod
 static void copy_changed_at(MoveWalk *walk, MoveState *state, const ASTNode *path, uint32_t binding,
     const char *fields)
 {
-    typedef struct { uint32_t binding; const char *fields; } Changed;
-    size_t rows = state->count;
-    Changed *work = malloc((rows + 1) * sizeof(*work));
-    bool *done = calloc(rows + 1, sizeof(*done));
-    if (work == NULL || done == NULL) { free(work); free(done); walk->failed = true; return; }
-    size_t count = 0;
-    work[count++] = (Changed){binding, fields};
-    for (size_t w = 0; w < count && !walk->failed; w++)
-        for (size_t i = 0; i < rows; i++) {
-            if (done[i] || state->rows[i].carrier == 0) continue;
-            MovedPath copy = state->rows[i];
-            bool source = copy.binding == work[w].binding &&
-                (move_walk_path_contains(copy.fields, work[w].fields) || move_walk_path_contains(work[w].fields, copy.fields));
-            /* The carrier side shares the storage only at the carrier's path. */
-            if (!source && (copy.carrier != work[w].binding ||
-                    !(move_walk_path_contains(copy.carrier_fields, work[w].fields) ||
-                      move_walk_path_contains(work[w].fields, copy.carrier_fields)))) continue;
-            done[i] = true;
-            Changed other = source ? (Changed){copy.carrier, copy.carrier_fields} : (Changed){copy.binding, copy.fields};
-            if (!source) copy_changed_under_loan(walk, state, path, &copy, other.binding, other.fields);
-            if (!move_walk_state_add(walk, state, other.binding, other.fields, NULL, NULL, copy.lending_call, 0, NULL, NULL))
-                break;
-            work[count++] = other;
-        }
-    free(work);
-    free(done);
+    MoveCopyTraversal traversal;
+    MoveCopyReach reach;
+    if (!move_walk_copy_begin(walk, state, binding, fields, &traversal)) return;
+    while (!walk->failed && move_walk_copy_next(&traversal, &reach)) {
+        if (reach.copy_row == SIZE_MAX) continue;
+        MovedPath copy = state->rows[reach.copy_row];
+        if (!reach.from_source)
+            copy_changed_under_loan(walk, state, path, &copy, reach.binding, reach.fields);
+        if (!move_walk_state_add(walk, state, reach.binding, reach.fields,
+                NULL, NULL, copy.lending_call, 0, NULL, NULL)) break;
+    }
+    move_walk_copy_end(&traversal);
 }
 
 /* An inout formal is the caller's own place, which the caller reads after
