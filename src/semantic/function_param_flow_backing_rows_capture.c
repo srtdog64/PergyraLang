@@ -185,7 +185,18 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
         for (size_t input = 0; input < frame_count + (result != NULL) && valid; input++) {
             bool result_frame = input == frame_count;
             FunctionParamFlowBackingFact *fact = result_frame ? result : frames[input];
+            /* Only an established declared result (built, complete, neither
+             * building nor pending) is a premise of a summary:
+             * declared_result_frame_current answers any other with NULL, and
+             * its callers use the callee's summaries. One an enclosing check
+             * is still building (a demand opened inside that build, as
+             * between mutually recursive routines), one pending on such a
+             * build, or one not built yet may become established later, so a
+             * pass that skips it keeps no memo. One built incomplete and not
+             * pending is never rebuilt. */
             if (fact == NULL) continue;
+            if (result_frame && (fact->building || fact->pending || fact->epoch == 0)) { notes_kept = false; continue; }
+            if (result_frame && !fact->complete) continue;
             if (!result_frame && !store->solving && !fact->analysis_unsupported &&
                 (fact->epoch == 0 || !fact->complete || fact->building || fact->pending)) {
                 bool required = false;
