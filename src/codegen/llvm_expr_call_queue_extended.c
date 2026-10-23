@@ -6,6 +6,7 @@
 
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_store_coercion.h"
 #include "parser/ast_api.h"
 
 typedef enum {
@@ -120,14 +121,10 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
             { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_queue_error_out(ctx, node, out,
+                "LLVM QueuePush value does not match Queue<T> element type");
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_queue_error_out(ctx, node, out,

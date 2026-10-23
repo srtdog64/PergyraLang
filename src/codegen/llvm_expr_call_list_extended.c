@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "llvm_mir_store_coercion.h"
 
 typedef enum {
     LLVM_LIST_EXT_NONE = 0,
@@ -89,14 +90,10 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 "LLVM ListPush could not lower value expression");
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListPush value does not match List<T> element type");
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_list_push_string_raw_export");
@@ -207,14 +204,10 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM ListSet could not lower index or value expression");
         if (LLVMTypeOf(idx) != ctx->type_i32)
             idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListSet value does not match List<T> element type");
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_list_set_string_raw_export");
