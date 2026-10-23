@@ -1,5 +1,6 @@
-// One map in two fields of a returned value: Clone does not copy maps whole,
-// so no copy can stand in and the constructor is refused.
+// One map in two fields of a returned value: Clone copies a map with a
+// String key and an Int value slot by slot, so the earlier part is copied
+// and each field owns its storage.
 struct MapPair {
     first: HashMap<String, Int>;
     second: HashMap<String, Int>;

@@ -1,0 +1,31 @@
+// As local_copy_inout_callee_changes_invalid, but the marks are a map with a
+// String key and an Int value, which Clone copies slot by slot: Record's and
+// Probe's copies are made where they are bound, so Probe's MapSet leaves
+// them as they were.
+struct State {
+    marks: HashMap<String, Int>;
+    count: Int;
+}
+
+func Probe(inout state: State, key: String) -> Bool {
+    let marks: HashMap<String, Int> = state.marks;
+    MapSet(state.marks, key, 2);
+    return MapHas(marks, key);
+}
+
+func Record(inout state: State, key: String) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    if Probe(state, key) { return 0; }
+    MapSet(marks, key, 1);
+    state.marks = marks;
+    return 1;
+}
+
+func Main() -> Int {
+    let marks: HashMap<String, Int> = {};
+    var state: State = State(marks, 0);
+    let first: Int = Record(state, "a");
+    let second: Int = Record(state, "a");
+    Print(ToString(first * 10 + second));
+    return 0;
+}

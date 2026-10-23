@@ -578,4 +578,21 @@ PGY_RT_PROGRAM_BODY({ \
         h = (h + 1) % (uint32_t)m->capacity; probes++; \
     } \
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found"); \
+}) \
+\
+PGY_RT_PROGRAM_DECL PgyHashMap_##SuffixName pgy_map_clone_##SuffixName(const PgyHashMap_##SuffixName *m) \
+PGY_RT_PROGRAM_BODY({ \
+    PgyHashMap_##SuffixName copy = *m; \
+    void *values = NULL; \
+    if (m->capacity == 0 && m->keys == NULL && m->values == NULL && m->occupied == NULL) return copy; \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map clone on invalid map"); \
+    if (!pgy_hashmap_clone_slots(&copy.keys, &values, &copy.occupied, m->keys, m->values, m->occupied, \
+            m->capacity, m->key_storage_kind, sizeof(CType), false)) { \
+        memset(&copy, 0, sizeof(copy)); \
+        pgy_runtime_panic_collection_oom("map_clone_" #SuffixName, "allocation failed"); \
+        return copy; \
+    } \
+    copy.values = (CType *)values; \
+    return copy; \
 })

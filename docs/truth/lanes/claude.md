@@ -7,7 +7,9 @@
 - **Where:** branch `claude/p0-native-checker` in worktree
   `C:\Users\user\pgy-wt\p0`; WSL build copies `/root/cc-main-1018`
   (clean) and `/root/cc-instr-1018` (scratch census instrumentation, never
-  committed).
+  committed). The WSL distro is `Ubuntu-C-WSL` since 2026-10-23 (its disk
+  moved to `C:\WSL`); the `Ubuntu-E-WSL` registration names the removed
+  E: copy.
 - **Must not touch:** the uncommitted files in `D:\PergyraLang`'s working
   tree (GPT's `state/main.md` line, its untracked 2026-10-18 directive,
   and the preserved `docs/01_intent_first_design.md` change), Codex

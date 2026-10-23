@@ -1,0 +1,76 @@
+// Clone of a map with a String, Int, Long or Bool key and a String or
+// scalar value copies it slot by slot into new storage: changing or
+// growing the copy leaves the original as it was, and MapKeys gives the
+// same order on both.
+struct Bag {
+    label: String;
+    counts: HashMap<String, Int>;
+}
+
+func Main() -> Void {
+    let a: HashMap<String, Int> = MapNew();
+    MapSet(a, "k", 1);
+    let b: HashMap<String, Int> = Clone(a);
+    MapSet(b, "k", 2);
+    Log(MapGet(a, "k"));
+    Log(MapGet(b, "k"));
+
+    let i: Int = 0;
+    while i < 40 {
+        MapSet(b, Concat("key", ToString(i)), i);
+        i = i + 1;
+    }
+    Log(MapGet(a, "k"));
+    Log(MapHas(a, "key7"));
+    Log(MapGet(b, "key39"));
+
+    let counts: HashMap<String, Int> = MapNew();
+    MapSet(counts, "k", 1);
+    let bag: Bag = Bag("bag", counts);
+    let other: Bag = Clone(bag);
+    MapSet(other.counts, "k", 2);
+    Log(MapGet(bag.counts, "k"));
+    Log(MapGet(other.counts, "k"));
+
+    let words: HashMap<String, String> = MapNew();
+    MapSet(words, "k", "one");
+    let copied: HashMap<String, String> = Clone(words);
+    MapSet(copied, "k", "two");
+    Log(MapGet(words, "k"));
+    Log(MapGet(copied, "k"));
+
+    let many: HashMap<String, Int> = MapNew();
+    let n: Int = 0;
+    while n < 12 {
+        MapSet(many, Concat("m", ToString(n)), n);
+        n = n + 1;
+    }
+    MapRemove(many, "m5");
+    let twin: HashMap<String, Int> = Clone(many);
+    let keys: Array<String> = MapKeys(many);
+    let twin_keys: Array<String> = MapKeys(twin);
+    let same: Bool = ArrayLength(keys) == ArrayLength(twin_keys);
+    let at: Int = 0;
+    while same && at < ArrayLength(keys) {
+        same = keys[at] == twin_keys[at];
+        at = at + 1;
+    }
+    Log(same);
+    Log(ArrayLength(twin_keys));
+
+    let ids: HashMap<Int, Long> = MapNew();
+    MapSet(ids, 3, 30L);
+    let ids_copy: HashMap<Int, Long> = Clone(ids);
+    MapSet(ids_copy, 3, 31L);
+    MapSet(ids_copy, 4, 40L);
+    Log(MapGet(ids, 3));
+    Log(MapHas(ids, 4));
+    Log(MapGet(ids_copy, 4));
+
+    let flags: HashMap<Bool, Int> = MapNew();
+    MapSet(flags, true, 1);
+    let flags_copy: HashMap<Bool, Int> = Clone(flags);
+    MapSet(flags_copy, true, 2);
+    Log(MapGet(flags, true));
+    Log(MapGet(flags_copy, true));
+}

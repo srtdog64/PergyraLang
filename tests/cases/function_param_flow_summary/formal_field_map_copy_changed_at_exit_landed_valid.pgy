@@ -1,0 +1,29 @@
+// As formal_field_copy_changed_at_exit_invalid, but the copied field is a
+// map with a String key and an Int value, which Clone copies slot by slot:
+// the copy is made where it is bound, so the caller's place keeps its own
+// storage.
+struct Facts {
+    rows: Array<Int>;
+    table: HashMap<String, Int>;
+}
+
+func GrowAndReturn(inout facts: Facts) -> Int {
+    let table: HashMap<String, Int> = facts.table;
+    MapSet(table, "k", 1);
+    if MapSize(table) > 5 { return 1; }
+    return 0;
+}
+
+func GrowAndFallOff(inout facts: Facts) -> Void {
+    let table: HashMap<String, Int> = facts.table;
+    MapSet(table, "k", 1);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts([1], table);
+    Log(GrowAndReturn(facts));
+    GrowAndFallOff(facts);
+    Log(MapSize(facts.table));
+    return 0;
+}

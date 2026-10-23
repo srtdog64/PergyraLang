@@ -1,28 +1,28 @@
 // As local_copy_inout_read_only_callee_valid, but Probe sets an entry of
 // the state's marks in place: Record's local copy shares that map, so its
-// uses after the call are refused (Clone copies a HashMap only by value),
+// uses after the call are refused (Clone copies a map of Arrays by value),
 // and so is Probe's own copy read after its MapSet.
 struct State {
-    marks: HashMap<String, Int>;
+    marks: HashMap<String, Array<Int>>;
     count: Int;
 }
 
 func Probe(inout state: State, key: String) -> Bool {
-    let marks: HashMap<String, Int> = state.marks;
-    MapSet(state.marks, key, 2);
+    let marks: HashMap<String, Array<Int>> = state.marks;
+    MapSet(state.marks, key, [2]);
     return MapHas(marks, key);
 }
 
 func Record(inout state: State, key: String) -> Int {
-    let marks: HashMap<String, Int> = state.marks;
+    let marks: HashMap<String, Array<Int>> = state.marks;
     if Probe(state, key) { return 0; }
-    MapSet(marks, key, 1);
+    MapSet(marks, key, [1]);
     state.marks = marks;
     return 1;
 }
 
 func Main() -> Int {
-    let marks: HashMap<String, Int> = {};
+    let marks: HashMap<String, Array<Int>> = {};
     var state: State = State(marks, 0);
     let first: Int = Record(state, "a");
     let second: Int = Record(state, "a");

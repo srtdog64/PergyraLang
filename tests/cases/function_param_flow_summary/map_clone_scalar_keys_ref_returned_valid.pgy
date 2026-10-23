@@ -1,0 +1,33 @@
+// Maps with an Int, Long or Bool key and a scalar value are copied slot by
+// slot by Clone, so each Copy result keeps nothing of its ref input, and
+// Main may change the inputs while the copies live.
+func CopyIds(ref ids: HashMap<Int, Long>) -> HashMap<Int, Long> {
+    return Clone(ids);
+}
+
+func CopyWeights(ref weights: HashMap<Long, Int>) -> HashMap<Long, Int> {
+    return Clone(weights);
+}
+
+func CopyFlags(ref flags: HashMap<Bool, Bool>) -> HashMap<Bool, Bool> {
+    return Clone(flags);
+}
+
+func Main() -> Int {
+    let ids: HashMap<Int, Long> = MapNew();
+    MapSet(ids, 3, 30L);
+    let weights: HashMap<Long, Int> = MapNew();
+    MapSet(weights, 4L, 5);
+    let flags: HashMap<Bool, Bool> = MapNew();
+    MapSet(flags, true, false);
+    let ids_copy: HashMap<Int, Long> = CopyIds(ids);
+    let weights_copy: HashMap<Long, Int> = CopyWeights(weights);
+    let flags_copy: HashMap<Bool, Bool> = CopyFlags(flags);
+    MapSet(ids, 3, 31L);
+    MapSet(weights, 4L, 6);
+    MapSet(flags, true, true);
+    Print(ToString(MapGet(ids_copy, 3)));
+    Print(ToString(MapGet(weights_copy, 4L)));
+    Print(ToString(MapGet(flags_copy, true)));
+    return 0;
+}

@@ -1,0 +1,70 @@
+// As local_copy_held_at_field_changed_invalid, but each field is a map with
+// a String key and an Int value, which Clone copies slot by slot: each copy
+// is made where the value is assigned or bound, so a change through one side
+// leaves the other as it was.
+struct Facts {
+    table: HashMap<String, Int>;
+    carry: HashMap<String, Int>;
+}
+
+struct Bag {
+    counts: HashMap<String, Int>;
+}
+
+struct Holder {
+    bag: Bag;
+    other: HashMap<String, Int>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let carry: HashMap<String, Int> = facts.carry;
+    MapSet(carry, "t", 1);
+    return Facts(facts.table, carry);
+}
+
+func AssignedValueChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    MapSet(fresh, "k", 1);
+    return MapSize(facts.table);
+}
+
+func FieldCopyChanged(inout facts: Facts) -> Int {
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    let again: HashMap<String, Int> = facts.table;
+    MapSet(again, "k", 1);
+    return MapSize(fresh);
+}
+
+func HolderChanged() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let carry: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts(table, carry);
+    let fresh: HashMap<String, Int> = MapNew();
+    facts.table = fresh;
+    let grown: Facts = Grow(facts);
+    return MapSize(fresh) + MapSize(grown.carry);
+}
+
+func InnerPathChanged(inout holder: Holder) -> Int {
+    let counts: HashMap<String, Int> = MapNew();
+    let bag: Bag = Bag(counts);
+    holder.bag = bag;
+    MapSet(holder.bag.counts, "k", 1);
+    return MapSize(bag.counts);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let carry: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts(table, carry);
+    Log(AssignedValueChanged(facts));
+    Log(FieldCopyChanged(facts));
+    Log(HolderChanged());
+    let counts: HashMap<String, Int> = MapNew();
+    let other: HashMap<String, Int> = MapNew();
+    var holder: Holder = Holder(Bag(counts), other);
+    Log(InnerPathChanged(holder));
+    return 0;
+}

@@ -1,17 +1,17 @@
-// Put stores into its by-value table's map, storage Main's table shares, so
-// the call moves the table and Main's later read is refused.
+// Put stores into its by-value table's map of Arrays (Clone copies it only
+// by value), so the call moves the table and Main's later read is refused.
 struct Table {
-    counts: HashMap<String, Int>;
+    counts: HashMap<String, Array<Int>>;
 }
 
 func Put(table: Table) -> Int {
-    MapSet(table.counts, "b", 2);
+    MapSet(table.counts, "b", [2]);
     return 0;
 }
 
 func Main() -> Int {
-    let counts: HashMap<String, Int> = MapNew();
-    MapSet(counts, "a", 1);
+    let counts: HashMap<String, Array<Int>> = MapNew();
+    MapSet(counts, "a", [1]);
     let table: Table = Table(counts);
     let done: Int = Put(table);
     Print(ToString(done + MapSize(table.counts)));

@@ -3,11 +3,13 @@
 
 #include <string.h>
 
+#include "codegen_hashmap_key_policy.h"
 #include "codegen_type_mapping.h"
 #include "llvm_expr_array_calls.h"
 #include "llvm_internal_api.h"
 #include "llvm_internal_emit_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_type_projection_internal.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
@@ -89,6 +91,40 @@ llvm_clone_option(ASTNode *node, LLVMGenCtx *ctx, const char *type_name,
     return result;
 }
 
+/* A HashMap with a String, Int, Long or Bool key and a String or scalar
+ * value is copied slot by slot into new storage (pgy_map_clone_raw_export);
+ * any other map is copied by value, and the checker keeps that Clone
+ * dependent on its argument. */
+static LLVMValueRef
+llvm_clone_map(ASTNode *node, LLVMGenCtx *ctx, const char *type_name, LLVMValueRef value)
+{
+    char key[128], element[128];
+    copy_constructed_arg_name_at(type_name, 0, key, sizeof(key));
+    copy_constructed_arg_name_at(type_name, 1, element, sizeof(element));
+    bool string_values = strcmp(element, "String") == 0;
+    if (pgy_hashmap_key_kind_from_name(key) == PGY_HASHMAP_KEY_UNKNOWN ||
+        !(string_values || pgy_hashmap_value_copies_by_bytes(element)))
+        return value;
+    LLVMTypeRef element_type = pergyra_type_to_llvm(ctx, element);
+    LLVMFuncEntry *clone = llvm_lookup_function(ctx, "pgy_map_clone_raw_export");
+    if (element_type == NULL || clone == NULL)
+        return llvm_clone_unsupported(node, ctx, "requires runtime function 'pgy_map_clone_raw_export'", type_name);
+    LLVMTypeRef map_type = LLVMTypeOf(value);
+    LLVMValueRef source = llvm_create_entry_alloca(ctx, map_type, llvm_tmp_name(ctx));
+    LLVMValueRef target = llvm_create_entry_alloca(ctx, map_type, llvm_tmp_name(ctx));
+    if (source == NULL || target == NULL)
+        return llvm_clone_unsupported(node, ctx, "could not allocate its map temporaries", type_name);
+    LLVMBuildStore(ctx->builder, value, source);
+    LLVMValueRef args[] = {
+        LLVMBuildBitCast(ctx->builder, target, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+        LLVMBuildBitCast(ctx->builder, source, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+        llvm_sizeof_type_i64(ctx, element_type),
+        LLVMConstInt(ctx->type_i32, string_values ? 1 : 0, 0)
+    };
+    LLVMBuildCall2(ctx->builder, clone->fn_type, clone->fn, args, 4, "");
+    return LLVMBuildLoad2(ctx->builder, map_type, target, llvm_tmp_name(ctx));
+}
+
 /* A struct or class declared under this name is copied field by field (a
  * generic instance is not, and is copied by value). A subject slot
  * keeps its identity and is copied by value. */
@@ -137,6 +173,8 @@ llvm_clone_value_at(ASTNode *node, LLVMGenCtx *ctx, const char *type_name,
         return llvm_clone_string(node, ctx, value, depth);
     if (strncmp(type_name, "Option<", 7) == 0)
         return llvm_clone_option(node, ctx, type_name, value, depth);
+    if (strncmp(type_name, "HashMap<", 8) == 0)
+        return llvm_clone_map(node, ctx, type_name, value);
     ASTNode *decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, type_name);
     LLVMClassTypeEntry *entry = decl != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
     /* A subject is copied field by field only as the Clone argument itself. */

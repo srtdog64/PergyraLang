@@ -1,0 +1,20 @@
+// Put stores into its by-value table's map, storage Main's table shares.
+// Main reads the table after the call, so the call is given a Clone of it,
+// which copies a map with a String key and an Int value slot by slot.
+struct Table {
+    counts: HashMap<String, Int>;
+}
+
+func Put(table: Table) -> Int {
+    MapSet(table.counts, "b", 2);
+    return 0;
+}
+
+func Main() -> Int {
+    let counts: HashMap<String, Int> = MapNew();
+    MapSet(counts, "a", 1);
+    let table: Table = Table(counts);
+    let done: Int = Put(table);
+    Print(ToString(done + MapSize(table.counts)));
+    return 0;
+}

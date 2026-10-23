@@ -20,6 +20,9 @@ const char *pgy_hashmap_key_storage_constructor_infix(const char *key_name);
 PgyHashMapKeyStorageKind
 pgy_hashmap_key_storage_kind_from_name(const char *key_name);
 const char *pgy_hashmap_key_policy_type_text(void);
+/* A map value of this type holds no storage: a map Clone copies it byte by
+ * byte (Int, Long, Float, Double, Bool, Duration). */
+bool pgy_hashmap_value_copies_by_bytes(const char *value_name);
 const char *pgy_hashmap_string_value_policy_type_text(void);
 bool pgy_hashmap_key_raw_export_name(const char *operation,
                                      const char *key_name,
