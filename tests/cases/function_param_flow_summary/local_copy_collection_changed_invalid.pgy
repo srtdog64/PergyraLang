@@ -1,18 +1,18 @@
-// A local copy of a HashMap, Set, List or Queue shares the storage the
-// source holds: a set, removal or push through the copy changes it in
-// place, so the source's next use is refused (one routine per change).
+// A local copy of a map of Arrays, Set, List or Queue shares the storage the
+// source holds, which Clone copies only by value: a set, removal or push
+// through the copy changes it in place, so the source's next use is refused.
 func MapSetCopy(seed: Int) -> Int {
-    let source: HashMap<String, Int> = MapNew();
-    MapSet(source, "k", seed);
-    let copy: HashMap<String, Int> = source;
-    MapSet(copy, "j", 2);
-    return MapGet(source, "k");
+    let source: HashMap<String, Array<Int>> = MapNew();
+    MapSet(source, "k", [seed]);
+    let copy: HashMap<String, Array<Int>> = source;
+    MapSet(copy, "j", [2]);
+    return MapGet(source, "k")[0];
 }
 
 func MapRemoveCopy(seed: Int) -> Bool {
-    let source: HashMap<String, Int> = MapNew();
-    MapSet(source, "k", seed);
-    let copy: HashMap<String, Int> = source;
+    let source: HashMap<String, Array<Int>> = MapNew();
+    MapSet(source, "k", [seed]);
+    let copy: HashMap<String, Array<Int>> = source;
     MapRemove(copy, "k");
     return MapHas(source, "k");
 }

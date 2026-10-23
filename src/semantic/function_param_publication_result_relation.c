@@ -11,7 +11,8 @@
  * (2026-10-19_struct_clone_is_deep): a physical scalar; a String
  * (StringConcat with ""); an Array of physical scalars or Strings, or one
  * additional Array layer over those leaves (the nested clone-into runtime
- * copies each inner Array); an Option of such a value; a
+ * copies each inner Array); a HashMap with a String, Int, Long or Bool key
+ * and a String or scalar value; an Option of such a value; a
  * non-generic struct or class of such fields, and a subject of them as the
  * argument itself. The backends copy any other part by value, so it may
  * share storage with the argument. */
@@ -28,6 +29,17 @@ static bool clone_copies_deeply(SemanticContext *ctx, const Type *type, int dept
     }
     if (type_is_constructed_named(type, "Option"))
         return clone_copies_deeply(ctx, type_get_constructed_arg(type, 0), depth + 1);
+    /* Both backends copy such a map slot by slot into new storage
+     * (pgy_map_clone_<value>, pgy_map_clone_raw_export). The key test is a
+     * guard: the type checker refuses every other key today, and both
+     * backends copy a map of any other key by value. */
+    if (type_is_constructed_named(type, "HashMap")) {
+        const Type *key = type_get_constructed_arg(type, 0);
+        const Type *value = type_get_constructed_arg(type, 1);
+        return (type_equals(key, TYPE_STRING) || type_equals(key, TYPE_INT) || type_equals(key, TYPE_LONG) ||
+                type_equals(key, TYPE_BOOL)) &&
+            (type_equals(value, TYPE_STRING) || publication_physical_scalar(value));
+    }
     /* A generic instance is a constructed type, not a class type. A subject
      * is copied field by field only as the Clone argument itself: as a
      * field it keeps its identity and is copied by value. */

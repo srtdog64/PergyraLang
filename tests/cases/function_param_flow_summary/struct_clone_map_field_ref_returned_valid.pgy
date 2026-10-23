@@ -1,0 +1,24 @@
+// Copy returns a Clone of its ref input. The map field has a String key and
+// an Int value and is copied slot by slot, so Main may change and grow the
+// input's map while the copy lives.
+struct Tally {
+    counts: HashMap<String, Int>;
+    name: String;
+}
+
+func Copy(ref tally: Tally) -> Tally {
+    return Clone(tally);
+}
+
+func Main() -> Int {
+    let counts: HashMap<String, Int> = MapNew();
+    MapSet(counts, "k", 1);
+    let a: Tally = Tally(counts, StringConcat("a", ""));
+    let b: Tally = Copy(a);
+    MapSet(a.counts, "k", 2);
+    MapSet(a.counts, "j", 3);
+    Print(ToString(MapGet(b.counts, "k")));
+    Print(ToString(MapSize(b.counts)));
+    Print(b.name);
+    return 0;
+}

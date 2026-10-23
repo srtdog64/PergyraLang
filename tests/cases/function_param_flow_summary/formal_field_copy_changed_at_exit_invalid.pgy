@@ -2,26 +2,26 @@
 // the call returns. A local copy of its field changed in place and not
 // assigned back leaves that place holding storage the change may have
 // freed, so each exit is refused: a return and the end of the body. Clone
-// copies a HashMap only by value, so no copy can stand in.
+// copies a map of Arrays only by value, so no copy can stand in.
 struct Facts {
     rows: Array<Int>;
-    table: HashMap<String, Int>;
+    table: HashMap<String, Array<Int>>;
 }
 
 func GrowAndReturn(inout facts: Facts) -> Int {
-    let table: HashMap<String, Int> = facts.table;
-    MapSet(table, "k", 1);
+    let table: HashMap<String, Array<Int>> = facts.table;
+    MapSet(table, "k", [1]);
     if MapSize(table) > 5 { return 1; }
     return 0;
 }
 
 func GrowAndFallOff(inout facts: Facts) -> Void {
-    let table: HashMap<String, Int> = facts.table;
-    MapSet(table, "k", 1);
+    let table: HashMap<String, Array<Int>> = facts.table;
+    MapSet(table, "k", [1]);
 }
 
 func Main() -> Int {
-    let table: HashMap<String, Int> = MapNew();
+    let table: HashMap<String, Array<Int>> = MapNew();
     var facts: Facts = Facts([1], table);
     Log(GrowAndReturn(facts));
     GrowAndFallOff(facts);

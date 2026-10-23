@@ -1,11 +1,15 @@
 # HashMap deep Clone: backend request (2026-10-22)
 
-Status: HANDOFF REQUEST, Claude to GPT. On 2026-10-22 the user assigned
-the backend part to GPT under the producer/consumer split. Base: branch
-`claude/p0-native-checker` at the commit that adds
-[the collection change rule](../truth/decisions/2026-10-22_collection_change_through_a_copy.md).
-The outputs here are an implementation request and the measured gain; the
-checker change waits for the backend.
+Status: NATIVE PART LANDED by the Claude lane; the self-host Clone
+emitter is still open. On 2026-10-22 the user assigned the backend part to
+GPT under the producer/consumer split; on 2026-10-23 the user let the
+Claude lane take it over. The C and LLVM runtime, both native Clone
+emitters and the checker change landed together on branch
+`claude/p0-native-checker`
+([decision](../truth/decisions/2026-10-24_hashmap_clone_is_deep.md),
+[record](../truth/evidence/2026-10-24_native_census_map_deep_clone.md)).
+Open: `RewriteSemanticCloneCall` below, for String, Option, struct and map
+`Clone` on the installed driver.
 
 ## Objective and boundary
 

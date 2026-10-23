@@ -168,6 +168,16 @@ landed_clones = {
     "one_storage_in_two_constructor_parts_returned_landed_valid": {"Make": 1},
     "one_storage_through_alias_in_two_parts_landed_valid": {"Make": 1},
     "one_storage_in_two_literal_elements_landed_valid": {"Grid": 1},
+    "one_storage_in_two_map_parts_landed_valid": {"Make": 1},
+    # Maps Clone copies slot by slot: each copy the rules select lands.
+    "default_aggregate_move_map_field_set_landed_valid": {"Main": 1},
+    "formal_field_map_copy_changed_at_exit_landed_valid": {"GrowAndReturn": 1, "GrowAndFallOff": 1},
+    "inout_callee_same_map_field_changed_landed_valid": {
+        "AfterMark": 1, "AfterAlias": 1, "AfterNested": 1, "AfterReset": 1, "AfterReplace": 1},
+    "local_copy_map_changed_landed_valid": {"MapSetCopy": 1, "MapRemoveCopy": 1},
+    "local_copy_map_held_at_field_changed_landed_valid": {
+        "AssignedValueChanged": 1, "FieldCopyChanged": 2, "HolderChanged": 1, "InnerPathChanged": 1},
+    "local_copy_map_inout_callee_changes_landed_valid": {"Probe": 1, "Record": 1},
     "two_parts_of_distinct_storage_valid": {"Make": 1},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
@@ -225,6 +235,8 @@ landing_rounds = {
     "one_storage_in_two_constructor_parts_returned_landed_valid": 1,
     "one_storage_through_alias_in_two_parts_landed_valid": 1,
     "one_storage_in_two_literal_elements_landed_valid": 1,
+    "one_storage_in_two_map_parts_landed_valid": 1,
+    "local_copy_map_changed_landed_valid": 1,
     "two_parts_of_distinct_storage_valid": 0,
     "distinct_fields_of_a_local_copy_in_two_parts_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
@@ -393,12 +405,12 @@ release_lifetime_refusals = {
     "by_value_lend_then_shallow_clone_grown_invalid": [(*released_refusal, 26, 40)],
     "string_window_pair_other_call_invalid": [
         ("PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN", "semantic:string_window:extent_unproven", 14, 12)],
-    # An inout callee that changes the map a caller's local copy shares
-    # refuses the copy's later uses, as a MapSet in the routine does.
+    # An inout callee that changes the map of Arrays a caller's local copy
+    # shares refuses the copy's later uses, as a MapSet in the routine does.
     "local_copy_inout_callee_changes_invalid": [
         (*released_refusal, 13, 19), (*released_refusal, 19, 12), (*released_refusal, 20, 19)],
-    # A HashMap, Set, List or Queue set, removal or push through a local copy
-    # refuses the source's next use, one site per change.
+    # A map of Arrays, Set, List or Queue set, removal or push through a local
+    # copy refuses the source's next use, one site per change.
     "local_copy_collection_changed_invalid": [
         (*released_refusal, 9, 19), (*released_refusal, 17, 19), (*released_refusal, 25, 19),
         (*released_refusal, 33, 19), (*released_refusal, 41, 20), (*released_refusal, 49, 20),
@@ -560,18 +572,19 @@ release_lifetime_refusals = {
     # before popping it still refuses the nested call that takes it.
     "inout_string_chain_kept_before_pop_invalid": [(*borrow_refusal, 13, 9)],
     # A by-value argument beside an inout one naming the same variable is
-    # copied; maps Clone cannot copy whole are refused.
+    # copied; an Array of maps Clone cannot copy whole is refused.
     "by_value_maps_beside_their_inout_invalid": [(*borrow_refusal, 13, 31)],
     # An Array an earlier call keeps too is not copied at the later call.
     "array_kept_by_earlier_call_and_two_formals_invalid": [(*borrow_refusal, 22, 24)],
     # A refused text is not reported again as a TextBuilderAppend type mismatch.
     "text_builder_append_of_released_element_invalid": [(*borrow_refusal, 10, 31)],
-    # One map in two parts of a value: no copy can stand in.
-    "one_storage_in_two_map_parts_invalid": [(*released_refusal, 10, 26)],
+    # One map of Arrays in two parts of a value: no copy can stand in.
+    "one_storage_in_two_array_map_parts_invalid": [(*released_refusal, 11, 26)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
+    "map_clone_array_value_ref_returned_invalid": [(*borrow_refusal, 10, 42)],
     "struct_clone_shared_field_ref_returned_invalid": [(*borrow_refusal, 18, 20)],
     "struct_clone_subject_field_ref_returned_invalid": [(*borrow_refusal, 19, 21)],
     "by_value_getter_lend_shared_result_owner_changed_invalid": [(*released_refusal, 23, 20)],
@@ -1137,7 +1150,8 @@ paired = (
     ("one_storage_in_two_literal_elements_landed_valid", True),
     ("two_parts_of_distinct_storage_valid", True),
     ("distinct_fields_of_a_local_copy_in_two_parts_valid", True),
-    ("one_storage_in_two_map_parts_invalid", False),
+    ("one_storage_in_two_map_parts_landed_valid", True),
+    ("one_storage_in_two_array_map_parts_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -1295,6 +1309,12 @@ paired = (
     ("local_copy_inout_read_only_callee_valid", True),
     ("local_copy_inout_callee_changes_invalid", False),
     ("local_copy_collection_changed_invalid", False),
+    ("local_copy_map_changed_landed_valid", True),
+    ("local_copy_map_held_at_field_changed_landed_valid", True),
+    ("local_copy_map_inout_callee_changes_landed_valid", True),
+    ("inout_callee_same_map_field_changed_landed_valid", True),
+    ("formal_field_map_copy_changed_at_exit_landed_valid", True),
+    ("default_aggregate_move_map_field_set_landed_valid", True),
     ("local_copy_collection_changed_side_used_valid", True),
     ("collection_value_store_grown_landed_valid", True),
     ("collection_value_store_shallow_grown_invalid", False),
@@ -1381,6 +1401,10 @@ paired = (
     ("struct_clone_ref_returned_valid", True),
     ("struct_clone_option_field_ref_returned_valid", True),
     ("struct_clone_generic_ref_returned_invalid", False),
+    ("struct_clone_map_field_ref_returned_valid", True),
+    ("map_clone_ref_returned_valid", True),
+    ("map_clone_scalar_keys_ref_returned_valid", True),
+    ("map_clone_array_value_ref_returned_invalid", False),
     ("struct_clone_subject_field_ref_returned_invalid", False),
     ("struct_clone_subject_copied_valid", True),
     ("struct_clone_shared_field_ref_returned_invalid", False),
@@ -2145,6 +2169,9 @@ for name, expected in (
     ("struct_clone_option_payload_copied_valid", "1"),
     ("struct_clone_nested_field_copied_valid", "1t"),
     ("struct_clone_ref_returned_valid", "1a"),
+    ("struct_clone_map_field_ref_returned_valid", "11a"),
+    ("map_clone_ref_returned_valid", "one"),
+    ("map_clone_scalar_keys_ref_returned_valid", "305false"),
     ("struct_clone_option_field_ref_returned_valid", "l1"),
     ("struct_clone_subject_copied_valid", "13"),
     ("formal_string_store_landing_shadowed_function_valid", "2ba"),
@@ -2190,6 +2217,13 @@ for name, expected in (
     ("one_storage_through_alias_in_two_parts_landed_valid", "211"),
     ("one_storage_in_two_literal_elements_landed_valid", "22"),
     ("two_parts_of_distinct_storage_valid", "22"),
+    ("one_storage_in_two_map_parts_landed_valid", "0"),
+    ("default_aggregate_move_map_field_set_landed_valid", "1"),
+    ("formal_field_map_copy_changed_at_exit_landed_valid", "0\n0\n"),
+    ("inout_callee_same_map_field_changed_landed_valid", "3\n"),
+    ("local_copy_map_changed_landed_valid", "11\ntrue\n"),
+    ("local_copy_map_held_at_field_changed_landed_valid", "0\n0\n1\n0\n"),
+    ("local_copy_map_inout_callee_changes_landed_valid", "10"),
     ("distinct_fields_of_a_local_copy_in_two_parts_valid", "21"),
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),

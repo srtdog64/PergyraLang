@@ -766,6 +766,7 @@ main() {
         "tests/cases/backend_compare/fib_memo_class"
         "tests/cases/backend_compare/fib_memo_pair"
         "tests/cases/backend_compare/map_count_unique"
+        "tests/cases/backend_compare/map_clone_deep"
         "tests/cases/backend_compare/result_via_unwrap"
         "tests/cases/backend_compare/stdlib_option_bridges"
         "tests/cases/backend_compare/string_compare_branch"

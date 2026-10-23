@@ -1,0 +1,16 @@
+// Copy returns a Clone of its ref map. A map with a String key and a String
+// value is copied slot by slot, so the result keeps nothing of the input,
+// and Main may change the input while the copy lives.
+func Copy(ref words: HashMap<String, String>) -> HashMap<String, String> {
+    return Clone(words);
+}
+
+func Main() -> Int {
+    let a: HashMap<String, String> = MapNew();
+    MapSet(a, "k", StringConcat("one", ""));
+    let b: HashMap<String, String> = Copy(a);
+    MapSet(a, "k", "two");
+    MapRemove(a, "k");
+    Print(MapGet(b, "k"));
+    return 0;
+}

@@ -2,12 +2,12 @@
 
 Owner: Claude lane, semantic facts of the native checker
 ([decision](../decisions/2026-10-18_native_checker_in_v1.md); the main
-blocker is [blocker.md](blocker.md)). Checked 2026-10-23 KST on branch
+blocker is [blocker.md](blocker.md)). Checked 2026-10-24 KST on branch
 `claude/p0-native-checker` (local, not pushed), with main merged.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 168 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_one_storage_in_two_parts.md)),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 144 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-24_native_census_map_deep_clone.md)),
 and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
@@ -15,10 +15,10 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
 
 1. **`direct_mir_*` routes:** 42 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
-2. **Moves (51 outside `direct_mir_*`)**: 14 `function_tables` maps and 5 `cfg` rows grown in place (need a deep `Clone`), 9 a real alias of `valid`, 5 an `artifact` handed on and used again, 4 `graph.arena` rows of `SemanticExpressionGraphCallTargetCaptureFromSignatures` (a proof needs field-level loan origins), 3 `mutating_formals`
+2. **Moves (35 outside `direct_mir_*`)**: 9 a real alias of `valid`, 6 an `artifact` handed on and used again, 4 `build.cfg` and 2 `build.cfg.local_refs` rows of the MIR routine build, 4 `graph.arena` rows of `SemanticExpressionGraphCallTargetCaptureFromSignatures` (a proof needs field-level loan origins), 2 each of `request`, `codegen_analysis`, `target_projection`
    ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md); not changes [before the loan](../decisions/2026-10-23_loan_owner_changes_before_the_loan_do_not_count.md) or [after its locals' statement](../decisions/2026-10-23_loan_ends_with_the_statement_that_holds_its_locals.md), [nor a constructor](../decisions/2026-10-23_constructor_of_loan_owner_fields_reads_the_owner.md) ([of a carrier](../decisions/2026-10-23_carrier_fields_read_into_any_constructor.md)), [nor after the last read](../decisions/2026-10-23_loan_owner_changes_after_the_last_read_do_not_count.md), [nor a match pattern](../decisions/2026-10-23_match_pattern_is_no_change_of_a_loan_owner.md), [whose bindings root at the subject](../decisions/2026-10-23_match_payload_binding_rooted_at_its_subject.md)),
-   and 10 local copies whose other side changed ([`inout` callees by field](../decisions/2026-10-22_inout_callee_changes_only_the_fields_it_writes.md), [callee read paths](../decisions/2026-10-23_local_copy_other_side_read_by_callee_paths.md)), 1 more at an `inout` exit.
-   One empty map in two fields of a value waits on the map deep `Clone` too. Copies would duplicate whole fact graphs; they need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)). GPT has the deep `Clone` of String and scalar maps ([request](../../agent_work_directives/hashmap_deep_clone_backend_2026-10-22.md)).
+   and 5 local copies whose other side changed (`sequence.arena`, `analysis.expression_surfaces.expression_graph`; [`inout` callees by field](../decisions/2026-10-22_inout_callee_changes_only_the_fields_it_writes.md), [callee read paths](../decisions/2026-10-23_local_copy_other_side_read_by_callee_paths.md)), 1 more at an `inout` exit.
+   String and scalar maps are copied whole ([map deep Clone](../decisions/2026-10-24_hashmap_clone_is_deep.md)); the rest would duplicate whole fact graphs and need proofs ([measured](../evidence/2026-10-22_deep_clone_counterfactual.md)).
 3. **Borrowed `ref` escapes (17 outside `direct_mir_*`):** `compatibility_view` (4) into `direct_mir_*` and `CompilerArtifactBegin`
    (copies its path; no retention row, which would change the generated canonical projection), MIR lowering (`input`, 3) ([not ArrayPop](../decisions/2026-10-22_array_pop_keeps_nothing_of_its_receiver.md), [not a write-back](../decisions/2026-10-22_store_of_held_origins_adds_no_call_escape.md),
    [not a copy into an output](../decisions/2026-10-23_complete_frame_decides_return_of_storage_free_routine.md), [not an `inout` argument](../decisions/2026-10-23_inout_callee_keeping_nothing_leaves_ref_input.md)). For GPT: `SelfMirRoutineBuildStorageRetireAfterLastConsumer(own build)` retires a build that lends `input`.

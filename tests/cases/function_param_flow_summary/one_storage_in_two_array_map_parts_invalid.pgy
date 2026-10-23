@@ -1,0 +1,18 @@
+// One map whose values are Arrays in two fields of a returned value: Clone
+// copies such a map by value, so no copy can stand in and the constructor
+// is refused.
+struct RowPair {
+    first: HashMap<String, Array<Int>>;
+    second: HashMap<String, Array<Int>>;
+}
+
+func Make() -> RowPair {
+    let rows: HashMap<String, Array<Int>> = MapNew();
+    return RowPair(rows, rows);
+}
+
+func Main() -> Int {
+    let pair: RowPair = Make();
+    Print(ToString(MapSize(pair.first)));
+    return 0;
+}

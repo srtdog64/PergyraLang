@@ -1,0 +1,13 @@
+// Clone of a map whose values are Arrays copies the map by value, so its
+// result may share the ref input's storage and cannot be returned.
+func Copy(ref rows: HashMap<String, Array<Int>>) -> HashMap<String, Array<Int>> {
+    return Clone(rows);
+}
+
+func Main() -> Int {
+    let a: HashMap<String, Array<Int>> = MapNew();
+    MapSet(a, "k", [1]);
+    let b: HashMap<String, Array<Int>> = Copy(a);
+    Print(ToString(MapSize(b)));
+    return 0;
+}
