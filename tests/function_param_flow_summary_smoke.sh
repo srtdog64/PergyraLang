@@ -552,6 +552,8 @@ release_lifetime_refusals = {
     "by_value_maps_beside_their_inout_invalid": [(*borrow_refusal, 13, 31)],
     # An Array an earlier call keeps too is not copied at the later call.
     "array_kept_by_earlier_call_and_two_formals_invalid": [(*borrow_refusal, 22, 24)],
+    # A refused text is not reported again as a TextBuilderAppend type mismatch.
+    "text_builder_append_of_released_element_invalid": [(*borrow_refusal, 10, 31)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1121,6 +1123,7 @@ paired = (
     ("array_handed_to_two_keeping_formals_landed_valid", True),
     ("array_handed_to_three_keeping_formals_landed_valid", True),
     ("array_kept_by_earlier_call_and_two_formals_invalid", False),
+    ("text_builder_append_of_released_element_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

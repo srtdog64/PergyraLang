@@ -5,8 +5,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-23 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 192 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_same_call_array_copies.md)),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 189 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-23_text_builder_append_refused_text_once.md)),
 and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
