@@ -1,0 +1,26 @@
+// As the Array handed to two keeping formals, but an earlier call keeps it
+// too: copies at the second call would not make it the call's alone, so
+// nothing is copied and the call is refused.
+struct Facts {
+    a: Array<Int>;
+    b: Array<Int>;
+}
+
+func Keep(inout stash: Array<Array<Int>>, rows: Array<Int>) -> Int {
+    ArrayPush(stash, rows);
+    return 0;
+}
+
+func Pair(a: Array<Int>, b: Array<Int>) -> Facts {
+    return Facts(a, b);
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    let stash: Array<Array<Int>> = [];
+    let k: Int = Keep(stash, rows);
+    let facts: Facts = Pair(rows, rows);
+    ArrayPush(facts.a, 7);
+    Print(ToString(ArrayLength(facts.a) + ArrayLength(facts.b) + ArrayLength(stash) + k));
+    return 0;
+}

@@ -158,6 +158,9 @@ landed_clones = {
     # A by-value argument beside an inout one naming the same Array.
     "by_value_argument_beside_its_inout_landed_valid": {"Main": 1},
     "by_value_argument_before_its_inout_landed_valid": {"Main": 1},
+    # One Array to several keeping formals of a call: each earlier argument is copied.
+    "array_handed_to_two_keeping_formals_landed_valid": {"Build": 1},
+    "array_handed_to_three_keeping_formals_landed_valid": {"Main": 2},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
@@ -207,6 +210,8 @@ landing_rounds = {
     "by_value_argument_before_its_inout_landed_valid": 1,
     "scalar_and_string_beside_their_inout_valid": 0,
     "by_value_array_to_two_reading_formals_valid": 0,
+    "array_handed_to_two_keeping_formals_landed_valid": 1,
+    "array_handed_to_three_keeping_formals_landed_valid": 1,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -545,6 +550,8 @@ release_lifetime_refusals = {
     # A by-value argument beside an inout one naming the same variable is
     # copied; maps Clone cannot copy whole are refused.
     "by_value_maps_beside_their_inout_invalid": [(*borrow_refusal, 13, 31)],
+    # An Array an earlier call keeps too is not copied at the later call.
+    "array_kept_by_earlier_call_and_two_formals_invalid": [(*borrow_refusal, 22, 24)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1111,6 +1118,9 @@ paired = (
     ("scalar_and_string_beside_their_inout_valid", True),
     ("by_value_array_to_two_reading_formals_valid", True),
     ("by_value_maps_beside_their_inout_invalid", False),
+    ("array_handed_to_two_keeping_formals_landed_valid", True),
+    ("array_handed_to_three_keeping_formals_landed_valid", True),
+    ("array_kept_by_earlier_call_and_two_formals_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -2153,6 +2163,8 @@ for name, expected in (
     ("by_value_argument_before_its_inout_landed_valid", "15"),
     ("scalar_and_string_beside_their_inout_valid", "54a!a"),
     ("by_value_array_to_two_reading_formals_valid", "32"),
+    ("array_handed_to_two_keeping_formals_landed_valid", "1"),
+    ("array_handed_to_three_keeping_formals_landed_valid", "102"),
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),
     ("option_string_result_reassigned_valid", "3ab"),

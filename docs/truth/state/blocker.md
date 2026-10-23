@@ -5,8 +5,8 @@ Owner: Claude lane, main-line work since 2026-10-18
 2026-10-23 KST on branch `claude/p0-native-checker` (local, not pushed).
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 194 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_array_pop_slot_escape.md)),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 192 downgraded
+refusals with every final owner run ([census record](../evidence/2026-10-23_native_census_same_call_array_copies.md)),
 and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
 A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
 
@@ -36,8 +36,8 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    uses (GPT `c9513d5b2`); declared calls wait on GPT carrying the published
    [Array verdict](../decisions/2026-10-21_array_preservation_published_per_formal.md).
    A re-entered inner loop no longer stops HIR ([rule](../decisions/2026-10-22_reentered_loop_exports_last_transfer.md)).
-7. **Preserved Array storage (5 outside `direct_mir_*`):** `SemanticExpressionGraphDomainQuery*` 3 (a result's loan leaves by `return` on one path; the lent proof is not path-wise),
-   and 2 where one Array goes to four by-value formals of one call (`SemanticAstGenericSpecializationError`). An [`inout` hand-off keeps what the callee keeps](../decisions/2026-10-23_inout_formal_handed_to_inout_formal_keeps_what_the_callee_keeps.md); [ArrayPop keeps nothing](../decisions/2026-10-23_array_pop_adds_no_call_escape_to_a_formal_summary.md).
+7. **Preserved Array storage (3 outside `direct_mir_*`):** `SemanticExpressionGraphDomainQuery*` (a result's loan leaves by `return` on one path; the lent proof is not path-wise).
+   [Same-call duplicates are copied](../decisions/2026-10-23_array_handed_to_two_keeping_formals_of_one_call_is_copied.md). An [`inout` hand-off keeps what the callee keeps](../decisions/2026-10-23_inout_formal_handed_to_inout_formal_keeps_what_the_callee_keeps.md); [ArrayPop keeps nothing](../decisions/2026-10-23_array_pop_adds_no_call_escape_to_a_formal_summary.md).
 
 ## Lessons on the record
 

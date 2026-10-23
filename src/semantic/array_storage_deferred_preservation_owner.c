@@ -380,6 +380,44 @@ semantic_array_storage_pending_owned_elements(SemanticContext *ctx,
     return true;
 }
 
+/* An Array handed to two by-value formals of one call, an earlier of which
+ * may keep or change it, is a moved argument used again. When every earlier
+ * handoff that leaves the descriptor unpreserved is such an argument of the
+ * consumer's own call, each is copied where the call takes it
+ * (2026-10-22_moved_argument_used_again_is_copied); otherwise nothing is
+ * selected. False only when a selection could not be recorded. */
+static bool
+same_call_arguments_copied(SemanticContext *ctx, const ArrayStorageDeferredPreservationStore *store,
+    const ArrayStoragePendingDrop *drop)
+{
+    const ArrayStoragePendingCallReceipt *consumer = &store->calls[drop->call_index].source;
+    for (size_t i = 0; i < store->result_count; i++) {
+        ArrayStoragePendingResult *result = &store->results[i];
+        if (result->birth.binding_id == drop->binding_id && result->birth.sequence < consumer->sequence &&
+            !pending_result_proof(ctx, result)) return true;
+    }
+    size_t earlier = 0;
+    for (bool select = false;; select = true) {
+        for (size_t i = 0; i < store->call_count; i++) {
+            const ArrayStoragePendingCall *pending = &store->calls[i];
+            const ArrayStoragePendingCallReceipt *source = &pending->source;
+            if (source->payload || source->binding_id != drop->binding_id || source->sequence >= consumer->sequence ||
+                (pending->terminal_end != 0 && consumer->sequence >= pending->terminal_end) || pending->preserved)
+                continue;
+            if (select) {
+                if (!semantic_loan_copy_landing_select_carrier(ctx, source->argument)) return false;
+                continue;
+            }
+            FuncParam *formal = source->callee_decl != NULL &&
+                source->formal_ordinal < ast_func_param_count(source->callee_decl)
+                ? ast_func_param(source->callee_decl, source->formal_ordinal) : NULL;
+            if (source->call != consumer->call || formal == NULL || formal->mode != PARAM_MODE_DEFAULT) return true;
+            earlier++;
+        }
+        if (select || earlier == 0) return true;
+    }
+}
+
 bool
 semantic_array_storage_deferral_finalize(SemanticContext *ctx)
 {
@@ -440,6 +478,9 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
             store->calls[drop->call_index].source.payload &&
             !semantic_loan_copy_landing_select_carrier(ctx, store->calls[drop->call_index].source.argument))
             semantic_error(ctx, drop->receiver, "String element copy landing selection failed");
+        if (drop->operation == ARRAY_STORAGE_CALL_AFTER_PENDING && drop->call_index < store->call_count &&
+            !store->calls[drop->call_index].source.payload && !same_call_arguments_copied(ctx, store, drop))
+            semantic_error(ctx, drop->receiver, "Array argument copy landing selection failed");
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
             drop->receiver, "%s requires preserved array storage; a prior call may retain or rebind the descriptor",
