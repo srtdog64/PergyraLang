@@ -1,0 +1,48 @@
+// As loan_read_last_before_owner_changed_valid, but the facts are read as
+// the first argument of a call whose second argument changes the analysis:
+// the call reads them after the change, so the read ends with its statement.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+func Bump(graph: Graph) -> Int {
+    ArraySet(graph.rows, 0, Cell(9));
+    return 0;
+}
+
+func Use(facts: Facts, n: Int) -> Int {
+    return facts.graph.rows[0].value + n;
+}
+
+func Check(analysis: Analysis) -> Int {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    return Use(facts, Bump(analysis.graph));
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    Print(ToString(Check(analysis)));
+    return 0;
+}

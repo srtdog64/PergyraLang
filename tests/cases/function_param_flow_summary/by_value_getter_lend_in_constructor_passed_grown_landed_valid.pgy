@@ -1,8 +1,8 @@
 // Part lends Main's local outer. Main builds a new Outer around the loan and
 // hands it to Fill, which pushes onto its items. The new Outer shares the
-// loan's storage and so outer's: it is copied where it leaves, and the loan
-// where it is made, since building a value from a loan counts as a change
-// of it. outer keeps its two items.
+// loan's storage and so outer's: it is copied where it leaves. Once copied
+// it stays in Main, so building it reads the loan, which needs no copy of
+// its own. outer keeps its two items.
 struct Inner {
     items: Array<Int>;
 }

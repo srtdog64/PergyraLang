@@ -1,0 +1,50 @@
+// A String a local borrows from a ref input, pushed into an Array taken
+// from a field: the Array has no release authority for an owned push, so
+// the next analysis pushes a Clone of the String. Build returns the rows;
+// Plan writes the Array back into the field it came from.
+struct Sig {
+    owner_names: Array<String>;
+}
+
+struct Analysis {
+    signatures: Sig;
+}
+
+struct Rows {
+    owner_names: Array<String>;
+}
+
+func RowsEmpty() -> Rows {
+    let none: Array<String> = [];
+    return Rows(none);
+}
+
+func Build(ref analysis: Analysis) -> Rows {
+    let rows: Rows = RowsEmpty();
+    let owner_names: Array<String> = rows.owner_names;
+    let i: Int = 0;
+    while i < ArrayLength(analysis.signatures.owner_names) {
+        let owner: String = analysis.signatures.owner_names[i];
+        ArrayPush(owner_names, owner);
+        i = i + 1;
+    }
+    return Rows(owner_names);
+}
+
+func Plan(ref analysis: Analysis) -> Rows {
+    let rows: Rows = RowsEmpty();
+    let names: Array<String> = rows.owner_names;
+    let owner: String = analysis.signatures.owner_names[0];
+    ArrayPush(names, owner);
+    rows.owner_names = names;
+    return rows;
+}
+
+func Main() -> Int {
+    let a: Analysis = Analysis(Sig([Concat("x", ""), Concat("y", "")]));
+    let built: Rows = Build(a);
+    let planned: Rows = Plan(a);
+    Print(built.owner_names[1]);
+    Print(planned.owner_names[0]);
+    return 0;
+}

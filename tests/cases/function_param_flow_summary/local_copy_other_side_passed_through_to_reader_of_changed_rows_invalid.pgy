@@ -1,0 +1,50 @@
+// As local_copy_other_side_passed_to_reader_of_changed_rows_invalid, the
+// callee handing the surfaces' graph on to one that reads the reset rows.
+struct Cell {
+    value: Int;
+}
+
+struct Identities {
+    targets: Array<Int>;
+    calls: Array<Cell>;
+}
+
+struct Graph {
+    identities: Identities;
+}
+
+struct Surfaces {
+    node_ids: Array<Int>;
+    graph: Graph;
+}
+
+struct Analysis {
+    surfaces: Surfaces;
+}
+
+func TargetAt(graph: Graph, index: Int) -> Int {
+    return graph.identities.targets[index];
+}
+
+func NodeAt(surfaces: Surfaces, index: Int) -> Int {
+    return surfaces.node_ids[index] + TargetAt(surfaces.graph, index);
+}
+
+func Resolve(inout analysis: Analysis) -> Int {
+    let graph: Graph = analysis.surfaces.graph;
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        ArraySet(graph.identities.targets, i, 0);
+        total = total + NodeAt(analysis.surfaces, i);
+        i = i + 1;
+    }
+    analysis.surfaces.graph = graph;
+    return total;
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Surfaces([3, 4], Graph(Identities([7, 8], [Cell(1)]))));
+    Print(ToString(Resolve(analysis)));
+    return 0;
+}

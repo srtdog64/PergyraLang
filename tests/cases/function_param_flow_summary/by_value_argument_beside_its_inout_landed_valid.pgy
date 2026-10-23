@@ -1,0 +1,15 @@
+// The same Array goes to an inout formal and to a by-value formal of one
+// call. The push through the inout formal may free the storage the
+// by-value formal still names; the by-value argument is copied where the
+// call takes it, so Both reads the value rows had before the call.
+func Both(inout a: Array<Int>, b: Array<Int>) -> Int {
+    ArrayPush(a, 9);
+    return b[0] * 10 + ArrayLength(b);
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    let k: Int = Both(rows, rows);
+    Print(ToString(k + ArrayLength(rows)));
+    return 0;
+}

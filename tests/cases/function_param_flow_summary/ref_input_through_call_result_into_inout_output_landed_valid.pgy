@@ -1,0 +1,48 @@
+// A Void routine with an inout output builds a value from its ref input
+// through a call whose result holds the input's Strings, and stores it into
+// the output as a copy: JoinCopied writes the Clone, JoinLanded gets it from
+// the next analysis. The coarse summary said the input reached a call result;
+// the routine's backing frame shows the copy reaches the output, not the input.
+struct Verdict {
+    ok: Bool;
+    code: String;
+}
+
+struct Flow {
+    verdict: Verdict;
+    count: Int;
+}
+
+func VerdictError(code: String) -> Verdict {
+    return Verdict(false, code);
+}
+
+func JoinCopied(inout target: Flow, ref branch: Flow) -> Void {
+    if !branch.verdict.ok {
+        target.verdict = Clone(VerdictError(branch.verdict.code));
+    }
+    target.count = target.count + branch.count;
+}
+
+func JoinLanded(inout target: Flow, ref branch: Flow) -> Void {
+    if !branch.verdict.ok {
+        target.verdict = VerdictError(branch.verdict.code);
+    }
+    target.count = target.count + branch.count;
+}
+
+func Walk(inout flow: Flow, depth: Int) -> Void {
+    let taken: Flow = Flow(Verdict(false, Concat("e", ToString(depth))), 1);
+    if depth > 0 { Walk(taken, depth - 1); }
+    JoinCopied(flow, taken);
+    let other: Flow = Flow(Verdict(false, Concat("f", ToString(depth))), 1);
+    JoinLanded(flow, other);
+}
+
+func Main() -> Int {
+    var flow: Flow = Flow(Verdict(true, ""), 0);
+    Walk(flow, 2);
+    Print(flow.verdict.code);
+    Print(ToString(flow.count));
+    return 0;
+}

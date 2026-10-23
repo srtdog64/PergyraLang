@@ -1,0 +1,51 @@
+// As loan_payload_binding_written_by_callee_invalid, but the match is on the
+// call's result itself: no binding roots the payload, and the proof refuses
+// what it cannot follow.
+struct Cell {
+    value: Int;
+}
+
+struct Request {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+struct Receipt {
+    rows: Array<Cell>;
+}
+
+enum Admission {
+    Admitted(Receipt),
+    Denied(Int),
+}
+
+func Produce(request: Request) -> Admission {
+    if !request.ok {
+        return Denied(1);
+    }
+    return Admitted(Receipt(request.rows));
+}
+
+func Touch(receipt: Receipt) -> Bool {
+    ArraySet(receipt.rows, 0, Cell(9));
+    return true;
+}
+
+func Compile(request: Request) -> Int {
+    match Produce(request) {
+        case Denied(code):
+            return code + ArrayLength(request.rows);
+        case Admitted(receipt):
+            if !Touch(receipt) {
+                return 0;
+            }
+            return request.rows[0].value;
+    }
+    return 0;
+}
+
+func Main() -> Int {
+    let good: Request = Request([Cell(1), Cell(2)], true);
+    Print(ToString(Compile(good)));
+    return 0;
+}

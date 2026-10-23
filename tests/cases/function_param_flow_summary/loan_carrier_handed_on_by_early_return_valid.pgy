@@ -1,0 +1,47 @@
+// As SelfMirProgramFactsFromArtifact: the facts that lend the analysis are
+// handed into the error result on the early return, and the analysis changes
+// after that last read. Handing the facts on is the loan's own return, which
+// the analysis's summary allows; it changes nothing the loan reads.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+func Check(analysis: Analysis) -> Facts {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    if !analysis.ok {
+        return FactsError(facts, 1);
+    }
+    ArraySet(analysis.graph.rows, 0, Cell(9));
+    return Facts(analysis.graph, 0);
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    Print(ToString(Check(analysis).graph.rows[0].value));
+    let bad: Analysis = Analysis(Graph([Cell(1)]), false);
+    let failed: Facts = Check(bad);
+    Print(ToString(failed.code + failed.graph.rows[0].value));
+    return 0;
+}

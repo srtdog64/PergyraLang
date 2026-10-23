@@ -1,0 +1,20 @@
+// A by-value Array formal handed to an inout callee that grows it: the
+// write-back reaches only Pass's copy of the descriptor, while Main's still
+// names the storage the push may free. Pass moves its formal, and Main's
+// later use takes a copy where it passes rows.
+func Grow(inout rows: Array<Int>) -> Int {
+    ArrayPush(rows, 9);
+    return 0;
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Grow(rows);
+    return k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    let k: Int = Pass(rows);
+    Print(ToString(rows[0] + ArrayLength(rows) + k));
+    return 0;
+}

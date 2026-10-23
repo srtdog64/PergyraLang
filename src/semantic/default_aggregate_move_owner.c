@@ -25,6 +25,7 @@
 #include "diag_codes.h"
 #include "function_param_flow_summary_internal.h"
 #include "function_param_publication_owner.h"
+#include "function_param_read_path_owner.h"
 #include "slot_summary.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_internal.h"
@@ -213,6 +214,21 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         name != NULL ? name : "value", moved->callee, moved->param, moved->callee, moved->callee);
 }
 
+static ParamMode
+routine_param_mode(const ASTNode *routine, uint32_t binding, bool *found)
+{
+    *found = false;
+    for (size_t p = 0;
+         routine != NULL && p < ast_func_param_count(routine); p++) {
+        FuncParam *param = ast_func_param(routine, p);
+        if (param != NULL && ast_func_param_stable_id(param) == binding) {
+            *found = true;
+            return param->mode;
+        }
+    }
+    return PARAM_MODE_DEFAULT;
+}
+
 /* A use of `node` conflicts with a moved path when either contains the other. */
 static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *node)
 {
@@ -222,8 +238,23 @@ static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *nod
     for (size_t i = 0; i < state->count; i++) {
         const MovedPath *moved = &state->rows[i];
         if (moved->carrier == 0 && moved->binding == binding &&
-            (move_walk_path_contains(moved->fields, fields) || move_walk_path_contains(fields, moved->fields)))
+            (move_walk_path_contains(moved->fields, fields) || move_walk_path_contains(fields, moved->fields))) {
+            /* A copy changed below an inout formal's value a call takes is
+             * used there only if the callee reads that part
+             * (function_param_read_path_owner.c). The change reaches the
+             * caller through the inout formal as written; under a by-value or
+             * ref formal or a local, the copy lands instead, so the change
+             * stays the routine's own. */
+            size_t length = strlen(fields);
+            bool inout = false;
+            if (moved->callee == NULL && walk->argument_call != NULL &&
+                routine_param_mode(walk->routine, binding, &inout) == PARAM_MODE_MUT_REF && inout &&
+                node == ast_call_argument(walk->argument_call, walk->argument_ordinal) &&
+                strlen(moved->fields) > length && move_walk_path_contains(fields, moved->fields) &&
+                function_param_read_paths_miss(walk->ctx, walk->argument_call, walk->argument_ordinal,
+                    moved->fields + length)) continue;
             refuse_use(walk, node, moved);
+        }
     }
 }
 
@@ -362,8 +393,13 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         if (!move_walk_note_copied_argument(walk, node)) return false;
         if (callee != NULL && callee->type == AST_MEMBER_ACCESS && !walk_expression(walk, state, ast_member_object(callee)))
             return false;
-        for (size_t p = 0; p < ast_call_arg_count(node); p++)
-            if (!walk_expression(walk, state, ast_call_argument(node, p))) return false;
+        for (size_t p = 0; p < ast_call_arg_count(node); p++) {
+            walk->argument_call = node;
+            walk->argument_ordinal = p;
+            bool walked = walk_expression(walk, state, ast_call_argument(node, p));
+            walk->argument_call = NULL;
+            if (!walked) return false;
+        }
         move_walk_check_assignment_loan_call(walk, state, node);
         if (walk->failed || !move_walk_reject_overlapping_moving_arguments(walk, node))
             return false;

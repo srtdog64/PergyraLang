@@ -145,8 +145,12 @@ type_check_text_builder_builtin(ASTNode *call, SemanticContext *ctx,
     }
 
     if (kind == BUILTIN_TEXT_BUILDER_APPEND) {
+        size_t text_diagnostic_base = ctx->diagnostic_count;
         Type *text_type = nominal_builtin_normalize_type(
             type_check_expression(ast_call_argument(call, 1), ctx));
+        /* A text whose own check was refused has no type to report again. */
+        if (text_type == TYPE_UNKNOWN && ctx->diagnostic_count > text_diagnostic_base)
+            return TYPE_UNKNOWN;
         if (!type_equals(text_type, TYPE_STRING)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,

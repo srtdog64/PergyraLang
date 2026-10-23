@@ -1,0 +1,17 @@
+// Pass moves its by-value formal into an inout callee that grows it; Main
+// does not use rows after the call, so nothing is copied.
+func Grow(inout rows: Array<Int>) -> Int {
+    ArrayPush(rows, 9);
+    return 0;
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Grow(rows);
+    return ArrayLength(rows) + k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    Print(ToString(Pass(rows)));
+    return 0;
+}

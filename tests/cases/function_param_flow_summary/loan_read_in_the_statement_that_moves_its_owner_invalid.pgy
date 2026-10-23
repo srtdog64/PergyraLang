@@ -1,0 +1,43 @@
+// A loan held by no local still lives until its statement ends: the view
+// passed to First is read after the copy moved into the second argument.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    ready: Bool;
+    rows: Array<Cell>;
+}
+
+struct Graph {
+    arena: Arena;
+}
+
+struct View {
+    rows: Array<Cell>;
+}
+
+struct Holder {
+    total: Int;
+    graph: Graph;
+}
+
+func ViewAt(graph: Graph, i: Int) -> View {
+    return View(graph.arena.rows);
+}
+
+func First(view: View, held: Holder) -> Int {
+    held.graph.arena.rows[0] = Cell(7);
+    return view.rows[0].value;
+}
+
+func WithGraph(graph: Graph) -> Int {
+    let sealed: Graph = graph;
+    return First(ViewAt(sealed, 0), Holder(0, sealed));
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(Arena(false, [Cell(1), Cell(2), Cell(3)]));
+    Print(ToString(WithGraph(graph)));
+    return 0;
+}

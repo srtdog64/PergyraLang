@@ -17,8 +17,10 @@ struct Holder {
     other: HashMap<String, Int>;
 }
 
-func Touch(inout facts: Facts) -> Void {
-    MapSet(facts.carry, "t", 1);
+func Grow(facts: Facts) -> Facts {
+    let carry: HashMap<String, Int> = facts.carry;
+    MapSet(carry, "t", 1);
+    return Facts(facts.table, carry);
 }
 
 func AssignedValueChanged(inout facts: Facts) -> Int {
@@ -36,11 +38,14 @@ func FieldCopyChanged(inout facts: Facts) -> Int {
     return MapSize(fresh);
 }
 
-func HolderChanged(inout facts: Facts) -> Int {
+func HolderChanged() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let carry: HashMap<String, Int> = MapNew();
+    var facts: Facts = Facts(table, carry);
     let fresh: HashMap<String, Int> = MapNew();
     facts.table = fresh;
-    Touch(facts);
-    return MapSize(fresh);
+    let grown: Facts = Grow(facts);
+    return MapSize(fresh) + MapSize(grown.carry);
 }
 
 func InnerPathChanged(inout holder: Holder) -> Int {
@@ -57,7 +62,7 @@ func Main() -> Int {
     var facts: Facts = Facts(table, carry);
     Log(AssignedValueChanged(facts));
     Log(FieldCopyChanged(facts));
-    Log(HolderChanged(facts));
+    Log(HolderChanged());
     let counts: HashMap<String, Int> = MapNew();
     let other: HashMap<String, Int> = MapNew();
     var holder: Holder = Holder(Bag(counts), other);

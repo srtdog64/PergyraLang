@@ -1,0 +1,20 @@
+// As the grown by-value Array, but its elements are maps, which Clone does
+// not copy whole: no copy can stand in, so Main's later use is refused.
+func Grow(inout tables: Array<HashMap<String, Int>>) -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    ArrayPush(tables, table);
+    return 0;
+}
+
+func Pass(tables: Array<HashMap<String, Int>>) -> Int {
+    let k: Int = Grow(tables);
+    return k;
+}
+
+func Main() -> Int {
+    let first: HashMap<String, Int> = MapNew();
+    let tables: Array<HashMap<String, Int>> = [first];
+    let k: Int = Pass(tables);
+    Print(ToString(ArrayLength(tables) + k));
+    return 0;
+}

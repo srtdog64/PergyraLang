@@ -1,7 +1,7 @@
 // Join returns its line when the accumulator is empty, so block may be an
-// element of the local parts and is returned. No proof admits that loan,
-// so the next analysis copies the element where it is passed, as any
-// String argument no proof admits is copied.
+// element of the local parts and is returned. Inside the loop that loan
+// holds: parts is pushed only before it. The returned block is copied,
+// as a returned loan of a local is.
 func Join(acc: String, line: String) -> String {
     if StringLength(acc) == 0 { return line; }
     return Concat(acc, Concat("|", line));

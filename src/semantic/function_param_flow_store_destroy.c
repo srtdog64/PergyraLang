@@ -323,6 +323,7 @@ bool function_param_flow_unproved_current(FunctionParamFlowSummaryStore *store, 
     const FunctionParamFlowSummaryEntry *entry = &store->entries[i];
     bool required;
     return entry->analysis_unsupported && entry->mask == SLOT_PARAM_SUMMARY_ALL && entry->array_storage_unproved && entry->array_elements_unproved &&
+        entry->array_buffer_unkept &&
         entry->returned_backing_unproved && !entry->returned_backing_pending && !entry->output_dependencies_ready &&
         entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME && entry->output_dependencies != NULL &&
         entry->output_count == ast_func_param_count(entry->function_decl) &&

@@ -1,0 +1,47 @@
+// As loan_kept_outside_its_loop_invalid, the view pushed into an Array
+// declared before the loop.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    ready: Bool;
+    rows: Array<Cell>;
+}
+
+struct Graph {
+    arena: Arena;
+}
+
+struct View {
+    rows: Array<Cell>;
+}
+
+struct Holder {
+    total: Int;
+    graph: Graph;
+}
+
+func ViewAt(graph: Graph, i: Int) -> View {
+    return View(graph.arena.rows);
+}
+
+func WithGraph(graph: Graph) -> Int {
+    let sealed: Graph = graph;
+    let kept: Array<View> = [];
+    let i: Int = 0;
+    while i < 2 {
+        let view: View = ViewAt(sealed, i);
+        ArrayPush(kept, view);
+        i = i + 1;
+    }
+    let held: Holder = Holder(0, sealed);
+    held.graph.arena.rows[0] = Cell(7);
+    return kept[0].rows[0].value;
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(Arena(false, [Cell(1), Cell(2), Cell(3)]));
+    Print(ToString(WithGraph(graph)));
+    return 0;
+}

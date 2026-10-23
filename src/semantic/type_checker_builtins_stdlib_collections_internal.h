@@ -50,6 +50,7 @@ bool semantic_stdlib_array_argument_preserves_storage(const ASTNode *call,
                                                        size_t ordinal);
 bool semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
     size_t ordinal, SemanticContext *ctx);
+bool semantic_stdlib_array_argument_keeps_buffer(const ASTNode *call, size_t ordinal);
 /* The checked stdlib collection operation may write, grow, release or
  * otherwise invalidate storage reached through this argument. The caller
  * must still require the current typed publication receipt before using this

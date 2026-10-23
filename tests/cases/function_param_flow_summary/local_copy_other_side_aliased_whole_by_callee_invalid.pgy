@@ -1,0 +1,48 @@
+// As local_copy_other_side_passed_to_reader_of_other_rows_valid, but the
+// callee copies the surfaces whole into a local: what it reads through the
+// local is not named, so it reads all of them.
+struct Cell {
+    value: Int;
+}
+
+struct Identities {
+    targets: Array<Int>;
+    calls: Array<Cell>;
+}
+
+struct Graph {
+    identities: Identities;
+}
+
+struct Surfaces {
+    node_ids: Array<Int>;
+    graph: Graph;
+}
+
+struct Analysis {
+    surfaces: Surfaces;
+}
+
+func NodeAt(surfaces: Surfaces, index: Int) -> Int {
+    let all: Surfaces = surfaces;
+    return all.node_ids[index];
+}
+
+func Resolve(inout analysis: Analysis) -> Int {
+    let graph: Graph = analysis.surfaces.graph;
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        ArraySet(graph.identities.targets, i, 0);
+        total = total + NodeAt(analysis.surfaces, i);
+        i = i + 1;
+    }
+    analysis.surfaces.graph = graph;
+    return total;
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Surfaces([3, 4], Graph(Identities([7, 8], [Cell(1)]))));
+    Print(ToString(Resolve(analysis)));
+    return 0;
+}

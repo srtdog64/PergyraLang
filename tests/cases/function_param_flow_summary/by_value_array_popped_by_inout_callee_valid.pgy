@@ -1,0 +1,19 @@
+// An inout callee that pops a by-value formal's Array and reads its length
+// keeps its buffer: ArrayPop only shortens the callee's length. Pass keeps
+// its formal, and Main uses rows again with no copy.
+func Reorder(inout rows: Array<Int>) -> Int {
+    ArrayPop(rows);
+    return ArrayLength(rows);
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Reorder(rows);
+    return k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [2, 3, 1];
+    let k: Int = Pass(rows);
+    Print(ToString(k * 10 + rows[0]));
+    return 0;
+}

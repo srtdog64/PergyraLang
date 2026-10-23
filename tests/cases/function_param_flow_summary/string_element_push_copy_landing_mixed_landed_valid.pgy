@@ -1,5 +1,5 @@
-// The landing is an owned push: a receiver that already holds borrowed
-// literals has no uniform element ownership to add an owned copy to.
+// A receiver that already holds borrowed literals has no uniform element
+// ownership for an owned push: the String lands as a Clone a plain push keeps.
 func Names(n: Int) -> Array<String> {
     let out: Array<String> = [];
     let i: Int = 0;

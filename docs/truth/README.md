@@ -38,6 +38,7 @@ gate disagree, the gate wins and this folder is corrected.
 - [state/blocker.md](state/blocker.md): the one current blocker and its
   next step
 - [state/gates.md](state/gates.md): the progress gates and their last result
+- [state/native_checker.md](state/native_checker.md): the native checker's refusals on the canonical input, by front
 - [state/measurements.md](state/measurements.md): memory and time
 - [decisions/](decisions/): dated decisions, including the open ones
 - [evidence/](evidence/): records that state lines cite

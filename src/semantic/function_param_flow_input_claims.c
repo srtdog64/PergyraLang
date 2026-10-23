@@ -656,5 +656,5 @@ void function_param_flow_claims_destroy(FunctionParamFlowIndexClaims *claims)
         free(claims->rows[c].generic_names);
         free(claims->rows[c].result_type_name);
     }
-    free(claims->rows); free(claims);
+    free(claims->rows); free(claims->order_parent); free(claims);
 }

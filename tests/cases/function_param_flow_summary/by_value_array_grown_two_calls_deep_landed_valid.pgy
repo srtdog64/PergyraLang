@@ -1,0 +1,23 @@
+// Pass hands its by-value Array to an inout Mid, which hands it on to an
+// inout Grow that pushes: Mid's formal does not keep its buffer either, so
+// Pass moves its formal and Main's later use takes a copy.
+func Grow(inout rows: Array<Int>) -> Int {
+    ArrayPush(rows, 9);
+    return 0;
+}
+
+func Mid(inout rows: Array<Int>) -> Int {
+    return Grow(rows);
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Mid(rows);
+    return k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    let k: Int = Pass(rows);
+    Print(ToString(rows[0] + ArrayLength(rows) + k));
+    return 0;
+}

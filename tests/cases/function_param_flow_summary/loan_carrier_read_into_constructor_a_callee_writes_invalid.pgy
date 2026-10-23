@@ -1,0 +1,45 @@
+// As loan_carrier_read_into_returned_constructor_valid, but the new facts
+// value goes to a callee that writes it: the loan leaves into a writer, and
+// the write would reach the analysis.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+func Touch(facts: Facts) -> Int {
+    ArraySet(facts.graph.rows, 0, Cell(9));
+    return 0;
+}
+
+func Check(analysis: Analysis) -> Int {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    let n: Int = Touch(Facts(facts.graph, 0));
+    return n + analysis.graph.rows[0].value;
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    Print(ToString(Check(analysis)));
+    return 0;
+}

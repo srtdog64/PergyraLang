@@ -1,0 +1,46 @@
+// As loan_payload_bound_by_match_valid, but the payload the match binds is
+// written while it lends the request: the request would read the write.
+struct Cell {
+    value: Int;
+}
+
+struct Request {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+struct Receipt {
+    rows: Array<Cell>;
+}
+
+enum Admission {
+    Admitted(Receipt),
+    Denied(Int),
+}
+
+func Produce(request: Request) -> Admission {
+    if !request.ok {
+        return Denied(1);
+    }
+    return Admitted(Receipt(request.rows));
+}
+
+func Compile(request: Request) -> Int {
+    let admission: Admission = Produce(request);
+    match admission {
+        case Denied(code):
+            return code + ArrayLength(request.rows);
+        case Admitted(receipt):
+            ArraySet(receipt.rows, 0, Cell(9));
+            return request.rows[0].value;
+    }
+    return 0;
+}
+
+func Main() -> Int {
+    let good: Request = Request([Cell(1), Cell(2)], true);
+    Print(ToString(Compile(good)));
+    let bad: Request = Request([], false);
+    Print(ToString(Compile(bad)));
+    return 0;
+}

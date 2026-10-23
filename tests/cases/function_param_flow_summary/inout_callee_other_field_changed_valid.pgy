@@ -1,0 +1,38 @@
+// An inout callee that writes only its struct formal's paths field, directly,
+// through a local copy assigned back, or through a nested inout call, changes
+// none of the storage the caller's copy of the marks field shares.
+struct State {
+    marks: HashMap<String, Int>;
+    paths: Array<String>;
+}
+
+func Touch(inout state: State, key: String) -> Void {
+    ArrayPush(state.paths, key);
+}
+
+func TouchAlias(inout state: State, key: String) -> Void {
+    let paths: Array<String> = state.paths;
+    ArrayPush(paths, key);
+    state.paths = paths;
+}
+
+func TouchNested(inout state: State, key: String) -> Void {
+    Touch(state, key);
+}
+
+func Record(inout state: State, key: String) -> Int {
+    let marks: HashMap<String, Int> = state.marks;
+    Touch(state, key);
+    TouchAlias(state, key);
+    TouchNested(state, key);
+    return MapSize(marks);
+}
+
+func Main() -> Int {
+    let marks: HashMap<String, Int> = MapNew();
+    let paths: Array<String> = [];
+    var state: State = State(marks, paths);
+    Log(Record(state, "a"));
+    Log(ArrayLength(state.paths));
+    return 0;
+}

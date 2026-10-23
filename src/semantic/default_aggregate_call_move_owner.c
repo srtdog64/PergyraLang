@@ -232,10 +232,14 @@ move_walk_apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         if (callee == NULL || !semantic_param_publication_formal_for_actual(
                 walk->ctx, call, p, &formal))
             continue;
+        /* An inout aggregate changes only the fields its summary says it
+         * writes.  Preserve sibling fields instead of turning a field-local
+         * mutation into a whole-value storage change. */
         if (ast_func_param(callee, formal)->mode == PARAM_MODE_MUT_REF
             && function_param_flow_array_preservation_failures(
                 walk->ctx, callee, formal) != 0)
-            move_walk_copy_changed(walk, state, arg);
+            move_walk_copy_inout_changed(
+                walk, state, arg, callee, formal);
         SemanticPublishedValue value = semantic_param_publication_value(
             walk->ctx, arg);
         if (!value.ok || value.meta

@@ -48,6 +48,10 @@ typedef struct {
     uint32_t *scoped_string_stack_calls;
     size_t scoped_string_stack_count, scoped_string_stack_capacity;
     bool scoped_string_stack_failed, direct_string_pop_seen;
+    /* A field walk proves one top-level field of a struct formal; NULL for
+     * the whole formal. */
+    const char *focus;
+    bool *buffer_unkept; /* the Array formal's buffer may be reallocated or freed */
 } StorageWalk;
 
 /* RESULT is a call result that holds storage of a path of the formal. */
@@ -254,10 +258,26 @@ static int storage_result_root(const ASTNode *call, const StorageWalk *walk)
     return root;
 }
 
+/* A path of the formal through a top-level field other than a field walk's
+ * own: that field's storage, which this walk does not prove. */
+static bool storage_other_field(const ASTNode *node, const StorageWalk *walk)
+{
+    const char *field = NULL;
+    while (walk->focus != NULL && (storage_path_step(node) || storage_view_receiver(node, walk) != NULL)) {
+        if (node->type == AST_MEMBER_ACCESS) { field = ast_member_name(node); node = ast_member_object(node); }
+        else if (node->type == AST_ARRAY_ACCESS) { field = NULL; node = ast_array_access_array(node); }
+        else node = storage_view_receiver(node, walk);
+    }
+    FuncParam *param = ast_func_param(walk->origin->function_decl, walk->origin->param_index);
+    return field != NULL && node != NULL && node->type == AST_IDENTIFIER && param != NULL &&
+        ast_identifier_binding_syntax_id(node) == ast_func_param_stable_id(param) && strcmp(field, walk->focus) != 0;
+}
+
 static int storage_path_root(const ASTNode *node, const StorageWalk *walk)
 {
     FuncParam *param = ast_func_param(walk->origin->function_decl, walk->origin->param_index);
     uint32_t id = param == NULL ? 0 : ast_func_param_stable_id(param);
+    if (storage_other_field(node, walk)) return STORAGE_ROOT_NONE;
     bool view = false;
     for (;;) {
         if (storage_path_step(node))
@@ -328,18 +348,22 @@ static unsigned storage_path_indices(ASTNode *node, StorageWalk *walk)
  * An alias's escapes are not in the formal's summary, so a routine may only
  * read an alias or return it, a result the walk follows as the alias. */
 static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordinal,
-    const SlotFunctionLookup *lookup, bool alias)
+    const SlotFunctionLookup *lookup, bool alias, const char *focus)
 {
     SemanticContext *ctx = lookup->ctx;
     if (!semantic_param_publication_checked_argument(ctx, call, ordinal))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     ASTNode *decl = semantic_param_publication_callee(ctx, call, ordinal);
     size_t formal = 0;
+    /* The whole formal handed to a callee keeps a field walk's field as
+     * the callee's formal keeps that field. */
     if (decl != NULL)
         return !semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal) ||
             (alias && (function_param_flow_summary_for_call(lookup, call, ordinal) &
                 ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) != 0)
-            ? FUNCTION_PARAM_ARRAY_ALL_UNPROVED : function_param_flow_array_preservation_failures(ctx, decl, formal);
+            ? FUNCTION_PARAM_ARRAY_ALL_UNPROVED : focus != NULL
+            ? function_param_flow_field_preservation_failures(ctx, decl, formal, focus)
+            : function_param_flow_array_preservation_failures(ctx, decl, formal);
     size_t stored = 0;
     uint32_t kind = 0;
     if (ordinal == 0 && (semantic_param_publication_checked_array_store(ctx, call, &stored) ||
@@ -356,16 +380,32 @@ static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordina
         !retains ? 0 : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
 }
 
+/* An Array formal keeps its descriptor as the callee's formal does. An
+ * `inout` callee may push into the argument's place, and only an `inout`
+ * formal (`place`) is its caller's place: a by-value one shares the buffer
+ * its caller names, so it needs the `inout` formal to keep its buffer. A push
+ * or a hand-off to a formal that may not keep it marks this formal's buffer
+ * (2026-10-23_by_value_array_handed_to_inout_formal_moves). */
 static unsigned
 array_storage_call_argument_unproved(ASTNode *call, size_t ordinal,
     StorageWalk *walk)
 {
     const SlotFunctionLookup *lookup = walk->lookup;
+    FuncParam *origin_param = walk->origin != NULL
+        ? ast_func_param(walk->origin->function_decl,
+            walk->origin->param_index)
+        : NULL;
+    bool place = origin_param != NULL
+        && origin_param->mode == PARAM_MODE_MUT_REF;
     ASTNode *callee = ast_call_callee(call);
     uint32_t identity = ast_call_semantic_callee_decl_id(call);
-    if (!semantic_param_publication_checked_argument(lookup->ctx, call, ordinal))
+    if (walk->buffer_unkept == NULL ||
+        !semantic_param_publication_checked_argument(lookup->ctx, call, ordinal))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     if (semantic_stdlib_array_argument_preserves_storage(call, ordinal)) {
+        if (walk->buffer_unkept != NULL)
+            *walk->buffer_unkept |=
+                !semantic_stdlib_array_argument_keeps_buffer(call, ordinal);
         if (semantic_stdlib_array_argument_preserves_elements(call, ordinal,
                 lookup->ctx))
             return 0;
@@ -398,6 +438,11 @@ array_storage_call_argument_unproved(ASTNode *call, size_t ordinal,
     ASTNode *decl = slot_analyzer_find_function_decl(lookup, ast_identifier_name(callee));
     if (decl == NULL || ast_node_stable_id(decl) != identity)
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    FuncParam *param = ast_func_param(decl, ordinal);
+    bool kept = function_param_flow_array_buffer_kept(lookup->ctx, decl, ordinal);
+    *walk->buffer_unkept |= !kept;
+    if (!place && (param == NULL || (param->mode == PARAM_MODE_MUT_REF && !kept)))
+        return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     return function_param_flow_array_preservation_failures(lookup->ctx, decl, ordinal);
 }
 
@@ -422,6 +467,8 @@ static unsigned
 array_storage_use_unproved(ASTNode *node, StorageWalk *walk)
 {
     if (node == NULL) return 0;
+    /* Another field's path is read only for its index expressions. */
+    if (storage_other_field(node, walk)) return storage_path_indices(node, walk);
     unsigned bad = 0;
     int root = storage_path_at(node, walk);
     /* A path read in any other place copies what it names: a String or
@@ -572,11 +619,15 @@ static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk)
         ASTNode *arg = ast_call_argument(call, i);
         int root = storage_path_at(arg, walk);
         if (root != STORAGE_ROOT_NONE) {
+            bool whole = root == STORAGE_ROOT_FORMAL && arg->type == AST_IDENTIFIER;
             bad |= storage_path_value_read(arg, walk->lookup)
                 ? storage_path_indices(arg, walk)
-                : storage_path_call_argument_unproved(call, i, walk->lookup, root == STORAGE_ROOT_ALIAS) |
-                    storage_path_indices(arg, walk);
-        } else bad |= array_storage_formal(arg, walk) ? array_storage_call_argument_unproved(call, i, walk)
+                : storage_path_call_argument_unproved(call, i, walk->lookup,
+                    root == STORAGE_ROOT_ALIAS,
+                    whole ? walk->focus : NULL)
+                    | storage_path_indices(arg, walk);
+        } else bad |= array_storage_formal(arg, walk)
+            ? array_storage_call_argument_unproved(call, i, walk)
             : array_storage_use_unproved(arg, walk);
     }
     return bad;
@@ -584,18 +635,20 @@ static unsigned storage_call_unproved(ASTNode *call, StorageWalk *walk)
 
 /* `roots` are the statements that name the formal, in the order of
  * `statements`. A statement that names only an alias is walked too. */
-unsigned
-function_param_array_storage_unproved_in_program_points(
-    ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
-    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read)
+static unsigned
+storage_unproved_walk(ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read,
+    const char *focus, bool *buffer_unkept)
 {
-    if (payload_read == NULL) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    if (payload_read == NULL || buffer_unkept == NULL) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     *payload_read = false;
     FuncParam *param = origin != NULL
         ? ast_func_param(origin->function_decl, origin->param_index) : NULL;
     StorageWalk walk = {origin, lookup, payload_read, false,
-        (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0, NULL, NULL, 0, 0,
-        NULL, 0, 0, false, false};
+        (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0,
+        NULL, NULL, 0, 0,
+        NULL, 0, 0, false, false,
+        focus, buffer_unkept};
     if (lookup == NULL || lookup->ctx == NULL || param == NULL
         || !array_storage_formal_kind(origin->function_decl, origin->param_index, &walk.paths)
         || ast_func_body(origin->function_decl) == NULL || origin->function_decl->is_async_decl
@@ -620,6 +673,30 @@ function_param_array_storage_unproved_in_program_points(
     return next == count ? bad : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
 }
 
+unsigned
+function_param_array_storage_unproved_in_program_points(
+    ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read,
+    bool *buffer_unkept)
+{
+    return storage_unproved_walk(statements, statement_count, roots, count, origin, lookup, summary,
+        payload_read, NULL, buffer_unkept);
+}
+
+bool
+function_param_array_storage_field_unproved_in_program_points(
+    ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, const char *field,
+    unsigned *failures)
+{
+    bool paths = false, payload_read = false, buffer_unkept = false;
+    if (origin == NULL || field == NULL || failures == NULL ||
+        !array_storage_formal_kind(origin->function_decl, origin->param_index, &paths) || !paths) return false;
+    *failures = storage_unproved_walk(statements, statement_count, roots, count, origin, lookup, summary,
+        &payload_read, field, &buffer_unkept);
+    return true;
+}
+
 static unsigned
 array_preservation_bits(const FunctionParamFlowSummaryEntry *entry)
 {
@@ -638,6 +715,22 @@ function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *st
         || !entry->output_dependencies_ready || !function_param_flow_output_current(store, index, false))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     return array_preservation_bits(entry);
+}
+
+bool
+function_param_flow_array_buffer_kept(SemanticContext *ctx, ASTNode *function_decl, size_t param_index)
+{
+    bool paths = true;
+    if (ctx == NULL || function_decl == NULL || ast_func_body(function_decl) == NULL || function_decl->is_async_decl ||
+        !array_storage_formal_kind(function_decl, param_index, &paths) || paths) return false;
+    (void)function_param_flow_summary_for_param(ctx, function_decl, param_index);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    size_t index = store == NULL || store->failed ? SIZE_MAX
+        : function_param_flow_find(store, ast_node_stable_id(function_decl), param_index);
+    if (index == SIZE_MAX || store->entries[index].function_decl != function_decl) return false;
+    const FunctionParamFlowSummaryEntry *entry = &store->entries[index];
+    return !entry->array_buffer_unkept && (store->solving || (entry->state == FUNCTION_PARAM_FLOW_COMPLETE &&
+        !entry->analysis_unsupported && entry->output_dependencies_ready && function_param_flow_output_current(store, index, false)));
 }
 
 unsigned

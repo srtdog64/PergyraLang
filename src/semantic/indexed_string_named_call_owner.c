@@ -135,11 +135,19 @@ bool semantic_indexed_string_named_call_reads_only(SemanticContext *ctx,
 bool semantic_indexed_string_named_call_lends(SemanticContext *ctx, ASTNode *routine,
     ASTNode *call, ASTNode *callee, size_t ordinal, uint32_t owner)
 {
-    return owner != 0 && routine != NULL &&
-        string_formal_within(ctx, call, callee, ordinal,
-            SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE) &&
-        other_arguments_read(ctx, call, callee, ordinal) &&
-        function_param_flow_lent_argument_admitted(ctx, routine, call, owner, NULL);
+    if (owner == 0 || routine == NULL ||
+        !string_formal_within(ctx, call, callee, ordinal,
+            SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE) ||
+        !other_arguments_read(ctx, call, callee, ordinal)) return false;
+    FunctionParamFlowLoanFailure failure = {0};
+    if (function_param_flow_lent_argument_admitted(ctx, routine, call, owner,
+            &failure)) return true;
+    /* A preceding owner may already have selected the exact carrier where
+     * this loan leaves.  The current analysis is still rejected and the
+     * driver will reload that Clone; do not also clone the borrowed element
+     * before the selected exit has had a chance to prove the loan. */
+    return !failure.owner_changed && failure.escape_carrier != NULL &&
+        semantic_loan_copy_landing_selected(ctx, failure.escape_carrier);
 }
 
 static bool receipt_admitted(SemanticContext *ctx, const NamedCallReceipt *row)

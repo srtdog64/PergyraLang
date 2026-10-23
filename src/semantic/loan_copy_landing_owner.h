@@ -37,6 +37,19 @@ bool semantic_loan_copy_landing_select_typed_carrier(SemanticContext *ctx,
  * selection could not be recorded. */
 bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNode *expression);
 
+/* The same for a by-value argument of `type` the type checker refuses beside
+ * an `inout` argument naming the same variable, before any value is
+ * published: selected only when Clone copies a value of `type` whole
+ * (2026-10-23_by_value_argument_beside_its_inout_is_copied). False only when
+ * the selection could not be recorded. */
+bool semantic_loan_copy_landing_select_typed(SemanticContext *ctx, const ASTNode *expression, const Type *type);
+
+/* Whether this exact carrier is already scheduled for a Clone in the next
+ * semantic analysis.  Consumers use this only to avoid selecting a second,
+ * dependent copy in the same failed analysis; it is not current admission. */
+bool semantic_loan_copy_landing_selected(const SemanticContext *ctx,
+    const ASTNode *carrier);
+
 /* String-copy discovery may continue after its own refusal only inside the
  * same routine, so one bounded analysis can collect that routine's remaining
  * exact landing identities. A later diagnostic or routine boundary closes

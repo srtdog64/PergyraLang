@@ -1,0 +1,21 @@
+// As EmitStmtList: a recursive emitter takes an inout Array<String> of
+// routine defers, sets its first element to a fresh String after a nested
+// call, and hands it to the next nested call.
+func Emit(depth: Int, inout cur: Array<Int>, inout defers: Array<String>) -> String {
+    let result: String = "";
+    while cur[0] < depth {
+        ArraySet(cur, 0, cur[0] + 1);
+        let nested: String = Emit(depth - 1, cur, defers);
+        ArraySet(defers, 0, Concat(defers[0], "d"));
+        result = Concat(result, nested);
+    }
+    return result;
+}
+
+func Main() -> Int {
+    let cur: Array<Int> = [0];
+    let defers: Array<String> = [""];
+    let text: String = Emit(2, cur, defers);
+    Print(Concat(text, defers[0]));
+    return 0;
+}

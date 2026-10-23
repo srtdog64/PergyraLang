@@ -1,0 +1,44 @@
+// As loan_owner_assigned_before_loan_valid, but a field is assigned after a
+// view is taken in the loop: the owner changes under the loan.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    ready: Bool;
+    rows: Array<Cell>;
+}
+
+struct Graph {
+    arena: Arena;
+}
+
+struct View {
+    rows: Array<Cell>;
+}
+
+func ViewAt(graph: Graph, i: Int) -> View {
+    return View(graph.arena.rows);
+}
+
+func WithGraph(graph: Graph) -> Int {
+    let sealed: Graph = graph;
+    if !sealed.arena.ready {
+        sealed.arena.ready = true;
+    }
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        let view: View = ViewAt(sealed, i);
+        sealed.arena.ready = false;
+        total = total + ArrayLength(view.rows);
+        i = i + 1;
+    }
+    return total + ArrayLength(sealed.arena.rows);
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(Arena(false, [Cell(1), Cell(2), Cell(3)]));
+    Print(ToString(WithGraph(graph)));
+    return 0;
+}

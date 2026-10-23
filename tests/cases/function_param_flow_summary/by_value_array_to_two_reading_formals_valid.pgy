@@ -1,0 +1,12 @@
+// The same Array goes to two by-value formals that only read it: neither
+// changes the storage they share, so nothing is copied.
+func Sum2(a: Array<Int>, b: Array<Int>) -> Int {
+    return a[0] + b[ArrayLength(b) - 1];
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1, 2];
+    let k: Int = Sum2(rows, rows);
+    Print(ToString(k * 10 + ArrayLength(rows)));
+    return 0;
+}

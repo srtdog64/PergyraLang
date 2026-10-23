@@ -1,0 +1,19 @@
+// Pass hands its by-value Array to a generic by-value formal that only
+// reads it. The rule for a buffer an inout callee may reallocate is not
+// this call's, so Pass keeps its formal and Main uses rows again with no
+// copy.
+func Count<T>(item: T) -> Int {
+    return 1;
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Count(rows);
+    return k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    let k: Int = Pass(rows);
+    Print(ToString(rows[0] + ArrayLength(rows) + k));
+    return 0;
+}

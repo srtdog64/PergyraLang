@@ -1,0 +1,21 @@
+// An Int or a String shares no storage: beside an inout argument naming the
+// same variable, the by-value argument is the value before the call and
+// nothing is copied.
+func Bump(inout n: Int, m: Int) -> Int {
+    n = n + 1;
+    return m;
+}
+
+func Rename(inout text: String, old: String) -> String {
+    text = Concat(text, "!");
+    return old;
+}
+
+func Main() -> Int {
+    let x: Int = 4;
+    let y: Int = Bump(x, x);
+    let name: String = "a";
+    let was: String = Rename(name, name);
+    Print(Concat(ToString(x * 10 + y), Concat(name, was)));
+    return 0;
+}

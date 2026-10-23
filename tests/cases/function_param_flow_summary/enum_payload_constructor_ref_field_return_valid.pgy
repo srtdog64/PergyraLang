@@ -1,5 +1,7 @@
-// A ref input's String fields carried into an enum payload and returned
-// escape the borrow, exactly as through a struct result.
+// A ref input's String fields carried into an enum payload and returned are
+// a loan of Main's admission, as through a struct result: Main leaves the
+// admission unchanged while the payload lives, and the match only binds
+// parts of the payload.
 struct Refusal {
     owner: String;
     stage: String;

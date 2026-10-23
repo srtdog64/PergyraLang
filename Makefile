@@ -594,6 +594,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/default_aggregate_call_move_owner.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_rule.c \
                    $(SEMANTIC_DIR)/default_aggregate_copy_owner.c \
+                   $(SEMANTIC_DIR)/function_param_read_path_owner.c \
                    $(SEMANTIC_DIR)/allocator_lane_loan_owner.c \
                    $(SEMANTIC_DIR)/formal_string_store_landing_owner.c \
                    $(SEMANTIC_DIR)/loan_copy_landing_owner.c \
@@ -614,6 +615,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_view.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_slot_claim.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
+                   $(SEMANTIC_DIR)/function_param_flow_loan_owner_proof.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_return.c \
                     $(SEMANTIC_DIR)/type_checker_channel_transport.c \
                     $(SEMANTIC_DIR)/type_checker_visibility.c \
@@ -715,9 +717,11 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_dependencies.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_destinations.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
+                   $(SEMANTIC_DIR)/function_param_field_preservation_owner.c \
                    $(SEMANTIC_DIR)/function_param_publication_private_array_mutation.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_flow_claim_publication.c \
+                   $(SEMANTIC_DIR)/function_param_flow_loan_order.c \
                    $(SEMANTIC_DIR)/function_param_publication_owner.c \
                    $(SEMANTIC_DIR)/function_param_publication_values.c \
                    $(SEMANTIC_DIR)/function_param_publication_routines.c \

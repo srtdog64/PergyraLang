@@ -71,6 +71,9 @@ selected_call_targets = {
 owned_push_landings = {
     "owned_copy_string_push_landed_valid": ("Main", 1),
     "string_element_push_copy_landing_valid": ("Selected", 1),
+    # The recursive chain itself remains scoped by push/pop; only the result
+    # stored in out_blocks lands as one owned String.
+    "inout_string_chain_popped_by_recursive_parser_valid": ("Decls", 1),
     "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
     "formal_string_store_landing_local_receiver_valid": ("Gather", 1),
@@ -134,7 +137,7 @@ landed_clones = {
     "default_aggregate_move_shared_field_return_landed_valid": {"Main": 1},
     "by_value_getter_lend_result_path_grown_landed_valid": {"Main": 1},
     "by_value_getter_lend_result_passed_grown_landed_valid": {"Main": 1},
-    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": {"Main": 2},
+    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": {"Main": 1},
     "by_value_getter_second_lend_grown_landed_valid": {"Main": 1},
     "by_value_getter_second_lend_formal_grown_landed_valid": {"Grow": 1},
     "by_value_getter_lend_in_constructor_grown_landed_valid": {"Main": 1},
@@ -154,8 +157,35 @@ landed_clones = {
     "collection_value_store_grown_landed_valid": {
         "MapStore": 1, "SetStore": 1, "ListPushStore": 1, "ListSetStore": 1, "QueueStore": 1},
     "formal_field_copy_changed_at_exit_landed_valid": {"Grow": 1},
-    # The element passed to Join, and the result returned.
-    "string_element_kept_by_callee_landed_valid": {"Lines": 2},
+    # The result returned. The element passed to Join stays a loan of parts,
+    # which no change reaches after the loan is made.
+    "string_element_kept_by_callee_landed_valid": {"Lines": 1},
+    "ref_loan_field_written_back_valid": {"Plan": 1},
+    "ref_loan_stored_into_inout_output_landed_valid": {"Fill": 1},
+    # The borrowed String each push into an Array taken from a field keeps.
+    "string_local_pushed_into_field_array_landed_valid": {"Build": 1, "Plan": 1},
+    # Among borrowed literals a plain push keeps a Clone; an owned push has none.
+    "string_element_push_copy_landing_mixed_landed_valid": {"Selected": 1},
+    # The node Fill keeps holds a copy of the Array's String, so the drop is safe.
+    "named_string_field_forward_project_drop_landed_valid": {"Fill": 1},
+    "named_string_field_mixed_branch_drop_landed_valid": {"Fill": 1},
+    # The verdict each Void routine stores into its inout output, as a copy.
+    "ref_input_through_call_result_into_inout_output_landed_valid": {"JoinCopied": 1, "JoinLanded": 1},
+    # The String returned from the ref input is copied exactly where ArraySet
+    # stores it; the following inout reader keeps nothing.
+    "ref_string_through_inout_reader_shallow_store_landed_valid": {"Names": 1},
+    # The box Touch changes through an inout callee is copied where Main passes it.
+    "by_value_field_alias_written_by_inout_callee_landed_valid": {"Main": 1},
+    # The by-value Array Pass hands to an inout writer is copied where Main passes it.
+    "by_value_array_grown_by_inout_callee_landed_valid": {"Main": 1},
+    "by_value_array_grown_two_calls_deep_landed_valid": {"Main": 1},
+    "by_value_array_grown_through_recursive_hand_off_landed_valid": {"Primary": 1, "Main": 1},
+    # A by-value argument beside an inout one naming the same Array.
+    "by_value_argument_beside_its_inout_landed_valid": {"Main": 1},
+    "by_value_argument_before_its_inout_landed_valid": {"Main": 1},
+    # One Array to several keeping formals of a call: each earlier argument is copied.
+    "array_handed_to_two_keeping_formals_landed_valid": {"Build": 1},
+    "array_handed_to_three_keeping_formals_landed_valid": {"Main": 2},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
@@ -198,6 +228,30 @@ landing_rounds = {
     "moved_argument_two_branches_landed_valid": 1,
     "by_value_getter_lend_into_own_formal_landed_valid": 1,
     "returned_alias_lends_formal_valid": 0,
+    "loan_carrier_unchanged_by_call_before_loan_valid": 0,
+    "loan_owner_read_by_constructor_valid": 0,
+    "loan_read_last_before_owner_changed_valid": 0,
+    "loan_carrier_handed_on_by_early_return_valid": 0,
+    "loan_carrier_read_into_returned_constructor_valid": 0,
+    "loan_payload_bound_by_match_valid": 0,
+    "loan_payload_binding_passed_to_reader_valid": 0,
+    "local_copy_other_side_passed_to_reader_of_other_rows_valid": 0,
+    "inout_defers_handed_to_recursive_emitter_valid": 0,
+    "by_value_array_grown_by_inout_callee_landed_valid": 1,
+    "by_value_array_grown_by_inout_callee_last_use_valid": 0,
+    "by_value_array_handed_to_by_value_reader_valid": 0,
+    "by_value_array_grown_two_calls_deep_landed_valid": 1,
+    "by_value_array_grown_through_recursive_hand_off_landed_valid": 1,
+    "by_value_cursor_set_through_recursive_parser_valid": 0,
+    "by_value_array_popped_by_inout_callee_valid": 0,
+    "by_value_array_handed_to_generic_reader_valid": 0,
+    "inout_string_chain_popped_by_recursive_parser_valid": 1,
+    "by_value_argument_beside_its_inout_landed_valid": 1,
+    "by_value_argument_before_its_inout_landed_valid": 1,
+    "scalar_and_string_beside_their_inout_valid": 0,
+    "by_value_array_to_two_reading_formals_valid": 0,
+    "array_handed_to_two_keeping_formals_landed_valid": 1,
+    "array_handed_to_three_keeping_formals_landed_valid": 1,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -314,7 +368,7 @@ landing_rounds = {
     "string_struct_result_reassigned_valid": 0,
     "by_value_getter_lend_result_path_grown_landed_valid": 1,
     "by_value_getter_lend_result_passed_grown_landed_valid": 1,
-    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": 2,
+    "by_value_getter_lend_in_constructor_passed_grown_landed_valid": 1,
     "by_value_getter_second_lend_grown_landed_valid": 1,
     "by_value_getter_second_lend_formal_grown_landed_valid": 1,
     "by_value_getter_lend_in_constructor_grown_landed_valid": 1,
@@ -378,6 +432,13 @@ release_lifetime_refusals = {
     "collection_value_store_shallow_grown_invalid": [(*released_refusal, 14, 35)],
     # A whole Array read after a call kept its descriptor: no element copy.
     "array_descriptor_kept_then_read_invalid": [(*borrow_refusal, 22, 16)],
+    # An inout callee that writes the field a caller copied, five ways.
+    "inout_callee_same_field_changed_invalid": [
+        (*released_refusal, 38, 20), (*released_refusal, 44, 20), (*released_refusal, 50, 20),
+        (*released_refusal, 56, 20), (*released_refusal, 62, 20)],
+    # A lent local stored into an inout output that did not hold it escapes
+    # the ref index: Fill's summary and its caller both refuse.
+    "ref_loan_local_stored_into_inout_output_invalid": [(*borrow_refusal, 22, 6), (*borrow_refusal, 29, 10)],
     # A copy of an inout formal's field changed and not assigned back
     # refuses each exit: two returns and the end of a body.
     "formal_field_copy_changed_at_exit_invalid": [
@@ -385,8 +446,8 @@ release_lifetime_refusals = {
     # A value assigned into a field shares that field: a change through
     # either side refuses the other.
     "local_copy_held_at_field_changed_invalid": [
-        (*released_refusal, 28, 26), (*released_refusal, 28, 5), (*released_refusal, 36, 20),
-        (*released_refusal, 36, 5), (*released_refusal, 43, 20), (*released_refusal, 51, 24)],
+        (*released_refusal, 30, 26), (*released_refusal, 30, 5), (*released_refusal, 38, 20),
+        (*released_refusal, 38, 5), (*released_refusal, 48, 20), (*released_refusal, 56, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # A call result that holds a formal's storage is a path of that formal:
@@ -403,10 +464,11 @@ release_lifetime_refusals = {
     # would remain.
     "owned_param_field_store_ref_return_invalid": [
         (*borrow_refusal, 0, 0), (*borrow_refusal, 17, 23)],
-    # Route's enum payload lends the ref input; Main's call is refused for
-    # that loan (31:28). An enum constructor without its result relation
+    # Route's enum payload lends the ref input, and a case body replaces
+    # Main's admission while the payload lives; Main's call is refused for
+    # that loan (32:28). An enum constructor without its result relation
     # would lend nothing and lose the refusal.
-    "enum_payload_constructor_ref_field_return_invalid": [(*borrow_refusal, 31, 28)],
+    "enum_payload_constructor_ref_field_owner_changed_invalid": [(*borrow_refusal, 32, 28)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -437,10 +499,97 @@ release_lifetime_refusals = {
         (*borrow_refusal, 4, 6), (*borrow_refusal, 5, 14),
         (*borrow_refusal, 10, 20)],
     "selector_method_retaining_receiver_invalid": [(*borrow_refusal, 19, 15)],
-    # The call that keeps the Array is the one admitted; the deep drop after
-    # it is refused for it.
-    "named_string_field_forward_project_drop_invalid": [(*borrow_refusal, 36, 27)],
-    "named_string_field_mixed_branch_drop_invalid": [(*borrow_refusal, 30, 27)],
+    "named_string_identity_loop_reassignment_invalid": [(*borrow_refusal, 17, 27)],
+    # A call keeps the Array's String in a node Clone copies only by value;
+    # the deep drop after it is refused for it.
+    "named_string_field_shallow_node_drop_invalid": [(*borrow_refusal, 41, 27)],
+    # The corresponding read-only inout case is a landed positive below: its
+    # String store receives one independent Clone and the call adds no escape.
+    # One that hands the local to an own formal keeps it: every caller refuses.
+    "ref_string_through_inout_keeper_invalid": [
+        (*borrow_refusal, 43, 6), (*borrow_refusal, 59, 6), (*borrow_refusal, 60, 28),
+        (*borrow_refusal, 66, 26)],
+    # An owner assigned after its view is made, in the loop before the view,
+    # or from a view of itself, changes under a loan: each later use refuses.
+    "loan_owner_assigned_after_loan_invalid": [
+        (*released_refusal, 32, 33), (*released_refusal, 33, 22), (*released_refusal, 37, 45)],
+    "loan_owner_assigned_in_loop_before_loan_invalid": [
+        (*released_refusal, 32, 22), (*released_refusal, 33, 33), (*released_refusal, 37, 45)],
+    "loan_owner_assigned_from_its_own_loan_invalid": [
+        (*released_refusal, 28, 22), (*released_refusal, 33, 33), (*released_refusal, 37, 45)],
+    # An indexed assignment after the loan writes through it into the owner's
+    # storage; the parser leaves the assignment without a source position.
+    "loan_owner_written_by_indexed_assignment_after_loan_invalid": [(*released_refusal, 29, 42)],
+    # A view kept past its loop in a local, an Array or an inout callee's
+    # Array declared before the loop, or read in the statement that moves its
+    # owner, still lends the owner when it moves: each later use refuses.
+    "loan_kept_outside_its_loop_invalid": [
+        (*released_refusal, 35, 33), (*released_refusal, 39, 34), (*released_refusal, 40, 26)],
+    "loan_pushed_outside_its_loop_invalid": [
+        (*released_refusal, 34, 33), (*released_refusal, 38, 34), (*released_refusal, 39, 26)],
+    "loan_kept_by_inout_callee_outside_its_loop_invalid": [
+        (*released_refusal, 33, 33), (*released_refusal, 37, 34), (*released_refusal, 38, 26)],
+    "loan_read_in_the_statement_that_moves_its_owner_invalid": [(*released_refusal, 36, 47)],
+    # A constructor reads a loan's owner, but a value it builds from the
+    # owner's fields shares their storage: changed under the loan, written by
+    # a callee or returned, it refuses. An in-place permutation is no constructor.
+    "loan_owner_constructor_copy_changed_invalid": [(*released_refusal, 31, 21)],
+    "loan_owner_constructor_copy_written_by_callee_invalid": [
+        (*released_refusal, 35, 44), (*released_refusal, 35, 55), (*released_refusal, 35, 67),
+        (*released_refusal, 36, 51)],
+    "loan_owner_constructor_copy_returned_invalid": [
+        (*released_refusal, 34, 31), (*released_refusal, 34, 42), (*released_refusal, 34, 54),
+        (*released_refusal, 34, 91)],
+    "loan_owner_permuted_in_place_invalid": [(*released_refusal, 30, 57), (*released_refusal, 31, 65)],
+    # A loan read after its owner changed, in a loop that also changes it, or
+    # by a defer that runs at the exit is read after the change: each refuses.
+    "loan_read_after_owner_changed_invalid": [(*released_refusal, 31, 29)],
+    "loan_read_in_loop_that_changes_owner_invalid": [(*released_refusal, 35, 33)],
+    "loan_read_by_defer_after_owner_changed_invalid": [(*released_refusal, 31, 29), (*released_refusal, 32, 35)],
+    # A read lasts until its statement ends: the call it is an argument of
+    # reads it after a later argument changed the owner.
+    "loan_read_by_call_after_its_owner_changed_in_its_arguments_invalid": [(*released_refusal, 41, 37)],
+    # Facts that carry a loan handed into an inout output take the loan out
+    # with them: the owner's later change refuses.
+    "loan_carrier_handed_into_output_before_owner_changed_invalid": [(*released_refusal, 33, 29)],
+    # A value built from a carrier holds the loan: given to a callee that
+    # writes it, the loan leaves into a writer.
+    "loan_carrier_read_into_constructor_a_callee_writes_invalid": [(*released_refusal, 38, 39)],
+    # A payload a match binds carries the subject's loan: written, it changes
+    # the owner the subject lends.
+    "loan_payload_bound_by_match_written_invalid": [(*released_refusal, 32, 47), (*released_refusal, 35, 36)],
+    # A payload binding's root is its match subject's: a callee that writes
+    # it changes the subject that carries the loan, and a call's result as
+    # subject roots nothing the proof follows.
+    "loan_payload_binding_written_by_callee_invalid": [(*released_refusal, 38, 47), (*released_refusal, 43, 36)],
+    "loan_payload_binding_of_call_subject_written_invalid": [(*released_refusal, 37, 47), (*released_refusal, 42, 36)],
+    # A copy changed below a value a call takes is used there when the callee
+    # reads the changed rows, directly or through a callee of its own, or
+    # copies the value whole into a local whose reads are not named.
+    "local_copy_other_side_passed_to_reader_of_changed_rows_invalid": [(*released_refusal, 35, 41)],
+    "local_copy_other_side_passed_through_to_reader_of_changed_rows_invalid": [(*released_refusal, 39, 41)],
+    "local_copy_other_side_aliased_whole_by_callee_invalid": [(*released_refusal, 37, 41)],
+    # Under a by-value formal the change reaches the caller's value through
+    # the storage the formal shares: the copy must land, and none can here.
+    "local_copy_of_by_value_formal_passed_to_reader_of_other_rows_invalid": [(*released_refusal, 36, 41)],
+    # An inout Array handed on whole as an inout argument keeps what the
+    # callee keeps: an alias of it written by an inout callee, or a callee
+    # that keeps its descriptor, still refuses the next call that takes it.
+    "inout_defers_alias_written_by_inout_callee_invalid": [(*borrow_refusal, 12, 30)],
+    "inout_defers_kept_by_callee_before_nested_call_invalid": [(*borrow_refusal, 13, 25), (*borrow_refusal, 14, 30)],
+    # A by-value Array formal handed to an inout callee moves; a later use
+    # of maps Clone cannot copy whole is refused.
+    "by_value_array_of_maps_grown_by_inout_callee_invalid": [(*released_refusal, 18, 32)],
+    # ArrayPop keeps nothing of an inout chain; a callee that keeps the chain
+    # before popping it still refuses the nested call that takes it.
+    "inout_string_chain_kept_before_pop_invalid": [(*borrow_refusal, 13, 9)],
+    # A by-value argument beside an inout one naming the same variable is
+    # copied; maps Clone cannot copy whole are refused.
+    "by_value_maps_beside_their_inout_invalid": [(*borrow_refusal, 13, 31)],
+    # An Array an earlier call keeps too is not copied at the later call.
+    "array_kept_by_earlier_call_and_two_formals_invalid": [(*borrow_refusal, 22, 24)],
+    # A refused text is not reported again as a TextBuilderAppend type mismatch.
+    "text_builder_append_of_released_element_invalid": [(*borrow_refusal, 10, 31)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
@@ -932,8 +1081,71 @@ paired = (
     ("named_string_all_def0_branch_copy_landing_valid", True),
     ("named_string_field_empty_arena_valid", True),
     ("named_string_field_make_nodes_drop_landed_valid", True),
-    ("named_string_field_forward_project_drop_invalid", False),
-    ("named_string_field_mixed_branch_drop_invalid", False),
+    ("named_string_field_forward_project_drop_landed_valid", True),
+    ("named_string_field_mixed_branch_drop_landed_valid", True),
+    ("named_string_field_shallow_node_drop_invalid", False),
+    ("ref_input_through_call_result_into_inout_output_landed_valid", True),
+    ("ref_string_through_inout_reader_shallow_store_landed_valid", True),
+    ("ref_string_through_inout_keeper_invalid", False),
+    ("by_value_field_alias_written_by_inout_callee_landed_valid", True),
+    ("loan_owner_assigned_before_loan_valid", True),
+    ("loan_owner_assigned_after_loan_invalid", False),
+    ("loan_owner_assigned_in_loop_before_loan_invalid", False),
+    ("loan_owner_assigned_from_its_own_loan_invalid", False),
+    ("loan_owner_written_by_indexed_assignment_after_loan_invalid", False),
+    ("loan_carrier_unchanged_by_call_before_loan_valid", True),
+    ("loan_scope_ended_before_owner_moved_valid", True),
+    ("loan_kept_outside_its_loop_invalid", False),
+    ("loan_pushed_outside_its_loop_invalid", False),
+    ("loan_kept_by_inout_callee_outside_its_loop_invalid", False),
+    ("loan_read_in_the_statement_that_moves_its_owner_invalid", False),
+    ("loan_owner_read_by_constructor_valid", True),
+    ("loan_owner_constructor_copy_changed_invalid", False),
+    ("loan_owner_constructor_copy_written_by_callee_invalid", False),
+    ("loan_owner_constructor_copy_returned_invalid", False),
+    ("loan_owner_permuted_in_place_invalid", False),
+    ("loan_read_last_before_owner_changed_valid", True),
+    ("loan_read_after_owner_changed_invalid", False),
+    ("loan_read_in_loop_that_changes_owner_invalid", False),
+    ("loan_read_by_defer_after_owner_changed_invalid", False),
+    ("loan_read_by_call_after_its_owner_changed_in_its_arguments_invalid", False),
+    ("loan_carrier_handed_on_by_early_return_valid", True),
+    ("loan_carrier_handed_into_output_before_owner_changed_invalid", False),
+    ("loan_carrier_read_into_returned_constructor_valid", True),
+    ("loan_carrier_read_into_constructor_a_callee_writes_invalid", False),
+    ("loan_payload_bound_by_match_valid", True),
+    ("loan_payload_bound_by_match_written_invalid", False),
+    ("loan_payload_binding_passed_to_reader_valid", True),
+    ("loan_payload_binding_written_by_callee_invalid", False),
+    ("loan_payload_binding_of_call_subject_written_invalid", False),
+    ("local_copy_other_side_passed_to_reader_of_other_rows_valid", True),
+    ("local_copy_other_side_passed_to_reader_of_changed_rows_invalid", False),
+    ("local_copy_other_side_passed_through_to_reader_of_changed_rows_invalid", False),
+    ("local_copy_other_side_aliased_whole_by_callee_invalid", False),
+    ("local_copy_of_by_value_formal_passed_to_reader_of_other_rows_invalid", False),
+    ("inout_defers_handed_to_recursive_emitter_valid", True),
+    ("inout_defers_alias_written_by_inout_callee_invalid", False),
+    ("inout_defers_kept_by_callee_before_nested_call_invalid", False),
+    ("by_value_array_grown_by_inout_callee_landed_valid", True),
+    ("by_value_array_grown_by_inout_callee_last_use_valid", True),
+    ("by_value_array_of_maps_grown_by_inout_callee_invalid", False),
+    ("by_value_array_handed_to_by_value_reader_valid", True),
+    ("by_value_array_grown_two_calls_deep_landed_valid", True),
+    ("by_value_array_grown_through_recursive_hand_off_landed_valid", True),
+    ("by_value_cursor_set_through_recursive_parser_valid", True),
+    ("by_value_array_popped_by_inout_callee_valid", True),
+    ("by_value_array_handed_to_generic_reader_valid", True),
+    ("inout_string_chain_popped_by_recursive_parser_valid", True),
+    ("inout_string_chain_kept_before_pop_invalid", False),
+    ("by_value_argument_beside_its_inout_landed_valid", True),
+    ("by_value_argument_before_its_inout_landed_valid", True),
+    ("scalar_and_string_beside_their_inout_valid", True),
+    ("by_value_array_to_two_reading_formals_valid", True),
+    ("by_value_maps_beside_their_inout_invalid", False),
+    ("array_handed_to_two_keeping_formals_landed_valid", True),
+    ("array_handed_to_three_keeping_formals_landed_valid", True),
+    ("array_kept_by_earlier_call_and_two_formals_invalid", False),
+    ("text_builder_append_of_released_element_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -1100,10 +1312,16 @@ paired = (
     ("formal_field_copy_changed_at_exit_landed_valid", True),
     ("formal_field_copy_stored_back_valid", True),
     ("string_element_kept_by_callee_landed_valid", True),
-    ("string_copy_landing_same_function_batch_valid", True),
-    ("string_copy_landing_function_boundary_valid", True),
     ("array_descriptor_kept_then_read_invalid", False),
     ("ref_loan_through_popping_helper_valid", True),
+    ("inout_callee_other_field_changed_valid", True),
+    ("inout_callee_same_field_changed_invalid", False),
+    ("ref_loan_field_written_back_valid", True),
+    ("ref_loan_stored_into_inout_output_landed_valid", True),
+    ("ref_loan_local_stored_into_inout_output_invalid", False),
+    ("string_local_pushed_into_field_array_landed_valid", True),
+    ("string_copy_landing_same_function_batch_valid", True),
+    ("string_copy_landing_function_boundary_valid", True),
     ("local_let_alias_grown_invalid", False),
     ("local_copied_path_then_moved_landed_valid", True),
     ("local_copy_changed_then_moved_landed_valid", True),
@@ -1187,7 +1405,7 @@ paired = (
     ("string_element_inout_owner_named_call_landed_valid", True),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),
-    ("string_element_push_copy_landing_mixed_invalid", False),
+    ("string_element_push_copy_landing_mixed_landed_valid", True),
     ("world_ref_self_scalar_result_valid", True),
     ("world_ref_self_member_return_invalid", False),
     ("method_self_array_field_length_valid", True),
@@ -1274,7 +1492,8 @@ paired = (
     ("defer_array_drop_lambda_reads_valid", True),
     ("defer_array_drop_struct_reader_valid", True),
     ("defer_array_drop_lambda_kept_invalid", False),
-    ("enum_payload_constructor_ref_field_return_invalid", False),
+    ("enum_payload_constructor_ref_field_return_valid", True),
+    ("enum_payload_constructor_ref_field_owner_changed_invalid", False),
     ("by_value_getter_lend_valid", True),
     ("by_value_getter_lend_local_valid", True),
     ("by_value_getter_lend_forward_valid", True),
@@ -1972,6 +2191,23 @@ for name, expected in (
     ("by_value_getter_lend_string_reassigned_valid", "ab!1ab"),
     ("by_value_getter_result_local_returned_valid", "6"),
     ("constructor_of_getter_result_returned_valid", "7"),
+    ("enum_payload_constructor_ref_field_return_valid", "owner"),
+    ("inout_defers_handed_to_recursive_emitter_valid", "dd"),
+    ("by_value_array_grown_by_inout_callee_landed_valid", "2"),
+    ("by_value_array_grown_by_inout_callee_last_use_valid", "2"),
+    ("by_value_array_handed_to_by_value_reader_valid", "6"),
+    ("by_value_array_grown_two_calls_deep_landed_valid", "2"),
+    ("by_value_array_grown_through_recursive_hand_off_landed_valid", "6"),
+    ("by_value_cursor_set_through_recursive_parser_valid", "[a]3"),
+    ("by_value_array_popped_by_inout_callee_valid", "22"),
+    ("by_value_array_handed_to_generic_reader_valid", "3"),
+    ("inout_string_chain_popped_by_recursive_parser_valid", "00000101101011110"),
+    ("by_value_argument_beside_its_inout_landed_valid", "13"),
+    ("by_value_argument_before_its_inout_landed_valid", "15"),
+    ("scalar_and_string_beside_their_inout_valid", "54a!a"),
+    ("by_value_array_to_two_reading_formals_valid", "32"),
+    ("array_handed_to_two_keeping_formals_landed_valid", "1"),
+    ("array_handed_to_three_keeping_formals_landed_valid", "102"),
     ("constructor_of_formal_values_stored_valid", "3ab"),
     ("path_alias_lent_to_string_getter_valid", "abab"),
     ("option_string_result_reassigned_valid", "3ab"),
@@ -2108,6 +2344,10 @@ for name, expected in (
     ("ref_view_beside_unit_variant_valid", "1"),
     ("string_inout_literal_then_escape_call_landed_valid", "1"),
     ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
+    ("string_local_pushed_into_field_array_landed_valid", "yx"),
+    ("string_element_push_copy_landing_mixed_landed_valid", "header023"),
+    ("ref_input_through_call_result_into_inout_output_landed_valid", "f26"),
+    ("ref_string_through_inout_reader_shallow_store_landed_valid", "2\n2c"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

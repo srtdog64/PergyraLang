@@ -36,6 +36,10 @@ typedef struct
     /* Independent descriptor-retention facet; Slot access bits do not prove it. */
     bool array_storage_unproved;
     bool array_elements_unproved;
+    /* An Array formal's buffer may be reallocated or freed through it (a
+     * push, or a hand-off to a formal that may); false until the walk sees
+     * one, so a cycle of hand-offs keeps it unless some routine on it does not. */
+    bool array_buffer_unkept;
     bool returned_backing_unproved;
     bool returned_backing_pending;
     bool analysis_unsupported;
@@ -134,6 +138,10 @@ void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned ef
 void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, unsigned effect,
     ASTNode *carrier);
 bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins);
+/* `held` has every origin in `origins` already. Storing them again into a
+ * place that holds them adds no call escape: `carriers.names = names` after
+ * `let names = carriers.names` puts back what `carriers` held. */
+bool backing_origins_held(const ReturnedBacking *state, const uint64_t *origins, const uint64_t *held);
 FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert);
 size_t backing_node(ReturnedBacking *state, ASTNode *node);
 bool backing_work(ReturnedBacking *state, size_t at);
@@ -146,6 +154,18 @@ bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue va
 /* Where a value's backing goes: its destinations, or every alias `id` of it. */
 void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations);
 void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id);
+/* Handing a value that carries the frame's input to an inout formal is no
+ * call escape by itself when the input is `ref`: a local holds of a ref
+ * only what the ref lends without a refusal at the store (Strings,
+ * scalars), never an alias of its storage, so a callee rewriting the
+ * argument changes nothing of the input. What the callee keeps of the
+ * formal is its summary's call or channel escape, added at the call. An
+ * `inout` input is the caller's own place, which the routine may change:
+ * a callee rewriting it changes what the caller lent for change, and an
+ * alias of it written there is refused at the next use or at the exit. A
+ * by-value input shares its caller's storage, and an alias of it written
+ * by the callee changes the caller: that stays an escape. */
+bool backing_inout_argument_leaves_input(const ReturnedBacking *state);
 void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement,
     ASTNode *carrier);
 /* Applies an intent call's effect on its arguments' storage; false when the
@@ -241,6 +261,10 @@ struct FunctionParamFlowIndexClaims {
      * that passed (function_param_flow_index_claims_current). */
     size_t checked_generation, checked_locals;
     bool checked;
+    /* For the loan order: each row's parent row, built for one generation,
+     * and the row of the last node asked about. */
+    size_t *order_parent, order_generation, order_site_row;
+    const ASTNode *order_site;
 };
 
 typedef struct {
@@ -358,6 +382,10 @@ struct FunctionParamFlowSummaryStore
     size_t closure_read_count, closure_read_capacity;
     size_t evaluating_plus_one;
     size_t skipped_evaluations;
+    /* Field verdicts of settled struct formals, asked for after the solve;
+     * a verdict being computed reads as unproved. */
+    struct FunctionParamFlowFieldVerdict *field_verdicts;
+    size_t field_verdict_count, field_verdict_capacity;
 };
 
 void function_param_flow_program_point_index_destroy(
@@ -525,7 +553,7 @@ void function_param_flow_closure_changed(FunctionParamFlowSummaryStore *store, s
  * stands for the set. */
 typedef struct {
     unsigned mask;
-    bool storage, elements, unproved, pending, unsupported, ready, outputs_present;
+    bool storage, elements, buffer, unproved, pending, unsupported, ready, outputs_present;
     FunctionParamFlowOutputProducer producer;
     size_t outputs;
 } FunctionParamFlowEntryFacts;
@@ -537,10 +565,22 @@ unsigned function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store,
 unsigned function_param_flow_evaluate(FunctionParamFlowSummaryStore *store, size_t index);
 bool function_param_flow_worklist_verified(FunctionParamFlowSummaryStore *store, ASTNode *site);
 /* `summary` is what the formal's summary says so far; its RETURN bit lets a
- * returned value carry an alias of the formal. */
+ * returned value carry an alias of the formal. `*buffer_unkept` is set when
+ * an Array formal's buffer may be reallocated or freed through it. */
 unsigned function_param_array_storage_unproved_in_program_points(
     ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
-    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read);
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, bool *payload_read,
+    bool *buffer_unkept);
+/* No push or other reallocation or release reaches the buffer of the Array
+ * formal through it, as the storage walk last settled; false when that is
+ * not known. */
+bool function_param_flow_array_buffer_kept(SemanticContext *ctx, ASTNode *function_decl, size_t param_index);
+/* The same walk proving only the paths through one top-level `field` of a
+ * struct formal; false when the formal is not proved through paths. */
+bool function_param_array_storage_field_unproved_in_program_points(
+    ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, const char *field,
+    unsigned *failures);
 /* One entry's settled Array preservation failures, for the published snapshot. */
 unsigned function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *store, size_t index);
 

@@ -106,8 +106,7 @@ static bool backing_unit_variant(ReturnedBacking *state, SemanticPublishedValue 
 void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement,
     ASTNode *carrier)
 {
-    /* A stored value that carries none of this frame's origins moves none
-     * of its backing, wherever it is stored. */
+    /* A stored value carrying none of this frame's origins moves no backing. */
     if (!backing_any_origin(state, origins)) return;
     FunctionParamFlowBackingBinding *row = backing_binding(state,
         function_param_flow_backing_place(state, target), false);
@@ -117,7 +116,8 @@ void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *orig
     for (size_t w = 0; !replacement && w < state->fact->destination_words; w++) output |= row->destinations[w] != 0;
     for (size_t p = 0; !replacement && p < state->fact->origin_count; p++) if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0)
         backing_merge(state->fact->destination_words, &state->fact->outputs[p * state->fact->destination_words], row->destinations);
-    if (output) backing_effect_carried(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier);
+    if (output && !backing_origins_held(state, origins, row->origins))
+        backing_effect_carried(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier);
     /* A by-value or own parameter is this call's storage, as a local is: a
      * write through it (an inout argument) keeps the backing in the frame,
      * and a later return or escape of the parameter carries it. A declared
@@ -522,7 +522,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                     backing_effect_carried(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE), carrier);
                     /* A loan handed to a formal whose storage proof fails changes the
                      * loan's owner: the move owner sees only access paths. */
-                    if (param == NULL || param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_MUT_REF ||
+                    if (param == NULL || param->mode == PARAM_MODE_OWN || (param->mode == PARAM_MODE_MUT_REF && !backing_inout_argument_leaves_input(state)) ||
                         (state->loan_seed != NULL && !function_param_flow_preserves_array_storage(state->store->ctx, callee, formal)))
                         backing_effect_carried(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier);
                     if (!function_param_flow_callee_relation_ready(&state->lookup, node, i))

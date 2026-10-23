@@ -1,0 +1,22 @@
+// One Array to three keeping formals of one call: the first two arguments
+// are copied, so each field of the result grows on its own.
+struct Facts {
+    ok: Bool;
+    a: Array<Int>;
+    b: Array<Int>;
+    c: Array<Int>;
+}
+
+func FactsError(a: Array<Int>, b: Array<Int>, c: Array<Int>) -> Facts {
+    return Facts(false, a, b, c);
+}
+
+func Main() -> Int {
+    let empty: Array<Int> = [];
+    let facts: Facts = FactsError(empty, empty, empty);
+    ArrayPush(facts.a, 7);
+    ArrayPush(facts.c, 8);
+    ArrayPush(facts.c, 9);
+    Print(ToString(ArrayLength(facts.a) * 100 + ArrayLength(facts.b) * 10 + ArrayLength(facts.c)));
+    return 0;
+}

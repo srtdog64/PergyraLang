@@ -1,0 +1,23 @@
+// A by-value input shares the caller's storage. Touch takes an alias of its
+// field and hands it to an inout callee that writes it, so the call changes
+// the caller's box: the inout call stays an escape of a by-value input.
+struct Box {
+    items: Array<Int>;
+}
+
+func Rewrite(inout items: Array<Int>) -> Void {
+    ArraySet(items, 0, 9);
+}
+
+func Touch(box: Box) -> Int {
+    let items: Array<Int> = box.items;
+    Rewrite(items);
+    return 0;
+}
+
+func Main() -> Int {
+    let box: Box = Box([1, 2]);
+    Log(Touch(box));
+    Log(box.items[0]);
+    return 0;
+}

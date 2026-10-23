@@ -1,0 +1,41 @@
+// As loan_owner_constructor_copy_written_by_callee_invalid, the value
+// leaving the routine in its result.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    rows: Array<Cell>;
+}
+
+struct Artifact {
+    text: String;
+    arena: Arena;
+    count: Int;
+}
+
+struct Facts {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+func FactsFrom(artifact: Artifact) -> Facts {
+    return Facts(artifact.arena.rows, ArrayLength(artifact.arena.rows) > 0);
+}
+
+struct Pair {
+    artifact: Artifact;
+    first: Int;
+}
+
+func Check() -> Pair {
+    let base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
+    let missing: Facts = FactsFrom(base);
+    return Pair(Artifact(base.text, base.arena, base.count), missing.rows[0].value + base.count);
+}
+
+func Main() -> Int {
+    let pair: Pair = Check();
+    Print(ToString(pair.first + pair.artifact.count));
+    return 0;
+}

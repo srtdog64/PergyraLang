@@ -1,0 +1,15 @@
+// A String borrowing an Array<String> element that was released is refused
+// where TextBuilderAppend takes it, once: the refused text has no type for
+// the append to report again.
+func Main() -> Int {
+    let names: Array<String> = [Concat("a", "b")];
+    let first: String = names[0];
+    ArrayDropOwnedStrings(names);
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    TextBuilderAppend(output, first);
+    let definition: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    Print(definition);
+    return 0;
+}

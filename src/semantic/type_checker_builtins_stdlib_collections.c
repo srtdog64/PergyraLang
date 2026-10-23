@@ -100,6 +100,27 @@ semantic_stdlib_array_argument_preserves_storage(const ASTNode *call, size_t ord
     }
 }
 
+/* A stdlib Array call that reads its receiver's length, sets an element in
+ * place or shortens it: it never reallocates or frees the receiver's buffer. */
+bool
+semantic_stdlib_array_argument_keeps_buffer(const ASTNode *call, size_t ordinal)
+{
+    ASTNode *callee = ast_call_callee(call);
+    if (ordinal != 0 || !ast_call_semantic_callee_is_stdlib(call)
+        || ast_call_semantic_callee_decl_id(call) != 0
+        || ast_call_semantic_callee_value_binding_id(call) != 0
+        || callee == NULL || callee->type != AST_IDENTIFIER)
+        return false;
+    switch (stdlib_collection_builtin_kind(ast_identifier_name(callee))) {
+    case STDLIB_COLLECTION_ARRAY_LENGTH:
+    case STDLIB_COLLECTION_ARRAY_SET:
+    case STDLIB_COLLECTION_ARRAY_POP:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool
 semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
     size_t ordinal, SemanticContext *ctx)

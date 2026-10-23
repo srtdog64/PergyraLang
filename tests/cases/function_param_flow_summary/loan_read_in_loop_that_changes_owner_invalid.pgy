@@ -1,0 +1,47 @@
+// The facts are read before the change in the source, but in a loop that
+// also changes the analysis: the second pass would read the change.
+struct Cell {
+    value: Int;
+}
+
+struct Graph {
+    rows: Array<Cell>;
+}
+
+struct Analysis {
+    graph: Graph;
+    ok: Bool;
+}
+
+struct Facts {
+    graph: Graph;
+    code: Int;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    return Facts(graph, 0);
+}
+
+func FactsError(facts: Facts, code: Int) -> Facts {
+    return Facts(facts.graph, code);
+}
+
+func Check(analysis: Analysis) -> Int {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        total = total + facts.graph.rows[0].value;
+        ArraySet(analysis.graph.rows, 0, Cell(9));
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Int {
+    let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
+    Print(ToString(Check(analysis)));
+    let bad: Analysis = Analysis(Graph([Cell(1)]), false);
+    Print(ToString(Check(bad)));
+    return 0;
+}

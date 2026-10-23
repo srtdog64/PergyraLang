@@ -299,6 +299,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 origin->private_stores_owner_id == ast_node_stable_id(origin->function_decl) &&
                 semantic_param_publication_private_array_push(ctx, node, origin->function_decl);
             local |= private_store;
+            /* ArrayPop shortens its receiver in place and keeps nothing of it
+             * (2026-10-22_array_pop_keeps_nothing_of_its_receiver). */
+            local |= semantic_param_publication_checked_array_pop(ctx, node);
             bool read = semantic_typed_map_query_receiver_read(ctx, node, i);
             bool result_depends = false, external_retains = true;
             bool relation = semantic_param_publication_checked_result_relation(ctx, node, i, &result_depends, &external_retains);
@@ -323,8 +326,16 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                         return false;
                     }
                     FuncParam *param = ast_func_param(callee_decl, formal);
+                    /* The routine's own inout formal handed on as an inout
+                     * argument is the caller's place, which the routine may
+                     * change: what the callee keeps of it is its summary's. */
+                    FuncParam *own = origin != NULL ? ast_func_param(origin->function_decl, origin->param_index) : NULL;
+                    bool inout_handoff = param != NULL && param->mode == PARAM_MODE_MUT_REF && own != NULL &&
+                        own->mode == PARAM_MODE_MUT_REF && arg == root && origin->param_name != NULL &&
+                        strcmp(ast_identifier_name(root), origin->param_name) == 0 &&
+                        ast_identifier_binding_syntax_id(root) == ast_func_param_stable_id(own);
                     if (param != NULL && param->name != NULL) {
-                        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_DEFAULT) {
+                        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_DEFAULT || inout_handoff) {
                             bool direct_self_reborrow = origin != NULL
                                 && param->mode == PARAM_MODE_REF && arg == root
                                 && callee_decl == origin->function_decl

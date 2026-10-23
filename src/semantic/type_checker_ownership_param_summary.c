@@ -11,7 +11,7 @@
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "slot_analyzer_internal.h"
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow_loan_order.h"
 #include "typed_map_query_fact_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "diag_codes.h"
@@ -256,112 +256,6 @@ semantic_check_param_summary_escapes(ASTNode *node,
     type_function_finish_param_escape_summaries(function_type);
 }
 
-/* Final eager loan validation consumes the sparse flow owner's indexed facts. */
-static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
-    FunctionParamFlowIndexClaims *claims, ASTNode *caller, const ASTNode *place, const ASTNode **root)
-{
-    if (claims == NULL || !slot_call_argument_storage_root(place, root)) return false;
-    for (size_t step = 0; *root != NULL && step <= claims->count; step++) {
-        uint32_t binding = semantic_param_publication_binding(store->ctx, *root);
-        if (binding == 0) return false;
-        FunctionParamFlowIndexClaim *declaration = NULL;
-        for (size_t c = 0; c < claims->count; c++)
-            if (claims->rows[c].id == binding) { declaration = &claims->rows[c]; break; }
-        if (declaration == NULL) {
-            for (size_t p = 0; p < ast_func_param_count(caller); p++)
-                if (binding == ast_func_param_stable_id(ast_func_param(caller, p))) return true;
-            return false;
-        }
-        if (declaration->shape != AST_LET_DECL || declaration->node == NULL ||
-            declaration->node->type != AST_LET_DECL || ast_node_stable_id(declaration->node) != binding ||
-            declaration->local_alias != ast_let_is_alias(declaration->node)) return false;
-        if (!declaration->local_alias) return true;
-        ASTNode *initializer = ast_let_initializer(declaration->node);
-        if (initializer == NULL || declaration->child_count != 2 || declaration->children[0] != initializer ||
-            declaration->child_ids[0] == 0 || declaration->child_ids[0] != ast_node_stable_id(initializer) ||
-            !semantic_param_publication_value(store->ctx, initializer).ok ||
-            !slot_call_argument_storage_root(initializer, root) || *root == NULL) return false;
-    }
-    return *root == NULL;
-}
-
-/* No assignment, writing call or move in `caller` reaches `binding`. The
- * owner may still be lent on to a `ref` formal. With `lends_on`, a by-value
- * formal that only reads it and returns it or a part of it lends it on too,
- * unless the owner is a local and that call's result leaves the routine
- * (2026-10-19_by_value_getter_lends_when_used_again). With
- * `own_descriptor`, a push or set with `binding` itself as the receiver
- * changes only that binding's own descriptor. */
-static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
-    FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
-    bool own_descriptor)
-{
-    bool owner_formal = false;
-    for (size_t p = 0; p < ast_func_param_count(caller); p++)
-        if (ast_func_param_stable_id(ast_func_param(caller, p)) == binding) owner_formal = true;
-    for (size_t c = 0; c < claims->count; c++) {
-        ASTNode *node = claims->rows[c].node;
-        if (node->type == AST_ASSIGNMENT) {
-            const ASTNode *target = NULL;
-            if (!returned_loan_storage_root(store, claims, caller, ast_assignment_target(node), &target) ||
-                (target != NULL && semantic_param_publication_binding(store->ctx, target) == binding)) return false;
-        }
-        if (node->type != AST_CALL) continue;
-        for (size_t p = 0; p < ast_call_arg_count(node); p++) {
-            if (!semantic_param_publication_checked_argument(store->ctx, node, p)) return false;
-            if (semantic_param_publication_string_argument_read_only(store->ctx, node, p) ||
-                semantic_typed_map_query_receiver_read(store->ctx, node, p)) continue;
-            const ASTNode *root = NULL;
-            if (!returned_loan_storage_root(store, claims, caller, ast_call_argument(node, p), &root)) return false;
-            if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
-            ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
-            size_t formal = 0;
-            /* A String or copy-only value read through a path of the owner
-             * changes nothing of it, whoever receives it. A path is never an
-             * `inout` or `own` argument. */
-            ASTNode *argument_node = ast_call_argument(node, p);
-            SemanticPublishedValue read = semantic_param_publication_value(store->ctx, argument_node);
-            if ((argument_node->type == AST_MEMBER_ACCESS || argument_node->type == AST_ARRAY_ACCESS) &&
-                read.ok && !read.meta && (type_equals(read.type, TYPE_STRING) ||
-                    semantic_classify_ownership_type(read.type, store->ctx) == OWNERSHIP_TYPE_COPY_ONLY)) continue;
-            /* A builtin that borrows its argument for the call, or a Clone of
-             * it, only reads it, except the receivers the retention registry
-             * lists for writers: ArrayPush, ArraySet, ArrayPushOwnedString, Write. */
-            uint32_t kind = 0;
-            bool clone = callee == NULL && ast_call_semantic_callee_builtin_kind(node, &kind) && kind == BUILTIN_CLONE;
-            if (callee == NULL && (clone || semantic_param_publication_argument_borrowed_for_call(store->ctx, node, p))) {
-                size_t stored = 0;
-                if (p == 0 && (semantic_param_publication_checked_array_store(store->ctx, node, &stored) ||
-                        kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING) &&
-                    !(own_descriptor && argument_node->type == AST_IDENTIFIER)) return false;
-                if (p == 0 && semantic_param_publication_checked_slot_write(store->ctx, node)) return false;
-                continue;
-            }
-            if (callee == NULL || !semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal)) return false;
-            /* A write changes the owner under the loan; so does a move into an
-             * `own` formal, or into a by-value formal that keeps or releases
-             * it or stores into storage it holds. */
-            ParamMode mode = ast_func_param(callee, formal)->mode;
-            unsigned summary = function_param_flow_summary_for_call(
-                &(SlotFunctionLookup){store->ctx, store->program_root}, node, p);
-            SemanticPublishedValue argument = semantic_param_publication_value(store->ctx, ast_call_argument(node, p));
-            if (mode == PARAM_MODE_MUT_REF || mode == PARAM_MODE_OWN || (summary & SLOT_PARAM_SUMMARY_WRITE) != 0) return false;
-            unsigned moving = SLOT_PARAM_SUMMARY_RELEASE | SLOT_PARAM_SUMMARY_CALL_ESCAPE |
-                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE | (lends_on ? 0u : SLOT_PARAM_SUMMARY_RETURN_ESCAPE);
-            bool storage = argument.ok && !type_equals(argument.type, TYPE_STRING) &&
-                semantic_classify_ownership_type(argument.type, store->ctx) != OWNERSHIP_TYPE_COPY_ONLY;
-            if (mode != PARAM_MODE_REF && ((summary & moving) != 0 || !argument.ok ||
-                (storage && !function_param_flow_preserves_array_storage(store->ctx, callee, formal)))) return false;
-            /* A read-and-return call on a local whose result leaves the
-             * routine hands the local on: it changes the owner of every
-             * other loan of it. */
-            if (lends_on && mode != PARAM_MODE_REF && (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
-                !owner_formal && !function_param_flow_call_result_stays(store->ctx, caller, node)) return false;
-        }
-    }
-    return true;
-}
-
 static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
     const PendingRefCall *loan, unsigned effects)
@@ -380,7 +274,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
         if (!semantic_param_publication_value(store->ctx, value).ok) { admitted = false; break; }
         if (value->type == AST_IDENTIFIER) {
             const ASTNode *root = NULL;
-            if (!returned_loan_storage_root(store, claims, loan->caller, value, &root) || root == NULL) { admitted = false; break; }
+            if (!function_param_flow_loan_storage_root(store, claims, loan->caller, value, &root) || root == NULL) { admitted = false; break; }
             value = (ASTNode *)root;
         }
         if (semantic_param_publication_value_has_static_string_backing(store->ctx, value)) continue;
@@ -405,7 +299,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
             }
             if ((dependency != NULL || by_value_formal) &&
-                !loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false)) admitted = false;
+                !function_param_flow_loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false, false, NULL)) admitted = false;
             if (dependency == NULL && !by_value_formal) admitted = false;
             /* A loan that stays here needs only an owner no write reaches. */
             if (effects == 0) continue;
@@ -552,7 +446,9 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
         free(carriers.ids);
         return false;
     }
-    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true, false);
+    FunctionParamFlowLoanSpan span = function_param_flow_loan_span(ctx, index->claims, call, carriers.ids, carriers.count,
+        ast_func_body(caller));
+    bool unchanged = function_param_flow_loan_owner_unchanged(store, index->claims, caller, owner, true, false, false, &span);
     /* The loan shares the owner's storage, so a change through a local the
      * loan reached changes the owner. A local of a String, an Option of one
      * or a struct of such fields holds none of it, and a local Array literal
@@ -568,9 +464,10 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             literal = ast_let_initializer(row->node) != NULL && ast_let_initializer(row->node)->type == AST_ARRAY_LITERAL;
             break;
         }
-        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal);
+        unchanged = !holds || function_param_flow_loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal, true, &span);
     }
     free(carriers.ids);
+    function_param_flow_loan_span_release(&span);
     if (!unchanged && failure != NULL) failure->owner_changed = true;
     return unchanged;
 }
