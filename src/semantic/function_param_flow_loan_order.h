@@ -35,5 +35,7 @@ bool function_param_flow_loan_owner_unchanged(FunctionParamFlowSummaryStore *sto
 /* `claim` is a match case pattern or a part of one: it binds parts of the
  * subject and evaluates nothing. */
 bool function_param_flow_claim_in_match_pattern(FunctionParamFlowIndexClaims *claims, size_t claim);
+/* The subject of the match whose case pattern holds `claim`, or NULL. */
+const ASTNode *function_param_flow_claim_match_subject(FunctionParamFlowIndexClaims *claims, size_t claim);
 
 #endif

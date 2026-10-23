@@ -99,6 +99,15 @@ bool function_param_flow_claim_in_match_pattern(FunctionParamFlowIndexClaims *cl
     return false;
 }
 
+const ASTNode *function_param_flow_claim_match_subject(FunctionParamFlowIndexClaims *claims, size_t claim)
+{
+    if (!function_param_flow_claim_in_match_pattern(claims, claim)) return NULL;
+    for (size_t at = claim, steps = 0; at != SIZE_MAX && steps <= claims->count; at = claims->order_parent[at], steps++)
+        if (claims->rows[at].shape == AST_MATCH_STMT && claims->rows[at].node != NULL &&
+            claims->rows[at].node->type == AST_MATCH_STMT) return ast_match_subject(claims->rows[at].node);
+    return NULL;
+}
+
 /* Only blocks, branches, `with` scopes and plain statements or expressions
  * enclose `row` up to the routine's body, never a loop, a deferred or
  * concurrent body or a closure: `row` runs once, in source order, each time

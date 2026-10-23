@@ -184,6 +184,7 @@ landing_rounds = {
     "loan_carrier_handed_on_by_early_return_valid": 0,
     "loan_carrier_read_into_returned_constructor_valid": 0,
     "loan_payload_bound_by_match_valid": 0,
+    "loan_payload_binding_passed_to_reader_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
@@ -494,6 +495,11 @@ release_lifetime_refusals = {
     # A payload a match binds carries the subject's loan: written, it changes
     # the owner the subject lends.
     "loan_payload_bound_by_match_written_invalid": [(*released_refusal, 32, 47), (*released_refusal, 35, 36)],
+    # A payload binding's root is its match subject's: a callee that writes
+    # it changes the subject that carries the loan, and a call's result as
+    # subject roots nothing the proof follows.
+    "loan_payload_binding_written_by_callee_invalid": [(*released_refusal, 38, 47), (*released_refusal, 43, 36)],
+    "loan_payload_binding_of_call_subject_written_invalid": [(*released_refusal, 37, 47), (*released_refusal, 42, 36)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -1033,6 +1039,9 @@ paired = (
     ("loan_carrier_read_into_constructor_a_callee_writes_invalid", False),
     ("loan_payload_bound_by_match_valid", True),
     ("loan_payload_bound_by_match_written_invalid", False),
+    ("loan_payload_binding_passed_to_reader_valid", True),
+    ("loan_payload_binding_written_by_callee_invalid", False),
+    ("loan_payload_binding_of_call_subject_written_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

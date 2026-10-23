@@ -32,6 +32,17 @@ bool function_param_flow_loan_storage_root(FunctionParamFlowSummaryStore *store,
                 if (binding == ast_func_param_stable_id(ast_func_param(caller, p))) return true;
             return false;
         }
+        /* A binding a case pattern makes holds part of the match subject:
+         * its root is the subject's, when a binding roots the subject. A
+         * call's result as subject roots nothing the proof could follow. */
+        if (declaration->shape == AST_IDENTIFIER) {
+            const ASTNode *subject = function_param_flow_claim_match_subject(claims, (size_t)(declaration - claims->rows));
+            const ASTNode *subject_root = NULL;
+            if (subject == NULL || !slot_call_argument_storage_root(subject, &subject_root) || subject_root == NULL)
+                return false;
+            *root = subject_root;
+            continue;
+        }
         if (declaration->shape != AST_LET_DECL || declaration->node == NULL ||
             declaration->node->type != AST_LET_DECL || ast_node_stable_id(declaration->node) != binding ||
             declaration->local_alias != ast_let_is_alias(declaration->node)) return false;

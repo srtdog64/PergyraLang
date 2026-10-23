@@ -1,0 +1,53 @@
+// As DriverSourceCExecution.Compile: a payload a match binds goes to a reader
+// beside the request the admission lends. The binding holds part of the
+// admission, so its storage root is the admission's, which is no request.
+struct Cell {
+    value: Int;
+}
+
+struct Request {
+    rows: Array<Cell>;
+    ok: Bool;
+}
+
+struct Receipt {
+    rows: Array<Cell>;
+}
+
+enum Admission {
+    Admitted(Receipt),
+    Denied(Int),
+}
+
+func Produce(request: Request) -> Admission {
+    if !request.ok {
+        return Denied(1);
+    }
+    return Admitted(Receipt(request.rows));
+}
+
+func Ready(receipt: Receipt, request: Request) -> Bool {
+    return ArrayLength(receipt.rows) == ArrayLength(request.rows);
+}
+
+func Compile(request: Request) -> Int {
+    let admission: Admission = Produce(request);
+    match admission {
+        case Denied(code):
+            return code + ArrayLength(request.rows);
+        case Admitted(receipt):
+            if !Ready(receipt, request) {
+                return 0;
+            }
+            return receipt.rows[0].value + ArrayLength(request.rows);
+    }
+    return 0;
+}
+
+func Main() -> Int {
+    let good: Request = Request([Cell(1), Cell(2)], true);
+    Print(ToString(Compile(good)));
+    let bad: Request = Request([], false);
+    Print(ToString(Compile(bad)));
+    return 0;
+}
