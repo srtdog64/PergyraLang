@@ -632,6 +632,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
+                   $(SEMANTIC_DIR)/operator_overload_rules.c \
                    $(SEMANTIC_DIR)/type_checker_expr_collections.c \
                    $(SEMANTIC_DIR)/type_checker_reflect.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
@@ -2011,6 +2012,20 @@ else
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
 endif
 
+# Shared operator vocabulary, independent of frontend/backend construction.
+ALL_DEP_FILES += $(BUILD_DIR)/tests/operator_overload_rules_unit.d
+$(BUILD_DIR)/tests/operator_overload_rules_unit.o: tests/semantic/operator_overload_rules_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/operator_overload_rules_unit$(EXEEXT): $(BUILD_DIR)/semantic/operator_overload_rules.o $(BUILD_DIR)/tests/operator_overload_rules_unit.o | $(BIN_DIR)
+	$(call pgy_link,)
+
+.PHONY: operator-overload-rules-test
+operator-overload-rules-test: $(BIN_DIR)/operator_overload_rules_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/operator_overload_rules_unit$(EXEEXT))
+
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2247,7 +2262,7 @@ test-security: $(SECURITY_TEST)
 	@echo "=== Security Test ==="
 	$(call pgy_run_native,$(SECURITY_TEST))
 
-test-semantic: $(SEMANTIC_TEST)
+test-semantic: $(SEMANTIC_TEST) operator-overload-rules-test
 	@echo "=== Semantic Analyzer Test ==="
 	PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1 $(call pgy_run_native,$(SEMANTIC_TEST))
 

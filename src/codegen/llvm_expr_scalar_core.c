@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_expr_scalar_core.h"
+#include "../semantic/operator_overload_rules.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -380,7 +381,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef right_type = LLVMTypeOf(right);
 
     {
-        const char *suffix = llvm_operator_overload_suffix(
+        const char *suffix = pgy_operator_overload_suffix(
             op_type);
         const char *type_name = llvm_expr_custom_type_name(
             left_expr, ctx);

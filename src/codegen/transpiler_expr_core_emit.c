@@ -1,4 +1,5 @@
 #include "transpiler_expr_core_emit.h"
+#include "../semantic/operator_overload_rules.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -131,7 +132,7 @@ transpiler_binary_operation(ASTNode *expr, TranspilerCtx *ctx,
 
         overload = find_operator_overload_decl(ctx, stable_lt, op_type);
         if (overload != NULL) {
-            const char *suffix = operator_overload_suffix(op_type);
+            const char *suffix = pgy_operator_overload_suffix(op_type);
             char *operator_name = strdup_fmt("operator_%s_%s",
                 suffix, stable_lt);
             const char *callable_symbol = operator_name != NULL

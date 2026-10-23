@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_role_emit.h"
+#include "../semantic/operator_overload_rules.h"
 
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -130,28 +131,24 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             }
 
             {
-                PgyTokenType ops[] = {
-                    TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH,
-                    TOKEN_PERCENT, TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS,
-                    TOKEN_LESS_EQUAL, TOKEN_GREATER, TOKEN_GREATER_EQUAL
-                };
                 const char *for_type_name =
                     llvm_role_for_type_name(ctx, stmt);
                 if (ctx->has_error)
                     return false;
 
                 for (size_t oi = 0; for_type_name != NULL
-                       && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
-                    const char *suffix = llvm_operator_suffix(ops[oi]);
+                       && oi < pgy_operator_overload_count(); oi++) {
+                    PgyTokenType op = pgy_operator_overload_at(oi);
+                    const char *suffix = pgy_operator_overload_suffix(op);
                     const MIRDeclMethod *method_meta =
                         llvm_find_role_operator_method_metadata(
-                            ctx, stmt, ops[oi], 0);
+                            ctx, stmt, op, 0);
                     ASTNode *method = NULL;
                     const char *method_name =
                         llvm_mir_decl_method_name(method_meta);
                     if (method_meta == NULL) {
                         method = llvm_find_role_operator_method(
-                            ctx, stmt, ops[oi], 0);
+                            ctx, stmt, op, 0);
                         if (method != NULL && llvm_active_has_mir(ctx)) {
                             llvm_set_mir_inventory_missing(ctx,
                                 "MIR-only LLVM path missing role operator method metadata for role '%s'",
