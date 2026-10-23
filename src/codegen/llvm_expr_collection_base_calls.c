@@ -7,6 +7,7 @@
 
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_store_coercion.h"
 #include "codegen_hashmap_key_policy.h"
 #include "parser/ast_api.h"
 
@@ -389,14 +390,10 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
                 "LLVM SetAdd could not lower value expression");
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetAdd value does not match Set<T> element type");
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_set_add_string_raw_export");
@@ -452,14 +449,10 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
                 "LLVM SetHas could not lower value expression");
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetHas value does not match Set<T> element type");
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_set_has_string_raw_export");
@@ -519,14 +512,10 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
                 "LLVM SetRemove could not lower value expression");
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetRemove value does not match Set<T> element type");
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_set_remove_string_raw_export");

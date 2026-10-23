@@ -11,6 +11,7 @@
 #include "llvm_expr_call_queue_extended.h"
 #include "llvm_internal_api.h"
 #include "llvm_expr_call_collections_map_exports.h"
+#include "llvm_mir_store_coercion.h"
 
 typedef enum {
     LLVM_MAP_EXT_NONE = 0,
@@ -111,14 +112,13 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (key == NULL || value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 "LLVM MapSet could not lower key or value expression");
-        if (LLVMTypeOf(value) != value_ty) {
-            if ((value_ty == ctx->type_i32 || value_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, value_ty, llvm_tmp_name(ctx));
-            else if ((value_ty == ctx->type_f32 || value_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, value_ty, llvm_tmp_name(ctx));
-        }
+        /* The runtime copies sizeof(V) bytes out of the temporary, so a
+         * narrower value (a Float literal into Double, an Int literal into
+         * Long) would leave the upper bytes undefined. */
+        value = llvm_mir_coerce_value_for_store(ctx, value, value_ty);
+        if (LLVMTypeOf(value) != value_ty)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapSet value does not match HashMap<K, V> value type");
         if (value_name != NULL && strcmp(value_name, "String") == 0) {
             fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
                 callee_name, "set", key_name);

@@ -2,6 +2,7 @@
 #include "codegen_channel_runtime_abi.h"
 #include "codegen_hashmap_key_policy.h"
 #include "llvm_internal.h"
+#include "llvm_mir_store_coercion.h"
 #include "llvm_stmt_let_collection_policy.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
@@ -526,25 +527,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef element = llvm_emit_expression(
                 ast_array_literal_element(init, i), ctx);
-            if (element != NULL && LLVMTypeOf(element) != elem_type) {
-                LLVMTypeRef element_type = LLVMTypeOf(element);
-                bool target_is_int = (elem_type == ctx->type_i32
-                                   || elem_type == ctx->type_i64);
-                bool target_is_fp = (elem_type == ctx->type_f32
-                                  || elem_type == ctx->type_f64);
-                bool source_is_int = (element_type == ctx->type_i32
-                                   || element_type == ctx->type_i64);
-                bool source_is_fp = (element_type == ctx->type_f32
-                                  || element_type == ctx->type_f64);
-
-                if (target_is_int && source_is_fp)
-                    element = llvm_build_checked_fptosi(ctx, element, elem_type,
-                                              llvm_tmp_name(ctx));
-                else if (target_is_fp && source_is_int)
-                    element = LLVMBuildSIToFP(ctx->builder, element, elem_type,
-                                              llvm_tmp_name(ctx));
-            }
             if (element != NULL) {
+                element = llvm_mir_coerce_value_for_store(ctx, element,
+                    elem_type);
                 LLVMValueRef args[] = { var_alloca, element };
                 LLVMBuildCall2(ctx->builder, push_fn->fn_type,
                     push_fn->fn, args, 2, "");
