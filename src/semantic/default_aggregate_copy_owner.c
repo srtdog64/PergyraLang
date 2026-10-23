@@ -226,6 +226,105 @@ void move_walk_copy_inout_at_exit(MoveWalk *walk, const MoveState *state, ASTNod
     }
 }
 
+enum { PART_SOURCES = 32 };
+typedef struct { size_t count; bool overflow; uint32_t binding[PART_SOURCES]; char *fields[PART_SOURCES]; } PartStorage;
+
+static ASTNode *value_part(ASTNode *value, size_t i)
+{
+    return value->type == AST_ARRAY_LITERAL ? ast_array_literal_element(value, i)
+        : value->type == AST_TUPLE_LITERAL ? ast_tuple_literal_element(value, i) : ast_call_argument(value, i);
+}
+
+static bool part_storage_add(MoveWalk *walk, PartStorage *storage, uint32_t binding, const char *fields)
+{
+    for (size_t i = 0; i < storage->count; i++)
+        if (storage->binding[i] == binding && strcmp(storage->fields[i], fields) == 0) return false;
+    if (storage->count == PART_SOURCES) { storage->overflow = true; return false; }
+    char *copy = malloc(strlen(fields) + 1);
+    if (copy == NULL) { walk->failed = true; return false; }
+    strcpy(copy, fields);
+    storage->binding[storage->count] = binding;
+    storage->fields[storage->count++] = copy;
+    return true;
+}
+
+/* The storage a part of a value names: its own path and, through each copy
+ * row whose holder it names, the path it was copied from, extended by the
+ * part's path below what was copied. Empty when the part names no storage. */
+static void part_storage_collect(MoveWalk *walk, const MoveState *state, ASTNode *part, PartStorage *storage)
+{
+    char path[512];
+    uint32_t binding = 0;
+    SemanticPublishedValue value = semantic_param_publication_value(walk->ctx, part);
+    if (!value.ok || value.meta || !semantic_default_aggregate_value(walk->ctx, value.type) ||
+        !move_walk_access_path(part, &binding, path, sizeof(path))) return;
+    (void)part_storage_add(walk, storage, binding, path);
+    for (size_t w = 0; w < storage->count && !walk->failed && !storage->overflow; w++)
+        for (size_t i = 0; i < state->count; i++) {
+            const MovedPath *row = &state->rows[i];
+            const char *held = row->carrier_fields, *named = storage->fields[w];
+            if (row->carrier == 0 || row->carrier != storage->binding[w] || held == NULL) continue;
+            if (move_walk_path_contains(held, named)) {
+                if ((size_t)snprintf(path, sizeof(path), "%s%s", row->fields, named + strlen(held)) >= sizeof(path)) {
+                    storage->overflow = true;
+                    return;
+                }
+                (void)part_storage_add(walk, storage, row->binding, path);
+            } else if (move_walk_path_contains(named, held)) {
+                (void)part_storage_add(walk, storage, row->binding, row->fields);
+            }
+        }
+}
+
+static bool part_storage_overlaps(const PartStorage *a, const PartStorage *b)
+{
+    if (a->count == 0 || b->count == 0) return false;
+    if (a->overflow || b->overflow) return true;
+    for (size_t i = 0; i < a->count; i++)
+        for (size_t j = 0; j < b->count; j++)
+            if (a->binding[i] == b->binding[j] && (move_walk_path_contains(a->fields[i], b->fields[j]) ||
+                    move_walk_path_contains(b->fields[j], a->fields[i]))) return true;
+    return false;
+}
+
+/* Two parts of one value, a nominal constructor's or an Array or tuple
+ * literal's, that name the same storage, directly or through a local copy,
+ * would leave the value's parts sharing storage that no holder of the value
+ * sees. Each part that shares storage with a later one is refused, and
+ * copied where the value takes it when Clone copies it whole
+ * (2026-10-23_one_storage_in_two_parts_of_a_value_is_copied). */
+void move_walk_copy_parts_distinct(MoveWalk *walk, const MoveState *state, ASTNode *value)
+{
+    PublishedNode *published = value->type == AST_CALL ? publication_result_current(walk->ctx, value) : NULL;
+    size_t count = value->type == AST_ARRAY_LITERAL ? ast_array_literal_count(value)
+        : value->type == AST_TUPLE_LITERAL ? ast_tuple_literal_count(value)
+        : published != NULL && published->nominal_result != NULL ? ast_call_arg_count(value) : 0;
+    if (count < 2 || walk->failed) return;
+    PartStorage *parts = calloc(count, sizeof(*parts));
+    if (parts == NULL) { walk->failed = true; return; }
+    for (size_t i = 0; i < count && !walk->failed; i++) part_storage_collect(walk, state, value_part(value, i), &parts[i]);
+    for (size_t p = 0; p + 1 < count && !walk->failed; p++)
+        for (size_t q = p + 1; q < count; q++) {
+            if (!part_storage_overlaps(&parts[p], &parts[q])) continue;
+            if (!semantic_loan_copy_landing_select_carrier(walk->ctx, value_part(value, p))) walk->failed = true;
+            if (move_walk_reported_once(walk, value_part(value, q)))
+                semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
+                    PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, value_part(value, q),
+                    "Two parts of the value made on line %u share one storage.\n"
+                    "Reason:\n"
+                    "- each part of a struct or collection value owns the storage it holds\n"
+                    "- a holder of the value that changes one part would change or free the other\n"
+                    "Fix:\n"
+                    "- pass a copy, as Clone(x), to one of them\n"
+                    "- or build each part from a fresh value",
+                    value->line);
+            break;
+        }
+    for (size_t i = 0; i < count; i++)
+        for (size_t k = 0; k < parts[i].count; k++) free(parts[i].fields[k]);
+    free(parts);
+}
+
 void move_walk_copy_rebound(MoveState *state, uint32_t binding)
 {
     size_t kept = 0;

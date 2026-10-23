@@ -1,0 +1,14 @@
+// An Array literal whose two elements name one Array: the earlier element
+// is copied, so each element of the returned grid owns its storage.
+func Grid() -> Array<Array<Int>> {
+    let row: Array<Int> = [1, 2];
+    return [row, row];
+}
+
+func Main() -> Int {
+    let grid: Array<Array<Int>> = Grid();
+    let first: Array<Int> = grid[0];
+    let second: Array<Int> = grid[1];
+    Print(ToString(ArrayLength(first) + ArrayLength(second) * 10));
+    return 0;
+}

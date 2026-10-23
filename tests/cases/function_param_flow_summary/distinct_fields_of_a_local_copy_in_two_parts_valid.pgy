@@ -1,0 +1,24 @@
+// As the self-hosted MIR rebuilders: a value is built from distinct fields
+// of a local copy of one row set. Each part names its own field's storage,
+// so nothing is shared and nothing is copied.
+struct Inner {
+    ids: Array<Int>;
+    kinds: Array<Int>;
+}
+
+struct Rows {
+    blocks: Array<Int>;
+    inner: Inner;
+}
+
+func Rebuild(rows: Rows) -> Rows {
+    let inner: Inner = rows.inner;
+    return Rows(rows.blocks, Inner(inner.ids, inner.kinds));
+}
+
+func Main() -> Int {
+    let rows: Rows = Rows([1], Inner([2, 3], [4]));
+    let next: Rows = Rebuild(rows);
+    Print(ToString(ArrayLength(next.inner.ids) * 10 + ArrayLength(next.inner.kinds)));
+    return 0;
+}

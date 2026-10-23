@@ -401,6 +401,7 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
             if (!walked) return false;
         }
         move_walk_check_assignment_loan_call(walk, state, node);
+        move_walk_copy_parts_distinct(walk, state, node);
         if (walk->failed || !move_walk_reject_overlapping_moving_arguments(walk, node))
             return false;
         move_walk_apply_call_moves(walk, state, node);
@@ -539,6 +540,10 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         return walk_detached(walk, state, node);
     case AST_FUNC_DECL: case AST_CLASS_DECL: case AST_ENUM_DECL: case AST_TYPE:
         return true;
+    case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
+        if (!walk_children(walk, state, node, terminated)) return false;
+        move_walk_copy_parts_distinct(walk, state, node);
+        return !walk->failed;
     default:
         return walk_children(walk, state, node, terminated);
     }
