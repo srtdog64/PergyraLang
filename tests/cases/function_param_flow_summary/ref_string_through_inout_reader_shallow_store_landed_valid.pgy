@@ -1,7 +1,8 @@
 // Names stores Strings the ref index lends (through Canon, which may return
 // its argument) into a local Array and hands it to an inout callee that
 // only reads it: the call escapes nothing of index, so only the store
-// itself is refused, for a String it cannot prove independent.
+// itself lands an independent String Clone; the read-only inout call adds no
+// further escape of the ref input.
 struct Index {
     owners: Array<String>;
     labels: Array<String>;

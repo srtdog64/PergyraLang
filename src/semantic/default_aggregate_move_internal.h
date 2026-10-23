@@ -34,7 +34,13 @@ typedef struct {
     size_t count, capacity;
 } MoveState;
 
-typedef struct MoveAssignmentBackingLoan MoveAssignmentBackingLoan;
+typedef struct MoveAssignmentBackingLoan {
+    uint32_t binding;
+    char fields[512];
+    const ASTNode *receiver;
+    const ASTNode *assignment;
+    struct MoveAssignmentBackingLoan *previous;
+} MoveAssignmentBackingLoan;
 
 typedef struct {
     SemanticContext *ctx;
@@ -88,5 +94,20 @@ void move_walk_copy_rebound(MoveState *state, uint32_t binding);
 /* At an exit of the routine, an inout formal's path that shares storage
  * with a copy changed since is refused. */
 void move_walk_copy_inout_at_exit(MoveWalk *walk, const MoveState *state, ASTNode *exit);
+
+/* Call and indexed-assignment effects are a separate responsibility from
+ * control-flow joining, but consume the same per-routine move state. */
+bool move_walk_note_copied_argument(MoveWalk *walk, const ASTNode *call);
+MoveAssignmentBackingLoan *move_walk_assignment_loan_for_path(
+    MoveWalk *walk, const MoveState *state, const ASTNode *path,
+    MoveAssignmentBackingLoan *loans);
+void move_walk_refuse_assignment_loan_change(MoveWalk *walk,
+    const MoveAssignmentBackingLoan *loan, ASTNode *site);
+void move_walk_check_assignment_loan_call(MoveWalk *walk,
+    const MoveState *state, ASTNode *call);
+void move_walk_apply_call_moves(MoveWalk *walk, MoveState *state,
+    ASTNode *call);
+bool move_walk_reject_overlapping_moving_arguments(MoveWalk *walk,
+    ASTNode *call);
 
 #endif

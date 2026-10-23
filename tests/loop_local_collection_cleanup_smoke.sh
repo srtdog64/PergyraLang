@@ -12,7 +12,7 @@ CASES="$ROOT_DIR/tests/self_hosted/parity/fixture/loop_local_collection_cleanup"
 fail() { echo "[loop-local-collection] $*; evidence: $WORK" >&2; exit 1; }
 for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
     [[ "$backend" == c || "$backend" == llvm ]] || fail "unknown backend $backend"
-    for name in positive explicit sanitized declared; do
+    for name in positive explicit sanitized declared indexed; do
         artifact="$WORK/$name.$backend.exe"
         pgy_run_with_timeout 45 "$WORK/$name.$backend.build.out" "$WORK/$name.$backend.build.err" \
             "$PGY" --native-pipeline "--backend=$backend" \
@@ -26,9 +26,10 @@ for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
         [[ "$name" != explicit ]] || expected=3
         [[ "$name" != sanitized ]] || expected=ok
         [[ "$name" != declared ]] || expected=6
+        [[ "$name" != indexed ]] || expected=row0row1row2
         [[ "$actual" == "$expected" ]] || fail "$name/$backend output $actual"
     done
-    for invalid in escaped deferred; do
+    for invalid in escaped deferred indexed_escape; do
     artifact="$WORK/$invalid.$backend.exe"
     if pgy_run_with_timeout 45 "$WORK/$invalid.$backend.out" "$WORK/$invalid.$backend.err" \
         "$PGY" --native-pipeline "--backend=$backend" \

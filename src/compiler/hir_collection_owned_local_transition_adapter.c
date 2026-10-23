@@ -58,7 +58,8 @@ hir_owned_operation_append(HIRCollectionOperations *operations,
 }
 
 static bool
-hir_owned_canonical_call(const ASTNode *call, const char *name)
+hir_owned_canonical_call(const ASTNode *call, const char *name,
+                         size_t argument_count)
 {
     ASTNode *callee = ast_call_callee(call);
     uint32_t builtin = 0;
@@ -70,7 +71,7 @@ hir_owned_canonical_call(const ASTNode *call, const char *name)
         && ast_call_semantic_callee_decl_id(call) == 0
         && ast_call_semantic_callee_value_binding_id(call) == 0
         && !ast_call_semantic_callee_declared_callable(call)
-        && ast_call_arg_count(call) == 1
+        && ast_call_arg_count(call) == argument_count
         && clone_ready
         && strcmp(ast_identifier_name(callee), name) == 0;
 }
@@ -180,7 +181,7 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         }
         const char *type = ast_call_semantic_value_type_name(value);
         const char *producer = fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS ? "MapKeys" : "Clone";
-        if (!hir_owned_canonical_call(value, producer) || type == NULL
+        if (!hir_owned_canonical_call(value, producer, 1) || type == NULL
             || strcmp(type, "Array<String>") != 0 || ast_node_stable_id(value) != fact->origin_syntax_id)
             return false;
         return hir_owned_operation_append(operations, (PgyCollectionTransitionOperation){
@@ -212,13 +213,28 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         const PgyCollectionOwnershipFact *fact = hir_owned_local_fact(operations->routine, binding);
         uint32_t kind = 0, receipt_binding = 0, source = 0;
         bool receipt = ast_call_semantic_collection_effect(node, &kind, &receipt_binding, &source);
-        bool drop = hir_owned_canonical_call(node, "ArrayDropOwnedStrings");
+        bool drop = hir_owned_canonical_call(
+            node, "ArrayDropOwnedStrings", 1);
+        bool owned_set = hir_owned_canonical_call(node,
+            "ArraySetOwnedString", 3);
         const PgyCollectionOwnershipFact *receipt_fact = receipt
             ? hir_owned_local_fact(operations->routine, receipt_binding) : NULL;
-        if ((fact != NULL && (drop || receipt)) || receipt_fact != NULL) {
+        if ((fact != NULL && (drop || owned_set || receipt))
+            || receipt_fact != NULL) {
             if (fact == NULL) return false;
-            if (!drop || count != 1 || !receipt || kind != PGY_COLLECTION_EFFECT_DROP
-                || receipt_binding != binding || source != 0) return false;
+            if (!receipt || receipt_binding != binding || source != 0)
+                return false;
+            if (owned_set) {
+                if (drop || count != 3
+                    || kind != PGY_COLLECTION_EFFECT_OWNED_STRING_SET)
+                    return false;
+                return hir_owned_operation_append(operations,
+                    (PgyCollectionTransitionOperation){
+                        PGY_COLLECTION_TRANSITION_OWNED_STRING_SET,
+                        binding, 0, ast_node_stable_id(node)});
+            }
+            if (!drop || count != 1
+                || kind != PGY_COLLECTION_EFFECT_DROP) return false;
             return hir_owned_operation_append(operations, (PgyCollectionTransitionOperation){
                 PGY_COLLECTION_TRANSITION_DROP, binding, 0, ast_node_stable_id(node)});
         }

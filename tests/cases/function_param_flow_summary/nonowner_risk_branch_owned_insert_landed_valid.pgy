@@ -20,4 +20,4 @@ func Probe(arena: Arena, insert_owned: Bool) -> Int {
     return 0;
 }
 
-func Main() -> Void { Log(Probe(Arena(["red,blue"]), false)); }
+func Main() -> Void { Log(Probe(Arena(["red,blue"]), true)); }

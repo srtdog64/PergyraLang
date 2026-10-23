@@ -300,6 +300,10 @@ func CollectionRuntimeCOwnedStringPushFn() -> String {
     return "pgy_as_push_owned";
 }
 
+func CollectionRuntimeCOwnedStringSetFn() -> String {
+    return "pgy_as_set_owned";
+}
+
 func CollectionRuntimeCArrayCloneBlock(kind_code: Int) -> String {
     let checked: Int = CollectionRuntimeKindCodeOrDie(
         kind_code, "array clone runtime block"
@@ -412,6 +416,10 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, "        if (next_data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
     block = Concat(block, "        a->data = next_data; a->cap = next_cap;\n    }\n");
     block = Concat(block, "    a->data[a->len++] = pgy_as_owned_copy(v);\n}\n");
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCOwnedStringSetFn(), Concat("(", Concat(string_array_type, " *a, int32_t i, const char *v) {\n")))));
+    block = Concat(block, "    if (a == NULL || i < 0 || (long long)i >= a->len || a->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_BOUNDS, PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS); }\n");
+    block = Concat(block, "    char *owned = pgy_as_owned_copy(v);\n");
+    block = Concat(block, "    free((void *)a->data[i]);\n    a->data[i] = owned;\n}\n");
     block = Concat(block, CollectionRuntimeCArrayCloneBlock(2));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCOwnedStringDropFn(), Concat("(", Concat(string_array_type, " *a) {\n")))));
     block = Concat(block, "    if (a == NULL) { return; }\n");

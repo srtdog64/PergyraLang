@@ -268,6 +268,25 @@ bool semantic_nominal_result_snapshot_syntax_current(const ASTNode *call,
             row->field->name == NULL || strcmp(row->field->name, row->field_name) != 0 ||
             (name == NULL) != (row->argument_name == NULL) ||
             (name != NULL && strcmp(name, row->argument_name) != 0)) return false;
+        if (row->string_array_elements_present) {
+            const ASTNode *actual = ast_call_argument(call, i);
+            const ArrayStorageReturnElementReceipt *receipt =
+                &row->string_array_elements;
+            if (actual == NULL || receipt->function_id == 0
+                || (receipt->dependency_call == NULL)
+                    != (receipt->dependency_call_id == 0)
+                || (receipt->dependency_call != NULL
+                    && (receipt->dependency_call_id
+                            != ast_node_stable_id(receipt->dependency_call)
+                        || (receipt->dependency_call->type != AST_CALL
+                            && receipt->dependency_call->type
+                                != AST_ARRAY_LITERAL)))
+                || (actual->type == AST_IDENTIFIER
+                    ? receipt->binding_id
+                        != ast_identifier_binding_syntax_id(actual)
+                    : receipt->binding_id != 0))
+                return false;
+        }
         if (name == NULL ? row->field_index != i : strcmp(name, row->field_name) != 0) return false;
         for (size_t j = 0; j < i; j++)
             if (snapshot->fields[j].field_index == row->field_index) return false;
@@ -291,6 +310,15 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
         Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
         if (!constructor_payload_type_ready(type, false) ||
             strcmp(type->name, row->field_type_name) != 0) return false;
+        if (row->string_array_elements_present) {
+            ASTNode *actual = ast_call_argument(call, i);
+            bool string_array = type_is_constructed_named(type, "Array")
+                && type_equals(type_get_constructed_arg(type, 0), TYPE_STRING);
+            if (!string_array || (row->string_array_elements.owned
+                && !semantic_array_storage_transferred_element_use_current(actual,
+                    (SemanticContext *)ctx, &row->string_array_elements)))
+                return false;
+        }
     }
     return true;
 }

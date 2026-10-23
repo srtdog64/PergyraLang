@@ -8,11 +8,14 @@ func Make() -> Pair
 {
     let rows: Array<Int> = [1];
     let alias: Array<Int> = rows;
-    return Pair(rows, alias);
+    let pair: Pair = Pair(rows, alias);
+    ArrayPush(pair.first, 2);
+    return pair;
 }
 
 func Main() -> Void
 {
     let pair: Pair = Make();
     Log(ArrayLength(pair.first));
+    Log(ArrayLength(pair.second));
 }

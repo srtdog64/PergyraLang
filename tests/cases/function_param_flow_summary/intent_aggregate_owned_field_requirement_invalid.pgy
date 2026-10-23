@@ -1,0 +1,44 @@
+// An intent parameter is not a routine-owned definition graph. If the action
+// requires an owned String-array field, the orchestration boundary must refuse
+// instead of proving the missing source vacuously.
+struct IntentOwnedRows {
+    values: Array<String>;
+}
+
+subject IntentOwnedRowsWorker {
+    action Append(self, rows: IntentOwnedRows) -> Bool {
+        let values: Array<String> = rows.values;
+        ArrayPushOwnedString(values, Concat("owned", " value"));
+        return true;
+    }
+}
+
+zone IntentOwnedRowsZone {
+    subject slot worker: IntentOwnedRowsWorker
+    authority worker
+}
+
+intent AppendIntentOwnedRows(
+    intent_zone: IntentOwnedRowsZone,
+    intent_worker: IntentOwnedRowsWorker,
+    rows: IntentOwnedRows
+) {
+    exclusive;
+    step Append {
+        using: intent_zone;
+        on appended: intent_worker.Append(rows);
+        expect: appended;
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Int {
+    let zone: IntentOwnedRowsZone = IntentOwnedRowsZone(
+        IntentOwnedRowsWorker()
+    );
+    let worker: IntentOwnedRowsWorker = IntentOwnedRowsWorker();
+    let rows: IntentOwnedRows = IntentOwnedRows([]);
+    if !AppendIntentOwnedRows(zone, worker, rows) { return 1; }
+    return 0;
+}

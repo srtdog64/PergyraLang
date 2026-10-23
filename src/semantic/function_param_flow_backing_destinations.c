@@ -13,7 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations)
+static void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
+    uint64_t *destinations, bool member_qualifier)
 {
     if (value == NULL || state->fact->analysis_unsupported) return;
     if (value != state->loan_seed && value->type == AST_IDENTIFIER) {
@@ -37,7 +38,14 @@ void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t 
     size_t at = backing_node(state, value);
     if (at == SIZE_MAX || !backing_work(state, at)) return;
     SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);
-    if (!published.ok) { state->fact->complete = false; return; }
+    /* A pure member chain is published as one value path. Intermediate
+     * qualifiers are traversal edges, not independent reads or copies; the
+     * checked leaf still owns the typed value and the syntax claim below. */
+    if (!published.ok
+        && !(member_qualifier && value->type == AST_MEMBER_ACCESS)) {
+        state->fact->complete = false;
+        return;
+    }
     if (value->type == AST_CALL) {
         ASTNode *receiver = NULL;
         ASTNode *direct = semantic_param_publication_direct_callee(state->store->ctx, value);
@@ -76,12 +84,9 @@ void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t 
     if (value->type == AST_ARRAY_ACCESS && !published.meta &&
         semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) {
         ASTNode *array = ast_array_access_array(value), *index = ast_array_access_index(value);
-        if (array != NULL && array->type == AST_IDENTIFIER && index != NULL &&
-            (index->type == AST_NUMBER || index->type == AST_IDENTIFIER) &&
-            ast_node_stable_id(array) != 0 && ast_node_stable_id(index) != 0 &&
-            semantic_param_publication_binding(state->store->ctx, array) != 0 &&
-            (index->type != AST_IDENTIFIER ||
-                semantic_param_publication_binding(state->store->ctx, index) != 0)) {
+        if (array != NULL && index != NULL
+            && ast_node_stable_id(array) != 0
+            && ast_node_stable_id(index) != 0) {
             SemanticPublishedValue receiver = semantic_param_publication_value(state->store->ctx, array);
             SemanticPublishedValue offset = semantic_param_publication_value(state->store->ctx, index);
             const Type *element = receiver.ok && !receiver.meta &&
@@ -115,7 +120,8 @@ void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t 
     }
     case AST_MEMBER_ACCESS:
         if (!semantic_param_publication_checked_unit_enum_selection(state->store->ctx, value))
-            backing_destination_value(state, ast_member_object(value), destinations);
+            backing_destination_value_at(
+                state, ast_member_object(value), destinations, true);
         break;
     case AST_ARRAY_ACCESS: backing_destination_value(state, ast_array_access_array(value), destinations); break;
     case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
@@ -267,6 +273,13 @@ void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t 
     default: state->fact->complete = false; break;
     }
 }
+
+void backing_destination_value(ReturnedBacking *state, ASTNode *value,
+    uint64_t *destinations)
+{
+    backing_destination_value_at(state, value, destinations, false);
+}
+
 void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id)
 {
     if (value == NULL || (value->type != AST_IDENTIFIER && value->type != AST_MEMBER_ACCESS &&

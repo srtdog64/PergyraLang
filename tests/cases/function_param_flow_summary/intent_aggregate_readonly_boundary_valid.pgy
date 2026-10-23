@@ -1,0 +1,40 @@
+// An intent step owns the call identity even though it is not a routine body.
+// A readonly aggregate action therefore records an exact boundary actual and
+// does not invent a routine source proof.
+struct IntentRows {
+    values: Array<String>;
+}
+
+subject IntentRowsWorker {
+    action Inspect(self, rows: IntentRows) -> Bool {
+        return ArrayLength(rows.values) >= 0;
+    }
+}
+
+zone IntentRowsZone {
+    subject slot worker: IntentRowsWorker
+    authority worker
+}
+
+intent InspectIntentRows(
+    intent_zone: IntentRowsZone,
+    intent_worker: IntentRowsWorker,
+    rows: IntentRows
+) {
+    exclusive;
+    step Inspect {
+        using: intent_zone;
+        on inspected: intent_worker.Inspect(rows);
+        expect: inspected;
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Int {
+    let zone: IntentRowsZone = IntentRowsZone(IntentRowsWorker());
+    let worker: IntentRowsWorker = IntentRowsWorker();
+    let rows: IntentRows = IntentRows([]);
+    if !InspectIntentRows(zone, worker, rows) { return 1; }
+    return 0;
+}

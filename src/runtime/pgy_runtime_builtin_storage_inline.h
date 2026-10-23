@@ -58,6 +58,28 @@ pgy_array_push_owned_String(PgyArray_String *arr, char *value)
     pgy_array_push_String(arr, owned);
 }
 
+/* Clone before retiring the old element so self/sibling replacement remains
+ * valid even when value aliases this array's current backing. */
+static inline void
+pgy_array_set_owned_String(PgyArray_String *arr, size_t index, char *value)
+{
+    if (arr == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "owned string array set on null array");
+    if (index >= arr->length)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);
+    if (arr->data == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "owned string array set without backing storage");
+    char *owned = pgy_runtime_strdup(value != NULL ? value : "");
+    if (owned == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    free(arr->data[index]);
+    arr->data[index] = owned;
+}
+
 static inline void
 pgy_array_drop_owned_String(PgyArray_String *arr)
 {

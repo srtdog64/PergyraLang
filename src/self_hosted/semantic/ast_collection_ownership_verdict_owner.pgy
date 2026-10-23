@@ -131,6 +131,9 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     let transition_states: Array<Int> = [];
     let origin_syntax_ids: Array<Int> = [];
     let source_binding_syntax_ids: Array<Int> = [];
+    let member_path_starts: Array<Int> = [];
+    let member_path_counts: Array<Int> = [];
+    let member_path_field_ids: Array<Int> = [];
     let receipts: SemanticAstCollectionOwnershipReceiptRows =
         SemanticAstCollectionOwnershipReceiptRowsEmpty();
     let move_destinations: HashMap<String, Int> = MapNew();
@@ -155,6 +158,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         );
         ArrayPush(origin_syntax_ids, locals.node_ids[local_row]);
         ArrayPush(source_binding_syntax_ids, 0);
+        ArrayPush(member_path_starts, ArrayLength(member_path_field_ids));
+        ArrayPush(member_path_counts, 0);
         if !SemanticAstCollectionOwnershipIsStringArray(
             initializer_types.inferred_type_names[local_row]) {
             local_row = local_row + 1;
@@ -230,6 +235,13 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                 origin_syntax_ids[local_row] = moved.field_syntax_id;
                 source_binding_syntax_ids[local_row] =
                     moved.source_binding_syntax_id;
+                member_path_counts[local_row] = ArrayLength(moved.field_path_ids);
+                let member_path_row: Int = 0;
+                while member_path_row < ArrayLength(moved.field_path_ids) {
+                    ArrayPush(member_path_field_ids,
+                        moved.field_path_ids[member_path_row]);
+                    member_path_row = member_path_row + 1;
+                }
                 MapSet(move_destinations,
                     SemanticAstCollectionMemberMoveEventKey(
                         moved, locals.node_ids[local_row]), locals.node_ids[local_row]);
@@ -370,7 +382,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
 
     let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
     let element_requirements: HashMap<String, Int> = SemanticAstCollectionOwnedElementParameterRequirements(
-        artifact, locals, initializer_types.inferred_type_names, origins, source_binding_syntax_ids, origin_syntax_ids,
+        artifact, locals, initializer_types.inferred_type_names, origins, source_binding_syntax_ids,
+        member_path_starts, member_path_counts, member_path_field_ids,
         signatures, surfaces, call_roots,
         formal_effects.owned_push_leaf_formals, field_requirements);
     if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(field_requirements) {

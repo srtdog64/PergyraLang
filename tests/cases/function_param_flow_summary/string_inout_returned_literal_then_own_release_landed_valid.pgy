@@ -1,14 +1,11 @@
-// Label returns a String literal. Pushed into the output it is not an owned
-// element, so handing the Array to an owner that releases its Strings would
-// free the literal; that handoff is refused (19:5).
+// Label returns a literal String. The compiler-owned store landing makes the
+// element in Mark's output independently owned before Drain releases it.
 func Label() -> String {
     return "label";
 }
-
 func Mark(inout out: Array<String>) -> Void {
     ArrayPush(out, Label());
 }
-
 func Drain(own out: Array<String>) -> Void {
     ArrayDropOwnedStrings(out);
 }

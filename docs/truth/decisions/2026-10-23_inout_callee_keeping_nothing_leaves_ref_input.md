@@ -34,12 +34,15 @@ to `MirExpressionIdentityEpochDeclarationMemberNames(inout ...)`, which
 only sets their elements. Seven callers up the MIR expression graph and
 canonicalization chain were refused for `routines` and `admitted`.
 
-## Left on the record
+## Store landing remains separate
 
-The store of `SemanticCallableCanonicalDeclaredName(...)` into those
-Arrays has no independent-result proof. The String receipts pass that
-checks it runs only after every final owner admits the program, so the
-canonical census does not report it yet;
-`ref_string_through_inout_reader_shallow_store_invalid` shows it.
+The inout escape rule does not itself admit a borrowed String store.  Where
+the stored result has no independent-result proof, the existing String-store
+landing owner must synthesize and record an exact `Clone` at the store.  The
+integrated positive
+`ref_string_through_inout_reader_shallow_store_landed_valid` checks that one
+Clone reaches MIR and that C and LLVM execute the same result.  Removing that
+landing must make the store fail closed again; the read-only inout summary is
+not a substitute for it.
 
 Replaces: nothing.

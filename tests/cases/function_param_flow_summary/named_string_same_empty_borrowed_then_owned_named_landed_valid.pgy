@@ -4,7 +4,6 @@ struct Arena { atom_table: Array<String>; }
 func AtomFor(node: TextNode) -> String {
     return node.type_name;
 }
-
 func Project(nodes: Array<TextNode>) -> Arena {
     let atom_table: Array<String> = [];
     let atom_text: String = AtomFor(nodes[0]);
@@ -12,7 +11,6 @@ func Project(nodes: Array<TextNode>) -> Arena {
     ArrayPushOwnedString(atom_table, Concat("owned", " value"));
     return Arena(atom_table);
 }
-
 func Main() -> Void {
     let name = Concat("Type", "Name");
     let nodes: Array<TextNode> = [TextNode(name)];

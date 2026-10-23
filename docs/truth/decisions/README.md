@@ -22,7 +22,7 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-19 | [A callee that returns a String element lends it](2026-10-19_returned_string_element_lends.md) | in force |
 | 2026-10-19 | [Text finished with a non-result allocator borrows it](2026-10-19_finished_text_borrows_its_allocator.md) | in force |
 | 2026-10-19 | [A getter lends a local too, until a call hands it on](2026-10-19_local_getter_lends_until_handed_on.md) | in force |
-| 2026-10-19 | [A field taken out before an `own` hand-off?](2026-10-19_open_field_take_before_own_handoff.md) | OPEN |
+| 2026-10-23 | [An exactly replaced inout field may be handed to an exact releasing `own` formal](2026-10-23_field_take_before_own_handoff.md) | DECIDED |
 | 2026-10-19 | [A generated projection may change with its registry](2026-10-19_generated_projection_in_canonical.md) | in force |
 | 2026-10-19 | [A local or loop variable that takes a path is the formal's alias](2026-10-19_path_aliases_follow_the_formal.md) | in force |
 | 2026-10-20 | [A getter's loan that cannot be proved: copy or move?](2026-10-20_open_escaping_loan_copy_or_move.md) | answered 2026-10-20 |

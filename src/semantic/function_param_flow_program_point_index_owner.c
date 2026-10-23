@@ -5,6 +5,7 @@
 #include "type_checker_resolution_internal.h"
 #include "type_checker_internal.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 static bool function_param_flow_locals_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node);
@@ -167,9 +168,26 @@ function_param_flow_program_point_index_build(
         store, function_id);
     if (existing != SIZE_MAX) {
         *index_out = &store->program_point_indexes[existing];
-        return (*index_out)->function_decl == function_decl && (*index_out)->dependency_roots_ready &&
-            function_param_flow_index_roots_current(*index_out) &&
+        bool same_decl = (*index_out)->function_decl == function_decl;
+        bool roots_ready = (*index_out)->dependency_roots_ready;
+        bool roots_current = roots_ready &&
+            function_param_flow_index_roots_current(*index_out);
+        bool claims_current = roots_current &&
             function_param_flow_index_claims_current(store->ctx, *index_out);
+        if ((!same_decl || !roots_ready || !roots_current || !claims_current) &&
+            getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
+            const char *requested = ast_declaration_name(function_decl);
+            const char *indexed = ast_declaration_name((*index_out)->function_decl);
+            fprintf(stderr,
+                "pgy: function-param-flow-index-stale id=%u requested=%s"
+                " indexed=%s same_decl=%d roots_ready=%d roots_current=%d"
+                " claims_current=%d\n",
+                function_id,
+                requested != NULL ? requested : "<unknown>",
+                indexed != NULL ? indexed : "<unknown>",
+                same_decl, roots_ready, roots_current, claims_current);
+        }
+        return same_decl && roots_ready && roots_current && claims_current;
     }
 
     if (store->validating_current) return false;

@@ -23,6 +23,13 @@ bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call
  * when the selection could not be recorded. */
 bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier);
 
+/* Select an exact carrier whose current typed owner has already proved the
+ * value type.  This is for facts that intentionally retire the carrier's
+ * publication row when they move it, while retaining both the carrier's
+ * stable identity and the moved binding's type. */
+bool semantic_loan_copy_landing_select_typed_carrier(SemanticContext *ctx,
+    const ASTNode *carrier, const Type *type);
+
 /* The same for a String the type checker refuses where it leaves its owner,
  * before any value is published: the caller has checked `expression` is a
  * String, which Clone copies whole
@@ -37,6 +44,12 @@ bool semantic_loan_copy_landing_select_string(SemanticContext *ctx, const ASTNod
  * the selection could not be recorded. */
 bool semantic_loan_copy_landing_select_typed(SemanticContext *ctx, const ASTNode *expression, const Type *type);
 
+/* Whether this exact carrier is already scheduled for a Clone in the next
+ * semantic analysis.  Consumers use this only to avoid selecting a second,
+ * dependent copy in the same failed analysis; it is not current admission. */
+bool semantic_loan_copy_landing_selected(const SemanticContext *ctx,
+    const ASTNode *carrier);
+
 /* String-copy discovery may continue after its own refusal only inside the
  * same routine, so one bounded analysis can collect that routine's remaining
  * exact landing identities. A later diagnostic or routine boundary closes
@@ -47,6 +60,13 @@ void semantic_loan_copy_landing_refusal_tail_seal(SemanticContext *ctx);
 /* Whether a Clone of `carrier` copies its value fully, so that a copy can
  * stand in where the loan leaves. */
 bool semantic_loan_copy_landing_carrier_copies(SemanticContext *ctx, const ASTNode *carrier);
+
+/* Whether `carrier` is the exact compiler-inserted Clone from an earlier
+ * landing round and the current typed publication proves that Clone fully
+ * independent. Such a carrier already satisfies the copy boundary; it must
+ * never be selected again and wrapped in a nested Clone. */
+bool semantic_loan_copy_landing_satisfied(SemanticContext *ctx,
+    const ASTNode *carrier);
 
 /* The call whose result the builtin Clone `call` copies fully, and which
  * changes no storage it shares with its caller, so that nothing of what it

@@ -1,0 +1,8 @@
+func Main() -> Void
+{
+    let values: Array<String> = Clone(["left", "right"]);
+    ArraySet(values, 0, values[1]);
+    ArraySet(values, 1, values[1]);
+    Log(values[0]);
+    Log(values[1]);
+}

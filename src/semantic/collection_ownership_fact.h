@@ -116,7 +116,8 @@ typedef enum
     PGY_COLLECTION_EFFECT_NONE = 0,
     PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH,
     PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
-    PGY_COLLECTION_EFFECT_DROP
+    PGY_COLLECTION_EFFECT_DROP,
+    PGY_COLLECTION_EFFECT_OWNED_STRING_SET
 } PgyCollectionOwnershipEffectKind;
 
 /* Semantic-owned stable row.  Symbol pointers are permitted only as a
@@ -138,6 +139,11 @@ typedef struct PgyCollectionOwnershipFact
     /* MEMBER_MOVE only, and only while type checking: the source Symbol's
      * birth_serial when the field moved (0 when unknown). HIR/MIR ignore it. */
     uint64_t source_birth_serial;
+    /* The original typed member expression owns the complete root-to-leaf
+     * path identity during semantic analysis. It is never projected or freed
+     * by this fact store; the program AST owns its lifetime. */
+    const ASTNode *member_move_source;
+    uint32_t member_move_source_id;
 } PgyCollectionOwnershipFact;
 
 bool semantic_collection_ownership_initialize_binding(
@@ -156,6 +162,15 @@ bool semantic_collection_reject_moved_member_use(
     SemanticContext *ctx);
 
 bool semantic_collection_admit_owned_string_push(
+    ASTNode *receiver,
+    SemanticContext *ctx);
+
+/* An owned Array<String> replacement keeps uniform element ownership by
+ * copying the incoming String before retiring the overwritten element. */
+bool semantic_collection_owned_string_set_required(
+    ASTNode *receiver,
+    SemanticContext *ctx);
+bool semantic_collection_admit_owned_string_set(
     ASTNode *receiver,
     SemanticContext *ctx);
 

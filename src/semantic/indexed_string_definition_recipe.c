@@ -7,6 +7,7 @@
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_borrow_owner.h"
 #include "function_param_publication_internal.h"
+#include "loan_copy_landing_owner.h"
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "../common/string_compat.h"
@@ -191,9 +192,20 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_use(
     for (size_t i = 0; i < recipe->use_count; i++) {
         IndexedStringDefinitionUse *prior = &recipe->uses[i];
         if (prior->sink != sink || prior->actual_ordinal != actual_ordinal) continue;
-        return prior->value == value && prior->value_id == ast_node_stable_id(value) &&
-            prior->sink_id == ast_node_stable_id(sink) && prior->binding_id == binding &&
-            prior->issued_source == value_row->indexed_string_source_id ?
+        if (prior->value != value
+            || prior->value_id != ast_node_stable_id(value)
+            || prior->sink_id != ast_node_stable_id(sink)
+            || prior->binding_id != binding)
+            return INDEXED_STRING_DEFINITION_FAILED;
+        /* Reaching definitions join monotonically during the CFG fixed point.
+         * Before sealing, the same use may widen from one exact source to
+         * UNKNOWN. A different exact source or any post-seal mutation remains
+         * stale and fails closed. */
+        if (!recipe->prepared
+            && prior->issued_source != UINT32_MAX
+            && value_row->indexed_string_source_id == UINT32_MAX)
+            prior->issued_source = UINT32_MAX;
+        return prior->issued_source == value_row->indexed_string_source_id ?
             INDEXED_STRING_DEFINITION_RECORDED : INDEXED_STRING_DEFINITION_FAILED;
     }
     if (recipe->use_count == SIZE_MAX || recipe->use_count + 1 > SIZE_MAX / sizeof(*recipe->uses) ||
@@ -471,6 +483,45 @@ bool semantic_indexed_string_definition_source_current(SemanticContext *ctx,
     return true;
 }
 
+static bool definition_select_source_copy(SemanticContext *ctx,
+    const IndexedStringDefinitionSource *source, bool *selected)
+{
+    PublishedNode *row;
+    if (ctx == NULL || source == NULL || source->value == NULL ||
+        source->value_id == 0 || source->value_id != ast_node_stable_id(source->value) ||
+        selected == NULL) return false;
+    row = publication_node(ctx->function_param_publications,
+        (ASTNode *)source->value, false);
+    if (row == NULL || row->node != source->value || row->id != source->value_id ||
+        !row->value_present || row->meta || !row->string_value ||
+        !type_equals(row->value_type, TYPE_STRING) ||
+        !row->indexed_string_source_present) return false;
+    if (row->indexed_string_source_id == 0) return true;
+    /* A landed Clone must already publish source zero.  Treating a stale
+     * nonzero publication as another landing would permit Clone(Clone(...))
+     * without making progress in the finite original-source namespace. */
+    if (semantic_loan_copy_landing_satisfied(ctx, source->value) ||
+        !semantic_loan_copy_landing_select_string(ctx, source->value)) return false;
+    *selected = true;
+    return true;
+}
+
+bool semantic_indexed_string_definition_select_independent_storage(
+    SemanticContext *ctx, uint32_t binding_id)
+{
+    IndexedStringDefinitionRecipe *recipe;
+    bool selected = false;
+    if (ctx == NULL || ctx->has_error || binding_id == 0 ||
+        !semantic_param_publication_pending(ctx)) return false;
+    recipe = definition_for_binding(ctx, binding_id);
+    if (recipe == NULL || recipe->prepared || !definition_birth_syntax(recipe) ||
+        !definition_select_source_copy(ctx, &recipe->birth, &selected)) return false;
+    for (size_t i = 0; i < recipe->assignment_count; i++)
+        if (!definition_select_source_copy(ctx, &recipe->assignments[i].rhs,
+                &selected)) return false;
+    return selected;
+}
+
 bool semantic_indexed_string_definition_syntax_current(
     const IndexedStringDefinitionRecipe *recipe)
 {
@@ -561,11 +612,31 @@ static ASTNode *definition_protected_use_site(const IndexedStringDefinitionRecip
     return (ASTNode *)(candidate != NULL ? candidate : recipe->declaration);
 }
 
+static bool definition_select_protected_copies(SemanticContext *ctx,
+    const IndexedStringDefinitionRecipe *recipe)
+{
+    size_t selected = 0;
+    for (size_t i = 0; i < recipe->use_count; i++) {
+        const IndexedStringDefinitionUse *use = &recipe->uses[i];
+        if (!use->protected_use) continue;
+        PublishedNode *row = publication_node(ctx->function_param_publications,
+            use->value, false);
+        if (row == NULL || row->node != use->value || row->id != use->value_id ||
+            row->id == 0 || row->id != ast_node_stable_id(use->value) ||
+            !row->value_present || row->meta || !row->string_value ||
+            !type_equals(row->value_type, TYPE_STRING) ||
+            !semantic_loan_copy_landing_select_string(ctx, use->value)) return false;
+        selected++;
+    }
+    return selected != 0;
+}
+
 bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prepare)
 {
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     size_t issued = 0;
+    ASTNode *first_copy = NULL;
     for (size_t i = 0; i < store->node_capacity; i++) {
         IndexedStringDefinitionRecipe *recipe = store->nodes[i].indexed_string_definition;
         if (recipe == NULL) continue;
@@ -583,8 +654,13 @@ bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prep
             }
         }
         if (!recipe->selected) continue;
-        if (issued == SIZE_MAX || (prepare && !definition_prepare(ctx, recipe)) ||
-            !definition_current(ctx, recipe)) {
+        bool prepared = !prepare || definition_prepare(ctx, recipe);
+        if (!prepared && prepare && definition_select_protected_copies(ctx, recipe)) {
+            if (first_copy == NULL)
+                first_copy = definition_protected_use_site(recipe);
+            continue;
+        }
+        if (issued == SIZE_MAX || !prepared || !definition_current(ctx, recipe)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                 definition_protected_use_site(recipe),
@@ -592,6 +668,16 @@ bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prep
             return false;
         }
         issued++;
+    }
+    if (first_copy != NULL) {
+        /* A selected recipe remains unissued until a fresh analysis observes
+         * the inserted copies.  Batch all independently validated recipes so
+         * the driver does not reload the same source once per definition. */
+        semantic_loan_copy_landing_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_copy,
+            "A retained String without an independent-source proof is copied where it crosses the boundary");
+        return false;
     }
     if (issued == store->indexed_string_definition_count) return true;
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,

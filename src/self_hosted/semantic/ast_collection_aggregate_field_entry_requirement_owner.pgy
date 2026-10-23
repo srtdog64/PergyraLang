@@ -10,6 +10,9 @@ struct SemanticAstCollectionAggregateFieldEntryRequirements {
     formal_ordinals: Array<Int>;
     formal_modes: Array<Int>;
     field_ids: Array<Int>;
+    path_starts: Array<Int>;
+    path_counts: Array<Int>;
+    path_field_ids: Array<Int>;
     local_ids: Array<Int>;
     effect_masks: Array<Int>;
     row_by_local: HashMap<String, Int>;
@@ -43,12 +46,15 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstC
     let ordinals: Array<Int> = [];
     let modes: Array<Int> = [];
     let fields: Array<Int> = [];
+    let path_starts: Array<Int> = [];
+    let path_counts: Array<Int> = [];
+    let path_fields: Array<Int> = [];
     let locals: Array<Int> = [];
     let effects: Array<Int> = [];
     let rows: HashMap<String, Int> = MapNew();
     return SemanticAstCollectionAggregateFieldEntryRequirements(
-        true, functions, formals, ordinals, modes, fields, locals, effects,
-        rows);
+        true, functions, formals, ordinals, modes, fields,
+        path_starts, path_counts, path_fields, locals, effects, rows);
 }
 
 // Validate the exact index domain without retaining a ref fact's descriptor.
@@ -76,25 +82,39 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
     let count: Int = ArrayLength(facts.local_ids);
     if !facts.ok || ArrayLength(facts.function_ids) != count || ArrayLength(facts.formal_ids) != count ||
         ArrayLength(facts.formal_ordinals) != count || ArrayLength(facts.formal_modes) != count || ArrayLength(facts.field_ids) != count ||
+        ArrayLength(facts.path_starts) != count || ArrayLength(facts.path_counts) != count ||
         ArrayLength(facts.effect_masks) != count {
         return false;
     }
     if !SemanticAstCollectionAggregateFieldEntryIndexReady(facts.row_by_local, facts.local_ids) { return false; }
+    let path_cursor: Int = 0;
     let row: Int = 0;
     while row < count {
         if facts.function_ids[row] <= 0 || facts.formal_ids[row] <= 0 || facts.formal_ordinals[row] < 0 ||
             facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3 || facts.field_ids[row] <= 0 || facts.local_ids[row] <= 0 ||
-            facts.effect_masks[row] <= 0 || facts.effect_masks[row] > 3 { return false; }
+            facts.effect_masks[row] <= 0 || facts.effect_masks[row] > 3 ||
+            facts.path_starts[row] != path_cursor || facts.path_counts[row] <= 0 ||
+            facts.path_counts[row] > ArrayLength(facts.path_field_ids) - path_cursor { return false; }
+        let path_end: Int = path_cursor + facts.path_counts[row];
+        let path_row: Int = path_cursor;
+        while path_row < path_end {
+            if facts.path_field_ids[path_row] <= 0 { return false; }
+            path_row = path_row + 1;
+        }
+        if facts.path_field_ids[path_end - 1] != facts.field_ids[row] { return false; }
+        path_cursor = path_end;
         row = row + 1;
     }
-    return true;
+    return path_cursor == ArrayLength(facts.path_field_ids);
 }
 
 // The member identity owner already joined the field and root. This owner
 // joins that exact root to this function's formal, retaining ordinal and mode.
 func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
-    function_id: Int, root_id: Int, field_id: Int, local_id: Int,
+    function_id: Int, root_id: Int,
+    ref source_path_field_ids: Array<Int>, source_path_start: Int, source_path_count: Int,
+    local_id: Int,
     effect_mask: Int,
     inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
 ) -> Bool {
@@ -106,7 +126,9 @@ func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     let destination: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, local_id);
     if !locals.ok || !IsSome(destination) || locals.function_node_ids[UnwrapOption(destination)] != function_id { return false; }
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) || root_id <= 0 || field_id <= 0 || local_id <= 0 ||
+    if !IsSome(signature) || root_id <= 0 || source_path_start < 0 ||
+        source_path_count <= 0 || source_path_start > ArrayLength(source_path_field_ids) ||
+        source_path_count > ArrayLength(source_path_field_ids) - source_path_start || local_id <= 0 ||
         (effect_mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() &&
          effect_mask != SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
         return false;
@@ -142,6 +164,12 @@ func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     }
     // Preserve the signature owner's raw modes: default=0/inout=1/own=2/ref=3.
     if mode < 0 || mode > 3 { return false; }
+    let field_id: Int = source_path_field_ids[source_path_start + source_path_count - 1];
+    let path_row: Int = 0;
+    while path_row < source_path_count {
+        if source_path_field_ids[source_path_start + path_row] <= 0 { return false; }
+        path_row = path_row + 1;
+    }
     let indexed: Int = SemanticAstCollectionAggregateFieldEntryIndexRow(facts.row_by_local, local_id);
     if indexed >= 0 {
         let row: Int = indexed;
@@ -149,8 +177,15 @@ func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
             facts.function_ids[row] != function_id ||
             facts.local_ids[row] != local_id || facts.formal_ids[row] != root_id ||
             facts.formal_ordinals[row] != found ||
-            facts.formal_modes[row] != mode || facts.field_ids[row] != field_id {
+            facts.formal_modes[row] != mode || facts.field_ids[row] != field_id ||
+            facts.path_counts[row] != source_path_count {
             return false;
+        }
+        let existing: Int = 0;
+        while existing < source_path_count {
+            if facts.path_field_ids[facts.path_starts[row] + existing] !=
+                    source_path_field_ids[source_path_start + existing] { return false; }
+            existing = existing + 1;
         }
         if facts.effect_masks[row] != effect_mask &&
             facts.effect_masks[row] != 3 {
@@ -161,7 +196,15 @@ func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     let row: Int = ArrayLength(facts.local_ids);
     ArrayPush(facts.function_ids, function_id); ArrayPush(facts.formal_ids, root_id);
     ArrayPush(facts.formal_ordinals, found); ArrayPush(facts.formal_modes, mode);
-    ArrayPush(facts.field_ids, field_id); ArrayPush(facts.local_ids, local_id);
+    ArrayPush(facts.field_ids, field_id);
+    ArrayPush(facts.path_starts, ArrayLength(facts.path_field_ids));
+    ArrayPush(facts.path_counts, source_path_count);
+    let path_entry: Int = 0;
+    while path_entry < source_path_count {
+        ArrayPush(facts.path_field_ids, source_path_field_ids[source_path_start + path_entry]);
+        path_entry = path_entry + 1;
+    }
+    ArrayPush(facts.local_ids, local_id);
     ArrayPush(facts.effect_masks, effect_mask);
     // This mutable owner writes the potentially grown descriptor back. It is
     // not a retained view of a ref fact and never crosses an async boundary.

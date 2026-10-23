@@ -333,17 +333,22 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arr); free(val);
             return result;
         }
-        if (array_op == TRANSPILER_ARRAY_OP_SET) {
+        if (array_op == TRANSPILER_ARRAY_OP_SET
+            || array_op == TRANSPILER_ARRAY_OP_SET_OWNED_STRING) {
+            bool owned_string = array_op ==
+                TRANSPILER_ARRAY_OP_SET_OWNED_STRING;
+            const char *op_name = owned_string
+                ? "ArraySetOwnedString" : "ArraySet";
             if (!transpiler_require_c_addressable_storage(ctx, arg0,
-                    "ArraySet", "Array"))
+                    op_name, "Array"))
                 return NULL;
             char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
-                "ArraySet", "array");
+                op_name, "array");
             char *idx = arr != NULL
-                ? transpiler_stdlib_emit_arg(ctx, arg1, "ArraySet", "index")
+                ? transpiler_stdlib_emit_arg(ctx, arg1, op_name, "index")
                 : NULL;
             char *val = idx != NULL
-                ? transpiler_stdlib_emit_arg(ctx, arg2, "ArraySet", "value")
+                ? transpiler_stdlib_emit_arg(ctx, arg2, op_name, "value")
                 : NULL;
             if (arr == NULL || idx == NULL || val == NULL) {
                 free(arr);
@@ -354,13 +359,25 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    arg0, "ArraySet", false,
+                    arg0, op_name, false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(idx); free(val);
                 return NULL;
             }
+            if (owned_string && strcmp(inner, "String") != 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                    "C backend: ArraySetOwnedString requires Array<String>");
+                free(arr); free(idx); free(val);
+                return NULL;
+            }
             char *result = strdup_fmt(
-                "pgy_array_set_%s(&%s, %s, %s)", inner, arr, idx, val);
+                owned_string
+                    ? "pgy_array_set_owned_%s(&%s, %s, %s)"
+                    : "pgy_array_set_%s(&%s, %s, %s)",
+                inner, arr, idx, val);
             free(arr); free(idx); free(val);
             return result;
         }

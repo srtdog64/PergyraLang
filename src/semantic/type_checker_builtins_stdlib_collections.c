@@ -42,6 +42,7 @@ static StdlibCollectionBuiltinKind stdlib_collection_builtin_kind(const char *na
         { "ArrayPushOwnedString", STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING },
         { "ArrayReverse", STDLIB_COLLECTION_ARRAY_REVERSE },
         { "ArraySet", STDLIB_COLLECTION_ARRAY_SET },
+        { "ArraySetOwnedString", STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING },
         { "ArraySort", STDLIB_COLLECTION_ARRAY_SORT },
         { "CompilerRetireArrayStorage", STDLIB_COLLECTION_COMPILER_RETIRE_ARRAY_STORAGE },
         { "ListGet", STDLIB_COLLECTION_LIST_GET },
@@ -90,6 +91,7 @@ semantic_stdlib_array_argument_preserves_storage(const ASTNode *call, size_t ord
     case STDLIB_COLLECTION_ARRAY_PUSH:
     case STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING:
     case STDLIB_COLLECTION_ARRAY_SET:
+    case STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING:
     case STDLIB_COLLECTION_ARRAY_POP:
     case STDLIB_COLLECTION_ARRAY_REVERSE:
         return true;
@@ -172,6 +174,7 @@ static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKin
         || kind == STDLIB_COLLECTION_ARRAY_DROP_STORAGE
         || kind == STDLIB_COLLECTION_COMPILER_RETIRE_ARRAY_STORAGE
         || kind == STDLIB_COLLECTION_ARRAY_SET
+        || kind == STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING
         || kind == STDLIB_COLLECTION_ARRAY_POP
         || kind == STDLIB_COLLECTION_ARRAY_SORT
         || kind == STDLIB_COLLECTION_ARRAY_REVERSE;

@@ -1,5 +1,5 @@
-// OPEN legitimate source: native field ownership evidence is not produced yet.
-// Keep this as a failing positive, not as an expected-refusal gate.
+// Each field is detached into its exact local, replaced with fresh storage,
+// and handed to a callee whose current summary releases that storage.
 struct State { ids: Array<Int>; invalid: Array<Bool>; }
 
 func SinkIds(own ids: Array<Int>) -> Void

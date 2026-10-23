@@ -129,4 +129,4 @@ Two questions wait on the owner and neither lane decides them:
 
 - [copy a moved argument used again](../truth/decisions/2026-10-21_open_copy_a_moved_argument_used_again.md)
   (266 refusals; the Claude lane recommends copying);
-- [a field taken out before an own hand-off](../truth/decisions/2026-10-19_open_field_take_before_own_handoff.md).
+- [an exactly replaced inout field handed to an exact releasing own formal](../truth/decisions/2026-10-23_field_take_before_own_handoff.md).

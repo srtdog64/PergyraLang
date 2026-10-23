@@ -15,9 +15,11 @@ unset LSAN_SUPPRESSIONS
 flags=(-O1 -g -fwrapv -fno-strict-aliasing -I"$ROOT_DIR/src/runtime" -I"$ROOT_DIR/src")
 fixture="$ROOT_DIR/tests/cases/backend_compare/region_string_clone/main.pgy"
 escape="$ROOT_DIR/tests/cases/backend_compare/region_string_clone_escape/main.pgy"
+local_cleanup="$ROOT_DIR/tests/cases/backend_compare/function_local_collection_cleanup/main.pgy"
 for ((i=0; i<100; i++)); do printf 'copy-'; done >"$WORK/expected"
 printf '150\n' >>"$WORK/expected"
 printf 'retained' >"$WORK/escape.expected"
+printf '1\n' >"$WORK/local-cleanup.expected"
 
 # Do not short-circuit the second backend when the first detects a defect.
 failures=0
@@ -65,6 +67,49 @@ for backend in c llvm; do
             echo "[string-copy-release] $backend: cleanup-deletion mutation detected"
         else
             cat "$WORK/mutant.err" >&2
+            failures=$((failures + 1))
+        fi
+    fi
+
+    # A private function-local Array<String> has the same physical contract:
+    # MIR owns one cleanup on every return edge, and both backends must emit it.
+    # This catches semantic admission that is not followed by actual storage
+    # and owned-element retirement.
+    "$PGY_BIN" "$local_cleanup" --native-pipeline "--emit-$backend" \
+        -o "$WORK/local-cleanup.$ext"
+    "$CC" "${flags[@]}" -fsanitize="$sanitizer" -fno-sanitize-recover=all \
+        "$WORK/local-cleanup.$ext" "${runtime[@]}" -pthread -lm \
+        -o "$WORK/local-cleanup-$backend"
+    if "$WORK/local-cleanup-$backend" \
+        >"$WORK/local-cleanup-$backend.out" \
+        2>"$WORK/local-cleanup-$backend.err" &&
+        cmp "$WORK/local-cleanup.expected" \
+            "$WORK/local-cleanup-$backend.out"; then
+        echo "[string-copy-release] $backend: function-local collection cleanup PASS"
+    else
+        cat "$WORK/local-cleanup-$backend.err" >&2
+        failures=$((failures + 1))
+    fi
+    sed '/pgy_array_drop_owned_String/d' "$WORK/local-cleanup.$ext" \
+        >"$WORK/local-cleanup-no-release.$ext"
+    if cmp -s "$WORK/local-cleanup.$ext" \
+        "$WORK/local-cleanup-no-release.$ext"; then
+        echo "[string-copy-release] $backend: no local collection cleanup to falsify" >&2
+        failures=$((failures + 1))
+    else
+        "$CC" "${flags[@]}" -fsanitize="$sanitizer" -fno-sanitize-recover=all \
+            "$WORK/local-cleanup-no-release.$ext" "${runtime[@]}" \
+            -pthread -lm -o "$WORK/local-cleanup-no-release-$backend"
+        if "$WORK/local-cleanup-no-release-$backend" \
+            >"$WORK/local-cleanup-mutant.out" \
+            2>"$WORK/local-cleanup-mutant.err"; then
+            echo "[string-copy-release] $backend: deleted local cleanup escaped the detector" >&2
+            failures=$((failures + 1))
+        elif grep -Eq '(AddressSanitizer|LeakSanitizer): .*leaked in' \
+            "$WORK/local-cleanup-mutant.err"; then
+            echo "[string-copy-release] $backend: local cleanup-deletion mutation detected"
+        else
+            cat "$WORK/local-cleanup-mutant.err" >&2
             failures=$((failures + 1))
         fi
     fi

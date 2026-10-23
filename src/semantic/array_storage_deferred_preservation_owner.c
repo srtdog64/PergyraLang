@@ -11,8 +11,10 @@
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
 #include "loan_copy_landing_owner.h"
+#include "builtin_kind.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 static bool
 deferred_reserve(void **rows, size_t *capacity, size_t needed, size_t row_size)
@@ -175,11 +177,25 @@ semantic_array_storage_record_pending_result(SemanticContext *ctx,
 {
     ArrayStorageDeferredPreservationStore *store =
         ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    uint32_t builtin = 0;
+    const char *checked_result = call != NULL
+        ? ast_call_semantic_value_type_name(call) : NULL;
+    bool provisional_clone = binding != NULL && call != NULL
+        && call->type == AST_CALL && ast_call_arg_count(call) == 1
+        && ast_call_semantic_callee_builtin_kind(call, &builtin)
+        && builtin == BUILTIN_CLONE
+        && ast_call_semantic_callee_is_stdlib(call)
+        && ast_call_semantic_callee_decl_id(call) == 0
+        && ast_call_semantic_callee_value_binding_id(call) == 0
+        && checked_result != NULL && binding->type != NULL
+        && binding->type->name != NULL
+        && strcmp(checked_result, binding->type->name) == 0;
     if (store == NULL || binding == NULL || call == NULL || call->type != AST_CALL
         || binding->decl_syntax_id == 0
         || !type_is_constructed_named(binding->type, "Array")
         || ast_node_stable_id(call) == 0
-        || !(semantic_array_storage_independent_call_result(call, ctx) ||
+        || !(semantic_array_storage_independent_call_result(call, ctx)
+            || provisional_clone ||
             (ast_call_semantic_callee_declared_callable(call) &&
              ast_call_semantic_callee_value_binding_id(call) == 0 &&
              ast_call_semantic_callee_decl_id(call) != 0))) return false;

@@ -6,6 +6,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -355,6 +356,22 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                                     ? SLOT_PARAM_SUMMARY_NONE
                                     : function_param_flow_summary_for_call(
                                         program_root, node, i);
+                                const char *trace_name = getenv(
+                                    "PGY_DEBUG_FUNCTION_PARAM_FLOW_ENTRY");
+                                const char *origin_name = origin == NULL
+                                    ? NULL : ast_declaration_name(
+                                        origin->function_decl);
+                                if (trace_name != NULL && origin_name != NULL &&
+                                    strcmp(trace_name, origin_name) == 0) {
+                                    const char *callee_name = callee_decl == NULL
+                                        ? NULL : ast_declaration_name(callee_decl);
+                                    fprintf(stderr,
+                                        "pgy: function-param-flow-edge function=%s"
+                                        " callee=%s actual=%zu formal=%zu mask=%u\n",
+                                        origin_name,
+                                        callee_name != NULL ? callee_name : "<unknown>",
+                                        i, formal, callee_mask);
+                                }
                                 if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                                     if (!slot_escape_record(entries, count, capacity,
                                             ast_identifier_name(root), SLOT_ESCAPE_RETURN))

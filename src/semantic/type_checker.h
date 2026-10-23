@@ -118,6 +118,8 @@ struct SemanticContext
     size_t       string_store_landing_selected_count, string_store_landing_selected_capacity;
     uint32_t    *loan_copy_landing_selected; /* getter calls whose result a next analysis clones */
     size_t       loan_copy_landing_selected_count, loan_copy_landing_selected_capacity;
+    bool         loan_copy_landing_has_deferred_error;
+    bool         loan_copy_landing_emitting_deferred;
     size_t       loan_copy_landing_tail_diagnostic_revision;
     uint32_t     loan_copy_landing_tail_function_id;
     const char*  current_module_path; /* Origin module under analysis */
@@ -356,6 +358,17 @@ void semantic_error_code(SemanticContext* ctx, const char* code,
  * struct. All three string fields must be static literals (non-owning,
  * lifetime-of-process). Pass NULL to omit a field. */
 void semantic_error_with_hints(SemanticContext* ctx,
+                               const char* code,
+                               const char* cause_ir,
+                               const char* fix_source,
+                               const ASTNode* node,
+                               const char* fmt, ...)
+    PGY_PRINTF_LIKE(6, 7);
+
+/* Records a copy-landing refusal without stopping discovery of the remaining
+ * landing identities in this analysis round. The SemanticResult still fails
+ * unless a later landed round removes every such refusal. */
+void semantic_loan_copy_landing_error_with_hints(SemanticContext* ctx,
                                const char* code,
                                const char* cause_ir,
                                const char* fix_source,

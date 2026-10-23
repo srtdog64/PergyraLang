@@ -133,7 +133,9 @@ pgy_collection_owned_local_transitions_validate(
                     || view->bindings[source].origin == PGY_COLLECTION_ORIGIN_BINDING)
                     goto done;
                 definitions[row]++;
-            } else if (op->kind != PGY_COLLECTION_TRANSITION_DROP
+            } else if ((op->kind != PGY_COLLECTION_TRANSITION_DROP
+                        && op->kind !=
+                            PGY_COLLECTION_TRANSITION_OWNED_STRING_SET)
                 || op->source_binding_syntax_id != 0) goto done;
         }
     }
@@ -181,6 +183,10 @@ pgy_collection_owned_local_transitions_validate(
                         goto done;
                     state[source] = COLLECTION_RETIRED;
                     state[row] = COLLECTION_OWNED;
+                } else if (op->kind ==
+                               PGY_COLLECTION_TRANSITION_OWNED_STRING_SET) {
+                    if (state[row] != COLLECTION_OWNED)
+                        goto done;
                 } else {
                     if ((state[row] & ~COLLECTION_PRIOR_LIVE) != COLLECTION_OWNED)
                         goto done;

@@ -386,8 +386,9 @@ expr_report_unknown_member(SemanticContext *ctx, ASTNode *site,
         member_name,
         type_name);
 }
-Type *
-type_check_member_access(ASTNode *expr, SemanticContext *ctx)
+static Type *
+type_check_member_access_path(ASTNode *expr, const ASTNode *leaf,
+                              SemanticContext *ctx)
 {
     ASTNode *member_object = ast_member_object(expr);
     const char *member_name = ast_member_name(expr);
@@ -448,9 +449,18 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *object_type = type_check_expression(member_object, ctx);
+    /* Resolve a pure member chain as one value path. Checking each qualifier
+     * as if it were independently read would reject `x.a.c` after `x.a.b`
+     * moved: evaluating `x.a` there is path traversal, not a copy of `a`.
+     * A direct use of `x.a` remains the leaf and is still rejected. */
+    Type *object_type = member_object != NULL
+        && member_object->type == AST_MEMBER_ACCESS
+        && !expr_member_is_static_access(member_object)
+        ? type_check_member_access_path(member_object, leaf, ctx)
+        : type_check_expression(member_object, ctx);
 
-    if (semantic_collection_reject_moved_member_use(expr, ctx))
+    if (expr == leaf
+        && semantic_collection_reject_moved_member_use(expr, ctx))
         return TYPE_UNKNOWN;
 
     Type *projection_field = expr_ops_projection_member(expr, member_object,
@@ -600,4 +610,10 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
     }
 
     return TYPE_UNKNOWN;
+}
+
+Type *
+type_check_member_access(ASTNode *expr, SemanticContext *ctx)
+{
+    return type_check_member_access_path(expr, expr, ctx);
 }

@@ -48,7 +48,9 @@ func SemanticAstCollectionMemberReadLocalRootUse(
 ) -> SemanticAstCollectionMemberLocalRootUse {
     let blocked: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberLocalRootUse(true, 0);
     let readable: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberLocalRootUse(false, 0);
-    let identity: SemanticAstCollectionMemberMoveIdentity = SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false);
+    let no_path: Array<Int> = [];
+    let identity: SemanticAstCollectionMemberMoveIdentity =
+        SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false, no_path);
     let occurrence: Int = leaf;
     let other_field: Bool = false;
     if leaf + 2 <= root {

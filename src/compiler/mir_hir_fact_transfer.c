@@ -3,6 +3,7 @@
 #include "mir.h"
 #include "mir_call_fact.h"
 #include "mir_branch_source_facts.h"
+#include "mir_inout_member_copyout_owner.h"
 #include "hir_collection_owned_local_transition_adapter.h"
 #include "hir_cfg.h"
 
@@ -46,6 +47,8 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
     const PgyCollectionEffectView *view, size_t caller, bool *seen, bool *write_seen,
     bool *source_occurrences)
 {
+    if (mir_instruction_is_inout_member_copyout(inst))
+        return true;
     if (view->source_use_count != 0 || view->nonowner_risk_count != 0 ||
         view->string_definition_count != 0 || view->permanent_element_count != 0 ||
         view->independent_string_result_count != 0) {
@@ -206,7 +209,9 @@ static bool mir_collection_block_placement_current(const MIRRoutine *routine,
     bool have_previous = false;
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
-        bool statement = inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_ASSIGN ||
+        bool statement = inst->kind == MIR_INST_DEF ||
+            (inst->kind == MIR_INST_ASSIGN &&
+             !mir_instruction_is_inout_member_copyout(inst)) ||
             inst->kind == MIR_INST_STMT || inst->kind == MIR_INST_DESTRUCTURE ||
             inst->kind == MIR_INST_LOOP_INIT;
         if (statement) {

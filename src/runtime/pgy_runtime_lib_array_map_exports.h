@@ -228,6 +228,31 @@ void pgy_array_push_owned_String(PgyArray_String *arr, char *value)
     pgy_array_push_String(arr, owned);
 }
 
+void pgy_array_set_owned_String(PgyArray_String *arr, size_t index, char *value)
+{
+    char *owned;
+
+    if (arr == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "owned string array set on null array");
+    }
+    if (index >= arr->length) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);
+    }
+    if (arr->data == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "owned string array set without backing storage");
+    }
+    owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+    if (owned == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    }
+    free(arr->data[index]);
+    arr->data[index] = owned;
+}
+
 void pgy_array_drop_owned_String(PgyArray_String *arr)
 {
     if (arr == NULL)

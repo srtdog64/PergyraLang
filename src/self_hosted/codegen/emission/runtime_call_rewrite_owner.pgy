@@ -111,6 +111,9 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "ArrayPushOwnedString" {
         return Some(CollectionRuntimeCOwnedStringPushFn());
     }
+    if source_name == "ArraySetOwnedString" {
+        return Some(CollectionRuntimeCOwnedStringSetFn());
+    }
     if source_name == "ArrayDropOwnedStrings" {
         return Some(CollectionRuntimeCOwnedStringDropFn());
     }

@@ -231,6 +231,29 @@ semantic_error_with_hints(SemanticContext *ctx,
 }
 
 void
+semantic_loan_copy_landing_error_with_hints(SemanticContext *ctx,
+                          const char *code,
+                          const char *cause_ir,
+                          const char *fix_source,
+                          const ASTNode *node,
+                          const char *fmt, ...)
+{
+    va_list ap;
+    bool already_failed;
+    if (ctx == NULL)
+        return;
+    already_failed = ctx->has_error;
+    ctx->loan_copy_landing_has_deferred_error = true;
+    ctx->loan_copy_landing_emitting_deferred = true;
+    va_start(ap, fmt);
+    emit_diagnostic_full(ctx, DIAG_ERROR, code, cause_ir, fix_source,
+                         node, NULL, fmt, ap);
+    va_end(ap);
+    ctx->loan_copy_landing_emitting_deferred = false;
+    ctx->has_error = already_failed;
+}
+
+void
 semantic_warning_with_hints(SemanticContext *ctx,
                             const char *code,
                             const char *cause_ir,

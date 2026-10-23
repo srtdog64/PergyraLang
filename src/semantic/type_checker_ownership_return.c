@@ -11,6 +11,7 @@
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_defer_release_owner.h"
 #include "indexed_string_borrow_owner.h"
+#include "collection_owned_element_requirement_owner.h"
 #include "diag_codes.h"
 
 static Type *
@@ -192,6 +193,13 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE,
             value, "Array return storage could not be recorded with current typed ownership evidence");
     }
+
+    if (!ctx->has_error && value != NULL
+        && !semantic_collection_owned_element_requirement_record_return(
+            node, value,
+            ctx->inferring_return ? ret_type : ctx->current_return,
+            ctx))
+        return false;
 
     return !ctx->has_error;
 }

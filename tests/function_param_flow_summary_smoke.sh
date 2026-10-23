@@ -71,13 +71,23 @@ selected_call_targets = {
 owned_push_landings = {
     "owned_copy_string_push_landed_valid": ("Main", 1),
     "string_element_push_copy_landing_valid": ("Selected", 1),
+    # The recursive chain itself remains scoped by push/pop; only the result
+    # stored in out_blocks lands as one owned String.
+    "inout_string_chain_popped_by_recursive_parser_valid": ("Decls", 1),
     "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
     "formal_string_store_landing_local_receiver_valid": ("Gather", 1),
     "formal_string_store_landing_private_local_valid": ("Count", 1),
     "formal_store_landing_alias_output_valid": ("Append", 1),
+    "formal_string_store_landing_field_take_valid": ("Append", 1),
+    "formal_string_store_landing_value_source_valid": ("Append", 1),
     "named_string_same_empty_borrowed_then_owned_direct_landed_valid": ("Project", 2),
     "named_string_same_empty_owned_then_borrowed_direct_landed_valid": ("Project", 2),
+    "named_string_same_empty_owned_then_borrowed_named_landed_valid": ("Project", 2),
+    "named_string_same_empty_borrowed_then_owned_named_landed_valid": ("Project", 2),
+    "string_inout_returned_literal_then_escape_call_landed_valid": ("Mark", 1),
+    "string_inout_unwrapped_literal_then_escape_call_landed_valid": ("Mark", 1),
+    "string_inout_returned_literal_then_own_release_landed_valid": ("Mark", 1),
 }
 # Positive fixtures whose landing reaches MIR as Clone calls (a formal's
 # String store, a copied getter loan): each routine and its Clone count.
@@ -91,8 +101,6 @@ landed_clones = {
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
     "borrowed_owner_loan_grown_landed_valid": {"Nest": 1},
     "string_crossing_window_pair_landed_valid": {"Wrap": 1},
-    "formal_string_store_landing_field_take_valid": {"Append": 1},
-    "formal_string_store_landing_value_source_valid": {"Append": 1},
     "formal_string_store_landing_value_set_valid": {"Rename": 1},
     "formal_string_store_landing_value_map_valid": {"Label": 1},
     "mapnew_ref_string_value_copy_valid": {"Make": 1},
@@ -114,6 +122,17 @@ landed_clones = {
     "aggregate_move_void_call_landed_valid": {"Report": 1},
     "by_value_getter_lend_inout_passed_landed_valid": {"Use": 1},
     "by_value_getter_lend_inout_then_returned_landed_valid": {"Use": 1},
+    "nonowner_risk_rebind_clone_landed_valid": {"Main": 2},
+    "nonowner_risk_local_carrier_landed_valid": {"Main": 1},
+    "array_result_owned_element_direct_return_landed_valid": {
+        "CaptureDirect": 1, "Main": 1},
+    "named_string_identity_loop_reassignment_landed_valid": {"Main": 1},
+    "named_string_field_lineage_same_call_retire_grow_landed_valid": {"Main": 2},
+    "named_string_field_lineage_named_mapping_landed_valid": {"Main": 2},
+    "named_string_field_lineage_mixed_return_landed_valid": {"Main": 2},
+    "named_string_field_lineage_recursive_forward_landed_valid": {"Main": 2},
+    "string_inout_returned_literal_then_escape_call_landed_valid": {"Stash": 1},
+    "string_inout_unwrapped_literal_then_escape_call_landed_valid": {"Stash": 1},
     "by_value_getter_lend_result_grown_landed_valid": {"Main": 1},
     "default_aggregate_move_shared_field_return_landed_valid": {"Main": 1},
     "by_value_getter_lend_result_path_grown_landed_valid": {"Main": 1},
@@ -152,6 +171,9 @@ landed_clones = {
     "named_string_field_mixed_branch_drop_landed_valid": {"Fill": 1},
     # The verdict each Void routine stores into its inout output, as a copy.
     "ref_input_through_call_result_into_inout_output_landed_valid": {"JoinCopied": 1, "JoinLanded": 1},
+    # The String returned from the ref input is copied exactly where ArraySet
+    # stores it; the following inout reader keeps nothing.
+    "ref_string_through_inout_reader_shallow_store_landed_valid": {"Names": 1},
     # The box Touch changes through an inout callee is copied where Main passes it.
     "by_value_field_alias_written_by_inout_callee_landed_valid": {"Main": 1},
     # The by-value Array Pass hands to an inout writer is copied where Main passes it.
@@ -164,6 +186,9 @@ landed_clones = {
     # One Array to several keeping formals of a call: each earlier argument is copied.
     "array_handed_to_two_keeping_formals_landed_valid": {"Build": 1},
     "array_handed_to_three_keeping_formals_landed_valid": {"Main": 2},
+    # Detaching and retiring an inout aggregate's fields moves the caller's
+    # original value; its later-used shallow alias becomes independent.
+    "array_field_detach_caller_alias_landed_valid": {"Main": 1},
     # One storage in two parts of a value: the earlier part is copied.
     "one_storage_in_two_constructor_parts_returned_landed_valid": {"Make": 1},
     "one_storage_through_alias_in_two_parts_landed_valid": {"Make": 1},
@@ -204,6 +229,19 @@ landing_rounds = {
     "string_copy_landing_function_boundary_valid": 2,
     "output_field_store_of_ref_formal_landed_valid": 1,
     "inout_self_assignment_lands_nothing_valid": 0,
+    "nonowner_risk_rebind_clone_landed_valid": 1,
+    "nonowner_risk_local_carrier_landed_valid": 1,
+    "array_result_owned_element_direct_return_landed_valid": 1,
+    "named_string_identity_loop_reassignment_landed_valid": 1,
+    "named_string_field_lineage_same_call_retire_grow_landed_valid": 2,
+    "named_string_field_lineage_named_mapping_landed_valid": 2,
+    "named_string_field_lineage_mixed_return_landed_valid": 2,
+    "named_string_field_lineage_recursive_forward_landed_valid": 2,
+    "named_string_same_empty_owned_then_borrowed_named_landed_valid": 1,
+    "named_string_same_empty_borrowed_then_owned_named_landed_valid": 1,
+    "string_inout_returned_literal_then_escape_call_landed_valid": 1,
+    "string_inout_unwrapped_literal_then_escape_call_landed_valid": 1,
+    "string_inout_returned_literal_then_own_release_landed_valid": 1,
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
     "moved_argument_two_branches_landed_valid": 1,
     "by_value_getter_lend_into_own_formal_landed_valid": 1,
@@ -225,13 +263,15 @@ landing_rounds = {
     "by_value_cursor_set_through_recursive_parser_valid": 0,
     "by_value_array_popped_by_inout_callee_valid": 0,
     "by_value_array_handed_to_generic_reader_valid": 0,
-    "inout_string_chain_popped_by_recursive_parser_valid": 0,
+    "inout_string_chain_popped_by_recursive_parser_valid": 1,
     "by_value_argument_beside_its_inout_landed_valid": 1,
     "by_value_argument_before_its_inout_landed_valid": 1,
     "scalar_and_string_beside_their_inout_valid": 0,
     "by_value_array_to_two_reading_formals_valid": 0,
     "array_handed_to_two_keeping_formals_landed_valid": 1,
     "array_handed_to_three_keeping_formals_landed_valid": 1,
+    "array_field_detach_two_own_valid": 0,
+    "array_field_detach_caller_alias_landed_valid": 1,
     "one_storage_in_two_constructor_parts_returned_landed_valid": 1,
     "one_storage_through_alias_in_two_parts_landed_valid": 1,
     "one_storage_in_two_literal_elements_landed_valid": 1,
@@ -490,9 +530,8 @@ release_lifetime_refusals = {
     # A call keeps the Array's String in a node Clone copies only by value;
     # the deep drop after it is refused for it.
     "named_string_field_shallow_node_drop_invalid": [(*borrow_refusal, 41, 27)],
-    # An inout callee that only reads the local escapes nothing of the ref
-    # input: only the store of a String it lends is refused.
-    "ref_string_through_inout_reader_shallow_store_invalid": [(*borrow_refusal, 44, 28)],
+    # The corresponding read-only inout case is a landed positive below: its
+    # String store receives one independent Clone and the call adds no escape.
     # One that hands the local to an own formal keeps it: every caller refuses.
     "ref_string_through_inout_keeper_invalid": [
         (*borrow_refusal, 43, 6), (*borrow_refusal, 59, 6), (*borrow_refusal, 60, 28),
@@ -581,7 +620,6 @@ release_lifetime_refusals = {
     # One map of Arrays in two parts of a value: no copy can stand in.
     "one_storage_in_two_array_map_parts_invalid": [(*released_refusal, 11, 26)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
-    "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
     "map_clone_array_value_ref_returned_invalid": [(*borrow_refusal, 10, 42)],
@@ -589,7 +627,6 @@ release_lifetime_refusals = {
     "struct_clone_subject_field_ref_returned_invalid": [(*borrow_refusal, 19, 21)],
     "by_value_getter_lend_shared_result_owner_changed_invalid": [(*released_refusal, 23, 20)],
     "default_aggregate_move_cloned_growth_invalid": [(*released_refusal, 18, 34), (*released_refusal, 19, 34)],
-    "named_string_same_empty_borrowed_then_owned_named_invalid": [(*borrow_refusal, 11, 5)],
     "option_payload_unwrap_no_deep_drop_invalid": [(*borrow_refusal, 11, 31)],
     "option_payload_literal_array_mixed_returns_invalid": [(*borrow_refusal, 12, 22)],
     "option_payload_literal_array_set_invalid": [(*borrow_refusal, 9, 22)],
@@ -604,13 +641,7 @@ release_lifetime_refusals = {
     "readfile_result_defer_released_path_invalid": [(*borrow_refusal, 12, 27)],
     "nonowner_risk_alias_owned_insert_invalid": [
         (*borrow_refusal, 16, 21), (*borrow_refusal, 18, 30)],
-    "nonowner_risk_rebind_clone_invalid": [(*borrow_refusal, 16, 26)],
-    "nonowner_risk_branch_owned_insert_invalid": [(*borrow_refusal, 12, 9)],
-    "nonowner_risk_later_loop_owned_invalid": [(*borrow_refusal, 15, 13)],
     "nonowner_risk_later_actual_handoff_invalid": [(*borrow_refusal, 22, 13)],
-    "nonowner_risk_local_carrier_invalid": [(*borrow_refusal, 18, 26)],
-    "nonowner_risk_safe_then_owned_invalid": [(*borrow_refusal, 16, 13)],
-    "nonowner_risk_owned_then_safe_invalid": [(*borrow_refusal, 15, 13)],
     "nonowner_risk_lambda_capture_invalid": [(*borrow_refusal, 16, 56)],
     # The String-field getter returns its receiver's storage. EchoWrapper
     # and Inspect lend it on; MakeInspected returns that loan past the
@@ -750,13 +781,13 @@ paired = (
     ("nonowner_risk_option_reader_valid", True),
     ("nonowner_risk_shallow_loop_valid", True),
     ("nonowner_risk_alias_owned_insert_invalid", False),
-    ("nonowner_risk_rebind_clone_invalid", False),
-    ("nonowner_risk_branch_owned_insert_invalid", False),
-    ("nonowner_risk_later_loop_owned_invalid", False),
+    ("nonowner_risk_rebind_clone_landed_valid", True),
+    ("nonowner_risk_branch_owned_insert_landed_valid", True),
+    ("nonowner_risk_later_loop_owned_landed_valid", True),
     ("nonowner_risk_later_actual_handoff_invalid", False),
-    ("nonowner_risk_local_carrier_invalid", False),
-    ("nonowner_risk_safe_then_owned_invalid", False),
-    ("nonowner_risk_owned_then_safe_invalid", False),
+    ("nonowner_risk_local_carrier_landed_valid", True),
+    ("nonowner_risk_safe_then_owned_landed_valid", True),
+    ("nonowner_risk_owned_then_safe_landed_valid", True),
     ("nonowner_risk_lambda_capture_invalid", False),
     ("secure_implicit_token_safe", True),
     ("secure_implicit_token_keep_invalid", False),
@@ -822,6 +853,8 @@ paired = (
     ("array_field_detach_partial_branch_own_invalid", False),
     ("array_field_detach_opaque_hold_own_invalid", False),
     ("array_field_detach_live_root_alias_own_invalid", False),
+    ("array_field_detach_two_own_valid", True),
+    ("array_field_detach_caller_alias_landed_valid", True),
     ("array_alias_then_numeric_cast_invalid", False),
     ("array_string_member_live_root_own_invalid", False),
     ("array_string_member_cross_field_own_invalid", False),
@@ -864,7 +897,7 @@ paired = (
     ("array_result_local_owned_element_field_retention_landed_valid", True),
     ("array_result_owned_element_inout_escape_landed_valid", True),
     ("array_element_inout_escape_by_value_clone_invalid", False),
-    ("array_result_owned_element_direct_return_invalid", False),
+    ("array_result_owned_element_direct_return_landed_valid", True),
     ("array_result_owned_element_tuple_direct_landed_valid", True),
     ("array_result_owned_element_tuple_binding_landed_valid", True),
     ("array_result_owned_element_tuple_return_landed_valid", True),
@@ -1072,7 +1105,7 @@ paired = (
     ("nested_call_retaining_input_invalid", False),
     ("nested_call_independent_result_valid", True),
     ("named_string_identity_substring_push_valid", True),
-    ("named_string_identity_loop_reassignment_invalid", False),
+    ("named_string_identity_loop_reassignment_landed_valid", True),
     ("named_string_identity_owned_element_retain_landed_valid", True),
     ("named_string_all_def0_branch_valid", True),
     ("named_string_all_def0_loop_concat_valid", True),
@@ -1084,7 +1117,7 @@ paired = (
     ("named_string_field_mixed_branch_drop_landed_valid", True),
     ("named_string_field_shallow_node_drop_invalid", False),
     ("ref_input_through_call_result_into_inout_output_landed_valid", True),
-    ("ref_string_through_inout_reader_shallow_store_invalid", False),
+    ("ref_string_through_inout_reader_shallow_store_landed_valid", True),
     ("ref_string_through_inout_keeper_invalid", False),
     ("by_value_field_alias_written_by_inout_callee_landed_valid", True),
     ("loan_owner_assigned_before_loan_valid", True),
@@ -1158,18 +1191,18 @@ paired = (
     ("named_string_field_lineage_named_order_valid", True),
     ("named_string_field_lineage_unrelated_match_valid", True),
     ("named_string_field_lineage_unrelated_with_valid", True),
-    ("named_string_field_lineage_same_call_retire_grow_invalid", False),
+    ("named_string_field_lineage_same_call_retire_grow_landed_valid", True),
     ("named_string_field_lineage_root_overwrite_landed_valid", True),
-    ("named_string_field_lineage_named_mapping_invalid", False),
-    ("named_string_field_lineage_mixed_return_invalid", False),
-    ("named_string_field_lineage_recursive_forward_invalid", False),
+    ("named_string_field_lineage_named_mapping_landed_valid", True),
+    ("named_string_field_lineage_mixed_return_landed_valid", True),
+    ("named_string_field_lineage_recursive_forward_landed_valid", True),
     ("named_string_same_empty_direct_valid", True),
     ("named_string_same_empty_named_valid", True),
     ("named_string_same_empty_fresh_valid", True),
     ("named_string_same_empty_owned_then_borrowed_direct_landed_valid", True),
-    ("named_string_same_empty_owned_then_borrowed_named_invalid", False),
+    ("named_string_same_empty_owned_then_borrowed_named_landed_valid", True),
     ("named_string_same_empty_borrowed_then_owned_direct_landed_valid", True),
-    ("named_string_same_empty_borrowed_then_owned_named_invalid", False),
+    ("named_string_same_empty_borrowed_then_owned_named_landed_valid", True),
     ("slot_wrapper_direct_own_invalid", False),
     ("slot_wrapper_direct_ref_valid", True),
     ("slot_wrapper_binary_equal_own_invalid", False),
@@ -1239,9 +1272,9 @@ paired = (
     ("string_push_after_loop_walk_landed_valid", True),
     ("ref_view_beside_unit_variant_valid", True),
     ("ref_view_beside_unit_variant_stored_invalid", False),
-    ("string_inout_returned_literal_then_escape_call_invalid", False),
-    ("string_inout_unwrapped_literal_then_escape_call_invalid", False),
-    ("string_inout_returned_literal_then_own_release_invalid", False),
+    ("string_inout_returned_literal_then_escape_call_landed_valid", True),
+    ("string_inout_unwrapped_literal_then_escape_call_landed_valid", True),
+    ("string_inout_returned_literal_then_own_release_landed_valid", True),
     ("default_aggregate_move_reassign_valid", True),
     ("default_aggregate_move_reuse_invalid", False),
     ("default_aggregate_move_loop_reuse_invalid", False),
@@ -1429,6 +1462,8 @@ paired = (
     ("world_member_host_field_clone_valid", True),
     ("intent_step_action_route_valid", True),
     ("intent_action_stores_by_value_moves_landed_valid", True),
+    ("intent_aggregate_readonly_boundary_valid", True),
+    ("intent_aggregate_owned_field_requirement_invalid", False),
     ("intent_subject_keeps_string_landed_valid", True),
     ("match_payload_return_valid", True),
     ("match_payload_return_moves_landed_valid", True),
@@ -1676,6 +1711,14 @@ for name, valid in paired:
                 for row in errors):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"physical-return negative {name} lost its exact refusal")
+        if name == "intent_aggregate_owned_field_requirement_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (29, 43) or
+                not errors[0].get("message", "").startswith(
+                    "Intent aggregate argument 1 cannot satisfy an owned String-array field requirement")):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("intent aggregate boundary lost its fail-closed source proof refusal")
         if name in direct_own_named_sites and (
                 checked.stdout or len(errors) != 1 or errors[0].get("stage") != "semantic" or
                 (errors[0].get("location", {}).get("line"),
@@ -1766,7 +1809,10 @@ for name, valid in paired:
             # drop of the array it left with a borrowed String is the refusal.
             "array_result_owned_named_inout_shallow_set_invalid": {(17, 27)},
             "array_result_owned_named_inout_index_assign_invalid": {(17, 27)},
-            "array_field_detach_duplicate_alias_own_invalid": {(13, 20), (13, 35)},
+            # The earlier extraction is independently cloned when the field is
+            # read again.  The final shallow carrier still lacks a release
+            # boundary and must remain refused at the second own handoff.
+            "array_field_detach_duplicate_alias_own_invalid": {(13, 35)},
             "array_result_borrowed_element_move_deepdrop_invalid": {(9, 32), (10, 27)},
         }
         if name in array_release_multi_sites and (
@@ -1786,10 +1832,6 @@ for name, valid in paired:
             "array_result_nonown_ref_nested_projection_invalid": [(3, 5), (14, 28)],
             "array_result_nonown_ref_mapget_descriptor_invalid": [(1, 6), (1, 6)],
             "array_result_local_owned_element_index_assign_invalid": [(6, 27)],
-            # CaptureDirect's return of an element lands as a copy, but Main
-            # still reads its result as a loan of the Array whose Strings it
-            # drops before logging it.
-            "array_result_owned_element_direct_return_invalid": [(18, 9)],
             "array_result_owned_element_option_some_invalid": [(9, 44)],
             "array_result_owned_element_lambda_capture_invalid": [(10, 53)],
         }
@@ -2165,6 +2207,11 @@ for name, expected in (
     ("formal_string_store_landing_value_map_valid", "tt1"),
     ("named_string_same_empty_borrowed_then_owned_direct_landed_valid", "TypeName\n"),
     ("named_string_same_empty_owned_then_borrowed_direct_landed_valid", "TypeName\n"),
+    ("named_string_same_empty_owned_then_borrowed_named_landed_valid", "TypeName\n"),
+    ("named_string_same_empty_borrowed_then_owned_named_landed_valid", "TypeName\n"),
+    ("string_inout_returned_literal_then_escape_call_landed_valid", "1"),
+    ("string_inout_unwrapped_literal_then_escape_call_landed_valid", "1"),
+    ("string_inout_returned_literal_then_own_release_landed_valid", ""),
     ("struct_clone_array_field_copied_valid", "11a"),
     ("struct_clone_option_payload_copied_valid", "1"),
     ("struct_clone_nested_field_copied_valid", "1t"),
@@ -2213,6 +2260,8 @@ for name, expected in (
     ("by_value_array_to_two_reading_formals_valid", "32"),
     ("array_handed_to_two_keeping_formals_landed_valid", "1"),
     ("array_handed_to_three_keeping_formals_landed_valid", "102"),
+    ("array_field_detach_two_own_valid", "1\n1\n0\n0\n"),
+    ("array_field_detach_caller_alias_landed_valid", "1110"),
     ("one_storage_in_two_constructor_parts_returned_landed_valid", "211"),
     ("one_storage_through_alias_in_two_parts_landed_valid", "211"),
     ("one_storage_in_two_literal_elements_landed_valid", "22"),
@@ -2324,6 +2373,11 @@ for name, expected in (
     ("local_copy_changed_then_moved_landed_valid", "11"),
     ("local_copied_path_then_moved_landed_valid", "12"),
     ("intent_action_stores_by_value_moves_landed_valid", "a"),
+    ("intent_aggregate_readonly_boundary_valid", ""),
+    ("nonowner_risk_branch_owned_insert_landed_valid", "8\n"),
+    ("nonowner_risk_later_loop_owned_landed_valid", "8\n8\n"),
+    ("nonowner_risk_safe_then_owned_landed_valid", "8\n0\n"),
+    ("nonowner_risk_owned_then_safe_landed_valid", "8\n0\n"),
     ("inout_owned_param_input_return_moves_landed_valid", "1"),
     ("formal_array_store_field_take_landed_valid", "11"),
     ("default_aggregate_move_option_field_alias_store_landed_valid", "3"),
@@ -2359,6 +2413,7 @@ for name, expected in (
     ("string_local_pushed_into_field_array_landed_valid", "yx"),
     ("string_element_push_copy_landing_mixed_landed_valid", "header023"),
     ("ref_input_through_call_result_into_inout_output_landed_valid", "f26"),
+    ("ref_string_through_inout_reader_shallow_store_landed_valid", "2\n2c"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

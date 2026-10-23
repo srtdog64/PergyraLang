@@ -33,6 +33,7 @@
 #include "driver_diag.h"
 #include "machine_layer_manifest.h"
 #include "verified_region_plan.h"
+#include "../common/string_compat.h"
 
 /* Path utilities are now in path_utils.h/c */
 
@@ -62,9 +63,15 @@ typedef struct {
 
 /* Adds the identities `plan` lacks; `grew` is set when one was added. */
 static bool
-driver_landing_plan_merge(DriverLandingPlan *plan, const uint32_t *ids, size_t count, bool *grew)
+driver_landing_plan_merge(DriverLandingPlan *plan, const uint32_t *ids,
+    size_t count, uint32_t stable_id_ceiling, bool *grew)
 {
     for (size_t i = 0; i < count; i++) {
+        /* Landing identities name nodes from the unchanged parsed source.
+         * Synthetic wrappers live above this ceiling and can never become a
+         * new selection. This finite namespace, plus set growth below, is the
+         * termination proof for the reload loop. */
+        if (ids[i] == 0 || ids[i] >= stable_id_ceiling) return false;
         bool known = false;
         for (size_t j = 0; j < plan->count && !known; j++) known = plan->ids[j] == ids[i];
         if (known) continue;
@@ -80,20 +87,36 @@ driver_landing_plan_merge(DriverLandingPlan *plan, const uint32_t *ids, size_t c
 /* An analysis may select String stores and getter loans that no proof
  * admits; a fresh load and analysis of the same sources lands them as owned
  * copies: the stores as the checker lands them, the getter calls wrapped in
- * Clone. A round that selects nothing new is the result. Bounded: a
- * selection that keeps growing leaves the last round's refusals standing. */
+ * Clone. A round that selects nothing new is the result. Every continuing
+ * round adds an identity from the finite original-source namespace, so the
+ * loop terminates without a program-size-independent retry limit. */
 static SemanticResult *
 driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
     PgySourceModuleGraph **module_graph, char **load_error)
 {
-    SemanticResult *sem = semantic_analyze(*ast);
+    uint32_t stable_id_ceiling = ast_stable_id_ceiling(*ast);
+    SemanticResult *sem = stable_id_ceiling != 0
+        ? semantic_analyze(*ast) : NULL;
     DriverLandingPlan stores = {0}, copies = {0};
-    for (size_t round = 0; sem != NULL && round < 3; round++) {
+    size_t landing_round = 0;
+    if (stable_id_ceiling == 0) {
+        if (load_error != NULL && *load_error == NULL)
+            *load_error = pergyra_strdup(
+                "semantic landing source identity namespace is invalid");
+    }
+    while (sem != NULL && stable_id_ceiling != 0) {
         bool grew = false;
+        if (getenv("PGY_DEBUG_PIPELINE_STAGE") != NULL)
+            fprintf(stderr,
+                "[semantic landing] round=%zu selected_stores=%zu selected_copies=%zu cumulative_stores=%zu cumulative_copies=%zu\n",
+                landing_round, sem->string_store_landing_count,
+                sem->loan_copy_landing_count, stores.count, copies.count);
         if (!driver_landing_plan_merge(&stores, sem->string_store_landings,
-                sem->string_store_landing_count, &grew) ||
+                sem->string_store_landing_count, stable_id_ceiling, &grew) ||
             !driver_landing_plan_merge(&copies, sem->loan_copy_landings,
-                sem->loan_copy_landing_count, &grew) || !grew) break;
+                sem->loan_copy_landing_count, stable_id_ceiling, &grew) ||
+            !grew) break;
+        landing_round++;
         semantic_result_destroy(sem);
         sem = NULL;
         ast_destroy(*ast);
@@ -103,7 +126,18 @@ driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
         if (*ast == NULL) break;
         forin_desugar_program(*ast);
         match_subject_single_evaluation_desugar_program(*ast);
-        if (!ast_complete_stable_ids(*ast)) break;
+        if (!ast_complete_stable_ids(*ast)) {
+            if (load_error != NULL && *load_error == NULL)
+                *load_error = pergyra_strdup(
+                    "semantic landing source identity completion failed");
+            break;
+        }
+        if (ast_stable_id_ceiling(*ast) != stable_id_ceiling) {
+            if (load_error != NULL && *load_error == NULL)
+                *load_error = pergyra_strdup(
+                    "semantic landing source identity changed after reload");
+            break;
+        }
         driver_debug_stage("semantic_landing");
         sem = semantic_analyze_with_landings(*ast, stores.ids, stores.count, copies.ids, copies.count);
     }
@@ -296,7 +330,9 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         timings->semantic = driver_now_seconds() - phase_start;
     if (sem == NULL) {
         driver_emit_stage_fail(flags, "semantic",
-            "semantic analysis failed", "out of memory during semantic analysis");
+            "semantic analysis failed",
+            load_error != NULL ? load_error
+                               : "out of memory during semantic analysis");
         goto cleanup;
     }
 

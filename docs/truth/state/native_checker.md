@@ -27,7 +27,7 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
    and as a Clone where the owned push is refused ([rule](../decisions/2026-10-23_refused_owned_string_push_lands_as_clone.md)).
    Left: 3 opaque crossings, 8 released elements.
 5. **Hidden owners:** `collection_owned_element_requirements_finalize` has three refusals on the canonical, from a
-   field taken out before an `own` retire ([OPEN](../decisions/2026-10-19_open_field_take_before_own_handoff.md)).
+   field taken out before an `own` retire (admitted when exact since main's [field take rule](../decisions/2026-10-23_field_take_before_own_handoff.md); census after the merge pending).
    So a normal compile never runs the move, lane and named-call owners, nor the String receipts pass: 900 shallow
    String stores have no independent-result proof, and a refused one selects no copy (String proof lane: GPT).
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`

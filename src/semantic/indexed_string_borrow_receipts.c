@@ -20,6 +20,7 @@
 #include "indexed_string_nonowner_risk_internal.h"
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_permanent_element.h"
+#include "loan_copy_landing_owner.h"
 
 #include <string.h>
 
@@ -47,6 +48,7 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     size_t issued = 0, private_issued = 0;
+    ASTNode *first_copy = NULL, *first_private_copy = NULL;
     if (!semantic_indexed_string_nonowner_receipts(ctx, prepare)) return false;
     if (!semantic_indexed_string_field_receipts(ctx, prepare)) return false;
     if (!semantic_indexed_string_permanent_receipts(ctx, prepare)) return false;
@@ -64,10 +66,18 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
                 (void)function_param_flow_string_result_source_prepare(ctx, dependency, &ignored_source);
         }
         uint32_t source = UINT32_MAX;
-        if (issued == SIZE_MAX || row->node == NULL || row->id == 0
-            || row->id != ast_node_stable_id(row->node)
-            || !semantic_indexed_string_borrow_source_current((ASTNode *)row->node, ctx, &source)
-            || source != 0) {
+        bool current = issued != SIZE_MAX && row->node != NULL && row->id != 0
+            && row->id == ast_node_stable_id(row->node)
+            && semantic_indexed_string_borrow_source_current((ASTNode *)row->node, ctx, &source)
+            && source == 0;
+        if (!current && prepare && row->node != NULL && row->id != 0 &&
+            row->id == ast_node_stable_id(row->node) && row->value_present &&
+            !row->meta && row->string_value && type_equals(row->value_type, TYPE_STRING) &&
+            semantic_loan_copy_landing_select_string(ctx, row->node)) {
+            if (first_copy == NULL) first_copy = (ASTNode *)row->node;
+            continue;
+        }
+        if (!current) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                 (ASTNode *)row->node,
@@ -75,6 +85,13 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
             return false;
         }
         issued++;
+    }
+    if (first_copy != NULL) {
+        semantic_loan_copy_landing_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_copy,
+            "A retained String without an independent-result proof is copied where it is stored");
+        return false;
     }
     if (issued != store->indexed_string_shallow_retention_count) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
@@ -85,12 +102,15 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];
         if (row->private_string_push == NULL) continue;
-        if (private_issued == SIZE_MAX ||
-            (prepare && !semantic_indexed_string_prepare_private_push(ctx, row->node)) ||
-            !semantic_indexed_string_private_push_current(ctx, row->node)) {
-            /* No proof admits the push: a formal's String can land as an
-             * owned copy in a second analysis. */
-            semantic_formal_string_store_landing_select(ctx, row->node, 1, NULL, row->caller);
+        bool current = private_issued != SIZE_MAX &&
+            (!prepare || semantic_indexed_string_prepare_private_push(ctx, row->node)) &&
+            semantic_indexed_string_private_push_current(ctx, row->node);
+        if (!current && prepare &&
+            semantic_formal_string_store_landing_select_owned(ctx, row->node)) {
+            if (first_private_copy == NULL) first_private_copy = (ASTNode *)row->node;
+            continue;
+        }
+        if (!current) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                 (ASTNode *)row->node,
@@ -98,6 +118,13 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
             return false;
         }
         private_issued++;
+    }
+    if (first_private_copy != NULL) {
+        semantic_loan_copy_landing_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_private_copy,
+            "A private String push without a current source proof stores an owned copy");
+        return false;
     }
     if (private_issued != store->private_string_push_count) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,

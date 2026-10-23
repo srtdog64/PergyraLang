@@ -17,4 +17,5 @@ func Main() -> Void
 {
     let pair: Pair = Make();
     Log(ArrayLength(pair.first));
+    Log(ArrayLength(pair.second));
 }

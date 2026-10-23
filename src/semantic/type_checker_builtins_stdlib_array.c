@@ -170,6 +170,19 @@ array_push_become_owned_string(ASTNode *expr)
         ast_call_set_semantic_callee_builtin_kind(expr, (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING);
 }
 
+/* This is an internal lowering identity, not a source builtin. It lets every
+ * backend select the copy-then-retire ABI without exposing cleanup ceremony. */
+static bool
+array_set_become_owned_string(ASTNode *expr)
+{
+    ASTNode *callee = ast_call_callee(expr);
+    return callee != NULL && callee->type == AST_IDENTIFIER
+        && ast_replace_identifier_name_copy(callee, "ArraySetOwnedString")
+        && ast_call_set_compiler_builtin(expr)
+        && ast_call_set_semantic_callee_builtin_kind(
+            expr, (uint32_t)BUILTIN_NOT_BUILTIN);
+}
+
 static Type *
 stdlib_array_normalize_type(Type *type)
 {
@@ -263,7 +276,9 @@ type_check_stdlib_array_call(ASTNode *expr,
             /* An Array<String> that owns its elements takes a String as an
              * owned copy, which the next analysis lands. The value is still
              * checked, so its facts are published for later owners. */
-            semantic_formal_string_store_landing_select_owned(ctx, expr);
+            if (!semantic_formal_string_store_landing_select_owned(ctx, expr))
+                semantic_error(ctx, expr,
+                    "Owned String push landing selection failed");
             (void)type_check_expression(ast_call_argument(expr, 1), ctx);
             return TYPE_UNKNOWN;
         }
@@ -287,8 +302,17 @@ type_check_stdlib_array_call(ASTNode *expr,
                  * Sealed as a plain push by a loop's earlier walk, it lands in
                  * the next analysis from its first walk, refused in this one. */
                 if (ast_call_semantic_collection_effect(expr, NULL, NULL, NULL)) {
-                    semantic_formal_string_store_landing_select_owned(ctx, expr);
-                    semantic_error(ctx, arg1, "A String an earlier loop walk pushed as borrowed now needs an owned copy");
+                    bool selected = semantic_formal_string_store_landing_select_owned(
+                        ctx, expr);
+                    if (selected)
+                        semantic_loan_copy_landing_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg1,
+                            "A String an earlier loop walk pushed as borrowed now needs an owned copy");
+                    else
+                        semantic_error(ctx, arg1,
+                            "Owned String push landing selection failed");
                     return TYPE_UNKNOWN;
                 }
                 if (!semantic_collection_admit_owned_string_push(arg0, ctx)) {
@@ -436,28 +460,67 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         return TYPE_VOID;
     }
-    if (kind == STDLIB_COLLECTION_ARRAY_SET) {
+    if (kind == STDLIB_COLLECTION_ARRAY_SET
+        || kind == STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING) {
         Type *arr;
         Type *val;
+        bool owned_set = kind ==
+            STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING;
+        const char *op_name = owned_set
+            ? "ArraySetOwnedString" : "ArraySet";
         if (!check_call_arity(expr, 3, name, ctx))
             return TYPE_UNKNOWN;
+        if (owned_set && !ast_call_compiler_builtin(expr)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                expr,
+                "ArraySetOwnedString is a compiler-owned lowering and cannot be called from source");
+            return TYPE_UNKNOWN;
+        }
         arr = stdlib_array_normalize_type(
             type_check_expression(arg0, ctx));
         if (reject_invalid_array_mutator_receiver(
-                arg0, arr, "ArraySet", ctx))
+                arg0, arr, op_name, ctx))
             return TYPE_UNKNOWN;
         if (!semantic_array_storage_admit_mutation(arg0, ctx))
             return TYPE_UNKNOWN;
-        if (semantic_collection_reject_unsafe_owned_string_mutation(
-                arg0, "ArraySet", ctx)) {
+        if (!owned_set
+            && semantic_collection_owned_string_set_required(arg0, ctx)) {
+            if (!semantic_formal_string_store_landing_owned_set(expr, ctx)) {
+                if (!semantic_formal_string_store_landing_select_owned_set(
+                        ctx, expr))
+                    semantic_error(ctx, expr,
+                        "Owned String replacement landing selection failed");
+                (void)type_check_expression(arg1, ctx);
+                (void)type_check_expression(arg2, ctx);
+                return TYPE_UNKNOWN;
+            }
+            if (!array_set_become_owned_string(expr)) {
+                semantic_error(ctx, expr,
+                    "Owned String replacement landing could not be recorded");
+                return TYPE_UNKNOWN;
+            }
+            kind = STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING;
+            owned_set = true;
+            op_name = "ArraySetOwnedString";
+        }
+        if (!owned_set
+            && semantic_collection_reject_unsafe_owned_string_mutation(
+                arg0, op_name, ctx)) {
             (void)type_check_expression(arg1, ctx);
-            (void)type_check_expression(ast_call_argument(expr, 2), ctx);
+            (void)type_check_expression(arg2, ctx);
             return TYPE_UNKNOWN;
         }
+        if (owned_set
+            && !semantic_collection_admit_owned_string_set(arg0, ctx))
+            return TYPE_UNKNOWN;
         require_assignable(
             type_check_expression(arg1, ctx),
             TYPE_INT, arg1, ctx);
-        if (!semantic_formal_string_store_landing(expr, 0, 2, ctx)) {
+        if (!owned_set
+            && !semantic_formal_string_store_landing(expr, 0, 2, ctx)) {
             semantic_error(ctx, expr, "Owned String store landing could not be recorded");
             return TYPE_UNKNOWN;
         }
@@ -465,32 +528,49 @@ type_check_stdlib_array_call(ASTNode *expr,
         val = stdlib_array_normalize_type(
             type_check_expression(arg2, ctx));
         bool copy_wanted = false;
-        if (type_equals(val, TYPE_STRING))
+        if (!owned_set && type_equals(val, TYPE_STRING))
             semantic_indexed_string_borrow_set_argument(arg2, expr, ctx, &copy_wanted);
-        /* No owned-copy ArraySet exists: the store is refused, and a
-         * formal's String lands as a Clone in a second analysis. */
+        /* A borrowed-element ArraySet still needs a value landing when its
+         * input outlives no owner. The owned operation copies internally. */
         if (copy_wanted)
             semantic_formal_string_store_landing_select_checked(ctx, expr, 2);
-        reject_borrowed_boundary_container_store(
-            arg2, val, "array", "ArraySet", ctx);
+        if (!owned_set)
+            reject_borrowed_boundary_container_store(
+                arg2, val, "array", op_name, ctx);
         if (!type_is_constructed_named(arr, "Array")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
-                "ArraySet requires Array<T>, got '%s'",
+                "%s requires Array<T>, got '%s'", op_name,
                 type_name_or_unknown(arr));
         } else {
             Type *inner = type_get_constructed_arg(arr, 0);
+            if (owned_set
+                && (inner == NULL || !type_equals(inner, TYPE_STRING))) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                    arg0,
+                    "ArraySetOwnedString requires Array<String>, got '%s'",
+                    type_name_or_unknown(arr));
+            }
             if (inner != NULL)
                 require_assignable(val, inner, arg2, ctx);
             if (inner != NULL && type_equals(inner, TYPE_STRING)
                 && !semantic_collection_record_call_effect(
-                    expr, arg0, PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
+                    expr, arg0, owned_set
+                        ? PGY_COLLECTION_EFFECT_OWNED_STRING_SET
+                        : PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
                     ctx)) {
                 semantic_error(ctx, expr,
                     "Could not seal Array<String> ownership transition receipt");
                 return TYPE_UNKNOWN;
             }
+            if (owned_set && inner != NULL
+                && type_equals(inner, TYPE_STRING))
+                semantic_indexed_string_borrow_invalidate_owned_set(
+                    arg0, ctx);
         }
         return TYPE_VOID;
     }

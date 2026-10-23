@@ -1,0 +1,16 @@
+func SelectElement(
+    ref left: Array<String>, ref right: Array<String>, take_right: Bool
+) -> String {
+    if take_right { return right[0]; }
+    return left[0];
+}
+
+func Main() -> Void {
+    let left: Array<String> = Clone(["left"]);
+    let right: Array<String> = Clone(["right"]);
+    let selected: String = SelectElement(left, right, true);
+    ArrayDropOwnedStrings(right);
+    Log(selected);
+    Log(left[0]);
+    ArrayDropOwnedStrings(left);
+}

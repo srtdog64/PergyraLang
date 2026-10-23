@@ -9,11 +9,14 @@ func Make() -> Pair
     let rows: Array<Int> = [];
     ArrayPush(rows, 1);
     ArrayPop(rows);
-    return Pair(rows, rows);
+    let pair: Pair = Pair(rows, rows);
+    ArrayPush(pair.first, 7);
+    return pair;
 }
 
 func Main() -> Void
 {
     let pair: Pair = Make();
     Log(ArrayLength(pair.first));
+    Log(ArrayLength(pair.second));
 }

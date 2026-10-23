@@ -14,6 +14,7 @@ struct SemanticAstCollectionMemberMoveIdentity {
     source_binding_syntax_id: Int;
     field_syntax_id: Int;
     string_array_field: Bool;
+    field_path_ids: Array<Int>;
 }
 
 func SemanticAstCollectionMemberMoveEventKey(identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
@@ -30,33 +31,51 @@ func SemanticAstCollectionMemberMoveIdentityForNode(
     function_node_id: Int, use_node_id: Int,
     ref graph: SemanticExpressionGraphFacts, node_id: Int
 ) -> SemanticAstCollectionMemberMoveIdentity {
+    let no_path: Array<Int> = [];
     let unresolved: SemanticAstCollectionMemberMoveIdentity =
-        SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false);
-    let member: SemanticMemberAccessView =
-        SemanticMemberAccessViewFromGraph(graph, node_id);
-    if !member.ok { return unresolved; }
+        SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false, no_path);
+    let reversed_members: Array<Int> = [];
+    let current: Int = node_id;
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, current);
+    while member.ok && ArrayLength(reversed_members) < 64 {
+        ArrayPush(reversed_members, member.member_node);
+        current = member.receiver_node;
+        member = SemanticMemberAccessViewFromGraph(graph, current);
+    }
+    if member.ok || ArrayLength(reversed_members) == 0 { return unresolved; }
     let root: SemanticAstCollectionMemberRootIdentity =
         SemanticAstCollectionMemberRootIdentityForNode(
             artifact, signatures, locals, inferred_types, resolved_leaf_types, function_node_id,
-            use_node_id, graph, member.receiver_node);
-    let field_name: Option<String> = SemanticExpressionGraphNodeText(
-        graph, member.member_node);
-    if !root.ok || !IsSome(field_name) { return unresolved; }
-    let root_type: SemanticCanonicalTypeNameFact =
-        SemanticCanonicalTypeNameFactFrom(root.type_name);
-    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(
-        constructors, root_type.nominal_base_name);
-    if !IsSome(constructor) { return unresolved; }
-    let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
-        constructors, UnwrapOption(constructor), UnwrapOption(field_name));
-    if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.field_source_syntax_ids) ||
-        UnwrapOption(field) >= ArrayLength(constructors.param_type_names) {
-        return unresolved;
-    }
-    let field_id: Int = constructors.field_source_syntax_ids[UnwrapOption(field)];
-    if field_id <= 0 { return unresolved; }
+            use_node_id, graph, current);
+    if !root.ok { return unresolved; }
+    let path: Array<Int> = [];
+    let value_type: String = Concat("", root.type_name);
     let key: String = Concat(ToString(function_node_id),
-        Concat(":", Concat(ToString(root.source_binding_syntax_id), Concat(":", ToString(field_id)))));
-    return SemanticAstCollectionMemberMoveIdentity(true, key, root.source_binding_syntax_id, field_id,
-        constructors.param_type_names[UnwrapOption(field)] == "Array<String>");
+        Concat(":", ToString(root.source_binding_syntax_id)));
+    let index: Int = ArrayLength(reversed_members) - 1;
+    while index >= 0 {
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, reversed_members[index]);
+        let canonical: SemanticCanonicalTypeNameFact =
+            SemanticCanonicalTypeNameFactFrom(value_type);
+        let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(
+            constructors, canonical.nominal_base_name);
+        if !IsSome(field_name) || canonical.nominal_base_name == "" ||
+            !IsSome(constructor) { return unresolved; }
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+            constructors, UnwrapOption(constructor), UnwrapOption(field_name));
+        if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.field_source_syntax_ids) ||
+            UnwrapOption(field) >= ArrayLength(constructors.param_type_names) {
+            return unresolved;
+        }
+        let field_id: Int = constructors.field_source_syntax_ids[UnwrapOption(field)];
+        if field_id <= 0 { return unresolved; }
+        ArrayPush(path, field_id);
+        key = Concat(key, Concat(":", ToString(field_id)));
+        value_type = Concat("", constructors.param_type_names[UnwrapOption(field)]);
+        index = index - 1;
+    }
+    if ArrayLength(path) == 0 { return unresolved; }
+    return SemanticAstCollectionMemberMoveIdentity(true, key, root.source_binding_syntax_id,
+        path[ArrayLength(path) - 1], value_type == "Array<String>", path);
 }

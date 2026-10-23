@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "function_param_publication_internal.h"
+#include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 
@@ -53,9 +54,10 @@ static bool field_direct_definition(const FunctionParamFlowProgramPointIndex *in
     const IndexedStringFieldRecipe *recipe)
 {
     size_t found = 0;
-    for (size_t i = 0; i < index->dependency_root_count; i++) {
-        ASTNode *node = index->dependency_roots[i];
+    for (size_t i = 0; i < index->local_count; i++) {
+        ASTNode *node = index->local_definitions[i];
         if (node == NULL || node->type != AST_LET_DECL ||
+            index->local_ids[i] != recipe->binding_id ||
             ast_node_stable_id(node) != recipe->binding_id) continue;
         if (++found != 1 || node != recipe->definition ||
             ast_let_is_alias(node) || ast_let_is_mutable(node) ||
@@ -356,9 +358,10 @@ static bool field_check(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *caller_index = indexed_string_field_flow_index(ctx, caller);
     if (caller_index == NULL) return false;
     if (prepare) {
-        for (size_t i = 0; i < caller_index->dependency_root_count; i++) {
-            ASTNode *node = caller_index->dependency_roots[i];
+        for (size_t i = 0; i < caller_index->local_count; i++) {
+            ASTNode *node = caller_index->local_definitions[i];
             if (node != NULL && node->type == AST_LET_DECL &&
+                caller_index->local_ids[i] == recipe->binding_id &&
                 ast_node_stable_id(node) == recipe->binding_id) {
                 recipe->definition = node;
                 recipe->definition_id = ast_node_stable_id(node);
@@ -474,11 +477,26 @@ bool semantic_indexed_string_field_receipts(SemanticContext *ctx, bool prepare)
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     size_t issued = 0;
+    ASTNode *first_copy = NULL;
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];
         if (row->indexed_string_field == NULL) continue;
-        if (issued == SIZE_MAX ||
-            (prepare && !semantic_indexed_string_field_prepare(ctx, row->indexed_string_field)) ||
+        if (issued == SIZE_MAX) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                (ASTNode *)row->node, "String field source recipe count overflowed");
+            return false;
+        }
+        bool prepared = !prepare ||
+            semantic_indexed_string_field_prepare(ctx, row->indexed_string_field);
+        if (!prepared && prepare && row->node != NULL && row->id != 0 &&
+            row->id == ast_node_stable_id(row->node) && row->value_present &&
+            !row->meta && row->string_value && type_equals(row->value_type, TYPE_STRING) &&
+            semantic_loan_copy_landing_select_string(ctx, row->node)) {
+            if (first_copy == NULL) first_copy = (ASTNode *)row->node;
+            continue;
+        }
+        if (!prepared ||
             !semantic_indexed_string_field_current(ctx, row->indexed_string_field)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
@@ -486,6 +504,17 @@ bool semantic_indexed_string_field_receipts(SemanticContext *ctx, bool prepare)
             return false;
         }
         issued++;
+    }
+    if (first_copy != NULL) {
+        /* Every selected row is rechecked after the driver inserts the
+         * corresponding Clone.  Collecting the complete batch here avoids
+         * one whole-program analysis per independent field without treating
+         * an unlanded row as current in this analysis. */
+        semantic_loan_copy_landing_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_copy,
+            "A String field without an independent-source proof is copied where it is stored");
+        return false;
     }
     if (issued == store->indexed_string_field_count) return true;
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,

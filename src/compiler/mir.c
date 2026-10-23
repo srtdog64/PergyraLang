@@ -14,6 +14,7 @@
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
 #include "mir_loop_collection_cleanup.h"
+#include "mir_inout_member_copyout_owner.h"
 #include "mir_program_fact_validate.h"
 #include "mir_resource_runtime_population.h"
 #include "mir_parallel_capture_facts.h"
@@ -578,6 +579,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         MIRRoutine *routine = &mir->routines[r];
         size_t before = routine->instruction_count;
         if (!mir_synthesize_loop_collection_cleanup(routine, error_message) ||
+            !mir_synthesize_inout_member_copyouts(routine, error_message) ||
             (routine->instruction_count != before && !mir_recompute_analysis(routine))) {
             if (error_message != NULL && *error_message == NULL)
                 *error_message = pergyra_strdup("MIR loop cleanup analysis could not be finalized");
