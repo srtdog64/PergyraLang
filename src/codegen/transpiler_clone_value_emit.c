@@ -13,7 +13,9 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_hashmap_key_policy.h"
 #include "codegen_type_mapping.h"
+#include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_stdlib_builtin.h"
@@ -21,6 +23,7 @@
 #include "transpiler_option_context.h"
 #include "transpiler_slot_runtime_row.h"
 #include "transpiler_specialization_registry.h"
+#include "transpiler_type_require.h"
 
 /* No program struct nests deeper; a deeper chain is refused, not cut. */
 #define TRANSPILER_CLONE_MAX_DEPTH 16
@@ -120,6 +123,28 @@ transpiler_clone_option(TranspilerCtx *ctx, const char *type_name,
     return result;
 }
 
+/* A HashMap with a String, Int, Long or Bool key and a String or scalar
+ * value is copied slot by slot into new storage (pgy_map_clone_<value>);
+ * any other map is copied by value, and the checker keeps that Clone
+ * dependent on its argument. */
+static char *
+transpiler_clone_map(TranspilerCtx *ctx, const char *type_name, const char *value)
+{
+    char key[128], element[128], suffix[128], map_type[256];
+    copy_constructed_arg_name_at(type_name, 0, key, sizeof(key));
+    copy_constructed_arg_name_at(type_name, 1, element, sizeof(element));
+    if (pgy_hashmap_key_kind_from_name(key) == PGY_HASHMAP_KEY_UNKNOWN ||
+        !(strcmp(element, "String") == 0 || pgy_hashmap_value_copies_by_bytes(element)))
+        return strdup(value);
+    if (!transpiler_require_type_name_c_type_copy(ctx, type_name, "HashMap Clone", map_type, sizeof(map_type)) ||
+        !collection_runtime_suffix_copy(element, suffix, sizeof(suffix)))
+        return NULL;
+    ensure_collection_specialization(ctx, "Map", element);
+    int tmp_id = ++ctx->tmp_counter;
+    return strdup_fmt("({ %s _pgy_map_clone_%d = %s; pgy_map_clone_%s(&_pgy_map_clone_%d); })",
+        map_type, tmp_id, value, suffix, tmp_id);
+}
+
 /* A struct or class declared under this name is copied field by field (a
  * generic instance is not, and is copied by value). A subject field
  * keeps its identity and is copied by value. */
@@ -199,6 +224,8 @@ transpiler_clone_value_at(TranspilerCtx *ctx, const char *type_name,
         return strdup_fmt("StringConcat(%s, \"\")", value);
     if (strncmp(type_name, "Option<", 7) == 0)
         return transpiler_clone_option(ctx, type_name, value, depth);
+    if (transpiler_type_name_is_hashmap(type_name))
+        return transpiler_clone_map(ctx, type_name, value);
     /* A subject is copied field by field only as the Clone argument itself. */
     ASTNode *decl = find_class_decl(ctx, type_name);
     if (decl != NULL && decl->type == AST_CLASS_DECL

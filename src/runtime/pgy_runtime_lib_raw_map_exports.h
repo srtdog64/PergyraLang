@@ -158,6 +158,72 @@ pgy_map_drop_raw_export(void *map_ptr)
     pgy_map_drop_raw_impl((PgyHashMapRaw *)map_ptr, false);
 }
 
+/* `dst_ptr` becomes a copy of `src_ptr` in new storage of the same
+ * capacity: the same marker in every slot, a String key (and a String
+ * value when `string_values`) duplicated in each live slot, zero in the
+ * others. Nothing is rehashed, so MapKeys gives the same order on both. A
+ * zero map copies to a zero map; an allocation failure panics. */
+void
+pgy_map_clone_raw_export(void *dst_ptr, const void *src_ptr, int64_t value_size,
+                         int32_t string_values)
+{
+    PgyHashMapRaw *dst = (PgyHashMapRaw *)dst_ptr;
+    const PgyHashMapRaw *src = (const PgyHashMapRaw *)src_ptr;
+    if (dst == NULL || src == NULL) {
+        pgy_runtime_panic_invalid_collection("map_clone", "null map");
+        return;
+    }
+    *dst = *src;
+    if (src->capacity == 0 && src->keys == NULL && src->values == NULL && src->occupied == NULL)
+        return;
+    size_t key_size = pgy_hashmap_key_storage_size((PgyHashMapKeyStorageKind)src->key_storage_kind);
+    if (!pgy_map_raw_is_initialized(src) || key_size == 0 || value_size <= 0 ||
+        (string_values != 0 && value_size != (int64_t)sizeof(char *)) ||
+        !pgy_map_raw_shape_fits(src->capacity, key_size) ||
+        !pgy_map_raw_shape_fits(src->capacity, (size_t)value_size)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map clone on invalid map");
+    }
+    char *keys = calloc(src->capacity, key_size);
+    char *values = calloc(src->capacity, (size_t)value_size);
+    uint8_t *occupied = calloc(src->capacity, sizeof(uint8_t));
+    bool ok = keys != NULL && values != NULL && occupied != NULL;
+    for (size_t i = 0; ok && i < src->capacity; i++) {
+        occupied[i] = src->occupied[i];
+        if (src->occupied[i] != PGY_MAP_RAW_LIVE)
+            continue;
+        if (src->key_storage_kind == PGY_HASHMAP_KEY_STORAGE_STRING) {
+            const char *key = PGY_MAP_RAW_STRING_KEYS(src)[i];
+            ok = key == NULL || (((char **)keys)[i] = pgy_runtime_strdup_export(key)) != NULL;
+        } else {
+            memcpy(keys + i * key_size, (const char *)src->keys + i * key_size, key_size);
+        }
+        if (ok && string_values != 0) {
+            const char *value = ((char *const *)src->values)[i];
+            ok = value == NULL || (((char **)values)[i] = pgy_runtime_strdup_export(value)) != NULL;
+        } else if (ok) {
+            memcpy(values + i * (size_t)value_size, (const char *)src->values + i * (size_t)value_size,
+                (size_t)value_size);
+        }
+    }
+    if (!ok) {
+        for (size_t i = 0; occupied != NULL && i < src->capacity; i++) {
+            if (keys != NULL && src->key_storage_kind == PGY_HASHMAP_KEY_STORAGE_STRING)
+                free(((char **)keys)[i]);
+            if (values != NULL && string_values != 0)
+                free(((char **)values)[i]);
+        }
+        free(keys);
+        free(values);
+        free(occupied);
+        memset(dst, 0, sizeof(*dst));
+        pgy_runtime_panic_collection_oom("map_clone", "allocation failed");
+        return;
+    }
+    dst->keys = keys;
+    dst->values = values;
+    dst->occupied = occupied;
+}
+
 void
 pgy_map_drop_string_value_raw_export(void *map_ptr)
 {

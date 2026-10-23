@@ -39,6 +39,15 @@ pgy_hashmap_key_find_spec(const char *name)
                    pgy_hashmap_key_spec_compare);
 }
 
+bool
+pgy_hashmap_value_copies_by_bytes(const char *value_name)
+{
+    static const char *const names[] = { "Int", "Long", "Float", "Double", "Bool", "Duration" };
+    for (size_t i = 0; value_name != NULL && i < sizeof(names) / sizeof(names[0]); i++)
+        if (strcmp(value_name, names[i]) == 0) return true;
+    return false;
+}
+
 PgyHashMapKeyKind
 pgy_hashmap_key_kind_from_name(const char *name)
 {

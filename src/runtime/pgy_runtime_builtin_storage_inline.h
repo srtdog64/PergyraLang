@@ -181,6 +181,25 @@ static inline bool pgy_map_int_is_initialized(const PgyHashMap_Int *m)
             || m->key_storage_kind == PGY_HASHMAP_KEY_STORAGE_BOOL);
 }
 
+/* A copy of the map in new storage (pgy_hashmap_clone_slots). */
+static inline PgyHashMap_Int pgy_map_clone_int(const PgyHashMap_Int *m)
+{
+    PgyHashMap_Int copy = *m;
+    void *values = NULL;
+    if (m->capacity == 0 && m->keys == NULL && m->values == NULL && m->occupied == NULL)
+        return copy;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map clone on invalid map");
+    if (!pgy_hashmap_clone_slots(&copy.keys, &values, &copy.occupied, m->keys, m->values, m->occupied,
+            m->capacity, m->key_storage_kind, sizeof(int32_t), false)) {
+        memset(&copy, 0, sizeof(copy));
+        pgy_runtime_panic_collection_oom("map_clone_int", "allocation failed");
+        return copy;
+    }
+    copy.values = (int32_t *)values;
+    return copy;
+}
+
 static inline void pgy_map_drop_int(PgyHashMap_Int *m)
 {
     if (m == NULL)
