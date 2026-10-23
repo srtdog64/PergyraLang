@@ -174,6 +174,11 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                             "role operator bridge name is too long");
                         return false;
                     }
+                    /* A declared free overload owns this symbol even before
+                     * its body is emitted. Do not install a role bridge into
+                     * that declaration's currently empty LLVM function. */
+                    if (llvm_decl_exists_in_context(ctx, AST_FUNC_DECL, opname))
+                        continue;
                     if (!llvm_role_method_symbol_name(mname, sizeof(mname),
                             role_name, method_name)) {
                         llvm_set_error(ctx,

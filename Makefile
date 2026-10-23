@@ -2026,6 +2026,11 @@ $(BIN_DIR)/operator_overload_rules_unit$(EXEEXT): $(BUILD_DIR)/semantic/operator
 operator-overload-rules-test: $(BIN_DIR)/operator_overload_rules_unit$(EXEEXT)
 	$(call pgy_run_native,$(BIN_DIR)/operator_overload_rules_unit$(EXEEXT))
 
+.PHONY: operator-overload-rules-test-smoke
+operator-overload-rules-test-smoke: $(PGY) operator-overload-rules-test
+	python3 tests/operator_overload_rules_smoke.py --pgy "$(abspath $(PGY))" \
+		--backends "$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)"
+
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2482,6 +2487,7 @@ native-loop-local-collection-cleanup-test-smoke: $(PGY)
 	"$(BASH)" tests/loop_local_collection_cleanup_smoke.sh
 
 native-compiler-boundary-regression-test-smoke: \
+	operator-overload-rules-test-smoke \
 	native-match-scrutinee-single-evaluation-test-smoke \
 	native-c-callable-macro-hygiene-test-smoke \
 	native-imported-private-nominal-test-smoke \
