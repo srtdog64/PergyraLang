@@ -1,0 +1,56 @@
+// BuildEmpty's declared result runs through CfgAddBlock, which reads the
+// pure member chain cfg.instructions.ids. Its qualifier cfg.instructions is
+// published only as part of that path, so the declared-result check walks it
+// as the member walk does, and Lower's return relation is proved.
+struct Instructions {
+    ids: Array<Int>;
+}
+
+struct Cfg {
+    starts: Array<Int>;
+    instructions: Instructions;
+}
+
+struct Build {
+    ok: Bool;
+    message: String;
+    cfg: Cfg;
+}
+
+func CfgEmpty() -> Cfg {
+    let starts: Array<Int> = [];
+    let ids: Array<Int> = [];
+    return Cfg(starts, Instructions(ids));
+}
+
+func CfgAddBlock(cfg: Cfg) -> Cfg {
+    let starts: Array<Int> = cfg.starts;
+    ArrayPush(starts, ArrayLength(cfg.instructions.ids));
+    return Cfg(starts, cfg.instructions);
+}
+
+func BuildEmpty() -> Build {
+    let cfg: Cfg = CfgAddBlock(CfgEmpty());
+    return Build(true, "", cfg);
+}
+
+func BuildError(build: Build, message: String) -> Build {
+    let failed: Build = BuildEmpty();
+    failed.ok = false;
+    failed.message = message;
+    return failed;
+}
+
+func Lower(ref names: Array<String>, build: Build) -> Build {
+    if ArrayLength(names) == 0 {
+        return BuildError(build, "no names");
+    }
+    return build;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    let built: Build = Lower(names, BuildEmpty());
+    Print(built.message);
+    return 0;
+}

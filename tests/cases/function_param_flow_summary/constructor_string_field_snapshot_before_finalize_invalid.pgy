@@ -1,0 +1,45 @@
+// ViewFrom builds a View whose String field IdentityNames returns. The
+// constructor's snapshot is read by the flow summaries before the deferred
+// Array preservations are finalized, so it must not need that element proof:
+// only IdentityNames' own refusal (its result keeps facts' Strings) stays.
+struct Facts {
+    names: Array<String>;
+    kinds: Array<String>;
+}
+
+struct View {
+    ok: Bool;
+    ids: Array<String>;
+}
+
+func IdentityNames(facts: Facts) -> Array<String> {
+    let names: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(facts.names) {
+        if facts.kinds[row] == "class" {
+            ArrayPush(names, facts.names[row]);
+        }
+        row = row + 1;
+    }
+    return names;
+}
+
+func ViewFrom(facts: Facts) -> View {
+    return View(true, IdentityNames(facts));
+}
+
+func Checked(facts: Facts, ref rows: Array<String>) -> View {
+    let view: View = ViewFrom(facts);
+    if ArrayLength(rows) != ArrayLength(view.ids) {
+        Print("rows differ");
+    }
+    return view;
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts(["A", "B"], ["class", "enum"]);
+    let rows: Array<String> = ["A"];
+    let view: View = Checked(facts, rows);
+    Print(view.ids[0]);
+    return 0;
+}

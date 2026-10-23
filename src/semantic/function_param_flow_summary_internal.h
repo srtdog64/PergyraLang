@@ -153,6 +153,11 @@ FunctionParamFlowBackingBinding *backing_identifier_row(ReturnedBacking *state, 
 bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue value);
 /* Where a value's backing goes: its destinations, or every alias `id` of it. */
 void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations);
+/* The same, where an unpublished member access is a qualifier of a member
+ * chain published as one path: the declared-result check of backing_origin,
+ * whose member walk reaches each qualifier as the normal walk does. */
+void backing_destination_value_at(ReturnedBacking *state, ASTNode *value, uint64_t *destinations,
+    bool member_qualifier);
 void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id);
 /* Handing a value that carries the frame's input to an inout formal is no
  * call escape by itself when the input is `ref`: a local holds of a ref

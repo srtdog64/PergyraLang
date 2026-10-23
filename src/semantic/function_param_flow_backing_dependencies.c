@@ -140,7 +140,7 @@ const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     if (node == NULL || state->fact->analysis_unsupported) return NULL;
     if (state->checking_declared_result) {
         uint64_t destinations = 0;
-        backing_destination_value(state, node, &destinations);
+        backing_destination_value_at(state, node, &destinations, node->type == AST_MEMBER_ACCESS);
         if (!state->fact->complete || destinations != 0) { state->fact->complete = false; return NULL; }
     }
     if (node != state->loan_seed &&

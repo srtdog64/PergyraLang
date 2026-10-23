@@ -619,6 +619,9 @@ release_lifetime_refusals = {
     "text_builder_append_of_released_element_invalid": [(*borrow_refusal, 10, 31)],
     # One map of Arrays in two parts of a value: no copy can stand in.
     "one_storage_in_two_array_map_parts_invalid": [(*released_refusal, 11, 26)],
+    # A constructor snapshot read before the deferred Array preservations are
+    # finalized keeps the flow summaries open: only the callee's refusal.
+    "constructor_string_field_snapshot_before_finalize_invalid": [(*borrow_refusal, 15, 6)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
@@ -1185,6 +1188,8 @@ paired = (
     ("distinct_fields_of_a_local_copy_in_two_parts_valid", True),
     ("one_storage_in_two_map_parts_landed_valid", True),
     ("one_storage_in_two_array_map_parts_invalid", False),
+    ("constructor_string_field_snapshot_before_finalize_invalid", False),
+    ("declared_result_member_chain_qualifier_valid", True),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),
@@ -2267,6 +2272,7 @@ for name, expected in (
     ("one_storage_in_two_literal_elements_landed_valid", "22"),
     ("two_parts_of_distinct_storage_valid", "22"),
     ("one_storage_in_two_map_parts_landed_valid", "0"),
+    ("declared_result_member_chain_qualifier_valid", "no names"),
     ("default_aggregate_move_map_field_set_landed_valid", "1"),
     ("formal_field_map_copy_changed_at_exit_landed_valid", "0\n0\n"),
     ("inout_callee_same_map_field_changed_landed_valid", "3\n"),

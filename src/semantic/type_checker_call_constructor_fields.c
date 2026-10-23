@@ -310,15 +310,15 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
         Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
         if (!constructor_payload_type_ready(type, false) ||
             strcmp(type->name, row->field_type_name) != 0) return false;
-        if (row->string_array_elements_present) {
-            ASTNode *actual = ast_call_argument(call, i);
-            bool string_array = type_is_constructed_named(type, "Array")
-                && type_equals(type_get_constructed_arg(type, 0), TYPE_STRING);
-            if (!string_array || (row->string_array_elements.owned
-                && !semantic_array_storage_transferred_element_use_current(actual,
-                    (SemanticContext *)ctx, &row->string_array_elements)))
-                return false;
-        }
+        /* The field's element receipt is replayed only by its consumer, the
+         * owned-element member requirement. This snapshot also answers the
+         * flow summaries' relation lookups, which run before the deferred
+         * Array preservations are finalized, where an owned result cannot
+         * replay yet. */
+        if (row->string_array_elements_present
+            && !(type_is_constructed_named(type, "Array")
+                && type_equals(type_get_constructed_arg(type, 0), TYPE_STRING)))
+            return false;
     }
     return true;
 }
