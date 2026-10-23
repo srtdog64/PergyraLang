@@ -100,7 +100,9 @@ allowed = {"PGY_SEM_BORROW_ESCAPE", "PGY_SEM_MOVE_FROM_RELEASED",
            "OWN_EXPLICIT_COPY_REQUIRED"}
 allowed_cascade = {"PGY_SEM_TYPE_MISMATCH"}
 target_lines = {
-    "map_alias_negative": {13},
+    # The value is rejected at construction, before either field can mutate
+    # the shared map storage. A later line-13 alias diagnostic may follow.
+    "map_alias_negative": {11},
     "post_field_return_negative": {18},
     "nested_overlap_move_negative": {19},
     "owned_string_set_stale_borrow_negative": {6},
