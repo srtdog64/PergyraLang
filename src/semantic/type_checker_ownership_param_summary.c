@@ -294,13 +294,14 @@ static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
  * changes only that binding's own descriptor. */
 static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on,
-    bool own_descriptor)
+    bool own_descriptor, const ASTNode *since)
 {
     bool owner_formal = false;
     for (size_t p = 0; p < ast_func_param_count(caller); p++)
         if (ast_func_param_stable_id(ast_func_param(caller, p)) == binding) owner_formal = true;
     for (size_t c = 0; c < claims->count; c++) {
         ASTNode *node = claims->rows[c].node;
+        if (since != NULL && function_param_flow_claim_runs_before(claims, c, since, ast_func_body(caller))) continue;
         if (node->type == AST_ASSIGNMENT) {
             const ASTNode *target = NULL;
             if (!returned_loan_storage_root(store, claims, caller, ast_assignment_target(node), &target) ||
@@ -405,7 +406,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
             }
             if ((dependency != NULL || by_value_formal) &&
-                !loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false)) admitted = false;
+                !loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal, false, NULL)) admitted = false;
             if (dependency == NULL && !by_value_formal) admitted = false;
             /* A loan that stays here needs only an owner no write reaches. */
             if (effects == 0) continue;
@@ -552,7 +553,7 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
         free(carriers.ids);
         return false;
     }
-    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true, false);
+    bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true, false, call);
     /* The loan shares the owner's storage, so a change through a local the
      * loan reached changes the owner. A local of a String, an Option of one
      * or a struct of such fields holds none of it, and a local Array literal
@@ -568,7 +569,7 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             literal = ast_let_initializer(row->node) != NULL && ast_let_initializer(row->node)->type == AST_ARRAY_LITERAL;
             break;
         }
-        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal);
+        unchanged = !holds || loan_owner_unchanged(store, index->claims, caller, carriers.ids[k], true, literal, call);
     }
     free(carriers.ids);
     if (!unchanged && failure != NULL) failure->owner_changed = true;

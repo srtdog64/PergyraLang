@@ -135,8 +135,9 @@ landed_clones = {
     "collection_value_store_grown_landed_valid": {
         "MapStore": 1, "SetStore": 1, "ListPushStore": 1, "ListSetStore": 1, "QueueStore": 1},
     "formal_field_copy_changed_at_exit_landed_valid": {"Grow": 1},
-    # The element passed to Join, and the result returned.
-    "string_element_kept_by_callee_landed_valid": {"Lines": 2},
+    # The result returned. The element passed to Join stays a loan of parts,
+    # which no change reaches after the loan is made.
+    "string_element_kept_by_callee_landed_valid": {"Lines": 1},
     "ref_loan_field_written_back_valid": {"Plan": 1},
     "ref_loan_stored_into_inout_output_landed_valid": {"Fill": 1},
     # The borrowed String each push into an Array taken from a field keeps.
@@ -437,6 +438,17 @@ release_lifetime_refusals = {
     "ref_string_through_inout_keeper_invalid": [
         (*borrow_refusal, 43, 6), (*borrow_refusal, 59, 6), (*borrow_refusal, 60, 28),
         (*borrow_refusal, 66, 26)],
+    # An owner assigned after its view is made, in the loop before the view,
+    # or from a view of itself, changes under a loan: each later use refuses.
+    "loan_owner_assigned_after_loan_invalid": [
+        (*released_refusal, 32, 33), (*released_refusal, 33, 22), (*released_refusal, 37, 45)],
+    "loan_owner_assigned_in_loop_before_loan_invalid": [
+        (*released_refusal, 32, 22), (*released_refusal, 33, 33), (*released_refusal, 37, 45)],
+    "loan_owner_assigned_from_its_own_loan_invalid": [
+        (*released_refusal, 28, 22), (*released_refusal, 33, 33), (*released_refusal, 37, 45)],
+    # An indexed assignment after the loan writes through it into the owner's
+    # storage; the parser leaves the assignment without a source position.
+    "loan_owner_written_by_indexed_assignment_after_loan_invalid": [(*released_refusal, 29, 42)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
@@ -949,6 +961,11 @@ paired = (
     ("ref_string_through_inout_reader_shallow_store_invalid", False),
     ("ref_string_through_inout_keeper_invalid", False),
     ("by_value_field_alias_written_by_inout_callee_landed_valid", True),
+    ("loan_owner_assigned_before_loan_valid", True),
+    ("loan_owner_assigned_after_loan_invalid", False),
+    ("loan_owner_assigned_in_loop_before_loan_invalid", False),
+    ("loan_owner_assigned_from_its_own_loan_invalid", False),
+    ("loan_owner_written_by_indexed_assignment_after_loan_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
     ("named_string_field_lineage_two_ref_control_valid", True),
     ("named_string_field_lineage_two_ref_empty_valid", True),

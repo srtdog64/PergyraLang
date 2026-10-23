@@ -1,0 +1,35 @@
+// The loan of valid is made by SurfacesFrom, and an indexed assignment after
+// it writes an element through the loan into storage valid shares: the
+// owner changes under the loan, so the later use of valid refuses.
+struct Cell {
+    value: Int;
+}
+
+struct Arena {
+    texts: Array<String>;
+    cells: Array<Cell>;
+}
+
+struct Graph {
+    arena: Arena;
+}
+
+struct Surfaces {
+    graph: Graph;
+}
+
+func SurfacesFrom(graph: Graph) -> Surfaces {
+    return Surfaces(graph);
+}
+
+func Check() -> Int {
+    let valid: Graph = Graph(Arena([Concat("a", ""), Concat("b", "")], [Cell(1)]));
+    let surfaces: Surfaces = SurfacesFrom(valid);
+    surfaces.graph.arena.texts[0] = "missing";
+    return StringLength(valid.arena.texts[0]);
+}
+
+func Main() -> Int {
+    Print(ToString(Check()));
+    return 0;
+}

@@ -368,3 +368,67 @@ bool function_param_flow_readfile_execution_counts(const FunctionParamFlowIndexC
         if (claims->rows[next - 1].readfile_execution_required) (*required_calls)++;
     return readfile_write_projection(claims, NULL, &count, &unused, SIZE_MAX, NULL, required_writes);
 }
+
+/* A node of one of these runs once each time its parent runs, in source
+ * order. Any other (a loop, a deferred, concurrent or intent body, a
+ * closure) may run its code later than code after it. */
+static bool claim_order_straight(ASTNodeType shape)
+{
+    switch (shape) {
+    case AST_BLOCK: case AST_IF_STMT: case AST_MATCH_STMT: case AST_MATCH_CASE: case AST_WITH_STMT:
+    case AST_UNSAFE_BLOCK: case AST_LET_DECL: case AST_LET_DESTRUCTURE: case AST_ASSIGNMENT: case AST_CALL:
+    case AST_RETURN: case AST_BINARY: case AST_UNARY: case AST_CAST: case AST_TYPE_TEST: case AST_MEMBER_ACCESS:
+    case AST_ARRAY_ACCESS: case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL: case AST_MAP_LITERAL:
+    case AST_SET_LITERAL: case AST_IDENTIFIER: case AST_NUMBER: case AST_STRING: case AST_BOOLEAN:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool function_param_flow_claim_runs_before(FunctionParamFlowIndexClaims *claims, size_t claim, const ASTNode *site,
+    const ASTNode *body)
+{
+    if (claims == NULL || claims->failed || site == NULL || body == NULL || claim >= claims->count) return false;
+    if (claims->order_parent == NULL || claims->order_generation != claims->generation) {
+        size_t *parent = realloc(claims->order_parent, (claims->count == 0 ? 1 : claims->count) * sizeof(*parent));
+        if (parent == NULL) return false;
+        for (size_t r = 0; r < claims->count; r++) parent[r] = SIZE_MAX;
+        for (size_t r = 0; r < claims->count; r++)
+            for (size_t c = 0; c < claims->rows[r].child_count; c++) {
+                size_t child = claims->rows[r].child_claim_ordinals[c];
+                if (child < claims->count) parent[child] = r;
+            }
+        claims->order_parent = parent;
+        claims->order_generation = claims->generation;
+        claims->order_site = NULL;
+    }
+    if (claims->order_site != site) {
+        claims->order_site_row = SIZE_MAX;
+        for (size_t r = 0; r < claims->count; r++) if (claims->rows[r].node == site) claims->order_site_row = r;
+        claims->order_site = site;
+    }
+    /* An assignment starts at its target, whose root identifier carries the
+     * position the parser leaves off the assignment. A node with no source
+     * position, as a desugaring makes, is not ordered. */
+    const ASTNode *node = claims->rows[claim].node;
+    while (node != NULL && node->line == 0 && (node->type == AST_ASSIGNMENT || node->type == AST_MEMBER_ACCESS ||
+           node->type == AST_ARRAY_ACCESS))
+        node = node->type == AST_ASSIGNMENT ? ast_assignment_target(node) :
+            node->type == AST_MEMBER_ACCESS ? ast_member_object(node) : ast_array_access_array(node);
+    if (claims->order_site_row == SIZE_MAX || node == NULL || node->line == 0 || site->line == 0 ||
+        node->line > site->line || (node->line == site->line && node->column >= site->column)) return false;
+    /* The chain must reach the routine's body: a node no claim records
+     * could be a loop the chain would miss. */
+    bool reached = false;
+    for (size_t at = claims->order_parent[claim], steps = 0; at != SIZE_MAX && !reached;
+         at = claims->order_parent[at], steps++) {
+        reached = claims->rows[at].node == body;
+        if (steps > claims->count || (!reached && !claim_order_straight(claims->rows[at].shape))) return false;
+    }
+    if (!reached) return false;
+    for (size_t at = claims->order_site_row, steps = 0; at != SIZE_MAX && steps <= claims->count;
+         at = claims->order_parent[at], steps++)
+        if (at == claim) return false;
+    return true;
+}
