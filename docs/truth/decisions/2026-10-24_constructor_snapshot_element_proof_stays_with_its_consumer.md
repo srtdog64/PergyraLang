@@ -21,9 +21,9 @@ result (`owned_function_result_replay`) cannot replay before then. On the
 canonical input every such constructor read failed, so its arguments had
 no backing relation, `CodegenCallableReceiverFactsFromAdmittedRowsOrDie`'s
 required return relation stayed unproved, and the flow summary store
-failed closed for the whole program: 37245 census refusals instead of
-about 150, most of them "cannot escape through channel send" from routines
-with no channel.
+failed closed for the whole program: 35977 census refusals, most of them
+"cannot escape through channel send" from routines with no channel
+([record](../evidence/2026-10-24_native_census_after_main_merge_flow_repairs.md)).
 
 The element proof keeps its strength: its only consumer still refuses a
 field whose owned receipt does not replay.

@@ -6,14 +6,14 @@ blocker is [blocker.md](blocker.md)). Checked 2026-10-24 KST on branch
 `claude/p0-native-checker` (local, not pushed), with main merged.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 144 downgraded
-refusals with every final owner run ([census record](../evidence/2026-10-24_native_census_map_deep_clone.md)),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 118 downgraded
+refusals with every final owner run, main merged at `fdc661ff9` ([census record](../evidence/2026-10-24_native_census_after_main_merge_flow_repairs.md)),
 and 905 more String receipt refusals the final owners hide ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)).
-A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles natively since `e23761a3a`.
+Since the merge a census runs ten analyses (nine landings) in 2578 s. The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 
-1. **`direct_mir_*` routes:** 42 refusals, removed with the routes as
+1. **`direct_mir_*` routes:** 41 refusals, removed with the routes as
    the general emitter covers their programs (self-host generality).
 2. **Moves (35 outside `direct_mir_*`)**: 9 a real alias of `valid`, 6 an `artifact` handed on and used again, 4 `build.cfg` and 2 `build.cfg.local_refs` rows of the MIR routine build, 4 `graph.arena` rows of `SemanticExpressionGraphCallTargetCaptureFromSignatures` (a proof needs field-level loan origins), 2 each of `request`, `codegen_analysis`, `target_projection`
    ([others are copied](../decisions/2026-10-22_moved_argument_used_again_is_copied.md); not changes [before the loan](../decisions/2026-10-23_loan_owner_changes_before_the_loan_do_not_count.md) or [after its locals' statement](../decisions/2026-10-23_loan_ends_with_the_statement_that_holds_its_locals.md), [nor a constructor](../decisions/2026-10-23_constructor_of_loan_owner_fields_reads_the_owner.md) ([of a carrier](../decisions/2026-10-23_carrier_fields_read_into_any_constructor.md)), [nor after the last read](../decisions/2026-10-23_loan_owner_changes_after_the_last_read_do_not_count.md), [nor a match pattern](../decisions/2026-10-23_match_pattern_is_no_change_of_a_loan_owner.md), [whose bindings root at the subject](../decisions/2026-10-23_match_payload_binding_rooted_at_its_subject.md)),
@@ -25,11 +25,11 @@ A census runs four analyses in 840 to 1370 s. The CI harness manifest compiles n
 4. **Strings that leave their owner.** Owned copies land where a String
    leaves its Array owner ([decision](../decisions/2026-10-22_string_crossing_copied_where_it_crosses.md)),
    and as a Clone where the owned push is refused ([rule](../decisions/2026-10-23_refused_owned_string_push_lands_as_clone.md)).
-   Left: 3 opaque crossings, 8 released elements.
-5. **Hidden owners:** `collection_owned_element_requirements_finalize` has three refusals on the canonical, from a
-   field taken out before an `own` retire (admitted when exact since main's [field take rule](../decisions/2026-10-23_field_take_before_own_handoff.md); census after the merge pending).
-   So a normal compile never runs the move, lane and named-call owners, nor the String receipts pass: 900 shallow
-   String stores have no independent-result proof, and a refused one selects no copy (String proof lane: GPT).
+   Left: 1 opaque crossing (`SemanticCallSpineViewFromGraph`'s two went with main's `ArrayReverse`).
+5. **String receipts:** the pass runs only after every final owner admits; on 2026-10-23 it hid 900 shallow
+   String stores with no independent-result proof. Main now lands a copy at each; the Claude lane replaces
+   those copies with callee freshness proofs ([decision](../decisions/2026-10-24_hidden_string_receipts_proof_first.md)).
+   The field-take hand-offs are admitted by main's [field take rule](../decisions/2026-10-23_field_take_before_own_handoff.md).
 6. **Codegen gaps the checker admits:** a by-value `self` method on a `ref`
    receiver, `graph.blocks[0].name = x` (C emits a non-lvalue),
    `let (a, b) = (s, 0)` (C lacks `PgyTuple_String_Int_t`), and an
