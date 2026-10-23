@@ -9,6 +9,7 @@
 
 #include <string.h>
 
+#include "codegen_subject_argument_policy.h"
 #include "llvm_boundary_slot_param.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_member_lvalue.h"
@@ -104,6 +105,7 @@ LLVMValueRef *
 llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                               const MIRRoutine *bound_routine,
                               ASTNode **arg_nodes, size_t argc,
+                              const LLVMValueRef *evaluated_values,
                               unsigned *out_count)
 {
     LLVMValueRef *args;
@@ -240,6 +242,12 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
         if (ctx->has_error)
             return NULL;
+        /* A caller may already have evaluated a value operand to resolve its
+         * operator. That value cannot substitute for an addressable binding. */
+        if (evaluated_values != NULL && evaluated_values[i] != NULL
+            && (pointer_self || carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT))
+            return llvm_boundary_args_error(ctx, arg_node,
+                "LLVM boundary indirect argument requires original storage, not an evaluated value");
 
         if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
             && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
@@ -314,7 +322,11 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                     continue;
                 }
             }
-            if (!(carriage == MIR_PARAM_CARRIAGE_VALUE && !pass_indirect
+            bool fresh_subject = carriage != MIR_PARAM_CARRIAGE_VALUE_RESULT
+                && pgy_codegen_is_subject_constructor(
+                    llvm_active_mir_identity(ctx), arg_node);
+            if (!fresh_subject
+                && !(carriage == MIR_PARAM_CARRIAGE_VALUE && !pass_indirect
                     && arg_node->type == AST_CALL)) {
                 return llvm_boundary_args_error(ctx, arg_node,
                     "LLVM boundary subject argument requires addressable storage");
@@ -351,7 +363,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             const char *saved_expected_type_name = ctx->expected_type_name;
             if (param_type_name != NULL)
                 ctx->expected_type_name = param_type_name;
-            LLVMValueRef value = llvm_emit_expression(arg_node, ctx);
+            LLVMValueRef value = evaluated_values != NULL
+                    && evaluated_values[i] != NULL
+                ? evaluated_values[i] : llvm_emit_expression(arg_node, ctx);
             ctx->expected_type_name = saved_expected_type_name;
             /* MIR's admitted parameter type owns numeric widening, including
              * nonliteral Int values. Pointer/resource carriage is unchanged. */

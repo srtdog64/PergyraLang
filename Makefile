@@ -764,6 +764,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/codegen_match_subject_lookup.c \
                    $(CODEGEN_DIR)/codegen_match_variant_policy.c \
                    $(CODEGEN_DIR)/codegen_scalar_arithmetic_policy.c \
+                   $(CODEGEN_DIR)/codegen_subject_argument_policy.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_graph.c \

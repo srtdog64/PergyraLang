@@ -16,5 +16,10 @@ bool transpiler_call_arg_is_indirect_ref(TranspilerCtx *ctx,
                                          ASTNode *arg_node);
 bool transpiler_call_arg_is_carried_by_address(TranspilerCtx *ctx,
                                                ASTNode *arg_node);
+/* Caller owns the returned text. Never materialize a copy of an existing
+ * subject merely to obtain an address. */
+char *transpiler_call_arg_address(TranspilerCtx *ctx, ASTNode *arg_node,
+                                  const char *arg, const char *callee_name,
+                                  size_t index);
 
 #endif /* PGY_TRANSPILER_CALL_SUBJECT_ARG_POLICY_H */

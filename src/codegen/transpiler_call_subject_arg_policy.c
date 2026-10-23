@@ -5,8 +5,13 @@
 
 #include "../parser/ast_api.h"
 #include "../compiler/mir_decl_headers.h"
+#include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
+#include "codegen_subject_argument_policy.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_format.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_overlay_host_fields.h"
@@ -61,20 +66,11 @@ transpiler_call_arg_can_take_subject_address(TranspilerCtx *ctx, ASTNode *arg_no
     if (arg_node == NULL)
         return false;
     if (arg_node->type == AST_CALL) {
-        ASTNode *callee = ast_call_callee(arg_node);
-        if (callee == NULL || callee->type != AST_IDENTIFIER
-            || ast_call_semantic_callee_value_binding_id(arg_node) != 0)
-            return false;
-        const MIRDeclHeader *header = transpiler_active_host_decl_header(
-            ctx, ast_identifier_name(callee));
-        uint32_t target = ast_call_semantic_callee_decl_id(arg_node);
         /* The constructor owner materializes a fresh subject in a C compound
          * literal. Its storage lasts for the enclosing block, not an inner
          * statement expression. An ordinary function result is not this cell. */
-        return header != NULL
-            && mir_decl_header_nominal_kind_or(header, NOMINAL_DECL_CLASS)
-                == NOMINAL_DECL_SUBJECT
-            && (target == 0 || target == mir_decl_header_source_syntax_id(header));
+        return pgy_codegen_is_subject_constructor(
+            transpiler_active_mir_identity(ctx), arg_node);
     }
     return arg_node->type == AST_IDENTIFIER
         || arg_node->type == AST_MEMBER_ACCESS
@@ -108,4 +104,21 @@ transpiler_call_arg_is_carried_by_address(TranspilerCtx *ctx,
             || transpiler_host_decl_uses_pointer_self(
                 transpiler_current_host_decl_local(ctx));
     return transpiler_call_arg_is_indirect_ref(ctx, arg_node);
+}
+
+char *
+transpiler_call_arg_address(TranspilerCtx *ctx, ASTNode *arg_node,
+                            const char *arg, const char *callee_name,
+                            size_t index)
+{
+    if (transpiler_call_arg_is_carried_by_address(ctx, arg_node))
+        return pergyra_strdup(arg);
+    if (transpiler_call_arg_can_take_subject_address(ctx, arg_node))
+        return strdup_fmt("&(%s)", arg);
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+        "C backend: indirect argument %zu for '%s' requires addressable storage",
+        index + 1, callee_name != NULL ? callee_name : "<call>");
+    return NULL;
 }
