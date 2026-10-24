@@ -1,6 +1,9 @@
 # Claude lane
 
-- **Since 2026-10-18:** holds the main-line work the GPT root lane held, by
+- **Since 2026-10-24: inactive.** By the user's decision the GPT root lane
+  does all further work; the branch and its open items are in the
+  [handoff](../../agent_work_directives/native_checker_handoff_claude_to_gpt_2026-10-24.md).
+- **2026-10-18 to 2026-10-24:** holds the main-line work the GPT root lane held, by
   the user's request: native checker admission of the canonical program,
   then bootstrap, installed driver and required CI green
   ([decision](../decisions/2026-10-18_native_checker_in_v1.md)).

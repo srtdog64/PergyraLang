@@ -1,9 +1,10 @@
 # Native checker distance
 
-Owner: Claude lane, semantic facts of the native checker
-([decision](../decisions/2026-10-18_native_checker_in_v1.md); the main
-blocker is [blocker.md](blocker.md)). Checked 2026-10-24 KST on branch
-`claude/p0-native-checker` (local, not pushed), with main merged.
+Owner: GPT root lane from 2026-10-24 ([handoff](../../agent_work_directives/native_checker_handoff_claude_to_gpt_2026-10-24.md);
+[decision](../decisions/2026-10-18_native_checker_in_v1.md); the main
+blocker is [blocker.md](blocker.md)). Last checked by the Claude lane on
+2026-10-24 KST on branch `claude/p0-native-checker` (local, not pushed),
+with main `06a7980be` merged.
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 91 downgraded
