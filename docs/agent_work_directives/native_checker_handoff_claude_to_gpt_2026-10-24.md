@@ -103,8 +103,11 @@ Two items found but not changed:
   assigned, which a node-wrapping landing cannot place today.
 - `admitted` (8) reaches `direct_mir_*` routes and goes with them.
 
-## 5. Open user decisions
+## 5. User decisions
 
-- Whether real sharing sites in the canonical source may take an explicit
-  `Clone` (it would change the V1 criterion "unchanged canonical program").
-- Pushing: nothing of this branch has been published.
+- Answered 2026-10-25: a real sharing site in the canonical source may
+  take an explicit `Clone`
+  ([decision](../truth/decisions/2026-10-25_real_sharing_site_may_take_explicit_clone.md)),
+  and the direction is re-evaluated on 2026-11-08
+  ([decision](../truth/decisions/2026-10-25_ownership_direction_reevaluated_2026-11-08.md)).
+- Open: pushing. Nothing of this branch has been published.

@@ -13,7 +13,10 @@ scope. The plan, the measurements and the current state are in
   compiles the canonical compiler program with no manual drops. It is done
   when all of these hold:
   - zero ownership refusals on the fixed DRV-2 input;
-  - the unchanged full canonical program is admitted;
+  - the full canonical program is admitted, changed only by the explicit
+    `Clone`s at real sharing sites that the
+    [2026-10-25 decision](docs/truth/decisions/2026-10-25_real_sharing_site_may_take_explicit_clone.md)
+    allows;
   - positive and negative gates are preserved.
 
   Weakening a safety rule to reach zero does not count.
@@ -245,8 +248,9 @@ scope. The plan, the measurements and the current state are in
 - SoT is a hard-substitution rung condition, not an independent cleanup track.
   Close only the semantic seam reached by the one active executable rung.
 - Basic ownership closure has a fixed finish line: zero ownership refusals on
-  the fixed DRV-2 input, admission of the unchanged full canonical program,
-  preserved positive/negative gates, and required compiler CI green on the
+  the fixed DRV-2 input, admission of the full canonical program (changed
+  only by the explicit `Clone`s the 2026-10-25 decision allows), preserved
+  positive/negative gates, and required compiler CI green on the
   same published commit, with bootstrap and installed-driver checks actually
   executed. Skipped jobs, reduced inputs or weakened safety are not green.
   Once met, finish this baseline; do not extend it for hypothetical precision
