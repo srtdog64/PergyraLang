@@ -1,6 +1,7 @@
 # Bounded landing planner experiment (2026-10-24)
 
-Status: PLAN, measurement 1 done (3382 candidates, 10 analyses). Owner: Claude lane. Raised by the
+Status: piece 1 landed as the chain walk (measurement 6): 4 analyses
+instead of 10, same verdict, net 8 more copies. Owner: Claude lane. Raised by the
 user on 2026-10-24 after the native checker reached 116 census refusals:
 the current landing loop is not practical, and one bounded experiment
 should decide whether a planner can replace it. Shape-specific admission
@@ -96,6 +97,111 @@ What to build first, smallest falsifiable piece: the move owner's in-walk
 reading of its own loan copy candidates, measured on the census input by
 the number of landing analyses (today 10) and the selected set (it must
 equal today's 3382 minus nothing and plus nothing).
+
+## Measurement 2: piece 1 as "copy every escape"
+
+The sparse loan walk recorded every expression that carried the loan out,
+and the move owner copied all of them when a copy could stand at each.
+Census mode with receipts, plan1 = `f22d406d9`, plan2 = plan1 plus the
+piece (`scratchpad/hm/planner_measure2.sh`).
+
+| Fact | plan1 | plan2 |
+|---|---|---|
+| landing analyses after the first | 9 | 3 |
+| census wall time | 2734 s | 1047 s (peak 3.98 GB) |
+| selected copies | 3382 | 3390: none missing, 8 extra |
+| final refusals (outside direct_mir) | 116 (75) | 116 (75) |
+| flow summary and aggregate storage smokes | pass | pass |
+
+The falsifier (an equal set) fails. The 8 extra copies sit in three
+routines: `SelfMirIntentCleanupInvalidationsAppend` (5),
+`SelfMirRoutineAttachLastExpressionGraph` (2, return values) and
+`CodegenIntentExecutionPlanDefinitionBlock` (1). The walk reads a
+binding's origins without flow order, so once the loan reaches `build`,
+every read of `build` carries it, including one before the loan
+(`intent_resource_lifetime_owner.pgy:84`). plan1 copied the first carrier
+only, and its next analysis found the loan staying.
+
+## Piece 1 revised: one walk per copy, inside one analysis
+
+The walk repeats with each first carrier read as a copy already made (its
+value reads its source as a Clone would and holds no origin), up to 16
+carriers; the move owner copies the chain it found. When a step ends where
+no copy can stand, or the owner changed, the loan is copied where it is
+made and the chain is dropped. A second form also reads a store this
+analysis already selected to land (the walk itself selects inout-output
+stores, `semantic_formal_store_landing_select_held`) as a copy, made by the
+store owner. On the two new fixtures:
+
+| Fixture | plan1 | chain and stores |
+|---|---|---|
+| loan pushed into two inout Arrays | Clone at the first push plus two owned pushes, 1 landing analysis | two owned pushes, 1 |
+| loan pushed, then given to an `own` formal | Clone at the push and at the getter, 2 analyses | Clone at the getter, 1 |
+
+plan1 copies the same String twice there (`ArrayPushOwnedString(out,
+Clone(first))`). The flow summary smoke, run with every failure listed
+instead of the first, changes on one fixture only
+(`by_value_getter_lend_kept_landed_valid`: the owned push alone, no
+Clone); the two new fixtures fail on plan1.
+
+## Measurements 3 and 5: the chain walk on the census input
+
+| Fact | plan1 | plan3 (chain) | plan5 (chain, stores, destinations) |
+|---|---|---|---|
+| landing analyses after the first | 9 | 3 | 3 |
+| census wall time | 2734 s | 1655 s (other runs beside it) | 1015 s |
+| selected copies | 3382 | 3378 (26 missing, 22 extra) | 3376 (28 missing, 22 extra) |
+| final refusals (outside direct_mir) | 116 (75) | 119 (78) | 119 (78) |
+
+plan5 also reads a copied value as going nowhere its source goes (the
+destination walk). Both add the same three refusals, all of `base` in
+`ApplyPostfixFact` (`expr_postfix_owner.pgy:199, 251, 276`). The chain
+diagnostics (`PGY_CENSUS_CHAIN`) show why: for the loans made at 159 and
+228 the walks find ten copies each, after which the loan stays but its
+owner still changes, so the move owner falls back to copying the getter
+call, which no copy can stand at, and selects nothing. plan1 copies the
+same carriers one per analysis, and its last analysis finds the owner
+unchanged: another loan's copy in that routine (such as `base` at 160:48)
+is in place by then, which a walk of one loan cannot read. Measurement 6
+keeps the chain in that case when the getter cannot be copied.
+
+The other gates on the plain tree: flow summary and aggregate storage pass;
+`string_result_control_ownership` fails on plan1's tree as well (its C
+fresh factories do not compile there).
+
+## Measurement 6: the chain kept when the owner still changes
+
+When the walks find the loan staying but its owner still changing, the
+move owner copies the getter call if a copy can stand there, and otherwise
+makes the chain's copies; the next analysis judges the owner with them.
+
+| Fact | plan1 | plan6 |
+|---|---|---|
+| landing analyses after the first | 9 | 3 (the last selects nothing) |
+| census wall time | 2734 s | 1156 s (peak 3.98 GB) |
+| selected copies | 3382 | 3390: 14 missing, 22 extra |
+| final refusals (outside direct_mir) | 116 (75) | 116 (75), the same kinds |
+
+The falsifier of piece 1 (an equal set) still fails, by a net 8 copies:
+
+- 5 of the 22 copy a getter call where plan1 copied one carrier of the
+  same loan (`SemanticAstExpressionVerdictFromGraphCore`,
+  `SemanticAstIterationTypeFactsFromArtifact`,
+  `SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy`,
+  `CodegenIntentExecutionPlanDefinitionBlock`): one copy for one.
+- 17 are later links of chains (`EmitStmtList` 7, where the chain reached
+  its cap of 16; `SelfMirRoutineExpressionRuntimeAbiAttach` 6;
+  `SelfMirIntentCleanupInvalidationsAppend` and `SelfMirIntentRoutineBuild`
+  2 each) that plan1's next analysis did not find: a copy read as made is
+  not yet the Clone the next analysis sees.
+- 9 of plan1's copies are not needed (5 in
+  `DirectMirScalarCfgGraphPlanFromAdmitted`).
+
+So the planner question is answered for this piece: one analysis plus one
+verification replaces nine landings with the same verdict, at a small
+copy cost. What it does not answer is a copy set that is minimal or equal
+to the round driver's; that needs the candidates of every loan in a
+routine read together (step 2, point 2), which this piece does not do.
 
 ## Open decision for the user
 

@@ -16,6 +16,9 @@ typedef struct Type Type;
  * it shares with its caller. False only when the selection could not be
  * recorded. */
 bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call);
+/* Whether such a Clone of the getter call `call` can stand where the loan
+ * is made. */
+bool semantic_loan_copy_landing_call_copies(SemanticContext *ctx, const ASTNode *call);
 
 /* A loan that leaves the routine is copied where it leaves: the expression
  * `carrier` whose value takes it out is selected for a next analysis to

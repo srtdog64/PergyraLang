@@ -47,6 +47,10 @@ void semantic_formal_string_store_landing_select(SemanticContext *ctx, const AST
  * formal. */
 void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNode *call, size_t value_ordinal);
 
+/* This analysis selected the store call: the next one stores a Clone of
+ * its value. */
+bool semantic_formal_store_landing_selected(const SemanticContext *ctx, const ASTNode *call);
+
 /* The same for an assignment: `value` carries the backing of the frame's
  * input, the formal `input` of `routine`, into another `inout` formal,
  * whole or through a field or element. The value is selected for a next

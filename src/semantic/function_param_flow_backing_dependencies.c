@@ -138,6 +138,17 @@ void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *orig
 const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL || state->fact->analysis_unsupported) return NULL;
+    /* A copy assumed made reads its source as its Clone would, and holds
+     * storage of its own. */
+    for (size_t c = 0; state->copied != NULL && node != state->copy_source && c < state->copied->count; c++) {
+        if (state->copied->at[c] != node) continue;
+        static const uint64_t fresh = 0;
+        const ASTNode *outer = state->copy_source;
+        state->copy_source = node;
+        const uint64_t *read = backing_origin(state, node);
+        state->copy_source = outer;
+        return read == NULL ? NULL : &fresh;
+    }
     if (state->checking_declared_result) {
         uint64_t destinations = 0;
         backing_destination_value_at(state, node, &destinations, node->type == AST_MEMBER_ACCESS);

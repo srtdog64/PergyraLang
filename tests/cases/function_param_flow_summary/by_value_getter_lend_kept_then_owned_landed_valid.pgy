@@ -1,0 +1,33 @@
+// AtomText lends Collect's by-value arena. Collect keeps the loan in an inout
+// Array, where a copy could stand, and then hands it to an `own` formal,
+// where none can. Copying the loan where it is made covers both, so that is
+// the one copy: Clone(AtomText(arena, 0)), and not also Clone(first).
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Keep(own name: String, inout more: Array<String>) -> Int {
+    ArrayPush(more, name);
+    return 1;
+}
+
+func Collect(arena: Arena, inout out: Array<String>, inout more: Array<String>) -> Int {
+    let first: String = AtomText(arena, 0);
+    ArrayPush(out, first);
+    let kept: Int = Keep(first, more);
+    return kept + ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    var out: Array<String> = [];
+    var more: Array<String> = [];
+    Print(ToString(Collect(arena, out, more)));
+    Print(out[0]);
+    Print(more[0]);
+    return 0;
+}

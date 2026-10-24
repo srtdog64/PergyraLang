@@ -115,6 +115,9 @@ typedef struct {
     FunctionParamFlowIndexClaims *claims;
     const Type *declared_result_type;
 } FunctionParamFlowBackingFact;
+/* Expressions a loan walk reads as copies already made, in the order the
+ * walks that assumed them found them, up to a fixed count. */
+typedef struct { ASTNode *at[16]; size_t count; } FunctionParamFlowLoanEscapes;
 typedef struct {
     FunctionParamFlowSummaryStore *store;
     SlotFunctionLookup lookup;
@@ -126,6 +129,8 @@ typedef struct {
      * a copy can stand in for it; NULL where none can (a receiver, an
      * inout argument). */
     ASTNode *escape_carrier;
+    /* Values read as fresh copies, and the one whose own read is under way. */
+    const FunctionParamFlowLoanEscapes *copied; const ASTNode *copy_source;
     uint32_t loan_owner_slot_id;
     size_t loan_work;
     bool loan_seed_seen;
@@ -199,6 +204,11 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
 typedef struct {
     bool owner_changed;      /* the loan stayed; only a change of its owner refused it */
     ASTNode *escape_carrier; /* the expression whose value took the loan out, or NULL */
+    /* Where to copy so the loan stays: each walk read the earlier ones, and
+     * the stores this analysis selected to copy, as made and left through
+     * the next. `stays_once_copied` when the last walk found it staying. */
+    FunctionParamFlowLoanEscapes escapes;
+    bool stays_once_copied;
 } FunctionParamFlowLoanFailure;
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     ASTNode *caller, ASTNode *call, uint32_t owner, FunctionParamFlowLoanFailure *failure);

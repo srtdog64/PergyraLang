@@ -176,6 +176,14 @@ void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNo
     store_landing_record(ctx, ast_node_stable_id(call));
 }
 
+bool semantic_formal_store_landing_selected(const SemanticContext *ctx, const ASTNode *call)
+{
+    uint32_t id = ast_node_stable_id(call);
+    for (size_t i = 0; ctx != NULL && id != 0 && i < ctx->string_store_landing_selected_count; i++)
+        if (ctx->string_store_landing_selected[i] == id) return true;
+    return false;
+}
+
 bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const ASTNode *routine,
     uint32_t input, const ASTNode *target, const ASTNode *value)
 {

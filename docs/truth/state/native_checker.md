@@ -9,7 +9,7 @@ The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`: 116 downgraded
 refusals with every final owner and the String receipts pass run, main merged at `fdc661ff9` ([census record](../evidence/2026-10-24_native_census_string_receipts_after_rows_repair.md)),
 of which the receipts pass adds one; the 905 it refused on 2026-10-23 ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)) now prove or land about 1060 String copies.
-Since the merge a census runs ten analyses (nine landings) in 2578 s. The CI harness manifest compiles natively since `e23761a3a`.
+A refused loan now copies its whole chain in one analysis ([decision](../decisions/2026-10-24_refused_loan_copies_its_chain_in_one_analysis.md)): a census runs four analyses instead of ten, 1156 s instead of 2734 s, same verdict, net 8 more copies ([record](../evidence/2026-10-24_landing_planner_chain_walk_census.md)). The CI harness manifest compiles natively since `e23761a3a`.
 
 ## Open fronts, in order
 

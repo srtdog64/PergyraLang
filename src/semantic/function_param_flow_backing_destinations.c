@@ -17,6 +17,9 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
     uint64_t *destinations, bool member_qualifier)
 {
     if (value == NULL || state->fact->analysis_unsupported) return;
+    /* A copy assumed made goes nowhere its source goes. */
+    for (size_t c = 0; state->copied != NULL && c < state->copied->count; c++)
+        if (state->copied->at[c] == value) return;
     if (value != state->loan_seed && value->type == AST_IDENTIFIER) {
         /* The current binding owns this leaf's destination bits. There is no
          * separate per-frame expression state to allocate or revisit. */

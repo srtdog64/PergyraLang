@@ -1,0 +1,28 @@
+// AtomText lends Collect's by-value arena, and Collect keeps the loan in two
+// inout Arrays before it uses the arena again. With the first push copied
+// the loan still leaves through the second, so both are copied, in the one
+// analysis that refuses the loan.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Collect(arena: Arena, inout out: Array<String>, inout more: Array<String>) -> Int {
+    let first: String = AtomText(arena, 0);
+    ArrayPush(out, first);
+    ArrayPush(more, first);
+    return ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    var out: Array<String> = [];
+    var more: Array<String> = [];
+    Print(ToString(Collect(arena, out, more)));
+    Print(out[0]);
+    Print(more[0]);
+    return 0;
+}

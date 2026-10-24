@@ -77,6 +77,9 @@ owned_push_landings = {
     "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
     "formal_string_store_landing_local_receiver_valid": ("Gather", 1),
+    # A loan pushed into inout Arrays is copied by the owned pushes alone.
+    "by_value_getter_lend_kept_landed_valid": ("Collect", 1),
+    "by_value_getter_lend_kept_twice_landed_valid": ("Collect", 2),
     "formal_string_store_landing_private_local_valid": ("Count", 1),
     "formal_store_landing_alias_output_valid": ("Append", 1),
     "formal_string_store_landing_field_take_valid": ("Append", 1),
@@ -112,7 +115,9 @@ landed_clones = {
     "by_value_getter_lend_mutated_landed_valid": {"Touch": 1},
     "by_value_getter_lend_local_transfer_landed_valid": {"Make": 1},
     "by_value_getter_lend_owner_written_shadowed_landed_valid": {"Rename": 1},
-    "by_value_getter_lend_kept_landed_valid": {"Collect": 1},
+    "by_value_getter_lend_kept_landed_valid": {"Collect": 0},
+    "by_value_getter_lend_kept_twice_landed_valid": {"Collect": 0},
+    "by_value_getter_lend_kept_then_owned_landed_valid": {"Collect": 1},
     "by_value_getter_lend_returned_landed_valid": {"Make": 1},
     "by_value_getter_lend_passed_kept_landed_valid": {"Collect": 1},
     "by_value_getter_lend_assigned_landed_valid": {"Collect": 1},
@@ -221,13 +226,15 @@ landed_clones = {
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan.
 landed_at_exit = {
-    "by_value_getter_lend_kept_landed_valid": ("Collect", "first"),
+    "by_value_getter_lend_passed_kept_landed_valid": ("Collect", "first"),
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
     "string_push_after_loop_walk_landed_valid": 1,
+    "by_value_getter_lend_kept_twice_landed_valid": 1,
+    "by_value_getter_lend_kept_then_owned_landed_valid": 1,
     "string_copy_landing_same_function_batch_valid": 1,
     "string_copy_landing_function_boundary_valid": 2,
     "output_field_store_of_ref_formal_landed_valid": 1,
@@ -1558,6 +1565,8 @@ paired = (
     ("by_value_getter_lend_returned_landed_valid", True),
     ("by_value_getter_lend_mutated_landed_valid", True),
     ("by_value_getter_lend_kept_landed_valid", True),
+    ("by_value_getter_lend_kept_twice_landed_valid", True),
+    ("by_value_getter_lend_kept_then_owned_landed_valid", True),
     ("by_value_getter_lend_passed_kept_landed_valid", True),
     ("by_value_getter_lend_assigned_landed_valid", True),
     ("by_value_getter_lend_owner_written_after_lowering_landed_valid", True),
@@ -2238,6 +2247,8 @@ for name, expected in (
     ("by_value_getter_lend_local_transfer_landed_valid", "abcd"),
     ("by_value_getter_lend_owner_written_shadowed_landed_valid", "2"),
     ("by_value_getter_lend_kept_landed_valid", "1"),
+    ("by_value_getter_lend_kept_twice_landed_valid", "1abab"),
+    ("by_value_getter_lend_kept_then_owned_landed_valid", "2abab"),
     ("by_value_getter_lend_returned_landed_valid", "1ab"),
     ("by_value_getter_lend_passed_kept_landed_valid", "2ab"),
     ("by_value_getter_lend_assigned_landed_valid", "1ab"),

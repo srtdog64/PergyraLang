@@ -14,6 +14,7 @@
 #include "function_param_flow_loan_order.h"
 #include "typed_map_query_fact_owner.h"
 #include "loan_copy_landing_owner.h"
+#include "formal_string_store_landing_owner.h"
 #include "diag_codes.h"
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +28,8 @@ typedef struct {
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
-    ASTNode **escape_site, ASTNode **escape_carrier, LoanCarriers *carriers);
+    ASTNode **escape_site, ASTNode **escape_carrier, const FunctionParamFlowLoanEscapes *copied,
+    LoanCarriers *carriers);
 
 static bool array_result_borrowed_formal(Type *function_type, const Type *formal_type,
     ParamMode mode, SemanticContext *ctx)
@@ -342,7 +344,8 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
-    ASTNode **escape_site, ASTNode **escape_carrier, LoanCarriers *carriers)
+    ASTNode **escape_site, ASTNode **escape_carrier, const FunctionParamFlowLoanEscapes *copied,
+    LoanCarriers *carriers)
 {
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
@@ -362,7 +365,7 @@ static bool sparse_loan_admitted(SemanticContext *ctx,
         .outputs = &outputs, .complete = true, .claims = index->claims};
     ReturnedBacking state = {.store = store, .lookup = lookup, .decl = caller,
         .fact = &fact, .private_stores_closed = private_stores_closed, .loan_seed = seed,
-        .loan_owner_slot_id = owner_slot_id};
+        .loan_owner_slot_id = owner_slot_id, .copied = copied};
     for (size_t p = 0; p < ast_func_param_count(caller); p++) {
         FuncParam *param = ast_func_param(caller, p);
         FunctionParamFlowBackingBinding *binding = backing_binding(&state, ast_func_param_stable_id(param), true);
@@ -413,7 +416,24 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
     if (!registered || (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
         !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal)) return false;
     return semantic_loan_copy_landing_ends_loan(ctx, row->caller, row->call) ||
-        sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL, NULL);
+        sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL, NULL, NULL);
+}
+
+/* The carrier is the stored value of a store call this analysis selected:
+ * the next analysis stores a Clone of it in its place. */
+static bool loan_carrier_store_landed(SemanticContext *ctx, ASTNode *caller, const ASTNode *carrier)
+{
+    SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index)) return false;
+    for (size_t c = 0; c < index->claims->count; c++) {
+        const ASTNode *node = index->claims->rows[c].node;
+        if (node != NULL && node->type == AST_CALL && ast_call_arg_count(node) != 0 &&
+            ast_call_argument(node, ast_call_arg_count(node) - 1) == carrier)
+            return semantic_formal_store_landing_selected(ctx, node);
+    }
+    return false;
 }
 
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
@@ -432,11 +452,30 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF))
             allowed = function_param_flow_summary_for_param(ctx, caller, p) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
     }
+    /* A next analysis would copy where the loan leaves and could then find
+     * it leave at a next place, one per analysis. Each walk here reads the
+     * copies before it as made instead, up to a fixed count; a store this
+     * analysis selected stores a copy there, made by the store owner. */
     ASTNode *escape = NULL, *carrier = NULL;
     LoanCarriers carriers = {0};
-    if (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape, &carrier, &carriers)) {
-        if (failure != NULL) failure->escape_carrier = carrier;
+    FunctionParamFlowLoanEscapes copied = {0}, ours = {0};
+    while (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape, &carrier, &copied, &carriers)) {
         free(carriers.ids);
+        carriers = (LoanCarriers){0};
+        bool stored = carrier != NULL && loan_carrier_store_landed(ctx, caller, carrier);
+        bool copies = stored || (carrier != NULL && semantic_loan_copy_landing_carrier_copies(ctx, carrier));
+        bool next = copies && copied.count < sizeof(copied.at) / sizeof(copied.at[0]);
+        for (size_t c = 0; next && c < copied.count; c++) next = copied.at[c] != carrier;
+        if (next) {
+            copied.at[copied.count++] = carrier;
+            if (!stored) ours.at[ours.count++] = carrier;
+            carrier = NULL;
+            continue;
+        }
+        if (failure != NULL) {
+            failure->escape_carrier = ours.count != 0 ? ours.at[0] : carrier;
+            if (copies) failure->escapes = ours;
+        }
         return false;
     }
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
@@ -469,7 +508,16 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     free(carriers.ids);
     function_param_flow_loan_span_release(&span);
     if (!unchanged && failure != NULL) failure->owner_changed = true;
-    return unchanged;
+    /* The loan stays only once the copies the walks read as made are made.
+     * When its owner still changes with them, they are kept too: the move
+     * owner makes them where no copy can stand where the loan is made, and
+     * the next analysis judges the owner with every copy in place. */
+    if (copied.count != 0 && failure != NULL) {
+        failure->escape_carrier = ours.count != 0 ? ours.at[0] : NULL;
+        failure->escapes = ours;
+        failure->stays_once_copied = unchanged;
+    }
+    return unchanged && copied.count == 0;
 }
 
 bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call)
@@ -478,7 +526,7 @@ bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller
     ASTNode *escape = NULL;
     return ctx != NULL && caller != NULL && call != NULL &&
         semantic_param_publication_admitted_view(ctx, &view) &&
-        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape, NULL, NULL);
+        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape, NULL, NULL, NULL);
 }
 
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
@@ -492,5 +540,5 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     bool registered = false;
     for (size_t c = 0; c < view->read_loan_count; c++) if (&view->read_loans[c] == row) registered = true;
     return registered && sparse_loan_admitted(ctx, view, (ASTNode *)row->caller,
-        (ASTNode *)row->call, owner, NULL, 0, escape_site, NULL, NULL);
+        (ASTNode *)row->call, owner, NULL, 0, escape_site, NULL, NULL, NULL);
 }

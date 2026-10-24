@@ -167,6 +167,14 @@ static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
     for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++) {
         const FunctionParamFlowLoanFailure *failure = &walk->lent[i].failure;
         if (walk->lent[i].call != moved->lending_call) continue;
+        /* Every place it leaves in turn, each found with the ones before it
+         * read as copies. When its owner changed even with them, they are
+         * made only where no copy can stand where the loan is made. */
+        bool chain = failure->escapes.count != 0 && (!failure->owner_changed ||
+            !semantic_loan_copy_landing_call_copies(walk->ctx, moved->lending_call));
+        for (size_t c = 0; chain && c < failure->escapes.count; c++)
+            if (!semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escapes.at[c])) walk->failed = true;
+        if (chain || (!failure->owner_changed && failure->stays_once_copied)) continue;
         bool at_exit = !failure->owner_changed && failure->escape_carrier != NULL &&
             semantic_loan_copy_landing_carrier_copies(walk->ctx, failure->escape_carrier);
         if (!(at_exit ? semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)
