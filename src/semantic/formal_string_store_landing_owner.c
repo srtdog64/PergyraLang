@@ -316,10 +316,27 @@ void semantic_formal_string_store_landing_select_checked(SemanticContext *ctx, A
 {
     ASTNode *value = call == NULL || value_ordinal >= ast_call_arg_count(call) ? NULL
         : ast_call_argument(call, value_ordinal);
-    if (store_landing_value_landable(value, ctx) && ast_node_stable_id(call) != 0)
-        store_landing_record_for_routine(ctx, call,
-            ctx->current_function_decl,
-            store_landing_value_formal_id(value, ctx));
+    if (value == NULL || ast_node_stable_id(call) == 0) return;
+
+    uint32_t formal_id = store_landing_value_formal_id(value, ctx);
+    bool exact_local_string = false;
+    if (formal_id == 0 && value->type == AST_IDENTIFIER
+        && ast_identifier_name(value) != NULL) {
+        Symbol *binding = scope_lookup(ctx->scope, ast_identifier_name(value));
+        exact_local_string = binding != NULL && !binding->is_parameter
+            && !binding->is_host_field && binding->decl_syntax_id != 0
+            && binding->decl_syntax_id
+                == ast_identifier_binding_syntax_id(value)
+            && type_equals(binding->type, TYPE_STRING);
+    }
+    /* The selected ArraySet is not admitted here.  A later analysis must
+     * still prove that the exact receiver is an owned-String Array before it
+     * rewrites the call to ArraySetOwnedString.  Recording an exact local
+     * String therefore extends the existing copy boundary without treating
+     * the local's borrowed descriptor as independently owned. */
+    if (formal_id != 0 || exact_local_string)
+        (void)store_landing_record_for_routine(ctx, call,
+            ctx->current_function_decl, formal_id);
 }
 
 static const FunctionParamFlowIndexClaim *store_landing_claim(

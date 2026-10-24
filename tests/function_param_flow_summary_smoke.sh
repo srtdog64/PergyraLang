@@ -108,6 +108,9 @@ landed_clones = {
         "FormalStringStoreCrossRoutineSecond": 1},
     "formal_string_store_batch_boundary_valid": {
         "FormalStringStoreBoundaryApply": 2},
+    "formal_string_store_local_alias_set_landed_valid": {"Rename": 1},
+    "formal_string_store_ref_array_element_local_alias_set_landed_valid": {
+        "Replace": 1},
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
     "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
     "borrowed_owner_loan_grown_landed_valid": {"Nest": 1},
@@ -387,7 +390,8 @@ landing_rounds = {
     "formal_string_store_landing_value_map_valid": 1,
     "formal_array_store_local_receiver_invalid": 0,
     "formal_array_store_field_take_landed_valid": 1,
-    "formal_string_store_local_alias_set_invalid": 0,
+    "formal_string_store_local_alias_set_landed_valid": 1,
+    "formal_string_store_ref_array_element_local_alias_set_landed_valid": 1,
     "by_value_getter_lend_owner_written_landed_valid": 1,
     "by_value_getter_lend_shared_result_owner_changed_invalid": 0,
     "by_value_getter_lend_returned_landed_valid": 1,
@@ -645,7 +649,9 @@ release_lifetime_refusals = {
     # element consumer still replays the receipt and emits this refusal.
     "constructor_string_field_snapshot_before_finalize_invalid": [(*borrow_refusal, 14, 6)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
-    "formal_string_store_local_alias_set_invalid": [(*borrow_refusal, 16, 24)],
+    # Selecting an exact local is only a candidate. Releasing its source
+    # still invalidates the alias before a later store can copy it.
+    "formal_string_store_released_local_alias_set_invalid": [(*borrow_refusal, 15, 30)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
     "map_clone_array_value_ref_returned_invalid": [(*borrow_refusal, 10, 42)],
     "struct_clone_shared_field_ref_returned_invalid": [(*borrow_refusal, 18, 20)],
@@ -1458,7 +1464,9 @@ paired = (
     ("formal_string_store_landing_value_map_valid", True),
     ("formal_array_store_local_receiver_invalid", False),
     ("formal_array_store_field_take_landed_valid", True),
-    ("formal_string_store_local_alias_set_invalid", False),
+    ("formal_string_store_local_alias_set_landed_valid", True),
+    ("formal_string_store_ref_array_element_local_alias_set_landed_valid", True),
+    ("formal_string_store_released_local_alias_set_invalid", False),
     ("formal_string_store_landing_shadowed_function_valid", True),
     ("formal_string_store_landing_shadowed_struct_valid", True),
     ("formal_string_store_landing_shadowed_method_valid", True),
@@ -2249,6 +2257,8 @@ for name, expected in (
     ("formal_string_store_landing_value_source_valid", "tt1"),
     ("formal_string_store_landing_value_set_valid", "tt1"),
     ("formal_string_store_landing_value_map_valid", "tt1"),
+    ("formal_string_store_local_alias_set_landed_valid", "tt"),
+    ("formal_string_store_ref_array_element_local_alias_set_landed_valid", "onon"),
     ("named_string_same_empty_borrowed_then_owned_direct_landed_valid", "TypeName\n"),
     ("named_string_same_empty_owned_then_borrowed_direct_landed_valid", "TypeName\n"),
     ("named_string_same_empty_owned_then_borrowed_named_landed_valid", "TypeName\n"),

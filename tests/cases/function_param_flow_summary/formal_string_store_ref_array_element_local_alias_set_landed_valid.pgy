@@ -1,0 +1,20 @@
+// A String selected from a ref carrier remains borrowed. ArraySet must copy
+// that exact local into the independently owned result Array.
+struct Carrier {
+    phases: Array<String>;
+}
+
+func Replace(ref carrier: Carrier) -> Array<String> {
+    let out: Array<String> = [StringConcat("", "")];
+    let phase: String = carrier.phases[0];
+    ArraySet(out, 0, phase);
+    return out;
+}
+
+func Main() -> Int {
+    let carrier: Carrier = Carrier([StringConcat("o", "n")]);
+    let out: Array<String> = Replace(carrier);
+    Print(out[0]);
+    Print(carrier.phases[0]);
+    return 0;
+}
