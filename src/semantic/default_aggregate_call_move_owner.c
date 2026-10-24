@@ -62,48 +62,20 @@ move_walk_assignment_loan_for_path(MoveWalk *walk,
     if (loans == NULL
         || !move_walk_access_path(path, &binding, fields, sizeof(fields)))
         return NULL;
-    typedef struct { uint32_t binding; const char *fields; } SharedPath;
-    size_t rows = state->count;
-    SharedPath *work = malloc((rows + 1) * sizeof(*work));
-    bool *done = calloc(rows + 1, sizeof(*done));
-    if (work == NULL || done == NULL) {
-        free(work);
-        free(done);
-        walk->failed = true;
-        return NULL;
-    }
-    size_t count = 1;
-    work[0] = (SharedPath){binding, fields};
-    for (size_t at = 0; at < count; at++) {
+    MoveCopyTraversal traversal;
+    MoveCopyReach reach;
+    if (!move_walk_copy_begin(walk, state, binding, fields, &traversal)) return NULL;
+    while (move_walk_copy_next(&traversal, &reach)) {
         for (MoveAssignmentBackingLoan *loan = loans;
              loan != NULL; loan = loan->previous) {
             if (assignment_loan_overlaps(
-                    loan, work[at].binding, work[at].fields)) {
-                free(work);
-                free(done);
+                    loan, reach.binding, reach.fields)) {
+                move_walk_copy_end(&traversal);
                 return loan;
             }
         }
-        for (size_t i = 0; i < rows; i++) {
-            const MovedPath *copy = &state->rows[i];
-            if (done[i] || copy->carrier == 0) continue;
-            bool source = copy->binding == work[at].binding
-                && (move_walk_path_contains(copy->fields, work[at].fields)
-                    || move_walk_path_contains(work[at].fields, copy->fields));
-            bool carrier = copy->carrier == work[at].binding
-                && (move_walk_path_contains(
-                        copy->carrier_fields, work[at].fields)
-                    || move_walk_path_contains(
-                        work[at].fields, copy->carrier_fields));
-            if (!source && !carrier) continue;
-            done[i] = true;
-            work[count++] = source
-                ? (SharedPath){copy->carrier, copy->carrier_fields}
-                : (SharedPath){copy->binding, copy->fields};
-        }
     }
-    free(work);
-    free(done);
+    move_walk_copy_end(&traversal);
     return NULL;
 }
 

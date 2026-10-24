@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../semantic/operator_overload_rules.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -452,7 +453,7 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
             const char *method_name = ast_declaration_name(method);
             if (method != NULL && method->type == AST_FUNC_DECL
                 && method_name != NULL
-                && llvm_operator_method_name_matches(op, method_name)) {
+                && pgy_operator_method_name_matches(op, method_name)) {
                 return method;
             }
         }
@@ -497,7 +498,7 @@ llvm_find_role_operator_method_metadata_in_header(LLVMGenCtx *ctx,
         const char *method_name = llvm_mir_decl_method_name(method);
 
         if (method_name != NULL
-            && llvm_operator_method_name_matches(op, method_name)) {
+            && pgy_operator_method_name_matches(op, method_name)) {
             return method;
         }
     }

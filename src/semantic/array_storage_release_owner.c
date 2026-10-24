@@ -392,7 +392,14 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
         bool releases = mapped
             && semantic_collection_owned_parameter_releases_storage(
                 ctx, callee_decl, owned_formal);
-        if (!releases) {
+        /* Publication is sealed only after every routine body has been
+         * checked.  An exact selected formal may therefore lack its release
+         * summary solely because that body appears later in source order.
+         * Keep the exact replacement grant provisional; the owned-element
+         * finalizer validates the release summary and fails closed. */
+        bool release_check_deferred = mapped
+            && semantic_param_publication_pending(ctx);
+        if (!releases && !release_check_deferred) {
             binding->has_exclusive_array_storage = false;
             binding->has_escaped_array_storage = true;
         }

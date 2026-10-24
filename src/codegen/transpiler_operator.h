@@ -13,6 +13,9 @@
 ASTNode *find_operator_overload_decl(TranspilerCtx *ctx,
                                      const char *type_name,
                                      PgyTokenType op);
+bool transpiler_operator_prepare_arguments(TranspilerCtx *ctx,
+                                            ASTNode *expr, ASTNode *decl,
+                                            char **left, char **right);
 ASTNode *find_role_operator_method_decl(TranspilerCtx *ctx,
                                         ASTNode *role,
                                         PgyTokenType op,
@@ -21,7 +24,5 @@ const MIRDeclMethod *find_role_operator_method_metadata(TranspilerCtx *ctx,
                                                         ASTNode *role,
                                                         PgyTokenType op,
                                                         int depth);
-bool operator_method_name_matches(PgyTokenType op, const char *name);
-const char *operator_overload_suffix(PgyTokenType op);
 
 #endif /* PERGYRA_TRANSPILER_OPERATOR_H */

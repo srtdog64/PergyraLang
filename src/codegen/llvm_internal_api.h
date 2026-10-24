@@ -384,6 +384,15 @@ void          llvm_mir_region_scope_begin(LLVMGenCtx *ctx,
                                           const MIRRoutine *routine);
 void          llvm_mir_region_scope_destroy(LLVMGenCtx *ctx);
 void          llvm_mir_region_scope_end(LLVMGenCtx *ctx);
+typedef enum {
+    LLVM_REGION_ALLOCATION_HEAP,
+    LLVM_REGION_ALLOCATION_ACTIVE,
+    LLVM_REGION_ALLOCATION_INVALID
+} LLVMRegionAllocation;
+/* A missing grant keeps the heap disposition; a granted but invalid scope
+ * reports the existing topology error and must never fall back to the heap. */
+LLVMRegionAllocation llvm_mir_region_allocation_scope(LLVMGenCtx *ctx,
+    const ASTNode *site, const char *operation);
 LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 bool          llvm_stmt_require_non_void_value(LLVMGenCtx *ctx,
                                                ASTNode *expr,

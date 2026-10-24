@@ -1,0 +1,46 @@
+// One live Array<String> risk owner applies across a contiguous store run even
+// when each String comes from a different default/ref formal path. Every
+// candidate path is typed independently before the four copies land together.
+struct FormalStringStoreMultiRows {
+    domains: Array<String>;
+    type_names: Array<String>;
+    operations: Array<String>;
+    symbols: Array<String>;
+}
+
+struct FormalStringStoreMultiFact {
+    domain: String;
+    symbol: String;
+}
+
+func FormalStringStoreMultiApply(
+    rows: FormalStringStoreMultiRows,
+    ref fact: FormalStringStoreMultiFact,
+    type_name: String,
+    operation: String
+) -> FormalStringStoreMultiRows {
+    let domains: Array<String> = rows.domains;
+    let type_names: Array<String> = rows.type_names;
+    let operations: Array<String> = rows.operations;
+    let symbols: Array<String> = rows.symbols;
+    ArraySet(domains, 0, fact.domain);
+    ArraySet(type_names, 0, type_name);
+    ArraySet(operations, 0, operation);
+    ArraySet(symbols, 0, fact.symbol);
+    return FormalStringStoreMultiRows(
+        domains, type_names, operations, symbols);
+}
+
+func Main() -> Int {
+    let rows: FormalStringStoreMultiRows = FormalStringStoreMultiRows(
+        Clone(["d"]), Clone(["t"]), Clone(["o"]), Clone(["s"]));
+    let fact: FormalStringStoreMultiFact =
+        FormalStringStoreMultiFact("domain", "Symbol");
+    let result: FormalStringStoreMultiRows = FormalStringStoreMultiApply(
+        rows, fact, "Type", "Op");
+    Print(result.domains[0]);
+    Print(result.type_names[0]);
+    Print(result.operations[0]);
+    Print(result.symbols[0]);
+    return 0;
+}

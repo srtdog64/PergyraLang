@@ -632,6 +632,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
+                   $(SEMANTIC_DIR)/operator_overload_rules.c \
                    $(SEMANTIC_DIR)/type_checker_expr_collections.c \
                    $(SEMANTIC_DIR)/type_checker_reflect.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
@@ -763,6 +764,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/codegen_match_subject_lookup.c \
                    $(CODEGEN_DIR)/codegen_match_variant_policy.c \
                    $(CODEGEN_DIR)/codegen_scalar_arithmetic_policy.c \
+                   $(CODEGEN_DIR)/codegen_subject_argument_policy.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_graph.c \
@@ -2011,6 +2013,25 @@ else
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
 endif
 
+# Shared operator vocabulary, independent of frontend/backend construction.
+ALL_DEP_FILES += $(BUILD_DIR)/tests/operator_overload_rules_unit.d
+$(BUILD_DIR)/tests/operator_overload_rules_unit.o: tests/semantic/operator_overload_rules_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/operator_overload_rules_unit$(EXEEXT): $(BUILD_DIR)/semantic/operator_overload_rules.o $(BUILD_DIR)/tests/operator_overload_rules_unit.o | $(BIN_DIR)
+	$(call pgy_link,)
+
+.PHONY: operator-overload-rules-test
+operator-overload-rules-test: $(BIN_DIR)/operator_overload_rules_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/operator_overload_rules_unit$(EXEEXT))
+
+.PHONY: operator-overload-rules-test-smoke
+operator-overload-rules-test-smoke: $(PGY) operator-overload-rules-test
+	python3 tests/operator_overload_rules_smoke.py --pgy "$(abspath $(PGY))" \
+		--backends "$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)"
+
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2054,6 +2075,19 @@ $(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)
 .PHONY: flow-closure-worklist-test
 flow-closure-worklist-test: $(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT)
 	$(call pgy_run_native,$(BIN_DIR)/flow_closure_worklist_unit$(EXEEXT))
+
+ALL_DEP_FILES += $(BUILD_DIR)/tests/default_aggregate_copy_graph_unit.d
+$(BUILD_DIR)/tests/default_aggregate_copy_graph_unit.o: tests/semantic/default_aggregate_copy_graph_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/default_aggregate_copy_graph_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/default_aggregate_copy_graph_unit.o | $(BIN_DIR)
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: default-aggregate-copy-graph-test
+default-aggregate-copy-graph-test: $(BIN_DIR)/default_aggregate_copy_graph_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/default_aggregate_copy_graph_unit$(EXEEXT))
 
 $(BUILD_DIR)/tests/collection_owned_local_transition_unit.o: tests/compiler/collection_owned_local_transition_unit.c
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2234,7 +2268,7 @@ test-security: $(SECURITY_TEST)
 	@echo "=== Security Test ==="
 	$(call pgy_run_native,$(SECURITY_TEST))
 
-test-semantic: $(SEMANTIC_TEST)
+test-semantic: $(SEMANTIC_TEST) operator-overload-rules-test
 	@echo "=== Semantic Analyzer Test ==="
 	PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1 $(call pgy_run_native,$(SEMANTIC_TEST))
 
@@ -2454,6 +2488,7 @@ native-loop-local-collection-cleanup-test-smoke: $(PGY)
 	"$(BASH)" tests/loop_local_collection_cleanup_smoke.sh
 
 native-compiler-boundary-regression-test-smoke: \
+	operator-overload-rules-test-smoke \
 	native-match-scrutinee-single-evaluation-test-smoke \
 	native-c-callable-macro-hygiene-test-smoke \
 	native-imported-private-nominal-test-smoke \
@@ -2793,7 +2828,7 @@ iteration-type-fact-test-smoke: $(PGY)
 compatibility-evolution-native-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/compatibility_evolution_native_smoke.sh
 
-function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test
+function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test default-aggregate-copy-graph-test
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
 	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh

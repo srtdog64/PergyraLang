@@ -8,6 +8,7 @@
 #include "llvm_expr_emit_support.h"
 #include "llvm_expr_call_collections_map_exports.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_store_coercion.h"
 #include "codegen_hashmap_key_policy.h"
 
 LLVMValueRef
@@ -131,18 +132,10 @@ llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
         if (value == NULL)
             return llvm_expression_error(ctx, node,
                 "LLVM sequence literal could not lower an element");
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32
-                    || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty,
-                    llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32
-                    || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty,
-                    llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_expression_error(ctx, node,
+                "LLVM sequence literal element does not match List/Queue<T> element type");
         if (is_string) {
             LLVMFuncEntry *add_fn = llvm_lookup_function(ctx, push_str_name);
             LLVMValueRef args[2];
@@ -387,6 +380,12 @@ llvm_map_literal_emit_entry(LLVMGenCtx *ctx, ASTNode *node, size_t i,
             "LLVM map literal could not lower an entry key or value");
         return false;
     }
+    value = llvm_mir_coerce_value_for_store(ctx, value, value_ty);
+    if (LLVMTypeOf(value) != value_ty) {
+        llvm_expression_error(ctx, node,
+            "LLVM map literal value does not match HashMap<K, V> value type");
+        return false;
+    }
     if (value_name != NULL && strcmp(value_name, "String") == 0) {
         fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
             "map literal", "set", key_name);
@@ -524,18 +523,10 @@ llvm_emit_set_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
         if (value == NULL)
             return llvm_expression_error(ctx, node,
                 "LLVM set literal could not lower an element");
-        if (LLVMTypeOf(value) != elem_ty) {
-            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32
-                    || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, elem_ty,
-                    llvm_tmp_name(ctx));
-            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32
-                    || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty,
-                    llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, elem_ty);
+        if (LLVMTypeOf(value) != elem_ty)
+            return llvm_expression_error(ctx, node,
+                "LLVM set literal element does not match Set<T> element type");
         if (is_string) {
             LLVMFuncEntry *add_fn = llvm_lookup_function(ctx,
                 "pgy_set_add_string_raw_export");

@@ -1,0 +1,41 @@
+// Three distinct owned Array<String> receivers require the same existing
+// ownership-aware push repair. Their immutable receiver facts let the landing
+// owner select the contiguous loop-body stores in one analysis.
+struct OwnedStringPushBatchSource {
+    first: Array<String>;
+    second: Array<String>;
+    third: Array<String>;
+}
+
+struct OwnedStringPushBatchRows {
+    first: Array<String>;
+    second: Array<String>;
+    third: Array<String>;
+}
+
+func OwnedStringPushBatchApply(
+    ref source: OwnedStringPushBatchSource
+) -> OwnedStringPushBatchRows {
+    let first: Array<String> = Clone(source.first);
+    let second: Array<String> = Clone(source.second);
+    let third: Array<String> = Clone(source.third);
+    let row: Int = 0;
+    while row < 1 {
+        ArrayPush(first, "a1");
+        ArrayPush(second, "b2");
+        ArrayPush(third, "c3");
+        row = row + 1;
+    }
+    return OwnedStringPushBatchRows(first, second, third);
+}
+
+func Main() -> Int {
+    let source: OwnedStringPushBatchSource = OwnedStringPushBatchSource(
+        [StringConcat("x", "")], [StringConcat("y", "")],
+        [StringConcat("z", "")]);
+    let result: OwnedStringPushBatchRows = OwnedStringPushBatchApply(source);
+    Print(result.first[1]);
+    Print(result.second[1]);
+    Print(result.third[1]);
+    return 0;
+}

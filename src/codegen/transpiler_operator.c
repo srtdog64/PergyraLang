@@ -6,78 +6,85 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../compiler/mir_decl_headers.h"
+#include "../semantic/operator_overload_rules.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_call_subject_arg_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_operator.h"
 
-const char *
-operator_overload_suffix(PgyTokenType op)
-{
-    switch (op) {
-    case TOKEN_PLUS:          return "add";
-    case TOKEN_MINUS:         return "sub";
-    case TOKEN_STAR:          return "mul";
-    case TOKEN_SLASH:         return "div";
-    case TOKEN_PERCENT:       return "mod";
-    case TOKEN_EQUAL:         return "eq";
-    case TOKEN_NOT_EQUAL:     return "ne";
-    case TOKEN_LESS:          return "lt";
-    case TOKEN_LESS_EQUAL:    return "le";
-    case TOKEN_GREATER:       return "gt";
-    case TOKEN_GREATER_EQUAL: return "ge";
-    default:                  return NULL;
-    }
-}
-
+/* Match the free function's ABI before the binary owner sequences operands.
+ * Role bridges keep their own value-receiver ABI. The input texts still name
+ * original storage (or a constructor compound literal), never copied locals. */
 bool
-operator_method_name_matches(PgyTokenType op, const char *name)
+transpiler_operator_prepare_arguments(TranspilerCtx *ctx,
+                                      ASTNode *expr, ASTNode *decl,
+                                      char **left, char **right)
 {
-    static const struct {
-        PgyTokenType op;
-        const char *names[10];
-    } aliases[] = {
-        { TOKEN_PLUS, { "Add", "add", "OperatorAdd", "operator_add", NULL } },
-        { TOKEN_MINUS, { "Sub", "sub", "Subtract", "subtract",
-                         "OperatorSub", "operator_sub", NULL } },
-        { TOKEN_STAR, { "Mul", "mul", "Multiply", "multiply",
-                        "OperatorMul", "operator_mul", NULL } },
-        { TOKEN_SLASH, { "Div", "div", "Divide", "divide",
-                         "OperatorDiv", "operator_div", NULL } },
-        { TOKEN_PERCENT, { "Mod", "mod", "Modulo", "modulo",
-                           "OperatorMod", "operator_mod", NULL } },
-        { TOKEN_EQUAL, { "Eq", "eq", "Equal", "equal", "Equals", "equals",
-                         "OperatorEq", "operator_eq", NULL } },
-        { TOKEN_NOT_EQUAL, { "Ne", "ne", "NotEqual", "notEqual",
-                             "NotEquals", "notEquals",
-                             "OperatorNe", "operator_ne", NULL } },
-        { TOKEN_LESS, { "Lt", "lt", "LessThan", "lessThan",
-                        "OperatorLt", "operator_lt", NULL } },
-        { TOKEN_LESS_EQUAL, { "Le", "le", "LessEqual", "lessEqual",
-                              "LessThanOrEqual", "lessThanOrEqual",
-                              "OperatorLe", "operator_le", NULL } },
-        { TOKEN_GREATER, { "Gt", "gt", "GreaterThan", "greaterThan",
-                           "OperatorGt", "operator_gt", NULL } },
-        { TOKEN_GREATER_EQUAL, { "Ge", "ge", "GreaterEqual", "greaterEqual",
-                                 "GreaterThanOrEqual", "greaterThanOrEqual",
-                                 "OperatorGe", "operator_ge", NULL } },
-    };
-
-    if (name == NULL)
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return true;
+    const MIRRoutine *routine = transpiler_find_mir_function(ctx, decl);
+    bool is_extern = transpiler_decl_is_extern_function(ctx, decl);
+    if (!is_extern && !transpiler_mir_routine_signature_metadata_complete_for(
+            ctx, routine, decl, TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
+            "MIR-only C path missing operator signature for '%s'", NULL,
+            "MIR-only C path missing operator parameter type for '%s'"))
         return false;
-
-    for (size_t i = 0; i < sizeof(aliases) / sizeof(aliases[0]); i++) {
-        if (aliases[i].op != op)
-            continue;
-        for (size_t j = 0; aliases[i].names[j] != NULL; j++) {
-            if (strcmp(aliases[i].names[j], name) == 0)
-                return true;
-        }
-        break;
+    size_t count = is_extern ? ast_func_param_count(decl)
+        : transpiler_mir_routine_param_count(routine);
+    if (count != 2) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C operator '%s' requires two admitted parameters",
+            ast_declaration_name(decl));
+        return false;
     }
-    return false;
+    ASTNode *nodes[2] = {ast_binary_left(expr), ast_binary_right(expr)};
+    char **texts[2] = {left, right};
+    for (size_t i = 0; i < 2; i++) {
+        FuncParam *param = is_extern ? ast_func_param(decl, i)
+            : transpiler_mir_routine_param(routine, i);
+        const char *type = is_extern ? NULL
+            : transpiler_mir_routine_param_type_name(routine, i);
+        if (param == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "C operator '%s' is missing parameter ABI metadata",
+                ast_declaration_name(decl));
+            return false;
+        }
+        MIRParamCarriage carriage = is_extern
+            ? mir_param_carriage_from_source_mode(param->mode)
+            : transpiler_mir_routine_param_carriage(routine, i);
+        if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            && nodes[i]->type != AST_IDENTIFIER
+            && nodes[i]->type != AST_MEMBER_ACCESS
+            && nodes[i]->type != AST_ARRAY_ACCESS) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                "C operator argument %zu requires assignable inout storage", i + 1);
+            return false;
+        }
+        bool indirect = !is_extern
+            && transpiler_mir_routine_param_passes_indirect(routine, i);
+        if (indirect || carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            || transpiler_call_arg_needs_subject_address(
+                ctx, param, type, NULL, NULL)) {
+            char *address = transpiler_call_arg_address(
+                ctx, nodes[i], *texts[i], ast_declaration_name(decl), i);
+            if (address == NULL)
+                return false;
+            free(*texts[i]);
+            *texts[i] = address;
+        }
+    }
+    return true;
 }
 
 ASTNode *
@@ -97,7 +104,7 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
             const char *method_name = ast_declaration_name(method);
             if (method != NULL && method->type == AST_FUNC_DECL
                 && method_name != NULL
-                && operator_method_name_matches(op, method_name)) {
+                && pgy_operator_method_name_matches(op, method_name)) {
                 return method;
             }
         }
@@ -141,7 +148,7 @@ find_role_operator_method_metadata_in_header(TranspilerCtx *ctx,
         const char *method_name = transpiler_mir_decl_method_name(method);
 
         if (method_name != NULL
-            && operator_method_name_matches(op, method_name)) {
+            && pgy_operator_method_name_matches(op, method_name)) {
             return method;
         }
     }
@@ -213,7 +220,7 @@ find_role_operator_method_metadata(TranspilerCtx *ctx,
 ASTNode *
 find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenType op)
 {
-    const char *suffix = operator_overload_suffix(op);
+    const char *suffix = pgy_operator_overload_suffix(op);
     char fn_name[256];
     ASTNode **roles = NULL;
     size_t role_count = 0;

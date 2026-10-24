@@ -1,0 +1,20 @@
+// Each call would move `rows`, but every call is followed by another use.
+// The move owner must select all three exact argument copies in one analysis,
+// then admit the reloaded program without one whole-program round per call.
+struct MoveChainRows {
+    ids: Array<Int>;
+}
+
+func MoveChainGrow(rows: MoveChainRows) -> Int {
+    ArrayPush(rows.ids, 1);
+    return ArrayLength(rows.ids);
+}
+
+func Main() -> Int {
+    let rows: MoveChainRows = MoveChainRows([0]);
+    let a: Int = MoveChainGrow(rows);
+    let b: Int = MoveChainGrow(rows);
+    let c: Int = MoveChainGrow(rows);
+    Print(ToString(a * 1000 + b * 100 + c * 10 + ArrayLength(rows.ids)));
+    return 0;
+}

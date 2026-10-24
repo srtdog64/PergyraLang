@@ -9,6 +9,25 @@
 #include "llvm_internal_api.h"
 #include "../compiler/verified_region_plan.h"
 
+LLVMRegionAllocation
+llvm_mir_region_allocation_scope(LLVMGenCtx *ctx,
+    const ASTNode *site, const char *operation)
+{
+    PgyRegionDisposition disposition;
+    uint32_t scope_id = 0;
+    if (!pgy_verified_region_plan_lookup(ctx->region_plan,
+            ast_node_stable_id(site), &disposition, &scope_id)
+        || disposition != PGY_REGION_DISPOSITION_REGION)
+        return LLVM_REGION_ALLOCATION_HEAP;
+    if (!ctx->region_scope_active || scope_id != ctx->region_scope_id ||
+        ctx->region_alloca == NULL || ctx->region_owner_function != ctx->current_function) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM %s is outside its admitted function scope", operation);
+        return LLVM_REGION_ALLOCATION_INVALID;
+    }
+    return LLVM_REGION_ALLOCATION_ACTIVE;
+}
+
 void
 llvm_mir_region_scope_begin(LLVMGenCtx *ctx, const MIRRoutine *routine)
 {

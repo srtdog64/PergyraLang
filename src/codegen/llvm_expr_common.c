@@ -168,25 +168,6 @@ llvm_current_self_call_arg(LLVMGenCtx *ctx)
         llvm_tmp_name(ctx));
 }
 
-const char *
-llvm_operator_overload_suffix(PgyTokenType op)
-{
-    switch (op) {
-    case TOKEN_PLUS: return "add";
-    case TOKEN_MINUS: return "sub";
-    case TOKEN_STAR: return "mul";
-    case TOKEN_SLASH: return "div";
-    case TOKEN_PERCENT: return "mod";
-    case TOKEN_EQUAL: return "eq";
-    case TOKEN_NOT_EQUAL: return "ne";
-    case TOKEN_LESS: return "lt";
-    case TOKEN_LESS_EQUAL: return "le";
-    case TOKEN_GREATER: return "gt";
-    case TOKEN_GREATER_EQUAL: return "ge";
-    default: return NULL;
-    }
-}
-
 static const char *
 llvm_expr_unwrap_option_payload_class_name(ASTNode *node, LLVMGenCtx *ctx)
 {

@@ -1,0 +1,21 @@
+// Fresh replacement alone is not enough: the selected later-declared own
+// formal must retire the detached backing before this handoff is admitted.
+struct State { ids: Array<Int>; }
+
+func Retire(inout state: State) -> Void
+{
+    let ids: Array<Int> = state.ids;
+    state.ids = [];
+    KeepIds(ids);
+}
+
+func KeepIds(own ids: Array<Int>) -> Void
+{
+    Log(ArrayLength(ids));
+}
+
+func Main() -> Void
+{
+    let state: State = State([7, 8]);
+    Retire(state);
+}

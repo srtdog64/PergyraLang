@@ -592,6 +592,16 @@ test_program_emit_head(void)
         call_parser = parser_create(call_lexer);
         call = parser_parse_expression(call_parser);
         EXPECT(transpiler_call_arg_can_take_subject_address(ctx, call));
+        ctx->mir = NULL;
+        EXPECT(!transpiler_call_arg_can_take_subject_address(ctx, call));
+        ctx->mir = mir;
+        const MIRDeclHeader *player_header = mir_find_decl_header(mir, "Player");
+        EXPECT(player_header != NULL);
+        uint32_t player_id = mir_decl_header_source_syntax_id(player_header);
+        EXPECT(ast_call_set_semantic_callee_decl_id(call, player_id + 1));
+        EXPECT(!transpiler_call_arg_can_take_subject_address(ctx, call));
+        EXPECT(ast_call_set_semantic_callee_decl_id(call, player_id));
+        EXPECT(transpiler_call_arg_can_take_subject_address(ctx, call));
         EXPECT(ast_call_set_semantic_callee_value_binding_id(call, 77));
         EXPECT(!transpiler_call_arg_can_take_subject_address(ctx, call));
         ast_destroy(call);

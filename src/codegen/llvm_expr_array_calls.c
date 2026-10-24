@@ -8,6 +8,7 @@
 #include "llvm_expr_box_array_calls.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_store_coercion.h"
 #include "parser/ast_api.h"
 
 typedef enum {
@@ -496,14 +497,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value == NULL)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPush could not lower value expression", out);
-        if (LLVMTypeOf(value) != entry->elem_type) {
-            if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, entry->elem_type, llvm_tmp_name(ctx));
-            else if ((entry->elem_type == ctx->type_f32 || entry->elem_type == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, entry->elem_type);
         if (LLVMTypeOf(value) != entry->elem_type)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPush value does not match Array<T> element type",
@@ -559,14 +553,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_error_out(node, ctx,
                 "LLVM ArraySet could not lower index or value expression", out);
 
-        if (LLVMTypeOf(value) != entry->elem_type) {
-            if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
-                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = llvm_build_checked_fptosi(ctx, value, entry->elem_type, llvm_tmp_name(ctx));
-            else if ((entry->elem_type == ctx->type_f32 || entry->elem_type == ctx->type_f64)
-                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
-                value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
-        }
+        value = llvm_mir_coerce_value_for_store(ctx, value, entry->elem_type);
         if (LLVMTypeOf(value) != entry->elem_type)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArraySet value does not match Array<T> element type",

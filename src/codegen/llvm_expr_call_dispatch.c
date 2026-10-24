@@ -311,7 +311,7 @@ emit_declared_callable:;
     if (predeclared_func != NULL) predeclared_value = predeclared_func->fn;
     if (decl != NULL || bound_generic_routine != NULL)
         args = llvm_build_boundary_call_args(ctx, decl, bound_generic_routine, call_args,
-            argc, &emitted_argc);
+            argc, NULL, &emitted_argc);
     if (args == NULL && (decl != NULL || bound_generic_routine != NULL) && ctx->has_error) {
         result = llvm_call_error_recovery(ctx, node,
             "LLVM boundary call argument lowering failed");

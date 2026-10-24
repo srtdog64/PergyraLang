@@ -26,7 +26,6 @@ LLVMValueRef llvm_operand_value_for_storage(LLVMGenCtx *ctx,
                                             ASTNode *operand,
                                             LLVMValueRef value,
                                             LLVMTypeRef storage_ty);
-const char *llvm_operator_overload_suffix(PgyTokenType op);
 bool llvm_is_upper_ident(ASTNode *node);
 const char *llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx);
 LLVMClassTypeEntry *llvm_lookup_class_by_type(LLVMGenCtx *ctx,
@@ -142,8 +141,6 @@ bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);
 
 /* Domain emitters (llvm_domain.c). */
 bool llvm_param_is_implicit_self_local(const FuncParam *param);
-const char *llvm_operator_suffix(PgyTokenType op);
-bool llvm_operator_method_name_matches(PgyTokenType op, const char *name);
 void llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
                                   LLVMClassTypeEntry *decl_cls,
                                   LLVMValueRef self_ptr,

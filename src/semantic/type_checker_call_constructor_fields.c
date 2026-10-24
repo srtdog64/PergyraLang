@@ -310,11 +310,12 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
         Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
         if (!constructor_payload_type_ready(type, false) ||
             strcmp(type->name, row->field_type_name) != 0) return false;
-        /* The field's element receipt is replayed only by its consumer, the
-         * owned-element member requirement. This snapshot also answers the
-         * flow summaries' relation lookups, which run before the deferred
-         * Array preservations are finalized, where an owned result cannot
-         * replay yet. */
+        /* This query owns the nominal snapshot's type and identity
+         * currentness.  Element ownership is replayed only by the consumer
+         * that needs that premise.  Flow summaries query this snapshot before
+         * deferred Array preservation has finished, so replaying the element
+         * receipt here would make an unrelated type lookup depend on a later
+         * ownership generation. */
         if (row->string_array_elements_present
             && !(type_is_constructed_named(type, "Array")
                 && type_equals(type_get_constructed_arg(type, 0), TYPE_STRING)))

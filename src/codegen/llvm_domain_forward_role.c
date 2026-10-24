@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_backend_type_map_internal.h"
+#include "../semantic/operator_overload_rules.h"
 #include "llvm_domain_forward_internal.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -184,7 +185,7 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
                                      const char *for_type_name,
                                      PgyTokenType op)
 {
-    const char *suffix = llvm_operator_suffix(op);
+    const char *suffix = pgy_operator_overload_suffix(op);
     const MIRDeclMethod *method_meta =
         llvm_find_role_operator_method_metadata(ctx, role, op, 0);
     ASTNode *method = NULL;
@@ -217,7 +218,10 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
             for_type_name);
         return false;
     }
-    if (llvm_lookup_function(ctx, opname) != NULL)
+    /* A free routine may not have been forward-declared yet. Its admitted
+     * signature still owns the symbol, including subject pointer carriage. */
+    if (llvm_decl_exists_in_context(ctx, AST_FUNC_DECL, opname)
+        || llvm_lookup_function(ctx, opname) != NULL)
         return true;
 
     if (!llvm_mir_decl_method_metadata_complete_for(ctx,
@@ -330,12 +334,6 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                                     ASTNode **roles,
                                     size_t role_count)
 {
-    static const PgyTokenType ops[] = {
-        TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
-        TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
-        TOKEN_GREATER, TOKEN_GREATER_EQUAL
-    };
-
     if (ctx == NULL)
         return;
 
@@ -364,9 +362,10 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
         if (ctx->has_error)
             return;
         for (size_t oi = 0; for_type_name != NULL
-               && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
+               && oi < pgy_operator_overload_count(); oi++) {
             if (!llvm_emit_role_operator_forward_decl(
-                    ctx, stmt, for_type, for_type_name, ops[oi]))
+                    ctx, stmt, for_type, for_type_name,
+                    pgy_operator_overload_at(oi)))
                 return;
         }
     }

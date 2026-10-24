@@ -1,4 +1,5 @@
 #include "transpiler_domain_role_methods_emit.h"
+#include "../semantic/operator_overload_rules.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -227,11 +228,6 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 {
     const char *role_name;
     const char *for_type;
-    PgyTokenType ops[] = {
-        TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
-        TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
-        TOKEN_GREATER, TOKEN_GREATER_EQUAL
-    };
 
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
@@ -260,9 +256,9 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         return;
     }
 
-    for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
-        PgyTokenType op = ops[i];
-        const char *suffix = operator_overload_suffix(op);
+    for (size_t i = 0; i < pgy_operator_overload_count(); i++) {
+        PgyTokenType op = pgy_operator_overload_at(i);
+        const char *suffix = pgy_operator_overload_suffix(op);
         const MIRDeclMethod *method_meta =
             find_role_operator_method_metadata(ctx, role, op, 0);
         ASTNode *method = NULL;

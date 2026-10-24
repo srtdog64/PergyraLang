@@ -14,6 +14,7 @@
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_named_call_owner.h"
 #include "loan_copy_landing_owner.h"
+#include "formal_string_store_landing_owner.h"
 #include "type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
@@ -205,8 +206,18 @@ indexed_string_borrow_argument(ASTNode *expression,
     SemanticContext *ctx, IndexedStringStoreCopy *copy)
 {
     uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
-    if (ctx == NULL || ctx->current_function_decl == NULL ||
-        !semantic_loan_copy_landing_refusal_tail_current(ctx)) return;
+    if (ctx == NULL || ctx->current_function_decl == NULL) return;
+    bool refusal_tail_current =
+        semantic_loan_copy_landing_refusal_tail_current(ctx);
+    /* A first exact store refusal owns the diagnostic. After its tail moves
+     * to another routine, only that routine's first proven store becomes a
+     * seed. The program-point owner later expands the seed across its bounded
+     * contiguous store run; checking every later store here would cross an
+     * intervening-statement ownership boundary. Non-store callers retain the
+     * old fail-fast boundary. */
+    if (!refusal_tail_current && (copy == NULL
+            || semantic_formal_string_store_landing_current_routine_seeded(ctx)))
+        return;
     bool current = semantic_indexed_string_borrow_source_current(expression, ctx, &source_id);
     IndexedStringDefinitionRecord definition_use =
         semantic_indexed_string_definition_record_use(ctx, expression, call, ordinal);
@@ -391,8 +402,18 @@ indexed_string_borrow_argument(ASTNode *expression,
                 /* An Array<String> store of a String no owner proves alive
                  * lands as an owned copy of that String. */
                 if (copy != NULL && call != NULL && callee == NULL && !constructor) {
+                    if (!semantic_formal_string_store_landing_record_risk_owner(
+                            ctx, call, expression, owner->decl_syntax_id)) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            expression,
+                            "String store landing risk-owner evidence could not be recorded");
+                        return;
+                    }
                     copy->wanted = true;
-                    if (!copy->refuse) return;
+                    if (!copy->refuse || !refusal_tail_current) return;
                 }
                 /* A declared callee's final summary decides whether it keeps
                  * the String; that owner refuses it after Pass 2 if not. */

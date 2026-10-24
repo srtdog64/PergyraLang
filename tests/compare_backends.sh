@@ -1059,6 +1059,8 @@ main() {
         "tests/cases/backend_compare/map_presence_ops"
         "tests/cases/backend_compare/map_ops"
         "tests/cases/backend_compare/map_ops_long_bool"
+        "tests/cases/backend_compare/map_double_float_duration_values"
+        "tests/cases/backend_compare/collection_value_widening"
         "tests/cases/backend_compare/list_get_string"
         "tests/cases/backend_compare/list_literal_context"
         "tests/cases/backend_compare/list_mutation_ops"

@@ -32,6 +32,14 @@ bool semantic_formal_string_store_landing_owned_set(ASTNode *call,
 bool semantic_formal_string_store_landing_select_owned_set(
     SemanticContext *ctx, const ASTNode *call);
 
+/* After the legacy escape owner has finished selecting exact store calls,
+ * consume the current per-routine program-point index and schedule the same
+ * block's straight-line String stores. Exact scalar Array stores and pure
+ * scalar/String lets are transparent; every scheduled store is type- and
+ * ownership-checked on replay. This is a bounded landing batch, not another
+ * syntax scan or cross-routine error tail. */
+bool semantic_formal_string_store_landing_finalize(SemanticContext *ctx);
+
 /* The flow summary of `routine` found its formal `root` escaping through
  * argument `ordinal` of a store builtin. When that argument is the stored
  * String, the call is selected for a second analysis to land, wherever the
@@ -64,6 +72,22 @@ bool semantic_formal_store_landing_select_assigned(SemanticContext *ctx, const A
  * refused; the call is selected so that a next analysis lands it as an
  * owned String push (ArrayPushOwnedString) when the receiver admits one. */
 bool semantic_formal_string_store_landing_select_owned(SemanticContext *ctx, const ASTNode *call);
+
+/* The indexed String owner proved that `risk_owner_binding_id` is a live
+ * Array<String> binding whose owned elements make storing this formal-rooted
+ * value require an independent copy.  The receipt is transient and can only
+ * batch immediately following stores in the same routine. */
+bool semantic_formal_string_store_landing_record_risk_owner(
+    SemanticContext *ctx, const ASTNode *call, const ASTNode *value,
+    uint32_t risk_owner_binding_id);
+
+/* Whether this analysis already selected the seed store for the current
+ * routine.  After another routine owns the first refusal, the indexed String
+ * checker may discover one seed here; the program-point owner, not a later
+ * checker walk, decides which immediately following stores share its bounded
+ * snapshot. */
+bool semantic_formal_string_store_landing_current_routine_seeded(
+    const SemanticContext *ctx);
 
 /* The same selection while the store call is checked, before it has a
  * publication row: no owner proves its String alive for the receiver, and

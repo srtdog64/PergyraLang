@@ -640,23 +640,17 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 || transpiler_call_arg_needs_subject_address(ctx,
                     param, param_type_name,
                     intent_param_type, intent_param_type_name)) {
-                if (transpiler_call_arg_is_indirect_ref(ctx, arg_node))
-                    codebuf_write(args_buf, "%s", arg);
-                else if (transpiler_call_arg_can_take_subject_address(ctx, arg_node))
-                    codebuf_write(args_buf, "&(%s)", arg);
-                else {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
-                        "C backend: indirect argument %zu for '%s' requires addressable storage",
-                        i + 1, callee_name != NULL ? callee_name : "<call>");
+                char *address = transpiler_call_arg_address(
+                    ctx, arg_node, arg, callee_name, i);
+                if (address == NULL) {
                     free(arg);
                     free(callee_str);
                     intent_binding_metadata_view_dispose(&binding_metadata);
                     codebuf_destroy(args_buf);
                     return NULL;
                 }
+                codebuf_write(args_buf, "%s", address);
+                free(address);
             } else {
                 codebuf_write(args_buf, "%s", arg);
             }

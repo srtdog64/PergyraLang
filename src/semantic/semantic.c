@@ -17,6 +17,7 @@
 #include "slot_analyzer.h"
 #include "slot_analyzer_internal.h"
 #include "function_param_publication_owner.h"
+#include "formal_string_store_landing_owner.h"
 #include "lifecycle_analyze.h"
 #include "../compiler/import_resolver.h"
 
@@ -313,6 +314,15 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
 
     /* Pass 1 + 2: Symbol collection and type checking */
     type_check_program(ast, ctx);
+    /* A refused formal String store leaves an exact call/routine/formal
+     * identity.  Type checking has now left the flow owner's replay barrier,
+     * so its current per-routine index can select sibling stores before the
+     * driver consumes this failed round's landing plan. */
+    if (ctx->string_store_landing_selected_count != 0
+        && semantic_param_publication_inputs_ready(ctx)
+        && !semantic_formal_string_store_landing_finalize(ctx))
+        semantic_error(ctx, ast,
+            "Formal String store landing finalization failed closed");
     if (timing) {
         t_type_check = semantic_timing_now() - t_mark;
         t_mark = semantic_timing_now();
