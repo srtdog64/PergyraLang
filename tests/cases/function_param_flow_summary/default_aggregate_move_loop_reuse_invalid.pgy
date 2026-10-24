@@ -1,8 +1,8 @@
-// The second iteration grows the argument the first iteration moved, and
-// a Clone of a copies its Array of structs only by value.
+// The second iteration grows the argument the first iteration moved, and a
+// Clone of a copies its Array of String-holding structs only by value.
 struct Pair {
     a: Int;
-    b: Int;
+    name: String;
 }
 
 struct Rows {

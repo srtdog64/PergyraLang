@@ -1,12 +1,14 @@
 // AddBlock grows the Arrays of its by-value argument in place. A Clone of
 // its result copies what it returns, not the growth it made in the
 // caller's storage, so the copy stands at the argument: AddBlock(Clone(a)).
+// AddBlock also writes the first id in place; a keeps its own (1).
 struct Rows {
     ids: Array<Int>;
 }
 
 func AddBlock(rows: Rows) -> Rows {
     let ids: Array<Int> = rows.ids;
+    ArraySet(ids, 0, 99);
     ArrayPush(ids, ArrayLength(ids));
     return Rows(ids);
 }
@@ -17,5 +19,6 @@ func Main() -> Int {
     let b: Rows = Clone(AddBlock(a));
     let c: Rows = Clone(AddBlock(a));
     Print(ToString(ArrayLength(a.ids) + ArrayLength(b.ids) + ArrayLength(c.ids)));
+    Print(ToString(a.ids[0]));
     return 0;
 }

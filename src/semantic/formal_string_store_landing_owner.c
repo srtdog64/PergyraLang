@@ -289,9 +289,13 @@ void semantic_formal_store_landing_select_held(SemanticContext *ctx, const ASTNo
     store_landing_record(ctx, call);
 }
 
-bool semantic_formal_store_landing_selected(const SemanticContext *ctx, const ASTNode *call)
+bool semantic_formal_store_landing_selects_value(const SemanticContext *ctx, const ASTNode *call,
+    const ASTNode *value)
 {
-    uint32_t id = ast_node_stable_id(call);
+    /* Every store this owner selects (ArrayPush, ArraySet, MapSet) takes
+     * its value last. */
+    uint32_t id = call != NULL && call->type == AST_CALL && ast_call_arg_count(call) != 0 &&
+        ast_call_argument(call, ast_call_arg_count(call) - 1) == value ? ast_node_stable_id(call) : 0;
     for (size_t i = 0; ctx != NULL && id != 0 && i < ctx->string_store_landing_selected_count; i++)
         if (ctx->string_store_landing_selected[i] == id) return true;
     return false;

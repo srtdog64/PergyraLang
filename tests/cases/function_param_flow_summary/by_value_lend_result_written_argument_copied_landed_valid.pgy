@@ -1,12 +1,12 @@
 // Wrap lends its by-value box: the result holds the box. Main writes through
 // the result and then reads the box again, so the two must not share the
-// box's Array. The result also holds an Array of structs, which a Clone does
-// not copy whole, so no copy can stand where the loan is made; the copy
-// stands where Wrap takes its argument, as Wrap(Clone(box)), and the box
-// keeps its first element.
+// box's Array. The result also holds an Array of String-holding structs,
+// which a Clone does not copy whole, so no copy can stand where the loan is
+// made; the copy stands where Wrap takes its argument, as Wrap(Clone(box)),
+// and the box keeps its first element.
 struct Pair {
     a: Int;
-    b: Int;
+    name: String;
 }
 
 struct Box {

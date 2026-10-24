@@ -69,7 +69,8 @@ typedef struct {
     const ASTNode **reported;
     size_t reported_count, reported_capacity;
     /* Loan verdicts of lending calls, each checked once. */
-    struct { const ASTNode *call; bool admitted; FunctionParamFlowLoanFailure failure; } *lent;
+    /* The lent proof's verdict per loan: one call may lend several owners. */
+    struct { const ASTNode *call; uint32_t owner; bool admitted; FunctionParamFlowLoanFailure failure; } *lent;
     size_t lent_count, lent_capacity;
     /* Calls whose result a Clone copies into storage of its own. */
     const ASTNode **copied;

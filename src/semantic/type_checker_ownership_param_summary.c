@@ -16,6 +16,7 @@
 #include "loan_copy_landing_owner.h"
 #include "formal_string_store_landing_owner.h"
 #include "diag_codes.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -419,20 +420,21 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
         sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL, NULL, NULL);
 }
 
-/* The carrier is the stored value of a store call this analysis selected:
- * the next analysis stores a Clone of it in its place. */
-static bool loan_carrier_store_landed(SemanticContext *ctx, ASTNode *caller, const ASTNode *carrier)
+/* Records why the lent proof refused `call`'s loan, and shows it under
+ * PGY_DEBUG_PIPELINE_STAGE. Returns false, the proof's verdict. */
+static bool lent_proof_refused(SemanticContext *ctx, ASTNode *caller, ASTNode *call,
+    FunctionParamFlowLoanFailure *failure, FunctionParamFlowLoanStop stop, const FunctionParamFlowLoanEscapes *copies)
 {
-    SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
-    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
-    FunctionParamFlowProgramPointIndex *index = NULL;
-    if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index)) return false;
-    for (size_t c = 0; c < index->claims->count; c++) {
-        const ASTNode *node = index->claims->rows[c].node;
-        if (node != NULL && node->type == AST_CALL && ast_call_arg_count(node) != 0 &&
-            ast_call_argument(node, ast_call_arg_count(node) - 1) == carrier)
-            return semantic_formal_store_landing_selected(ctx, node);
+    static const char *const names[] = {"not_proved", "uncopyable_exit", "stays_once_copied", "chain_capped", "owner_changed"};
+    if (failure != NULL) {
+        failure->stop = stop;
+        failure->escapes = stop == FUNCTION_PARAM_FLOW_LOAN_UNCOPYABLE_EXIT || stop == FUNCTION_PARAM_FLOW_LOAN_NOT_PROVED
+            ? (FunctionParamFlowLoanEscapes){0} : *copies;
     }
+    if (getenv("PGY_DEBUG_PIPELINE_STAGE") != NULL)
+        fprintf(stderr, "[semantic loan proof] routine=%s line=%d col=%d stop=%s copies=%zu\n",
+            ast_declaration_name(caller) != NULL ? ast_declaration_name(caller) : "<none>",
+            call->line, call->column, names[stop], copies->count);
     return false;
 }
 
@@ -462,28 +464,29 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     while (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape, &carrier, &copied, &carriers)) {
         free(carriers.ids);
         carriers = (LoanCarriers){0};
-        bool stored = carrier != NULL && loan_carrier_store_landed(ctx, caller, carrier);
+        /* The walk names the call the loan left through (`escape`). */
+        bool stored = carrier != NULL && semantic_formal_store_landing_selects_value(ctx, escape, carrier);
         bool copies = stored || (carrier != NULL && semantic_loan_copy_landing_carrier_copies(ctx, carrier));
         bool next = copies && copied.count < sizeof(copied.at) / sizeof(copied.at[0]);
         for (size_t c = 0; next && c < copied.count; c++) next = copied.at[c] != carrier;
         if (next) {
             copied.at[copied.count++] = carrier;
             if (!stored) ours.at[ours.count++] = carrier;
-            carrier = NULL;
+            escape = carrier = NULL;
             continue;
         }
-        if (failure != NULL) {
-            failure->escape_carrier = ours.count != 0 ? ours.at[0] : carrier;
-            if (copies) failure->escapes = ours;
-        }
-        return false;
+        /* The chain is kept only when the walks ran out of count; a place no
+         * copy can stand at, or one a copy did not help, drops it. */
+        bool capped = copies && copied.count == sizeof(copied.at) / sizeof(copied.at[0]);
+        return lent_proof_refused(ctx, caller, call, failure,
+            capped ? FUNCTION_PARAM_FLOW_LOAN_CHAIN_CAPPED : FUNCTION_PARAM_FLOW_LOAN_UNCOPYABLE_EXIT, &ours);
     }
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
     FunctionParamFlowProgramPointIndex *index;
     if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index)) {
         free(carriers.ids);
-        return false;
+        return lent_proof_refused(ctx, caller, call, failure, FUNCTION_PARAM_FLOW_LOAN_NOT_PROVED, &ours);
     }
     FunctionParamFlowLoanSpan span = function_param_flow_loan_span(ctx, index->claims, call, carriers.ids, carriers.count,
         ast_func_body(caller));
@@ -507,17 +510,15 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     }
     free(carriers.ids);
     function_param_flow_loan_span_release(&span);
-    if (!unchanged && failure != NULL) failure->owner_changed = true;
     /* The loan stays only once the copies the walks read as made are made.
      * When its owner still changes with them, they are kept too: the move
-     * owner makes them where no copy can stand where the loan is made, and
-     * the next analysis judges the owner with every copy in place. */
-    if (copied.count != 0 && failure != NULL) {
-        failure->escape_carrier = ours.count != 0 ? ours.at[0] : NULL;
-        failure->escapes = ours;
-        failure->stays_once_copied = unchanged;
-    }
-    return unchanged && copied.count == 0;
+     * owner makes them only where no copy can stand where the loan is made,
+     * and the next analysis judges the owner with every copy in place. */
+    if (!unchanged)
+        return lent_proof_refused(ctx, caller, call, failure, FUNCTION_PARAM_FLOW_LOAN_OWNER_CHANGED, &ours);
+    if (copied.count != 0)
+        return lent_proof_refused(ctx, caller, call, failure, FUNCTION_PARAM_FLOW_LOAN_STAYS_ONCE_COPIED, &ours);
+    return true;
 }
 
 bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call)

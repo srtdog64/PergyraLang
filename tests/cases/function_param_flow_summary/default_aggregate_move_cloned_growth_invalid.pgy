@@ -1,10 +1,10 @@
 // AddBlock grows the Arrays of its by-value argument in place. A Clone of
-// its result copies what it returns, not the growth it made in the
-// caller's storage, and a Clone of a copies its Array of structs only by
-// value, so the call still moves the argument.
+// its result copies what it returns, not the growth it made in the caller's
+// storage, and a Clone of a copies its Array of structs only by value, so
+// the call still moves the argument.
 struct Pair {
     a: Int;
-    b: Int;
+    name: String;
 }
 
 struct Rows {

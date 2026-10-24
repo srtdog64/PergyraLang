@@ -1,0 +1,33 @@
+// AddBlock grows its by-value argument's ids in place and returns them in
+// a Block. A Clone of the result copies the ids it returns, not the growth
+// it made in a's storage, so Main's Clone(AddBlock(a)) is no copy of a: the
+// later read of a.ids stays refused. Rows holds an Array of String-holding
+// structs, which a Clone copies only by value, so no copy can stand at the
+// argument either.
+struct Pair {
+    a: Int;
+    name: String;
+}
+
+struct Rows {
+    ids: Array<Int>;
+    pairs: Array<Pair>;
+}
+
+struct Block {
+    ids: Array<Int>;
+}
+
+func AddBlock(rows: Rows) -> Block {
+    let ids: Array<Int> = rows.ids;
+    ArrayPush(ids, ArrayLength(ids));
+    return Block(ids);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1, 2, 3, 4];
+    let a: Rows = Rows(ids, []);
+    let b: Block = Clone(AddBlock(a));
+    Print(ToString(ArrayLength(a.ids) + ArrayLength(b.ids)));
+    return 0;
+}

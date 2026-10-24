@@ -153,7 +153,8 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
 {
     if (moved->lending_call == NULL || moved->callee == NULL) return false;
     for (size_t i = 0; i < walk->lent_count; i++)
-        if (walk->lent[i].call == moved->lending_call) return walk->lent[i].admitted;
+        if (walk->lent[i].call == moved->lending_call && walk->lent[i].owner == moved->binding)
+            return walk->lent[i].admitted;
     FunctionParamFlowLoanFailure failure = {0};
     bool admitted = function_param_flow_lent_argument_admitted(walk->ctx, walk->routine,
         moved->lending_call, moved->binding, &failure);
@@ -164,6 +165,7 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
         walk->lent = grown; walk->lent_capacity = capacity;
     }
     walk->lent[walk->lent_count].call = moved->lending_call;
+    walk->lent[walk->lent_count].owner = moved->binding;
     walk->lent[walk->lent_count].failure = failure;
     walk->lent[walk->lent_count++].admitted = admitted;
     return admitted;
@@ -174,34 +176,29 @@ static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
     if (lent_use_admitted(walk, moved)) return false;
     bool argument_copy_planned = false;
     /* The refusal stands in this analysis; a next one copies each refused
-     * loan: at every place it leaves in turn, when the walks found it staying
-     * with those copies; otherwise once, where it leaves, where it is made,
-     * or, where neither can stand, the lent argument where the call takes
-     * it, as a moved one is. */
+     * loan as the lent proof's verdict says: at every place it leaves in
+     * turn, when the last walk found it staying with those copies or the
+     * walks ran out of count; otherwise once where it is made, of the
+     * getter's result or, where no copy can stand there, of the lent
+     * argument where the call takes it, as of a moved one. Only where neither
+     * can stand and the owner changed are the places it leaves copied. */
     for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++) {
         const FunctionParamFlowLoanFailure *failure = &walk->lent[i].failure;
-        if (walk->lent[i].call != moved->lending_call) continue;
-        if (!failure->owner_changed && (failure->escapes.count != 0 || failure->stays_once_copied)) {
-            for (size_t c = 0; c < failure->escapes.count; c++)
-                if (!semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escapes.at[c])) walk->failed = true;
-            continue;
-        }
-        bool at_exit = !failure->owner_changed && failure->escape_carrier != NULL &&
-            semantic_loan_copy_landing_carrier_copies(walk->ctx, failure->escape_carrier);
-        bool made = !at_exit && semantic_loan_copy_landing_call_copies(walk->ctx, moved->lending_call);
-        const ASTNode *copy = at_exit ? failure->escape_carrier
-            : !made && moved->argument != NULL && semantic_loan_copy_landing_carrier_copies(walk->ctx, moved->argument)
-            ? moved->argument : NULL;
+        if (walk->lent[i].call != moved->lending_call || walk->lent[i].owner != moved->binding) continue;
+        bool chain = failure->stop == FUNCTION_PARAM_FLOW_LOAN_STAYS_ONCE_COPIED ||
+            failure->stop == FUNCTION_PARAM_FLOW_LOAN_CHAIN_CAPPED;
+        bool made = !chain && semantic_loan_copy_landing_call_copies(walk->ctx, moved->lending_call);
+        const ASTNode *copy = !chain && !made && moved->argument != NULL &&
+            semantic_loan_copy_landing_carrier_copies(walk->ctx, moved->argument) ? moved->argument : NULL;
+        chain |= !made && copy == NULL && failure->stop == FUNCTION_PARAM_FLOW_LOAN_OWNER_CHANGED;
+        for (size_t c = 0; chain && c < failure->escapes.count; c++)
+            if (!semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escapes.at[c])) walk->failed = true;
         if (made && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
         if (copy != NULL && !semantic_loan_copy_landing_select_carrier(walk->ctx, copy)) walk->failed = true;
         /* A copied lent argument ends the loan, as a moved one's copy ends
          * the move. */
-        argument_copy_planned |= copy != NULL && copy == moved->argument && !walk->failed &&
-            semantic_loan_copy_landing_selected(walk->ctx, moved->argument);
-        /* Only where none of these can stand are the places it leaves
-         * copied while its owner changes. */
-        for (size_t c = 0; !made && copy == NULL && c < failure->escapes.count; c++)
-            if (!semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escapes.at[c])) walk->failed = true;
+        argument_copy_planned |= copy != NULL && !walk->failed &&
+            semantic_loan_copy_landing_selected(walk->ctx, copy);
     }
     /* A copy whose other side changed is copied where it was made. A moved
      * argument used again is copied where the call takes it

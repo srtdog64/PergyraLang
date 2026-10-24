@@ -133,6 +133,9 @@ landed_clones = {
     "by_value_getter_lend_kept_twice_landed_valid": {"Collect": 0},
     "by_value_getter_lend_kept_then_owned_landed_valid": {"Collect": 1},
     "by_value_lend_result_written_argument_copied_landed_valid": {"Main": 1},
+    "by_value_getter_lend_held_then_owned_landed_valid": {"Collect": 1},
+    # One call lends two owners, and each gets its own verdict.
+    "by_value_lend_two_owners_second_changed_landed_valid": {"Main": 1},
     # A growing call that lends its argument takes a copy of its own.
     "default_aggregate_move_reuse_landed_valid": {"Main": 2},
     "default_aggregate_move_cloned_growth_landed_valid": {"Main": 4},
@@ -245,7 +248,8 @@ landed_clones = {
     "array_result_owned_defer_late_scalar_retention_landed_valid": {"Main": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
-# the value its Clone must wrap, not the call that made the loan.
+# the value its Clone must wrap, not the call that made the loan; or the
+# exact (kind, text) list of what every Clone in the routine wraps.
 landed_at_exit = {
     "by_value_getter_lend_passed_kept_landed_valid": ("Collect", "first"),
     # No copy stands at the result, which holds an Array of structs.
@@ -253,6 +257,13 @@ landed_at_exit = {
     "by_value_getter_lend_growing_landed_valid": ("Describe", "arena"),
     "default_aggregate_move_branch_use_landed_valid": ("Main", "a"),
     "default_aggregate_move_loop_reuse_landed_valid": ("Main", "a"),
+    "default_aggregate_move_reuse_landed_valid": ("Main", [("leaf", "a"), ("leaf", "a")]),
+    "default_aggregate_move_cloned_growth_landed_valid": ("Main", [
+        ("leaf", "a"), ("call_argument", "AddBlock(Clone(a))"),
+        ("leaf", "a"), ("call_argument", "AddBlock(Clone(a))")]),
+    # A dropped chain: the loan is copied where it is made, and only there.
+    "by_value_getter_lend_kept_then_owned_landed_valid": ("Collect", [("call_argument", "AtomText(arena, 0)")]),
+    "by_value_getter_lend_held_then_owned_landed_valid": ("Collect", [("call_argument", "AtomText(arena, 0)")]),
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
@@ -265,6 +276,12 @@ landing_rounds = {
     "default_aggregate_move_reuse_landed_valid": 1,
     "default_aggregate_move_cloned_growth_landed_valid": 1,
     "by_value_getter_lend_growing_landed_valid": 1,
+    "by_value_getter_lend_held_then_owned_landed_valid": 1,
+    "by_value_lend_two_owners_second_changed_landed_valid": 1,
+    "by_value_getter_lend_growing_invalid": 0,
+    "default_aggregate_move_branch_use_invalid": 0,
+    "default_aggregate_move_loop_reuse_invalid": 0,
+    "default_aggregate_move_cloned_result_growth_invalid": 0,
     "string_copy_landing_same_function_batch_valid": 1,
     "string_copy_landing_function_boundary_valid": 2,
     "formal_string_store_same_routine_batch_valid": 1,
@@ -525,7 +542,7 @@ release_lifetime_refusals = {
         (*released_refusal, 30, 26), (*released_refusal, 30, 5), (*released_refusal, 38, 20),
         (*released_refusal, 38, 5), (*released_refusal, 48, 20), (*released_refusal, 56, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 25, 32)],
-    "default_aggregate_move_branch_use_invalid": [(*released_refusal, 27, 41)],
+    "default_aggregate_move_branch_use_invalid": [(*released_refusal, 28, 41)],
     # A call result that holds a formal's storage is a path of that formal:
     # growing it changes the storage the caller's copy shares.
     "enum_formal_matched_payload_grown_invalid": [(*released_refusal, 27, 11)],
@@ -800,10 +817,13 @@ release_lifetime_refusals = {
     "default_aggregate_move_nested_field_write_invalid": [(*released_refusal, 20, 27)],
     # An element of a by-value Array formal is such a path too.
     "default_aggregate_move_array_element_alias_store_invalid": [(*released_refusal, 17, 33)],
-    # TakeFirst returns a String of its arena but also pushes onto it, which
-    # the loan proof sees at the lending call itself (16:53). Make hands its
-    # local arena on while the first loan lives (15:35).
+    # TakeFirst returns a String of its arena but also pushes onto it, so no
+    # copy can stand at its result, nor at its argument, whose Array of
+    # String-holding structs a Clone copies only by value: Describe's later
+    # read of arena.atoms stays refused.
     "by_value_getter_lend_growing_invalid": [(*released_refusal, 23, 53)],
+    # A Clone of a growing call's result is no copy of its argument.
+    "default_aggregate_move_cloned_result_growth_invalid": [(*released_refusal, 31, 34)],
     # An inout formal may change while the loan lives, so it is not lent.
 }
 paired = (
@@ -1620,6 +1640,9 @@ paired = (
     ("by_value_getter_lend_kept_twice_landed_valid", True),
     ("by_value_getter_lend_kept_then_owned_landed_valid", True),
     ("by_value_lend_result_written_argument_copied_landed_valid", True),
+    ("by_value_getter_lend_held_then_owned_landed_valid", True),
+    ("by_value_lend_two_owners_second_changed_landed_valid", True),
+    ("default_aggregate_move_cloned_result_growth_invalid", False),
     ("default_aggregate_move_reuse_landed_valid", True),
     ("default_aggregate_move_cloned_growth_landed_valid", True),
     ("by_value_getter_lend_growing_landed_valid", True),
@@ -1742,7 +1765,7 @@ for name, valid in paired:
                                         0 <= right < len(nodes) and nodes[left].get("kind") == "call" and
                                         nodes[left].get("call_target_name") == "Clone"):
                                     wrapped.append((nodes[right].get("kind"), nodes[right].get("text")))
-            if wrapped != [("leaf", carrier)]:
+            if wrapped != (carrier if isinstance(carrier, list) else [("leaf", carrier)]):
                 raise SystemExit(f"landing {name} did not copy where the loan leaves: {wrapped}")
         if name in owned_push_landings:
             # The landed push must reach MIR as the owned-copy operation.
@@ -2317,11 +2340,13 @@ for name, expected in (
     ("by_value_getter_lend_kept_twice_landed_valid", "1abab"),
     ("by_value_getter_lend_kept_then_owned_landed_valid", "2abab"),
     ("by_value_lend_result_written_argument_copied_landed_valid", "19"),
-    ("default_aggregate_move_reuse_landed_valid", "14"),
-    ("default_aggregate_move_cloned_growth_landed_valid", "14"),
+    ("default_aggregate_move_reuse_landed_valid", "141"),
+    ("default_aggregate_move_cloned_growth_landed_valid", "141"),
     ("by_value_getter_lend_growing_landed_valid", "ab1"),
-    ("default_aggregate_move_branch_use_landed_valid", "3"),
-    ("default_aggregate_move_loop_reuse_landed_valid", "4"),
+    ("default_aggregate_move_branch_use_landed_valid", "31"),
+    ("default_aggregate_move_loop_reuse_landed_valid", "41"),
+    ("by_value_getter_lend_held_then_owned_landed_valid", "3abab"),
+    ("by_value_lend_two_owners_second_changed_landed_valid", "15"),
     ("by_value_getter_lend_returned_landed_valid", "1ab"),
     ("by_value_getter_lend_passed_kept_landed_valid", "2ab"),
     ("by_value_getter_lend_assigned_landed_valid", "1ab"),

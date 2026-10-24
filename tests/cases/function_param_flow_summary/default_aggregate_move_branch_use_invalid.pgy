@@ -1,8 +1,9 @@
 // One branch moves the argument; the use after the branches may see it
-// moved, and a Clone of a copies its Array of structs only by value.
+// moved, and a Clone of a copies its Array of String-holding structs only
+// by value.
 struct Pair {
     a: Int;
-    b: Int;
+    name: String;
 }
 
 struct Rows {

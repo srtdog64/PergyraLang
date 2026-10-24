@@ -27,7 +27,9 @@ bool semantic_indexed_string_named_call_reads_only(SemanticContext *ctx,
 /* The declared callee only reads or returns the String at `ordinal`, which
  * belongs to the Array bound to `owner`; no other argument can change an
  * Array; and the loan proof admits the call's result as a loan of `owner`
- * in `routine`. */
+ * in `routine`, or finds it staying once copies already selected in this
+ * analysis are made (the analysis is then refused by their owner, and the
+ * next one proves the loan with them). */
 bool semantic_indexed_string_named_call_lends(SemanticContext *ctx, ASTNode *routine,
     ASTNode *call, ASTNode *callee, size_t ordinal, uint32_t owner);
 void semantic_indexed_string_named_call_destroy(IndexedStringNamedCallStore *store);

@@ -200,15 +200,20 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
  * formal `owner`, and `caller` uses that argument again: admitted when the
  * loan stays in `caller`, or leaves it only as `caller`'s own summary returns
  * the formal, and nothing in `caller` changes the owner. When given,
- * `failure` says why a refused loan failed. */
+ * `failure` says why a refused loan failed: the walks are repeated with
+ * each place the loan leaves through read as a copy already made. */
+typedef enum {
+    FUNCTION_PARAM_FLOW_LOAN_NOT_PROVED = 0, /* the proof could not run to its end */
+    FUNCTION_PARAM_FLOW_LOAN_UNCOPYABLE_EXIT,  /* it leaves where no copy helps */
+    FUNCTION_PARAM_FLOW_LOAN_STAYS_ONCE_COPIED, /* it stays with `escapes` copied */
+    FUNCTION_PARAM_FLOW_LOAN_CHAIN_CAPPED,     /* the walks reached their fixed count */
+    FUNCTION_PARAM_FLOW_LOAN_OWNER_CHANGED,    /* it stays with `escapes`, but its owner changes */
+} FunctionParamFlowLoanStop;
 typedef struct {
-    bool owner_changed;      /* the loan stayed; only a change of its owner refused it */
-    ASTNode *escape_carrier; /* the expression whose value took the loan out, or NULL */
-    /* Where to copy so the loan stays: each walk read the earlier ones, and
-     * the stores this analysis selected to copy, as made and left through
-     * the next. `stays_once_copied` when the last walk found it staying. */
+    FunctionParamFlowLoanStop stop;
+    /* The places read as copies, in the order the walks found them; a store
+     * the store owner already selected is left out, as that owner copies it. */
     FunctionParamFlowLoanEscapes escapes;
-    bool stays_once_copied;
 } FunctionParamFlowLoanFailure;
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     ASTNode *caller, ASTNode *call, uint32_t owner, FunctionParamFlowLoanFailure *failure);

@@ -92,9 +92,7 @@ void semantic_loan_copy_landing_refusal_tail_seal(SemanticContext *ctx)
 
 bool semantic_loan_copy_landing_call_copies(SemanticContext *ctx, const ASTNode *call)
 {
-    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
-    return ast_node_stable_id(call) != 0 && result.ok && !result.meta && loan_call_preserves_storage(ctx, call) &&
-        semantic_param_publication_clone_independent(ctx, result.type);
+    return semantic_loan_copy_landing_carrier_copies(ctx, call) && loan_call_preserves_storage(ctx, call);
 }
 
 bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call)

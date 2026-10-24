@@ -114,8 +114,17 @@ driver_semantic_analyze_landed(const DriverFlags *flags, ASTNode **ast,
         if (!driver_landing_plan_merge(&stores, sem->string_store_landings,
                 sem->string_store_landing_count, stable_id_ceiling, &grew) ||
             !driver_landing_plan_merge(&copies, sem->loan_copy_landings,
-                sem->loan_copy_landing_count, stable_id_ceiling, &grew) ||
-            !grew) break;
+                sem->loan_copy_landing_count, stable_id_ceiling, &grew)) {
+            /* A selection that cannot be landed leaves no verdict: the
+             * analysis may admit a loan only because that copy would be made. */
+            if (load_error != NULL && *load_error == NULL)
+                *load_error = pergyra_strdup(
+                    "semantic landing selected an identity it cannot land");
+            semantic_result_destroy(sem);
+            sem = NULL;
+            break;
+        }
+        if (!grew) break;
         landing_round++;
         semantic_result_destroy(sem);
         sem = NULL;

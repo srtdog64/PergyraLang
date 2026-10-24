@@ -1,11 +1,13 @@
 // Each iteration grows the argument, so each call takes a copy of its own:
 // AddBlock(Clone(a)).
+// AddBlock also writes the first id in place; a keeps its own (1).
 struct Rows {
     ids: Array<Int>;
 }
 
 func AddBlock(rows: Rows) -> Rows {
     let ids: Array<Int> = rows.ids;
+    ArraySet(ids, 0, 99);
     ArrayPush(ids, ArrayLength(ids));
     return Rows(ids);
 }
@@ -21,5 +23,6 @@ func Main() -> Int {
         i = i + 1;
     }
     Print(ToString(total));
+    Print(ToString(a.ids[0]));
     return 0;
 }

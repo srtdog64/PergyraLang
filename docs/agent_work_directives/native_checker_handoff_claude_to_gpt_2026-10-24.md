@@ -61,6 +61,32 @@ The merge keeps main's argument-copy batch (`refuse_use` reports a planned
 argument copy and the walk removes the move) for moves, and reports a
 copied lent argument the same way.
 
+### Red-team review before the handoff
+
+Four read-only reviewers (soundness, owner duplication, gates, hidden
+control flow) went over the branch's code against main. The commit "Fix what a
+red-team review of the loan landing found" fixes what they confirmed:
+
+- The lent-proof verdict was cached per call, so a call lending two owners
+  answered the second owner with the first one's verdict; it is now per
+  call and owner ([decision](../truth/decisions/2026-10-24_lent_proof_verdict_is_per_owner.md)).
+  Main has the same defect.
+- The driver returned an analysis whose landing selections could not be
+  merged as if it were a verdict; it now fails closed.
+- A dropped chain still copied its first place; the proof now publishes one
+  verdict (`FunctionParamFlowLoanStop`) both consumers read, shown as
+  `[semantic loan proof]` under `PGY_DEBUG_PIPELINE_STAGE`.
+- The store-landed check rescanned the routine's claims; it uses the call
+  the walk reports, and the value-ordinal rule lives in the store owner.
+- Gates: three new fixtures, placement checks for multiple copies and for
+  the getter copy, `landing_rounds` 0 for the move negatives, outputs that
+  show sharing, and negatives whose blocking element holds a String.
+
+Not changed, for the GPT lane: the walk itself selects inout-output store
+landings (`semantic_formal_store_landing_select_held` in
+`function_param_flow_backing_dependencies.c`), also from query walks, and
+nothing withdraws such a selection when a getter copy is chosen later.
+
 ## 2. Measurements are in two tools
 
 The Claude census (every error downgraded, every final owner and the String

@@ -143,10 +143,12 @@ bool semantic_indexed_string_named_call_lends(SemanticContext *ctx, ASTNode *rou
     if (function_param_flow_lent_argument_admitted(ctx, routine, call, owner,
             &failure)) return true;
     /* A preceding owner may already have selected the exact carriers where
-     * this loan leaves.  The current analysis is still rejected and the
-     * driver will reload those Clones; do not also clone the borrowed element
-     * before the selected exits have had a chance to prove the loan. */
-    bool selected = !failure.owner_changed && failure.stays_once_copied;
+     * this loan leaves, with which the lent proof found it staying (a store
+     * the store owner selected is not among them: that owner copies it).
+     * The current analysis is still rejected and the driver will reload
+     * those Clones; do not also clone the borrowed element before the
+     * selected exits have had a chance to prove the loan. */
+    bool selected = failure.stop == FUNCTION_PARAM_FLOW_LOAN_STAYS_ONCE_COPIED;
     for (size_t c = 0; selected && c < failure.escapes.count; c++)
         selected = semantic_loan_copy_landing_selected(ctx, failure.escapes.at[c]);
     return selected;

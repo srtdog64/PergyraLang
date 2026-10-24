@@ -1,11 +1,13 @@
 // One branch moves the argument and the use after the branches reads it,
 // so the moving call takes a copy: AddBlock(Clone(a)).
+// AddBlock also writes the first id in place; a keeps its own (1).
 struct Rows {
     ids: Array<Int>;
 }
 
 func AddBlock(rows: Rows) -> Rows {
     let ids: Array<Int> = rows.ids;
+    ArraySet(ids, 0, 99);
     ArrayPush(ids, ArrayLength(ids));
     return Rows(ids);
 }
@@ -19,5 +21,6 @@ func Main() -> Int {
         size = ArrayLength(b.ids);
     }
     Print(ToString(size + ArrayLength(a.ids)));
+    Print(ToString(a.ids[0]));
     return 0;
 }

@@ -1,10 +1,10 @@
 // Two calls grow the same default-mode argument in place. Both results
 // would share the first one's buffer, which the second growth reallocates.
 // No copy can stand: a Clone of a result keeps that growth in a, and a
-// Clone of a copies its Array of structs only by value.
+// Clone of a copies its Array of String-holding structs only by value.
 struct Pair {
     a: Int;
-    b: Int;
+    name: String;
 }
 
 struct Rows {

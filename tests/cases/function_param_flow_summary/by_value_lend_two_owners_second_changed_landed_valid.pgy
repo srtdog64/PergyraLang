@@ -1,0 +1,25 @@
+// Pick lends both its by-value boxes: its result is one of them. Main reads
+// x, whose loan stays, and then changes y while the result still holds y's
+// Array. Each owner gets its own verdict: y's loan is refused and copied, so
+// r keeps y's first item as it was when Pick returned.
+struct Box {
+    items: Array<Int>;
+}
+
+func Pick(a: Box, b: Box, first: Bool) -> Box {
+    if first {
+        return a;
+    }
+    return b;
+}
+
+func Main() -> Int {
+    let x: Box = Box([1, 2]);
+    let y: Box = Box([5, 6]);
+    let r: Box = Pick(x, y, false);
+    Print(ToString(x.items[0]));
+    ArrayPush(y.items, 3);
+    ArraySet(y.items, 0, 7);
+    Print(ToString(r.items[0]));
+    return 0;
+}
