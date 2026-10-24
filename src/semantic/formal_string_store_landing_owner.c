@@ -9,6 +9,7 @@
 #include "loan_copy_landing_owner.h"
 #include "../parser/ast_api.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -247,6 +248,15 @@ static bool store_landing_record_for_routine(SemanticContext *ctx,
     ctx->string_store_landing_selected_routines[at] = routine != NULL
         && routine->type == AST_FUNC_DECL ? ast_node_stable_id(routine) : 0;
     ctx->string_store_landing_selected_formals[at] = formal_id;
+    if (getenv("PGY_DEBUG_PIPELINE_STAGE") != NULL) {
+        const char *routine_name = routine != NULL
+            ? ast_declaration_name(routine) : NULL;
+        fprintf(stderr,
+            "[semantic store landing select] node=%u line=%d col=%d routine=%s routine_id=%u formal_id=%u\n",
+            id, node->line, node->column,
+            routine_name != NULL ? routine_name : "<none>",
+            ctx->string_store_landing_selected_routines[at], formal_id);
+    }
     return true;
 }
 
@@ -375,13 +385,40 @@ static const Type *store_landing_published_formal_path_type(
     }
 }
 
+static bool store_landing_receiver_lineage_replayable(
+    const PgyCollectionOwnershipFact *fact, uint32_t routine_id,
+    uint32_t binding_id)
+{
+    if (fact == NULL || routine_id == 0 || binding_id == 0
+        || fact->function_syntax_id != routine_id
+        || fact->binding_syntax_id != binding_id)
+        return false;
+    if (fact->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
+        || fact->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+        return true;
+    /* A moved field's end-of-routine row may already be retired or released
+     * even though the indexed call site precedes that transition. Its
+     * complete stored source identity is enough to schedule a replay, never
+     * to admit the mutation: the next analysis reconstructs the live
+     * symbol/birth and re-runs the ordinary owned-push checks. */
+    return fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE
+        && fact->source_binding_syntax_id != 0
+        && fact->source_binding_syntax_id != binding_id
+        && fact->origin_syntax_id != 0
+        && fact->source_birth_serial != 0
+        && fact->member_move_source != NULL
+        && fact->member_move_source_id != 0
+        && ast_node_stable_id(fact->member_move_source)
+            == fact->member_move_source_id;
+}
+
 static bool store_landing_batch_candidate(SemanticContext *ctx,
     const FunctionParamFlowIndexClaims *claims, ASTNode *routine,
     ASTNode *candidate, uint32_t *formal_id_out)
 {
+    size_t value_ordinal = 0;
     if (formal_id_out == NULL || candidate == NULL
         || candidate->type != AST_CALL
-        || ast_call_arg_count(candidate) != 3
         || !ast_call_semantic_callee_is_stdlib(candidate)
         || ast_call_semantic_callee_declared_callable(candidate)
         || ast_call_semantic_callee_decl_id(candidate) != 0
@@ -389,13 +426,20 @@ static bool store_landing_batch_candidate(SemanticContext *ctx,
         return false;
     ASTNode *callee = ast_call_callee(candidate);
     ASTNode *receiver = ast_call_argument(candidate, 0);
-    ASTNode *value = ast_call_argument(candidate, 2);
     if (callee == NULL || callee->type != AST_IDENTIFIER
         || ast_identifier_binding_syntax_id(callee) != 0
         || ast_identifier_name(callee) == NULL
-        || strcmp(ast_identifier_name(callee), "ArraySet") != 0
         || receiver == NULL || receiver->type != AST_IDENTIFIER)
         return false;
+    if (strcmp(ast_identifier_name(callee), "ArrayPush") == 0
+        && ast_call_arg_count(candidate) == 2)
+        value_ordinal = 1;
+    else if (strcmp(ast_identifier_name(callee), "ArraySet") == 0
+        && ast_call_arg_count(candidate) == 3)
+        value_ordinal = 2;
+    else
+        return false;
+    ASTNode *value = ast_call_argument(candidate, value_ordinal);
     uint32_t routine_id = ast_node_stable_id(routine);
 
     const FunctionParamFlowIndexClaim *call_claim =
@@ -426,14 +470,147 @@ static bool store_landing_batch_candidate(SemanticContext *ctx,
             || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS
             ? ast_member_object(root) : ast_array_access_array(root);
-    if (root == NULL || root->type != AST_IDENTIFIER) return false;
-    uint32_t formal_id = ast_identifier_binding_syntax_id(root);
-    const Type *formal_path_type = store_landing_published_formal_path_type(
-        ctx, published_routine, value, formal_id);
-    if (formal_id == 0 || !type_equals(formal_path_type, TYPE_STRING))
+    uint32_t formal_id = root != NULL && root->type == AST_IDENTIFIER
+        ? ast_identifier_binding_syntax_id(root) : 0;
+    const Type *formal_path_type = formal_id != 0
+        ? store_landing_published_formal_path_type(
+            ctx, published_routine, value, formal_id)
+        : NULL;
+    if (formal_id != 0 && type_equals(formal_path_type, TYPE_STRING)) {
+        *formal_id_out = formal_id;
+        return true;
+    }
+    /* A local/literal String has no formal id. It can still be selected
+     * without guessing when the collection owner already records that this
+     * exact receiver is a live owned-String snapshot: ordinary mutation is
+     * forbidden there, and the planned owned store is the existing repair. */
+    const PgyCollectionOwnershipFact *receiver_fact =
+        semantic_collection_ownership_fact_find(ctx, routine_id,
+            receiver_claim->binding);
+    /* The earlier refusal may leave later value expressions untyped.  The
+     * exact Array<String> receiver fixes the builtin's expected value type;
+     * a ready value must already agree, while an unready value is only
+     * scheduled.  Replay type-checks it and the ownership admission again. */
+    bool value_expected_string = !value_claim->value_ready
+        || (!value_claim->value_meta
+            && type_equals(value_claim->value_type, TYPE_STRING));
+    if (!value_expected_string
+        || !store_landing_receiver_lineage_replayable(
+            receiver_fact, routine_id, receiver_claim->binding))
         return false;
-    *formal_id_out = formal_id;
+    *formal_id_out = 0;
     return true;
+}
+
+static bool store_landing_scalar_store_transparent(SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims, ASTNode *candidate)
+{
+    if (ctx == NULL || claims == NULL || candidate == NULL
+        || candidate->type != AST_CALL
+        || !ast_call_semantic_callee_is_stdlib(candidate)
+        || ast_call_semantic_callee_declared_callable(candidate)
+        || ast_call_semantic_callee_decl_id(candidate) != 0
+        || ast_call_semantic_callee_value_binding_id(candidate) != 0)
+        return false;
+    ASTNode *callee = ast_call_callee(candidate);
+    ASTNode *receiver = ast_call_argument(candidate, 0);
+    const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    if (name == NULL || ast_identifier_binding_syntax_id(callee) != 0
+        || receiver == NULL || receiver->type != AST_IDENTIFIER
+        || !((strcmp(name, "ArrayPush") == 0
+                && ast_call_arg_count(candidate) == 2)
+            || (strcmp(name, "ArraySet") == 0
+                && ast_call_arg_count(candidate) == 3)))
+        return false;
+    const FunctionParamFlowIndexClaim *call_claim =
+        store_landing_claim(claims, candidate);
+    const FunctionParamFlowIndexClaim *receiver_claim =
+        store_landing_claim(claims, receiver);
+    bool reachable = false;
+    bool current_execution = semantic_param_publication_execution(
+        ctx, candidate, &reachable);
+    const Type *element = receiver_claim != NULL
+        && receiver_claim->value_ready && !receiver_claim->value_meta
+        && type_is_constructed_named(receiver_claim->value_type, "Array")
+        ? type_get_constructed_arg(receiver_claim->value_type, 0) : NULL;
+    return call_claim != NULL && receiver_claim != NULL
+        && call_claim->semantic_promoted
+        && call_claim->snapshot_semantic_complete
+        && call_claim->execution_present && call_claim->reachable
+        && current_execution && reachable
+        && publication_physical_scalar(element);
+}
+
+static bool store_landing_pure_replay_expression(const ASTNode *node,
+    size_t depth)
+{
+    if (node == NULL || depth > 64) return false;
+    if (node->type == AST_IDENTIFIER || node->type == AST_NUMBER
+        || node->type == AST_STRING || node->type == AST_BOOLEAN)
+        return true;
+    if (node->type != AST_CALL
+        || !ast_call_semantic_callee_is_stdlib(node)
+        || ast_call_semantic_callee_declared_callable(node)
+        || ast_call_semantic_callee_decl_id(node) != 0
+        || ast_call_semantic_callee_value_binding_id(node) != 0)
+        return false;
+    const ASTNode *callee = ast_call_callee(node);
+    const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    bool pure = name != NULL && ast_identifier_binding_syntax_id(callee) == 0
+        && (strcmp(name, "ArrayLength") == 0
+            || strcmp(name, "Concat") == 0
+            || strcmp(name, "StringConcat") == 0
+            || strcmp(name, "ToString") == 0
+            || strcmp(name, "ToInt") == 0);
+    if (!pure) return false;
+    for (size_t i = 0; i < ast_call_arg_count(node); i++)
+        if (!store_landing_pure_replay_expression(
+                ast_call_argument(node, i), depth + 1))
+            return false;
+    return true;
+}
+
+static bool store_landing_pure_let_transparent(SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims, ASTNode *candidate)
+{
+    if (ctx == NULL || claims == NULL || candidate == NULL
+        || candidate->type != AST_LET_DECL)
+        return false;
+    const FunctionParamFlowIndexClaim *claim =
+        store_landing_claim(claims, candidate);
+    bool reachable = false;
+    bool current_execution = semantic_param_publication_execution(
+        ctx, candidate, &reachable);
+    return claim != NULL && claim->semantic_promoted
+        && claim->snapshot_semantic_complete
+        && claim->execution_present && claim->reachable
+        && current_execution && reachable
+        && store_landing_pure_replay_expression(
+            ast_let_initializer(candidate), 0);
+}
+
+static const FunctionParamFlowIndexClaim *store_landing_parent_claim(
+    const FunctionParamFlowIndexClaims *claims, const ASTNode *child,
+    size_t *child_ordinal_out)
+{
+    const FunctionParamFlowIndexClaim *found = NULL;
+    size_t found_child = SIZE_MAX;
+    if (claims == NULL || child == NULL || child_ordinal_out == NULL)
+        return NULL;
+    for (size_t r = 0; r < claims->count; r++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[r];
+        for (size_t c = 0; c < row->child_count; c++) {
+            if (row->children[c] != child) continue;
+            if (found != NULL) return NULL;
+            found = row;
+            found_child = c;
+        }
+    }
+    if (found == NULL || found_child == SIZE_MAX) return NULL;
+    *child_ordinal_out = found_child;
+    return found;
 }
 
 static bool store_landing_select_contiguous_formals(SemanticContext *ctx,
@@ -457,29 +634,49 @@ static bool store_landing_select_contiguous_formals(SemanticContext *ctx,
         || !function_param_flow_index_roots_current(index)
         || !function_param_flow_syntax_claims_current(NULL, index->claims))
         return true;
-    size_t seed_root = SIZE_MAX;
-    for (size_t r = 0; r < index->dependency_root_count; r++)
-        if (ast_node_stable_id(index->dependency_roots[r]) == seed_id) {
-            if (seed_root != SIZE_MAX) return true;
-            seed_root = r;
+    const FunctionParamFlowIndexClaim *seed = NULL;
+    for (size_t c = 0; c < index->claims->count; c++)
+        if (index->claims->rows[c].id == seed_id) {
+            if (seed != NULL) return true;
+            seed = &index->claims->rows[c];
         }
-    if (seed_root == SIZE_MAX) return true;
-    /* Only a contiguous run is replayed.  The risk-owner receipt was issued
-     * at the first failed store and remains live across these shallow stores.
-     * Each value must independently resolve to a default/ref formal String
-     * path; the formal need not be the seed's because the same live owned
-     * Array<String> makes every such unknown-source value require a copy.
-     * Crossing another statement would require a fresh program-point
-     * ownership state rather than this bounded snapshot. */
-    for (size_t r = seed_root + 1; r < index->dependency_root_count; r++) {
-        ASTNode *candidate = index->dependency_roots[r];
-        uint32_t candidate_formal_id = 0;
-        if (!store_landing_batch_candidate(
-                ctx, index->claims, routine, candidate,
-                &candidate_formal_id))
+    if (seed == NULL || seed->node == NULL) return true;
+    const ASTNode *child = seed->node;
+    const FunctionParamFlowIndexClaim *block = NULL;
+    size_t child_ordinal = SIZE_MAX;
+    for (size_t depth = 0; depth < index->claims->count; depth++) {
+        const FunctionParamFlowIndexClaim *parent =
+            store_landing_parent_claim(index->claims, child, &child_ordinal);
+        if (parent == NULL) return true;
+        if (parent->shape == AST_BLOCK) {
+            block = parent;
             break;
-        if (!store_landing_record_for_routine(
-                ctx, candidate, routine, candidate_formal_id)) return false;
+        }
+        child = parent->node;
+    }
+    if (block == NULL || child_ordinal >= block->child_count) return true;
+    /* Only a straight-line run in the seed's nearest block is replayed.
+     * Exact scalar Array stores and side-effect-free scalar/String lets are
+     * transparent; a branch, assignment, user call, or other statement ends
+     * the snapshot. Every scheduled store is fully checked on replay. */
+    for (size_t c = child_ordinal + 1; c < block->child_count; c++) {
+        ASTNode *candidate = block->children[c];
+        uint32_t candidate_formal_id = 0;
+        if (store_landing_batch_candidate(
+                ctx, index->claims, routine, candidate,
+                &candidate_formal_id)) {
+            if (!store_landing_record_for_routine(
+                    ctx, candidate, routine, candidate_formal_id))
+                return false;
+            continue;
+        }
+        if (store_landing_scalar_store_transparent(
+                ctx, index->claims, candidate))
+            continue;
+        if (store_landing_pure_let_transparent(
+                ctx, index->claims, candidate))
+            continue;
+        break;
     }
     return true;
 }
@@ -492,8 +689,9 @@ bool semantic_formal_string_store_landing_finalize(SemanticContext *ctx)
     for (size_t i = 0; i < seed_count; i++) {
         uint32_t routine_id = ctx->string_store_landing_selected_routines[i];
         uint32_t formal_id = ctx->string_store_landing_selected_formals[i];
-        if (routine_id == 0 || formal_id == 0
-            || !store_landing_batch_exists(ctx, routine_id, formal_id))
+        if (routine_id == 0
+            || (formal_id != 0
+                && !store_landing_batch_exists(ctx, routine_id, formal_id)))
             continue;
         PendingRoutine *routine_row = publication_routine(
             ctx->function_param_publications, routine_id);

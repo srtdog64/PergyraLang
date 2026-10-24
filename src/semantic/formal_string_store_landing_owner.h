@@ -33,9 +33,10 @@ bool semantic_formal_string_store_landing_select_owned_set(
     SemanticContext *ctx, const ASTNode *call);
 
 /* After the legacy escape owner has finished selecting exact store calls,
- * consume the current per-routine program-point index and select immediately
- * following executable stores of default/ref formal String paths while the
- * same risk owner remains live. This is a bounded landing batch, not another
+ * consume the current per-routine program-point index and schedule the same
+ * block's straight-line String stores. Exact scalar Array stores and pure
+ * scalar/String lets are transparent; every scheduled store is type- and
+ * ownership-checked on replay. This is a bounded landing batch, not another
  * syntax scan or cross-routine error tail. */
 bool semantic_formal_string_store_landing_finalize(SemanticContext *ctx);
 

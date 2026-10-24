@@ -70,6 +70,8 @@ selected_call_targets = {
 # number of ArrayPushOwnedString calls it must reach MIR with.
 owned_push_landings = {
     "owned_copy_string_push_landed_valid": ("Main", 1),
+    "formal_string_push_same_routine_batch_valid": ("FormalStringPushBatchApply", 3),
+    "owned_string_push_multi_receiver_batch_valid": ("OwnedStringPushBatchApply", 3),
     "string_element_push_copy_landing_valid": ("Selected", 1),
     # The recursive chain itself remains scoped by push/pop; only the result
     # stored in out_blocks lands as one owned String.
@@ -238,6 +240,8 @@ landing_rounds = {
     "string_copy_landing_function_boundary_valid": 2,
     "formal_string_store_same_routine_batch_valid": 1,
     "formal_string_store_multiple_formals_batch_valid": 1,
+    "formal_string_push_same_routine_batch_valid": 1,
+    "owned_string_push_multi_receiver_batch_valid": 1,
     "formal_string_store_cross_routine_batch_valid": 1,
     "formal_string_store_batch_boundary_valid": 2,
     "output_field_store_of_ref_formal_landed_valid": 1,
@@ -1390,6 +1394,8 @@ paired = (
     ("string_copy_landing_function_boundary_valid", True),
     ("formal_string_store_same_routine_batch_valid", True),
     ("formal_string_store_multiple_formals_batch_valid", True),
+    ("formal_string_push_same_routine_batch_valid", True),
+    ("owned_string_push_multi_receiver_batch_valid", True),
     ("formal_string_store_cross_routine_batch_valid", True),
     ("formal_string_store_batch_boundary_valid", True),
     ("local_let_alias_grown_invalid", False),
@@ -2220,6 +2226,8 @@ for name, expected in (
     ("string_copy_landing_function_boundary_valid", "ABCD"),
     ("formal_string_store_same_routine_batch_valid", "a1b2c3"),
     ("formal_string_store_multiple_formals_batch_valid", "domainTypeOpSymbol"),
+    ("formal_string_push_same_routine_batch_valid", "a1b2c3"),
+    ("owned_string_push_multi_receiver_batch_valid", "a1b2c3"),
     ("formal_string_store_cross_routine_batch_valid", "firstsecond"),
     ("formal_string_store_batch_boundary_valid", "1\nab"),
     ("formal_string_store_landing_ref_push_valid", "2ba"),

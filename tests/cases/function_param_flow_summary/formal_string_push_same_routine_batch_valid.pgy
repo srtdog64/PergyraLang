@@ -1,0 +1,45 @@
+// Contiguous owned String pushes from formal paths share one bounded landing
+// snapshot even when each destination is a different local Array<String>.
+struct FormalStringPushBatchRows {
+    first: Array<String>;
+    second: Array<String>;
+    third: Array<String>;
+}
+
+struct FormalStringPushBatchFact {
+    first: Array<String>;
+    second: Array<String>;
+    third: Array<String>;
+}
+
+func FormalStringPushBatchApply(
+    rows: FormalStringPushBatchRows,
+    fact: FormalStringPushBatchFact
+) -> FormalStringPushBatchRows {
+    let first: Array<String> = rows.first;
+    let second: Array<String> = rows.second;
+    let third: Array<String> = rows.third;
+    let row: Int = 0;
+    while row < ArrayLength(fact.first) {
+        ArrayPush(first, fact.first[row]);
+        ArrayPush(second, fact.second[row]);
+        ArrayPush(third, fact.third[row]);
+        row = row + 1;
+    }
+    return FormalStringPushBatchRows(first, second, third);
+}
+
+func Main() -> Int {
+    let rows: FormalStringPushBatchRows = FormalStringPushBatchRows(
+        [StringConcat("x", "")], [StringConcat("y", "")],
+        [StringConcat("z", "")]);
+    let fact: FormalStringPushBatchFact = FormalStringPushBatchFact(
+        [StringConcat("a1", "")], [StringConcat("b2", "")],
+        [StringConcat("c3", "")]);
+    let result: FormalStringPushBatchRows = FormalStringPushBatchApply(
+        rows, fact);
+    Print(result.first[1]);
+    Print(result.second[1]);
+    Print(result.third[1]);
+    return 0;
+}
