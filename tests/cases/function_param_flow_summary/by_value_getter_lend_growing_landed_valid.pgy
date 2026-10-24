@@ -1,0 +1,23 @@
+// TakeFirst pushes onto its by-value arena's atoms and returns one of them.
+// That store changes storage Describe's arena shares, so the call cannot
+// lend the arena; Describe uses it again, so TakeFirst takes a copy of its
+// own, TakeFirst(Clone(arena)), and Describe's arena keeps one atom.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func TakeFirst(arena: Arena) -> String {
+    ArrayPush(arena.atoms, StringConcat("zz", ""));
+    return arena.atoms[0];
+}
+
+func Describe(arena: Arena) -> String {
+    let first: String = TakeFirst(arena);
+    return Concat(first, ToString(ArrayLength(arena.atoms)));
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(Describe(arena));
+    return 0;
+}

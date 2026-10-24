@@ -1,9 +1,16 @@
 // TakeFirst only reads and returns from its by-value arena as far as its
 // summary says, but it also pushes onto the arena's atoms. That store changes
-// storage Describe's arena shares, so the call cannot lend the arena:
+// storage Describe's arena shares, so the call cannot lend the arena, and a
+// Clone of the arena copies its Array of structs only by value:
 // Describe's later use is refused.
+struct Pair {
+    a: Int;
+    b: Int;
+}
+
 struct Arena {
     atoms: Array<String>;
+    pairs: Array<Pair>;
 }
 
 func TakeFirst(arena: Arena) -> String {
@@ -17,7 +24,7 @@ func Describe(arena: Arena) -> String {
 }
 
 func Main() -> Int {
-    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let arena: Arena = Arena([StringConcat("ab", "")], []);
     Print(Describe(arena));
     return 0;
 }

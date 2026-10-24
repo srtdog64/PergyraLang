@@ -1,8 +1,16 @@
 // Two calls grow the same default-mode argument in place. Both results
-// share the first one's buffer, which the second growth reallocates.
+// would share the first one's buffer, which the second growth reallocates.
+// No copy can stand: a Clone of a result keeps that growth in a, and a
+// Clone of a copies its Array of structs only by value.
+struct Pair {
+    a: Int;
+    b: Int;
+}
+
 struct Rows {
     ids: Array<Int>;
     names: Array<String>;
+    pairs: Array<Pair>;
 }
 
 func AddBlock(rows: Rows) -> Rows {
@@ -10,13 +18,13 @@ func AddBlock(rows: Rows) -> Rows {
     let names: Array<String> = rows.names;
     ArrayPush(ids, ArrayLength(ids));
     ArrayPush(names, "block");
-    return Rows(ids, names);
+    return Rows(ids, names, rows.pairs);
 }
 
 func Main() -> Int {
     let ids: Array<Int> = [1, 2, 3, 4];
     let names: Array<String> = ["a"];
-    let a: Rows = Rows(ids, names);
+    let a: Rows = Rows(ids, names, []);
     let b: Rows = AddBlock(a);
     let c: Rows = AddBlock(a);
     Print(ToString(ArrayLength(a.ids) + ArrayLength(b.ids) + ArrayLength(c.ids)));

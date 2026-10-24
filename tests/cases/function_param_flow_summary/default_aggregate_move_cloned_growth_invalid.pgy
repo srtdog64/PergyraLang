@@ -1,19 +1,26 @@
 // AddBlock grows the Arrays of its by-value argument in place. A Clone of
 // its result copies what it returns, not the growth it made in the
-// caller's storage, so the call still moves the argument.
+// caller's storage, and a Clone of a copies its Array of structs only by
+// value, so the call still moves the argument.
+struct Pair {
+    a: Int;
+    b: Int;
+}
+
 struct Rows {
     ids: Array<Int>;
+    pairs: Array<Pair>;
 }
 
 func AddBlock(rows: Rows) -> Rows {
     let ids: Array<Int> = rows.ids;
     ArrayPush(ids, ArrayLength(ids));
-    return Rows(ids);
+    return Rows(ids, rows.pairs);
 }
 
 func Main() -> Int {
     let ids: Array<Int> = [1, 2, 3, 4];
-    let a: Rows = Rows(ids);
+    let a: Rows = Rows(ids, []);
     let b: Rows = Clone(AddBlock(a));
     let c: Rows = Clone(AddBlock(a));
     Print(ToString(ArrayLength(a.ids) + ArrayLength(b.ids) + ArrayLength(c.ids)));

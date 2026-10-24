@@ -1,0 +1,21 @@
+// AddBlock grows the Arrays of its by-value argument in place. A Clone of
+// its result copies what it returns, not the growth it made in the
+// caller's storage, so the copy stands at the argument: AddBlock(Clone(a)).
+struct Rows {
+    ids: Array<Int>;
+}
+
+func AddBlock(rows: Rows) -> Rows {
+    let ids: Array<Int> = rows.ids;
+    ArrayPush(ids, ArrayLength(ids));
+    return Rows(ids);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1, 2, 3, 4];
+    let a: Rows = Rows(ids);
+    let b: Rows = Clone(AddBlock(a));
+    let c: Rows = Clone(AddBlock(a));
+    Print(ToString(ArrayLength(a.ids) + ArrayLength(b.ids) + ArrayLength(c.ids)));
+    return 0;
+}

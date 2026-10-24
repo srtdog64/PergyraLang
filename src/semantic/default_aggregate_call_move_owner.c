@@ -280,7 +280,7 @@ move_walk_apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         if (lends && call_copied(walk, call)) continue;
         if (!move_walk_state_add(walk, state, binding, fields,
                 callee_name, param_name, lends ? call : NULL, 0,
-                NULL, lends ? NULL : arg))
+                NULL, arg))
             return;
         if (!lends) move_walk_copy_changed(walk, state, arg);
     }

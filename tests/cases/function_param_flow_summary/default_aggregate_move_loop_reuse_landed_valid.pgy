@@ -1,0 +1,25 @@
+// Each iteration grows the argument, so each call takes a copy of its own:
+// AddBlock(Clone(a)).
+struct Rows {
+    ids: Array<Int>;
+}
+
+func AddBlock(rows: Rows) -> Rows {
+    let ids: Array<Int> = rows.ids;
+    ArrayPush(ids, ArrayLength(ids));
+    return Rows(ids);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let a: Rows = Rows(ids);
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 2 {
+        let b: Rows = AddBlock(a);
+        total = total + ArrayLength(b.ids);
+        i = i + 1;
+    }
+    Print(ToString(total));
+    return 0;
+}

@@ -24,8 +24,9 @@ typedef struct {
      * itself. */
     uint32_t carrier;
     char *carrier_fields;
-    /* For a move: the argument the moving call took, where a copy stands
-     * when the path is used again. */
+    /* The argument the moving or lending call took. A copy stands there when
+     * a moved path is used again, and when a refused loan has no other place
+     * a copy can stand. */
     ASTNode *argument;
 } MovedPath;
 

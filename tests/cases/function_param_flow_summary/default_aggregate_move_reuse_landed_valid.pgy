@@ -1,0 +1,25 @@
+// Two calls grow the same default-mode argument in place, and Main uses it
+// again. Each call takes a copy of its own, AddBlock(Clone(a)), so neither
+// result shares a buffer with the other or with a.
+struct Rows {
+    ids: Array<Int>;
+    names: Array<String>;
+}
+
+func AddBlock(rows: Rows) -> Rows {
+    let ids: Array<Int> = rows.ids;
+    let names: Array<String> = rows.names;
+    ArrayPush(ids, ArrayLength(ids));
+    ArrayPush(names, "block");
+    return Rows(ids, names);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1, 2, 3, 4];
+    let names: Array<String> = ["a"];
+    let a: Rows = Rows(ids, names);
+    let b: Rows = AddBlock(a);
+    let c: Rows = AddBlock(a);
+    Print(ToString(ArrayLength(a.ids) + ArrayLength(b.ids) + ArrayLength(c.ids)));
+    return 0;
+}

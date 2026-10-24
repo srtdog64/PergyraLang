@@ -21,8 +21,10 @@ read the same way, and that copy stays the store owner's.
 - When a walk leaves where no copy can stand, the loan is copied where it
   is made, as before, and the chain is dropped.
 - When the loan stays but its owner still changes, the getter call is
-  copied if a copy can stand there; otherwise the chain is copied and the
-  next analysis judges the owner with every copy in place.
+  copied if a copy can stand there; otherwise the lent argument where the
+  call takes it ([rule](2026-10-24_refused_loan_copies_its_argument_when_result_cannot_be.md));
+  otherwise the chain is copied and the next analysis judges the owner
+  with every copy in place.
 
 ## Why
 
