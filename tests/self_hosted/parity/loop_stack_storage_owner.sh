@@ -95,8 +95,11 @@ compile loop-cleanup "$FIXTURES/loop_stack_storage.pgy" default-c --emit-c \
     -o "$WORK_REL/loop-default-c.c" ||
     { cat "$WORK_DIR/loop-cleanup-default-c.log" >&2;
       fail "default C did not emit the loop cleanup artifact"; }
-[[ "$(grep -Ec '^[[:space:]]+pgy_map_drop_int\(&pgy_local_[0-9]+\);$' \
-        "$WORK_DIR/loop-default-c.c")" == 2 ]] ||
+# A mutable map is also released before an owned definition replaces it;
+# the exit releases are the ones directly before a routine return.
+[[ "$(awk '/^[[:space:]]+pgy_map_drop_int\(&pgy_local_[0-9]+\);$/ { drop = 1; next }
+           drop && /^[[:space:]]+return / { exits++ } { drop = 0 }
+           END { print exits + 0 }' "$WORK_DIR/loop-default-c.c")" == 2 ]] ||
     fail "default C did not release both routine-local maps"
 for leg in native-llvm default-llvm; do
     emit_ir loop "$FIXTURES/loop_stack_storage.pgy" "$leg"
