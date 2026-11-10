@@ -6,7 +6,8 @@ import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_float_literal_kind_owner.pgy";
 import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprTaskIsCancelled() -> Int { return 143; }
 func DirectMirScalarProgramExpressionKindLast() -> Int {
-    return DirectMirScalarProgramExprStringClone();
+    return DirectMirScalarProgramExprUnwrapOptionPayloadEnum();
 }
