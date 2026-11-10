@@ -21,6 +21,7 @@ import "diagnostic_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
 import "ast_expression_call_identity_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 
 struct SemanticAstInoutArgumentRefusal {
     present: Bool;
@@ -30,7 +31,7 @@ struct SemanticAstInoutArgumentRefusal {
 
 // TypedAstArena modes are 1=inout, 2=own, 3=ref; not native ParamMode ordinals.
 func SemanticAstInoutArgumentRefusalFor(
-    artifact: AstTreeArtifact,
+    artifact: AstTreeArtifact, ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -105,7 +106,8 @@ func SemanticAstInoutArgumentRefusalFor(
                     if UnwrapOption(mode) == 1 {
                         let write_mode: Option<Int> = TypedAstArenaLocalWriteMode(
                             artifact.arena, binding_id);
-                        if !IsSome(write_mode) || UnwrapOption(write_mode) == 0 {
+                        if !IsSome(write_mode) || (UnwrapOption(write_mode) == 0 &&
+                            !SemanticAstNominalIdentityHostType(constructors, local_identity.type_name)) {
                             ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
                             if !IsSome(write_mode) {
                                 return SemanticAstInoutArgumentRefusal(true, "ast_artifact_invalid",

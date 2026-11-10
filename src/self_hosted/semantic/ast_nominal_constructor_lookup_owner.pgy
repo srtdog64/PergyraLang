@@ -69,3 +69,14 @@ func SemanticAstNominalFieldType(ref facts: SemanticAstNominalConstructorFacts, 
     }
     return None;
 }
+
+// An identity host's state is governed by its field and action authority, so
+// an immutable binding of one does not freeze it (native admits the same
+// writes in semantic_admit_value_mutation). Every nominal kind but struct is a host.
+func SemanticAstNominalIdentityHostType(ref facts: SemanticAstNominalConstructorFacts, type_name: String) -> Bool {
+    let canonical: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+    let row: Option<Int> = SemanticAstNominalConstructorIndexForName(facts, canonical.nominal_base_name);
+    if !IsSome(row) { return false; }
+    let family: String = facts.nominal_kinds[UnwrapOption(row)];
+    return family != "struct" && family != "";
+}

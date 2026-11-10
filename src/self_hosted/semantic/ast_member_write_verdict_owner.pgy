@@ -32,13 +32,8 @@ func SemanticAstValueWriteVerdict(
             }
             var identity: Bool = false;
             if node != target {
-                let type_name: String = EnvValueLookup(names, types, enum_values, name);
-                let canonical: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
-                let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, canonical.nominal_base_name);
-                if IsSome(nominal) {
-                    let family: String = constructors.nominal_kinds[UnwrapOption(nominal)];
-                    identity = family == "subject";
-                }
+                identity = SemanticAstNominalIdentityHostType(constructors,
+                    EnvValueLookup(names, types, enum_values, name));
             }
             if mode == "immutable_local" && !identity {
                 return SemanticDiagnosticMessageFact2("immutable_binding_write", "binding", name, "", "");
