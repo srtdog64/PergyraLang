@@ -22,9 +22,11 @@ PGY_BUILTIN_ARGUMENT_RETENTION(CHAR_CODE, "CharCode", 0, PGY_REGION_RETENTION_BO
  * address. Lane-loan and single-owner checks still own release admission. */
 PGY_BUILTIN_ARGUMENT_RETENTION(ALLOCATOR_DESTROY, "AllocatorDestroy", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
 PGY_BUILTIN_ARGUMENT_RETENTION(READ, "Read", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
-/* RcGet reads the shared payload as Read reads a slot; it keeps no pointer to
- * its Rc after returning. Rc ownership and drop checks stay with their owner. */
+/* RcGet and BoxGet read the payload as Read reads a slot; neither keeps a
+ * pointer to its handle after returning. Handle ownership and drop checks stay
+ * with their owners. */
 PGY_BUILTIN_ARGUMENT_RETENTION(RC_GET, "RcGet", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+PGY_BUILTIN_ARGUMENT_RETENTION(BOX_GET, "BoxGet", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
 PGY_BUILTIN_ARGUMENT_RETENTION(WRITE, "Write", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
 PGY_BUILTIN_ARGUMENT_RETENTION(WRITE, "Write", 2, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
 PGY_BUILTIN_ARGUMENT_RETENTION(CONCAT, "Concat", PGY_RETENTION_ARGUMENT_ANY, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
