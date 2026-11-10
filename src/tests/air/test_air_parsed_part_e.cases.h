@@ -278,7 +278,7 @@ static bool
 test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
 {
     const char *source =
-        "subject Buyer { let hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
+        "subject Buyer { var hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
         "zone CartZone {\n"
         "    subject slot buyer: Buyer\n"
         "    authority buyer\n"
@@ -378,7 +378,7 @@ static bool
 test_air_parsed_transfer_reports_world_missing_transfer_evidence(void)
 {
     const char *source =
-        "subject Buyer { let hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
+        "subject Buyer { var hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
         "zone CartZone {\n"
         "    subject slot buyer: Buyer\n"
         "    authority buyer\n"
@@ -450,7 +450,7 @@ static bool
 test_air_parsed_transfer_reports_zone_missing_authority_evidence(void)
 {
     const char *source =
-        "subject Buyer { let hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
+        "subject Buyer { var hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
         "zone CartZone {\n"
         "    subject slot buyer: Buyer\n"
         "}\n"

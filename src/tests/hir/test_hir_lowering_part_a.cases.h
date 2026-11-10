@@ -189,7 +189,7 @@ test_hir_lowering_part_a(void)
     {
         const char *src =
             "func Flow(flag: Bool) -> Int {\n"
-            "    let base = 1;\n"
+            "    var base = 1;\n"
             "    if flag {\n"
             "        while flag {\n"
             "            base = base + 1;\n"
@@ -251,7 +251,7 @@ test_hir_lowering_part_a(void)
     {
         const char *src =
             "func Merge(flag: Bool) -> Int {\n"
-            "    let score = 0;\n"
+            "    var score = 0;\n"
             "    if flag {\n"
             "        score = 1;\n"
             "    } else {\n"

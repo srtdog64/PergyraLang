@@ -251,10 +251,10 @@ static void
 test_hir_map_keys_transfer_carriage(void)
 {
     const char *sources[] = {
-        "func Main() -> Void { let values: HashMap<String, Int> = MapNew();"
+        "func Main() -> Void { var values: HashMap<String, Int> = MapNew();"
         " MapSet(values, \"owned\", 1); let keys: Array<String> = MapKeys(values);"
         " let alias: Array<String> = keys; Log(ArrayLength(alias)); }",
-        "func Main() -> Void { let values: HashMap<String, Int> = MapNew();"
+        "func Main() -> Void { var values: HashMap<String, Int> = MapNew();"
         " MapSet(values, \"owned\", 1); let keys: Array<String> = MapKeys(values);"
         " let alias: Array<String> = keys; Log(ArrayLength(alias));"
         " ArrayDropOwnedStrings(alias); }"
@@ -412,10 +412,10 @@ test_hir_owned_snapshot_cfg_generations(void)
 {
     const char *sources[] = {
         "func Main() -> Void { let values: HashMap<String, Int> = MapNew();"
-        " let index: Int = 0; while index < 2 { let keys: Array<String> = MapKeys(values);"
+        " var index: Int = 0; while index < 2 { let keys: Array<String> = MapKeys(values);"
         " Log(ArrayLength(keys)); index = index + 1; } }",
         "func Main() -> Void { let values: HashMap<String, Int> = MapNew();"
-        " let index: Int = 0; while index < 2 { let keys: Array<String> = MapKeys(values);"
+        " var index: Int = 0; while index < 2 { let keys: Array<String> = MapKeys(values);"
         " Log(ArrayLength(keys)); ArrayDropOwnedStrings(keys); index = index + 1; } }",
         "func Main() -> Void { let values: HashMap<String, Int> = MapNew();"
         " if MapSize(values) == 0 { let keys: Array<String> = MapKeys(values);"

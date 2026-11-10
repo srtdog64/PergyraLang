@@ -421,7 +421,7 @@ test_hir_lowering_part_b(void)
     {
         const char *src =
             "func LabeledLoopEdges(flag: Bool) -> Int {\n"
-            "    let i = 0;\n"
+            "    var i = 0;\n"
             "    outer: while flag {\n"
             "        while flag {\n"
             "            if flag {\n"
