@@ -4,8 +4,8 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: parent : Array<Int: Int> = [0, 1, 2, 3, 4, 5]
-        Let: rank : Array<Int: Int> = [0, 0, 0, 0, 0, 0]
+        Let: mut parent : Array<Int: Int> = [0, 1, 2, 3, 4, 5]
+        Let: mut rank : Array<Int: Int> = [0, 0, 0, 0, 0, 0]
         Let: ra : Int = parent[0]
         Let: rb : Int = parent[1]
         If: (ra != rb)

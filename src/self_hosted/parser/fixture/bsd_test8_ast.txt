@@ -5,7 +5,7 @@ Program:
     Body:
       Block:
         Let: x = 1
-        Let: running = true
+        Let: mut running = true
         While: running
           Block:
             If: (x == 0)

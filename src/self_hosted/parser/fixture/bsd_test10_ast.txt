@@ -4,8 +4,8 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: x = 1
-        Let: y = 2
+        Let: mut x = 1
+        Let: mut y = 2
         While: (x > 0)
           Block:
             Assign: y = (y + 1)

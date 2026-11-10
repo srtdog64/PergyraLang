@@ -7,5 +7,4 @@ Program:
     Returns: Void
     Body:
       Block:
-        EventSubscribe: OnHit += lambda(let d: Int)
-
+        Assign: OnHit += lambda(let d: Int)

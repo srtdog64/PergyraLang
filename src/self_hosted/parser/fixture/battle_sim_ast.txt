@@ -22,7 +22,7 @@ Program:
         Returns: Int
         Body:
           Block:
-            Let: base = (power - target_def)
+            Let: mut base = (power - target_def)
             If: (base < 1)
               Then:
                 Block:
@@ -43,7 +43,7 @@ Program:
         Returns: Int
         Body:
           Block:
-            Let: dmg = self.RollDamage(target.defense)
+            Let: mut dmg = self.RollDamage(target.defense)
             Let: crit : Bool = self.IsCrit()
             If: crit
               Then:
@@ -91,8 +91,8 @@ Program:
         ShowHP(a)
         ShowHP(b)
         Log("")
-        Let: turn = 1
-        Let: going = true
+        Let: mut turn = 1
+        Let: mut going = true
         While: going
           Block:
             Log((("-- Turn " + ToString(turn)) + " --"))

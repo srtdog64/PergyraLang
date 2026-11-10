@@ -4,7 +4,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: x = 1
+        Let: mut x = 1
         While: (x > 0)
           Block:
             Let: event = Random(4)

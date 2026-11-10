@@ -14,8 +14,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        EventSubscribe: OnScore += RecordScore
+        Assign: OnScore += RecordScore
         OnScore(42)
-        EventUnsubscribe: OnScore -= RecordScore
+        Assign: OnScore -= RecordScore
         Log("event.closure=ok")
-

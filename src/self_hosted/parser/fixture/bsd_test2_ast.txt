@@ -11,7 +11,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: x = 10
+        Let: mut x = 10
         While: (x > 0)
           Block:
             If: (x == 5)

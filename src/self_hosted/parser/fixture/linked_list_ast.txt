@@ -4,9 +4,9 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: values : Array<Int: Int> = []
-        Let: nexts : Array<Int: Int> = []
-        Let: head : Int = (-1)
+        Let: mut values : Array<Int: Int> = []
+        Let: mut nexts : Array<Int: Int> = []
+        Let: mut head : Int = (-1)
         ArrayPush(values, 10)
         ArrayPush(nexts, head)
         Assign: head = (ArrayLength(values) - 1)
@@ -16,19 +16,19 @@ Program:
         ArrayPush(values, 30)
         ArrayPush(nexts, head)
         Assign: head = (ArrayLength(values) - 1)
-        Let: cur : Int = head
+        Let: mut cur : Int = head
         While: (cur != (-1))
           Block:
             Log(values[cur])
             Assign: cur = nexts[cur]
-        Let: count : Int = 0
+        Let: mut count : Int = 0
         Assign: cur = head
         While: (cur != (-1))
           Block:
             Assign: count = (count + 1)
             Assign: cur = nexts[cur]
         Log(count)
-        Let: found : Bool = false
+        Let: mut found : Bool = false
         Assign: cur = head
         While: (cur != (-1))
           Block:

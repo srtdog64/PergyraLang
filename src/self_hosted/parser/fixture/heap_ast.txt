@@ -4,10 +4,10 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: heap : Array<Int: Int> = []
+        Let: mut heap : Array<Int: Int> = []
         ArrayPush(heap, 10)
         ArrayPush(heap, 4)
-        Let: i : Int = (ArrayLength(heap) - 1)
+        Let: mut i : Int = (ArrayLength(heap) - 1)
         While: (i > 0)
           Block:
             Let: p : Int = ((i - 1) / 2)
@@ -51,13 +51,13 @@ Program:
         Log(root)
         ArraySet(heap, 0, heap[last_index])
         ArrayPop(heap)
-        Let: cur : Int = 0
+        Let: mut cur : Int = 0
         Let: size : Int = ArrayLength(heap)
         While: true
           Block:
             Let: left : Int = ((cur * 2) + 1)
             Let: right : Int = ((cur * 2) + 2)
-            Let: largest : Int = cur
+            Let: mut largest : Int = cur
             If: ((left < size) && (heap[left] > heap[largest]))
               Then:
                 Block:

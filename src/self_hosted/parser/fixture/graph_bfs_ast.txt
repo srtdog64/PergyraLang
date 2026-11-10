@@ -6,10 +6,10 @@ Program:
       Block:
         Let: adj : Array<Int: Int> = [0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
         Let: n : Int = 4
-        Let: visited : Array<Int: Int> = [0, 0, 0, 0]
-        Let: queue : Array<Int: Int> = [0, 0, 0, 0]
-        Let: head : Int = 0
-        Let: tail : Int = 0
+        Let: mut visited : Array<Int: Int> = [0, 0, 0, 0]
+        Let: mut queue : Array<Int: Int> = [0, 0, 0, 0]
+        Let: mut head : Int = 0
+        Let: mut tail : Int = 0
         ArraySet(queue, tail, 0)
         Assign: tail = (tail + 1)
         ArraySet(visited, 0, 1)
@@ -18,7 +18,7 @@ Program:
             Let: v : Int = queue[head]
             Assign: head = (head + 1)
             Log(v)
-            Let: to : Int = 0
+            Let: mut to : Int = 0
             While: (to < n)
               Block:
                 Let: edge_index : Int = ((v * n) + to)

@@ -4,11 +4,11 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: data : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0]
+        Let: mut data : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0]
         Let: cap : Int = 8
-        Let: head : Int = 0
-        Let: tail : Int = 0
-        Let: count : Int = 0
+        Let: mut head : Int = 0
+        Let: mut tail : Int = 0
+        Let: mut count : Int = 0
         ArraySet(data, tail, 10)
         Assign: tail = ((tail + 1) % cap)
         Assign: count = (count + 1)

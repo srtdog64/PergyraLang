@@ -4,8 +4,8 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: running = true
-        Let: turn = 1
+        Let: mut running = true
+        Let: mut turn = 1
         While: running
           Block:
             Let: event = Random(4)

@@ -9,9 +9,9 @@ Program:
           Then:
             Block:
               Return: n
-        Let: previous : Int = 0
-        Let: current : Int = 1
-        Let: index : Int = 2
+        Let: mut previous : Int = 0
+        Let: mut current : Int = 1
+        Let: mut index : Int = 2
         While: (index <= n)
           Block:
             Let: next : Int = (previous + current)

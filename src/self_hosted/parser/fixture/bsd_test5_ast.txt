@@ -4,7 +4,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: running = true
+        Let: mut running = true
         While: running
           Block:
             Log("tick")

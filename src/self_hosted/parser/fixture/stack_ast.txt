@@ -4,7 +4,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: values : Array<Int: Int> = []
+        Let: mut values : Array<Int: Int> = []
         ArrayPush(values, 10)
         ArrayPush(values, 20)
         ArrayPush(values, 30)

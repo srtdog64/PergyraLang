@@ -5,10 +5,10 @@ Program:
     Body:
       Block:
         Let: values : Array<Int: Int> = [3, 5, 8, 13, 21, 34, 55]
-        Let: left : Int = 0
-        Let: right : Int = (ArrayLength(values) - 1)
+        Let: mut left : Int = 0
+        Let: mut right : Int = (ArrayLength(values) - 1)
         Let: target : Int = 21
-        Let: found : Int = (-1)
+        Let: mut found : Int = (-1)
         While: (left <= right)
           Block:
             Let: mid : Int = ((left + right) / 2)
@@ -31,7 +31,7 @@ Program:
         Assign: left = 0
         Assign: right = (ArrayLength(values) - 1)
         Let: missing_target : Int = 7
-        Let: missing : Int = (-1)
+        Let: mut missing : Int = (-1)
         While: (left <= right)
           Block:
             Let: mid2 : Int = ((left + right) / 2)

@@ -5,7 +5,7 @@ Program:
     Returns: Int
     Body:
       Block:
-        Let: result : Int = 0
+        Let: mut result : Int = 0
         For: i in 0..n
           Block:
             Assign: result = (result + i)

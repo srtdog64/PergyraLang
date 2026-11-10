@@ -4,7 +4,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: sum : Int = 0
+        Let: mut sum : Int = 0
         For: i in 0..5
           Block:
             Let: cur : Int = sum

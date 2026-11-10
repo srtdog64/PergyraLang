@@ -18,7 +18,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: nums : Array<Int: Int> = [5, 3, 1, 4, 2]
+        Let: mut nums : Array<Int: Int> = [5, 3, 1, 4, 2]
         Let: sorted : Array<Int: Int> = ArraySort(nums)
         For: n in sorted
           Block:

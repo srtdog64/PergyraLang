@@ -14,6 +14,5 @@ Program:
     Returns: Void
     Body:
       Block:
-        EventSubscribe: OnHit += handleHit
+        Assign: OnHit += handleHit
         OnHit(42)
-
