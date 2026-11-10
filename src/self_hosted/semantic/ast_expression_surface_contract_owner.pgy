@@ -32,6 +32,8 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         SemanticExpressionGraphView(false, 0, facts.expression_graph);
     var arithmetic_graph: SemanticExpressionGraphView =
         SemanticExpressionGraphView(false, 0, facts.expression_graph);
+    // Each view keeps a graph of its own while the facts are read again below:
+    // a real sharing site (2026-10-25), so the copy is explicit.
     var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
@@ -45,20 +47,20 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
                 facts, i, AstExpressionLaneAtom()
             );
             logical_graph = SemanticExpressionGraphViewAt(
-                facts.expression_graph, i, AstExpressionLaneAtom()
+                Clone(facts.expression_graph), i, AstExpressionLaneAtom()
             );
         }
         if facts.has_values[i] && StartsWith(
             facts.normalized_values[i], "Concat("
         ) {
             value_graph = SemanticExpressionGraphViewAt(
-                facts.expression_graph, i, AstExpressionLaneValue()
+                Clone(facts.expression_graph), i, AstExpressionLaneValue()
             );
         }
         if facts.has_values[i] &&
             facts.normalized_values[i] == "1 + (2 * 3)" {
             arithmetic_graph = SemanticExpressionGraphViewAt(
-                facts.expression_graph, i, AstExpressionLaneValue()
+                Clone(facts.expression_graph), i, AstExpressionLaneValue()
             );
         }
         i = i + 1;
