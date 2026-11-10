@@ -30,20 +30,22 @@ for backend in c llvm; do
 done
 timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" --backend=c --opt=dev \
     -o "$REL/source-probe.exe" >"$WORK/source-probe.compile" 2>&1
-for name in constructor_nominal_prefix_positive \
+for name in constructor_struct_prefix_negative \
         constructor_declared_callable_exact_positive \
         constructor_declared_callable_prefix_negative \
         constructor_nominal_missing_call_negative \
         constructor_nominal_heterogeneous_negative \
         constructor_nested_nominal_heterogeneous_negative \
         constructor_nested_nominal_missing_call_negative \
-        constructor_nested_nominal_prefix_positive; do
+        constructor_nested_struct_prefix_negative; do
     input="tests/self_hosted/parity/fixture/$name.pgy"
     sha256sum "$input" >"$WORK/$name.sha256"
     timeout 30 "$WORK/source-probe.exe" "$input" >"$WORK/$name.raw" 2>"$WORK/$name.err"
     tr -d '\r' <"$WORK/$name.raw" >"$WORK/$name.run"
     [[ ! -s "$WORK/$name.err" ]]
-    if [[ "$name" == constructor_declared_callable_prefix_negative ]]; then
+    if [[ "$name" == constructor_declared_callable_prefix_negative ||
+            "$name" == constructor_struct_prefix_negative ||
+            "$name" == constructor_nested_struct_prefix_negative ]]; then
         printf 'body_ok=false\nbody_diagnostic=call_arity_mismatch\n' >"$WORK/$name.expected"
     elif [[ "$name" == constructor_nominal_missing_call_negative ||
             "$name" == constructor_nested_nominal_missing_call_negative ]]; then

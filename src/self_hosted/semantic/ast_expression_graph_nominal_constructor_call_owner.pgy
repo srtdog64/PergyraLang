@@ -122,12 +122,17 @@ func SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
         );
     }
     let maximum: Int = UnwrapOption(maximum_opt);
-    if actual_count > maximum {
+    // A struct is a plain value record with no default fields: its constructor
+    // takes every field, as in native. Domain nominals may omit trailing fields.
+    let exact: Bool = constructors.nominal_kinds[index] == "struct";
+    if actual_count > maximum || (exact && actual_count != maximum) {
+        var expected: String = Concat("at_most_", ToString(maximum));
+        if exact { expected = Concat("exactly_", ToString(maximum)); }
         return SemanticExpressionGraphNominalConstructorCallError(
             "call_arity_mismatch",
             SemanticError3(
                 "call_arity_mismatch", "func", target.name,
-                "expected", Concat("at_most_", ToString(maximum)),
+                "expected", expected,
                 "actual", ToString(actual_count)
             ), actual_count
         );

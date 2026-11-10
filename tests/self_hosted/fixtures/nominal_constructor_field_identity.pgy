@@ -107,10 +107,11 @@ func Main() -> Void {
     var value: SemanticExpressionGraphNominalConstructorCallFact = ConstructorResult("Pair([], [])", 0, constructors, signatures);
     Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 2, "Pair([], [])"));
     Log(!ConstructorFieldsMatch(value, constructors, "Pair", 1, 0, 2, "Pair([], [])"));
+    // A struct constructor takes every field; a prefix is refused.
     value = ConstructorResult("Pair([])", 0, constructors, signatures);
-    Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 1, "Pair([])"));
+    Log(ConstructorRefuses(value, "call_arity_mismatch"));
     value = ConstructorResult("Pair()", 0, constructors, signatures);
-    Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 0, "Pair()"));
+    Log(ConstructorRefuses(value, "call_arity_mismatch"));
     value = ConstructorResult("Pair([\"first\"], [\"second\"])", 0, constructors, signatures);
     Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 2, "Pair([\"first\"], [\"second\"])"));
     value = ConstructorResult("Seen({})", 0, constructors, signatures);
@@ -127,7 +128,7 @@ func Main() -> Void {
     Log(ConstructorFieldsMatch(value, constructors, "Buff", 1, 2, 2, "Buff(1, 2)"));
     value = ConstructorResult("Pair([], [], [])", 0, constructors, signatures);
     Log(ConstructorRefuses(value, "call_arity_mismatch"));
-    value = ConstructorResult("Pair([1])", 0, constructors, signatures);
+    value = ConstructorResult("Pair([1], [])", 0, constructors, signatures);
     Log(ConstructorRefuses(value, "call_arg_type_mismatch"));
     var shadow: Int = 1;
     while shadow <= 7 {
@@ -145,11 +146,11 @@ func Main() -> Void {
     Log(!IsSome(SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, 0, -1)));
     Log(!IsSome(SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, 0, 2)));
     constructors.field_source_syntax_ids[0] = 0;
-    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    value = ConstructorResult("Pair([], [])", 0, constructors, signatures);
     Log(ConstructorRefuses(value, "ast_artifact_invalid"));
     constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
     constructors.param_type_names[0] = "Unknown";
-    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    value = ConstructorResult("Pair([], [])", 0, constructors, signatures);
     Log(ConstructorRefuses(value, "ast_artifact_invalid"));
     constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let original: Int = constructors.field_source_syntax_ids[0];
