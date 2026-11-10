@@ -72,7 +72,20 @@ static int g_fail = 0;
  * Panic trap - catch PGY_PANIC (which calls abort -> SIGABRT)
  * ----------------------------------------------------------------- */
 
-static jmp_buf g_panic_jmp;
+/* A handler that leaves by longjmp keeps SIGABRT blocked. A newer glibc
+ * abort() does not unblock it before the first raise, so the next expected
+ * panic would kill the process. The POSIX trap saves and restores the mask. */
+#ifdef _WIN32
+typedef jmp_buf PgyPanicJmp;
+#define PGY_PANIC_SETJMP(env) setjmp(env)
+#define PGY_PANIC_LONGJMP(env) longjmp((env), 1)
+#else
+typedef sigjmp_buf PgyPanicJmp;
+#define PGY_PANIC_SETJMP(env) sigsetjmp((env), 1)
+#define PGY_PANIC_LONGJMP(env) siglongjmp((env), 1)
+#endif
+
+static PgyPanicJmp g_panic_jmp;
 static volatile sig_atomic_t g_panic_expected = 0;
 
 static int
@@ -175,7 +188,7 @@ panic_handler(int sig)
     (void)sig;
     if (g_panic_expected) {
         g_panic_expected = 0;
-        longjmp(g_panic_jmp, 1);
+        PGY_PANIC_LONGJMP(g_panic_jmp);
     }
     /* Unexpected abort - re-raise. */
     signal(SIGABRT, SIG_DFL);
@@ -185,7 +198,7 @@ panic_handler(int sig)
 /*
  * EXPECT_PANIC(code_block):
  *   Expects `code_block` to trigger PGY_PANIC (abort).
- *   Uses setjmp/longjmp + SIGABRT handler to catch it.
+ *   Uses the mask-preserving jump above + SIGABRT handler to catch it.
  */
 #define EXPECT_PANIC(name, code_block) \
     do { \
@@ -193,7 +206,7 @@ panic_handler(int sig)
         printf("  %-60s", name); \
         signal(SIGABRT, panic_handler); \
         g_panic_expected = 1; \
-        if (setjmp(g_panic_jmp) == 0) { \
+        if (PGY_PANIC_SETJMP(g_panic_jmp) == 0) { \
             code_block; \
             /* If we reach here, no panic occurred */ \
             g_panic_expected = 0; \
