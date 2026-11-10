@@ -14,7 +14,7 @@ def native_source_rows(routine):
         return rows
     expected = {
         "id": tail["id"], "kind": "return", "name": "return",
-        "abi_type_name": "Void", "abi_layout_id": 0,
+        "abi_type_name": "Void", "abi_layout_id": 0, "binding_syntax_id": 0,
         "abi_layout_required": False,
         **dict.fromkeys((
             "result", "arg0", "arg1", "slot_anchor", "abi_layout",
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         raise SystemExit(0)
     tail = {
         "id": 0, "kind": "return", "name": "return",
-        "abi_type_name": "Void", "abi_layout_id": 0, "abi_layout_required": False,
+        "abi_type_name": "Void", "abi_layout_id": 0, "binding_syntax_id": 0, "abi_layout_required": False,
         **dict.fromkeys((
             "result", "arg0", "arg1", "slot_anchor", "abi_layout",
             "machine_layer", "machine_contact_kind", "expr0", "expr0_graph",
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         "expr0": "7", "expr0_graph": {"root": 0}, "uses": ["value.1"],
         "abi_layout_required": True, "abi_type_name": "Int", "abi_layout_id": 1,
         "machine_layer": {"effect": "write"}, "future_unknown_fact": True,
-        "collection_ownership_receipt": {"transition": "push"},
+        "collection_ownership_receipt": {"transition": "push"}, "binding_syntax_id": 21,
     }
     for key, value in mutations.items():
         changed = copy.deepcopy(routine)
@@ -79,4 +79,4 @@ if __name__ == "__main__":
     nonvoid = copy.deepcopy(routine)
     nonvoid["return"] = "Int"
     assert len(native_source_rows(nonvoid)) == 2
-    print("[native-void-fallthrough] one exact exit plus 14 non-erasable controls: PASS")
+    print("[native-void-fallthrough] one exact exit plus 15 non-erasable controls: PASS")
