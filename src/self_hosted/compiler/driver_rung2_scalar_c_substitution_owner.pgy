@@ -12,8 +12,14 @@ func DriverRung2ScalarCSubstitutionIfClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target: CompilerTargetProjectionFact
 ) -> Option<CompilerEmissionArtifact> {
+    // A claim never retries, so it must not be wider than what the route
+    // emits. Program route admission reads signatures and types, not every
+    // statement and expression, and routine control-flow claims do not prove
+    // the program route: neither alone is a reason to claim. Programs with
+    // declarations keep the round-trip owner until the GraphPlan covers them.
     if !CompilerTargetProjectionFactReadyFor(target, CompilerTargetCpuCProjection()) ||
-        !JsonArrayObjectFactTableReady(admitted.document.declarations) { return None; }
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 { return None; }
     var identity_required: Bool = false;
     var ownership_required: Bool = false;
     var every_routine_claimed: Bool = true;
@@ -37,19 +43,17 @@ func DriverRung2ScalarCSubstitutionIfClaimed(
         }
         row = row + 1;
     }
+    // Primitive local types alone do not prove every expression is in scalar
+    // GraphPlan (for example Log(1.5) has no source-local Float row).
+    if !ownership_required && (!identity_required || !every_routine_claimed) {
+        return None;
+    }
     let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
     if !calls.valid { Die("scalar C substitution call identities are invalid"); }
     let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
     if !instances.valid { Die(instances.diagnostic); }
     let admission: DirectMirScalarProgramRouteAdmission =
         DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
-    let route_claimed: Bool = DirectMirScalarProgramRouteAdmissionReady(admission) &&
-        admission.route.claimed;
-    // The route admission, not declaration absence, owns whether a supported
-    // record/enum surface belongs to the general GraphPlan. Primitive routines
-    // may also enter when their complete instruction/type envelope is claimed.
-    if !ownership_required && !identity_required && !every_routine_claimed &&
-            !route_claimed { return None; }
     if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed {
         DirectMirScalarProgramRouteAdmissionDie(admission);
     }
