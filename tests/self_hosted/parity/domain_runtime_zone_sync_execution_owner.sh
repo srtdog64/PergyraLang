@@ -58,7 +58,8 @@ if [[ -z "${PGY_SELFHOST_PREBUILT_CODEGEN:-}" ]]; then
     "$SELF_DRIVER" --emit-c-artifact-verified \
         src/self_hosted/codegen/main.pgy "${CODEGEN_C#"$ROOT_DIR/"}"
     "$CC_BIN" -x c -std=c11 -O3 -fwrapv -fno-strict-aliasing \
-        -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+        "${POSIX_FEATURE_FLAGS[@]}" \
+        -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
         "$CODEGEN_C" -o "$CODEGEN_BIN"
 fi
 [[ -x "$CODEGEN_BIN" ]]
