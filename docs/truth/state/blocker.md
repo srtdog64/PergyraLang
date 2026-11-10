@@ -20,25 +20,30 @@ Owner: Claude root lane. Checked 2026-11-11 06:00 KST on `ci/all-green`
    - The landing fixed point is the cost: 25 analyses on the arity probe.
      An analysis right after a store wave, with the copy plan reset, spends
      43% in flow summary demands and takes 5x a cheap one.
-   - Keeping copies across store growth, then deriving them once from none:
-     14 analyses instead of 25 on the arity probe, same plan digests in
-     `PGY_VERIFY_LANDING_FIXED_POINT` mode. Uncommitted in
-     `semantic_landing_fixed_point_owner.c`; the full-compiler run is the
-     open measurement (rounds carry about 3,950 copies there).
+   - Keeping copies across store growth was rejected: on the canonical
+     driver it saved 14% and reached a different plan
+     ([record](../evidence/2026-11-11_landing_copy_retention_rejected.md)).
+   - Hashing the rows currency walk (`69cfcea20`) cut the arity probe from
+     260 s to 194 s with byte-identical C. Next: the per-parameter slot
+     escape walk repeated on every summary evaluation.
 2. Contracts shard (local, tip driver): 3 identity probe timeout; 4 arity
-   probe timeout; 7 slice_copy (payload enum and Slice expression kinds
-   shared ids 139 to 142, fixed in `b8dadb0ca`, not yet rebuilt);
-   10 `effect_array_transform_valid` native refusal; 11 next sub-gate after
-   the enum fixtures.
-3. Core shard (local, tip driver): 5 role override (general C emitter
-   claims it; test pins the per-shape names and `-Werror` trips on the
-   unused override); 6 copy-only control `fact.value` into `own`; 24
-   containment LLVM `Die` in expression admission (no JSON receipt); 32
-   qubit builtins have no C emission (also in the 11-07 tree); 39 string
-   window negative accepted (11-07 driver refused it; owners differ only by
-   `let` to `var`).
-4. Fixed point after gen2 == gen3: legacy intent LLVM probe, not rerun on
-   the binder probe fix.
+   probe timeout; 10 `effect_array_transform_valid` (the landed Clone of
+   the `ArraySort` receiver is not a mutable place); 11 sub-gates after the
+   enum fixtures, not run yet. Step 7 (slice_copy) passes at `b8dadb0ca`.
+3. Core shard (local, driver at `7d9f224c8`): 5 role override (the general
+   C emitter claims it, lacks the erased role receiver ABI the test pins,
+   and `-Werror` trips on the unused override); 6 copy-only control
+   `fact.value` into `own`; 24 containment LLVM `Die` in expression
+   admission (no JSON receipt); 32 qubit builtins have no C emission;
+   34 diagnostic position: `native_only_parallel_join_stmt` no longer
+   compiles natively; 39 string window negative accepted (the 11-07 driver
+   refused it).
+4. Backend compare: five native refusals of valid programs, the same in
+   the 11-07 tree (`generic_default_ability_bind_dispatch`,
+   `generic_shadowed_argument_binding`, `option_of_result_consumers`,
+   `lambda_reduce`, `function_pointer_reduce`).
+5. Fixed point after gen2 == gen3: legacy intent LLVM binder probe
+   baseline fails on the tip driver.
 
 ## Falsifiers kept
 
