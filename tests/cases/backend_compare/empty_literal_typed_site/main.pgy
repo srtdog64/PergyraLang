@@ -34,9 +34,10 @@ func FirstName(names: Array<String>) -> String {
 }
 
 func FirstItem(items: List<Int>) -> Int {
+    let before: Int = ListSize(items);
     var buf: List<Int> = items;
     ListPush(buf, 3);
-    return ListGet(buf, 0) + ListSize(buf);
+    return ListGet(buf, 0) + before;
 }
 
 func AddFive(seen: Set<Int>) -> Int {
