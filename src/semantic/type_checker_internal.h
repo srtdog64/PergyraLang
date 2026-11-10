@@ -270,6 +270,8 @@ bool expr_host_method_generic_bindings_finalize(
     const Type *receiver_type,
     SemanticContext *ctx,
     const char *method_name);
+const Type *expr_host_method_receiver_with_ability_defaults(
+    ASTNode *host_decl, const Type *receiver_type, SemanticContext *ctx);
 Type *expr_host_method_generic_substitute(
     Type *type,
     ASTNode *host_decl,

@@ -286,6 +286,9 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
             method_display);
         return TYPE_UNKNOWN;
     }
+    /* A bare generic ability receiver binds its parameters to their defaults. */
+    const Type *generic_receiver = expr_host_method_receiver_with_ability_defaults(
+        host_decl, receiver_type, ctx);
     for (size_t i = 0; i < provided; i++) {
         FuncParam *param = ast_func_param(method, i + implicit_self);
         ASTNode *arg = ast_call_argument(expr, i);
@@ -297,10 +300,10 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
                 ctx));
         expr_host_method_generic_infer_argument(
             &generic_bindings, param_types[i], arg_types[i],
-            host_decl, receiver_type);
+            host_decl, generic_receiver);
     }
     if (!expr_host_method_generic_bindings_finalize(
-            &generic_bindings, expr, method, host_decl, receiver_type,
+            &generic_bindings, expr, method, host_decl, generic_receiver,
             ctx, method_display)) {
         free(param_types);
         free(arg_types);
@@ -309,11 +312,11 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
     }
     resolved_ret = expr_host_method_generic_substitute(
         expr_host_resolve_func_return_type(method, ctx), host_decl,
-        receiver_type, &generic_bindings);
+        generic_receiver, &generic_bindings);
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg = ast_call_argument(expr, i);
         Type *param_type = expr_host_method_generic_substitute(
-            param_types[i], host_decl, receiver_type, &generic_bindings);
+            param_types[i], host_decl, generic_receiver, &generic_bindings);
         if (param_type != NULL
             && !semantic_type_mentions_generic_param(param_type)
             && !type_is_assignable(arg_types[i], param_type)) {

@@ -38,14 +38,18 @@ expr_host_method_class_generic(const Type *type,
 
     if (type == NULL || type->kind != TYPE_KIND_GENERIC
         || type->name == NULL || host_decl == NULL
-        || host_decl->type != AST_CLASS_DECL || receiver_type == NULL
+        || (host_decl->type != AST_CLASS_DECL
+            && host_decl->type != AST_ABILITY_DECL)
+        || receiver_type == NULL
         || receiver_type->kind != TYPE_KIND_CONSTRUCTED) {
         return NULL;
     }
     if (find_generic_param_index(method_params, type->name) >= 0)
         return NULL;
 
-    host_params = ast_class_generic_params(host_decl);
+    host_params = host_decl->type == AST_ABILITY_DECL
+        ? ast_ability_generic_params(host_decl)
+        : ast_class_generic_params(host_decl);
     host_count = ast_generic_param_count(host_params);
     receiver_count = type_constructed_arg_count(receiver_type);
     for (size_t i = 0; i < host_count && i < receiver_count; i++) {
@@ -55,6 +59,42 @@ expr_host_method_class_generic(const Type *type,
             return type_constructed_arg(receiver_type, i);
     }
     return NULL;
+}
+
+/* A receiver that names a generic ability without arguments (a dyn role
+ * slot typed `Bufferable`) takes the ability's declared defaults
+ * (`ability Bufferable<T = Int>`). Without a resolved default for every
+ * parameter the receiver stays as written and its parameters stay open. */
+const Type *
+expr_host_method_receiver_with_ability_defaults(ASTNode *host_decl,
+                                                const Type *receiver_type,
+                                                SemanticContext *ctx)
+{
+    if (host_decl == NULL || host_decl->type != AST_ABILITY_DECL
+        || receiver_type == NULL || receiver_type->name == NULL
+        || receiver_type->kind == TYPE_KIND_CONSTRUCTED)
+        return receiver_type;
+    GenericParams *params = ast_ability_generic_params(host_decl);
+    size_t count = ast_generic_param_count(params);
+    if (count == 0)
+        return receiver_type;
+    Type **args = calloc(count, sizeof(*args));
+    if (args == NULL)
+        return receiver_type;
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *fallback =
+            ast_generic_param_default_type(ast_generic_param_at(params, i));
+        Type *resolved = fallback != NULL
+            ? type_check_signature_resolve_type_ref(fallback, ctx) : NULL;
+        if (resolved == NULL || resolved == TYPE_UNKNOWN) {
+            free(args);
+            return receiver_type;
+        }
+        args[i] = resolved;
+    }
+    Type *defaulted = type_create_constructed((Type *)receiver_type, args, count);
+    free(args);
+    return defaulted != NULL ? defaulted : receiver_type;
 }
 
 Type *
