@@ -19,7 +19,7 @@ import "../../lib/json_emit.pgy";
 import "../air_graph_json_validator/scan_owner.pgy";
 
 func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(arr);
     while i < n {
         if arr[i] == target {
@@ -69,24 +69,24 @@ func InputErrorJson(path: String) -> Option<String> {
 // BFS over edges (froms[i] -> tos[i]) starting from every root; returns the
 // visited (reachable) id list. Frontier is a push-only array with a cursor.
 func Reachable(roots: Array<String>, froms: Array<String>, tos: Array<String>) -> Array<String> {
-    let frontier: Array<String> = [];
-    let r: Int = 0;
+    var frontier: Array<String> = [];
+    var r: Int = 0;
     let rn: Int = ArrayLength(roots);
     while r < rn {
         ArrayPush(frontier, roots[r]);
         r = r + 1;
     }
 
-    let visited: Array<String> = [];
-    let cursor: Int = 0;
-    let guard: Int = 0;
+    var visited: Array<String> = [];
+    var cursor: Int = 0;
+    var guard: Int = 0;
     while cursor < ArrayLength(frontier) && guard < 1000000 {
         guard = guard + 1;
         let cur: String = frontier[cursor];
         cursor = cursor + 1;
         if !ArrayContainsString(visited, cur) {
             ArrayPush(visited, cur);
-            let i: Int = 0;
+            var i: Int = 0;
             let e: Int = ArrayLength(froms);
             while i < e {
                 if froms[i] == cur {
@@ -122,9 +122,9 @@ func Main() -> Void {
 
     let visited: Array<String> = Reachable(roots, froms, tos);
 
-    let orphans: Int = 0;
-    let findings_list: Array<String> = [];
-    let i: Int = 0;
+    var orphans: Int = 0;
+    var findings_list: Array<String> = [];
+    var i: Int = 0;
     let nn: Int = ArrayLength(node_ids);
     while i < nn {
         let nid: String = node_ids[i];

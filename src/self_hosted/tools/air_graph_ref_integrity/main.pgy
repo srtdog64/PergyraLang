@@ -15,7 +15,7 @@ import "../../lib/json_emit.pgy";
 import "../air_graph_json_validator/scan_owner.pgy";
 
 func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(arr);
     while i < n {
         if arr[i] == target {
@@ -27,8 +27,8 @@ func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
 }
 
 func AppendAll(dest: Array<String>, src: Array<String>) -> Array<String> {
-    let out: Array<String> = dest;
-    let i: Int = 0;
+    var out: Array<String> = dest;
+    var i: Int = 0;
     let n: Int = ArrayLength(src);
     while i < n {
         ArrayPush(out, src[i]);
@@ -93,13 +93,13 @@ func Main() -> Void {
     let froms: Array<String> = AirGraphScalarFieldValues(content, "from");
     let tos: Array<String> = AirGraphScalarFieldValues(content, "to");
 
-    let endpoints: Array<String> = [];
+    var endpoints: Array<String> = [];
     endpoints = AppendAll(endpoints, froms);
     endpoints = AppendAll(endpoints, tos);
 
-    let dangling: Int = 0;
-    let findings_list: Array<String> = [];
-    let i: Int = 0;
+    var dangling: Int = 0;
+    var findings_list: Array<String> = [];
+    var i: Int = 0;
     let m: Int = ArrayLength(endpoints);
     while i < m {
         let ep: String = endpoints[i];

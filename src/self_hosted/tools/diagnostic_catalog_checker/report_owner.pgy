@@ -36,7 +36,7 @@ func FindingFactField(row: String, index: Int) -> String {
 
 func FindingsJsonFromFacts(facts: String) -> String {
     let rows: Array<String> = Split(facts, "\n");
-    let findings: String = "";
+    var findings: String = "";
     for row in rows {
         if StringLength(row) > 0 {
             let kind: String = FindingFactField(row, 0);
@@ -87,7 +87,7 @@ func DiagnosticCatalogJsonForOwners(
     code_owner: String,
     docs_owner: String
 ) -> String {
-    let ok_text: String = "true";
+    var ok_text: String = "true";
     if missing > 0 || duplicates > 0 || orphans > 0 {
         ok_text = "false";
     }

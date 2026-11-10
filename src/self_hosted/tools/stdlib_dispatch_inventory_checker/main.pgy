@@ -97,12 +97,12 @@ func Main() -> Void {
     // count anchors are heuristic. Permanent fix: align LLVM/C dispatch
     // tables once self-host gives us better grouping.
     let drift_tolerance: Int = 5;
-    let raw_drift: Int = c_entries - llvm_entries;
+    var raw_drift: Int = c_entries - llvm_entries;
     if raw_drift < 0 {
         raw_drift = -raw_drift;
     }
-    let drift: Int = 0;
-    let findings: Array<String> = [];
+    var drift: Int = 0;
+    var findings: Array<String> = [];
     if raw_drift > drift_tolerance {
         drift = 1;
         ArrayPush(findings, DriftFinding(c_entries, llvm_entries));

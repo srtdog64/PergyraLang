@@ -18,8 +18,8 @@ func CompatibilityChangeRowHasSurface(row: String, surface: String) -> Bool {
 }
 
 func CountCompatibilityChangeSurface(surface: String) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasSurface(CompilerCompatibilityChangeRowAt(i), surface) {
             count = count + 1;
@@ -30,8 +30,8 @@ func CountCompatibilityChangeSurface(surface: String) -> Int {
 }
 
 func CountCompatibilityRowsWithCodefixStatus() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasCodefixStatus(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -42,8 +42,8 @@ func CountCompatibilityRowsWithCodefixStatus() -> Int {
 }
 
 func CountCompatibilityRowsWithKnownKind() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasKnownKind(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -54,8 +54,8 @@ func CountCompatibilityRowsWithKnownKind() -> Int {
 }
 
 func CompatibilityChangeRowFieldCount(row: String) -> Int {
-    let count: Int = 1;
-    let i: Int = 0;
+    var count: Int = 1;
+    var i: Int = 0;
     while i < StringLength(row) {
         if Substring(row, i, 1) == CompilerCompatibilityChangeRowDelimiter() {
             count = count + 1;
@@ -110,7 +110,7 @@ func CompatibilityChangeRowHasCodefixStatus(row: String) -> Bool {
 
 func CompatibilityChangeRowHasKnownKind(row: String) -> Bool {
     let kind: String = CompatibilityChangeRowFieldAt(row, CompilerCompatibilityChangeKindFieldIndex());
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeKindCount() {
         if kind == CompilerCompatibilityChangeKindAt(i) {
             return true;
@@ -134,8 +134,8 @@ func CompatibilityChangeRowHasMigrationEnvelope(row: String) -> Bool {
 }
 
 func CountCompatibilityRowsWithShape() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasShape(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -146,8 +146,8 @@ func CountCompatibilityRowsWithShape() -> Int {
 }
 
 func CountCompatibilityRowsWithDiagnosticId() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasDiagnosticId(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -158,8 +158,8 @@ func CountCompatibilityRowsWithDiagnosticId() -> Int {
 }
 
 func CountCompatibilityRowsWithVersionLadder() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasVersionLadder(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -170,8 +170,8 @@ func CountCompatibilityRowsWithVersionLadder() -> Int {
 }
 
 func CountCompatibilityRowsWithMigrationUrl() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowHasMigrationUrl(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -182,8 +182,8 @@ func CountCompatibilityRowsWithMigrationUrl() -> Int {
 }
 
 func CountCompatibilityObsoleteRows() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         if CompatibilityChangeRowIsObsolete(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
@@ -194,8 +194,8 @@ func CountCompatibilityObsoleteRows() -> Int {
 }
 
 func CountCompatibilityObsoleteRowsWithMigrationEnvelope() -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         let row: String = CompilerCompatibilityChangeRowAt(i);
         if CompatibilityChangeRowIsObsolete(row) &&
@@ -236,7 +236,7 @@ func CompatibilityMissingSurfaceSelfTestMode() -> String {
 }
 
 func RunCompatibilityMalformedRowSelfTest() -> Void {
-    let row_shape_count: Int = 0;
+    var row_shape_count: Int = 0;
     let row_parts: Array<String> = [
         CompilerCompatibilityChangeMarker(),
         CompilerSourceCompatibilitySurface(),
@@ -261,8 +261,8 @@ func RunCompatibilityInvalidCodefixSelfTest() -> Void {
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
         CompilerCompatibilityUnknownCodefixSelfTestStatus());
-    let row_shape_count: Int = 0;
-    let codefix_status_count: Int = 0;
+    var row_shape_count: Int = 0;
+    var codefix_status_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {
         row_shape_count = 1;
     }
@@ -285,8 +285,8 @@ func RunCompatibilityInvalidDiagnosticIdSelfTest() -> Void {
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
-    let row_shape_count: Int = 0;
-    let diagnostic_id_count: Int = 0;
+    var row_shape_count: Int = 0;
+    var diagnostic_id_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {
         row_shape_count = 1;
     }
@@ -309,8 +309,8 @@ func RunCompatibilityInvalidMigrationUrlSelfTest() -> Void {
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
         "https://example.invalid/compat/PrintLine",
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
-    let row_shape_count: Int = 0;
-    let migration_url_count: Int = 0;
+    var row_shape_count: Int = 0;
+    var migration_url_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {
         row_shape_count = 1;
     }
@@ -333,8 +333,8 @@ func RunCompatibilityInvalidChangeKindSelfTest() -> Void {
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
-    let row_shape_count: Int = 0;
-    let change_kind_count: Int = 0;
+    var row_shape_count: Int = 0;
+    var change_kind_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {
         row_shape_count = 1;
     }
@@ -357,9 +357,9 @@ func RunCompatibilityInvalidObsoleteMigrationSelfTest() -> Void {
         "",
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
         CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
-    let row_shape_count: Int = 0;
-    let obsolete_count: Int = 0;
-    let obsolete_migration_count: Int = 0;
+    var row_shape_count: Int = 0;
+    var obsolete_count: Int = 0;
+    var obsolete_migration_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {
         row_shape_count = 1;
     }
@@ -433,7 +433,7 @@ func Main() -> Void {
     let row_shape_count: Int = CountCompatibilityRowsWithShape();
     let obsolete_count: Int = CountCompatibilityObsoleteRows();
     let obsolete_migration_count: Int = CountCompatibilityObsoleteRowsWithMigrationEnvelope();
-    let missing: Int = 0;
+    var missing: Int = 0;
     if source_count == 0 { missing = missing + 1; }
     if abi_count == 0 { missing = missing + 1; }
     if behavior_count == 0 { missing = missing + 1; }

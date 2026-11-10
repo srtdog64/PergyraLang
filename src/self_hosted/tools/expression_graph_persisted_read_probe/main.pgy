@@ -53,7 +53,7 @@ func PersistedGraphProbeJson(mode: String) -> String {
 
 func Main() -> Void with caps env {
     let args: Array<String> = Args();
-    let mode: String = "";
+    var mode: String = "";
     if ArrayLength(args) > 0 { mode = args[0]; }
     let graph: JsonObjectFactTable = JsonDocumentObjectFactTable(
         PersistedGraphProbeJson(mode)
@@ -78,8 +78,8 @@ func Main() -> Void with caps env {
         Log("persisted-graph-negative=closed");
         return;
     }
-    let expected_count: Int = 3;
-    let expected_root: Int = 2;
+    var expected_count: Int = 3;
+    var expected_root: Int = 2;
     if mode == "--extended-identity" {
         expected_count = 4;
         expected_root = 3;

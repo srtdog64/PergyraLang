@@ -9,7 +9,7 @@ import "../../parser/program_parse_owner.pgy";
 
 func GenericReturnProbeExplicitAccepted(source_path: String) -> Bool {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
@@ -24,7 +24,7 @@ func GenericReturnProbeExplicitRejected(
     expected_code: String
 ) -> Bool {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
@@ -61,9 +61,9 @@ func GenericReturnProbeWithTarget(
 ) -> SemanticAstArtifactAnalysis {
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
-    let targets: Array<String> = graph.arena.call_target_names;
-    let changed: Bool = false;
-    let i: Int = 0;
+    var targets: Array<String> = graph.arena.call_target_names;
+    var changed: Bool = false;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() &&
             targets[i] == "Identity" {
@@ -104,8 +104,8 @@ func GenericReturnProbeWithTarget(
 func GenericReturnProbeNestedMismatchRejected(
     signatures: SemanticAstFunctionSignatureFacts
 ) -> Bool {
-    let signature_index: Int = -1;
-    let i: Int = 0;
+    var signature_index: Int = -1;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
         if IsSome(name) && UnwrapOption(name) == "First" {
@@ -126,15 +126,15 @@ func GenericReturnProbeNestedMismatchRejected(
     if !IsSome(generic_count) || !IsSome(parameter) {
         return false;
     }
-    let bindings: Array<String> = [];
+    var bindings: Array<String> = [];
     i = 0;
     while i < UnwrapOption(generic_count) {
         ArrayPushOwnedString(bindings, "");
         i = i + 1;
     }
-    let parameter_indices: Array<Int> = [];
+    var parameter_indices: Array<Int> = [];
     ArrayPush(parameter_indices, UnwrapOption(parameter));
-    let actual_types: Array<String> = [];
+    var actual_types: Array<String> = [];
     ArrayPushOwnedString(actual_types, Concat("", "Int"));
     let after_binding: Array<String> =
         SemanticAstSignatureParameterTypesBind(
@@ -162,7 +162,7 @@ func GenericReturnProbeRejected(
     body_types: SemanticAstBodyTypeBundle,
     expected_code: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstInitializerTypeCount(
         body_types.initializer_types
     ) {
@@ -178,7 +178,7 @@ func GenericReturnProbeRejected(
 
 func Main() -> Void with caps io_read, env {
     let args: Array<String> = Args();
-    let mode: String = "";
+    var mode: String = "";
     if ArrayLength(args) > 0 {
         mode = args[0];
     }
@@ -200,8 +200,8 @@ func Main() -> Void with caps io_read, env {
         let unique_nodes: Array<Int> = [101, 202];
         let unique_owners: Array<String> = ["Box", ""];
         let unique_names: Array<String> = ["Get", "Main"];
-        let unique_first_rows: HashMap<String, Int> = MapNew();
-        let unique_row_counts: HashMap<String, Int> = MapNew();
+        var unique_first_rows: HashMap<String, Int> = MapNew();
+        var unique_row_counts: HashMap<String, Int> = MapNew();
         SemanticAstSignatureCanonicalNameIndexFill(unique_owners, unique_names,
             unique_first_rows, unique_row_counts);
         let unique: SemanticAstFunctionSignatureFacts =
@@ -232,8 +232,8 @@ func Main() -> Void with caps io_read, env {
         let collision_nodes: Array<Int> = [301, 302];
         let collision_owners: Array<String> = ["A_B", "A"];
         let collision_names: Array<String> = ["C_D", "B_C_D"];
-        let collision_first_rows: HashMap<String, Int> = MapNew();
-        let collision_row_counts: HashMap<String, Int> = MapNew();
+        var collision_first_rows: HashMap<String, Int> = MapNew();
+        var collision_row_counts: HashMap<String, Int> = MapNew();
         SemanticAstSignatureCanonicalNameIndexFill(collision_owners, collision_names,
             collision_first_rows, collision_row_counts);
         let collision: SemanticAstFunctionSignatureFacts =
@@ -257,8 +257,8 @@ func Main() -> Void with caps io_read, env {
         let invalid_nodes: Array<Int> = [0];
         let invalid_owners: Array<String> = ["Box"];
         let invalid_names: Array<String> = ["Get"];
-        let invalid_first_rows: HashMap<String, Int> = MapNew();
-        let invalid_row_counts: HashMap<String, Int> = MapNew();
+        var invalid_first_rows: HashMap<String, Int> = MapNew();
+        var invalid_row_counts: HashMap<String, Int> = MapNew();
         SemanticAstSignatureCanonicalNameIndexFill(invalid_owners, invalid_names,
             invalid_first_rows, invalid_row_counts);
         let invalid: SemanticAstFunctionSignatureFacts =
@@ -319,7 +319,7 @@ func Main() -> Void with caps io_read, env {
         return;
     }
     let artifact: AstTreeArtifact = GenericReturnProbeArtifact();
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mode == "--target-mismatch" {
         analysis = GenericReturnProbeWithTarget(

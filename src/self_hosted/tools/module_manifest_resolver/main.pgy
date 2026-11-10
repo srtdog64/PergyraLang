@@ -80,7 +80,7 @@ func InputErrorJson(path: String) -> Option<String> {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let manifest_path: String = "docs/language_module_manifest.json";
+    var manifest_path: String = "docs/language_module_manifest.json";
     if ArrayLength(args) > 0 {
         manifest_path = args[0];
     }
@@ -91,7 +91,7 @@ func Main() -> Void {
 
     let content: String = ReadFile(manifest_path);
 
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
 
     let root_facts: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
     let modules_facts: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(root_facts, "modules");
@@ -108,7 +108,7 @@ func Main() -> Void {
     let beta_blockers: Int = JsonArrayObjectFactBoolFieldEqualsCount(modules_facts, "beta_blocker", true);
     let stable_subset: Int = JsonArrayObjectFactStringFieldEqualsCount(modules_facts, "status", "stable-subset");
 
-    let missing_fields: Int = 0;
+    var missing_fields: Int = 0;
     if layers != modules {
         missing_fields = missing_fields + 1;
         ArrayPush(findings, MissingFieldFinding("layer", modules, layers));

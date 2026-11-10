@@ -55,7 +55,7 @@ func RuntimeBoundaryRequiredTermAt(index: Int) -> String {
 }
 
 func EmitRuntimeBoundaryTermManifest() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = RuntimeBoundaryRequiredTermCount();
     while i < n {
         let pair: Array<String> = [
@@ -74,9 +74,9 @@ func Main() -> Void {
         EmitRuntimeBoundaryTermManifest();
         return;
     }
-    let missing: Int = 0;
-    let findings: Array<String> = [];
-    let i: Int = 0;
+    var missing: Int = 0;
+    var findings: Array<String> = [];
+    var i: Int = 0;
     let n: Int = RuntimeBoundaryRequiredTermCount();
     while i < n {
         let path: String = RuntimeBoundaryRequiredPathAt(i);
@@ -93,7 +93,7 @@ func Main() -> Void {
         i = i + 1;
     }
 
-    let ok_text: String = "true";
+    var ok_text: String = "true";
     if missing > 0 {
         ok_text = "false";
     }

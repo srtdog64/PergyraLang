@@ -55,7 +55,7 @@ func ImpactPlannerRowField(row: String, index: Int) -> Option<String> {
 }
 
 func ImpactPlannerArrayContains(values: Array<String>, value: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(values) {
         if values[i] == value {
             return true;
@@ -154,23 +154,23 @@ func ImpactPlannerImpactItem(
 }
 
 func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
-    let matched_impacts: Array<String> = [];
-    let impact_items: Array<String> = [];
-    let group_gates: Array<String> = [];
-    let group_source_envs: Array<String> = [];
-    let group_source_values: Array<String> = [];
-    let group_stage_envs: Array<String> = [];
-    let group_stage_values: Array<String> = [];
-    let group_impact_ids: Array<String> = [];
-    let proof_gates: Array<String> = [];
-    let findings: Array<String> = [];
-    let unmatched_paths: Array<String> = [];
-    let unmatched: Int = 0;
-    let path_i: Int = 0;
+    var matched_impacts: Array<String> = [];
+    var impact_items: Array<String> = [];
+    var group_gates: Array<String> = [];
+    var group_source_envs: Array<String> = [];
+    var group_source_values: Array<String> = [];
+    var group_stage_envs: Array<String> = [];
+    var group_stage_values: Array<String> = [];
+    var group_impact_ids: Array<String> = [];
+    var proof_gates: Array<String> = [];
+    var findings: Array<String> = [];
+    var unmatched_paths: Array<String> = [];
+    var unmatched: Int = 0;
+    var path_i: Int = 0;
     while path_i < ArrayLength(paths) {
         let path: String = Concat("", paths[path_i]);
-        let path_matched: Bool = false;
-        let row_i: Int = 0;
+        var path_matched: Bool = false;
+        var row_i: Int = 0;
         while row_i < CompilerCompletenessImpactRowCount() {
             let row: String = CompilerCompletenessImpactRowAt(row_i);
             let impact_id_opt: Option<String> = ImpactPlannerRowField(row, 0);
@@ -192,8 +192,8 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
                     if !ImpactPlannerArrayContains(matched_impacts, impact_id) {
                         ArrayPush(matched_impacts, Clone(impact_id));
                     }
-                    let group_index: Int = -1;
-                    let group_i: Int = 0;
+                    var group_index: Int = -1;
+                    var group_i: Int = 0;
                     while group_i < ArrayLength(group_gates) {
                         if group_gates[group_i] == gate &&
                             group_source_envs[group_i] == source_env &&
@@ -251,14 +251,14 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
         path_i = path_i + 1;
     }
 
-    let gate_items: Array<String> = [];
-    let gate_i: Int = 0;
+    var gate_items: Array<String> = [];
+    var gate_i: Int = 0;
     while gate_i < ArrayLength(proof_gates) {
         ArrayPush(gate_items, JsonStringLiteral(proof_gates[gate_i]));
         gate_i = gate_i + 1;
     }
-    let run_groups: Array<String> = [];
-    let group_out_i: Int = 0;
+    var run_groups: Array<String> = [];
+    var group_out_i: Int = 0;
     while group_out_i < ArrayLength(group_gates) {
         ArrayPush(
             run_groups,
@@ -274,10 +274,10 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
         group_out_i = group_out_i + 1;
     }
     if format == "run-groups" {
-        let lines: Array<String> = [
+        var lines: Array<String> = [
             Concat("schema=", CompilerCompletenessImpactRunGroupsSchema())
         ];
-        let line_i: Int = 0;
+        var line_i: Int = 0;
         while line_i < ArrayLength(group_gates) {
             ArrayPush(
                 lines,
@@ -292,7 +292,7 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
             );
             line_i = line_i + 1;
         }
-        let finding_i: Int = 0;
+        var finding_i: Int = 0;
         while finding_i < ArrayLength(unmatched_paths) {
             ArrayPush(lines, Concat("finding\tunmatched_path\t", unmatched_paths[finding_i]));
             finding_i = finding_i + 1;
@@ -330,9 +330,9 @@ func ImpactPlannerRunGroupsText(paths: Array<String>) -> String {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let paths: Array<String> = [];
-    let format: String = "json";
-    let arg_i: Int = 0;
+    var paths: Array<String> = [];
+    var format: String = "json";
+    var arg_i: Int = 0;
     if ArrayLength(args) > 0 && args[0] == "--run-groups" {
         format = "run-groups";
         arg_i = 1;

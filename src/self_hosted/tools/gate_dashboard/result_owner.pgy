@@ -55,7 +55,7 @@ func GateDashboardGateIdIndex(
     gate_ids: Array<String>,
     gate_id: String
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(gate_ids) {
         if gate_ids[i] == gate_id { return Some(i); }
         i = i + 1;
@@ -82,11 +82,11 @@ func GateDashboardResultsFromText(
         );
     }
     let results: GateDashboardResults = GateDashboardResultsEmpty();
-    let gate_ids: Array<String> = results.gate_ids;
-    let run_states: Array<String> = results.run_states;
-    let duration_ms: Array<Int> = results.duration_ms;
-    let details: Array<String> = results.details;
-    let line_i: Int = 1;
+    var gate_ids: Array<String> = results.gate_ids;
+    var run_states: Array<String> = results.run_states;
+    var duration_ms: Array<Int> = results.duration_ms;
+    var details: Array<String> = results.details;
+    var line_i: Int = 1;
     while line_i < ArrayLength(lines) {
         let line: String = StringTrim(lines[line_i]);
         if line == "" {

@@ -52,14 +52,14 @@ func Main() -> Void {
     let expected_examples: Int = 119;
     let entries: Array<String> = DirWalk(dirwalk_owner);
 
-    let examples: Int = 0;
-    let missing: Int = 0;
-    let empty: Int = 0;
-    let max_lines: Int = 0;
-    let findings: Array<String> = [];
+    var examples: Int = 0;
+    var missing: Int = 0;
+    var empty: Int = 0;
+    var max_lines: Int = 0;
+    var findings: Array<String> = [];
     let findings_cap: Int = 8;
 
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];

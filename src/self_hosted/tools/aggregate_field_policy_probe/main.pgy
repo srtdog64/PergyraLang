@@ -16,7 +16,7 @@ func AggregateFieldProbeBundle(
     source_path: String
 ) -> SemanticAstBodyTypeBundle {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     return SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
 }
@@ -28,7 +28,7 @@ func AggregateFieldProbeRejected(
     let bundle: SemanticAstBodyTypeBundle = AggregateFieldProbeBundle(
         source_path
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(bundle.initializer_types.node_ids) {
         if bundle.initializer_types.verified[i] != 1 &&
             bundle.initializer_types.diagnostic_codes[i] == expected_code {
@@ -43,7 +43,7 @@ func AggregateFieldProbeRejected(
 func AggregateFieldProbeRoot(
     ref graph: SemanticExpressionGraphFacts
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(graph.roots) {
         if graph.has_roots[i] {
             let root_id: Int = graph.roots[i];
@@ -78,7 +78,7 @@ func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
     let analysis: SemanticAstArtifactAnalysis = AggregateFieldProbeAnalysis(
         "src/self_hosted/tools/aggregate_field_policy_probe/valid.pgy"
     );
-    let graph: SemanticExpressionGraphFacts =
+    var graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
     let root_opt: Option<Int> = AggregateFieldProbeRoot(graph);
     if !analysis.verdict.ok || !IsSome(root_opt) { return false; }
@@ -105,9 +105,9 @@ func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
         graph.arena.topology.node_kinds[left_id] = AstExpressionNodeLeaf();
         graph.arena.node_texts[left_id] = "\"bad\"";
     }
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
+    var function_names: Array<String> = [];
+    var function_returns: Array<String> = [];
+    var function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
         analysis.signatures, analysis.constructors, analysis.enums,
         function_names, function_returns, function_params
@@ -131,11 +131,11 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
     let analysis: SemanticAstArtifactAnalysis = AggregateFieldProbeAnalysis(
         "src/self_hosted/tools/aggregate_field_policy_probe/valid.pgy"
     );
-    let graph: SemanticExpressionGraphFacts =
+    var graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
-    let generic_root: Option<Int> = None;
-    let generic_value: Int = -1;
-    let i: Int = 0;
+    var generic_root: Option<Int> = None;
+    var generic_value: Int = -1;
+    var i: Int = 0;
     while i < ArrayLength(graph.roots) && !IsSome(generic_root) {
         if graph.has_roots[i] {
             let root_id: Int = graph.roots[i];
@@ -146,7 +146,7 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
                     SemanticStructLiteralViewFromGraph(
                         graph, UnwrapOption(struct_root)
                     );
-                let j: Int = 0;
+                var j: Int = 0;
                 while view.ok && j < view.field_count &&
                     !IsSome(generic_root) {
                     let field: SemanticStructLiteralFieldView =
@@ -156,7 +156,7 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
                         SemanticCallSpineViewFromGraph(
                             graph, field.value_node
                         );
-                    let callee: Option<String> = None;
+                    var callee: Option<String> = None;
                     if call.ok {
                         callee = SemanticExpressionGraphNodeText(
                             graph, call.callee_node
@@ -185,9 +185,9 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
     let argument_id: Int = call.argument_nodes[0];
     graph.arena.topology.node_kinds[argument_id] = AstExpressionNodeLeaf();
     graph.arena.node_texts[argument_id] = "\"bad\"";
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
+    var function_names: Array<String> = [];
+    var function_returns: Array<String> = [];
+    var function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
         analysis.signatures, analysis.constructors, analysis.enums,
         function_names, function_returns, function_params

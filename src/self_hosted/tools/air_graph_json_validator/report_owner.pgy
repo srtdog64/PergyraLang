@@ -25,7 +25,7 @@ func FindingJson(kind: String, key: String, location: String) -> String {
 
 func FindingsJsonFromFacts(facts: String) -> Array<String> {
     let rows: Array<String> = Split(facts, "\n");
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     for row in rows {
         if StringLength(row) > 0 {
             let kind: String = FindingFactField(row, 0);

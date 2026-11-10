@@ -13,7 +13,7 @@ import "../air_graph_json_validator/scan_owner.pgy";
 import "report_owner.pgy";
 
 func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(arr);
     while i < n {
         if arr[i] == target {
@@ -48,10 +48,10 @@ func Main() -> Void {
     let ids: Array<String> = AirGraphScalarFieldValues(content, "id");
     let total: Int = ArrayLength(ids);
 
-    let seen: Array<String> = [];
-    let dup_findings: Array<String> = [];
-    let duplicates: Int = 0;
-    let i: Int = 0;
+    var seen: Array<String> = [];
+    var dup_findings: Array<String> = [];
+    var duplicates: Int = 0;
+    var i: Int = 0;
     while i < total {
         let id_val: String = ids[i];
         if ArrayContainsString(seen, id_val) {

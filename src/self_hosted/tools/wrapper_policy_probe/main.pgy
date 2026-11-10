@@ -8,7 +8,7 @@ func WrapperPolicyProbeBundle(
     source_path: String
 ) -> SemanticAstBodyTypeBundle {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
@@ -19,8 +19,8 @@ func WrapperPolicyProbeVerifiedTypeCount(
     ref facts: SemanticAstInitializerTypeFacts,
     type_name: String
 ) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] == 1 &&
             facts.inferred_type_names[i] == type_name {
@@ -36,11 +36,11 @@ func WrapperPolicyProbeRejected(
     expected_code: String
 ) -> Bool {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstInitializerTypeCount(bundle.initializer_types) {
         if bundle.initializer_types.verified[i] != 1 &&
             bundle.initializer_types.diagnostic_codes[i] == expected_code {
@@ -57,17 +57,17 @@ func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
     let source_path: String =
         "src/self_hosted/tools/wrapper_policy_probe/valid.pgy";
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
         return false;
     }
-    let graph: SemanticExpressionGraphFacts =
+    var graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
-    let call_node: Int = -1;
-    let i: Int = 0;
+    var call_node: Int = -1;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() &&
             graph.arena.call_target_names[i] == "UnwrapOption" {
@@ -78,9 +78,9 @@ func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
     }
     if call_node < 0 { return false; }
     graph.arena.call_target_names[call_node] = "Log";
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
+    var function_names: Array<String> = [];
+    var function_returns: Array<String> = [];
+    var function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
         analysis.signatures, analysis.constructors, analysis.enums,
         function_names, function_returns, function_params
@@ -100,7 +100,7 @@ func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
 
 func Main() -> Void with caps io_read, env {
     let args: Array<String> = Args();
-    let mode: String = "";
+    var mode: String = "";
     if ArrayLength(args) > 0 { mode = args[0]; }
     if mode == "--bad-option" {
         if WrapperPolicyProbeRejected(
@@ -129,7 +129,7 @@ func Main() -> Void with caps io_read, env {
     if !wrapper_bundle.verdict.ok {
         Log(Concat("wrapper-verdict=", wrapper_bundle.verdict.diagnostic_code));
         Log(wrapper_bundle.verdict.diagnostic_message);
-        let debug_index: Int = 0;
+        var debug_index: Int = 0;
         while debug_index < ArrayLength(
             wrapper_bundle.initializer_types.node_ids
         ) {

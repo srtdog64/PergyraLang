@@ -9,9 +9,9 @@ import "../../compiler/canonical_mir_source_module_epoch_owner.pgy";
 
 func ProbeInitializerArtifactFromText(tree_text: String) -> AstTreeArtifact {
     let base: AstTreeArtifact = ParserAstTreeArtifactFromText(tree_text);
-    let module_paths: Array<String> = [];
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(base.arena, 0, child_index);
+    var module_paths: Array<String> = [];
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(base.arena, 0, child_index);
     while IsSome(child) {
         ArrayPush(
             module_paths,
@@ -38,7 +38,7 @@ func ProbeInitializerFactsWithoutRows(
 func ProbeInitializerFactsWithoutType(
     facts: SemanticAstInitializerTypeFacts
 ) -> SemanticAstInitializerTypeFacts {
-    let inferred_types: Array<String> = facts.inferred_type_names;
+    var inferred_types: Array<String> = facts.inferred_type_names;
     ArraySet(inferred_types, 0, "");
     return SemanticAstInitializerTypeFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
@@ -69,10 +69,10 @@ func ProbeExpressionSurfacesWithScalarOperand(
     replacement_kind: Int
 ) -> SemanticAstExpressionSurfaceFacts {
     let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
-    let kinds: Array<Int> = graph.arena.topology.node_kinds;
-    let texts: Array<String> = graph.arena.node_texts;
-    let changed: Bool = false;
-    let i: Int = 0;
+    var kinds: Array<Int> = graph.arena.topology.node_kinds;
+    var texts: Array<String> = graph.arena.node_texts;
+    var changed: Bool = false;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if kinds[i] == AstExpressionNodeIntegerLiteral() &&
             texts[i] == "2" {
@@ -106,10 +106,10 @@ func ProbeExpressionSurfacesWithCallCallee(
     from_end: Bool
 ) -> SemanticAstExpressionSurfaceFacts {
     let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
-    let texts: Array<String> = graph.arena.node_texts;
-    let changed: Bool = false;
-    let i: Int = 0;
-    let step: Int = 1;
+    var texts: Array<String> = graph.arena.node_texts;
+    var changed: Bool = false;
+    var i: Int = 0;
+    var step: Int = 1;
     let limit: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     if from_end {
         i = limit - 1;
@@ -148,9 +148,9 @@ func ProbeAnalysisWithCallTarget(
 ) -> SemanticAstArtifactAnalysis {
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
-    let targets: Array<String> = graph.arena.call_target_names;
-    let changed: Bool = false;
-    let i: Int = 0;
+    var targets: Array<String> = graph.arena.call_target_names;
+    var changed: Bool = false;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() &&
             targets[i] == expected {
@@ -192,9 +192,9 @@ func ProbeExpressionSurfacesWithMemberName(
     replacement: String
 ) -> SemanticAstExpressionSurfaceFacts {
     let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
-    let texts: Array<String> = graph.arena.node_texts;
-    let changed: Bool = false;
-    let i: Int = 0;
+    var texts: Array<String> = graph.arena.node_texts;
+    var changed: Bool = false;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[i] == AstExpressionNodeLeaf() &&
             texts[i] == "Get" {
@@ -227,10 +227,10 @@ func ProbeAnalysisWithoutCallTarget(
 ) -> SemanticAstArtifactAnalysis {
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
-    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
-    let target_names: Array<String> = graph.arena.call_target_names;
-    let changed: Bool = false;
-    let i: Int = 0;
+    var target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    var target_names: Array<String> = graph.arena.call_target_names;
+    var changed: Bool = false;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if target_kinds[i] == target_kind {
             ArraySet(target_kinds, i, SemanticCallTargetNone());
@@ -272,7 +272,7 @@ func ProbeMirCarriesCallTarget(
     expected_kind: Int,
     expected_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SelfMirExpressionGraphNodeCount(facts.expression_graph) {
         let kind_opt: Option<Int> = SemanticExpressionGraphCallTargetKind(
             facts.expression_graph, i
@@ -307,7 +307,7 @@ func ProbeCodegenConsumesDirectTarget(
             ))
         ))
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(
         analysis.expression_surfaces.expression_graph.arena
     ) {
@@ -315,8 +315,8 @@ func ProbeCodegenConsumesDirectTarget(
                 .call_target_kinds[i] == SemanticCallTargetDirect() &&
             analysis.expression_surfaces.expression_graph.arena
                 .call_target_names[i] == expected_name {
-            let root_id: Int = i;
-            let candidate: Int = i;
+            var root_id: Int = i;
+            var candidate: Int = i;
             while candidate < SemanticExpressionGraphArenaNodeCount(
                 analysis.expression_surfaces.expression_graph.arena
             ) {
@@ -381,7 +381,7 @@ func ProbeCodegenConsumesMemberTarget(
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
         function_rows, value_rows
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(
         analysis.expression_surfaces.expression_graph.arena
     ) {
@@ -401,8 +401,8 @@ func ProbeCodegenConsumesMemberTarget(
 }
 
 func ProbeResolvedCallProjection(mode: String) -> Bool {
-    let initializer: String = "2";
-    let initializer_expression: String = "";
+    var initializer: String = "2";
+    var initializer_expression: String = "";
     if mode == "--direct-call-nested-positive" ||
         mode == "--direct-call-nested-mismatch" {
         initializer = "1 + (2 * 3)";
@@ -424,7 +424,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         mode == "--missing-carried-member-target" {
         initializer_expression = "box.Get()";
     }
-    let artifact_text: String = Concat(
+    var artifact_text: String = Concat(
             "Program:\n  Function: ToIntValue\n    Parameters:\n      value: Int\n    Returns: Int\n    Body:\n      Block:\n        Return: value\n  Function: ToTextValue\n    Parameters:\n      value: Int\n    Returns: String\n    Body:\n      Block:\n        Return: \"text\"\n  Function: Math_Add\n    Parameters:\n      value: Int\n    Returns: Int\n    Body:\n      Block:\n        Return: value\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = ",
             Concat(initializer_expression, "\n        Return: x\n")
     );
@@ -449,7 +449,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     }
     let artifact: AstTreeArtifact =
         ProbeInitializerArtifactFromText(artifact_text);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mode == "--direct-call-callee-mismatch" {
         let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
@@ -520,7 +520,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         mode == "--direct-call-nested-call-mismatch" ||
         mode == "--scalar-call-mismatch" ||
         mode == "--member-call-target-mismatch" {
-        let expected_code: String = "let_type_mismatch";
+        var expected_code: String = "let_type_mismatch";
         if mode == "--direct-call-argument-mismatch" {
             expected_code = "call_arg_type_mismatch";
         } else if mode == "--direct-call-nested-mismatch" {
@@ -532,7 +532,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         } else if mode == "--member-call-target-mismatch" {
             expected_code = "let_type_mismatch";
         }
-        let i: Int = 0;
+        var i: Int = 0;
         while i < SemanticAstInitializerTypeCount(
             body_types.initializer_types
         ) {
@@ -647,15 +647,15 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
             return false;
         }
     }
-    let expected_local: String = "x";
-    let expected_type: String = "Int";
-    let expected_log: String = "call-local=x type=Int";
+    var expected_local: String = "x";
+    var expected_type: String = "Int";
+    var expected_log: String = "call-local=x type=Int";
     if mode == "--nominal-return-call-positive" {
         expected_local = "box";
         expected_type = "Box";
         expected_log = "call-local=box type=Box";
     }
-    let i2: Int = 0;
+    var i2: Int = 0;
     while i2 < ArrayLength(facts.routines.local_names) {
         if facts.routines.local_names[i2] == expected_local &&
             facts.routines.local_types[i2] == expected_type {
@@ -669,7 +669,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
 }
 
 func ProbeInitializerEnvironmentVisibility(mode: String) -> Bool {
-    let artifact_text: String =
+    var artifact_text: String =
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x = x\n        Return: 0\n";
     if mode == "--environment-outer-read-positive" {
         artifact_text =
@@ -683,7 +683,7 @@ func ProbeInitializerEnvironmentVisibility(mode: String) -> Bool {
     }
     let artifact: AstTreeArtifact =
         ProbeInitializerArtifactFromText(artifact_text);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
@@ -692,7 +692,7 @@ func ProbeInitializerEnvironmentVisibility(mode: String) -> Bool {
 
     if mode == "--environment-self-reference" ||
         mode == "--environment-sibling-leak" {
-        let i: Int = 0;
+        var i: Int = 0;
         while i < SemanticAstInitializerTypeCount(initializer_types) {
             if initializer_types.verified[i] != 1 &&
                 initializer_types.diagnostic_codes[i] == "undefined_symbol" {
@@ -758,9 +758,9 @@ func ProbeInitializerEnvironmentDestructureAtomic() -> Bool {
         [0, 1], [2, 2]
     );
     let inferred: Array<String> = ["Int", "Int"];
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
     if !SemanticAstExpressionSeedVisibleLocals(
         artifact, fake, inferred, actual.function_node_ids[0],
         actual.node_ids[0], names, types, modes
@@ -788,7 +788,7 @@ func ProbeInitializerEnvironmentDestructureAtomic() -> Bool {
 
 func Main() -> Void with caps env {
     let args: Array<String> = Args();
-    let mode: String = "";
+    var mode: String = "";
     if ArrayLength(args) > 0 { mode = args[0]; }
     if mode == "--environment-destructure-atomic-positive" {
         if !ProbeInitializerEnvironmentDestructureAtomic() { Exit(1); }
@@ -828,12 +828,12 @@ func Main() -> Void with caps env {
     let artifact: AstTreeArtifact = ProbeInitializerArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: seed : Int = 1\n        Let: x = seed + 2\n        Return: x\n"
     );
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mode == "--unknown-scalar-operand" ||
         mode == "--scalar-type-mismatch" {
-        let replacement: String = "missing_scalar_operand";
-        let replacement_kind: Int = AstExpressionNodeLeaf();
+        var replacement: String = "missing_scalar_operand";
+        var replacement_kind: Int = AstExpressionNodeLeaf();
         if mode == "--scalar-type-mismatch" {
             replacement = "\"bad\"";
             replacement_kind = AstExpressionNodeStringLiteral();
@@ -852,12 +852,12 @@ func Main() -> Void with caps env {
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if mode == "--unknown-scalar-operand" ||
         mode == "--scalar-type-mismatch" {
-        let expected_code: String = "undefined_symbol";
+        var expected_code: String = "undefined_symbol";
         if mode == "--scalar-type-mismatch" {
             expected_code = "binop_type_mismatch";
         }
-        let scalar_rejected: Bool = false;
-        let scalar_i: Int = 0;
+        var scalar_rejected: Bool = false;
+        var scalar_i: Int = 0;
         while scalar_i < SemanticAstInitializerTypeCount(
             body_types.initializer_types
         ) {

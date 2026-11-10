@@ -27,22 +27,22 @@ func ProbeExpressionGraph(
     binding_name: String,
     carry_binding_place_fact: Bool
 ) -> SemanticExpressionGraphView {
-    let node_kinds: Array<Int> = [];
-    let node_texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    let call_target_kinds: Array<Int> = [];
-    let call_target_names: Array<String> = [];
+    var node_kinds: Array<Int> = [];
+    var node_texts: Array<String> = [];
+    var left_children: Array<Int> = [];
+    var right_children: Array<Int> = [];
+    var call_target_kinds: Array<Int> = [];
+    var call_target_names: Array<String> = [];
     let built: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             node_kinds, node_texts, left_children, right_children,
             call_target_kinds, call_target_names, expression
         );
     if !built.ok { Die("assignment projection probe graph build failed"); }
-    let place_kinds: Array<Int> = [];
-    let node_index: Int = 0;
+    var place_kinds: Array<Int> = [];
+    var node_index: Int = 0;
     while node_index < ArrayLength(node_kinds) {
-        let place_kind: Int = SemanticExpressionPlaceValue();
+        var place_kind: Int = SemanticExpressionPlaceValue();
         if binding_name != "" &&
             node_kinds[node_index] == AstExpressionNodeLeaf() &&
             node_texts[node_index] == binding_name {
@@ -63,7 +63,7 @@ func ProbeExpressionGraph(
     let source: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, [built.root_id], [true], arena
     );
-    let facts: SemanticExpressionGraphFacts = source;
+    var facts: SemanticExpressionGraphFacts = source;
     if carry_call_targets {
         let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
         let signatures: SemanticAstFunctionSignatureFacts =
@@ -112,7 +112,7 @@ func ProbeOptionAssignment(
         name, true, name, carry_place_facts
     );
     let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
-    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", "|"));
+    var env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", "|"));
     if carry_c_binding {
         let binding: CodegenFunctionValueBindingFact =
             CodegenFunctionValueBindingFactFor(
@@ -121,7 +121,7 @@ func ProbeOptionAssignment(
         CodegenTypeEnvStateAppendTypedValueBinding(env_state,
             binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
     }
-    let env: CodegenTypeEnv = base_env;
+    var env: CodegenTypeEnv = base_env;
     CodegenTypeEnvStateBindView(env, env_state);
     let output: String = EmitAssign(
         assignments, 0, expected_type, expected_type,
@@ -147,11 +147,11 @@ func ProbeIndexedAssignment(
             "nums[1]", true, "nums", carry_place_facts
         );
     let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
-    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", "|nums=v:ArrayInt|"));
+    var env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", "|nums=v:ArrayInt|"));
     if carry_c_binding {
         CodegenTypeEnvStateAppendValueBinding(env_state, base_env, "nums", "ArrayInt", "nums");
     }
-    let env: CodegenTypeEnv = base_env;
+    var env: CodegenTypeEnv = base_env;
     CodegenTypeEnvStateBindView(env, env_state);
     let output: String = EmitAssign(
         assignments, 0, "Int", target_type,

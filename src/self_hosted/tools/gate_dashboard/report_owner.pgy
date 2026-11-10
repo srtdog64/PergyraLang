@@ -30,8 +30,8 @@ func GateDashboardDetailAt(
 func GateDashboardSummaryField(
     results: GateDashboardResults, wanted: String
 ) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(results.run_states) {
         if results.run_states[i] == wanted { count = count + 1; }
         i = i + 1;
@@ -43,7 +43,7 @@ func GateDashboardHealthy(
     manifest: CompilerGateDashboardManifest,
     results: GateDashboardResults
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerGateDashboardCount(manifest) {
         if manifest.blocking[i] == 1 &&
             GateDashboardRunStateAt(results, manifest.ids[i]) != "PASS" {
@@ -71,8 +71,8 @@ func GateDashboardOverBudgetCount(
     manifest: CompilerGateDashboardManifest,
     results: GateDashboardResults
 ) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < CompilerGateDashboardCount(manifest) {
         if GateDashboardOverBudget(manifest, results, i) {
             count = count + 1;
@@ -92,9 +92,9 @@ func GateDashboardJson(
             "gate dashboard projection requires valid owner facts"
         );
     }
-    let gates: Array<String> = [];
-    let not_run: Int = 0;
-    let i: Int = 0;
+    var gates: Array<String> = [];
+    var not_run: Int = 0;
+    var i: Int = 0;
     while i < CompilerGateDashboardCount(manifest) {
         let run_state: String = GateDashboardRunStateAt(
             results, manifest.ids[i]

@@ -45,8 +45,8 @@ func EndsWith(text: String, suffix: String) -> Bool {
 }
 
 func BasenameStartsWith(path: String, prefix: String) -> Bool {
-    let last_slash: Int = -1;
-    let i: Int = 0;
+    var last_slash: Int = -1;
+    var i: Int = 0;
     let n: Int = StringLength(path);
     while i < n {
         if Substring(path, i, 1) == "/" {
@@ -80,13 +80,13 @@ func Main() -> Void {
     let cap: Int = 699;
     let entries: Array<String> = DirWalk(dirwalk_owner);
 
-    let c_files: Int = 0;
-    let violations: Int = 0;
-    let max_lines: Int = 0;
-    let findings: Array<String> = [];
+    var c_files: Int = 0;
+    var violations: Int = 0;
+    var max_lines: Int = 0;
+    var findings: Array<String> = [];
     let findings_cap: Int = 8;
 
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];

@@ -19,7 +19,7 @@ func BackendEmitterForbiddenHitSelfTestMode() -> String {
 }
 
 func RunBackendEmitterMissingRequiredSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
         CompilerBackendEmitterMissingRequiredFinding(),
         CompilerBackendEmitterPrimaryRequiredPath(),
@@ -29,7 +29,7 @@ func RunBackendEmitterMissingRequiredSelfTest() -> Void {
 }
 
 func RunBackendEmitterMissingInputSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
         CompilerBackendEmitterMissingInputFinding(),
         "src/codegen/definitely_missing_backend_contract_input.c",
@@ -39,7 +39,7 @@ func RunBackendEmitterMissingInputSelfTest() -> Void {
 }
 
 func RunBackendEmitterForbiddenHitSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
         CompilerBackendEmitterForbiddenHitFinding(),
         CompilerBackendEmitterPrimaryForbiddenPath(),
@@ -72,10 +72,10 @@ func Main() -> Void {
         Exit(1);
     }
 
-    let missing_required: Int = 0;
-    let forbidden_hits: Int = 0;
-    let findings: Array<String> = [];
-    let required_index: Int = 0;
+    var missing_required: Int = 0;
+    var forbidden_hits: Int = 0;
+    var findings: Array<String> = [];
+    var required_index: Int = 0;
     while required_index < CompilerBackendEmitterRequiredCount() {
         let path: String = CompilerBackendEmitterRequiredPathAt(required_index);
         let term: String = CompilerBackendEmitterRequiredTermAt(required_index);
@@ -92,7 +92,7 @@ func Main() -> Void {
         required_index = required_index + 1;
     }
 
-    let forbidden_index: Int = 0;
+    var forbidden_index: Int = 0;
     while forbidden_index < CompilerBackendEmitterForbiddenCount() {
         let path: String = CompilerBackendEmitterForbiddenPathAt(forbidden_index);
         let term: String = CompilerBackendEmitterForbiddenTermAt(forbidden_index);

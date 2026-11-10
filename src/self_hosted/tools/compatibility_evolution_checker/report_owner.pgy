@@ -11,8 +11,8 @@ func CompatibilityFindingJson(kind: String) -> String {
 }
 
 func CompatibilityMalformedRowSelfTestReport(row_shape_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if row_shape_count < 1 {
         missing = 1;
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMalformedChangeRowFinding()));
@@ -31,8 +31,8 @@ func CompatibilityMalformedRowSelfTestReport(row_shape_count: Int) -> String {
 }
 
 func CompatibilityInvalidCodefixSelfTestReport(codefix_status_count: Int, row_shape_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if codefix_status_count < 1 {
         missing = 1;
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingCodefixStatusFinding()));
@@ -52,8 +52,8 @@ func CompatibilityInvalidCodefixSelfTestReport(codefix_status_count: Int, row_sh
 }
 
 func CompatibilityInvalidDiagnosticIdSelfTestReport(diagnostic_id_count: Int, row_shape_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if diagnostic_id_count < 1 {
         missing = 1;
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingDiagnosticIdFinding()));
@@ -73,8 +73,8 @@ func CompatibilityInvalidDiagnosticIdSelfTestReport(diagnostic_id_count: Int, ro
 }
 
 func CompatibilityInvalidMigrationUrlSelfTestReport(migration_url_count: Int, row_shape_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if migration_url_count < 1 {
         missing = 1;
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingMigrationUrlFinding()));
@@ -94,8 +94,8 @@ func CompatibilityInvalidMigrationUrlSelfTestReport(migration_url_count: Int, ro
 }
 
 func CompatibilityInvalidChangeKindSelfTestReport(change_kind_count: Int, row_shape_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if change_kind_count < 1 {
         missing = 1;
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityUnknownChangeKindFinding()));
@@ -115,8 +115,8 @@ func CompatibilityInvalidChangeKindSelfTestReport(change_kind_count: Int, row_sh
 }
 
 func CompatibilityInvalidObsoleteMigrationSelfTestReport(obsolete_count: Int, obsolete_migration_count: Int, row_shape_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if obsolete_migration_count < obsolete_count {
         missing = 1;
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()));
@@ -202,7 +202,7 @@ func CompatibilityCorpusFindings(
     obsolete_count: Int,
     obsolete_migration_count: Int
 ) -> String {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     if source_count == 0 {
         ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingSourceFinding()));
     }

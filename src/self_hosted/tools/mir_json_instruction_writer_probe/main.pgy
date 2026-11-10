@@ -7,10 +7,10 @@ import "../../compiler/driver_rung2_owner.pgy";
 func MirJsonInstructionWriterInvalidFacts(
     facts: SelfMirProgramFacts
 ) -> SelfMirProgramFacts {
-    let invalid: SelfMirProgramFacts = facts;
-    let cfg: SelfMirCfgRows = invalid.cfg;
-    let instructions: SelfMirInstructionRows = cfg.instructions;
-    let ids: Array<Int> = instructions.ids;
+    var invalid: SelfMirProgramFacts = facts;
+    var cfg: SelfMirCfgRows = invalid.cfg;
+    var instructions: SelfMirInstructionRows = cfg.instructions;
+    var ids: Array<Int> = instructions.ids;
     ArrayPush(ids, -1);
     instructions.ids = ids;
     cfg.instructions = instructions;
@@ -21,8 +21,8 @@ func MirJsonInstructionWriterInvalidFacts(
 func MirJsonInstructionWriterInvalidAssignments(
     facts: SelfMirProgramFacts
 ) -> SelfMirProgramFacts {
-    let invalid: SelfMirProgramFacts = facts;
-    let assignments: SelfMirDomainRuntimeAssignmentFacts =
+    var invalid: SelfMirProgramFacts = facts;
+    var assignments: SelfMirDomainRuntimeAssignmentFacts =
         invalid.domain_runtime_assignments;
     assignments.ok = false;
     invalid.domain_runtime_assignments = assignments;

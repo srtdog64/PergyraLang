@@ -22,7 +22,7 @@ func Main() -> Void with caps io_read, env {
         Log(CompilerGateDashboardManifestText(manifest));
         return;
     }
-    let results: GateDashboardResults = GateDashboardResultsEmpty();
+    var results: GateDashboardResults = GateDashboardResultsEmpty();
     if ArrayLength(args) > 0 {
         if ArrayLength(args) != 2 || args[0] != "--results" {
             Log(GateDashboardErrorJson(

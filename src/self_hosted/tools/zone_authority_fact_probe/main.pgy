@@ -46,7 +46,7 @@ func ZoneAuthorityProbeFacts() -> SemanticAstZoneAuthorityFacts {
 func ZoneAuthorityProbeMissingAbility(
     facts: SemanticAstZoneAuthorityFacts
 ) -> SemanticAstZoneAuthorityFacts {
-    let ability_node_ids: Array<Int> = facts.required_ability_node_ids;
+    var ability_node_ids: Array<Int> = facts.required_ability_node_ids;
     ArraySet(ability_node_ids, 0, 7);
     return SemanticAstZoneAuthorityFacts(
         facts.ok, facts.artifact_node_count,

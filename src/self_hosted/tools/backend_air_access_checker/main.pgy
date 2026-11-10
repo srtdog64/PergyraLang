@@ -21,7 +21,7 @@ func BackendAirAccessPathEndsWith(path: String, suffix: String) -> Bool {
 }
 
 func BackendAirAccessIsSourceFile(path: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendAirAccessSourceExtensionCount() {
         if BackendAirAccessPathEndsWith(path, CompilerBackendAirAccessSourceExtensionAt(index)) {
             return true;
@@ -32,7 +32,7 @@ func BackendAirAccessIsSourceFile(path: String) -> Bool {
 }
 
 func RunBackendAirAccessForbiddenHitSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendAirAccessFinding(
         CompilerBackendAirAccessForbiddenHitFinding(),
         CompilerBackendAirAccessForbiddenHitSelfTestPath(),
@@ -58,16 +58,16 @@ func Main() -> Void {
     }
 
     let entries: Array<String> = DirWalk(CompilerBackendAirAccessRoot());
-    let file_count: Int = 0;
-    let hit_count: Int = 0;
-    let findings: Array<String> = [];
-    let entry_index: Int = 0;
+    var file_count: Int = 0;
+    var hit_count: Int = 0;
+    var findings: Array<String> = [];
+    var entry_index: Int = 0;
     while entry_index < ArrayLength(entries) {
         let path: String = entries[entry_index];
         if BackendAirAccessIsSourceFile(path) {
             file_count = file_count + 1;
             let content: String = ReadFile(path);
-            let term_index: Int = 0;
+            var term_index: Int = 0;
             while term_index < CompilerBackendAirAccessForbiddenTermCount() {
                 let term: String = CompilerBackendAirAccessForbiddenTermAt(term_index);
                 if StringContains(content, term) {

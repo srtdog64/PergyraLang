@@ -24,7 +24,7 @@ func IsSectionLine(line: String) -> Bool {
 
 func CountSectionLines(content: String) -> Int {
     let lines: Array<String> = Split(content, "\n");
-    let count: Int = 0;
+    var count: Int = 0;
     for line in lines {
         if IsSectionLine(line) {
             count = count + 1;
@@ -46,8 +46,8 @@ func CanonicalAnchors() -> Array<String> {
 }
 
 func CountMissingAnchors(content: String, anchors: Array<String>) -> Int {
-    let missing: Int = 0;
-    let i: Int = 0;
+    var missing: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(anchors);
     while i < n {
         let anchor: String = Concat("", anchors[i]);
@@ -69,8 +69,8 @@ func MissingFinding(title: String) -> String {
 }
 
 func BuildMissingFindings(content: String, anchors: Array<String>) -> String {
-    let pieces: Array<String> = [];
-    let i: Int = 0;
+    var pieces: Array<String> = [];
+    var i: Int = 0;
     let n: Int = ArrayLength(anchors);
     while i < n {
         let anchor: String = Concat("", anchors[i]);
@@ -111,7 +111,7 @@ func InputErrorJson(path: String) -> Option<String> {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let manifest_path: String = "docs/107_beta_stable_subset.md";
+    var manifest_path: String = "docs/107_beta_stable_subset.md";
     if ArrayLength(args) > 0 {
         manifest_path = args[0];
     }

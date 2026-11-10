@@ -8,7 +8,7 @@ func CollectionPolicyProbeBundle(
     source_path: String
 ) -> SemanticAstBodyTypeBundle {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     return SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
 }
@@ -20,7 +20,7 @@ func CollectionPolicyProbeRejected(
     let bundle: SemanticAstBodyTypeBundle = CollectionPolicyProbeBundle(
         source_path
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(bundle.statement_types.node_ids) {
         if bundle.statement_types.verified[i] != 1 &&
             bundle.statement_types.diagnostic_codes[i] == expected_code {
@@ -42,9 +42,9 @@ func CollectionPolicyProbeGraphFacts(
         parsed.ok, [TypedAstKindBareCallStmtTag()],
         [AstExpressionLaneAtom()], [parsed.root], parsed.arena
     );
-    let graph: SemanticExpressionGraphFacts =
+    var graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(rows, [0], 1);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() {
             graph.arena.call_target_kinds[i] = SemanticCallTargetDirect();
@@ -64,10 +64,10 @@ func CollectionPolicyProbeGraphOwned() -> Bool {
         return false;
     }
     let root_id: Int = graph.roots[0];
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let default_modes: Array<String> = [];
-    let inout_modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var default_modes: Array<String> = [];
+    var inout_modes: Array<String> = [];
     ArrayPushOwnedString(names, Concat("", "xs"));
     ArrayPushOwnedString(types, Concat("", "Array<Int>"));
     ArrayPushOwnedString(default_modes, Concat("", "default_param"));
@@ -96,11 +96,11 @@ func CollectionPolicyProbeGraphOwned() -> Bool {
 
 func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let graph: SemanticExpressionGraphFacts =
+    var graph: SemanticExpressionGraphFacts =
         CollectionPolicyProbeGraphFacts();
     if !graph.ok || !graph.has_roots[0] { return false; }
-    let call_node: Int = -1;
-    let i: Int = 0;
+    var call_node: Int = -1;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() {
             call_node = i;
@@ -110,9 +110,9 @@ func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
     }
     if call_node < 0 { return false; }
     graph.arena.call_target_names[call_node] = "Log";
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
     ArrayPushOwnedString(names, Concat("", "xs"));
     ArrayPushOwnedString(types, Concat("", "Array<Int>"));
     ArrayPushOwnedString(modes, Concat("", "default_param"));

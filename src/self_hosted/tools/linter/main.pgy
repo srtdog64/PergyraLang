@@ -23,7 +23,7 @@ func IndexOfWord(line: String, word: String) -> Option<Int> {
     let n: Int = StringLength(line);
     let w: Int = StringLength(word);
     if w == 0 { return None; }
-    let j: Int = 0;
+    var j: Int = 0;
     while j + w <= n {
         if Substring(line, j, w) == word {
             return Some(j);
@@ -61,15 +61,15 @@ func Diag(line: Int, col: Int, endCol: Int, sev: Int, msg: String) -> String {
 func ScanStructure(content: String, inout diags: Array<String>) -> Void {
     let n: Int = StringLength(content);
     // structural scan: bracket balance + empty block, skipping strings/comments
-    let si: Int = 0;
-    let sline: Int = 0;
-    let scol: Int = 0;
-    let depth: Int = 0;
-    let inStr: Bool = false;
-    let inComment: Bool = false;
-    let lastSig: String = "";
-    let lastSigLine: Int = 0;
-    let lastSigCol: Int = 0;
+    var si: Int = 0;
+    var sline: Int = 0;
+    var scol: Int = 0;
+    var depth: Int = 0;
+    var inStr: Bool = false;
+    var inComment: Bool = false;
+    var lastSig: String = "";
+    var lastSigLine: Int = 0;
+    var lastSigCol: Int = 0;
     while si < n {
         let sc: String = CharAt(content, si);
         if sc == "\n" {
@@ -137,21 +137,21 @@ func ScanStructure(content: String, inout diags: Array<String>) -> Void {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let target_path: String = "src/self_hosted/tools/linter/fixture.pgy";
+    var target_path: String = "src/self_hosted/tools/linter/fixture.pgy";
     if ArrayLength(args) > 0 {
         target_path = args[0];
     }
     let content: String = ReadFile(target_path);
     let n: Int = StringLength(content);
 
-    let diags: Array<String> = [];
-    let lineStart: Int = 0;
-    let lineNum: Int = 0;
-    let i: Int = 0;
+    var diags: Array<String> = [];
+    var lineStart: Int = 0;
+    var lineNum: Int = 0;
+    var i: Int = 0;
 
     while i <= n {
         let atEnd: Bool = i == n;
-        let isNl: Bool = false;
+        var isNl: Bool = false;
         if atEnd == false {
             if CharAt(content, i) == "\n" {
                 isNl = true;

@@ -96,7 +96,7 @@ func InputErrorJson(path: String) -> Option<String> {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let index_path: String = "docs/INDEX.md";
+    var index_path: String = "docs/INDEX.md";
     if ArrayLength(args) > 0 {
         index_path = args[0];
     }
@@ -108,17 +108,17 @@ func Main() -> Void {
     let content: String = ReadFile(index_path);
     let lines: Array<String> = Split(content, "\n");
 
-    let total_links: Int = 0;
-    let md_links: Int = 0;
-    let missing_links: Int = 0;
-    let findings: Array<String> = [];
+    var total_links: Int = 0;
+    var md_links: Int = 0;
+    var missing_links: Int = 0;
+    var findings: Array<String> = [];
     let findings_cap: Int = 8;
 
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(lines);
     while i < n {
         let line: String = lines[i];
-        let remaining: String = line;
+        var remaining: String = line;
         while StringContains(remaining, "](") {
             let path: String = ExtractLinkPath(remaining);
             if StringLength(path) == 0 {

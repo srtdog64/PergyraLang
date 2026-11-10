@@ -45,11 +45,11 @@ func RunAirGraphJsonValidationWithPaths(fixture_path: String, cap_fixture_path: 
         + CountMissingGraphFeatureKeys(content, feature_keys);
     let schema_ok: Bool = HasExpectedSchema(content);
     let cap_schema_ok: Bool = HasExpectedSchema(cap_content);
-    let intents_box: Array<Int> = [0];
-    let boundaries_box: Array<Int> = [0];
-    let evidence_box: Array<Int> = [0];
-    let drifts_box: Array<Int> = [0];
-    let counts_ok: Bool = true;
+    var intents_box: Array<Int> = [0];
+    var boundaries_box: Array<Int> = [0];
+    var evidence_box: Array<Int> = [0];
+    var drifts_box: Array<Int> = [0];
+    var counts_ok: Bool = true;
     if !AirGraphSummaryIntField(content, "intent_count", intents_box) {
         counts_ok = false;
     }

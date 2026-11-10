@@ -21,8 +21,8 @@ func EndsWith(text: String, suffix: String) -> Bool {
 
 func CountPatternInScope(pattern: String, scope: String) -> Int {
     let entries: Array<String> = DirWalk(scope);
-    let reads: Int = 0;
-    let i: Int = 0;
+    var reads: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];
@@ -50,20 +50,20 @@ func Main() -> Void {
     let ratchet: String = ReadFile(ratchet_path);
     let entries: Array<String> = Split(ratchet, "\n");
 
-    let enum_reads: Int = 0;
-    let enum_cap: Int = 0;
-    let source_ast_codegen_reads: Int = 0;
-    let source_ast_codegen_cap: Int = 0;
-    let source_ast_compiler_reads: Int = 0;
-    let source_ast_compiler_cap: Int = 0;
-    let source_decl_codegen_reads: Int = 0;
-    let source_decl_codegen_cap: Int = 0;
-    let source_decl_compiler_reads: Int = 0;
-    let source_decl_compiler_cap: Int = 0;
-    let routine_source_decl_codegen_reads: Int = 0;
-    let routine_source_decl_codegen_cap: Int = 0;
+    var enum_reads: Int = 0;
+    var enum_cap: Int = 0;
+    var source_ast_codegen_reads: Int = 0;
+    var source_ast_codegen_cap: Int = 0;
+    var source_ast_compiler_reads: Int = 0;
+    var source_ast_compiler_cap: Int = 0;
+    var source_decl_codegen_reads: Int = 0;
+    var source_decl_codegen_cap: Int = 0;
+    var source_decl_compiler_reads: Int = 0;
+    var source_decl_compiler_cap: Int = 0;
+    var routine_source_decl_codegen_reads: Int = 0;
+    var routine_source_decl_codegen_cap: Int = 0;
 
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(entries);
     while i < n {
         let line: String = entries[i];
@@ -78,7 +78,7 @@ func Main() -> Void {
             let pattern: String = parts[1];
             let ceiling: Int = ToInt(parts[2]);
             let scope: String = parts[3];
-            let known: Int = 0;
+            var known: Int = 0;
             let reads: Int = CountPatternInScope(pattern, scope);
 
             if kind == "enum" {
@@ -125,8 +125,8 @@ func Main() -> Void {
         i = i + 1;
     }
 
-    let violations: Int = 0;
-    let findings: Array<String> = [];
+    var violations: Int = 0;
+    var findings: Array<String> = [];
     if enum_reads > enum_cap {
         violations = violations + 1;
         ArrayPush(findings, AstReadSurfaceFinding("enum", enum_reads, enum_cap, "src/codegen"));

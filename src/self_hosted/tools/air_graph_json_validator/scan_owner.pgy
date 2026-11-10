@@ -26,8 +26,8 @@ func AirGraphScalarFieldValues(content: String, field: String) -> Array<String> 
 }
 
 func CountSubstring(content: String, needle: String) -> Int {
-    let count: Int = 0;
-    let rest: String = content;
+    var count: Int = 0;
+    var rest: String = content;
     let needle_len: Int = StringLength(needle);
     if needle_len <= 0 {
         return 0;
@@ -85,12 +85,12 @@ func RequiredCapabilityTraceKeys() -> Array<String> {
 }
 
 func CountMissingKeys(content: String, keys: Array<String>) -> Int {
-    let missing: Int = 0;
+    var missing: Int = 0;
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
     if !JsonObjectFactTableReady(root) {
         return ArrayLength(keys);
     }
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = keys[i];
@@ -103,8 +103,8 @@ func CountMissingKeys(content: String, keys: Array<String>) -> Int {
 }
 
 func CountMissingGraphFeatureKeys(content: String, keys: Array<String>) -> Int {
-    let missing: Int = 0;
-    let i: Int = 0;
+    var missing: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = keys[i];
@@ -132,9 +132,9 @@ func AppendFindingFact(facts: String, entry: String) -> String {
 }
 
 func BuildMissingKeyFindingFacts(content: String, keys: Array<String>, location: String) -> String {
-    let facts: String = "";
+    var facts: String = "";
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = Concat("", keys[i]);
@@ -148,8 +148,8 @@ func BuildMissingKeyFindingFacts(content: String, keys: Array<String>, location:
 }
 
 func BuildMissingGraphFeatureFindingFacts(content: String, keys: Array<String>, location: String) -> String {
-    let facts: String = "";
-    let i: Int = 0;
+    var facts: String = "";
+    var i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = Concat("", keys[i]);
@@ -187,7 +187,7 @@ func BuildAirGraphFindingFacts(
     let keys: Array<String> = RequiredKeys();
     let cap_keys: Array<String> = RequiredCapabilityTraceKeys();
     let feature_keys: Array<String> = RequiredGraphFeatureKeys();
-    let facts: String = AppendFindingFact(
+    var facts: String = AppendFindingFact(
         BuildMissingKeyFindingFacts(content, keys, fixture_path),
         BuildMissingKeyFindingFacts(cap_content, cap_keys, cap_fixture_path));
     facts = AppendFindingFact(

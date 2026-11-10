@@ -60,13 +60,13 @@ func Main() -> Void {
     let cap: Int = 600;
     let entries: Array<String> = DirWalk(dirwalk_owner);
 
-    let headers: Int = 0;
-    let violations: Int = 0;
-    let max_lines: Int = 0;
-    let findings: Array<String> = [];
+    var headers: Int = 0;
+    var violations: Int = 0;
+    var max_lines: Int = 0;
+    var findings: Array<String> = [];
     let findings_cap: Int = 8;
 
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];

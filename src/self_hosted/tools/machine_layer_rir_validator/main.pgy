@@ -13,7 +13,7 @@ func MachineRirFail(message: String) -> Void {
 }
 
 func MachineRirContactIndex(contact: String) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < CompilerRuntimeCallAbiMachineLayerContactCount() {
         if CompilerRuntimeCallAbiMachineLayerContactNameAt(row) == contact {
             return row;
@@ -55,8 +55,8 @@ func MachineRirValidate(path: String) -> Void {
         MachineRirFail("RIR scopes are missing or empty");
     }
 
-    let contact_count: Int = 0;
-    let scope_row: Int = 0;
+    var contact_count: Int = 0;
+    var scope_row: Int = 0;
     while scope_row < JsonArrayObjectFactCount(scopes) {
         let scope: JsonObjectFactTable =
             JsonArrayObjectFactAt(scopes, scope_row);
@@ -65,7 +65,7 @@ func MachineRirValidate(path: String) -> Void {
         if !JsonArrayObjectFactTableReady(ops) {
             MachineRirFail("RIR scope ops are missing");
         }
-        let op_row: Int = 0;
+        var op_row: Int = 0;
         while op_row < JsonArrayObjectFactCount(ops) {
             let op: JsonObjectFactTable = JsonArrayObjectFactAt(ops, op_row);
             if !MachineRirOpReady(op) {

@@ -19,7 +19,7 @@ func ExtractDelimitedLiteral(line: String, delimiter: String) -> String {
 
 func CountCodeMacros(content: String) -> Int {
     let lines: Array<String> = Split(content, "\n");
-    let count: Int = 0;
+    var count: Int = 0;
     for line in lines {
         if StringContains(line, "#define PGY_CODE_") {
             count = count + 1;
@@ -30,7 +30,7 @@ func CountCodeMacros(content: String) -> Int {
 
 func CountDocumentedCodes(content: String) -> Int {
     let lines: Array<String> = Split(content, "\n");
-    let count: Int = 0;
+    var count: Int = 0;
     for line in lines {
         if StringContains(line, "#### `PGY_") {
             count = count + 1;
@@ -41,9 +41,9 @@ func CountDocumentedCodes(content: String) -> Int {
 
 func CountMissingCodes(header: String, docs: String) -> Int {
     let lines: Array<String> = Split(header, "\n");
-    let missing: Int = 0;
-    let pending: Bool = false;
-    let i: Int = 0;
+    var missing: Int = 0;
+    var pending: Bool = false;
+    var i: Int = 0;
     let n: Int = ArrayLength(lines);
     while i < n {
         let line: String = lines[i];
@@ -66,10 +66,10 @@ func CountMissingCodes(header: String, docs: String) -> Int {
 
 func CountDuplicateLiterals(content: String) -> Int {
     let lines: Array<String> = Split(content, "\n");
-    let seen: String = "";
-    let duplicates: Int = 0;
-    let pending: Bool = false;
-    let i: Int = 0;
+    var seen: String = "";
+    var duplicates: Int = 0;
+    var pending: Bool = false;
+    var i: Int = 0;
     let n: Int = ArrayLength(lines);
     while i < n {
         let line: String = lines[i];
@@ -95,7 +95,7 @@ func CountDuplicateLiterals(content: String) -> Int {
 
 func CountOrphanDocs(docs: String, header: String) -> Int {
     let lines: Array<String> = Split(docs, "\n");
-    let orphans: Int = 0;
+    var orphans: Int = 0;
     for line in lines {
         if StringContains(line, "#### `PGY_") {
             let literal: String = ExtractDelimitedLiteral(line, "`");
@@ -125,9 +125,9 @@ func AppendFindingFact(facts: String, entry: String) -> String {
 
 func BuildMissingFindingFacts(header: String, docs: String) -> String {
     let lines: Array<String> = Split(header, "\n");
-    let facts: String = "";
-    let pending: Bool = false;
-    let i: Int = 0;
+    var facts: String = "";
+    var pending: Bool = false;
+    var i: Int = 0;
     let n: Int = ArrayLength(lines);
     while i < n {
         let line: String = lines[i];
@@ -151,10 +151,10 @@ func BuildMissingFindingFacts(header: String, docs: String) -> String {
 
 func BuildDuplicateFindingFacts(header: String) -> String {
     let lines: Array<String> = Split(header, "\n");
-    let seen: String = "";
-    let facts: String = "";
-    let pending: Bool = false;
-    let i: Int = 0;
+    var seen: String = "";
+    var facts: String = "";
+    var pending: Bool = false;
+    var i: Int = 0;
     let n: Int = ArrayLength(lines);
     while i < n {
         let line: String = lines[i];
@@ -181,7 +181,7 @@ func BuildDuplicateFindingFacts(header: String) -> String {
 
 func BuildOrphanFindingFacts(docs: String, header: String) -> String {
     let lines: Array<String> = Split(docs, "\n");
-    let facts: String = "";
+    var facts: String = "";
     for line in lines {
         if StringContains(line, "#### `PGY_") {
             let literal: String = ExtractDelimitedLiteral(line, "`");
@@ -198,7 +198,7 @@ func BuildOrphanFindingFacts(docs: String, header: String) -> String {
 }
 
 func BuildDiagnosticFindingFacts(header: String, docs: String) -> String {
-    let facts: String = BuildMissingFindingFacts(header, docs);
+    var facts: String = BuildMissingFindingFacts(header, docs);
     let duplicates: String = BuildDuplicateFindingFacts(header);
     let orphans: String = BuildOrphanFindingFacts(docs, header);
     if StringLength(duplicates) > 0 {

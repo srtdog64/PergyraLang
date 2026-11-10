@@ -26,7 +26,7 @@ func MismatchFinding(ids: Int, declared: Int) -> String {
 }
 
 func FindingsForNC(mismatch: Bool, ids: Int, declared: Int) -> Array<String> {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     if mismatch {
         ArrayPush(findings, MismatchFinding(ids, declared));
     }
@@ -80,10 +80,10 @@ func Main() -> Void {
 
     let content: String = ReadFile(fixture_path);
     let id_count: Int = ArrayLength(AirGraphScalarFieldValues(content, "id"));
-    let intents_box: Array<Int> = [0];
-    let boundaries_box: Array<Int> = [0];
-    let evidence_box: Array<Int> = [0];
-    let counts_ok: Bool = true;
+    var intents_box: Array<Int> = [0];
+    var boundaries_box: Array<Int> = [0];
+    var evidence_box: Array<Int> = [0];
+    var counts_ok: Bool = true;
     if !AirGraphSummaryIntField(content, "intent_count", intents_box) {
         counts_ok = false;
     }
@@ -99,7 +99,7 @@ func Main() -> Void {
 
     let declared: Int = intents + boundaries + evidence;
 
-    let mismatch: Bool = false;
+    var mismatch: Bool = false;
     if !counts_ok {
         mismatch = true;
     }

@@ -14,7 +14,7 @@ func MachineAirFail(message: String) -> Void {
 }
 
 func MachineAirOperationIndex(operation: String) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < CompilerRuntimeCallAbiMachineLayerContactCount() {
         if CompilerRuntimeCallAbiMachineLayerContactNameAt(row) == operation {
             return row;
@@ -91,7 +91,7 @@ func MachineAirValidate(
         JsonArrayObjectFactCount(sites) <= 0 {
         MachineAirFail("AIR machine_layer_sites are missing or empty");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < JsonArrayObjectFactCount(sites) {
         if !MachineAirSiteReady(
             JsonArrayObjectFactAt(sites, row), declaration

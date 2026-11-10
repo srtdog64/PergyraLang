@@ -19,7 +19,7 @@ func BackendAbiLayoutForbiddenHitSelfTestMode() -> String {
 }
 
 func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
         CompilerBackendAbiLayoutMissingRequiredFinding(),
         CompilerBackendAbiLayoutPrimaryRequiredPath(),
@@ -29,7 +29,7 @@ func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
 }
 
 func RunBackendAbiLayoutMissingInputSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
         CompilerBackendAbiLayoutMissingInputFinding(),
         "src/compiler/definitely_missing_backend_abi_layout_input.c",
@@ -39,7 +39,7 @@ func RunBackendAbiLayoutMissingInputSelfTest() -> Void {
 }
 
 func RunBackendAbiLayoutForbiddenHitSelfTest() -> Void {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
         CompilerBackendAbiLayoutForbiddenHitFinding(),
         CompilerBackendAbiLayoutPrimaryForbiddenPath(),
@@ -72,10 +72,10 @@ func Main() -> Void {
         Exit(1);
     }
 
-    let missing_required: Int = 0;
-    let forbidden_hits: Int = 0;
-    let findings: Array<String> = [];
-    let required_index: Int = 0;
+    var missing_required: Int = 0;
+    var forbidden_hits: Int = 0;
+    var findings: Array<String> = [];
+    var required_index: Int = 0;
     while required_index < CompilerBackendAbiLayoutRequiredCount() {
         let path: String = CompilerBackendAbiLayoutRequiredPathAt(required_index);
         let term: String = CompilerBackendAbiLayoutRequiredTermAt(required_index);
@@ -92,7 +92,7 @@ func Main() -> Void {
         required_index = required_index + 1;
     }
 
-    let forbidden_index: Int = 0;
+    var forbidden_index: Int = 0;
     while forbidden_index < CompilerBackendAbiLayoutForbiddenCount() {
         let path: String = CompilerBackendAbiLayoutForbiddenPathAt(forbidden_index);
         let term: String = CompilerBackendAbiLayoutForbiddenTermAt(forbidden_index);

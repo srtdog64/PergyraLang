@@ -18,19 +18,19 @@ struct MachineProbeProgramGraph {
 }
 
 func MachineProbeProgramExpressionGraph() -> MachineProbeProgramGraph {
-    let kinds: Array<Int> = [];
-    let texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    let target_kinds: Array<Int> = [];
-    let target_names: Array<String> = [];
-    let root_ids: Array<Int> = [];
-    let has_roots: Array<Bool> = [];
+    var kinds: Array<Int> = [];
+    var texts: Array<String> = [];
+    var left_children: Array<Int> = [];
+    var right_children: Array<Int> = [];
+    var target_kinds: Array<Int> = [];
+    var target_names: Array<String> = [];
+    var root_ids: Array<Int> = [];
+    var has_roots: Array<Bool> = [];
     let call_target_names: Array<String> = [
         "ClaimDeviceSlot", "DeviceRead", "DeviceWrite",
         "ReleaseDeviceSlot", "SubmitDeviceRead"
     ];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(call_target_names) {
         let built: SemanticExpressionGraphBuild =
             SemanticExpressionGraphImportSerializedParserFact(
@@ -66,12 +66,12 @@ func MachineProbeProgramExpressionGraph() -> MachineProbeProgramGraph {
 }
 
 func MachineProbeGraphWithoutTarget() -> SemanticExpressionGraphView {
-    let kinds: Array<Int> = [];
-    let texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    let target_kinds: Array<Int> = [];
-    let target_names: Array<String> = [];
+    var kinds: Array<Int> = [];
+    var texts: Array<String> = [];
+    var left_children: Array<Int> = [];
+    var right_children: Array<Int> = [];
+    var target_kinds: Array<Int> = [];
+    var target_names: Array<String> = [];
     let built: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             kinds, texts, left_children, right_children,
