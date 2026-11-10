@@ -63,8 +63,13 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
         return NULL;
 
     if (strcmp(member_name, "name") == 0) {
+        /* The access takes the object's shape but keeps its own identity:
+         * two nodes with one stable id are refused by every per-node fact
+         * store (publication found the member access colliding with `p`). */
+        uint32_t own_id = expr->stable_id;
         ASTNode object_copy = *member_object;
         *expr = object_copy;
+        expr->stable_id = own_id;
         return TYPE_STRING;
     }
 
