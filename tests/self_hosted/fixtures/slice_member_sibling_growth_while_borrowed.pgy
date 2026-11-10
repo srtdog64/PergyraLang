@@ -1,6 +1,6 @@
 struct SliceMemberPair {
     let values: Array<Int>;
-    let other: Array<Int>;
+    var other: Array<Int>;
 }
 
 func Main() -> Void {
