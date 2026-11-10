@@ -160,10 +160,13 @@ func SemanticStringWindowCollectCall(artifact: AstTreeArtifact,
     let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(analysis.expression_surfaces.expression_graph, node);
     var target_id: Int = 0;
     if IsSome(target) { target_id = UnwrapOption(target); }
-    if target_id == 0 {
-        let row: Int = SemanticStringWindowConstructorRow(analysis,
-            analysis.expression_surfaces.expression_graph.arena.call_target_names[node]);
-        if row < 0 { return; }
+    // A nominal constructor call carries its declaration's identity once the
+    // identities are sealed, and 0 before; any other target is a routine.
+    let constructor_row: Int = SemanticStringWindowConstructorRow(analysis,
+        analysis.expression_surfaces.expression_graph.arena.call_target_names[node]);
+    if constructor_row >= 0 && (target_id == 0 ||
+        target_id == analysis.constructors.node_ids[constructor_row]) {
+        let row: Int = constructor_row;
         ArrayPush(sites.construction_nodes, node);
         ArrayPush(sites.construction_rows, row);
         ArrayPush(sites.construction_starts, ArrayLength(sites.construction_values));
@@ -181,6 +184,7 @@ func SemanticStringWindowCollectCall(artifact: AstTreeArtifact,
         }
         return;
     }
+    if target_id == 0 { return; }
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, target_id);
     let callee: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
         analysis.expression_surfaces.expression_graph, call.callee_node);
