@@ -9,7 +9,7 @@ func ReplaceAndReturn(inout value: VexaTag) -> Int {
 }
 
 func Main() -> Void {
-    let value: VexaTag = Aster(63);
+    var value: VexaTag = Aster(63);
     var sink: Int = 0;
     sink = ReplaceAndReturn(value);
     Log(value.Aster._0);

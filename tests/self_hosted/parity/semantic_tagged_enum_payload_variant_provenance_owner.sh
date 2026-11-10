@@ -54,7 +54,7 @@ negatives=(
     enum_payload_variant_if_condition_inout_stale
     enum_payload_variant_if_header_inout_stale
     enum_payload_variant_member_inout_stale
-    enum_payload_variant_ref_forward_inout_stale
+    enum_payload_variant_forward_inout_stale
     enum_payload_variant_generic_receiver_unproven
     enum_payload_variant_match_binding_shadow_unproven
     enum_payload_variant_while_condition_backedge

@@ -9,7 +9,7 @@ func ReplaceAndTrue(inout value: VexaTag) -> Bool {
 }
 
 func Main() -> Void {
-    let value: VexaTag = Aster(68);
+    var value: VexaTag = Aster(68);
     if ReplaceAndTrue(value) && value.Aster._0 > 0 {
         Log(1);
     }

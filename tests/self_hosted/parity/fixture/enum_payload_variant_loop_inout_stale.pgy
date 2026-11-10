@@ -8,7 +8,7 @@ func ReplaceWithBrume(inout value: VexaTag) -> Void {
 }
 
 func Main() -> Void {
-    let value: VexaTag = Aster(61);
+    var value: VexaTag = Aster(61);
     for i in 0..1 {
         ReplaceWithBrume(value);
     }

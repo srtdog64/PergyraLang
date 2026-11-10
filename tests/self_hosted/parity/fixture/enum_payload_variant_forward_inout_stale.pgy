@@ -7,12 +7,12 @@ func Replace(inout value: VexaTag) -> Void {
     value = Brume(72);
 }
 
-func Forward(ref value: VexaTag) -> Void {
+func Forward(inout value: VexaTag) -> Void {
     Replace(value);
 }
 
 func Main() -> Void {
-    let value: VexaTag = Aster(71);
+    var value: VexaTag = Aster(71);
     Forward(value);
     Log(value.Aster._0);
 }

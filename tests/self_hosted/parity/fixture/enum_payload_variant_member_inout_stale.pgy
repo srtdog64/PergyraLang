@@ -13,7 +13,7 @@ class Worker {
 
 func Main() -> Void {
     let worker: Worker = Worker(0);
-    let value: VexaTag = Aster(68);
+    var value: VexaTag = Aster(68);
     worker.Replace(value);
     Log(value.Aster._0);
 }
