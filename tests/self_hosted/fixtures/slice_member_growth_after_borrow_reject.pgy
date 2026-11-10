@@ -1,5 +1,5 @@
 struct SliceMemberBag {
-    let values: Array<Int>;
+    var values: Array<Int>;
 }
 
 func Main() -> Void {
