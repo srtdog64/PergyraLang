@@ -1,5 +1,5 @@
 subject Counter {
-    let value: Int;
+    var value: Int;
 
     action Inc(self) -> Void {
         value = value + 1;

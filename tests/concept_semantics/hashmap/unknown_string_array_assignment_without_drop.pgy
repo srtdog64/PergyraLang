@@ -5,7 +5,7 @@ func BorrowedStrings() -> Array<String> {
 
 func Main() -> Void {
     let returned: Array<String> = BorrowedStrings();
-    let alias: Array<String> = [];
+    var alias: Array<String> = [];
     alias = returned;
     Log(ArrayLength(alias));
 }

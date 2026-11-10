@@ -3,10 +3,10 @@ func Append(inout values: Array<String>) -> Void {
 }
 
 func Main() -> Void {
-    let iteration: Int = 0;
+    var iteration: Int = 0;
     while iteration < 2 {
-        let values: Array<String> = [];
-        let input: Int = 0;
+        var values: Array<String> = [];
+        var input: Int = 0;
         while input < 1 {
             ArrayPush(values, "before");
             input = input + 1;

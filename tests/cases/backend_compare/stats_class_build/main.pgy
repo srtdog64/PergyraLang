@@ -16,9 +16,9 @@ func Variance(s: Stats) -> Int {
 }
 
 func Build(arr: Array<Int>, n: Int) -> Stats {
-    let sum: Int = 0;
-    let max: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var max: Int = 0;
+    var i: Int = 0;
     while i < n {
         sum = sum + arr[i];
         if arr[i] > max { max = arr[i]; }

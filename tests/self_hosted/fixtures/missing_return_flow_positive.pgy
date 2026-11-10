@@ -39,7 +39,7 @@ func OrZero(value: Option<Int>) -> Int {
 }
 
 func FirstAtLeast(limit: Int) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while true {
         if i >= limit {
             return i;
@@ -49,7 +49,7 @@ func FirstAtLeast(limit: Int) -> Int {
 }
 
 func Countdown(start: Int) -> Int {
-    let n: Int = start;
+    var n: Int = start;
     loop {
         if n <= 0 {
             return n;

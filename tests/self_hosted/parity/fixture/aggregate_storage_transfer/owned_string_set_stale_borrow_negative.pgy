@@ -1,6 +1,6 @@
 func Main() -> Void
 {
-    let values: Array<String> = Clone(["before", "after"]);
+    var values: Array<String> = Clone(["before", "after"]);
     let stale: String = values[0];
     ArraySet(values, 0, "replacement");
     Log(stale);

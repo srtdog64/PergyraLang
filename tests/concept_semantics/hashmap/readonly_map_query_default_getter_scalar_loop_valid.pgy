@@ -3,8 +3,8 @@ func EchoText(text: String) -> String { return text; }
 func EchoRecord(record: TextRecord) -> TextRecord { return record; }
 func Main() -> Void {
     let record = TextRecord(Concat("heap", " text"));
-    let row: Int = 0;
-    let total: Int = 0;
+    var row: Int = 0;
+    var total: Int = 0;
     while row < 3 {
         let observed_record = EchoRecord(record);
         let observed_text = EchoText(observed_record.text);

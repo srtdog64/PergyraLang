@@ -5,8 +5,8 @@ func Required(ref source: Array<String>, field: String, inout values: Array<Stri
 }
 
 func Build(ref source: Array<String>) -> Int {
-    let ids: Array<String> = [];
-    let row: Int = 0;
+    var ids: Array<String> = [];
+    var row: Int = 0;
     while row < 3 {
         if !Required(source, "program", ids) { return -1; }
         ArrayPush(ids, "lit");

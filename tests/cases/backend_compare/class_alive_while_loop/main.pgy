@@ -15,8 +15,8 @@ func StepCell(c: Cell) -> Cell {
 }
 
 func RunUntilDead(start: Int) -> Int {
-    let c: Cell = MakeCell(start);
-    let steps: Int = 0;
+    var c: Cell = MakeCell(start);
+    var steps: Int = 0;
     while c.alive {
         c = StepCell(c);
         steps = steps + 1;

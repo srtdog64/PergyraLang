@@ -5,7 +5,7 @@ struct NodeSet {
 }
 
 func NodeSetAddInt(facts: NodeSet) -> NodeSet {
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, "Int");
     ArrayPush(types, "Bool");
     ArrayPush(types, "Long");

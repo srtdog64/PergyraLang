@@ -1,6 +1,6 @@
 func Main() -> Int {
     let values: List<Int> = ListNew();
-    let copy: List<Int> = values;
+    var copy: List<Int> = values;
     ListPush(copy, 1);
     return ListSize(values);
 }

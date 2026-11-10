@@ -6,7 +6,7 @@ func FillBounds(
 }
 
 func Main() -> Void {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     FillBounds(3, bounds, 7, 9);
     Log(ToString(bounds[0]));
     Log(ToString(bounds[1]));

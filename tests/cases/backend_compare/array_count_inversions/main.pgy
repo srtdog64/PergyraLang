@@ -1,8 +1,8 @@
 func CountInversions(arr: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let j: Int = i + 1;
+        var j: Int = i + 1;
         while j < n {
             if arr[i] > arr[j] { count = count + 1; }
             j = j + 1;

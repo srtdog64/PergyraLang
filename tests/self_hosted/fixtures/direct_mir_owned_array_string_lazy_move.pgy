@@ -3,7 +3,7 @@ func Consume(own values: Array<String>) -> Bool {
     return true;
 }
 func Build() -> Bool {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("allocated", "-owner"));
     return true || Consume(values);
 }

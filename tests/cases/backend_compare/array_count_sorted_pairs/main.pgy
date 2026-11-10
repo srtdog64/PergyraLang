@@ -1,6 +1,6 @@
 func CountAscPairs(arr: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n - 1 {
         if arr[i] < arr[i + 1] { count = count + 1; }
         i = i + 1;
@@ -9,8 +9,8 @@ func CountAscPairs(arr: Array<Int>, n: Int) -> Int {
 }
 
 func CountAscTriples(arr: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n - 2 {
         if arr[i] < arr[i + 1] && arr[i + 1] < arr[i + 2] { count = count + 1; }
         i = i + 1;

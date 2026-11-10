@@ -9,7 +9,7 @@ func StackNew() -> Stack {
 }
 
 func StackPush(s: Stack, v: Int) -> Stack {
-    let new_arr: Array<Int> = s.data;
+    var new_arr: Array<Int> = s.data;
     ArrayPush(new_arr, v);
     return Stack(new_arr, s.size + 1);
 }

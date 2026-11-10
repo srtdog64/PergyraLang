@@ -1,7 +1,7 @@
 struct Rows { names: Array<String>; }
 func Append(rows: Rows, ref source: Array<String>) -> Rows {
-    let names: Array<String> = rows.names;
-    let row: Int = 0;
+    var names: Array<String> = rows.names;
+    var row: Int = 0;
     while row < ArrayLength(source) {
         ArrayPush(names, source[row]);
         row = row + 1;
@@ -9,7 +9,7 @@ func Append(rows: Rows, ref source: Array<String>) -> Rows {
     return Rows(names);
 }
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "copied");
     let rows: Rows = Append(Rows(["prior"]), source);
     ArrayDropOwnedStrings(source);

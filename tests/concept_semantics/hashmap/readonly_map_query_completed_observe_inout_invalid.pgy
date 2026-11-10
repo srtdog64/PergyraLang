@@ -6,6 +6,6 @@ func ReadRecord(ref record: TextRecord, inout output: TextRecord) -> Bool {
 }
 func Main() -> Void {
     let record: TextRecord = TextRecord(Concat("heap", " text"));
-    let output: TextRecord = TextRecord("");
+    var output: TextRecord = TextRecord("");
     Log(ReadRecord(record, output));
 }

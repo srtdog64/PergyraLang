@@ -1,8 +1,8 @@
 func Main() -> Void {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 5 {
-        let j: Int = 0;
+        var j: Int = 0;
         while j < 5 {
             if i + j > 5 {
                 break;

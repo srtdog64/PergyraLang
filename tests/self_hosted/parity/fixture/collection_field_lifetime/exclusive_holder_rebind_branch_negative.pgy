@@ -9,7 +9,7 @@ struct Holder {
 }
 
 func Grow(box: Box) -> Box {
-    let items: Array<String> = box.items;
+    var items: Array<String> = box.items;
     ArrayPush(items, "g");
     ArrayPush(items, "g");
     return Box(items);
@@ -21,7 +21,7 @@ func Fresh() -> Holder {
 }
 
 func Run(box: Box, flag: Bool) -> Int {
-    let holder: Holder = Holder(box);
+    var holder: Holder = Holder(box);
     let grown: Box = Grow(box);
     if flag { holder = Fresh(); }
     return StringLength(holder.box.items[0]) + ArrayLength(grown.items);

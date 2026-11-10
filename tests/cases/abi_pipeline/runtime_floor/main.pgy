@@ -1,6 +1,6 @@
 func Spin(limit: Int) -> Int {
-    let i: Int = 0;
-    let acc: Int = 0;
+    var i: Int = 0;
+    var acc: Int = 0;
     while i < limit {
         acc = acc + 1;
         i = i + 1;

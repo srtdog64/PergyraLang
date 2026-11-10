@@ -3,8 +3,8 @@ func Work(n: Int) -> Int {
     return StringLength(StringConcat("abcdef", "ghij"));
 }
 func Main() -> Void {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 20 {
         total = total + Work(i);
         i = i + 1;

@@ -1,8 +1,8 @@
 func CountWords(s: String) -> Int {
     let n: Int = StringLength(s);
-    let i: Int = 0;
-    let words: Int = 0;
-    let in_word: Bool = false;
+    var i: Int = 0;
+    var words: Int = 0;
+    var in_word: Bool = false;
     while i < n {
         let ch: String = Substring(s, i, i + 1);
         if ch == " " {

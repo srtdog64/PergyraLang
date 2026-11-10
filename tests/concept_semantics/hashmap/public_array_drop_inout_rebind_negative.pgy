@@ -2,7 +2,7 @@ func Replace(inout target: Array<Int>, source: Array<Int>) -> Void {
     target = source;
 }
 func Main() -> Void {
-    let values: Array<Int> = [1];
+    var values: Array<Int> = [1];
     let borrowed: Array<Int> = [2];
     Replace(values, borrowed);
     ArrayDrop(values);

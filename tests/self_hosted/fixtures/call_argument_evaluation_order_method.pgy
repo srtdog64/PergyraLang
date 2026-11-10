@@ -17,7 +17,7 @@ func Tag(t: String) -> Int {
 func Main() -> Void {
     let a: Acc = Acc(100);
     Log(a.Pair(Tag("a"), Tag("b")));
-    let items: Array<Int> = [];
+    var items: Array<Int> = [];
     ArrayPush(items, Tag("c"));
     ArraySet(items, Tag("d") - 1, Tag("e") + 5);
     Log(items[0]);

@@ -1,7 +1,7 @@
 func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
 func Forward(own values: Array<String>) -> Int {
-    let moved: Array<String> = [];
+    var moved: Array<String> = [];
     defer { Opaque(moved); }
     moved = values;
     return Metadata(moved);

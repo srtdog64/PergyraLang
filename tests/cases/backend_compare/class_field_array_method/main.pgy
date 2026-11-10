@@ -7,8 +7,8 @@ class Buf {
     }
 
     func Sum(self) -> Int {
-        let total: Int = 0;
-        let i: Int = 0;
+        var total: Int = 0;
+        var i: Int = 0;
         while i < len {
             total = total + nums[i];
             i = i + 1;

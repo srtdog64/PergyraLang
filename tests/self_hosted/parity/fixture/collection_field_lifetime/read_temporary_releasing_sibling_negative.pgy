@@ -7,15 +7,15 @@ struct TableHolder {
 }
 
 func HolderRelease(inout holder: TableHolder) -> Void {
-    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    var tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
     SemanticAstExpressionFunctionTableFactsRelease(tables);
     holder.tables = tables;
 }
 
 func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
     ArrayPushOwnedString(names, "OwnedCallable");
     ArrayPushOwnedString(returns, "Void");
     ArrayPushOwnedString(params, "");
@@ -29,7 +29,7 @@ func ReadAfterRelease(inout holder: TableHolder, names: Array<String>) -> Int {
 }
 
 func Main() -> Int {
-    let holder: TableHolder = TableHolder(OwnedTables(), 1);
+    var holder: TableHolder = TableHolder(OwnedTables(), 1);
     let first: String = holder.tables.names[0];
     return ReadAfterRelease(holder, [first]);
 }

@@ -6,7 +6,7 @@ func BorrowedBranch(flag: Bool, source: String) -> String
 
 func Main() -> Void
 {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, BorrowedBranch(false, "borrowed"));
     ArrayDropOwnedStrings(fields);
 }

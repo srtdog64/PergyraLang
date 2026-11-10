@@ -1,5 +1,5 @@
 subject Buyer {
-    let hp: Int;
+    var hp: Int;
 
     action Pay(self) -> Void {
         hp = hp - 1;

@@ -1,5 +1,5 @@
 func Observe(inout map: HashMap<String, String>) -> Void {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "k", "old");
     map = table;
     let saved: String = MapGet(table, "k");
@@ -7,6 +7,6 @@ func Observe(inout map: HashMap<String, String>) -> Void {
     Log(saved);
 }
 func Main() -> Void {
-    let target: HashMap<String, String> = MapNew();
+    var target: HashMap<String, String> = MapNew();
     Observe(target);
 }

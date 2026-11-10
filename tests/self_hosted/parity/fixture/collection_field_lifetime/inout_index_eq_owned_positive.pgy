@@ -1,6 +1,6 @@
 func FindIndex(values: Array<String>, name: String) -> Int
 {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(values)
     {
         if values[row] == name { return row; }
@@ -10,7 +10,7 @@ func FindIndex(values: Array<String>, name: String) -> Int
 }
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "copied");
     let row: Int = FindIndex(values, "copied");
     ArrayDropOwnedStrings(values);

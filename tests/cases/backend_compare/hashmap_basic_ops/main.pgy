@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let pairs: HashMap<Int, Int> = MapNew();
+    var pairs: HashMap<Int, Int> = MapNew();
     MapSet(pairs, 1, 100);
     MapSet(pairs, 2, 200);
     MapSet(pairs, 3, 300);

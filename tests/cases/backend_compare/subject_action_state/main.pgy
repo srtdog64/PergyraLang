@@ -1,7 +1,7 @@
 subject Player {
     let name: String;
-    let hp: Int;
-    let level: Int;
+    var hp: Int;
+    var level: Int;
 
     action Heal(self, amount: Int) -> Int {
         hp = hp + amount;

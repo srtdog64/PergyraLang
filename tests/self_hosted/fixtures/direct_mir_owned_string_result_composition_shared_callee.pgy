@@ -19,7 +19,7 @@ func Owned1() -> String
 
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, Owned0(true));
     ArrayPush(values, Owned0(false));
     ArrayDropOwnedStrings(values);

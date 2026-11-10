@@ -8,7 +8,7 @@ class Probe {
 }
 
 func TryEach(p1: Probe, p2: Probe, p3: Probe) -> Int {
-    let sum: Int = 0;
+    var sum: Int = 0;
     match p1.Try() {
         case Some(va): sum = sum + va;
         case None: sum = sum - 1;

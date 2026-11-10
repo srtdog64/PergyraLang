@@ -3,20 +3,20 @@ enum Op { Sum, Product, MaxV }
 func Compute(arr: Array<Int>, n: Int, op: Op) -> Int {
     match op {
         case Sum:
-            let suma: Int = 0;
+            var suma: Int = 0;
             for va in arr {
                 suma = suma + va;
             }
             return suma;
         case Product:
-            let prodv: Int = 1;
+            var prodv: Int = 1;
             for vb in arr {
                 prodv = prodv * vb;
             }
             return prodv;
         case MaxV:
             if n == 0 { return 0; }
-            let best: Int = arr[0];
+            var best: Int = arr[0];
             for vc in arr {
                 if vc > best { best = vc; }
             }

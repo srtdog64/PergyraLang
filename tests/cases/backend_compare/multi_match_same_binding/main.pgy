@@ -6,7 +6,7 @@ func Pick(n: Int) -> Option<Int> {
 }
 
 func Score(a: Int, b: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     match Pick(a) {
         case Some(v): total = total + v;
         case None: total = total + 10;

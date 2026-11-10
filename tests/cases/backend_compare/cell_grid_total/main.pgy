@@ -10,7 +10,7 @@ func MakeCell(seed: Int) -> Cell {
 }
 
 func TotalGrid(start: Int, n: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..n {
         total = total + MakeCell(start + i * 7).Score();
     }

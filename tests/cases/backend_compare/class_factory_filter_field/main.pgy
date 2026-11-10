@@ -7,8 +7,8 @@ class Plot {
 func Make(r: Int, c: Int, v: Int) -> Plot { return Plot(r, c, v); }
 
 func TotalByRow(plots: Array<Int>, n: Int, target_row: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let p: Plot = Make(i / 10, i % 10, plots[i]);
         if p.row == target_row { total = total + p.val; }

@@ -1,8 +1,8 @@
 subject Clerk
 {
-    let reserved: Int;
-    let charged: Int;
-    let shipped: Int;
+    var reserved: Int;
+    var charged: Int;
+    var shipped: Int;
 
     action Reserve(self) -> Void
     {
@@ -162,7 +162,7 @@ func Main() -> Void
     Log("[ShippingZone] shipped=" + ToString(shipping.clerk.shipped));
     Log("[History] count=" + ToString(IntentHistoryCount()));
 
-    let i = 0;
+    var i = 0;
     while i < IntentHistoryCount()
     {
         Log("[Step] " + IntentHistoryStepName(i)

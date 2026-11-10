@@ -9,7 +9,7 @@ func AddPath(inout paths: Set<String>, path: String) -> Void {
 }
 
 func Main() -> Void {
-    let paths: Set<String> = SetNew();
+    var paths: Set<String> = SetNew();
     AddPath(paths, "alpha");
     if ContainsPath(paths, "alpha") && !ContainsPath(paths, "beta") {
         Log("set-string-value-ready");

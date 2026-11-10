@@ -213,7 +213,7 @@ world CampaignWorld
 
     func RunCampaign(self) -> Void
     {
-        let day = 0;
+        var day = 0;
 
         with slot<Int> as commandBudget
         {

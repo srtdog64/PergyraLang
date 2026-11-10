@@ -19,7 +19,7 @@ func ClearOptionMember(inout state: OptionMemberState) -> Void {
 
 func Main() -> Void {
     let missing: Option<OptionMemberReceipt> = None;
-    let state: OptionMemberState = OptionMemberState { outcome: missing };
+    var state: OptionMemberState = OptionMemberState { outcome: missing };
     PublishOptionMember(state, 41);
     if IsSome(state.outcome) {
         Log(UnwrapOption(state.outcome).value);

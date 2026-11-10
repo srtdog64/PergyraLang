@@ -4,6 +4,6 @@ func Update(inout output: Buffer) -> Void {
 }
 func Main() -> Void {
     let values: Array<Int> = [];
-    let output: Buffer = Buffer(values);
+    var output: Buffer = Buffer(values);
     Update(output);
 }

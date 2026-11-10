@@ -22,7 +22,7 @@ func Main() -> Void
 {
     let seed: Array<String> = [];
     let alias: Array<String> = seed;
-    let names: CapturedNames = CapturedNames(seed, alias);
+    var names: CapturedNames = CapturedNames(seed, alias);
     ArrayPushOwnedString(names.left, "left");
     Retire(names);
 }

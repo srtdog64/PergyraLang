@@ -1,8 +1,8 @@
 struct Rows { types: Array<String>; }
 func DeferredCapture(inout rows: Rows) -> Int
 {
-    let types: Array<String> = rows.types;
-    let count: Int = 0;
+    var types: Array<String> = rows.types;
+    var count: Int = 0;
     while count < 8
     {
         ArrayPush(types, "row");
@@ -17,7 +17,7 @@ func DeferredCapture(inout rows: Rows) -> Int
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     Log(DeferredCapture(rows));
     Log(ArrayLength(rows.types));
     Log(rows.types[9]);

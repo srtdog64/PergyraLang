@@ -1,6 +1,6 @@
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
 func Forward(own first: Array<String>) -> Int {
-    let moved: Array<String> = [];
+    var moved: Array<String> = [];
     moved = first;
     let a: Int = Metadata(moved);
     moved = first;

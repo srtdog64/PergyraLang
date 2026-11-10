@@ -19,7 +19,7 @@ struct Kept {
 
 func Attach(inout analysis: Analysis) -> Int {
     let surfaces: Surfaces = analysis.surfaces;
-    let texts: Array<String> = surfaces.graph.texts;
+    var texts: Array<String> = surfaces.graph.texts;
     ArrayPush(texts, "x");
     ArrayPush(texts, "y");
     let count: Int = ArrayLength(texts);
@@ -30,7 +30,7 @@ func Attach(inout analysis: Analysis) -> Int {
 func Main() -> Int {
     let names: Array<String> = ["n"];
     let texts: Array<String> = ["t"];
-    let analysis: Analysis = Analysis(Surfaces(Graph(texts)), names);
+    var analysis: Analysis = Analysis(Surfaces(Graph(texts)), names);
     let kept: Kept = Kept(analysis.surfaces);
     let grown: Int = Attach(analysis);
     Log(ToString(grown + StringLength(kept.surfaces.graph.texts[0]) + ArrayLength(analysis.names)));

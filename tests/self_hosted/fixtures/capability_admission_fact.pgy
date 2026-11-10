@@ -4,12 +4,12 @@ import "../../../src/self_hosted/semantic/diagnostic_contract_owner.pgy";
 func Main() -> Void {
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Spare\n    Parameters:\n    Returns: Int\n    Caps: random\n    Body:\n      Block:\n        Return: 7\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: Spare()\n");
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     Log(body.verdict.ok && SemanticAstBodyTypeBundleReady(artifact, analysis, body));
-    let facts: SemanticAstCapabilityFacts = body.capabilities;
+    var facts: SemanticAstCapabilityFacts = body.capabilities;
     let random: Int = CallableContractVocabularyMaskValueAt(
         CallableContractVocabularyFindIndex(CallableContractVocabularyCapabilityAxis(), "random"));
     let declared: Option<Int> = SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, 0);
@@ -37,7 +37,7 @@ func Main() -> Void {
     let empty: Array<Int> = [];
     facts.declared_masks = empty;
     Log(!SemanticAstCapabilityFactsReady(artifact, analysis, facts));
-    let node: Int = 0;
+    var node: Int = 0;
     while node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
             // Inference consumes the already-admitted declaration identity;

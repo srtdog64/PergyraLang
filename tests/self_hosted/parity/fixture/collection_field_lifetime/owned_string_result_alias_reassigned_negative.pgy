@@ -4,12 +4,12 @@ func MakeString() -> String {
     TextBuilderAppend(output, "owned");
     let result: String = TextBuilderFinish(output, allocator);
     AllocatorDestroy(allocator);
-    let returned: String = result;
+    var returned: String = result;
     returned = "borrowed";
     return returned;
 }
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, MakeString());
     ArrayDropOwnedStrings(values);
 }

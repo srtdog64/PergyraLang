@@ -7,7 +7,7 @@ func Main() -> Void with caps env, io_read {
     if ArrayLength(args) != 1 && ArrayLength(args) != 2 { Exit(2); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     Log("body_ok=" + ToString(bundle.verdict.ok));
@@ -31,8 +31,8 @@ func Main() -> Void with caps env, io_read {
     if !SemanticAstCollectionCallEffectFactsReady(calls, definitions.local_count) {
         Log("call-effect owner not reached"); Exit(2);
     }
-    let found: Int = 0;
-    let row: Int = 0;
+    var found: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(formals.inventory.formal_nodes) {
         let function: Int = formals.inventory.function_nodes[row];
         let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function);
@@ -45,7 +45,7 @@ func Main() -> Void with caps env, io_read {
               UnwrapOption(name) == "CodegenValueWrapperUsageContains")) {
             let formal: Int = formals.inventory.formal_nodes[row];
             let key: String = ToString(formal);
-            let effect: Int = -1;
+            var effect: Int = -1;
             if MapHas(proved, key) { effect = MapGet(proved, key); }
             Log("function=" + UnwrapOption(name));
             Log("formal=" + key);
@@ -57,16 +57,16 @@ func Main() -> Void with caps env, io_read {
             Log("non_deep=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_non_deep_drop_sites, formal)));
             Log("descriptor_retiring=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_descriptor_retiring_sites, formal)));
             if ArrayLength(args) == 2 {
-                let surface: Int = 0;
+                var surface: Int = 0;
                 while surface < ArrayLength(analysis.expression_surfaces.node_ids) {
                     if analysis.expression_surfaces.function_node_ids[surface] == formals.inventory.function_nodes[row] {
-                        let lane: Int = 0;
+                        var lane: Int = 0;
                         while lane < 3 {
                             let slot: Int = surface * 3 + lane;
                             if analysis.expression_surfaces.expression_graph.has_roots[slot] {
                                 let start: Option<Int> = SemanticExpressionGraphRootStartAt(analysis.expression_surfaces.expression_graph, slot);
                                 if !IsSome(start) { Exit(2); }
-                                let node: Int = UnwrapOption(start);
+                                var node: Int = UnwrapOption(start);
                                 while node <= analysis.expression_surfaces.expression_graph.roots[slot] {
                                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
                                     if edge.ok {
@@ -92,7 +92,7 @@ func Main() -> Void with caps env, io_read {
         }
         row = row + 1;
     }
-    let expected: Int = 2;
+    var expected: Int = 2;
     if ArrayLength(args) == 2 { expected = 1; }
     if found != expected { Log("expected exact selected formals"); Exit(2); }
 }

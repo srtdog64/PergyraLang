@@ -5,8 +5,8 @@ func CopyIndexedString(
 }
 
 func Main() -> Void {
-    let source: Array<String> = [];
-    let destination: Array<String> = [];
+    var source: Array<String> = [];
+    var destination: Array<String> = [];
     ArrayPushOwnedString(source, "copied");
     CopyIndexedString(source, destination);
     Log(destination[0] == "copied");

@@ -6,8 +6,8 @@ struct NodeSet {
 }
 
 func NodeSetGrowUntil(facts: NodeSet, count: Int) -> NodeSet {
-    let types: Array<String> = facts.types;
-    let index: Int = 0;
+    var types: Array<String> = facts.types;
+    var index: Int = 0;
     while index < count {
         if index == 3 { return facts; }
         ArrayPush(types, "a");
@@ -18,7 +18,7 @@ func NodeSetGrowUntil(facts: NodeSet, count: Int) -> NodeSet {
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetGrowUntil(facts, 5);
     return StringLength(facts.types[0]);
 }

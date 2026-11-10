@@ -13,8 +13,8 @@ func Step(m: Machine) -> Machine {
 }
 
 func RunUntilDead(steps_max: Int) -> Int {
-    let m: Machine = Make();
-    let i: Int = 0;
+    var m: Machine = Make();
+    var i: Int = 0;
     while m.alive && i < steps_max {
         m = Step(m);
         i = i + 1;

@@ -22,8 +22,8 @@ func IsRed(o: Option<Suit>) -> Int {
 }
 
 func CountReds(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + IsRed(ToSuit(arr[i]));
         i = i + 1;

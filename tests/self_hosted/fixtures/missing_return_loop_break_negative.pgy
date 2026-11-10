@@ -1,6 +1,6 @@
 // A break leaves `while true`, so the function can reach its end.
 func Scan(limit: Int) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while true {
         if i >= limit {
             break;

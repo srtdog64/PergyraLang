@@ -4,8 +4,8 @@ class Tag {
 }
 
 func MakeTags(n: Int, base: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let t: Tag = Tag(base + i, i + 1);
         total = total + t.id * t.weight;

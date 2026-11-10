@@ -3,8 +3,8 @@ func Capture(inout rows: Rows, json: String) -> Int
 {
     let extent: Int = StringLength(json);
     if extent < 2 || CharCode(json, extent, 0) != 91 { return -1; }
-    let types: Array<String> = rows.types;
-    let cursor: Int = 1;
+    var types: Array<String> = rows.types;
+    var cursor: Int = 1;
     while cursor < extent {
         if CharCode(json, extent, cursor) == 93 {
             if cursor + 1 != extent { return -1; }
@@ -27,7 +27,7 @@ func Capture(inout rows: Rows, json: String) -> Int
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     Log(Capture(rows, "[[0],[0],[0],[0],[0],[0],[0],[0],bad]"));
     Log(ArrayLength(rows.types));
     Log(rows.types[0]);

@@ -1,7 +1,7 @@
 import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
 struct Emission { body: String; cleanup: String; }
 func DuplicateConstructorMove() -> Emission {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", "-row"));
     return Emission(CodegenJoinOwnedStringFragments(rows, ""), CodegenJoinOwnedStringFragments(rows, ""));
 }

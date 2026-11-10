@@ -16,7 +16,7 @@ func RequiredString(
 
 func Main() -> Void {
     let row: RequiredStringRow = RequiredStringRow(true, "{}");
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     if RequiredString(row, "name", values) {
         Log("readonly-record-one-copyout-ready");
     } else {

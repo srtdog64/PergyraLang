@@ -4,8 +4,8 @@ func MaybeFlag(n: Int) -> Option<Bool> {
 }
 
 func CountActive(arr: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if MaybeFlag(arr[i]) ?? false {
             count = count + 1;

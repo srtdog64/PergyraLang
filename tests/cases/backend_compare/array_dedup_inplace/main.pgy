@@ -1,7 +1,7 @@
 func DedupSorted(inout arr: Array<Int>, n: Int) -> Int {
     if n <= 1 { return n; }
-    let write: Int = 1;
-    let i: Int = 1;
+    var write: Int = 1;
+    var i: Int = 1;
     while i < n {
         if arr[i] != arr[write - 1] {
             arr[write] = arr[i];
@@ -14,8 +14,8 @@ func DedupSorted(inout arr: Array<Int>, n: Int) -> Int {
 
 func DedupSum(arr: Array<Int>, n: Int) -> Int {
     let m: Int = DedupSorted(arr, n);
-    let s: Int = 0;
-    let i: Int = 0;
+    var s: Int = 0;
+    var i: Int = 0;
     while i < m {
         s = s + arr[i];
         i = i + 1;

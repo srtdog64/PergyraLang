@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "hero", "knight");
     Log(MapGet(table, "hero"));
 }

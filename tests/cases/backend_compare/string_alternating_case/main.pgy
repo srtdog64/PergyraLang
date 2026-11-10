@@ -1,6 +1,6 @@
 func AlternatingCase(s: String) -> String {
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     let n: Int = StringLength(s);
     while i < n {
         let ch: String = Substring(s, i, 1);

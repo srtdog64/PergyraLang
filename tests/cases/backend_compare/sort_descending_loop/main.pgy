@@ -1,9 +1,9 @@
 func Main() -> Void {
-    let xs: Array<Int> = [3, 7, 1, 9, 4, 6, 2];
+    var xs: Array<Int> = [3, 7, 1, 9, 4, 6, 2];
     let n: Int = ArrayLength(xs);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n - 1 {
-        let j: Int = 0;
+        var j: Int = 0;
         while j < n - 1 - i {
             if xs[j] < xs[j + 1] {
                 let tmp: Int = xs[j];
@@ -14,7 +14,7 @@ func Main() -> Void {
         }
         i = i + 1;
     }
-    let k: Int = 0;
+    var k: Int = 0;
     while k < n {
         Log(xs[k]);
         k = k + 1;

@@ -1,13 +1,13 @@
 func Main() -> Void {
     let xs: Array<Int> = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    let target: Set<Int> = SetNew();
+    var target: Set<Int> = SetNew();
     SetAdd(target, 2);
     SetAdd(target, 5);
     SetAdd(target, 8);
 
-    let matched: Int = 0;
-    let unmatched: Int = 0;
-    let i: Int = 0;
+    var matched: Int = 0;
+    var unmatched: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         if SetHas(target, xs[i]) { matched = matched + xs[i]; }
         if !SetHas(target, xs[i]) { unmatched = unmatched + xs[i]; }

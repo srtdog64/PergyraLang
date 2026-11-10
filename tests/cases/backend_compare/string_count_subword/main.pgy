@@ -6,8 +6,8 @@ func StartsAt(s: String, needle: String, pos: Int) -> Bool {
 
 func Count(s: String, needle: String) -> Int {
     let n: Int = StringLength(s);
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if StartsAt(s, needle, i) {
             count = count + 1;

@@ -10,7 +10,7 @@ struct Holder {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, "r");
     ArrayPush(rows, "r");
     return Facts(facts.ok, rows);

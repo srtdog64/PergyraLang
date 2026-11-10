@@ -20,7 +20,7 @@ func Mutate(inout values: Array<String>) -> Array<String>
 
 func Main() -> Void
 {
-    let seed: Array<String> = [];
-    let names: CapturedNames = CapturedNames(Mutate(seed), seed);
+    var seed: Array<String> = [];
+    var names: CapturedNames = CapturedNames(Mutate(seed), seed);
     Retire(names);
 }

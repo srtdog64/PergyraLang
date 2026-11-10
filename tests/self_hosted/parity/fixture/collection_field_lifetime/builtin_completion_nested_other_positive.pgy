@@ -3,8 +3,8 @@ func Stamp(inout values: Array<String>) -> String {
     return "outer";
 }
 func Main() -> Void {
-    let a: Array<String> = [];
-    let b: Array<String> = [];
+    var a: Array<String> = [];
+    var b: Array<String> = [];
     ArrayPushOwnedString(a, Stamp(b));
     ArrayDropOwnedStrings(a);
     ArrayDropOwnedStrings(b);

@@ -4,8 +4,8 @@ func Main() -> Void {
     let maxCalls: Int = 10;
     let waitMs: Long = 50;
     let deadline: Long = Now() + waitMs;
-    let calls: Int = 1;
-    let waiting: Bool = true;
+    var calls: Int = 1;
+    var waiting: Bool = true;
     while waiting && calls < maxCalls {
         Sleep(10);
         calls = calls + 1;

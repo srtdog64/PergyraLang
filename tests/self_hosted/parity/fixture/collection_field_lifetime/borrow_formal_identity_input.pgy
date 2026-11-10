@@ -13,7 +13,7 @@ func Modes(default_values: Array<String>, inout inout_values: Array<String>, own
 }
 func Main() -> Void {
     let a: Array<String> = ["borrowed"];
-    let b: Array<String> = ["borrowed"];
+    var b: Array<String> = ["borrowed"];
     let c: Array<String> = ["borrowed"];
     let d: Array<String> = ["borrowed"];
     Log(Modes(a, b, c, d));

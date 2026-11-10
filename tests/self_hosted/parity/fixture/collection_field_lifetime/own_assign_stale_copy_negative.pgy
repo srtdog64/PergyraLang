@@ -1,6 +1,6 @@
 func Copy(inout values: Array<String>) -> Int { ArrayPushOwnedString(values, "copied"); return 0; }
 func Forward(own values: Array<String>) -> Int {
-    let moved: Array<String> = [];
+    var moved: Array<String> = [];
     moved = values;
     let rejected_copy: Int = Copy(moved);
     return rejected_copy;

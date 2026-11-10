@@ -1,5 +1,5 @@
 func Advance(start: Int, run: Bool) -> Int {
-    let again: Bool = run;
+    var again: Bool = run;
     while again {
         start = 7;
         again = false;

@@ -6,13 +6,13 @@ struct Expr {
 }
 
 func FirstOf(values: Array<String>) -> Expr {
-    let operands: Array<String> = [];
+    var operands: Array<String> = [];
     ArrayPush(operands, values[0]);
     return Expr(true, operands[0]);
 }
 
 func Main() -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("a", "b"));
     let expr: Expr = FirstOf(names);
     ArrayDropOwnedStrings(names);

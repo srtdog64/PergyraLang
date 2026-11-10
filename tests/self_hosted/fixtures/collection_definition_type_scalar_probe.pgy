@@ -5,7 +5,7 @@ func Classify(ref types: Array<String>, row: Int) -> Bool {
     return SemanticAstCollectionOwnershipIsStringArray(type_name);
 }
 func Main() -> Void {
-    let types: Array<String> = [];
+    var types: Array<String> = [];
     ArrayPushOwnedString(types, "Array<String>");
     ArrayPushOwnedString(types, "Array<Int>");
     ArrayPushOwnedString(types, "Slice<String>");

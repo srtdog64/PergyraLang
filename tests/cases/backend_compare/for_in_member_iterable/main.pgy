@@ -6,7 +6,7 @@ class Bag {
 
 func Main() -> Void {
     let b: Bag = Bag([4, 5, 6]);
-    let s: Int = 0;
+    var s: Int = 0;
     for x in b.items {
         s = s + x;
     }

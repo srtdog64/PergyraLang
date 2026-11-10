@@ -17,7 +17,7 @@ func MixedRead(ref values: Array<String>) -> Bool {
 }
 
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "x");
     Log(MixedRead(values));
     ArrayDropOwnedStrings(values);

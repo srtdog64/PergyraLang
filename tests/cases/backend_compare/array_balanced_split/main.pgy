@@ -1,12 +1,12 @@
 func CanSplitEqualSum(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + arr[i];
         i = i + 1;
     }
-    let left: Int = 0;
-    let j: Int = 0;
+    var left: Int = 0;
+    var j: Int = 0;
     while j < n - 1 {
         left = left + arr[j];
         if left * 2 == total { return j + 1; }

@@ -1,9 +1,9 @@
 func Main() -> Void {
     let xs: Array<Int> = [-3, 0, 5, -1, 12, -7, 8, 0, -10];
-    let neg: Int = 0;
-    let pos: Int = 0;
-    let zero: Int = 0;
-    let i: Int = 0;
+    var neg: Int = 0;
+    var pos: Int = 0;
+    var zero: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         if xs[i] < 0 { neg = neg + 1; }
         if xs[i] > 0 { pos = pos + 1; }

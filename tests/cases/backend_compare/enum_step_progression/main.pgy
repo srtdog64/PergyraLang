@@ -9,7 +9,7 @@ func Score(s: Step) -> Int {
 }
 
 func Main() -> Void {
-    let total: Int = 0;
+    var total: Int = 0;
     total = total + Score(Start);
     total = total + Score(Middle);
     total = total + Score(End);

@@ -8,7 +8,7 @@ func MakeQuest(id: Int) -> Quest {
 }
 
 func TotalRewards(start: Int, n: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..n {
         total = total + MakeQuest(start + i).reward;
     }
@@ -17,7 +17,7 @@ func TotalRewards(start: Int, n: Int) -> Int {
 
 func MaxReward(start: Int, n: Int) -> Int {
     if n == 0 { return 0; }
-    let best: Int = MakeQuest(start).reward;
+    var best: Int = MakeQuest(start).reward;
     for i in 1..n {
         let r: Int = MakeQuest(start + i).reward;
         if r > best { best = r; }

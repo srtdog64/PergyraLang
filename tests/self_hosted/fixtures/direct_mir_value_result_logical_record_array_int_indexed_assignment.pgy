@@ -24,7 +24,7 @@ func ResolveTarget(inout analysis: CallTargetAnalysis, node_id: Int) -> Void {
     let first_id: Int = 0;
     analysis.expression_graph.arena.call_target_kinds[first_id] = 7;
     let target: CallTarget = CallTarget(true, 8, "", 0);
-    let targets: Array<Int> = analysis.expression_graph.arena.call_target_kinds;
+    var targets: Array<Int> = analysis.expression_graph.arena.call_target_kinds;
     ArrayPush(targets, target.kind);
     analysis.expression_graph.arena.call_target_kinds[node_id] = ArrayLength(targets) - 1;
     analysis.expression_graph.arena.unknown_effects[node_id] = true;
@@ -35,7 +35,7 @@ func Main() -> Void {
     let unknown_effects: Array<Bool> = [false, false, false];
     let arena: CallTargetArena = CallTargetArena(kinds, unknown_effects);
     let graph: CallTargetGraph = CallTargetGraph(arena);
-    let analysis: CallTargetAnalysis = CallTargetAnalysis(graph);
+    var analysis: CallTargetAnalysis = CallTargetAnalysis(graph);
     ResolveTarget(analysis, 1);
     Log(ToString(analysis.expression_graph.arena.call_target_kinds[1]));
     Log(ToString(analysis.expression_graph.arena.unknown_effects[1]));

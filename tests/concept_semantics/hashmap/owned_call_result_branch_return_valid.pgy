@@ -4,7 +4,7 @@
 struct Count { value: Int; }
 
 func Children(text: String, count: Int) -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, text);
     return rows;
 }
@@ -12,13 +12,13 @@ func Children(text: String, count: Int) -> Array<String> {
 func Shape(text: String) -> Array<String> {
     let n: Int = StringLength(text);
     if n > 0 {
-        let shape: Array<String> = Children(text, 1);
+        var shape: Array<String> = Children(text, 1);
         if ArrayLength(shape) >= 1 {
             ArrayPushOwnedString(shape, text);
         }
         return shape;
     }
-    let leaf: Array<String> = [];
+    var leaf: Array<String> = [];
     ArrayPushOwnedString(leaf, text);
     return leaf;
 }

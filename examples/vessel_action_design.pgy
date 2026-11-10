@@ -73,7 +73,7 @@ vessel Inventory {
     }
 
     func TotalWeight(self) -> Int {
-        let total = 0;
+        var total = 0;
         for item in self.items {
             total = total + item.weight;
         }

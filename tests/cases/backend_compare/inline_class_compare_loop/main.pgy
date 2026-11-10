@@ -7,7 +7,7 @@ class Score {
 
 func Highest(scores_v: Array<Int>, bonus_v: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let best: Int = Score(scores_v[0], bonus_v[0]).Total();
+    var best: Int = Score(scores_v[0], bonus_v[0]).Total();
     for i in 1..n {
         let cur: Int = Score(scores_v[i], bonus_v[i]).Total();
         if cur > best { best = cur; }

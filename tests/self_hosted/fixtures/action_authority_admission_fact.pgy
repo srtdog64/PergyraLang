@@ -10,7 +10,7 @@ func Main() -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Die("action fact probe requires source and valid/invalid"); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
-    let verdict: SemanticAstBodyVerdict = SemanticAstActionContractAdmissionFromFacts(
+    var verdict: SemanticAstBodyVerdict = SemanticAstActionContractAdmissionFromFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.roles, analysis.zone_authorities);
     if args[1] == "invalid" {
         if verdict.ok || verdict.diagnostic_code != "action_contract_invalid" {
@@ -36,14 +36,14 @@ func Main() -> Void with caps env, io_read {
         if !verdict.ok { Log(verdict.diagnostic_message); Die("valid action contract rejected"); }
     } else if args[1] == "valid" {
         if !verdict.ok { Log(verdict.diagnostic_message); Die("explicit authority rejected"); }
-        let authority_ids: Array<Int> = analysis.zone_authorities.subject_slot_node_ids;
+        var authority_ids: Array<Int> = analysis.zone_authorities.subject_slot_node_ids;
         if ArrayLength(authority_ids) != 1 { Die("one-authority mutation control is missing"); }
         let saved: Int = authority_ids[0]; authority_ids[0] = artifact.count + 1;
         verdict = SemanticAstActionContractAdmissionFromFacts(artifact, analysis.signatures,
             analysis.constructors, analysis.roles, analysis.zone_authorities);
         if verdict.ok { Die("crossed authority slot identity accepted"); }
         authority_ids[0] = saved;
-        let callable_ids: Array<Int> = analysis.signatures.action_contracts.callable_node_ids;
+        var callable_ids: Array<Int> = analysis.signatures.action_contracts.callable_node_ids;
         let callable_saved: Int = callable_ids[0]; callable_ids[0] = artifact.count + 1;
         verdict = SemanticAstActionContractAdmissionFromFacts(artifact, analysis.signatures,
             analysis.constructors, analysis.roles, analysis.zone_authorities);

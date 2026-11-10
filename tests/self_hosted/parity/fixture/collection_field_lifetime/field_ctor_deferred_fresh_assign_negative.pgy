@@ -2,7 +2,7 @@
 struct Carrier { values: Array<String>; }
 func Main() -> Void {
     let seed: Array<String> = ["owned"];
-    let values: Array<String> = Clone(seed);
+    var values: Array<String> = Clone(seed);
     let record: Carrier = Carrier(values);
     defer { values = Clone(seed); }
     ArrayDropOwnedStrings(values);

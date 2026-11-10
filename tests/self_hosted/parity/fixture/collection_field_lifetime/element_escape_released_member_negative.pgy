@@ -2,9 +2,9 @@
 import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
 
 func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
     ArrayPushOwnedString(names, "OwnedCallable");
     ArrayPushOwnedString(returns, "Void");
     ArrayPushOwnedString(params, "");
@@ -13,13 +13,13 @@ func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
 }
 
 func Keep(xs: Array<String>) -> Array<String> {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, xs[0]);
     return out;
 }
 
 func Main() -> Int {
-    let facts: SemanticAstExpressionFunctionTableFacts = OwnedTables();
+    var facts: SemanticAstExpressionFunctionTableFacts = OwnedTables();
     let kept: Array<String> = Keep(facts.names);
     SemanticAstExpressionFunctionTableFactsRelease(facts);
     return StringLength(kept[0]);

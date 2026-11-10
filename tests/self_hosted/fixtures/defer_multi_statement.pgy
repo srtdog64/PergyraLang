@@ -5,7 +5,7 @@ func Cleanup(tag: String) -> Void {
 }
 
 func Main() -> Void {
-    let count: Int = 1;
+    var count: Int = 1;
     defer {
         Log("first");
         Cleanup("second");

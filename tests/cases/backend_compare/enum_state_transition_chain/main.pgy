@@ -21,9 +21,9 @@ func IsDone(p: Phase) -> Bool {
 }
 
 func RunUntilDone(start: Phase) -> Int {
-    let cur: Phase = start;
-    let count: Int = 0;
-    let i: Int = 0;
+    var cur: Phase = start;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < 20 {
         if IsDone(cur) { return count; }
         count = count + 1;

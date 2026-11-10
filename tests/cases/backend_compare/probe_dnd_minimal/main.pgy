@@ -50,13 +50,13 @@ world W {
 }
 
 func MakeStrat(stateId: Int, opt: Int, classCode: Int, pulse: Int) -> Strat {
-    let aggression = pulse;
-    let guardBias = 0;
-    let focusShift = 0;
-    let moraleSwing = 0;
-    let effectBias = 0;
-    let name = "tempo line";
-    let posture = "measured";
+    var aggression = pulse;
+    var guardBias = 0;
+    var focusShift = 0;
+    var moraleSwing = 0;
+    var effectBias = 0;
+    var name = "tempo line";
+    var posture = "measured";
 
     if opt == 1 {
         name = "anchor drive";
@@ -101,7 +101,7 @@ func MakeStrat(stateId: Int, opt: Int, classCode: Int, pulse: Int) -> Strat {
 func Main() -> Void {
     let w = W("");
     let weapon = WeaponCard("Iron Kite", "line-break", 3, 2, 1, "guard crack");
-    let round = 1;
+    var round = 1;
     while round <= 2 {
         let fStrat = MakeStrat(1, 1, 0, round);
         let cStrat = MakeStrat(1, 1, 1, round);

@@ -1,5 +1,5 @@
 func Forward(own values: Array<String>) -> Int {
-    let moved: Array<String> = [];
+    var moved: Array<String> = [];
     ArrayPushOwnedString(moved, "old");
     ArrayDropOwnedStrings(moved);
     moved = values;

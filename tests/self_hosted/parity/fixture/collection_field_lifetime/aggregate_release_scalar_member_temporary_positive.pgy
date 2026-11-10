@@ -6,8 +6,8 @@ struct View {
 }
 
 func ViewFrom(count: Int) -> View {
-    let names: Array<String> = [];
-    let index: Int = 0;
+    var names: Array<String> = [];
+    var index: Int = 0;
     while index < count {
         ArrayPushOwnedString(names, Concat("n", ToString(index)));
         index = index + 1;

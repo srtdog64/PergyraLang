@@ -1,6 +1,6 @@
 subject ToolGate {
     let grants: Int;
-    let admitted: Int;
+    var admitted: Int;
 
     action Admit(self, bit: Int) -> Bool
         authorized by self

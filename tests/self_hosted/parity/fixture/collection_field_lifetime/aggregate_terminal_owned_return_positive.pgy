@@ -3,7 +3,7 @@ func Append(inout values: Array<String>) -> Void {
     ArrayPushOwnedString(values, "x");
 }
 func MakeRows() -> Rows {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     Append(values);
     return Rows(values);
 }
@@ -13,6 +13,6 @@ func Retire(inout rows: Rows) -> Void {
     rows.values = values;
 }
 func Main() -> Void {
-    let rows: Rows = MakeRows();
+    var rows: Rows = MakeRows();
     Retire(rows);
 }

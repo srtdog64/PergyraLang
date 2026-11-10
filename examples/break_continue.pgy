@@ -1,6 +1,6 @@
 // break/continue 예제
 func Main() -> Void {
-    let sum: Int = 0;
+    var sum: Int = 0;
     for i in 0..100 {
         if i == 10 {
             break;

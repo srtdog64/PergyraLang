@@ -1,8 +1,8 @@
 func Main() -> Int {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "key", "old");
     let view: String = MapGet(table, "key");
-    let count: Int = 0;
+    var count: Int = 0;
     while count < 2 {
         Log(view);
         MapSet(table, "key", "new");

@@ -10,8 +10,8 @@ func Main() -> Void {
     let query_lo: Int = 8;
     let query_hi: Int = 22;
     let n: Int = ArrayLength(starts);
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if Overlap(starts[i], ends[i], query_lo, query_hi) {
             count = count + 1;

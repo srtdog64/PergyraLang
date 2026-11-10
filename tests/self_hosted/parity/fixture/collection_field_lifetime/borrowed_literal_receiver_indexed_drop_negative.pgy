@@ -1,6 +1,6 @@
 func GatherBorrowed(ref source: Array<String>) -> Void {
-    let fields: Array<String> = ["seed"];
-    let row: Int = 0;
+    var fields: Array<String> = ["seed"];
+    var row: Int = 0;
     while row < ArrayLength(source) {
         ArrayPush(fields, source[row]);
         row = row + 1;
@@ -9,7 +9,7 @@ func GatherBorrowed(ref source: Array<String>) -> Void {
 }
 
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "borrowed");
     GatherBorrowed(source);
     ArrayDropOwnedStrings(source);

@@ -1,6 +1,6 @@
 func MaybeBorrowed(flag: Bool) -> Array<String> {
     if flag {
-        let values: Array<String> = [];
+        var values: Array<String> = [];
         ArrayPushOwnedString(values, Concat("", "owned"));
         return values;
     }

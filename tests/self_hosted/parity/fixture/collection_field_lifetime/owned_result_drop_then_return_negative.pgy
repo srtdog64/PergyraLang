@@ -1,5 +1,5 @@
 func ReleasedResult() -> Array<String> {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("", "owned"));
     ArrayDropOwnedStrings(values);
     return values;

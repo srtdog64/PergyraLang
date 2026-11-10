@@ -3,7 +3,7 @@ func Retire(own text: String) -> Void {
     ArrayDropOwnedStrings(retired);
 }
 func Main() -> Void {
-    let text: String = Concat("", "first");
+    var text: String = Concat("", "first");
     text = Concat("", "second");
     Retire(text);
 }

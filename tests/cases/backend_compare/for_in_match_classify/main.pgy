@@ -7,9 +7,9 @@ func Classify(n: Int) -> Sign {
 }
 
 func Tally(arr: Array<Int>) -> Int {
-    let pos: Int = 0;
-    let neg: Int = 0;
-    let zer: Int = 0;
+    var pos: Int = 0;
+    var neg: Int = 0;
+    var zer: Int = 0;
     for v in arr {
         match Classify(v) {
             case Pos: pos = pos + 1;

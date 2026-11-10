@@ -1,6 +1,6 @@
 func BuildMaybeOwned(value: String) -> Array<String> {
     if value == "" { return []; }
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("", value));
     return values;
 }

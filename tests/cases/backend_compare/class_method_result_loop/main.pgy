@@ -11,8 +11,8 @@ class Calc {
 
 func RunSeries(start: Int, divs: Array<Int>, n: Int) -> Int {
     let c: Calc = Calc(start);
-    let acc: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var i: Int = 0;
     while i < n {
         match c.DivBy(divs[i]) {
             case Ok(v): acc = acc + v;

@@ -12,7 +12,7 @@ func Make(seed: Int) -> Item {
 }
 
 func TotalScores(start: Int, n: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..n {
         total = total + Make(start + i).DoubleIt().Score();
     }

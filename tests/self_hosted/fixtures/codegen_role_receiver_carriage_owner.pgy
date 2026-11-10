@@ -15,7 +15,7 @@ func RoleReceiverEnv(carriage: String) -> CodegenTypeEnv {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let carriage: String = CallableReceiverCarriageMutableIdentity();
+    var carriage: String = CallableReceiverCarriageMutableIdentity();
     if ArrayLength(args) > 0 && args[0] == "--value-role" {
         carriage = CallableReceiverCarriageValue();
     }

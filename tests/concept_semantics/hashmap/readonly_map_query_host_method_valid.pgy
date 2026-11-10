@@ -8,7 +8,7 @@ func Main() -> Void {
 }
 class QueryReader {
     func Read(self) -> Int {
-        let values: HashMap<String, Int> = MapNew();
+        var values: HashMap<String, Int> = MapNew();
         MapSet(values, "entry", 43);
         return Leaf(values);
     }

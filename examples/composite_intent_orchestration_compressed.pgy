@@ -8,9 +8,9 @@
 
 subject Clerk
 {
-    let reserved: Int;
-    let charged: Int;
-    let shipped: Int;
+    var reserved: Int;
+    var charged: Int;
+    var shipped: Int;
 
     action Reserve(self) -> Void
         within OrderZone

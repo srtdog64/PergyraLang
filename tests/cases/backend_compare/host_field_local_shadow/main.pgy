@@ -24,7 +24,7 @@ zone Tally {
     }
 
     func Assign(self, n: Int) -> Int {
-        let total = 1;
+        var total = 1;
         total = total + n;
         self.total = self.total + total;
         return total;

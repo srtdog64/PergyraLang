@@ -11,7 +11,7 @@ func Main() -> Void with caps env, io_read {
     if mutation < 0 || mutation > 34 || args[1] != ToString(mutation) { Log("invalid entry mutation"); Exit(2); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("entry source parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log("entry declaration admission refused"); Exit(2); }
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
@@ -39,8 +39,8 @@ func InspectAggregateEntryRequirements(
     ref inferred_types: Array<String>,
     ref resolved_leaf_types: Array<String>, mutation: Int
 ) -> Bool {
-    let selected: Int = -1;
-    let row: Int = 0;
+    var selected: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "SemanticAstExpressionFunctionTableFactsRelease" {
             if selected >= 0 { return false; }
@@ -55,15 +55,15 @@ func InspectAggregateEntryRequirements(
     let owner: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, "SemanticAstExpressionFunctionTableFacts");
     if !IsSome(owner) { return false; }
     let labels: Array<String> = ["names", "returns", "params"];
-    let fields: Array<Int> = [];
-    let destinations: Array<Int> = [];
+    var fields: Array<Int> = [];
+    var destinations: Array<Int> = [];
     row = 0;
     while row < 3 {
         let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(analysis.constructors, UnwrapOption(owner), labels[row]);
         if !IsSome(field) { return false; }
         ArrayPush(fields, analysis.constructors.field_source_syntax_ids[UnwrapOption(field)]);
-        let destination: Int = -1;
-        let binding: Int = 0;
+        var destination: Int = -1;
+        var binding: Int = 0;
         while binding < ArrayLength(analysis.local_bindings.node_ids) {
             if analysis.local_bindings.function_node_ids[binding] == function_id && analysis.local_bindings.names[binding] == labels[row] {
                 if destination >= 0 { return false; }
@@ -75,12 +75,12 @@ func InspectAggregateEntryRequirements(
         ArrayPush(destinations, destination);
         row = row + 1;
     }
-    let facts: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
+    var facts: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
     if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) || ArrayLength(facts.local_ids) != 0 { return false; }
     if mutation == 33 || mutation == 34 {
-        let local_root: Int = -1;
-        let local_destination: Int = -1;
-        let local_function: Int = -1;
+        var local_root: Int = -1;
+        var local_destination: Int = -1;
+        var local_function: Int = -1;
         row = 0;
         while row < ArrayLength(analysis.local_bindings.node_ids) {
             if analysis.local_bindings.function_node_ids[row] != function_id {
@@ -90,7 +90,7 @@ func InspectAggregateEntryRequirements(
             row = row + 1;
         }
         if local_root <= 0 || local_destination <= 0 || local_function <= 0 { return false; }
-        let local_effect: Int =
+        var local_effect: Int =
             SemanticAstCollectionAggregateFieldEntryEffectDeepDrop();
         if mutation == 34 {
             local_function = function_id;
@@ -125,12 +125,12 @@ func InspectAggregateEntryRequirements(
     if mutation == 16 { ArrayPop(analysis.local_bindings.function_node_ids); }
     if mutation == 17 { analysis.local_bindings.ok = false; }
     let root: Int = formal;
-    let destination: Int = destinations[0];
-    let effect: Int = SemanticAstCollectionAggregateFieldEntryEffectDeepDrop();
+    var destination: Int = destinations[0];
+    var effect: Int = SemanticAstCollectionAggregateFieldEntryEffectDeepDrop();
     if mutation == 18 { effect = 0; }
     if mutation == 19 { destination = analysis.local_bindings.artifact_node_count + 1; }
     if mutation == 27 {
-        let foreign: Int = -1;
+        var foreign: Int = -1;
         row = 0;
         while row < ArrayLength(analysis.local_bindings.node_ids) {
             if analysis.local_bindings.function_node_ids[row] != function_id { foreign = analysis.local_bindings.node_ids[row]; break; }

@@ -21,10 +21,10 @@ func Main() -> Void
 {
     let seed: Array<String> = [];
     let names: CapturedNames = CapturedNames(seed, seed);
-    let outer: OuterNames = OuterNames(names);
+    var outer: OuterNames = OuterNames(names);
     ArrayPushOwnedString(outer.inner.left, "owned");
     outer.inner.right = outer.inner.left;
-    let moved: CapturedNames = outer.inner;
+    var moved: CapturedNames = outer.inner;
     Retire(moved);
     outer.inner = moved;
 }

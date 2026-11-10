@@ -1,6 +1,6 @@
 func SumRange(lo: Int, hi: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = lo;
+    var total: Int = 0;
+    var i: Int = lo;
     while i <= hi {
         total = total + i;
         i = i + 1;

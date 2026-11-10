@@ -7,7 +7,7 @@ struct Pair
 func Make() -> Pair
 {
     let rows: Array<Int> = [1];
-    let pair: Pair = Pair(rows, rows);
+    var pair: Pair = Pair(rows, rows);
     ArrayPush(pair.first, 2);
     return pair;
 }

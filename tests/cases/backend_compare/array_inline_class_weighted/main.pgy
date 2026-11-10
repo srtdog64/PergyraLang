@@ -8,8 +8,8 @@ class Score {
 }
 
 func Total(vals: Array<Int>, weights: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + Score(vals[i], weights[i]).Weighted();
         i = i + 1;

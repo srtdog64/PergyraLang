@@ -7,7 +7,7 @@ struct MemberReadMissingHolder {
 }
 
 func MemberReadMissingConfigGrow(cfg: MemberReadMissingConfig) -> MemberReadMissingConfig {
-    let values: Array<Int> = cfg.values;
+    var values: Array<Int> = cfg.values;
     ArrayPush(values, 1);
     return MemberReadMissingConfig(values);
 }

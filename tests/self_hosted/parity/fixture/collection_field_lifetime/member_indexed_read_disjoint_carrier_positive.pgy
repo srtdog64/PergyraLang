@@ -6,7 +6,7 @@ struct MemberReadHolder {
 }
 
 func MemberReadConfigGrow(cfg: MemberReadConfig) -> MemberReadConfig {
-    let values: Array<Int> = cfg.values;
+    var values: Array<Int> = cfg.values;
     ArrayPush(values, 1);
     ArrayPush(values, 2);
     ArrayPush(values, 3);

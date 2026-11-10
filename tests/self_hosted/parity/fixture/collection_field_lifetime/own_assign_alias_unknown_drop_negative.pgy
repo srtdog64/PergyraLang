@@ -1,6 +1,6 @@
 func Forward(own values: Array<String>) -> Int {
     let seed: Array<String> = ["old"];
-    let moved: Array<String> = Clone(seed);
+    var moved: Array<String> = Clone(seed);
     moved = values;
     let alias: Array<String> = moved;
     ArrayDropOwnedStrings(alias);

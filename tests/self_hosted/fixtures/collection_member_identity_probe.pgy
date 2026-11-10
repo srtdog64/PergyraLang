@@ -12,7 +12,7 @@ func Main() -> Void with caps env, io_read {
     }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("member input parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !analysis.verdict.ok || !bundle.verdict.ok { Log("member input body refused"); Exit(2); }
     let ok: Bool = InspectMemberIdentity(artifact, analysis, bundle, mutation);
@@ -24,10 +24,10 @@ func InspectMemberIdentity(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
     ref bundle: SemanticAstBodyTypeBundle, mutation: Int
 ) -> Bool {
-    let signature: Int = -1;
-    let foreign: Int = -1;
-    let generic: Int = -1;
-    let row: Int = 0;
+    var signature: Int = -1;
+    var foreign: Int = -1;
+    var generic: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Observe" { signature = row; }
         if analysis.signatures.names[row] == "Foreign" { foreign = row; }
@@ -35,13 +35,13 @@ func InspectMemberIdentity(
         row = row + 1;
     }
     if signature < 0 || foreign < 0 || generic < 0 { return false; }
-    let local_row: Int = -1;
-    let right: Int = -1;
-    let other: Int = -1;
-    let generic_local: Int = -1;
-    let lexical: Int = -1;
-    let shadow: Int = -1;
-    let lexical_root: Int = -1;
+    var local_row: Int = -1;
+    var right: Int = -1;
+    var other: Int = -1;
+    var generic_local: Int = -1;
+    var lexical: Int = -1;
+    var shadow: Int = -1;
+    var lexical_root: Int = -1;
     row = 0;
     while row < ArrayLength(analysis.local_bindings.names) {
         let name: String = analysis.local_bindings.names[row];
@@ -56,11 +56,11 @@ func InspectMemberIdentity(
     }
     if local_row < 0 || right < 0 || other < 0 || generic_local < 0 ||
         lexical < 0 || shadow < 0 || lexical_root < 0 { return false; }
-    let roots: Array<Int> = [];
-    let leaves: Array<Int> = [];
+    var roots: Array<Int> = [];
+    var leaves: Array<Int> = [];
     let chosen: Array<Int> = [local_row, right, other, generic_local, lexical];
-    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
-    let types: Array<String> = [];
+    var graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    var types: Array<String> = [];
     row = 0;
     while row < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         ArrayPush(types, "Unknown"); row = row + 1;
@@ -78,11 +78,11 @@ func InspectMemberIdentity(
         types[member.receiver_node] = "Pair";
         row = row + 1;
     }
-    let function: Int = analysis.signatures.function_node_ids[signature];
-    let leaf: Int = leaves[0];
-    let root: Int = roots[0];
-    let use_syntax: Int = analysis.local_bindings.node_ids[local_row];
-    let parameter: Int = analysis.signatures.param_starts[signature];
+    var function: Int = analysis.signatures.function_node_ids[signature];
+    var leaf: Int = leaves[0];
+    var root: Int = roots[0];
+    var use_syntax: Int = analysis.local_bindings.node_ids[local_row];
+    var parameter: Int = analysis.signatures.param_starts[signature];
     let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, "Pair");
     if !IsSome(constructor) { return false; }
     let owner: Int = UnwrapOption(constructor);
@@ -174,7 +174,7 @@ func InspectMemberIdentity(
         let other_owner: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, "Other");
         if !IsSome(other_owner) { return false; }
         analysis.constructors.names[UnwrapOption(other_owner)] = "Pair";
-        let first_rows: HashMap<String, Int> = MapNew(); let row_counts: HashMap<String, Int> = MapNew();
+        var first_rows: HashMap<String, Int> = MapNew(); var row_counts: HashMap<String, Int> = MapNew();
         SemanticAstNominalConstructorNameIndexFill(analysis.constructors.names, first_rows, row_counts);
         analysis.constructors.name_first_rows = first_rows; analysis.constructors.name_row_counts = row_counts;
     }

@@ -12,8 +12,8 @@ class Counter {
 }
 
 func Process(c: Counter, ops: Array<Int>, n_ops: Int, op_kinds: Array<Int>) -> Int {
-    let cur: Counter = c;
-    let i: Int = 0;
+    var cur: Counter = c;
+    var i: Int = 0;
     while i < n_ops {
         let kind: Int = op_kinds[i];
         let amt: Int = ops[i];

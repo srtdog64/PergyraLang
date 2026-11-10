@@ -1,7 +1,7 @@
 func Observe(replace: Bool) -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "owned-value");
-    let borrowed: String = values[0];
+    var borrowed: String = values[0];
     if replace { borrowed = "replacement"; }
     ArrayDropOwnedStrings(values);
     Log(borrowed);

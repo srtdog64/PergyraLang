@@ -7,7 +7,7 @@ struct Facts {
 }
 
 func Pick(input: Facts, rebuild: Bool) -> Facts {
-    let picked: Facts = input;
+    var picked: Facts = input;
     if rebuild {
         let rows: Array<String> = ["a"];
         let marks: Array<String> = ["b"];
@@ -18,7 +18,7 @@ func Pick(input: Facts, rebuild: Bool) -> Facts {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, "x");
     ArrayPush(rows, "y");
     return Facts(rows, facts.marks);

@@ -8,7 +8,7 @@ func Opaque(inout values: Array<String>) -> Void {
 
 func Observe(ref defaults: Array<String>) -> Bool {
     let first: Array<String> = defaults;
-    let second: Array<String> = first;
+    var second: Array<String> = first;
     Opaque(second);
     return GenericDefaultMatches(first);
 }

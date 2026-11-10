@@ -1,11 +1,11 @@
 func Main() -> Void {
-    let q: Queue<Int> = QueueNew();
+    var q: Queue<Int> = QueueNew();
     QueuePush(q, 1);
-    let depth: Int = 0;
-    let visited: Int = 0;
+    var depth: Int = 0;
+    var visited: Int = 0;
     while !QueueEmpty(q) {
         let level_size: Int = QueueSize(q);
-        let i: Int = 0;
+        var i: Int = 0;
         while i < level_size {
             let node: Int = QueuePop(q);
             visited = visited + 1;

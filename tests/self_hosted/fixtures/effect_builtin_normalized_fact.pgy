@@ -2,15 +2,15 @@ import "../../../src/self_hosted/compiler/direct_mir_scalar_program_expression_r
 import "../../../src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
 
 func Main() -> Void {
-    let kinds: Array<Int> = [DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprIntLiteral(),
+    var kinds: Array<Int> = [DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprIntLiteral(),
         DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(),
         DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprArrayIntSort(), DirectMirScalarProgramExprArrayIntReverse()];
-    let types: Array<String> = ["Int", "Int", "Int", "Int", "Array<Int>", "Array<Int>", "Array<Int>"];
+    var types: Array<String> = ["Int", "Int", "Int", "Int", "Array<Int>", "Array<Int>", "Array<Int>"];
     let lefts: Array<Int> = [-1, -1, 0, 0, -1, 4, 4];
-    let rights: Array<Int> = [-1, -1, 1, 1, -1, -1, -1];
+    var rights: Array<Int> = [-1, -1, 1, 1, -1, -1, -1];
     let locals: Array<Int> = [-1, -1, -1, -1, 0, -1, -1];
     let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
-    let abi_ids: Array<Int> = [-1, -1,
+    var abi_ids: Array<Int> = [-1, -1,
         DirectMirScalarProgramCheckedIntRuntimeFact(kinds[2]).runtime_call_abi_id,
         DirectMirScalarProgramCheckedIntRuntimeFact(kinds[3]).runtime_call_abi_id, -1,
         DirectMirScalarProgramArrayTransformRuntimeFact(kinds[5]).runtime_call_abi_id,

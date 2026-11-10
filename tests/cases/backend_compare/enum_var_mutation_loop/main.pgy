@@ -9,10 +9,10 @@ func CodeValue(c: Code) -> Int {
 }
 
 func Logic(arr: Array<Int>, n: Int) -> Int {
-    let acc: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let c: Code = Yes;
+        var c: Code = Yes;
         if arr[i] < 0 { c = No; }
         if arr[i] == 0 { c = Maybe; }
         acc = acc + CodeValue(c);

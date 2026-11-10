@@ -1,10 +1,10 @@
 func Label(flag: Bool, n: Int) -> String {
-    let tag: String = "";
+    var tag: String = "";
     if flag { tag = "!"; }
-    let out: String = "a" + tag;
-    let i: Int = 0;
+    var out: String = "a" + tag;
+    var i: Int = 0;
     while i < n {
-        let tag: String = "";
+        var tag: String = "";
         if i > 0 { tag = "+"; }
         out = out + tag;
         i = i + 1;

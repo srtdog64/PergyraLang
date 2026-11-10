@@ -10,15 +10,15 @@ struct EightRows {
 }
 func CaptureEight(inout rows: EightRows, should_fail: Bool) -> Bool
 {
-    let transition_ids: Array<Int> = rows.transition_ids;
-    let expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
-    let instruction_block_ids: Array<Int> = rows.instruction_block_ids;
-    let instruction_ids: Array<Int> = rows.instruction_ids;
-    let graph_root_ids: Array<Int> = rows.graph_root_ids;
-    let graph_digests: Array<Int> = rows.graph_digests;
-    let call_target_names: Array<String> = rows.call_target_names;
-    let call_target_syntax_ids: Array<Int> = rows.call_target_syntax_ids;
-    let count: Int = 0;
+    var transition_ids: Array<Int> = rows.transition_ids;
+    var expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
+    var instruction_block_ids: Array<Int> = rows.instruction_block_ids;
+    var instruction_ids: Array<Int> = rows.instruction_ids;
+    var graph_root_ids: Array<Int> = rows.graph_root_ids;
+    var graph_digests: Array<Int> = rows.graph_digests;
+    var call_target_names: Array<String> = rows.call_target_names;
+    var call_target_syntax_ids: Array<Int> = rows.call_target_syntax_ids;
+    var count: Int = 0;
     while count < 8 {
         ArrayPush(transition_ids, count);
         ArrayPush(expression_syntax_ids, count);
@@ -43,7 +43,7 @@ func CaptureEight(inout rows: EightRows, should_fail: Bool) -> Bool
 }
 func Main() -> Void
 {
-    let rows: EightRows = EightRows([99], [99], [99], [99], [99], [99], ["seed"], [99]);
+    var rows: EightRows = EightRows([99], [99], [99], [99], [99], [99], ["seed"], [99]);
     Log(CaptureEight(rows, true));
     Log(ArrayLength(rows.transition_ids));
     Log(ArrayLength(rows.expression_syntax_ids));

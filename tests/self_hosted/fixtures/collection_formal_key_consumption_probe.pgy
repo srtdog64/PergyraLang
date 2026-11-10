@@ -8,8 +8,8 @@ func FormalKeyMapEntryObservation(artifact: AstTreeArtifact, ref analysis: Seman
     ref bundle: SemanticAstBodyTypeBundle, inout values: SemanticAstCollectionExclusiveValueFacts,
     surface: Int, edge: SemanticCallArgumentEdgeView) -> Bool
 {
-    let consumed: HashMap<String, Int> = values.consumed;
-    let copies: HashMap<String, Int> = values.copies;
+    var consumed: HashMap<String, Int> = values.consumed;
+    var copies: HashMap<String, Int> = values.copies;
     let ready: Bool = SemanticAstCollectionExclusiveSinkEntryReady(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
         bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, analysis.assignments,
@@ -31,7 +31,7 @@ func FormalKeyMapCurrentness(artifact: AstTreeArtifact, inout analysis: Semantic
         SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, bundle);
     if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle)
     { Log("map baseline receipt refused"); Exit(3); }
-    let values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
+    var values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
         bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
         analysis.assignments, analysis.statements);
@@ -138,7 +138,7 @@ func Main() -> Void with caps env, io_read
     { Log("unknown formal-key mode"); Exit(2); }
     let artifact: AstTreeArtifact = FormalKeyProbeArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if mode == "verdict"
@@ -154,17 +154,17 @@ func Main() -> Void with caps env, io_read
     }
     if !bundle.collection_formal_effects.ok { Log("formal owner not reached"); Exit(2); }
     let no_synthetic_roots: Array<Int> = [];
-    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+    var order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
         analysis.expression_surfaces, no_synthetic_roots, no_synthetic_roots);
     if !order.ok { Log("baseline surface order refused"); Exit(2); }
-    let changed: Bool = mode == "facts";
+    var changed: Bool = mode == "facts";
     if mode == "order-unready" { order.ok = false; changed = true; }
     if mode == "order-truncated"
     {
         if ArrayLength(order.slots_by_root) == 0 { Exit(2); }
         ArrayPop(order.slots_by_root); changed = true;
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while !changed && node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena)
     {
         let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
@@ -197,7 +197,7 @@ func Main() -> Void with caps env, io_read
     Log("carrier:extents=" + ToString(ArrayLength(actual.inventory.formal_nodes)) + ":" +
         ToString(ArrayLength(actual.inventory.function_nodes)) + ":" + ToString(ArrayLength(actual.inventory.ordinals)) + ":" +
         ToString(ArrayLength(actual.inventory.modes)) + ":" + ToString(ArrayLength(actual.inventory.body_ready)));
-    let dump_row: Int = 0;
+    var dump_row: Int = 0;
     while dump_row < ArrayLength(actual.inventory.formal_nodes)
     {
         Log("carrier:formal:" + ToString(dump_row) + "=" + ToString(actual.inventory.formal_nodes[dump_row]) + ":" +
@@ -207,7 +207,7 @@ func Main() -> Void with caps env, io_read
     }
     // Use statically typed named map receivers: the native MIR currently refuses
     // descriptor-selection phi joins. No map payload is copied or mutated.
-    let maps_equal: Bool = true;
+    var maps_equal: Bool = true;
     let observed_rows: HashMap<String, Int> = actual.inventory.row_by_formal;
     let reference_rows: HashMap<String, Int> = retained.inventory.row_by_formal;
     let keys_rows: Array<String> = MapKeys(observed_rows);
@@ -309,10 +309,10 @@ func Main() -> Void with caps env, io_read
         actual.execution_contexts.artifact_identity_digest != retained.execution_contexts.artifact_identity_digest ||
         actual.execution_contexts.artifact_node_count != retained.execution_contexts.artifact_node_count
     { Log("full retained carrier drift"); Exit(3); }
-    let diagnostic: String = bundle.verdict.diagnostic_code;
+    var diagnostic: String = bundle.verdict.diagnostic_code;
     if bundle.verdict.ok { diagnostic = "ok"; }
     Log("body=" + diagnostic);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(actual.inventory.formal_nodes)
     {
         let formal: Int = actual.inventory.formal_nodes[row];
@@ -325,7 +325,7 @@ func Main() -> Void with caps env, io_read
             MapHas(actual_effects, key) != MapHas(retained_effects, key) ||
             MapHas(actual_push, key) != MapHas(retained_push, key)
         { Log("retained formal identity/effect drift"); Exit(3); }
-        let effect: Int = -1;
+        var effect: Int = -1;
         if MapHas(actual_effects, key)
         {
             effect = MapGet(actual_effects, key);
@@ -351,10 +351,10 @@ func Main() -> Void with caps env, io_read
         actual.inventory.row_by_formal);
     if !statements.ok { Exit(3); }
     let targets: HashMap<String, Int> = statements.target_rows;
-    let formal_targets: Int = 0;
-    let element_targets: Int = 0;
-    let ordinary_roots: Int = 0;
-    let root: Int = 0;
+    var formal_targets: Int = 0;
+    var element_targets: Int = 0;
+    var ordinary_roots: Int = 0;
+    var root: Int = 0;
     while root < ArrayLength(order.slots_by_root)
     {
         if order.slots_by_root[root] >= 0

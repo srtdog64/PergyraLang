@@ -13,8 +13,8 @@ func Forge(seed: Int) -> Crystal {
 
 func BestQuality(seeds: Array<Int>, n: Int) -> Int {
     if n == 0 { return -1; }
-    let best: Int = Forge(seeds[0]).Quality();
-    let i: Int = 1;
+    var best: Int = Forge(seeds[0]).Quality();
+    var i: Int = 1;
     while i < n {
         let q: Int = Forge(seeds[i]).Quality();
         if q > best { best = q; }

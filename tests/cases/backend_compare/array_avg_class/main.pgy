@@ -15,8 +15,8 @@ func Push(a: Acc, v: Int) -> Acc {
 }
 
 func AvgOf(arr: Array<Int>, n: Int) -> Int {
-    let a: Acc = Init();
-    let i: Int = 0;
+    var a: Acc = Init();
+    var i: Int = 0;
     while i < n {
         a = Push(a, arr[i]);
         i = i + 1;

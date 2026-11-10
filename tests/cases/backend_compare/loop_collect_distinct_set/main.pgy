@@ -1,7 +1,7 @@
 func Main() -> Void {
     let words: Array<String> = ["red", "blue", "red", "green", "blue", "yellow", "red"];
-    let distinct: Set<String> = SetNew();
-    let i: Int = 0;
+    var distinct: Set<String> = SetNew();
+    var i: Int = 0;
     while i < ArrayLength(words) {
         SetAdd(distinct, words[i]);
         i = i + 1;

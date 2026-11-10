@@ -17,9 +17,9 @@ func StageValue(s: Stage) -> Int {
 }
 
 func Run(start: Stage, steps: Int) -> Int {
-    let s: Stage = start;
-    let total: Int = 0;
-    let i: Int = 0;
+    var s: Stage = start;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < steps {
         total = total + StageValue(s);
         s = Next(s);

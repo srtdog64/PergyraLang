@@ -6,7 +6,7 @@ func Greet(roles: HashMap<String, Int>, name: String) -> String {
 }
 
 func Main() -> Void {
-    let roles: HashMap<String, Int> = MapNew();
+    var roles: HashMap<String, Int> = MapNew();
     MapSet(roles, "alice", 1);
     MapSet(roles, "bob", 2);
 

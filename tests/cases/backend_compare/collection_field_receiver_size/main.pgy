@@ -25,14 +25,14 @@ func HolderSize(h: Holder) -> Int {
 }
 
 func Main() -> Void {
-    let orders: List<Int> = ListNew();
+    var orders: List<Int> = ListNew();
     ListPush(orders, 3);
     ListPush(orders, 5);
     ListPush(orders, 8);
     let batch = Batch(orders);
     let desk = Desk(Clone(batch));
     Log("zone field size=" + ToString(desk.Count()));
-    let items: List<Int> = ListNew();
+    var items: List<Int> = ListNew();
     ListPush(items, 1);
     let holder = Holder(items);
     Log("struct field size=" + ToString(HolderSize(holder)));

@@ -2,9 +2,9 @@ import "../../../src/self_hosted/semantic/ast_nominal_constructor_artifact_match
 import "../../../src/self_hosted/semantic/diagnostic_contract_owner.pgy";
 
 func Main() -> Void {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    var artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Struct: Pair\n    Fields:\n      let frozen: Int\n      mutable: Int\n");
-    let facts: SemanticAstNominalConstructorFacts =
+    var facts: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     Log(facts.ok && SemanticAstNominalConstructorRowsReady(facts));
     Log(facts.field_names[0] == "frozen" && facts.field_names[1] == "mutable");

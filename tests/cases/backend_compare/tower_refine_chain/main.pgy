@@ -15,8 +15,8 @@ func Refine(t: Tower) -> Tower {
 }
 
 func RunUntilEnd(start: Int, max_steps: Int) -> Int {
-    let t: Tower = Built(start);
-    let steps: Int = 0;
+    var t: Tower = Built(start);
+    var steps: Int = 0;
     while t.stones > 0 {
         if steps >= max_steps { return t.level; }
         t = Refine(t);

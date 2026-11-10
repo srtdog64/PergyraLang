@@ -15,7 +15,7 @@ func Populate(inout values: Array<String>) -> Void
 func Forward(inout values: Array<String>) -> Void { Populate(values); }
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     Forward(values);
     ArrayDropOwnedStrings(values);
 }

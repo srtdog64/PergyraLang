@@ -11,7 +11,7 @@ func ObserveReaders(ref inputs: ReaderInputs) -> Void {
     Log(MapHas(inputs.entries, "present"));
 }
 func Main() -> Void {
-    let entries: HashMap<String, Int> = MapNew();
+    var entries: HashMap<String, Int> = MapNew();
     MapSet(entries, "present", 1);
     let inputs: ReaderInputs = ReaderInputs(Concat("a", ",b"), entries);
     ObserveReaders(inputs);

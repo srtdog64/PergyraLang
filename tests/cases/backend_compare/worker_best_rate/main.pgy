@@ -13,11 +13,11 @@ func DoTask(w: Worker) -> Worker {
 
 func Best(workers_eff: Array<Int>, n: Int, tasks: Int) -> Int {
     if n == 0 { return -1; }
-    let best_rate: Int = 0;
-    let i: Int = 0;
+    var best_rate: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let w: Worker = Make(workers_eff[i]);
-        let j: Int = 0;
+        var w: Worker = Make(workers_eff[i]);
+        var j: Int = 0;
         while j < tasks {
             w = DoTask(w);
             j = j + 1;

@@ -16,7 +16,7 @@ func EmitSet(name: String, generic: Bool) -> String {
         let direct_definition: String = EmitWrapped(name);
         return direct_definition;
     }
-    let parts: Array<String> = [];
+    var parts: Array<String> = [];
     ArrayPushOwnedString(parts, EmitOne(name));
     let joined: String = StringJoin(parts, "\n");
     ArrayDropOwnedStrings(parts);
@@ -25,7 +25,7 @@ func EmitSet(name: String, generic: Bool) -> String {
 
 func Main() -> Void {
     let output: TextBuilder = TextBuilderNew(64);
-    let round: Int = 0;
+    var round: Int = 0;
     while round < 2 {
         let definition: String = EmitSet("f", false);
         let owned_definition: Array<String> = [definition];

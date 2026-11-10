@@ -18,7 +18,7 @@ func AppendTypedBinding(
 }
 
 func Main() -> Void {
-    let state: Array<String> = [];
+    var state: Array<String> = [];
     let env: TypedValueEnvProbe = TypedValueEnvProbe(true, "ready");
     AppendTypedBinding(state, env, "source", "Int", "local", "c_name");
     Log("void-record-four-string-array-copyout-ready");

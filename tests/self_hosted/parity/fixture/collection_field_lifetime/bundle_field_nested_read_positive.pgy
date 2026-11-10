@@ -8,7 +8,7 @@ func Count(envelope: Envelope) -> Int {
 }
 
 func Main() -> Void {
-    let value: Array<String> = [];
+    var value: Array<String> = [];
     ArrayPush(value, "borrowed");
     let bundle: Bundle = Bundle(value);
     let envelope: Envelope = Envelope(bundle);

@@ -13,7 +13,7 @@ struct Ledger {
 }
 
 func Sum(xs: Array<Gold>) -> Gold {
-    let total: Gold = 0;
+    var total: Gold = 0;
     for i in 0..ArrayLength(xs) {
         total = total + xs[i];
     }

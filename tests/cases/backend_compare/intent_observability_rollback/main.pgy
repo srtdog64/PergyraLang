@@ -1,6 +1,6 @@
 subject Driver {
-    let hp: Int;
-    let started: Bool;
+    var hp: Int;
+    var started: Bool;
 
     action StepA(self) -> Void {
         hp = hp + 10;

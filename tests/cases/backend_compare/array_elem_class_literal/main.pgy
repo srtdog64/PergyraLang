@@ -23,7 +23,7 @@ func Main() -> Void {
     Log(ToString(c[3].x));
 
     let b: Array<P> = [P(10), P(20), P(30)];
-    let sum: Int = 0;
+    var sum: Int = 0;
     for p in b {
         sum = sum + p.V();
     }

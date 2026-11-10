@@ -1,5 +1,5 @@
 subject ActiveCounter {
-    let count: Int;
+    var count: Int;
 
     action Tick(self, delta: Int) -> Int {
         count = count + delta;
@@ -8,7 +8,7 @@ subject ActiveCounter {
 }
 
 class PassiveCounter {
-    let count: Int;
+    var count: Int;
 
     func Tick(self, delta: Int) -> Int {
         count = count + delta;

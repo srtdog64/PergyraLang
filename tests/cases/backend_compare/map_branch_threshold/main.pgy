@@ -7,7 +7,7 @@ func Classify(score: Int) -> String {
 }
 
 func Main() -> Void {
-    let scores: HashMap<String, Int> = MapNew();
+    var scores: HashMap<String, Int> = MapNew();
     MapSet(scores, "alice", 95);
     MapSet(scores, "bob", 72);
     MapSet(scores, "carol", 58);

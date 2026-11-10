@@ -12,9 +12,9 @@ struct Admission {
 }
 
 func GrowSet(facts: ExprSet, name: String) -> ExprSet {
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, name);
-    let roots: Array<Int> = facts.roots;
+    var roots: Array<Int> = facts.roots;
     ArrayPush(roots, ArrayLength(types) - 1);
     return ExprSet(facts.valid, roots, types);
 }
@@ -31,7 +31,7 @@ func Core(inout expressions: ExprSet, kind: Int) -> Option<Int> {
         expressions = admission.facts;
         return None;
     }
-    let appended: ExprSet = admission.facts;
+    var appended: ExprSet = admission.facts;
     if kind == 1 {
         let value_node: Int = admission.facts.roots[row];
         if value_node >= 0 && admission.facts.types[value_node] == "x" {
@@ -53,7 +53,7 @@ func Core(inout expressions: ExprSet, kind: Int) -> Option<Int> {
 func Main() -> Int {
     let roots: Array<Int> = [];
     let types: Array<String> = [];
-    let expressions: ExprSet = ExprSet(true, roots, types);
+    var expressions: ExprSet = ExprSet(true, roots, types);
     let row: Option<Int> = Core(expressions, 1);
     return ArrayLength(expressions.types);
 }

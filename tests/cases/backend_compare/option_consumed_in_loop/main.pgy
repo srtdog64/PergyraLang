@@ -9,8 +9,8 @@ func TryGet(arr: Array<Int>, n: Int, idx: Int) -> Option<Int> {
 }
 
 func SumIndices(arr: Array<Int>, n: Int, indices: Array<Int>, m: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < m {
         match TryGet(arr, n, indices[i]) {
             case Some(v): total = total + v;

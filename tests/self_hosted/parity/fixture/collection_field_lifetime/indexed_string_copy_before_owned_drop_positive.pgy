@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "owned-value");
     let copied: String = Concat("", values[0]);
     ArrayDropOwnedStrings(values);

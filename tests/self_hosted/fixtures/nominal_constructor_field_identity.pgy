@@ -10,13 +10,13 @@ func ConstructorArtifact() -> AstTreeArtifact {
 }
 
 func ConstructorGraph(expression: String, shadow: Int) -> SemanticExpressionGraphFacts {
-    let kinds: Array<Int> = []; let texts: Array<String> = [];
-    let lefts: Array<Int> = []; let rights: Array<Int> = [];
-    let targets: Array<Int> = []; let names: Array<String> = [];
+    var kinds: Array<Int> = []; var texts: Array<String> = [];
+    var lefts: Array<Int> = []; var rights: Array<Int> = [];
+    var targets: Array<Int> = []; var names: Array<String> = [];
     let build: SemanticExpressionGraphBuild = SemanticExpressionGraphImportSerializedParserFact(
         kinds, texts, lefts, rights, targets, names, expression);
     if !build.ok { Log("constructor fixture parser refused"); Exit(2); }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(kinds) {
         if kinds[node] == AstExpressionNodeCall() {
             targets[node] = SemanticCallTargetDirect(); names[node] = texts[lefts[node]];
@@ -24,7 +24,7 @@ func ConstructorGraph(expression: String, shadow: Int) -> SemanticExpressionGrap
         node = node + 1;
     }
     let roots: Array<Int> = [build.root_id]; let has_roots: Array<Bool> = [true];
-    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, has_roots,
+    var graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, has_roots,
         SemanticExpressionGraphArenaUnclassified(kinds, texts, lefts, rights, targets, names));
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, build.root_id);
     if !call.ok { Log("constructor fixture call view refused"); Exit(2); }
@@ -50,7 +50,7 @@ func ConstructorResult(expression: String, shadow: Int,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
     let graph: SemanticExpressionGraphFacts = ConstructorGraph(expression, shadow);
-    let names: Array<String> = []; let types: Array<String> = [];
+    var names: Array<String> = []; var types: Array<String> = [];
     if shadow == 7 { ArrayPush(names, "Pair"); ArrayPush(types, "func(Array<String>,Array<String>) -> Pair"); }
     let functions: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
     let returns: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
@@ -79,13 +79,13 @@ func ConstructorFieldsMatch(ref result: SemanticExpressionGraphNominalConstructo
     let returns: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
     let function_table: SemanticCallableNameTable = SemanticCallableNameTableFromNames(functions);
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < supplied {
         let argument: SemanticExpressionGraphNominalConstructorArgumentFact =
             SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
                 graph, call.argument_nodes[ordinal], constructors, UnwrapOption(index), ordinal,
                 names, types, function_table, returns, no_enum_values);
-        let expected: Int = first;
+        var expected: Int = first;
         if ordinal == 1 { expected = second; }
         if !argument.ok || !argument.assignable ||
             argument.field_source_syntax_id != constructors.field_source_syntax_ids[start + expected] { return false; }
@@ -101,10 +101,10 @@ func ConstructorRefuses(ref result: SemanticExpressionGraphNominalConstructorCal
 
 func Main() -> Void {
     let artifact: AstTreeArtifact = ConstructorArtifact();
-    let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
-    let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    var constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    var signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     Log(constructors.ok && signatures.ok && SemanticAstNominalConstructorRowsReady(constructors));
-    let value: SemanticExpressionGraphNominalConstructorCallFact = ConstructorResult("Pair([], [])", 0, constructors, signatures);
+    var value: SemanticExpressionGraphNominalConstructorCallFact = ConstructorResult("Pair([], [])", 0, constructors, signatures);
     Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 2, "Pair([], [])"));
     Log(!ConstructorFieldsMatch(value, constructors, "Pair", 1, 0, 2, "Pair([], [])"));
     value = ConstructorResult("Pair([])", 0, constructors, signatures);
@@ -129,7 +129,7 @@ func Main() -> Void {
     Log(ConstructorRefuses(value, "call_arity_mismatch"));
     value = ConstructorResult("Pair([1])", 0, constructors, signatures);
     Log(ConstructorRefuses(value, "call_arg_type_mismatch"));
-    let shadow: Int = 1;
+    var shadow: Int = 1;
     while shadow <= 7 {
         value = ConstructorResult("Pair([])", shadow, constructors, signatures);
         Log(!value.applies && value.ok && value.constructor_source_syntax_id == 0);
@@ -161,8 +161,8 @@ func Main() -> Void {
     // A name index that disagrees with the names fails admission, and the
     // lookup through it fails closed.
     constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
-    let forged_first_rows: HashMap<String, Int> = MapNew();
-    let forged_row_counts: HashMap<String, Int> = MapNew();
+    var forged_first_rows: HashMap<String, Int> = MapNew();
+    var forged_row_counts: HashMap<String, Int> = MapNew();
     SemanticAstNominalConstructorNameIndexFill(constructors.names, forged_first_rows, forged_row_counts);
     MapSet(forged_first_rows, "Pair", 1);
     constructors.name_first_rows = forged_first_rows;
@@ -179,8 +179,8 @@ func Main() -> Void {
     constructors.names[1] = "Pair";
     // Index the duplicated name the way the facts producer does, so the
     // lookup sees two "Pair" rows.
-    let duplicate_first_rows: HashMap<String, Int> = MapNew();
-    let duplicate_row_counts: HashMap<String, Int> = MapNew();
+    var duplicate_first_rows: HashMap<String, Int> = MapNew();
+    var duplicate_row_counts: HashMap<String, Int> = MapNew();
     SemanticAstNominalConstructorNameIndexFill(constructors.names, duplicate_first_rows, duplicate_row_counts);
     constructors.name_first_rows = duplicate_first_rows;
     constructors.name_row_counts = duplicate_row_counts;

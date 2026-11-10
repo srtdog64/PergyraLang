@@ -1,6 +1,6 @@
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
 func Forward(ref values: Array<String>, own supplied: Array<String>) -> Int {
-    let alias: Array<String> = values;
+    var alias: Array<String> = values;
     alias = supplied;
     return Metadata(alias) + ArrayLength(values);
 }

@@ -9,8 +9,8 @@ func CaptureOption(inout rows: Rows) -> Option<Int>
 {
     let live_zone: RecoveryZone = RecoveryZone(RecoveryCounter(7));
     Log(live_zone.counter.value);
-    let types: Array<String> = rows.types;
-    let count: Int = 0;
+    var types: Array<String> = rows.types;
+    var count: Int = 0;
     while count < 8
     {
         ArrayPush(types, "row");
@@ -21,7 +21,7 @@ func CaptureOption(inout rows: Rows) -> Option<Int>
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     Log(IsSome(CaptureOption(rows)));
     Log(ArrayLength(rows.types));
     Log(rows.types[8]);

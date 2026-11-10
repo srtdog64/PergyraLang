@@ -1,5 +1,5 @@
 func AllPositive(xs: Array<Int>) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         if xs[i] <= 0 { return false; }
         i = i + 1;

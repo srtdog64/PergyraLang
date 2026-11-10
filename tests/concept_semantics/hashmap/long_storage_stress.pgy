@@ -1,9 +1,9 @@
 func Main() -> Void with effects local {
-    let values: HashMap<Long, Long> = MapNew();
-    let i: Long = 0L;
-    let max_key: Long = 2147483647L;
+    var values: HashMap<Long, Long> = MapNew();
+    var i: Long = 0L;
+    var max_key: Long = 2147483647L;
     max_key = max_key * 4294967296L + 4294967295L;
-    let min_key: Long = 0L;
+    var min_key: Long = 0L;
     min_key = min_key - max_key - 1L;
     while i < 256L {
         MapSet(values, i * 4294967296L + 7L, i + 1L);
@@ -30,7 +30,7 @@ func Main() -> Void with effects local {
     Log(keys[0]);
     Log(keys[ArrayLength(keys) - 1]);
 
-    let total: Long = 0L;
+    var total: Long = 0L;
     i = 0L;
     while i < 256L {
         total = total + MapGet(values, i * 4294967296L + 7L);

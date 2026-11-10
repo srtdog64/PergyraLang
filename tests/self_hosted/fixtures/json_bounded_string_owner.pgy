@@ -8,7 +8,7 @@ func JsonBoundedStringEquals(
     expected: String,
     expected_end: Int
 ) -> Bool {
-    let end: Array<Int> = [0];
+    var end: Array<Int> = [0];
     let actual: String = ReadJsonStringBounded(
         encoded, StringLength(encoded), 0, StringLength(encoded), end
     );
@@ -25,7 +25,7 @@ func JsonBoundedIntegerEquals(
 }
 
 func Main() -> Void {
-    let failures: Int = 0;
+    var failures: Int = 0;
     let plain: String = "\"routine_name\"";
     if !JsonBoundedStringEquals(
         plain, "routine_name", StringLength(plain)
@@ -41,7 +41,7 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
-    let truncated_end: Array<Int> = [0];
+    var truncated_end: Array<Int> = [0];
     if ReadJsonStringBounded(
         plain, StringLength(plain), 0, StringLength(plain) - 1, truncated_end
     ) != "" || truncated_end[0] != 0 {

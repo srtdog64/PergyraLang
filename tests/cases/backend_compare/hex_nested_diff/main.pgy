@@ -4,8 +4,8 @@ class Hex {
 }
 
 func Diff(a: Hex, b: Hex) -> Int {
-    let dq: Int = a.q - b.q;
-    let dr: Int = a.r - b.r;
+    var dq: Int = a.q - b.q;
+    var dr: Int = a.r - b.r;
     if dq < 0 { dq = 0 - dq; }
     if dr < 0 { dr = 0 - dr; }
     return dq + dr;
@@ -13,11 +13,11 @@ func Diff(a: Hex, b: Hex) -> Int {
 
 func MaxDiff(hexes: Array<Int>, n: Int) -> Int {
     if n < 2 { return 0; }
-    let max: Int = 0;
-    let i: Int = 0;
+    var max: Int = 0;
+    var i: Int = 0;
     while i < n - 1 {
         let h1: Hex = Hex(hexes[i], hexes[i + 1]);
-        let j: Int = i + 1;
+        var j: Int = i + 1;
         while j < n - 1 {
             let h2: Hex = Hex(hexes[j], hexes[j + 1]);
             let d: Int = Diff(h1, h2);

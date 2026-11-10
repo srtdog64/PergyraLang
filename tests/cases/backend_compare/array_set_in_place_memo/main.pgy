@@ -1,8 +1,8 @@
 func FibMemo(n: Int) -> Int {
     if n <= 0 { return 0; }
     if n == 1 { return 1; }
-    let memo: Array<Int> = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let i: Int = 2;
+    var memo: Array<Int> = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    var i: Int = 2;
     while i <= n && i < 21 {
         memo[i] = memo[i - 1] + memo[i - 2];
         i = i + 1;

@@ -6,8 +6,8 @@ func Greet(name: String, formal: Bool) -> String {
 }
 
 func Repeat(s: String, n: Int) -> String {
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < n {
         result = result + s;
         i = i + 1;

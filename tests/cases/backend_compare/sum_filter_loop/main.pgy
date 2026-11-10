@@ -1,8 +1,8 @@
 func Main() -> Void {
     let xs: Array<Int> = [3, -2, 7, 0, -5, 12, 4];
-    let pos_sum: Int = 0;
-    let neg_count: Int = 0;
-    let i: Int = 0;
+    var pos_sum: Int = 0;
+    var neg_count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         if xs[i] > 0 {
             pos_sum = pos_sum + xs[i];

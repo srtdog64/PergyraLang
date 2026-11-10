@@ -1,8 +1,8 @@
 func MinMaxScore(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let mn: Int = arr[0];
-    let mx: Int = arr[0];
-    let i: Int = 1;
+    var mn: Int = arr[0];
+    var mx: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         if arr[i] < mn { mn = arr[i]; }
         if arr[i] > mx { mx = arr[i]; }
@@ -13,14 +13,14 @@ func MinMaxScore(arr: Array<Int>, n: Int) -> Int {
 
 func SecondLargest(arr: Array<Int>, n: Int) -> Int {
     if n < 2 { return -1; }
-    let first: Int = arr[0];
-    let second: Int = arr[1];
+    var first: Int = arr[0];
+    var second: Int = arr[1];
     if first < second {
         let tmp: Int = first;
         first = second;
         second = tmp;
     }
-    let i: Int = 2;
+    var i: Int = 2;
     while i < n {
         if arr[i] > first {
             second = first;

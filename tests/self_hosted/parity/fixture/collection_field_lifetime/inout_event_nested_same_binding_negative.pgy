@@ -4,6 +4,6 @@ func Copy(inout values: Array<String>, marker: Int) -> Int {
 }
 func Mark(inout values: Array<String>) -> Int { ArrayPush(values, "borrowed"); return 1; }
 func Main() -> Void {
-    let a: Array<String> = [];
+    var a: Array<String> = [];
     let rejected_nested: Int = Copy(a, Mark(a));
 }

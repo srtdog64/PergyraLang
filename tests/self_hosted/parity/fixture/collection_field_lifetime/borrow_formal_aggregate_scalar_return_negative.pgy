@@ -14,7 +14,7 @@ func Resolve(ref type_names: Array<String>, row: Int) -> TypeIdentity {
     return TypeIdentity(true, row + 1, type_name);
 }
 func Main() -> Void {
-    let type_names: Array<String> = [];
+    var type_names: Array<String> = [];
     ArrayPushOwnedString(type_names, "Box<String>");
     let identity: TypeIdentity = Resolve(type_names, 0);
     ArrayDropOwnedStrings(type_names);

@@ -9,7 +9,7 @@ func Main() -> Void with caps env {
         Log(SliceRuntimeCLengthFn("Float")); Exit(1);
     }
     if args[0] == "missing-runtime-length" {
-        let bad: SliceRuntimeFact = SliceRuntimeFactFromElementType("Int", env);
+        var bad: SliceRuntimeFact = SliceRuntimeFactFromElementType("Int", env);
         bad.c_slice_len_fn = "";
         Log(SliceRuntimeCBlockForFact(bad, "len", "pgy_ai_new()")); Exit(1);
     }

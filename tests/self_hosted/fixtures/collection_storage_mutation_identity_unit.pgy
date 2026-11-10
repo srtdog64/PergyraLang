@@ -2,7 +2,7 @@
 func InspectCollectionStorageMutationIdentity(
     inout analysis: SemanticAstArtifactAnalysis, mutation: Int
 ) -> Bool {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         if SemanticAstCollectionStorageMutationKind(analysis.expression_surfaces.expression_graph, node) == 2 {
             let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, node);

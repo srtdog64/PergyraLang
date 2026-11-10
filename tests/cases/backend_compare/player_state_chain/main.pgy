@@ -4,13 +4,13 @@ class Player {
 }
 
 func Heal(p: Player, amt: Int) -> Player {
-    let new_hp: Int = p.hp + amt;
+    var new_hp: Int = p.hp + amt;
     if new_hp > p.max { new_hp = p.max; }
     return Player(new_hp, p.max);
 }
 
 func Damage(p: Player, amt: Int) -> Player {
-    let new_hp: Int = p.hp - amt;
+    var new_hp: Int = p.hp - amt;
     if new_hp < 0 { new_hp = 0; }
     return Player(new_hp, p.max);
 }

@@ -45,7 +45,7 @@ world LogisticsWorld
 
     func Audit(self, completionState: Int) -> String
     {
-        let bias = 0;
+        var bias = 0;
         if completionState > 0
         {
             bias = bias + 2;

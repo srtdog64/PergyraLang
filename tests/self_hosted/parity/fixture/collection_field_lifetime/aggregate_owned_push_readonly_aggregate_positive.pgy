@@ -2,9 +2,9 @@
 struct Rows { values: Array<String>; }
 func Observe(rows: Rows) -> Void { Log(ArrayLength(rows.values)); }
 func Append(inout rows: Rows) -> Void {
-    let values: Array<String> = rows.values;
+    var values: Array<String> = rows.values;
     ArrayPushOwnedString(values, "x");
     rows.values = values;
     Observe(rows);
 }
-func Main() -> Void { let rows: Rows = Rows([]); Append(rows); }
+func Main() -> Void { var rows: Rows = Rows([]); Append(rows); }

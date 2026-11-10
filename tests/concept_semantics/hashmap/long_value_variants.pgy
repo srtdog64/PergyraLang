@@ -1,8 +1,8 @@
 func Main() -> Void with effects local {
-    let ints: HashMap<Long, Int> = MapNew();
-    let longs: HashMap<Long, Long> = MapNew();
-    let flags: HashMap<Long, Bool> = MapNew();
-    let strings: HashMap<Long, String> = MapNew();
+    var ints: HashMap<Long, Int> = MapNew();
+    var longs: HashMap<Long, Long> = MapNew();
+    var flags: HashMap<Long, Bool> = MapNew();
+    var strings: HashMap<Long, String> = MapNew();
 
     MapSet(ints, 1L, 11);
     MapSet(ints, 1L, 12);

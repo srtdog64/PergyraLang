@@ -7,7 +7,7 @@ func Validate(n: Int) -> Option<Int> {
 func ProcessChain(a: Int, b: Int) -> Int {
     let oa: Option<Int> = Validate(a);
     let ob: Option<Int> = Validate(b);
-    let total: Int = 0;
+    var total: Int = 0;
     match oa {
         case Some(x):
             let scaled: Int = x * 10;

@@ -1,5 +1,5 @@
 func Pick(flag: Bool, lhs: Int, rhs: Int) -> Int {
-    let chosen: Int = lhs;
+    var chosen: Int = lhs;
     if flag {
         chosen = 7;
     }
@@ -7,7 +7,7 @@ func Pick(flag: Bool, lhs: Int, rhs: Int) -> Int {
 }
 
 func GuardedDivide(flag: Bool, divisor: Int) -> Int {
-    let chosen: Int = 0;
+    var chosen: Int = 0;
     if flag {
         chosen = 100 / divisor;
     }
@@ -22,7 +22,7 @@ struct SpeculationRows {
 // restore it on this early return.  That post-lowering expression must receive
 // the same speculation fact as expressions created by ordinary lowering.
 func RestoreBeforeEarlyReturn(inout rows: SpeculationRows, stop: Bool) -> Bool {
-    let values: Array<String> = rows.values;
+    var values: Array<String> = rows.values;
     if stop { return false; }
     ArraySet(values, 0, "new");
     rows.values = values;
@@ -30,7 +30,7 @@ func RestoreBeforeEarlyReturn(inout rows: SpeculationRows, stop: Bool) -> Bool {
 }
 
 func Main() -> Void {
-    let rows: SpeculationRows = SpeculationRows(["old"]);
+    var rows: SpeculationRows = SpeculationRows(["old"]);
     Log(RestoreBeforeEarlyReturn(rows, true));
     Log(rows.values[0]);
     Log(Pick(true, 3, 7));

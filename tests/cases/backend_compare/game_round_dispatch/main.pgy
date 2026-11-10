@@ -19,8 +19,8 @@ func Play(s: GameState, win: Bool) -> GameState {
 }
 
 func RunGames(g: Mode, wins: Array<Bool>, n: Int) -> GameState {
-    let s: GameState = Start(g);
-    let i: Int = 0;
+    var s: GameState = Start(g);
+    var i: Int = 0;
     while i < n && s.lives > 0 {
         s = Play(s, wins[i]);
         i = i + 1;

@@ -21,8 +21,8 @@ object PlayerView {
 // --- subject (active entity) ------------------------------------------------
 subject Player {
     let name: String;
-    let gold: Int;
-    let itemCount: Int;
+    var gold: Int;
+    var itemCount: Int;
 
     action Earn(self, amount: Int) -> Void
         within MarketZone
@@ -207,7 +207,7 @@ func Main() -> Void {
     Log("total=" + ToString(total));
 
     // for loop
-    let sum: Int = 0;
+    var sum: Int = 0;
     for i in 0..5 {
         if i == 2 { continue; }
         if i == 4 { break; }
@@ -216,7 +216,7 @@ func Main() -> Void {
     Log("loop.sum=" + ToString(sum));
 
     // while loop
-    let count: Int = 0;
+    var count: Int = 0;
     while count < 3 {
         count = count + 1;
     }

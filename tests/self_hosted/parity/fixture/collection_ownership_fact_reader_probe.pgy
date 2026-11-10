@@ -20,9 +20,9 @@ func Main() -> Void with caps env, io_read {
         CollectionOwnershipProbeFail(
             "collection ownership probe rejected program structure");
     }
-    let main_routines: Int = 0;
-    let main_rows: Int = 0;
-    let routine_row: Int = 0;
+    var main_routines: Int = 0;
+    var main_rows: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < ArrayLength(routines.names) {
         let index: MirRoutineFactIndex =
             BuildMirRoutineFactIndex(routines, routine_row);
@@ -32,7 +32,7 @@ func Main() -> Void with caps env, io_read {
         }
         if routines.names[routine_row] == "Main" {
             main_routines = main_routines + 1;
-            let ownership_row: Int = 0;
+            var ownership_row: Int = 0;
             while ownership_row < ArrayLength(
                     index.collection_ownership_facts.binding_syntax_ids) {
                 Log(ToString(

@@ -9,9 +9,9 @@ func Fibonacci(n: Int) -> Int {
         return n;
     }
 
-    let previous: Int = 0;
-    let current: Int = 1;
-    let index: Int = 2;
+    var previous: Int = 0;
+    var current: Int = 1;
+    var index: Int = 2;
 
     while index <= n {
         let next: Int = previous + current;

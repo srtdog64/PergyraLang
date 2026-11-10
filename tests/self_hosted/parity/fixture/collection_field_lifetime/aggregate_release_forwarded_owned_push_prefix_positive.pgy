@@ -14,8 +14,8 @@ func ForwardedAppend(
 }
 
 func ForwardedSelected(facts: ForwardedFacts) -> ForwardedFacts {
-    let types: Array<String> = facts.types;
-    let literals: Array<String> = facts.literals;
+    var types: Array<String> = facts.types;
+    var literals: Array<String> = facts.literals;
     ForwardedAppend(types, literals, "selected");
     return ForwardedFacts(types, literals);
 }
@@ -26,8 +26,8 @@ func ForwardedRoute(
     if selected {
         return ForwardedSelected(facts);
     }
-    let types: Array<String> = facts.types;
-    let literals: Array<String> = facts.literals;
+    var types: Array<String> = facts.types;
+    var literals: Array<String> = facts.literals;
     ForwardedAppend(types, literals, "general");
     return ForwardedFacts(types, literals);
 }

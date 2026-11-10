@@ -66,9 +66,9 @@ func PlanRaid(damage: Array<Int>, bounty: Gold) -> RaidPlan {
     let mvp: Int = FirstIndexOf(damage, HighestOf(damage));
     let base: Gold = ShareOf(bounty, damage[0], total) + ShareOf(bounty, damage[1], total) + ShareOf(bounty, damage[2], total);
     let remainder: Gold = bounty - base;
-    let bonus0: Gold = 0;
-    let bonus1: Gold = 0;
-    let bonus2: Gold = 0;
+    var bonus0: Gold = 0;
+    var bonus1: Gold = 0;
+    var bonus2: Gold = 0;
     match mvp {
         case 0: bonus0 = remainder;
         case 1: bonus1 = remainder;

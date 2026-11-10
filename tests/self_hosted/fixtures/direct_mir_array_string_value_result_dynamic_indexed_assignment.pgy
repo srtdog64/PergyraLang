@@ -10,7 +10,7 @@ func FillNames(
 }
 
 func Main() -> Void {
-    let names: Array<String> = StringSplit("left,old,old", ",");
+    var names: Array<String> = StringSplit("left,old,old", ",");
     FillNames(names, 1);
     Log(names[0]);
     Log(names[1]);

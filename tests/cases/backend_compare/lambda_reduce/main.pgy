@@ -1,6 +1,6 @@
 func Reduce(arr: Array<Int>, n: Int, init: Int, f: func(Int, Int) -> Int) -> Int {
-    let acc: Int = init;
-    let i: Int = 0;
+    var acc: Int = init;
+    var i: Int = 0;
     while i < n {
         acc = f(acc, arr[i]);
         i = i + 1;

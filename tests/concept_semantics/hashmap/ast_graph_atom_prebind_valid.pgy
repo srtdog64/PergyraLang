@@ -15,8 +15,8 @@ struct GraphAtomArtifact {
 // Graph strings are installed before the table escapes. The graph owner and
 // its borrowed String descriptors then travel in the same aggregate.
 func GraphAtomArtifactBuild(own graphs: GraphTextRows) -> GraphAtomArtifact {
-    let table: Array<String> = [""];
-    let graph_node: Int = 0;
+    var table: Array<String> = [""];
+    var graph_node: Int = 0;
     while graph_node < ArrayLength(graphs.texts) {
         ArrayPush(table, "");
         graph_node = graph_node + 1;
@@ -33,7 +33,7 @@ func GraphAtomArtifactBuild(own graphs: GraphTextRows) -> GraphAtomArtifact {
 func GraphAtomIndexBind(artifact: GraphAtomArtifact) -> GraphAtomArtifact {
     let arena: AtomIndexRows = artifact.arena;
     let atom_table: Array<String> = arena.atom_table;
-    let atoms: Array<Int> = arena.atoms;
+    var atoms: Array<Int> = arena.atoms;
     ArraySet(atoms, 0, 1);
     return GraphAtomArtifact(AtomIndexRows(atom_table, atoms), artifact.graphs);
 }

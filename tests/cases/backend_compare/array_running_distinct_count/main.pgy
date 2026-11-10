@@ -1,9 +1,9 @@
 func DistinctCount(arr: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let already: Bool = false;
-        let j: Int = 0;
+        var already: Bool = false;
+        var j: Int = 0;
         while j < i {
             if arr[j] == arr[i] { already = true; }
             j = j + 1;

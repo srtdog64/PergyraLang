@@ -10,7 +10,7 @@ func IsDigit(s: String) -> Bool {
 func AllDigits(s: String) -> Bool {
     let n: Int = StringLength(s);
     if n == 0 { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if !IsDigit(Substring(s, i, i + 1)) { return false; }
         i = i + 1;

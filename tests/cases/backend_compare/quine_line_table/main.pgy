@@ -8,7 +8,7 @@ func PrintLine(s: String) -> Void {
 }
 
 func Main() -> Void {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func Esc(s: String) -> String {");
     ArrayPush(lines, "    let slashes: String = StringReplace(s, \"\\\\\", \"\\\\\\\\\");");
     ArrayPush(lines, "    return StringReplace(slashes, \"\\\"\", \"\\\\\\\"\");");
@@ -38,7 +38,7 @@ func Main() -> Void {
     ArrayPush(lines, "    }");
     ArrayPush(lines, "}");
     let prefix_count: Int = 11;
-    let i: Int = 0;
+    var i: Int = 0;
     while i < prefix_count {
         PrintLine(lines[i]);
         i = i + 1;

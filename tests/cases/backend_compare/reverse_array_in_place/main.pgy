@@ -1,7 +1,7 @@
 func Main() -> Void {
-    let xs: Array<Int> = [1, 2, 3, 4, 5];
-    let lo: Int = 0;
-    let hi: Int = ArrayLength(xs) - 1;
+    var xs: Array<Int> = [1, 2, 3, 4, 5];
+    var lo: Int = 0;
+    var hi: Int = ArrayLength(xs) - 1;
     while lo < hi {
         let tmp: Int = xs[lo];
         ArraySet(xs, lo, xs[hi]);
@@ -9,7 +9,7 @@ func Main() -> Void {
         lo = lo + 1;
         hi = hi - 1;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         Log(xs[i]);
         i = i + 1;

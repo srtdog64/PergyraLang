@@ -1,6 +1,6 @@
 // Effect summaries may precede this scope; only the real call reads path.
 func Main() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 1 {
         let path: String = "payload.txt";
         if i == 0 {

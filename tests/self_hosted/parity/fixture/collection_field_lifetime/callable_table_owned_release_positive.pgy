@@ -3,14 +3,14 @@ import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fa
 
 func Main() -> Void
 {
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
     ArrayPushOwnedString(names, "OwnedCallable");
     ArrayPushOwnedString(returns, "Void");
     ArrayPushOwnedString(params, "");
     let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(names);
-    let facts: SemanticAstExpressionFunctionTableFacts =
+    var facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(true, names, returns, params, callables);
     if !SemanticAstExpressionFunctionTableFactsReady(facts) ||
         ArrayLength(facts.names) != 1

@@ -3,7 +3,7 @@ func Opaque(inout values: Array<String>) -> Void {
 }
 
 func Observe(ref values: Array<String>) -> Void {
-    let alias: Array<String> = [];
+    var alias: Array<String> = [];
     if true {
         alias = values;
         Opaque(alias);

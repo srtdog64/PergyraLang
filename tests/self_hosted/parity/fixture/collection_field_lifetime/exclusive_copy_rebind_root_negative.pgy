@@ -17,14 +17,14 @@ func FactsMake(graph: Graph) -> Facts {
 
 func FactsAppendNode(facts: Facts, node: String) -> Facts {
     let held: Graph = facts.graph;
-    let nodes: Array<String> = held.nodes;
+    var nodes: Array<String> = held.nodes;
     ArrayPush(nodes, node);
     return Facts(Graph(nodes), facts.rows);
 }
 
 func Main() -> Int {
     let graph: Graph = Graph(["a"]);
-    let facts: Facts = FactsMake(graph);
+    var facts: Facts = FactsMake(graph);
     facts = FactsAppendNode(facts, "x");
     facts = FactsAppendNode(facts, "y");
     Log(graph.nodes[0]);

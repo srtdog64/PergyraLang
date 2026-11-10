@@ -8,7 +8,7 @@ func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Die("future probe requires source and expected verdict"); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok {
         Log(analysis.verdict.diagnostic_message);
     }
@@ -18,7 +18,7 @@ func Main() -> Void with caps env, io_read {
             Log(body.verdict.diagnostic_code); Die(body.verdict.diagnostic_message);
         }
     } else {
-        let expected: String = args[1];
+        var expected: String = args[1];
         if expected == "reject" { expected = "task_lifecycle_invalid"; }
         if body.verdict.ok || body.verdict.diagnostic_code != expected {
             Log(body.verdict.diagnostic_code); Log(body.verdict.diagnostic_message);

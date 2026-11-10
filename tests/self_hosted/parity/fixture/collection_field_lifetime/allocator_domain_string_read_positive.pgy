@@ -12,7 +12,7 @@ func MakeObserved() -> String {
     return result;
 }
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, MakeObserved());
     ArrayDropOwnedStrings(values);
 }

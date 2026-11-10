@@ -1,7 +1,7 @@
 enum Phase { Setup, Run, Verify, Done }
 
 func DescribeState(p: Phase, retry: Int) -> Int {
-    let base: Int = 0;
+    var base: Int = 0;
     match p {
         case Setup: base = 100;
         case Run: base = 200;

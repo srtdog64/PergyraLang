@@ -6,7 +6,7 @@ func Populate(inout values: Array<String>) -> Bool
 }
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let matched: Bool = Populate(values);
     ArrayDropOwnedStrings(values);
     Log(matched);

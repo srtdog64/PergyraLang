@@ -7,7 +7,7 @@ zone CounterZone {
 }
 
 func Main() -> Void {
-    let counter: CounterZone = CounterZone(Player(7));
+    var counter: CounterZone = CounterZone(Player(7));
     counter = CounterZone(Player(9));
     Log(counter.player.hp);
 }

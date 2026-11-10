@@ -3,7 +3,7 @@ func ReleaseOwnedInts(own values: Array<Int>) -> Void {
 }
 
 func BuildOwnedInts() -> Array<Int> {
-    let values: Array<Int> = [];
+    var values: Array<Int> = [];
     ArrayPush(values, 7);
     return values;
 }

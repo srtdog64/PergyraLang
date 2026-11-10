@@ -5,7 +5,7 @@
 // are invoked with no extra args -- so the backend parity diff is stable even
 // though the argument values include each binary's differing path.
 let a: Array<String> = Args();
-let n: Int = 0;
+var n: Int = 0;
 for s in a {
     n = n + 1;
 }

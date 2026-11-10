@@ -1,8 +1,8 @@
 func MinMaxSpan(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let minv: Int = arr[0];
-    let maxv: Int = arr[0];
-    let i: Int = 1;
+    var minv: Int = arr[0];
+    var maxv: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         if arr[i] < minv { minv = arr[i]; }
         if arr[i] > maxv { maxv = arr[i]; }

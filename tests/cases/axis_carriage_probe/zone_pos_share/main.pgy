@@ -5,7 +5,7 @@
 //   runs 5 5 / 7 5         -> copy semantics (Erlang-style isolation)
 //   runs 5 5 / 7 7         -> alias: zone boundary is silent for values
 subject Buyer {
-    let hp: Int;
+    var hp: Int;
     action Promote(self) -> Void {
         hp = hp + 2;
     }

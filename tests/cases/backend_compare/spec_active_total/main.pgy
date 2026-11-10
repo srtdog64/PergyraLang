@@ -8,8 +8,8 @@ func MakeSpec(w: Int, threshold: Int) -> Spec {
 }
 
 func ActiveTotal(weights: Array<Int>, n: Int, threshold: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let s: Spec = MakeSpec(weights[i], threshold);
         if s.active { total = total + s.weight; }

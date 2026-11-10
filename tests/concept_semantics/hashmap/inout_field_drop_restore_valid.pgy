@@ -12,9 +12,9 @@ func Clear(inout rows: Rows) -> Void {
 }
 
 func Main() -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("a", "b"));
-    let rows: Rows = Rows(names, 1);
+    var rows: Rows = Rows(names, 1);
     Log(ToString(ArrayLength(rows.names)));
     Clear(rows);
     Log(ToString(ArrayLength(rows.names) + rows.count));

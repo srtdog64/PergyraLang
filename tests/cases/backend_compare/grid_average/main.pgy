@@ -21,8 +21,8 @@ func Add(g: Grid, c: Cell) -> Grid {
 }
 
 func Scan(vals: Array<Int>, n: Int) -> Int {
-    let g: Grid = Empty();
-    let i: Int = 0;
+    var g: Grid = Empty();
+    var i: Int = 0;
     while i < n {
         let c: Cell = Cell(i / 10, i % 10, vals[i]);
         g = Add(g, c);

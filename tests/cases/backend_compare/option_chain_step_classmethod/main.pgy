@@ -10,8 +10,8 @@ class Counter {
 
 func StepsUntil(start: Int, cap: Int) -> Int {
     let c: Counter = Counter(start, cap);
-    let steps: Int = 0;
-    let cur: Option<Int> = c.Next();
+    var steps: Int = 0;
+    var cur: Option<Int> = c.Next();
     while IsSome(cur) {
         steps = steps + 1;
         match cur {

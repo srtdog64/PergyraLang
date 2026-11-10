@@ -6,8 +6,8 @@ class Stage {
 }
 
 func Build(n: Int) -> Stage {
-    let s: Stage = Stage(0, 0);
-    let i: Int = 0;
+    var s: Stage = Stage(0, 0);
+    var i: Int = 0;
     while i < n {
         s = s.Next();
         i = i + 1;

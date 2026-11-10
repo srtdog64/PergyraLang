@@ -13,13 +13,13 @@ func Main() -> Void with caps env, io_read {
     let mutation: Int = ToInt(args[1]);
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mutation == 131 { Log(!analysis.signatures.ok); return; }
     if mutation >= 125 && mutation <= 130 {
-        let tables: SemanticAstExpressionFunctionTableFacts =
+        var tables: SemanticAstExpressionFunctionTableFacts =
             SemanticAstExpressionFunctionTableFactsFromArtifact(
                 artifact, analysis.signatures, analysis.constructors, analysis.enums);
-        let row: Int = 0;
+        var row: Int = 0;
         while row < ArrayLength(tables.names) {
             if tables.names[row] == "ToInt" {
                 if mutation == 126 { tables.returns[row] = "String"; }
@@ -35,8 +35,8 @@ func Main() -> Void with caps env, io_read {
         let selection: Long = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
             analysis.signatures, tables);
         if mutation != 125 { Log(selection < 0L); return; }
-        let parsed: Bool = false;
-        let trimmed: Bool = false;
+        var parsed: Bool = false;
+        var trimmed: Bool = false;
         var remaining: Long = selection;
         row = 0;
         while row < SemanticBuiltinArgumentRetentionCount() {
@@ -65,8 +65,8 @@ func Main() -> Void with caps env, io_read {
             .builtin_argument_retention_calls_sealed = false;
         analysis.expression_surfaces.expression_graph.arena.identities
             .builtin_argument_retention_call_sealed_count = 0;
-        let char_code_call: Int = -1;
-        let node: Int = 0;
+        var char_code_call: Int = -1;
+        var node: Int = 0;
         while node < SemanticExpressionGraphArenaNodeCount(
                 analysis.expression_surfaces.expression_graph.arena) {
             if analysis.expression_surfaces.expression_graph.arena
@@ -93,7 +93,7 @@ func Main() -> Void with caps env, io_read {
                 analysis.expression_surfaces));
         return;
     }
-    let bundle: SemanticAstBodyTypeBundle =
+    var bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if mutation >= 120 && mutation <= 124 {
         if !bundle.verdict.ok { Log("baseline receipt admission failed"); Exit(2); }
@@ -112,10 +112,10 @@ func Main() -> Void with caps env, io_read {
                     receipt, artifact, analysis, bundle));
             return;
         }
-        let schema: String = receipt.schema;
-        let formal_count: Int = receipt.collection_formal_count;
-        let proved_count: Int = receipt.collection_formal_proved_count;
-        let effect_digest: Int = receipt.collection_formal_effect_digest;
+        var schema: String = receipt.schema;
+        var formal_count: Int = receipt.collection_formal_count;
+        var proved_count: Int = receipt.collection_formal_proved_count;
+        var effect_digest: Int = receipt.collection_formal_effect_digest;
         if mutation == 121 {
             schema = "pgy.semantic-body-type-bundle-admission.v3";
         }
@@ -162,16 +162,16 @@ func Main() -> Void with caps env, io_read {
             bundle.collection_formal_effects;
         let proved_actual: HashMap<String, Int> = actual.effects;
         if !actual.ok { Log("actual formal effects are invalid"); Exit(2); }
-        let observed: Int = 0;
-        let actual_row: Int = 0;
+        var observed: Int = 0;
+        var actual_row: Int = 0;
         while actual_row < ArrayLength(analysis.signatures.names) {
             let name: String = analysis.signatures.names[actual_row];
-            let suffix: String = "src/self_hosted/semantic/ast_expression_environment_owner.pgy";
-            let label: String = "";
-            let first: Int = 0;
-            let count: Int = 1;
-            let expected: Int = 3;
-            let mode: Int = 0;
+            var suffix: String = "src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+            var label: String = "";
+            var first: Int = 0;
+            var count: Int = 1;
+            var expected: Int = 3;
+            var mode: Int = 0;
             if name == "SemanticAstExpressionFunctionRowIndex" {
                 label = "row_index"; mode = 3;
             }
@@ -187,7 +187,7 @@ func Main() -> Void with caps env, io_read {
                 if !IsSome(module) || !SemanticCompilerInternalBuiltinModulePathMatches(UnwrapOption(module), suffix) {
                     Log("actual producer module mismatch"); Exit(2);
                 }
-                let ordinal: Int = first;
+                var ordinal: Int = first;
                 while ordinal < first + count {
                     let actual_formal: Option<Int> = SemanticAstFunctionParamNodeAt(analysis.signatures, actual_row, ordinal);
                     let param_mode: Option<Int> = SemanticAstFunctionParamModeAt(analysis.signatures, actual_row, ordinal);
@@ -338,7 +338,7 @@ func Main() -> Void with caps env, io_read {
         Log(InspectOwnStorageAdmission(artifact, analysis, bundle, mutation)); return;
     }
     if mutation >= 103 && mutation <= 113 {
-        let retention_calls: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
+        var retention_calls: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
             analysis.expression_surfaces.expression_graph.arena.identities
                 .builtin_argument_retention_calls;
         if ArrayLength(retention_calls) != 1 {
@@ -356,11 +356,11 @@ func Main() -> Void with caps env, io_read {
         }
         ArrayPop(retention_calls);
         if mutation != 104 {
-            let call_node: Int = original.call_node;
-            let owner_node_id: Int = original.owner_node_id;
-            let lane: Int = original.lane;
-            let local_call_ordinal: Int = original.local_call_ordinal;
-            let retention_row: Int = original.retention_row;
+            var call_node: Int = original.call_node;
+            var owner_node_id: Int = original.owner_node_id;
+            var lane: Int = original.lane;
+            var local_call_ordinal: Int = original.local_call_ordinal;
+            var retention_row: Int = original.retention_row;
             if mutation == 105 || mutation == 113 { retention_row = 2; }
             if mutation == 106 { owner_node_id = owner_node_id + 1; }
             if mutation == 107 {
@@ -397,15 +397,15 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if mutation >= 114 && mutation <= 118 {
-        let tables: SemanticAstExpressionFunctionTableFacts =
+        var tables: SemanticAstExpressionFunctionTableFacts =
             SemanticAstExpressionFunctionTableFactsFromArtifact(
                 artifact, analysis.signatures, analysis.constructors,
                 analysis.enums);
         if !SemanticAstExpressionFunctionTableFactsReady(tables) {
             Log("builtin signature table is invalid"); Exit(2);
         }
-        let string_length: Int = -1;
-        let table_row: Int = 0;
+        var string_length: Int = -1;
+        var table_row: Int = 0;
         while table_row < ArrayLength(tables.names) {
             if tables.names[table_row] == "StringLength" {
                 string_length = table_row;
@@ -429,11 +429,11 @@ func Main() -> Void with caps env, io_read {
         else { Log(selection < 0L); }
         return;
     }
-    let signature: Int = -1;
-    let other: Int = -1;
-    let indexed: Int = -1;
-    let main_node: Int = -1;
-    let row: Int = 0;
+    var signature: Int = -1;
+    var other: Int = -1;
+    var indexed: Int = -1;
+    var main_node: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Populate" { signature = row; }
         if analysis.signatures.names[row] == "Forward" { other = row; }
@@ -444,16 +444,16 @@ func Main() -> Void with caps env, io_read {
     if signature < 0 || other < 0 { Log("missing producer identities"); Exit(2); }
     let formal: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, 0));
     let foreign: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, other, 0));
-    let indexed_formal: Int = -1;
+    var indexed_formal: Int = -1;
     if mutation >= 13 {
         if indexed < 0 { Log("missing indexed formal identity"); Exit(2); }
         indexed_formal = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, indexed, 0));
     }
-    let changed: Bool = mutation == 0 || mutation == 13;
-    let shared_index: Int = -1;
-    let unknown_call_syntax: Int = -1;
-    let slot: Int = 0;
-    let last: Int = -1;
+    var changed: Bool = mutation == 0 || mutation == 13;
+    var shared_index: Int = -1;
+    var unknown_call_syntax: Int = -1;
+    var slot: Int = 0;
+    var last: Int = -1;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         if analysis.expression_surfaces.expression_graph.has_roots[slot] {
             let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
@@ -467,7 +467,7 @@ func Main() -> Void with caps env, io_read {
                     analysis.signatures.function_node_ids[other];
                 changed = true;
             }
-            let node: Int = last + 1;
+            var node: Int = last + 1;
             while node <= root {
                 let binding: SemanticExpressionBindingIdentityFact =
                     SemanticExpressionGraphBindingIdentity(analysis.expression_surfaces.expression_graph, node);
@@ -542,7 +542,7 @@ func Main() -> Void with caps env, io_read {
     } else if mutation == 14 || mutation == 15 {
         // An admitted but unsafe indexed use is retained as an explicit
         // rejecting effect; an earlier seal failure may omit it entirely.
-        let indexed_rejected: Bool = !MapHas(proved, ToString(indexed_formal));
+        var indexed_rejected: Bool = !MapHas(proved, ToString(indexed_formal));
         if !indexed_rejected {
             indexed_rejected = MapGet(proved, ToString(indexed_formal)) ==
                 SemanticAstCollectionFormalUnprovedElementUseEffect();
@@ -580,14 +580,14 @@ func Main() -> Void with caps env, io_read {
     } else if mutation >= 11 && mutation <= 12 {
         // Bounds production cannot change state. Only the exact Main.values
         // event loses permission; retirement must remain sticky afterwards.
-        let ownership: Array<Int> = [];
-        let dispositions: Array<Int> = [];
-        let transitions: Array<Int> = [];
-        let caller_row: Int = -1;
+        var ownership: Array<Int> = [];
+        var dispositions: Array<Int> = [];
+        var transitions: Array<Int> = [];
+        var caller_row: Int = -1;
         row = 0;
         while row < ArrayLength(analysis.local_bindings.node_ids) {
-            let state: Int = SemanticAstCollectionOwnershipUnknown();
-            let transition: Int = SemanticAstCollectionTransitionEmpty();
+            var state: Int = SemanticAstCollectionOwnershipUnknown();
+            var transition: Int = SemanticAstCollectionTransitionEmpty();
             if mutation == 12 { state = SemanticAstCollectionOwnershipOwnedElements(); transition = SemanticAstCollectionTransitionOwned(); }
             ArrayPush(ownership, state); ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
             if analysis.local_bindings.names[row] == "values" && analysis.local_bindings.function_node_ids[row] == main_node { caller_row = row; }
@@ -602,17 +602,17 @@ func Main() -> Void with caps env, io_read {
             analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
         let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
             analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
-        let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+        var facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
             formal_rows, modes, effects.descriptor_effects, definitions, storage);
         if caller_row < 0 || unknown_call_syntax < 0 || !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)) {
             Log("missing exact caller effect frame"); Exit(2);
         }
-        let initial_state: Int = SemanticAstCollectionOwnershipUnknown();
-        let initial_transition: Int = SemanticAstCollectionTransitionEmpty();
+        var initial_state: Int = SemanticAstCollectionOwnershipUnknown();
+        var initial_transition: Int = SemanticAstCollectionTransitionEmpty();
         if mutation == 12 { initial_state = SemanticAstCollectionOwnershipOwnedElements(); initial_transition = SemanticAstCollectionTransitionOwned(); }
-        let unchanged: Bool = true;
+        var unchanged: Bool = true;
         row = 0;
         while row < ArrayLength(ownership) {
             if ownership[row] != initial_state || transitions[row] != initial_transition || dispositions[row] != SemanticAstCollectionDispositionLive() { unchanged = false; }
@@ -629,14 +629,14 @@ func Main() -> Void with caps env, io_read {
         ownership[caller_row] = SemanticAstCollectionOwnershipRetired(); transitions[caller_row] = SemanticAstCollectionTransitionRetired();
         let repeated: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, facts, caller_row,
             unknown_call_syntax, ownership, dispositions, transitions);
-        let sticky: Bool = repeated && ownership[caller_row] == SemanticAstCollectionOwnershipRetired() && transitions[caller_row] == SemanticAstCollectionTransitionRetired();
+        var sticky: Bool = repeated && ownership[caller_row] == SemanticAstCollectionOwnershipRetired() && transitions[caller_row] == SemanticAstCollectionTransitionRetired();
         dispositions[caller_row] = SemanticAstCollectionDispositionRetired();
         SemanticAstCollectionApplyTerminalCallEffects(facts, ownership, dispositions, transitions);
         sticky = sticky && dispositions[caller_row] == SemanticAstCollectionDispositionRetired() && ownership[caller_row] == SemanticAstCollectionOwnershipRetired() && transitions[caller_row] == SemanticAstCollectionTransitionRetired();
         ownership[caller_row] = initial_state; transitions[caller_row] = initial_transition;
         let disposed: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, facts, caller_row,
             unknown_call_syntax, ownership, dispositions, transitions);
-        let disposition_sticky: Bool = disposed && ownership[caller_row] == initial_state && transitions[caller_row] == initial_transition;
+        var disposition_sticky: Bool = disposed && ownership[caller_row] == initial_state && transitions[caller_row] == initial_transition;
         SemanticAstCollectionApplyTerminalCallEffects(facts, ownership, dispositions, transitions);
         disposition_sticky = disposition_sticky && ownership[caller_row] == initial_state && transitions[caller_row] == initial_transition;
         ArrayPop(facts.first_unknown_sites);
@@ -650,9 +650,9 @@ func InspectOwnStorageAdmission(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
     ref bundle: SemanticAstBodyTypeBundle, mutation: Int
 ) -> Bool {
-    let signature: Int = -1;
-    let other: Int = -1;
-    let row: Int = 0;
+    var signature: Int = -1;
+    var other: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Metadata" { signature = row; }
         if analysis.signatures.names[row] == "Other" { other = row; }
@@ -660,15 +660,15 @@ func InspectOwnStorageAdmission(
     }
     if signature < 0 || other < 0 { return false; }
     let formal: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, 0));
-    let slot: Int = 0;
-    let last: Int = -1;
+    var slot: Int = 0;
+    var last: Int = -1;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         if analysis.expression_surfaces.expression_graph.has_roots[slot] {
             let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
-            let node: Int = last + 1;
+            var node: Int = last + 1;
             while node <= root {
                 if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
-                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
+                    var edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
                     if edge.ok && SemanticAstCollectionOwnStringArrayParameterNode(analysis.signatures,
                             analysis.expression_surfaces.expression_graph, edge.call_node, edge.ordinal) == formal {
                         if mutation == 17 { analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = 0; }
@@ -692,8 +692,8 @@ func InspectOwnStorageAdmission(
                             bundle.owned_string_result_domains);
                         let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
                         let modes: Array<Int> = effects.inventory.modes;
-                        let proved: HashMap<String, Int> = effects.effects;
-                        let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+                        var proved: HashMap<String, Int> = effects.effects;
+                        var definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
                         let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
@@ -703,9 +703,9 @@ func InspectOwnStorageAdmission(
                             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
                             formal_rows, modes, effects.descriptor_effects, definitions, storage);
                         if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, local_count) { return false; }
-                        let ownership: Array<Int> = [];
-                        let dispositions: Array<Int> = [];
-                        let transitions: Array<Int> = [];
+                        var ownership: Array<Int> = [];
+                        var dispositions: Array<Int> = [];
+                        var transitions: Array<Int> = [];
                         row = 0;
                         while row < local_count {
                             ArrayPush(ownership, SemanticAstCollectionOwnershipBorrowedElements());
@@ -715,9 +715,9 @@ func InspectOwnStorageAdmission(
                         }
                         let requirements: HashMap<String, Int> = MapNew();
                         let syntax: Int = analysis.expression_surfaces.node_ids[slot / 3];
-                        let current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+                        var current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
                         if mutation >= 125 && mutation <= 128 {
-                            let retired: HashMap<String, Int> = MapNew();
+                            var retired: HashMap<String, Int> = MapNew();
                             if mutation == 126 { current_definitions[0] = -1; }
                             if mutation == 127 {
                                 if local_count != 2 || current_definitions[1] < 0 ||
@@ -732,7 +732,7 @@ func InspectOwnStorageAdmission(
                                 return pending_use.found && pending_use.diagnostic_code == "ast_artifact_invalid" &&
                                     pending_use.boundary == "owned_argument_event_identity" && MapSize(retired) == 0;
                             }
-                            let retained: Array<Bool> = [];
+                            var retained: Array<Bool> = [];
                             row = 0;
                             while row < ArrayLength(definitions.syntax_ids) { ArrayPush(retained, false); row = row + 1; }
                             let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
@@ -779,7 +779,7 @@ func InspectOwnStorageAdmission(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge, binding, true, false, true, facts, requirements,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions, definitions, current_definitions);
-                        let clean: Bool = live.ok && !unknown.ok && ownership[0] == SemanticAstCollectionOwnershipBorrowedElements() &&
+                        var clean: Bool = live.ok && !unknown.ok && ownership[0] == SemanticAstCollectionOwnershipBorrowedElements() &&
                             transitions[0] == SemanticAstCollectionTransitionUntracked() &&
                             bundle.collection_ownership.element_ownerships[0] == SemanticAstCollectionOwnershipBorrowedElements();
                         clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, -1, false, ownership, dispositions, transitions) &&
@@ -810,12 +810,12 @@ func InspectAssignmentDefinitionAdmission(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
     inout bundle: SemanticAstBodyTypeBundle, mutation: Int
 ) -> Bool {
-    let assignment: Int = -1;
-    let row: Int = 0;
-    let foreign_local: Int = -1;
-    let foreign_formal: Int = -1;
-    let function_id: Int = -1;
-    let signature: Int = 0;
+    var assignment: Int = -1;
+    var row: Int = 0;
+    var foreign_local: Int = -1;
+    var foreign_formal: Int = -1;
+    var function_id: Int = -1;
+    var signature: Int = 0;
     while signature < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[signature] == "Forward" { function_id = analysis.signatures.function_node_ids[signature]; }
         if analysis.signatures.names[signature] == "Metadata" { foreign_formal = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, 0)); }
@@ -862,11 +862,11 @@ func InspectOwnArgumentOccurrenceOrder(
     artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
     ref bundle: SemanticAstBodyTypeBundle, mutation: Int
 ) -> Bool {
-    let own_target: Int = 0;
-    let read_target: Int = 0;
-    let caller: Int = 0;
-    let formal: Int = 0;
-    let row: Int = 0;
+    var own_target: Int = 0;
+    var read_target: Int = 0;
+    var caller: Int = 0;
+    var formal: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "OwnFirst" { own_target = analysis.signatures.function_node_ids[row]; }
         if analysis.signatures.names[row] == "ReadFirst" { read_target = analysis.signatures.function_node_ids[row]; }
@@ -878,25 +878,25 @@ func InspectOwnArgumentOccurrenceOrder(
         }
         row = row + 1;
     }
-    let syntax: Int = 0;
+    var syntax: Int = 0;
     row = 0;
     while row < ArrayLength(analysis.local_bindings.node_ids) {
         if analysis.local_bindings.function_node_ids[row] == caller { syntax = analysis.local_bindings.node_ids[row]; }
         row = row + 1;
     }
     if own_target <= 0 || read_target <= 0 || caller <= 0 || formal <= 0 || syntax <= 0 { return false; }
-    let kinds: Array<Int> = [0, 17, 0, 17, 0, 18, 0, 18, 18];
-    let texts: Array<String> = ["OwnFirst", "OwnFirst", "ArrayLength", "ArrayLength",
+    var kinds: Array<Int> = [0, 17, 0, 17, 0, 18, 0, 18, 18];
+    var texts: Array<String> = ["OwnFirst", "OwnFirst", "ArrayLength", "ArrayLength",
         "values", "ArrayLength(values)", "values", "OwnFirst(values)", "OwnFirst(values, ArrayLength(values))"];
-    let left: Array<Int> = [-1, 0, -1, 2, -1, 3, -1, 1, 7];
-    let right: Array<Int> = [-1, -1, -1, -1, -1, 4, -1, 6, 5];
-    let targets: Array<Int> = [0, own_target, 0, 0, 0, 0, 0, 0, 0];
-    let binding_ids: Array<Int> = [own_target, 0, 0, 0, formal, 0, formal, 0, 0];
-    let binding_kinds: Array<Int> = [2, 0, 0, 0, 1, 0, 1, 0, 0];
-    let ordinals: Array<Int> = [-1, -1, -1, -1, 0, -1, 0, -1, -1];
-    let target_kinds: Array<Int> = [0, 3, 0, 3, 0, 0, 0, 0, 0];
-    let names: Array<String> = ["", "OwnFirst", "", "ArrayLength", "", "", "", "", ""];
-    let root: Int = 8;
+    var left: Array<Int> = [-1, 0, -1, 2, -1, 3, -1, 1, 7];
+    var right: Array<Int> = [-1, -1, -1, -1, -1, 4, -1, 6, 5];
+    var targets: Array<Int> = [0, own_target, 0, 0, 0, 0, 0, 0, 0];
+    var binding_ids: Array<Int> = [own_target, 0, 0, 0, formal, 0, formal, 0, 0];
+    var binding_kinds: Array<Int> = [2, 0, 0, 0, 1, 0, 1, 0, 0];
+    var ordinals: Array<Int> = [-1, -1, -1, -1, 0, -1, 0, -1, -1];
+    var target_kinds: Array<Int> = [0, 3, 0, 3, 0, 0, 0, 0, 0];
+    var names: Array<String> = ["", "OwnFirst", "", "ArrayLength", "", "", "", "", ""];
+    var root: Int = 8;
     if mutation == 23 {
         kinds = [0, 17, 0, 17, 0, 18, 18, 18];
         texts = ["OwnFirst", "OwnFirst", "ArrayLength", "ArrayLength",
@@ -918,11 +918,11 @@ func InspectOwnArgumentOccurrenceOrder(
         names[1] = "ReadFirst"; texts[0] = "ReadFirst"; texts[1] = "ReadFirst";
         texts[7] = "ReadFirst(ArrayLength(values))"; texts[8] = "ReadFirst(ArrayLength(values), values)";
     }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
+    var arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
         AstExpressionArena(kinds, Clone(texts), left, right), Clone(texts),
         Clone(target_kinds), names,
         texts, target_kinds);
-    let runtime_ids: Array<Int> = [];
+    var runtime_ids: Array<Int> = [];
     row = 0;
     while row < ArrayLength(kinds) { ArrayPush(runtime_ids, 0); row = row + 1; }
     arena.identities = SemanticExpressionIdentityRows(
@@ -955,10 +955,10 @@ func InspectOwnArgumentOccurrenceOrder(
     // The unit folds the production event API, not a retired whole-program
     // scanner. These projected formal edges have no generic storage demands.
     let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
-    let retired: HashMap<String, Int> = MapNew();
-    let pending: Array<Int> = [root];
-    let prefixes: Array<Bool> = [false];
-    let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, 0, -1);
+    var retired: HashMap<String, Int> = MapNew();
+    var pending: Array<Int> = [root];
+    var prefixes: Array<Bool> = [false];
+    var verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, 0, -1);
     while ArrayLength(pending) > 0 && !verdict.found {
         let entry: Int = pending[ArrayLength(pending) - 1];
         let prefix: Bool = prefixes[ArrayLength(prefixes) - 1];
@@ -991,9 +991,9 @@ func InspectFormalStorageAuthority(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
     ref bundle: SemanticAstBodyTypeBundle, mutation: Int
 ) -> Bool {
-    let signature: Int = -1;
-    let foreign: Int = -1;
-    let row: Int = 0;
+    var signature: Int = -1;
+    var foreign: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Modes" { signature = row; }
         if analysis.signatures.names[row] == "Foreign" { foreign = row; }
@@ -1001,7 +1001,7 @@ func InspectFormalStorageAuthority(
     }
     if signature < 0 || foreign < 0 { return false; }
     let function_id: Int = analysis.signatures.function_node_ids[signature];
-    let binding_row: Int = -1;
+    var binding_row: Int = -1;
     row = 0;
     while row < ArrayLength(analysis.local_bindings.node_ids) {
         if analysis.local_bindings.function_node_ids[row] == function_id && analysis.local_bindings.names[row] == "own_alias" { binding_row = row; }
@@ -1042,20 +1042,20 @@ func InspectFormalStorageAuthority(
         analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
     // Reuse the production body environment issuer without re-resolving sealed
     // identities. A missing environment leaves Unknown, never a guessed type.
-    let leaf_types: Array<String> = [];
+    var leaf_types: Array<String> = [];
     row = 0;
     while row < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         ArrayPush(leaf_types, "Unknown"); row = row + 1;
     }
-    let last_root: Int = -1;
-    let root_slot: Int = 0;
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
     while root_slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
             let surface_row: Int = root_slot / 3;
             let root: Int = analysis.expression_surfaces.expression_graph.roots[root_slot];
-            let names: Array<String> = [];
-            let types: Array<String> = [];
-            let modes: Array<String> = [];
+            var names: Array<String> = [];
+            var types: Array<String> = [];
+            var modes: Array<String> = [];
             let function_node: Option<Int> = SemanticAstExpressionFunctionNodeAt(analysis.expression_surfaces, analysis.signatures, surface_row);
             let intent_node: Option<Int> = SemanticAstExpressionIntentNodeAt(analysis.expression_surfaces, analysis.intent_signatures, surface_row);
             if storage.ok && SemanticAstBodyExpressionEnvironmentSeed(
@@ -1100,7 +1100,7 @@ func InspectFormalStorageAuthority(
     if mutation == 37 {
         if !definitions.ok || !storage.ok || !verdict.ok { return false; }
         let modes: Array<Int> = [0, 1, 2, 3];
-        let observed: Int = 0;
+        var observed: Int = 0;
         row = 0;
         while row < ArrayLength(analysis.local_bindings.node_ids) {
             if analysis.local_bindings.function_node_ids[row] == function_id {

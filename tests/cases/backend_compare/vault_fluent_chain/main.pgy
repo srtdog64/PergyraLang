@@ -12,9 +12,9 @@ class Vault {
 func New() -> Vault { return Vault(0, 0); }
 
 func MaxTotal(start: Vault, ops: Array<Int>, n: Int) -> Int {
-    let cur: Vault = start;
-    let best: Int = cur.Total();
-    let i: Int = 0;
+    var cur: Vault = start;
+    var best: Int = cur.Total();
+    var i: Int = 0;
     while i < n {
         cur = cur.TopUp(ops[i], 0);
         let t: Int = cur.Total();

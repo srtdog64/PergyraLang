@@ -1,6 +1,6 @@
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
 func Observe(ref values: Array<String>) -> Int {
-    let alias: Array<String> = values;
+    var alias: Array<String> = values;
     let before: Int = ArrayLength(alias);
     alias = Clone(values);
     return Metadata(alias) + before + ArrayLength(values);

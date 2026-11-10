@@ -1,7 +1,7 @@
 func Main() -> Void {
     let xs: Array<Int> = [10, 20, 30, 40, 50, 60, 70];
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         sum = sum + xs[i];
         let count: Int = i + 1;

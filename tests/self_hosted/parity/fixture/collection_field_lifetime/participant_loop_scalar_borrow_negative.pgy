@@ -5,9 +5,9 @@ func Resolve(aliases: Array<String>, type_names: Array<String>, row: Int) -> Par
     return Participant(alias, type_name);
 }
 func Main() -> Void {
-    let aliases: Array<String> = [];
-    let type_names: Array<String> = [];
-    let row: Int = 0;
+    var aliases: Array<String> = [];
+    var type_names: Array<String> = [];
+    var row: Int = 0;
     while row < 2 {
         ArrayPushOwnedString(aliases, "compiler");
         ArrayPushOwnedString(type_names, "Compiler");

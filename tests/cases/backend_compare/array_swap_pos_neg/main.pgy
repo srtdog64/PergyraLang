@@ -1,6 +1,6 @@
 func MovePositiveFirst(inout arr: Array<Int>, n: Int) -> Int {
-    let write: Int = 0;
-    let i: Int = 0;
+    var write: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] > 0 {
             let tmp: Int = arr[write];
@@ -10,8 +10,8 @@ func MovePositiveFirst(inout arr: Array<Int>, n: Int) -> Int {
         }
         i = i + 1;
     }
-    let sum: Int = 0;
-    let k: Int = 0;
+    var sum: Int = 0;
+    var k: Int = 0;
     while k < n {
         sum = sum + arr[k] * (k + 1);
         k = k + 1;
@@ -20,12 +20,12 @@ func MovePositiveFirst(inout arr: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let a: Array<Int> = [1, -2, 3, -4, 5];
+    var a: Array<Int> = [1, -2, 3, -4, 5];
     Log(MovePositiveFirst(a, 5));
-    let b: Array<Int> = [-1, -2, -3];
+    var b: Array<Int> = [-1, -2, -3];
     Log(MovePositiveFirst(b, 3));
-    let c: Array<Int> = [1, 2, 3];
+    var c: Array<Int> = [1, 2, 3];
     Log(MovePositiveFirst(c, 3));
-    let d: Array<Int> = [];
+    var d: Array<Int> = [];
     Log(MovePositiveFirst(d, 0));
 }

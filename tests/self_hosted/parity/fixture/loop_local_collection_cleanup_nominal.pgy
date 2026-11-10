@@ -9,10 +9,10 @@ func LoopRowsCount(ref rows: LoopRows) -> Int {
 }
 
 func Main() -> Int {
-    let i: Int = 0;
-    let total: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
     while i < 3 {
-        let names: Array<String> = [];
+        var names: Array<String> = [];
         ArrayPushOwnedString(names, Concat("x", ""));
         let rows: LoopRows = LoopRows(i, true, names);
         total = total + LoopRowsCount(rows);

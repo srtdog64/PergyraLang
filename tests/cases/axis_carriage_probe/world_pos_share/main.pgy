@@ -4,7 +4,7 @@
 //   runs 7 / 5      -> copy semantics at world construction
 //   runs 7 / 7      -> alias: world boundary is silent for zone values
 subject Buyer {
-    let hp: Int;
+    var hp: Int;
     action Promote(self) -> Void {
         hp = hp + 2;
     }

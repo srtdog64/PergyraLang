@@ -3,8 +3,8 @@ func ReleaseOwnedArray(own values: Array<String>) -> Void {
 }
 
 func Main() -> Void {
-    let first: Array<String> = [];
-    let second: Array<String> = [];
+    var first: Array<String> = [];
+    var second: Array<String> = [];
     ArrayPushOwnedString(first, Concat("first", "-array"));
     ArrayPushOwnedString(second, Concat("second", "-array"));
     ReleaseOwnedArray(first);

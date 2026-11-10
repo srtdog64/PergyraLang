@@ -1,7 +1,7 @@
 enum Level { Low, Mid(Int), High(Int, Int) }
 
 func Scale(l: Level, factor: Int) -> Int {
-    let v: Int = 0;
+    var v: Int = 0;
     match l {
         case Low: v = 1;
         case Mid(x): v = x * 2;

@@ -1,6 +1,6 @@
 // The step succeeds; only the final completion predicate is false.
 subject Counter {
-    let value: Int;
+    var value: Int;
     action Increment(self) -> Void { value = value + 1; }
 }
 zone CounterZone { subject slot counter: Counter }

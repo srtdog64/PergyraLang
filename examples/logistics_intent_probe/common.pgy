@@ -10,7 +10,7 @@ func ProbeSubtitle() -> String
 
 func MergeRouteScore(flag: Bool, base: Int) -> Int
 {
-    let score = base;
+    var score = base;
     if flag
     {
         score = score + 7;

@@ -4,8 +4,8 @@ func Populate(inout names: Array<String>, inout types: Array<String>) -> Bool {
     return true;
 }
 func Probe() -> Bool {
-    let names: Array<String> = [];
-    let types: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
     return Populate(names, types) && names[0] == "T" && types[0] == "Int";
 }
 func Main() -> Void {

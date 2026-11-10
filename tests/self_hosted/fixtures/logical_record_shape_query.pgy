@@ -8,30 +8,30 @@ func QueryRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLogicalR
     let syntax: Array<Int> = [31];
     let starts: Array<Int> = [0];
     let counts: Array<Int> = [fields];
-    let field_names: Array<String> = [];
-    let field_types: Array<String> = [];
-    let field_dependencies: Array<String> = [];
-    let field_ids: Array<Int> = [];
-    let field_enums: Array<Int> = [];
-    let field: Int = 0;
+    var field_names: Array<String> = [];
+    var field_types: Array<String> = [];
+    var field_dependencies: Array<String> = [];
+    var field_ids: Array<Int> = [];
+    var field_enums: Array<Int> = [];
+    var field: Int = 0;
     while field < fields {
         ArrayPush(field_names, Concat("field", ToString(field)));
         ArrayPush(field_types, "Int");
         ArrayPush(field_dependencies, "");
-        let id: Int = 1001 + field;
+        var id: Int = 1001 + field;
         if corruption == 2 && field == fields - 1 { id = 1001; }
         ArrayPush(field_ids, id);
         ArrayPush(field_enums, 0);
         field = field + 1;
     }
     let absence: DirectMirNominalDeclarationAbiFact = InvalidDirectMirNominalDeclarationAbiFact();
-    let physical: DirectMirScalarProgramRecordAbiCarriage =
+    var physical: DirectMirScalarProgramRecordAbiCarriage =
         DirectMirScalarProgramRecordAbiCarriageFromDeclaration(absence, fields);
     if corruption == 3 {
-        let bad_sizes: Array<Int> = [];
+        var bad_sizes: Array<Int> = [];
         field = 0;
         while field < fields {
-            let size: Int = 0;
+            var size: Int = 0;
             if field == 0 { size = 4; }
             ArrayPush(bad_sizes, size);
             field = field + 1;
@@ -45,7 +45,7 @@ func QueryRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLogicalR
         field_names, field_types, field_dependencies, field_ids, field_enums,
         physical, DirectMirIdentityCellFactsEmpty(),
         DirectMirScalarProgramLogicalRecordValidationReceiptEmpty());
-    let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
+    var digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
     if corruption == 1 {
         if digest == 1 { digest = 2; } else { digest = 1; }
     }
@@ -83,7 +83,7 @@ func QueryControls() -> Void {
     let sequence: MirExpressionGraphSequence = QuerySequence();
     let rows: Array<Int> = [0,-1,-1,-1,-1,-1,-1,-1,-1];
     let types: Array<String> = ["Record"];
-    let record: DirectMirScalarProgramLogicalRecordFact = QueryRecord(4, 0);
+    var record: DirectMirScalarProgramLogicalRecordFact = QueryRecord(4, 0);
     Log(ToString(SemanticExpressionGraphArenaReady(sequence.arena)));
     Log(ToString(DirectMirScalarProgramLogicalRecordFactReady(record)));
     Log(ToString(DirectMirScalarProgramLogicalRecordMemberMarkerReady(sequence, 1, "", record)));
@@ -99,7 +99,7 @@ func QueryControls() -> Void {
         DirectMirScalarProgramLogicalRecordMemberFromGraph(sequence, 7, rows, types, record);
     Log(ToString(absent.recognized && !absent.valid && !absent.complete));
     let nonmembers: Array<Int> = [-1,3,4,8,9];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(nonmembers) {
         let node: Int = nonmembers[i];
         let value: DirectMirScalarProgramLogicalRecordExpressionFact =
@@ -107,7 +107,7 @@ func QueryControls() -> Void {
         Log(ToString(!DirectMirScalarProgramLogicalRecordMemberMarkerReady(sequence, node, "", record) && MissingMember(value)));
         i = i + 1;
     }
-    let corruption: Int = 1;
+    var corruption: Int = 1;
     while corruption <= 3 {
         record = QueryRecord(4, corruption);
         let rejected: DirectMirScalarProgramLogicalRecordExpressionFact =
@@ -129,7 +129,7 @@ func QueryPressure(fields: Int) -> Void {
     let rows: Array<Int> = [0,-1,-1,-1,-1,-1,-1,-1,-1];
     let types: Array<String> = ["Record"];
     if !DirectMirScalarProgramLogicalRecordFactReady(record) { Exit(1); }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 512 {
         let integer: DirectMirScalarProgramLogicalRecordExpressionFact =
             DirectMirScalarProgramLogicalRecordMemberFromGraph(sequence, 3, rows, types, record);
@@ -146,7 +146,7 @@ func QueryPressure(fields: Int) -> Void {
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) == 1 {
-        let fields: Int = 0;
+        var fields: Int = 0;
         if args[0] == "small" { fields = 32; }
         if args[0] == "medium" { fields = 64; }
         if args[0] == "large" { fields = 128; }

@@ -7,7 +7,7 @@ func PrepareAdjustment(value: Int) -> Adjustment {
 }
 
 subject Counter {
-    let total: Int;
+    var total: Int;
 
     action Apply(self, delta: Int) -> Int {
         let adjustment: Adjustment = PrepareAdjustment(delta);

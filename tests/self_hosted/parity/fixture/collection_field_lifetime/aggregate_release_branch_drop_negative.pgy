@@ -8,6 +8,6 @@ func RetireCarrier(inout carrier: Carrier) -> Void {
 
 func Main() -> Void {
     let values: Array<String> = [];
-    let carrier: Carrier = Carrier(values);
+    var carrier: Carrier = Carrier(values);
     RetireCarrier(carrier);
 }

@@ -1,6 +1,6 @@
 func BinarySearch(arr: Array<Int>, target: Int) -> Int {
-    let lo: Int = 0;
-    let hi: Int = ArrayLength(arr) - 1;
+    var lo: Int = 0;
+    var hi: Int = ArrayLength(arr) - 1;
     while lo <= hi {
         let mid: Int = (lo + hi) / 2;
         if arr[mid] == target { return mid; }

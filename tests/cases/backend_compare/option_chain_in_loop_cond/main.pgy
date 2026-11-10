@@ -4,8 +4,8 @@ func Step(n: Int) -> Option<Int> {
 }
 
 func StepsUntilZero(start: Int) -> Int {
-    let count: Int = 0;
-    let cur: Int = start;
+    var count: Int = 0;
+    var cur: Int = start;
     while cur > 0 && (Step(cur) ?? 0) >= 0 {
         cur = Step(cur) ?? -1;
         count = count + 1;

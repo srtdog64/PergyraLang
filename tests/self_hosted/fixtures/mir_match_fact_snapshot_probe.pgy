@@ -1,9 +1,9 @@
 import "../../../src/self_hosted/mir/match_fact_owner.pgy";
 
 func Main() -> Void {
-    let patterns: Array<String> = [];
-    let bindings: Array<String> = [];
-    let types: Array<String> = [];
+    var patterns: Array<String> = [];
+    var bindings: Array<String> = [];
+    var types: Array<String> = [];
     ArrayPushOwnedString(patterns, "Some(value)");
     ArrayPushOwnedString(bindings, "value");
     ArrayPushOwnedString(types, "Int");

@@ -1,7 +1,7 @@
 func PopCount(n: Int) -> Int {
-    let v: Int = n;
+    var v: Int = n;
     if v < 0 { return -1; }
-    let count: Int = 0;
+    var count: Int = 0;
     while v > 0 {
         if v % 2 == 1 { count = count + 1; }
         v = v / 2;
@@ -10,8 +10,8 @@ func PopCount(n: Int) -> Int {
 }
 
 func TotalPopCount(arr: Array<Int>, n: Int) -> Int {
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         sum = sum + PopCount(arr[i]);
         i = i + 1;

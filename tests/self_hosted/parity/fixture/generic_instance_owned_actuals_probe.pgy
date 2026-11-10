@@ -4,9 +4,9 @@ import "../../../../src/self_hosted/semantic/generic_instance_closure_owner.pgy"
 func Main() -> Void {
     let templates: GenericInstanceTemplates = GenericInstanceTemplates(
         true, [11], [0], [1], ["T"]);
-    let closure: GenericInstanceClosure = GenericInstanceClosureEmpty();
-    let parents: Array<Int> = [];
-    let actuals: Array<String> = [];
+    var closure: GenericInstanceClosure = GenericInstanceClosureEmpty();
+    var parents: Array<Int> = [];
+    var actuals: Array<String> = [];
     ArrayPushOwnedString(actuals, "Int");
     let target: Int = GenericInstanceAppend(templates, closure, parents,
         0, actuals, -1, false);

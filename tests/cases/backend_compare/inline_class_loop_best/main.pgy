@@ -7,8 +7,8 @@ class Bid {
 
 func BestBid(amounts: Array<Int>, priorities: Array<Int>, n: Int) -> Int {
     if n == 0 { return -1; }
-    let best: Int = Bid(amounts[0], priorities[0]).Score();
-    let i: Int = 1;
+    var best: Int = Bid(amounts[0], priorities[0]).Score();
+    var i: Int = 1;
     while i < n {
         let cur: Int = Bid(amounts[i], priorities[i]).Score();
         if cur > best { best = cur; }

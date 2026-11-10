@@ -20,12 +20,12 @@ func Mutate(inout values: Array<String>) -> Array<String>
 
 func Main() -> Void
 {
-    let seed: Array<String> = [];
+    var seed: Array<String> = [];
     if StringLength("branch") > 0
     {
         ArrayPushOwnedString(seed, "capacity");
         ArrayPop(seed);
     }
-    let names: CapturedNames = CapturedNames(seed, seed);
+    var names: CapturedNames = CapturedNames(seed, seed);
     Retire(names);
 }

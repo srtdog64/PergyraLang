@@ -9,8 +9,8 @@ struct Facts {
 func Build() -> Int {
     let rows: Array<String> = ["r"];
     let marks: Array<String> = [];
-    let facts: Facts = Facts(rows, marks);
-    let grown: Array<String> = facts.marks;
+    var facts: Facts = Facts(rows, marks);
+    var grown: Array<String> = facts.marks;
     ArrayPush(grown, "m");
     ArrayPush(grown, "n");
     facts.marks = grown;

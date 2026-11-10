@@ -1,6 +1,6 @@
 func RenderBucketLines(name: String, lines: List<String>) -> String
 {
-    let out = "-- " + name + " --";
+    var out = "-- " + name + " --";
     for line in lines
     {
         out = out + "\n" + line;
@@ -14,10 +14,10 @@ func BuildAdapterReport(
     refundLine: String
 ) -> String
 {
-    let pageLines: List<String> = ListNew();
+    var pageLines: List<String> = ListNew();
     ListPush(pageLines, pageLine);
 
-    let apiLines: List<String> = ListNew();
+    var apiLines: List<String> = ListNew();
     ListPush(apiLines, checkoutLine);
     ListPush(apiLines, refundLine);
 

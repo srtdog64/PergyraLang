@@ -1,6 +1,6 @@
 // Literal completion remains admitted without a field predicate.
 subject Counter {
-    let value: Int;
+    var value: Int;
     action Increment(self) -> Void { value = value + 1; }
 }
 zone CounterZone { subject slot counter: Counter }

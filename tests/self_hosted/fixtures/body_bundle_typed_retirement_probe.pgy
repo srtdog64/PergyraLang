@@ -6,7 +6,7 @@ import "../../../src/self_hosted/codegen/text/text_owner.pgy";
 func BodyBundleTypedRetirementProbeSource() -> SemanticAstBodyTypeBundle
 {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
-    let bundle: SemanticAstBodyTypeBundle =
+    var bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleAdmissionError(artifact, "retirement-probe");
     ArrayPush(bundle.collection_ownership.receipts.function_syntax_ids, 101);
     ArrayPush(bundle.collection_ownership.receipts.owner_node_ids, 102);

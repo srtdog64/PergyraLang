@@ -1,5 +1,5 @@
 func FindInArray(arr: Array<Int>, target: Int) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(arr) {
         if arr[i] == target {
             return i;

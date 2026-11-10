@@ -1,6 +1,6 @@
 func SqueezeZeros(inout arr: Array<Int>, n: Int) -> Int {
-    let write: Int = 0;
-    let i: Int = 0;
+    var write: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] != 0 {
             arr[write] = arr[i];
@@ -8,13 +8,13 @@ func SqueezeZeros(inout arr: Array<Int>, n: Int) -> Int {
         }
         i = i + 1;
     }
-    let j: Int = write;
+    var j: Int = write;
     while j < n {
         arr[j] = 0;
         j = j + 1;
     }
-    let s: Int = 0;
-    let k: Int = 0;
+    var s: Int = 0;
+    var k: Int = 0;
     while k < n {
         s = s + arr[k] * (k + 1);
         k = k + 1;
@@ -23,12 +23,12 @@ func SqueezeZeros(inout arr: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let a: Array<Int> = [0, 1, 0, 2, 0, 3];
+    var a: Array<Int> = [0, 1, 0, 2, 0, 3];
     Log(SqueezeZeros(a, 6));
-    let b: Array<Int> = [1, 2, 3];
+    var b: Array<Int> = [1, 2, 3];
     Log(SqueezeZeros(b, 3));
-    let c: Array<Int> = [0, 0, 0];
+    var c: Array<Int> = [0, 0, 0];
     Log(SqueezeZeros(c, 3));
-    let d: Array<Int> = [];
+    var d: Array<Int> = [];
     Log(SqueezeZeros(d, 0));
 }

@@ -6,8 +6,8 @@ struct NodeSet {
 
 func Main() -> Int {
     let types: Array<String> = [];
-    let facts: NodeSet = NodeSet(true, types);
-    let alias: Array<String> = facts.types;
+    var facts: NodeSet = NodeSet(true, types);
+    var alias: Array<String> = facts.types;
     ArrayPush(alias, "Int");
     facts.types = alias;
     return ArrayLength(facts.types);

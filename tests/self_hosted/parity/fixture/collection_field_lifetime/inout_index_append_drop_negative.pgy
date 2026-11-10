@@ -4,8 +4,8 @@ func ForwardElement(source: Array<String>, inout destination: Array<String>) -> 
 }
 func Main() -> Void
 {
-    let values: Array<String> = [];
-    let destination: Array<String> = [];
+    var values: Array<String> = [];
+    var destination: Array<String> = [];
     ArrayPushOwnedString(values, "copied");
     ForwardElement(values, destination);
     ArrayDropOwnedStrings(values);

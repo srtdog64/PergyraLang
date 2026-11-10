@@ -5,18 +5,18 @@ struct LoopRows {
 }
 
 func LoopRowsMutate(inout rows: LoopRows) -> Void {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayPushOwnedString(names, Concat("y", ""));
     rows = LoopRows(rows.tag, rows.ready, names);
 }
 
 func Main() -> Int {
-    let i: Int = 0;
-    let total: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
     while i < 3 {
-        let names: Array<String> = [];
+        var names: Array<String> = [];
         ArrayPushOwnedString(names, Concat("x", ""));
-        let rows: LoopRows = LoopRows(i, true, names);
+        var rows: LoopRows = LoopRows(i, true, names);
         LoopRowsMutate(rows);
         total = total + ArrayLength(rows.names);
         i = i + 1;

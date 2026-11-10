@@ -25,7 +25,7 @@ func DefaultTone() -> Tone {
 }
 
 func SelectTone(cool: Bool) -> Tone {
-    let selected: Tone = Tone.Warm;
+    var selected: Tone = Tone.Warm;
     if cool {
         selected = Tone.Cool;
     }

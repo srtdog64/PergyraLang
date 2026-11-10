@@ -3,8 +3,8 @@ func OwnedField(value: String) -> String {
 }
 
 func GatherFields(ref source: Array<String>) -> Void {
-    let fields: Array<String> = [OwnedField("seed")];
-    let row: Int = 0;
+    var fields: Array<String> = [OwnedField("seed")];
+    var row: Int = 0;
     while row < ArrayLength(source) {
         ArrayPush(fields, source[row]);
         row = row + 1;
@@ -17,7 +17,7 @@ func GatherFields(ref source: Array<String>) -> Void {
 }
 
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "copied");
     GatherFields(source);
     ArrayDropOwnedStrings(source);

@@ -1,5 +1,5 @@
 func PairSum(n: Int, m: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..n {
         for j in 0..m {
             total = total + i * 10 + j;

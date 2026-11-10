@@ -1,5 +1,5 @@
 func Main() -> Void with effects local {
-    let values: Array<Int> = [3, 1];
+    var values: Array<Int> = [3, 1];
     ArrayPush(values, 2);
     ArraySort(values);
     ArraySet(values, 0, 4);

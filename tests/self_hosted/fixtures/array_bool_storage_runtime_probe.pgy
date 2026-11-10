@@ -12,7 +12,7 @@ func ArrayBoolStorageProbeRewrite() -> String
     {
         Die("Bool storage rewrite expression parse failed");
     }
-    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFactsFromAstRows(
+    var graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFactsFromAstRows(
         AstExpressionGraphRows(true, [TypedAstKindBareCallStmtTag()], [AstExpressionLaneAtom()],
             [expression.root], expression.arena), [0], 1);
     let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, graph.roots[0]);

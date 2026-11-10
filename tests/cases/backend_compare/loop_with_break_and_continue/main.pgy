@@ -1,6 +1,6 @@
 func FirstOddIndex(arr: Array<Int>, n: Int) -> Int {
-    let i: Int = 0;
-    let found: Int = -1;
+    var i: Int = 0;
+    var found: Int = -1;
     while i < n {
         if arr[i] % 2 == 0 { i = i + 1; continue; }
         found = i;
@@ -10,8 +10,8 @@ func FirstOddIndex(arr: Array<Int>, n: Int) -> Int {
 }
 
 func SumUntilNeg(arr: Array<Int>, n: Int) -> Int {
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] < 0 { break; }
         sum = sum + arr[i];

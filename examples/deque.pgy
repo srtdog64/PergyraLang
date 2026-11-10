@@ -3,10 +3,10 @@
 // front/back를 인덱스로 관리해서 push/pop 양쪽을 지원한다.
 
 func Main() -> Void {
-    let data: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
+    var data: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
     let cap: Int = 8;
-    let front: Int = 0;
-    let size: Int = 0;
+    var front: Int = 0;
+    var size: Int = 0;
 
     // push_back 10
     let back_index: Int = (front + size) % cap;
@@ -39,7 +39,7 @@ func Main() -> Void {
     size = size - 1;
 
     // remaining order
-    let i: Int = 0;
+    var i: Int = 0;
     while i < size {
         let idx: Int = (front + i) % cap;
         Log(data[idx]); // 5, 10

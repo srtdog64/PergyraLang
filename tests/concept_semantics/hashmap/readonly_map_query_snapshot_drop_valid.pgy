@@ -5,7 +5,7 @@ func CountKeys(ref values: HashMap<String, Int>) -> Int {
     return count;
 }
 func Main() -> Void {
-    let values: HashMap<String, Int> = MapNew();
+    var values: HashMap<String, Int> = MapNew();
     MapSet(values, "first", 29);
     Log(CountKeys(values));
     MapSet(values, "second", 31);

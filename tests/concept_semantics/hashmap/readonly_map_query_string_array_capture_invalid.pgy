@@ -1,5 +1,5 @@
 func Capture(ref values: HashMap<String, String>) -> Array<String> {
-    let captured: Array<String> = [];
+    var captured: Array<String> = [];
     ArrayPush(captured, MapGet(values, "key"));
     return captured;
 }

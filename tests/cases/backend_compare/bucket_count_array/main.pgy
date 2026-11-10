@@ -7,8 +7,8 @@ func Bucket(n: Int) -> Int {
 }
 
 func Bucketize(arr: Array<Int>, n: Int) -> Int {
-    let counts: Array<Int> = [0, 0, 0, 0, 0];
-    let i: Int = 0;
+    var counts: Array<Int> = [0, 0, 0, 0, 0];
+    var i: Int = 0;
     while i < n {
         let b: Int = Bucket(arr[i]) + 1;
         counts[b] = counts[b] + 1;

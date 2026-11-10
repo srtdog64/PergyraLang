@@ -19,7 +19,7 @@ func ReadAggregate(ref pair: Pair) -> Int {
 }
 
 func Main() -> Void {
-    let x: Int = 1;
+    var x: Int = 1;
     let values: Array<Int> = [1, 2];
     let pair: Pair = Pair(20, 22);
     Log(ToString(ValueParam(x)));

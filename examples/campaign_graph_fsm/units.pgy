@@ -5,11 +5,11 @@ subject Adventurer
     let name: String;
     let archetype: String;
     let rank: Int;
-    let sector: Int;
-    let stamina: Int;
-    let morale: Int;
-    let salvage: Int;
-    let intel: Int;
+    var sector: Int;
+    var stamina: Int;
+    var morale: Int;
+    var salvage: Int;
+    var intel: Int;
     vessel mission: MissionCore;
     vessel pack: PackState;
 

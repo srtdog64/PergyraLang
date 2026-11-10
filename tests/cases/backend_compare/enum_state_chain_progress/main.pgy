@@ -21,8 +21,8 @@ func PhaseCode(p: Phase) -> Int {
 }
 
 func Sequence(start: Phase, steps: Int) -> Int {
-    let p: Phase = start;
-    let i: Int = 0;
+    var p: Phase = start;
+    var i: Int = 0;
     while i < steps {
         p = Advance(p);
         i = i + 1;

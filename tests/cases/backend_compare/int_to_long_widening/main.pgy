@@ -9,7 +9,7 @@ func Main() -> Void {
     let n: Int = 2147483647;
     let wide: Long = n;
     Log(ToString(wide + 1L));
-    let other: Long = 0L;
+    var other: Long = 0L;
     other = n;
     Log(ToString(other * 2L));
     Log(ToString(Grow(-2147483648) - 1L));

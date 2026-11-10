@@ -1,7 +1,7 @@
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
 func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "opaque"); }
 func Observe(ref values: Array<String>) -> Int {
-    let alias: Array<String> = values;
+    var alias: Array<String> = values;
     defer { Opaque(alias); }
     alias = Clone(values);
     return Metadata(alias);

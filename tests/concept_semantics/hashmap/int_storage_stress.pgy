@@ -1,6 +1,6 @@
 func Main() -> Void with effects local {
-    let values: HashMap<Int, Int> = MapNew();
-    let i: Int = 0;
+    var values: HashMap<Int, Int> = MapNew();
+    var i: Int = 0;
     while i < 256 {
         MapSet(values, i * 16 + 7, i + 1);
         i = i + 1;
@@ -26,7 +26,7 @@ func Main() -> Void with effects local {
     Log(keys[0]);
     Log(keys[ArrayLength(keys) - 1]);
 
-    let total: Int = 0;
+    var total: Int = 0;
     i = 0;
     while i < 256 {
         total = total + MapGet(values, i * 16 + 7);

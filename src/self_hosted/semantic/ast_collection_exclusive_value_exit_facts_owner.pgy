@@ -14,16 +14,16 @@ func SemanticAstCollectionExclusiveExitFactsFromStatements(
     ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref statements: SemanticAstStatementFacts
 ) -> SemanticAstCollectionExclusiveExitFacts {
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let nodes: Array<Int> = [];
-    let row: Int = 0;
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var nodes: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(signatures.function_node_ids) {
         ArrayPush(starts, -1);
         ArrayPush(counts, 0);
         row = row + 1;
     }
-    let ready: Bool = statements.ok && statements.artifact_node_count == artifact.count &&
+    var ready: Bool = statements.ok && statements.artifact_node_count == artifact.count &&
         ArrayLength(statements.node_ids) == ArrayLength(statements.kind_tags) &&
         ArrayLength(statements.node_ids) == ArrayLength(statements.function_node_ids);
     row = 0;
@@ -55,12 +55,12 @@ func SemanticAstCollectionExclusiveRoutineExits(
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref facts: SemanticAstCollectionExclusiveExitFacts, function_id: Int
 ) -> Array<Int> {
-    let exits: Array<Int> = [];
+    var exits: Array<Int> = [];
     let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
     if !facts.ok || !IsSome(row) || ArrayLength(facts.starts) != ArrayLength(signatures.function_node_ids) ||
         ArrayLength(facts.counts) != ArrayLength(facts.starts) { return exits; }
     let index: Int = UnwrapOption(row);
-    let at: Int = 0;
+    var at: Int = 0;
     while at < facts.counts[index] {
         ArrayPush(exits, facts.nodes[facts.starts[index] + at]);
         at = at + 1;

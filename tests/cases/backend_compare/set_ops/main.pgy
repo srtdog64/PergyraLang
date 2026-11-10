@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let seen: Set<Int> = SetNew();
+    var seen: Set<Int> = SetNew();
     SetAdd(seen, 7);
     SetAdd(seen, 9);
     Log(SetHas(seen, 7));

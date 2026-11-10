@@ -10,8 +10,8 @@ class Counter {
 
 func Iterate(start: Int, max: Int, rounds: Int) -> Int {
     let c: Counter = Counter(start, max);
-    let cur: Int = c.v;
-    let i: Int = 0;
+    var cur: Int = c.v;
+    var i: Int = 0;
     while i < rounds {
         let nxt: Counter = Counter(cur, max);
         let probe: Int = nxt.Step();

@@ -19,7 +19,7 @@ func AdvancePresealRows(
 }
 
 func Main() -> Void {
-    let global_rows_box: Array<String> = [];
+    var global_rows_box: Array<String> = [];
     let env: PresealTypeEnv = PresealTypeEnv(true, "ready");
     let advanced: PresealTypeEnv = AdvancePresealRows(
         global_rows_box, env, "row");

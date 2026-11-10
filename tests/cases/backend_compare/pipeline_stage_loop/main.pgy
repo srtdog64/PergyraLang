@@ -15,7 +15,7 @@ func Process(p: Pipeline) -> Pipeline {
 }
 
 func RunPipeline(start: Int) -> Int {
-    let p: Pipeline = Initialize(start);
+    var p: Pipeline = Initialize(start);
     while p.Stage() < 3 {
         p = Process(p);
     }

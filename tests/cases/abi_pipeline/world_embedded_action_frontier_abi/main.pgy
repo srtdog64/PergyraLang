@@ -1,6 +1,6 @@
 within BattleZone {
     subject Player {
-        let hp: Int;
+        var hp: Int;
 
         action Attack(self) -> Void
             authorized by self

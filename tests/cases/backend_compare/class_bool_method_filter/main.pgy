@@ -6,8 +6,8 @@ class Crate {
 }
 
 func CountHeavy(crates: Array<Int>, weights: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         let c: Crate = Crate(crates[i], weights[i]);
         if c.Heavy() { count = count + 1; }

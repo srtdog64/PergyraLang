@@ -20,14 +20,14 @@ func FactsEmpty(names: Array<String>) -> Facts {
 }
 
 func GrowRows(facts: Facts, ref analysis: Analysis) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, analysis.names[0]);
     ArrayPush(rows, "r");
     return Facts(facts.ok, rows, facts.names);
 }
 
 func GrowNames(facts: Facts) -> Facts {
-    let names: Array<String> = facts.names;
+    var names: Array<String> = facts.names;
     ArrayPush(names, "n");
     ArrayPush(names, "n");
     return Facts(facts.ok, facts.rows, names);
@@ -35,7 +35,7 @@ func GrowNames(facts: Facts) -> Facts {
 
 func Build(ref analysis: Analysis) -> Int {
     let seed: Array<String> = ["s"];
-    let facts: Facts = FactsEmpty(seed);
+    var facts: Facts = FactsEmpty(seed);
     let kept: Holder = Holder(facts.names);
     facts = GrowNames(facts);
     return StringLength(kept.items[0]) + ArrayLength(facts.rows);

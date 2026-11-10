@@ -1,7 +1,7 @@
 import "../../../../src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy";
 
 func Main() -> Void {
-    let fragments: Array<String> = [];
+    var fragments: Array<String> = [];
     let selected: CodegenCExpressionText = CodegenCExpressionTextOwned(fragments, "selected");
     let output: String = CodegenCExpressionTextCommitRoot(fragments, selected);
     if output != "selected" { Exit(1); }
@@ -9,7 +9,7 @@ func Main() -> Void {
     let borrowed_empty: String = CodegenCExpressionTextCommitRoot(
         empty, CodegenCExpressionTextBorrowed("empty borrowed"));
     if borrowed_empty != "empty borrowed" { Exit(2); }
-    let unused: Array<String> = [];
+    var unused: Array<String> = [];
     ArrayPushOwnedString(unused, "retired unused");
     let borrowed: String = CodegenCExpressionTextCommitRoot(
         unused, CodegenCExpressionTextBorrowed("borrowed"));

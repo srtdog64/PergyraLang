@@ -5,7 +5,7 @@ func Inc(inout x: Int) -> Void {
 }
 
 func Main() -> Void {
-    let xs: Array<Int> = [1, 2, 3];
+    var xs: Array<Int> = [1, 2, 3];
     Inc(xs[1]);
     Log(xs[1]);
 }

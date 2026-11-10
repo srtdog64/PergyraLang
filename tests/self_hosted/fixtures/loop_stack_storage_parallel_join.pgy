@@ -7,7 +7,7 @@ func Main() -> Void {
     var buckets: Array<Int> = [];
     var k: Int = 0;
     while k < 4096 { ArrayPush(buckets, 0); k = k + 1; }
-    let round: Int = 0;
+    var round: Int = 0;
     while round < 400 {
         parallel (i in 0..4096) join with all {
             buckets[i] = buckets[i] + 1;

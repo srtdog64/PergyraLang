@@ -8,7 +8,7 @@ struct Rows {
 }
 
 func Main() -> Int {
-    let texts: Array<String> = [];
+    var texts: Array<String> = [];
     ArrayPushOwnedString(texts, Concat("owned", "-text"));
     let kinds: Array<Int> = [7];
     let rows: Rows = Rows(Arena(texts, kinds));

@@ -9,8 +9,8 @@ class Counter {
 }
 
 func Steps(start: Int, cap: Int, requested: Int) -> Int {
-    let c: Counter = Counter(start, cap);
-    let i: Int = 0;
+    var c: Counter = Counter(start, cap);
+    var i: Int = 0;
     while i < requested {
         match c.Bump() {
             case Some(next): c = next;

@@ -12,7 +12,7 @@ func Main() -> Void with caps env, io_read {
     if !index.valid { Die("MIR generic call occurrences are missing or invalid"); }
     let closure: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(index);
     if !closure.valid { Die(closure.diagnostic); }
-    let call: Int = 0;
+    var call: Int = 0;
     while call < ArrayLength(closure.call_recipes) {
         let recipe: Int = closure.call_recipes[call];
         let target: Option<Int> = MirGenericInstanceCallTarget(closure, index,

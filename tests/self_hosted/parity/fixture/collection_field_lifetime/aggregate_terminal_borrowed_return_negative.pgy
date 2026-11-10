@@ -9,6 +9,6 @@ func Retire(inout rows: Rows) -> Void {
 }
 func Main() -> Void {
     let values: Array<String> = ["x"];
-    let rows: Rows = MakeRows(values);
+    var rows: Rows = MakeRows(values);
     Retire(rows);
 }

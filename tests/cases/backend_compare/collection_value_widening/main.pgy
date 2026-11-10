@@ -5,26 +5,26 @@
 // store read back garbage (List<Double> printed 0.000000, SetHas missed the
 // Long it had just added); Array stores refused the same programs on LLVM.
 func Main() -> Void {
-    let halves: List<Double> = ListNew();
+    var halves: List<Double> = ListNew();
     ListPush(halves, 0.5);
     ListPush(halves, 1.5);
     ListSet(halves, 1, 0.25);
     Log(ListGet(halves, 0));
     Log(ListGet(halves, 1));
 
-    let longs: List<Long> = ListNew();
+    var longs: List<Long> = ListNew();
     ListPush(longs, 7);
     ListSet(longs, 0, 8);
     Log(ListGet(longs, 0));
 
-    let pending: Queue<Double> = QueueNew();
+    var pending: Queue<Double> = QueueNew();
     QueuePush(pending, 0.5);
     Log(QueuePop(pending));
-    let ticks: Queue<Long> = QueueNew();
+    var ticks: Queue<Long> = QueueNew();
     QueuePush(ticks, 11);
     Log(QueuePop(ticks));
 
-    let seen: Set<Long> = SetNew();
+    var seen: Set<Long> = SetNew();
     SetAdd(seen, 9);
     Log(SetHas(seen, 9));
     Log(SetHas(seen, 9L));

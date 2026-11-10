@@ -1,6 +1,6 @@
 struct Carrier { values: Array<String>; }
 func Main() -> Void {
-    let values: Array<String> = ["original"];
+    var values: Array<String> = ["original"];
     let record: Carrier = Carrier(values);
     ArrayPop(values);
     Log(ArrayLength(record.values));

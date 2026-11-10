@@ -8,7 +8,7 @@ class Battle {
     let defender: Stats;
 
     func Resolve(self) -> Int {
-        let dmg: Int = attacker.attack - defender.defense;
+        var dmg: Int = attacker.attack - defender.defense;
         if dmg < 0 { dmg = 0; }
         return dmg;
     }

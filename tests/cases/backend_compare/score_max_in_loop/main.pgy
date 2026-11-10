@@ -7,8 +7,8 @@ class Score {
 
 func Highest(raws: Array<Int>, weights: Array<Int>, n: Int) -> Int {
     if n == 0 { return -1; }
-    let best: Int = -1;
-    let i: Int = 0;
+    var best: Int = -1;
+    var i: Int = 0;
     while i < n {
         let s: Score = Score(raws[i], weights[i]);
         let eff: Int = s.Effective();

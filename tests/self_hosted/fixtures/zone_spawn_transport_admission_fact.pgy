@@ -10,13 +10,13 @@ func Main() -> Void with caps env, io_read {
         Die("zone spawn probe requires source, owned code, public code and cause");
     }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if args[1] == "missing-identity" {
-        let graph_node: Int = 0;
-        let call_node: Int = -1;
+        var graph_node: Int = 0;
+        var call_node: Int = -1;
         while graph_node < SemanticExpressionGraphArenaNodeCount(
             analysis.expression_surfaces.expression_graph.arena
         ) {

@@ -21,14 +21,14 @@ func FactsEmpty(graph: Graph) -> Facts {
 }
 
 func Grow(facts: Facts, ref analysis: Analysis) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, analysis.graph.texts[0]);
     ArrayPush(rows, "r");
     return Facts(facts.ok, rows, facts.graph);
 }
 
 func Build(ref analysis: Analysis, extra: Array<String>) -> Facts {
-    let facts: Facts = FactsEmpty(analysis.graph);
+    var facts: Facts = FactsEmpty(analysis.graph);
     facts = Facts(true, extra, facts.graph);
     facts = Grow(facts, analysis);
     return facts;

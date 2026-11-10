@@ -17,9 +17,9 @@ func Duration(l: Light) -> Int {
 }
 
 func Main() -> Void {
-    let cur: Light = Red;
-    let total: Int = 0;
-    let cycles: Int = 0;
+    var cur: Light = Red;
+    var total: Int = 0;
+    var cycles: Int = 0;
     while cycles < 6 {
         total = total + Duration(cur);
         cur = Transition(cur);

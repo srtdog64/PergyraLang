@@ -7,8 +7,8 @@ func SearchHit(rank: Int) -> Int {
 func Main() -> Void {
     let requested: Int = 20;
     let matched: Int = 20000;
-    let buffer: List<Int> = ListNew();
-    let rank: Int = 0;
+    var buffer: List<Int> = ListNew();
+    var rank: Int = 0;
     while rank < matched && ListSize(buffer) < requested {
         ListPush(buffer, SearchHit(rank));
         rank = rank + 1;

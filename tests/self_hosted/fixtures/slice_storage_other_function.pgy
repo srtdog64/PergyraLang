@@ -6,7 +6,7 @@ func ObserveOtherRoutine() -> Void {
 }
 
 func Main() -> Void {
-    let values: Array<Int> = [1];
+    var values: Array<Int> = [1];
     ArrayPush(values, 2);
     ObserveOtherRoutine();
     Log(ArrayLength(values));

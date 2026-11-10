@@ -6,8 +6,8 @@ struct NodeSet {
 }
 
 func NodeSetInsertAt(inout facts: NodeSet, name: String, slot: Int) -> Bool {
-    let types: Array<String> = facts.types;
-    let probes: Int = 0;
+    var types: Array<String> = facts.types;
+    var probes: Int = 0;
     while probes < 4 {
         if probes == slot {
             ArrayPush(types, name);
@@ -22,7 +22,7 @@ func NodeSetInsertAt(inout facts: NodeSet, name: String, slot: Int) -> Bool {
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     let inserted: Bool = NodeSetInsertAt(facts, "y", 1);
     if !inserted { return 1; }
     return ArrayLength(facts.types);

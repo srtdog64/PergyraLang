@@ -7,7 +7,7 @@ func Retire(inout table: Table) -> Void {
 }
 func Main() -> Void {
     let names: Array<String> = [];
-    let table: Table = Table(names);
+    var table: Table = Table(names);
     let retained: Table = Echo(table);
     Retire(table);
 }

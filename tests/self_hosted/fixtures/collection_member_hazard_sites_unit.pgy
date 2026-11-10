@@ -7,21 +7,21 @@ import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 { Log("expected hazard input"); Exit(2); }
-    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    var artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("hazard input refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log("hazard facts refused"); Exit(2); }
     let generation: Int = artifact.identity_digest;
     artifact.identity_digest = 0;
-    let unknown: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    var unknown: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
     if SemanticAstCollectionMemberReadHazardSitesReady(artifact, unknown) ||
         SemanticAstCollectionMemberReadHazardSiteMerge(artifact, unknown, 1, 0) {
         Log("unknown generation admitted"); Exit(3);
     }
     artifact.identity_digest = generation;
-    let precise: Array<Int> = [];
-    let opaque: Int = 0;
-    let node: Int = 1;
+    var precise: Array<Int> = [];
+    var opaque: Int = 0;
+    var node: Int = 1;
     while node < artifact.count {
         if TypedAstArenaNodeKindIs(artifact.arena, node, TypedAstKindLetStmtTag()) {
             let site: Int = SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, node);
@@ -45,7 +45,7 @@ func Main() -> Void with caps env, io_read {
     analysis.local_bindings.binding_arities = arities;
     if SemanticAstCollectionMemberLocalAliasStoreReady(artifact, analysis.local_bindings, inferred,
         analysis.expression_surfaces, analysis.assignments, function_id, root) { Log("malformed local columns admitted"); Exit(3); }
-    let sites: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    var sites: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
     let missing: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, sites, root);
     if missing.ok { Log("missing projection admitted"); Exit(3); }
     if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, precise[1]) ||
@@ -56,14 +56,14 @@ func Main() -> Void with caps env, io_read {
         !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, precise[1]) { Exit(3); }
     let sticky: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, sites, root);
     if !sticky.ok || sticky.site != 0 { Log("opaque hazard replaced"); Exit(3); }
-    let blocked: HashMap<String, Int> = MapNew();
+    var blocked: HashMap<String, Int> = MapNew();
     MapSet(blocked, ToString(root), 1);
     if !SemanticAstCollectionMemberReadHazardSitesAdmit(artifact, blocked, sites) { Log("valid carrier refused"); Exit(3); }
     MapSet(blocked, ToString(precise[1]), 1);
     if SemanticAstCollectionMemberReadHazardSitesAdmit(artifact, blocked, sites) { Log("missing root admitted"); Exit(3); }
-    let corrupt: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    var corrupt: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
     if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, corrupt, root, 0) { Exit(3); }
-    let entries: HashMap<String, Int> = corrupt.first_sites;
+    var entries: HashMap<String, Int> = corrupt.first_sites;
     MapSet(entries, ToString(root), -1);
     corrupt.first_sites = entries;
     let invalid: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, corrupt, root);
@@ -82,7 +82,7 @@ func Main() -> Void with caps env, io_read {
     if SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, artifact.count) || sites.ok {
         Log("invalid site admitted"); Exit(3);
     }
-    let parents: Array<Int> = artifact.arena.parents;
+    var parents: Array<Int> = artifact.arena.parents;
     parents[root] = artifact.count;
     artifact.arena.parents = parents;
     if SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, root) != 0 { Log("malformed parent admitted"); Exit(3); }

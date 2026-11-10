@@ -1,6 +1,6 @@
 func CountNonempty(values: Slice<String>) -> Int
 {
-    let count: Int = 0;
+    var count: Int = 0;
     for value in values
     {
         if StringLength(value) > 0 { count = count + 1; }
@@ -10,7 +10,7 @@ func CountNonempty(values: Slice<String>) -> Int
 
 func SumValues(values: Slice<Int>) -> Int
 {
-    let total: Int = 0;
+    var total: Int = 0;
     for value in values { total = total + value; }
     return total;
 }

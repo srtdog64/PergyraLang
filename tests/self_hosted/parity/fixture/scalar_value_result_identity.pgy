@@ -9,8 +9,8 @@ func TouchInt(inout n: Int) -> Int {
     return Set(n);
 }
 func Main() -> Void {
-    let n: Int = 1;
-    let other: Int = 3;
+    var n: Int = 1;
+    var other: Int = 3;
     Log(Touch(n, other));
     Log(n);
     Log(other);

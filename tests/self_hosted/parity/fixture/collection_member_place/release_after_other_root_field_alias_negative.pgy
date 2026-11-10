@@ -6,10 +6,10 @@ func Retire(inout state: Epochs) -> Void {
     state.owned = owned;
 }
 func Main() -> Void {
-    let owned: Array<String> = [];
+    var owned: Array<String> = [];
     ArrayPushOwnedString(owned, "x");
-    let state: Epochs = Epochs("", owned);
-    let label: Label = Label("");
+    var state: Epochs = Epochs("", owned);
+    var label: Label = Label("");
     label.text = state.owned[0];
     Retire(state);
     Log(label.text);

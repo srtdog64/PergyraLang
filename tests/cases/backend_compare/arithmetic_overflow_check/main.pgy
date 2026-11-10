@@ -5,8 +5,8 @@ func SafeAdd(a: Int, b: Int, limit: Int) -> Int {
 }
 
 func SafeMul(a: Int, b: Int, max_bits: Int) -> Int {
-    let upper: Int = 1;
-    let i: Int = 0;
+    var upper: Int = 1;
+    var i: Int = 0;
     while i < max_bits {
         upper = upper * 2;
         i = i + 1;

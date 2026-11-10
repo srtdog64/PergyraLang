@@ -17,7 +17,7 @@ subject Fighter {
     vessel health: Health;
 
     func Preview(self) -> Int {
-        let dmg = attack;
+        var dmg = attack;
         if dmg < 1 {
             dmg = 1;
         }

@@ -1,7 +1,7 @@
 func FindMax(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let m: Int = arr[0];
-    let i: Int = 1;
+    var m: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         if arr[i] > m {
             m = arr[i];
@@ -13,8 +13,8 @@ func FindMax(arr: Array<Int>, n: Int) -> Int {
 
 func FindMin(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let mn: Int = arr[0];
-    let i: Int = 1;
+    var mn: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         if arr[i] < mn {
             mn = arr[i];

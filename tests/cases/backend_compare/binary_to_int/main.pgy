@@ -1,6 +1,6 @@
 func BinaryToInt(bits: String) -> Int {
-    let value: Int = 0;
-    let i: Int = 0;
+    var value: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(bits);
     while i < n {
         value = value * 2;

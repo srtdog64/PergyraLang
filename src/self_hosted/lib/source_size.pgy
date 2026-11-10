@@ -3,9 +3,9 @@
 // Invalid lexical input is a fatal checker boundary, never a guessed size.
 namespace SourceSize {
     func ByteAfterLineSplices(content: String, n: Int, start: Int) -> Int {
-        let i: Int = start;
+        var i: Int = start;
         while i + 1 < n && CharCode(content, n, i) == 92 {
-            let end: Int = i + 1;
+            var end: Int = i + 1;
             if CharCode(content, n, end) == 13 {
                 end = end + 1;
             }
@@ -21,16 +21,16 @@ namespace SourceSize {
     }
     export func CountCLinesOrDie(content: String, path: String) -> Int {
         let n: Int = StringLength(content);
-        let i: Int = 0;
-        let total: Int = 0;
-        let block: Bool = false;
-        let line_comment: Bool = false;
-        let quote: Int = 0;
-        let escaped: Bool = false;
-        let blank: Bool = true;
-        let commented: Bool = false;
-        let code: Bool = false;
-        let previous: Int = 0;
+        var i: Int = 0;
+        var total: Int = 0;
+        var block: Bool = false;
+        var line_comment: Bool = false;
+        var quote: Int = 0;
+        var escaped: Bool = false;
+        var blank: Bool = true;
+        var commented: Bool = false;
+        var code: Bool = false;
+        var previous: Int = 0;
         if n >= 3 && CharCode(content, n, 0) == 239 &&
             CharCode(content, n, 1) == 187 && CharCode(content, n, 2) == 191 {
             i = 3;
@@ -57,7 +57,7 @@ namespace SourceSize {
             if !whitespace {
                 blank = false;
             }
-            let next: Int = 0;
+            var next: Int = 0;
             if i + 1 < n {
                 next = CharCode(content, n, i + 1);
             }

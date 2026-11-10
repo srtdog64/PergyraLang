@@ -2,8 +2,8 @@
 // Array<String> by value at the source/runtime boundary and LLVM consumes it
 // through the aggregate-return sret owner.
 let parts: Array<String> = StringSplit("a,bb,ccc,dddd", ",");
-let n: Int = 0;
-let total: Int = 0;
+var n: Int = 0;
+var total: Int = 0;
 for p in parts {
     n = n + 1;
     total = total + StringLength(p);

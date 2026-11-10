@@ -10,7 +10,7 @@ func Consume(own values: Array<String>) -> Int {
 }
 
 func Main() -> Void {
-    let ids: Array<String> = [];
+    var ids: Array<String> = [];
     if !Required("a", ids) { return; }
     let n: Int = Consume(ids);
     ArrayPush(ids, "late");

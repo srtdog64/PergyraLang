@@ -7,8 +7,8 @@ func Decide(n: Int) -> Verdict {
 }
 
 func RunUntil(arr: Array<Int>, n: Int) -> Int {
-    let acc: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var i: Int = 0;
     while i < n {
         match Decide(arr[i]) {
             case Stop:

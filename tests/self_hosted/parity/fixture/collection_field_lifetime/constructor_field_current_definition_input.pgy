@@ -3,7 +3,7 @@
 struct Carrier { values: Array<String>; other: Array<String>; }
 func Main() -> Void {
     let seed: Array<String> = ["seed"];
-    let values: Array<String> = Clone(seed);
+    var values: Array<String> = Clone(seed);
     let old: Carrier = Carrier(values, []);
     values = Clone(seed);
     let fresh: Carrier = Carrier(values, ["borrowed"]);

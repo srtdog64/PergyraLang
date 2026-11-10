@@ -17,7 +17,7 @@ func IsUrgent(l: Level) -> Bool {
 }
 
 func Main() -> Void {
-    let total_weight: Int = 0;
+    var total_weight: Int = 0;
     total_weight = total_weight + WeightOf(Low);
     total_weight = total_weight + WeightOf(High);
     total_weight = total_weight + WeightOf(Critical);

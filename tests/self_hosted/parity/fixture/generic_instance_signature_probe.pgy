@@ -15,11 +15,11 @@ func Main() -> Void with caps env, io_read {
     let inventory: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventoryFromOwners(
         routines, occurrences, closure, DirectMirIdentityCellFactsFromDeclarations(document.root.json, document.root.json_extent, declarations));
     if !DirectMirRoutineInstanceInventoryReady(inventory) { Die(inventory.diagnostic); }
-    let call: Int = 0;
+    var call: Int = 0;
     while call < ArrayLength(closure.call_recipes) {
         let recipe: Int = closure.call_recipes[call];
-        let caller: Int = -1;
-        let ordinal: Int = 0;
+        var caller: Int = -1;
+        var ordinal: Int = 0;
         while ordinal < ArrayLength(inventory.source_rows) {
             if inventory.source_rows[ordinal] == occurrences.routine_rows[recipe] &&
                 inventory.instance_rows[ordinal] == closure.call_contexts[call] { caller = ordinal; }
@@ -45,7 +45,7 @@ func Main() -> Void with caps env, io_read {
         }
         call = call + 1;
     }
-    let instance: Int = 0;
+    var instance: Int = 0;
     while instance < ArrayLength(closure.template_rows) {
         let bound: DirectMirRoutineInstanceSignatureFact =
             DirectMirRoutineInstanceSignatureFromClosure(
@@ -60,7 +60,7 @@ func Main() -> Void with caps env, io_read {
             bound.signature.param_count != ArrayLength(header.param_names) {
             Die("generic routine source identity or parameter count changed");
         }
-        let parameter: Int = 0;
+        var parameter: Int = 0;
         while parameter < bound.signature.param_count {
             if bound.signature.parameters.source_syntax_ids[parameter] != header.param_source_syntax_ids[parameter] ||
                 bound.signature.parameters.names[parameter] != header.param_names[parameter] {

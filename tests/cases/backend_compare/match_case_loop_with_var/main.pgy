@@ -3,16 +3,16 @@ enum Mode { Sum, Product, Diff }
 func Apply(arr: Array<Int>, n: Int, mode: Mode) -> Int {
     match mode {
         case Sum:
-            let acc: Int = 0;
-            let i: Int = 0;
+            var acc: Int = 0;
+            var i: Int = 0;
             while i < n {
                 acc = acc + arr[i];
                 i = i + 1;
             }
             return acc;
         case Product:
-            let acc: Int = 1;
-            let i: Int = 0;
+            var acc: Int = 1;
+            var i: Int = 0;
             while i < n {
                 acc = acc * arr[i];
                 i = i + 1;
@@ -20,8 +20,8 @@ func Apply(arr: Array<Int>, n: Int, mode: Mode) -> Int {
             return acc;
         case Diff:
             if n == 0 { return 0; }
-            let acc: Int = arr[0];
-            let i: Int = 1;
+            var acc: Int = arr[0];
+            var i: Int = 1;
             while i < n {
                 acc = acc - arr[i];
                 i = i + 1;

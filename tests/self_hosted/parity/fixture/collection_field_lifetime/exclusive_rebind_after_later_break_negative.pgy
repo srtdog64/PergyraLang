@@ -6,14 +6,14 @@ struct Rows {
 }
 
 func RowsAdd(rows: Rows, name: String) -> Rows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayPush(names, name);
     return Rows(rows.ok, names);
 }
 
 func RowsFill(seed: Array<String>, limit: Int) -> Rows {
-    let rows: Rows = Rows(true, seed);
-    let index: Int = 0;
+    var rows: Rows = Rows(true, seed);
+    var index: Int = 0;
     while index < limit {
         let added: Rows = RowsAdd(rows, "x");
         if index == 1 { break; }

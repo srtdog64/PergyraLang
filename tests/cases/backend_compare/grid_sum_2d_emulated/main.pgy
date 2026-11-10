@@ -1,8 +1,8 @@
 func GridSum(flat: Array<Int>, rows: Int, cols: Int) -> Int {
-    let sum: Int = 0;
-    let r: Int = 0;
+    var sum: Int = 0;
+    var r: Int = 0;
     while r < rows {
-        let c: Int = 0;
+        var c: Int = 0;
         while c < cols {
             sum = sum + flat[r * cols + c];
             c = c + 1;
@@ -13,8 +13,8 @@ func GridSum(flat: Array<Int>, rows: Int, cols: Int) -> Int {
 }
 
 func RowSum(flat: Array<Int>, cols: Int, row: Int) -> Int {
-    let s: Int = 0;
-    let c: Int = 0;
+    var s: Int = 0;
+    var c: Int = 0;
     while c < cols {
         s = s + flat[row * cols + c];
         c = c + 1;

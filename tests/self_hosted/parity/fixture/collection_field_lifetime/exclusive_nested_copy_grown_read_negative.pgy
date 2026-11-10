@@ -15,7 +15,7 @@ func FirstRow(outer: Outer) -> Int {
 }
 
 func Grow(outer: Outer) -> Int {
-    let rows: Array<Int> = outer.inner.rows;
+    var rows: Array<Int> = outer.inner.rows;
     ArrayPush(rows, 2);
     ArrayPush(rows, 3);
     ArrayPush(rows, 4);

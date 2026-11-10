@@ -1,6 +1,6 @@
 within PaymentZone {
     subject Buyer {
-        let hp: Int;
+        var hp: Int;
 
         action Promote(self) -> Void
             authorized by self

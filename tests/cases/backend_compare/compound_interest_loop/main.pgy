@@ -2,8 +2,8 @@ func Main() -> Void {
     let principal: Int = 1000;
     let rate_bps: Int = 250;
     let years: Int = 8;
-    let balance: Int = principal;
-    let i: Int = 0;
+    var balance: Int = principal;
+    var i: Int = 0;
     while i < years {
         balance = balance + (balance * rate_bps) / 10000;
         Log(balance);

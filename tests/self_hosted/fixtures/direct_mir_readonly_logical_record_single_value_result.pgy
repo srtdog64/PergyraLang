@@ -22,6 +22,6 @@ func MergeBranchOrder(
 func Main() -> Void {
     let left: LeftBranchView = LeftBranchView(true);
     let right: RightBranchView = RightBranchView(true);
-    let order: EmissionOrder = EmissionOrder(false, 0);
+    var order: EmissionOrder = EmissionOrder(false, 0);
     Log(MergeBranchOrder(left, right, 7, 8, order));
 }

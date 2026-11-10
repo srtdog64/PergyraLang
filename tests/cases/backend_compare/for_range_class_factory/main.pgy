@@ -8,7 +8,7 @@ func MakeDrop(seed: Int) -> Drop {
 }
 
 func TotalDrops(n: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..n {
         let d: Drop = MakeDrop(i + 1);
         total = total + d.value;

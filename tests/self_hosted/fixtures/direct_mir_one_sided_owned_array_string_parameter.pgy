@@ -3,7 +3,7 @@ func ReleaseOwnedArray(own values: Array<String>) -> Void {
 }
 
 func MaybeRelease(select_first: Bool) -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("one", "-sided"));
     if select_first {
         ReleaseOwnedArray(values);

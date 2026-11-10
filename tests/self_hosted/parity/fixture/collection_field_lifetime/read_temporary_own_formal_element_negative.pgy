@@ -1,6 +1,6 @@
 // An own String formal is not a borrowed place of this frame.
 func Has(names: Array<String>, name: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == name { return true; }
         i = i + 1;

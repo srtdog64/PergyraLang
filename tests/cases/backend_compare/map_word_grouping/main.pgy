@@ -1,7 +1,7 @@
 func Main() -> Void {
     let words: Array<String> = ["one", "two", "three", "four", "five", "six"];
-    let buckets: HashMap<Int, Int> = MapNew();
-    let i: Int = 0;
+    var buckets: HashMap<Int, Int> = MapNew();
+    var i: Int = 0;
     while i < ArrayLength(words) {
         let key: Int = StringLength(words[i]);
         if MapHas(buckets, key) {

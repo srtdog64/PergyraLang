@@ -12,8 +12,8 @@ func Decode(t: Token) -> Int {
 }
 
 func RoundTrip(values: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + Decode(Encode(values[i]));
         i = i + 1;

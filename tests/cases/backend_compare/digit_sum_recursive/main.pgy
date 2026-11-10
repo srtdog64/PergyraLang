@@ -1,7 +1,7 @@
 func DigitSum(n: Int) -> Int {
-    let v: Int = n;
+    var v: Int = n;
     if v < 0 { v = -v; }
-    let sum: Int = 0;
+    var sum: Int = 0;
     while v > 0 {
         sum = sum + (v % 10);
         v = v / 10;
@@ -10,7 +10,7 @@ func DigitSum(n: Int) -> Int {
 }
 
 func DigitalRoot(n: Int) -> Int {
-    let v: Int = n;
+    var v: Int = n;
     while v >= 10 {
         v = DigitSum(v);
     }

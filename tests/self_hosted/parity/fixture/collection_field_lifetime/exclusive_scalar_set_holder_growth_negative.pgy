@@ -11,7 +11,7 @@ struct Table {
 }
 
 func Relabel(table: Table, label: String) -> Table {
-    let names: Array<String> = table.columns.names;
+    var names: Array<String> = table.columns.names;
     ArrayPush(names, label);
     ArrayPush(names, label);
     Log(table.columns.names[0]);

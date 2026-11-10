@@ -5,8 +5,8 @@ import "../../../stdlib/strview.pgy";
 func Main() -> Void {
     let s: String = "the quick brown fox jumps over the lazy dog";
     let n: Int = StringLength(s);
-    let fails: Int = 0;
-    let i: Int = 0;
+    var fails: Int = 0;
+    var i: Int = 0;
     while i < 40 {
         if SubstringWithLen(s, n, i, 8) != Substring(s, i, 8) { fails = fails + 1; }
 

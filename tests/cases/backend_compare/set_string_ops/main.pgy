@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let tags: Set<String> = SetNew();
+    var tags: Set<String> = SetNew();
     SetAdd(tags, "alpha");
     SetAdd(tags, "beta");
     SetAdd(tags, "gamma");

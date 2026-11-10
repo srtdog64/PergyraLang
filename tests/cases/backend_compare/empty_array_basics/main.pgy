@@ -6,7 +6,7 @@ func Main() -> Void {
     Log(ArrayLength(one));
     Log(one[0]);
 
-    let nums: Array<Int> = [10];
+    var nums: Array<Int> = [10];
     ArrayPush(nums, 20);
     ArrayPush(nums, 30);
     Log(ArrayLength(nums));

@@ -1,8 +1,8 @@
 struct Rows { types: Array<String>; }
 func CaptureVoid(inout rows: Rows, early: Bool) -> Void
 {
-    let types: Array<String> = rows.types;
-    let count: Int = 0;
+    var types: Array<String> = rows.types;
+    var count: Int = 0;
     while count < 8
     {
         ArrayPush(types, "row");
@@ -12,7 +12,7 @@ func CaptureVoid(inout rows: Rows, early: Bool) -> Void
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     CaptureVoid(rows, false);
     Log(ArrayLength(rows.types));
     CaptureVoid(rows, true);

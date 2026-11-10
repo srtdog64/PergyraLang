@@ -9,8 +9,8 @@ func Try2(n: Int) -> Option<Int> {
 }
 
 func RunBoth(seeds: Array<Int>, count: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < count {
         match Try(seeds[i]) {
             case Some(v1): total = total + v1;

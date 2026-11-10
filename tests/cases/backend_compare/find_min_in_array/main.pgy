@@ -1,6 +1,6 @@
 func FindMin(xs: Array<Int>) -> Int {
-    let cur: Int = xs[0];
-    let i: Int = 1;
+    var cur: Int = xs[0];
+    var i: Int = 1;
     while i < ArrayLength(xs) {
         if xs[i] < cur { cur = xs[i]; }
         i = i + 1;

@@ -1,9 +1,9 @@
 func Main() -> Void {
     let word: String = "balloon";
     let len: Int = StringLength(word);
-    let i: Int = 0;
-    let o_count: Int = 0;
-    let l_count: Int = 0;
+    var i: Int = 0;
+    var o_count: Int = 0;
+    var l_count: Int = 0;
     while i < len {
         let ch: String = Substring(word, i, 1);
         if ch == "o" { o_count = o_count + 1; }

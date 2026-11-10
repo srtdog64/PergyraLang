@@ -16,8 +16,8 @@ func CaptureNullableNames(
 
 func Main() -> Void {
     let table: NullableNameTable = NullableNameTable(true, "{}");
-    let names: Array<String> = [];
-    let ids: Array<String> = [];
+    var names: Array<String> = [];
+    var ids: Array<String> = [];
     if CaptureNullableNames(table, "name", "id", names, ids) {
         Log("readonly-record-two-copyouts-ready");
     } else {

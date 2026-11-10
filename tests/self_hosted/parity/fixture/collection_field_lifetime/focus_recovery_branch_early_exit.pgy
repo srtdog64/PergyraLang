@@ -1,9 +1,9 @@
 struct Rows { types: Array<String>; }
 func BranchCapture(inout rows: Rows, grow: Bool, should_fail: Bool) -> Bool
 {
-    let types: Array<String> = rows.types;
+    var types: Array<String> = rows.types;
     if !grow { return false; }
-    let count: Int = 0;
+    var count: Int = 0;
     while count < 8 {
         ArrayPush(types, "row");
         count = count + 1;
@@ -14,7 +14,7 @@ func BranchCapture(inout rows: Rows, grow: Bool, should_fail: Bool) -> Bool
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     Log(BranchCapture(rows, false, false));
     Log(ArrayLength(rows.types));
     Log(BranchCapture(rows, true, true));

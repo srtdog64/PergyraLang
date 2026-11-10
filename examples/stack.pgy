@@ -4,7 +4,7 @@
 // 포인터 없이 Array<Int> 하나로 push/pop/top을 표현한다.
 
 func Main() -> Void {
-    let values: Array<Int> = [];
+    var values: Array<Int> = [];
 
     // push
     ArrayPush(values, 10);

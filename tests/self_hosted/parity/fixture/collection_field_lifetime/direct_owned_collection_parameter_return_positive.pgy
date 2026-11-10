@@ -1,5 +1,5 @@
 func BuildMapForSnapshot() -> HashMap<String, Int> {
-    let values: HashMap<String, Int> = MapNew();
+    var values: HashMap<String, Int> = MapNew();
     MapSet(values, "owned", 1);
     return values;
 }

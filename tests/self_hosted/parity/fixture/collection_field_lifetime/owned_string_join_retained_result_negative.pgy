@@ -9,7 +9,7 @@ func RetireJoined(own value: String) -> Void {
     ArrayDropOwnedStrings(retired);
 }
 func Main() -> Void {
-    let retained: Array<String> = [];
+    var retained: Array<String> = [];
     RetireJoined(MakeJoined(retained));
     Log(retained[0]);
 }

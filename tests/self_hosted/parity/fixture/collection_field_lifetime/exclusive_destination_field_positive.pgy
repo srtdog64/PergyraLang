@@ -11,7 +11,7 @@ struct Holder {
 
 func HolderExtend(holder: Holder) -> Holder {
     let pair: Pair = holder.pair;
-    let left: Array<String> = pair.left;
+    var left: Array<String> = pair.left;
     ArrayPush(left, "a");
     ArrayPush(left, "b");
     return Holder(Pair(left, holder.pair.right), holder.extra);
@@ -21,7 +21,7 @@ func Main() -> Int {
     let left: Array<String> = ["l"];
     let right: Array<String> = ["r"];
     let extra: Array<String> = ["e"];
-    let holder: Holder = Holder(Pair(left, right), extra);
+    var holder: Holder = Holder(Pair(left, right), extra);
     holder = HolderExtend(holder);
     return ArrayLength(holder.pair.left) + ArrayLength(holder.pair.right);
 }

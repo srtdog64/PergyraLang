@@ -1,10 +1,10 @@
 func Append(ref names: Array<String>, start: Int, count: Int,
     receiver: String, map_self: Bool, inout destination: Array<String>) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
-        let name: String = Concat("", names[start + i]);
+        var name: String = Concat("", names[start + i]);
         if map_self && name == "self" { name = receiver; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(destination) {
             if destination[prior] == name { return false; }
             prior = prior + 1;
@@ -15,9 +15,9 @@ func Append(ref names: Array<String>, start: Int, count: Int,
     return true;
 }
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "self");
-    let destination: Array<String> = [];
+    var destination: Array<String> = [];
     if !Append(source, 0, 1, "compiler", true, destination) { Exit(1); }
     Log(destination[0]);
     ArrayDropOwnedStrings(destination);

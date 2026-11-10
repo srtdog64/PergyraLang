@@ -24,7 +24,7 @@ func Main() -> Void
     var iteration: Int = 0;
     while iteration < 2
     {
-        let names: CapturedNames = CapturedNames(seed, seed);
+        var names: CapturedNames = CapturedNames(seed, seed);
         ArrayPushOwnedString(names.left, "growth");
         Retire(names);
         iteration = iteration + 1;

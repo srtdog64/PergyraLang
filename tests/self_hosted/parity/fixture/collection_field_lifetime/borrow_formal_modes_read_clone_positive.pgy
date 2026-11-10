@@ -22,6 +22,6 @@ func ByDefault(values: Array<String>) -> Int {
     return 0;
 }
 func Main() -> Void {
-    let values: Array<String> = ["borrowed"];
+    var values: Array<String> = ["borrowed"];
     Log(ByRef(values)); Log(ByInout(values)); Log(ByDefault(values));
 }

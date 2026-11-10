@@ -2,7 +2,7 @@ struct View {
     let value: Int;
 }
 func Main() -> Void {
-    let view: View = View(7);
+    var view: View = View(7);
     view.value = 9;
     Log(view.value);
 }

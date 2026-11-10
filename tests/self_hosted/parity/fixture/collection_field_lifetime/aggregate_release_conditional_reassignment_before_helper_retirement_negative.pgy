@@ -8,15 +8,15 @@ func Retire(inout table: Table) -> Void {
 }
 
 func Observe(inout table: Table, flag: Bool) -> Int {
-    let text: String = table.names[0];
+    var text: String = table.names[0];
     if flag { text = Concat("", "safe"); }
     Retire(table);
     return StringLength(text);
 }
 
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "owned");
-    let table: Table = Table(names);
+    var table: Table = Table(names);
     Log(Observe(table, false));
 }

@@ -3,16 +3,16 @@ import "../../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
 
 func Main() -> Void {
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows("", "");
-    let initial_rows: Array<String> = [];
+    var initial_rows: Array<String> = [];
     ArrayPushOwnedString(initial_rows, "");
-    let state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(
+    var state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(
         CodegenJoinOwnedStringFragments(initial_rows, ""));
     CodegenTypeEnvStateAppendTypedValueBinding(state, env, "first", "Int", "value", "first_c");
     CodegenTypeEnvStateAppendTypedValueBinding(state, env, "second", "Bool", "value", "second_c");
     let view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
     if LookupKindType(view, "first", "type") != "Int" { Exit(1); }
     if LookupKindType(view, "second", "type") != "Bool" { Exit(2); }
-    let child: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(state);
+    var child: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(state);
     CodegenTypeEnvStateAppendTypedValueBinding(child, env, "first", "Long", "value", "child_c");
     let child_view: CodegenTypeEnv = CodegenTypeEnvStateView(child, env);
     if LookupKindType(child_view, "first", "type") != "Long" { Exit(3); }
@@ -22,7 +22,7 @@ func Main() -> Void {
     let adopted: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
     if LookupKindType(adopted, "first", "type") != "Long" { Exit(5); }
     if LookupKindType(adopted, "second", "type") != "Bool" { Exit(6); }
-    let unchanged: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(state);
+    var unchanged: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(state);
     CodegenTypeEnvStateAdoptAfterLastConsumer(state, unchanged);
     CodegenTypeEnvStateReleaseLocal(unchanged);
     CodegenTypeEnvStateAppendOwnedLocalRows(state, env, Concat("", ""));

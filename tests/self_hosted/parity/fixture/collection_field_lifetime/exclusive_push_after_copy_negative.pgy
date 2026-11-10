@@ -5,7 +5,7 @@ struct Facts {
 }
 
 func Main() -> Int {
-    let rows: Array<Int> = [1];
+    var rows: Array<Int> = [1];
     let facts: Facts = Facts(rows);
     ArrayPush(rows, 2);
     ArrayPush(rows, 3);

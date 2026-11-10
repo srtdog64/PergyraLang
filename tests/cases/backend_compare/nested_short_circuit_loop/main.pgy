@@ -1,6 +1,6 @@
 func FilterAndSum(arr: Array<Int>, n: Int, lo: Int, hi: Int) -> Int {
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         let v: Int = arr[i];
         if v >= lo && v <= hi && v % 2 == 0 {

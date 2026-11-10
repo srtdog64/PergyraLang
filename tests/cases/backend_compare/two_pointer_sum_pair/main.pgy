@@ -1,6 +1,6 @@
 func FindPairSum(sorted: Array<Int>, target: Int) -> Bool {
-    let lo: Int = 0;
-    let hi: Int = ArrayLength(sorted) - 1;
+    var lo: Int = 0;
+    var hi: Int = ArrayLength(sorted) - 1;
     while lo < hi {
         let s: Int = sorted[lo] + sorted[hi];
         if s == target { return true; }

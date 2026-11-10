@@ -3,13 +3,13 @@ func AppendOwnedValue(inout values: Array<String>) -> Void {
 }
 
 func BuildZeroParameterValues() -> Array<String> {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     AppendOwnedValue(values);
     return values;
 }
 
 func BuildOwnedValues(seed: String, field: String) -> Array<String> {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     if seed == "" {
         return values;
     }
@@ -20,7 +20,7 @@ func BuildOwnedValues(seed: String, field: String) -> Array<String> {
 func BuildBoundedValues(
     json: String, start: Int, end: Int, field: String
 ) -> Array<String> {
-    let bounded_values: Array<String> = [];
+    var bounded_values: Array<String> = [];
     if start == end {
         return bounded_values;
     }

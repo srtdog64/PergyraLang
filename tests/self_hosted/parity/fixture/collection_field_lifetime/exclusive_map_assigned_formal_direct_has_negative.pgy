@@ -1,5 +1,5 @@
 func Seed() -> HashMap<String, Int> {
-    let rows: HashMap<String, Int> = MapNew();
+    var rows: HashMap<String, Int> = MapNew();
     MapSet(rows, "old", 1);
     return rows;
 }
@@ -11,6 +11,6 @@ func Update(inout map: HashMap<String, Int>) -> Int {
     return 0;
 }
 func Main() -> Int {
-    let map: HashMap<String, Int> = MapNew();
+    var map: HashMap<String, Int> = MapNew();
     return Update(map);
 }

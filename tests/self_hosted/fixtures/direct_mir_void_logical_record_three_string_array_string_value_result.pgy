@@ -17,7 +17,7 @@ func AppendBinding(
 }
 
 func Main() -> Void {
-    let state: Array<String> = [];
+    var state: Array<String> = [];
     let env: ValueEnvProbe = ValueEnvProbe(true, "ready");
     AppendBinding(state, env, "source", "local", "c_name");
     Log("void-record-three-string-array-copyout-ready");

@@ -43,7 +43,7 @@ func Consume(values: Array<Int>) -> Int {
 }
 
 func ParameterLiteral(first: Int, selected: Int, wrong: String) -> Int {
-    let values: Array<Int> = [selected];
+    var values: Array<Int> = [selected];
     ArrayPush(values, first);
     return values[0];
 }

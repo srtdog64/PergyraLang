@@ -66,10 +66,10 @@ func MirCollectionNestedMemberPathFactsPass() -> Bool {
 }
 
 func Main() -> Void {
-    let local_types: Array<String> = [];
+    var local_types: Array<String> = [];
     ArrayPushOwnedString(local_types, "Box<String>");
     let local_ids: Array<Int> = [10];
-    let parameter_types: Array<String> = [];
+    var parameter_types: Array<String> = [];
     ArrayPushOwnedString(parameter_types, "String");
     ArrayPushOwnedString(parameter_types, "Bool");
     ArrayPushOwnedString(parameter_types, "Array<Int>");

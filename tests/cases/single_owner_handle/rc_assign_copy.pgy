@@ -1,6 +1,6 @@
 func Main() -> Void {
     let root: Rc<Int> = RcNew(41);
-    let other: Rc<Int> = RcNew(7);
+    var other: Rc<Int> = RcNew(7);
     RcDrop(other);
     other = root;
     RcDrop(root);

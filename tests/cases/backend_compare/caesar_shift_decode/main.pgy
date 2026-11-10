@@ -19,8 +19,8 @@ func ShiftHelper(idx: Int, shift: Int) -> String {
 }
 
 func Caesar(s: String, shift: Int) -> String {
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < StringLength(s) {
         result = Concat(result, ShiftLetter(Substring(s, i, 1), shift));
         i = i + 1;

@@ -5,7 +5,7 @@ func Snapshot(ref plan: ResultPlan) -> Verdict {
     return Publish(plan.ids);
 }
 func Main() -> Void {
-    let plan: ResultPlan = ResultPlan([2, 7]);
+    var plan: ResultPlan = ResultPlan([2, 7]);
     let verdict: Verdict = Snapshot(plan);
     plan.ids[0] = 99;
     if ArrayLength(verdict.ids) != 2 || verdict.ids[0] != 2 || verdict.ids[1] != 7 ||

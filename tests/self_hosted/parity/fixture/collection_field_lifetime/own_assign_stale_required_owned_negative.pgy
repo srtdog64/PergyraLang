@@ -1,6 +1,6 @@
 func DropElements(own values: Array<String>) -> Int { ArrayDropOwnedStrings(values); return 0; }
 func Forward(own values: Array<String>) -> Int {
-    let moved: Array<String> = [];
+    var moved: Array<String> = [];
     moved = values;
     return DropElements(moved);
 }

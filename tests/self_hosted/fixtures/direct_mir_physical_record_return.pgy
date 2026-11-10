@@ -30,7 +30,7 @@ func PhysicalRecordReadNested(ref value: PhysicalRecordNested) -> Int {
 }
 
 func Main() -> Void {
-    let accumulator: SemanticAstEntrypointSelectionAccumulator =
+    var accumulator: SemanticAstEntrypointSelectionAccumulator =
         SemanticAstEntrypointSelectionAccumulatorEmpty();
     SemanticAstEntrypointSelectionObserve(accumulator, "", true, "Main", 7);
     let selection: SemanticAstEntrypointSelectionFact =
@@ -38,7 +38,7 @@ func Main() -> Void {
     Log(selection.candidate_count);
     Log(selection.signature_index);
     Log(accumulator.uppercase_count);
-    let triple: PhysicalRecordTriple = PhysicalRecordMakeTriple();
+    var triple: PhysicalRecordTriple = PhysicalRecordMakeTriple();
     PhysicalRecordAdjust(5, triple);
     Log(triple.first);
     Log(triple.last);
@@ -47,7 +47,7 @@ func Main() -> Void {
     let pair: PhysicalRecordPair = PhysicalRecordMakePair();
     Log(pair.first);
     Log(pair.last);
-    let nested: PhysicalRecordNested = PhysicalRecordNested(23, one, 29);
+    var nested: PhysicalRecordNested = PhysicalRecordNested(23, one, 29);
     PhysicalRecordAdjustNested(5, nested);
     Log(PhysicalRecordReadNested(nested));
     let eight: PhysicalRecordEight = PhysicalRecordMakeEight();

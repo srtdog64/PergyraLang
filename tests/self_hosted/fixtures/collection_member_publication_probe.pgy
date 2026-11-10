@@ -11,8 +11,8 @@ func Main() -> Void with caps env, io_read {
     if mode != "early" && mode != "capture-unready" && mode != "context-unready" &&
         mode != "digest" && mode != "count" && mode != "read-partial" &&
         mode != "escape-partial" && mode != "nested-invalid" && mode != "success" { Exit(2); }
-    let source: String = "func Main() -> Void {";
-    let generation_row: Int = 0;
+    var source: String = "func Main() -> Void {";
+    var generation_row: Int = 0;
     while generation_row < 800 { source = Concat(source, "Log(1);\n"); generation_row = generation_row + 1; }
     source = Concat(source, "}");
     let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
@@ -24,7 +24,7 @@ func Main() -> Void with caps env, io_read {
     let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
         analysis.expression_surfaces, empty, empty);
     let candidates: Array<Int> = [];
-    let contexts: SemanticAstCollectionFormalExecutionContexts = SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+    var contexts: SemanticAstCollectionFormalExecutionContexts = SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
         artifact, candidates, analysis.function_scopes, analysis.expression_surfaces, order);
     if !contexts.ok { Exit(2); }
     let found: Bool = mode == "early";
@@ -35,22 +35,22 @@ func Main() -> Void with caps env, io_read {
     if mode == "early" || mode == "count" { contexts.artifact_node_count = contexts.artifact_node_count + 1; }
     let restored: Array<Int> = [101, 102];
     let sites: Array<Int> = [111, 112];
-    let readable: HashMap<String, Int> = MapNew(); MapSet(readable, "401", 501);
-    let blocked: HashMap<String, Int> = MapNew(); MapSet(blocked, "202", 1);
-    let hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    var readable: HashMap<String, Int> = MapNew(); MapSet(readable, "401", 501);
+    var blocked: HashMap<String, Int> = MapNew(); MapSet(blocked, "202", 1);
+    var hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
     if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, hazards, 202, 0) { Exit(2); }
-    let escapes: HashMap<String, Int> = MapNew(); MapSet(escapes, "302", 902);
+    var escapes: HashMap<String, Int> = MapNew(); MapSet(escapes, "302", 902);
     let direct_escape_roots: Array<Int> = [302];
     let direct_escape_sites: Array<Int> = [902];
-    let nested_blocked: HashMap<String, Int> = MapNew(); MapSet(nested_blocked, "502", 1);
+    var nested_blocked: HashMap<String, Int> = MapNew(); MapSet(nested_blocked, "502", 1);
     let readonly_origins: Array<Int> = [701, 702];
-    let read_sources: Array<Int> = [201];
-    let read_targets: Array<Int> = [202];
+    var read_sources: Array<Int> = [201];
+    var read_targets: Array<Int> = [202];
     if mode == "early" || mode == "read-partial" { ArrayPush(read_sources, 0); ArrayPush(read_targets, 202); }
     if mode == "success" { ArrayPush(read_sources, 203); ArrayPush(read_targets, 201); }
-    let escape_sources: Array<Int> = [301];
-    let escape_targets: Array<Int> = [302];
-    let escape_sites: Array<Int> = [901];
+    var escape_sources: Array<Int> = [301];
+    var escape_targets: Array<Int> = [302];
+    var escape_sites: Array<Int> = [901];
     if mode == "early" || mode == "escape-partial" {
         ArrayPush(escape_sources, 0); ArrayPush(escape_targets, 302); ArrayPush(escape_sites, 903);
     }
@@ -58,9 +58,9 @@ func Main() -> Void with caps env, io_read {
         ArrayPush(escape_sources, 303); ArrayPush(escape_targets, 301); ArrayPush(escape_sites, 903);
     }
     let nested_nodes: Array<Int> = [601, 602];
-    let nested_roots: Array<Int> = [501, 503];
+    var nested_roots: Array<Int> = [501, 503];
     let lend_sources: Array<Int> = [501];
-    let lend_targets: Array<Int> = [201];
+    var lend_targets: Array<Int> = [201];
     if mode == "success" { lend_targets[0] = 203; }
     if mode == "early" || mode == "nested-invalid" { ArrayPop(nested_roots); }
     let result: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUsePublish(
@@ -83,7 +83,7 @@ func Main() -> Void with caps env, io_read {
     let readable_keys: Array<String> = MapKeys(result_readable);
     let blocked_keys: Array<String> = MapKeys(result_blocked);
     let escape_keys: Array<String> = MapKeys(result_escapes);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(readable_keys) {
         Log("readable:" + readable_keys[row] + "=" + ToString(MapGet(result_readable, readable_keys[row]))); row = row + 1;
     }

@@ -23,7 +23,7 @@ func ObservePool() -> Void {
 }
 func Main() -> Void {
     let result_allocator: Allocator = AllocatorResult();
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, MakeHeap());
     ArrayPush(values, BuildWithAllocator("direct", result_allocator));
     ArrayDropOwnedStrings(values);

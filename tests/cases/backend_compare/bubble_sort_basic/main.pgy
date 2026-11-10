@@ -6,9 +6,9 @@ func SwapInArr(inout arr: Array<Int>, i: Int, j: Int) -> Void {
 }
 
 func BubbleSort(arr: Array<Int>, n: Int) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let j: Int = 0;
+        var j: Int = 0;
         while j < n - 1 - i {
             if arr[j] > arr[j + 1] {
                 SwapInArr(arr, j, j + 1);
@@ -22,7 +22,7 @@ func BubbleSort(arr: Array<Int>, n: Int) -> Void {
 func Main() -> Void {
     let a: Array<Int> = [5, 2, 8, 1, 9, 3];
     BubbleSort(a, 6);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 6 {
         Log(a[i]);
         i = i + 1;

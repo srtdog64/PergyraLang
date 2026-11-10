@@ -35,7 +35,7 @@ role OrderBatchDataEngineer for OrderBatch
 func Main() -> Void
 {
     // --- 데이터 준비 ---
-    let orders: List<Order> = ListNew();
+    var orders: List<Order> = ListNew();
     ListPush(orders, Order(1, "Alice", 15000, "electronics", false));
     ListPush(orders, Order(2, "Bob", 3200, "books", false));
     ListPush(orders, Order(3, "Carol", 0, "electronics", true));   // 환불 — 무효

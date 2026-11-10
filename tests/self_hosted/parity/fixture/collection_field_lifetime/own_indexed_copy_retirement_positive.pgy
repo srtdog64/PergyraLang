@@ -4,7 +4,7 @@ func CopySelected(own values: Array<String>) -> String {
     return copied;
 }
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "selected");
     if CopySelected(values) != "selected" { Exit(1); }
     Log("OWN INDEXED COPY RETIREMENT PASS");

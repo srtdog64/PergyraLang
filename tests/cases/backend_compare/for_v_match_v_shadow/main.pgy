@@ -4,7 +4,7 @@ func TrySquare(n: Int) -> Option<Int> {
 }
 
 func MapSum(arr: Array<Int>) -> Int {
-    let s: Int = 0;
+    var s: Int = 0;
     for v in arr {
         match TrySquare(v) {
             case Some(sq): s = s + sq;

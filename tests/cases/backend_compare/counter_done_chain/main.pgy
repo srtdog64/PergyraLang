@@ -12,8 +12,8 @@ func Tick(c: Counter) -> Counter {
 }
 
 func RunUntilDone(target: Int) -> Int {
-    let c: Counter = MakeCounter(target);
-    let ticks: Int = 0;
+    var c: Counter = MakeCounter(target);
+    var ticks: Int = 0;
     while c.Done() == false {
         c = Tick(c);
         ticks = ticks + 1;

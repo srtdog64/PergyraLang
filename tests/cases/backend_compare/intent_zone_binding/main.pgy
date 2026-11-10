@@ -1,5 +1,5 @@
 subject Driver {
-    let hp: Int;
+    var hp: Int;
 
     action Ignite(self) -> Void {
         hp = hp + 3;

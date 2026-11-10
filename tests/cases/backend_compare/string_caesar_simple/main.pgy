@@ -9,8 +9,8 @@ func ShiftChar(ch: String) -> String {
 
 func ShiftString(s: String) -> String {
     let n: Int = StringLength(s);
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < n {
         let ch: String = Substring(s, i, i + 1);
         result = result + ShiftChar(ch);

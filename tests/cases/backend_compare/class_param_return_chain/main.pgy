@@ -4,13 +4,13 @@ class Bag {
 }
 
 func Add(b: Bag, n: Int) -> Bag {
-    let new_count: Int = b.count + n;
+    var new_count: Int = b.count + n;
     if new_count > b.limit { new_count = b.limit; }
     return Bag(new_count, b.limit);
 }
 
 func Remove(b: Bag, n: Int) -> Bag {
-    let new_count: Int = b.count - n;
+    var new_count: Int = b.count - n;
     if new_count < 0 { new_count = 0; }
     return Bag(new_count, b.limit);
 }

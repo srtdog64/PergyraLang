@@ -12,6 +12,6 @@ func Retire(own fragment: String) -> Void {
 }
 
 func Main() -> Void {
-    let holder: StringHolder = StringHolder("");
+    var holder: StringHolder = StringHolder("");
     Retire(ProduceAliasedString(holder));
 }

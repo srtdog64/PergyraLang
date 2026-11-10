@@ -4,8 +4,8 @@ func MaybeIncr(n: Int, cap: Int) -> Option<Int> {
 }
 
 func CountSteps(start: Int, cap: Int) -> Int {
-    let cur: Int = start;
-    let steps: Int = 0;
+    var cur: Int = start;
+    var steps: Int = 0;
     while steps < 1000 {
         let next: Option<Int> = MaybeIncr(cur, cap);
         let unwrapped: Int = next ?? -1;

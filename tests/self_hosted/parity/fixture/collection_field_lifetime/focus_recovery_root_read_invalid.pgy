@@ -1,8 +1,8 @@
 struct Rows { types: Array<String>; }
 func CaptureRootRead(inout rows: Rows) -> Bool
 {
-    let types: Array<String> = rows.types;
-    let count: Int = 0;
+    var types: Array<String> = rows.types;
+    var count: Int = 0;
     while count < 8 { ArrayPush(types, "row"); count = count + 1; }
     Log(rows.types[0]);
     rows.types = types;
@@ -10,6 +10,6 @@ func CaptureRootRead(inout rows: Rows) -> Bool
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     Log(CaptureRootRead(rows));
 }

@@ -11,7 +11,7 @@ func Process(s: Step) -> Step {
 }
 
 func RunPipeline() -> Int {
-    let s: Step = Start();
+    var s: Step = Start();
     while s.stage < 5 {
         s = Process(s);
     }

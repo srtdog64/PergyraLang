@@ -20,7 +20,7 @@ func TotalArea(r1: Rect, r2: Rect, r3: Rect) -> Int {
 }
 
 func CountSquares(r1: Rect, r2: Rect, r3: Rect) -> Int {
-    let n: Int = 0;
+    var n: Int = 0;
     if r1.IsSquare() { n = n + 1; }
     if r2.IsSquare() { n = n + 1; }
     if r3.IsSquare() { n = n + 1; }

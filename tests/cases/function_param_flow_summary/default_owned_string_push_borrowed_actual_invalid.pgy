@@ -1,7 +1,7 @@
 // Default syntax is not element ownership.  Moving a shallow literal into a
 // callee that adds an owned String must fail at the exact call actual.
 func AppendFresh(rows: Array<String>) -> Void {
-    let names: Array<String> = rows;
+    var names: Array<String> = rows;
     ArrayPush(names, Concat("owned", " value"));
 }
 

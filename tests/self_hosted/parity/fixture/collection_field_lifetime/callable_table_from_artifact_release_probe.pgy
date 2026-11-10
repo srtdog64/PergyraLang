@@ -17,7 +17,7 @@ func Main() -> Void with caps io_read
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
-    let facts: SemanticAstExpressionFunctionTableFacts =
+    var facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
             artifact, signatures, constructors, enums);
     if !SemanticAstExpressionFunctionTableFactsReady(facts)

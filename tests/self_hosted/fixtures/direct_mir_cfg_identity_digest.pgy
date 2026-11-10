@@ -6,8 +6,8 @@ func Main() -> Void {
     Log(ToString(DirectMirCfgHashString(268435455L, "ASCII-identity")));
     Log(ToString(DirectMirCfgHashString(1234567L, "quote:\" slash:\\ newline:\n")));
     Log(ToString(DirectMirCfgHashString(31L, "한글🙂")));
-    let text: String = "a";
-    let power: Int = 0;
+    var text: String = "a";
+    var power: Int = 0;
     while power < 20 {
         text = Concat(text, text);
         power = power + 1;

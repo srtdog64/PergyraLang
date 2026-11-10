@@ -44,17 +44,17 @@ struct ReachabilityFact {
 }
 
 func Main() -> Void {
-    let ints: Array<Int> = [1, 2];
+    var ints: Array<Int> = [1, 2];
     ArraySet(ints, NextIndex(), ints[0] + NextInt());
     Log(ToString(ints[1]));
     ArrayPop(ints);
     Log(ArrayLength(ints));
-    let untouched: Array<Int> = [7];
+    var untouched: Array<Int> = [7];
     IncrementFirst(untouched, ints);
     Log(ToString(untouched[0]));
     Log(ToString(ints[0]));
-    let push_untouched: Array<Int> = [8];
-    let pushed: Array<Int> = [3];
+    var push_untouched: Array<Int> = [8];
+    var pushed: Array<Int> = [3];
     AppendSecond(push_untouched, pushed);
     Log(ToString(push_untouched[0]));
     Log(ToString(ArrayLength(pushed)));
@@ -62,7 +62,7 @@ func Main() -> Void {
     PopSecond(push_untouched, pushed);
     Log(ToString(push_untouched[0]));
     Log(ToString(ArrayLength(pushed)));
-    let strings: Array<String> = [];
+    var strings: Array<String> = [];
     ArrayPush(strings, Concat("", "a"));
     ArrayPush(strings, Concat("", "x"));
     ArraySet(strings, 0, NextString());
@@ -74,13 +74,13 @@ func Main() -> Void {
     PopLastString(strings);
     Log(ArrayLength(strings));
     let reachable_fact = ReachabilityFact(true);
-    let reachable_values: Array<Bool> = [];
+    var reachable_values: Array<Bool> = [];
     ArrayPush(reachable_values, reachable_fact.reachable);
     if reachable_values[0] { Log("1"); } else { Log("unreachable"); }
     ArraySet(reachable_values, 0, false);
     if reachable_values[0] { Log("unreachable"); } else { Log("0-set"); }
     let blocked_fact = ReachabilityFact(false);
-    let blocked_values: Array<Bool> = [];
+    var blocked_values: Array<Bool> = [];
     ArrayPush(blocked_values, blocked_fact.reachable);
     if blocked_values[0] { Log("unreachable"); } else { Log("0"); }
     Log(MutateLateLocal());
@@ -88,7 +88,7 @@ func Main() -> Void {
 
 func MutateLateLocal() -> String {
     let sentinel: Int = 7;
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, Concat("", "late"));
     if sentinel == 7 { return values[0]; }
     return "unreachable";

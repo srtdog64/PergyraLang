@@ -7,6 +7,6 @@ func Count(inout pair: Pair) -> Int {
     return ArrayLength(second);
 }
 func Main() -> Void {
-    let pair: Pair = Pair(["borrowed"]);
+    var pair: Pair = Pair(["borrowed"]);
     Log(Count(pair));
 }

@@ -8,14 +8,14 @@ func AppendLine(report: String, line: String) -> String {
 }
 
 async func Main() -> Void {
-    let report: String = "";
+    var report: String = "";
 
     Log("=== SPRAY DEVICE PROBE ===");
     report = AppendLine(report, "=== SPRAY DEVICE PROBE ===");
 
     let config = SprayConfig(128, 3, true);
     let kernel = KernelNew("prefix_sum", 16, 16);
-    let buffers: List<SprayBuffer> = ListNew();
+    var buffers: List<SprayBuffer> = ListNew();
     ListPush(buffers, BufferNew(10, 64));
     ListPush(buffers, BufferNew(11, 96));
     ListPush(buffers, BufferNew(12, 128));

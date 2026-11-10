@@ -6,7 +6,7 @@ func BuildWithAllocator(value: String, result_allocator: Allocator) -> String {
 }
 func Main() -> Void {
     let result_allocator: Allocator = AllocatorPool(64);
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, BuildWithAllocator("pool", result_allocator));
     ArrayDropOwnedStrings(values);
     AllocatorDestroy(result_allocator);

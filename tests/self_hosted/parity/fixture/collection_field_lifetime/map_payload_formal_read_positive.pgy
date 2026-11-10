@@ -3,7 +3,7 @@ func ObservePayload(ref table: HashMap<String, String>) -> Int {
     return StringLength(view);
 }
 func Main() -> Int {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "key", "old");
     return ObservePayload(table);
 }

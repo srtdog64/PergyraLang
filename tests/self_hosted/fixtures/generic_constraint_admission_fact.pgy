@@ -4,13 +4,13 @@ import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
 
 func ProbeNominalEquality(constraint: String, expected: String) -> Bool {
-    let tree: String = "Program:\n  Ability: Sortable\n  Subject: Card\n  Subject: Dice\n  Function: InspectCell\n    Generic params: <T>\n";
+    var tree: String = "Program:\n  Ability: Sortable\n  Subject: Card\n  Subject: Dice\n  Function: InspectCell\n    Generic params: <T>\n";
     if constraint != "" { tree = tree + "    Constraints: where T: " + constraint + "\n"; }
     tree = tree + "    Parameters:\n      value: T\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n";
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree);
     let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
-    let names: Array<String> = []; let types: Array<String> = [];
+    var names: Array<String> = []; var types: Array<String> = [];
     let ready: Bool = SemanticAstExpressionSeedParameters(
         signatures, constructors, signatures.function_node_ids[0], names, types);
     if expected == "" { return !ready; }
@@ -48,9 +48,9 @@ func Main() -> Void {
     let bound: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts("generic_constraint_unsatisfied", "missing bound witness");
     Log(SemanticPublicDiagnosticReceiptReadyFor(bound, "generic_constraint_unsatisfied") && bound.code == "PGY_SEM_CLASS_CONTRACT_INVALID");
     let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n  Function: Rank\n    Generic params: <T>\n    Constraints: where T: Sortable\n    Parameters:\n      x: T\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n");
-    let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    var signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     Log(SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures));
-    let bounds: Array<String> = signatures.generic_constraint_type_names;
+    var bounds: Array<String> = signatures.generic_constraint_type_names;
     bounds[0] = "";
     Log(!SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures));
     let no_bounds: Array<String> = [];

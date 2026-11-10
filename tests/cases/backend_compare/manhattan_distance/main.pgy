@@ -4,8 +4,8 @@ class Coord {
 }
 
 func Manhattan(a: Coord, b: Coord) -> Int {
-    let dx: Int = a.x - b.x;
-    let dy: Int = a.y - b.y;
+    var dx: Int = a.x - b.x;
+    var dy: Int = a.y - b.y;
     if dx < 0 { dx = 0 - dx; }
     if dy < 0 { dy = 0 - dy; }
     return dx + dy;

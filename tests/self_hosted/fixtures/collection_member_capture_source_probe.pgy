@@ -6,12 +6,12 @@ import "../../../src/self_hosted/semantic/ast_collection_member_capture_source_o
 func CollectionMemberCaptureSourceProbe(input_path: String) -> Void with caps env, io_read {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(input_path);
     if !AstTreeArtifactReady(artifact) { Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok || !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) { Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !bundle.verdict.ok { Exit(2); }
-    let checked: Int = 0;
-    let slot: Int = 0;
+    var checked: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         let surface: Int = slot / 3;
         let syntax: Int = analysis.expression_surfaces.node_ids[surface];
@@ -24,9 +24,9 @@ func CollectionMemberCaptureSourceProbe(input_path: String) -> Void with caps en
             let spine: SemanticExpressionGraphValueReceiverSpine = SemanticExpressionGraphValueReceiverSpineFromGraph(
                 analysis.expression_surfaces.expression_graph, root);
             if !spine.ok || spine.depth != 0 || spine.leaf_node < 0 { Exit(2); }
-            let names: Array<String> = [];
-            let types: Array<String> = [];
-            let modes: Array<String> = [];
+            var names: Array<String> = [];
+            var types: Array<String> = [];
+            var modes: Array<String> = [];
             let intent_node: Option<Int> = SemanticAstExpressionIntentNodeAt(analysis.expression_surfaces, analysis.intent_signatures, surface);
             if !SemanticAstBodyExpressionEnvironmentSeed(
                 artifact, analysis.signatures, analysis.constructors,
@@ -43,8 +43,8 @@ func CollectionMemberCaptureSourceProbe(input_path: String) -> Void with caps en
                 names, types, modes) { Exit(2); }
             let text: Option<String> = SemanticExpressionGraphNodeText(analysis.expression_surfaces.expression_graph, spine.leaf_node);
             if !IsSome(text) { Exit(2); }
-            let resolved: Array<String> = [];
-            let node: Int = 0;
+            var resolved: Array<String> = [];
+            var node: Int = 0;
             while node <= spine.leaf_node { ArrayPush(resolved, "Unknown"); node = node + 1; }
             ArraySet(resolved, spine.leaf_node, EnvLookup(names, types, UnwrapOption(text)));
             if resolved[spine.leaf_node] != "Int" { Exit(2); }

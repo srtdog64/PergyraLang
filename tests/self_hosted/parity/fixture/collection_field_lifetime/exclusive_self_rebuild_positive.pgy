@@ -7,14 +7,14 @@ struct Facts {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, "r");
     ArrayPush(rows, "r");
     return Facts(facts.ok, facts.names, rows);
 }
 
 func Build(seed: Facts, extra: Array<String>) -> Facts {
-    let facts: Facts = seed;
+    var facts: Facts = seed;
     facts = Facts(true, extra, facts.rows);
     facts = Grow(facts);
     return facts;

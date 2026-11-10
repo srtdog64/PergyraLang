@@ -2,11 +2,11 @@ func Copy(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "c
 func Retire(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); }
 func Reads(ref values: Array<String>) -> Bool { return values[0] == "copied"; }
 func Main() -> Void {
-    let outer: Int = 0;
+    var outer: Int = 0;
     while outer < 2 {
-        let values: Array<String> = [];
+        var values: Array<String> = [];
         Copy(values);
-        let inner: Int = 0;
+        var inner: Int = 0;
         while inner < 2 {
             Log(Reads(values));
             Retire(values);

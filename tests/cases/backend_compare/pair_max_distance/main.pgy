@@ -11,11 +11,11 @@ class Pt {
 
 func MaxDist(xs: Array<Int>, ys: Array<Int>, n: Int) -> Int {
     if n < 2 { return 0; }
-    let best: Int = 0;
-    let i: Int = 0;
+    var best: Int = 0;
+    var i: Int = 0;
     while i < n {
         let p: Pt = Pt(xs[i], ys[i]);
-        let j: Int = i + 1;
+        var j: Int = i + 1;
         while j < n {
             let d: Int = p.DistSqFrom(xs[j], ys[j]);
             if d > best { best = d; }

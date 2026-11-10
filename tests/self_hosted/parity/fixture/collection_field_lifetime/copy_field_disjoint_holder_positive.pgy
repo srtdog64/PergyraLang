@@ -5,7 +5,7 @@ struct CopyPair {
 // An unrelated admitted identity for the direct partition corruption control.
 struct CopyForeign { data: Array<String>; }
 func CopyGrow(pair: CopyPair) -> CopyPair {
-    let left: Array<String> = pair.left;
+    var left: Array<String> = pair.left;
     ArrayPush(left, "g");
     return CopyPair(left, pair.right);
 }
@@ -13,7 +13,7 @@ func Main() -> Void {
     let left: Array<String> = ["l"];
     let right: Array<String> = ["r"];
     let spare: Array<String> = [];
-    let pair: CopyPair = CopyPair(left, right);
+    var pair: CopyPair = CopyPair(left, right);
     let kept: CopyPair = CopyPair(pair.right, spare);
     pair = CopyGrow(pair);
     Log(ArrayLength(kept.left));

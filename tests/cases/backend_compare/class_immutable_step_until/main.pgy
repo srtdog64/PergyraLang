@@ -8,8 +8,8 @@ func StepCount(c: Counter) -> Counter {
 }
 
 func RunUntil(start: Int, goal: Int) -> Int {
-    let c: Counter = Counter(start, goal);
-    let steps: Int = 0;
+    var c: Counter = Counter(start, goal);
+    var steps: Int = 0;
     while c.n < c.goal {
         c = StepCount(c);
         steps = steps + 1;

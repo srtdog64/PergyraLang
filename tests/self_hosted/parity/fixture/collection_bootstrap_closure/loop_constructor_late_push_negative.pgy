@@ -13,11 +13,11 @@ func Use(ref facts: Bindings) -> Int {
 }
 
 func Build(ref facts: Facts, count: Int) -> Int {
-    let total: Int = 0;
-    let round: Int = 0;
+    var total: Int = 0;
+    var round: Int = 0;
     while round < count {
-        let names: Array<String> = []; let types: Array<String> = [];
-        let i: Int = 0;
+        var names: Array<String> = []; var types: Array<String> = [];
+        var i: Int = 0;
         while i < ArrayLength(facts.names) {
             ArrayPush(names, facts.names[i]); ArrayPush(types, facts.types[i]);
             i = i + 1;

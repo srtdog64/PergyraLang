@@ -7,8 +7,8 @@ class Bin {
 }
 
 func RunPush(seeds: Array<Int>, n: Int) -> Int {
-    let b: Bin = Bin(0);
-    let i: Int = 0;
+    var b: Bin = Bin(0);
+    var i: Int = 0;
     while i < n {
         b = b.Push(seeds[i]);
         i = i + 1;

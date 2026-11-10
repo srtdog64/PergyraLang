@@ -14,7 +14,7 @@ struct NestedResultAdmission {
 func NestedResultUpdate(
     facts: NestedResultFacts
 ) -> NestedResultAdmission {
-    let names: Array<String> = facts.names;
+    var names: Array<String> = facts.names;
     let ids: Array<Int> = facts.ids;
     ArrayPushOwnedString(names, "next");
     return NestedResultAdmission(

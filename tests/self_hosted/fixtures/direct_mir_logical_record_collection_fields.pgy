@@ -54,7 +54,7 @@ func CollectionIndexValidityDiffers(
 }
 
 func CollectionIndexOwnerAt(index: CollectionIndex, position: Int) -> Int {
-    let selected: Array<Int> = [0];
+    var selected: Array<Int> = [0];
     let target_index: Int = 0;
     let value_index: Int = position;
     ArraySet(

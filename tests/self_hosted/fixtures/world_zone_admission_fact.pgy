@@ -6,14 +6,14 @@ func Probe(expression: String, shadow: Bool, truncate_types: Bool, reject: Bool)
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Subject: Buyer\n    Fields:\n      hp: Int\n  Zone: CartZone\n    SubjectSlot: buyer: Buyer\n  World: CartWorld\n    WorldZone: cart: CartZone\n");
     let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
-    let kinds: Array<Int> = []; let texts: Array<String> = [];
-    let left: Array<Int> = []; let right: Array<Int> = [];
-    let targets: Array<Int> = []; let names: Array<String> = [];
-    let places: Array<Int> = []; let leaf_types: Array<String> = [];
+    var kinds: Array<Int> = []; var texts: Array<String> = [];
+    var left: Array<Int> = []; var right: Array<Int> = [];
+    var targets: Array<Int> = []; var names: Array<String> = [];
+    var places: Array<Int> = []; var leaf_types: Array<String> = [];
     let build: SemanticExpressionGraphBuild = SemanticExpressionGraphImportSerializedParserFact(
         kinds, texts, left, right, targets, names, expression);
     if !build.ok { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(kinds) {
         ArrayPush(places, 0);
         // Synthetic admitted direct-call rows, separate from parser topology.
@@ -26,7 +26,7 @@ func Probe(expression: String, shadow: Bool, truncate_types: Bool, reject: Bool)
         row = row + 1;
     }
     let roots: Array<Int> = [build.root_id]; let has_roots: Array<Bool> = [true];
-    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, has_roots,
+    var graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, has_roots,
         SemanticExpressionGraphArenaFromRows(kinds, texts, left, right, targets, names, places));
     if shadow {
         let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, build.root_id);

@@ -1,7 +1,7 @@
 func SumEveryNth(arr: Array<Int>, n: Int, k: Int) -> Int {
     if k <= 0 { return 0; }
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         sum = sum + arr[i];
         i = i + k;

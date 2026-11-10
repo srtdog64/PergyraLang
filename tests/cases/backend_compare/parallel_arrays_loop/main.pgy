@@ -1,8 +1,8 @@
 func TotalDamage(hits: Array<Int>, crits: Array<Bool>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let damage: Int = hits[i];
+        var damage: Int = hits[i];
         if crits[i] { damage = damage * 2; }
         total = total + damage;
         i = i + 1;

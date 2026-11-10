@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let lst: List<Int> = ListNew();
+    var lst: List<Int> = ListNew();
     ListPush(lst, 10);
     ListPush(lst, 20);
     ListPush(lst, 30);
@@ -7,7 +7,7 @@ func Main() -> Void {
     Log(ListGet(lst, 0));
     Log(ListGet(lst, 2));
 
-    let s: Set<Int> = SetNew();
+    var s: Set<Int> = SetNew();
     SetAdd(s, 5);
     SetAdd(s, 10);
     SetAdd(s, 5);

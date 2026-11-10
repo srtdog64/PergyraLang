@@ -62,7 +62,7 @@ func ClearAuction(bids: Array<Gold>, reserve: Gold) -> Result<Clearing, AuctionE
         return Err(BelowReserve);
     }
     let winner: Int = FirstIndexOf(bids, top);
-    let price: Gold = HighestExcept(bids, winner);
+    var price: Gold = HighestExcept(bids, winner);
     if price < reserve {
         price = reserve;
     }

@@ -1,5 +1,5 @@
 func CheckStringForward() -> Int {
-    let labels: HashMap<String, Int> = MapNew();
+    var labels: HashMap<String, Int> = MapNew();
     MapSet(labels, "zeta", 1);
     MapSet(labels, "alpha", 2);
     MapSet(labels, "mid", 3);
@@ -11,7 +11,7 @@ func CheckStringForward() -> Int {
 }
 
 func CheckStringReverse() -> Int {
-    let labels: HashMap<String, Int> = MapNew();
+    var labels: HashMap<String, Int> = MapNew();
     MapSet(labels, "mid", 3);
     MapSet(labels, "alpha", 2);
     MapSet(labels, "zeta", 1);
@@ -23,7 +23,7 @@ func CheckStringReverse() -> Int {
 }
 
 func CheckIntForward() -> Int {
-    let numbers: HashMap<Int, Int> = MapNew();
+    var numbers: HashMap<Int, Int> = MapNew();
     MapSet(numbers, 9, 90);
     MapSet(numbers, 1, 10);
     MapSet(numbers, 4, 40);
@@ -35,7 +35,7 @@ func CheckIntForward() -> Int {
 }
 
 func CheckIntReverse() -> Int {
-    let numbers: HashMap<Int, Int> = MapNew();
+    var numbers: HashMap<Int, Int> = MapNew();
     MapSet(numbers, 4, 40);
     MapSet(numbers, 1, 10);
     MapSet(numbers, 9, 90);
@@ -47,7 +47,7 @@ func CheckIntReverse() -> Int {
 }
 
 func CheckLongForward() -> Int {
-    let numbers: HashMap<Long, Int> = MapNew();
+    var numbers: HashMap<Long, Int> = MapNew();
     MapSet(numbers, 9L, 90);
     MapSet(numbers, 1L, 10);
     MapSet(numbers, 4L, 40);
@@ -59,7 +59,7 @@ func CheckLongForward() -> Int {
 }
 
 func CheckLongReverse() -> Int {
-    let numbers: HashMap<Long, Int> = MapNew();
+    var numbers: HashMap<Long, Int> = MapNew();
     MapSet(numbers, 4L, 40);
     MapSet(numbers, 1L, 10);
     MapSet(numbers, 9L, 90);
@@ -71,7 +71,7 @@ func CheckLongReverse() -> Int {
 }
 
 func CheckBoolForward() -> Int {
-    let flags: HashMap<Bool, Int> = MapNew();
+    var flags: HashMap<Bool, Int> = MapNew();
     MapSet(flags, true, 1);
     MapSet(flags, false, 0);
     let keys: Array<Bool> = MapKeys(flags);
@@ -82,7 +82,7 @@ func CheckBoolForward() -> Int {
 }
 
 func CheckBoolReverse() -> Int {
-    let flags: HashMap<Bool, Int> = MapNew();
+    var flags: HashMap<Bool, Int> = MapNew();
     MapSet(flags, false, 0);
     MapSet(flags, true, 1);
     let keys: Array<Bool> = MapKeys(flags);
@@ -93,7 +93,7 @@ func CheckBoolReverse() -> Int {
 }
 
 func CheckSetStringForward() -> Int {
-    let labels: Set<String> = SetNew();
+    var labels: Set<String> = SetNew();
     SetAdd(labels, "zeta");
     SetAdd(labels, "alpha");
     SetAdd(labels, "mid");
@@ -105,7 +105,7 @@ func CheckSetStringForward() -> Int {
 }
 
 func CheckSetStringReverse() -> Int {
-    let labels: Set<String> = SetNew();
+    var labels: Set<String> = SetNew();
     SetAdd(labels, "mid");
     SetAdd(labels, "alpha");
     SetAdd(labels, "zeta");
@@ -117,7 +117,7 @@ func CheckSetStringReverse() -> Int {
 }
 
 func CheckSetIntForward() -> Int {
-    let numbers: Set<Int> = SetNew();
+    var numbers: Set<Int> = SetNew();
     SetAdd(numbers, 9);
     SetAdd(numbers, 1);
     SetAdd(numbers, 4);
@@ -129,7 +129,7 @@ func CheckSetIntForward() -> Int {
 }
 
 func CheckSetIntReverse() -> Int {
-    let numbers: Set<Int> = SetNew();
+    var numbers: Set<Int> = SetNew();
     SetAdd(numbers, 4);
     SetAdd(numbers, 1);
     SetAdd(numbers, 9);
@@ -141,7 +141,7 @@ func CheckSetIntReverse() -> Int {
 }
 
 func CheckSetLongForward() -> Int {
-    let numbers: Set<Long> = SetNew();
+    var numbers: Set<Long> = SetNew();
     SetAdd(numbers, 9L);
     SetAdd(numbers, 1L);
     SetAdd(numbers, 4L);
@@ -153,7 +153,7 @@ func CheckSetLongForward() -> Int {
 }
 
 func CheckSetLongReverse() -> Int {
-    let numbers: Set<Long> = SetNew();
+    var numbers: Set<Long> = SetNew();
     SetAdd(numbers, 4L);
     SetAdd(numbers, 1L);
     SetAdd(numbers, 9L);
@@ -165,7 +165,7 @@ func CheckSetLongReverse() -> Int {
 }
 
 func CheckSetBoolForward() -> Int {
-    let flags: Set<Bool> = SetNew();
+    var flags: Set<Bool> = SetNew();
     SetAdd(flags, true);
     SetAdd(flags, false);
     let values: Array<Bool> = SetValues(flags);
@@ -176,7 +176,7 @@ func CheckSetBoolForward() -> Int {
 }
 
 func CheckSetBoolReverse() -> Int {
-    let flags: Set<Bool> = SetNew();
+    var flags: Set<Bool> = SetNew();
     SetAdd(flags, false);
     SetAdd(flags, true);
     let values: Array<Bool> = SetValues(flags);
@@ -187,7 +187,7 @@ func CheckSetBoolReverse() -> Int {
 }
 
 func CheckCanonicalSymbolKeysForward() -> Int {
-    let facts: HashMap<String, Int> = MapNew();
+    var facts: HashMap<String, Int> = MapNew();
     MapSet(facts, "sym:parser:ParseExpr", 10);
     MapSet(facts, "sym:lexer:Tokenize", 20);
     MapSet(facts, "sym:semantic:Check", 30);
@@ -199,7 +199,7 @@ func CheckCanonicalSymbolKeysForward() -> Int {
 }
 
 func CheckCanonicalSymbolKeysReverse() -> Int {
-    let facts: HashMap<String, Int> = MapNew();
+    var facts: HashMap<String, Int> = MapNew();
     MapSet(facts, "sym:semantic:Check", 30);
     MapSet(facts, "sym:lexer:Tokenize", 20);
     MapSet(facts, "sym:parser:ParseExpr", 10);
@@ -211,7 +211,7 @@ func CheckCanonicalSymbolKeysReverse() -> Int {
 }
 
 func CheckCanonicalRecordKeysForward() -> Int {
-    let fields: HashMap<String, Int> = MapNew();
+    var fields: HashMap<String, Int> = MapNew();
     MapSet(fields, "record:ZoneState.hp:Int", 3);
     MapSet(fields, "record:ZoneState.name:String", 5);
     MapSet(fields, "record:ZoneState.active:Bool", 7);
@@ -223,7 +223,7 @@ func CheckCanonicalRecordKeysForward() -> Int {
 }
 
 func CheckCanonicalRecordKeysReverse() -> Int {
-    let fields: HashMap<String, Int> = MapNew();
+    var fields: HashMap<String, Int> = MapNew();
     MapSet(fields, "record:ZoneState.name:String", 5);
     MapSet(fields, "record:ZoneState.active:Bool", 7);
     MapSet(fields, "record:ZoneState.hp:Int", 3);
@@ -235,7 +235,7 @@ func CheckCanonicalRecordKeysReverse() -> Int {
 }
 
 func CheckCanonicalHandleKeysForward() -> Int {
-    let handles: HashMap<Long, Int> = MapNew();
+    var handles: HashMap<Long, Int> = MapNew();
     MapSet(handles, 9000000002L, 2);
     MapSet(handles, 9000000001L, 1);
     MapSet(handles, 9000000003L, 3);
@@ -247,7 +247,7 @@ func CheckCanonicalHandleKeysForward() -> Int {
 }
 
 func CheckCanonicalHandleKeysReverse() -> Int {
-    let handles: HashMap<Long, Int> = MapNew();
+    var handles: HashMap<Long, Int> = MapNew();
     MapSet(handles, 9000000003L, 3);
     MapSet(handles, 9000000001L, 1);
     MapSet(handles, 9000000002L, 2);

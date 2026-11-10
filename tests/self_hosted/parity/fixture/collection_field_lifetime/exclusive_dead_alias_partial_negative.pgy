@@ -6,7 +6,7 @@ struct Facts {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, "r");
     ArrayPush(rows, "r");
     return Facts(facts.ok, rows);
@@ -14,7 +14,7 @@ func Grow(facts: Facts) -> Facts {
 
 func Build(seed: Array<String>, other: Array<String>, fresh: Bool) -> Int {
     let facts: Facts = Facts(true, seed);
-    let view: Facts = facts;
+    var view: Facts = facts;
     if fresh {
         view = Facts(false, other);
     }

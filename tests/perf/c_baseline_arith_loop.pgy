@@ -1,6 +1,6 @@
 func Main() -> Void {
-    let acc: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var i: Int = 0;
 
     while i < 10000000 {
         acc = acc + (i % 97);

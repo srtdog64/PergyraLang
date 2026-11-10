@@ -3,7 +3,7 @@ func Twice(x: Int) -> Int {
 }
 
 func Helper() -> Int {
-    let a: Int = 0;
+    var a: Int = 0;
     a = Twice(1, 2);
     return a;
 }

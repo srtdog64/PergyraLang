@@ -1,6 +1,6 @@
 func SumPositive(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] > 0 {
             total = total + arr[i];
@@ -11,8 +11,8 @@ func SumPositive(arr: Array<Int>, n: Int) -> Int {
 }
 
 func CountAbove(arr: Array<Int>, n: Int, threshold: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] > threshold {
             count = count + 1;

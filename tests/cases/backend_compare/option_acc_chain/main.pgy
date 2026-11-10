@@ -5,8 +5,8 @@ func Cap(n: Int) -> Option<Int> {
 }
 
 func ChainTotal(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let v: Int = Cap(arr[i]) ?? -1;
         if v >= 0 { total = total + v; }

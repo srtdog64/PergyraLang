@@ -1,5 +1,5 @@
 func ComparisonCode(left: Int, right: Int) -> Int {
-    let failures: Int = 0;
+    var failures: Int = 0;
     if left != right && right >= left && right > left && left <= right {
         failures = failures + 1;
     }

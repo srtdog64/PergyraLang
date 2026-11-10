@@ -1,6 +1,6 @@
 func CountOccur(arr: Array<Int>, n: Int, target: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] == target { count = count + 1; }
         i = i + 1;
@@ -10,9 +10,9 @@ func CountOccur(arr: Array<Int>, n: Int, target: Int) -> Int {
 
 func DominantValue(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return -1; }
-    let best: Int = arr[0];
-    let best_count: Int = CountOccur(arr, n, best);
-    let i: Int = 1;
+    var best: Int = arr[0];
+    var best_count: Int = CountOccur(arr, n, best);
+    var i: Int = 1;
     while i < n {
         let c: Int = CountOccur(arr, n, arr[i]);
         if c > best_count {

@@ -5,14 +5,14 @@ struct NodeSet {
 }
 
 func NodeSetAddInt(facts: NodeSet) -> NodeSet {
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, "Int");
     return NodeSet(true, types);
 }
 
 func Main() -> Int {
     let types: Array<String> = [];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetAddInt(facts);
     return ArrayLength(facts.types);
 }

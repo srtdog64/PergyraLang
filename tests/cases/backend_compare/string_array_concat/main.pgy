@@ -1,6 +1,6 @@
 func MyJoin(parts: Array<String>, n: Int, sep: String) -> String {
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < n {
         if i > 0 { result = result + sep; }
         result = result + parts[i];

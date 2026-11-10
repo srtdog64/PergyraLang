@@ -4,7 +4,7 @@ func Required(field: String, inout values: Array<String>) -> Bool {
 }
 
 func Main() -> Void {
-    let ids: Array<String> = [];
+    var ids: Array<String> = [];
     if !Required("a", ids) { return; }
     ArrayDropOwnedStrings(ids);
     ArrayPush(ids, "late");

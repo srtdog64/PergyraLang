@@ -6,8 +6,8 @@ func ParityOf(n: Int) -> Tag {
 }
 
 func ParitySum(n: Int) -> Int {
-    let evens: Int = 0;
-    let odds: Int = 0;
+    var evens: Int = 0;
+    var odds: Int = 0;
     for i in 0..n {
         match ParityOf(i) {
             case Even: evens = evens + i;

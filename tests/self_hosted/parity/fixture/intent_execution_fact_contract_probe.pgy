@@ -146,7 +146,7 @@ func IntentExecutionFactsForProbe(
         AppendIntentStepB(AppendIntentStepA(
             MirIntentStepTransitionFactsEmpty()
         ));
-    let terminals: MirIntentTerminalTransitionFacts =
+    var terminals: MirIntentTerminalTransitionFacts =
         MirIntentTerminalTransitionFactsEmpty();
     terminals = AppendIntentTerminal(
         terminals, 501, "failure", 101, "A", 1, "ARejected",
@@ -165,7 +165,7 @@ func IntentExecutionFactsForProbe(
 
 func IntentExecutionTwoRoutineFactsForProbe(
 ) -> MirIntentExecutionPlan {
-    let plan: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
+    var plan: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
     ArraySet(plan.steps.routine_syntax_ids, 1, 20);
     ArraySet(plan.steps.predecessor_transition_ids, 1, 0);
     ArraySet(plan.steps.predecessor_step_syntax_ids, 1, 0);
@@ -189,7 +189,7 @@ func Main() -> Void {
         MirLowerFailClosed("valid intent execution plan was rejected");
     }
 
-    let outcome_crosswire: MirIntentExecutionPlan =
+    var outcome_crosswire: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(outcome_crosswire.steps.outcome_type_names, 1, "ActionOutcomeA");
     outcome_crosswire = MirIntentExecutionPlanFromFacts(
@@ -199,7 +199,7 @@ func Main() -> Void {
         MirLowerFailClosed("outcome definition/type crosswire was accepted");
     }
 
-    let variant_crosswire: MirIntentExecutionPlan =
+    var variant_crosswire: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(
         variant_crosswire.steps.success_variant_indices, 1,
@@ -212,7 +212,7 @@ func Main() -> Void {
         MirLowerFailClosed("outcome variant identity crosswire was accepted");
     }
 
-    let predecessor_crosswire: MirIntentExecutionPlan =
+    var predecessor_crosswire: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(predecessor_crosswire.steps.predecessor_transition_ids, 1, 102);
     ArraySet(predecessor_crosswire.steps.predecessor_step_syntax_ids, 1, 102);
@@ -224,7 +224,7 @@ func Main() -> Void {
         MirLowerFailClosed("self predecessor evidence was accepted");
     }
 
-    let completion_missing: MirIntentExecutionPlan =
+    var completion_missing: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(completion_missing.steps.completion_instruction_ids, 1, 0 - 1);
     completion_missing = MirIntentExecutionPlanFromFacts(
@@ -234,7 +234,7 @@ func Main() -> Void {
         MirLowerFailClosed("missing success completion was accepted");
     }
 
-    let tobject_crosswire: MirIntentExecutionPlan =
+    var tobject_crosswire: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(
         tobject_crosswire.terminals.source_payload_type_names, 2, "ProblemA"
@@ -246,7 +246,7 @@ func Main() -> Void {
         MirLowerFailClosed("tobject payload type crosswire was accepted");
     }
 
-    let tobject_identity_crosswire: MirIntentExecutionPlan =
+    var tobject_identity_crosswire: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(
         tobject_identity_crosswire.terminals.source_payload_decl_syntax_ids,
@@ -267,7 +267,7 @@ func Main() -> Void {
         );
     }
 
-    let local_duplicate: MirIntentExecutionPlan =
+    var local_duplicate: MirIntentExecutionPlan =
         IntentExecutionTwoRoutineFactsForProbe();
     ArraySet(
         local_duplicate.terminals.result_definition_names, 2,
@@ -280,7 +280,7 @@ func Main() -> Void {
         MirLowerFailClosed("same-routine result local duplicate was accepted");
     }
 
-    let variant_duplicate: MirIntentExecutionPlan =
+    var variant_duplicate: MirIntentExecutionPlan =
         IntentExecutionTwoRoutineFactsForProbe();
     ArraySet(
         variant_duplicate.terminals.result_variant_indices, 2,
@@ -297,7 +297,7 @@ func Main() -> Void {
         MirLowerFailClosed("same-routine result variant duplicate was accepted");
     }
 
-    let compensation_expression_duplicate: MirIntentExecutionPlan =
+    var compensation_expression_duplicate: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(
         compensation_expression_duplicate.steps.compensations.expression_syntax_ids,
@@ -314,7 +314,7 @@ func Main() -> Void {
         );
     }
 
-    let terminal_identity_drift: MirIntentExecutionPlan =
+    var terminal_identity_drift: MirIntentExecutionPlan =
         IntentExecutionFactsForProbe();
     ArraySet(
         terminal_identity_drift.terminals.terminal_transition_ids, 2, 999
@@ -326,7 +326,7 @@ func Main() -> Void {
         MirLowerFailClosed("terminal transition/expression drift was accepted");
     }
 
-    let stale: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
+    var stale: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
     ArraySet(stale.terminals.result_variant_names, 2, "WorkflowFailedA");
     if MirIntentExecutionPlanReady(stale) {
         MirLowerFailClosed("post-admission intent execution mutation was accepted");

@@ -22,6 +22,6 @@ func Main() -> Void
 {
     let seed: Array<String> = [];
     let first: CapturedNames = CapturedNames(seed, seed);
-    let names: CapturedNames = CapturedNames(first.left, seed);
+    var names: CapturedNames = CapturedNames(first.left, seed);
     Retire(names);
 }

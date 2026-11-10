@@ -7,7 +7,7 @@ func Append(inout names: Array<String>) -> Void {
 }
 
 func Build(stop: Bool) -> Facts {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     Append(names);
     if stop { return ErrorFacts(names); }
     let retained: Facts = ErrorFacts(names);

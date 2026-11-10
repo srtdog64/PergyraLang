@@ -4,7 +4,7 @@ func RetireJoined(own value: String) -> Void {
     ArrayDropOwnedStrings(retired);
 }
 func Main() -> Void {
-    let fragments: Array<String> = [];
+    var fragments: Array<String> = [];
     ArrayPushOwnedString(fragments, "first");
     ArrayPushOwnedString(fragments, "second");
     let joined: String = CodegenJoinOwnedStringFragments(fragments, ":");

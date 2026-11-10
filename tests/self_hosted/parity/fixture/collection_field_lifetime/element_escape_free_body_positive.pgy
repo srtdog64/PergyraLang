@@ -14,7 +14,7 @@ func Supported(type_name: String) -> Bool {
 }
 
 func Occupied(names: Array<String>, candidate: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         let named: Named = NamedFrom(names[i]);
         if named.name == candidate { return true; }
@@ -25,7 +25,7 @@ func Occupied(names: Array<String>, candidate: String) -> Bool {
 
 func Main() -> Int {
     let types: Array<String> = ["Int"];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(types) {
         if !Supported(types[i]) { return 1; }
         i = i + 1;

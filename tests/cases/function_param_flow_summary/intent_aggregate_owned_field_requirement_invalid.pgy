@@ -7,7 +7,7 @@ struct IntentOwnedRows {
 
 subject IntentOwnedRowsWorker {
     action Append(self, rows: IntentOwnedRows) -> Bool {
-        let values: Array<String> = rows.values;
+        var values: Array<String> = rows.values;
         ArrayPushOwnedString(values, Concat("owned", " value"));
         return true;
     }

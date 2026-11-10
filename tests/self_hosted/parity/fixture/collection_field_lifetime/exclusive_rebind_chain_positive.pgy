@@ -10,7 +10,7 @@ func ChainBuildError(build: ChainBuild) -> ChainBuild {
 }
 
 func ChainAdd(build: ChainBuild, name: String) -> ChainBuild {
-    let names: Array<String> = build.names;
+    var names: Array<String> = build.names;
     ArrayPush(names, name);
     return ChainBuild(build.ok, names, build.count + 1);
 }
@@ -25,11 +25,11 @@ func ChainAddTagged(build: ChainBuild, name: String, tag: String) -> ChainBuild 
 
 func ChainBuildRun(limit: Int) -> ChainBuild {
     let empty: Array<String> = [];
-    let build: ChainBuild = ChainBuild(true, empty, 0);
+    var build: ChainBuild = ChainBuild(true, empty, 0);
     if limit < 0 { return ChainBuildError(build); }
     build = ChainAddTagged(build, "first", "");
     if !build.ok { return build; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < limit {
         if index == 7 { return ChainBuildError(build); }
         build = ChainAddTagged(build, "next", "tag");

@@ -1,6 +1,6 @@
 func Main() -> Void {
     var values: Array<Int> = [10, 20, 30, 40];
-    let count: Int = 0;
+    var count: Int = 0;
     while count < 4096 {
         ArrayPush(values, count);
         count = count + 1;

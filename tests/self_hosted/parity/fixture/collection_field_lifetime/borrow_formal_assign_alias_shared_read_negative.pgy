@@ -2,9 +2,9 @@ func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
 func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "opaque"); }
 func Observe(ref values: Array<String>) -> Bool {
     let first: Array<String> = values;
-    let second: Array<String> = [];
+    var second: Array<String> = [];
     second = values;
-    let third: Array<String> = second;
+    var third: Array<String> = second;
     Opaque(third);
     return Matches(first);
 }

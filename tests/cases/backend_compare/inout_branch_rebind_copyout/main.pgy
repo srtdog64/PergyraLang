@@ -13,10 +13,10 @@ func SelectSnapshot(inout snapshot: Snapshot, take_new: Bool) -> Void {
 }
 
 func Main() -> Void {
-    let first: Snapshot = Snapshot(1);
+    var first: Snapshot = Snapshot(1);
     SelectSnapshot(first, true);
     Log(first.count);
-    let second: Snapshot = Snapshot(2);
+    var second: Snapshot = Snapshot(2);
     SelectSnapshot(second, false);
     Log(second.count);
 }

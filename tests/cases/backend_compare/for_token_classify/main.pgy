@@ -10,9 +10,9 @@ func KindOf(n: Int) -> Int {
 }
 
 func Scan(arr: Array<Int>, n: Int) -> Int {
-    let neg: Int = 0;
-    let zer: Int = 0;
-    let pos: Int = 0;
+    var neg: Int = 0;
+    var zer: Int = 0;
+    var pos: Int = 0;
     for i in 0..n {
         let t: Token = Token(KindOf(arr[i]), arr[i]);
         if t.kind == 0 { pos = pos + t.value; }

@@ -6,7 +6,7 @@ func Main() -> Void
 {
     let callables_names: Array<String> = [];
     let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(callables_names);
-    let facts: SemanticAstExpressionFunctionTableFacts =
+    var facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(
             true, ["BorrowedCallable"], ["Void"], [""], callables);
     if !SemanticAstExpressionFunctionTableFactsReady(facts)

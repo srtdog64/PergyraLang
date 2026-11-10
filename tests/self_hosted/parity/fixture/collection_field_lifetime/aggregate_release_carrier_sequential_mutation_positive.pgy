@@ -9,7 +9,7 @@ func CarrierMutationAppend(inout values: Array<String>, text: String) -> Void {
 func CarrierMutationGrow(
     facts: CarrierMutationFacts
 ) -> CarrierMutationFacts {
-    let values: Array<String> = facts.values;
+    var values: Array<String> = facts.values;
     CarrierMutationAppend(values, "first");
     CarrierMutationAppend(values, "second");
     facts.values = values;

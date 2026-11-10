@@ -12,16 +12,16 @@ func RowsFresh() -> Rows {
 }
 
 func RowsJoin(rows: Rows, other: Rows) -> Rows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayPush(names, ToString(ArrayLength(other.names)));
     return Rows(rows.ok && other.ok, names);
 }
 
 func RowsPipe(seed: Array<String>, count: Int) -> Rows {
-    let left: Rows = Rows(true, seed);
-    let index: Int = 0;
+    var left: Rows = Rows(true, seed);
+    var index: Int = 0;
     while index < count {
-        let call: Rows = RowsFresh();
+        var call: Rows = RowsFresh();
         call = RowsJoin(call, left);
         if !call.ok { return call; }
         left = call;

@@ -29,9 +29,9 @@ func ProjectArena(
     rows: Array<IndexedRow>,
     count: Int
 ) -> IndexedArena {
-    let indents: Array<Int> = [];
-    let labels: Array<String> = [];
-    let i: Int = 0;
+    var indents: Array<Int> = [];
+    var labels: Array<String> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(indents, rows[i].indent);
         ArrayPush(labels, rows[i].label);

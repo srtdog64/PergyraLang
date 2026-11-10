@@ -1,6 +1,6 @@
 func StepsLoop(start: Int, steps: Int) -> Int {
-    let cur: Int = start;
-    let i: Int = 0;
+    var cur: Int = start;
+    var i: Int = 0;
     while i < steps {
         let bump: Int = cur + 1;
         cur = bump;

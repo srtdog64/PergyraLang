@@ -1,8 +1,8 @@
 // Elements escape through a formal chain; the root argument's elements are
 // never released, so the escape is admitted.
 func Keep(xs: Array<String>) -> Array<String> {
-    let out: Array<String> = [];
-    let i: Int = 0;
+    var out: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(xs) { ArrayPush(out, xs[i]); i = i + 1; }
     return out;
 }

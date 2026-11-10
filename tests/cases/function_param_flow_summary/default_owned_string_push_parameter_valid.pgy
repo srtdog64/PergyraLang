@@ -5,7 +5,7 @@ struct Source {
 }
 
 func Append(rows: Array<String>, ref source: Source) -> Void {
-    let names: Array<String> = rows;
+    var names: Array<String> = rows;
     ArrayPush(names, source.title);
 }
 

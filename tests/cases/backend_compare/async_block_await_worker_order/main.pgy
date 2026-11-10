@@ -10,8 +10,8 @@ async func Slow(x: Int) -> Int {
 }
 
 func Busy(n: Int) -> Int {
-    let acc = 0;
-    let i = 0;
+    var acc = 0;
+    var i = 0;
     while i < n {
         acc = (acc + i * 7) % 1000003;
         i = i + 1;

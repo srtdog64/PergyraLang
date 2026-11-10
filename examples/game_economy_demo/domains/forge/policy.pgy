@@ -34,7 +34,7 @@ func CraftBonus(calling: Calling) -> Int {
 }
 
 func RelicQuality(power: Int, heat: Int, calling: Calling) -> Int {
-    let quality: Int = 10 + power / 3 + CraftBonus(calling) + heat / 10;
+    var quality: Int = 10 + power / 3 + CraftBonus(calling) + heat / 10;
     if heat >= 40 {
         quality = quality - 6;
     }

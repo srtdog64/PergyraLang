@@ -1,5 +1,5 @@
 func FindFirst(xs: Array<Int>, predicate_threshold: Int) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         if xs[i] > predicate_threshold {
             return xs[i];

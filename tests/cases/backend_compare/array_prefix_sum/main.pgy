@@ -1,8 +1,8 @@
 func PrefixSumAt(arr: Array<Int>, n: Int, idx: Int) -> Int {
     if idx < 0 { return 0; }
     if idx >= n { return PrefixSumAt(arr, n, n - 1); }
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i <= idx {
         sum = sum + arr[i];
         i = i + 1;

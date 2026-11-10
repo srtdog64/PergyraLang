@@ -13,9 +13,9 @@ func EnumQualifiedProjectionRejected(
         facts.variant_param_type_names, facts.value_names, facts.value_types,
         facts.value_rows, facts.value_scope
     );
-    let names: Array<String> = ["Keep"];
-    let types: Array<String> = ["Int"];
-    let modes: Array<String> = ["local"];
+    var names: Array<String> = ["Keep"];
+    var types: Array<String> = ["Int"];
+    var modes: Array<String> = ["local"];
     let seeded: Bool = SemanticAstExpressionSeedEnumValues(
         bad, names, types, modes
     );
@@ -66,9 +66,9 @@ func Main() -> Void {
         Log("foreign enum artifact accepted"); Exit(1);
     }
 
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
     ArrayPushOwnedString(names, "North");
     ArrayPushOwnedString(types, "Int");
     ArrayPushOwnedString(modes, "local");
@@ -82,9 +82,9 @@ func Main() -> Void {
     SemanticAstExpressionEnvironmentClear(names, types, modes);
 
     // Retiring an environment must leave the admitted enum facts intact.
-    let next_names: Array<String> = [];
-    let next_types: Array<String> = [];
-    let next_modes: Array<String> = [];
+    var next_names: Array<String> = [];
+    var next_types: Array<String> = [];
+    var next_modes: Array<String> = [];
     if !SemanticAstEnumFactsMatchArtifact(artifact, facts) ||
         !SemanticAstExpressionSeedEnumValues(
             facts, next_names, next_types, next_modes

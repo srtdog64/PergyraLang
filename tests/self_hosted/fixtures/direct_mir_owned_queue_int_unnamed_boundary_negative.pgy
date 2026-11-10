@@ -1,5 +1,5 @@
 func BuildOwnedQueue() -> Queue<Int> {
-    let values: Queue<Int> = QueueNew();
+    var values: Queue<Int> = QueueNew();
     QueuePush(values, 7);
     return values;
 }

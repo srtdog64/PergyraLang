@@ -8,8 +8,8 @@ class Bag2 {
 
 func TotalWorth(rates: Array<Int>, n: Int) -> Int {
     let bag: Bag2 = Bag2(100);
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + bag.Worth(rates[i]);
         i = i + 1;

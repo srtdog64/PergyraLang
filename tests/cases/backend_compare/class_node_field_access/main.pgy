@@ -11,7 +11,7 @@ func GetValue(arr: Array<Node>, n: Int, idx: Int) -> Int {
     if idx < 0 { return -1; }
     if idx >= n { return -1; }
     let total: Int = 0;
-    let cur: Int = idx;
+    var cur: Int = idx;
     while cur >= 0 {
         if cur >= n { return total; }
         cur = cur - 1;

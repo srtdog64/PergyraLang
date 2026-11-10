@@ -16,10 +16,10 @@ func Main() -> Void {
     ];
     let n: Int = 4;
 
-    let visited: Array<Int> = [0, 0, 0, 0];
-    let queue: Array<Int> = [0, 0, 0, 0];
-    let head: Int = 0;
-    let tail: Int = 0;
+    var visited: Array<Int> = [0, 0, 0, 0];
+    var queue: Array<Int> = [0, 0, 0, 0];
+    var head: Int = 0;
+    var tail: Int = 0;
 
     // enqueue start node 0
     ArraySet(queue, tail, 0);
@@ -31,7 +31,7 @@ func Main() -> Void {
         head = head + 1;
         Log(v);
 
-        let to: Int = 0;
+        var to: Int = 0;
         while to < n {
             let edge_index: Int = v * n + to;
             if adj[edge_index] == 1 && visited[to] == 0 {

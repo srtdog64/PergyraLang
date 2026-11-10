@@ -9,8 +9,8 @@ class Bag {
 
 func DescendCount(start: Int) -> Int {
     let b: Bag = Bag(start);
-    let steps: Int = 0;
-    let cur: Option<Bag> = b.Half();
+    var steps: Int = 0;
+    var cur: Option<Bag> = b.Half();
     while IsSome(cur) {
         steps = steps + 1;
         match cur {

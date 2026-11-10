@@ -69,8 +69,8 @@ func SemanticAstCollectionExclusiveCopyEdgeAt(
         holder >= constructors.artifact_node_count ||
         !SemanticAstCollectionExclusiveCopyFieldReady(constructors, source) ||
         !SemanticAstCollectionExclusiveCopyFieldReady(constructors, destination) { return bad; }
-    let source_syntax: Int = -1;
-    let destination_syntax: Int = -1;
+    var source_syntax: Int = -1;
+    var destination_syntax: Int = -1;
     if source >= 0 { source_syntax = constructors.field_source_syntax_ids[source]; }
     if destination >= 0 { destination_syntax = constructors.field_source_syntax_ids[destination]; }
     if MapGet(copies, source_syntax_key) != source_syntax ||

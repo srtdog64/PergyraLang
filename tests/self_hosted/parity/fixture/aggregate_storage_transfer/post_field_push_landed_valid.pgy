@@ -6,7 +6,7 @@ struct Pair
 
 func Make() -> Pair
 {
-    let first: Array<Int> = [1];
+    var first: Array<Int> = [1];
     let second: Array<Int> = [2];
     let pair: Pair = Pair(first, second);
     ArrayPush(first, 3);

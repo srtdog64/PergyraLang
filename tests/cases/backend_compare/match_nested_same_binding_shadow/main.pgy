@@ -8,7 +8,7 @@ func Pick(x: Int) -> Option<Int> {
 // A nested case cannot rebind `v` (docs/206 section 3); a match that starts
 // after the first has closed can.
 func Score(a: Int, b: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     match Pick(a) {
         case Some(v):
             total = v;

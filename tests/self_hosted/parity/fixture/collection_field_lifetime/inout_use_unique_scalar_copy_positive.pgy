@@ -1,5 +1,5 @@
 func AppendUnique(inout uses: Array<String>, use_name: String) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(uses) {
         if uses[i] == use_name { return; }
         i = i + 1;
@@ -7,18 +7,18 @@ func AppendUnique(inout uses: Array<String>, use_name: String) -> Void {
     ArrayPushOwnedString(uses, use_name);
 }
 func Append(inout uses: Array<String>, ref source: Array<String>) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(source) {
         AppendUnique(uses, Concat("", source[i]));
         i = i + 1;
     }
 }
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "value.1");
     ArrayPushOwnedString(source, "value.1");
     ArrayPushOwnedString(source, "other.2");
-    let uses: Array<String> = [];
+    var uses: Array<String> = [];
     ArrayPushOwnedString(uses, "prefix.0");
     Append(uses, source);
     ArrayDropOwnedStrings(source);

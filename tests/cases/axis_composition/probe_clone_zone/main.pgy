@@ -5,7 +5,7 @@
 // Expected shape if Clone works: same output as zone_pos_share (5 5 / 7 5)
 // but with the fork DECLARED at both construction sites.
 subject Buyer {
-    let hp: Int;
+    var hp: Int;
     action Promote(self) -> Void {
         hp = hp + 2;
     }

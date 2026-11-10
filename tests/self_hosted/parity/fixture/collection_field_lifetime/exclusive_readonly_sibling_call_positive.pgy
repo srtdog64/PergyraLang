@@ -9,14 +9,14 @@ func NodeSetCount(facts: NodeSet) -> Int {
 }
 
 func NodeSetAddCounted(facts: NodeSet, count: Int) -> NodeSet {
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, ToString(count));
     return NodeSet(facts.valid, types);
 }
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetAddCounted(facts, NodeSetCount(facts));
     return ArrayLength(facts.types);
 }

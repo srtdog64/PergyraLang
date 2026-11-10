@@ -19,7 +19,7 @@ func Echo(values: Array<String>) -> Array<String>
 func Main() -> Void
 {
     let seed: Array<String> = [];
-    let names: CapturedNames = CapturedNames(seed, seed);
+    var names: CapturedNames = CapturedNames(seed, seed);
     ArrayPushOwnedString(names.left, "owned");
     let held: Array<String> = Echo(names.left);
     Retire(names);

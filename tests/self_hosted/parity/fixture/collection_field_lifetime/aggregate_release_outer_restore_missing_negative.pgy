@@ -12,6 +12,6 @@ func Main() -> Void {
     let outer: OuterFacts = OuterFacts(
         SemanticAstExpressionFunctionTableFacts(
             true, names, returns, params, callables));
-    let tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
+    var tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
     SemanticAstExpressionFunctionTableFactsRelease(tables);
 }

@@ -1,9 +1,9 @@
 func InsertionSort(inout xs: Array<Int>) -> Void {
     let n: Int = ArrayLength(xs);
-    let i: Int = 1;
+    var i: Int = 1;
     while i < n {
         let cur: Int = xs[i];
-        let j: Int = i - 1;
+        var j: Int = i - 1;
         while j >= 0 {
             if xs[j] > cur {
                 ArraySet(xs, j + 1, xs[j]);
@@ -18,9 +18,9 @@ func InsertionSort(inout xs: Array<Int>) -> Void {
 }
 
 func Main() -> Void {
-    let xs: Array<Int> = [5, 2, 8, 1, 9, 3, 7, 4, 6];
+    var xs: Array<Int> = [5, 2, 8, 1, 9, 3, 7, 4, 6];
     InsertionSort(xs);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(xs) {
         Log(xs[i]);
         i = i + 1;

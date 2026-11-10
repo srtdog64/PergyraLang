@@ -13,7 +13,7 @@ func Count(holder: Holder) -> Int {
     return 0;
 }
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "owned");
     let holder: Holder = Holder.Full(Table(names));
     if Count(holder) != 1 { Exit(1); }

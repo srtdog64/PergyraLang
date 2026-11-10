@@ -1,5 +1,5 @@
 func Pick(flag: Bool, hi: Int, lo: Int) -> Int {
-    let chosen: Int = 0;
+    var chosen: Int = 0;
     if flag {
         chosen = hi;
     }

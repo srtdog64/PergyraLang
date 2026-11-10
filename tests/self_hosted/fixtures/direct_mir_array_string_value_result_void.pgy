@@ -18,12 +18,12 @@ func AppendOwnedMarker(
 }
 
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     AppendMarkers(2, values);
     Log(ArrayLength(values));
     Log(values[0]);
     let marker: String = "owned";
-    let owned_values: Array<String> = [];
+    var owned_values: Array<String> = [];
     AppendOwnedMarker(owned_values, marker);
     Log(owned_values[0]);
     ArrayDropOwnedStrings(owned_values);

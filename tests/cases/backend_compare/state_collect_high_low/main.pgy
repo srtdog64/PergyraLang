@@ -7,16 +7,16 @@ class State {
 func InitState() -> State { return State(0, 0, 99999); }
 
 func Observe(s: State, v: Int) -> State {
-    let new_high: Int = s.high;
+    var new_high: Int = s.high;
     if v > new_high { new_high = v; }
-    let new_low: Int = s.low;
+    var new_low: Int = s.low;
     if v < new_low { new_low = v; }
     return State(s.total + v, new_high, new_low);
 }
 
 func Run(arr: Array<Int>, n: Int) -> Int {
-    let s: State = InitState();
-    let i: Int = 0;
+    var s: State = InitState();
+    var i: Int = 0;
     while i < n {
         s = Observe(s, arr[i]);
         i = i + 1;

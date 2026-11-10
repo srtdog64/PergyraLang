@@ -28,7 +28,7 @@ func Main() -> Void {
     }
 
     let kinds: Array<Int> = [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(), AstExpressionNodeMemberAccess()];
-    let texts: Array<String> = ["receiver", "Circle", "receiver.Circle"];
+    var texts: Array<String> = ["receiver", "Circle", "receiver.Circle"];
     let left: Array<Int> = [-1, -1, 0];
     let right: Array<Int> = [-1, -1, 1];
     let empty: Array<String> = ["", "", ""];

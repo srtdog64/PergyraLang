@@ -33,10 +33,10 @@ subject Member
     vessel wallet: WalletState;
     vessel refunds: RefundState;
     vessel account: AccountState;
-    let cartCount: Int;
-    let refundRequested: Int;
-    let privacyAccepted: Int;
-    let lastStatus: String;
+    var cartCount: Int;
+    var refundRequested: Int;
+    var privacyAccepted: Int;
+    var lastStatus: String;
 
     func FeaturedLine(self) -> String
     {
@@ -136,9 +136,9 @@ subject Merchant
     let name: String;
     let featured: ProductSpec;
     vessel ledger: MerchantLedger;
-    let orderCount: Int;
-    let refundCount: Int;
-    let lastStatus: String;
+    var orderCount: Int;
+    var refundCount: Int;
+    var lastStatus: String;
 
     action StageOrder(self, amount: Int) -> Int
     {

@@ -30,7 +30,7 @@ zone Arena {
     shared rounds: Int = 0
 
     func Tick(self) -> Int {
-        let items: Array<Item> = [];
+        var items: Array<Item> = [];
         ArrayPush(items, Item("z", 9));
         let top: Item = Heaviest(items);
         return rounds + top.weight + Pick(Some(Item("q", 1))) + Cost(Slow);
@@ -52,7 +52,7 @@ subject Agent {
     action Chat(self) -> Int
         authorized by self
     {
-        let messages: Array<String> = [];
+        var messages: Array<String> = [];
         ArrayPush(messages, "hi");
         ArrayPush(messages, "there");
         let result: ChatResult = ChatComplete(ProviderPolicy("p"), messages, "[]");
@@ -63,8 +63,8 @@ subject Agent {
 }
 
 func Heaviest(items: Array<Item>) -> Item {
-    let best: Item = items[0];
-    let i: Int = 1;
+    var best: Item = items[0];
+    var i: Int = 1;
     while i < ArrayLength(items) {
         if items[i].weight > best.weight {
             best = items[i];
@@ -75,8 +75,8 @@ func Heaviest(items: Array<Item>) -> Item {
 }
 
 func Build(count: Int) -> Array<Item> {
-    let items: Array<Item> = [];
-    let i: Int = 0;
+    var items: Array<Item> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(items, Item("b", i * 2));
         i = i + 1;
@@ -101,7 +101,7 @@ func Cost(mode: Mode) -> Int {
 }
 
 func Names() -> Array<String> {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPush(names, "n");
     return names;
 }

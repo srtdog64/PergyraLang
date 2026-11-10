@@ -4,7 +4,7 @@ func Halve(n: Int) -> Option<Int> {
 }
 
 func Step(arr: Array<Int>) -> Int {
-    let acc: Int = 0;
+    var acc: Int = 0;
     for v in arr {
         match Halve(v) {
             case Some(h):

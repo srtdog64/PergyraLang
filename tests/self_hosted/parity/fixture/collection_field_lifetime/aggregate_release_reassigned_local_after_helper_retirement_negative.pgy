@@ -9,15 +9,15 @@ func Retire(inout table: Table) -> Void {
 }
 
 func Observe(inout table: Table) -> Int {
-    let text: String = "";
+    var text: String = "";
     text = table.names[0];
     Retire(table);
     return StringLength(text);
 }
 
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "owned");
-    let table: Table = Table(names);
+    var table: Table = Table(names);
     Log(Observe(table));
 }

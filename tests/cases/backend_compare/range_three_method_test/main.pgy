@@ -18,8 +18,8 @@ class Range2 {
 }
 
 func TestRange(r: Range2, probes: Array<Int>, n: Int) -> Int {
-    let total: Int = r.Width() + r.Mid() * 10;
-    let i: Int = 0;
+    var total: Int = r.Width() + r.Mid() * 10;
+    var i: Int = 0;
     while i < n {
         if r.Contains(probes[i]) { total = total + 1; }
         i = i + 1;

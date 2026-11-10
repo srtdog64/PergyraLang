@@ -1,9 +1,9 @@
 func CountPairs(xs: Array<Int>, target: Int) -> Int {
     let n: Int = ArrayLength(xs);
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let j: Int = i + 1;
+        var j: Int = i + 1;
         while j < n {
             if xs[i] + xs[j] == target {
                 count = count + 1;

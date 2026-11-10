@@ -1,7 +1,7 @@
 func RepeatN(s: String, n: Int) -> String {
     if n <= 0 { return ""; }
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < n {
         result = result + s;
         i = i + 1;

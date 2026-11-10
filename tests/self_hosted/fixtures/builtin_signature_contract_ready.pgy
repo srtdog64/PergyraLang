@@ -6,11 +6,11 @@ func Main() -> Void {
         Exit(1);
     }
     let rows: Array<String> = SemanticBuiltinSignatureRows();
-    let substring_with_len_rows: Int = 0;
-    let history_count_rows: Int = 0;
-    let active_concurrent_rows: Int = 0;
-    let active_step_failure_rows: Int = 0;
-    let i: Int = 0;
+    var substring_with_len_rows: Int = 0;
+    var history_count_rows: Int = 0;
+    var active_concurrent_rows: Int = 0;
+    var active_step_failure_rows: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         if rows[i] == "SubstringWithLen^String^String|Int|Int|Int" {
             substring_with_len_rows = substring_with_len_rows + 1;

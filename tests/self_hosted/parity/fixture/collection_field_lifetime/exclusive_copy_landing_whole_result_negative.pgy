@@ -13,8 +13,8 @@ func FactsSame(facts: Facts) -> Facts {
 func Build() -> Int {
     let rows: Array<String> = ["r"];
     let marks: Array<String> = [];
-    let facts: Facts = FactsSame(Facts(rows, marks));
-    let grown: Array<String> = facts.marks;
+    var facts: Facts = FactsSame(Facts(rows, marks));
+    var grown: Array<String> = facts.marks;
     ArrayPush(grown, "m");
     ArrayPush(grown, "n");
     facts.marks = grown;

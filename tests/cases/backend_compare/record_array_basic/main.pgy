@@ -10,7 +10,7 @@ func Score(rows: Array<RecordRow>) -> Int {
 }
 
 func Main() -> Void {
-    let rows: Array<RecordRow> = [];
+    var rows: Array<RecordRow> = [];
     ArrayPush(rows, RecordRow(4, "ant"));
     ArrayPush(rows, RecordRow(6, "bee"));
     ArraySet(rows, 1, RecordRow(7, "bee"));

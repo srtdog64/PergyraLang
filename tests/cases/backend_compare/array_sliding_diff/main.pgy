@@ -1,8 +1,8 @@
 func MaxDiff(arr: Array<Int>, n: Int) -> Int {
     if n < 2 { return 0; }
-    let best: Int = arr[1] - arr[0];
-    let cur_min: Int = arr[0];
-    let i: Int = 1;
+    var best: Int = arr[1] - arr[0];
+    var cur_min: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         if arr[i] - cur_min > best { best = arr[i] - cur_min; }
         if arr[i] < cur_min { cur_min = arr[i]; }
@@ -13,8 +13,8 @@ func MaxDiff(arr: Array<Int>, n: Int) -> Int {
 
 func SumOfDiffs(arr: Array<Int>, n: Int) -> Int {
     if n < 2 { return 0; }
-    let s: Int = 0;
-    let i: Int = 1;
+    var s: Int = 0;
+    var i: Int = 1;
     while i < n {
         s = s + (arr[i] - arr[i - 1]);
         i = i + 1;

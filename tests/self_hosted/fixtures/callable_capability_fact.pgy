@@ -4,18 +4,18 @@ func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 { Log("expected one native AST control path"); Exit(1); return; }
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(ReadFile(args[0]));
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
-    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !body.verdict.ok { Log(body.verdict.diagnostic_message); Exit(1); return; }
     Log(SemanticAstBodyTypeBundleReady(artifact, analysis, body));
     let clock: Int = CallableContractVocabularyMaskValueAt(
         CallableContractVocabularyFindIndex(CallableContractVocabularyCapabilityAxis(), "clock"));
-    let invoke: Int = -1;
-    let pure: Int = -1;
-    let effectful: Int = -1;
-    let callback_id: Int = -1;
+    var invoke: Int = -1;
+    var pure: Int = -1;
+    var effectful: Int = -1;
+    var callback_id: Int = -1;
     let count: Int = SemanticAstFunctionSignatureCount(analysis.signatures);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let name: String = analysis.signatures.names[row];
         if name == "Invoke" { invoke = row; }
@@ -39,8 +39,8 @@ func Main() -> Void {
     body.capabilities.deferred_uses[pure] = true;
     Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
     body.capabilities.deferred_uses[pure] = false;
-    let node: Int = 0;
-    let binding: Int = -1;
+    var node: Int = 0;
+    var binding: Int = -1;
     while node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         if analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] == callback_id {
             binding = node;

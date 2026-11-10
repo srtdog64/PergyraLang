@@ -6,17 +6,17 @@ struct Rows {
 }
 
 func RowsAdd(rows: Rows, name: String) -> Rows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayPush(names, name);
     return Rows(rows.ok, names);
 }
 
 func RowsChain(seed: Array<String>, count: Int) -> Rows {
-    let base: Rows = Rows(true, seed);
-    let outer: Int = 0;
+    var base: Rows = Rows(true, seed);
+    var outer: Int = 0;
     while outer < count {
-        let callee: Rows = base;
-        let inner: Int = 0;
+        var callee: Rows = base;
+        var inner: Int = 0;
         while inner < 2 {
             callee = RowsAdd(callee, "g");
             if !callee.ok { return callee; }

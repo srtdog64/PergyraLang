@@ -8,11 +8,11 @@ struct Rows {
 }
 
 func Main() -> Int {
-    let texts: Array<String> = [];
+    var texts: Array<String> = [];
     ArrayPushOwnedString(texts, Concat("owned", "-value"));
     let kinds: Array<Int> = [7];
     let rows: Rows = Rows(Arena(texts, kinds));
-    let moved: Array<String> = rows.arena.texts;
+    var moved: Array<String> = rows.arena.texts;
     ArrayPushOwnedString(moved, Concat("second", "-value"));
     let copied_parent: Arena = rows.arena;
     Log(ToString(ArrayLength(copied_parent.texts)));

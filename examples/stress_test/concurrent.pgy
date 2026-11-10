@@ -4,8 +4,8 @@
 
 func ComputeSum(id: Int, iterations: Int) -> Int
 {
-    let sum = 0;
-    let i = 0;
+    var sum = 0;
+    var i = 0;
     while i < iterations
     {
         sum = sum + (id * 1000 + i);
@@ -43,7 +43,7 @@ async func RunHeavyTest() -> Void
     let h6 = spawn ComputeSum(6, 10000);
     let h7 = spawn ComputeSum(7, 10000);
 
-    let t = (await h0) + (await h1) + (await h2) + (await h3);
+    var t = (await h0) + (await h1) + (await h2) + (await h3);
     t = t + (await h4) + (await h5) + (await h6) + (await h7);
     Log("  Heavy total: " + ToString(t));
 }
@@ -54,8 +54,8 @@ Log("");
 // Test 1: Channel round-trip stress (synchronous)
 Log("-- Test 1: Channel round-trip (500 cycles) --");
 let ch: Channel<Int> = Channel(1);
-let round_total = 0;
-let r = 0;
+var round_total = 0;
+var r = 0;
 while r < 500
 {
     ch <- (r * 7 + 3);

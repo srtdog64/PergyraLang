@@ -10,8 +10,8 @@ func Owned0(values: Array<String>, index: Int) -> String
 func Main() -> Void
 {
     let values: Array<String> = ["value"];
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(values) {
         ArrayPush(rows, Owned0(values, i));
         i = i + 1;

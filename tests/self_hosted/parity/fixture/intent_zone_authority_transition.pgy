@@ -1,5 +1,5 @@
 subject Worker {
-    let value: Int;
+    var value: Int;
 
     action Bump(self) -> Void {
         value = value + 1;

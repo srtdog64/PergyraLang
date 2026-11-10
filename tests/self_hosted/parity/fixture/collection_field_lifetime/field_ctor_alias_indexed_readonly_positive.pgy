@@ -1,6 +1,6 @@
 struct Carrier { values: Array<String>; }
 func FindIndex(values: Array<String>, name: String) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(values) {
         if values[row] == name { return row; }
         row = row + 1;

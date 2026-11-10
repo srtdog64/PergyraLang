@@ -17,10 +17,10 @@ func Parse(ok: Bool) -> TurnResult {
     if !ok {
         return Failed(500, "down");
     }
-    let ids: Array<String> = [];
+    var ids: Array<String> = [];
     ArrayPush(ids, "c1");
     ArrayPush(ids, "c2");
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPush(names, "read");
     ArrayPush(names, "write");
     return Reply(ProviderTurn("tool_calls", ids, names, 7));

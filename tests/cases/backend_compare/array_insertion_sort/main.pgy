@@ -1,8 +1,8 @@
 func InsertionSort(inout arr: Array<Int>, n: Int) -> Int {
-    let i: Int = 1;
+    var i: Int = 1;
     while i < n {
         let key: Int = arr[i];
-        let j: Int = i - 1;
+        var j: Int = i - 1;
         while j >= 0 && arr[j] > key {
             arr[j + 1] = arr[j];
             j = j - 1;
@@ -10,8 +10,8 @@ func InsertionSort(inout arr: Array<Int>, n: Int) -> Int {
         arr[j + 1] = key;
         i = i + 1;
     }
-    let sum: Int = 0;
-    let k: Int = 0;
+    var sum: Int = 0;
+    var k: Int = 0;
     while k < n {
         sum = sum + arr[k] * (k + 1);
         k = k + 1;
@@ -20,10 +20,10 @@ func InsertionSort(inout arr: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let a: Array<Int> = [5, 2, 8, 1, 9, 3];
+    var a: Array<Int> = [5, 2, 8, 1, 9, 3];
     Log(InsertionSort(a, 6));
-    let b: Array<Int> = [1, 2, 3];
+    var b: Array<Int> = [1, 2, 3];
     Log(InsertionSort(b, 3));
-    let c: Array<Int> = [-3, -1, -4, -2];
+    var c: Array<Int> = [-3, -1, -4, -2];
     Log(InsertionSort(c, 4));
 }

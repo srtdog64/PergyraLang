@@ -2,7 +2,7 @@
 func ContainsString(
     ref values: Array<String>, expected: String
 ) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(values) {
         if values[index] == expected { return true; }
         index = index + 1;

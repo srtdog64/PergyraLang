@@ -16,7 +16,7 @@ class Event {
 }
 
 func Main() -> Void {
-    let events: List<Event> = ListNew();
+    var events: List<Event> = ListNew();
     let today = LocalDate(2026, 4, 5);
 
     ListPush(events, Event(

@@ -1,8 +1,8 @@
 func FirstMissing(arr: Array<Int>, n: Int) -> Int {
-    let target: Int = 1;
+    var target: Int = 1;
     while target <= n + 1 {
-        let found: Bool = false;
-        let i: Int = 0;
+        var found: Bool = false;
+        var i: Int = 0;
         while i < n {
             if arr[i] == target { found = true; }
             i = i + 1;

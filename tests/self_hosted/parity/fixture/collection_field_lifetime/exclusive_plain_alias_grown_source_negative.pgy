@@ -6,7 +6,7 @@ struct Facts {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, "x");
     ArrayPush(rows, "y");
     return Facts(rows, facts.marks);

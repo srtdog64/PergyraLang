@@ -17,7 +17,7 @@ func Retire(inout names: CapturedNames) -> Void
 func Main() -> Void
 {
     let seed: Array<String> = [];
-    let names: CapturedNames = CapturedNames(seed, seed);
+    var names: CapturedNames = CapturedNames(seed, seed);
     ArrayPushOwnedString(names.left, "left");
     let left: Array<String> = names.left;
     ArrayDropOwnedStrings(left);

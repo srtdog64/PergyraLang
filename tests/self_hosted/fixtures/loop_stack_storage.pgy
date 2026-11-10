@@ -4,9 +4,9 @@
 // every round, so two million rounds overflow the stack. Entry-block storage
 // takes one slot per call.
 func CountRound(limit: Int) -> Int {
-    let seen: HashMap<Int, Int> = MapNew();
-    let found: Int = 0;
-    let i: Int = 0;
+    var seen: HashMap<Int, Int> = MapNew();
+    var found: Int = 0;
+    var i: Int = 0;
     while i < limit {
         MapSet(seen, i, 1);
         found = found + MapGet(seen, i);
@@ -19,10 +19,10 @@ func CountRound(limit: Int) -> Int {
 }
 
 func Main() -> Void {
-    let counts: HashMap<Int, Int> = MapNew();
-    let hits: Int = 0;
-    let checksum: Int = 0;
-    let i: Int = 0;
+    var counts: HashMap<Int, Int> = MapNew();
+    var hits: Int = 0;
+    var checksum: Int = 0;
+    var i: Int = 0;
     while i < 2000000 {
         MapSet(counts, i, i % 7);
         if MapHas(counts, i) {

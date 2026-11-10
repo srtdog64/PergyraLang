@@ -4,8 +4,8 @@ class Stats {
 
     func StdDev(self) -> Int {
         let v: Int = self.variance;
-        let s: Int = 0;
-        let i: Int = 0;
+        var s: Int = 0;
+        var i: Int = 0;
         while i < 100 {
             if s * s > v { return s - 1; }
             s = s + 1;
@@ -17,14 +17,14 @@ class Stats {
 
 func Compute(values: Array<Int>, n: Int) -> Stats {
     if n == 0 { return Stats(0, 0); }
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + values[i];
         i = i + 1;
     }
     let mean: Int = total / n;
-    let var_sum: Int = 0;
+    var var_sum: Int = 0;
     i = 0;
     while i < n {
         let diff: Int = values[i] - mean;

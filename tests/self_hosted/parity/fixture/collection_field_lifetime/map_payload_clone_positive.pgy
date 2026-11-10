@@ -1,5 +1,5 @@
 func Main() -> Int {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "key", "old");
     let view: String = Concat("", MapGet(table, "key"));
     let seed: Array<String> = ["independent"];

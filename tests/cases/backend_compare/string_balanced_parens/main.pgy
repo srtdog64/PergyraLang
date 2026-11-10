@@ -1,6 +1,6 @@
 func IsBalanced(s: String) -> Bool {
-    let depth: Int = 0;
-    let i: Int = 0;
+    var depth: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(s);
     while i < n {
         let ch: String = Substring(s, i, 1);

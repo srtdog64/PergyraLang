@@ -4,7 +4,7 @@ func Increment(inout counts: HashMap<String, Int>, key: String) -> Void {
 }
 
 func Main() -> Void {
-    let counts: HashMap<String, Int> = MapNew();
+    var counts: HashMap<String, Int> = MapNew();
     MapSet(counts, "a", 0);
     MapSet(counts, "b", 0);
 

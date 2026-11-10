@@ -22,14 +22,14 @@ func EmitDeclFields(
 }
 
 func Main() -> Void {
-    let names: Array<String> = [];
-    let ids: Array<String> = [];
+    var names: Array<String> = [];
+    var ids: Array<String> = [];
     Log(OwnerGraphNodeIndexOrAppend(names, ids, "node", "syntax"));
     Log(ArrayLength(names));
     Log(ArrayLength(ids));
-    let storage: Array<String> = [];
-    let slots: Array<String> = [];
-    let subject_slots: Array<String> = [];
+    var storage: Array<String> = [];
+    var slots: Array<String> = [];
+    var subject_slots: Array<String> = [];
     Log(EmitDeclFields("field", 1, 4, "Owner", "slot", storage, slots,
         subject_slots));
     Log(ArrayLength(storage)); Log(ArrayLength(slots));

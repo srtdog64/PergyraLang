@@ -1,13 +1,13 @@
 func MaxWindowSum(arr: Array<Int>, n: Int, k: Int) -> Int {
     if n < k || k == 0 { return 0; }
-    let cur: Int = 0;
-    let i: Int = 0;
+    var cur: Int = 0;
+    var i: Int = 0;
     while i < k {
         cur = cur + arr[i];
         i = i + 1;
     }
-    let best: Int = cur;
-    let j: Int = k;
+    var best: Int = cur;
+    var j: Int = k;
     while j < n {
         cur = cur + arr[j] - arr[j - k];
         if cur > best { best = cur; }

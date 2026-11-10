@@ -9,7 +9,7 @@ func PublishOwnedMap(
 }
 
 func BuildOwnedMapResult() -> OwnedMapResult {
-    let values: HashMap<String, Int> = MapNew();
+    var values: HashMap<String, Int> = MapNew();
     MapSet(values, "owned", 41);
     return PublishOwnedMap(values);
 }

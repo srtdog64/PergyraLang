@@ -15,8 +15,8 @@ func ApplyOp(s: Score, op: Op) -> Score {
 }
 
 func RunOps(score: Int, ops: Array<Int>, kinds: Array<Int>, n: Int) -> Int {
-    let s: Score = Score(score, 0);
-    let i: Int = 0;
+    var s: Score = Score(score, 0);
+    var i: Int = 0;
     while i < n {
         if kinds[i] == 0 {
             s = ApplyOp(s, Add(ops[i]));

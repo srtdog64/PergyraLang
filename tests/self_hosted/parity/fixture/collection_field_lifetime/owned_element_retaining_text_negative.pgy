@@ -9,7 +9,7 @@ func NamedFrom(name: String) -> Named {
 }
 
 func Main() -> Int {
-    let a: Array<String> = [];
+    var a: Array<String> = [];
     ArrayPushOwnedString(a, Concat("x", "y"));
     let named: Named = NamedFrom(a[0]);
     ArrayDropOwnedStrings(a);

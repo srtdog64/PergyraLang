@@ -2,13 +2,13 @@
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 
 func InspectCollectionLifetimeEventProjection(mode: Int) -> Bool {
-    let kinds: Array<Int> = [0, 17, 0, 18, 0, 18];
-    let left: Array<Int> = [-1, 0, -1, 1, -1, 3];
-    let right: Array<Int> = [-1, -1, -1, 2, -1, 4];
-    let expected_nodes: Array<Int> = [0, 2, 3, 4, 5];
-    let expected_calls: Array<Int> = [-1, -1, -1, -1, 1];
-    let root: Int = 5;
-    let root_prefix: Bool = false;
+    var kinds: Array<Int> = [0, 17, 0, 18, 0, 18];
+    var left: Array<Int> = [-1, 0, -1, 1, -1, 3];
+    var right: Array<Int> = [-1, -1, -1, 2, -1, 4];
+    var expected_nodes: Array<Int> = [0, 2, 3, 4, 5];
+    var expected_calls: Array<Int> = [-1, -1, -1, -1, 1];
+    var root: Int = 5;
+    var root_prefix: Bool = false;
     let positive: Bool = mode <= 56 || (mode >= 72 && mode <= 76 && mode != 74) || (mode >= 95 && mode <= 100);
     if mode == 51 || mode == 73 {
         kinds = [0, 17]; left = [-1, 0]; right = [-1, -1]; root = 1;
@@ -64,19 +64,19 @@ func InspectCollectionLifetimeEventProjection(mode: Int) -> Bool {
         }
         if mode == 100 { root_prefix = true; }
     }
-    let texts: Array<String> = []; let zeros: Array<Int> = [];
-    let row: Int = 0;
+    var texts: Array<String> = []; var zeros: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(kinds) { ArrayPush(texts, "unit"); ArrayPush(zeros, 0); row = row + 1; }
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
         AstExpressionArena(kinds, Clone(texts), left, right), Clone(texts),
         Clone(zeros), Clone(texts), texts, zeros);
-    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, [root, 0, 0], [true, false, false], arena);
+    var graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, [root, 0, 0], [true, false, false], arena);
     if mode == 68 { graph.ok = false; }
     if mode == 77 { return !SemanticAstCollectionLifetimeEventStepFromGraph(graph, -999, false).ok; }
     if !SemanticAstCollectionLifetimeRootReady(graph, root) { return !positive; }
-    let pending: Array<Int> = [root]; let prefixes: Array<Bool> = [root_prefix];
-    let nodes: Array<Int> = []; let calls: Array<Int> = [];
-    let ordered: Bool = true;
+    var pending: Array<Int> = [root]; var prefixes: Array<Bool> = [root_prefix];
+    var nodes: Array<Int> = []; var calls: Array<Int> = [];
+    var ordered: Bool = true;
     while ArrayLength(pending) > 0 && ordered {
         let entry: Int = pending[ArrayLength(pending) - 1];
         let prefix: Bool = prefixes[ArrayLength(prefixes) - 1];
@@ -90,7 +90,7 @@ func InspectCollectionLifetimeEventProjection(mode: Int) -> Bool {
             if step.event_node >= 0 { ArrayPush(nodes, step.event_node); ArrayPush(calls, step.completed_call); }
         }
     }
-    let ok: Bool = !positive && !ordered;
+    var ok: Bool = !positive && !ordered;
     if positive {
         ok = ordered && ArrayLength(nodes) == ArrayLength(expected_nodes) && ArrayLength(calls) == ArrayLength(expected_calls);
         row = 0;
@@ -122,13 +122,13 @@ func InspectCollectionBuiltinCompletion(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
         analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.descriptor_effects, definitions, storage);
     let fields: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
-    let ownership: Array<Int> = []; let dispositions: Array<Int> = []; let transitions: Array<Int> = []; let origins: Array<Int> = [];
-    let row: Int = 0;
+    var ownership: Array<Int> = []; var dispositions: Array<Int> = []; var transitions: Array<Int> = []; var origins: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(analysis.local_bindings.node_ids) {
         ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown()); ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
-        let transition: Int = SemanticAstCollectionTransitionUntracked();
-        let origin: Int = SemanticAstCollectionOriginUnknown();
-        let carried: Int = 0;
+        var transition: Int = SemanticAstCollectionTransitionUntracked();
+        var origin: Int = SemanticAstCollectionOriginUnknown();
+        var carried: Int = 0;
         while carried < ArrayLength(bundle.collection_ownership.binding_syntax_ids) {
             if bundle.collection_ownership.binding_syntax_ids[carried] == analysis.local_bindings.node_ids[row] &&
                 bundle.collection_ownership.function_syntax_ids[carried] == analysis.local_bindings.function_node_ids[row] {
@@ -141,8 +141,8 @@ func InspectCollectionBuiltinCompletion(
         ArrayPush(transitions, transition); row = row + 1;
     }
     let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
-    let call: Int = -1; let terminal: Int = -1; let surface: Int = -1; let nested_terminal: Int = -1;
-    let main_node: Int = -1;
+    var call: Int = -1; var terminal: Int = -1; var surface: Int = -1; var nested_terminal: Int = -1;
+    var main_node: Int = -1;
     row = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Main" { main_node = analysis.signatures.function_node_ids[row]; }
@@ -172,7 +172,7 @@ func InspectCollectionBuiltinCompletion(
         return false;
     }
     let actual: SemanticExpressionCallIdentity = SemanticExpressionCallIdentityForNode(analysis.expression_surfaces, call);
-    let observed: Int = 0;
+    var observed: Int = 0;
     row = 0;
     while row < ArrayLength(bundle.collection_ownership.receipts.function_syntax_ids) {
         if bundle.collection_ownership.receipts.owner_node_ids[row] == actual.owner_node_id &&
@@ -182,10 +182,10 @@ func InspectCollectionBuiltinCompletion(
         row = row + 1;
     }
     if observed != 1 || !SemanticAstCollectionOwnershipReceiptRowsReady(bundle.collection_ownership.receipts) { return false; }
-    let receipts: SemanticAstCollectionOwnershipReceiptRows = SemanticAstCollectionOwnershipReceiptRowsEmpty();
-    let aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan =
+    var receipts: SemanticAstCollectionOwnershipReceiptRows = SemanticAstCollectionOwnershipReceiptRowsEmpty();
+    var aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan =
         SemanticAstCollectionAggregateReleasePlanEmpty();
-    let checked_call: Int = call; let checked_terminal: Int = terminal;
+    var checked_call: Int = call; var checked_terminal: Int = terminal;
     if mode == 82 { checked_terminal = nested_terminal; }
     if mode == 84 { checked_call = terminal; }
     let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
@@ -193,7 +193,7 @@ func InspectCollectionBuiltinCompletion(
         analysis.expression_surfaces, surface, checked_call, checked_terminal, true, effects, fields,
         aggregate_release_plan, ownership, dispositions, origins, transitions,
         receipts);
-    let ok: Bool = verdict.ok && actual.ok && ArrayLength(receipts.function_syntax_ids) == 1 &&
+    var ok: Bool = verdict.ok && actual.ok && ArrayLength(receipts.function_syntax_ids) == 1 &&
         receipts.owner_node_ids[0] == actual.owner_node_id && receipts.lanes[0] == actual.lane &&
         receipts.local_call_ordinals[0] == actual.local_call_ordinal &&
         transitions[binding.row] == SemanticAstCollectionTransitionOwned() && SemanticAstCollectionOwnershipReceiptRowsReady(receipts);
@@ -205,7 +205,7 @@ func InspectCollectionBuiltinCompletion(
             ArrayLength(receipts.function_syntax_ids) == 0;
         row = 0;
         while row < ArrayLength(ownership) && ok {
-            let expected: Int = SemanticAstCollectionTransitionUntracked();
+            var expected: Int = SemanticAstCollectionTransitionUntracked();
             if origins[row] == SemanticAstCollectionOriginEmptyLiteral() { expected = SemanticAstCollectionTransitionEmpty(); }
             ok = ownership[row] == SemanticAstCollectionOwnershipUnknown() &&
                 dispositions[row] == SemanticAstCollectionDispositionLive() && transitions[row] == expected;

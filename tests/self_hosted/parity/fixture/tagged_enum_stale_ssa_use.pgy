@@ -5,7 +5,7 @@ enum Shape {
 }
 
 func Main() -> Void {
-    let c: Shape = Circle(10);
+    var c: Shape = Circle(10);
     c = Circle(7);
     Log(c.Circle._0);
 }

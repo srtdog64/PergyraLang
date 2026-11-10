@@ -4,7 +4,7 @@ func ObserveIndexedString(values: Array<String>) -> String {
 }
 
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "observed");
     Log(ObserveIndexedString(values));
     ArrayDropOwnedStrings(values);

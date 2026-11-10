@@ -14,7 +14,7 @@ func StoreState(
 }
 
 func Main() -> Void {
-    let state: Array<String> = [];
+    var state: Array<String> = [];
     let ready: StateEnvProbe = StateEnvProbe(true, "ready");
     let idle: StateEnvProbe = StateEnvProbe(false, "idle");
     StoreState(state, ready);

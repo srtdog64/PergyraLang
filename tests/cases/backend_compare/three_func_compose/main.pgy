@@ -17,8 +17,8 @@ func Apply3(seed: Int) -> Int {
 }
 
 func Loop(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + Apply3(arr[i]);
         i = i + 1;

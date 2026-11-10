@@ -27,7 +27,7 @@ func Peek(ref holder: Holder) -> Int {
 }
 
 func Main() -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPush(names, "a");
     let holder: Holder = Holder.Full(Table(names));
     Log(ToString(Peek(holder)));

@@ -27,7 +27,7 @@ func ConsumeBranch(pos: Int, expected: Int) -> Int {
 
 func ConsumePredicated(pos: Int, expected: Int) -> Int {
     let hit: Bool = TokenAt(pos) == expected;
-    let delta: Int = 0;
+    var delta: Int = 0;
     if hit {
         delta = 1;
     }
@@ -35,9 +35,9 @@ func ConsumePredicated(pos: Int, expected: Int) -> Int {
 }
 
 func RunCursor(expected: Int, rounds: Int) -> Int {
-    let branch_pos: Int = 0;
-    let pred_pos: Int = 0;
-    let i: Int = 0;
+    var branch_pos: Int = 0;
+    var pred_pos: Int = 0;
+    var i: Int = 0;
     while i < rounds {
         branch_pos = ConsumeBranch(branch_pos, expected);
         pred_pos = ConsumePredicated(pred_pos, expected);

@@ -2,7 +2,7 @@ import "../../../../src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy"
 
 func Main() -> Void {
     if !CodegenValueWrapperUsageContractReady() { Exit(1); }
-    let types: Array<String> = [];
+    var types: Array<String> = [];
     CodegenValueWrapperUsageCollectType(" Option<Result<T: Payload,E: Failure>> ", types);
     CodegenValueWrapperUsageCollectType("Option<Result<Payload, Failure>>", types);
     if ArrayLength(types) != 2 || types[0] != "Result<Payload, Failure>" ||

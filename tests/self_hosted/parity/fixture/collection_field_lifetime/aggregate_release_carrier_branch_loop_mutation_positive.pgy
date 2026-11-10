@@ -11,8 +11,8 @@ func CarrierBranchStore(
 func CarrierBranchGrow(
     facts: CarrierBranchFacts, ref choices: Array<Bool>
 ) -> CarrierBranchFacts {
-    let values: Array<String> = facts.values;
-    let index: Int = 0;
+    var values: Array<String> = facts.values;
+    var index: Int = 0;
     while index < ArrayLength(choices) {
         if choices[index] {
             CarrierBranchStore(values, "left");

@@ -3,7 +3,7 @@ import "../../../src/self_hosted/mir_lower/expression_graph_persisted_node_read_
 func Main() -> Void with caps io_read, env {
     let args: Array<String> = Args();
     let json: String = ReadFile(args[0]);
-    let scratch: Array<Int> = [0];
+    var scratch: Array<Int> = [0];
     let node: MirExpressionGraphNodeCapture =
         MirExpressionGraphNodeCaptureWithin(json, StringLength(json), 0, StringLength(json), scratch);
     Log(node.valid);

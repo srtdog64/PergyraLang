@@ -87,7 +87,7 @@ world TavernCampaignWorld
 
     func ReadPlayerChoice(self, stateId: Int) -> Int
     {
-        let choice = 0;
+        var choice = 0;
         while choice < 1 || choice > 4
         {
             Broadcast("  [Prompt] choose 1-4 for " + PhaseName(stateId));
@@ -369,7 +369,7 @@ world TavernCampaignWorld
 
     func RunSceneBeats(self, stateId: Int, option: Int) -> Void
     {
-        let beat = 1;
+        var beat = 1;
         while beat <= 6
         {
             let sceneCard: SceneChoiceCard = SceneChoiceCardFor(stateId, option, beat);
@@ -403,7 +403,7 @@ world TavernCampaignWorld
 
     func RunEncounterNodes(self, stateId: Int, option: Int) -> Void
     {
-        let node = 1;
+        var node = 1;
         while node <= 5
         {
             let sceneCard: SceneChoiceCard = SceneChoiceCardFor(stateId, option, node);
@@ -571,7 +571,7 @@ world TavernCampaignWorld
 
     func RunSkirmishRounds(self, stateId: Int, option: Int) -> Void
     {
-        let round = 1;
+        var round = 1;
         while round <= 3
         {
             let pulse = CombatRoll(stateId, round, option);
@@ -616,7 +616,7 @@ world TavernCampaignWorld
 
     func RunDragonRounds(self, option: Int) -> Void
     {
-        let round = 1;
+        var round = 1;
         while round <= 4
         {
             let pulse = CombatRoll(4, round, option);

@@ -1,6 +1,6 @@
 func PopCount(n: Int) -> Int {
-    let count: Int = 0;
-    let v: Int = n;
+    var count: Int = 0;
+    var v: Int = n;
     if v < 0 { v = 0; }
     while v > 0 {
         if v % 2 == 1 { count = count + 1; }

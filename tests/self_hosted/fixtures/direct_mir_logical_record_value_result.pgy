@@ -42,9 +42,9 @@ func RememberSession(
     if id < 0 {
         return false;
     }
-    let keys: Array<String> = [];
-    let ids: Array<Int> = [];
-    let layouts: Array<String> = [];
+    var keys: Array<String> = [];
+    var ids: Array<Int> = [];
+    var layouts: Array<String> = [];
     ArrayPush(keys, key);
     ArrayPush(ids, id);
     ArrayPush(layouts, layout);
@@ -53,10 +53,10 @@ func RememberSession(
     session.keys = keys;
     session.ids = ids;
     session.layouts = layouts;
-    let local_session: ValidationSession =
+    var local_session: ValidationSession =
         ValidationSession(keys, ids, layouts);
     local_session.keys = keys;
-    let scalar: Int = id;
+    var scalar: Int = id;
     scalar = scalar + 1;
     return scalar == id + 1 &&
         SessionReady(session) && SessionReady(local_session);
@@ -108,7 +108,7 @@ func Main() -> Void {
     let keys: Array<String> = [];
     let ids: Array<Int> = [];
     let layouts: Array<String> = [];
-    let session: ValidationSession = ValidationSession(keys, ids, layouts);
+    var session: ValidationSession = ValidationSession(keys, ids, layouts);
     let copied: Bool = RememberSessionCopy(session);
     let remembered: Bool = RememberSession(
         session, "Array<Int>", 7, "layout");
@@ -122,9 +122,9 @@ func Main() -> Void {
     } else {
         Log("record-value-input-failed");
     }
-    let topology: Array<Int> = [1]; let names: Array<String> = [];
+    let topology: Array<Int> = [1]; var names: Array<String> = [];
     ArrayPush(names, Concat("", "intent-step-ready"));
-    let order: IntentCompensationProbe = IntentCompensationProbe(
+    var order: IntentCompensationProbe = IntentCompensationProbe(
         ids, ids, ids, ids, ids, ids, names, ids);
     Log(IntentStepLines(session, 1, true, session, 2, topology, session,
         session, names, session, order));
@@ -132,7 +132,7 @@ func Main() -> Void {
     let old_rows: Array<Int> = [];
     let old_graph: ExpressionGraphProbe = ExpressionGraphProbe(old_rows, 0);
     let surfaces: ExpressionSurfaceProbe = ExpressionSurfaceProbe(old_graph);
-    let analysis: AnalysisProbe = AnalysisProbe(surfaces);
+    var analysis: AnalysisProbe = AnalysisProbe(surfaces);
     Log(ToString(ReplaceNestedGraph(analysis, 7)));
     Log(ToString(ArrayLength(
         analysis.expression_surfaces.expression_graph.rows)));

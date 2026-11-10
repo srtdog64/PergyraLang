@@ -12,8 +12,8 @@ func NodeSetAppend(inout kinds: Array<Int>, inout types: Array<String>, kind: In
 }
 
 func NodeSetAddInt(facts: NodeSet) -> NodeSet {
-    let kinds: Array<Int> = facts.kinds;
-    let types: Array<String> = facts.types;
+    var kinds: Array<Int> = facts.kinds;
+    var types: Array<String> = facts.types;
     NodeSetAppend(kinds, types, 1, "Int");
     return NodeSet(true, kinds, types);
 }
@@ -21,7 +21,7 @@ func NodeSetAddInt(facts: NodeSet) -> NodeSet {
 func Main() -> Int {
     let kinds: Array<Int> = [];
     let types: Array<String> = [];
-    let facts: NodeSet = NodeSet(true, kinds, types);
+    var facts: NodeSet = NodeSet(true, kinds, types);
     facts = NodeSetAddInt(facts);
     facts = NodeSetAddInt(facts);
     return ArrayLength(facts.types);

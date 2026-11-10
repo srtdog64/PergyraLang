@@ -2,17 +2,17 @@ import "../../../src/self_hosted/compiler/direct_mir_scalar_program_hashmap_owne
 import "../../../src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 
 func Main() -> Void {
-    let kinds: Array<Int> = [DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprStringLiteral(),
+    var kinds: Array<Int> = [DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprStringLiteral(),
         DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprMapSet(),
         DirectMirScalarProgramExprMapGet(), DirectMirScalarProgramExprMapKeys(), DirectMirScalarProgramExprMapNew()];
-    let types: Array<String> = ["HashMap<String, Int>", "String", "Int", "Void", "Int", "Array<String>", "HashMap<String, Int>"];
-    let lefts: Array<Int> = [-1, -1, -1, -1, 0, 0, -1];
+    var types: Array<String> = ["HashMap<String, Int>", "String", "Int", "Void", "Int", "Array<String>", "HashMap<String, Int>"];
+    var lefts: Array<Int> = [-1, -1, -1, -1, 0, 0, -1];
     let rights: Array<Int> = [-1, -1, -1, -1, 1, -1, -1];
     let locals: Array<Int> = [0, -1, -1, -1, -1, -1, -1];
     let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
     let literals: Array<String> = ["", "key", "7", "", "", "", ""];
     let empty: Array<Int> = [];
-    let operands: Array<Int> = [0, 1, 2];
+    var operands: Array<Int> = [0, 1, 2];
     let nary_nodes: Array<Int> = [3]; let nary_starts: Array<Int> = [0];
     let nary_counts: Array<Int> = [3];
     let nary: DirectMirScalarProgramNaryOperands = DirectMirScalarProgramNaryOperands(

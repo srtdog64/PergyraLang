@@ -5,7 +5,7 @@ func Resolve(ref types: Array<String>, row: Int) -> SemanticCanonicalTypeNameFac
     return SemanticCanonicalTypeNameFactFrom(Concat("", types[row]));
 }
 func Main() -> Void {
-    let types: Array<String> = [];
+    var types: Array<String> = [];
     ArrayPushOwnedString(types, "Box<item: Int>");
     ArrayPushOwnedString(types, "Int");
     let generic_fact: SemanticCanonicalTypeNameFact = Resolve(types, 0);

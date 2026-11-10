@@ -7,7 +7,7 @@ func Build(n: Int) -> Option<Int> {
 
 func Process(seed: Int) -> Int {
     let opt: Option<Int> = Build(seed);
-    let val: Int = -1;
+    var val: Int = -1;
     match opt {
         case Some(v): val = v + 1;
         case None: val = 999;

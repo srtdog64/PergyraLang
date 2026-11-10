@@ -10,8 +10,8 @@ func IsLower(ch: String) -> Bool {
 
 func DigitsOnly(s: String) -> String {
     let n: Int = StringLength(s);
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < n {
         let ch: String = Substring(s, i, i + 1);
         if IsDigit(ch) { result = result + ch; }

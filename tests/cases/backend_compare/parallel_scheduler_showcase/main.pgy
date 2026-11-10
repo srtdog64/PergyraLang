@@ -64,8 +64,8 @@ func RunSched() -> Int {
     var z: Int = 0;
     while z < 8 { ArrayPush(vbuckets, 0); z = z + 1; }
     let mid: Int = 4;
-    let cpu0v: Slice<Int> = vbuckets.Slice(0, mid);
-    let cpu1v: Slice<Int> = vbuckets.Slice(mid, 4);
+    var cpu0v: Slice<Int> = vbuckets.Slice(0, mid);
+    var cpu1v: Slice<Int> = vbuckets.Slice(mid, 4);
 
     var clock: Int = 0;
     var migrated: Int = 0;

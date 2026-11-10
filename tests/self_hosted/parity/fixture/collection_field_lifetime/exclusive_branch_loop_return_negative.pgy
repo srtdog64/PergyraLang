@@ -5,8 +5,8 @@ struct NodeSet {
 }
 
 func NodeSetPickUntil(facts: NodeSet, count: Int) -> NodeSet {
-    let types: Array<String> = facts.types;
-    let index: Int = 0;
+    var types: Array<String> = facts.types;
+    var index: Int = 0;
     while index < count {
         if index == 0 {
             ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
@@ -20,7 +20,7 @@ func NodeSetPickUntil(facts: NodeSet, count: Int) -> NodeSet {
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetPickUntil(facts, 3);
     return StringLength(facts.types[0]);
 }

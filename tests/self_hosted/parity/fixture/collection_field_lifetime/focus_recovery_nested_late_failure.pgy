@@ -3,8 +3,8 @@ func Capture(inout rows: Rows, json: String) -> Int
 {
     let extent: Int = StringLength(json);
     if extent < 2 || CharCode(json, extent, 0) != 91 { return -1; }
-    let types: Array<String> = rows.types;
-    let cursor: Int = 1;
+    var types: Array<String> = rows.types;
+    var cursor: Int = 1;
     while cursor < extent {
         if CharCode(json, extent, cursor) == 93 {
             if cursor + 1 != extent { return -1; }
@@ -28,14 +28,14 @@ func Capture(inout rows: Rows, json: String) -> Int
 struct Outer { rows: Rows; }
 func CaptureStep(inout outer: Outer, json: String) -> Bool
 {
-    let rows: Rows = outer.rows;
+    var rows: Rows = outer.rows;
     if Capture(rows, json) < 0 { return false; }
     outer.rows = rows;
     return true;
 }
 func Main() -> Void
 {
-    let outer: Outer = Outer(Rows(["seed"]));
+    var outer: Outer = Outer(Rows(["seed"]));
     Log(CaptureStep(outer, "[[0],[0],[0],[0],[0],[0],[0],[0],bad]"));
     Log(ArrayLength(outer.rows.types));
     Log(outer.rows.types[0]);

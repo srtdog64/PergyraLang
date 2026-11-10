@@ -1,6 +1,6 @@
 func SafeDivCount(arr: Array<Int>, n: Int, divisor: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if divisor != 0 && arr[i] % divisor == 0 {
             count = count + 1;
@@ -11,8 +11,8 @@ func SafeDivCount(arr: Array<Int>, n: Int, divisor: Int) -> Int {
 }
 
 func AnyMatch(arr: Array<Int>, n: Int, target: Int) -> Bool {
-    let i: Int = 0;
-    let found: Bool = false;
+    var i: Int = 0;
+    var found: Bool = false;
     while i < n {
         if found || arr[i] == target {
             found = true;

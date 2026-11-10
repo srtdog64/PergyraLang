@@ -6,7 +6,7 @@ import "../../../../src/self_hosted/compiler/canonical_mir_source_module_epoch_o
 func Main() -> Void with caps io_read {
     let wrong_path: String = "tests/self_hosted/semantic/fixture/compiler_retire_array_storage_owner_impersonation_rejected.pgy";
     let wrong_artifact: AstTreeArtifact = ParseRootProgramArtifact(wrong_path);
-    let wrong_analysis: SemanticAstArtifactAnalysis =
+    var wrong_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(wrong_artifact, false);
     if !wrong_analysis.verdict.ok {
         Log(Concat("wrong-analysis:", wrong_analysis.verdict.diagnostic_code));
@@ -30,8 +30,8 @@ func Main() -> Void with caps io_read {
         Log(Concat("owner-analysis:", owner_analysis.verdict.diagnostic_code));
         Exit(1);
     }
-    let index: Int = 0;
-    let found: Bool = false;
+    var index: Int = 0;
+    var found: Bool = false;
     while index < SemanticAstFunctionSignatureCount(owner_analysis.signatures) {
         let name: Option<String> = SemanticAstFunctionNameAt(
             owner_analysis.signatures, index
@@ -58,7 +58,7 @@ func Main() -> Void with caps io_read {
             ParserAstTreeArtifactFromText(owner_artifact.tree_text),
             owner_artifact.source_modules.module_paths
         );
-    let mir_analysis: SemanticAstArtifactAnalysis =
+    var mir_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(mir_artifact, false);
     if !mir_analysis.verdict.ok {
         Log(Concat("mir-analysis:", mir_analysis.verdict.diagnostic_code));

@@ -1,8 +1,8 @@
 func CountSigns(arr: Array<Int>, n: Int) -> Int {
-    let neg: Int = 0;
-    let zero: Int = 0;
-    let pos: Int = 0;
-    let i: Int = 0;
+    var neg: Int = 0;
+    var zero: Int = 0;
+    var pos: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] < 0 {
             neg = neg + 1;

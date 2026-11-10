@@ -41,7 +41,7 @@ subject Client {
     let id: Int;
     let name: String;
     let connected: Bool;
-    let lastSeq: Int;
+    var lastSeq: Int;
 
     action Send(self, ptype: PacketType, size: Int) -> Void {
         lastSeq = lastSeq + 1;
@@ -57,10 +57,10 @@ subject Client {
 subject Server {
     let name: String;
     let port: Int;
-    let rxCount: Int;
-    let txCount: Int;
+    var rxCount: Int;
+    var txCount: Int;
     let maxClients: Int;
-    let activeClients: Int;
+    var activeClients: Int;
 
     action Receive(self, clientId: Int, seq: Int, size: Int) -> Void {
         rxCount = rxCount + 1;

@@ -10,8 +10,8 @@ func MakeItem(id: Int) -> Item {
 }
 
 func CountHeavy(start: Int, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if MakeItem(start + i).Heavy() { count = count + 1; }
         i = i + 1;

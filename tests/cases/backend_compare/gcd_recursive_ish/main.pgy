@@ -1,6 +1,6 @@
 func Gcd(a: Int, b: Int) -> Int {
-    let x: Int = a;
-    let y: Int = b;
+    var x: Int = a;
+    var y: Int = b;
     if x < 0 { x = -x; }
     if y < 0 { y = -y; }
     while y != 0 {

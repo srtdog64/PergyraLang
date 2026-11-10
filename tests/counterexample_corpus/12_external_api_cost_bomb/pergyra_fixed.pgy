@@ -19,8 +19,8 @@ subject PaidModelApi {
 func Main() -> Void {
     let maxAttempts: Int = 3;
     let api: PaidModelApi = PaidModelApi(0, 0);
-    let status: Int = 0;
-    let attempts: Int = 0;
+    var status: Int = 0;
+    var attempts: Int = 0;
     while attempts < maxAttempts {
         status = api.Complete();
         attempts = attempts + 1;

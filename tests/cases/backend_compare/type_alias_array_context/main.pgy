@@ -1,7 +1,7 @@
 type IntArray = Array<Int>;
 
 func Main() -> Void {
-    let values: IntArray = [];
+    var values: IntArray = [];
     ArrayPush(values, 3);
     ArrayPush(values, 4);
     Log("len=" + ToString(ArrayLength(values)));

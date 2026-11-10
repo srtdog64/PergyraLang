@@ -6,7 +6,7 @@ struct Rows { names: Array<String>; count: Int; }
 
 func Classify(flag: Bool, ok: Bool, early: Bool) -> Int {
     let empty: Array<String> = [];
-    let rows: Rows = Rows(empty, 0);
+    var rows: Rows = Rows(empty, 0);
     if flag {
         if ok {
             if early { return 1; }
@@ -14,7 +14,7 @@ func Classify(flag: Bool, ok: Bool, early: Bool) -> Int {
         }
         rows.count = 3;
     }
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayPush(names, "x");
     rows.names = names;
     return ArrayLength(rows.names) + rows.count;
@@ -22,8 +22,8 @@ func Classify(flag: Bool, ok: Bool, early: Bool) -> Int {
 
 func Pick(mode: Int) -> Int {
     let empty: Array<String> = [];
-    let rows: Rows = Rows(empty, 0);
-    let weight: Int = 0;
+    var rows: Rows = Rows(empty, 0);
+    var weight: Int = 0;
     if mode == 1 {
         if rows.count > 0 { return 9; }
         weight = 1;
@@ -32,7 +32,7 @@ func Pick(mode: Int) -> Int {
     } else {
         return 0;
     }
-    let labels: Array<String> = rows.names;
+    var labels: Array<String> = rows.names;
     ArrayPush(labels, "y");
     rows.names = labels;
     return ArrayLength(rows.names) + weight;

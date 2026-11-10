@@ -6,10 +6,10 @@ subject Unit
 {
     let id: Int;
     let name: String;
-    let energy: Int;
-    let shield: Int;
-    let poisoned: Int;
-    let burning: Int;
+    var energy: Int;
+    var shield: Int;
+    var poisoned: Int;
+    var burning: Int;
 
     func IsAlive(self) -> Bool
     {
@@ -18,7 +18,7 @@ subject Unit
 
     func ApplyDamage(self, amount: Int) -> Void
     {
-        let actual = amount;
+        var actual = amount;
         if shield > 0
         {
             let absorbed = Min(shield, actual);
@@ -36,7 +36,7 @@ subject Unit
 
     func TickEffects(self) -> Int
     {
-        let dmg = 0;
+        var dmg = 0;
         if poisoned > 0
         {
             dmg = dmg + 3;
@@ -95,7 +95,7 @@ func RandomEvent(unit: Unit, tick: Int) -> Int
 
 func ShowUnit(u: Unit) -> Void
 {
-    let tag: String = "  [" + ToString(u.id) + "] " + u.name + " E:" + ToString(u.energy);
+    var tag: String = "  [" + ToString(u.id) + "] " + u.name + " E:" + ToString(u.energy);
     if u.poisoned > 0 { tag = tag + " PSN:" + ToString(u.poisoned); }
     if u.burning > 0 { tag = tag + " BRN:" + ToString(u.burning); }
     if u.shield > 0 { tag = tag + " SH:" + ToString(u.shield); }
@@ -129,7 +129,7 @@ let u5 = Unit(5, "Foxtrot", 100, 0, 0, 0);
 let u6 = Unit(6, "Golf",    100, 0, 0, 0);
 let u7 = Unit(7, "Hotel",   100, 0, 0, 0);
 
-let tick = 0;
+var tick = 0;
 let total_applies = 0;
 let total_effect_dmg = 0;
 
@@ -158,7 +158,7 @@ while tick < 100
         ShowUnit(u6);
         ShowUnit(u7);
 
-        let survivors = 0;
+        var survivors = 0;
         if u0.energy > 0 { survivors = survivors + 1; }
         if u1.energy > 0 { survivors = survivors + 1; }
         if u2.energy > 0 { survivors = survivors + 1; }
@@ -184,7 +184,7 @@ ShowUnit(u5);
 ShowUnit(u6);
 ShowUnit(u7);
 
-let final_alive = 0;
+var final_alive = 0;
 if u0.energy > 0 { final_alive = final_alive + 1; }
 if u1.energy > 0 { final_alive = final_alive + 1; }
 if u2.energy > 0 { final_alive = final_alive + 1; }

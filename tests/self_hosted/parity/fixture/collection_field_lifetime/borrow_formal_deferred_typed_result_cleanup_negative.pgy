@@ -9,15 +9,15 @@ func Check(ref types: Array<String>, inout scratch: Array<Bool>,
     verdict = CheckVerdict(scratch[0], "checked");
 }
 func Evaluate(ref types: Array<String>) -> CheckVerdict {
-    let scratch: Array<Bool> = [false];
-    let verdict: CheckVerdict = CheckVerdict(false, "pending");
+    var scratch: Array<Bool> = [false];
+    var verdict: CheckVerdict = CheckVerdict(false, "pending");
     defer { ArrayDrop(scratch); };
     Check(types, scratch, verdict);
     return verdict;
 }
 func Forward(ref types: Array<String>) -> CheckVerdict { return Evaluate(types); }
 func Main() -> Void {
-    let types: Array<String> = [];
+    var types: Array<String> = [];
     ArrayPushOwnedString(types, "Int");
     let good: CheckVerdict = Forward(types);
     ArrayDropOwnedStrings(types);

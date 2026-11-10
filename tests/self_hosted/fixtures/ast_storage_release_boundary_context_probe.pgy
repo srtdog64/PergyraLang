@@ -7,8 +7,8 @@ func Main() -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Exit(2); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Exit(2); }
-    let node: Int = ToInt(args[1]);
-    let remaining: Int = 8;
+    var node: Int = ToInt(args[1]);
+    var remaining: Int = 8;
     while node >= 0 && node < artifact.count && remaining > 0 {
         Log("syntax=" + ToString(node));
         let text: Option<String> = TypedAstArenaProvenanceText(artifact.arena, node);

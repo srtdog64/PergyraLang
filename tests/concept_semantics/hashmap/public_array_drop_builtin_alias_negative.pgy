@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let values: Array<Int> = [1];
+    var values: Array<Int> = [1];
     let alias: Array<Int> = ArrayReverse(values);
     ArrayDrop(alias);
     Log(values[0]);

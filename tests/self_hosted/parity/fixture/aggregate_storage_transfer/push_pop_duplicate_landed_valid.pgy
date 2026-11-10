@@ -6,10 +6,10 @@ struct Pair
 
 func Make() -> Pair
 {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, 1);
     ArrayPop(rows);
-    let pair: Pair = Pair(rows, rows);
+    var pair: Pair = Pair(rows, rows);
     ArrayPush(pair.first, 7);
     return pair;
 }

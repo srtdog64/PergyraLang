@@ -4,7 +4,7 @@ func Main() -> Void {
     let first: Int = values[0];
     Log(first);
     ArrayDrop(values);
-    let records: Array<DropValue> = [];
+    var records: Array<DropValue> = [];
     ArrayPush(records, DropValue(10));
     let copy: DropValue = records[0];
     Log(copy.number);

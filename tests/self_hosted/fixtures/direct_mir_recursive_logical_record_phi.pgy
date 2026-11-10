@@ -28,9 +28,9 @@ struct DocumentFact {
 func BuildDocumentFact(
     choose_alternate: Bool, text: String
 ) -> DocumentFact {
-    let valid: Bool = false;
-    let root: LeafFact = LeafFact(false, "root-default", 1, 2);
-    let alternate: AlternateLeafFact =
+    var valid: Bool = false;
+    var root: LeafFact = LeafFact(false, "root-default", 1, 2);
+    var alternate: AlternateLeafFact =
         AlternateLeafFact(false, "alternate-default", 3, 4);
     if choose_alternate {
         valid = true;

@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let m: HashMap<String, Int> = MapNew();
+    var m: HashMap<String, Int> = MapNew();
     MapSet(m, "a", 1);
     MapSet(m, "b", 2);
     Log(MapSize(m));

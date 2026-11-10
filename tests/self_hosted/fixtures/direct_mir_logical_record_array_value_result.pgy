@@ -51,13 +51,13 @@ func ParseDestructureLetStmt(
 }
 
 func Main() -> Void {
-    let rows: Array<InventoryRow> = [];
-    let count_box: Array<Int> = [0];
+    var rows: Array<InventoryRow> = [];
+    var count_box: Array<Int> = [0];
     RetainRows("logical-record-array-copyout-ready", rows, count_box);
     Log(rows[0].text);
     Log(ToString(count_box[0]));
-    let cursor_out: Array<Int> = [0];
-    let expression_graphs: Array<AstExpressionGraphRows> = [];
+    var cursor_out: Array<Int> = [0];
+    var expression_graphs: Array<AstExpressionGraphRows> = [];
     let result: String = ParseDestructureLetStmt(
         "graph-row-copyout-ready", 2, cursor_out, 3, expression_graphs
     );

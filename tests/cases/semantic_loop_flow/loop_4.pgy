@@ -1,15 +1,15 @@
 enum LoopMode { Run, Stop }
 
 func Loop4(inout rows: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let outer: Int = 0;
+    var total: Int = 0;
+    var outer: Int = 0;
     while outer < n {
         ArrayPush(rows, outer);
         for i in 0..2 {
             if i == 0 { continue; }
             total = total + i;
         }
-        let j: Int = 0;
+        var j: Int = 0;
         while j < 2 {
             j = j + 1;
             if j == 1 { continue; }
@@ -17,7 +17,7 @@ func Loop4(inout rows: Array<Int>, n: Int) -> Int {
         }
         match Run {
             case Run:
-                let k: Int = 0;
+                var k: Int = 0;
                 while k < 2 {
                     k = k + 1;
                     if k == 2 { break; }
@@ -32,6 +32,6 @@ func Loop4(inout rows: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     Log(Loop4(rows, 2));
 }

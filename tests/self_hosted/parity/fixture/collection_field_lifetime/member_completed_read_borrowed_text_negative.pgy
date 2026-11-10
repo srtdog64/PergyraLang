@@ -6,9 +6,9 @@ func Retire(inout pair: ReadPair) -> Void {
     pair.left = names;
 }
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("", "owned"));
-    let pair: ReadPair = ReadPair(names, ["y"]);
+    var pair: ReadPair = ReadPair(names, ["y"]);
     let borrowed: String = Text(pair.left);
     Retire(pair);
     Log(borrowed);

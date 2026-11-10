@@ -3,7 +3,7 @@ func Fresh(text: String) -> String {
 }
 
 func Main() -> Void {
-    let rows: Array<String> = [Fresh("a"), Fresh("b")];
+    var rows: Array<String> = [Fresh("a"), Fresh("b")];
     ArrayPush(rows, Fresh("c"));
     Log(ArrayLength(rows));
 }

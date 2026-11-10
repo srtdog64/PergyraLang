@@ -26,7 +26,7 @@ func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
 }
 
 func Main() -> Void {
-    let failures: Int = 0;
+    var failures: Int = 0;
     let permuted_block_row: String =
         "{\"instructions\":[],\"id\":0,\"future_fact\":true,\"reachable\":true,\"succ_false\":null,\"succ_true\":1}";
     let permuted_block: MirProgramRoutineBlockCapture =
@@ -55,7 +55,7 @@ func Main() -> Void {
         Log("mir-program-routine-index-owner-missing-block-comma-accepted");
         failures = failures + 1;
     }
-    let abi_validation: MirAbiLayoutValidationSession =
+    var abi_validation: MirAbiLayoutValidationSession =
         NewMirAbiLayoutValidationSession();
     let first_instruction: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"result\":\"%0\",\"expr0\":\"1\",\"expr1\":null,\"arg0\":\"x\",\"arg1\":\"\",\"slot_anchor\":\"slot\",\"abi_type_name\":\"Int\",\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"match_variant\":\"Some\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"expr0\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
@@ -450,7 +450,7 @@ func Main() -> Void {
         Log("mir-program-routine-index-owner-branch-row-failed");
         failures = failures + 1;
     }
-    let forged_branch_rows: Array<Int> =
+    var forged_branch_rows: Array<Int> =
         branch_index.instruction_facts.block_branch_global_rows;
     ArraySet(forged_branch_rows, 0, 0);
     if MirRoutineFactIndexBranchAtBlock(
@@ -461,7 +461,7 @@ func Main() -> Void {
     }
     let out_of_block_branch_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(branch_program, 0);
-    let out_of_block_branch_rows: Array<Int> =
+    var out_of_block_branch_rows: Array<Int> =
         out_of_block_branch_index.instruction_facts.block_branch_global_rows;
     ArraySet(out_of_block_branch_rows, 0, 2);
     if MirRoutineFactIndexBranchAtBlock(
@@ -472,7 +472,7 @@ func Main() -> Void {
     }
     let invalid_sentinel_branch_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(branch_program, 0);
-    let invalid_sentinel_branch_rows: Array<Int> =
+    var invalid_sentinel_branch_rows: Array<Int> =
         invalid_sentinel_branch_index.instruction_facts.block_branch_global_rows;
     ArraySet(invalid_sentinel_branch_rows, 0, 0 - 2);
     if MirRoutineFactIndexBranchAtBlock(
@@ -500,7 +500,7 @@ func Main() -> Void {
         MirProgramRoutineIndexFromDocument(cross_block_document);
     let cross_block_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(cross_block_program, 0);
-    let cross_block_branch_rows: Array<Int> =
+    var cross_block_branch_rows: Array<Int> =
         cross_block_index.instruction_facts.block_branch_global_rows;
     ArraySet(cross_block_branch_rows, 0, 1);
     if MirRoutineFactIndexBranchAtBlock(
@@ -517,7 +517,7 @@ func Main() -> Void {
         Log("mir-program-routine-index-owner-no-branch-projection-failed");
         failures = failures + 1;
     }
-    let no_branch_span_starts: Array<Int> =
+    var no_branch_span_starts: Array<Int> =
         no_branch_projection_index.block_starts;
     ArraySet(no_branch_span_starts, 0, no_branch_span_starts[0] + 1);
     if LoopFlowSummaryProjectionReady(
@@ -557,22 +557,22 @@ func Main() -> Void {
     }
     let missing_for_arg0_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(for_program, 0);
-    let missing_for_arg0s: Array<String> =
+    var missing_for_arg0s: Array<String> =
         missing_for_arg0_index.instruction_facts.arg0s;
     ArraySet(missing_for_arg0s, 0, "");
     let missing_for_expr0_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(for_program, 0);
-    let missing_for_expr0s: Array<String> =
+    var missing_for_expr0s: Array<String> =
         missing_for_expr0_index.instruction_facts.expr0s;
     ArraySet(missing_for_expr0s, 0, "");
     let missing_for_expr1_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(for_program, 0);
-    let missing_for_expr1s: Array<String> =
+    var missing_for_expr1s: Array<String> =
         missing_for_expr1_index.instruction_facts.expr1s;
     ArraySet(missing_for_expr1s, 0, "");
     let malformed_projection_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(for_program, 0);
-    let malformed_projection_rows: Array<Int> =
+    var malformed_projection_rows: Array<Int> =
         malformed_projection_index.instruction_facts.block_branch_global_rows;
     ArraySet(malformed_projection_rows, 0, 0 - 2);
     if LoopFlowSummaryProjectionReady(
@@ -981,7 +981,7 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
-    let corrupted_counts: Array<Int> = index.block_instruction_counts;
+    var corrupted_counts: Array<Int> = index.block_instruction_counts;
     ArraySet(corrupted_counts, 0, 3);
     let corrupted_instruction_facts: MirRoutineInstructionFactBundle =
         BuildMirRoutineInstructionFactBundle(index, 0);
@@ -991,7 +991,7 @@ func Main() -> Void {
         MirProgramRoutineIndexRowReady(index, 2) {
         failures = failures + 1;
     }
-    let truncated_abi_bounds: Array<Int> =
+    var truncated_abi_bounds: Array<Int> =
         first_facts.instruction_facts.abi_layout_bounds;
     ArrayPop(truncated_abi_bounds);
     let truncated_abi_facts: MirRoutineInstructionFactBundle =

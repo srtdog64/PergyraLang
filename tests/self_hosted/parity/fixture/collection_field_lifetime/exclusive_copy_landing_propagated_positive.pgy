@@ -14,8 +14,8 @@ func Build() -> Int {
     let rows: Rows = Rows(["r"]);
     let view: Rows = rows;
     let marks: Array<String> = [];
-    let facts: Facts = Facts(view, marks);
-    let grown: Array<String> = facts.marks;
+    var facts: Facts = Facts(view, marks);
+    var grown: Array<String> = facts.marks;
     ArrayPush(grown, "m");
     ArrayPush(grown, "n");
     facts.marks = grown;

@@ -16,10 +16,10 @@ func Main() -> Void {
         Exit(1);
     }
     let variants: Array<DirectMirIntentCompletionFact> = [truth, predicate, other_zone, other_field, other_threshold];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(variants) {
         if !DirectMirIntentCompletionFactReady(variants[i], 3, 3) { Exit(2); }
-        let j: Int = 0;
+        var j: Int = 0;
         while j < i {
             if DirectMirIntentCompletionFactHash(17, variants[i]) ==
                 DirectMirIntentCompletionFactHash(17, variants[j]) { Exit(3); }

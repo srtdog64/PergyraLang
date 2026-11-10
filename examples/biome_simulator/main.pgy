@@ -30,7 +30,7 @@ export zone MeadowZone
 
     func ConsumePlant(self, demand: Int, browseBias: Int) -> Int
     {
-        let taken = 0;
+        var taken = 0;
         let grassTake = Min(habitat.grass, demand);
         habitat.grass = Max(habitat.grass - grassTake, 0);
         taken = taken + grassTake;
@@ -177,12 +177,12 @@ world BiomeWorld
 
     func Simulate(self) -> Void
     {
-        let day = 0;
+        var day = 0;
         while day < 6
         {
             let pulse = SeasonPulse();
 
-            let seasonName: String = "Winter";
+            var seasonName: String = "Winter";
             if seasonIndex == 0 { seasonName = "Spring"; }
             if seasonIndex == 1 { seasonName = "Summer"; }
             if seasonIndex == 2 { seasonName = "Autumn"; }
@@ -208,13 +208,13 @@ world BiomeWorld
             Log("  [World] Total migration pressure: " + ToString(totalMigration));
 
             // Check for extinction
-            let meadowDead = 0;
+            var meadowDead = 0;
             if meadow.grazer.energy <= 0 { meadowDead = meadowDead + 1; }
             if meadow.browser.energy <= 0 { meadowDead = meadowDead + 1; }
             if meadow.forager.energy <= 0 { meadowDead = meadowDead + 1; }
             if meadow.predator.energy <= 0 { meadowDead = meadowDead + 1; }
 
-            let groveDead = 0;
+            var groveDead = 0;
             if grove.grazer.energy <= 0 { groveDead = groveDead + 1; }
             if grove.browser.energy <= 0 { groveDead = groveDead + 1; }
             if grove.forager.energy <= 0 { groveDead = groveDead + 1; }

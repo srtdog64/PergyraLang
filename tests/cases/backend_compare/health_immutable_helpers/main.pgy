@@ -4,13 +4,13 @@ class Health {
 }
 
 func Heal(h: Health, amt: Int) -> Health {
-    let new_hp: Int = h.hp + amt;
+    var new_hp: Int = h.hp + amt;
     if new_hp > h.max { new_hp = h.max; }
     return Health(new_hp, h.max);
 }
 
 func Damage(h: Health, amt: Int) -> Health {
-    let new_hp: Int = h.hp - amt;
+    var new_hp: Int = h.hp - amt;
     if new_hp < 0 { new_hp = 0; }
     return Health(new_hp, h.max);
 }

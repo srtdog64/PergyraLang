@@ -2,7 +2,7 @@ func Main() -> Void {
     let source: String = "runtime-value";
     let result_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(StringLength(source));
-    let index: Int = 0;
+    var index: Int = 0;
     while index < StringLength(source) {
         TextBuilderAppend(output, Substring(source, index, 1));
         index = index + 1;

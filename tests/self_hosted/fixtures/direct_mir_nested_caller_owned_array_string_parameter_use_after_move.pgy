@@ -3,7 +3,7 @@ func ReleaseOwnedArray(own values: Array<String>) -> Void {
 }
 
 func BuildAndRelease() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("nested", "-caller"));
     ReleaseOwnedArray(values);
     Log(ArrayLength(values));

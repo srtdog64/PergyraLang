@@ -7,9 +7,9 @@ func DecideOf(price: Int, threshold: Int) -> Action {
 }
 
 func Simulate(prices: Array<Int>, n: Int, threshold: Int) -> Int {
-    let cash: Int = 1000;
-    let shares: Int = 0;
-    let i: Int = 0;
+    var cash: Int = 1000;
+    var shares: Int = 0;
+    var i: Int = 0;
     while i < n {
         let p: Int = prices[i];
         match DecideOf(p, threshold) {

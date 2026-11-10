@@ -9,7 +9,7 @@ class Buf {
 
 func Drain(start: Int, n1: Int, n2: Int) -> Int {
     let b: Buf = Buf(start);
-    let success: Int = 0;
+    var success: Int = 0;
     match b.Take(n1) {
         case Some(rem):
             success = success + 1;

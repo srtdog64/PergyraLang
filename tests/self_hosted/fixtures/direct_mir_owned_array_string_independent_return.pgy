@@ -3,7 +3,7 @@ func ReleaseOwnedArray(own values: Array<String>) -> Void {
 }
 func Leading(value: Int) -> Int { return value; }
 func BuildAndReturn() -> String {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("owned", "-return"));
     ReleaseOwnedArray(values);
     return "returned";

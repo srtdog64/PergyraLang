@@ -6,14 +6,14 @@
 // right  = 2*i + 2
 
 func Main() -> Void {
-    let heap: Array<Int> = [];
+    var heap: Array<Int> = [];
 
     // push 10
     ArrayPush(heap, 10);
 
     // push 4
     ArrayPush(heap, 4);
-    let i: Int = ArrayLength(heap) - 1;
+    var i: Int = ArrayLength(heap) - 1;
     while i > 0 {
         let p: Int = (i - 1) / 2;
         if heap[p] >= heap[i] {
@@ -64,12 +64,12 @@ func Main() -> Void {
     ArrayPop(heap);
 
     // sift down
-    let cur: Int = 0;
+    var cur: Int = 0;
     let size: Int = ArrayLength(heap);
     while true {
         let left: Int = cur * 2 + 1;
         let right: Int = cur * 2 + 2;
-        let largest: Int = cur;
+        var largest: Int = cur;
 
         if left < size && heap[left] > heap[largest] {
             largest = left;

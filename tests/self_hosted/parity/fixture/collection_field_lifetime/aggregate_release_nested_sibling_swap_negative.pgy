@@ -17,7 +17,7 @@ struct NestedSiblingSwapResult {
 func NestedSiblingSwapUpdate(
     value: NestedSiblingSwapInput
 ) -> NestedSiblingSwapResult {
-    let names: Array<String> = value.inner.names;
+    var names: Array<String> = value.inner.names;
     let aliases: Array<String> = value.inner.aliases;
     ArrayPushOwnedString(names, "next");
     let payload: NestedSiblingSwapPayload =

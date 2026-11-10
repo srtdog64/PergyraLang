@@ -3,7 +3,7 @@ class Reader {
 }
 func Main() -> Int {
     let reader: Reader = Reader();
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "key", "old");
     let view: String = reader.MapGet();
     MapSet(table, "key", "new");

@@ -4,8 +4,8 @@ func Decode(arr: Array<Int>, n: Int) -> Result<Int, DecodeErr> {
     if n == 0 { return Err(Empty); }
     if n < 0 { return Err(NegLen); }
     if n > 100 { return Err(Oversize); }
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         sum = sum + arr[i];
         i = i + 1;

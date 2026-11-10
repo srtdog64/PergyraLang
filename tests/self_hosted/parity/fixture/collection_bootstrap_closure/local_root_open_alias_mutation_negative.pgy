@@ -24,7 +24,7 @@ func Grow(inout bundle: Bundle) -> Bool {
 
 func Build() -> Bool {
     let facts: Facts = MakeFacts();
-    let bundle: Bundle = Bundle(facts, true);
+    var bundle: Bundle = Bundle(facts, true);
     return Resolve(facts.names) && Grow(bundle);
 }
 

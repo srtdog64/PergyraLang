@@ -22,10 +22,10 @@ func ReadStringArray(
 }
 
 func Main() -> Void {
-    let names: Array<String> = [];
-    let offsets: Array<String> = [];
-    let sizes: Array<String> = [];
-    let aligns: Array<String> = [];
+    var names: Array<String> = [];
+    var offsets: Array<String> = [];
+    var sizes: Array<String> = [];
+    var aligns: Array<String> = [];
     let captured: Bool = CaptureFields(
         "[]", 0, 2, names, offsets, sizes, aligns);
     if captured {
@@ -37,7 +37,7 @@ func Main() -> Void {
     Log(ArrayLength(offsets));
     Log(ArrayLength(sizes));
     Log(ArrayLength(aligns));
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let read: Bool = ReadStringArray("{}", 0, 2, "name", true, values);
     if read {
         Log("single-copyout-ready");

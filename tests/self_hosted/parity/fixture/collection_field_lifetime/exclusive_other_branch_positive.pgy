@@ -6,7 +6,7 @@ struct Facts {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let rows: Array<String> = facts.rows;
+    var rows: Array<String> = facts.rows;
     ArrayPush(rows, "r");
     ArrayPush(rows, "r");
     return Facts(facts.ok, rows);
@@ -14,7 +14,7 @@ func Grow(facts: Facts) -> Facts {
 
 func Pick(seed: Array<String>, grow: Bool) -> Int {
     let facts: Facts = Facts(true, seed);
-    let width: Int = 0;
+    var width: Int = 0;
     if grow {
         let grown: Facts = Grow(facts);
         width = ArrayLength(grown.rows);

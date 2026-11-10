@@ -9,11 +9,11 @@ func Main() -> Void {
     let moved_source: Array<String> = Clone(seed);
     let moved: Array<String> = moved_source;
     Log(ArrayLength(moved));
-    let map: HashMap<String, Int> = MapNew();
+    var map: HashMap<String, Int> = MapNew();
     MapSet(map, "key", 1);
     let keys: Array<String> = MapKeys(map);
     ArrayDropOwnedStrings(keys);
-    let built: Array<String> = [];
+    var built: Array<String> = [];
     Push(built);
     ArrayDropOwnedStrings(built);
     Log("safe-owned-storage");

@@ -303,7 +303,7 @@ world DispatchWorld
 
     func Simulate(self, atlas: Courier, nova: Courier, ember: Courier) -> Void
     {
-        let tick = 0;
+        var tick = 0;
         while tick < 5
         {
             wave = tick;

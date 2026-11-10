@@ -1,5 +1,5 @@
 func OwnedKeys() -> Array<String> {
-    let values: HashMap<String, Int> = MapNew();
+    var values: HashMap<String, Int> = MapNew();
     MapSet(values, "key", 1);
     return MapKeys(values);
 }

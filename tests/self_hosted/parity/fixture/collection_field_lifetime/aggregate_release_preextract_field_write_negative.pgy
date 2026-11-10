@@ -5,12 +5,12 @@ struct OuterFacts { tables: SemanticAstExpressionFunctionTableFacts; }
 func Main() -> Void {
     let callables_names: Array<String> = [];
     let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(callables_names);
-    let outer: OuterFacts = OuterFacts(
+    var outer: OuterFacts = OuterFacts(
         SemanticAstExpressionFunctionTableFacts(true, [], [], [], callables));
     let callables_2_names: Array<String> = [];
     let callables_2: SemanticCallableNameTable = SemanticCallableNameTableFromNames(callables_2_names);
     outer.tables = SemanticAstExpressionFunctionTableFacts(true, [], [], [], callables_2);
-    let tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
+    var tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
     SemanticAstExpressionFunctionTableFactsRelease(tables);
     outer.tables = tables;
 }

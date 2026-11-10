@@ -9,8 +9,8 @@ enum Holder {
 }
 func Grow(ref holder: Holder) -> Int {
     if holder == Holder.Full {
-        let alias: Table = holder.Full._0;
-        let names: Array<String> = alias.names;
+        var alias: Table = holder.Full._0;
+        var names: Array<String> = alias.names;
         ArrayPush(names, "x");
         alias.names = names;
         return ArrayLength(alias.names);
@@ -18,7 +18,7 @@ func Grow(ref holder: Holder) -> Int {
     return 0;
 }
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "owned");
     let holder: Holder = Holder.Full(Table(names));
     if Grow(holder) != 2 { Exit(1); }

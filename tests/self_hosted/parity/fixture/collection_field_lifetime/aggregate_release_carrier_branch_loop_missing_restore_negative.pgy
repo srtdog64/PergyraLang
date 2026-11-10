@@ -11,8 +11,8 @@ func CarrierBranchMissingStore(
 func CarrierBranchMissingGrow(
     facts: CarrierBranchMissingFacts, ref choices: Array<Bool>
 ) -> CarrierBranchMissingFacts {
-    let values: Array<String> = facts.values;
-    let index: Int = 0;
+    var values: Array<String> = facts.values;
+    var index: Int = 0;
     while index < ArrayLength(choices) {
         if choices[index] {
             CarrierBranchMissingStore(values, "left");

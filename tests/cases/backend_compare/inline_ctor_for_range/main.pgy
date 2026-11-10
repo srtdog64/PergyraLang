@@ -3,7 +3,7 @@ class Card {
 }
 
 func TotalHands(seeds: Array<Int>, n: Int) -> Int {
-    let sum: Int = 0;
+    var sum: Int = 0;
     for i in 0..n {
         sum = sum + Card(seeds[i] + i).value;
     }

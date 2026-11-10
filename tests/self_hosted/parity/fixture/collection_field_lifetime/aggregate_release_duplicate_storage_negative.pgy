@@ -4,7 +4,7 @@ func Main() -> Void {
     let seed: Array<String> = ["x"];
     let values: Array<String> = Clone(seed);
     let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(values);
-    let facts: SemanticAstExpressionFunctionTableFacts =
+    var facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(
             true, values, values, values, callables);
     SemanticAstExpressionFunctionTableFactsRelease(facts);

@@ -1,6 +1,6 @@
 func Main() -> Void {
-    let i: Int = 1;
-    let count: Int = 0;
+    var i: Int = 1;
+    var count: Int = 0;
     while true {
         if i * i > 100 {
             break;

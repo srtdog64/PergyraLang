@@ -8,14 +8,14 @@ class Triple {
     }
 
     func Max(self) -> Int {
-        let m: Int = a;
+        var m: Int = a;
         if b > m { m = b; }
         if c > m { m = c; }
         return m;
     }
 
     func Min(self) -> Int {
-        let m: Int = a;
+        var m: Int = a;
         if b < m { m = b; }
         if c < m { m = c; }
         return m;

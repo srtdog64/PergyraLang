@@ -15,18 +15,18 @@ class P {
 }
 
 func Main() -> Void {
-    let a: Array<P> = [];
+    var a: Array<P> = [];
     ArrayPush(a, P(5));
     ArrayPush(a, P(7));
     Log(ToString(a[0].V()));
     Log(ToString(a[1].V()));
     Log(ToString(a[0].Add(3)));
 
-    let b: Array<P> = [];
+    var b: Array<P> = [];
     ArrayPush(b, P(10));
     ArrayPush(b, P(20));
     ArrayPush(b, P(30));
-    let sum: Int = 0;
+    var sum: Int = 0;
     for p in b {
         sum = sum + p.V();
     }

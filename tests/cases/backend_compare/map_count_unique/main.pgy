@@ -1,7 +1,7 @@
 func Main() -> Void {
     let labels: Array<String> = ["red", "blue", "red", "green", "blue", "red"];
-    let counts: HashMap<String, Int> = MapNew();
-    let i: Int = 0;
+    var counts: HashMap<String, Int> = MapNew();
+    var i: Int = 0;
     while i < ArrayLength(labels) {
         let key: String = labels[i];
         if MapHas(counts, key) {

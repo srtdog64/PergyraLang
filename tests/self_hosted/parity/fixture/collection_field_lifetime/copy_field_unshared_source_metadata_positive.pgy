@@ -1,6 +1,6 @@
 struct CopyPair { left: Array<String>; right: Array<String>; }
 func CopyGrow(pair: CopyPair) -> CopyPair {
-    let left: Array<String> = pair.left;
+    var left: Array<String> = pair.left;
     ArrayPush(left, "g");
     return CopyPair(left, pair.right);
 }

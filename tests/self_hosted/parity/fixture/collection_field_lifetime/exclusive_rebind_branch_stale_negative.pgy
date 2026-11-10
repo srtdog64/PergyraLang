@@ -11,7 +11,7 @@ struct Admission {
 }
 
 func RecordIndexFromOwners(facts: ExprSet, ref source: Array<String>) -> Admission {
-    let kinds: Array<String> = facts.kinds;
+    var kinds: Array<String> = facts.kinds;
     ArrayPush(kinds, source[0]);
     ArrayPush(kinds, source[0]);
     return Admission(true, ExprSet(true, kinds));
@@ -20,7 +20,7 @@ func RecordIndexFromOwners(facts: ExprSet, ref source: Array<String>) -> Admissi
 func AppendPopulated(facts: ExprSet, ref source: Array<String>, flag: Bool) -> Int {
     let record_index: Admission = RecordIndexFromOwners(facts, source);
     if flag { facts = record_index.facts; }
-    let kinds: Array<String> = facts.kinds;
+    var kinds: Array<String> = facts.kinds;
     ArrayPush(kinds, "x");
     return ArrayLength(kinds);
 }

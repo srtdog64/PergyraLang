@@ -1,7 +1,7 @@
 func Main() -> Void {
     let arr: Array<Int> = [10, 20, 30, 40];
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 4 {
         total = total + arr[i];
         i = i + 1;

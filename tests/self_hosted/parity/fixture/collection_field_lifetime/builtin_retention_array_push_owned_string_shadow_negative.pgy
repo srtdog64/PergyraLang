@@ -12,7 +12,7 @@ func CopyIndexedString(
 func Main() -> Void {
     let seed: Array<String> = ["shadowed"];
     let source: Array<String> = Clone(seed);
-    let destination: Array<String> = [];
+    var destination: Array<String> = [];
     CopyIndexedString(source, destination);
     ArrayDropOwnedStrings(source);
     Log(ArrayLength(destination));

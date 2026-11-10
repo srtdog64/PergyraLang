@@ -1,8 +1,8 @@
 func MaxSubarraySum(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let cur_max: Int = arr[0];
-    let best: Int = arr[0];
-    let i: Int = 1;
+    var cur_max: Int = arr[0];
+    var best: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         if arr[i] > cur_max + arr[i] {
             cur_max = arr[i];

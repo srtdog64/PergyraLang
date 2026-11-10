@@ -1,6 +1,6 @@
 func TagSum(names: Array<String>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let s: String = names[i];
         if s == "alpha" { total = total + 1; }

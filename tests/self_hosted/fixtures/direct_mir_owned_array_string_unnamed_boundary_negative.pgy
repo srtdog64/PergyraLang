@@ -3,7 +3,7 @@ func ReleaseOwnedArray(own values: Array<String>) -> Void {
 }
 
 func BuildOwnedArray() -> Array<String> {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let marker: String = Concat("fresh", "-array");
     ArrayPushOwnedString(values, marker);
     return values;

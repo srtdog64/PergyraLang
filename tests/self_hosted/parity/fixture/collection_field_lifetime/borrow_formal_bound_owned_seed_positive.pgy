@@ -1,5 +1,5 @@
 func Seed(ref source: Array<String>, inout destination: Array<String>) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(source) {
         let type_name: String = source[i];
         if type_name == "" || type_name == "Unknown" { return false; }
@@ -9,9 +9,9 @@ func Seed(ref source: Array<String>, inout destination: Array<String>) -> Bool {
     return true;
 }
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "Int");
-    let destination: Array<String> = [];
+    var destination: Array<String> = [];
     if !Seed(source, destination) { Exit(1); }
     Log(destination[0]);
     ArrayDropOwnedStrings(destination);

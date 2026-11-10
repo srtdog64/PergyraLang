@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let items: List<Int> = ListNew();
+    var items: List<Int> = ListNew();
     ListPush(items, 10);
     ListPush(items, 20);
     ListPush(items, 30);

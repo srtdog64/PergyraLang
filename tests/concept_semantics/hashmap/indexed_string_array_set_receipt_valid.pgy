@@ -4,7 +4,7 @@
 struct Capture { result: String; }
 
 func Main() -> Int {
-    let previous: Array<String> = [];
+    var previous: Array<String> = [];
     ArrayPush(previous, "");
     let capture: Capture = Capture("x");
     previous[0] = capture.result;

@@ -4,7 +4,7 @@ class Note {
 }
 
 func Octave(start: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..7 {
         let n: Note = Note(start + i * 2, i + 1);
         total = total + n.pitch * n.dur;

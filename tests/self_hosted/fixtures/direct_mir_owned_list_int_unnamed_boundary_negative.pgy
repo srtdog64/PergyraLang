@@ -1,5 +1,5 @@
 func BuildOwnedInts() -> List<Int> {
-    let values: List<Int> = ListNew();
+    var values: List<Int> = ListNew();
     ListPush(values, 7);
     return values;
 }

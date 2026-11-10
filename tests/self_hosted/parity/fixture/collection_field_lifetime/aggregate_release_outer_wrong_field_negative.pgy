@@ -15,9 +15,9 @@ func Main() -> Void {
             true, names, returns, params, callables);
     let callables_2_names: Array<String> = [];
     let callables_2: SemanticCallableNameTable = SemanticCallableNameTableFromNames(callables_2_names);
-    let outer: OuterFacts = OuterFacts(tables_seed,
+    var outer: OuterFacts = OuterFacts(tables_seed,
         SemanticAstExpressionFunctionTableFacts(true, [], [], [], callables_2));
-    let tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
+    var tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
     SemanticAstExpressionFunctionTableFactsRelease(tables);
     outer.other = tables;
 }

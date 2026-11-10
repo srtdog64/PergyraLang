@@ -14,8 +14,8 @@ class Player {
 }
 
 func Total(arr: Array<Int>, count: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < count {
         let lvl: Int = arr[i];
         let p: Player = Player(lvl, Gold);

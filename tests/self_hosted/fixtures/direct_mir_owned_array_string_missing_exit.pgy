@@ -1,6 +1,6 @@
 import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
 func IncompleteExits(mode: Int) -> String {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", "-row"));
     if mode == 0 { return CodegenJoinOwnedStringFragments(rows, ""); }
     if mode == 1 { return CodegenJoinOwnedStringFragments(rows, ""); }

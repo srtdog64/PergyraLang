@@ -7,7 +7,7 @@ class Step {
 func Get(i: Int) -> Step { return Step(i); }
 
 func Test(n: Int) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..n {
         total = total + Get(i + 1).Doubled();
     }

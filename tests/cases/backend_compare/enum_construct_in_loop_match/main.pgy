@@ -6,8 +6,8 @@ func ChooseFrame(v: Int) -> Frame {
 }
 
 func DescribeAll(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let f: Frame = ChooseFrame(arr[i]);
         match f {

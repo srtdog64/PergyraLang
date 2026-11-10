@@ -4,7 +4,7 @@ enum VexaTag {
 }
 
 func Main() -> Void {
-    let value: VexaTag = Aster(11);
+    var value: VexaTag = Aster(11);
     value = Brume(22);
     Log(value.Brume._0);
 }

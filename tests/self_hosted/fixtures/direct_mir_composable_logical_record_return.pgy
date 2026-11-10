@@ -35,9 +35,9 @@ func AdvanceProbe(
     return CursorProbe(false, 0, 0, 0, 0, rejected_rows);
 }
 func Main() -> Void {
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
     let cursor_rows: Array<Int> = [];
     let fact_rows: Array<Int> = [];
     let cursor: CursorProbe = CursorProbe(true, 1, 2, 3, 4, cursor_rows);

@@ -6,6 +6,6 @@ func Forward(inout values: Array<String>, ready: Bool) -> Bool {
     return ready && Append(values);
 }
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     Log(Forward(values, true));
 }

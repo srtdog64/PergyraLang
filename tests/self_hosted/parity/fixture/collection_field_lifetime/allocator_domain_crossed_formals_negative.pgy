@@ -11,7 +11,7 @@ func BuildMixed(value: Int, left_allocator: Allocator, right_allocator: Allocato
 func Main() -> Void {
     let left_allocator: Allocator = AllocatorResult();
     let right_allocator: Allocator = AllocatorResult();
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, BuildMixed(1, left_allocator, right_allocator));
     ArrayDropOwnedStrings(values);
     AllocatorDestroy(left_allocator);

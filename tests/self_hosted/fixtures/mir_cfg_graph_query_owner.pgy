@@ -79,7 +79,7 @@ func MirCfgGraphBackedgeFactsReady() -> Bool {
 }
 
 func Main() -> Void {
-    let failures: Int = 0;
+    var failures: Int = 0;
 
     let diamond_true: Array<Int> = [1, 3, 3, 0 - 1];
     let diamond_false: Array<Int> = [2, 0 - 1, 0 - 1, 0 - 1];

@@ -1,5 +1,5 @@
 subject Driver {
-    let counter: Int;
+    var counter: Int;
 
     action Step(self) -> Void {
         counter = counter + 1;

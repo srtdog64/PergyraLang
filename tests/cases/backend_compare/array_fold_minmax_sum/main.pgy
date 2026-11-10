@@ -1,9 +1,9 @@
 func FoldStats(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let mn: Int = arr[0];
-    let mx: Int = arr[0];
-    let sum: Int = arr[0];
-    let i: Int = 1;
+    var mn: Int = arr[0];
+    var mx: Int = arr[0];
+    var sum: Int = arr[0];
+    var i: Int = 1;
     while i < n {
         let v: Int = arr[i];
         if v < mn { mn = v; }

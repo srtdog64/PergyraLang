@@ -4,7 +4,7 @@ func At(values: Array<String>) -> Int { return 0; }
 func Main() -> Void {
     let pair: Pair = Pair(["borrowed"]);
     let value: Array<String> = pair.value;
-    let slots: Array<Array<String>> = [["slot"]];
+    var slots: Array<Array<String>> = [["slot"]];
     slots[At(pair.value)] = value;
     Log(ArrayLength(pair.value));
 }

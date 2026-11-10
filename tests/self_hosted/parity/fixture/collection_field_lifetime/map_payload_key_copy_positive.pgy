@@ -1,5 +1,5 @@
 func Main() -> Int {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     MapSet(table, "key", "key");
     let view: String = MapGet(table, "key");
     MapSet(table, view, "replacement");

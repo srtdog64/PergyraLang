@@ -5,7 +5,7 @@ func Make() -> Array<Int> {
 }
 
 func Main() -> Void {
-    let s: Int = 0;
+    var s: Int = 0;
     for x in Make() {
         s = s + x;
     }

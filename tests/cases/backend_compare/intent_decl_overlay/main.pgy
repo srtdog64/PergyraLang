@@ -1,7 +1,7 @@
 subject Player
 {
-    let hp: Int;
-    let started: Bool;
+    var hp: Int;
+    var started: Bool;
 
     action Ignite(self) -> Void
     {

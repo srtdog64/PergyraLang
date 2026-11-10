@@ -1,5 +1,5 @@
 subject PriorityProbe {
-    let captures: Int;
+    var captures: Int;
 
     action Capture(self) -> Bool {
         captures = captures + 1;

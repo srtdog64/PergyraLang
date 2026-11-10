@@ -9,8 +9,8 @@ func PlayMatch(p1: Int, p2: Int) -> Score {
 }
 
 func TotalDifferences(rounds: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < rounds {
         let s: Score = PlayMatch(i * 3, i * 2);
         total = total + (s.player - s.opponent);

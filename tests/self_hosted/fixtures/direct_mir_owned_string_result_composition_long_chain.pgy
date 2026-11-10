@@ -35,7 +35,7 @@ func Owned5() -> String
 
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, Owned0());
     ArrayDropOwnedStrings(values);
     Log("owned-string-result-composition-ready");

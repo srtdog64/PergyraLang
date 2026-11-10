@@ -1,14 +1,14 @@
 func CountAboveAvg(arr: Array<Int>, n: Int) -> Int {
     if n == 0 { return 0; }
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         sum = sum + arr[i];
         i = i + 1;
     }
     let avg_floor: Int = sum / n;
-    let count: Int = 0;
-    let j: Int = 0;
+    var count: Int = 0;
+    var j: Int = 0;
     while j < n {
         if arr[j] > avg_floor { count = count + 1; }
         j = j + 1;

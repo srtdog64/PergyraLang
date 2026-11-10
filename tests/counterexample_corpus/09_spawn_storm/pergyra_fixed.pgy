@@ -5,8 +5,8 @@ func SummaryTokens(doc: Int) -> Int {
 }
 
 async func SummarizeRange(lo: Int, hi: Int, docCount: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = lo;
+    var total: Int = 0;
+    var i: Int = lo;
     while i < hi && i < docCount {
         total = total + SummaryTokens(i);
         i = i + 1;

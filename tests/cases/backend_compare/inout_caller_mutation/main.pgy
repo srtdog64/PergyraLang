@@ -5,7 +5,7 @@ func Grow(inout xs: Array<Int>) -> Void {
 }
 
 func Main() -> Void {
-    let v: Array<Int> = [1, 2, 3];
+    var v: Array<Int> = [1, 2, 3];
     Grow(v);
     Log(ToString(ArrayLength(v)));
 }

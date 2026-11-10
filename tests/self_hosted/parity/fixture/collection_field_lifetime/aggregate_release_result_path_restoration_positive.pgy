@@ -5,7 +5,7 @@ struct ResultPathBox { values: Array<String>; }
 struct ResultPathUpdate { recognized: Bool; box: ResultPathBox; }
 
 func ResultPathUpdateBox(box: ResultPathBox) -> ResultPathUpdate {
-    let values: Array<String> = box.values;
+    var values: Array<String> = box.values;
     ArrayPushOwnedString(values, "next");
     box.values = values;
     return ResultPathUpdate(false, box);

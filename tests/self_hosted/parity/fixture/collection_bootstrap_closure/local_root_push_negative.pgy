@@ -30,7 +30,7 @@ func Peek(ref facts: Facts) -> Int {
 }
 
 func Main() -> Void {
-    let facts: Facts = MakeFacts();
+    var facts: Facts = MakeFacts();
     ArrayPush(facts.names, "x");
     if !Resolve(facts.names) { return; }
 }

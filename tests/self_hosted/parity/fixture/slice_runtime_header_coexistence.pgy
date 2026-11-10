@@ -11,7 +11,7 @@ func Main() -> Void {
     let copied_numbers: Array<Int> = SliceCopy(numbers);
     let copied_labels: Array<String> = SliceCopy(labels);
     Log(copied_numbers[1]); Log(copied_labels[0]);
-    let values: HashMap<String, Int> = MapNew();
+    var values: HashMap<String, Int> = MapNew();
     MapSet(values, "owned", 1);
     Log(MapGet(values, "owned"));
 }

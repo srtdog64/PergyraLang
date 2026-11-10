@@ -4,8 +4,8 @@ class Slot2 {
 }
 
 func FillArr(n: Int, mark: Int) -> Array<Int> {
-    let arr: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
-    let i: Int = 0;
+    var arr: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
+    var i: Int = 0;
     while i < n {
         arr[i] = mark + i;
         i = i + 1;
@@ -14,8 +14,8 @@ func FillArr(n: Int, mark: Int) -> Array<Int> {
 }
 
 func SumWith(slot: Slot2, arr: Array<Int>, n: Int) -> Int {
-    let total: Int = slot.id;
-    let i: Int = 0;
+    var total: Int = slot.id;
+    var i: Int = 0;
     while i < n {
         total = total + arr[i] * slot.mark;
         i = i + 1;

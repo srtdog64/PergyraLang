@@ -1,6 +1,6 @@
 func RemoveAll(inout arr: Array<Int>, n: Int, val: Int) -> Int {
-    let write: Int = 0;
-    let i: Int = 0;
+    var write: Int = 0;
+    var i: Int = 0;
     while i < n {
         if arr[i] != val {
             arr[write] = arr[i];
@@ -13,8 +13,8 @@ func RemoveAll(inout arr: Array<Int>, n: Int, val: Int) -> Int {
 
 func SumAfter(arr: Array<Int>, n: Int, val: Int) -> Int {
     let m: Int = RemoveAll(arr, n, val);
-    let s: Int = 0;
-    let i: Int = 0;
+    var s: Int = 0;
+    var i: Int = 0;
     while i < m {
         s = s + arr[i];
         i = i + 1;

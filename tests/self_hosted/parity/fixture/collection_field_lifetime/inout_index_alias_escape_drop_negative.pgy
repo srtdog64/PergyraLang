@@ -5,7 +5,7 @@ func Element(values: Array<String>) -> String
 }
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "copied");
     let element: String = Element(values);
     ArrayDropOwnedStrings(values);

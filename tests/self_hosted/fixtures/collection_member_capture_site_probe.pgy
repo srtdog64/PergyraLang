@@ -12,26 +12,26 @@ func Main() -> Void with caps env, io_read {
     if args[1] != "missing" && args[1] != "mode4" { Exit(2); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok || !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, analysis.signatures) ||
         !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) { Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
-    let selected_slot: Int = -1;
-    let selected_node: Int = -1;
-    let selected_root: Int = -1;
-    let selected_call: Int = -1;
-    let selected_argument: Int = -1;
-    let selected_row: Int = -1;
-    let selected_ordinal: Int = -1;
-    let selected_flat: Int = -1;
-    let matches: Int = 0;
-    let slot: Int = 0;
+    var selected_slot: Int = -1;
+    var selected_node: Int = -1;
+    var selected_root: Int = -1;
+    var selected_call: Int = -1;
+    var selected_argument: Int = -1;
+    var selected_row: Int = -1;
+    var selected_ordinal: Int = -1;
+    var selected_flat: Int = -1;
+    var matches: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         if analysis.expression_surfaces.expression_graph.has_roots[slot] {
             let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
             let start: Option<Int> = SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph, root);
             if !IsSome(start) { Exit(2); }
-            let node: Int = UnwrapOption(start);
+            var node: Int = UnwrapOption(start);
             while node <= root {
                 let kind: Option<Int> = SemanticExpressionGraphNodeKind(analysis.expression_surfaces.expression_graph, node);
                 if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {

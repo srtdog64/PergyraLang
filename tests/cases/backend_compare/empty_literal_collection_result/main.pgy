@@ -13,13 +13,13 @@ func NoneSeen() -> Set<Int> {
 func FirstItem(items: List<Int>) -> Int {
     // The copy shares the list's storage: read the parameter before the push.
     let before: Int = ListSize(items);
-    let buf: List<Int> = items;
+    var buf: List<Int> = items;
     ListPush(buf, 3);
     return ListGet(buf, 0) + before;
 }
 
 func AddFive(seen: Set<Int>) -> Int {
-    let buf: Set<Int> = seen;
+    var buf: Set<Int> = seen;
     SetAdd(buf, 5);
     if SetHas(buf, 5) {
         return SetSize(buf) + 10;
@@ -28,10 +28,10 @@ func AddFive(seen: Set<Int>) -> Int {
 }
 
 func Main() -> Void {
-    let items: List<Int> = NoItems();
+    var items: List<Int> = NoItems();
     ListPush(items, 8);
     Log(ListGet(items, 0));
-    let seen: Set<Int> = NoneSeen();
+    var seen: Set<Int> = NoneSeen();
     SetAdd(seen, 2);
     Log(SetSize(seen));
     Log(FirstItem(NoItems()));

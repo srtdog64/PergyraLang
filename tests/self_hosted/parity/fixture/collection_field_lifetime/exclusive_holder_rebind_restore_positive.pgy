@@ -20,7 +20,7 @@ func RecordIndexFromOwners(facts: ExprSet, ref source: Array<String>, offset: In
     if ArrayLength(source) != 3 { return Admission(false, facts, 0); }
     let invalid: ExprSet = ExprSetInvalid(facts);
     if offset < 0 { return Admission(true, invalid, 0); }
-    let kinds: Array<String> = facts.kinds;
+    var kinds: Array<String> = facts.kinds;
     ArrayPush(kinds, source[0]);
     return Admission(true, ExprSet(true, kinds), 1);
 }
@@ -33,8 +33,8 @@ func AppendPopulated(facts: ExprSet, ref source: Array<String>, inout offset: In
         return Admission(true, record_index.facts, 0);
     }
     facts = record_index.facts;
-    let kinds: Array<String> = facts.kinds;
-    let index: Int = 0;
+    var kinds: Array<String> = facts.kinds;
+    var index: Int = 0;
     while index < ArrayLength(source) {
         if source[index] == "" { return Admission(true, invalid, 0); }
         ArrayPush(kinds, source[index]);
@@ -46,7 +46,7 @@ func AppendPopulated(facts: ExprSet, ref source: Array<String>, inout offset: In
 func Main() -> Int {
     let kinds: Array<String> = ["k"];
     let source: Array<String> = ["a", "b"];
-    let offset: Int = 0;
+    var offset: Int = 0;
     let facts: ExprSet = ExprSet(true, kinds);
     let admitted: Admission = AppendPopulated(facts, source, offset);
     return ArrayLength(admitted.facts.kinds);

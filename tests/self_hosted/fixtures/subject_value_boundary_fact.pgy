@@ -8,7 +8,7 @@ func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Die("subject boundary probe requires source and expected verdict"); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if args[1] == "accept" {
         if !body.verdict.ok || !SemanticAstBodyTypeBundleReady(artifact, analysis, body) {

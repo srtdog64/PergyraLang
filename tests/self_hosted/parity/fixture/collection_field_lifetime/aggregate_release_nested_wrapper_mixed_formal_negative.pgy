@@ -10,7 +10,7 @@ struct MixedWrapperAdmission { facts: MixedWrapperFacts; }
 func MixedWrapperBuild(
     primary: MixedWrapperFacts, alternate: MixedWrapperFacts
 ) -> MixedWrapperAdmission {
-    let names: Array<String> = primary.names;
+    var names: Array<String> = primary.names;
     let tags: Array<String> = alternate.tags;
     ArrayPushOwnedString(names, "next");
     return MixedWrapperAdmission(MixedWrapperFacts(names, tags));

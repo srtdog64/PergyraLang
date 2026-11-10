@@ -34,7 +34,7 @@ func Main() -> Void with caps env, io_read
     let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
         "binding_move_prefix_input.pgy", source, false));
     if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     Log("analysis=" + ToString(analysis.verdict.ok) + ":" + analysis.verdict.diagnostic_code);
     if !analysis.verdict.ok { Log("analysis_message=" + analysis.verdict.diagnostic_message); Log("scanner=NOT_REACHED"); return; }
     if args[1] == "malformed-analysis"
@@ -58,7 +58,7 @@ func Main() -> Void with caps env, io_read
     // This observation guard prevents a raw invalid-carrier scanner call.
     // It is not a certificate of the production verdict's diagnostic order.
     if !bundle.collection_formal_effects.ok { Log("scanner=NOT_OBSERVED"); return; }
-    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+    var definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
         analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
     if !definitions.ok { Log("definition admission refused"); Exit(2); }
@@ -81,7 +81,7 @@ func Main() -> Void with caps env, io_read
         Log("matched=" + UnwrapOption(text));
     }
     Log("definitions=" + ToString(definitions.local_count) + ":" + ToString(ArrayLength(definitions.syntax_ids)));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < definitions.local_count
     {
         Log("local:" + ToString(row) + "=" + ToString(analysis.local_bindings.node_ids[row]) + ":" +
@@ -104,12 +104,12 @@ func Main() -> Void with caps env, io_read
     row = 0;
     while row < ArrayLength(definitions.surface_rows)
     { Log("surface:" + ToString(row) + "=" + ToString(definitions.surface_rows[row])); row = row + 1; }
-    let slot: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
     {
         let has_root: Bool = analysis.expression_surfaces.expression_graph.has_roots[slot];
-        let completed: Int = -1;
-        let has_start: Bool = false;
+        var completed: Int = -1;
+        var has_start: Bool = false;
         if has_root
         {
             completed = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, analysis.local_bindings, analysis.expression_surfaces, slot);

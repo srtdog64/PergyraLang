@@ -6,14 +6,14 @@ func FreshBranch(flag: Bool) -> String
 
 func FreshAfterControl(flag: Bool) -> String
 {
-    let raw: String = "false";
+    var raw: String = "false";
     if flag { raw = "true"; }
     return Concat("control-", raw);
 }
 
 func Main() -> Void
 {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, FreshBranch(true));
     ArrayPush(fields, FreshBranch(false));
     ArrayPush(fields, FreshAfterControl(true));

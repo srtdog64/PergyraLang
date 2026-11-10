@@ -81,13 +81,13 @@ func WeaponFactory(classCode: Int) -> WeaponCard
 
 func CombatStrategyFactory(stateId: Int, option: Int, classCode: Int, pulse: Int) -> CombatStrategyCard
 {
-    let aggression = pulse;
-    let guardBias = 0;
-    let focusShift = 0;
-    let moraleSwing = 0;
-    let effectBias = 0;
-    let name = "tempo line";
-    let posture = "measured";
+    var aggression = pulse;
+    var guardBias = 0;
+    var focusShift = 0;
+    var moraleSwing = 0;
+    var effectBias = 0;
+    var name = "tempo line";
+    var posture = "measured";
 
     if option == 1
     {

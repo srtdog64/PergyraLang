@@ -3,21 +3,21 @@ enum Op { Inc, Double, Reset }
 func ApplyOp(inout arr: Array<Int>, n: Int, op: Op) -> Int {
     match op {
         case Inc:
-            let i: Int = 0;
+            var i: Int = 0;
             while i < n {
                 arr[i] = arr[i] + 1;
                 i = i + 1;
             }
             return n;
         case Double:
-            let j: Int = 0;
+            var j: Int = 0;
             while j < n {
                 arr[j] = arr[j] * 2;
                 j = j + 1;
             }
             return n * 2;
         case Reset:
-            let k: Int = 0;
+            var k: Int = 0;
             while k < n {
                 arr[k] = 0;
                 k = k + 1;
@@ -27,8 +27,8 @@ func ApplyOp(inout arr: Array<Int>, n: Int, op: Op) -> Int {
 }
 
 func SumOf(arr: Array<Int>, n: Int) -> Int {
-    let s: Int = 0;
-    let i: Int = 0;
+    var s: Int = 0;
+    var i: Int = 0;
     while i < n {
         s = s + arr[i];
         i = i + 1;
@@ -37,7 +37,7 @@ func SumOf(arr: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let arr: Array<Int> = [1, 2, 3, 4];
+    var arr: Array<Int> = [1, 2, 3, 4];
     Log(ApplyOp(arr, 4, Inc));
     Log(SumOf(arr, 4));
     Log(ApplyOp(arr, 4, Double));

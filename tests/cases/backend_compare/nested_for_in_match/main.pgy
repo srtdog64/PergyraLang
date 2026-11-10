@@ -7,7 +7,7 @@ func TagOf(n: Int) -> Tag {
 }
 
 func Process(rows: Array<Int>, cols: Array<Int>) -> Int {
-    let acc: Int = 0;
+    var acc: Int = 0;
     for r in rows {
         for c in cols {
             match TagOf(r + c) {

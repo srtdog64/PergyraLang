@@ -4,11 +4,11 @@
 // head / tail / count 인덱스로 enqueue / dequeue를 관리한다.
 
 func Main() -> Void {
-    let data: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
+    var data: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
     let cap: Int = 8;
-    let head: Int = 0;
-    let tail: Int = 0;
-    let count: Int = 0;
+    var head: Int = 0;
+    var tail: Int = 0;
+    var count: Int = 0;
 
     // enqueue 10, 20, 30
     ArraySet(data, tail, 10);

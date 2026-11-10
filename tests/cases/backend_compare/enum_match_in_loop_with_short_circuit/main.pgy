@@ -7,8 +7,8 @@ func TokenFromVal(v: Int) -> Token {
 }
 
 func SumNumeric(arr: Array<Int>, n: Int, threshold: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let t: Token = TokenFromVal(arr[i]);
         match t {

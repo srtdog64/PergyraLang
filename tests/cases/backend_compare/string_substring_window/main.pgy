@@ -1,9 +1,9 @@
 func LongestEqualRun(s: String) -> Int {
     let n: Int = StringLength(s);
     if n == 0 { return 0; }
-    let best: Int = 1;
-    let cur: Int = 1;
-    let i: Int = 1;
+    var best: Int = 1;
+    var cur: Int = 1;
+    var i: Int = 1;
     while i < n {
         if Substring(s, i, i + 1) == Substring(s, i - 1, i) {
             cur = cur + 1;

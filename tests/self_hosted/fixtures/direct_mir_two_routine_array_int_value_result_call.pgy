@@ -9,7 +9,7 @@ func ObserveWindowFromValue(text: String, ends: Array<Int>) -> String {
 }
 
 func Main() -> Void {
-    let ends: Array<Int> = [0];
+    var ends: Array<Int> = [0];
     Log(ObserveWindow("x", 0, 1, ends));
     Log(ObserveWindowFromValue("y", ends));
 }

@@ -1,7 +1,7 @@
 func DigitCount(n: Int) -> Int {
     if n == 0 { return 1; }
-    let count: Int = 0;
-    let v: Int = n;
+    var count: Int = 0;
+    var v: Int = n;
     if v < 0 { v = 0 - v; }
     while v > 0 {
         count = count + 1;

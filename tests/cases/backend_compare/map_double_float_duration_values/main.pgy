@@ -5,12 +5,12 @@
 // as 5.2221e-315 and 7 as garbage in the upper half. Float and Duration
 // values are the same width as their expressions and must stay exact.
 func Main() -> Void {
-    let byLong: HashMap<Long, Double> = MapNew();
+    var byLong: HashMap<Long, Double> = MapNew();
     MapSet(byLong, 4L, 0.5);
     Log(MapGet(byLong, 4L));
     Log(ToString(MapGet(byLong, 4L)));
 
-    let byName: HashMap<String, Double> = MapNew();
+    var byName: HashMap<String, Double> = MapNew();
     MapSet(byName, "a", 0.5);
     MapSet(byName, "a", 0.25);
     MapSet(byName, "b", 1.75);
@@ -20,14 +20,14 @@ func Main() -> Void {
     Log(MapHas(byName, "b"));
 
     let quarter: Float = 0.25;
-    let byFlag: HashMap<Bool, Double> = MapNew();
+    var byFlag: HashMap<Bool, Double> = MapNew();
     MapSet(byFlag, true, quarter);
     Log(MapGet(byFlag, true));
 
     let one: Double = 1.0;
     let three: Double = 3.0;
     let third: Double = one / three;
-    let byIndex: HashMap<Int, Double> = MapNew();
+    var byIndex: HashMap<Int, Double> = MapNew();
     var step: Float = 0.5;
     var i = 0;
     while i < 20 {
@@ -44,22 +44,22 @@ func Main() -> Void {
     let literal: HashMap<String, Double> = { "third": third };
     Log(MapGet(literal, "third"));
 
-    let floats: HashMap<Long, Float> = MapNew();
+    var floats: HashMap<Long, Float> = MapNew();
     MapSet(floats, 4L, 0.5);
     MapSet(floats, 5L, 1.75);
     Log(MapGet(floats, 4L));
     Log(MapGet(floats, 5L));
 
-    let waits: HashMap<String, Duration> = MapNew();
+    var waits: HashMap<String, Duration> = MapNew();
     MapSet(waits, "short", 1500ms);
     MapSet(waits, "long", 2min);
     Log(MapGet(waits, "short"));
     Log(MapGet(waits, "long"));
-    let waitsById: HashMap<Long, Duration> = MapNew();
+    var waitsById: HashMap<Long, Duration> = MapNew();
     MapSet(waitsById, 9L, 250us);
     Log(MapGet(waitsById, 9L));
 
-    let counts: HashMap<Int, Long> = MapNew();
+    var counts: HashMap<Int, Long> = MapNew();
     MapSet(counts, 1, 7);
     Log(MapGet(counts, 1));
 }

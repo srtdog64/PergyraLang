@@ -16,9 +16,9 @@ func Retire(inout names: CapturedNames) -> Void
 
 func Main() -> Void
 {
-    let seed: Array<String> = [];
+    var seed: Array<String> = [];
     ArrayPushOwnedString(seed, "capacity");
     ArrayPop(seed);
-    let names: CapturedNames = CapturedNames(seed, seed);
+    var names: CapturedNames = CapturedNames(seed, seed);
     Retire(names);
 }

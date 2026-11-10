@@ -8,8 +8,8 @@ class Counter {
 }
 
 func StepsLoop(start: Int, steps: Int) -> Int {
-    let cur: Int = start;
-    let i: Int = 0;
+    var cur: Int = start;
+    var i: Int = 0;
     while i < steps {
         let c: Counter = Counter(cur, 100);
         cur = c.Next();

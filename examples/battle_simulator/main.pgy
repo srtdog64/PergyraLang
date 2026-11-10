@@ -15,7 +15,7 @@ export zone BattleZone {
 
     func Exchange(self) -> Void {
         let opening = self.attacker.Commit();
-        let counter = 0;
+        var counter = 0;
 
         self.defender.health.current = Max(self.defender.health.current - opening, 0);
         if self.defender.health.current > 0 {
@@ -54,7 +54,7 @@ world BattleWorld {
     activate rematch
 
     func Run(self) -> Void {
-        let round = 0;
+        var round = 0;
         while round < 2 {
             self.arena.Exchange();
             self.rematch.Exchange();

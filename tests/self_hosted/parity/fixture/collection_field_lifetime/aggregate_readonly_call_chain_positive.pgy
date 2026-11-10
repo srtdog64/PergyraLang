@@ -7,9 +7,9 @@ func Retire(inout table: Table) -> Void {
     table.names = names;
 }
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "owned");
-    let table: Table = Table(names);
+    var table: Table = Table(names);
     if !Observe(table) { Exit(1); }
     Retire(table);
     if Observe(table) { Exit(1); }

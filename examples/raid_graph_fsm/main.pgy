@@ -274,7 +274,7 @@ world RaidWorld
         let next = NextRoom(target, path);
         let cost = PathCost(target, path);
         let pressure = LootAt(target) + storm;
-        let threatBudget = 0;
+        var threatBudget = 0;
         if target == 1 { threatBudget = forge.threat + forge.instability; }
         else if target == 2 { threatBudget = vault.threat + vault.instability; }
         else { threatBudget = sanctum.threat + sanctum.wards; }
@@ -300,7 +300,7 @@ world RaidWorld
 
     func Simulate(self, scout: Raider, guardian: Raider, mystic: Raider) -> Void
     {
-        let tick = 0;
+        var tick = 0;
         while tick < 5
         {
             turn = tick;

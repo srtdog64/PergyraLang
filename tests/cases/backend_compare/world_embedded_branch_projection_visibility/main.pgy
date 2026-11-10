@@ -1,5 +1,5 @@
 subject Player {
-    let hp: Int;
+    var hp: Int;
     func Heal(self, amount: Int) -> Void {
         hp = hp + amount;
     }

@@ -2,11 +2,11 @@ import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fa
 
 func Main() -> Void {
     let seed: Array<String> = ["x"];
-    let names: Array<String> = Clone(seed);
+    var names: Array<String> = Clone(seed);
     let returns: Array<String> = [];
     let params: Array<String> = [];
     let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(names);
-    let facts: SemanticAstExpressionFunctionTableFacts =
+    var facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(
             true, names, returns, params, callables);
     names = Clone(seed);

@@ -8,8 +8,8 @@ func IsVowel(c: String) -> Bool {
 }
 
 func CountVowels(s: String) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(s);
     while i < n {
         if IsVowel(Substring(s, i, 1)) {

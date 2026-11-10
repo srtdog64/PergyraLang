@@ -1,8 +1,8 @@
 func ReverseWords(s: String) -> String {
     let n: Int = StringLength(s);
-    let result: String = "";
-    let end: Int = n;
-    let i: Int = n - 1;
+    var result: String = "";
+    var end: Int = n;
+    var i: Int = n - 1;
     while i >= 0 {
         let ch: String = Substring(s, i, i + 1);
         if ch == " " {

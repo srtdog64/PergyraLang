@@ -26,8 +26,8 @@ func ReadRequires(
 
 func Main() -> Void {
     Log("mixed-four-copyouts-ready");
-    let bases: Array<String> = []; let starts: Array<Int> = [];
-    let counts: Array<Int> = []; let names: Array<String> = [];
+    var bases: Array<String> = []; var starts: Array<Int> = [];
+    var counts: Array<Int> = []; var names: Array<String> = [];
     let ok: Bool = ReadRequires("R", 0, 1, bases, starts, counts, names);
     if ok { Log("mixed-interleaved-ready"); } else { Log("mixed-interleaved-failed"); }
     Log(ArrayLength(bases)); Log(ArrayLength(starts));

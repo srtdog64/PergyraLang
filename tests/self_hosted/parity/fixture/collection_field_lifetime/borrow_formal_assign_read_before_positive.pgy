@@ -2,7 +2,7 @@ func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
 func Observe(ref values: Array<String>) -> Bool {
     let first: Array<String> = values;
     let before: Bool = Matches(first);
-    let dst: Array<String> = [];
+    var dst: Array<String> = [];
     dst = values;
     return before;
 }

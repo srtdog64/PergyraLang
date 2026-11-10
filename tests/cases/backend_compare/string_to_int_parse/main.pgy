@@ -13,8 +13,8 @@ func ParseDigit(s: String) -> Int {
 }
 
 func SumDigits(s: String) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < StringLength(s) {
         let d: Int = ParseDigit(Substring(s, i, 1));
         if d >= 0 { total = total + d; }

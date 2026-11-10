@@ -5,7 +5,7 @@ func Grow(inout values: Array<String>) -> Bool {
 }
 func Observe(ref values: Array<String>) -> Bool {
     let first: Array<String> = values;
-    let second: Array<String> = first;
+    var second: Array<String> = first;
     return Grow(second) && Matches(first);
 }
 

@@ -10,8 +10,8 @@ class Buyer {
 }
 
 func ShoppingTrip(start: Int, costs: Array<Int>, n: Int) -> Int {
-    let b: Buyer = Buyer(start, 0);
-    let i: Int = 0;
+    var b: Buyer = Buyer(start, 0);
+    var i: Int = 0;
     while i < n {
         b = b.Buy(costs[i]);
         i = i + 1;

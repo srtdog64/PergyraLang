@@ -8,11 +8,11 @@ func Reads(ref values: Array<String>) -> Bool {
     return values[0] == "copied";
 }
 func Run() -> Void {
-    let iteration: Int = 0;
+    var iteration: Int = 0;
     while iteration < 2 {
-        let values: Array<String> = [];
+        var values: Array<String> = [];
         Copy(values);
-        let pending: Int = 0;
+        var pending: Int = 0;
         while pending < 2 {
             if pending == 1 {
                 Retire(values);

@@ -1,7 +1,7 @@
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
 func Forward(own values: Array<String>) -> Int {
-    let moved: Array<String> = [];
-    let turn: Int = 0;
+    var moved: Array<String> = [];
+    var turn: Int = 0;
     while turn < 2 { moved = values; turn = turn + 1; }
     return Metadata(moved);
 }

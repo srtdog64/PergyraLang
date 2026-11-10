@@ -7,13 +7,13 @@ func Empty(entries: HashMap<String, Int>) -> State {
 }
 
 func Grow(state: State) -> State {
-    let entries: HashMap<String, Int> = state.entries;
+    var entries: HashMap<String, Int> = state.entries;
     MapSet(entries, "count", 1);
     return State(entries, state.names);
 }
 
 func Build(analysis: Analysis) -> Int {
-    let state: State = Empty(analysis.entries);
+    var state: State = Empty(analysis.entries);
     state = Grow(state);
     let kept: HashMap<String, Int> = analysis.entries;
     let current: HashMap<String, Int> = state.entries;

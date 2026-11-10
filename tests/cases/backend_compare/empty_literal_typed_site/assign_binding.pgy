@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let values: Array<Int> = [1, 2];
+    var values: Array<Int> = [1, 2];
     values = [];
     Log(ArrayLength(values));
     ArrayPush(values, 3);

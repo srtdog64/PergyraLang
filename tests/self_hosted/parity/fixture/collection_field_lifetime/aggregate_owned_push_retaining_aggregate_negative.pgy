@@ -3,18 +3,18 @@ struct Rows {
 }
 
 func Observe(rows: Rows) -> Void {
-    let aliases: Array<Rows> = [];
+    var aliases: Array<Rows> = [];
     ArrayPush(aliases, rows);
 }
 
 func Append(inout rows: Rows) -> Void {
-    let values: Array<String> = rows.values;
+    var values: Array<String> = rows.values;
     ArrayPushOwnedString(values, "x");
     rows.values = values;
     Observe(rows);
 }
 
 func Main() -> Void {
-    let rows: Rows = Rows([]);
+    var rows: Rows = Rows([]);
     Append(rows);
 }

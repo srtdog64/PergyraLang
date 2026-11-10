@@ -3,8 +3,8 @@ func StoreOwned(inout values: Array<String>, value: String) -> Void {
     ArrayPushOwnedString(values, value);
 }
 func Append(inout rows: Rows) -> Void {
-    let values: Array<String> = rows.values;
-    let i: Int = 0;
+    var values: Array<String> = rows.values;
+    var i: Int = 0;
     while i < 2 {
         StoreOwned(values, "loop");
         i = i + 1;
@@ -17,7 +17,7 @@ func Retire(inout rows: Rows) -> Void {
     rows.values = values;
 }
 func Main() -> Void {
-    let rows: Rows = Rows([]);
+    var rows: Rows = Rows([]);
     Append(rows);
     Retire(rows);
 }

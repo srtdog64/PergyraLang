@@ -1,5 +1,5 @@
 func Grade(score: Int, max: Int) -> Int {
-    let ratio: Int = 0;
+    var ratio: Int = 0;
     if max > 0 { ratio = score * 100 / max; }
     if ratio < 0 { return -1; }
     if ratio >= 90 { return 5; }

@@ -8,11 +8,11 @@ func Main() -> Void {
     let flags: Array<Bool> = [true, false];
     Log(flags[0]);
     ArrayDrop(flags);
-    let points: Array<DropPoint> = [];
+    var points: Array<DropPoint> = [];
     ArrayPush(points, DropPoint(3, 4.0));
     Log(points[0].x);
     ArrayDrop(points);
-    let tags: Array<DropTag> = [];
+    var tags: Array<DropTag> = [];
     ArrayPush(tags, DropTag.Empty);
     ArrayDrop(tags);
     let empty: Array<Int> = [];

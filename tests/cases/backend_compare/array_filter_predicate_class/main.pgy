@@ -7,8 +7,8 @@ class Spec {
 }
 
 func CountAccepted(s: Spec, arr: Array<Int>, n: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < n {
         if s.Accepts(arr[i]) {
             count = count + 1;
@@ -19,8 +19,8 @@ func CountAccepted(s: Spec, arr: Array<Int>, n: Int) -> Int {
 }
 
 func SumAccepted(s: Spec, arr: Array<Int>, n: Int) -> Int {
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         if s.Accepts(arr[i]) {
             sum = sum + arr[i];

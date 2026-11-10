@@ -7,8 +7,8 @@ func DoSet(inout arr: Array<Int>, n: Int, idx: Int, val: Int) -> Int {
 }
 
 func DoSum(arr: Array<Int>, n: Int) -> Int {
-    let s: Int = 0;
-    let i: Int = 0;
+    var s: Int = 0;
+    var i: Int = 0;
     while i < n {
         s = s + arr[i];
         i = i + 1;
@@ -17,7 +17,7 @@ func DoSum(arr: Array<Int>, n: Int) -> Int {
 }
 
 func DoMultiply(inout arr: Array<Int>, n: Int, factor: Int) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         arr[i] = arr[i] * factor;
         i = i + 1;

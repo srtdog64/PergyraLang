@@ -1,11 +1,11 @@
 func WindowSum(xs: Array<Int>, k: Int) -> Int {
     let n: Int = ArrayLength(xs);
     if k > n { return 0; }
-    let i: Int = 0;
-    let best: Int = 0;
+    var i: Int = 0;
+    var best: Int = 0;
     while i + k <= n {
-        let cur: Int = 0;
-        let j: Int = 0;
+        var cur: Int = 0;
+        var j: Int = 0;
         while j < k {
             cur = cur + xs[i + j];
             j = j + 1;

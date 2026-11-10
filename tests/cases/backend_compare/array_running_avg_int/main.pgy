@@ -1,13 +1,13 @@
 func RunningAvgFloor(arr: Array<Int>, n: Int, inout out: Array<Int>) -> Int {
-    let sum: Int = 0;
-    let i: Int = 0;
+    var sum: Int = 0;
+    var i: Int = 0;
     while i < n {
         sum = sum + arr[i];
         out[i] = sum / (i + 1);
         i = i + 1;
     }
-    let total: Int = 0;
-    let k: Int = 0;
+    var total: Int = 0;
+    var k: Int = 0;
     while k < n {
         total = total + out[k];
         k = k + 1;
@@ -17,12 +17,12 @@ func RunningAvgFloor(arr: Array<Int>, n: Int, inout out: Array<Int>) -> Int {
 
 func Main() -> Void {
     let a: Array<Int> = [4, 8, 6, 10, 2];
-    let aout: Array<Int> = [0, 0, 0, 0, 0];
+    var aout: Array<Int> = [0, 0, 0, 0, 0];
     Log(RunningAvgFloor(a, 5, aout));
     let b: Array<Int> = [10, 0, 10, 0];
-    let bout: Array<Int> = [0, 0, 0, 0];
+    var bout: Array<Int> = [0, 0, 0, 0];
     Log(RunningAvgFloor(b, 4, bout));
     let c: Array<Int> = [5];
-    let cout: Array<Int> = [0];
+    var cout: Array<Int> = [0];
     Log(RunningAvgFloor(c, 1, cout));
 }

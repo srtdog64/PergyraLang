@@ -10,7 +10,7 @@ func Both(inout x: Int, inout y: Int) -> Void {
 }
 
 func Main() -> Void {
-    let s: Pair = Pair(1, 2);
+    var s: Pair = Pair(1, 2);
     Both(s.a, s.a);
     Log(s.a);
 }

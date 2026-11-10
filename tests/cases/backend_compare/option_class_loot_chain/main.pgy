@@ -11,8 +11,8 @@ func Drop(roll: Int) -> Option<Loot> {
 }
 
 func TotalRoll(rolls: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         match Drop(rolls[i]) {
             case Some(l): total = total + l.TotalValue();

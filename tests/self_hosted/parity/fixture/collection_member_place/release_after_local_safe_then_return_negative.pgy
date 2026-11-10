@@ -18,9 +18,9 @@ func Update(inout table: Table) -> Void {
 }
 
 func Main() -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("o", "wned"));
-    let table: Table = Table(names);
+    var table: Table = Table(names);
     let text: String = Observe(table);
     Update(table);
     return StringLength(text) + ArrayLength(table.names);

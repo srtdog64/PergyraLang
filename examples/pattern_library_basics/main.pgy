@@ -54,7 +54,7 @@ func Main() -> Void
     Log("");
 
     Log("== EXPLICIT FSM / TRANSITION TABLE ==");
-    let current = 0;
+    var current = 0;
     let raidFlow = BuildRaidTransitionContext(3, 2);
     let siegeFlow = BuildSiegeTransitionContext(1, 5);
     Log("state=" + StateLabel(current));
@@ -80,7 +80,7 @@ func Main() -> Void
     let combatLog = DispatchPacket(combatSink, combatPacket);
     let uiLog = DispatchPacket(uiSink, uiPacket);
     let auditLog = DispatchPacket(auditSink, auditPacket);
-    let relayLines = 0;
+    var relayLines = 0;
     relayLines = relayLines + 3;
     Log(RelaySummary(relay, relayLines));
     Log("--- relay fan-out ---");

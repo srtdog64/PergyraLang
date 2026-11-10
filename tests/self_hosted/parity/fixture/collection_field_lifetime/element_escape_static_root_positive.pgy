@@ -1,12 +1,12 @@
 // Elements of never-released roots may be stored into other storage.
 func ReplaceUses(old: Array<String>, replacement: Array<String>) -> Array<String> {
-    let uses: Array<String> = [];
-    let i: Int = 0;
+    var uses: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(replacement) {
         ArrayPush(uses, replacement[i]);
         i = i + 1;
     }
-    let j: Int = 0;
+    var j: Int = 0;
     while j < ArrayLength(old) {
         ArrayPush(uses, old[j]);
         j = j + 1;

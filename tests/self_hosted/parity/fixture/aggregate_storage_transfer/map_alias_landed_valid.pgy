@@ -8,7 +8,7 @@ func Make() -> MapPair
 {
     let rows: HashMap<String, Int> = MapNew();
     let alias: HashMap<String, Int> = rows;
-    let pair: MapPair = MapPair(rows, alias);
+    var pair: MapPair = MapPair(rows, alias);
     MapSet(pair.first, "key", 1);
     return pair;
 }

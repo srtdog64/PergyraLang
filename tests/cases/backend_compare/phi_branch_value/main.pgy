@@ -1,5 +1,5 @@
 func Choose(flag: Bool) -> Int {
-    let x: Int = 0;
+    var x: Int = 0;
     if flag {
         x = 10;
     } else {

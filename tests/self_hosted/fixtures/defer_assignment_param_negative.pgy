@@ -9,7 +9,7 @@ func Bump(inout n: Int) -> Void {
 }
 
 func Main() -> Void {
-    let count: Int = 1;
+    var count: Int = 1;
     Bump(count);
     Log(ToString(count));
 }

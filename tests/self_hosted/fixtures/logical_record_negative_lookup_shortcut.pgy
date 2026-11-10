@@ -81,7 +81,7 @@ func LogicalRecordLookupChangedVerification(
     let receipt: DirectMirScalarProgramLogicalRecordValidationReceipt =
         DirectMirScalarProgramLogicalRecordValidationReceiptFromFact(
             source, true);
-    let names: Array<String> = Clone(source.names);
+    var names: Array<String> = Clone(source.names);
     ArraySet(names, 0, "Changed");
     return DirectMirScalarProgramLogicalRecordFact(
         source.valid, source.digest, source.present, source.declaration_rows,
@@ -134,7 +134,7 @@ func Main() -> Void {
     let changed: DirectMirScalarProgramLogicalRecordFact =
         LogicalRecordLookupChangedVerification();
     Log(ToString(!DirectMirScalarProgramLogicalRecordFactReady(changed)));
-    let query: Int = 0;
+    var query: Int = 0;
     while query < 2048 {
         if !DirectMirScalarProgramLogicalRecordTypeReady(
                 production, "Record") { Exit(1); }

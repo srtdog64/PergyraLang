@@ -41,7 +41,7 @@ zone Ledger {
     }
 
     func Held(self) -> Int {
-        let total: Int = 0;
+        var total: Int = 0;
         for i in 0..ArrayLength(balances) {
             total = total + balances[i];
         }

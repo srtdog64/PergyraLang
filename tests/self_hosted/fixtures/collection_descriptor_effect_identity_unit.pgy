@@ -10,17 +10,17 @@ func Main() -> Void with caps env, io_read {
     if mode < 0 || mode > 7 || args[1] != ToString(mode) { Exit(2); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
-    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !bundle.verdict.ok { Log("baseline admission refused"); Exit(2); }
     let receipt: SemanticAstBodyTypeBundleAdmissionReceipt =
         SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, bundle);
     if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle) { Exit(2); }
-    let facts: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
-    let descriptors: HashMap<String, Int> = facts.descriptor_effects;
+    var facts: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
+    var descriptors: HashMap<String, Int> = facts.descriptor_effects;
     let payloads: HashMap<String, Int> = facts.effects;
-    let selected: Int = -1;
-    let row: Int = 0;
+    var selected: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(facts.inventory.formal_nodes) {
         let key: String = ToString(facts.inventory.formal_nodes[row]);
         if MapHas(payloads, key) && MapHas(descriptors, key) &&

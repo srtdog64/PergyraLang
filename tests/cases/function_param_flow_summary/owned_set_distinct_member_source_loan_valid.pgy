@@ -5,15 +5,15 @@ struct CarrierRows {
 }
 
 func Project(ref carriers: CarrierRows) -> String {
-    let map: HashMap<String, Int> = MapNew<String, Int>();
+    var map: HashMap<String, Int> = MapNew<String, Int>();
     MapSet(map, "old", 1);
-    let outputs: Array<String> = MapKeys(map);
-    let other_outputs: Array<String> = MapKeys(map);
-    let invariant_outputs: Array<String> = MapKeys(map);
-    let observed: String = "other";
-    let step_i: Int = 0;
+    var outputs: Array<String> = MapKeys(map);
+    var other_outputs: Array<String> = MapKeys(map);
+    var invariant_outputs: Array<String> = MapKeys(map);
+    var observed: String = "other";
+    var step_i: Int = 0;
     while step_i < 1 {
-        let row: Int = 0;
+        var row: Int = 0;
         while row < 1 {
             let phase: String = carriers.values[row];
             if phase == "on" || phase == "intent" {

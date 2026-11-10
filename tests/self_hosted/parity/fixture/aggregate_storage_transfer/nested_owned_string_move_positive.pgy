@@ -7,8 +7,8 @@ struct Rows {
 }
 
 func Append(target: Rows, source: Rows) -> Rows {
-    let texts: Array<String> = target.arena.texts;
-    let i: Int = 0;
+    var texts: Array<String> = target.arena.texts;
+    var i: Int = 0;
     while i < ArrayLength(source.arena.texts) {
         ArrayPushOwnedString(texts, Concat("", source.arena.texts[i]));
         i = i + 1;
@@ -17,11 +17,11 @@ func Append(target: Rows, source: Rows) -> Rows {
 }
 
 func Main() -> Int {
-    let left_texts: Array<String> = [];
+    var left_texts: Array<String> = [];
     ArrayPushOwnedString(left_texts, Concat("left", "-owned"));
-    let right_texts: Array<String> = [];
+    var right_texts: Array<String> = [];
     ArrayPushOwnedString(right_texts, Concat("right", "-owned"));
-    let left: Rows = Rows(Arena(left_texts));
+    var left: Rows = Rows(Arena(left_texts));
     let right: Rows = Rows(Arena(right_texts));
     left = Append(left, right);
     Log(ToString(ArrayLength(left.arena.texts)));

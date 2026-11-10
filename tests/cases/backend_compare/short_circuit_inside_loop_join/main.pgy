@@ -7,8 +7,8 @@ func IsEvenPos(n: Int) -> Bool {
 }
 
 func CategorySum(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let v: Int = arr[i];
         if IsBig(v) || IsEvenPos(v) {

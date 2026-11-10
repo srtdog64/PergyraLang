@@ -1,9 +1,9 @@
 struct Rows { types: Array<String>; }
 func CaptureDeferredRoot(inout rows: Rows) -> Void
 {
-    let types: Array<String> = rows.types;
+    var types: Array<String> = rows.types;
     defer { Log(ArrayLength(rows.types)); }
-    let count: Int = 0;
+    var count: Int = 0;
     while count < 8
     {
         ArrayPush(types, "row");
@@ -12,6 +12,6 @@ func CaptureDeferredRoot(inout rows: Rows) -> Void
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     CaptureDeferredRoot(rows);
 }

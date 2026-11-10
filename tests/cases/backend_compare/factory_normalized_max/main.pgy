@@ -14,8 +14,8 @@ class Stat {
 func Make(r: Int, c: Int) -> Stat { return Stat(r, c); }
 
 func MaxNormalized(raws: Array<Int>, caps: Array<Int>, n: Int) -> Int {
-    let best: Int = 0;
-    let i: Int = 0;
+    var best: Int = 0;
+    var i: Int = 0;
     while i < n {
         let cur: Int = Make(raws[i], caps[i]).Normalized();
         if cur > best { best = cur; }

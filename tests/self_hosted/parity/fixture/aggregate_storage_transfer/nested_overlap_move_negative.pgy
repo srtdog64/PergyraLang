@@ -7,15 +7,15 @@ struct Rows {
 }
 
 func Append(target: Rows, source: Rows) -> Rows {
-    let texts: Array<String> = target.arena.texts;
+    var texts: Array<String> = target.arena.texts;
     ArrayPushOwnedString(texts, Concat("", source.arena.texts[0]));
     return Rows(Arena(texts));
 }
 
 func Main() -> Int {
-    let texts: Array<String> = [];
+    var texts: Array<String> = [];
     ArrayPushOwnedString(texts, Concat("owned", "-value"));
-    let rows: Rows = Rows(Arena(texts));
+    var rows: Rows = Rows(Arena(texts));
     rows = Append(rows, rows);
     return ArrayLength(rows.arena.texts);
 }

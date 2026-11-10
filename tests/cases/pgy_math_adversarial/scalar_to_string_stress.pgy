@@ -1,7 +1,7 @@
 func Main() -> Void
 {
-    let index: Int = 0;
-    let rendered: String = "";
+    var index: Int = 0;
+    var rendered: String = "";
     while index < 10000 {
         rendered = ToString(index % 2 == 0);
         index = index + 1;

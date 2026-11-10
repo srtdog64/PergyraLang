@@ -1,7 +1,7 @@
 struct Rows { values: Array<String>; }
 func MakeRows() -> Rows { return Rows([]); }
 func Append(inout rows: Rows) -> Void {
-    let values: Array<String> = rows.values;
+    var values: Array<String> = rows.values;
     ArrayPushOwnedString(values, "x");
     rows.values = values;
 }
@@ -11,7 +11,7 @@ func Retire(inout rows: Rows) -> Void {
     rows.values = values;
 }
 func Main() -> Void {
-    let rows: Rows = MakeRows();
+    var rows: Rows = MakeRows();
     Append(rows);
     Retire(rows);
 }

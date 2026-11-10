@@ -5,8 +5,8 @@ func Validate(n: Int, lo: Int, hi: Int) -> Option<Int> {
 }
 
 func SafeMap(arr: Array<Int>, n: Int, lo: Int, hi: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         let v: Int = Validate(arr[i], lo, hi) ?? 0;
         total = total + v * 2;

@@ -1,7 +1,7 @@
 func CountVowelLike(s: String) -> Int {
-    let count: Int = 0;
+    var count: Int = 0;
     let len: Int = StringLength(s);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < len {
         let ch: String = Substring(s, i, i + 1);
         if ch == "a" || ch == "e" || ch == "i" || ch == "o" || ch == "u" {

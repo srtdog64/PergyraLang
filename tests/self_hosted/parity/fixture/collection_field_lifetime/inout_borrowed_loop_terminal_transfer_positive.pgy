@@ -8,8 +8,8 @@ func Append(inout names: Array<String>) -> Bool {
 }
 
 func Build() -> Facts {
-    let names: Array<String> = [];
-    let i: Int = 0;
+    var names: Array<String> = [];
+    var i: Int = 0;
     while i < 2 {
         if !Append(names) { return ErrorFacts(names); }
         i = i + 1;

@@ -9,6 +9,6 @@ func ForwardRetain(inout rows: ReadRows) -> Void
 }
 func Main() -> Void
 {
-    let rows: ReadRows = ReadRows(["seed"]);
+    var rows: ReadRows = ReadRows(["seed"]);
     ForwardRetain(rows);
 }

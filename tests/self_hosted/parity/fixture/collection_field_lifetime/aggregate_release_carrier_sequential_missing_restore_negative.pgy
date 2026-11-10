@@ -11,7 +11,7 @@ func CarrierMissingRestoreAppend(
 func CarrierMissingRestoreGrow(
     facts: CarrierMissingRestoreFacts
 ) -> CarrierMissingRestoreFacts {
-    let values: Array<String> = facts.values;
+    var values: Array<String> = facts.values;
     CarrierMissingRestoreAppend(values, "first");
     CarrierMissingRestoreAppend(values, "second");
     return facts;

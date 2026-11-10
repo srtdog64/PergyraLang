@@ -1,6 +1,6 @@
 func Text() -> String { return "independent"; }
 func Main() -> Int {
-    let table: HashMap<String, String> = MapNew();
+    var table: HashMap<String, String> = MapNew();
     let other: String = Text();
     MapSet(table, "key", "new");
     return StringLength(other);

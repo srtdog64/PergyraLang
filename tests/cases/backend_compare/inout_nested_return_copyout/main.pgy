@@ -10,7 +10,7 @@ func ForwardAppend(inout xs: Array<Int>) -> Bool {
 }
 
 func Main() -> Void {
-    let values: Array<Int> = [];
+    var values: Array<Int> = [];
     let ok: Bool = ForwardAppend(values);
     Log(ToString(ArrayLength(values)));
     Log(ToString(ok));

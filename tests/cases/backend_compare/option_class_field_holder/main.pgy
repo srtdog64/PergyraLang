@@ -18,8 +18,8 @@ class Holder {
 
 func TotalScore(bias: Int, seeds: Array<Int>, count: Int) -> Int {
     let h: Holder = Holder(bias);
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < count {
         match h.Pick(seeds[i]) {
             case Some(c): total = total + c.Score();

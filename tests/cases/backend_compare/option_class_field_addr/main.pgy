@@ -13,8 +13,8 @@ func Build(seed: Int) -> Option<Node> {
 }
 
 func RunChain(seeds: Array<Int>, n: Int) -> Int {
-    let acc: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var i: Int = 0;
     while i < n {
         match Build(seeds[i]) {
             case Some(nd):

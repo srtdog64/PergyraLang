@@ -7,7 +7,7 @@ import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
 func IntentBlockRoleFieldProbe() -> Void {
     let prefix: String = "{\"id\":0,\"reachable\":true,\"instructions\":[],";
     let roles: Array<String> = ["entry", "body", "cleanup", "rollback", "invalidation", "execution", "mirror"];
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(roles) {
         let text: String = prefix + "\"intent_block_role\":\"" + roles[row] + "\"}";
         let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, StringLength(text), 0, StringLength(text));
@@ -33,7 +33,7 @@ func IntentBlockTopologyProbe(inout routines: MirProgramRoutineIndex, inout inde
     if !topology.valid { Die("MIR Intent topology rejected its producer control"); }
     let start: Int = routines.routine_block_starts[row];
     let roots: Array<Int> = [topology.entry, topology.cleanup, topology.rollback, topology.invalidation];
-    let root: Int = 0;
+    var root: Int = 0;
     while root < ArrayLength(roots) {
         let block: Int = start + roots[root];
         let prior: String = routines.block_intent_roles[block];
@@ -78,23 +78,23 @@ func IntentSignatureHeaderEnvelopeProbe() -> Void {
         "\"return\":\"Bool\"", "\"generics\":[]", "\"params\":[]"];
     let baseline: String = "{" + StringJoin(rows, ",") + "}";
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(baseline, StringLength(baseline), 0, StringLength(baseline));
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !MirRoutineHeaderSignatureEnvelopeReady(baseline, StringLength(baseline), 0, StringLength(baseline),
             "Run", "intent", "17", "none", header, bounds) {
         Die("MIR signature header owner rejected its valid control");
     }
-    let field: Int = 0;
+    var field: Int = 0;
     while field < ArrayLength(rows) {
-        let mutation: Int = 0;
+        var mutation: Int = 0;
         while mutation < 3 {
-            let changed_rows: Array<String> = [];
-            let row: Int = 0;
+            var changed_rows: Array<String> = [];
+            var row: Int = 0;
             while row < ArrayLength(rows) {
                 if row != field || mutation == 1 { ArrayPush(changed_rows, rows[row]); }
                 if row == field && mutation == 1 { ArrayPush(changed_rows, rows[row]); }
                 if row == field && mutation == 2 {
                     let key: String = "\"" + keys[row] + "\":";
-                    let invalid: String = "0";
+                    var invalid: String = "0";
                     if field == 2 { invalid = "\"17\""; }
                     ArrayPush(changed_rows, key + invalid);
                 }
@@ -117,7 +117,7 @@ func IntentSignatureHeaderEnvelopeProbe() -> Void {
 func IntentSignatureWithFirstParameterShape(
     signature: DirectMirRoutineSignatureFact, carriage: String, pass_shape: String
 ) -> DirectMirRoutineSignatureFact {
-    let parameters: DirectMirRoutineParameterSetFact = signature.parameters;
+    var parameters: DirectMirRoutineParameterSetFact = signature.parameters;
     let prior: DirectMirRoutineParamFact = parameters.first;
     let digest: Int = DirectMirRoutineParamFactDigestFromFields(prior.name,
         prior.source_syntax_id, prior.type_name, carriage, prior.resource,
@@ -146,7 +146,7 @@ func Main() -> Void with caps env, io_read {
     IntentSignatureHeaderEnvelopeProbe();
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 { Die("usage: intent_binding_identity_probe <mir-json>"); }
-    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
+    var routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
     if !routines.valid { Die("binder probe routine index is invalid"); }
     // `routines` is passed inout below, so measure one unchanged binding.
     let routine_json: String = routines.source_json;
@@ -154,11 +154,11 @@ func Main() -> Void with caps env, io_read {
         routine_json, StringLength(routine_json), routines.declarations);
     if !DirectMirIdentityCellFactsReady(cells) { Die("binder probe identity cells are invalid"); }
     let absent_cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsEmpty();
-    let row: Int = 0;
-    let count: Int = 0;
+    var row: Int = 0;
+    var count: Int = 0;
     while row < ArrayLength(routines.names) {
         if routines.kinds[row] == "intent" {
-            let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, row);
+            var index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, row);
             IntentBlockTopologyProbe(routines, index, row);
             let carriers: MirIntentRoutineCarrierProjection =
                 MirIntentRoutineCarrierProjectionFromRoutine(routines, index, row, routines.names[row]);
@@ -168,7 +168,7 @@ func Main() -> Void with caps env, io_read {
             if !bindings.ok { Die("MIR Intent binder identity relation is invalid"); }
             let no_generics: Array<String> = [];
             let instruction_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0);
-            let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
+            var signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
                 routines, row, instruction_count, no_generics, bindings);
             if !DirectMirRoutineSignatureFactReady(signature) || signature.kind != "intent" ||
                 signature.source_syntax_id != bindings.intent_source_syntax_id ||
@@ -188,9 +188,9 @@ func Main() -> Void with caps env, io_read {
             let crossed: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
                 routines, row, instruction_count, no_generics, foreign);
             if crossed.valid { Die("MIR Intent callable signature accepted foreign purpose identity"); }
-            let parameter: Int = 0;
+            var parameter: Int = 0;
             while parameter < signature.param_count {
-                let expected_pass: String = "direct";
+                var expected_pass: String = "direct";
                 if bindings.kinds[parameter] == "participant" { expected_pass = "indirect"; }
                 if signature.parameters.names[parameter] != bindings.aliases[parameter] ||
                     signature.parameters.source_syntax_ids[parameter] != bindings.source_syntax_ids[parameter] ||
@@ -208,7 +208,7 @@ func Main() -> Void with caps env, io_read {
             }
             let original_carriage: String = signature.parameters.carriages[0];
             let original_pass: String = signature.parameters.pass_shapes[0];
-            let bad_pass: String = "indirect";
+            var bad_pass: String = "indirect";
             if original_pass == "indirect" { bad_pass = "direct"; }
             let crossed_abi: DirectMirRoutineSignatureFact =
                 IntentSignatureWithFirstParameterShape(signature, original_carriage, bad_pass);

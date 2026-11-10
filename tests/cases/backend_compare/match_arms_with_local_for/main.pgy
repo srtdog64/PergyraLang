@@ -3,19 +3,19 @@ enum Mode { Sum, Max, Mul }
 func Reduce(arr: Array<Int>, mode: Mode) -> Int {
     match mode {
         case Sum:
-            let s: Int = 0;
+            var s: Int = 0;
             for v in arr { s = s + v; }
             return s;
         case Max:
-            let best: Int = 0;
-            let first: Bool = true;
+            var best: Int = 0;
+            var first: Bool = true;
             for v in arr {
                 if first { best = v; first = false; }
                 else if v > best { best = v; }
             }
             return best;
         case Mul:
-            let p: Int = 1;
+            var p: Int = 1;
             for v in arr { p = p * v; }
             return p;
     }

@@ -11,7 +11,7 @@ func ResultPathMismatchBuild(
     primary: ResultPathMismatchBox,
     alternate: ResultPathMismatchBox
 ) -> ResultPathMismatchUpdate {
-    let values: Array<String> = primary.values;
+    var values: Array<String> = primary.values;
     ArrayPushOwnedString(values, "next");
     primary.values = values;
     return ResultPathMismatchUpdate(false, primary, alternate);

@@ -3,8 +3,8 @@ struct Bare { value: Int; }
 struct Frozen { let value: Int; }
 object Projection { value: Int; }
 func Main() -> Void {
-    let a: Mutable = Mutable(1);
-    let b: Bare = Bare(2);
+    var a: Mutable = Mutable(1);
+    var b: Bare = Bare(2);
     let c: Frozen = Frozen(3);
     let p: Projection = Projection(4);
     a.value = 5;

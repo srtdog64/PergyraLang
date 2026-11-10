@@ -22,7 +22,7 @@ func GraphAtomBindWithLateOwnedGrowth(
     artifact: GraphAtomArtifact
 ) -> GraphAtomArtifact {
     let arena: AtomTableRows = artifact.arena;
-    let atom_table: Array<String> = arena.atom_table;
+    var atom_table: Array<String> = arena.atom_table;
     ArrayPushOwnedString(atom_table, Concat("late", "-owned"));
     return GraphAtomArtifact(AtomTableRows(atom_table), artifact.graphs);
 }

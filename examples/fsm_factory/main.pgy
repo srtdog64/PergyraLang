@@ -164,7 +164,7 @@ export zone AssemblyZone
             RaiseAlarm(1);
         }
 
-        let recovered = 0;
+        var recovered = 0;
         if supervisor.core.mode == 7
         {
             recovered = recovered + supervisor.Recover(support + 2);
@@ -244,7 +244,7 @@ world FactoryWorld
 
     func Simulate(self) -> Void
     {
-        let tick = 0;
+        var tick = 0;
         while tick < 5
         {
             let orders = OrderPulse();

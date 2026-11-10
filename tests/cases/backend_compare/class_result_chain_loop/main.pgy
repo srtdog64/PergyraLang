@@ -12,8 +12,8 @@ func CastSpell(w: Wizard, cost: Int, level_req: Int) -> Result<Wizard, DraftErr>
 }
 
 func ManaPoints(start_mana: Int, costs: Array<Int>, n: Int) -> Int {
-    let w: Wizard = Wizard(start_mana, 10);
-    let i: Int = 0;
+    var w: Wizard = Wizard(start_mana, 10);
+    var i: Int = 0;
     while i < n {
         match CastSpell(w, costs[i], 5) {
             case Ok(after): w = after;

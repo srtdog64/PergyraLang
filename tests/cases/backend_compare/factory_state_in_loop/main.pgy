@@ -10,8 +10,8 @@ func Advance(p: Path, dist: Int) -> Path {
 }
 
 func RunPath(distances: Array<Int>, n: Int) -> Int {
-    let p: Path = InitPath();
-    let i: Int = 0;
+    var p: Path = InitPath();
+    var i: Int = 0;
     while i < n {
         p = Advance(p, distances[i]);
         i = i + 1;

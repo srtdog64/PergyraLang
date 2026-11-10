@@ -1,11 +1,11 @@
 struct Rows { types: Array<String>; }
 func RepeatedCapture(inout rows: Rows) -> Bool
 {
-    let types: Array<String> = rows.types;
-    let round: Int = 0;
+    var types: Array<String> = rows.types;
+    var round: Int = 0;
     while round < 3
     {
-        let count: Int = 0;
+        var count: Int = 0;
         while count < 8
         {
             ArrayPush(types, "row");
@@ -17,7 +17,7 @@ func RepeatedCapture(inout rows: Rows) -> Bool
 }
 func Main() -> Void
 {
-    let rows: Rows = Rows(["seed"]);
+    var rows: Rows = Rows(["seed"]);
     Log(RepeatedCapture(rows));
     Log(ArrayLength(rows.types));
     Log(rows.types[24]);

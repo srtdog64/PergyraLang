@@ -27,12 +27,12 @@ func Pair(x: Int, y: Int) -> Int {
 
 func Main() -> Void {
     Log(Sum(Tag("a"), Tag("b"), Tag("c")));
-    let n: Int = 1;
+    var n: Int = 1;
     Log(Pair(Bump(n), n));
-    let m: Int = 1;
+    var m: Int = 1;
     Log(Pair(m, Bump(m)));
     Log(Concat(Word("x"), Word("y")));
     Log(Substring(Word("hello"), Tag("p"), Tag("q")));
-    let k: Int = 1;
+    var k: Int = 1;
     Log(Pair(Bump(k), Bump(k)));
 }

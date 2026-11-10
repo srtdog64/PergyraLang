@@ -10,9 +10,9 @@
 
 func Main() -> Void {
     // ---- 노드 풀 (Slot 소유) ----
-    let values: Array<Int> = [];   // values[i] = i번째 노드의 값
-    let nexts: Array<Int> = [];    // nexts[i]  = 다음 노드 인덱스 (-1 = end)
-    let head: Int = -1;
+    var values: Array<Int> = [];   // values[i] = i번째 노드의 값
+    var nexts: Array<Int> = [];    // nexts[i]  = 다음 노드 인덱스 (-1 = end)
+    var head: Int = -1;
 
     // ---- PushFront: 30 → 20 → 10 ----
 
@@ -32,7 +32,7 @@ func Main() -> Void {
     head = ArrayLength(values) - 1;
 
     // ---- 순회 출력 ----
-    let cur: Int = head;
+    var cur: Int = head;
     while cur != -1 {
         Log(values[cur]);
         cur = nexts[cur];
@@ -40,7 +40,7 @@ func Main() -> Void {
     // 기대 출력: 30, 20, 10
 
     // ---- 길이 계산 ----
-    let count: Int = 0;
+    var count: Int = 0;
     cur = head;
     while cur != -1 {
         count = count + 1;
@@ -49,7 +49,7 @@ func Main() -> Void {
     Log(count);  // 기대: 3
 
     // ---- 검색 ----
-    let found: Bool = false;
+    var found: Bool = false;
     cur = head;
     while cur != -1 {
         if values[cur] == 20 {

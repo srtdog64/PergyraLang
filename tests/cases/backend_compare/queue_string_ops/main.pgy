@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let q: Queue<String> = QueueNew();
+    var q: Queue<String> = QueueNew();
     QueuePush(q, "first");
     QueuePush(q, "second");
     QueuePush(q, "third");

@@ -50,7 +50,7 @@ world CommerceWorld
 
     func BroadcastIntentHistory(self) -> Void
     {
-        let index = 0;
+        var index = 0;
         while index < IntentHistoryCount()
         {
             Broadcast("  [Step] " + IntentHistoryStepName(index)

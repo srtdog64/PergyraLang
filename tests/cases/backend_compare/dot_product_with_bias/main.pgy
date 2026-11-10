@@ -1,6 +1,6 @@
 func PairProduct(a: Array<Int>, b: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + a[i] * b[i];
         i = i + 1;

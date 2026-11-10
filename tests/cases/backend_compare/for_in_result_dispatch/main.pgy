@@ -7,8 +7,8 @@ func TryConnect(port: Int) -> Result<Int, NetErr> {
 }
 
 func ScanPorts(ports: Array<Int>) -> Int {
-    let good: Int = 0;
-    let bad: Int = 0;
+    var good: Int = 0;
+    var bad: Int = 0;
     for p in ports {
         match TryConnect(p) {
             case Ok(v): good = good + v;

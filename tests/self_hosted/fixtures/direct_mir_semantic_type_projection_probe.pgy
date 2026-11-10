@@ -6,9 +6,9 @@ func Main() -> Void with caps env, io_read {
     if ArrayLength(args) != 1 { Exit(2); }
     let declaration: SelfHostMachineLayerDeclaration = SelfHostMachineLayerDeclarationEmpty();
     let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(args[0], declaration);
-    let returns_ready: Bool = false;
-    let parameters_ready: Bool = false;
-    let row: Int = 0;
+    var returns_ready: Bool = false;
+    var parameters_ready: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(admitted.routines.names) {
         let count: Int = MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, row, 0);
         let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(admitted.routines, row, count);
@@ -18,7 +18,7 @@ func Main() -> Void with caps env, io_read {
             returns_ready = true;
         }
         if signature.name == "ReadMapValue" {
-            let types: Array<String> = [];
+            var types: Array<String> = [];
             if parameters_ready || signature.param_count != 1 || signature.return_type != "Int" ||
                 !DirectMirScalarCfgProgramAppendParameterTypes(types, signature) { Log(false); return; }
             parameters_ready = ArrayLength(types) == 1 && types[0] == "HashMap<String, Int>";

@@ -1,5 +1,5 @@
 subject TextOwner {
-    let result: String;
+    var result: String;
     action Replace(self) -> Void { result = "changed"; }
 }
 func Main() -> Void {

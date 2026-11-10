@@ -14,9 +14,9 @@ class Filter {
 }
 
 func CountBoth(f: Filter, arr: Array<Int>, n: Int) -> Int {
-    let acc: Int = 0;
-    let rej: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var rej: Int = 0;
+    var i: Int = 0;
     while i < n {
         if f.Accept(arr[i]) { acc = acc + 1; }
         if f.Reject(arr[i]) { rej = rej + 1; }

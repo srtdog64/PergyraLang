@@ -1,8 +1,8 @@
 struct Mutable { var value: Int; }
 struct Frozen { let value: Int; }
 func Main() -> Void {
-    let a: Mutable = Mutable(1);
-    let b: Frozen = Frozen(2);
+    var a: Mutable = Mutable(1);
+    var b: Frozen = Frozen(2);
     a.value = 3;
     b.value = 4;
 }

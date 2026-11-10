@@ -19,7 +19,7 @@ func ReadRequiredBool(
 }
 func Main() -> Void {
     Log("bool-mixed-collection-copyout-ready");
-    let value_box: Array<Bool> = [];
+    var value_box: Array<Bool> = [];
     let read: Bool = ReadRequiredBool("{}", 0, 2, "required", value_box);
     if read {
         Log("bool-single-copyout-ready");

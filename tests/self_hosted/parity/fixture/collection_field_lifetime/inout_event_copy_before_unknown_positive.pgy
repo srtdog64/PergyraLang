@@ -4,7 +4,7 @@ func Copy(inout values: Array<String>, marker: Int) -> Int {
 }
 func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "later"); }
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let copied_before: Int = Copy(values, 1);
     Opaque(values);
 }

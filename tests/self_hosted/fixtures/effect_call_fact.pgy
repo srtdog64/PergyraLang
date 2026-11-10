@@ -4,14 +4,14 @@ func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 { Exit(1); return; }
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(ReadFile(args[0]));
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
-    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !body.verdict.ok { Log(body.verdict.diagnostic_message); Exit(1); return; }
     Log(SemanticAstBodyTypeBundleReady(artifact, analysis, body));
-    let pure_row: Int = -1;
-    let clock_row: Int = -1;
-    let invoke_row: Int = -1;
-    let row: Int = 0;
+    var pure_row: Int = -1;
+    var clock_row: Int = -1;
+    var invoke_row: Int = -1;
+    var row: Int = 0;
     while row < SemanticAstFunctionSignatureCount(analysis.signatures) {
         if analysis.signatures.names[row] == "PurePath" { pure_row = row; }
         if analysis.signatures.names[row] == "ClockPath" { clock_row = row; }

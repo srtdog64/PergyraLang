@@ -16,7 +16,7 @@ func Retire(own values: Array<String>) -> Void
 
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "owned");
     Forward(values);
     Log("owned-wrapper-retired");

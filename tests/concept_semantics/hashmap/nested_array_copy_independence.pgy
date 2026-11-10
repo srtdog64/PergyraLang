@@ -3,7 +3,7 @@ func Main() -> Void
 {
     let intRow: Array<Int> = [7, 8];
     let ints: Array<Array<Int>> = [intRow];
-    let intAlias: Array<Int> = ints[0];
+    var intAlias: Array<Int> = ints[0];
     let copiedInts: Array<Array<Int>> = Clone(ints);
     ArraySet(intAlias, 0, 99);
     Log(intAlias[0]);
@@ -11,7 +11,7 @@ func Main() -> Void
     Log(copiedInts[0][1]);
     let stringRow: Array<String> = ["alpha", "beta"];
     let strings: Array<Array<String>> = [stringRow];
-    let stringAlias: Array<String> = strings[0];
+    var stringAlias: Array<String> = strings[0];
     let copiedStrings: Array<Array<String>> = Clone(strings);
     ArraySet(stringAlias, 0, "changed");
     Log(stringAlias[0]);

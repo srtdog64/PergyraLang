@@ -1,7 +1,7 @@
 func BubbleSort(inout arr: Array<Int>, n: Int) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
-        let j: Int = 0;
+        var j: Int = 0;
         while j < n - 1 - i {
             if arr[j] > arr[j + 1] {
                 let tmp: Int = arr[j];
@@ -12,8 +12,8 @@ func BubbleSort(inout arr: Array<Int>, n: Int) -> Int {
         }
         i = i + 1;
     }
-    let sum: Int = 0;
-    let k: Int = 0;
+    var sum: Int = 0;
+    var k: Int = 0;
     while k < n {
         sum = sum + arr[k] * (k + 1);
         k = k + 1;
@@ -22,12 +22,12 @@ func BubbleSort(inout arr: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let nums: Array<Int> = [5, 2, 8, 1, 9, 3];
+    var nums: Array<Int> = [5, 2, 8, 1, 9, 3];
     Log(BubbleSort(nums, 6));
-    let nums2: Array<Int> = [7, 7, 7];
+    var nums2: Array<Int> = [7, 7, 7];
     Log(BubbleSort(nums2, 3));
-    let nums3: Array<Int> = [10];
+    var nums3: Array<Int> = [10];
     Log(BubbleSort(nums3, 1));
-    let nums4: Array<Int> = [3, 1];
+    var nums4: Array<Int> = [3, 1];
     Log(BubbleSort(nums4, 2));
 }

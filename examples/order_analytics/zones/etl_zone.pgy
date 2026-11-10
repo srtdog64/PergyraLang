@@ -6,8 +6,8 @@ zone EtlZone
 
     func CleanAndLoad(self, target_table: String) -> EtlSummary
     {
-        let clean: List<CleanOrderPacket> = ListNew();
-        let skipped = 0;
+        var clean: List<CleanOrderPacket> = ListNew();
+        var skipped = 0;
 
         for order in batch.orders
         {

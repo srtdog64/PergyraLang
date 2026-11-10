@@ -14,8 +14,8 @@ func Observe(inout table: Table) -> Int {
 }
 
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "owned");
-    let table: Table = Table(names);
+    var table: Table = Table(names);
     Log(Observe(table));
 }

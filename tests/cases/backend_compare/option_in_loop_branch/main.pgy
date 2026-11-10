@@ -4,8 +4,8 @@ func MaybeBig(n: Int) -> Option<Int> {
 }
 
 func SumBigs(arr: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         total = total + (MaybeBig(arr[i]) ?? 0);
         i = i + 1;

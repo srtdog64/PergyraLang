@@ -1,6 +1,6 @@
 func Loop1(inout rows: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let outer: Int = 0;
+    var total: Int = 0;
+    var outer: Int = 0;
     while outer < n {
         ArrayPush(rows, outer);
         total = total + outer;
@@ -10,6 +10,6 @@ func Loop1(inout rows: Array<Int>, n: Int) -> Int {
 }
 
 func Main() -> Void {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     Log(Loop1(rows, 2));
 }

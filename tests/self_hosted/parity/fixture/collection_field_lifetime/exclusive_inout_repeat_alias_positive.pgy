@@ -11,7 +11,7 @@ func TypesAdd(inout types: Array<String>, name: String) -> Void {
 }
 
 func NodeSetAddTwice(facts: NodeSet) -> NodeSet {
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     TypesAdd(types, "a");
     TypesAdd(types, "b");
     return NodeSet(facts.valid, types);
@@ -19,7 +19,7 @@ func NodeSetAddTwice(facts: NodeSet) -> NodeSet {
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetAddTwice(facts);
     return ArrayLength(facts.types);
 }

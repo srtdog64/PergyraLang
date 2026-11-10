@@ -26,8 +26,8 @@ func BuildExecutionPlan(
 
 func Main() -> Void {
     let fields: ExactFieldSet = ExactFieldSet(true, "{}");
-    let steps: StepTransitionFacts = StepTransitionFacts(true, 1);
-    let terminals: TerminalTransitionFacts = TerminalTransitionFacts(true, 2);
+    var steps: StepTransitionFacts = StepTransitionFacts(true, 1);
+    var terminals: TerminalTransitionFacts = TerminalTransitionFacts(true, 2);
     if BuildExecutionPlan("{}", fields, steps, terminals) {
         Log("readonly-record-two-record-copyouts-ready");
     }

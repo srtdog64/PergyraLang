@@ -6,7 +6,7 @@ func Count<T>(bundle: T) -> Int where T: Bundle {
 }
 
 func Main() -> Void {
-    let value: Array<String> = [];
+    var value: Array<String> = [];
     ArrayPush(value, "borrowed");
     let bundle: Bundle = Bundle(value);
     Log(Count(bundle));

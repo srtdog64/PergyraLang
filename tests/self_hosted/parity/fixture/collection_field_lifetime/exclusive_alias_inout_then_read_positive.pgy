@@ -15,8 +15,8 @@ func ReadAt(ref types: Array<String>, at: Int) -> String {
 }
 
 func Append(facts: NodeSet, count: Int) -> NodeSet {
-    let types: Array<String> = facts.types;
-    let node: Int = 0;
+    var types: Array<String> = facts.types;
+    var node: Int = 0;
     while node < count {
         let left: String = ReadAt(types, node - 1);
         AppendNode(types, Concat(left, "t"));
@@ -27,7 +27,7 @@ func Append(facts: NodeSet, count: Int) -> NodeSet {
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = Append(facts, 3);
     return ArrayLength(facts.types);
 }

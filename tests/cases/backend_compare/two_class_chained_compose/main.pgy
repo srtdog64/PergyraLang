@@ -15,8 +15,8 @@ class B {
 }
 
 func Combine(a: A, b: B, rounds: Int) -> Int {
-    let cur: Int = a.Doubled();
-    let i: Int = 0;
+    var cur: Int = a.Doubled();
+    var i: Int = 0;
     while i < rounds {
         cur = b.Apply(cur);
         i = i + 1;

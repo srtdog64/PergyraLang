@@ -7,7 +7,7 @@ func BuildMixed(value: Int, result_allocator: Allocator) -> String {
 }
 func Main() -> Void {
     let result_allocator: Allocator = AllocatorResult();
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, BuildMixed(1, result_allocator));
     ArrayDropOwnedStrings(values);
     AllocatorDestroy(result_allocator);

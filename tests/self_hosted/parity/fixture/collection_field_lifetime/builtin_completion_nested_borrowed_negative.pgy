@@ -3,6 +3,6 @@ func Stamp(inout values: Array<String>) -> String {
     return "outer";
 }
 func Main() -> Void {
-    let a: Array<String> = [];
+    var a: Array<String> = [];
     ArrayPushOwnedString(a, Stamp(a));
 }

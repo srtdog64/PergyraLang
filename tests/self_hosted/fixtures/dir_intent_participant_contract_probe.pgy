@@ -3,9 +3,9 @@ func Require(value: Bool, name: String) -> Void {
     if !value { Log(name); Exit(1); }
 }
 func Main() -> Void {
-    let participants: SelfDirIntentParticipantFacts = SelfDirIntentParticipantFacts(
+    var participants: SelfDirIntentParticipantFacts = SelfDirIntentParticipantFacts(
         [7], [false], ["compiler"], ["Compiler"], [0]);
-    let steps: SelfDirIntentStepFacts = SelfDirIntentStepFactsEmpty();
+    var steps: SelfDirIntentStepFacts = SelfDirIntentStepFactsEmpty();
     steps.node_ids = [10];
     steps.target_kinds = ["action"];
     steps.using_aliases = ["compiler"];

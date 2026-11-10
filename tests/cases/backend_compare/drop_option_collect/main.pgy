@@ -12,8 +12,8 @@ func TryDrop(seed: Int) -> Option<Drop> {
 }
 
 func CollectTotal(seeds: Array<Int>, n: Int) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < n {
         match TryDrop(seeds[i]) {
             case Some(d): total = total + d.Total();

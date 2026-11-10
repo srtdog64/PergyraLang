@@ -2,9 +2,9 @@ func Fib(n: Int) -> Int {
     if n <= 1 {
         return n;
     }
-    let prev: Int = 0;
-    let curr: Int = 1;
-    let i: Int = 2;
+    var prev: Int = 0;
+    var curr: Int = 1;
+    var i: Int = 2;
     while i <= n {
         let next: Int = prev + curr;
         prev = curr;
