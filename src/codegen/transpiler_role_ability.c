@@ -424,6 +424,63 @@ transpiler_party_slot_first_ability_tag(TranspilerCtx *ctx,
     return NULL;
 }
 
+/* The declared result type of the ability method a party's dyn role slot
+ * dispatches. The slot's required ability that provides the method owns it. */
+const char *
+transpiler_party_slot_method_return_type_name(TranspilerCtx *ctx,
+                                              ASTNode *party_decl,
+                                              const char *slot_name,
+                                              const char *method_name)
+{
+    const char *party_name;
+    TranspilerHostedRoleSlotView role_view;
+
+    if (ctx == NULL || party_decl == NULL || party_decl->type != AST_PARTY_DECL
+        || slot_name == NULL || method_name == NULL
+        || !transpiler_active_has_mir(ctx)) {
+        return NULL;
+    }
+
+    party_name = transpiler_decl_name_local(party_decl);
+    role_view =
+        transpiler_hosted_role_slot_view_from_decl(ctx, party_name, party_decl);
+    if (transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view))
+        return NULL;
+
+    for (size_t i = 0; i < role_view.count; i++) {
+        const char *role_slot_name =
+            transpiler_hosted_role_slot_view_name(&role_view, i);
+        size_t ability_count;
+        if (role_slot_name == NULL
+            || strcmp(role_slot_name, slot_name) != 0) {
+            continue;
+        }
+        ability_count =
+            transpiler_hosted_role_slot_view_required_ability_count(
+                &role_view, i);
+        for (size_t j = 0; j < ability_count; j++) {
+            const char *ability_name = mir_ability_ref_base_name(
+                transpiler_hosted_role_slot_view_required_ability_ref(
+                    &role_view, i, j));
+            const MIRDeclHeader *ability_header = ability_name == NULL ? NULL
+                : transpiler_active_decl_header_of_type(
+                    ctx, AST_ABILITY_DECL, ability_name);
+            size_t method_count = ability_header == NULL ? 0
+                : mir_decl_header_method_count(ability_header);
+            for (size_t m = 0; m < method_count; m++) {
+                const MIRDeclMethod *method =
+                    mir_decl_header_method(ability_header, m);
+                const char *candidate = transpiler_mir_decl_method_name(method);
+                if (candidate != NULL && strcmp(candidate, method_name) == 0)
+                    return mir_decl_method_return_type_name(method);
+            }
+        }
+        return NULL;
+    }
+
+    return NULL;
+}
+
 char *
 transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                                          ASTNode *party_decl,

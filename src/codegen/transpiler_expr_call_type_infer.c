@@ -25,6 +25,8 @@
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
+#include "transpiler_role_ability_helpers.h"
+#include "transpiler_symbols.h"
 #include "transpiler_option_context.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -285,6 +287,22 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return transpiler_infer_arena_format_type_name(ctx, "Slice",
                                                                inner);
             }
+        }
+        if (receiver != NULL && receiver->type == AST_MEMBER_ACCESS
+            && ast_member_object(receiver) != NULL
+            && ast_member_object(receiver)->type == AST_IDENTIFIER
+            && ast_member_name(receiver) != NULL) {
+            /* A party's dyn role slot dispatches through the required
+             * ability that provides the method; that declaration owns the
+             * result type. */
+            const char *party_type = lookup_typed_var(ctx,
+                ast_identifier_name(ast_member_object(receiver)));
+            const char *slot_result =
+                transpiler_party_slot_method_return_type_name(ctx,
+                    find_party_decl(ctx, party_type),
+                    ast_member_name(receiver), method_name);
+            if (slot_result != NULL)
+                return transpiler_infer_arena_copy_type_name(ctx, slot_result);
         }
         {
             const MIRDeclMethod *method_meta = NULL;

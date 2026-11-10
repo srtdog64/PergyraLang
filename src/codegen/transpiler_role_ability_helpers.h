@@ -18,6 +18,11 @@ char *render_mir_ability_ref_vtable_tag_in_ctx(
 char *transpiler_party_slot_first_ability_tag(TranspilerCtx *ctx,
                                               ASTNode *party_decl,
                                               const char *slot_name);
+const char *transpiler_party_slot_method_return_type_name(
+    TranspilerCtx *ctx,
+    ASTNode *party_decl,
+    const char *slot_name,
+    const char *method_name);
 char *transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                                                ASTNode *party_decl,
                                                const char *slot_name,
