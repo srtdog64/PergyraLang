@@ -101,6 +101,7 @@ struct ASTNode
             ASTNode* initializer;
             bool     is_mutable;
             bool     is_alias;
+            bool     is_iteration_source;  /* for-in desugar: names the iterable's storage */
         } let_decl;
 
         /* type UserId = Int; */

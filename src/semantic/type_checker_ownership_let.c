@@ -20,6 +20,7 @@
 #include "type_checker_ownership_support_internal.h"
 #include "type_checker_flow_universe.h"
 #include "function_param_publication_owner.h"
+#include "type_checker_assignment.h"
 
 static Type *
 ownership_let_normalize_type(Type *type)
@@ -567,6 +568,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         sym->slot_info.state = SLOT_STATE_CLAIMED;
 
     sym->is_mut_binding = ast_let_is_mutable(node);
+    if (node->data.let_decl.is_iteration_source)
+        semantic_mark_storage_alias_binding(sym, init, ctx);
     if (!semantic_collection_ownership_initialize_binding(
             sym, init, decl_type, ctx)) {
         semantic_error(ctx, node,

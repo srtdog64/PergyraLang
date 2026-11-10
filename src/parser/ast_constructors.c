@@ -248,6 +248,7 @@ ASTNode* ast_create_let_declaration(const char* name) {
     node->data.let_decl.initializer = NULL;
     node->data.let_decl.is_mutable = false;
     node->data.let_decl.is_alias = false;
+    node->data.let_decl.is_iteration_source = false;
     return node;
 }
 

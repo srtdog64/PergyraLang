@@ -106,7 +106,7 @@ INPUTS=(
     owned_string_result_shadow_assignment_positive.pgy
     generic_default_local_selection_positive.pgy generic_default_borrowed_return_negative.pgy
     owned_string_result_implicit_field_positive.pgy
-    owned_string_result_synthetic_binding_positive.pgy
+    owned_string_result_synthetic_binding_rebinding_negative.pgy
     storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy
     storage_opaque_alias_own_negative.pgy storage_opaque_return_read_positive.pgy storage_shadowed_clone_own_negative.pgy
     builtin_completion_nested_other_positive.pgy builtin_completion_nested_same_positive.pgy
@@ -697,6 +697,9 @@ for backend in c llvm; do
                 # recovery group. collection_focus_recovery_owner.sh owns its
                 # negative contract: the missing or poisoned recovery fact.
                 printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
+            owned_string_result_synthetic_binding_rebinding_negative.pgy)
+                # Loop and match bindings are immutable names since 2026-11-08.
+                printf 'body_ok=false\nbody_diagnostic=immutable_binding_write\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy|main.pgy|intent_zone_authority_transition.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;

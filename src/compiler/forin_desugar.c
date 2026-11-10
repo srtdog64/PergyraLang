@@ -75,6 +75,7 @@ desugar_for_loop_slot(ASTNode *loop, unsigned *counter)
         (void)ast_for_attach_iterable(loop, iterable);
         return loop;
     }
+    let->data.let_decl.is_iteration_source = true;
 
     /* Rewrite the loop to iterate the hoisted local (now an identifier). */
     if (!ast_for_attach_iterable(loop, ident)) {
