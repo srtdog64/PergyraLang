@@ -68,7 +68,8 @@ func EmitBlockStmtsWithExpressionOrder(
         let inst_end: Int = instruction.end;
         let ikind: String = instruction.kind;
         let source_type: String = instruction.source_type;
-        if ikind == "cleanup" && !MirCollectionCleanupFactReadyAtGlobal(
+        if MirCollectionCleanupInstruction(ikind, scalar.name) &&
+            !MirCollectionCleanupFactReadyAtGlobal(
                 index.collection_cleanup_facts, instruction.global_row) {
             MirLowerFailClosed(
                 "cleanup instruction is missing its validated retirement fact"

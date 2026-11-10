@@ -155,17 +155,11 @@ func BuildMirCollectionCleanupFacts(
             let cleanup_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
                 routines.source_json, routines.source_json_extent,
                 start, end, "collection_cleanup");
-            let is_cleanup: Bool =
-                routines.instruction_kinds[global_row] == "cleanup";
             let scalar: MirRoutineInstructionScalarCapture =
                 MirRoutineInstructionFactBundleAtGlobal(
                     instruction_facts, global_row);
-            // `cleanup` is the shared MIR control-edge kind. Collection
-            // retirement is the narrower local-collection-retire operation;
-            // intent rollback and invalidation edges do not own a
-            // collection_cleanup object.
-            let is_collection_cleanup: Bool = is_cleanup &&
-                scalar.name == "local-collection-retire";
+            let is_collection_cleanup: Bool = MirCollectionCleanupInstruction(
+                routines.instruction_kinds[global_row], scalar.name);
             if cleanup_occurrences > 1 ||
                 (!is_collection_cleanup && cleanup_occurrences != 0) ||
                 (is_collection_cleanup && cleanup_occurrences != 1) {
@@ -316,6 +310,13 @@ func BuildMirCollectionCleanupFacts(
     }
     return MirCollectionCleanupFacts(
         valid, rows, bindings, kinds, targets);
+}
+
+// `cleanup` is the shared MIR control-edge kind. Collection retirement is the
+// narrower local-collection-retire operation; intent rollback and invalidation
+// edges do not own a collection_cleanup object or its fact.
+func MirCollectionCleanupInstruction(kind: String, name: String) -> Bool {
+    return kind == "cleanup" && name == "local-collection-retire";
 }
 
 func MirCollectionCleanupFactReadyAtGlobal(
