@@ -421,6 +421,17 @@ type_check_constructor_symbol_call(ASTNode *expr,
             }
             semantic_nominal_result_snapshot_destroy(snapshot);
         }
+        /* A relation constructor has no nominal field snapshot; its result
+         * relation still names the value type it publishes. */
+        if (sym->kind == SYMBOL_RELATION && ctx != NULL
+            && selected_decl != NULL
+            && selected_decl->type == AST_RELATION_DECL
+            && sym->type != NULL && sym->type->name != NULL
+            && semantic_param_publication_pending(ctx)
+            && !ast_call_set_semantic_value_type_name_copy(
+                expr, sym->type->name))
+            semantic_error(ctx, expr,
+                "Checked relation result type publication failed");
         if (sym->kind == SYMBOL_ZONE && ctx != NULL) {
             ASTNode *zone_decl = selected_decl;
             if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)

@@ -131,6 +131,21 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
             strcmp(result_name, row->value_type->name) != 0) return false;
         *result_depends = true; *external_retains = false; return true;
     }
+    if (row->declaration != 0 && row->value_type != NULL && row->target_shape == AST_IDENTIFIER &&
+        row->target_name != NULL) {
+        /* A relation constructor stores its participants in the value it
+         * returns, as a struct constructor does, and keeps nothing else.
+         * Only the selected relation declaration itself qualifies. */
+        ASTNode *owner = semantic_constructor_decl_for_symbol_kind((SemanticContext *)ctx,
+            SYMBOL_RELATION, row->target_name);
+        if (owner != NULL && owner->type == AST_RELATION_DECL) {
+            size_t inputs = 0;
+            (void)domain_constructor_input(owner, 0, &inputs);
+            if (ast_node_stable_id(owner) != row->declaration || row->value_binding != 0 ||
+                row->stdlib || row->argument_count == 0 || row->argument_count != inputs) return false;
+            *result_depends = true; *external_retains = false; return true;
+        }
+    }
     if (publication_array_permutation(row)) {
         /* The result is the receiver itself; the permutation keeps nothing. */
         PublishedNode *input = publication_current_value(ctx, row->arguments[0].node);
