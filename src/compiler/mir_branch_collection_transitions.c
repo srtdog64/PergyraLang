@@ -1324,12 +1324,27 @@ mir_validate_collection_ownership_transitions_local(
                     && kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
                     && binding == fact->binding_syntax_id && source == 0;
             }
+            /* A call result whose element ownership was never established
+             * is not an owned local. A shallow mutation of it inserts no
+             * owned element and grants no drop, as for a borrowed literal. */
+            bool unestablished_mutation = fact != NULL
+                && fact->origin == PGY_COLLECTION_ORIGIN_UNKNOWN
+                && fact->element_ownership
+                    == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+                && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                && fact->function_syntax_id == routine->source_syntax_id
+                && fact->binding_syntax_id != 0
+                && fact->source_binding_syntax_id == 0
+                && issued_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
+                && issued_receiver == fact->binding_syntax_id
+                && issued_source == 0;
             if ((!parameter_receipt && !member_receipt && fact == NULL)
                 || (fact != NULL
                     && fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
                     && !pgy_collection_owned_local_fact_tracked(fact)
                     && !borrowed_mutation
                     && !borrowed_move_mutation
+                    && !unestablished_mutation
                     && !member_move_owned_push)
                 || (fact != NULL
                     && !mir_collection_receipt_shape_ready(
