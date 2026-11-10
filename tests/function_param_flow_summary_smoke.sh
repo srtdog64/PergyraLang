@@ -1867,6 +1867,7 @@ paired = (
     ("map_clone_array_value_ref_returned_invalid", False),
     ("struct_clone_subject_field_ref_returned_invalid", False),
     ("struct_clone_subject_copied_valid", True),
+    ("class_receiver_scalar_method_then_returned_valid", True),
     ("struct_clone_shared_field_ref_returned_invalid", False),
     ("formal_array_store_inout_output_invalid", False),
     ("default_aggregate_move_option_field_read_valid", True),

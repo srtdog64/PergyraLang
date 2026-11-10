@@ -1,0 +1,20 @@
+// A routine may call a read-only method on a class value and then return that
+// value. The method returns a scalar, so its receiver summary has no backing
+// frame; the routine's own return relation must not wait on one.
+class Bid {
+    let amount: Int;
+
+    func Score(self) -> Int { return self.amount; }
+}
+
+func Pick(a: Bid, b: Bid) -> Bid {
+    if a.Score() > b.Score() { return a; }
+    return b;
+}
+
+func Main() -> Int {
+    let low: Bid = Bid(1);
+    let high: Bid = Bid(2);
+    Log(Pick(low, high).amount);
+    return 0;
+}

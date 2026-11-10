@@ -448,6 +448,28 @@ static size_t rows_capture_formal_find(const RowsCaptureFormals *formals,
     return SIZE_MAX;
 }
 
+/* The summary of a method's receiver formal, as the frame that recorded a
+ * summarized receiver edge read it, when no backing frame produced it. */
+static bool rows_capture_closed_receiver_summary_ready(
+    FunctionParamFlowSummaryStore *store, ASTNode *callee)
+{
+    size_t at = function_param_flow_find(store, ast_node_stable_id(callee), 0);
+    if (at == SIZE_MAX || at >= store->count) return false;
+    const FunctionParamFlowSummaryEntry *entry = &store->entries[at];
+    return entry->function_decl == callee && !entry->analysis_unsupported &&
+        (entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR ||
+         entry->output_producer ==
+            FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN) &&
+        !entry->returned_backing_unproved && !entry->returned_backing_pending &&
+        entry->output_dependencies_ready && entry->output_dependencies != NULL &&
+        entry->output_count == ast_func_param_count(callee) &&
+        (entry->state == FUNCTION_PARAM_FLOW_COMPLETE ||
+         (store->solving &&
+          (entry->state == FUNCTION_PARAM_FLOW_EVALUATED ||
+           (entry->state == FUNCTION_PARAM_FLOW_UNSEEN &&
+            at >= store->active_start))));
+}
+
 static bool function_param_flow_backing_rows_capture_target(
     FunctionParamFlowSummaryStore *store, ASTNode *decl,
     RowsCaptureTargetKind root_kind, size_t root_formal,
@@ -862,9 +884,28 @@ static bool function_param_flow_backing_rows_capture_target(
                         if (valid && !row->receiver_summarized)
                             notes_kept = notes_kept && function_param_flow_rows_memo_note(
                                 &memo_notes.receiver_calls, &memo_notes.receiver_count, edge_call);
-                        if (valid && row->receiver_summarized)
-                            edge_target = (RowsCaptureTarget){.decl = callee,
-                                .kind = ROWS_CAPTURE_FORMAL, .formal = 0};
+                        if (valid && row->receiver_summarized) {
+                            /* The edge was recorded from the callee's complete
+                             * summary for its receiver formal. A summary with
+                             * no backing frame (a closed selector or scalar
+                             * return) is itself the dependency; demanding a
+                             * formal frame it never had would refuse every
+                             * exact check of a routine that calls a read-only
+                             * method on a value it returns. */
+                            FunctionParamFlowProgramPointIndex *callee_index;
+                            bool formal_frame = all_rows ||
+                                !rows_capture_index(store, &seen, callee,
+                                    &callee_index) ||
+                                (callee_index->backing_frames != NULL &&
+                                 callee_index->backing_frame_count != 0 &&
+                                 callee_index->backing_frames[0] != NULL);
+                            if (formal_frame)
+                                edge_target = (RowsCaptureTarget){.decl = callee,
+                                    .kind = ROWS_CAPTURE_FORMAL, .formal = 0};
+                            else
+                                valid = rows_capture_closed_receiver_summary_ready(
+                                    store, callee);
+                        }
                     } else if (result_edge && p == edge_arity) {
                         const Type *type = claim->call_declared_result_type;
                         callee = claim->call_declared_result;
