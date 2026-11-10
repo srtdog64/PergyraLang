@@ -59,16 +59,20 @@ run_expect() {
         fail "$name printed '$actual', expected '$expected'"
 }
 
-# name:fixture:expected stdout joined by '|'
+# name:fixture:expected stdout joined by '|':default llvm (run or refuse)
 USER_ENUM_CASES=(
-    "verdict-ok:$FIXTURES/match_subject_family_verdict_ok.pgy:7|-3"
-    "maybe-some-none:$FIXTURES/match_subject_family_maybe_some_none.pgy:4|-1"
+    "verdict-ok:$FIXTURES/match_subject_family_verdict_ok.pgy:7|-3:refuse"
+    "maybe-some-none:$FIXTURES/match_subject_family_maybe_some_none.pgy:4|-1:run"
 )
 for entry in "${USER_ENUM_CASES[@]}"; do
-    IFS=: read -r name fixture expected <<<"$entry"
+    IFS=: read -r name fixture expected default_llvm <<<"$entry"
     run_expect "$name-native-c" "$fixture" "$expected" --native-pipeline --backend=c
     run_expect "$name-native-llvm" "$fixture" "$expected" --native-pipeline --backend=llvm
     run_expect "$name-default-c" "$fixture" "$expected" --backend=c
+    if [[ "$default_llvm" == run ]]; then
+        run_expect "$name-default-llvm" "$fixture" "$expected" --backend=llvm
+        continue
+    fi
     out_rel="$WORK_REL/$name-default-llvm.exe"
     if compile "$fixture" "$out_rel" "$WORK_DIR/$name-default-llvm.log" \
         --backend=llvm; then
@@ -82,11 +86,7 @@ QUALIFIED="$FIXTURES/enum_qualified_payload_constructor.pgy"
 run_expect qualified-native-c "$QUALIFIED" "12|9" --native-pipeline --backend=c
 run_expect qualified-native-llvm "$QUALIFIED" "12|9" --native-pipeline --backend=llvm
 run_expect qualified-default-c "$QUALIFIED" "12|9" --backend=c
-out_rel="$WORK_REL/qualified-default-llvm.exe"
-if compile "$QUALIFIED" "$out_rel" "$WORK_DIR/qualified-default-llvm.log" --backend=llvm; then
-    fail "default llvm route accepted the qualified constructor; turn this into an execution check"
-fi
-[[ ! -e "$ROOT_DIR/$out_rel" ]] || fail "default llvm route left a binary for the refused qualified constructor"
+run_expect qualified-default-llvm "$QUALIFIED" "12|9" --backend=llvm
 
 OPTION_CONTROL="$FIXTURES/match_subject_family_option_control.pgy"
 run_expect option-native-c "$OPTION_CONTROL" "5|0" --native-pipeline --backend=c
