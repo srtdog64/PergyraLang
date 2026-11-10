@@ -1,11 +1,11 @@
 import "../../../src/self_hosted/mir/routine_expression_use_owner.pgy";
 
 func Main() -> Void {
-    let source: Array<String> = [];
+    var source: Array<String> = [];
     ArrayPushOwnedString(source, "value.1");
     ArrayPushOwnedString(source, "value.1");
     ArrayPushOwnedString(source, "other.2");
-    let uses: Array<String> = [];
+    var uses: Array<String> = [];
     ArrayPushOwnedString(uses, "prefix.0");
     let i: Int = 0;
     while i < ArrayLength(source) {

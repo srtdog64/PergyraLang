@@ -9,7 +9,7 @@ func Main() -> Void with caps env, io_read {
     let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
     if !routines.valid { Die("cell transfer probe routine setup is invalid"); }
     let routine: Int = -1;
-    let scan: Int = 0;
+    var scan: Int = 0;
     while scan < ArrayLength(routines.names) {
         if routines.kinds[scan] == "intent" {
             if routine >= 0 { Die("cell transfer probe requires one purpose"); }
@@ -22,7 +22,7 @@ func Main() -> Void with caps env, io_read {
     let typed: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(true, false);
     let plan: MirIntentRoutinePlan = MirIntentRoutinePlanFromOwners(routines, index, routine, typed);
     if ArrayLength(plan.steps.steps) < 1 { Die("cell transfer probe placement is missing"); }
-    let binding: MirIntentStepPlacementBinding = plan.steps.steps[0].placement_binding;
+    var binding: MirIntentStepPlacementBinding = plan.steps.steps[0].placement_binding;
     let cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(routines.source_json, routines.source_json_extent, routines.declarations);
     let control: DirectMirIntentCellPlacement = DirectMirIntentCellPlacementFromOwners(binding, plan.bindings, cells);
     if !DirectMirIntentCellPlacementReady(control, cells) { Die("cell transfer probe valid layout was refused"); }

@@ -30,7 +30,7 @@ func DirectMirIntentCellTransferLlvm(
     let zone_type: String = DirectMirIdentityCellLlvmType(cells, cells.names[placement.zone_row]);
     let state_type: String = DirectMirIdentityCellLlvmType(cells, cells.names[placement.subject_row]);
     let source: String = slot;
-    let destination: String = participant;
+    var destination: String = participant;
     if into_slot { source = participant; destination = slot; }
     return "  " + address + " = getelementptr " + zone_type + ", ptr " + zone +
         ", i32 0, i32 " + ToString(placement.slot_ordinal) + "\n  " + slot +

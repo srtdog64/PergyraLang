@@ -8,19 +8,19 @@ func Main() -> Void with caps env, io_read, io_write
 {
     let args: Array<String> = Args();
     if ArrayLength(args) != 3 { Log("PROBE|input-invalid"); Exit(2); return; }
-    let mode: String = args[1];
+    var mode: String = args[1];
     let admitted_path: Bool = StartsWith(mode, "admitted-");
     if admitted_path { mode = Substring(mode, 9, StringLength(mode) - 9); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("PROBE|parse-invalid"); Exit(2); return; }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(Concat("PROBE|header-invalid|", analysis.verdict.diagnostic_code)); Exit(2); return; }
-    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    var bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if mode == "nominal-forward-producer"
     {
         if !bundle.verdict.ok
         { Log("PROBE|nominal-forward-body-invalid|" + bundle.verdict.diagnostic_code + "|" + ToString(bundle.verdict.first_node_id)); Exit(3); return; }
-        let signature: Int = -1;
+        var signature: Int = -1;
         var index: Int = 0;
         while index < ArrayLength(analysis.signatures.names)
         {
@@ -34,8 +34,8 @@ func Main() -> Void with caps env, io_read, io_write
         let baseline: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(artifact, analysis.signatures, analysis.expression_surfaces);
         if !MapHas(baseline, prefix + ":paths") || MapHas(baseline, prefix + ":*") || MapHas(baseline, prefix + ":!")
         { Log("PROBE|nominal-forward-summary-invalid"); Exit(3); return; }
-        let selected: Int = -1;
-        let selected_root: Int = -1;
+        var selected: Int = -1;
+        var selected_root: Int = -1;
         var slot: Int = 0;
         while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
         {
@@ -142,7 +142,7 @@ func Main() -> Void with caps env, io_read, io_write
     {
         if ArrayLength(bundle.collection_focus_recovery.part_local_binding_ids) == 0
         { Log("PROBE|classifier-premise-invalid"); Exit(3); return; }
-        let row: Int = 0;
+        var row: Int = 0;
         let selected_id: Int = bundle.collection_focus_recovery.part_local_binding_ids[0];
         while row < ArrayLength(analysis.local_bindings.node_ids) &&
             analysis.local_bindings.node_ids[row] != selected_id { row = row + 1; }
@@ -177,7 +177,7 @@ func Main() -> Void with caps env, io_read, io_write
         let field_name: String = analysis.constructors.field_names[field_row];
         let field_id: Int = analysis.constructors.field_source_syntax_ids[field_row];
         let binding_id: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[member.receiver_node];
-        let fault: Int = 0;
+        var fault: Int = 0;
         while fault < 6
         {
             if fault == 0 { bundle.initializer_types.inferred_type_names[row] = "Unknown"; }
@@ -217,19 +217,19 @@ func Main() -> Void with caps env, io_read, io_write
     }
     if mode == "map-current" || mode == "forward-current"
     {
-        let selected_name: String = "ReadMap";
-        let fault_count: Int = 17;
+        var selected_name: String = "ReadMap";
+        var fault_count: Int = 17;
         if mode == "forward-current" { selected_name = "ForwardMap"; fault_count = 19; }
-        let selected: Int = -1;
-        let selected_slot: Int = -1;
-        let slot: Int = 0;
+        var selected: Int = -1;
+        var selected_slot: Int = -1;
+        var slot: Int = 0;
         while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
         {
             if analysis.expression_surfaces.expression_graph.has_roots[slot]
             {
                 let start: Option<Int> = SemanticExpressionGraphRootStartAt(analysis.expression_surfaces.expression_graph, slot);
                 if !IsSome(start) { Exit(3); return; }
-                let node: Int = UnwrapOption(start);
+                var node: Int = UnwrapOption(start);
                 while node <= analysis.expression_surfaces.expression_graph.roots[slot]
                 {
                     let observed: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
@@ -288,7 +288,7 @@ func Main() -> Void with caps env, io_read, io_write
         let target_binding: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node];
         let original_name: String = analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node];
         let original_kind: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee_node];
-        let fault: Int = 0;
+        var fault: Int = 0;
         while fault < fault_count
         {
             if fault == 0 { bundle.collection_formal_effects.ok = false; }
@@ -361,7 +361,7 @@ func Main() -> Void with caps env, io_read, io_write
             analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
         let diagnostic_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
             artifact, analysis, bundle, diagnostic_generic, receipt);
-        let group: Int = 0;
+        var group: Int = 0;
         while group < ArrayLength(diagnostic_view.focus_recovery.group_root_binding_ids)
         {
             Log(Concat("COPYGROUP|", Concat(ToString(diagnostic_view.focus_recovery.group_root_binding_ids[group]),
@@ -370,7 +370,7 @@ func Main() -> Void with caps env, io_read, io_write
         }
         Log(Concat("COPYSIZE|", ToString(MapSize(diagnostic_view.focus_recovery.exclusive_copies))));
         let keys: Array<String> = MapKeys(diagnostic_view.focus_recovery.exclusive_copies);
-        let index: Int = 0;
+        var index: Int = 0;
         while index < ArrayLength(keys)
         {
             Log(Concat("COPYKEY|", Concat(keys[index], Concat("|",
@@ -441,8 +441,8 @@ func Main() -> Void with caps env, io_read, io_write
         if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
         let copy_keys: Array<String> = MapKeys(bundle.collection_focus_recovery.exclusive_copies);
         let shared_key: String = Concat("s:", Concat(ToString(bundle.collection_focus_recovery.group_root_binding_ids[0]), ".*"));
-        let contained: Bool = false;
-        let part: Int = 0;
+        var contained: Bool = false;
+        var part: Int = 0;
         while part < parts
         {
             let key: String = Concat("contained:", ToString(bundle.collection_focus_recovery.part_local_binding_ids[part]));
@@ -532,8 +532,8 @@ func Main() -> Void with caps env, io_read, io_write
     else if mode == "nested-inner-only"
     {
         if groups < 2 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
-        let parent_group: Int = -1;
-        let group: Int = 0;
+        var parent_group: Int = -1;
+        var group: Int = 0;
         while group < groups
         {
             let function_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
@@ -545,7 +545,7 @@ func Main() -> Void with caps env, io_read, io_write
             group = group + 1;
         }
         if parent_group < 0 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
-        let index: Int = 0;
+        var index: Int = 0;
         while index < exits
         {
             if bundle.collection_focus_recovery.exit_group_indices[index] == parent_group

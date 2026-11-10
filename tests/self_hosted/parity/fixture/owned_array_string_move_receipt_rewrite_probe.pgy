@@ -6,7 +6,7 @@ func RewriteProbeMoveReceipts(
 ) -> DirectMirScalarCfgGraphPlan {
     let prior_move: DirectMirScalarProgramOwnedArrayStringMoveFact =
         plan.program.owned_array_string_move;
-    let coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact = prior_move.coverage;
+    var coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact = prior_move.coverage;
     if repair_coverage {
         coverage = DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
             coverage.valid, DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(coverage),
@@ -26,7 +26,7 @@ func RewriteProbeMoveReceipts(
             move_source.local_rows, move_source.callable_ordinals,
             move_source.parameter_ordinals, move_source.abi_layout_ids);
     let prior_program: DirectMirScalarCfgProgramExtensionFact = plan.program;
-    let program_fact: DirectMirScalarCfgProgramExtensionFact =
+    var program_fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             prior_program.valid, 0, prior_program.callable, prior_program.expressions,
             prior_program.block_condition_expression_rows, prior_program.operation_expression_rows,

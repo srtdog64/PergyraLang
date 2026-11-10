@@ -3,14 +3,14 @@ import "../../../src/self_hosted/mir/routine_build_owner.pgy";
 
 func Main() -> Void with caps env, io_write {
     let args: Array<String> = Args();
-    let count: Int = 256;
+    var count: Int = 256;
     if ArrayLength(args) > 0 { count = 512; }
-    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    var build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
     let view: SemanticExpressionGraphView = SemanticExpressionGraphView(
         false, -1, SemanticExpressionGraphFactsEmpty());
     let declaration: SelfHostMachineLayerDeclaration =
         SelfHostMachineLayerDeclarationEmpty();
-    let index: Int = 0;
+    var index: Int = 0;
     while index < count {
         let text: String = Concat(
             "retained-instruction-payload-that-belongs-to-this-row-", ToString(index));
@@ -23,7 +23,7 @@ func Main() -> Void with caps env, io_write {
             build.cfg.local_refs, text);
         index = index + 1;
     }
-    let checksum: Int = 0;
+    var checksum: Int = 0;
     index = 0;
     while index < count {
         if build.cfg.instructions.ids[index] != index ||

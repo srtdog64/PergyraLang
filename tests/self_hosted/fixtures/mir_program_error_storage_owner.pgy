@@ -3,11 +3,11 @@
 import "../../../src/self_hosted/mir/program_fact_owner.pgy";
 
 func Main() -> Void {
-    let graph: SemanticExpressionGraphFacts =
+    var graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsEmpty();
     ArrayPush(graph.roots, 0);
     ArrayPush(graph.has_roots, true);
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(7);
+    var facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(7);
     facts.expression_graph = graph;
     let failed: SelfMirProgramFacts = SelfMirProgramFactsError(
         facts, "expected_code", "expected message"

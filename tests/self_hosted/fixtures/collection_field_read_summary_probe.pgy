@@ -9,13 +9,13 @@ func Main() -> Void with caps env, io_read
 {
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 && ArrayLength(args) != 2 { Log("PROBE|input-invalid"); Exit(2); return; }
-    let mode: String = "";
+    var mode: String = "";
     if ArrayLength(args) == 2 { mode = args[1]; }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("PROBE|parse-invalid"); Exit(2); return; }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(Concat("PROBE|header-invalid|", analysis.verdict.diagnostic_code)); Exit(2); return; }
-    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    var body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !body.verdict.ok { Log(Concat("PROBE|body-invalid|", body.verdict.diagnostic_code)); Exit(2); return; }
     if mode != "" {
         if mode != "recovery-deep" && mode != "recovery-admitted" &&
@@ -56,16 +56,16 @@ func Main() -> Void with caps env, io_read
         artifact, analysis.signatures, analysis.expression_surfaces);
     let keys: Array<String> = MapKeys(reads);
     Log(Concat("COUNT|", ToString(ArrayLength(keys))));
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(keys)
     {
         Log(Concat("KEY|", keys[index]));
         index = index + 1;
     }
-    let routine: Int = 0;
+    var routine: Int = 0;
     while routine < ArrayLength(analysis.signatures.function_node_ids)
     {
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < analysis.signatures.param_counts[routine]
         {
             let parameter: Int = analysis.signatures.param_starts[routine] + ordinal;

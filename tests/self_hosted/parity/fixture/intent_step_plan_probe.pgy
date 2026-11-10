@@ -4,10 +4,10 @@ import "../../../../src/self_hosted/mir_lower/intent_routine_plan_owner.pgy";
 func StepProbeWithForeignTarget(
     own routines: MirProgramRoutineIndex, target_id: String
 ) -> MirProgramRoutineIndex {
-    let ids: Array<String> = [];
-    let maximum: Int = 0;
-    let target_row: Int = -1;
-    let row: Int = 0;
+    var ids: Array<String> = [];
+    var maximum: Int = 0;
+    var target_row: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(routines.source_syntax_ids) {
         ArrayPush(ids, routines.source_syntax_ids[row]);
         let id: Int = ToInt(routines.source_syntax_ids[row]);
@@ -40,8 +40,8 @@ func Main() -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Die("usage: intent_step_plan_probe <MIR> <control|purpose|phase|target>"); }
     let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
     if !routines.valid { Die("step probe routine setup is invalid"); }
-    let routine: Int = -1;
-    let scan: Int = 0;
+    var routine: Int = -1;
+    var scan: Int = 0;
     while scan < ArrayLength(routines.names) {
         if routines.kinds[scan] == "intent" {
             if routine >= 0 { Die("step probe requires one purpose"); }
@@ -50,7 +50,7 @@ func Main() -> Void with caps env, io_read {
         scan = scan + 1;
     }
     if routine < 0 { Die("step probe purpose setup is invalid"); }
-    let purpose: Int = ToInt(routines.source_syntax_ids[routine]);
+    var purpose: Int = ToInt(routines.source_syntax_ids[routine]);
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine);
     let typed: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(true, false);
     let routine_plan: MirIntentRoutinePlan = MirIntentRoutinePlanFromOwners(
@@ -64,13 +64,13 @@ func Main() -> Void with caps env, io_read {
     if !carriers.valid { Die(carriers.diagnostic_message); }
     let bindings: MirIntentBindingProjection = MirIntentBindingProjectionFromCarriers(
         carriers, routines.names[routine], purpose);
-    let phases: MirIntentPhaseProjection = MirIntentPhaseProjectionFromCarriers(
+    var phases: MirIntentPhaseProjection = MirIntentPhaseProjectionFromCarriers(
         routines, routine, false, bindings.step_names, carriers.carrier_names,
         carriers.carrier_arg0s, carriers.carrier_arg1s, carriers.carrier_slots,
         carriers.carrier_results, carriers.carrier_abi_type_names,
         carriers.carrier_source_types, carriers.carrier_expr0s, carriers.carrier_rows);
     let topology: Array<Int> = [];
-    let plan: MirIntentRoutineStepPlan = MirIntentRoutineStepPlanFromOwners(
+    var plan: MirIntentRoutineStepPlan = MirIntentRoutineStepPlanFromOwners(
         routines, false, typed, purpose, topology, carriers, bindings,
         bindings.step_names, phases);
     if plan.purpose_syntax_id != purpose || plan.typed_execution ||

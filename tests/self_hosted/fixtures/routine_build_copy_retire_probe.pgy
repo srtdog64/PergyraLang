@@ -7,7 +7,7 @@ import "../../../src/self_hosted/mir/routine_source_statement_attachment_owner.p
 
 func RoutineBuildCopyRetireProbeSource() -> SelfMirRoutineBuild
 {
-    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    var build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
     let uses: Array<String> = [];
     build = SelfMirRoutineAddInstruction(build, "intent_bind", "IntentBinding",
         "", "", "", "", "", "AST_INT", uses);

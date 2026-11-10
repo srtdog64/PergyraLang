@@ -26,13 +26,13 @@ func Main() -> Void with caps env, io_read {
     if !DirectMirScalarProgramRouteAdmissionReady(admission) ||
         !admission.route.claimed { Die("sealed move probe route was not admitted"); }
     let route_fact: DirectMirScalarProgramRouteFact = admission.route;
-    let plan: DirectMirScalarCfgGraphPlan =
+    var plan: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route_fact);
     if !DirectMirScalarCfgGraphPlanReady(plan) ||
         !DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(plan) {
         Die("sealed move probe baseline was not ready");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.program.owned_array_string_move.caller_routines) &&
         plan.program.owned_array_string_move.call_operation_rows[row] != -1 {
         row = row + 1;
@@ -42,12 +42,12 @@ func Main() -> Void with caps env, io_read {
     }
     let block: Int = plan.program.owned_array_string_move.coverage.call_block_rows[row];
     // Mutate the existing storage through its shared array headers.
-    let successors: Array<Int> = plan.block_succ_true;
-    let returns: Array<Int> = plan.program.block_return_expression_rows;
-    let block_counts: Array<Int> = plan.routines.block_counts;
-    let left_locals: Array<Int> = plan.operation_left_locals;
-    let call_operations: Array<Int> = plan.program.owned_array_string_move.call_operation_rows;
-    let call_blocks: Array<Int> = plan.program.owned_array_string_move.coverage.call_block_rows;
+    var successors: Array<Int> = plan.block_succ_true;
+    var returns: Array<Int> = plan.program.block_return_expression_rows;
+    var block_counts: Array<Int> = plan.routines.block_counts;
+    var left_locals: Array<Int> = plan.operation_left_locals;
+    var call_operations: Array<Int> = plan.program.owned_array_string_move.call_operation_rows;
+    var call_blocks: Array<Int> = plan.program.owned_array_string_move.coverage.call_block_rows;
     let successor: Int = plan.block_succ_true[block];
     ArraySet(successors, block, block);
     RequireStaleFlowRefusal(plan);

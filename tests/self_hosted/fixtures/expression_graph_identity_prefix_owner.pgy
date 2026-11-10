@@ -21,7 +21,7 @@ func ExpressionGraphIdentityPrefixReady(ref sequence: MirExpressionGraphSequence
     }
     let row: Int = 1;
     while row < expected_count {
-        let expected_target: Int = 0;
+        var expected_target: Int = 0;
         if row == call_row { expected_target = target_syntax_id; }
         if sequence.arena.identities.call_target_syntax_ids[row] != expected_target ||
             sequence.arena.identities.runtime_call_abi_ids[row] != 0 ||
@@ -50,7 +50,7 @@ func Main() -> Void {
             [SemanticExpressionPlaceBinding()]
         );
     let program_call_ordinals: Array<Int> = [];
-    let sequence: MirExpressionGraphSequence =
+    var sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequence(true, 1, [0], arena, program_call_ordinals);
     sequence = MirExpressionGraphSequenceAppendParserBridge(
         sequence, "actor.Run(1)"
@@ -61,10 +61,10 @@ func Main() -> Void {
         Exit(1);
     }
 
-    let target_kinds: Array<Int> = sequence.arena.call_target_kinds;
-    let target_names: Array<String> = sequence.arena.call_target_names;
-    let call_row: Int = 0 - 1;
-    let row: Int = 1;
+    var target_kinds: Array<Int> = sequence.arena.call_target_kinds;
+    var target_names: Array<String> = sequence.arena.call_target_names;
+    var call_row: Int = 0 - 1;
+    var row: Int = 1;
     while row < count {
         if sequence.arena.topology.node_kinds[row] == AstExpressionNodeCall() {
             if call_row >= 0 {

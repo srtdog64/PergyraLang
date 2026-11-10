@@ -56,8 +56,8 @@ func DirectMirIntentCellPlacementFromOwners(
         ) {
         return invalid;
     }
-    let zone: Int = -1;
-    let subject_cell: Int = -1;
+    var zone: Int = -1;
+    var subject_cell: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(cells.names) {
         if cells.declaration_rows[row] == binding.zone_declaration_row { zone = row; }
@@ -70,7 +70,7 @@ func DirectMirIntentCellPlacementFromOwners(
         cells.names[zone] != parameters.type_names[zone_parameter] ||
         cells.names[subject_cell] != parameters.type_names[subject_parameter] { return invalid; }
     let slot_id: Int = ToInt(binding.actor_slot_source_syntax_id);
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < cells.field_counts[zone] {
         let field: Int = cells.field_starts[zone] + ordinal;
         if cells.field_source_syntax_ids[field] == slot_id {

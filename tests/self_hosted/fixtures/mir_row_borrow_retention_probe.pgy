@@ -2,7 +2,7 @@
 import "../../../src/self_hosted/mir/routine_build_owner.pgy";
 
 func RowsFromBorrow(ref values: Array<String>) -> SelfMirRoutineBuild {
-    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    var build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
     build = SelfMirRoutinePushLocal(build, values[0], "String", 0, values[0]);
     let uses: Array<String> = [];
     return SelfMirRoutineAddInstruction(build, "assign", values[0], values[0],
@@ -10,7 +10,7 @@ func RowsFromBorrow(ref values: Array<String>) -> SelfMirRoutineBuild {
 }
 
 func Main() -> Void with caps io_write {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, "borrow-retained-row");
     let build: SelfMirRoutineBuild = RowsFromBorrow(values);
     ArrayDropOwnedStrings(values);

@@ -4,7 +4,7 @@ func Main() -> Void {
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: alpha : Int = 1\n        Return: alpha\n"
     );
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
         ArrayLength(analysis.local_bindings.names) != 1 {

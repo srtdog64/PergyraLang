@@ -1,7 +1,7 @@
 import "../../../src/self_hosted/mir/program_fact_owner.pgy";
 
 func Main() -> Void {
-    let source_uses: Array<String> = [];
+    var source_uses: Array<String> = [];
     ArrayPushOwnedString(source_uses, "value.1");
     ArrayPushOwnedString(source_uses, "other.2");
     let cfg: SelfMirCfgRows = SelfMirCfgAddInstruction(

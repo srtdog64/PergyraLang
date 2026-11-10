@@ -1,11 +1,11 @@
 import "../../../src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy";
 
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "slot");
     ArrayPushOwnedString(names, "slot");
     ArrayPushOwnedString(names, "device");
-    let types: Array<String> = [];
+    var types: Array<String> = [];
     ArrayPushOwnedString(types, "Slot<Int>");
     ArrayPushOwnedString(types, "Slot<String>");
     ArrayPushOwnedString(types, "DeviceSlot<Int>");

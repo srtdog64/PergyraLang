@@ -17,12 +17,12 @@ func Main() -> Void with caps env, io_read {
     let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(
         artifact, analysis, analysis.enums
     );
-    let facts: SelfDirIntentFacts =
+    var facts: SelfDirIntentFacts =
         CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
             artifact, analysis, declarations
         );
     let mode: String = args[1];
-    let view: CodegenIntentExecutionView =
+    var view: CodegenIntentExecutionView =
         CodegenIntentExecutionViewEmpty(true);
     if mode == "missing-source-view" {
         if CodegenIntentExecutionViewReadyForSemantic(
@@ -43,47 +43,47 @@ func Main() -> Void with caps env, io_read {
         Log(Concat("rejected:", mode));
         return;
     }
-    let steps: SelfDirIntentStepFacts = facts.steps;
+    var steps: SelfDirIntentStepFacts = facts.steps;
     if ArrayLength(steps.node_ids) != 2 {
         Die("intent declaration rows probe requires exactly two steps");
     }
     if mode == "actor-crosswire" {
-        let values: Array<String> = steps.who_names;
+        var values: Array<String> = steps.who_names;
         ArraySet(values, steps.who_starts[0], "shadow_actor");
         steps.who_names = values;
     } else if mode == "using-crosswire" {
-        let values: Array<String> = steps.using_aliases;
+        var values: Array<String> = steps.using_aliases;
         ArraySet(values, 0, "shadow_work");
         steps.using_aliases = values;
     } else if mode == "authority-crosswire" {
-        let values: Array<String> = steps.authorized_names;
+        var values: Array<String> = steps.authorized_names;
         ArraySet(values, steps.authorized_starts[0], "shadow_actor");
         steps.authorized_names = values;
     } else if mode == "target-crosswire" {
-        let values: Array<Int> = steps.target_expression_node_ids;
+        var values: Array<Int> = steps.target_expression_node_ids;
         ArraySet(values, 0, values[1]);
         steps.target_expression_node_ids = values;
     } else if mode == "guard-crosswire" {
-        let values: Array<Int> = steps.guard_node_ids;
+        var values: Array<Int> = steps.guard_node_ids;
         ArraySet(values, 0, values[1]);
         steps.guard_node_ids = values;
     } else if mode == "post-crosswire" {
-        let values: Array<Int> = steps.post_node_ids;
+        var values: Array<Int> = steps.post_node_ids;
         ArraySet(values, 0, values[1]);
         steps.post_node_ids = values;
     } else if mode == "expect-crosswire" {
-        let values: Array<Int> = steps.expect_node_ids;
+        var values: Array<Int> = steps.expect_node_ids;
         ArraySet(values, 0, values[1]);
         steps.expect_node_ids = values;
     } else if mode == "compensation-crosswire" {
         let start: Int = steps.compensate_starts[1];
-        let values: Array<Int> = steps.compensate_node_ids;
+        var values: Array<Int> = steps.compensate_node_ids;
         let first: Int = values[start];
         ArraySet(values, start, values[start + 1]);
         ArraySet(values, start + 1, first);
         steps.compensate_node_ids = values;
     } else if mode == "step-range-crosswire" {
-        let values: Array<Int> = facts.step_starts;
+        var values: Array<Int> = facts.step_starts;
         ArraySet(values, 0, 1);
         facts.step_starts = values;
     } else {

@@ -18,7 +18,7 @@ func Main() -> Void with caps env, io_read {
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
     Log("plan_ok=" + ToString(DirectMirScalarCfgGraphPlanReady(plan)));
     let proved: HashMap<String, Int> = DirectMirArrayStoragePreservingParameters(plan);
-    let flat: Int = 0;
+    var flat: Int = 0;
     while flat < ArrayLength(plan.routines.parameter_types) {
         if IsSome(SemanticArrayElementType(plan.routines.parameter_types[flat])) {
             Log("parameter=" + ToString(flat) + ":preserved=" + ToString(MapHas(proved, ToString(flat))));

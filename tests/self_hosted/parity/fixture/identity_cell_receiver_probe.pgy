@@ -18,9 +18,9 @@ func Main() -> Void with caps env, io_read {
     let route: DirectMirScalarProgramRouteFact = admission.route;
     if ArrayLength(args) == 2 {
         if args[1] == "zone-readonly" {
-            let checked: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+            var checked: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
             if !DirectMirScalarCfgGraphPlanReady(checked) { Die("readonly Zone GraphPlan did not seal"); }
-            let row: Int = 0; let observed: Int = 0;
+            var row: Int = 0; var observed: Int = 0;
             while row < ArrayLength(checked.routines.parameter_types) {
                 let type_name: String = checked.routines.parameter_types[row];
                 if DirectMirScalarProgramIdentityCellParameterCarriageReady(
@@ -44,9 +44,9 @@ func Main() -> Void with caps env, io_read {
             return;
         }
         if args[1] == "zone-ownership" {
-            let checked: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+            var checked: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
             if !DirectMirScalarCfgGraphPlanReady(checked) { Die("Zone GraphPlan did not seal"); }
-            let node: Int = 0; let zone_node: Int = -1; let zone_row: Int = -1;
+            var node: Int = 0; var zone_node: Int = -1; var zone_row: Int = -1;
             while node < ArrayLength(checked.program.expressions.node_kinds) {
                 let cell: Int = DirectMirIdentityCellRow(checked.program.logical_record.identity_cells,
                     checked.program.expressions.node_types[node]);
@@ -87,7 +87,7 @@ func Main() -> Void with caps env, io_read {
             Log("zone ownership: shared/borrowed backing and crossed slot kind refused");
             return;
         }
-        let projection: String = "";
+        var projection: String = "";
         if args[1] == "c" { projection = CompilerTargetCpuCProjection(); }
         else if args[1] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
         else { Die("receiver probe target must be c or llvm"); }
