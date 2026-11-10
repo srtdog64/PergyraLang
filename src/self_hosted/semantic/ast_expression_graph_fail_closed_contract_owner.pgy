@@ -64,7 +64,9 @@ func SemanticAstExpressionGraphNominalCallComparisonContractReady() -> Bool {
                 [fact.root], fact.arena
             ), [0], 1
         );
-    let function_names: Array<String> = ["StageFor"];
+    let function_name_rows: Array<String> = ["StageFor"];
+    let function_names: SemanticCallableNameTable =
+        SemanticCallableNameTableFromNames(function_name_rows);
     let function_returns: Array<String> = ["Stage"];
     let function_params: Array<String> = ["Int"];
     return graph.ok && signatures.ok &&
