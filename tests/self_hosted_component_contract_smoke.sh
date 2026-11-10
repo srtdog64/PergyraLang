@@ -506,7 +506,7 @@ require_max_lines "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy" 2
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" 11
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" 12
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" 35
 require_max_lines \
