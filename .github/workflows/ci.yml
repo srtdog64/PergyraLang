@@ -183,7 +183,7 @@ jobs:
 
       - name: Install String lifetime gate toolchain
         timeout-minutes: 5
-        run: sudo apt-get install -y clang llvm-dev llvm
+        run: sudo apt-get install -y clang llvm-dev llvm libomp-dev
 
       - name: Calibrate ASan and run the bounded compiler battery
         # The sanitized compiler is built into bin-asan-*/, so its adjacent
@@ -327,7 +327,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Run self-host codegen fixed point and breadth
         run: make LLVM_ENABLED=1 self-host-codegen-bootstrap-test-smoke
@@ -372,7 +372,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Download the exact native seed compiler
         uses: actions/download-artifact@v4
@@ -438,7 +438,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Download the installed backend-compare toolchain
         uses: actions/download-artifact@v4
