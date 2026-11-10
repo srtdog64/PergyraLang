@@ -12,7 +12,8 @@ func DirectMirScalarProgramCLogicalRecordArrayPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref target: CompilerTargetProjectionFact
 ) -> String {
-    var output: String = "#include \"pgy_runtime_panic_contract.h\"\n";
+    // The bounds panic contract is included only when a record array is emitted.
+    var output: String = "";
     var record: Int = 0;
     while record < ArrayLength(plan.program.logical_record.names) {
         let array_type: String = Concat("Array<", Concat(
@@ -77,7 +78,8 @@ func DirectMirScalarProgramCLogicalRecordArrayPreamble(
         }
         record = record + 1;
     }
-    return output;
+    if output == "" { return ""; }
+    return Concat("#include \"pgy_runtime_panic_contract.h\"\n", output);
 }
 
 func DirectMirScalarProgramCLogicalRecordArrayValueResultCopyIn(
