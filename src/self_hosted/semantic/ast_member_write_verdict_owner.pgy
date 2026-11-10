@@ -7,6 +7,7 @@ import "ast_expression_graph_member_view_owner.pgy";
 import "env_value_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
+import "ast_expression_carried_callable_identity_owner.pgy";
 
 // The typed environment carries declaration permission; projections preserve
 // that permission until an identity host establishes a separate state owner.
@@ -56,6 +57,7 @@ func SemanticAstCollectionCallWriteVerdict(
     ref graph: SemanticExpressionGraphFacts,
     ref call: SemanticCallSpineView, ref target: SemanticExpressionCallTargetFact,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>, types: Array<String>, modes: Array<String>,
     ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
@@ -67,8 +69,10 @@ func SemanticAstCollectionCallWriteVerdict(
         return SemanticDiagnosticMessageFactEmpty();
     }
     // A program function of the same name shadows the builtin (docs/205 R7);
-    // the call then changes nothing its argument names.
-    if MapHas(function_names.exact_first_rows, target.name) {
+    // the call then changes nothing its argument names. The name table may
+    // also list the builtin itself, so only a source declaration counts.
+    let declared: Result<Int> = SemanticExpressionDeclaredFunctionSyntaxId(signatures, target.name);
+    if IsOk(declared) && Unwrap(declared) > 0 {
         return SemanticDiagnosticMessageFactEmpty();
     }
     return SemanticAstValueWriteVerdict(graph, call.argument_nodes[0], constructors,
