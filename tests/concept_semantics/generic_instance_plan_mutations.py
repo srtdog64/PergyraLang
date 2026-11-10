@@ -52,3 +52,39 @@ if any(d.get("nominal_kind") == "subject" for d in document["decls"]):
     emit("cell-physical-layout", lambda d: cell(d).__setitem__("abi_layout_id", 42))
     emit("cell-unknown-field-type", lambda d: cell(d)["fields"][0].__setitem__("type", "UnknownCellField"))
     emit("cell-return-escape", lambda d: template(d).__setitem__("return", cell(d)["name"]))
+    emit("cell-call-carriage", lambda d: template(d)["params"][0].__setitem__(
+        "carriage", "value-result"))
+
+    def first_cell_definition(candidate):
+        cell_name = cell(candidate)["name"]
+        return next(i for r in candidate["routines"] for b in r["blocks"]
+                    for i in b["instructions"]
+                    if i.get("kind") == "def" and
+                    i.get("abi_type_name") == cell_name and
+                    i.get("expr0_graph"))
+
+    def replace_cell_definition_with_copy(candidate):
+        instruction = first_cell_definition(candidate)
+        graph = instruction["expr0_graph"]
+        node = graph["nodes"][graph["root"]]
+        node.update({
+            "kind": "leaf", "text": instruction["arg0"],
+            "call_target_kind": "none", "call_target_name": "",
+            "call_target_syntax_id": 0, "runtime_call_abi_id": 0,
+            "binding_syntax_id": 0, "binding_kind": "none",
+            "binding_ordinal": None, "left": None, "right": None,
+        })
+
+    def hide_cell_call_target(candidate):
+        node = next(n for r in candidate["routines"] for b in r["blocks"]
+                    for i in b["instructions"]
+                    for graph in (i.get("expr0_graph"), i.get("expr1_graph"))
+                    if graph for n in graph["nodes"]
+                    if n.get("kind") == "call" and
+                    n.get("call_target_name") in ("InspectCell", "ForwardCell"))
+        node["call_target_kind"] = "none"
+        node["call_target_name"] = ""
+        node["call_target_syntax_id"] = 0
+
+    emit("cell-binding-copy", replace_cell_definition_with_copy)
+    emit("cell-opaque-consumer", hide_cell_call_target)

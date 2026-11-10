@@ -49,8 +49,8 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
         DirectMirScalarCfgRangeIterationFactsFromOwners(
             admitted, index, use_facts, wire, foreach_facts
         );
-    let expected_ranges: Int = 0;
-    let type_row: Int = 0;
+    var expected_ranges: Int = 0;
+    var type_row: Int = 0;
     while type_row < ArrayLength(
             index.iteration_type_facts.iteration_syntax_ids) {
         if !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
@@ -69,7 +69,7 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
     if !DirectMirScalarCfgRangeTransfersReady(index, ranges) {
         Die("direct MIR scalar CFG range transfer is invalid");
     }
-    let selection: DirectMirScalarCfgCollectionPlanSelection =
+    var selection: DirectMirScalarCfgCollectionPlanSelection =
         DirectMirScalarCfgCollectionPlanSelection(
             DirectMirScalarCfgCollectionPlanEmpty(),
             DirectMirScalarCfgStringArrayPlanEmpty(),

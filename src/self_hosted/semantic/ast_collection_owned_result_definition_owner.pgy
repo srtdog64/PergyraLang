@@ -18,7 +18,7 @@ func SemanticAstCollectionOwnedResultDefinitionsApply(
         ArrayLength(definitions.owned_result_function_syntax_ids) != count {
         return false;
     }
-    let definition: Int = 0;
+    var definition: Int = 0;
     while definition < count {
         if definitions.owned_result_function_syntax_ids[definition] != 0 {
             return false;

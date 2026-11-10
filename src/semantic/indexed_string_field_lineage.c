@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "function_param_publication_internal.h"
+#include "formal_string_store_landing_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
 #include "diag_codes.h"
@@ -489,10 +490,37 @@ bool semantic_indexed_string_field_receipts(SemanticContext *ctx, bool prepare)
         }
         bool prepared = !prepare ||
             semantic_indexed_string_field_prepare(ctx, row->indexed_string_field);
+        size_t store_value_ordinal = SIZE_MAX;
+        bool checked_array_store = !prepared && prepare
+            && semantic_param_publication_checked_array_store(ctx,
+                row->indexed_string_field->sink, &store_value_ordinal)
+            && store_value_ordinal
+                == row->indexed_string_field->sink_ordinal;
+        bool owned_push_selected =
+            semantic_formal_store_landing_selects_value(ctx,
+                row->indexed_string_field->sink, row->node)
+            && semantic_formal_string_store_landing_selected_owned_push(
+                ctx, row->indexed_string_field->sink);
+        if (!prepared && owned_push_selected) {
+            /* The exact store already transfers this value into an owned
+             * Array on replay.  Do not also select a Clone for its payload;
+             * the reloaded generation still has to validate both facts. */
+            issued++;
+            continue;
+        }
+        bool store_copy_selected = checked_array_store
+            && (semantic_formal_store_landing_selects_value(ctx,
+                    row->indexed_string_field->sink, row->node)
+                || semantic_formal_store_landing_select_held(ctx,
+                    row->indexed_string_field->sink,
+                    row->indexed_string_field->sink_ordinal));
         if (!prepared && prepare && row->node != NULL && row->id != 0 &&
             row->id == ast_node_stable_id(row->node) && row->value_present &&
-            !row->meta && row->string_value && type_equals(row->value_type, TYPE_STRING) &&
-            semantic_loan_copy_landing_select_string(ctx, row->node)) {
+            !row->meta && row->string_value
+            && type_equals(row->value_type, TYPE_STRING)
+            && (store_copy_selected
+                || semantic_loan_copy_landing_select_string(
+                    ctx, row->node))) {
             if (first_copy == NULL) first_copy = (ASTNode *)row->node;
             continue;
         }
@@ -506,10 +534,11 @@ bool semantic_indexed_string_field_receipts(SemanticContext *ctx, bool prepare)
         issued++;
     }
     if (first_copy != NULL) {
-        /* Every selected row is rechecked after the driver inserts the
-         * corresponding Clone.  Collecting the complete batch here avoids
-         * one whole-program analysis per independent field without treating
-         * an unlanded row as current in this analysis. */
+        /* Every selected row is rechecked after the driver inserts either
+         * its exact Clone or an already selected Array store value copy.
+         * Collecting the complete batch here avoids one whole-program
+         * analysis per independent field without treating an unlanded row
+         * as current in this analysis. */
         semantic_loan_copy_landing_error_with_hints(ctx,
             PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
             PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_copy,

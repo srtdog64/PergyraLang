@@ -12,7 +12,7 @@ func WithCount(build: Build, count: Int) -> Build {
 }
 
 func Bump(build: Build) -> Int {
-    let current: Build = build;
+    var current: Build = build;
     current = WithCount(current, current.count + 2);
     return ArrayLength(current.items) + current.count;
 }

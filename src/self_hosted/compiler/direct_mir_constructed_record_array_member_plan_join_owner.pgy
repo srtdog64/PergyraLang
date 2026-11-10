@@ -10,7 +10,7 @@ func DirectMirConstructedRecordArrayProgramDigest(
         !DirectMirConstructedRecordArrayMemberMainAdmissionReady(main) {
         return 0;
     }
-    let hash: Long = DirectMirCfgHashInt(479L,
+    var hash: Long = DirectMirCfgHashInt(479L,
         DirectMirConstructedRecordArrayCaptureDigest(
             methods.constructed_return));
     hash = DirectMirCfgHashInt(hash,

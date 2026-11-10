@@ -15,8 +15,8 @@ func SelfMirJsonNominalAbiLayout(
         layouts.layout_ids[declaration_index] <= 0 {
         return "";
     }
-    let fields: Array<String> = [];
-    let field_i: Int = 0;
+    var fields: Array<String> = [];
+    var field_i: Int = 0;
     while field_i < layouts.field_counts[declaration_index] {
         let row: Int = layouts.field_starts[declaration_index] + field_i;
         ArrayPush(fields, JsonEmitObject([
@@ -46,8 +46,8 @@ func SelfMirJsonNominalAbiLayoutForType(
     ref rows: SelfMirDeclarationRows,
     type_name: String
 ) -> String {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(rows.names) {
         if rows.nominal_kinds[row] == "struct" && rows.names[row] == type_name {
             if found >= 0 { return ""; }
@@ -64,7 +64,7 @@ func SelfMirJsonNominalAbiLayoutForType(
 func SelfMirJsonOwnedAbiLayoutForType(
     ref rows: SelfMirDeclarationRows, type_name: String
 ) -> String {
-    let layout: String = SelfMirJsonStaticAbiLayout(type_name);
+    var layout: String = SelfMirJsonStaticAbiLayout(type_name);
     if StringLength(layout) == 0 { layout = SelfMirJsonNominalAbiLayoutForType(rows, type_name); }
     return layout;
 }

@@ -7,6 +7,9 @@ LLVMTypeRef llvm_function_signature_from_callable_entry(
     LLVMGenCtx *ctx, const LLVMCallableVarEntry *entry);
 
 LLVMValueRef llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_scalar_binary_values(ASTNode *node, PgyTokenType op_type,
+    LLVMValueRef left, LLVMValueRef right, ASTNode *left_expr,
+    ASTNode *right_expr, LLVMGenCtx *ctx);
 
 LLVMValueRef llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx);
 

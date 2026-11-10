@@ -22,7 +22,18 @@
 #include "indexed_string_permanent_element.h"
 #include "loan_copy_landing_owner.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+static bool indexed_string_receipt_deferred(const SemanticContext *ctx,
+    size_t copies_before, size_t stores_before, size_t diagnostic_before)
+{
+    return ctx != NULL && ctx->loan_copy_landing_has_deferred_error &&
+        (ctx->loan_copy_landing_selected_count > copies_before ||
+            ctx->string_store_landing_selected_count > stores_before) &&
+        ctx->diagnostic_emission_revision > diagnostic_before;
+}
 
 bool
 semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
@@ -45,31 +56,115 @@ semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
 
 static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
 {
-    if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
+    bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
+    bool ready = ctx != NULL && semantic_param_publication_ready(ctx);
+    if (ctx == NULL || ctx->has_error || !ready) {
+        if (timing) fprintf(stderr,
+            "[semantic timing] indexed_receipts=guard prepare=%d ctx=%d error=%d ready=%d copies=%zu stores=%zu\n",
+            prepare ? 1 : 0, ctx != NULL ? 1 : 0,
+            ctx != NULL && ctx->has_error ? 1 : 0, ready ? 1 : 0,
+            ctx != NULL ? ctx->loan_copy_landing_selected_count : 0,
+            ctx != NULL ? ctx->string_store_landing_selected_count : 0);
+        return false;
+    }
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     size_t issued = 0, private_issued = 0;
+    bool deferred = false;
     ASTNode *first_copy = NULL, *first_private_copy = NULL;
-    if (!semantic_indexed_string_nonowner_receipts(ctx, prepare)) return false;
-    if (!semantic_indexed_string_field_receipts(ctx, prepare)) return false;
-    if (!semantic_indexed_string_permanent_receipts(ctx, prepare)) return false;
-    if (!semantic_indexed_string_definition_receipts(ctx, prepare)) return false;
+    size_t before = ctx->loan_copy_landing_selected_count;
+    size_t stores_before = ctx->string_store_landing_selected_count;
+    size_t diagnostic_before = ctx->diagnostic_emission_revision;
+    if (!semantic_indexed_string_nonowner_receipts(ctx, prepare)) {
+        if (!indexed_string_receipt_deferred(ctx, before,
+                stores_before, diagnostic_before)) return false;
+        deferred = true;
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] indexed_receipts=nonowner copies=%zu stores=%zu\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count);
+    before = ctx->loan_copy_landing_selected_count;
+    stores_before = ctx->string_store_landing_selected_count;
+    diagnostic_before = ctx->diagnostic_emission_revision;
+    if (!semantic_indexed_string_field_receipts(ctx, prepare)) {
+        if (!indexed_string_receipt_deferred(ctx, before,
+                stores_before, diagnostic_before)) return false;
+        deferred = true;
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] indexed_receipts=field copies=%zu stores=%zu\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count);
+    before = ctx->loan_copy_landing_selected_count;
+    stores_before = ctx->string_store_landing_selected_count;
+    diagnostic_before = ctx->diagnostic_emission_revision;
+    if (!semantic_indexed_string_permanent_receipts(ctx, prepare)) {
+        if (!indexed_string_receipt_deferred(ctx, before,
+                stores_before, diagnostic_before)) return false;
+        deferred = true;
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] indexed_receipts=permanent copies=%zu stores=%zu\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count);
+    before = ctx->loan_copy_landing_selected_count;
+    stores_before = ctx->string_store_landing_selected_count;
+    diagnostic_before = ctx->diagnostic_emission_revision;
+    if (!semantic_indexed_string_definition_receipts(ctx, prepare)) {
+        if (!indexed_string_receipt_deferred(ctx, before,
+                stores_before, diagnostic_before)) return false;
+        deferred = true;
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] indexed_receipts=definition copies=%zu stores=%zu\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count);
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];
         if (!row->indexed_string_shallow_retention) continue;
+        bool selected_result_source = false;
+        const ASTNode *dependency = row->node;
+        bool lineage = false;
+        uint32_t projected_source = UINT32_MAX;
+        bool projected_result = false;
         if (prepare) {
-            const ASTNode *dependency = row->node;
-            bool lineage = dependency != NULL && (dependency->type != AST_IDENTIFIER ||
+            lineage = dependency != NULL && (dependency->type != AST_IDENTIFIER ||
                 semantic_indexed_string_borrow_result_dependency_current(ctx, (ASTNode *)dependency, &dependency));
-            uint32_t ignored_source = UINT32_MAX;
-            if (lineage && dependency != NULL && dependency->type == AST_CALL &&
-                ast_call_semantic_callee_declared_callable(dependency))
-                (void)function_param_flow_string_result_source_prepare(ctx, dependency, &ignored_source);
+            projected_result = lineage && dependency != NULL &&
+                dependency->type == AST_CALL &&
+                ast_call_semantic_callee_declared_callable(dependency) &&
+                function_param_flow_string_result_source_after_selected_edges(
+                    ctx, dependency, &projected_source);
+            if (projected_result) {
+                selected_result_source = projected_source == 0;
+            }
         }
         uint32_t source = UINT32_MAX;
         bool current = issued != SIZE_MAX && row->node != NULL && row->id != 0
             && row->id == ast_node_stable_id(row->node)
             && semantic_indexed_string_borrow_source_current((ASTNode *)row->node, ctx, &source)
             && source == 0;
+        if (timing && !current)
+            fprintf(stderr,
+                "[semantic timing] shallow_projection node=%u line=%d lineage=%d dependency=%u shape=%u projected=%d source=%u selected_result=%d store_value=%d\n",
+                row->id, row->node != NULL ? row->node->line : 0,
+                lineage ? 1 : 0,
+                dependency != NULL ? ast_node_stable_id(dependency) : 0,
+                dependency != NULL ? (unsigned)dependency->type : 0,
+                projected_result ? 1 : 0, projected_source,
+                selected_result_source ? 1 : 0,
+                semantic_formal_store_landing_value_selected(
+                    ctx, row->node) ? 1 : 0);
+        if (!current && prepare
+            && semantic_formal_store_landing_value_selected(
+                ctx, row->node)) {
+            issued++;
+            continue;
+        }
+        if (!current && selected_result_source) {
+            issued++;
+            continue;
+        }
         if (!current && prepare && row->node != NULL && row->id != 0 &&
             row->id == ast_node_stable_id(row->node) && row->value_present &&
             !row->meta && row->string_value && type_equals(row->value_type, TYPE_STRING) &&
@@ -91,9 +186,8 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
             PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
             PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_copy,
             "A retained String without an independent-result proof is copied where it is stored");
-        return false;
-    }
-    if (issued != store->indexed_string_shallow_retention_count) {
+        deferred = true;
+    } else if (issued != store->indexed_string_shallow_retention_count) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             ctx->program_root, "A shallow String store receipt was withdrawn");
@@ -124,15 +218,18 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
             PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
             PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, first_private_copy,
             "A private String push without a current source proof stores an owned copy");
-        return false;
-    }
-    if (private_issued != store->private_string_push_count) {
+        deferred = true;
+    } else if (private_issued != store->private_string_push_count) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             ctx->program_root, "A private String push receipt was withdrawn");
         return false;
     }
-    return true;
+    if (timing) fprintf(stderr,
+        "[semantic timing] indexed_receipts=shallow_private copies=%zu stores=%zu\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count);
+    return !deferred;
 }
 
 bool semantic_indexed_string_borrow_prepare(SemanticContext *ctx)

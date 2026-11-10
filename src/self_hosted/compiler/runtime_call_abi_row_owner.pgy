@@ -251,7 +251,7 @@ func CompilerRuntimeCallAbiCallShape(domain: String, operation: String, material
 }
 
 func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String {
-    let row: String = Concat(input.domain, "|");
+    var row: String = Concat(input.domain, "|");
     row = Concat(row, Concat(input.operation, "|"));
     row = Concat(row, Concat(input.symbol, "|"));
     row = Concat(row, "function|");
@@ -259,7 +259,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
     return Concat(row, CompilerRuntimeCallAbiCallShape(input.domain, input.operation, input.materialization));
 }
 
-func CompilerRuntimeCallAbiConcreteRowCount() -> Int { return 270; }
+func CompilerRuntimeCallAbiConcreteRowCount() -> Int { return 275; }
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
     if index == 0 { return "Int"; }
     if index == 1 { return "Long"; }
@@ -373,6 +373,18 @@ func CompilerRuntimeCallAbiNativeDeviceSubmitRowAt(index: Int) -> String {
         "native-resource",
         Concat(Concat(type_name, "."), "SubmitRead"),
         Concat("pgy_submit_device_read_", scalar),
+        CompilerRuntimeCallAbiMaterialMirResourceRow()));
+}
+
+func CompilerRuntimeCallAbiNativeArrayReleaseStorageRowAt(
+    index: Int
+) -> String {
+    let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(index);
+    let type_name: String = Concat(Concat("Array<", scalar), ">");
+    return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput(
+        "native-resource",
+        Concat(Concat(type_name, "."), "ReleaseStorage"),
+        Concat("pgy_array_drop_", scalar),
         CompilerRuntimeCallAbiMaterialMirResourceRow()));
 }
 
@@ -553,6 +565,9 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index == 267 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("task", TaskRuntimeIsCancelledOperation(), TaskRuntimeIsCancelledSymbol(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     if index == 268 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "now-ms", HostIORuntimeCNowFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 269 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "sleep-ms", HostIORuntimeCSleepFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index >= 270 && index < 275 {
+        return CompilerRuntimeCallAbiNativeArrayReleaseStorageRowAt(index - 270);
+    }
     return "";
 }
 
@@ -561,7 +576,7 @@ func CompilerRuntimeCallAbiRowKeyPrefix(domain: String, operation: String) -> St
 }
 
 func CompilerRuntimeCallAbiRowIndex(domain: String, operation: String) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     let prefix: String = CompilerRuntimeCallAbiRowKeyPrefix(domain, operation);
     while i < CompilerRuntimeCallAbiConcreteRowCount() {
         if StringIndexOf(CompilerRuntimeCallAbiRowAt(i), prefix) == 0 {

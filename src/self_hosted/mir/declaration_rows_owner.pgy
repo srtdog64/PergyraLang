@@ -4,70 +4,70 @@ import "../semantic/ast_artifact_verdict_owner.pgy";
 import "declaration_callable_rows_owner.pgy";
 import "declaration_generic_rows_owner.pgy";
 func SelfMirDeclarationsFromAnalysis(
-    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
     enum_facts: SemanticAstEnumFacts) -> SelfMirDeclarationRows {
     // Each row family owns a fresh descriptor; no family aliases another.
-    let kinds: Array<String> = [];
-    let nominal_kinds: Array<String> = [];
-    let names: Array<String> = [];
-    let source_syntax_ids: Array<Int> = [];
-    let source_module_paths: Array<String> = [];
-    let target_types: Array<String> = [];
-    let uses_pointer_self: Array<Int> = [];
-    let field_starts: Array<Int> = [];
-    let field_counts: Array<Int> = [];
-    let field_names: Array<String> = [];
-    let field_kinds: Array<String> = [];
-    let field_types: Array<String> = [];
-    let field_source_syntax_ids: Array<Int> = [];
-    let method_starts: Array<Int> = [];
-    let method_counts: Array<Int> = [];
-    let method_names: Array<String> = [];
-    let method_source_syntax_ids: Array<Int> = [];
-    let method_returns: Array<String> = [];
-    let method_is_actions: Array<Int> = [];
-    let method_requires_starts: Array<Int> = [];
-    let method_requires_counts: Array<Int> = [];
-    let method_requires_names: Array<String> = [];
-    let method_within_zone_names: Array<String> = [];
-    let method_causes_names: Array<String> = [];
-    let method_authorized_by_starts: Array<Int> = [];
-    let method_authorized_by_counts: Array<Int> = [];
-    let method_authorized_by_names: Array<String> = [];
-    let method_caps_present: Array<Int> = [];
-    let method_cap_starts: Array<Int> = [];
-    let method_cap_counts: Array<Int> = [];
-    let method_cap_names: Array<String> = [];
-    let method_effects_present: Array<Int> = [];
-    let method_effect_starts: Array<Int> = [];
-    let method_effect_counts: Array<Int> = [];
-    let method_effect_names: Array<String> = [];
-    let variant_starts: Array<Int> = [];
-    let variant_counts: Array<Int> = [];
-    let variant_names: Array<String> = [];
-    let variant_param_starts: Array<Int> = [];
-    let variant_param_counts: Array<Int> = [];
-    let variant_param_type_names: Array<String> = [];
-    let generic_starts: Array<Int> = [];
-    let generic_counts: Array<Int> = [];
-    let generic_names: Array<String> = [];
-    let generic_constraints: Array<String> = [];
-    let generic_defaults: Array<String> = [];
-    let method_param_starts: Array<Int> = [];
-    let method_param_counts: Array<Int> = [];
-    let method_param_names: Array<String> = [];
-    let method_param_types: Array<String> = [];
-    let role_slot_starts: Array<Int> = [];
-    let role_slot_counts: Array<Int> = [];
-    let role_slot_names: Array<String> = [];
-    let role_slot_types: Array<String> = [];
-    let role_slot_dynamic: Array<Int> = [];
-    let role_impl_starts: Array<Int> = [];
-    let role_impl_counts: Array<Int> = [];
-    let role_impl_ability_names: Array<String> = [];
-    let role_impl_method_starts: Array<Int> = [];
-    let role_impl_method_counts: Array<Int> = [];
-    let i: Int = 0;
+    var kinds: Array<String> = [];
+    var nominal_kinds: Array<String> = [];
+    var names: Array<String> = [];
+    var source_syntax_ids: Array<Int> = [];
+    var source_module_paths: Array<String> = [];
+    var target_types: Array<String> = [];
+    var uses_pointer_self: Array<Int> = [];
+    var field_starts: Array<Int> = [];
+    var field_counts: Array<Int> = [];
+    var field_names: Array<String> = [];
+    var field_kinds: Array<String> = [];
+    var field_types: Array<String> = [];
+    var field_source_syntax_ids: Array<Int> = [];
+    var method_starts: Array<Int> = [];
+    var method_counts: Array<Int> = [];
+    var method_names: Array<String> = [];
+    var method_source_syntax_ids: Array<Int> = [];
+    var method_returns: Array<String> = [];
+    var method_is_actions: Array<Int> = [];
+    var method_requires_starts: Array<Int> = [];
+    var method_requires_counts: Array<Int> = [];
+    var method_requires_names: Array<String> = [];
+    var method_within_zone_names: Array<String> = [];
+    var method_causes_names: Array<String> = [];
+    var method_authorized_by_starts: Array<Int> = [];
+    var method_authorized_by_counts: Array<Int> = [];
+    var method_authorized_by_names: Array<String> = [];
+    var method_caps_present: Array<Int> = [];
+    var method_cap_starts: Array<Int> = [];
+    var method_cap_counts: Array<Int> = [];
+    var method_cap_names: Array<String> = [];
+    var method_effects_present: Array<Int> = [];
+    var method_effect_starts: Array<Int> = [];
+    var method_effect_counts: Array<Int> = [];
+    var method_effect_names: Array<String> = [];
+    var variant_starts: Array<Int> = [];
+    var variant_counts: Array<Int> = [];
+    var variant_names: Array<String> = [];
+    var variant_param_starts: Array<Int> = [];
+    var variant_param_counts: Array<Int> = [];
+    var variant_param_type_names: Array<String> = [];
+    var generic_starts: Array<Int> = [];
+    var generic_counts: Array<Int> = [];
+    var generic_names: Array<String> = [];
+    var generic_constraints: Array<String> = [];
+    var generic_defaults: Array<String> = [];
+    var method_param_starts: Array<Int> = [];
+    var method_param_counts: Array<Int> = [];
+    var method_param_names: Array<String> = [];
+    var method_param_types: Array<String> = [];
+    var role_slot_starts: Array<Int> = [];
+    var role_slot_counts: Array<Int> = [];
+    var role_slot_names: Array<String> = [];
+    var role_slot_types: Array<String> = [];
+    var role_slot_dynamic: Array<Int> = [];
+    var role_impl_starts: Array<Int> = [];
+    var role_impl_counts: Array<Int> = [];
+    var role_impl_ability_names: Array<String> = [];
+    var role_impl_method_starts: Array<Int> = [];
+    var role_impl_method_counts: Array<Int> = [];
+    var i: Int = 0;
     while i < SemanticAstNominalConstructorCount(analysis.constructors) {
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
@@ -92,7 +92,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(generic_counts, UnwrapOption(nominal_generic_count));
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, analysis.constructors.param_counts[i]);
-        let field_i: Int = 0;
+        var field_i: Int = 0;
         while field_i < analysis.constructors.param_counts[i] {
             let field_name: Option<String> =
                 SemanticAstNominalConstructorFieldNameAt(
@@ -135,8 +135,8 @@ func SelfMirDeclarationsFromAnalysis(
             field_i = field_i + 1;
         }
         ArrayPush(method_starts, ArrayLength(method_names));
-        let method_count: Int = 0;
-        let signature_i: Int = 0;
+        var method_count: Int = 0;
+        var signature_i: Int = 0;
         while signature_i < SemanticAstFunctionSignatureCount(
             analysis.signatures
         ) {
@@ -174,8 +174,8 @@ func SelfMirDeclarationsFromAnalysis(
         }
         ArrayPush(method_counts, method_count);
         ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
-        let role_slot_count: Int = 0;
-        let slot_i: Int = 0;
+        var role_slot_count: Int = 0;
+        var slot_i: Int = 0;
         while slot_i < analysis.constructors.role_slot_counts[i] {
             let slot_row: Int = analysis.constructors.role_slot_starts[i] +
                 slot_i;
@@ -198,7 +198,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(variant_counts, 0);
         i = i + 1;
     }
-    let role_i: Int = 0;
+    var role_i: Int = 0;
     while role_i < SemanticAstRoleCount(analysis.roles) {
         let role_name: String = analysis.roles.names[role_i];
         let target_type: String = analysis.roles.target_type_names[role_i];
@@ -222,13 +222,13 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
         ArrayPush(role_slot_counts, 0);
         ArrayPush(method_starts, ArrayLength(method_names));
-        let method_i: Int = 0;
+        var method_i: Int = 0;
         while method_i < method_count {
             let method_node_id: Int = analysis.roles.method_node_ids[
                 method_start + method_i
             ];
-            let signature_i: Int = -1;
-            let signature_scan: Int = 0;
+            var signature_i: Int = -1;
+            var signature_scan: Int = 0;
             while signature_scan <
                 SemanticAstFunctionSignatureCount(analysis.signatures) {
                 if analysis.signatures.function_node_ids[signature_scan] ==
@@ -271,8 +271,8 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(method_counts, method_count);
         ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
         let impl_count: Int = analysis.roles.impl_counts[role_i];
-        let impl_method_cursor: Int = 0;
-        let impl_i: Int = 0;
+        var impl_method_cursor: Int = 0;
+        var impl_i: Int = 0;
         while impl_i < impl_count {
             let ability_name: String = analysis.roles.impl_ability_names[
                 analysis.roles.impl_starts[role_i] + impl_i
@@ -289,7 +289,7 @@ func SelfMirDeclarationsFromAnalysis(
                 analysis.roles.ability_method_counts[
                     UnwrapOption(ability_index)
                 ];
-            let impl_method_count: Int = 0;
+            var impl_method_count: Int = 0;
             while impl_method_cursor + impl_method_count < method_count &&
                 analysis.roles.method_ability_names[
                     method_start + impl_method_cursor + impl_method_count
@@ -315,7 +315,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(variant_counts, 0);
         role_i = role_i + 1;
     }
-    let ability_i: Int = 0;
+    var ability_i: Int = 0;
     while ability_i < SemanticAstAbilityCount(analysis.roles) {
         let ability_name: String = analysis.roles.ability_names[ability_i];
         if ability_name == "" {
@@ -334,7 +334,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(generic_starts, ArrayLength(generic_names));
         let ability_generic_count: Int =
             analysis.roles.ability_generic_counts[ability_i];
-        let ability_generic_i: Int = 0;
+        var ability_generic_i: Int = 0;
         while ability_generic_i < ability_generic_count {
             let generic_row: Int =
                 analysis.roles.ability_generic_starts[ability_i] +
@@ -363,7 +363,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(method_starts, ArrayLength(method_names));
         let ability_method_count: Int =
             analysis.roles.ability_method_counts[ability_i];
-        let ability_method_i: Int = 0;
+        var ability_method_i: Int = 0;
         while ability_method_i < ability_method_count {
             let method_node_id: Int =
                 analysis.roles.ability_method_node_ids[
@@ -411,7 +411,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(variant_counts, 0);
         ability_i = ability_i + 1;
     }
-    let enum_i: Int = 0;
+    var enum_i: Int = 0;
     while enum_i < ArrayLength(enum_facts.enum_names) {
         let enum_name: String = enum_facts.enum_names[enum_i];
         ArrayPush(kinds, "enum");
@@ -433,8 +433,8 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
         ArrayPush(role_impl_counts, 0);
         ArrayPush(variant_starts, ArrayLength(variant_names));
-        let enum_variant_count: Int = 0;
-        let variant_i: Int = 0;
+        var enum_variant_count: Int = 0;
+        var variant_i: Int = 0;
         while variant_i < ArrayLength(enum_facts.variant_names) {
             if enum_facts.variant_enum_names[variant_i] == enum_name {
                 let variant_name: String =
@@ -449,7 +449,7 @@ func SelfMirDeclarationsFromAnalysis(
                 ArrayPush(
                     variant_param_counts, param_count
                 );
-                let param_index: Int = 0;
+                var param_index: Int = 0;
                 while param_index < param_count {
                     let payload_type: Option<String> =
                         SemanticAstEnumVariantPayloadTypeAt(
@@ -472,7 +472,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(variant_counts, enum_variant_count);
         enum_i = enum_i + 1;
     }
-    let extern_node: Int = 0;
+    var extern_node: Int = 0;
     let arena_node_count: Int = TypedAstArenaNodeCount(artifact.arena);
     while extern_node < arena_node_count {
         if TypedAstArenaNodeKindIs(
@@ -499,9 +499,9 @@ func SelfMirDeclarationsFromAnalysis(
             ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
             ArrayPush(role_slot_counts, 0);
             ArrayPush(method_starts, ArrayLength(method_names));
-            let member_count: Int = 0;
-            let member_index: Int = 0;
-            let member: Option<Int> = TypedAstArenaChildAt(
+            var member_count: Int = 0;
+            var member_index: Int = 0;
+            var member: Option<Int> = TypedAstArenaChildAt(
                 artifact.arena, extern_node, member_index
             );
             while IsSome(member) {
@@ -553,7 +553,7 @@ func SelfMirDeclarationsFromAnalysis(
         }
         extern_node = extern_node + 1;
     }
-    let source_row: Int = 0;
+    var source_row: Int = 0;
     while source_row < ArrayLength(source_syntax_ids) {
         let module_path: Option<String> = AstSourceModulePathForNode(artifact.source_modules, artifact.arena, source_syntax_ids[source_row]);
         if !IsSome(module_path) || UnwrapOption(module_path) == "" { return SelfMirDeclarationRowsEmpty(); }

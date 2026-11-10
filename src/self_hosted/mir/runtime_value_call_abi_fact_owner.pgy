@@ -31,58 +31,36 @@ func SelfMirRuntimeValueCallAbiRowsEmpty(
 func SelfMirRuntimeValueCallAbiRowsAppendInstruction(
     rows: SelfMirRuntimeValueCallAbiRows
 ) -> SelfMirRuntimeValueCallAbiRows {
-    let present: Array<Int> = rows.present;
-    let owners: Array<String> = rows.owners;
-    let sources: Array<String> = rows.sources;
-    let operations: Array<String> = rows.operations;
-    let c_symbols: Array<String> = rows.c_symbols;
-    let llvm_symbols: Array<String> = rows.llvm_symbols;
-    let c_shapes: Array<String> = rows.c_shapes;
-    let llvm_shapes: Array<String> = rows.llvm_shapes;
-    let ids: Array<Int> = rows.runtime_call_abi_ids;
-    ArrayPush(present, 0);
-    ArrayPush(owners, "");
-    ArrayPush(sources, "");
-    ArrayPush(operations, "");
-    ArrayPush(c_symbols, "");
-    ArrayPush(llvm_symbols, "");
-    ArrayPush(c_shapes, "");
-    ArrayPush(llvm_shapes, "");
-    ArrayPush(ids, 0);
-    return SelfMirRuntimeValueCallAbiRows(
-        present, owners, sources, operations, c_symbols, llvm_symbols,
-        c_shapes, llvm_shapes, ids);
+    ArrayPush(rows.present, 0);
+    ArrayPushOwnedString(rows.owners, "");
+    ArrayPushOwnedString(rows.sources, "");
+    ArrayPushOwnedString(rows.operations, "");
+    ArrayPushOwnedString(rows.c_symbols, "");
+    ArrayPushOwnedString(rows.llvm_symbols, "");
+    ArrayPushOwnedString(rows.c_shapes, "");
+    ArrayPushOwnedString(rows.llvm_shapes, "");
+    ArrayPush(rows.runtime_call_abi_ids, 0);
+    return rows;
 }
 
 func SelfMirRuntimeValueCallAbiRowsAppendRows(
     target: SelfMirRuntimeValueCallAbiRows,
     source: SelfMirRuntimeValueCallAbiRows
 ) -> SelfMirRuntimeValueCallAbiRows {
-    let present: Array<Int> = target.present;
-    let owners: Array<String> = target.owners;
-    let sources: Array<String> = target.sources;
-    let operations: Array<String> = target.operations;
-    let c_symbols: Array<String> = target.c_symbols;
-    let llvm_symbols: Array<String> = target.llvm_symbols;
-    let c_shapes: Array<String> = target.c_shapes;
-    let llvm_shapes: Array<String> = target.llvm_shapes;
-    let ids: Array<Int> = target.runtime_call_abi_ids;
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(source.present) {
-        ArrayPush(present, source.present[i]);
-        ArrayPush(owners, source.owners[i]);
-        ArrayPush(sources, source.sources[i]);
-        ArrayPush(operations, source.operations[i]);
-        ArrayPush(c_symbols, source.c_symbols[i]);
-        ArrayPush(llvm_symbols, source.llvm_symbols[i]);
-        ArrayPush(c_shapes, source.c_shapes[i]);
-        ArrayPush(llvm_shapes, source.llvm_shapes[i]);
-        ArrayPush(ids, source.runtime_call_abi_ids[i]);
+        ArrayPush(target.present, source.present[i]);
+        ArrayPushOwnedString(target.owners, source.owners[i]);
+        ArrayPushOwnedString(target.sources, source.sources[i]);
+        ArrayPushOwnedString(target.operations, source.operations[i]);
+        ArrayPushOwnedString(target.c_symbols, source.c_symbols[i]);
+        ArrayPushOwnedString(target.llvm_symbols, source.llvm_symbols[i]);
+        ArrayPushOwnedString(target.c_shapes, source.c_shapes[i]);
+        ArrayPushOwnedString(target.llvm_shapes, source.llvm_shapes[i]);
+        ArrayPush(target.runtime_call_abi_ids, source.runtime_call_abi_ids[i]);
         i = i + 1;
     }
-    return SelfMirRuntimeValueCallAbiRows(
-        present, owners, sources, operations, c_symbols, llvm_symbols,
-        c_shapes, llvm_shapes, ids);
+    return target;
 }
 
 func SelfMirRuntimeValueCallAbiRowsAttachLast(
@@ -93,29 +71,17 @@ func SelfMirRuntimeValueCallAbiRowsAttachLast(
     if index < 0 || !fact.valid || rows.present[index] != 0 {
         return rows;
     }
-    let present: Array<Int> = rows.present;
-    let owners: Array<String> = rows.owners;
-    let sources: Array<String> = rows.sources;
-    let operations: Array<String> = rows.operations;
-    let c_symbols: Array<String> = rows.c_symbols;
-    let llvm_symbols: Array<String> = rows.llvm_symbols;
-    let c_shapes: Array<String> = rows.c_shapes;
-    let llvm_shapes: Array<String> = rows.llvm_shapes;
-    let ids: Array<Int> = rows.runtime_call_abi_ids;
-    ArraySet(present, index, 1);
-    ArraySet(owners, index, fact.owner_name);
-    ArraySet(sources, index, fact.source_name);
-    ArraySet(operations, index, fact.native_operation);
-    ArraySet(c_symbols, index, fact.c_symbol);
-    ArraySet(llvm_symbols, index, fact.llvm_symbol);
-    ArraySet(c_shapes, index, fact.c_shape);
-    ArraySet(llvm_shapes, index, fact.llvm_shape);
-    ArraySet(ids, index, fact.registry.runtime_call_abi_id);
-    return SelfMirRuntimeValueCallAbiRows(
-        present, owners, sources, operations, c_symbols, llvm_symbols,
-        c_shapes, llvm_shapes, ids);
+    ArraySet(rows.present, index, 1);
+    ArraySet(rows.owners, index, Clone(fact.owner_name));
+    ArraySet(rows.sources, index, Clone(fact.source_name));
+    ArraySet(rows.operations, index, Clone(fact.native_operation));
+    ArraySet(rows.c_symbols, index, Clone(fact.c_symbol));
+    ArraySet(rows.llvm_symbols, index, Clone(fact.llvm_symbol));
+    ArraySet(rows.c_shapes, index, Clone(fact.c_shape));
+    ArraySet(rows.llvm_shapes, index, Clone(fact.llvm_shape));
+    ArraySet(rows.runtime_call_abi_ids, index, fact.registry.runtime_call_abi_id);
+    return rows;
 }
-
 func SelfMirRuntimeValueCallAbiRowsReady(
     ref rows: SelfMirRuntimeValueCallAbiRows,
     instruction_count: Int

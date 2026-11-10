@@ -1,0 +1,24 @@
+// A mutable carrier can be rebound before the field take, so its initializer
+// is not an authoritative path from the Array back to the formal.
+struct Names {
+    values: Array<String>;
+}
+
+struct State {
+    names: Names;
+}
+
+func Append(state: State) -> State {
+    var names: Names = state.names;
+    var values: Array<String> = names.values;
+    ArrayPushOwnedString(values, Concat("b", ""));
+    names.values = values;
+    state.names = names;
+    return state;
+}
+
+func Main() -> Int {
+    let state: State = State(Names([Concat("a", "")]));
+    let changed: State = Append(state);
+    return ArrayLength(changed.names.values);
+}

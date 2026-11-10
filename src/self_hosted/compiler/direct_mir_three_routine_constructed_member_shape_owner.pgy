@@ -22,7 +22,7 @@ func DirectMirThreeRoutineConstructedMemberShapeDigest(
     ref fact: DirectMirThreeRoutineConstructedMemberShapeFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(353L, fact.declaration_kind);
+    var hash: Long = DirectMirCfgHashString(353L, fact.declaration_kind);
     hash = DirectMirCfgHashString(hash, fact.nominal_kind);
     hash = DirectMirCfgHashInt(hash, fact.method_routine_count);
     return DirectMirCfgBoundedDigest(hash);
@@ -47,9 +47,9 @@ func DirectMirThreeRoutineConstructedMemberShapeFromAdmitted(
             admitted.domain_runtime_admission.declarations) != 1 {
         return InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
     }
-    let method_count: Int = 0;
-    let function_count: Int = 0;
-    let row: Int = 0;
+    var method_count: Int = 0;
+    var function_count: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if admitted.routines.kinds[row] == "method" &&
             admitted.routines.owners[row] ==

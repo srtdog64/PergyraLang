@@ -20,11 +20,11 @@ func ParseNominalDecl(
     inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
-    let decl_label: String = "";
-    let decl_kw_len: Int = 0;
+    var out: String = "";
+    var decl_label: String = "";
+    var decl_kw_len: Int = 0;
     if MatchLanguageWord(content, i, LanguageWordId.WordWorld) {
         return ParseWorldDecl(content, i, cursor_out, decl_prefix, exported,
             expression_graphs, location_context);
@@ -74,7 +74,7 @@ func ParseNominalDecl(
             content, n, i, cursor_out
         );
         i = cursor_out[0];
-        let decl_suffix: String = "";
+        var decl_suffix: String = "";
         i = SkipWhitespaceAndComments(content, i);
         if MatchLanguageWord(content, i, LanguageWordId.WordExtends) {
             i = LanguageWordEnd(i, LanguageWordId.WordExtends);
@@ -99,12 +99,12 @@ func ParseNominalDecl(
         // methods, in any order. Methods are emitted with base_indent
         // 6 for nominal class-like declarations and base_indent 4 for
         // domain host declarations whose methods are direct children.
-        let host_method_indent: Int = 6;
+        var host_method_indent: Int = 6;
         if decl_label == "Party" || decl_label == "Roster" {
             host_method_indent = 4;
         }
-        let field_blocks: String = "";
-        let method_blocks: String = "";
+        var field_blocks: String = "";
+        var method_blocks: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n {
@@ -153,19 +153,23 @@ func ParseNominalDecl(
             }
             // Preserve immutable fields in the AST artifact. Bare, vessel and
             // `var` fields have the same mutable field mode.
-            let immutable_field: Bool = false;
-            let is_role_slot: Bool = false;
-            let is_dyn_slot: Bool = false;
-            let is_shared: Bool = false;
-            let is_world_zone: Bool = false;
-            let is_systemic_slot: Bool = false;
+            var immutable_field: Bool = false;
+            var is_role_slot: Bool = false;
+            var is_dyn_slot: Bool = false;
+            var is_shared: Bool = false;
+            var is_world_zone: Bool = false;
+            var is_systemic_slot: Bool = false;
             if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
                 immutable_field = true;
                 i = LanguageWordEnd(i, LanguageWordId.WordLet);
                 i = SkipWhitespaceAndComments(content, i);
-                if MatchKeyword(content, i, "mut") {
-                    ParseRefuse(location_context, i, "binding_form_invalid",
-                        "form", "let mut", "construct", "field");
+                if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
+                    let after_mut: Int = SkipWhitespaceAndComments(content, i + 3);
+                    if SourceByteIsAlpha(SourceByteAt(content,
+                        StringLength(content), StringLength(content), after_mut)) {
+                        immutable_field = false;
+                        i = after_mut;
+                    }
                 }
             } else if MatchLanguageWord(content, i, LanguageWordId.WordVar) {
                 i = LanguageWordEnd(i, LanguageWordId.WordVar);
@@ -215,7 +219,7 @@ func ParseNominalDecl(
             }
             if ParserCharAt(content, i) == "(" {
                 i = i + 1;
-                let destructure_fields: Array<String> = [];
+                var destructure_fields: Array<String> = [];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
@@ -235,10 +239,10 @@ func ParseNominalDecl(
                 i = ParseExpectIn(location_context, content, i, ")", "destructure_field");
                 i = ParseExpectIn(location_context, content, i, "=", "destructure_field");
                 ArraySet(cursor_out, 0, i);
-                let df_init: String = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
+                var df_init: String = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
                 i = cursor_out[0];
                 df_init = df_init;
-                let df_end: Int = i;
+                var df_end: Int = i;
                 while ParserCharAt(content, df_end) == " " || ParserCharAt(content, df_end) == "\t" || ParserCharAt(content, df_end) == "\r" {
                     df_end = df_end + 1;
                 }
@@ -248,9 +252,9 @@ func ParseNominalDecl(
                     i = ParseStatementTerminatorIn(location_context, content, df_end, "destructure_field");
                 }
                 let df_len: Int = ArrayLength(destructure_fields);
-                let df_i: Int = 0;
+                var df_i: Int = 0;
                 while df_i < df_len {
-                    let field_prefix: String = "      ";
+                    var field_prefix: String = "      ";
                     if immutable_field { field_prefix = "      let "; }
                     field_blocks = AppendLine(field_blocks, Concat(field_prefix, Concat(destructure_fields[df_i], ": (null)")));
                     df_i = df_i + 1;
@@ -274,8 +278,8 @@ func ParseNominalDecl(
                 ParseRefuse(location_context, cursor_out[0], "type_name_invalid", "construct", "field", "", "");
             }
             i = cursor_out[0];
-            let default_text: String = "";
-            let after_type: Int = i;
+            var default_text: String = "";
+            var after_type: Int = i;
             while ParserCharAt(content, after_type) == " " || ParserCharAt(content, after_type) == "\t" || ParserCharAt(content, after_type) == "\r" {
                 after_type = after_type + 1;
             }
@@ -288,7 +292,7 @@ func ParseNominalDecl(
             } else {
                 i = after_type;
             }
-            let field_end: Int = i;
+            var field_end: Int = i;
             while ParserCharAt(content, field_end) == " " || ParserCharAt(content, field_end) == "\t" || ParserCharAt(content, field_end) == "\r" {
                 field_end = field_end + 1;
             }
@@ -299,11 +303,11 @@ func ParseNominalDecl(
             }
             if is_role_slot {
                 // docs/206 section 1: only a dyn slot is bound at run time.
-                let slot_head: String = "    RoleSlot: ";
+                var slot_head: String = "    RoleSlot: ";
                 if is_dyn_slot { slot_head = "    RoleSlot: dyn "; }
                 field_blocks = AppendLine(field_blocks, Concat(slot_head, Concat(f_name, Concat(" requires ", f_type))));
             } else if is_shared {
-                let shared_row: String = Concat("    Shared: ", Concat(f_name, Concat(": ", f_type)));
+                var shared_row: String = Concat("    Shared: ", Concat(f_name, Concat(": ", f_type)));
                 if StringLength(default_text) > 0 {
                     shared_row = Concat(shared_row, Concat(" = ", default_text));
                 }
@@ -313,12 +317,12 @@ func ParseNominalDecl(
             } else if is_systemic_slot {
                 field_blocks = AppendLine(field_blocks, Concat("    SystemicSlot: ", Concat(f_name, Concat(": ", f_type))));
             } else {
-                let field_prefix: String = "      ";
+                var field_prefix: String = "      ";
                 if immutable_field { field_prefix = "      let "; }
                 field_blocks = AppendLine(field_blocks, Concat(field_prefix, Concat(f_name, Concat(": ", f_type))));
             }
         }
-        let decl_display_name: String = Concat(decl_prefix, Concat(decl_name, decl_suffix));
+        var decl_display_name: String = Concat(decl_prefix, Concat(decl_name, decl_suffix));
         if decl_label == "Party" && StringLength(decl_generic) > 0 {
             decl_display_name = Concat(decl_prefix, Concat(decl_name, decl_generic));
         }

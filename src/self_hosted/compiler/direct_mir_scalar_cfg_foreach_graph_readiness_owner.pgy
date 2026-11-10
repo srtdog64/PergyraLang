@@ -9,14 +9,14 @@ func DirectMirScalarCfgForEachGraphReady(
     if !DirectMirScalarCfgForEachFactSetReady(
         plan.foreach_iterations, block_count
     ) { return false; }
-    let condition_count: Int = 0;
-    let block: Int = 0;
+    var condition_count: Int = 0;
+    var block: Int = 0;
     while block < block_count {
         if plan.block_condition_kinds[block] ==
             DirectMirScalarCfgConditionForEach() { condition_count = condition_count + 1; }
         block = block + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -32,7 +32,7 @@ func DirectMirScalarCfgForEachGraphReady(
                 DirectMirScalarCfgConditionForEach() {
             return false;
         }
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(fact.backedge_blocks) {
             let backedge: Int = fact.backedge_blocks[edge];
             if (plan.block_succ_true[backedge] == fact.header_block) ==
@@ -41,7 +41,7 @@ func DirectMirScalarCfgForEachGraphReady(
             }
             edge = edge + 1;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             let other: DirectMirScalarCfgForEachFact =
                 DirectMirScalarCfgForEachFactAt(

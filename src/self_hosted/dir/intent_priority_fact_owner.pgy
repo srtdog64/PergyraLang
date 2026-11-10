@@ -42,7 +42,7 @@ func SelfDirIntentPriorityFactsEmpty(
 func SelfDirIntentPriorityFactsError(
     message: String, artifact_node_count: Int
 ) -> SelfDirIntentPriorityFacts {
-    let facts: SelfDirIntentPriorityFacts =
+    var facts: SelfDirIntentPriorityFacts =
         SelfDirIntentPriorityFactsEmpty(artifact_node_count);
     facts.ok = false;
     facts.diagnostic_message = message;
@@ -68,10 +68,10 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
     intent_node_id: Int
 ) -> SelfDirIntentPriorityFact {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let priority_node_id: Int = 0;
-    let priority_count: Int = 0;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var priority_node_id: Int = 0;
+    var priority_count: Int = 0;
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, intent_node_id, child_index
     );
     while IsSome(child) {
@@ -101,9 +101,9 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
             "self-host DIR intent priority expression graph is missing"
         );
     }
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
     if !SemanticAstIntentExpressionSeedParameters(
             intent_signatures, intent_node_id, names, types, modes, no_enum_values
         ) || ArrayLength(names) != ArrayLength(modes) {
@@ -167,10 +167,10 @@ func SelfDirIntentPriorityFactsFromArtifact(
             artifact.count
         );
     }
-    let present: Array<Bool> = [];
-    let node_ids: Array<Int> = [];
-    let expression_root_ids: Array<Int> = [];
-    let i: Int = 0;
+    var present: Array<Bool> = [];
+    var node_ids: Array<Int> = [];
+    var expression_root_ids: Array<Int> = [];
+    var i: Int = 0;
     while i < SemanticAstIntentSignatureCount(intent_signatures) {
         let row: SelfDirIntentPriorityFact =
             SelfDirIntentPriorityFactFromAdmittedFacts(
@@ -207,7 +207,7 @@ func SelfDirIntentPriorityFactsReady(
             ArrayLength(intent_node_ids) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(intent_node_ids) {
         if !SelfDirIntentPriorityRowReady(
             artifact, expression_surfaces, intent_node_ids[i],

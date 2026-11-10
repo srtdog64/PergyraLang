@@ -12,7 +12,7 @@ func NameAt(ref facts: Facts, index: Int) -> String {
 }
 
 func Main() -> Int {
-    let facts: Facts = Facts([StringConcat("ab", ToString(7))]);
+    var facts: Facts = Facts([StringConcat("ab", ToString(7))]);
     let name: String = NameAt(facts, 0);
     ArraySet(facts.names, 0, StringConcat("zz", ToString(8)));
     Print(name);

@@ -31,8 +31,8 @@ func CompilerDomainRuntimeCPathSuffix(
     ) {
         Die("domain runtime projection path escaped admitted segment bounds");
     }
-    let suffix: String = "";
-    let segment: Int = 0;
+    var suffix: String = "";
+    var segment: Int = 0;
     while segment < count {
         suffix = Concat(suffix, Concat(
             ".", CompilerDomainRuntimeCField(
@@ -49,8 +49,8 @@ func CompilerDomainRuntimeCProjectionBlockForOwner(
     owner_name: String,
     owner_c_expression: String
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     let operation_count: Int =
         MirDomainRuntimePlanOperationCountForOwner(
             admitted.domain_runtime_plan, owner_name
@@ -104,7 +104,7 @@ func CompilerDomainRuntimeCProjectionBlockForOwner(
                     )
                 )
             ));
-            let assignment_offset: Int = 0;
+            var assignment_offset: Int = 0;
             while assignment_offset < count {
                 let assignment_row: Int = admitted.domain_runtime_plan.projection_assignment_rows[
                     start + assignment_offset
@@ -184,8 +184,8 @@ func CompilerDomainRuntimeCProjectionDirtyBlockForOwner(
     owner_name: String,
     owner_c_expression: String
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     let operation_count: Int =
         MirDomainRuntimePlanOperationCountForOwner(
             admitted.domain_runtime_plan, owner_name
@@ -254,7 +254,7 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         Die("domain runtime participant roles escaped admitted plan");
     }
     let layer_field: String = CompilerDomainRuntimeCField(layer_name);
-    let output: String = Concat(
+    var output: String = Concat(
         "    if (!(*self).__layer_active_", layer_field
     );
     output = Concat(output, ") {\n        (*self).__layer_active_");
@@ -263,8 +263,8 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         output,
         " = true;\n        _pgy_zone_frontier_continue = true;\n    }\n"
     );
-    let layer_owner: String = "";
-    let role_offset: Int = 0;
+    var layer_owner: String = "";
+    var role_offset: Int = 0;
     while role_offset < role_count {
         let role_row: Int = admitted.domain_runtime_plan.participant_role_rows[
             role_start + role_offset
@@ -283,7 +283,7 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         ] {
             Die("domain runtime zone operation crosses layer owners");
         }
-        let participant_name: String = "";
+        var participant_name: String = "";
         if admitted.domain_runtime_plan.operation_kinds[plan_row] ==
                 "apply-effect" ||
             admitted.domain_runtime_plan.operation_kinds[plan_row] ==
@@ -378,8 +378,8 @@ func CompilerDomainRuntimeCZoneFrontierPassLimit(
     owner_name: String
 ) -> Int {
     // missing admitted frontier owner or invalid pass limit
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(
         admitted.domain_topology_plan.owner_names
     ) {
@@ -420,10 +420,10 @@ func CompilerDomainRuntimeCSyncBlockForOwner(
     owner_name: String,
     owner_is_zone: Bool
 ) -> String {
-    let output: String = CompilerDomainRuntimeCProjectionBlockForOwner(
+    var output: String = CompilerDomainRuntimeCProjectionBlockForOwner(
         admitted, owner_name, "(*self)"
     );
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     let operation_count: Int =
         MirDomainRuntimePlanOperationCountForOwner(
             admitted.domain_runtime_plan, owner_name
@@ -470,11 +470,11 @@ func CodegenDomainRuntimeFactsFromDomainAdmittedOrDie(
     if !admitted.declarations.valid {
         Die("domain runtime C view declaration inventory is invalid");
     }
-    let owner_names: Array<String> = [];
-    let owner_is_zone: Array<Bool> = [];
-    let method_prologues: Array<String> = [];
-    let sync_blocks: Array<String> = [];
-    let declaration_row: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_is_zone: Array<Bool> = [];
+    var method_prologues: Array<String> = [];
+    var sync_blocks: Array<String> = [];
+    var declaration_row: Int = 0;
     while declaration_row < ArrayLength(admitted.declarations.names) {
         if admitted.declarations.nominal_kinds[declaration_row] == "zone" {
             ArrayPush(
@@ -484,12 +484,12 @@ func CodegenDomainRuntimeFactsFromDomainAdmittedOrDie(
         }
         declaration_row = declaration_row + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(admitted.domain_runtime_plan.owner_names) {
         let owner_name: String =
             admitted.domain_runtime_plan.owner_names[row];
-        let seen: Bool = false;
-        let prior: Int = 0;
+        var seen: Bool = false;
+        var prior: Int = 0;
         while prior < ArrayLength(owner_names) {
             if owner_names[prior] == owner_name { seen = true; }
             prior = prior + 1;
@@ -504,7 +504,7 @@ func CodegenDomainRuntimeFactsFromDomainAdmittedOrDie(
         }
         row = row + 1;
     }
-    let owner_row: Int = 0;
+    var owner_row: Int = 0;
     while owner_row < ArrayLength(owner_names) {
         let prologue: String =
             CompilerDomainRuntimeCMethodPrologueForOwner(
@@ -551,11 +551,11 @@ func CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
         ArrayLength(projection_maps.target_names) != 0 {
         Die("zero-topology C receipt projection assignment rows are invalid");
     }
-    let owner_names: Array<String> = [];
-    let owner_is_zone: Array<Bool> = [];
-    let method_prologues: Array<String> = [];
-    let sync_blocks: Array<String> = [];
-    let row: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_is_zone: Array<Bool> = [];
+    var method_prologues: Array<String> = [];
+    var sync_blocks: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(declarations.names) {
         if declarations.nominal_kinds[row] == "zone" {
             let owner_name: String = declarations.names[row];

@@ -6,7 +6,7 @@ struct PairText {
 }
 
 func Build() -> PairText {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("L", ""));
     ArrayPushOwnedString(rows, Concat("R", ""));
     let result: PairText = PairText(rows[0], rows[1]);

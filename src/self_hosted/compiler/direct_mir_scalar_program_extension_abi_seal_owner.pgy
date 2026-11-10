@@ -3,24 +3,26 @@
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
-import "direct_mir_scalar_program_result_int_abi_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy";
 
 struct DirectMirScalarProgramExtensionAbiSeal {
     let valid: Bool;
     let stage: String;
     let runtime: DirectMirScalarProgramRuntimeAbiFact;
     let option_int: DirectMirOptionMatchAbiFact;
-    let result_int: DirectMirResultIntAbiFact;
+    let result: DirectMirScalarResultAbiSet;
     let option_string: DirectMirOptionMatchAbiFact;
     let option_bool: DirectMirOptionMatchAbiFact;
     let logical_record: DirectMirScalarProgramLogicalRecordFact;
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact;
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
+    let opaque_readonly_zones: DirectMirScalarProgramOpaqueReadonlyZoneFact;
     let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
     let array_bool: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string: DirectMirScalarProgramArrayStringAbiFact;
@@ -33,7 +35,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     option_int: DirectMirOptionMatchAbiFact,
-    result_int: DirectMirResultIntAbiFact,
+    result: DirectMirScalarResultAbiSet,
     option_string: DirectMirOptionMatchAbiFact,
     option_bool: DirectMirOptionMatchAbiFact,
     ref callable: DirectMirScalarCfgProgramCallableFact
@@ -42,18 +44,18 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         DirectMirScalarProgramRuntimeAbiFactFromExpressionKinds(expressions);
     let array_string: DirectMirScalarProgramArrayStringAbiFact =
         route.array_string_abi;
-    let boundary: DirectMirScalarProgramArrayStringBoundaryFact =
+    var boundary: DirectMirScalarProgramArrayStringBoundaryFact =
         DirectMirScalarProgramArrayStringBoundaryFactEmpty();
-    let stage: String = "ready";
+    var stage: String = "ready";
     if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
             runtime, expressions) {
         stage = "runtime";
     } else if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
             option_int, expressions) {
         stage = "option-int";
-    } else if !DirectMirScalarProgramResultIntAbiReadyForExpressions(
-            result_int, expressions) {
-        stage = "result-int";
+    } else if !DirectMirScalarResultAbiSetReadyForExpressions(
+            result, expressions) {
+        stage = "result";
     } else if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
             option_string, expressions) {
         stage = "option-string";
@@ -90,11 +92,12 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     }
     if stage != "ready" {
         return DirectMirScalarProgramExtensionAbiSeal(
-            false, stage, runtime, option_int, result_int,
+            false, stage, runtime, option_int, result,
             option_string, option_bool,
             route.logical_record,
             route.referenced_enum,
             route.payload_free_enum,
+            route.opaque_readonly_zones,
             route.array_int_value_result, route.array_bool_abi, array_string,
             boundary);
     }
@@ -112,22 +115,24 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         if !DirectMirScalarProgramArrayStringBoundaryFactReady(boundary) {
             return DirectMirScalarProgramExtensionAbiSeal(
                 false, "array-string-boundary", runtime, option_int,
-                result_int,
+                result,
                 option_string, option_bool,
                 route.logical_record,
                 route.referenced_enum,
                 route.payload_free_enum,
+                route.opaque_readonly_zones,
                 route.array_int_value_result, route.array_bool_abi,
                 array_string,
                 boundary);
         }
     }
     return DirectMirScalarProgramExtensionAbiSeal(
-        true, "ready", runtime, option_int, result_int,
+        true, "ready", runtime, option_int, result,
         option_string, option_bool,
         route.logical_record,
         route.referenced_enum,
         route.payload_free_enum,
+        route.opaque_readonly_zones,
         route.array_int_value_result, route.array_bool_abi,
         array_string, boundary);
 }

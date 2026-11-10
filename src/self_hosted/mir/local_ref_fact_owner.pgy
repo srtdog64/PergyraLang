@@ -28,18 +28,11 @@ func SelfMirInstructionLocalRefRowsEmpty(
 func SelfMirInstructionLocalRefRowsAppendInstruction(
     rows: SelfMirInstructionLocalRefRows
 ) -> SelfMirInstructionLocalRefRows {
-    let primary: Array<String> = rows.primary_refs;
-    let statement_ids: Array<Int> = rows.source_statement_syntax_ids;
-    let starts: Array<Int> = rows.expr0_starts;
-    let counts: Array<Int> = rows.expr0_counts;
-    ArrayPush(primary, "");
-    ArrayPush(statement_ids, 0);
-    ArrayPush(starts, ArrayLength(rows.expr0_nodes));
-    ArrayPush(counts, 0);
-    return SelfMirInstructionLocalRefRows(
-        primary, statement_ids, starts, counts,
-        rows.expr0_nodes, rows.expr0_refs
-    );
+    ArrayPushOwnedString(rows.primary_refs, "");
+    ArrayPush(rows.source_statement_syntax_ids, 0);
+    ArrayPush(rows.expr0_starts, ArrayLength(rows.expr0_nodes));
+    ArrayPush(rows.expr0_counts, 0);
+    return rows;
 }
 
 func SelfMirInstructionLocalRefRowsAttachPrimary(
@@ -50,13 +43,8 @@ func SelfMirInstructionLocalRefRowsAttachPrimary(
     if index < 0 || local_ref == "" || rows.primary_refs[index] != "" {
         return rows;
     }
-    let primary: Array<String> = rows.primary_refs;
-    ArraySet(primary, index, Concat("", local_ref));
-    return SelfMirInstructionLocalRefRows(
-        primary, rows.source_statement_syntax_ids,
-        rows.expr0_starts, rows.expr0_counts,
-        rows.expr0_nodes, rows.expr0_refs
-    );
+    ArraySet(rows.primary_refs, index, Concat("", local_ref));
+    return rows;
 }
 
 func SelfMirInstructionLocalRefRowsAttachExpr0(
@@ -78,9 +66,7 @@ func SelfMirInstructionLocalRefRowsAttachExpr0(
     );
     if !IsSome(start_opt) { return rows; }
     let start: Int = UnwrapOption(start_opt);
-    let nodes: Array<Int> = rows.expr0_nodes;
-    let refs: Array<String> = rows.expr0_refs;
-    let node: Int = start;
+    var node: Int = start;
     while node <= view.root_id {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             view.graph, node
@@ -90,13 +76,13 @@ func SelfMirInstructionLocalRefRowsAttachExpr0(
         );
         if IsSome(kind) && IsSome(text) &&
             UnwrapOption(kind) == AstExpressionNodeLeaf() {
-            let local_binding: Int = ArrayLength(local_names) - 1;
+            var local_binding: Int = ArrayLength(local_names) - 1;
             while local_binding >= 0 {
                 if local_names[local_binding] == UnwrapOption(text) {
                     if local_versions[local_binding] == 0 && local_refs[local_binding] != "" {
-                        ArrayPush(nodes, node - start);
+                        ArrayPush(rows.expr0_nodes, node - start);
                         // LocalRef rows survive the source binding inventory.
-                        ArrayPush(refs, Concat("", local_refs[local_binding]));
+                        ArrayPushOwnedString(rows.expr0_refs, local_refs[local_binding]);
                     }
                     break;
                 }
@@ -105,40 +91,28 @@ func SelfMirInstructionLocalRefRowsAttachExpr0(
         }
         node = node + 1;
     }
-    let counts: Array<Int> = rows.expr0_counts;
-    ArraySet(counts, instruction, ArrayLength(nodes) - rows.expr0_starts[instruction]);
-    return SelfMirInstructionLocalRefRows(
-        rows.primary_refs, rows.source_statement_syntax_ids,
-        rows.expr0_starts, counts, nodes, refs
-    );
+    ArraySet(rows.expr0_counts, instruction, ArrayLength(rows.expr0_nodes) - rows.expr0_starts[instruction]);
+    return rows;
 }
 
 func SelfMirInstructionLocalRefRowsAppendRows(
     target: SelfMirInstructionLocalRefRows,
     ref source: SelfMirInstructionLocalRefRows
 ) -> SelfMirInstructionLocalRefRows {
-    let primary: Array<String> = target.primary_refs;
-    let statement_ids: Array<Int> = target.source_statement_syntax_ids;
-    let starts: Array<Int> = target.expr0_starts;
-    let counts: Array<Int> = target.expr0_counts;
-    let nodes: Array<Int> = target.expr0_nodes;
-    let refs: Array<String> = target.expr0_refs;
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(source.primary_refs) {
-        ArrayPush(primary, Concat("", source.primary_refs[row]));
-        ArrayPush(statement_ids, source.source_statement_syntax_ids[row]);
-        ArrayPush(starts, ArrayLength(nodes));
-        ArrayPush(counts, source.expr0_counts[row]);
-        let use_entry: Int = 0;
+        ArrayPushOwnedString(target.primary_refs, source.primary_refs[row]);
+        ArrayPush(target.source_statement_syntax_ids, source.source_statement_syntax_ids[row]);
+        ArrayPush(target.expr0_starts, ArrayLength(target.expr0_nodes));
+        ArrayPush(target.expr0_counts, source.expr0_counts[row]);
+        var use_entry: Int = 0;
         while use_entry < source.expr0_counts[row] {
             let source_use: Int = source.expr0_starts[row] + use_entry;
-            ArrayPush(nodes, source.expr0_nodes[source_use]);
-            ArrayPush(refs, Concat("", source.expr0_refs[source_use]));
+            ArrayPush(target.expr0_nodes, source.expr0_nodes[source_use]);
+            ArrayPushOwnedString(target.expr0_refs, source.expr0_refs[source_use]);
             use_entry = use_entry + 1;
         }
         row = row + 1;
     }
-    return SelfMirInstructionLocalRefRows(
-        primary, statement_ids, starts, counts, nodes, refs
-    );
+    return target;
 }

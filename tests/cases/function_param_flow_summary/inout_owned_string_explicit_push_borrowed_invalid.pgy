@@ -1,0 +1,8 @@
+func AppendExplicit(inout rows: Array<String>) -> Void {
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+}
+
+func Main() -> Void {
+    var rows: Array<String> = ["borrowed"];
+    AppendExplicit(rows);
+}

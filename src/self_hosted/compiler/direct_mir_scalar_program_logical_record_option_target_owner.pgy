@@ -1,0 +1,40 @@
+// Target type names for one admitted Option<Record> payload identity.
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordOptionTypeName(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    option_type: String
+) -> String {
+    let payload: String =
+        DirectMirScalarProgramLogicalRecordOptionPayloadType(fact, option_type);
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, payload);
+    if row < 0 { return ""; }
+    return Concat("pgy_scalar_option_logical_record_", ToString(row));
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    option_type: String
+) -> String {
+    let payload: String =
+        DirectMirScalarProgramLogicalRecordOptionPayloadType(fact, option_type);
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, payload);
+    if row < 0 { return ""; }
+    return Concat("%pgy.scalar.option.logical.record.", ToString(row));
+}
+
+func DirectMirScalarProgramCLogicalRecordOptionDeclaration(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    row: Int, record_type: String
+) -> String {
+    if row < 0 || row >= ArrayLength(fact.names) || record_type == "" {
+        Die("direct MIR C logical-record Option declaration is invalid");
+    }
+    let option_type: String = Concat(
+        "Option<", Concat(fact.names[row], ">"));
+    let option_c_type: String =
+        DirectMirScalarProgramCLogicalRecordOptionTypeName(fact, option_type);
+    return Concat("typedef struct { bool is_some; ",
+        Concat(record_type, Concat(" value; } ",
+            Concat(option_c_type, ";\n"))));
+}

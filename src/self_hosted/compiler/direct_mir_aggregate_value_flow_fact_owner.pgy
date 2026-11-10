@@ -47,7 +47,7 @@ func DirectMirAggregateValueFlowFactDigest(
     ref fact: DirectMirAggregateValueFlowFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(467L, fact.schema);
+    var hash: Long = DirectMirCfgHashString(467L, fact.schema);
     hash = DirectMirCfgHashInt(hash, fact.revision);
     hash = DirectMirCfgHashString(hash, fact.wrapper_type);
     hash = DirectMirCfgHashString(hash, fact.wrapper_field);

@@ -26,6 +26,14 @@ struct DirectMirScalarProgramExpressionSet {
     let nary_operands: DirectMirScalarProgramNaryOperands;
 }
 
+// One typed literal route either recognizes its source graph and returns the
+// updated expression set, or hands the unchanged set to the next expression
+// family.  Literal element types do not own separate result protocols.
+struct DirectMirScalarProgramLiteralExpressionAdmission {
+    let recognized: Bool;
+    let facts: DirectMirScalarProgramExpressionSet;
+}
+
 func DirectMirScalarProgramExpressionSetEmpty(
 ) -> DirectMirScalarProgramExpressionSet {
     let ints: Array<Int> = [];
@@ -63,7 +71,7 @@ func DirectMirScalarProgramExpressionSetDigest(
     ref facts: DirectMirScalarProgramExpressionSet
 ) -> Int {
     if !facts.valid { return 0; }
-    let hash: Long = DirectMirScalarCfgHashInts(
+    var hash: Long = DirectMirScalarCfgHashInts(
         227L, facts.graph_global_rows
     );
     hash = DirectMirScalarCfgHashInts(hash, facts.graph_starts);
@@ -106,7 +114,7 @@ func DirectMirScalarProgramExpressionSetWithDigest(
 
 func DirectMirScalarProgramLiteralEmbeddable(value: String) -> Bool {
     let length: Int = StringLength(value);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < length {
         let code: Int = JsonCharCodeAt(value, length, length, row);
         if code != 9 && code != 10 && code != 13 &&
@@ -140,8 +148,8 @@ func DirectMirScalarProgramExpressionSetShapeReady(
             facts.nary_operands, node_count) {
         return false;
     }
-    let expected_start: Int = 0;
-    let graph: Int = 0;
+    var expected_start: Int = 0;
+    var graph: Int = 0;
     while graph < graph_count {
         let count: Int = facts.graph_counts[graph];
         let root: Int = facts.graph_roots[graph];
@@ -154,7 +162,7 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         graph = graph + 1;
     }
     if expected_start != node_count { return false; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < node_count {
         let kind: Int = facts.node_kinds[node];
         let left: Int = facts.node_lefts[node];

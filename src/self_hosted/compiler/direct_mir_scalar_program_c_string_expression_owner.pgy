@@ -33,10 +33,15 @@ func DirectMirScalarProgramCStringExpression(
         }
         return Some(Concat(value, " != 0)"));
     }
-    if kind == DirectMirScalarProgramExprConcatString() {
+    if kind == DirectMirScalarProgramExprConcatString() ||
+            kind == DirectMirScalarProgramExprStringClone() {
         if !CompilerRuntimeCallAbiStringConcatFactReady(
                 runtime.string_concat) {
             Die("direct MIR scalar program string concat ABI is invalid");
+        }
+        if kind == DirectMirScalarProgramExprStringClone() {
+            return Some(Concat(runtime.string_concat.symbol, Concat("(",
+                Concat(left, ", \"\")"))));
         }
         return Some(Concat(runtime.string_concat.symbol, Concat("(",
             Concat(left, Concat(", ", Concat(right, ")"))))));
@@ -44,8 +49,8 @@ func DirectMirScalarProgramCStringExpression(
     let to_string: Option<String> =
         DirectMirScalarProgramCToStringExpression(kind, left, runtime);
     if IsSome(to_string) { return to_string; }
-    let builtin_symbol: String = "";
-    let ready: Bool = false;
+    var builtin_symbol: String = "";
+    var ready: Bool = false;
     if kind == DirectMirScalarProgramExprToUpperString() {
         builtin_symbol = runtime.string_to_upper.symbol;
         ready = CompilerRuntimeCallAbiStringToUpperFactReady(runtime.string_to_upper);

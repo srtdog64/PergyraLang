@@ -16,7 +16,7 @@ func DirectMirConstructedRecordArrayMemberPointAbiDigest(
     ref fact: DirectMirConstructedRecordArrayMemberPointAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(461L, fact.declaration_digest);
+    var hash: Long = DirectMirCfgHashInt(461L, fact.declaration_digest);
     hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.point_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.first_layout_id);

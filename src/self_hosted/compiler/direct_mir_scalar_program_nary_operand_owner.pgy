@@ -26,13 +26,13 @@ func DirectMirScalarProgramNaryOperandsAppend(
     fact: DirectMirScalarProgramNaryOperands,
     node_row: Int, operands: Array<Int>
 ) -> DirectMirScalarProgramNaryOperands {
-    let nodes: Array<Int> = fact.node_rows;
-    let starts: Array<Int> = fact.starts;
-    let counts: Array<Int> = fact.counts;
-    let rows: Array<Int> = fact.operand_rows;
+    var nodes: Array<Int> = fact.node_rows;
+    var starts: Array<Int> = fact.starts;
+    var counts: Array<Int> = fact.counts;
+    var rows: Array<Int> = fact.operand_rows;
     ArrayPush(nodes, node_row); ArrayPush(starts, ArrayLength(rows));
     ArrayPush(counts, ArrayLength(operands));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(operands) {
         ArrayPush(rows, operands[i]); i = i + 1;
     }
@@ -43,7 +43,7 @@ func DirectMirScalarProgramNaryOperandsAppend(
 func DirectMirScalarProgramNaryOperandEntry(
     ref fact: DirectMirScalarProgramNaryOperands, node_row: Int
 ) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(fact.node_rows) {
         if fact.node_rows[i] == node_row { return i; }
         i = i + 1;
@@ -54,10 +54,10 @@ func DirectMirScalarProgramNaryOperandEntry(
 func DirectMirScalarProgramNaryOperandRows(
     ref fact: DirectMirScalarProgramNaryOperands, node_row: Int
 ) -> Array<Int> {
-    let out: Array<Int> = [];
+    var out: Array<Int> = [];
     let entry: Int = DirectMirScalarProgramNaryOperandEntry(fact, node_row);
     if entry < 0 { return out; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < fact.counts[entry] {
         ArrayPush(out, fact.operand_rows[fact.starts[entry] + i]);
         i = i + 1;
@@ -70,7 +70,7 @@ func DirectMirScalarProgramNaryOperandsShapeReady(
 ) -> Bool {
     if !fact.valid || ArrayLength(fact.node_rows) != ArrayLength(fact.starts) ||
         ArrayLength(fact.node_rows) != ArrayLength(fact.counts) { return false; }
-    let expected_start: Int = 0; let prior_node: Int = -1; let i: Int = 0;
+    var expected_start: Int = 0; var prior_node: Int = -1; var i: Int = 0;
     while i < ArrayLength(fact.node_rows) {
         let node: Int = fact.node_rows[i];
         if node <= prior_node || node >= node_count ||
@@ -78,7 +78,7 @@ func DirectMirScalarProgramNaryOperandsShapeReady(
             expected_start + fact.counts[i] > ArrayLength(fact.operand_rows) {
             return false;
         }
-        let arg: Int = 0;
+        var arg: Int = 0;
         while arg < fact.counts[i] {
             let operand: Int = fact.operand_rows[expected_start + arg];
             if operand < 0 || operand >= node { return false; }

@@ -25,7 +25,7 @@ func DirectMirInferredGenericScalarEmitLlvm(
     }
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    var output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output, payload);

@@ -23,8 +23,8 @@ func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout mo
 }
 func CheckBody(content: String, content_extent: Int, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>, ref func_params: Array<String>, internal_caller_ready: Bool) -> String {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let i: Int = start;
-    let cursor: Array<Int> = [0];
+    var i: Int = start;
+    var cursor: Array<Int> = [0];
     while i < end {
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if i >= end {
@@ -35,7 +35,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
             i = i + 3;
             let name: String = SemanticReadIdent(content, i, cursor);
             i = cursor[0];
-            let declared_type: String = "Unknown";
+            var declared_type: String = "Unknown";
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if CharAt(content, i) == ":" {
                 declared_type = ReadTypeName(content, i + 1, cursor);
@@ -136,7 +136,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
             continue;
         }
         if SemanticMatchKeyword(content, i, "if") || SemanticMatchKeyword(content, i, "while") {
-            let cond_start: Int = i + 2;
+            var cond_start: Int = i + 2;
             if SemanticMatchKeyword(content, i, "while") {
                 cond_start = i + 5;
             }
@@ -318,11 +318,11 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
     return "";
 }
 func CheckFunction(source_path: String, content: String, content_extent: Int, func_pos: Int, inout cursor_out: Array<Int>, ref func_names: Array<String>, ref func_rets: Array<String>, ref func_params: Array<String>) -> String {
-    let cursor: Array<Int> = [0];
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    let i: Int = func_pos + 4;
+    var cursor: Array<Int> = [0];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
+    var i: Int = func_pos + 4;
     let fn_name: String = SemanticReadIdent(content, i, cursor);
     i = cursor[0];
     let open_match: Option<Int> = ExpectLiteral(content, i, "(");
@@ -339,8 +339,8 @@ func CheckFunction(source_path: String, content: String, content_extent: Int, fu
         }
         let first_name: String = SemanticReadIdent(content, i, cursor);
         i = cursor[0];
-        let param_name: String = first_name;
-        let param_mode: String = "default_param";
+        var param_name: String = first_name;
+        var param_mode: String = "default_param";
         if first_name == "inout" || first_name == "ref" || first_name == "own" {
             param_mode = Concat(first_name, "_param");
             param_name = SemanticReadIdent(content, i, cursor);
@@ -367,7 +367,7 @@ func CheckFunction(source_path: String, content: String, content_extent: Int, fu
             break;
         }
     }
-    let return_type: String = "Void";
+    var return_type: String = "Void";
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if CharAt(content, i) == "-" && CharAt(content, i + 1) == ">" {
         return_type = ReadTypeName(content, i + 2, cursor);
@@ -396,7 +396,7 @@ func CheckFunction(source_path: String, content: String, content_extent: Int, fu
         return "";
     }
     let close: Int = FindMatchingBrace(content, i);
-    let internal_caller_ready: Bool = false;
+    var internal_caller_ready: Bool = false;
     if ArrayLength(types) == 1 && ArrayLength(modes) == 1 {
         internal_caller_ready =
             SemanticCompilerRetireArrayStorageCallerContractReady(

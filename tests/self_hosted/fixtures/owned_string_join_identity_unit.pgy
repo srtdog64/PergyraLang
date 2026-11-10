@@ -4,11 +4,11 @@ import "../../../src/self_hosted/semantic/ast_owned_string_expression_domain_own
 func InspectOwnedStringJoinIdentity(
     inout analysis: SemanticAstArtifactAnalysis
 ) -> Bool {
-    let slot: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         if analysis.expression_surfaces.expression_graph.has_roots[slot] {
             let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
-            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            var call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
                 analysis.expression_surfaces.expression_graph, root);
             if call.ok && SemanticAstCollectionOwnershipBuiltinCall(
                     analysis.expression_surfaces.expression_graph, call.call_node, "StringJoin") {

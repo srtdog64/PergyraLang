@@ -10,10 +10,10 @@ import "string_window_within.pgy";
 
 func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let n: Int = StringLength(json);
-    let i: Int = open;
-    let depth: Int = 0;
-    let in_string: Bool = false;
-    let escape: Bool = false;
+    var i: Int = open;
+    var depth: Int = 0;
+    var in_string: Bool = false;
+    var escape: Bool = false;
     while i < n && i < limit {
         let c: Int = JsonCharCodeAt(json, n, n, i);
         if in_string {
@@ -41,7 +41,7 @@ func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {
 
 func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let n: Int = StringLength(json);
-    let bounded_limit: Int = limit;
+    var bounded_limit: Int = limit;
     if bounded_limit > n {
         bounded_limit = n;
     }
@@ -50,10 +50,10 @@ func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int> {
 
 func JsonObjectEndWithin(json: String, json_extent: Int, open: Int, limit: Int) -> Option<Int> {
     let n: Int = limit;
-    let i: Int = open;
-    let depth: Int = 0;
-    let in_string: Bool = false;
-    let escape: Bool = false;
+    var i: Int = open;
+    var depth: Int = 0;
+    var in_string: Bool = false;
+    var escape: Bool = false;
     while i < limit {
         let c: Int = JsonCharCodeAt(json, json_extent, n, i);
         if in_string {
@@ -76,7 +76,7 @@ func JsonStringEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     if open < 0 || open >= n || open >= limit || JsonCharCodeAt(json, n, n, open) != JsonAsciiCode("\"") {
         return None;
     }
-    let i: Int = open + 1;
+    var i: Int = open + 1;
     while i < n && i < limit {
         let c: Int = JsonCharCodeAt(json, n, n, i);
         if c == JsonAsciiCode("\"") {
@@ -109,8 +109,8 @@ func JsonReadStringBounded(
     limit: Int
 ) -> Option<JsonStringRead> {
     let n: Int = limit;
-    let close: Int = open + 1;
-    let escaped: Bool = false;
+    var close: Int = open + 1;
+    var escaped: Bool = false;
     while close < n {
         let c: Int = JsonCharCodeAt(json, json_extent, n, close);
         if c == JsonAsciiCode("\"") {
@@ -130,8 +130,8 @@ func JsonReadStringBounded(
         }
     }
     if close >= n { return None; }
-    let i: Int = open + 1;
-    let chunks: Array<String> = [];
+    var i: Int = open + 1;
+    var chunks: Array<String> = [];
     while i < close {
         let c: Int = JsonCharCodeAt(json, json_extent, n, i);
         if c == JsonAsciiCode("\\") {
@@ -188,7 +188,7 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
     if p >= end {
         return "";
     }
-    let vstart: Int = p + StringLength(key);
+    var vstart: Int = p + StringLength(key);
     if vstart >= end {
         return "";
     }
@@ -263,7 +263,7 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
     if p >= end {
         return "";
     }
-    let i: Int = p + StringLength(key);
+    var i: Int = p + StringLength(key);
     i = JsonSkipWhitespace(json, i, end);
     let n: Int = StringLength(json);
     let number_start: Int = i;
@@ -281,7 +281,7 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
 }
 
 func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
-    let i: Int = JsonSkipWhitespace(json, value_start, end);
+    var i: Int = JsonSkipWhitespace(json, value_start, end);
     if i >= end {
         return None;
     }
@@ -315,7 +315,7 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
     if JsonCharCodeAt(json, n, n, start) != JsonAsciiCode("{") {
         return false;
     }
-    let i: Int = start + 1;
+    var i: Int = start + 1;
     while i < end {
         i = JsonSkipWhitespace(json, i, end);
         if i >= end {
@@ -367,7 +367,7 @@ func JsonObjectStringField(json: String, start: Int, end: Int, field: String) ->
 
 func JsonObjectStringFieldOpt(json: String, start: Int, end: Int, field: String) -> Option<String> {
     let json_extent: Int = StringLength(json);
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return None;
     }
@@ -390,11 +390,11 @@ func JsonObjectNumberField(json: String, start: Int, end: Int, field: String) ->
 }
 
 func JsonObjectNumberFieldOpt(json: String, start: Int, end: Int, field: String) -> Option<String> {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return None;
     }
-    let i: Int = bounds[0];
+    var i: Int = bounds[0];
     let n: Int = StringLength(json);
     if i < bounds[1] &&
         JsonCharCodeAt(json, n, n, i) == JsonAsciiCode("-") {
@@ -417,7 +417,7 @@ func JsonObjectNumberFieldOpt(json: String, start: Int, end: Int, field: String)
 }
 
 func JsonObjectHasField(json: String, start: Int, end: Int, field: String) -> Bool {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     return JsonObjectFieldValueBounds(json, start, end, field, bounds);
 }
 
@@ -430,7 +430,7 @@ func JsonObjectStringFieldEquals(json: String, start: Int, end: Int, field: Stri
 }
 
 func JsonObjectBoolFieldEquals(json: String, start: Int, end: Int, field: String, expected: Bool) -> Bool {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return false;
     }
@@ -450,8 +450,8 @@ func JsonArrayObjectBoundsAt(json: String, json_extent: Int, array_open: Int, ar
     if target_index < 0 {
         return false;
     }
-    let row: Int = 0;
-    let i: Int = array_open + 1;
+    var row: Int = 0;
+    var i: Int = array_open + 1;
     while i < array_end {
         i = JsonSkipWhitespace(json, i, array_end);
         if i >= array_end {
@@ -486,7 +486,7 @@ func JsonArrayObjectBoundsAt(json: String, json_extent: Int, array_open: Int, ar
 
 func JsonArrayNextObjectBounds(json: String, json_extent: Int, cursor: Int, array_end: Int, inout bounds: Array<Int>) -> Bool {
     let n: Int = array_end;
-    let i: Int = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_end);
+    var i: Int = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_end);
     if i < array_end && JsonCharCodeAt(json, json_extent, n, i) == JsonAsciiCode(",") {
         i = JsonSkipWhitespaceWithin(json, json_extent, i + 1, array_end);
     }
@@ -506,8 +506,8 @@ func JsonArrayNextObjectBounds(json: String, json_extent: Int, cursor: Int, arra
 }
 
 func JsonArrayObjectCount(json: String, json_extent: Int, array_open: Int, array_end: Int) -> Int {
-    let count: Int = 0;
-    let bounds: Array<Int> = [0, 0];
+    var count: Int = 0;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayObjectBoundsAt(json, json_extent, array_open, array_end, count, bounds) {
         count = count + 1;
     }
@@ -515,9 +515,9 @@ func JsonArrayObjectCount(json: String, json_extent: Int, array_open: Int, array
 }
 
 func JsonArrayObjectFieldCount(json: String, json_extent: Int, array_open: Int, array_end: Int, field: String) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
-    let bounds: Array<Int> = [0, 0];
+    var count: Int = 0;
+    var row: Int = 0;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayObjectBoundsAt(json, json_extent, array_open, array_end, row, bounds) {
         if JsonObjectHasField(json, bounds[0], bounds[1], field) {
             count = count + 1;
@@ -528,9 +528,9 @@ func JsonArrayObjectFieldCount(json: String, json_extent: Int, array_open: Int, 
 }
 
 func JsonArrayObjectStringFieldEqualsCount(json: String, json_extent: Int, array_open: Int, array_end: Int, field: String, expected: String) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
-    let bounds: Array<Int> = [0, 0];
+    var count: Int = 0;
+    var row: Int = 0;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayObjectBoundsAt(json, json_extent, array_open, array_end, row, bounds) {
         if JsonObjectStringFieldEquals(json, bounds[0], bounds[1], field, expected) {
             count = count + 1;
@@ -541,9 +541,9 @@ func JsonArrayObjectStringFieldEqualsCount(json: String, json_extent: Int, array
 }
 
 func JsonArrayObjectBoolFieldEqualsCount(json: String, json_extent: Int, array_open: Int, array_end: Int, field: String, expected: Bool) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
-    let bounds: Array<Int> = [0, 0];
+    var count: Int = 0;
+    var row: Int = 0;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayObjectBoundsAt(json, json_extent, array_open, array_end, row, bounds) {
         if JsonObjectBoolFieldEquals(json, bounds[0], bounds[1], field, expected) {
             count = count + 1;

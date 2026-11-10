@@ -11,9 +11,9 @@ import re
 
 
 MACRO = "PGY_LANGUAGE_KEYWORD"
-EXPECTED_ROW_COUNT = 147
+EXPECTED_ROW_COUNT = 148
 EXPECTED_RESERVED_ROW_COUNT = 71
-EXPECTED_CONTEXTUAL_ROW_COUNT = 73
+EXPECTED_CONTEXTUAL_ROW_COUNT = 74
 EXPECTED_SOFT_ROW_COUNT = 3
 
 RESERVED = "PGY_KEYWORD_CLASS_RESERVED"
@@ -513,7 +513,7 @@ def _render_aggregate_projection() -> str:
             "        LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid {",
             "        return false;",
             "    }",
-            "    let index: Int = 0;",
+            "    var index: Int = 0;",
             "    while index < LanguageWordRegistryCount() {",
             "        let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);",
             "        if !row.valid || StringLength(row.spelling) == 0 ||",
@@ -540,7 +540,7 @@ def _render_aggregate_projection() -> str:
             "",
             "func LanguageKeywordRegistryProjectionReady() -> Bool {",
             "    if !LanguageWordRegistryProjectionReady() { return false; }",
-            "    let index: Int = 0;",
+            "    var index: Int = 0;",
             "    while index < LanguageKeywordRegistryCount() {",
             "        let spelling: String = LanguageKeywordSpellingAt(index);",
             "        let identity: String = LanguageKeywordDebugIdentityAt(index);",

@@ -1,0 +1,40 @@
+// The first constructor is a local read-only carrier, so the compiler gives
+// its names field one independent copy. The second constructor returns the
+// original owner. The borrowed String push also lands one owned copy; the
+// source contains no manual Clone.
+struct Arena {
+    atoms: Array<String>;
+}
+
+struct Facts {
+    valid: Bool;
+    digest: Int;
+    names: Array<String>;
+    opaque: HashMap<String, Array<Int>>;
+}
+
+func FactsDigest(ref facts: Facts) -> Int {
+    if !facts.valid { return 0; }
+    return ArrayLength(facts.names);
+}
+
+func Build(arena: Arena) -> Facts {
+    var names: Array<String> = [];
+    let opaque: HashMap<String, Array<Int>> = MapNew();
+    var row: Int = 0;
+    while row < ArrayLength(arena.atoms) {
+        let name: String = arena.atoms[row];
+        ArrayPush(names, name);
+        row = row + 1;
+    }
+    let source: Facts = Facts(true, 0, names, opaque);
+    let sealed: Facts = Facts(true, FactsDigest(source), names, opaque);
+    return sealed;
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(Arena(["alpha"]));
+    if !facts.valid || facts.digest != 1 { return 1; }
+    Print(facts.names[0]);
+    return 0;
+}

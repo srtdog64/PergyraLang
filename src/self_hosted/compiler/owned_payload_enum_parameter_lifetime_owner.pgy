@@ -1,0 +1,419 @@
+// Path-sensitive ownership for payload-enum formals whose storage is consumed.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_process_exit_owner.pgy";
+import "owned_payload_enum_match_binding_owner.pgy";
+import "owned_storage_parameter_recipe_owner.pgy";
+
+struct DirectMirOwnedPayloadEnumFlowState {
+    let valid: Bool;
+    let live: Bool;
+    let moved: Bool;
+}
+
+struct DirectMirOwnedPayloadEnumParameterLifetimeFact {
+    let valid: Bool;
+    let consuming: Array<Bool>;
+    let recipes: Array<Int>;
+    let cleanup_blocks: Array<Int>;
+    let cleanup_parameters: Array<Int>;
+}
+
+struct DirectMirOwnedPayloadEnumParameterRecipeFact {
+    let valid: Bool;
+    let recipes: Array<Int>;
+}
+
+struct DirectMirOwnedPayloadEnumConsumingFact {
+    let valid: Bool;
+    let consuming: Array<Bool>;
+}
+
+func DirectMirOwnedPayloadEnumParameterLifetimeInvalid(
+) -> DirectMirOwnedPayloadEnumParameterLifetimeFact {
+    let bools: Array<Bool> = [];
+    let ints: Array<Int> = [];
+    return DirectMirOwnedPayloadEnumParameterLifetimeFact(
+        false, bools, ints, ints, ints);
+}
+
+func DirectMirOwnedPayloadEnumReturnedSourceParameter(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, graph: Int
+) -> Int {
+    if graph < 0 || graph >= ArrayLength(
+            plan.program.expressions.graph_roots) { return -1; }
+    let root: Int = plan.program.expressions.graph_roots[graph];
+    let kind: Int = plan.program.expressions.node_kinds[root];
+    if kind == DirectMirScalarProgramExprParameter() {
+        let ordinal: Int =
+            plan.program.expressions.node_parameter_ordinals[root];
+        if ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+            return -1;
+        }
+        return plan.routines.parameter_starts[routine] + ordinal;
+    }
+    if kind != DirectMirScalarProgramExprLocal() { return -1; }
+    return DirectMirOwnedPayloadEnumMatchBindingSourceParameter(
+        plan, routine, plan.program.expressions.node_local_rows[root]);
+}
+
+func DirectMirOwnedPayloadEnumGraphUseClass(
+    ref plan: DirectMirScalarCfgGraphPlan, ref consuming: Array<Bool>,
+    routine: Int, graph: Int, parameter_row: Int, returned: Bool
+) -> Int {
+    if routine < 0 || graph < 0 || graph >= ArrayLength(
+            plan.program.expressions.graph_starts) ||
+        parameter_row < plan.routines.parameter_starts[routine] ||
+        parameter_row >= plan.routines.parameter_starts[routine] +
+            plan.routines.parameter_counts[routine] {
+        return -1;
+    }
+    let ordinal: Int = parameter_row -
+        plan.routines.parameter_starts[routine];
+    var uses: Int = 0;
+    var transfers: Int = 0;
+    var match_transfer: Bool = false;
+    var node: Int = plan.program.expressions.graph_starts[graph];
+    let end: Int = node + plan.program.expressions.graph_counts[graph];
+    while node < end {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprParameter() &&
+            plan.program.expressions.node_parameter_ordinals[node] == ordinal {
+            uses = uses + 1;
+        }
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprDirectCall() {
+            let target: Int =
+                plan.program.expressions.node_callable_rows[node];
+            let arguments: DirectMirScalarProgramArgumentView =
+                DirectMirScalarProgramArgumentViewFromNode(
+                    plan.program.expressions, node);
+            if target < 0 || target >= ArrayLength(plan.routines.roles) ||
+                !arguments.valid || arguments.count !=
+                    plan.routines.parameter_counts[target] {
+                return -1;
+            }
+            var argument: Int = 0;
+            while argument < arguments.count {
+                let target_parameter: Int =
+                    plan.routines.parameter_starts[target] + argument;
+                if consuming[target_parameter] {
+                    let source: Int = DirectMirScalarProgramArgumentViewAt(
+                        plan.program.expressions, arguments, argument);
+                    if plan.program.expressions.node_kinds[source] ==
+                            DirectMirScalarProgramExprParameter() &&
+                        plan.program.expressions.node_parameter_ordinals[
+                            source] == ordinal {
+                        transfers = transfers + 1;
+                    }
+                }
+                argument = argument + 1;
+            }
+        }
+        node = node + 1;
+    }
+    if returned && DirectMirOwnedPayloadEnumReturnedSourceParameter(
+            plan, routine, graph) == parameter_row {
+        transfers = transfers + 1;
+        let root: Int = plan.program.expressions.graph_roots[graph];
+        match_transfer = plan.program.expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprLocal();
+    }
+    if transfers > 1 { return -1; }
+    if transfers == 1 {
+        if (match_transfer && uses != 0) || (!match_transfer && uses != 1) {
+            return -1;
+        }
+        return 2;
+    }
+    if uses > 0 { return 1; }
+    return 0;
+}
+
+func DirectMirOwnedPayloadEnumFlowApply(
+    ref plan: DirectMirScalarCfgGraphPlan, ref consuming: Array<Bool>,
+    routine: Int, graph: Int, parameter_row: Int, returned: Bool,
+    state: DirectMirOwnedPayloadEnumFlowState
+) -> DirectMirOwnedPayloadEnumFlowState {
+    if graph < 0 { return state; }
+    let use_class: Int = DirectMirOwnedPayloadEnumGraphUseClass(
+        plan, consuming, routine, graph, parameter_row, returned);
+    if !state.valid || use_class < 0 ||
+        (use_class > 0 && state.moved) ||
+        (use_class == 2 && !state.live) {
+        return DirectMirOwnedPayloadEnumFlowState(false, false, false);
+    }
+    if use_class == 2 {
+        return DirectMirOwnedPayloadEnumFlowState(true, false, true);
+    }
+    return state;
+}
+
+func DirectMirOwnedPayloadEnumBlockFlow(
+    ref plan: DirectMirScalarCfgGraphPlan, ref consuming: Array<Bool>,
+    routine: Int, block: Int, parameter_row: Int,
+    live: Bool, moved: Bool
+) -> DirectMirOwnedPayloadEnumFlowState {
+    var state: DirectMirOwnedPayloadEnumFlowState =
+        DirectMirOwnedPayloadEnumFlowState(true, live, moved);
+    var operation: Int = plan.block_operation_starts[block];
+    let end: Int = operation + plan.block_operation_counts[block];
+    while operation < end {
+        state = DirectMirOwnedPayloadEnumFlowApply(
+            plan, consuming, routine,
+            plan.program.operation_expression_rows[operation], parameter_row,
+            false, state);
+        state = DirectMirOwnedPayloadEnumFlowApply(
+            plan, consuming, routine,
+            plan.program.operation_secondary_expression_rows[operation],
+            parameter_row, false, state);
+        if !state.valid { return state; }
+        operation = operation + 1;
+    }
+    state = DirectMirOwnedPayloadEnumFlowApply(
+        plan, consuming, routine,
+        plan.program.block_condition_expression_rows[block], parameter_row,
+        false, state);
+    if !state.valid { return state; }
+    return DirectMirOwnedPayloadEnumFlowApply(
+        plan, consuming, routine,
+        plan.program.block_return_expression_rows[block], parameter_row,
+        true, state);
+}
+
+func DirectMirOwnedPayloadEnumCallSourcesReady(
+    ref plan: DirectMirScalarCfgGraphPlan, ref consuming: Array<Bool>
+) -> Bool {
+    var node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprDirectCall() {
+            let target: Int = plan.program.expressions.node_callable_rows[node];
+            let arguments: DirectMirScalarProgramArgumentView =
+                DirectMirScalarProgramArgumentViewFromNode(
+                    plan.program.expressions, node);
+            if target < 0 || target >= ArrayLength(plan.routines.roles) ||
+                !arguments.valid || arguments.count !=
+                    plan.routines.parameter_counts[target] { return false; }
+            var ordinal: Int = 0;
+            while ordinal < arguments.count {
+                let target_parameter: Int =
+                    plan.routines.parameter_starts[target] + ordinal;
+                if consuming[target_parameter] {
+                    let source: Int = DirectMirScalarProgramArgumentViewAt(
+                        plan.program.expressions, arguments, ordinal);
+                    let kind: Int =
+                        plan.program.expressions.node_kinds[source];
+                    if kind != DirectMirScalarProgramExprParameter() &&
+                        kind != DirectMirScalarProgramExprPayloadEnumConstructor() {
+                        return false;
+                    }
+                }
+                ordinal = ordinal + 1;
+            }
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+func DirectMirOwnedPayloadEnumParameterRecipesFromPlan(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    inout release: DirectMirOwnedStorageReleasePlan
+) -> DirectMirOwnedPayloadEnumParameterRecipeFact {
+    var recipes: Array<Int> = [];
+    var recipe_types: Array<String> = [];
+    var recipe_rows: Array<Int> = [];
+    var recipe_has_storage: Array<Bool> = [];
+    var parameter: Int = 0;
+    while parameter < ArrayLength(plan.routines.parameter_types) {
+        ArrayPush(recipes, -1);
+        if DirectMirScalarProgramPayloadEnumTypeReady(
+                plan.program.referenced_enum,
+                plan.routines.parameter_types[parameter]) {
+            let type_name: String =
+                plan.routines.parameter_types[parameter];
+            var recipe_type: Int =
+                DirectMirOwnedParameterStorageTypeRow(
+                    recipe_types, type_name);
+            if recipe_type < 0 {
+                recipe_type = ArrayLength(recipe_types);
+                ArrayPush(recipe_types, type_name);
+                let recipe_fact: DirectMirOwnedParameterStorageRecipeFact =
+                    DirectMirOwnedParameterStorageRecipeFactFromType(
+                        plan, type_name, 0, release);
+                if !recipe_fact.valid {
+                    var empty: Array<Int> = [];
+                    return DirectMirOwnedPayloadEnumParameterRecipeFact(
+                        false, empty);
+                }
+                ArrayPush(recipe_rows, recipe_fact.recipe);
+                ArrayPush(recipe_has_storage, recipe_fact.has_storage);
+            }
+            if recipe_has_storage[recipe_type] {
+                recipes[parameter] = recipe_rows[recipe_type];
+            }
+        }
+        parameter = parameter + 1;
+    }
+    return DirectMirOwnedPayloadEnumParameterRecipeFact(true, recipes);
+}
+
+func DirectMirOwnedPayloadEnumConsumingFromPlan(
+    ref plan: DirectMirScalarCfgGraphPlan, ref recipes: Array<Int>
+) -> DirectMirOwnedPayloadEnumConsumingFact {
+    var consuming: Array<Bool> = [];
+    var parameter: Int = 0;
+    while parameter < ArrayLength(plan.routines.parameter_types) {
+        var consumes: Bool = false;
+        if recipes[parameter] >= 0 {
+            let carriage: String =
+                plan.routines.parameter_carriages[parameter];
+            if carriage == "owner-handle" {
+                consumes = true;
+            } else if carriage == "value" {
+                let mask: Int = plan.routines.parameter_flow_masks[parameter];
+                let preserved: Int =
+                    plan.routines.parameter_array_preserved[parameter];
+                if mask < 0 || preserved < 0 {
+                    return DirectMirOwnedPayloadEnumConsumingFact(
+                        false, consuming);
+                }
+                consumes = mask > 1 || preserved == 0;
+            } else if carriage != "readonly-ref" &&
+                    carriage != "value-result" {
+                return DirectMirOwnedPayloadEnumConsumingFact(
+                    false, consuming);
+            }
+        }
+        ArrayPush(consuming, consumes);
+        parameter = parameter + 1;
+    }
+    if !DirectMirOwnedPayloadEnumCallSourcesReady(plan, consuming) {
+        return DirectMirOwnedPayloadEnumConsumingFact(false, consuming);
+    }
+    return DirectMirOwnedPayloadEnumConsumingFact(true, consuming);
+}
+
+func DirectMirOwnedPayloadEnumCleanupFromPlan(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref consuming: Array<Bool>, ref recipes: Array<Int>
+) -> DirectMirOwnedPayloadEnumParameterLifetimeFact {
+    let invalid: DirectMirOwnedPayloadEnumParameterLifetimeFact =
+        DirectMirOwnedPayloadEnumParameterLifetimeInvalid();
+    var cleanup_blocks: Array<Int> = [];
+    var cleanup_parameters: Array<Int> = [];
+    var changed: Bool = false;
+    var routine: Int = 0;
+    var parameter: Int = 0;
+    while routine < ArrayLength(plan.routines.roles) {
+        parameter = plan.routines.parameter_starts[routine];
+        let parameter_end: Int = parameter +
+            plan.routines.parameter_counts[routine];
+        while parameter < parameter_end {
+            if consuming[parameter] {
+                let block_start: Int = plan.routines.block_starts[routine];
+                let block_count: Int = plan.routines.block_counts[routine];
+                if block_count <= 0 { return invalid; }
+                var live_in: Array<Bool> = [];
+                var moved_in: Array<Bool> = [];
+                var index: Int = 0;
+                while index < block_count {
+                    ArrayPush(live_in, false); ArrayPush(moved_in, false);
+                    index = index + 1;
+                }
+                live_in[0] = true;
+                changed = true;
+                while changed {
+                    changed = false; index = 0;
+                    while index < block_count {
+                        if live_in[index] || moved_in[index] {
+                            let block: Int = block_start + index;
+                            let state: DirectMirOwnedPayloadEnumFlowState =
+                                DirectMirOwnedPayloadEnumBlockFlow(
+                                    plan, consuming, routine, block, parameter,
+                                    live_in[index], moved_in[index]);
+                            if !state.valid { return invalid; }
+                            let return_row: Int = plan.program.
+                                block_return_expression_rows[block];
+                            let terminal: Bool = return_row ==
+                                    DirectMirScalarCfgVoidReturnExpressionRow() ||
+                                return_row >= 0 ||
+                                DirectMirScalarProgramBlockEndsWithProcessExit(
+                                    plan.operation_kinds,
+                                    plan.block_operation_starts[block],
+                                    plan.block_operation_counts[block]);
+                            if !terminal {
+                                var edge: Int = 0;
+                                while edge < 2 {
+                                    var successor: Int =
+                                        plan.block_succ_true[block];
+                                    if edge == 1 {
+                                        successor = plan.block_succ_false[block];
+                                    }
+                                    if successor >= 0 {
+                                        if successor < block_start ||
+                                            successor >= block_start +
+                                                block_count { return invalid; }
+                                        let next: Int = successor - block_start;
+                                        if state.live && !live_in[next] {
+                                            live_in[next] = true; changed = true;
+                                        }
+                                        if state.moved && !moved_in[next] {
+                                            moved_in[next] = true; changed = true;
+                                        }
+                                    }
+                                    edge = edge + 1;
+                                }
+                            }
+                        }
+                        index = index + 1;
+                    }
+                }
+                index = 0;
+                while index < block_count {
+                    if live_in[index] || moved_in[index] {
+                        let block: Int = block_start + index;
+                        let state: DirectMirOwnedPayloadEnumFlowState =
+                            DirectMirOwnedPayloadEnumBlockFlow(
+                                plan, consuming, routine, block, parameter,
+                                live_in[index], moved_in[index]);
+                        if !state.valid { return invalid; }
+                        let return_row: Int = plan.program.
+                            block_return_expression_rows[block];
+                        if return_row ==
+                                DirectMirScalarCfgVoidReturnExpressionRow() ||
+                            return_row >= 0 {
+                            if state.live == state.moved { return invalid; }
+                            if state.live {
+                                ArrayPush(cleanup_blocks, block);
+                                ArrayPush(cleanup_parameters, parameter);
+                            }
+                        }
+                    }
+                    index = index + 1;
+                }
+            }
+            parameter = parameter + 1;
+        }
+        routine = routine + 1;
+    }
+    return DirectMirOwnedPayloadEnumParameterLifetimeFact(
+        true, consuming, recipes, cleanup_blocks, cleanup_parameters);
+}
+
+func DirectMirOwnedPayloadEnumParameterLifetimeFromPlan(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    inout release: DirectMirOwnedStorageReleasePlan
+) -> DirectMirOwnedPayloadEnumParameterLifetimeFact {
+    let invalid: DirectMirOwnedPayloadEnumParameterLifetimeFact =
+        DirectMirOwnedPayloadEnumParameterLifetimeInvalid();
+    let recipes: DirectMirOwnedPayloadEnumParameterRecipeFact =
+        DirectMirOwnedPayloadEnumParameterRecipesFromPlan(plan, release);
+    if !recipes.valid { return invalid; }
+    let consuming: DirectMirOwnedPayloadEnumConsumingFact =
+        DirectMirOwnedPayloadEnumConsumingFromPlan(plan, recipes.recipes);
+    if !consuming.valid { return invalid; }
+    return DirectMirOwnedPayloadEnumCleanupFromPlan(
+        plan, consuming.consuming, recipes.recipes);
+}

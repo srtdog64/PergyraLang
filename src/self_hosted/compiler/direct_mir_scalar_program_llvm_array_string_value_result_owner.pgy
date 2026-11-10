@@ -2,13 +2,15 @@
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_value_result_mutation_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
@@ -43,8 +45,8 @@ func DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
@@ -61,9 +63,12 @@ func DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
             let spelling: String = ToString(parameter);
             let prefix: String = Concat("  %pgy.param.", spelling);
             let copyout: String = Concat(".copyout.", ToString(exit_block));
+            let storage: String =
+                DirectMirScalarProgramLlvmParameterValueResultStorage(
+                    plan, routine, parameter);
             output = Concat(output, Concat(prefix, Concat(copyout, Concat(
-                " = load ", Concat(aggregate, Concat(", ptr %pgy.param.",
-                Concat(spelling, Concat(".local, align ", Concat(storage_align, "\n")))))))));
+                " = load ", Concat(aggregate, Concat(", ptr ",
+                Concat(storage, Concat(", align ", Concat(storage_align, "\n")))))))));
             output = Concat(output, Concat("  store ", Concat(aggregate,
                 Concat(" %pgy.param.", Concat(spelling, Concat(copyout,
                 Concat(", ptr %pgy.param.", Concat(spelling, Concat(
@@ -74,15 +79,3 @@ func DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
     return output;
 }
 
-func DirectMirScalarProgramLlvmArrayStringValueResultPush(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    routine: Int, parameter: Int, value: String
-) -> String {
-    if parameter < 0 || value == "" ||
-        !DirectMirScalarProgramArrayStringValueResultAt(
-            plan.program.array_string_abi, routine, parameter) {
-        Die("direct MIR LLVM Array<String> value-result push is invalid");
-    }
-    return Concat("  call void @pgy_as_push(ptr %pgy.param.", Concat(
-        ToString(parameter), Concat(".local, ptr ", Concat(value, ")\n"))));
-}

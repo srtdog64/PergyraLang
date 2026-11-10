@@ -19,8 +19,8 @@ func AstDestructureGraphViewForOrdinalFromReadyRows(
     if ordinal < 0 {
         return AstDestructureGraphView(false, 0, 0);
     }
-    let seen: Int = 0;
-    let i: Int = 0;
+    var seen: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows.roots) {
         if rows.root_owner_kinds[i] != TypedAstKindDestructureStmtTag() {
             i = i + 1;
@@ -56,8 +56,8 @@ func AstDestructureGraphViewForOrdinal(
 func AstDestructureGraphCountFromReadyRows(
     ref rows: AstExpressionGraphRows
 ) -> Option<Int> {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows.roots) {
         if rows.root_owner_kinds[i] != TypedAstKindDestructureStmtTag() {
             i = i + 1;
@@ -92,7 +92,7 @@ struct AstDestructurePatternBindingNameRows {
 func AstDestructurePatternBindingNameRowsDrop(
     inout rows: AstDestructurePatternBindingNameRows
 ) -> Void {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayDropOwnedStrings(names);
     rows.names = names;
 }
@@ -101,11 +101,11 @@ func AstDestructurePatternBindingNames(
     ref rows: AstExpressionGraphRows,
     pattern_root: Int
 ) -> AstDestructurePatternBindingNameRows {
-    let reversed: Array<Int> = [];
-    let names: Array<String> = [];
-    let ok: Bool = pattern_root >= 0 &&
+    var reversed: Array<Int> = [];
+    var names: Array<String> = [];
+    var ok: Bool = pattern_root >= 0 &&
         pattern_root < AstExpressionArenaNodeCount(rows.arena);
-    let spine: Int = pattern_root;
+    var spine: Int = pattern_root;
     while ok && rows.arena.node_kinds[spine] ==
         AstExpressionNodeArrayElement() {
         let left: Int = rows.arena.left_children[spine];
@@ -126,7 +126,7 @@ func AstDestructurePatternBindingNames(
          ArrayLength(reversed) == 0) {
         ok = false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     if ok { i = ArrayLength(reversed); }
     while ok && i > 0 {
         ArrayPushOwnedString(
@@ -158,16 +158,16 @@ func AstTreeArtifactBindDestructurePayloads(
             )
         );
     }
-    let atoms: Array<Int> = arena.atoms;
-    let has_atoms: Array<Int> = arena.has_atoms;
-    let values: Array<Int> = arena.values;
-    let has_values: Array<Int> = arena.has_values;
+    var atoms: Array<Int> = arena.atoms;
+    var has_atoms: Array<Int> = arena.has_atoms;
+    var values: Array<Int> = arena.values;
+    var has_values: Array<Int> = arena.has_values;
     let atom_table: Array<String> = arena.atom_table;
     // Once the atom table grows, the admitted arena names released storage:
     // every exit from here carries the bound arena, failed or not.
-    let bound_ok: Bool = true;
-    let ordinal: Int = 0;
-    let node_id: Int = 0;
+    var bound_ok: Bool = true;
+    var ordinal: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count && bound_ok {
         if !TypedAstArenaNodeKindIs(
             arena, node_id, TypedAstKindDestructureStmtTag()

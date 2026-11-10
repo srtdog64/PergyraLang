@@ -32,8 +32,8 @@ func ParserIntentPolicyClauseFromSource(
             ParseRefuse(context, start, "declaration_clause_duplicate",
                 "clause", "execution mode", "construct", "intent");
         }
-        let mode: String = "exclusive";
-        let word: LanguageWordId = LanguageWordId.WordExclusive;
+        var mode: String = "exclusive";
+        var word: LanguageWordId = LanguageWordId.WordExclusive;
         if MatchLanguageWordWithin(
             content, content_extent, start, LanguageWordId.WordConcurrent
         ) {
@@ -52,7 +52,7 @@ func ParserIntentPolicyClauseFromSource(
             ParseRefuse(context, start, "declaration_clause_duplicate",
                 "clause", "rollback policy", "construct", "intent");
         }
-        let value_start: Int = ParseExpectIn(context, content,
+        var value_start: Int = ParseExpectIn(context, content,
             LanguageWordEnd(start, LanguageWordId.WordRollback), ":", "intent_rollback");
         value_start = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, value_start);
         // Only the existing full-rollback execution owner is substituted.
@@ -104,7 +104,7 @@ func ParserIntentPolicyTreeAppend(
     inout expression_graphs: AstExpressionGraphRows,
     policy: ParserIntentPolicyClause
 ) -> String {
-    let result: String = AppendLine(
+    var result: String = AppendLine(
         out, Concat("    IntentMode: ", policy.mode)
     );
     result = AppendLine(result, "    IntentRollback: full");

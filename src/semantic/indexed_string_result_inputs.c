@@ -3,6 +3,7 @@
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_option_payload.h"
 #include "indexed_string_permanent_element.h"
+#include "loan_copy_landing_owner.h"
 #include "type_checker_internal.h"
 #include <stdlib.h>
 #include <string.h>
@@ -185,20 +186,25 @@ typedef struct StringResultSourceVisit {
 
 static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
     uint32_t *source, const StringResultSourceVisit *parent, bool prepare,
-    FunctionParamFlowInputCapture capture, void *user, bool option_result)
+    FunctionParamFlowInputCapture capture, void *user, bool option_result,
+    bool project_selected_edges, bool *used_selected_edge)
 {
     if (source == NULL || ctx == NULL || ctx->has_error || call == NULL ||
-        call->type != AST_CALL || !semantic_param_publication_inputs_ready(ctx)) return false;
+        call->type != AST_CALL || !semantic_param_publication_inputs_ready(ctx))
+        return false;
     for (const StringResultSourceVisit *p = parent; p != NULL; p = p->parent)
         if (p->call == call) return false;
     const Type *type = NULL;
     ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &type);
     if (decl == NULL || (option_result ? !type_is_constructed_named(type, "Option") ||
         type_constructed_arg_count(type) != 1 || type_constructed_arg(type, 0) != TYPE_STRING :
-        type != TYPE_STRING)) return false;
+        type != TYPE_STRING))
+        return false;
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
-    if (store == NULL || store->failed || store->solving) return false;
-    if (capture != NULL && !capture(ctx, decl, NULL, call, user)) return false;
+    if (store == NULL || store->failed || store->solving)
+        return false;
+    if (capture != NULL && !capture(ctx, decl, NULL, call, user))
+        return false;
     StringResultSourceVisit visit = {call, parent};
     uint32_t joined = 0;
     for (size_t p = 0; p < ast_call_arg_count(call); p++) {
@@ -207,7 +213,14 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
         size_t formal = 0;
         if (!actual.ok || actual.meta || !semantic_param_publication_checked_argument(ctx, call, p)
             || semantic_param_publication_callee(ctx, call, p) != decl
-            || !semantic_param_publication_formal_for_actual(ctx, call, p, &formal)) return false;
+            || !semantic_param_publication_formal_for_actual(ctx, call, p, &formal))
+            return false;
+        /* Physical scalars carry no backing storage into a String result.
+         * The flow store intentionally has no backing frame for such a
+         * formal, so requiring one here turns a proven non-source into a
+         * missing-fact failure. */
+        if (semantic_param_publication_value_is_physical_scalar(ctx, argument))
+            continue;
         if (prepare) (void)function_param_flow_summary_demand(
             &(SlotFunctionLookup){ctx, ctx->program_root}, decl, formal);
         size_t at = function_param_flow_find(store, ast_node_stable_id(decl), formal);
@@ -217,26 +230,49 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
             || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE
             || store->entries[at].analysis_unsupported || store->entries[at].returned_backing_unproved
             || store->entries[at].returned_backing_pending
-            || !function_param_flow_output_current(store, at, false)) return false;
-        unsigned mask = store->entries[at].mask;
-        if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0
-            || semantic_param_publication_value_is_physical_scalar(ctx, argument)) continue;
-        if (actual.type != TYPE_STRING) return false;
+            || !function_param_flow_output_current(store, at, false))
+            return false;
+        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+        if (!function_param_flow_entry_outward_effects_current(store, at,
+                &outward_effects))
+            return false;
+        if ((outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0)
+            continue;
+        if (actual.type != TYPE_STRING)
+            return false;
         const ASTNode *dependency = NULL;
         if (argument->type == AST_CALL && ast_call_semantic_callee_declared_callable(argument)
             && ast_call_semantic_callee_decl_id(argument) != 0) dependency = argument;
         else if (argument->type == AST_IDENTIFIER
-            && !semantic_indexed_string_borrow_result_dependency_current(ctx, argument, &dependency)) return false;
+            && !semantic_indexed_string_borrow_result_dependency_current(ctx, argument, &dependency))
+            return false;
         uint32_t incoming;
-        if (dependency != NULL ? !string_result_source_at(ctx, dependency, &incoming, &visit, prepare, capture, user, false)
-            : !semantic_indexed_string_borrow_source_current(argument, ctx, &incoming)) return false;
+        if (project_selected_edges &&
+            semantic_loan_copy_landing_selected(ctx, argument) &&
+            semantic_loan_copy_landing_carrier_copies(ctx, argument)) {
+            /* This is the exact argument edge that the next parse wraps in
+             * Clone.  Project only that edge as source zero; the original
+             * node remains nonzero everywhere else in this analysis. */
+            incoming = 0;
+            if (used_selected_edge != NULL) *used_selected_edge = true;
+        } else if (dependency != NULL ? !string_result_source_at(ctx,
+                dependency, &incoming, &visit, prepare, capture, user, false,
+                project_selected_edges, used_selected_edge)
+            : !semantic_indexed_string_borrow_source_current(argument, ctx,
+                &incoming)) return false;
         if (capture != NULL && dependency == NULL && argument->type == AST_CALL &&
-            !capture(ctx, decl, NULL, argument, user)) return false;
-        if (incoming == UINT32_MAX || (joined != 0 && incoming != 0 && joined != incoming)) return false;
+            !capture(ctx, decl, NULL, argument, user))
+            return false;
+        if (incoming == UINT32_MAX || (joined != 0 && incoming != 0 && joined != incoming))
+            return false;
         if (joined == 0) joined = incoming;
     }
-    if (function_param_flow_declared_result_frame_current(store, (ASTNode *)call, NULL) == NULL
-        || !function_param_flow_backing_rows_capture(store, decl, capture, user)) return false;
+    if (function_param_flow_declared_result_frame_current(
+            store, (ASTNode *)call, NULL) == NULL)
+        return false;
+    if (!function_param_flow_declared_result_rows_capture(
+            store, decl, capture, user))
+        return false;
     *source = joined;
     return true;
 }
@@ -246,7 +282,8 @@ bool function_param_flow_string_result_source_current(SemanticContext *ctx,
 {
     bool previous;
     if (!function_param_flow_current_begin(ctx, &previous)) return false;
-    bool current = string_result_source_at(ctx, call, source, NULL, false, NULL, NULL, false);
+    bool current = string_result_source_at(ctx, call, source, NULL, false,
+        NULL, NULL, false, false, NULL);
     function_param_flow_current_end(ctx, previous);
     return current;
 }
@@ -257,7 +294,35 @@ bool function_param_flow_string_result_source_prepare(SemanticContext *ctx,
     if (ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
         ctx->function_param_flow_summaries->validating_current)) return false;
     return function_param_flow_store_get(&(SlotFunctionLookup){ctx, ctx->program_root}) != NULL &&
-        string_result_source_at(ctx, call, source, NULL, true, NULL, NULL, false);
+        string_result_source_at(ctx, call, source, NULL, true, NULL, NULL,
+            false, false, NULL);
+}
+
+bool function_param_flow_string_result_source_after_selected_edges(
+    SemanticContext *ctx, const ASTNode *call, uint32_t *source)
+{
+    bool used_selected_edge = false;
+    if (source == NULL || ctx == NULL || ctx->has_error ||
+        (ctx->function_param_flow_summaries != NULL &&
+         ctx->function_param_flow_summaries->validating_current) ||
+        function_param_flow_store_get(
+            &(SlotFunctionLookup){ctx, ctx->program_root}) == NULL)
+        return false;
+    const Type *result_type = NULL;
+    if (semantic_loan_copy_landing_selected(ctx, call)
+        && semantic_loan_copy_landing_carrier_copies(ctx, call)
+        && semantic_param_publication_declared_result(
+            ctx, call, &result_type) != NULL
+        && type_equals(result_type, TYPE_STRING)) {
+        /* The landing wraps this exact call result, rather than one of its
+         * arguments, in a whole-value Clone.  Project that selected result
+         * edge as source zero; replay still owns the actual proof. */
+        *source = 0;
+        return true;
+    }
+    bool current = string_result_source_at(ctx, call, source, NULL, true,
+        NULL, NULL, false, true, &used_selected_edge);
+    return current && used_selected_edge;
 }
 
 typedef struct {
@@ -271,17 +336,50 @@ static bool result_input_capture(SemanticContext *ctx, ASTNode *decl,
     StringResultInputCapture *capture = user;
     IndexedStringResultInputs *inputs = capture->inputs;
     if (call != NULL) {
+        /* Nominal constructors already belong to the typed claims dependency
+         * for this routine.  They are not callable-function edges and must
+         * not be re-encoded as IndexedStringFieldCall rows.  Require the
+         * exact captured claims row so this is a delegation to its owner, not
+         * an unchecked constructor exemption. */
+        if (semantic_param_publication_nominal_result_complete(ctx, call)) {
+            for (size_t d = 0; d < inputs->dependency_count; d++) {
+                const IndexedStringFieldDependency *saved =
+                    &inputs->dependencies[d];
+                if (saved->decl != decl || saved->decl_id == 0 ||
+                    saved->decl_id != ast_node_stable_id(decl) ||
+                    saved->claims == NULL)
+                    continue;
+                for (size_t r = 0; r < saved->claims->count; r++) {
+                    const FunctionParamFlowIndexClaim *claim =
+                        &saved->claims->rows[r];
+                    if (claim->node == call &&
+                        claim->id == ast_node_stable_id(call) &&
+                        claim->shape == AST_CALL &&
+                        claim->semantic_promoted &&
+                        claim->snapshot_semantic_complete &&
+                        claim->value_ready)
+                        return true;
+                }
+            }
+            return false;
+        }
         ASTNode *selected = semantic_param_publication_direct_callee(ctx, call);
         if (ast_call_generic_arg_count(call) != 0 || (selected != NULL &&
-            ast_generic_param_count(ast_func_generic_params(selected)) != 0)) return false;
+            ast_generic_param_count(ast_func_generic_params(selected)) != 0)) {
+            return false;
+        }
         for (size_t c = 0; c < inputs->call_count; c++) {
             IndexedStringFieldCall *saved = &inputs->calls[c];
             if (saved->call != call) continue;
             return indexed_string_field_call_current(ctx, saved);
         }
-        if (!capture->prepare || inputs->call_count == SIZE_MAX / sizeof(*inputs->calls)) return false;
+        if (!capture->prepare || inputs->call_count == SIZE_MAX / sizeof(*inputs->calls)) {
+            return false;
+        }
         IndexedStringFieldCall row = {0};
-        if (!indexed_string_field_call_capture(ctx, (ASTNode *)call, &row)) return false;
+        if (!indexed_string_field_call_capture(ctx, (ASTNode *)call, &row)) {
+            return false;
+        }
         size_t count = inputs->call_count + 1;
         IndexedStringFieldCall *grown = realloc(inputs->calls, count * sizeof(*grown));
         if (grown == NULL) { indexed_string_field_call_destroy(&row); return false; }
@@ -321,13 +419,11 @@ static bool result_input_capture(SemanticContext *ctx, ASTNode *decl,
             index->no_store_call_count};
         inputs->dependency_capacity = count;
     }
-    if (!found || !capture->prepare)
-        for (size_t r = 0; r < claims->count; r++) {
-            const FunctionParamFlowIndexClaim *row = &claims->rows[r];
-            if (row->shape != AST_CALL || (row->execution_present && !row->reachable)) continue;
-            if (!row->semantic_promoted || !row->snapshot_semantic_complete || !row->value_ready ||
-                !result_input_capture(ctx, decl, NULL, row->node, user)) return false;
-        }
+    /* The dependency row owns the exact claims identity and its current
+     * typed projection.  Calls are captured by the result-frame and no-store
+     * traversals when those closures actually reach them.  Re-enumerating
+     * every call in the routine here would make unrelated constructors and
+     * dead branches premises of one String result. */
     return true;
 }
 
@@ -336,7 +432,7 @@ bool indexed_string_result_derive(SemanticContext *ctx, const ASTNode *call,
 {
     StringResultInputCapture capture = {inputs, prepare};
     return string_result_source_at(ctx, call, source, NULL, prepare,
-        result_input_capture, &capture, option_result);
+        result_input_capture, &capture, option_result, false, NULL);
 }
 
 bool indexed_string_result_capture_dependency(SemanticContext *ctx, ASTNode *decl,

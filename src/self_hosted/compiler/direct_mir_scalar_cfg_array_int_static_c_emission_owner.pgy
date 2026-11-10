@@ -9,7 +9,7 @@ func DirectMirScalarCfgArrayIntCSet(
             plan.array_int_program.static_mutation.set_operation_row {
         Die("direct MIR scalar CFG Array<Int> C set is invalid");
     }
-    let output: String = Concat(
+    var output: String = Concat(
         "    pgy_array_int_collection.data[",
         ToString(plan.array_int_program.static_mutation.set_index)
     );
@@ -29,7 +29,7 @@ func DirectMirScalarCfgArrayIntCIndexedLog(
             plan.array_int_program.static_mutation.indexed_log_operation_row {
         Die("direct MIR scalar CFG Array<Int> C indexed Log is invalid");
     }
-    let output: String = Concat("    ", formatted_print.symbol);
+    var output: String = Concat("    ", formatted_print.symbol);
     output = Concat(output, Concat("(\"", int_line_format));
     output = Concat(output, Concat("\", (", int_c_type));
     output = Concat(output, ")pgy_array_int_collection.data[");

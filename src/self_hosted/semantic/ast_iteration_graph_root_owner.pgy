@@ -11,8 +11,8 @@ import "ast_expression_graph_node_view_owner.pgy";
 func SemanticAstIterationNodeDescendsFrom(
     arena: AstArena, node_id: Int, ancestor_id: Int
 ) -> Bool {
-    let cursor: Option<Int> = Some(node_id);
-    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    var cursor: Option<Int> = Some(node_id);
+    var remaining: Int = TypedAstArenaNodeCount(arena) + 1;
     while IsSome(cursor) && remaining > 0 {
         let current: Int = UnwrapOption(cursor);
         if current == ancestor_id { return true; }
@@ -27,9 +27,9 @@ func SemanticAstIterationSyntheticOrdinal(
     facts: SemanticAstIterationTypeFacts,
     node_id: Int
 ) -> Option<Int> {
-    let found: Bool = false;
-    let ordinal: Int = 0;
-    let i: Int = 0;
+    var found: Bool = false;
+    var ordinal: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstIterationTypeCount(facts) {
         let candidate: Int = facts.node_ids[i];
         if candidate == node_id && facts.collection_hoists[i] == 1 {
@@ -71,13 +71,13 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
     }
     // Every row is checked before the first append: once the graph grows,
     // the only exit left writes the grown graph back.
-    let ordinals: Array<Int> = [];
-    let i: Int = 0;
+    var ordinals: Array<Int> = [];
+    var i: Int = 0;
     while i < count {
         if facts.synthetic_names[i] != "" || facts.synthetic_graph_root_ids[i] != -1 {
             return false;
         }
-        let row_ordinal: Int = -1;
+        var row_ordinal: Int = -1;
         if facts.collection_hoists[i] == 1 {
             let ordinal: Option<Int> =
                 SemanticAstIterationSyntheticOrdinal(
@@ -94,31 +94,31 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
     // Rows a marked input already passed; the appends below only add rows.
-    let sealed_rows: Int = -1;
+    var sealed_rows: Int = -1;
     if graph.arena.shape_ready {
         sealed_rows = SemanticExpressionGraphArenaNodeCount(graph.arena);
     }
-    let topology: AstExpressionArena = graph.arena.topology;
-    let node_texts: Array<String> = graph.arena.node_texts;
-    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
-    let target_names: Array<String> = graph.arena.call_target_names;
-    let call_return_types: Array<String> = graph.arena.call_return_type_names;
-    let call_target_syntax_ids: Array<Int> =
+    var topology: AstExpressionArena = graph.arena.topology;
+    var node_texts: Array<String> = graph.arena.node_texts;
+    var target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    var target_names: Array<String> = graph.arena.call_target_names;
+    var call_return_types: Array<String> = graph.arena.call_return_type_names;
+    var call_target_syntax_ids: Array<Int> =
         graph.arena.identities.call_target_syntax_ids;
-    let runtime_call_abi_ids: Array<Int> =
+    var runtime_call_abi_ids: Array<Int> =
         graph.arena.identities.runtime_call_abi_ids;
-    let binding_syntax_ids: Array<Int> =
+    var binding_syntax_ids: Array<Int> =
         graph.arena.identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> =
+    var binding_kinds: Array<Int> =
         graph.arena.identities.binding_kinds;
-    let binding_ordinals: Array<Int> =
+    var binding_ordinals: Array<Int> =
         graph.arena.identities.binding_ordinals;
     let retention_calls: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
         graph.arena.identities.builtin_argument_retention_calls;
-    let place_kinds: Array<Int> = graph.arena.place_kinds;
-    let synthetic_names: Array<String> = facts.synthetic_names;
-    let synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
-    let appended_all: Bool = true;
+    var place_kinds: Array<Int> = graph.arena.place_kinds;
+    var synthetic_names: Array<String> = facts.synthetic_names;
+    var synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
+    var appended_all: Bool = true;
     i = 0;
     while i < count && appended_all {
         if ordinals[i] >= 0 {
@@ -147,7 +147,7 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
         }
         i = i + 1;
     }
-    let arena: SemanticExpressionGraphArena =
+    var arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             topology, node_texts, target_kinds, target_names,
             call_return_types,
@@ -192,7 +192,7 @@ func SemanticAstIterationSyntheticGraphRootsReady(
         ) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.collection_hoists[i] == 1 {
             let ordinal: Option<Int> =

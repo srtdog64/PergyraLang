@@ -31,7 +31,7 @@ func DirectMirThreeRoutineClassificationFactDigest(
     ref fact: DirectMirThreeRoutineClassificationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(197L, fact.kind);
+    var hash: Long = DirectMirCfgHashString(197L, fact.kind);
     hash = DirectMirCfgHashInt(hash, fact.declaration_count);
     hash = DirectMirCfgHashInt(hash, fact.specialization_count);
     hash = DirectMirCfgHashInt(hash, fact.generic_routine_count);

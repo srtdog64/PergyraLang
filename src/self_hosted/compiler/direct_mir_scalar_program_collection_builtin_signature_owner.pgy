@@ -111,7 +111,7 @@ func DirectMirScalarProgramSetStringBuiltinSignatureFor(
         return DirectMirScalarProgramSetStringBuiltinSignature(
             true, CompilerAbiLayoutSetStringTypeName(), no_parameters);
     }
-    let return_type: String = CompilerAbiLayoutVoidTypeName();
+    var return_type: String = CompilerAbiLayoutVoidTypeName();
     if name == "SetHas" { return_type = CompilerAbiLayoutBoolTypeName(); }
     let set_parameter_types: Array<String> = [
         CompilerAbiLayoutSetStringTypeName(),

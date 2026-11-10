@@ -167,6 +167,33 @@ type_check_conditional_operand(ASTNode *expr, SemanticContext *ctx, Type *left)
     return right;
 }
 
+bool
+semantic_check_numeric_operands(ASTNode *node, PgyTokenType op,
+                                Type *left, Type *right, SemanticContext *ctx)
+{
+    if (left == TYPE_UNKNOWN || right == TYPE_UNKNOWN)
+        return false;
+    bool numeric = left == TYPE_INT || left == TYPE_LONG || left == TYPE_FLOAT
+        || left == TYPE_DOUBLE || left == TYPE_DURATION;
+    bool supported = op == TOKEN_PLUS || op == TOKEN_MINUS || op == TOKEN_STAR
+        || op == TOKEN_SLASH || op == TOKEN_PERCENT;
+    if (op == TOKEN_PERCENT && (left == TYPE_FLOAT || left == TYPE_DOUBLE)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
+            PGY_CAUSE_BINOP_OPERAND_TYPES, PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
+            node, "Operator '%%' requires Int or Long operands, got '%s'",
+            type_name_or_unknown(left));
+        return false;
+    }
+    if (!numeric || !supported || !type_equals(left, right)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
+            PGY_CAUSE_BINOP_OPERAND_TYPES, PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
+            node, "Arithmetic requires matching numeric operands (remainder requires integers), got '%s' and '%s'",
+            type_name_or_unknown(left), type_name_or_unknown(right));
+        return false;
+    }
+    return true;
+}
+
 Type *
 type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
@@ -261,19 +288,11 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    /* `%` over Float or Double has no defined meaning (the language
-     * documents do not give one) and no backend lowers it: C rejects
-     * `float % float` and LLVM has no integer remainder over floats. */
-    if (op == TOKEN_PERCENT
-        && (type_equals(left, TYPE_FLOAT) || type_equals(left, TYPE_DOUBLE))) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
-            PGY_CAUSE_BINOP_OPERAND_TYPES,
-            PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
-            expr,
-            "Operator '%%' requires Int or Long operands, got '%s'",
-            type_name_or_unknown(left));
-        return TYPE_UNKNOWN;
+    if ((op == TOKEN_PLUS || op == TOKEN_MINUS || op == TOKEN_STAR
+            || op == TOKEN_SLASH || op == TOKEN_PERCENT)
+        && !(op == TOKEN_PLUS && left == TYPE_STRING)) {
+        if (!semantic_check_numeric_operands(expr, op, left, right, ctx))
+            return TYPE_UNKNOWN;
     }
 
     if (op == TOKEN_PLUS && left == TYPE_STRING && right == TYPE_STRING &&

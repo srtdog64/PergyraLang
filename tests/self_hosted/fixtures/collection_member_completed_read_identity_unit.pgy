@@ -124,10 +124,14 @@ func Main() -> Void with caps env, io_read {
     }
     let restored: Array<Int> = []; let restoration_sites: Array<Int> = [];
     let escapes: HashMap<String, Int> = MapNew();
+    let escape_roots: Array<Int> = []; let escape_sites: Array<Int> = [];
+    let escape_sources: Array<Int> = []; let escape_targets: Array<Int> = [];
+    let lending_sites: Array<Int> = [];
     let capture_site: Int = -1;
     if mode == 30 { capture_site = root; }
     let moved: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUse(
         mode == 29, -1, -1, restored, restoration_sites, reads, blocked, hazards, escapes,
+        escape_roots, escape_sites, escape_sources, escape_targets, lending_sites,
         capture_site, -1, mode != 19);
     let admitted: Bool = SemanticAstCollectionMemberIndexedReadReady(artifact, analysis.signatures,
         analysis.expression_surfaces, moved, facts, effects, surface, edge);

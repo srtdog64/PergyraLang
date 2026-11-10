@@ -36,7 +36,7 @@ func DirectMirScalarProgramArrayStringBoundaryFactDigest(
     ref fact: DirectMirScalarProgramArrayStringBoundaryFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(269L, fact.literal_expression_row);
+    var hash: Long = DirectMirCfgHashInt(269L, fact.literal_expression_row);
     hash = DirectMirCfgHashInt(hash, fact.literal_operation_row);
     hash = DirectMirCfgHashInt(hash, fact.literal_local_row);
     hash = DirectMirCfgHashInt(hash, fact.element_count);

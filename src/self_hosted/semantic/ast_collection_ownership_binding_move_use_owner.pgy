@@ -15,9 +15,9 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts
 ) -> SemanticAstCollectionBindingMoveUse {
-    let move_points: HashMap<String, Int> = MapNew();
-    let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
-    let root_slot: Int = 0;
+    var move_points: HashMap<String, Int> = MapNew();
+    var current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+    var root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[root_slot] {
             let surface: Int = root_slot / 3;
@@ -29,7 +29,7 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
                 let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
                     surfaces.expression_graph, root_id);
                 if IsSome(start) {
-                    let node: Int = UnwrapOption(start);
+                    var node: Int = UnwrapOption(start);
                     while node <= root_id {
                         let carried: SemanticExpressionBindingIdentityFact =
                             SemanticExpressionGraphBindingIdentity(

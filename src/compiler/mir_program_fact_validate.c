@@ -513,7 +513,8 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
                 && fact->initializer_call_syntax_id == 0
                 && fact->initializer_call_value_type_name == NULL;
             bool initializer_ready = (fact->initializer_collection_producer == 1
-                    || fact->initializer_collection_producer == 2)
+                    || fact->initializer_collection_producer == 2
+                    || fact->initializer_collection_producer == 3)
                 && fact->initializer_call_syntax_id != 0
                 && fact->initializer_call_value_type_name != NULL
                 && fact->initializer_call_value_type_name[0] != '\0'

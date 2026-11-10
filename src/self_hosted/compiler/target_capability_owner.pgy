@@ -144,7 +144,7 @@ func CompilerTargetFallbackReasonAt(index: Int) -> String {
 }
 
 func CompilerTargetProjectionKnown(projection: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerTargetProjectionCount() {
         if CompilerTargetProjectionAt(i) == projection {
             return true;
@@ -155,7 +155,7 @@ func CompilerTargetProjectionKnown(projection: String) -> Bool {
 }
 
 func CompilerTargetFactKnown(fact: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerTargetFactCount() {
         if CompilerTargetFactAt(i) == fact {
             return true;
@@ -166,7 +166,7 @@ func CompilerTargetFactKnown(fact: String) -> Bool {
 }
 
 func CompilerTargetFallbackReasonKnown(reason: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerTargetFallbackReasonCount() {
         if CompilerTargetFallbackReasonAt(i) == reason {
             return true;
@@ -186,8 +186,8 @@ func CompilerTargetCapabilityFingerprintHashString(
 ) -> Long {
     let length: Int = StringLength(value);
     let next: Long = (hash * 131L + (length as Long)) % modulus;
-    let i: Int = 0;
-    let out: Long = next;
+    var i: Int = 0;
+    var out: Long = next;
     while i < length {
         out = (out * 131L + (CharCode(value, length, i) as Long)) % modulus;
         i = i + 1;
@@ -200,12 +200,12 @@ func CompilerTargetCapabilityFingerprint() -> Int {
         return 0;
     }
     let modulus: Long = 268435456L;
-    let hash: Long = 7L;
+    var hash: Long = 7L;
     hash = CompilerTargetCapabilityFingerprintHashString(
         hash, CompilerTargetCapabilitySchema(), modulus
     );
     hash = (hash * 131L + (CompilerTargetProjectionCount() as Long)) % modulus;
-    let projection_i: Int = 0;
+    var projection_i: Int = 0;
     while projection_i < CompilerTargetProjectionCount() {
         hash = CompilerTargetCapabilityFingerprintHashString(
             hash, CompilerTargetProjectionAt(projection_i), modulus
@@ -213,7 +213,7 @@ func CompilerTargetCapabilityFingerprint() -> Int {
         projection_i = projection_i + 1;
     }
     hash = (hash * 131L + (CompilerTargetFactCount() as Long)) % modulus;
-    let fact_i: Int = 0;
+    var fact_i: Int = 0;
     while fact_i < CompilerTargetFactCount() {
         hash = CompilerTargetCapabilityFingerprintHashString(
             hash, CompilerTargetFactAt(fact_i), modulus
@@ -221,7 +221,7 @@ func CompilerTargetCapabilityFingerprint() -> Int {
         fact_i = fact_i + 1;
     }
     hash = (hash * 131L + (CompilerTargetFallbackReasonCount() as Long)) % modulus;
-    let fallback_i: Int = 0;
+    var fallback_i: Int = 0;
     while fallback_i < CompilerTargetFallbackReasonCount() {
         hash = CompilerTargetCapabilityFingerprintHashString(
             hash, CompilerTargetFallbackReasonAt(fallback_i), modulus

@@ -4,14 +4,14 @@ import "direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy";
 func DirectMirScalarProgramRuntimeValueLifecycleReadinessFailed(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Void {
-    let seen: Array<Bool> = [];
-    let pending_blocks: Array<Int> = [];
-    let block: Int = 0;
+    var seen: Array<Bool> = [];
+    var pending_blocks: Array<Int> = [];
+    var block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         ArrayPush(seen, false);
         block = block + 1;
     }
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < ArrayLength(plan.local_types) {
         let type_name: String = plan.local_types[local_row];
         if CompilerRuntimeValueTypeReady(type_name) &&
@@ -19,15 +19,15 @@ func DirectMirScalarProgramRuntimeValueLifecycleReadinessFailed(
                 plan, local_row, seen, pending_blocks) {
             let routine: Int = DirectMirScalarCfgRoutinePartitionLocalOwner(
                 plan.routines, local_row);
-            let creation: Int = -1;
-            let terminal: Int = -1;
+            var creation: Int = -1;
+            var terminal: Int = -1;
             if routine >= 0 {
                 creation = DirectMirScalarProgramRuntimeValueCreationOperation(
                     plan, routine, local_row, type_name);
                 terminal = DirectMirScalarProgramRuntimeValueTerminalOperation(
                     plan, routine, local_row, type_name);
             }
-            let detail: String =
+            var detail: String =
                 "direct MIR scalar runtime value lifecycle is invalid: program_readiness=22 local=";
             detail = Concat(detail, ToString(local_row));
             detail = Concat(detail, Concat(" type=", type_name));

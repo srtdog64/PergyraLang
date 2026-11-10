@@ -22,7 +22,7 @@ func Pick(outer: Outer) -> Inner {
 }
 
 func Grow(outer: Outer) -> Int {
-    let picked: Inner = Pick(outer);
+    var picked: Inner = Pick(outer);
     ArrayPush(picked.items, 9);
     ArrayPush(picked.items, 9);
     ArrayPush(picked.items, 9);

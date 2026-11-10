@@ -41,10 +41,10 @@ func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
         ArrayLength(operation_kinds) != ArrayLength(operation_results) ||
         ArrayLength(operation_kinds) !=
             ArrayLength(operation_expression_rows) { return empty; }
-    let literal_expression: Int = -1; let literal_operation: Int = -1;
-    let literal_local: Int = -1; let element_count: Int = -1;
-    let call_expression: Int = -1; let call_operation: Int = -1;
-    let operation: Int = 0;
+    var literal_expression: Int = -1; var literal_operation: Int = -1;
+    var literal_local: Int = -1; var element_count: Int = -1;
+    var call_expression: Int = -1; var call_operation: Int = -1;
+    var operation: Int = 0;
     while operation < ArrayLength(operation_kinds) {
         let expression_row: Int = operation_expression_rows[operation];
         if expression_row >= 0 && expression_row <
@@ -84,7 +84,7 @@ func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
         expressions.node_local_rows[arguments[0]] != literal_local {
         return empty;
     }
-    let local_uses: Int = 0; let node: Int = 0;
+    var local_uses: Int = 0; var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
             expressions.node_local_rows[node] == literal_local {
@@ -93,8 +93,8 @@ func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
         node = node + 1;
     }
     if local_uses != 1 { return empty; }
-    let return_expression: Int = -1; let index_literal: String = "";
-    let row: Int = 0;
+    var return_expression: Int = -1; var index_literal: String = "";
+    var row: Int = 0;
     while row < ArrayLength(block_return_expression_rows) {
         let candidate: Int = block_return_expression_rows[row];
         if candidate >= 0 && candidate < ArrayLength(expressions.graph_roots) {

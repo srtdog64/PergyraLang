@@ -42,13 +42,13 @@ func DirectMirArrayArgumentPlanDigest(
     ref plan: DirectMirArrayArgumentPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(131L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(131L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
     hash = DirectMirCfgHashInt(hash, plan.program.digest);
     hash = DirectMirCfgHashInt(hash, plan.scalar_factor);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.consumer_indices) {
         hash = DirectMirCfgHashInt(hash, plan.consumer_indices[row]);
         row = row + 1;
@@ -98,7 +98,7 @@ func DirectMirArrayArgumentPlanReady(
         plan.allocator_offset != 24 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.consumer_indices) {
         if plan.consumer_indices[row] < 0 ||
             plan.consumer_indices[row] >= plan.storage_count {
@@ -129,7 +129,7 @@ func DirectMirArrayArgumentPlanMutationRejected(
     own plan: DirectMirArrayArgumentPlan
 ) -> Bool {
     if !DirectMirArrayArgumentPlanReady(plan) { return false; }
-    let bad_carriage: DirectMirArrayArgumentPlan =
+    var bad_carriage: DirectMirArrayArgumentPlan =
         DirectMirArrayArgumentPlanMutation(
             plan, "callee_owned_array", plan.length_offset,
             plan.target_capability_fingerprint
@@ -137,7 +137,7 @@ func DirectMirArrayArgumentPlanMutationRejected(
     bad_carriage = DirectMirArrayArgumentPlanWithDigest(
         bad_carriage, DirectMirArrayArgumentPlanDigest(bad_carriage)
     );
-    let bad_abi: DirectMirArrayArgumentPlan =
+    var bad_abi: DirectMirArrayArgumentPlan =
         DirectMirArrayArgumentPlanMutation(
             plan, plan.storage_carriage, plan.length_offset + 8,
             plan.target_capability_fingerprint
@@ -145,7 +145,7 @@ func DirectMirArrayArgumentPlanMutationRejected(
     bad_abi = DirectMirArrayArgumentPlanWithDigest(
         bad_abi, DirectMirArrayArgumentPlanDigest(bad_abi)
     );
-    let bad_target: DirectMirArrayArgumentPlan =
+    var bad_target: DirectMirArrayArgumentPlan =
         DirectMirArrayArgumentPlanMutation(
             plan, plan.storage_carriage, plan.length_offset,
             plan.target_capability_fingerprint + 1
@@ -181,10 +181,10 @@ func DirectMirArrayArgumentPlanFromAdmitted(
     let abi_types: Array<String> = [
         "", CompilerAbiLayoutIntTypeName(), CompilerAbiLayoutIntTypeName()
     ];
-    let globals: Array<Int> = [];
-    let captures: Array<MirRoutineInstructionScalarCapture> = [];
-    let expressions: Array<MirProgramInstructionExpressionFact> = [];
-    let row: Int = 0;
+    var globals: Array<Int> = [];
+    var captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var expressions: Array<MirProgramInstructionExpressionFact> = [];
+    var row: Int = 0;
     while row < 3 {
         let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
             admitted.routines, rows[row]

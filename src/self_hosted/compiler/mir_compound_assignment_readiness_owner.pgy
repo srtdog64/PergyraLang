@@ -1,0 +1,49 @@
+import "mir_compound_assignment_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+
+func MirCompoundAssignmentReady(ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, routine: Int) -> Bool {
+    let code: Int = MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]);
+    let target: Int = plan.program.operation_secondary_expression_rows[operation];
+    let value: Int = plan.program.operation_expression_rows[operation];
+    let root: Int = MirCompoundAssignmentPlaceRoot(plan.program.expressions, target);
+    if code < 1 || root < 0 || value < 0 ||
+        value >= ArrayLength(plan.program.expressions.graph_roots) { return false; }
+    let target_root: Int = plan.program.expressions.graph_roots[target];
+    let type_name: String = plan.program.expressions.node_types[target_root];
+    if !MirCompoundAssignmentScalarType(type_name, code) ||
+        !DirectMirScalarCfgProgramExpressionRowReady(plan, target, type_name, routine) ||
+        !DirectMirScalarCfgProgramExpressionRowReady(plan, value, type_name, routine) { return false; }
+    let kind: Int = plan.program.expressions.node_kinds[root];
+    let result: Int = plan.operation_result_values[operation];
+    if kind == DirectMirScalarProgramExprLocal() {
+        return result < 0 || (result < ArrayLength(plan.value_local_rows) &&
+            plan.value_local_rows[result] == plan.program.expressions.node_local_rows[root]);
+    }
+    let ordinal: Int = plan.program.expressions.node_parameter_ordinals[root];
+    let parameter: Int = plan.routines.parameter_starts[routine] + ordinal;
+    if ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] { return false; }
+    let carriage: String = plan.routines.parameter_carriages[parameter];
+    // A scalar value formal may update its local copy. Aggregate mutation and
+    // writable views retain their existing admitted call-boundary authority.
+    if carriage == "readonly-ref" { return false; }
+    return carriage == "value" || carriage == "value-result" || carriage == "owner-handle";
+}
+
+func MirCompoundAssignmentHasOperation(ref plan: DirectMirScalarCfgGraphPlan, code: Int) -> Bool {
+    var i: Int = 0;
+    while i < ArrayLength(plan.operation_kinds) {
+        if MirCompoundAssignmentPlanOperation(plan.operation_kinds[i]) == code { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func MirCompoundAssignmentIndexedElement(ref plan: DirectMirScalarCfgGraphPlan, operation: Int) -> String {
+    if MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]) < 1 { return ""; }
+    let row: Int = plan.program.operation_secondary_expression_rows[operation];
+    if row < 0 || row >= ArrayLength(plan.program.expressions.graph_roots) { return ""; }
+    let root: Int = plan.program.expressions.graph_roots[row];
+    if !MirCompoundAssignmentIndexedKind(plan.program.expressions.node_kinds[root]) { return ""; }
+    return plan.program.expressions.node_types[root];
+}

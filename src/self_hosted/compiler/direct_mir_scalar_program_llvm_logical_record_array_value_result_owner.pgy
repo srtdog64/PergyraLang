@@ -2,6 +2,8 @@
 
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_array_mutation_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
@@ -10,20 +12,20 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = "";
-    let record: Int = 0;
+    var output: String = "";
+    var record: Int = 0;
     while record < ArrayLength(plan.program.logical_record.names) {
         let array_type: String = Concat("Array<", Concat(
             plan.program.logical_record.names[record], ">"));
-        let referenced: Bool = false;
-        let parameter: Int = 0;
+        var referenced: Bool = false;
+        var parameter: Int = 0;
         while parameter < ArrayLength(plan.routines.parameter_types) {
             if plan.routines.parameter_types[parameter] == array_type {
                 referenced = true;
             }
             parameter = parameter + 1;
         }
-        let local_row: Int = 0;
+        var local_row: Int = 0;
         while local_row < ArrayLength(plan.local_types) {
             if plan.local_types[local_row] == array_type { referenced = true; }
             local_row = local_row + 1;
@@ -72,8 +74,8 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(
 func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramLogicalRecordArrayValueResultAt(
                 plan, routine, ordinal) {
@@ -104,8 +106,8 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(
 func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramLogicalRecordArrayValueResultAt(
                 plan, routine, ordinal) {
@@ -116,11 +118,14 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(
                     plan.routines.parameter_types[row]);
             let spelling: String = ToString(ordinal);
             let suffix: String = ToString(exit_block);
+            let storage: String =
+                DirectMirScalarProgramLlvmParameterValueResultStorage(
+                    plan, routine, ordinal);
             output = Concat(output, Concat("  %pgy.param.", spelling));
             output = Concat(output, Concat(".array.copyout.", suffix));
             output = Concat(output, Concat(" = load ", type_name));
-            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
-            output = Concat(output, ".local, align 8\n");
+            output = Concat(output, Concat(", ptr ", storage));
+            output = Concat(output, ", align 8\n");
             output = Concat(output, Concat("  store ", type_name));
             output = Concat(output, Concat(" %pgy.param.", spelling));
             output = Concat(output, Concat(".array.copyout.", suffix));
@@ -132,37 +137,3 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(
     return output;
 }
 
-func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultMutation(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
-    parameter: Int, index: String, value_type: String, value: String,
-    ref target: CompilerTargetProjectionFact
-) -> String {
-    if !DirectMirScalarProgramLogicalRecordArrayValueResultAt(
-            plan, routine, parameter) || value == "" {
-        Die("direct MIR LLVM logical-record Array mutation identity is invalid");
-    }
-    let parameter_row: Int = plan.routines.parameter_starts[routine] +
-        parameter;
-    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
-        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
-            plan.program.logical_record,
-            plan.routines.parameter_types[parameter_row], target);
-    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
-            projected, CompilerTargetCpuLlvmProjection()) ||
-        projected.element_type != value_type {
-        Die("direct MIR LLVM logical-record Array mutation type is invalid");
-    }
-    let element_type: String =
-        DirectMirScalarProgramLlvmLogicalRecordTypeName(
-            plan.program.logical_record, projected.element_type);
-    let operation: String = "push.";
-    if index != "" { operation = "set."; }
-    let output: String = Concat(
-        "  call void @pgy.scalar.logical.record.array.", operation);
-    output = Concat(output, Concat(
-        ToString(projected.record_row), "(ptr %pgy.param."));
-    output = Concat(output, Concat(ToString(parameter), ".local, "));
-    if index != "" { output = Concat(output, Concat("i64 ", Concat(index, ", "))); }
-    output = Concat(output, Concat(element_type, " "));
-    return Concat(output, Concat(value, ")\n"));
-}

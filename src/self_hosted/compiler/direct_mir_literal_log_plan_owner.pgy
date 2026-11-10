@@ -48,7 +48,7 @@ func DirectMirLiteralLogRouteClaimed(
 
 func DirectMirLiteralLogPlanDigest(ref plan: DirectMirLiteralLogPlan) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(631L, plan.erasure.digest);
+    var hash: Long = DirectMirCfgHashInt(631L, plan.erasure.digest);
     hash = DirectMirCfgHashInt(hash, plan.literal_kind);
     hash = DirectMirCfgHashString(hash, plan.literal);
     hash = DirectMirCfgHashString(hash, plan.content);
@@ -179,10 +179,10 @@ func DirectMirLiteralLogPlanFromAdmitted(
         sequence.arena.call_target_names[0] != "" {
         Die("direct MIR literal Log expression graph is invalid");
     }
-    let literal_kind: Int = 0;
+    var literal_kind: Int = 0;
     let literal: String = sequence.arena.node_texts[0];
-    let content: String = "";
-    let line_format: String = "";
+    var content: String = "";
+    var line_format: String = "";
     if sequence.arena.topology.node_kinds[0] ==
             AstExpressionNodeIntegerLiteral() {
         literal_kind = DirectMirLiteralLogIntegerKind();

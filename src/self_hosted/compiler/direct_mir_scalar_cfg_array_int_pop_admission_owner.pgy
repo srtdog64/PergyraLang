@@ -15,9 +15,9 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     let empty: DirectMirScalarCfgArrayIntProgramFact =
         DirectMirScalarCfgArrayIntProgramFactEmpty();
-    let selected: DirectMirScalarCfgForEachFact =
+    var selected: DirectMirScalarCfgForEachFact =
         DirectMirScalarCfgForEachFactEmpty();
-    let instruction: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let capture: MirRoutineInstructionScalarCapture =
@@ -56,15 +56,15 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
         !init_position.valid || init_position.block != selected.init_block {
         Die("direct MIR Array<Int> pop collection owner is invalid");
     }
-    let pop_globals: Array<Int> = [];
-    let pop_operations: Array<Int> = [];
-    let expected_lengths: Array<Int> = [];
-    let length_log_global: Int = -1;
-    let collection_uses: Int = 0;
-    let claimed_uses: Int = 0;
-    let block: Int = 0;
+    var pop_globals: Array<Int> = [];
+    var pop_operations: Array<Int> = [];
+    var expected_lengths: Array<Int> = [];
+    var length_log_global: Int = -1;
+    var collection_uses: Int = 0;
+    var claimed_uses: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local_binding: Int = 0;
+        var local_binding: Int = 0;
         while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
                 index.block_instruction_starts[block] + local_binding;
@@ -73,7 +73,7 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
             let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
                 uses, global
             );
-            let use_row: Int = 0;
+            var use_row: Int = 0;
             while use_row < use_count {
                 let use_entry: Option<String> = MirRoutineInstructionUseAtGlobal(
                     uses, global, use_row

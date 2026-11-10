@@ -68,7 +68,7 @@ func CompilerRuntimeCallAbiConstructedProbeFactAt(
 func CompilerRuntimeCallAbiConstructedProbeRow(
     fact: CompilerRuntimeCallAbiFact
 ) -> String {
-    let row: String = Concat("constructed|", fact.domain);
+    var row: String = Concat("constructed|", fact.domain);
     row = Concat(Concat(row, "|"), fact.operation);
     row = Concat(Concat(row, "|"), fact.symbol);
     row = Concat(Concat(row, "|"), fact.symbol_kind);
@@ -84,19 +84,19 @@ func Main() -> Void {
     }
     Log(Concat("schema=", CompilerRuntimeCallAbiRowSchema()));
     Log(Concat("count=", ToString(CompilerRuntimeCallAbiConcreteRowCount())));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerRuntimeCallAbiConcreteRowCount() {
         Log(CompilerRuntimeCallAbiManifestRowAt(i));
         i = i + 1;
     }
-    let payload: Int = 0;
+    var payload: Int = 0;
     while payload < CompilerRuntimeCallAbiConstructedProbePayloadCount() {
         Log(Concat("constructed_probe=",
             CompilerRuntimeCallAbiConstructedProbePayloadAt(payload)));
         payload = payload + 1;
     }
-    let constructed: Int = 0;
-    let probe: Int = 0;
+    var constructed: Int = 0;
+    var probe: Int = 0;
     while probe < CompilerRuntimeCallAbiConstructedProbeCount() {
         if CompilerRuntimeCallAbiConstructedProbeFactAt(probe).ok {
             constructed = constructed + 1;

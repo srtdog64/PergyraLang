@@ -16,9 +16,9 @@ func Put(ref source: Source, inout names: Array<String>) -> Int {
 }
 
 func Main() -> Int {
-    let labels: HashMap<String, String> = MapNew();
+    var labels: HashMap<String, String> = MapNew();
     let source: Source = Source(StringConcat("t", ""));
-    let names: Array<String> = [StringConcat("x", "")];
+    var names: Array<String> = [StringConcat("x", "")];
     let n: Int = Label(source, labels) + Put(source, names);
     Print(ToString(n));
     Print(MapGet(labels, "first"));

@@ -391,6 +391,32 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         const LLVMStdlibRuntimeCallSpec *spec =
             llvm_stdlib_string_file_runtime_call_lookup(callee_name);
         if (spec != NULL && ast_call_arg_count(node) == spec->arg_count) {
+            if (strcmp(spec->runtime_name, "StringConcat") == 0) {
+                LLVMRegionAllocation allocation = llvm_mir_region_allocation_scope(
+                    ctx, node, "String concatenation call");
+                if (allocation == LLVM_REGION_ALLOCATION_INVALID) {
+                    *out_result = NULL;
+                    return true;
+                }
+                if (allocation == LLVM_REGION_ALLOCATION_ACTIVE) {
+                    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+                        spec->family, callee_name, "pgy_region_string_concat_export");
+                    if (fn == NULL) { *out_result = NULL; return true; }
+                    LLVMValueRef left = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+                    LLVMValueRef right = left != NULL
+                        ? llvm_emit_expression(ast_call_argument(node, 1), ctx) : NULL;
+                    if (left == NULL || right == NULL || LLVMTypeOf(left) != ctx->type_i8ptr ||
+                        LLVMTypeOf(right) != ctx->type_i8ptr) {
+                        *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                            "requires two admitted String operands for region allocation");
+                        return true;
+                    }
+                    LLVMValueRef args[] = { ctx->region_alloca, left, right };
+                    *out_result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                        args, 3, llvm_tmp_name(ctx));
+                    return true;
+                }
+            }
             if (llvm_runtime_aggregate_return_is_sret_function(
                     spec->runtime_name)) {
                 *out_result = llvm_emit_runtime_aggregate_return_call(node, ctx,

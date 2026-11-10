@@ -16,7 +16,7 @@ func DirectMirTwoRoutineShapeFactDigest(
     ref fact: DirectMirTwoRoutineShapeFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(283L, fact.declaration_kind);
+    var hash: Long = DirectMirCfgHashString(283L, fact.declaration_kind);
     hash = DirectMirCfgHashString(hash, fact.nominal_kind);
     hash = DirectMirCfgHashInt(hash, fact.generic_routine_count);
     hash = DirectMirCfgHashInt(hash, fact.method_routine_count);
@@ -46,9 +46,9 @@ func DirectMirTwoRoutineShapeFactFromAdmitted(
         !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return DirectMirTwoRoutineShapeFact(false, 0, "", "", 0, 0);
     }
-    let generic_count: Int = 0;
-    let method_count: Int = 0;
-    let row: Int = 0;
+    var generic_count: Int = 0;
+    var method_count: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
             admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],

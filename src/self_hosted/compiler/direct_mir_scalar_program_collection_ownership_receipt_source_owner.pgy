@@ -3,6 +3,63 @@
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+func DirectMirCollectionOwnershipValueCopySourceReady(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int
+) -> Bool {
+    if expression_row < 0 ||
+        expression_row >= ArrayLength(expressions.graph_roots) {
+        return false;
+    }
+    let root: Int = expressions.graph_roots[expression_row];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        root >= ArrayLength(expressions.node_types) ||
+        expressions.node_types[root] != CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let kind: Int = expressions.node_kinds[root];
+    return kind == DirectMirScalarProgramExprStringLiteral() ||
+        kind == DirectMirScalarProgramExprLocal() ||
+        kind == DirectMirScalarProgramExprParameter() ||
+        kind == DirectMirScalarProgramExprUnwrapOptionString() ||
+        kind == DirectMirScalarProgramExprLogicalRecordMember() ||
+        kind == DirectMirScalarProgramExprArrayStringIndex() ||
+        kind == DirectMirScalarProgramExprLogicalRecordArrayIndex();
+}
+
+func DirectMirCollectionOwnershipOperationRequiresValueCopy(
+    ref ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    ref operation_expression_rows: Array<Int>,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int
+) -> Bool {
+    return operation >= 0 &&
+        operation < ArrayLength(operation_expression_rows) &&
+        DirectMirScalarProgramCollectionOwnershipOperationEffect(
+            ownership, operation) == 1 &&
+        DirectMirCollectionOwnershipValueCopySourceReady(
+            expressions, operation_expression_rows[operation]);
+}
+
+func DirectMirCollectionOwnershipValueCopyReached(
+    ref ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    ref operation_expression_rows: Array<Int>,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    var operation: Int = 0;
+    while operation < ArrayLength(operation_expression_rows) {
+        if DirectMirCollectionOwnershipOperationRequiresValueCopy(
+                ownership, operation_expression_rows, expressions,
+                operation) {
+            return true;
+        }
+        operation = operation + 1;
+    }
+    return false;
+}
 
 func DirectMirCollectionOwnershipReceiptSourceReady(
     receipt_present: Bool,
@@ -11,15 +68,19 @@ func DirectMirCollectionOwnershipReceiptSourceReady(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
+    ref signature: DirectMirRoutineSignatureFact,
     operation: Int
 ) -> Bool {
     if !receipt_present { return true; }
     if receipt_effect_kind != 1 {
         return receipt_source_binding_syntax_id == 0;
     }
-    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) ||
-        storage.operations.kinds[operation] !=
-            DirectMirScalarCfgOpLocalArrayStringPush() {
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) {
+        return receipt_source_binding_syntax_id == 0;
+    }
+    let operation_kind: Int = storage.operations.kinds[operation];
+    if operation_kind != DirectMirScalarCfgOpLocalArrayStringPush() &&
+        operation_kind != DirectMirScalarCfgOpArrayStringValueResultPush() {
         return receipt_source_binding_syntax_id == 0;
     }
     let graph: Int = storage.operations.expression_rows[operation];
@@ -28,12 +89,49 @@ func DirectMirCollectionOwnershipReceiptSourceReady(
     }
     let root: Int = expressions.graph_roots[graph];
     if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
-        expressions.node_kinds[root] != DirectMirScalarProgramExprDirectCall() {
+        root >= ArrayLength(expressions.node_types) ||
+        expressions.node_types[root] != CompilerAbiLayoutStringTypeName() {
         return false;
     }
+    // A compiler-landed value copy is represented by the original graph plus
+    // this exact owned-push receipt. Backends consume the same pair and copy
+    // before storing; they must not infer the policy from expression type.
+    if DirectMirCollectionOwnershipValueCopySourceReady(
+            expressions, graph) {
+        if (expressions.node_kinds[root] ==
+                DirectMirScalarProgramExprParameter()) {
+            let parameter: Int = expressions.node_parameter_ordinals[root];
+            return DirectMirRoutineSignatureFactReady(signature) &&
+                parameter >= 0 && parameter < signature.param_count &&
+                signature.parameters.type_names[parameter] ==
+                    CompilerAbiLayoutStringTypeName() &&
+                signature.parameters.carriages[parameter] == "value" &&
+                signature.parameters.resources[parameter] == "none" &&
+                signature.parameters.pass_shapes[parameter] == "direct" &&
+                !signature.parameters.abi_required[parameter] &&
+                signature.parameters.abi_layout_ids[parameter] == 0 &&
+                (receipt_source_binding_syntax_id == 0 ||
+                 receipt_source_binding_syntax_id ==
+                    signature.parameters.source_syntax_ids[parameter]);
+        }
+        return receipt_source_binding_syntax_id == 0;
+    }
+    // Fresh builtin results have no source binding identity, so the exact
+    // receipt uses 0.
+    if DirectMirScalarProgramFreshStringExpressionKind(
+            expressions.node_kinds[root]) {
+        return receipt_source_binding_syntax_id == 0;
+    }
+    if expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprDirectCall() { return false; }
     let callable: Int = expressions.node_callable_rows[root];
+    // A direct call already carries the exact callable row.  Native MIR may
+    // therefore leave the store receipt source at 0; the completed GraphPlan
+    // must still prove that every return path is either independently owned
+    // or valid for the backend's immediate copy before consuming the receipt.
     return callable > 0 &&
         callable <= ArrayLength(callables.source_syntax_ids) &&
-        receipt_source_binding_syntax_id ==
-            callables.source_syntax_ids[callable - 1];
+        (receipt_source_binding_syntax_id == 0 ||
+         receipt_source_binding_syntax_id ==
+            callables.source_syntax_ids[callable - 1]);
 }

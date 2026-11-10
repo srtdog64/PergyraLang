@@ -13,7 +13,7 @@ struct Rows {
 }
 
 func AddBlock(rows: Rows) -> Rows {
-    let ids: Array<Int> = rows.ids;
+    var ids: Array<Int> = rows.ids;
     ArrayPush(ids, ArrayLength(ids));
     return Rows(ids, rows.pairs);
 }

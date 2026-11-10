@@ -14,7 +14,7 @@ func SelfMirLoopBindHeaderBackedgeLocalVersions(
             build, "MIR loop header or backedge snapshots are invalid"
         );
     }
-    let instruction_row: Int = build.cfg.blocks.instruction_starts[header];
+    var instruction_row: Int = build.cfg.blocks.instruction_starts[header];
     let instruction_end: Int = instruction_row +
         build.cfg.blocks.instruction_counts[header];
     while instruction_row < instruction_end {
@@ -34,10 +34,10 @@ func SelfMirLoopBindHeaderBackedgeLocalVersions(
             }
             let use_start: Int =
                 build.cfg.instructions.use_starts[instruction_row];
-            let phi_uses: Array<String> = [
+            var phi_uses: Array<String> = [
                 build.cfg.instructions.uses[use_start]
             ];
-            let backedge_row: Int = 0;
+            var backedge_row: Int = 0;
             while backedge_row < ArrayLength(backedges.blocks) {
                 let block: Int = backedges.blocks[backedge_row];
                 let version: Option<Int> = SelfMirLocalPredecessorVersionAt(

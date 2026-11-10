@@ -9,7 +9,7 @@ import "../mir/option_abi_layout_contract_owner.pgy";
 func DirectMirScalarProgramLogicalRecordOptionIntRequired(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Bool {
-    let field: Int = 0;
+    var field: Int = 0;
     while field < ArrayLength(logical_record.field_types) {
         if logical_record.field_types[field] ==
                 CompilerAbiLayoutOptionIntTypeName() {

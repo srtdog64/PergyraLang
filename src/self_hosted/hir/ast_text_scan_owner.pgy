@@ -33,7 +33,7 @@ func IsIdentifier(e: String) -> Bool {
     if first >= 48 && first <= 57 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if !IsIdentCode(CodegenCharCodeAt(e, n, n, i)) {
             return false;
@@ -77,9 +77,9 @@ func FindTextFrom(hay: String, needle: String, start: Int) -> Option<Int> {
 
 func FindTopLevelComma(s: String) -> Option<Int> {
     let n: Int = StringLength(s);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let in_str: Bool = false;
+    var i: Int = 0;
+    var depth: Int = 0;
+    var in_str: Bool = false;
     while i < n {
         let c: Int = CodegenCharCodeAt(s, n, n, i);
         if in_str {
@@ -120,9 +120,9 @@ func FindTopLevelComma(s: String) -> Option<Int> {
 
 func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
     let n: Int = StringLength(s);
-    let i: Int = open_idx;
-    let depth: Int = 0;
-    let in_str: Bool = false;
+    var i: Int = open_idx;
+    var depth: Int = 0;
+    var in_str: Bool = false;
     while i < n {
         let c: Int = CodegenCharCodeAt(s, n, n, i);
         if in_str {

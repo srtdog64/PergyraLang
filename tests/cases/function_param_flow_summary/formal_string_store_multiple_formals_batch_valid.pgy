@@ -1,6 +1,6 @@
-// One live Array<String> risk owner applies across a contiguous store run even
-// when each String comes from a different default/ref formal path. Every
-// candidate path is typed independently before the four copies land together.
+// One current program-point snapshot covers a contiguous store run even when
+// each String comes from a different default/ref formal path. Every candidate
+// receiver and path is checked independently before the four copies land.
 struct FormalStringStoreMultiRows {
     domains: Array<String>;
     type_names: Array<String>;
@@ -19,10 +19,10 @@ func FormalStringStoreMultiApply(
     type_name: String,
     operation: String
 ) -> FormalStringStoreMultiRows {
-    let domains: Array<String> = rows.domains;
-    let type_names: Array<String> = rows.type_names;
-    let operations: Array<String> = rows.operations;
-    let symbols: Array<String> = rows.symbols;
+    var domains: Array<String> = rows.domains;
+    var type_names: Array<String> = rows.type_names;
+    var operations: Array<String> = rows.operations;
+    var symbols: Array<String> = rows.symbols;
     ArraySet(domains, 0, fact.domain);
     ArraySet(type_names, 0, type_name);
     ArraySet(operations, 0, operation);

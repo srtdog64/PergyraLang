@@ -101,6 +101,7 @@
 #define PGY_CODE_SEM_SELECT_CASE_INVALID        "PGY_SEM_SELECT_CASE_INVALID"
 #define PGY_CODE_SEM_VISIBILITY_BOUNDARY        "PGY_SEM_VISIBILITY_BOUNDARY"
 #define PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE      "PGY_SEM_IMMUTABLE_FIELD_WRITE"
+#define PGY_CODE_SEM_IMMUTABLE_BINDING_WRITE    "PGY_SEM_IMMUTABLE_BINDING_WRITE"
 #define PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID  "PGY_SEM_CHANNEL_TRANSPORT_INVALID"
 #define PGY_CODE_SEM_PIN_ESCAPE                 "PGY_SEM_PIN_ESCAPE"
 #define PGY_CODE_SEM_PIN_PARALLEL_CONFLICT      "PGY_SEM_PIN_PARALLEL_CONFLICT"
@@ -245,6 +246,7 @@
 #define PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL        "semantic:scope:duplicate_symbol"
 #define PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS     "semantic:visibility:boundary_cross"
 #define PGY_CAUSE_IMMUTABLE_FIELD_WRITE         "semantic:immutable_field:write"
+#define PGY_CAUSE_IMMUTABLE_BINDING_WRITE       "semantic:immutable_binding:write"
 #define PGY_CAUSE_RESOLUTION_OOM                "semantic:resolution:oom"
 
 /* --- Semantic: parallel / async --- */
@@ -459,6 +461,7 @@
                                                 "match-predicate-signature-in-host"
 #define PGY_FIX_MATERIALIZE_TOKEN_TO_SLOT       "materialize-token-to-slot"
 #define PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND "reconstruct-or-change-host-kind"
+#define PGY_FIX_USE_MUTABLE_BINDING             "use-mutable-binding"
 #define PGY_FIX_REDUCE_SCOPE_OR_RETRY           "reduce-scope-or-retry"
 #define PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT "reduce-unit-size-or-raise-limit"
 #define PGY_FIX_REFACTOR_OR_RAISE_LIMIT         "refactor-or-raise-limit"

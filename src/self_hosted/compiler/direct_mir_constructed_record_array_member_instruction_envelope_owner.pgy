@@ -33,7 +33,7 @@ func DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
     expected_arg1: String, expected_abi_type: String,
     physical_abi: Bool, expected_expr1: String
 ) -> Bool {
-    let arg1_ready: Bool = DirectMirObjectFieldKindEquals(
+    var arg1_ready: Bool = DirectMirObjectFieldKindEquals(
         instruction, "arg1", "null"
     );
     if expected_arg1 != "" {

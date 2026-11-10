@@ -8,6 +8,7 @@
 #include "codegen_slot_type_policy.h"
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_expr_member_lvalue.h"
+#include "llvm_expr_scalar_core.h"
 #include "llvm_internal_api.h"
 #include "llvm_runtime_internal.h"
 #include "llvm_mir_local_expected_type.h"
@@ -109,6 +110,7 @@ LLVMValueRef
 llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                            ASTNode *target,
                            ASTNode *value,
+                           AstAssignmentOperation operation,
                            LLVMGenCtx *ctx)
 {
     ASTNode *node = diagnostic_anchor != NULL ? diagnostic_anchor : target;
@@ -128,9 +130,10 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
             LLVMTypeRef elem_type = NULL;
             const char *recv_struct = NULL;
             bool recv_is_slice = false;
-            LLVMValueRef idx = llvm_emit_expression(
-                ast_array_access_index(target), ctx);
-            LLVMValueRef val = llvm_emit_expression(value, ctx);
+            LLVMValueRef idx = operation == AST_ASSIGN_SET
+                ? llvm_emit_expression(ast_array_access_index(target), ctx) : NULL;
+            LLVMValueRef val = operation == AST_ASSIGN_SET
+                ? llvm_emit_expression(value, ctx) : NULL;
             const char *suffix;
             char fn_name[64];
             LLVMFuncEntry *fn;
@@ -175,10 +178,12 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
             if (array_ptr == NULL || elem_type == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment requires concrete Array<T> receiver metadata");
+            if (operation != AST_ASSIGN_SET)
+                idx = llvm_emit_expression(ast_array_access_index(target), ctx);
             if (idx == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment could not lower index expression");
-            if (val == NULL)
+            if (operation == AST_ASSIGN_SET && val == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment could not lower value expression");
 
@@ -190,6 +195,26 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "LLVM indexed array assignment requires concrete Array<T> element metadata");
                 return NULL;
+            }
+            if (operation != AST_ASSIGN_SET) {
+                index64 = idx;
+                if (LLVMTypeOf(index64) != ctx->type_i64)
+                    index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
+                        ctx->type_i64, llvm_tmp_name(ctx));
+                snprintf(fn_name, sizeof(fn_name),
+                    recv_is_slice ? "pgy_slice_get_%s" : "pgy_array_get_%s", suffix);
+                LLVMFuncEntry *read = llvm_required_runtime_function(ctx, node,
+                    "compound indexed assignment", "indexed read", fn_name);
+                if (read == NULL)
+                    return NULL;
+                LLVMValueRef read_args[] = {array_ptr, index64};
+                LLVMValueRef old = LLVMBuildCall2(ctx->builder, read->fn_type, read->fn,
+                    read_args, 2, llvm_tmp_name(ctx));
+                val = llvm_emit_expression(value, ctx);
+                val = llvm_emit_scalar_binary_values(node,
+                    ast_assignment_binary_operator(operation), old, val, target, value, ctx);
+                if (val == NULL)
+                    return NULL;
             }
             if (LLVMTypeOf(val) != elem_type) {
                 if ((elem_type == ctx->type_i32
@@ -241,7 +266,12 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
          * must not mint an anonymous Option/Result aggregate. */
         saved_current_ret_type = ctx->current_ret_type;
         ctx->current_ret_type = field_type;
+        LLVMValueRef old = operation == AST_ASSIGN_SET ? NULL
+            : LLVMBuildLoad2(ctx->builder, field_type, gep, llvm_tmp_name(ctx));
         val = llvm_emit_expression(value, ctx);
+        if (operation != AST_ASSIGN_SET)
+            val = llvm_emit_scalar_binary_values(node,
+                ast_assignment_binary_operator(operation), old, val, target, value, ctx);
         ctx->current_ret_type = saved_current_ret_type;
         if (val == NULL)
             return llvm_assignment_error(ctx, node,
@@ -275,6 +305,26 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
             "LLVM assignment requires an identifier, member, or indexed target");
 
     if (llvm_identifier_may_denote_host_field(target)) {
+        if (operation != AST_ASSIGN_SET) {
+            LLVMTypeRef field_type = NULL;
+            LLVMValueRef field = llvm_implicit_host_field_ptr(ctx, name, &field_type);
+            if (field == NULL || field_type == NULL)
+                return llvm_assignment_error(ctx, node,
+                    "LLVM compound field assignment requires its field storage");
+            LLVMValueRef old = LLVMBuildLoad2(ctx->builder, field_type, field, llvm_tmp_name(ctx));
+            LLVMTypeRef saved = ctx->current_ret_type;
+            ctx->current_ret_type = field_type;
+            LLVMValueRef right = llvm_emit_expression(value, ctx);
+            ctx->current_ret_type = saved;
+            LLVMValueRef updated = llvm_emit_scalar_binary_values(node,
+                ast_assignment_binary_operator(operation), old, right, target, value, ctx);
+            if (updated == NULL)
+                return NULL;
+            LLVMBuildStore(ctx->builder, updated, field);
+            llvm_emit_host_projection_invalidations(ctx, target);
+            llvm_emit_world_embedded_assignment_sync(ctx, target);
+            return updated;
+        }
         LLVMValueRef host_field_value =
             llvm_emit_current_host_field_assignment(node, ctx, name, target,
                 value);
@@ -290,6 +340,9 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
     {
         const char *slot_inner = llvm_lookup_slot_inner(ctx, name);
         if (slot_inner != NULL) {
+            if (operation != AST_ASSIGN_SET)
+                return llvm_assignment_error(ctx, node,
+                    "Compound assignment requires a numeric value, not a slot handle");
             bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
             const MIRResourceRuntimeRow *runtime_row =
                 llvm_slot_runtime_row_for_operation(node, ctx,
@@ -353,7 +406,12 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
         LLVMTypeRef saved_current_ret_type = ctx->current_ret_type;
         LLVMValueRef val;
         ctx->current_ret_type = var.type;
+        LLVMValueRef old = operation == AST_ASSIGN_SET ? NULL
+            : LLVMBuildLoad2(ctx->builder, var.type, var.alloca, llvm_tmp_name(ctx));
         val = llvm_emit_expression(value, ctx);
+        if (operation != AST_ASSIGN_SET)
+            val = llvm_emit_scalar_binary_values(node,
+                ast_assignment_binary_operator(operation), old, val, target, value, ctx);
         ctx->current_ret_type = saved_current_ret_type;
         if (val == NULL)
             return llvm_assignment_error(ctx, node,
@@ -397,8 +455,15 @@ llvm_emit_mir_assignment_parts(const MIRRoutine *routine,
         ctx->expected_type_name = expected_type_name;
         ctx->current_ret_type = pergyra_type_to_llvm(ctx, expected_type_name);
     }
+    AstAssignmentOperation operation;
+    if (!mir_assignment_operation(inst, &operation)) {
+        ctx->current_ret_type = saved_current_ret_type;
+        ctx->expected_type_name = saved_expected_type_name;
+        return llvm_assignment_error(ctx, diagnostic_anchor,
+            "MIR assignment opcode is missing or invalid");
+    }
     assigned = llvm_emit_assignment_parts(
-        diagnostic_anchor, target, value, ctx);
+        diagnostic_anchor, target, value, operation, ctx);
     ctx->current_ret_type = saved_current_ret_type;
     ctx->expected_type_name = saved_expected_type_name;
     return assigned;
@@ -410,6 +475,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
     return llvm_emit_assignment_parts(node,
         ast_assignment_target(node),
         ast_assignment_value(node),
+        ast_assignment_operation(node),
         ctx);
 }
 

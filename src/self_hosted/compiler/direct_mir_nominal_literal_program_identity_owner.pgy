@@ -17,7 +17,7 @@ func DirectMirNominalLiteralProgramFactDigest(
     ref fact: DirectMirNominalLiteralProgramFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(563L, fact.declaration.digest);
+    var hash: Long = DirectMirCfgHashInt(563L, fact.declaration.digest);
     hash = DirectMirCfgHashInt(hash, fact.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, fact.graph.digest);
     return DirectMirCfgBoundedDigest(hash);

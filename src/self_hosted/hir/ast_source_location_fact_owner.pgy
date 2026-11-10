@@ -94,18 +94,18 @@ func AstSourceLocationFactsFromParserRows(
     if row_count == 0 {
         return AstSourceLocationFactsUnknown();
     }
-    let node_rows: Array<Int> = [];
-    let node_lines: Array<Int> = [];
-    let node_columns: Array<Int> = [];
-    let node_id: Int = 0;
+    var node_rows: Array<Int> = [];
+    var node_lines: Array<Int> = [];
+    var node_columns: Array<Int> = [];
+    var node_id: Int = 0;
     while node_id < node_count {
         ArrayPush(node_rows, -1);
         ArrayPush(node_lines, 0);
         ArrayPush(node_columns, 0);
         node_id = node_id + 1;
     }
-    let search_node: Int = 0;
-    let row: Int = 0;
+    var search_node: Int = 0;
+    var row: Int = 0;
     while row < row_count {
         if paths[row] == "" || lines[row] < 1 || columns[row] < 1 {
             ArrayDrop(node_rows);
@@ -114,7 +114,7 @@ func AstSourceLocationFactsFromParserRows(
             return AstSourceLocationFactsInvalid();
         }
         let callable_name: String = Concat("", callable_names[row]);
-        let matched_node: Int = 0 - 1;
+        var matched_node: Int = 0 - 1;
         while search_node < node_count && matched_node < 0 {
             if AstSourceLocationRowMatches(
                 arena, search_node, kinds[row], callable_name
@@ -134,7 +134,7 @@ func AstSourceLocationFactsFromParserRows(
         ArraySet(node_columns, matched_node, columns[row]);
         row = row + 1;
     }
-    let node_paths: Array<String> = [];
+    var node_paths: Array<String> = [];
     node_id = 0;
     while node_id < node_count {
         let source_row: Int = node_rows[node_id];
@@ -175,8 +175,8 @@ func AstSourceSpanForNode(
         node_id >= ArrayLength(facts.node_lines) {
         return AstSourceSpanUnknown();
     }
-    let current: Int = node_id;
-    let remaining: Int = ArrayLength(facts.node_lines);
+    var current: Int = node_id;
+    var remaining: Int = ArrayLength(facts.node_lines);
     while remaining > 0 {
         if facts.node_lines[current] > 0 {
             let path: String = facts.node_paths[current];

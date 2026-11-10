@@ -177,6 +177,13 @@ bool mir_instruction_executable_roots(const MIRRoutine *routine,
     roots[0] = inst->kind == MIR_INST_BRANCH && inst->branch_shape == MIR_BRANCH_FOR_RANGE
         ? inst->expr1 : (inst->expr0 != NULL ? inst->expr0 : inst->expr1);
     roots[1] = NULL;
+    if (inst->kind == MIR_INST_DEF && mir_instruction_source_is_assignment(inst)) {
+        AstAssignmentOperation operation;
+        if (mir_assignment_operation(inst, &operation) && operation != AST_ASSIGN_SET) {
+            roots[0] = inst->expr1;
+            roots[1] = inst->expr0;
+        }
+    }
     /* RIR summaries carry ABI/effect evidence, not another lexical evaluation. */
     if (inst->kind == MIR_INST_RESOURCE_OP && !mir_instruction_source_is_with_slot_claim(inst) &&
         !mir_instruction_source_is_with_slot_release(inst)) {
@@ -236,6 +243,9 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         routing = mir_defer_statement_routing(part);
         if (routing != NULL)
             inst->arg0 = routing;
+        if (part != NULL && part->type == AST_ASSIGNMENT
+            && ast_assignment_operation(part) != AST_ASSIGN_SET)
+            inst->name = mir_compound_assignment_opcode(ast_assignment_operation(part));
         mir_attach_text_builder_runtime_row(inst,
             part != NULL && part->type == AST_CALL ? part : NULL);
         return;

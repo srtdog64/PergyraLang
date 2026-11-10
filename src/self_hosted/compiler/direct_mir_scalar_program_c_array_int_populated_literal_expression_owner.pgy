@@ -1,4 +1,4 @@
-// C expression identity for one ordered heap-backed populated Array<Int> literal.
+// C evaluates every element once, in source order, before materialization.
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 
 func DirectMirScalarProgramCArrayIntPopulatedLiteralExpression(
@@ -7,14 +7,18 @@ func DirectMirScalarProgramCArrayIntPopulatedLiteralExpression(
     if kind != DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
         return None;
     }
-    let call: String = Concat("pgy_array_int_populated_literal_",
-        Concat(ToString(expression_node), "("));
-    if ArrayLength(arguments) == 0 { return Some(Concat(call, "NULL)")); }
-    call = Concat(call, "(int64_t[]){");
-    let row: Int = 0;
-    while row < ArrayLength(arguments) {
-        if row > 0 { call = Concat(call, ", "); }
-        call = Concat(call, arguments[row]); row = row + 1;
+    if ArrayLength(arguments) < 1 {
+        Die("populated Array<Int> requires admitted element values");
     }
-    return Some(Concat(call, "})"));
+    let name: String = "pgy_array_values_" + ToString(expression_node);
+    var output: String = "({ int64_t " + name + "[" +
+        ToString(ArrayLength(arguments)) + "]; ";
+    var row: Int = 0;
+    while row < ArrayLength(arguments) {
+        output = output + name + "[" + ToString(row) + "] = " +
+            arguments[row] + "; ";
+        row = row + 1;
+    }
+    return Some(output + "pgy_array_int_populated_literal_" +
+        ToString(expression_node) + "(" + name + "); })");
 }

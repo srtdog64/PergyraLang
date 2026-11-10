@@ -9,9 +9,9 @@ func Swap(inout rows: Array<Int>, inout other: Array<Int>) -> Void {
 }
 
 func Build() -> Int {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, 41);
-    let other: Array<Int> = [];
+    var other: Array<Int> = [];
     defer { ArrayDrop(rows); };
     Swap(rows, other);
     return ArrayLength(other);

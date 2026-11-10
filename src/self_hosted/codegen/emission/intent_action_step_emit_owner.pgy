@@ -30,7 +30,7 @@ func CodegenIntentEmitActionStep(
     authority_alias: String,
     where_zone_name: String,
     step_name: String,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     on_node: Int,
     pre_node: Int,
     invariant_node: Int,
@@ -73,12 +73,12 @@ func CodegenIntentEmitActionStep(
             "(", Concat(binding.zone_pointer, ");\n")
         ))
     ));
-    let step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+    var step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
         env, CodegenFunctionValueBindingRows(CodegenFunctionValueBindingFactForCExpression(
             receiver_alias, binding.actor_type, env, binding.zone_member
         ))
     );
-    let on_graph: SemanticExpressionGraphView =
+    let on_root_id: Int =
         CodegenSemanticExpressionGraphOrDie(
             expression_surfaces, on_node, AstExpressionLaneAtom()
         );
@@ -92,10 +92,11 @@ func CodegenIntentEmitActionStep(
             "invariant-pre", step_name, uses_intent_observability, step_env);
     }
     let on_expression: String = RewriteExprFromSemanticGraph(
-        on_graph.graph, on_graph.root_id, step_env
+        expression_surfaces.expression_graph, on_root_id, step_env
     );
     step_env = CodegenIntentEmitOnOutcome(
-        body, on_graph, on_expression, outcome_count, outcome_name, step_env
+        body, expression_surfaces.expression_graph, on_root_id,
+        on_expression, outcome_count, outcome_name, step_env
     );
     ArrayPush(body, Concat(
         "    ", Concat(binding.sync_symbol, Concat(

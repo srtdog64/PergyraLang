@@ -21,7 +21,7 @@ func DirectMirArrayStoragePlainType(ref plan: DirectMirScalarCfgGraphPlan,
     }
     let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
     if record >= 0 {
-        let field: Int = plan.program.logical_record.field_starts[record];
+        var field: Int = plan.program.logical_record.field_starts[record];
         let end: Int = field + plan.program.logical_record.field_counts[record];
         while field < end {
             if !DirectMirArrayStoragePlainType(plan, plan.program.logical_record.field_types[field], depth + 1) { return false; }
@@ -31,10 +31,10 @@ func DirectMirArrayStoragePlainType(ref plan: DirectMirScalarCfgGraphPlan,
     }
     let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(plan.program.referenced_enum, type_name);
     if enum_row < 0 { return false; }
-    let variant: Int = plan.program.referenced_enum.variant_starts[enum_row];
+    var variant: Int = plan.program.referenced_enum.variant_starts[enum_row];
     let end: Int = variant + plan.program.referenced_enum.variant_counts[enum_row];
     while variant < end {
-        let payload: Int = plan.program.referenced_enum.variant_param_type_starts[variant];
+        var payload: Int = plan.program.referenced_enum.variant_param_type_starts[variant];
         let payload_end: Int = payload + plan.program.referenced_enum.variant_param_counts[variant];
         while payload < payload_end {
             if !DirectMirArrayStoragePlainType(plan, plan.program.referenced_enum.variant_param_types[payload], depth + 1) { return false; }

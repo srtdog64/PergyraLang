@@ -11,6 +11,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "../hir/assignment_operation_owner.pgy";
 
 func SelfMirDeferBodyStatementRouting(
     ref input: SelfMirRoutineInput,
@@ -59,7 +60,7 @@ func SelfMirLowerDeferFromArtifact(
         );
     }
     let body_node_id: Int = UnwrapOption(body_opt);
-    let count: Int = 0;
+    var count: Int = 0;
     while IsSome(TypedAstArenaChildAt(input.artifact.arena, body_node_id, count)) {
         count = count + 1;
     }
@@ -67,8 +68,8 @@ func SelfMirLowerDeferFromArtifact(
         return SelfMirRoutineBuildError(build, "defer body has no statement");
     }
     // Refuse the whole body before any row is added.
-    let routings: Array<String> = [];
-    let index: Int = 0;
+    var routings: Array<String> = [];
+    var index: Int = 0;
     while index < count {
         let stmt_id: Int = UnwrapOption(
             TypedAstArenaChildAt(input.artifact.arena, body_node_id, index));
@@ -88,17 +89,28 @@ func SelfMirLowerDeferFromArtifact(
     let empty_uses: Array<String> = [];
     index = 0;
     while index < count {
-        let part: String = "";
+        var part: String = "";
         if count > 1 {
             part = Concat(ToString(index + 1), Concat("/", ToString(count)));
         }
         let statement_id: Int = UnwrapOption(
             TypedAstArenaChildAt(input.artifact.arena, body_node_id, index));
-        let lane: Int = AstExpressionLaneAtom();
+        var lane: Int = AstExpressionLaneAtom();
+        var opcode: String = "stmt";
+        if routings[index] == "Assign" {
+            let row: Option<Int> = SemanticAstAssignmentIndexForNode(input.analysis.assignments, statement_id);
+            if !IsSome(row) { return SelfMirRoutineBuildError(build, "defer assignment operation is missing"); }
+            let operation: Int = input.analysis.assignments.operations[UnwrapOption(row)];
+            if operation != 0 {
+                let name: Option<String> = AssignmentOperationMirName(operation);
+                if !IsSome(name) { return SelfMirRoutineBuildError(build, "defer assignment operation is invalid"); }
+                opcode = UnwrapOption(name);
+            }
+        }
         if routings[index] == "Assign" { lane = AstExpressionLaneValue(); }
         build = SelfMirRoutineAttachLastExpressionGraph(
             SelfMirRoutineAddInstruction(
-                build, "stmt", "stmt", "", routings[index], part, "{...}", "",
+                build, "stmt", opcode, "", routings[index], part, "{...}", "",
                 "AST_DEFER_STMT", empty_uses
             ),
             SemanticAstExpressionGraphForNode(

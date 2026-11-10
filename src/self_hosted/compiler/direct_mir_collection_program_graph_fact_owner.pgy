@@ -105,7 +105,7 @@ func DirectMirCollectionNameLiteralGraphFactFrom(
         graph.arena.topology.left_children[2] != 0 ||
         graph.arena.topology.right_children[2] != 1 ||
         !DirectMirScalarCfgNoCallTargets(graph) { return invalid; }
-    let kind: Int = 0;
+    var kind: Int = 0;
     if graph.arena.topology.node_kinds[2] == AstExpressionNodeAdd() {
         kind = DirectMirScalarCfgArrayIntPushValueAdd();
     } else if graph.arena.topology.node_kinds[2] ==
@@ -168,7 +168,7 @@ func DirectMirCollectionLoggedCallGraphFactFrom(
         graph.arena.topology.node_kinds[6] != AstExpressionNodeCallArgument() ||
         graph.arena.topology.left_children[6] != 1 ||
         graph.arena.topology.right_children[6] != 5 { return invalid; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < graph.ready_node_count {
         if row != 1 && row != 3 &&
             (graph.arena.call_target_kinds[row] != SemanticCallTargetNone() ||

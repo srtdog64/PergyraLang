@@ -1,0 +1,22 @@
+// A declared Join can retain storage even though the stdlib alias only reads.
+// The real callee's outward effect must prevent loop-local retirement.
+extern "C" { func Keep(parts: Array<String>) -> Void; }
+
+func Join(inout parts: Array<String>, separator: String) -> String
+{
+    Keep(parts);
+    return "";
+}
+
+func Main() -> Int
+{
+    var n: Int = 0;
+    while n < 2
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        Print(Join(rows, "y"));
+        n = n + 1;
+    }
+    return 0;
+}

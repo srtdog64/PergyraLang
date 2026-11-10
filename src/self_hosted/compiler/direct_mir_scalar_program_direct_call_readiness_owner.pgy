@@ -24,7 +24,7 @@ func DirectMirScalarProgramArgumentViewFromNode(ref facts: DirectMirScalarProgra
     }
     let left: Int = facts.node_lefts[node]; let right: Int = facts.node_rights[node];
     if left >= node || right >= node { return missing; }
-    let count: Int = 0;
+    var count: Int = 0;
     if left >= 0 { count = count + 1; }
     if right >= 0 { count = count + 1; }
     return DirectMirScalarProgramArgumentView(true, false, -1, count, left, right);
@@ -39,9 +39,9 @@ func DirectMirScalarProgramArgumentViewAt(ref facts: DirectMirScalarProgramExpre
 }
 
 func DirectMirScalarProgramDirectCallArgumentRows(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     let view: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(facts, node);
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while view.valid && ordinal < view.count {
         ArrayPush(rows, DirectMirScalarProgramArgumentViewAt(facts, view, ordinal));
         ordinal = ordinal + 1;
@@ -63,7 +63,7 @@ func DirectMirScalarProgramDirectCallNodeReady(ref facts: DirectMirScalarProgram
             facts.nary_operands, node)) > 0;
     if nary && (facts.node_lefts[node] != -1 ||
             facts.node_rights[node] != -1) { return false; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         let argument: Int = arguments[ordinal];
         if argument < 0 || argument >= node ||

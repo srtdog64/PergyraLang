@@ -18,7 +18,7 @@ func FormatPayload(value: String) -> String {
 
 func Main() -> Void {
     let storage: Array<String> = [Concat("se", "ed")];
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     let fresh: Option<String> = FreshOptional(storage[0], true);
     if IsSome(fresh) {
         let value: String = UnwrapOption(fresh);

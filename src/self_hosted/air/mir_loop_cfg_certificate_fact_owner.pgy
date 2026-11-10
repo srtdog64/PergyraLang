@@ -48,7 +48,7 @@ func DirectMirLoopCfgCertificateFactDigest(
     ref fact: DirectMirLoopCfgCertificateFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(53L, fact.block_count);
+    var hash: Long = DirectMirCfgHashInt(53L, fact.block_count);
     hash = DirectMirCfgHashInt(hash, fact.preheader_block);
     hash = DirectMirCfgHashInt(hash, fact.header_block);
     hash = DirectMirCfgHashInt(hash, fact.body_block);
@@ -188,12 +188,12 @@ func DirectMirLoopCfgCertificateFactFromIndex(
         index.block_succ_false[exit] >= 0 {
         Die("direct MIR loop CFG header, backedge, or exit is invalid");
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < block_count {
-        let expected_count: Int = 0;
-        let expected_branch: Int = 0;
-        let expected_phi: Int = 0;
-        let expected_backedge_header: Int = 0;
+        var expected_count: Int = 0;
+        var expected_branch: Int = 0;
+        var expected_phi: Int = 0;
+        var expected_backedge_header: Int = 0;
         if block == preheader { expected_count = 1; }
         if block == header {
             expected_count = 2;
@@ -220,9 +220,9 @@ func DirectMirLoopCfgCertificateFactFromIndex(
         ArrayLength(phi.incoming_definition_blocks) != 2 {
         Die("direct MIR loop CFG header phi is invalid");
     }
-    let preheader_incoming: String = "";
-    let backedge_incoming: String = "";
-    let incoming: Int = 0;
+    var preheader_incoming: String = "";
+    var backedge_incoming: String = "";
+    var incoming: Int = 0;
     while incoming < 2 {
         let definition_block: Int =
             phi.incoming_definition_blocks[incoming];

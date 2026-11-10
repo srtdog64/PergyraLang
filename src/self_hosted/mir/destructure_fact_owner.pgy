@@ -32,16 +32,16 @@ func SelfMirDestructureFactRowsAttach(
     element_type: String,
     ref bindings_in: Array<String>
 ) -> Void {
-    let instruction_indices: Array<Int> = rows.instruction_indices;
-    let element_types: Array<String> = rows.element_types;
-    let binding_starts: Array<Int> = rows.binding_starts;
-    let binding_counts: Array<Int> = rows.binding_counts;
-    let bindings: Array<String> = rows.bindings;
+    var instruction_indices: Array<Int> = rows.instruction_indices;
+    var element_types: Array<String> = rows.element_types;
+    var binding_starts: Array<Int> = rows.binding_starts;
+    var binding_counts: Array<Int> = rows.binding_counts;
+    var bindings: Array<String> = rows.bindings;
     ArrayPush(instruction_indices, instruction_index);
     ArrayPush(element_types, Concat("", element_type));
     ArrayPush(binding_starts, ArrayLength(bindings));
     ArrayPush(binding_counts, ArrayLength(bindings_in));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(bindings_in) {
         ArrayPush(bindings, Concat("", bindings_in[i]));
         i = i + 1;
@@ -58,12 +58,12 @@ func SelfMirDestructureFactRowsAppend(
     ref source: SelfMirDestructureFactRows,
     instruction_offset: Int
 ) -> Void {
-    let instruction_indices: Array<Int> = target.instruction_indices;
-    let element_types: Array<String> = target.element_types;
-    let binding_starts: Array<Int> = target.binding_starts;
-    let binding_counts: Array<Int> = target.binding_counts;
-    let bindings: Array<String> = target.bindings;
-    let row: Int = 0;
+    var instruction_indices: Array<Int> = target.instruction_indices;
+    var element_types: Array<String> = target.element_types;
+    var binding_starts: Array<Int> = target.binding_starts;
+    var binding_counts: Array<Int> = target.binding_counts;
+    var bindings: Array<String> = target.bindings;
+    var row: Int = 0;
     while row < ArrayLength(source.instruction_indices) {
         ArrayPush(
             instruction_indices,
@@ -74,7 +74,7 @@ func SelfMirDestructureFactRowsAppend(
         );
         ArrayPush(binding_starts, ArrayLength(bindings));
         ArrayPush(binding_counts, source.binding_counts[row]);
-        let i: Int = 0;
+        var i: Int = 0;
         while i < source.binding_counts[row] {
             ArrayPush(
                 bindings,
@@ -95,7 +95,7 @@ func SelfMirDestructureFactIndexForInstruction(
     rows: SelfMirDestructureFactRows,
     instruction_index: Int
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows.instruction_indices) {
         if rows.instruction_indices[i] == instruction_index { return Some(i); }
         i = i + 1;
@@ -113,8 +113,8 @@ func SelfMirDestructureFactRowsValidationError(
         ArrayLength(rows.binding_counts) != count {
         return "destructure fact parallel row counts differ";
     }
-    let cursor: Int = 0;
-    let i: Int = 0;
+    var cursor: Int = 0;
+    var i: Int = 0;
     while i < count {
         if rows.instruction_indices[i] < 0 ||
             rows.instruction_indices[i] >= instruction_count ||
@@ -125,7 +125,7 @@ func SelfMirDestructureFactRowsValidationError(
             cursor + rows.binding_counts[i] > ArrayLength(rows.bindings) {
             return "destructure fact identity or payload is invalid";
         }
-        let j: Int = 0;
+        var j: Int = 0;
         while j < rows.binding_counts[i] {
             if rows.bindings[cursor + j] == "" {
                 return "destructure binding name is empty";

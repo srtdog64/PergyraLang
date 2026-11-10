@@ -45,7 +45,7 @@ func GenericInstanceClosureEmpty() -> GenericInstanceClosure {
 }
 
 func GenericInstanceClosureError(message: String) -> GenericInstanceClosure {
-    let result: GenericInstanceClosure = GenericInstanceClosureEmpty();
+    var result: GenericInstanceClosure = GenericInstanceClosureEmpty();
     result.valid = false;
     result.diagnostic = message;
     return result;
@@ -55,18 +55,18 @@ func GenericInstanceTemplatesReady(ref templates: GenericInstanceTemplates) -> B
     let count: Int = ArrayLength(templates.syntax_ids);
     if !templates.valid || count != ArrayLength(templates.generic_starts) ||
         count != ArrayLength(templates.generic_counts) { return false; }
-    let row: Int = 0;
-    let expected: Int = 0;
+    var row: Int = 0;
+    var expected: Int = 0;
     while row < count {
         let size: Int = templates.generic_counts[row];
         if templates.syntax_ids[row] <= 0 || templates.generic_starts[row] != expected ||
             size < 0 || expected + size > ArrayLength(templates.generic_names) { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if templates.syntax_ids[prior] == templates.syntax_ids[row] { return false; }
             prior = prior + 1;
         }
-        let formal: Int = 0;
+        var formal: Int = 0;
         while formal < size {
             let name: String = templates.generic_names[expected + formal];
             if name == "" { return false; }
@@ -90,8 +90,8 @@ func GenericInstanceRecipesReady(
     if !recipes.valid || count != ArrayLength(recipes.callers) ||
         count != ArrayLength(recipes.actual_starts) ||
         count != ArrayLength(recipes.actual_counts) { return false; }
-    let row: Int = 0;
-    let expected: Int = 0;
+    var row: Int = 0;
+    var expected: Int = 0;
     while row < count {
         let target: Int = recipes.targets[row];
         let caller: Int = recipes.callers[row];
@@ -100,7 +100,7 @@ func GenericInstanceRecipesReady(
             caller >= ArrayLength(templates.syntax_ids) || size <= 0 ||
             size != templates.generic_counts[target] || recipes.actual_starts[row] != expected ||
             expected + size > ArrayLength(recipes.actual_types) { return false; }
-        let actual: Int = 0;
+        var actual: Int = 0;
         while actual < size {
             if recipes.actual_types[expected + actual] == "" { return false; }
             actual = actual + 1;
@@ -112,11 +112,11 @@ func GenericInstanceRecipesReady(
 }
 
 func GenericInstanceActuals(ref closure: GenericInstanceClosure, instance: Int) -> Array<String> {
-    let actuals: Array<String> = [];
+    var actuals: Array<String> = [];
     if !closure.valid || instance < 0 || instance >= ArrayLength(closure.template_rows) {
         return actuals;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < closure.actual_counts[instance] {
         ArrayPushOwnedString(actuals, closure.actual_types[closure.actual_starts[instance] + i]);
         i = i + 1;
@@ -126,8 +126,8 @@ func GenericInstanceActuals(ref closure: GenericInstanceClosure, instance: Int) 
 
 func GenericInstanceActualTupleKey(ref closure: GenericInstanceClosure, instance: Int) -> String {
     let actuals: Array<String> = GenericInstanceActuals(closure, instance);
-    let key: String = "";
-    let actual: Int = 0;
+    var key: String = "";
+    var actual: Int = 0;
     while actual < ArrayLength(actuals) {
         key = key + ToString(StringLength(actuals[actual])) + ":" + actuals[actual];
         actual = actual + 1;
@@ -140,11 +140,11 @@ func GenericInstanceAppend(
     inout parents: Array<Int>, target: Int, ref actuals: Array<String>,
     parent: Int, expands_formal: Bool
 ) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(closure.template_rows) {
         if closure.template_rows[row] == target && closure.actual_counts[row] == ArrayLength(actuals) {
-            let equal: Bool = true;
-            let i: Int = 0;
+            var equal: Bool = true;
+            var i: Int = 0;
             while i < ArrayLength(actuals) {
                 if closure.actual_types[closure.actual_starts[row] + i] != actuals[i] { equal = false; }
                 i = i + 1;
@@ -155,19 +155,19 @@ func GenericInstanceAppend(
     }
     // Reusing an existing tuple is finite. An expanding edge closing a
     // recursion cycle cannot authorize an unbounded sequence of new bodies.
-    let ancestor: Int = parent;
+    var ancestor: Int = parent;
     while ancestor >= 0 {
         if ancestor >= ArrayLength(parents) || parents[ancestor] >= ancestor ||
             (expands_formal && closure.template_rows[ancestor] == target) { return -1; }
         ancestor = parents[ancestor];
     }
     let instance: Int = ArrayLength(closure.template_rows);
-    let template_rows: Array<Int> = closure.template_rows;
-    let actual_starts: Array<Int> = closure.actual_starts;
-    let actual_counts: Array<Int> = closure.actual_counts;
+    var template_rows: Array<Int> = closure.template_rows;
+    var actual_starts: Array<Int> = closure.actual_starts;
+    var actual_counts: Array<Int> = closure.actual_counts;
     // A member view has no uniform element-ownership grant; publish into fresh storage.
-    let actual_types: Array<String> = [];
-    let prior: Int = 0;
+    var actual_types: Array<String> = [];
+    var prior: Int = 0;
     while prior < ArrayLength(closure.actual_types) {
         ArrayPushOwnedString(actual_types, closure.actual_types[prior]);
         prior = prior + 1;
@@ -176,7 +176,7 @@ func GenericInstanceAppend(
     ArrayPush(actual_starts, ArrayLength(actual_types));
     ArrayPush(actual_counts, ArrayLength(actuals));
     ArrayPush(parents, parent);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(actuals) {
         ArrayPushOwnedString(actual_types, actuals[i]);
         i = i + 1;
@@ -202,23 +202,23 @@ func GenericInstanceClosureFromRecipes(
     }
     // Index recipes once by their owner. Slot zero is the closed, nongeneric
     // context; other slots are generic templates, not recursively rescanned MIR.
-    let owner_counts: Array<Int> = [0];
-    let owner_starts: Array<Int> = [];
-    let owner_cursors: Array<Int> = [];
-    let template: Int = 0;
+    var owner_counts: Array<Int> = [0];
+    var owner_starts: Array<Int> = [];
+    var owner_cursors: Array<Int> = [];
+    var template: Int = 0;
     while template < ArrayLength(templates.syntax_ids) {
         ArrayPush(owner_counts, 0);
         template = template + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(recipes.targets) {
-        let owner: Int = 0;
+        var owner: Int = 0;
         let caller: Int = recipes.callers[row];
         if caller >= 0 && templates.generic_counts[caller] > 0 { owner = caller + 1; }
         ArraySet(owner_counts, owner, owner_counts[owner] + 1);
         row = row + 1;
     }
-    let offset: Int = 0;
+    var offset: Int = 0;
     row = 0;
     while row < ArrayLength(owner_counts) {
         ArrayPush(owner_starts, offset);
@@ -226,41 +226,41 @@ func GenericInstanceClosureFromRecipes(
         offset = offset + owner_counts[row];
         row = row + 1;
     }
-    let ordered_recipes: Array<Int> = [];
+    var ordered_recipes: Array<Int> = [];
     row = 0;
     while row < ArrayLength(recipes.targets) { ArrayPush(ordered_recipes, -1); row = row + 1; }
     row = 0;
     while row < ArrayLength(recipes.targets) {
-        let owner: Int = 0;
+        var owner: Int = 0;
         let caller: Int = recipes.callers[row];
         if caller >= 0 && templates.generic_counts[caller] > 0 { owner = caller + 1; }
         ArraySet(ordered_recipes, owner_cursors[owner], row);
         ArraySet(owner_cursors, owner, owner_cursors[owner] + 1);
         row = row + 1;
     }
-    let result: GenericInstanceClosure = GenericInstanceClosureEmpty();
-    let parents: Array<Int> = [];
-    let instance: Int = -1;
+    var result: GenericInstanceClosure = GenericInstanceClosureEmpty();
+    var parents: Array<Int> = [];
+    var instance: Int = -1;
     while instance < ArrayLength(result.template_rows) {
-        let owner: Int = 0;
-        let caller: Int = -1;
-        let caller_actuals: Array<String> = [];
+        var owner: Int = 0;
+        var caller: Int = -1;
+        var caller_actuals: Array<String> = [];
         if instance >= 0 {
             caller = result.template_rows[instance];
             owner = caller + 1;
             caller_actuals = GenericInstanceActuals(result, instance);
         }
-        let occurrence: Int = owner_starts[owner];
+        var occurrence: Int = owner_starts[owner];
         let end: Int = occurrence + owner_counts[owner];
         while occurrence < end {
             let recipe: Int = ordered_recipes[occurrence];
-            let actuals: Array<String> = [];
-            let expands: Bool = false;
-            let a: Int = 0;
+            var actuals: Array<String> = [];
+            var expands: Bool = false;
+            var a: Int = 0;
             while a < recipes.actual_counts[recipe] {
                 let actual_row: Int = recipes.actual_starts[recipe] + a;
                 let root: Int = expressions.return_roots[actual_row];
-                let actual: String = recipes.actual_types[actual_row];
+                var actual: String = recipes.actual_types[actual_row];
                 if caller >= 0 {
                     if expressions.child_counts[root] > 0 &&
                         SemanticAstSignatureTypeExpressionRootHasFormal(expressions, root,
@@ -289,9 +289,9 @@ func GenericInstanceClosureFromRecipes(
             if target < 0 {
                 return GenericInstanceClosureError("constructor-expanding recursive specialization has no admitted finite closure");
             }
-            let call_contexts: Array<Int> = result.call_contexts;
-            let call_recipes: Array<Int> = result.call_recipes;
-            let call_targets: Array<Int> = result.call_targets;
+            var call_contexts: Array<Int> = result.call_contexts;
+            var call_recipes: Array<Int> = result.call_recipes;
+            var call_targets: Array<Int> = result.call_targets;
             ArrayPush(call_contexts, instance);
             ArrayPush(call_recipes, recipe);
             ArrayPush(call_targets, target);

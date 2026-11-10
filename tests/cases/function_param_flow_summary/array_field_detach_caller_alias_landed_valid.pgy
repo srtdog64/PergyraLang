@@ -24,7 +24,7 @@ func Retire(inout state: State) -> Void {
 }
 
 func Main() -> Int {
-    let state: State = State([7], [true]);
+    var state: State = State([7], [true]);
     let alias: State = state;
     Retire(state);
     Print(ToString(ArrayLength(alias.ids)));

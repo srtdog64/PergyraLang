@@ -10,6 +10,102 @@
 #include "../common/string_compat.h"
 #include "diag_codes.h"
 
+typedef struct {
+    ASTNode *declaration;
+    Type *bound_type;
+    Type *field_type;
+    PgyDeclField field;
+    size_t field_ordinal;
+    size_t field_count;
+    bool found;
+} GenericBoundFieldSelection;
+
+static bool
+generic_bound_field_consider(SemanticContext *ctx, ASTNode *bound,
+    const char *field_name, GenericBoundFieldSelection *selection)
+{
+    Type *bound_type;
+    ASTNode *declaration;
+    size_t field_count;
+
+    if (bound == NULL)
+        return true;
+    bound_type = semantic_type_resolution_lookup_metadata_type_ref(ctx, bound);
+    if (bound_type == NULL || bound_type == TYPE_UNKNOWN)
+        return false;
+    declaration = semantic_host_decl_for_type(ctx, bound_type);
+    if (declaration == NULL || declaration->type != AST_CLASS_DECL)
+        return true;
+    field_count = projection_source_field_count(declaration);
+    for (size_t i = 0; i < field_count; i++) {
+        PgyDeclField field = projection_source_field_at(declaration, i);
+        Type *field_type;
+        if (field.name == NULL || strcmp(field.name, field_name) != 0)
+            continue;
+        field_type = semantic_type_resolution_lookup_metadata_type_ref(
+            ctx, field.type_ast);
+        if (field_type == NULL || field_type == TYPE_UNKNOWN)
+            return false;
+        if (selection->found) {
+            return selection->declaration == declaration
+                && selection->field_ordinal == i
+                && type_equals(selection->field_type, field_type);
+        }
+        selection->declaration = declaration;
+        selection->bound_type = bound_type;
+        selection->field_type = field_type;
+        selection->field = field;
+        selection->field_ordinal = i;
+        selection->field_count = field_count;
+        selection->found = true;
+    }
+    return true;
+}
+
+/* A generic value has no concrete layout of its own.  A field read is sound
+ * only when the enclosing callable's declared nominal bound owns that exact
+ * field.  The bound remains the field authority; this function merely selects
+ * its one unambiguous declaration for the generic receiver. */
+static bool
+generic_bound_field_select(SemanticContext *ctx, const ASTNode *caller,
+    const Type *receiver_type, const char *field_name,
+    GenericBoundFieldSelection *selection)
+{
+    const char *formal;
+    GenericParams *params;
+    WhereClause *where;
+    int param_index;
+
+    if (selection == NULL)
+        return false;
+    memset(selection, 0, sizeof(*selection));
+    if (ctx == NULL || caller == NULL || caller->type != AST_FUNC_DECL
+        || receiver_type == NULL || receiver_type->kind != TYPE_KIND_GENERIC
+        || field_name == NULL)
+        return false;
+    formal = type_generic_param_name(receiver_type);
+    params = ast_func_generic_params((ASTNode *)caller);
+    param_index = find_generic_param_index(params, formal);
+    if (formal == NULL || param_index < 0)
+        return false;
+
+    where = ast_func_where_clause((ASTNode *)caller);
+    if (where == NULL)
+        return true;
+    for (size_t ci = 0; ci < where->count; ci++) {
+        TypeConstraint *constraint = where->constraints[ci];
+        if (constraint == NULL || constraint->type_param == NULL
+            || strcmp(constraint->type_param, formal) != 0)
+            continue;
+        for (size_t bi = 0; bi < constraint->bound_count; bi++) {
+            if (!generic_bound_field_consider(ctx, constraint->bounds[bi],
+                    field_name, selection))
+                return false;
+        }
+    }
+    return true;
+}
+
 /* This receipt identifies a typed projection path. It says nothing about
  * whether the root's storage is local, independent, or safe to retain. */
 void
@@ -106,9 +202,8 @@ projection_record_member(SemanticContext *ctx, ASTNode *value,
         field.name == NULL || field.type_ast == NULL || field.type_ast->type != AST_TYPE ||
         field.declaration_syntax_id == 0 || result_type == TYPE_UNKNOWN ||
         field_type == TYPE_UNKNOWN || !type_equals(field_type, result_type)) return;
-    GenericParams *generics = ast_type_generic_args(field.type_ast);
     const char *type_name = ast_type_name(field.type_ast);
-    if ((generics != NULL && generics->count != 0) || type_name == NULL) return;
+    if (type_name == NULL) return;
     ASTNode *root = projection_identifier_root(ctx, receiver);
     if (root == NULL) return;
     PublishedProjection receipt = {.present = true, .member = value,
@@ -161,7 +256,8 @@ semantic_param_publication_projection_root_current(const SemanticContext *ctx,
 {
     if (caller_out != NULL) *caller_out = NULL;
     if (root_out != NULL) *root_out = NULL;
-    if (ctx == NULL || ctx->has_error || value == NULL ||
+    /* A prior diagnostic does not retire sealed projection identities. */
+    if (ctx == NULL || value == NULL ||
         !semantic_param_publication_inputs_ready(ctx)) return false;
     const FunctionParamPublicationStore *store = ctx->function_param_publications;
     const ASTNode *cursor = value, *caller = NULL, *root = NULL;
@@ -231,13 +327,25 @@ semantic_param_publication_projection_root_current(const SemanticContext *ctx,
                            (SemanticContext *)ctx, (ASTNode *)caller, index)) return false;
         } else {
             const char *name = ast_member_name(cursor);
+            bool receiver_declaration_current =
+                semantic_host_decl_for_type((SemanticContext *)ctx,
+                    p->receiver_type) == p->declaration;
+            if (!receiver_declaration_current) {
+                GenericBoundFieldSelection selection;
+                receiver_declaration_current =
+                    generic_bound_field_select((SemanticContext *)ctx,
+                        caller, p->receiver_type, name, &selection)
+                    && selection.found
+                    && selection.declaration == p->declaration
+                    && selection.field_ordinal == p->field_ordinal
+                    && type_equals(selection.field_type, p->field_type);
+            }
             if (p->index != NULL || !type_equals(p->field_type, p->result_type) ||
                 p->declaration == NULL ||
                 p->declaration->type != AST_CLASS_DECL ||
                 p->declaration_id == 0 ||
                 p->declaration_id != ast_node_stable_id(p->declaration) ||
-                semantic_host_decl_for_type((SemanticContext *)ctx,
-                    p->receiver_type) != p->declaration ||
+                !receiver_declaration_current ||
                 p->field_count != projection_source_field_count((ASTNode *)p->declaration) ||
                 p->field_ordinal >= p->field_count || name == NULL ||
                 p->name == NULL || strcmp(name, p->name) != 0 ||
@@ -246,8 +354,6 @@ semantic_param_publication_projection_root_current(const SemanticContext *ctx,
                 ast_type_name(p->field_type_node) == NULL ||
                 strcmp(ast_type_name(p->field_type_node), p->field_type_name) != 0)
                 return false;
-            GenericParams *generics = ast_type_generic_args(p->field_type_node);
-            if (generics != NULL && generics->count != 0) return false;
             PgyDeclField field = projection_source_field_at(
                 (ASTNode *)p->declaration, p->field_ordinal);
             if (field.name == NULL || strcmp(field.name, p->name) != 0 ||
@@ -321,11 +427,14 @@ bool semantic_param_publication_member_projection_syntax_current(const ASTNode *
         field.has_default == p->default_field;
 }
 
-bool semantic_param_publication_selected_member_field_current(const SemanticContext *ctx,
-    const ASTNode *value, ASTNode **caller_out, ASTNode **root_out,
+bool
+semantic_param_publication_member_projection_field_current(
+    const SemanticContext *ctx, const ASTNode *value, ASTNode **caller_out,
+    ASTNode **receiver_out, ASTNode **root_out,
     SemanticPublishedSelectedField *field_out)
 {
     if (caller_out != NULL) *caller_out = NULL;
+    if (receiver_out != NULL) *receiver_out = NULL;
     if (root_out != NULL) *root_out = NULL;
     if (field_out != NULL) memset(field_out, 0, sizeof(*field_out));
     if (field_out == NULL || value == NULL || value->type != AST_MEMBER_ACCESS)
@@ -334,26 +443,56 @@ bool semantic_param_publication_selected_member_field_current(const SemanticCont
     if (!semantic_param_publication_projection_root_current(ctx, value,
             &caller, &root)) return false;
     const ASTNode *receiver = ast_member_object(value);
-    if (receiver == NULL || receiver->type != AST_IDENTIFIER || receiver != root)
-        return false;
     PublishedNode *row = publication_current_value(ctx, value);
-    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(value) ||
-        !row->projection.present) return false;
+    if (receiver == NULL || row == NULL || row->id == 0
+        || row->id != ast_node_stable_id(value)
+        || !row->projection.present)
+        return false;
     const PublishedProjection *p = &row->projection;
-    if (p->receiver != receiver || p->root != root || p->declaration == NULL ||
-        p->declaration->type != AST_CLASS_DECL || p->field_type_node == NULL ||
-        p->field_type == NULL || p->field_type == TYPE_UNKNOWN ||
-        p->receiver_type == NULL || p->receiver_type == TYPE_UNKNOWN ||
-        p->field_id == 0 || p->field_ordinal >= p->field_count) return false;
-    if (p->field_type == TYPE_STRING &&
-        !semantic_param_publication_member_projection_syntax_current(value,
-            caller, p)) return false;
+    if (p->member != value || p->member_id != row->id
+        || p->receiver != receiver
+        || p->receiver_id == 0
+        || p->receiver_id != ast_node_stable_id(receiver)
+        || p->root != root || p->caller != caller
+        || p->declaration == NULL
+        || p->declaration->type != AST_CLASS_DECL
+        || p->field_type_node == NULL
+        || p->field_type == NULL || p->field_type == TYPE_UNKNOWN
+        || p->receiver_type == NULL || p->receiver_type == TYPE_UNKNOWN
+        || p->field_id == 0 || p->field_ordinal >= p->field_count)
+        return false;
     *field_out = (SemanticPublishedSelectedField){.member = value,
         .member_id = row->id, .declaration = p->declaration,
         .declaration_id = p->declaration_id, .field_id = p->field_id,
         .field_type_node = p->field_type_node, .field_type_id = p->field_type_id,
         .field_ordinal = p->field_ordinal, .field_count = p->field_count,
         .nominal_type = p->receiver_type, .field_type = p->field_type};
+    if (caller_out != NULL) *caller_out = caller;
+    if (receiver_out != NULL) *receiver_out = (ASTNode *)receiver;
+    if (root_out != NULL) *root_out = root;
+    return true;
+}
+
+bool semantic_param_publication_selected_member_field_current(const SemanticContext *ctx,
+    const ASTNode *value, ASTNode **caller_out, ASTNode **root_out,
+    SemanticPublishedSelectedField *field_out)
+{
+    if (caller_out != NULL) *caller_out = NULL;
+    if (root_out != NULL) *root_out = NULL;
+    if (field_out != NULL) memset(field_out, 0, sizeof(*field_out));
+    ASTNode *caller = NULL, *receiver = NULL, *root = NULL;
+    SemanticPublishedSelectedField field = {0};
+    if (!semantic_param_publication_member_projection_field_current(ctx,
+            value, &caller, &receiver, &root, &field)) return false;
+    if (receiver == NULL || receiver->type != AST_IDENTIFIER || receiver != root)
+        return false;
+    PublishedNode *row = publication_current_value(ctx, value);
+    if (row == NULL) return false;
+    const PublishedProjection *p = &row->projection;
+    if (p->field_type == TYPE_STRING &&
+        !semantic_param_publication_member_projection_syntax_current(value,
+            caller, p)) return false;
+    *field_out = field;
     if (caller_out != NULL) *caller_out = caller;
     if (root_out != NULL) *root_out = root;
     return true;
@@ -453,11 +592,28 @@ type_check_member_access_path(ASTNode *expr, const ASTNode *leaf,
      * as if it were independently read would reject `x.a.c` after `x.a.b`
      * moved: evaluating `x.a` there is path traversal, not a copy of `a`.
      * A direct use of `x.a` remains the leaf and is still rejected. */
-    Type *object_type = member_object != NULL
+    Type *object_type = NULL;
+    if (member_object != NULL
         && member_object->type == AST_MEMBER_ACCESS
-        && !expr_member_is_static_access(member_object)
-        ? type_check_member_access_path(member_object, leaf, ctx)
-        : type_check_expression(member_object, ctx);
+        && !expr_member_is_static_access(member_object)) {
+        if (semantic_param_publication_pending(ctx)
+            && !semantic_param_publication_begin_value(ctx, member_object)) {
+            semantic_error(ctx, member_object,
+                "Checked member-path entry publication failed");
+            return TYPE_UNKNOWN;
+        }
+        object_type = type_check_member_access_path(member_object, leaf, ctx);
+        if (semantic_param_publication_pending(ctx) && !ctx->has_error
+            && object_type != NULL && object_type != TYPE_UNKNOWN
+            && !semantic_param_publication_record_value(
+                ctx, member_object, object_type, false)) {
+            semantic_error(ctx, member_object,
+                "Checked member-path value publication failed");
+            return TYPE_UNKNOWN;
+        }
+    } else {
+        object_type = type_check_expression(member_object, ctx);
+    }
 
     if (expr == leaf
         && semantic_collection_reject_moved_member_use(expr, ctx))
@@ -599,6 +755,40 @@ type_check_member_access_path(ASTNode *expr, const ASTNode *leaf,
 
         expr_report_unknown_member(ctx, expr, object_type, field_name);
         return TYPE_UNKNOWN;
+    }
+
+    if (object_type != NULL && object_type->kind == TYPE_KIND_GENERIC) {
+        GenericBoundFieldSelection selection;
+        if (!generic_bound_field_select(ctx, ctx->current_function_decl,
+                object_type, member_name, &selection)) {
+            semantic_error(ctx, expr,
+                "Generic member '%s.%s' has no unambiguous nominal bound field",
+                type_name_or_unknown(object_type),
+                member_name != NULL ? member_name : "<member>");
+            return TYPE_UNKNOWN;
+        }
+        if (selection.found) {
+            if (!explicit_member_access_allowed(selection.declaration,
+                    selection.bound_type, selection.field.access,
+                    selection.field.has_explicit_access, ctx)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_VISIBILITY_BOUNDARY,
+                    PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS,
+                    PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER, expr,
+                    "Member '%s.%s' is not accessible across the current visibility boundary",
+                    selection.bound_type->name,
+                    member_name);
+                return TYPE_UNKNOWN;
+            }
+            projection_record_member(ctx, expr, member_object, object_type,
+                selection.declaration, selection.field_ordinal,
+                selection.field_count, selection.field,
+                selection.field_type, selection.field_type);
+            return selection.field_type;
+        }
+        /* Ability-only and unbound formals do not acquire nominal equality
+         * from this path. Their structural member use remains deferred to an
+         * actual generic-instance field witness. */
     }
 
     if (object_type != NULL

@@ -15,7 +15,7 @@ func Reset(inout ids: Array<Int>) -> Void {
 }
 
 func Build(n: Int) -> Facts {
-    let ids: Array<Int> = [];
+    var ids: Array<Int> = [];
     ArrayPush(ids, n);
     Reset(ids);
     if n > 0 { return Fail(ids); }

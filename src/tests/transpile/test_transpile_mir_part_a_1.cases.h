@@ -128,7 +128,7 @@ test_mir_vertical_slice_emit(void)
     {
         const char *source =
             "func Score(flag: Bool) -> Int {\n"
-            "    let score: Int = 0;\n"
+            "    var score: Int = 0;\n"
             "    if flag {\n"
             "        score = 7;\n"
             "    } else {\n"
@@ -230,7 +230,7 @@ test_mir_vertical_slice_emit(void)
             "class Counter {\n"
             "    let value: Int;\n"
             "    func Score(self) -> Int {\n"
-            "        let value: Int = 1;\n"
+            "        var value: Int = 1;\n"
             "        value = value + 2;\n"
             "        return value;\n"
             "    }\n"

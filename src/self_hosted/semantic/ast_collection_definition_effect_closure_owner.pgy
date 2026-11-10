@@ -8,8 +8,8 @@ func SemanticAstCollectionMergeDefinitionEffectBounds(
     inout descriptor_retiring: Array<Int>,
     source: Int, target: Int
 ) -> Bool {
-    let changed: Bool = false;
-    let site: Int = unknown[source];
+    var changed: Bool = false;
+    var site: Int = unknown[source];
     if site >= 0 && (unknown[target] < 0 || site < unknown[target]) { unknown[target] = site; changed = true; }
     site = retiring[source];
     if site >= 0 && (retiring[target] < 0 || site < retiring[target]) { retiring[target] = site; changed = true; }
@@ -30,13 +30,13 @@ func SemanticAstCollectionDefinitionEffectClosure(
     inout descriptor_retiring: Array<Int>
 ) -> Void {
     let count: Int = ArrayLength(definitions.syntax_ids);
-    let pass: Int = 0;
+    var pass: Int = 0;
     while pass < 2 {
-        let changed: Bool = true;
-        let remaining: Int = count + 1;
+        var changed: Bool = true;
+        var remaining: Int = count + 1;
         while changed && remaining > 0 {
             changed = false;
-            let row: Int = 0;
+            var row: Int = 0;
             while row < count {
                 let source: Int = parents[row];
                 if source >= 0 {
@@ -53,7 +53,7 @@ func SemanticAstCollectionDefinitionEffectClosure(
         // borrowed storage is a supported descriptor alias: its real effects
         // continue to propagate in both directions and keep their event site.
         if pass == 0 {
-            let row: Int = definitions.local_count;
+            var row: Int = definitions.local_count;
             while row < count {
                 if !definitions.fresh[row] &&
                     !(SemanticAstCollectionDefinitionShallowAliasAdmitted(

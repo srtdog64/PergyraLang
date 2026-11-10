@@ -583,11 +583,14 @@ run_binding_mutability_surface_test(void)
     const char *accepted =
         "subject Counter {\n"
         "    var count: Int;\n"
+        "    let mut other: Int;\n"
         "}\n"
         "func Main() -> Void {\n"
         "    var total: Int = 0;\n"
         "    let fixed: Int = 1;\n"
         "    total = total + fixed;\n"
+        "    let mut alias: Int = 0;\n"
+        "    let mut: Int = 1;\n"
         "}\n";
     int failed = 0;
     Lexer *lexer = lexer_create(accepted);
@@ -614,21 +617,100 @@ run_binding_mutability_surface_test(void)
             printf("[FAIL] `let fixed` must not be a mutable binding\n");
             failed = 1;
         }
+        ASTNode *alias = ast_block_statement(body, 3);
+        ASTNode *contextual = ast_block_statement(body, 4);
+        ClassField *field = ast_program_statement(ast, 0)->data.class_decl.fields[1];
+        if (!ast_let_is_mutable(alias) || ast_let_is_mutable(contextual)
+            || strcmp(ast_let_name(contextual), "mut") != 0
+            || field == NULL || !field->is_mutable) {
+            printf("[FAIL] alias and contextual mut must preserve declaration modes\n");
+            failed = 1;
+        }
     }
     ast_destroy(ast);
     parser_destroy(parser);
     lexer_destroy(lexer);
 
     failed |= binding_surface_parse_error(
-        "func Main() -> Void {\n    let mut total: Int = 0;\n}\n",
-        "`let mut` is no longer a binding form");
-    failed |= binding_surface_parse_error(
-        "subject Counter {\n    let mut count: Int;\n}\n",
-        "`let mut` is no longer a field form");
-    failed |= binding_surface_parse_error(
         "func Main() -> Void {\n    var (a, b) = Pair(1, 2);\n}\n",
         "Destructuring is a `let` binding");
     if (!failed)
-        printf("[PASS] var binds mutably; let mut and var destructuring are refused\n");
+        printf("[PASS] var and let mut bind mutably; mutable destructuring is refused\n");
+    return failed;
+}
+
+/* Ownership landing identities are an exact rewrite receipt: every requested
+ * node is wrapped once, while a missing or duplicate identity changes none of
+ * the source tree. */
+static int
+run_stable_identity_builtin_wrap_receipt_test(void)
+{
+    int failed = 0;
+    ASTNode *program = ast_create_program();
+    ASTNode *first = ast_create_string("\"first\"");
+    ASTNode *second = ast_create_string("\"second\"");
+
+    printf("\n=== Test: Stable Identity Builtin Wrap Receipt ===\n");
+    if (program == NULL || first == NULL || second == NULL) {
+        ast_destroy(program);
+        ast_destroy(first);
+        ast_destroy(second);
+        printf("[FAIL] could not construct identity receipt probe\n");
+        return 1;
+    }
+    ast_add_statement(program, first);
+    ast_add_statement(program, second);
+    if (!ast_assign_stable_ids(program)) {
+        printf("[FAIL] could not assign stable identities\n");
+        ast_destroy(program);
+        return 1;
+    }
+
+    uint32_t first_id = ast_node_stable_id(first);
+    uint32_t second_id = ast_node_stable_id(second);
+    uint32_t missing_ids[2] = { first_id, ast_stable_id_ceiling(program) + 1 };
+    if (ast_wrap_nodes_in_builtin_call(program, missing_ids, 2, "Clone") ||
+        first->type != AST_STRING || second->type != AST_STRING ||
+        ast_node_stable_id(first) != first_id || ast_node_stable_id(second) != second_id) {
+        printf("[FAIL] a missing identity partially rewrote the tree\n");
+        failed = 1;
+    }
+
+    uint32_t duplicate_ids[2] = { first_id, first_id };
+    if (ast_wrap_nodes_in_builtin_call(program, duplicate_ids, 2, "Clone") ||
+        first->type != AST_STRING || second->type != AST_STRING ||
+        ast_node_stable_id(first) != first_id || ast_node_stable_id(second) != second_id) {
+        printf("[FAIL] duplicate landing identities were admitted\n");
+        failed = 1;
+    }
+
+    /* Equal totals do not prove an exact receipt: two nodes with first_id
+     * must not stand in for one first_id node and one second_id node. */
+    second->stable_id = first_id;
+    uint32_t exact_ids[2] = { first_id, second_id };
+    if (ast_wrap_nodes_in_builtin_call(program, exact_ids, 2, "Clone") ||
+        first->type != AST_STRING || second->type != AST_STRING ||
+        ast_node_stable_id(first) != first_id ||
+        ast_node_stable_id(second) != first_id) {
+        printf("[FAIL] duplicate tree identity masked a missing receipt identity\n");
+        failed = 1;
+    }
+    second->stable_id = second_id;
+
+    if (!ast_wrap_nodes_in_builtin_call(program, exact_ids, 2, "Clone") ||
+        first->type != AST_CALL || second->type != AST_CALL ||
+        !ast_call_compiler_builtin(first) || !ast_call_compiler_builtin(second) ||
+        ast_call_arg_count(first) != 1 || ast_call_arg_count(second) != 1 ||
+        ast_call_argument(first, 0) == NULL || ast_call_argument(second, 0) == NULL ||
+        ast_call_argument(first, 0)->type != AST_STRING ||
+        ast_call_argument(second, 0)->type != AST_STRING ||
+        ast_node_stable_id(ast_call_argument(first, 0)) != first_id ||
+        ast_node_stable_id(ast_call_argument(second, 0)) != second_id) {
+        printf("[FAIL] exact landing identities were not wrapped once\n");
+        failed = 1;
+    }
+    if (!failed)
+        printf("[PASS] missing and duplicate IDs fail closed; exact IDs wrap once\n");
+    ast_destroy(program);
     return failed;
 }

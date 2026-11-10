@@ -1,0 +1,30 @@
+struct BatchRows {
+    first: Array<String>;
+    second: Array<String>;
+    third: Array<String>;
+}
+struct BatchFact {
+    first: String;
+    second: String;
+    third: String;
+}
+func Apply(rows: BatchRows, ref fact: BatchFact) -> BatchRows {
+    var first: Array<String> = rows.first;
+    var second: Array<String> = rows.second;
+    var third: Array<String> = rows.third;
+    ArraySet(first, 0, fact.first);
+    ArraySet(second, 0, fact.second);
+    ArraySet(third, 0, fact.third);
+    return BatchRows(first, second, third);
+}
+func Main() -> Int {
+    let rows: BatchRows = BatchRows([Concat("x", "")],
+        [Concat("y", "")], [Concat("z", "")]);
+    let fact: BatchFact = BatchFact(Concat("a1", ""),
+        Concat("b2", ""), Concat("c3", ""));
+    let result: BatchRows = Apply(rows, fact);
+    Print(result.first[0]);
+    Print(result.second[0]);
+    Print(result.third[0]);
+    return 0;
+}

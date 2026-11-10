@@ -9,7 +9,7 @@ func Both(inout a: Array<HashMap<String, Int>>, b: Array<HashMap<String, Int>>) 
 
 func Main() -> Int {
     let first: HashMap<String, Int> = MapNew();
-    let tables: Array<HashMap<String, Int>> = [first];
+    var tables: Array<HashMap<String, Int>> = [first];
     let k: Int = Both(tables, tables);
     Print(ToString(k));
     return 0;

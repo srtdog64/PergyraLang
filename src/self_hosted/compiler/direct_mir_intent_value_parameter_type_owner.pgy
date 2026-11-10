@@ -1,0 +1,15 @@
+// Exact source type families admitted for an Intent value binder.
+
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "../mir_lower/program_routine_receiver_identity_owner.pgy";
+
+func DirectMirRoutineIntentValueTypeReady(
+    ref declarations: MirProgramDeclarationIndex, type_name: String
+) -> Bool {
+    if DirectMirScalarCfgScalarTypeSupported(type_name) { return true; }
+    let declaration: Int = MirProgramRoutineOwnerDeclarationRow(
+        declarations, type_name);
+    if declaration < 0 { return false; }
+    return CallableReceiverNominalKindUsesValue(
+        MirProgramRoutineOwnerNominalKindAt(declarations, declaration));
+}

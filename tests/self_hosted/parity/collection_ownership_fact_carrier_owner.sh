@@ -12,11 +12,18 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 SOURCE="tests/concept_semantics/hashmap/map_keys_owned_drop_valid.pgy"
 EMPTY_SOURCE="tests/concept_semantics/hashmap/empty_string_array_fact_valid.pgy"
+OWNED_LITERAL_SOURCE="tests/cases/function_param_flow_summary/array_slice_view_reader_valid.pgy"
+MIXED_LITERAL_SOURCE="tests/concept_semantics/hashmap/owned_string_literal_mixed_borrow_unknown_valid.pgy"
 UNKNOWN_SOURCE="tests/concept_semantics/hashmap/unknown_string_array_drop.pgy"
 MOVE_SOURCE="tests/concept_semantics/hashmap/borrowed_string_array_shallow_copy.pgy"
+NESTED_MEMBER_SOURCE="tests/self_hosted/parity/fixture/collection_ownership_nested_member_move_positive.pgy"
+MEMBER_OWNED_LIVE_SOURCE="tests/self_hosted/parity/fixture/collection_ownership_member_owned_live_positive.pgy"
 CALL_RESULT_SOURCE="tests/concept_semantics/hashmap/call_result_string_array_fact_valid.pgy"
+OWNED_CALL_RESULT_SOURCE="tests/cases/function_param_flow_summary/array_result_owned_factory_deepdrop_valid.pgy"
+UNKNOWN_FACT_SOURCE="$CALL_RESULT_SOURCE"
 PROBE="tests/self_hosted/parity/fixture/collection_ownership_fact_reader_probe.pgy"
 INDEXED_SOURCE="tests/concept_semantics/hashmap/indexed_string_array_set_receipt_valid.pgy"
+FORMAL_RECEIPT_SOURCE="tests/self_hosted/parity/fixture/collection_ownership_formal_receipt_positive.pgy"
 FIELD_FIXTURES="tests/self_hosted/parity/fixture/collection_field_lifetime"
 # States the semantic verdict publishes after transitions, each with the
 # origin|ownership|disposition triple its MIR row must carry.
@@ -24,6 +31,7 @@ STATE_SOURCES=(
     "$FIELD_FIXTURES/owned_string_literal_transfer_positive.pgy|formal-string-transfer|owned-elements|retired"
     "$FIELD_FIXTURES/owned_string_local_literal_transfer_positive.pgy|local-string-transfer|owned-elements|retired"
     "$FIELD_FIXTURES/aggregate_release_alternative_returns_positive.pgy|member-move|retired|retired"
+    "$MEMBER_OWNED_LIVE_SOURCE|member-move|owned-elements|live"
     "$FIELD_FIXTURES/owned_result_forward_late_positive.pgy|call-result|owned-elements|retired"
     "tests/concept_semantics/hashmap/owned_call_result_branch_return_valid.pgy|call-result|retired|retired"
 )
@@ -46,7 +54,21 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native.err" ||
     fail "native MIR producer rejected the empty-literal origin fixture"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-empty.err" ||
     fail "native empty MIR producer emitted diagnostics"
-(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$UNKNOWN_SOURCE") \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$OWNED_LITERAL_SOURCE") >"$WORK_DIR/native-owned-literal.json" \
+    2>"$WORK_DIR/native-owned-literal.err" ||
+    fail "native MIR producer rejected the owned-literal origin fixture"
+grep -Fxq '0 error(s), 0 warning(s)' \
+    "$WORK_DIR/native-owned-literal.err" ||
+    fail "native owned-literal MIR producer emitted diagnostics"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$MIXED_LITERAL_SOURCE") >"$WORK_DIR/native-mixed-literal.json" \
+    2>"$WORK_DIR/native-mixed-literal.err" ||
+    fail "native MIR producer rejected the mixed-literal control"
+grep -Fxq '0 error(s), 0 warning(s)' \
+    "$WORK_DIR/native-mixed-literal.err" ||
+    fail "native mixed-literal MIR producer emitted diagnostics"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$UNKNOWN_FACT_SOURCE") \
     >"$WORK_DIR/native-unknown.json" 2>"$WORK_DIR/native-unknown.err" ||
     fail "native MIR producer rejected the unknown-origin control"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-unknown.err" ||
@@ -57,6 +79,13 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-unknown.err" ||
     fail "native MIR producer rejected the binding-move fixture"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-binding-move.err" ||
     fail "native binding-move producer emitted diagnostics"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$NESTED_MEMBER_SOURCE") >"$WORK_DIR/native-nested-member.json" \
+    2>"$WORK_DIR/native-nested-member.err" ||
+    fail "native MIR producer rejected the nested member-move fixture"
+grep -Fxq '0 error(s), 0 warning(s)' \
+    "$WORK_DIR/native-nested-member.err" ||
+    fail "native nested member-move producer emitted diagnostics"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE" \
     -o "$WORK_REL/self.json") >"$WORK_DIR/self.out" \
@@ -69,6 +98,20 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-binding-move.err" ||
     fail "installed self-host MIR producer rejected the empty-literal origin fixture"
 [[ -s "$WORK_DIR/self-empty.json" ]] ||
     fail "installed self-host emitted no empty-ownership MIR"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$OWNED_LITERAL_SOURCE" -o "$WORK_REL/self-owned-literal.json") \
+    >"$WORK_DIR/self-owned-literal.out" \
+    2>"$WORK_DIR/self-owned-literal.err" ||
+    fail "installed self-host rejected the owned-literal origin fixture"
+[[ -s "$WORK_DIR/self-owned-literal.json" ]] ||
+    fail "installed self-host emitted no owned-literal MIR"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$MIXED_LITERAL_SOURCE" -o "$WORK_REL/self-mixed-literal.json") \
+    >"$WORK_DIR/self-mixed-literal.out" \
+    2>"$WORK_DIR/self-mixed-literal.err" ||
+    fail "installed self-host rejected the mixed-literal control"
+[[ -s "$WORK_DIR/self-mixed-literal.json" ]] ||
+    fail "installed self-host emitted no mixed-literal MIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$MOVE_SOURCE" \
     -o "$WORK_REL/self-binding-move.json") \
     >"$WORK_DIR/self-binding-move.out" \
@@ -76,6 +119,56 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-binding-move.err" ||
     fail "installed self-host MIR producer rejected the binding-move fixture"
 [[ -s "$WORK_DIR/self-binding-move.json" ]] ||
     fail "installed self-host emitted no binding-move MIR"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$NESTED_MEMBER_SOURCE" -o "$WORK_REL/self-nested-member.json") \
+    >"$WORK_DIR/self-nested-member.out" \
+    2>"$WORK_DIR/self-nested-member.err" || {
+    cat "$WORK_DIR/self-nested-member.out" \
+        "$WORK_DIR/self-nested-member.err" >&2
+    fail "installed self-host rejected the nested member-move fixture"
+}
+[[ -s "$WORK_DIR/self-nested-member.json" ]] ||
+    fail "installed self-host emitted no nested member-move MIR"
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json \
+    "$WORK_REL/self-nested-member.json" \
+    -o "$WORK_REL/self-nested-member.c") \
+    >"$WORK_DIR/self-nested-member.read.out" \
+    2>"$WORK_DIR/self-nested-member.read.err" || {
+    cat "$WORK_DIR/self-nested-member.read.out" \
+        "$WORK_DIR/self-nested-member.read.err" >&2
+    fail "installed self-host MIR reader rejected the nested member path"
+}
+python3 - "$WORK_DIR/native-nested-member.json" \
+    "$WORK_DIR/self-nested-member.json" <<'PY' ||
+import json
+import sys
+
+for path in sys.argv[1:]:
+    document = json.load(open(path, encoding="utf-8"))
+    for routine_name, source_name in (
+            ("NestedCollectionLength", None),
+            ("NestedLocalCollectionLength", "holder")):
+        routine = next(row for row in document["routines"]
+                       if row.get("name") == routine_name)
+        source_id = routine["params"][0]["source_syntax_id"]
+        if source_name is not None:
+            source_id = next(row["binding_syntax_id"]
+                             for row in routine["source_locals"]
+                             if row.get("name") == source_name)
+        local_id = next(row["binding_syntax_id"]
+                        for row in routine["source_locals"]
+                        if row.get("name") == "values")
+        rows = [row for row in routine.get("collection_ownership_facts") or []
+                if row.get("origin") == "member-move" and
+                row.get("source_binding_syntax_id") == source_id and
+                row.get("binding_syntax_id") == local_id and
+                isinstance(row.get("origin_syntax_id"), int) and
+                row["origin_syntax_id"] > 0]
+        if len(rows) != 1:
+            raise SystemExit(
+                f"{path}: {routine_name} member rows={len(rows)}")
+PY
+    fail "nested member path did not project one exact ownership row"
 printf '%s\n' preserved:unknown >"$WORK_DIR/self-unknown.json"
 if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$UNKNOWN_SOURCE" \
     -o "$WORK_REL/self-unknown.json") >"$WORK_DIR/self-unknown.out" \
@@ -94,6 +187,15 @@ grep -Fq 'borrow_boundary_escape' \
 [[ "$(grep -Fc '"origin":"call-result"' \
     "$WORK_DIR/self-call-result.json")" == 1 ]] ||
     fail "call-result provenance did not attach exactly once"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$OWNED_CALL_RESULT_SOURCE") >"$WORK_DIR/native-call-result-owned.json" \
+    2>"$WORK_DIR/native-call-result-owned.err" ||
+    fail "native MIR producer rejected the grounded owned call-result control"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$OWNED_CALL_RESULT_SOURCE" -o "$WORK_REL/self-call-result-owned.json") \
+    >"$WORK_DIR/self-call-result-owned.out" \
+    2>"$WORK_DIR/self-call-result-owned.err" ||
+    fail "installed self-host rejected the grounded owned call-result control"
 
 state_index=0
 for state in "${STATE_SOURCES[@]}"; do
@@ -149,6 +251,43 @@ if len(receipts) != 1:
 PY
     fail "the indexed assignment did not carry exactly one shallow-mutation receipt"
 
+for producer in native self; do
+    if [[ "$producer" == native ]]; then
+        (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+            "$FORMAL_RECEIPT_SOURCE") >"$WORK_DIR/formal-$producer.json" \
+            2>"$WORK_DIR/formal-$producer.err" ||
+            fail "native MIR producer rejected the formal receipt fixture"
+    else
+        (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+            "$FORMAL_RECEIPT_SOURCE" \
+            -o "$WORK_REL/formal-$producer.json") \
+            >"$WORK_DIR/formal-$producer.out" \
+            2>"$WORK_DIR/formal-$producer.err" ||
+            fail "installed self-host rejected the formal receipt fixture"
+    fi
+done
+python3 - "$WORK_DIR/formal-native.json" "$WORK_DIR/formal-self.json" <<'PY' ||
+import json
+import sys
+
+for path in sys.argv[1:]:
+    document = json.load(open(path, encoding="utf-8"))
+    routine = next(row for row in document["routines"]
+                   if row.get("name") == "AppendBorrowed")
+    expected_ref = f"parameter:{routine['source_syntax_id']}:0"
+    expected_binding = routine["params"][0]["source_syntax_id"]
+    receipts = [instruction for block in routine["blocks"]
+                for instruction in block["instructions"]
+                if instruction.get("local_ref") == expected_ref and
+                (instruction.get("collection_ownership_receipt") or {}).get("kind") ==
+                    "owned-string-push" and
+                instruction["collection_ownership_receipt"].get(
+                    "receiver_binding_syntax_id") == expected_binding]
+    if len(receipts) != 1:
+        raise SystemExit(f"{path}: formal receipts={len(receipts)}")
+PY
+    fail "formal collection receipt did not attach to its parameter identity"
+
 (cd "$ROOT_DIR" && "$PGY" "$PROBE" --native-pipeline --backend=c \
     -o "$WORK_REL/probe-native.exe") >"$WORK_DIR/probe-native.compile" 2>&1 || {
     tail -c 65536 "$WORK_DIR/probe-native.compile" >&2
@@ -160,6 +299,22 @@ PY
     tail -c 65536 "$WORK_DIR/probe-self.compile" >&2
     fail "installed self-host could not build the Pergyra carrier reader"
 }
+
+for producer in native-call-result-owned self-call-result-owned; do
+    for consumer in native self; do
+        (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" \
+            "$WORK_REL/$producer.json") \
+            >"$WORK_DIR/$producer-$consumer.out" \
+            2>"$WORK_DIR/$producer-$consumer.err" || {
+            cat "$WORK_DIR/$producer-$consumer.out" \
+                "$WORK_DIR/$producer-$consumer.err" >&2
+            fail "$consumer reader rejected grounded $producer MIR"
+        }
+        grep -Eq ':[1-9][0-9]*:0:owned-elements:retired:call-result$' \
+            "$WORK_DIR/$producer-$consumer.out" ||
+            fail "$consumer reader lost grounded $producer authority"
+    done
+done
 
 for producer in native self; do
     for consumer in native self; do
@@ -243,6 +398,68 @@ cmp -s "$WORK_DIR/native-empty-meaning" \
     "$WORK_DIR/self-empty-meaning" ||
     fail "native/self-host empty-literal origin meaning drifted"
 
+for producer in native-owned-literal self-owned-literal; do
+    for consumer in native self; do
+        (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" \
+            "$WORK_REL/$producer.json") \
+            >"$WORK_DIR/$producer-$consumer.out" \
+            2>"$WORK_DIR/$producer-$consumer.err" || {
+            cat "$WORK_DIR/$producer-$consumer.out" \
+                "$WORK_DIR/$producer-$consumer.err" >&2
+            fail "$consumer reader rejected $producer MIR"
+        }
+        tr -d '\r' <"$WORK_DIR/$producer-$consumer.out" \
+            >"$WORK_DIR/$producer-$consumer.normalized"
+        row="$(cat "$WORK_DIR/$producer-$consumer.normalized")"
+        [[ "$row" =~ ^[1-9][0-9]*:[1-9][0-9]*:[1-9][0-9]*:0:owned-elements:live:owned-literal$ ]] ||
+            fail "$producer-$consumer lost the owned-literal authority: $row"
+    done
+done
+cmp -s "$WORK_DIR/native-owned-literal-native.normalized" \
+    "$WORK_DIR/native-owned-literal-self.normalized" ||
+    fail "native owned-literal MIR identity changed between Pergyra readers"
+cmp -s "$WORK_DIR/self-owned-literal-native.normalized" \
+    "$WORK_DIR/self-owned-literal-self.normalized" ||
+    fail "self-host owned-literal MIR identity changed between Pergyra readers"
+cut -d: -f4- "$WORK_DIR/native-owned-literal-native.normalized" \
+    >"$WORK_DIR/native-owned-literal-meaning"
+cut -d: -f4- "$WORK_DIR/self-owned-literal-native.normalized" \
+    >"$WORK_DIR/self-owned-literal-meaning"
+cmp -s "$WORK_DIR/native-owned-literal-meaning" \
+    "$WORK_DIR/self-owned-literal-meaning" ||
+    fail "native/self-host owned-literal meaning drifted"
+
+for producer in native-mixed-literal self-mixed-literal; do
+    for consumer in native self; do
+        (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" \
+            "$WORK_REL/$producer.json") \
+            >"$WORK_DIR/$producer-$consumer.out" \
+            2>"$WORK_DIR/$producer-$consumer.err" || {
+            cat "$WORK_DIR/$producer-$consumer.out" \
+                "$WORK_DIR/$producer-$consumer.err" >&2
+            fail "$consumer reader rejected $producer MIR"
+        }
+        tr -d '\r' <"$WORK_DIR/$producer-$consumer.out" \
+            >"$WORK_DIR/$producer-$consumer.normalized"
+        row="$(cat "$WORK_DIR/$producer-$consumer.normalized")"
+        [[ "$row" =~ ^[1-9][0-9]*:[1-9][0-9]*:[1-9][0-9]*:0:unknown:live:unknown$ ]] ||
+            fail "$producer-$consumer granted authority to a mixed literal: $row"
+    done
+done
+cmp -s "$WORK_DIR/native-mixed-literal-native.normalized" \
+    "$WORK_DIR/native-mixed-literal-self.normalized" ||
+    fail "native mixed-literal MIR identity changed between Pergyra readers"
+cmp -s "$WORK_DIR/self-mixed-literal-native.normalized" \
+    "$WORK_DIR/self-mixed-literal-self.normalized" ||
+    fail "self-host mixed-literal MIR identity changed between Pergyra readers"
+cut -d: -f4- "$WORK_DIR/native-mixed-literal-native.normalized" \
+    >"$WORK_DIR/native-mixed-literal-meaning"
+cut -d: -f4- "$WORK_DIR/self-mixed-literal-native.normalized" \
+    >"$WORK_DIR/self-mixed-literal-meaning"
+cmp -s "$WORK_DIR/native-mixed-literal-meaning" \
+    "$WORK_DIR/self-mixed-literal-meaning" ||
+    fail "native/self-host mixed-literal meaning drifted"
+
 for producer in native-binding-move self-binding-move; do
     for consumer in native self; do
         (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" \
@@ -292,8 +509,9 @@ cmp -s "$WORK_DIR/self-binding-move-native.normalized" \
 
 mkdir -p "$WORK_DIR/mutations"
 python3 - "$WORK_DIR/native.json" "$WORK_DIR/native-empty.json" \
-    "$WORK_DIR/native-unknown.json" "$WORK_DIR/self-call-result.json" \
-    "$WORK_DIR/native-binding-move.json" "$WORK_DIR/mutations" <<'PY'
+    "$WORK_DIR/native-owned-literal.json" "$WORK_DIR/native-unknown.json" \
+    "$WORK_DIR/self-call-result.json" "$WORK_DIR/native-binding-move.json" \
+    "$WORK_DIR/native-nested-member.json" "$WORK_DIR/mutations" <<'PY'
 import copy
 import json
 import pathlib
@@ -301,10 +519,12 @@ import sys
 
 source = pathlib.Path(sys.argv[1])
 empty_source = pathlib.Path(sys.argv[2])
-unknown_path = pathlib.Path(sys.argv[3])
-call_result_path = pathlib.Path(sys.argv[4])
-move_path = pathlib.Path(sys.argv[5])
-target = pathlib.Path(sys.argv[6])
+owned_literal_path = pathlib.Path(sys.argv[3])
+unknown_path = pathlib.Path(sys.argv[4])
+call_result_path = pathlib.Path(sys.argv[5])
+move_path = pathlib.Path(sys.argv[6])
+nested_member_path = pathlib.Path(sys.argv[7])
+target = pathlib.Path(sys.argv[8])
 
 def write_json(path, value):
     path.write_text(
@@ -501,6 +721,96 @@ if (not isinstance(empty_graph, dict) or
 empty_graph["nodes"][0]["kind"] = "leaf"
 write_json(target / "empty_literal_graph_kind.json", empty_graph_document)
 
+empty_cleanup_document = copy.deepcopy(empty_document)
+empty_cleanup_main = next(
+    row for row in empty_cleanup_document["routines"]
+    if row.get("name") == "Main")
+empty_cleanup_rows = [
+    instruction
+    for block in empty_cleanup_main.get("blocks", [])
+    for instruction in block.get("instructions", [])
+    if instruction.get("kind") == "cleanup"]
+if (len(empty_cleanup_rows) != 1 or
+        not isinstance(
+            empty_cleanup_rows[0].get("collection_cleanup"), dict)):
+    raise SystemExit(
+        f"empty baseline cleanup rows: {len(empty_cleanup_rows)}")
+
+def emit_cleanup(name, mutate):
+    candidate = copy.deepcopy(empty_cleanup_document)
+    candidate_main = next(
+        row for row in candidate["routines"] if row.get("name") == "Main")
+    candidate_cleanup = next(
+        instruction
+        for block in candidate_main["blocks"]
+        for instruction in block["instructions"]
+        if instruction.get("kind") == "cleanup")
+    mutate(candidate_main, candidate_cleanup)
+    write_json(target / f"cleanup_{name}.json", candidate)
+
+emit_cleanup("missing_object", lambda main, row: row.pop(
+    "collection_cleanup"))
+emit_cleanup("wrong_binding", lambda main, row: row[
+    "collection_cleanup"].__setitem__(
+        "binding_syntax_id",
+        row["collection_cleanup"]["binding_syntax_id"] + 100000))
+emit_cleanup("kind_zero", lambda main, row: row[
+    "collection_cleanup"].__setitem__("kind", 0))
+emit_cleanup("kind_three", lambda main, row: row[
+    "collection_cleanup"].__setitem__("kind", 3))
+emit_cleanup("wrong_target", lambda main, row: row[
+    "collection_cleanup"].__setitem__("target", 0))
+emit_cleanup("wrong_arg", lambda main, row: row.__setitem__(
+    "arg0", "foreign.1"))
+emit_cleanup("wrong_use", lambda main, row: row.__setitem__(
+    "uses", ["foreign.1"]))
+
+def cleanup_object_on_definition(main, cleanup):
+    definition = next(
+        instruction
+        for block in main["blocks"]
+        for instruction in block["instructions"]
+        if instruction.get("kind") == "def")
+    definition["collection_cleanup"] = copy.deepcopy(
+        cleanup["collection_cleanup"])
+emit_cleanup("object_on_definition", cleanup_object_on_definition)
+
+owned_literal_document = json.loads(
+    owned_literal_path.read_text(encoding="utf-8"))
+owned_literal_mains = [
+    row for row in owned_literal_document.get("routines", [])
+    if row.get("name") == "Main"
+]
+if len(owned_literal_mains) != 1:
+    raise SystemExit(
+        f"expected one owned-literal Main, found {len(owned_literal_mains)}")
+owned_literal_facts = owned_literal_mains[0].get(
+    "collection_ownership_facts")
+if (owned_literal_mains[0].get("collection_ownership_fact_count") != 1 or
+        not isinstance(owned_literal_facts, list) or
+        len(owned_literal_facts) != 1 or
+        owned_literal_facts[0].get("origin") != "owned-literal" or
+        owned_literal_facts[0].get("element_ownership") != "owned-elements"):
+    raise SystemExit("owned-literal baseline does not own one exact row")
+
+owned_literal_borrowed = copy.deepcopy(owned_literal_document)
+owned_literal_borrowed_main = next(
+    row for row in owned_literal_borrowed["routines"]
+    if row.get("name") == "Main")
+owned_literal_borrowed_main["collection_ownership_facts"][0][
+    "element_ownership"] = "borrowed-elements"
+write_json(target / "owned_literal_borrowed.json", owned_literal_borrowed)
+
+owned_literal_foreign_source = copy.deepcopy(owned_literal_document)
+owned_literal_foreign_source_main = next(
+    row for row in owned_literal_foreign_source["routines"]
+    if row.get("name") == "Main")
+owned_literal_foreign_source_main["collection_ownership_facts"][0][
+    "source_binding_syntax_id"] = 999999
+write_json(
+    target / "owned_literal_foreign_source.json",
+    owned_literal_foreign_source)
+
 unknown_document = json.loads(unknown_path.read_text(encoding="utf-8"))
 unknown_mains = [
     row for row in unknown_document.get("routines", [])
@@ -652,6 +962,57 @@ emit_move("duplicate_local_name", duplicate_move_local_name)
 
 emit_move("unknown_declaration_name", lambda main: move_target_instruction(main).__setitem__(
     "arg0", "missing_binding_move_local"))
+
+nested_member_baseline = json.loads(
+    nested_member_path.read_text(encoding="utf-8"))
+for routine_name, mutation_name in (
+        ("NestedCollectionLength", "nested_member_wrong_leaf_identity"),
+        ("NestedLocalCollectionLength",
+         "nested_local_member_wrong_leaf_identity")):
+    nested_member_document = copy.deepcopy(nested_member_baseline)
+    nested_member_routine = next(
+        row for row in nested_member_document["routines"]
+        if row.get("name") == routine_name)
+    nested_member_facts = [
+        row for row in nested_member_routine.get(
+            "collection_ownership_facts") or []
+        if row.get("origin") == "member-move"]
+    if len(nested_member_facts) != 1:
+        raise SystemExit(
+            f"{routine_name} baseline rows: {len(nested_member_facts)}")
+    nested_member_facts[0]["origin_syntax_id"] += 100000
+    write_json(target / f"{mutation_name}.json", nested_member_document)
+
+nested_local_missing_use = copy.deepcopy(nested_member_baseline)
+nested_local_routine = next(
+    row for row in nested_local_missing_use["routines"]
+    if row.get("name") == "NestedLocalCollectionLength")
+nested_local_definition = next(
+    instruction
+    for block in nested_local_routine["blocks"]
+    for instruction in block["instructions"]
+    if instruction.get("kind") == "def" and
+    instruction.get("arg0") == "values")
+nested_local_definition["uses"] = []
+write_json(
+    target / "nested_local_member_missing_use.json",
+    nested_local_missing_use)
+
+nested_local_wrong_source = copy.deepcopy(nested_member_baseline)
+nested_local_routine = next(
+    row for row in nested_local_wrong_source["routines"]
+    if row.get("name") == "NestedLocalCollectionLength")
+nested_local_fact = next(
+    row for row in nested_local_routine.get(
+        "collection_ownership_facts") or []
+    if row.get("origin") == "member-move")
+nested_local_fact["source_binding_syntax_id"] = next(
+    row["binding_syntax_id"]
+    for row in nested_local_routine["source_locals"]
+    if row.get("name") == "cursor")
+write_json(
+    target / "nested_local_member_wrong_source_binding.json",
+    nested_local_wrong_source)
 PY
 
 python3 - "$WORK_DIR/self-state-0.json" "$WORK_DIR/self-state-2.json" \
@@ -699,13 +1060,17 @@ for mutation in "$WORK_DIR"/mutations/*.json; do
         >"$mutation.out" 2>"$mutation.err"; then
         fail "self-host reader accepted mutation $(basename "$mutation")"
     fi
-    grep -Fq 'collection ownership probe rejected collection_ownership_' \
+    expected_stage='collection_ownership_'
+    if [[ "$(basename "$mutation")" == cleanup_* ]]; then
+        expected_stage='collection_cleanup'
+    fi
+    grep -Fq "collection ownership probe rejected $expected_stage" \
         "$mutation.out" "$mutation.err" || {
         cat "$mutation.out" "$mutation.err" >&2
         fail "mutation $(basename "$mutation") did not fail at the ownership reader"
     }
 done
-[[ "$mutation_count" -ge 39 ]] ||
+[[ "$mutation_count" -ge 47 ]] ||
     fail "mutation corpus is incomplete: $mutation_count"
 
 echo "[$LABEL] native/self-host producer-consumer parity and $mutation_count malformed-row refusals PASS"

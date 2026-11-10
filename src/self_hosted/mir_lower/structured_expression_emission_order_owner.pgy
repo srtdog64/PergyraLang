@@ -33,7 +33,7 @@ func MirStructuredExpressionEmissionOrderReady(
         ArrayLength(order.derived_ordinals) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if order.global_instruction_rows[i] < 0 ||
             order.lanes[i] < AstExpressionLaneAtom() ||
@@ -46,7 +46,7 @@ func MirStructuredExpressionEmissionOrderReady(
     i = 0;
     while i < ArrayLength(order.covered_producer_rows) {
         if order.covered_producer_rows[i] < 0 { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if order.covered_producer_rows[prior] ==
                 order.covered_producer_rows[i] { return false; }
@@ -62,12 +62,12 @@ func MirStructuredExpressionEmissionOrderCoverProducer(
     global_row: Int
 ) -> Bool {
     if !order.ok || global_row < 0 { order.ok = false; return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(order.covered_producer_rows) {
         if order.covered_producer_rows[i] == global_row { return true; }
         i = i + 1;
     }
-    let covered: Array<Int> = order.covered_producer_rows;
+    var covered: Array<Int> = order.covered_producer_rows;
     ArrayPush(covered, global_row);
     order.covered_producer_rows = covered;
     return true;
@@ -87,9 +87,9 @@ func MirStructuredExpressionEmissionOrderAppend(
         order.ok = false;
         return false;
     }
-    let rows: Array<Int> = order.global_instruction_rows;
-    let lanes: Array<Int> = order.lanes;
-    let ordinals: Array<Int> = order.derived_ordinals;
+    var rows: Array<Int> = order.global_instruction_rows;
+    var lanes: Array<Int> = order.lanes;
+    var ordinals: Array<Int> = order.derived_ordinals;
     ArrayPush(rows, global_row);
     ArrayPush(lanes, lane);
     ArrayPush(ordinals, ordinal);
@@ -107,7 +107,7 @@ func MirStructuredForLoopInitInstruction(
     branch: MirRoutineInstructionView,
     branch_scalar: MirRoutineInstructionScalarCapture
 ) -> MirRoutineInstructionView {
-    let selected: MirRoutineInstructionView =
+    var selected: MirRoutineInstructionView =
         EmptyMirRoutineInstructionView();
     if !index.valid || !branch.valid || !branch_scalar.valid ||
         header_block_row < 0 ||
@@ -116,7 +116,7 @@ func MirStructuredForLoopInitInstruction(
             ArrayLength(index.block_succ_true) {
         return selected;
     }
-    let block_row: Int = 0;
+    var block_row: Int = 0;
     while block_row < ArrayLength(index.block_succ_true) {
         if index.block_succ_true[block_row] == header_block_row &&
             index.block_succ_false[block_row] < 0 {

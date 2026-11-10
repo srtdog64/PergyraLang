@@ -261,18 +261,32 @@ swe_same_element(const StringWindowExtentStore *store, const ASTNode *a,
                                            ast_array_access_array(b), routine);
 }
 
+/* Clone preserves the value used by the extent proof.  Ownership landing may
+ * independently wrap both fields of a proven (String, length) pair, so the
+ * relation owner normalizes either side before applying P1-P8. */
+static const ASTNode *
+swe_value_before_clone(const ASTNode *node)
+{
+    uint32_t builtin = 0;
+    while (node != NULL && node->type == AST_CALL
+           && ast_call_arg_count(node) == 1
+           && ast_call_semantic_callee_builtin_kind(node, &builtin)
+           && builtin == BUILTIN_CLONE) {
+        const ASTNode *argument = ast_call_argument(node, 0);
+        if (argument == NULL || argument == node)
+            return NULL;
+        node = argument;
+    }
+    return node;
+}
+
 SweVerdict
 swe_classify(StringWindowExtentStore *store, const ASTNode *source,
              const ASTNode *extent, const SweRoutine *routine,
              SweRequirement *requirement_out, SweFieldPair *field_out)
 {
-    /* Clone copies a String whole, so its length is its argument's: a copy
-     * landed where the String leaves its owner proves what the String did
-     * (2026-10-22_string_crossing_copied_where_it_crosses). */
-    uint32_t builtin = 0;
-    if (source != NULL && source->type == AST_CALL && ast_call_arg_count(source) == 1 &&
-        ast_call_semantic_callee_builtin_kind(source, &builtin) && builtin == BUILTIN_CLONE)
-        source = ast_call_argument(source, 0);
+    source = swe_value_before_clone(source);
+    extent = swe_value_before_clone(extent);
     int64_t value = 0;
     if (swe_integer_literal(extent, &value)) {
         if (value == 0 || value == 1)

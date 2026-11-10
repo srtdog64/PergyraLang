@@ -8,7 +8,7 @@ struct Box {
 
 func Main() -> Int {
     let a: Box = Box([1], StringConcat("a", ""));
-    let b: Box = Clone(a);
+    var b: Box = Clone(a);
     ArraySet(b.items, 0, 9);
     ArrayPush(b.items, 2);
     ArrayPush(b.items, 3);

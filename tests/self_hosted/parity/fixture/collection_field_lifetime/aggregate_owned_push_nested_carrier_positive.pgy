@@ -1,0 +1,43 @@
+// Two String-array fields extracted through a local aggregate carrier retain
+// their exact formal paths and are restored together in the returned value.
+struct NestedCarrierArena {
+    texts: Array<String>;
+    call_target_names: Array<String>;
+}
+
+struct NestedCarrierSequence {
+    arena: NestedCarrierArena;
+}
+
+func NestedCarrierStore(
+    inout values: Array<String>, value: String
+) -> Void {
+    ArrayPushOwnedString(values, value);
+}
+
+func NestedCarrierImport(
+    inout texts: Array<String>,
+    inout call_target_names: Array<String>
+) -> Void {
+    NestedCarrierStore(texts, "text");
+    NestedCarrierStore(call_target_names, "target");
+}
+
+func NestedCarrierAppend(
+    sequence: NestedCarrierSequence
+) -> NestedCarrierSequence {
+    let arena: NestedCarrierArena = sequence.arena;
+    let texts: Array<String> = arena.texts;
+    let call_target_names: Array<String> = arena.call_target_names;
+    NestedCarrierImport(texts, call_target_names);
+    return NestedCarrierSequence(
+        NestedCarrierArena(texts, call_target_names));
+}
+
+func Main() -> Int {
+    let sequence: NestedCarrierSequence =
+        NestedCarrierSequence(NestedCarrierArena([], []));
+    let updated: NestedCarrierSequence = NestedCarrierAppend(sequence);
+    return ArrayLength(updated.arena.texts) +
+        ArrayLength(updated.arena.call_target_names);
+}

@@ -12,11 +12,11 @@ func DirectMirScalarCfgIndexAssignmentUseCount(
     ref uses: MirRoutineInstructionUseFacts,
     wanted: String
 ) -> Int {
-    let count: Int = 0;
-    let instruction: Int = 0;
+    var count: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
-        let use_row: Int = 0;
+        var use_row: Int = 0;
         while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
             let use_opt: Option<String> =
                 MirRoutineInstructionUseAtGlobal(uses, global, use_row);
@@ -104,19 +104,19 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
         source_set.int_source;
     let string_source: DirectMirScalarCfgArrayStringCollectionFact =
         source_set.string_source;
-    let transitions: Array<Int> = [-1, -1];
+    var transitions: Array<Int> = [-1, -1];
     let sources: Array<String> = [
         int_source.collection_value_id, string_source.collection_value_id
     ];
-    let results: Array<String> = ["", ""];
-    let assignment_indices: Array<Int> = [-1, -1];
-    let int_value: Int = 0;
-    let string_value: String = "";
-    let observations: Array<Int> = [-1, -1];
-    let observation_starts: Array<Int> = [0, 0];
-    let observation_counts: Array<Int> = [0, 0];
-    let observation_indices: Array<Int> = [];
-    let instruction: Int = 0;
+    var results: Array<String> = ["", ""];
+    var assignment_indices: Array<Int> = [-1, -1];
+    var int_value: Int = 0;
+    var string_value: String = "";
+    var observations: Array<Int> = [-1, -1];
+    var observation_starts: Array<Int> = [0, 0];
+    var observation_counts: Array<Int> = [0, 0];
+    var observation_indices: Array<Int> = [];
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let capture: MirRoutineInstructionScalarCapture =
@@ -135,7 +135,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
         if kind == "def" && source_type == "AST_ASSIGNMENT" &&
             DirectMirScalarCfgCollectionTypeSupported(capture.abi_type_name) {
-            let type_row: Int = -1;
+            var type_row: Int = -1;
             if capture.abi_type_name == CompilerAbiLayoutArrayIntTypeName() {
                 type_row = 0;
             } else if capture.abi_type_name ==
@@ -146,14 +146,15 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
                 DirectMirScalarCfgStringArrayIndexGraphFactFrom(target_graph);
             let source_use: Option<String> =
                 MirRoutineInstructionUseAtGlobal(uses, global, 0);
-            let expected_name: String = int_source.collection_name;
+            var expected_name: String = int_source.collection_name;
             if type_row == 1 {
                 expected_name = string_source.collection_name;
             }
             if type_row < 0 || transitions[type_row] >= 0 ||
                 !target.valid || target.index_literal == "" ||
                 target.index_name != "" || capture.name != "ssa-def" ||
-                capture.arg1 != "local" || capture.arg0 != expected_name ||
+                capture.arg1 != "mutable_local" ||
+                capture.arg0 != expected_name ||
                 target.collection_name != capture.arg0 ||
                 capture.result == "" || capture.result == sources[type_row] ||
                 MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
@@ -209,8 +210,8 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
                 return empty;
             }
             if int_observation.valid || string_observation.valid {
-            let type_row: Int = 0;
-            let observed:
+            var type_row: Int = 0;
+            var observed:
                 DirectMirScalarCfgIndexAssignmentObservationGraphFact =
                 int_observation;
             if string_observation.valid {
@@ -218,7 +219,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             }
             let use_opt: Option<String> =
                 MirRoutineInstructionUseAtGlobal(uses, global, 0);
-            let expected_name: String = int_source.collection_name;
+            var expected_name: String = int_source.collection_name;
             if type_row == 1 {
                 expected_name = string_source.collection_name;
             }
@@ -229,7 +230,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
                 UnwrapOption(use_opt) != results[type_row] {
                 return empty;
             }
-            let expected_count: Int = 3;
+            var expected_count: Int = 3;
             if type_row == 1 { expected_count = 2; }
             if ArrayLength(observed.indices) != expected_count {
                 return empty;
@@ -238,10 +239,10 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             ArraySet(observation_starts, type_row,
                 ArrayLength(observation_indices));
             ArraySet(observation_counts, type_row, expected_count);
-            let index_row: Int = 0;
+            var index_row: Int = 0;
             while index_row < expected_count {
                 let value: Int = observed.indices[index_row];
-                let length: Int = ArrayLength(int_source.elements);
+                var length: Int = ArrayLength(int_source.elements);
                 if type_row == 1 {
                     length = ArrayLength(string_source.elements);
                 }
@@ -328,29 +329,29 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             capacity_offsets, allocator_offsets, initial_starts,
             initial_counts, int_source.elements, string_source.elements
         );
-    let operation_globals: Array<Int> = [];
-    let operation_ordinals: Array<Int> = [];
-    let operation_kinds: Array<Int> = [];
-    let operation_receivers: Array<Int> = [];
-    let operation_results: Array<Int> = [];
-    let operation_indices: Array<Int> = [];
-    let operation_input_types: Array<String> = [];
-    let operation_input_ints: Array<Int> = [];
-    let operation_input_strings: Array<String> = [];
-    let operation_graph_rows: Array<Int> = [];
-    let observation_globals: Array<Int> = [];
-    let observation_kinds: Array<Int> = [];
-    let observation_receivers: Array<Int> = [];
-    let observation_get_starts: Array<Int> = [];
-    let observation_get_counts: Array<Int> = [];
-    let observation_graph_rows: Array<Int> = [];
+    var operation_globals: Array<Int> = [];
+    var operation_ordinals: Array<Int> = [];
+    var operation_kinds: Array<Int> = [];
+    var operation_receivers: Array<Int> = [];
+    var operation_results: Array<Int> = [];
+    var operation_indices: Array<Int> = [];
+    var operation_input_types: Array<String> = [];
+    var operation_input_ints: Array<Int> = [];
+    var operation_input_strings: Array<String> = [];
+    var operation_graph_rows: Array<Int> = [];
+    var observation_globals: Array<Int> = [];
+    var observation_kinds: Array<Int> = [];
+    var observation_receivers: Array<Int> = [];
+    var observation_get_starts: Array<Int> = [];
+    var observation_get_counts: Array<Int> = [];
+    var observation_graph_rows: Array<Int> = [];
     instruction = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
-        let source_value_row: Int = -1;
-        let result_value_row: Int = -1;
-        let assignment_row: Int = -1;
-        let observation_row: Int = -1;
+        var source_value_row: Int = -1;
+        var result_value_row: Int = -1;
+        var assignment_row: Int = -1;
+        var observation_row: Int = -1;
         if global == int_source.definition_global_row {
             result_value_row = 0;
         } else if global == string_source.definition_global_row {
@@ -371,7 +372,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             ArrayPush(operation_indices, -1);
             ArrayPush(operation_input_types, "");
             ArrayPush(operation_input_ints, 0);
-            ArrayPush(operation_input_strings, "");
+            ArrayPushOwnedString(operation_input_strings, "");
             ArrayPush(operation_graph_rows, -1);
         } else if assignment_row >= 0 {
             ArrayPush(operation_globals, global);
@@ -381,18 +382,18 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             ArrayPush(operation_results, result_value_row);
             ArrayPush(operation_indices, assignment_indices[assignment_row]);
             ArrayPush(operation_input_types, element_types[result_value_row]);
-            ArrayPush(operation_input_ints, int_value);
-            ArrayPush(operation_input_strings, string_value);
             if assignment_row == 0 {
-                ArraySet(operation_input_strings,
-                    ArrayLength(operation_input_strings) - 1, "");
+                ArrayPush(operation_input_ints, int_value);
+                ArrayPushOwnedString(operation_input_strings, "");
             } else {
-                ArraySet(operation_input_ints,
-                    ArrayLength(operation_input_ints) - 1, 0);
+                ArrayPush(operation_input_ints, 0);
+                // The returned collection plan owns every input String.
+                // Detach this value from the temporary Option producer.
+                ArrayPushOwnedString(operation_input_strings, string_value);
             }
             ArrayPush(operation_graph_rows, -1);
         } else if observation_row >= 0 {
-            let receiver: Int = 1;
+            var receiver: Int = 1;
             if observation_row == 1 { receiver = 3; }
             ArrayPush(observation_globals, global);
             ArrayPush(observation_kinds,
@@ -407,7 +408,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             ArrayPush(observation_get_counts,
                 observation_counts[observation_row]);
             ArrayPush(observation_graph_rows, -1);
-            let item: Int = 0;
+            var item: Int = 0;
             while item < observation_counts[observation_row] {
                 ArrayPush(operation_globals, global);
                 ArrayPush(operation_ordinals, item);
@@ -420,7 +421,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
                 ]);
                 ArrayPush(operation_input_types, "");
                 ArrayPush(operation_input_ints, 0);
-                ArrayPush(operation_input_strings, "");
+                ArrayPushOwnedString(operation_input_strings, "");
                 ArrayPush(operation_graph_rows, -1);
                 item = item + 1;
             }

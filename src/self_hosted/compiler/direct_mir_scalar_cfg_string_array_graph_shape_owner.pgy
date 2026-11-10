@@ -27,8 +27,8 @@ func DirectMirScalarCfgStringArrayIndexGraphFactFrom(
         graph.arena.topology.right_children[2] != 1 ||
         graph.arena.node_texts[0] == "" ||
         !DirectMirScalarCfgNoCallTargets(graph) { return invalid; }
-    let index_name: String = "";
-    let index_literal: String = "";
+    var index_name: String = "";
+    var index_literal: String = "";
     if graph.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() {
         index_name = graph.arena.node_texts[1];
         if index_name == "" { return invalid; }

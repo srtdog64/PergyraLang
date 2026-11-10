@@ -21,7 +21,7 @@ func SelfMirParallelStringCount(count: Int, rows: Array<String>) -> Bool {
 func SelfMirInstructionUsesLocalVersion(rows: SelfMirInstructionRows, instruction_index: Int,
     local_name: String) -> Bool {
     let prefix: String = Concat(local_name, ".");
-    let i: Int = 0;
+    var i: Int = 0;
     while i < rows.use_counts[instruction_index] {
         let use_name: String = rows.uses[
             rows.use_starts[instruction_index] + i
@@ -36,8 +36,8 @@ func SelfMirInstructionUsesLocalVersion(rows: SelfMirInstructionRows, instructio
 }
 func SelfMirAssignmentTargetGraphBaseText(ref graph: SemanticExpressionGraphFacts, root: Int
 ) -> Option<String> {
-    let cursor: Int = root;
-    let traversed: Int = 0;
+    var cursor: Int = root;
+    var traversed: Int = 0;
     while cursor >= 0 && cursor < SelfMirExpressionGraphNodeCount(graph) &&
         traversed < SelfMirExpressionGraphNodeCount(graph) {
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, cursor);
@@ -109,7 +109,7 @@ func SelfMirAssignmentTargetGraphValidationError(rows: SelfMirInstructionRows,
         graph, root
     );
     if !IsSome(graph_base) || UnwrapOption(graph_base) != base_name {
-        let graph_base_text: String = "<missing>";
+        var graph_base_text: String = "<missing>";
         if IsSome(graph_base) { graph_base_text = UnwrapOption(graph_base); }
         return Concat(
             "projected target receiver differs: base=", Concat(
@@ -152,11 +152,11 @@ func SelfMirBlockRowsValidationError(
         !SelfMirParallelCount(count, blocks.succ_false) {
         return "MIR block parallel row counts differ";
     }
-    let instruction_cursor: Int = 0;
-    let i: Int = 0;
+    var instruction_cursor: Int = 0;
+    var i: Int = 0;
     while i < count {
         if blocks.instruction_starts[i] != instruction_cursor {
-            let previous_fact: String = "";
+            var previous_fact: String = "";
             if i > 0 {
                 previous_fact = Concat(" previous_start=", Concat(
                     ToString(blocks.instruction_starts[i - 1]), Concat(
@@ -205,8 +205,8 @@ func SelfMirBlockRowsValidationError(
 func SelfMirBlockRowsFirstInstructionStartMismatch(
     blocks: SelfMirBlockRows
 ) -> Option<Int> {
-    let instruction_cursor: Int = 0;
-    let i: Int = 0;
+    var instruction_cursor: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(blocks.ids) {
         if blocks.instruction_starts[i] != instruction_cursor {
             return Some(i);
@@ -221,7 +221,7 @@ func SelfMirRoutineNameForBlockRow(
     rows: SelfMirRoutineRows,
     block_row: Int
 ) -> String {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows.node_ids) {
         if block_row >= rows.block_starts[i] &&
             block_row < rows.block_starts[i] + rows.block_counts[i] {
@@ -272,15 +272,15 @@ func SelfMirRoutineRowsReady(
         !SelfMirLoopFlowRowsReady(rows.loop_flows, count) {
         return false;
     }
-    let param_cursor: Int = 0;
-    let generic_cursor: Int = 0;
-    let block_cursor: Int = 0;
-    let local_cursor: Int = 0;
-    let i: Int = 0;
+    var param_cursor: Int = 0;
+    var generic_cursor: Int = 0;
+    var block_cursor: Int = 0;
+    var local_cursor: Int = 0;
+    var i: Int = 0;
     while i < count {
         let receiver: SelfMirRoutineReceiverFact =
             SelfMirRoutineReceiverForOwner(declarations, rows.owners[i]);
-        let receiver_ready: Bool = receiver.ok &&
+        var receiver_ready: Bool = receiver.ok &&
             rows.kinds[i] == receiver.routine_kind &&
             rows.receiver_carriages[i] == receiver.carriage;
         if rows.kinds[i] == "intent" {
@@ -302,9 +302,9 @@ func SelfMirRoutineRowsReady(
             rows.local_starts[i] != local_cursor || rows.local_counts[i] < 0 {
             return false;
         }
-        let entry_count: Int = 0; let cleanup_count: Int = 0;
-        let rollback_count: Int = 0; let invalidation_count: Int = 0;
-        let block_i: Int = 0;
+        var entry_count: Int = 0; var cleanup_count: Int = 0;
+        var rollback_count: Int = 0; var invalidation_count: Int = 0;
+        var block_i: Int = 0;
         while block_i < rows.block_counts[i] {
             let row: Int = rows.block_starts[i] + block_i;
             let role: String = blocks.intent_roles[row];
@@ -329,14 +329,14 @@ func SelfMirRoutineRowsReady(
         }
         if rows.kinds[i] == "intent" && (entry_count != 1 || cleanup_count != 1 ||
             rollback_count != 1 || invalidation_count != 1) { return false; }
-        let generic_i: Int = 0;
+        var generic_i: Int = 0;
         while generic_i < rows.generic_counts[i] {
             if rows.generic_names[generic_cursor + generic_i] == "" {
                 return false;
             }
             generic_i = generic_i + 1;
         }
-        let destructure_i: Int = 0;
+        var destructure_i: Int = 0;
         let destructure_start: Int =
             rows.destructure_type_facts.routine_starts[i];
         while destructure_i <
@@ -349,7 +349,7 @@ func SelfMirRoutineRowsReady(
             }
             destructure_i = destructure_i + 1;
         }
-        let collection_i: Int = 0;
+        var collection_i: Int = 0;
         let collection_start: Int =
             rows.collection_ownership_facts.routine_starts[i];
         while collection_i <
@@ -358,8 +358,8 @@ func SelfMirRoutineRowsReady(
             let binding_id: Int =
                 rows.collection_ownership_facts.binding_syntax_ids[
                     collection_row];
-            let local_match_count: Int = 0;
-            let local_i: Int = 0;
+            var local_match_count: Int = 0;
+            var local_i: Int = 0;
             while local_i < rows.local_counts[i] {
                 let local_row: Int = rows.local_starts[i] + local_i;
                 if rows.local_binding_syntax_ids[local_row] == binding_id &&
@@ -460,12 +460,12 @@ func SelfMirProgramFactsValidationErrorObserved(facts: SelfMirProgramFacts, obse
     if !MirIntentExecutionPlanReady(facts.intent_execution) {
         return "MIR typed Intent execution plan is unsealed or invalid";
     }
-    let intent_routine: Int = 0;
+    var intent_routine: Int = 0;
     while intent_routine < ArrayLength(facts.routines.node_ids) {
         if facts.routines.kinds[intent_routine] == "intent" &&
             facts.routines.return_types[intent_routine] != "Bool" {
-            let found: Bool = false;
-            let step: Int = 0;
+            var found: Bool = false;
+            var step: Int = 0;
             while step < ArrayLength(facts.intent_execution.steps.transition_ids) {
                 if facts.intent_execution.steps.routine_syntax_ids[step] ==
                     facts.routines.node_ids[intent_routine] { found = true; }

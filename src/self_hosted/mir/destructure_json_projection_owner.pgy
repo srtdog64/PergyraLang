@@ -12,8 +12,8 @@ func SelfMirJsonDestructureBindings(
     );
     if !IsSome(fact_index) { return "[]"; }
     let row: Int = UnwrapOption(fact_index);
-    let bindings: Array<String> = [];
-    let i: Int = 0;
+    var bindings: Array<String> = [];
+    var i: Int = 0;
     while i < rows.destructure_facts.binding_counts[row] {
         ArrayPush(
             bindings,

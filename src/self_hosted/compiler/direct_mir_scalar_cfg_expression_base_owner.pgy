@@ -29,7 +29,7 @@ func DirectMirScalarCfgExpressionSequenceForField(
 func DirectMirScalarCfgNoCallTargets(
     ref sequence: MirExpressionGraphSequence
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(sequence.arena.call_target_kinds) {
         if sequence.arena.call_target_kinds[row] !=
                 SemanticCallTargetNone() ||
@@ -70,8 +70,8 @@ func DirectMirScalarCfgUseValueRow(
 func DirectMirScalarCfgGraphValueRow(
     ref names: Array<String>, wanted: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(names) {
         if names[row] == wanted {
             if found >= 0 { return 0 - 1; }

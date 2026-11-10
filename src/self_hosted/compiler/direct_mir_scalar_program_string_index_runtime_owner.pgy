@@ -59,7 +59,7 @@ func DirectMirScalarProgramStringIndexRuntimeDigest(
     ref fact: DirectMirScalarProgramStringIndexRuntimeFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(269L, fact.runtime_call_abi_id);
+    var hash: Long = DirectMirCfgHashInt(269L, fact.runtime_call_abi_id);
     hash = DirectMirCfgHashInt(hash, fact.range.missing_value);
     hash = DirectMirCfgHashInt(hash, fact.range.found_minimum);
     hash = DirectMirCfgHashInt(hash, fact.range.upper_bound_relation);
@@ -102,8 +102,8 @@ func DirectMirScalarProgramStringIndexRuntimeRequirement(
             "string_string_to_int") {
         return DirectMirScalarProgramStringIndexRuntimeFactEmpty();
     }
-    let abi_id: Int = 0;
-    let range: DirectMirScalarProgramStringIndexRangeContract =
+    var abi_id: Int = 0;
+    var range: DirectMirScalarProgramStringIndexRangeContract =
         DirectMirScalarProgramStringIndexRangeContractEmpty();
     if required {
         abi_id = abi.runtime_call_abi_id;

@@ -19,7 +19,7 @@ func CodegenValueWrapperUsageContains(
     type_names: Array<String>,
     type_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(type_names) {
         if type_names[i] == type_name { return true; }
         i = i + 1;
@@ -68,8 +68,8 @@ func CodegenValueWrapperUsageFactsFromSemantic(
     signatures: SemanticAstFunctionSignatureFacts,
     specializations: CodegenGenericSpecializationFacts
 ) -> CodegenValueWrapperUsageFacts {
-    let type_names: Array<String> = [];
-    let i: Int = 0;
+    var type_names: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let type_name: Option<String> =
             SemanticAstTypeSurfaceNameAt(facts, i);
@@ -83,7 +83,7 @@ func CodegenValueWrapperUsageFactsFromSemantic(
         }
         i = i + 1;
     }
-    let specialization_index: Int = 0;
+    var specialization_index: Int = 0;
     while specialization_index <
         CodegenGenericSpecializationCount(specializations) {
         let signature_index: Int =
@@ -96,7 +96,7 @@ func CodegenValueWrapperUsageFactsFromSemantic(
                 signatures, signature_index, actuals
             ), type_names
         );
-        let parameter_index: Int = 0;
+        var parameter_index: Int = 0;
         while parameter_index < CodegenSemanticFunctionParamCountOrDie(
             signatures, signature_index
         ) {
@@ -120,7 +120,7 @@ func CodegenValueWrapperUsageSurfaceHasFormal(
 ) -> Bool {
     let node_id: Int = facts.node_ids[surface_index];
     let parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
-    let signature_index: Int = 0;
+    var signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(signatures) {
         let generic_count: Int =
             CodegenSemanticFunctionGenericCountOrDie(
@@ -144,7 +144,7 @@ func CodegenValueWrapperUsageSurfaceHasFormal(
             ) {
             return true;
         }
-        let parameter_index: Int = 0;
+        var parameter_index: Int = 0;
         while parameter_index < CodegenSemanticFunctionParamCountOrDie(
             signatures, signature_index
         ) {
@@ -172,7 +172,7 @@ func CodegenValueWrapperUsageSurfaceHasFormal(
 }
 
 func CodegenValueWrapperUsageContractReady() -> Bool {
-    let type_names: Array<String> = [];
+    var type_names: Array<String> = [];
     CodegenValueWrapperUsageCollectType(
         " Option<Result<T: Payload,E: Failure>> ", type_names
     );

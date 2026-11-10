@@ -21,7 +21,7 @@ func DirectMirScalarProgramCSetStringExpression(
     if left_type != CompilerAbiLayoutSetStringTypeName() {
         Die("direct MIR Set<String> C receiver type is invalid");
     }
-    let symbol: String = runtime.c_has_fn;
+    var symbol: String = runtime.c_has_fn;
     if kind == DirectMirScalarProgramExprSetStringAdd() {
         symbol = runtime.c_add_fn;
     }

@@ -1,0 +1,63 @@
+// Flat constructor-field identity for one binding path. Whole values use -1;
+// -2 means the semantic type or field owner could not prove the projection.
+import "ast_collection_exclusive_value_field_read_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+func SemanticAstCollectionExclusiveBindingFieldRow(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, function_id: Int, binding: Int,
+    field: String
+) -> Int {
+    if field == "" { return -1; }
+    let type_name: String = SemanticAstCollectionExclusiveRootType(
+        signatures, locals, inferred_types, function_id, binding);
+    let canonical: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(type_name);
+    let owner: Option<Int> = SemanticAstNominalConstructorIndexForName(
+        constructors, canonical.nominal_base_name);
+    if !IsSome(owner) || canonical.canonical_name !=
+        canonical.nominal_base_name { return -2; }
+    let row: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(owner), field);
+    if !IsSome(row) { return -2; }
+    return UnwrapOption(row);
+}
+
+// Projects one admitted copy occurrence into both the storage edge and the
+// exact source/destination field rows consumed by compiler-Clone selection.
+func SemanticAstCollectionExclusiveRecordCopySiteProjection(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    inout copies: HashMap<String, Int>, function_id: Int, syntax_id: Int,
+    node: Int, root: Int, source: String, holder: Int,
+    ref landings: Array<String>
+) -> Void {
+    let source_field: Int = SemanticAstCollectionExclusiveBindingFieldRow(
+        signatures, constructors, locals, inferred_types, function_id, root,
+        source);
+    if ArrayLength(landings) == 0 {
+        SemanticAstCollectionExclusiveRecordCopyEdge(
+            copies, root, source, holder, "");
+        SemanticAstCollectionExclusiveRecordCopySite(
+            copies, function_id, syntax_id, node, root, source_field, holder,
+            -1);
+        return;
+    }
+    var index: Int = 0;
+    while index < ArrayLength(landings) {
+        SemanticAstCollectionExclusiveRecordCopyEdge(
+            copies, root, source, holder, landings[index]);
+        let destination_field: Int =
+            SemanticAstCollectionExclusiveBindingFieldRow(
+                signatures, constructors, locals, inferred_types, function_id,
+                holder, landings[index]);
+        SemanticAstCollectionExclusiveRecordCopySite(
+            copies, function_id, syntax_id, node, root, source_field, holder,
+            destination_field);
+        index = index + 1;
+    }
+}

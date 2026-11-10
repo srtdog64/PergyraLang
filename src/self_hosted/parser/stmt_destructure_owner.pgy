@@ -11,8 +11,8 @@ func ParseDestructureLetStmt(
     stmt_indent: Int,
     inout expression_graphs: AstExpressionGraphRows
 ) -> String {
-    let names: Array<String> = [];
-    let i: Int = start + 1;
+    var names: Array<String> = [];
+    var i: Int = start + 1;
     while true {
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
@@ -40,15 +40,15 @@ func ParseDestructureLetStmt(
     i = Expect(content, i, ";");
     if i < 0 { Exit(1); }
 
-    let pattern_text: String = "[";
-    let index: Int = 0;
+    var pattern_text: String = "[";
+    var index: Int = 0;
     while index < ArrayLength(names) {
         if index > 0 { pattern_text = Concat(pattern_text, ", "); }
         pattern_text = Concat(pattern_text, names[index]);
         index = index + 1;
     }
     pattern_text = Concat(pattern_text, "]");
-    let pattern: ParserExpressionFact = ParserExpressionArrayLiteral("[]");
+    var pattern: ParserExpressionFact = ParserExpressionArrayLiteral("[]");
     index = 0;
     while index < ArrayLength(names) {
         pattern = ParserExpressionArrayElement(

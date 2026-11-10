@@ -27,6 +27,7 @@
 #include "region_escape_fact.h"
 #include "domain_runtime_fact.h"
 #include "type_system.h"
+#include "formal_string_store_landing_owner.h"
 
 /*
  * Result of semantic analysis
@@ -111,6 +112,7 @@ typedef struct SemanticResult
     /* Store calls this analysis selects for an owned String landing; a
      * second analysis applies them (formal_string_store_landing_owner.h). */
     uint32_t     *string_store_landings;
+    PgyStringStoreLandingKind *string_store_landing_kinds;
     size_t       string_store_landing_count;
     /* Getter calls whose loan failed only by an owner change; a second
      * analysis takes each as `Clone(call)` (default_aggregate_move_owner.h). */
@@ -144,7 +146,8 @@ SemanticResult* semantic_analyze_ex(ASTNode* ast, bool emit_advisories);
  * expression each wraps in Clone. Identities are the ones semantic analysis
  * assigns, which the same sources get again on every load. */
 SemanticResult* semantic_analyze_with_landings(ASTNode* ast,
-    const uint32_t* landings, size_t landing_count,
+    const uint32_t* landings, const PgyStringStoreLandingKind* landing_kinds,
+    size_t landing_count,
     const uint32_t* copies, size_t copy_count);
 void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);

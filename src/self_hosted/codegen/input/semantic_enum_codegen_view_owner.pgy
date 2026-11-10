@@ -93,7 +93,7 @@ func CodegenSemanticEnumPayloadFree(
     let variant_count: Int = CodegenSemanticEnumVariantCount(
         facts, enum_name
     );
-    let variant_index: Int = 0;
+    var variant_index: Int = 0;
     while variant_index < variant_count {
         if CodegenSemanticEnumVariantParamCountAtOrDie(
             facts, enum_name, variant_index

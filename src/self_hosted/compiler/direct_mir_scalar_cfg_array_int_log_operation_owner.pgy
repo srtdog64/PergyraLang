@@ -7,7 +7,7 @@ func DirectMirScalarCfgArrayIntOwnsLengthLogOperation(
 ) -> Bool {
     if !fact.valid { return false; }
     if operation == fact.consumer.length_log_operation_row { return true; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.reverse.log_operation_rows) {
         if fact.reverse.log_operation_rows[row] == operation &&
             fact.reverse.log_kinds[row] ==

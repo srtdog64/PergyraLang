@@ -1,0 +1,25 @@
+// Formal indexed-read readiness.
+
+import "ast_collection_call_effect_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_formal_storage_permission_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+
+func SemanticAstCollectionFormalIndexedReadReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, argument_node: Int,
+    ref call_effects: SemanticAstCollectionCallEffectFacts
+) -> Bool {
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionStringArrayFormalIdentity(
+            signatures, surfaces.function_node_ids[surface_row],
+            surfaces.expression_graph, argument_node);
+    let unproved: Bool = !formal.ok || formal.mode == 2 ||
+        SemanticAstCollectionFormalCurrentDescriptorPermissionUnproved(
+            artifact, surfaces.node_ids[surface_row],
+            formal.syntax_id, call_effects);
+    return !unproved;
+}
+

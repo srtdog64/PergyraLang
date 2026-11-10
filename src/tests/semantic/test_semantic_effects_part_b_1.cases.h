@@ -177,6 +177,8 @@
             | BODY_SUMMARY_DROPS_RESOURCE
             | BODY_SUMMARY_MAY_RETURN;
         type_check_func_decl(func, ctx);
+        EXPECT(semantic_param_publication_seal_inputs(ctx));
+        EXPECT(semantic_param_publication_prepare_flow_summaries(ctx));
         EXPECT(semantic_param_publication_finalize(ctx));
 
         Symbol *sym = scope_lookup(ctx->scope, "Caller");
@@ -365,6 +367,8 @@
         scope_declare(ctx->scope, vsym);
 
         type_check_func_decl(func, ctx);
+        EXPECT(semantic_param_publication_seal_inputs(ctx));
+        EXPECT(semantic_param_publication_prepare_flow_summaries(ctx));
         EXPECT(semantic_param_publication_finalize(ctx));
 
         Symbol *sym = scope_lookup(ctx->scope, "Caller");

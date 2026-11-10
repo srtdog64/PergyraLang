@@ -7,3 +7,12 @@ func DirectMirScalarProgramExprIsErrInt() -> Int { return 109; }
 func DirectMirScalarProgramExprUnwrapResultInt() -> Int { return 110; }
 func DirectMirScalarProgramExprUnwrapErrInt() -> Int { return 111; }
 func DirectMirScalarProgramExprUnwrapOrInt() -> Int { return 112; }
+func DirectMirScalarProgramExprPayloadFreeEnumResultMatch() -> Int {
+    return 147;
+}
+func DirectMirScalarProgramPayloadFreeEnumResultMatchOkVariant() -> Int {
+    return 0;
+}
+func DirectMirScalarProgramPayloadFreeEnumResultMatchErrVariant() -> Int {
+    return 1;
+}

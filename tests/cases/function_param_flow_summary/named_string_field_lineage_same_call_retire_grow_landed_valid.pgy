@@ -2,7 +2,7 @@ struct TextRecord { text: String; }
 struct Rows { ids: Array<Int>; }
 
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }
@@ -10,7 +10,7 @@ func MakeRecord(text: String) -> TextRecord { return TextRecord(text); }
 
 func RetireThenGrow(own rows: Array<String>) -> Int {
     ArrayDropOwnedStrings(rows);
-    let replacement: Array<String> = [];
+    var replacement: Array<String> = [];
     var i: Int = 0;
     while i < 64 {
         ArrayPushOwnedString(replacement, "next");

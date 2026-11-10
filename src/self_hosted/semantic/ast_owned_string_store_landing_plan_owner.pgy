@@ -1,0 +1,281 @@
+// One Array<String> must not mix borrowed and owned elements.  Select exact
+// Clone landings for inout-formal stores and for every later store into a
+// fresh local whose first push established owned elements.  ArraySet's stored
+// value lives in the auxiliary lane; its value lane is the index.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_owned_string_expression_domain_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_collection_formal_effect_fact_owner.pgy";
+import "ast_owned_string_literal_transfer_owner.pgy";
+import "diagnostic_span_owner.pgy";
+
+func SemanticAstOwnedStringStoreLandingPlanSelect(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref owned_literal_facts: SemanticAstOwnedStringLiteralOwnershipFacts,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    inout selected_nodes: Array<Int>,
+    inout owned_store_nodes: Array<Int>
+) -> Bool {
+    if !statements.ok || !surfaces.ok ||
+        ArrayLength(statements.node_ids) !=
+            ArrayLength(statements.kind_tags) ||
+        ArrayLength(statements.node_ids) !=
+            ArrayLength(statements.function_node_ids) ||
+        !assignments.ok ||
+        !SemanticAstOwnedStringLiteralOwnershipFactsReady(
+            owned_literal_facts, locals) {
+        return false;
+    }
+
+    // A local seed is eligible only while its source definition is an exact
+    // empty literal or a proved owned-element literal. Any whole-binding
+    // assignment removes that premise; an indexed assignment is a store and
+    // remains governed by its own owner.
+    var reassigned_locals: HashMap<String, Int> = MapNew();
+    var assignment_row: Int = 0;
+    while assignment_row < ArrayLength(assignments.node_ids) {
+        if assignments.target_is_indexed[assignment_row] == 0 {
+            let binding: SemanticAstLocalBindingIdentity =
+                SemanticAstCollectionOwnershipLocalForStatementTarget(
+                    artifact, locals,
+                    initializer_types.inferred_type_names, surfaces,
+                    assignments.function_node_ids[assignment_row],
+                    assignments.node_ids[assignment_row]);
+            if binding.ok {
+                MapSet(reassigned_locals,
+                    ToString(locals.node_ids[binding.row]), 1);
+            }
+        }
+        assignment_row = assignment_row + 1;
+    }
+    var stable_receivers: HashMap<String, Int> = MapNew();
+    var fresh_empty_receivers: HashMap<String, Int> = MapNew();
+    var owned_receivers: HashMap<String, Int> = MapNew();
+    var local_row: Int = 0;
+    while local_row < ArrayLength(locals.node_ids) {
+        let key: String = ToString(locals.node_ids[local_row]);
+        let initializer: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                surfaces, locals.node_ids[local_row],
+                AstExpressionLaneValue());
+        if !MapHas(reassigned_locals, key) &&
+            SemanticAstCollectionOwnershipIsStringArray(
+                initializer_types.inferred_type_names[local_row]) &&
+            IsSome(initializer) {
+            if SemanticAstCollectionOwnershipLiteralIsEmpty(
+                    surfaces.expression_graph, UnwrapOption(initializer)) {
+                MapSet(stable_receivers, key, 1);
+                MapSet(fresh_empty_receivers, key, 1);
+            } else if owned_literal_facts.owned_by_local[local_row] {
+                MapSet(stable_receivers, key, 1);
+                MapSet(owned_receivers, key, 1);
+            }
+        }
+        local_row = local_row + 1;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        let kind: Int = statements.kind_tags[row];
+        if kind == TypedAstKindArrayPushStmtTag() ||
+            kind == TypedAstKindArraySetStmtTag() {
+            var value_lane: Int = AstExpressionLaneValue();
+            if kind == TypedAstKindArraySetStmtTag() {
+                value_lane = AstExpressionLaneAuxiliary();
+            }
+            let value_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, statements.node_ids[row],
+                    value_lane);
+            let target_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, statements.node_ids[row],
+                    AstExpressionLaneAtom());
+            if !IsSome(value_root) || !IsSome(target_root) { return false; }
+            let node: Int = UnwrapOption(value_root);
+            let domain: SemanticAstOwnedStringAllocationDomain =
+                SemanticAstOwnedStringExpressionAllocationDomain(
+                    artifact, signatures, locals, initializer_types,
+                    surfaces, owned_string_results.writes,
+                    owned_string_results.domain_exposures,
+                    owned_string_results, numeric_string_allocations,
+                    statements.function_node_ids[row],
+                    statements.node_ids[row], value_lane,
+                    node, 0);
+            let formal: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionStringArrayFormalIdentity(
+                    signatures, statements.function_node_ids[row],
+                    surfaces.expression_graph, UnwrapOption(target_root));
+            // An inout Array<String> must return one uniform ownership class.
+            // Fresh expressions already own their storage; every other exact
+            // value occurrence is materialized independently by codegen.
+            if formal.ok && formal.mode == 1 {
+                if domain.kind != 1 &&
+                    !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                        selected_nodes, node) &&
+                    !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                        selected_nodes, node) {
+                    return false;
+                }
+                if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                        owned_store_nodes, node) &&
+                    !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                        owned_store_nodes, node) {
+                    return false;
+                }
+            }
+            // Only a push can create the first element of an empty local.  A
+            // set may preserve an already-owned local, but cannot establish
+            // that every pre-existing element is owned.
+            if kind == TypedAstKindArrayPushStmtTag() {
+                let binding: SemanticAstLocalBindingIdentity =
+                    SemanticAstCollectionOwnershipLocalForStatementTarget(
+                        artifact, locals,
+                        initializer_types.inferred_type_names,
+                        surfaces, statements.function_node_ids[row],
+                        statements.node_ids[row]);
+                if binding.ok && binding.row >= 0 &&
+                    binding.row < ArrayLength(locals.node_ids) &&
+                    MapHas(fresh_empty_receivers,
+                        ToString(locals.node_ids[binding.row])) {
+                    if domain.kind == 1 {
+                        MapSet(owned_receivers,
+                            ToString(locals.node_ids[binding.row]), 1);
+                    }
+                }
+            }
+        }
+        row = row + 1;
+    }
+
+    // A proved owned-store inout call writes a clean descriptor back to its
+    // exact fresh local.  Every direct String store into that same local must
+    // therefore land independently, including stores that occur before the
+    // call.  This is a caller-side consequence of the already-resolved formal
+    // effect; it does not participate in the formal-effect fixed point.
+    if formal_effects.ok {
+        let call_roots: SemanticCallSpineRoots =
+            SemanticCallSpineRootsFromGraph(surfaces.expression_graph);
+        if !call_roots.ok || ArrayLength(call_roots.root_nodes) !=
+                SemanticExpressionGraphArenaNodeCount(
+                    surfaces.expression_graph.arena) {
+            return false;
+        }
+        var call_node: Int = 0;
+        while call_node < ArrayLength(call_roots.root_nodes) {
+            let node_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                surfaces.expression_graph, call_node);
+            if IsSome(node_kind) &&
+                UnwrapOption(node_kind) == AstExpressionNodeCall() {
+                let call: SemanticCallSpineView =
+                    SemanticCallSpineViewFromGraph(
+                        surfaces.expression_graph,
+                        call_roots.root_nodes[call_node]);
+                if call.ok && call.call_node == call_node {
+                    let owner_syntax_id: Int =
+                        SemanticAstExpressionGraphOwnerAstNode(
+                            surfaces, call_node);
+                    let surface_row: Option<Int> =
+                        SemanticAstExpressionSurfaceIndexForNode(
+                            surfaces, owner_syntax_id);
+                    if !IsSome(surface_row) { return false; }
+                    var argument: Int = 0;
+                    while argument < ArrayLength(call.argument_nodes) {
+                        let target:
+                            SemanticAstCollectionArgumentFormalTarget =
+                            SemanticAstCollectionArgumentFormalTargetForArgument(
+                                signatures, surfaces.expression_graph,
+                                call_node, argument);
+                        if target.ok &&
+                            signatures.param_modes[
+                                signatures.param_starts[
+                                    target.signature_row] +
+                                target.ordinal] == 1 &&
+                            MapHas(formal_effects.effects,
+                                ToString(target.syntax_id)) &&
+                            MapGet(formal_effects.effects,
+                                ToString(target.syntax_id)) == 2 {
+                            let binding: SemanticAstLocalBindingIdentity =
+                                SemanticAstCollectionOwnershipLocalForArgument(
+                                    artifact, locals,
+                                    initializer_types.inferred_type_names,
+                                    surfaces, UnwrapOption(surface_row),
+                                    call.argument_nodes[argument]);
+                            if binding.ok && binding.row >= 0 &&
+                                binding.row < ArrayLength(locals.node_ids) &&
+                                MapHas(stable_receivers,
+                                    ToString(locals.node_ids[binding.row])) {
+                                MapSet(owned_receivers,
+                                    ToString(locals.node_ids[binding.row]), 1);
+                            }
+                        }
+                        argument = argument + 1;
+                    }
+                }
+            }
+            call_node = call_node + 1;
+        }
+    }
+
+    row = 0;
+    while row < ArrayLength(statements.node_ids) {
+        let kind: Int = statements.kind_tags[row];
+        if kind == TypedAstKindArrayPushStmtTag() ||
+            kind == TypedAstKindArraySetStmtTag() {
+            let binding: SemanticAstLocalBindingIdentity =
+                SemanticAstCollectionOwnershipLocalForStatementTarget(
+                    artifact, locals, initializer_types.inferred_type_names,
+                    surfaces, statements.function_node_ids[row],
+                    statements.node_ids[row]);
+            if binding.ok && binding.row >= 0 &&
+                binding.row < ArrayLength(locals.node_ids) &&
+                MapHas(stable_receivers,
+                    ToString(locals.node_ids[binding.row])) &&
+                MapHas(owned_receivers,
+                    ToString(locals.node_ids[binding.row])) {
+                var value_lane: Int = AstExpressionLaneValue();
+                if kind == TypedAstKindArraySetStmtTag() {
+                    value_lane = AstExpressionLaneAuxiliary();
+                }
+                let value_root: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        surfaces, statements.node_ids[row],
+                        value_lane);
+                if !IsSome(value_root) { return false; }
+                let node: Int = UnwrapOption(value_root);
+                let domain: SemanticAstOwnedStringAllocationDomain =
+                    SemanticAstOwnedStringExpressionAllocationDomain(
+                        artifact, signatures, locals, initializer_types,
+                        surfaces, owned_string_results.writes,
+                        owned_string_results.domain_exposures,
+                        owned_string_results, numeric_string_allocations,
+                        statements.function_node_ids[row],
+                        statements.node_ids[row], value_lane,
+                        node, 0);
+                if domain.kind != 1 &&
+                    !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                        selected_nodes, node) &&
+                    !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                        selected_nodes, node) {
+                    return false;
+                }
+                if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                        owned_store_nodes, node) &&
+                    !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                        owned_store_nodes, node) {
+                    return false;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}

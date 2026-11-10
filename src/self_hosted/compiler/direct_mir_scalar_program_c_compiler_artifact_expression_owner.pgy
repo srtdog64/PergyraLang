@@ -13,8 +13,8 @@ func DirectMirScalarProgramCCompilerArtifactExpression(
         return Some(Concat(runtime.compiler_artifact_write.symbol, Concat("(",
             Concat(left, Concat(", ", Concat(right, ")"))))));
     }
-    let symbol: String = "";
-    let ready: Bool = false;
+    var symbol: String = "";
+    var ready: Bool = false;
     if kind == DirectMirScalarProgramExprCompilerArtifactBegin() {
         symbol = runtime.compiler_artifact_begin.symbol;
         ready = CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(

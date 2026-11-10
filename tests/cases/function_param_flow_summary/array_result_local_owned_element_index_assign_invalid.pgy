@@ -1,6 +1,6 @@
 func Main() -> Void
 {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     rows[0] = "borrowed";
     ArrayDropOwnedStrings(rows);

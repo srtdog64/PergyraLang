@@ -6,7 +6,7 @@ struct Arena {
 
 func Sum(arena: Arena) -> Int {
     let ids: Array<Int> = arena.ids;
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..ArrayLength(ids) {
         total = total + ids[i];
     }

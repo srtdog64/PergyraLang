@@ -1,7 +1,8 @@
-// LLVM value/address projection for admitted read-only Int/String arrays.
+// LLVM value/address projection for admitted read-only scalar arrays.
 import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
 
@@ -11,6 +12,7 @@ func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
     string_projection: Option<DirectMirArrayStringAbiProjection>,
     ref int_abi: DirectMirScalarProgramArrayIntValueResultFact,
     int_projection: Option<DirectMirArrayIntAbiProjection>,
+    ref bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
     routine: Int, ordinal: Int, result: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if !DirectMirScalarProgramArrayReadonlyRefAt(routines, routine, ordinal) {
@@ -20,13 +22,17 @@ func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
         DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
     let row: Int = routines.parameter_starts[routine] + ordinal;
     let type_name: String = routines.parameter_types[row];
-    let storage_align: String = "";
+    var storage_align: String = "";
     if type_name == CompilerAbiLayoutArrayIntTypeName() {
         if !IsSome(int_projection) { return invalid; }
         let projection: DirectMirArrayIntAbiProjection = UnwrapOption(int_projection);
         if !DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(
                 int_abi, projection, CompilerTargetCpuLlvmProjection()) { return invalid; }
         storage_align = ToString(projection.storage.align);
+    } else if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        if !DirectMirScalarProgramArrayBoolAbiFactReady(bool_abi) ||
+            !bool_abi.present { return invalid; }
+        storage_align = ToString(bool_abi.align);
     } else {
         if !IsSome(string_projection) { return invalid; }
         let projection: DirectMirArrayStringAbiProjection = UnwrapOption(string_projection);
@@ -63,7 +69,7 @@ func DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(
     if !DirectMirScalarProgramReadonlyArrayReborrowAt(routines, routine, source) {
         return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
     }
-    let pointer: String = Concat("%pgy.param.", ToString(source));
+    var pointer: String = Concat("%pgy.param.", ToString(source));
     if !DirectMirScalarProgramArrayReadonlyRefAt(routines, routine, source) {
         pointer = Concat(pointer, ".local");
     }

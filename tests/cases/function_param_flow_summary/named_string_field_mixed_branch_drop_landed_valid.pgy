@@ -6,7 +6,7 @@ struct TextNode { type_name: String; }
 struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
 
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }
@@ -17,7 +17,7 @@ func Fill(source: Array<String>, inout nodes: Array<TextNode>) -> Void {
 
 func Project(nodes: Array<TextNode>, useBorrowed: Bool) -> Arena {
     let provenance_texts: Array<String> = [];
-    let atom_table: Array<String> = [""];
+    var atom_table: Array<String> = [""];
     if useBorrowed {
         ArrayPush(atom_table, nodes[0].type_name);
     } else {
@@ -28,7 +28,7 @@ func Project(nodes: Array<TextNode>, useBorrowed: Bool) -> Arena {
 
 func Main() -> Void {
     let rows: Array<String> = OwnedRows();
-    let nodes: Array<TextNode> = [];
+    var nodes: Array<TextNode> = [];
     Fill(rows, nodes);
     let arena: Arena = Project(nodes, true);
     ArrayDropOwnedStrings(rows);

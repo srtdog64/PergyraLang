@@ -42,7 +42,7 @@ func CompilerSymbolProjectionAt(index: Int) -> String {
     return "";
 }
 func CompilerSymbolTableRowIndex(row_name: String) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSymbolTableRowCount() {
         if CompilerSymbolTableRowAt(i) == row_name {
             return Some(i);
@@ -58,7 +58,7 @@ func CompilerSymbolProjectionCount() -> Int {
     return 3;
 }
 func CompilerSymbolProjectionIndex(row_name: String) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSymbolProjectionCount() {
         if CompilerSymbolProjectionAt(i) == row_name {
             return Some(i);
@@ -109,7 +109,7 @@ func CompilerSymbolCReservedWord(name: String) -> Bool {
         name == "while";
 }
 func CompilerSymbolCEscapedReservedWord(name: String) -> Bool {
-    let cursor: String = name;
+    var cursor: String = name;
     while StringLength(cursor) > 4 && Substring(cursor, 0, 4) == "pgy_" {
         cursor = Substring(cursor, 4, StringLength(cursor) - 4);
         if CompilerSymbolCReservedWord(cursor) {
@@ -128,7 +128,7 @@ func CompilerSymbolCIdentifier(source_name: String) -> String {
     }
     let result_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(n + 5);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         let c: String = CompilerSymbolCharAt(name, i);
         if i == 0 {
@@ -179,9 +179,9 @@ func CompilerSymbolCImportPublicName(c_symbol: String) -> String {
 }
 func CompilerSymbolCLocalCallName(c_symbol: String) -> String {
     let public_symbol: String = CompilerSymbolCImportPublicName(c_symbol);
-    let last_underscore: Int = 0 - 1;
+    var last_underscore: Int = 0 - 1;
     let public_symbol_length: Int = StringLength(public_symbol);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < public_symbol_length {
         if CharCode(public_symbol, public_symbol_length, i) == 95 {
             last_underscore = i;
@@ -200,9 +200,9 @@ func CompilerSymbolCMangledTypeNamePolicy(
     type_name: String,
     preserve_terminal_separator: Bool
 ) -> String {
-    let out: String = "";
-    let wrote: Bool = false;
-    let i: Int = 0;
+    var out: String = "";
+    var wrote: Bool = false;
+    var i: Int = 0;
     while i < StringLength(type_name) {
         let c: String = CompilerSymbolCharAt(type_name, i);
         if StringIndexOf(
@@ -303,8 +303,8 @@ func CompilerSymbolCGenericSpecializationName(
     base_name: String,
     actual_type_names: Array<String>
 ) -> String {
-    let out: String = CompilerSymbolCIdentifier(base_name);
-    let i: Int = 0;
+    var out: String = CompilerSymbolCIdentifier(base_name);
+    var i: Int = 0;
     while i < ArrayLength(actual_type_names) {
         // The encoder receives a scalar copy, not a borrowed array element.
         out = Concat(out, Concat(

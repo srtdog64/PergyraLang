@@ -130,27 +130,27 @@ func CompilerHarnessCodegenBootstrapMirFixtureAt(index: Int) -> String {
 }
 
 func CompilerHarnessCodegenBootstrapRowsReady() -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapPathCount() {
         if CompilerHarnessCodegenBootstrapPathAt(i) == "" { return false; }
         i = i + 1;
     }
-    let c: Int = 0;
+    var c: Int = 0;
     while c < CompilerHarnessCodegenBootstrapComponentCount() {
         if CompilerHarnessCodegenBootstrapComponentRowAt(c) == "" { return false; }
         c = c + 1;
     }
-    let t: Int = 0;
+    var t: Int = 0;
     while t < CompilerHarnessCodegenBootstrapToolCount() {
         if CompilerHarnessCodegenBootstrapToolRowAt(t) == "" { return false; }
         t = t + 1;
     }
-    let s: Int = 0;
+    var s: Int = 0;
     while s < CompilerHarnessCodegenBootstrapSampleCount() {
         if CompilerHarnessCodegenBootstrapSampleAt(s) == "" { return false; }
         s = s + 1;
     }
-    let m: Int = 0;
+    var m: Int = 0;
     while m < CompilerHarnessCodegenBootstrapMirFixtureCount() {
         if CompilerHarnessCodegenBootstrapMirFixtureAt(m) == "" { return false; }
         m = m + 1;

@@ -5,6 +5,64 @@ import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy
 import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
 import "abi_layout_row_owner.pgy";
 
+func DirectMirScalarProgramCollectionOwnershipOperationRequiresValueCopy(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> Bool {
+    if DirectMirCollectionOwnershipOperationRequiresValueCopy(
+            plan.program.collection_ownership,
+            plan.program.operation_expression_rows,
+            plan.program.expressions, operation) {
+        return true;
+    }
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        DirectMirScalarProgramCollectionOwnershipOperationEffect(
+            plan.program.collection_ownership, operation) != 1 {
+        return false;
+    }
+    let operation_kind: Int = plan.operation_kinds[operation];
+    if operation_kind != DirectMirScalarCfgOpLocalArrayStringPush() &&
+        operation_kind != DirectMirScalarCfgOpArrayStringValueResultPush() {
+        return false;
+    }
+    let expression: Int = plan.program.operation_expression_rows[operation];
+    if expression < 0 || expression >= ArrayLength(
+            plan.program.expressions.graph_roots) {
+        return false;
+    }
+    let root: Int = plan.program.expressions.graph_roots[expression];
+    if root < 0 || root >= ArrayLength(
+            plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprDirectCall() {
+        return false;
+    }
+    let callable: Int =
+        plan.program.expressions.node_callable_rows[root];
+    return !DirectMirScalarProgramFunctionReturnsOwnedString(plan, callable) &&
+        DirectMirScalarProgramFunctionReturnsCopyableString(plan, callable);
+}
+
+func DirectMirScalarProgramCollectionOwnershipValueCopyReached(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    var operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if DirectMirScalarProgramCollectionOwnershipOperationRequiresValueCopy(
+                plan, operation) {
+            return true;
+        }
+        operation = operation + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramStringConcatMaterializationReached(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    return plan.string_concat_runtime_call_abi_id != 0 ||
+        DirectMirScalarProgramCollectionOwnershipValueCopyReached(plan);
+}
+
 func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
@@ -12,7 +70,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
             plan.program.collection_ownership) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(
             plan.program.collection_ownership.routine_ordinals) {
         let routine: Int =
@@ -30,10 +88,28 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
         }
         row = row + 1;
     }
-    let operation: Int = 0;
+    row = 0;
+    while row < ArrayLength(
+            plan.program.collection_ownership.operation_ordinals) {
+        let operation: Int =
+            plan.program.collection_ownership.operation_ordinals[row];
+        let effect: Int =
+            plan.program.collection_ownership.operation_effect_kinds[row];
+        if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+            (effect == 4 && plan.operation_kinds[operation] !=
+                DirectMirScalarCfgOpArrayStringSet()) ||
+            (effect == 5 && plan.operation_kinds[operation] !=
+                DirectMirScalarCfgOpArrayStringPop()) {
+            return false;
+        }
+        row = row + 1;
+    }
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
-        if plan.operation_kinds[operation] ==
-                DirectMirScalarCfgOpLocalArrayStringPush() {
+        let operation_kind: Int = plan.operation_kinds[operation];
+        if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+            operation_kind ==
+                DirectMirScalarCfgOpArrayStringValueResultPush() {
             let expression: Int =
                 plan.program.operation_expression_rows[operation];
             if expression < 0 || expression >= ArrayLength(
@@ -44,10 +120,15 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
             if root >= 0 && root < ArrayLength(
                     plan.program.expressions.node_kinds) &&
                 plan.program.expressions.node_kinds[root] ==
-                    DirectMirScalarProgramExprDirectCall() &&
-                !DirectMirScalarProgramFunctionReturnsOwnedString(
-                    plan, plan.program.expressions.node_callable_rows[root]) {
-                return false;
+                    DirectMirScalarProgramExprDirectCall() {
+                let callable: Int =
+                    plan.program.expressions.node_callable_rows[root];
+                if !DirectMirScalarProgramFunctionReturnsOwnedString(
+                        plan, callable) &&
+                    !DirectMirScalarProgramFunctionReturnsCopyableString(
+                        plan, callable) {
+                    return false;
+                }
             }
         }
         operation = operation + 1;

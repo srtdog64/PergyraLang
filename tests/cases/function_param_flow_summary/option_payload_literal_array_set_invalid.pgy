@@ -1,5 +1,5 @@
 func ChangedCodes() -> Array<String> {
-    let codes: Array<String> = ["alpha", "beta"];
+    var codes: Array<String> = ["alpha", "beta"];
     ArraySet(codes, 0, Concat("he", "ap"));
     return codes;
 }
@@ -12,7 +12,7 @@ func FindCode() -> Option<String> {
 func Main() -> Void {
     let risk: Array<String> = [Concat("li", "ve")];
     let found: Option<String> = FindCode();
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     if IsSome(found) {
         let text: String = UnwrapOption(found);
         ArrayPush(rows, text);

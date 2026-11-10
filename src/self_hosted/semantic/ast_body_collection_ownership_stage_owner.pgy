@@ -1,0 +1,58 @@
+// Body stage that admits collection ownership and publishes its exact Clone
+// landing overlay into the same semantic expression graph generation.
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
+import "ast_collection_ownership_verdict_owner.pgy";
+import "ast_expression_graph_compiler_clone_owner.pgy";
+
+func SemanticAstBodyCollectionOwnershipStage(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref resolved_leaf_types: Array<String>,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref call_roots: SemanticCallSpineRoots,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref assignment_types: SemanticAstAssignmentTypeFacts,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref owned_literal_facts: SemanticAstOwnedStringLiteralOwnershipFacts,
+    ref owned_string_store_clone_nodes: Array<Int>,
+    ref owned_string_store_nodes: Array<Int>,
+    ref body_termination: SemanticAstBodyTerminationFacts,
+    inout body_verdict: SemanticAstBodyVerdict,
+    inout ownership: SemanticAstCollectionOwnershipVerdict,
+    inout focus_recovery: SemanticAstCollectionFocusRecoveryFacts
+) -> Void {
+    if !body_verdict.ok { return; }
+    ownership =
+        SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types,
+            analysis.expression_surfaces, analysis.function_scopes,
+            resolved_leaf_types, numeric_string_allocations, call_roots,
+            owned_string_results, analysis.statements, analysis.assignments,
+            assignment_types, formal_effects,
+            owned_literal_facts,
+            owned_string_store_clone_nodes, owned_string_store_nodes,
+            body_termination,
+            focus_recovery);
+    if !ownership.ok {
+        body_verdict = SemanticAstBodyVerdictError(
+            ownership.diagnostic_code, ownership.diagnostic_message,
+            ownership.syntax_node_id);
+        return;
+    }
+    var graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let attached: Bool = SemanticExpressionGraphCompilerCloneLandingsAttach(
+        graph, ownership.compiler_clone_expression_node_ids);
+    analysis.expression_surfaces.expression_graph = graph;
+    if attached { return; }
+    ownership = SemanticAstCollectionOwnershipVerdictError(
+        "ast_artifact_invalid",
+        SemanticError1("ast_artifact_invalid", "owner",
+            "collection_compiler_clone_landings"), -1, -1);
+    body_verdict = SemanticAstBodyVerdictError(
+        ownership.diagnostic_code, ownership.diagnostic_message, -1);
+}

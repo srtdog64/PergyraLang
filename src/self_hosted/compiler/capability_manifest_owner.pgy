@@ -15,8 +15,8 @@ struct CompilerCapabilityManifestOutcome {
 func CompilerCapabilityManifestHex(mask: Int) -> String {
     if mask == 0 { return "0"; }
     let digits: String = "0123456789abcdef";
-    let reversed: String = "";
-    let remaining: Int = mask;
+    var reversed: String = "";
+    var remaining: Int = mask;
     while remaining > 0 {
         let digit: Int = remaining % 16;
         reversed = Concat(
@@ -28,8 +28,8 @@ func CompilerCapabilityManifestHex(mask: Int) -> String {
     // The digits are complete; read them through one unchanged binding.
     let reversed_digits: String = reversed;
     let reversed_extent: Int = StringLength(reversed_digits);
-    let output: String = "";
-    let index: Int = reversed_extent - 1;
+    var output: String = "";
+    var index: Int = reversed_extent - 1;
     while index >= 0 {
         output = Concat(
             output,
@@ -41,8 +41,8 @@ func CompilerCapabilityManifestHex(mask: Int) -> String {
 }
 
 func CompilerCapabilityManifestJson(used_mask: Int) -> String {
-    let used: String = "";
-    let rank: Int = 0;
+    var used: String = "";
+    var rank: Int = 0;
     while rank < 9 {
         let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
             CallableContractVocabularyCapabilityAxis(), rank
@@ -76,7 +76,7 @@ func CompileSourceCapabilityManifestVerified(
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
     // A manifest request lowers no routine body, so a statement the default
     // route cannot lower does not stop it (native prints the same manifest).
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeFromExpressionSurfaces(artifact, false,
             SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact), false,
             SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly);

@@ -1,0 +1,36 @@
+// HashMap callable parameter carriage projected from both target ABI facts.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func DirectMirScalarProgramHashMapTypeReady(type_name: String
+) -> Bool {
+    let c_fact: CollectionHashMapRuntimeFact =
+        CollectionHashMapRuntimeFactFromTypeName(type_name);
+    let llvm_fact: CollectionHashMapLlvmFact =
+        CollectionHashMapLlvmFactFromTypeName(type_name);
+    return c_fact.ok && llvm_fact.ok &&
+        c_fact.type_name == llvm_fact.type_name;
+}
+
+func DirectMirScalarProgramHashMapParameterCarriageReady(
+    type_name: String, carriage: String
+) -> Bool {
+    return DirectMirScalarProgramHashMapTypeReady(type_name) &&
+        (carriage == "value" || carriage == "readonly-ref" ||
+         carriage == "value-result" || carriage == "owner-handle");
+}
+
+func DirectMirScalarProgramHashMapParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramHashMapParameterCarriageReady(
+            signature.parameters.type_names[ordinal],
+            signature.parameters.carriages[ordinal]) &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
+}

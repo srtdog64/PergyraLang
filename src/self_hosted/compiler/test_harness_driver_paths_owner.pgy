@@ -60,7 +60,7 @@ func CompilerHarnessDriverRung0Ready() -> Bool {
     if CompilerHarnessDriverRung0PathCount() != 2 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessDriverRung0PathCount() {
         if CompilerHarnessDriverRung0PathAt(i) == "" {
             return false;
@@ -74,7 +74,7 @@ func CompilerHarnessDriverRung1Ready() -> Bool {
     if CompilerHarnessDriverRung1PathCount() != 2 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessDriverRung1PathCount() {
         if CompilerHarnessDriverRung1PathAt(i) == "" {
             return false;
@@ -88,7 +88,7 @@ func CompilerHarnessDriverRung2Ready() -> Bool {
     if CompilerHarnessDriverRung2PathCount() != 1 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessDriverRung2PathCount() {
         if CompilerHarnessDriverRung2PathAt(i) == "" {
             return false;

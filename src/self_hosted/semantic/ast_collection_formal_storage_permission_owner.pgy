@@ -76,7 +76,7 @@ func SemanticAstCollectionOwnFormalStatementMutationUnproved(
     // Parser mutators carry their receiver in the admitted Atom lane, not a
     // CallArgument. Indexed Assign consumes only the target's base receiver.
     if lane != AstExpressionLaneAtom() { return Ok(false); }
-    let target: Int = root;
+    var target: Int = root;
     if TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindAssignStmtTag()) {
         let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
         let count: Int = ArrayLength(assignments.node_ids);

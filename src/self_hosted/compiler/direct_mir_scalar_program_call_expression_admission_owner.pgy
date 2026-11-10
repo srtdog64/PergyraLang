@@ -5,3 +5,4 @@ import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
 import "direct_mir_scalar_program_call_argument_expected_type_owner.pgy";
 import "direct_mir_scalar_program_call_with_arguments_admission_owner.pgy";
 import "direct_mir_scalar_program_zero_argument_call_admission_owner.pgy";
+import "direct_mir_scalar_program_process_exit_argument_owner.pgy";

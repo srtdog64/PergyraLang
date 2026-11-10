@@ -200,7 +200,7 @@ pgy_select_c_compiler(PgyCCompilerSelection *selection)
     }
 #else
     {
-        const char *candidates[] = { "gcc", "clang", "cc", NULL };
+        const char *candidates[] = { "clang", "gcc", "cc", NULL };
         for (int i = 0; candidates[i] != NULL; i++) {
             const char *test_argv[] = { candidates[i], "--version", NULL };
             if (pgy_exec_probe_argv_silent(test_argv) == 0) {

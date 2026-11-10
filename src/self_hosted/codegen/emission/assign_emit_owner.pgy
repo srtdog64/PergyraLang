@@ -13,26 +13,39 @@ import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func EmitAssign(
     assignments: SemanticAstAssignmentFacts,
-    idx: Int,
+    node_id: Int,
     expected_type: String,
     target_type: String,
     env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView,
-    target_graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    value_root_id: Int,
+    target_root_id: Int
 ) -> String {
-    let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx);
-    let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx);
+    let assignment_index: Int = CodegenSemanticAssignmentIndexOrDie(
+        assignments, node_id
+    );
+    if assignment_index < 0 ||
+        assignment_index >= ArrayLength(assignments.operations) ||
+        assignments.operations[assignment_index] != 0 {
+        Die("assignment projection requires its admitted MIR operation");
+    }
+    let name: String = CodegenSemanticAssignmentTargetOrDie(
+        assignments, node_id
+    );
+    let expr: String = CodegenSemanticAssignmentValueOrDie(
+        assignments, node_id
+    );
     if expected_type == "" {
         Die("assignment expected type is missing");
     }
     let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        target_graph.graph, target_graph.root_id
+        graph, target_root_id
     );
     let target_text: Option<String> = SemanticExpressionGraphNodeText(
-        target_graph.graph, target_graph.root_id
+        graph, target_root_id
     );
-    if !target_graph.ok || !IsSome(target_kind) || !IsSome(target_text) {
+    if !IsSome(target_kind) || !IsSome(target_text) {
         Die("assignment target graph is missing or invalid");
     }
     let target_kind_value: Int = UnwrapOption(target_kind);
@@ -40,15 +53,15 @@ func EmitAssign(
     if target_text_value != name {
         Die("assignment target graph is missing or invalid");
     }
-    if CodegenSemanticAssignmentTargetIsIndex(assignments, idx) {
+    if CodegenSemanticAssignmentTargetIsIndex(assignments, node_id) {
         if target_type == "" {
             Die("indexed assignment target type is missing");
         }
         let receiver_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-            target_graph.graph, target_graph.root_id
+            graph, target_root_id
         );
         let index_opt: Option<Int> = SemanticExpressionGraphRightChild(
-            target_graph.graph, target_graph.root_id
+            graph, target_root_id
         );
         if target_kind_value != AstExpressionNodeIndex() ||
             !IsSome(receiver_opt) || !IsSome(index_opt) {
@@ -57,23 +70,23 @@ func EmitAssign(
         let receiver_id: Int = UnwrapOption(receiver_opt);
         let index_id: Int = UnwrapOption(index_opt);
         let c_arr_name: String = RewriteExprFromSemanticGraph(
-            target_graph.graph, receiver_id, env
+            graph, receiver_id, env
         );
         let idx_expr: String = RewriteExprFromSemanticGraph(
-            target_graph.graph, index_id, env
+            graph, index_id, env
         );
         let array_fact: CollectionRuntimeFact =
             CollectionRuntimeFactFromTypeName(target_type, env);
         let rhs: String = EmitCollectionGraphElementValue(
-            expr, env, array_fact, graph
+            expr, env, array_fact, graph, value_root_id
         );
         return Concat(array_fact.c_set_fn, Concat("(&", Concat(c_arr_name, Concat(", ",
             Concat(idx_expr, Concat(", ", Concat(rhs, ");")))))));
     }
-    let c_name: String = LookupKindType(env, name, "cbind");
+    var c_name: String = LookupKindType(env, name, "cbind");
     if target_kind_value == AstExpressionNodeMemberAccess() {
         c_name = RewriteExprFromSemanticGraph(
-            target_graph.graph, target_graph.root_id, env
+            graph, target_root_id, env
         );
     } else if target_kind_value != AstExpressionNodeLeaf() {
         Die("assignment target graph kind is unsupported");
@@ -84,12 +97,12 @@ func EmitAssign(
         expected_type == "Double" ||
         expected_type == "Long" {
         return Concat(c_name, Concat(" = ", Concat(
-            WrapExprWithSemanticGraph(expr, env, graph), ";"
+            WrapExprWithSemanticGraph(expr, env, graph, value_root_id), ";"
         )));
     }
     if StartsWith(expected_type, "Option<") {
         let option_expr: OptionExprEmissionFact =
-            EmitOptionExprFactForType(expr, expected_type, env, graph);
+            EmitOptionExprFactForType(expr, expected_type, env, graph, value_root_id);
         return Concat(c_name, Concat(" = ", Concat(
             option_expr.c_expr, ";"
         )));
@@ -103,18 +116,18 @@ func EmitAssign(
         StartsWith(expected_type, "HashMap<") {
         return Concat(c_name, Concat(" = ", Concat(
             RewriteExpectedValueWithSemanticGraph(
-                expr, expected_type, env, graph
+                expr, expected_type, env, graph, value_root_id
             ), ";"
         )));
     }
     if LookupKindType(env, expected_type, "s") == "struct" {
         return Concat(c_name, Concat(" = ", Concat(
             RewriteExpectedValueWithSemanticGraph(
-                expr, expected_type, env, graph
+                expr, expected_type, env, graph, value_root_id
             ), ";"
         )));
     }
     return Concat(c_name, Concat(" = ", Concat(
-        WrapExprWithSemanticGraph(expr, env, graph), ";"
+        WrapExprWithSemanticGraph(expr, env, graph, value_root_id), ";"
     )));
 }

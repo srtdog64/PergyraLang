@@ -52,17 +52,17 @@ func CompilerRuntimeValueRepresentationFor(
         ownership != CompilerAbiLayoutOwnershipSingleOwnerLinear() {
         return CompilerRuntimeValueRepresentationMissing();
     }
-    let names: Array<String> = [];
-    let offsets: Array<Int> = [];
-    let sizes: Array<Int> = [];
-    let aligns: Array<Int> = [];
+    var names: Array<String> = [];
+    var offsets: Array<Int> = [];
+    var sizes: Array<Int> = [];
+    var aligns: Array<Int> = [];
     let field_order: String = CompilerAbiLayoutRowFieldOrderAt(row);
-    let llvm_type: String = "";
-    let llvm_body: String = "";
-    let size: Int = 0;
-    let align: Int = 0;
-    let runtime_fn: String = "";
-    let inner_c_type: String = "";
+    var llvm_type: String = "";
+    var llvm_body: String = "";
+    var size: Int = 0;
+    var align: Int = 0;
+    var runtime_fn: String = "";
+    var inner_c_type: String = "";
     if field_order == CompilerAbiLayoutFieldOrderAllocator() {
         llvm_type = "%pgy.runtime.allocator";
         llvm_body = "{ i32, i1, i1, i64, i64, i64, i64, ptr }";
@@ -138,7 +138,7 @@ func CompilerRuntimeValueRepresentationMatchesCapture(
             ArrayLength(expected.field_names) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(expected.field_names) {
         if captured.field_names[row] != expected.field_names[row] ||
             captured.field_offsets[row] !=
@@ -156,7 +156,7 @@ func CompilerRuntimeValueRepresentationMatchesCapture(
 func CompilerRuntimeValueTypesPresent(
     ref local_types: Array<String>, ref parameter_types: Array<String>
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(local_types) {
         if CompilerRuntimeValueTypeReady(Concat("", local_types[row])) { return true; }
         row = row + 1;
@@ -179,7 +179,7 @@ func CompilerRuntimeValueCLocalPreamble(
 func CompilerRuntimeValueLlvmLocalPreamble(
     ref local_types: Array<String>, ref parameter_types: Array<String>
 ) -> String {
-    let output: String = "";
+    var output: String = "";
     let allocator: CompilerRuntimeValueRepresentation =
         CompilerRuntimeValueRepresentationFor(
             CompilerAbiLayoutAllocatorTypeName());

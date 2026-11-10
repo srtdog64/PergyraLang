@@ -1,0 +1,15 @@
+// Return ABI join for a persisted untyped None leaf.
+
+import "direct_mir_scalar_program_option_absence_type_owner.pgy";
+
+func DirectMirScalarProgramOptionAbsenceReturnAbiReady(
+    text: String, persisted_type: String, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    if persisted_type == expected_type { return true; }
+    let fact: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramOptionAbsenceExpressionKind(
+            text, expected_type, logical_record, referenced_enum);
+    return fact.valid && persisted_type == "Option<Unknown>";
+}

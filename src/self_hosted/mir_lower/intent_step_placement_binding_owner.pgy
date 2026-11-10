@@ -64,7 +64,7 @@ func MirIntentStepPlacementBindingFromOwners(
             declarations, bindings, zone_declaration, actor,
             bindings.aliases[actor], false
         );
-    let authority_binding: MirIntentStepSubjectBinding =
+    var authority_binding: MirIntentStepSubjectBinding =
         MirIntentStepSubjectBindingEmpty();
     if authority_present {
         let authority: Int =

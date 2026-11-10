@@ -1,0 +1,23 @@
+struct LoopRows {
+    let tag: Int;
+    let ready: Bool;
+    let names: Array<String>;
+}
+
+func LoopRowsCount(ref rows: LoopRows) -> Int {
+    return ArrayLength(rows.names);
+}
+
+func Main() -> Int {
+    let i: Int = 0;
+    let total: Int = 0;
+    while i < 3 {
+        let names: Array<String> = [];
+        ArrayPushOwnedString(names, Concat("x", ""));
+        let rows: LoopRows = LoopRows(i, true, names);
+        total = total + LoopRowsCount(rows);
+        i = i + 1;
+    }
+    Print(ToString(total));
+    return 0;
+}

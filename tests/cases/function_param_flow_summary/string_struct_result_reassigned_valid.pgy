@@ -19,7 +19,7 @@ func SealAt(arena: Arena, index: Int) -> Seal {
 }
 
 func Check(arena: Arena, second: Bool) -> Int {
-    let seal: Seal = Seal(false, "");
+    var seal: Seal = Seal(false, "");
     if second {
         seal = SealAt(arena, 1);
     }

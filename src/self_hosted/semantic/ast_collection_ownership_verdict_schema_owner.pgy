@@ -1,0 +1,77 @@
+// Collection-ownership verdict schema and success constructors.
+
+import "ast_collection_ownership_receipt_owner.pgy";
+
+struct SemanticAstCollectionOwnershipVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+    expression_node_id: Int;
+    function_syntax_ids: Array<Int>;
+    binding_syntax_ids: Array<Int>;
+    origin_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+    member_path_starts: Array<Int>;
+    member_path_counts: Array<Int>;
+    member_path_field_syntax_ids: Array<Int>;
+    element_ownerships: Array<Int>;
+    dispositions: Array<Int>;
+    origins: Array<Int>;
+    fresh_owned_result_function_syntax_ids: Array<Int>;
+    compiler_clone_expression_node_ids: Array<Int>;
+    receipts: SemanticAstCollectionOwnershipReceiptRows;
+}
+
+func SemanticAstCollectionOwnershipVerdictOk(
+) -> SemanticAstCollectionOwnershipVerdict {
+    let function_syntax_ids: Array<Int> = [];
+    let binding_syntax_ids: Array<Int> = [];
+    let origin_syntax_ids: Array<Int> = [];
+    let source_binding_syntax_ids: Array<Int> = [];
+    let member_path_starts: Array<Int> = [];
+    let member_path_counts: Array<Int> = [];
+    let member_path_field_syntax_ids: Array<Int> = [];
+    let element_ownerships: Array<Int> = [];
+    let dispositions: Array<Int> = [];
+    let origins: Array<Int> = [];
+    let fresh_owned_result_function_syntax_ids: Array<Int> = []; let compiler_clone_expression_node_ids: Array<Int> = [];
+    return SemanticAstCollectionOwnershipVerdict(
+        true, "", "", -1, -1,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, member_path_starts, member_path_counts,
+        member_path_field_syntax_ids,
+        element_ownerships, dispositions, origins,
+        fresh_owned_result_function_syntax_ids,
+        compiler_clone_expression_node_ids,
+        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+    );
+}
+
+func SemanticAstCollectionOwnershipVerdictOkWithFacts(
+    function_syntax_ids: Array<Int>,
+    binding_syntax_ids: Array<Int>,
+    origin_syntax_ids: Array<Int>,
+    source_binding_syntax_ids: Array<Int>,
+    member_path_starts: Array<Int>,
+    member_path_counts: Array<Int>,
+    member_path_field_syntax_ids: Array<Int>,
+    element_ownerships: Array<Int>,
+    dispositions: Array<Int>,
+    origins: Array<Int>,
+    fresh_owned_result_function_syntax_ids: Array<Int>,
+    compiler_clone_expression_node_ids: Array<Int>,
+    receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionOwnershipVerdict {
+    return SemanticAstCollectionOwnershipVerdict(
+        true, "", "", -1, -1,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, member_path_starts, member_path_counts,
+        member_path_field_syntax_ids,
+        element_ownerships, dispositions, origins,
+        fresh_owned_result_function_syntax_ids,
+        compiler_clone_expression_node_ids,
+        receipts
+    );
+}
+

@@ -24,7 +24,7 @@ func SurfacesFrom(graph: Graph) -> Surfaces {
 
 func Check() -> Int {
     let valid: Graph = Graph(Arena([Concat("a", ""), Concat("b", "")], [Cell(1)]));
-    let surfaces: Surfaces = SurfacesFrom(valid);
+    var surfaces: Surfaces = SurfacesFrom(valid);
     surfaces.graph.arena.texts[0] = "missing";
     return StringLength(valid.arena.texts[0]);
 }

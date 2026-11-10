@@ -7,6 +7,8 @@
 
 #include "llvm_target_machine_internal.h"
 
+#include <string.h>
+
 static void
 llvm_init_all_targets(void)
 {
@@ -103,6 +105,29 @@ llvm_apply_target_machine(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     LLVMSetModuleDataLayout(ctx->module, layout);
     LLVMSetTarget(ctx->module, triple);
     LLVMDisposeTargetData(layout);
+
+    /* An emitted caller must carry the target's actual features before it
+     * consumes Clang runtime bitcode. Otherwise the inliner compares an empty
+     * caller feature set with the runtime's concrete target and refuses it. */
+    char *cpu = LLVMGetTargetMachineCPU(machine);
+    char *features = LLVMGetTargetMachineFeatureString(machine);
+    for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
+         fn != NULL; fn = LLVMGetNextFunction(fn)) {
+        if (LLVMIsDeclaration(fn))
+            continue;
+        if (LLVMGetStringAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                "target-cpu", 10) == NULL && cpu != NULL)
+            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                LLVMCreateStringAttribute(ctx->context, "target-cpu", 10,
+                    cpu, (unsigned)strlen(cpu)));
+        if (LLVMGetStringAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                "target-features", 15) == NULL && features != NULL)
+            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                LLVMCreateStringAttribute(ctx->context, "target-features", 15,
+                    features, (unsigned)strlen(features)));
+    }
+    LLVMDisposeMessage(cpu);
+    LLVMDisposeMessage(features);
 }
 
 #endif /* PGY_LLVM_ENABLED */

@@ -35,7 +35,7 @@ func CodegenTypeUsageTypeNameKnown(
     type_names: Array<String>,
     type_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(type_names) {
         if type_names[i] == type_name { return true; }
         i = i + 1;
@@ -46,8 +46,8 @@ func CodegenTypeUsageTypeNameKnown(
 func CodegenTypeUsageListTypeNames(
     facts: SemanticAstTypeSurfaceFacts
 ) -> Array<String> {
-    let type_names: Array<String> = [];
-    let i: Int = 0;
+    var type_names: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
         if IsSome(name) {
@@ -71,8 +71,8 @@ func CodegenTypeUsageListTypeNames(
 func CodegenTypeUsageQueueTypeNames(
     facts: SemanticAstTypeSurfaceFacts
 ) -> Array<String> {
-    let type_names: Array<String> = [];
-    let i: Int = 0;
+    var type_names: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
         if IsSome(name) {
@@ -96,8 +96,8 @@ func CodegenTypeUsageQueueTypeNames(
 func CodegenTypeUsageSetTypeNames(
     facts: SemanticAstTypeSurfaceFacts
 ) -> Array<String> {
-    let type_names: Array<String> = [];
-    let i: Int = 0;
+    var type_names: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
         if IsSome(name) {
@@ -119,7 +119,7 @@ func CodegenTypeUsageSetTypeNames(
 }
 
 func CodegenTypeUsageHasPlainSlot(facts: SemanticAstTypeSurfaceFacts) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
         if IsSome(name) && IsSlotType(UnwrapOption(name)) { return true; }
@@ -161,9 +161,9 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
 }
 
 func CodegenTypeUsageHashMapTypeNames(facts: SemanticAstTypeSurfaceFacts) -> Array<String> {
-    let names: Array<String> = [];
-    let pending: Array<String> = [];
-    let index: Int = 0;
+    var names: Array<String> = [];
+    var pending: Array<String> = [];
+    var index: Int = 0;
     while index < SemanticAstTypeSurfaceCount(facts) {
         let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, index);
         if IsSome(name) && !CodegenTypeUsageTypeNameKnown(pending, UnwrapOption(name)) { ArrayPush(pending, UnwrapOption(name)); }
@@ -176,7 +176,7 @@ func CodegenTypeUsageHashMapTypeNames(facts: SemanticAstTypeSurfaceFacts) -> Arr
             if shape.nominal_base_name == "HashMap" && ArrayLength(shape.actual_type_names) == 2 &&
                 !SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) &&
                 !CodegenTypeUsageTypeNameKnown(names, shape.canonical_name) { ArrayPush(names, shape.canonical_name); }
-            let argument: Int = 0;
+            var argument: Int = 0;
             while argument < ArrayLength(shape.actual_type_names) {
                 if !CodegenTypeUsageTypeNameKnown(pending, shape.actual_type_names[argument]) { ArrayPush(pending, shape.actual_type_names[argument]); }
                 argument = argument + 1;

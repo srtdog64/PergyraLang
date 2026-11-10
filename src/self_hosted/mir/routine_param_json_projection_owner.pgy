@@ -26,7 +26,7 @@ func SelfMirJsonRoutineParam(
         declarations, param_type
     );
     let abi_required: Bool = StringLength(abi_layout) > 0;
-    let abi_wire: String = "null";
+    var abi_wire: String = "null";
     if abi_required { abi_wire = abi_layout; }
     return JsonEmitObject([
         JsonEmitFieldString("name", rows.param_names[row]),

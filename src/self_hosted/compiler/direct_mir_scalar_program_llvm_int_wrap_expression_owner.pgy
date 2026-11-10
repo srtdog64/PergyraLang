@@ -6,8 +6,8 @@ import "direct_mir_scalar_program_expression_kind_owner.pgy";
 func DirectMirScalarProgramLlvmIntWrapExpressionAt(
     kind: Int, result: String, left: String, right: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let opcode: String = "";
-    let unary: Bool = false;
+    var opcode: String = "";
+    var unary: Bool = false;
     if kind == DirectMirScalarProgramExprAddInt() { opcode = "add";
     } else if kind == DirectMirScalarProgramExprSubtractInt() { opcode = "sub";
     } else if kind == DirectMirScalarProgramExprMultiplyInt() { opcode = "mul";
@@ -18,7 +18,7 @@ func DirectMirScalarProgramLlvmIntWrapExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let output: String = Concat("  ", Concat(result, ".wide = "));
+    var output: String = Concat("  ", Concat(result, ".wide = "));
     output = Concat(output, Concat(opcode, " i64 "));
     if unary { output = Concat(output, "0, "); }
     output = Concat(output, left);

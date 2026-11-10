@@ -1,0 +1,45 @@
+// Repeated real row-owner mutation: unchanged rows must not be republished.
+import "../../../src/self_hosted/mir/routine_build_owner.pgy";
+
+func Main() -> Void with caps env, io_write {
+    let args: Array<String> = Args();
+    let count: Int = 256;
+    if ArrayLength(args) > 0 { count = 512; }
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    let view: SemanticExpressionGraphView = SemanticExpressionGraphView(
+        false, -1, SemanticExpressionGraphFactsEmpty());
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationEmpty();
+    let index: Int = 0;
+    while index < count {
+        let text: String = Concat(
+            "retained-instruction-payload-that-belongs-to-this-row-", ToString(index));
+        let uses: Array<String> = [Concat("use.", ToString(index))];
+        build = SelfMirRoutineAddInstruction(build, "assign", text, text,
+            text, text, text, text, "String", uses);
+        build.cfg = SelfMirCfgAttachLastExpr0Graph(build.cfg, view, declaration);
+        build.cfg = SelfMirCfgAttachLastExpr1Graph(build.cfg, view);
+        build.cfg.local_refs = SelfMirInstructionLocalRefRowsAttachPrimary(
+            build.cfg.local_refs, text);
+        index = index + 1;
+    }
+    let checksum: Int = 0;
+    index = 0;
+    while index < count {
+        if build.cfg.instructions.ids[index] != index ||
+            build.cfg.instructions.names[index] !=
+                build.cfg.local_refs.primary_refs[index] ||
+            build.cfg.instructions.use_starts[index] != index ||
+            build.cfg.instructions.use_counts[index] != 1 ||
+            build.cfg.instructions.expr0_graphs.has_roots[index] != 0 ||
+            build.cfg.instructions.expr1_graphs.has_roots[index] != 0 {
+            Print("row-owner-mismatch");
+            Exit(1);
+        }
+        checksum = checksum + build.cfg.instructions.ids[index];
+        index = index + 1;
+    }
+    Print(ToString(ArrayLength(build.cfg.instructions.ids)));
+    Print(ToString(build.cfg.blocks.instruction_counts[0]));
+    Print(ToString(checksum));
+}

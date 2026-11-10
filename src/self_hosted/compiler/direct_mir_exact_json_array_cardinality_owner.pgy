@@ -16,9 +16,9 @@ func DirectMirExactObjectArrayCount(
     if !JsonArrayObjectFactTableReady(table) || expected < 0 {
         return false;
     }
-    let cursor: Int = table.start + 1;
-    let bounds: Array<Int> = [0, 0];
-    let row: Int = 0;
+    var cursor: Int = table.start + 1;
+    var bounds: Array<Int> = [0, 0];
+    var row: Int = 0;
     while row < expected {
         if !JsonArrayNextObjectBounds(
             table.json, table.json_extent, cursor, table.end, bounds
@@ -40,8 +40,8 @@ func DirectMirExactStringArrayCount(
         JsonCharCodeAt(json, json_extent, array_end, array_open) != JsonAsciiCode("[") {
         return false;
     }
-    let cursor: Int = array_open + 1;
-    let row: Int = 0;
+    var cursor: Int = array_open + 1;
+    var row: Int = 0;
     while row < expected {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_end);
         if row > 0 {

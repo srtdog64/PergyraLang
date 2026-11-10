@@ -1,0 +1,230 @@
+// Named aggregate source-path identity and disjointness.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_aggregate_value_lineage_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_signature_param_node_query_owner.pgy";
+
+func SemanticAstCollectionAggregateNamedInputSourcePath(
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    binding_id: Int, source_id: Int
+) -> String {
+    if !exclusive_values.ok || binding_id <= 0 || source_id <= 0 ||
+        ArrayLength(exclusive_values.dep_locals) !=
+            ArrayLength(exclusive_values.dep_formals) ||
+        ArrayLength(exclusive_values.dep_locals) !=
+            ArrayLength(exclusive_values.dep_paths) ||
+        ArrayLength(exclusive_values.paths) % 2 != 0 {
+        return "";
+    }
+    let key: String = ToString(binding_id);
+    if MapHas(exclusive_values.shared_locals, key) ||
+        MapHas(exclusive_values.shared_locals, Concat(key, ".*")) {
+        return "";
+    }
+    var path: String = "";
+    var matches: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(exclusive_values.dep_locals) {
+        if exclusive_values.dep_locals[row] == binding_id &&
+            exclusive_values.dep_formals[row] == source_id {
+            let path_row: Int = exclusive_values.dep_paths[row];
+            if path_row < 0 || path_row >=
+                    ArrayLength(exclusive_values.paths) / 2 ||
+                exclusive_values.paths[2 * path_row] != "" ||
+                exclusive_values.paths[2 * path_row + 1] == "" {
+                return "";
+            }
+            path = exclusive_values.paths[2 * path_row + 1];
+            matches = matches + 1;
+        }
+        row = row + 1;
+    }
+    if matches != 1 { return ""; }
+    return path;
+}
+
+func SemanticAstCollectionAggregateSourcePathPrefix(
+    prefix: String, path: String
+) -> Bool {
+    if prefix == "" || path == "" { return false; }
+    if prefix == path { return true; }
+    let prefix_length: Int = StringLength(prefix);
+    return prefix_length < StringLength(path) &&
+        StartsWith(path, prefix) &&
+        Substring(path, prefix_length, 1) == ".";
+}
+
+// Two exact member paths are disjoint once any segment diverges. Equal paths
+// and prefix paths still overlap: `arena` overlaps `arena.node_texts`, while
+// `arena.node_texts` and `arena.call_target_names` do not.
+func SemanticAstCollectionAggregateSourcePathsDisjoint(
+    left: String, right: String
+) -> Bool {
+    if left == "" || right == "" { return false; }
+    return !SemanticAstCollectionAggregateSourcePathPrefix(left, right) &&
+        !SemanticAstCollectionAggregateSourcePathPrefix(right, left);
+}
+
+// A missing scalar storage-source id is not necessarily missing lineage.
+// Admit disjointness only when the exclusive-value owner maps both bindings
+// exactly once to different top-level paths of one traced aggregate origin.
+// The release trace, not a coincidentally equal callee formal id, normalizes
+// paths across a strict invocation prefix.
+func SemanticAstCollectionAggregateNamedLineageFieldsDisjoint(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    left_origin_id: Int, right_origin_id: Int,
+    left_binding_id: Int, right_binding_id: Int,
+    left_field_id: Int, right_field_id: Int
+) -> Bool {
+    if !exclusive_values.ok || left_origin_id <= 0 ||
+        left_origin_id != right_origin_id || left_binding_id <= 0 ||
+        right_binding_id <= 0 || left_binding_id == right_binding_id ||
+        ArrayLength(exclusive_values.dep_locals) !=
+            ArrayLength(exclusive_values.dep_formals) ||
+        ArrayLength(exclusive_values.dep_locals) !=
+            ArrayLength(exclusive_values.dep_paths) ||
+        ArrayLength(exclusive_values.paths) % 2 != 0 ||
+        MapHas(exclusive_values.shared_locals,
+            ToString(left_binding_id)) ||
+        MapHas(exclusive_values.shared_locals,
+            Concat(ToString(left_binding_id), ".*")) ||
+        MapHas(exclusive_values.shared_locals,
+            ToString(right_binding_id)) ||
+        MapHas(exclusive_values.shared_locals,
+            Concat(ToString(right_binding_id), ".*")) {
+        return false;
+    }
+    let left_field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, left_field_id);
+    let right_field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, right_field_id);
+    if !IsSome(left_field) || !IsSome(right_field) ||
+        UnwrapOption(left_field) == UnwrapOption(right_field) {
+        return false;
+    }
+    var left_matches: Int = 0;
+    var right_matches: Int = 0;
+    var left_formal: Int = 0;
+    var right_formal: Int = 0;
+    var left_path: String = "";
+    var right_path: String = "";
+    var row: Int = 0;
+    while row < ArrayLength(exclusive_values.dep_locals) {
+        let path_row: Int = exclusive_values.dep_paths[row];
+        if path_row >= 0 &&
+            path_row < ArrayLength(exclusive_values.paths) / 2 &&
+            exclusive_values.paths[2 * path_row] == "" &&
+            exclusive_values.paths[2 * path_row + 1] != "" {
+            let source_path: String =
+                exclusive_values.paths[2 * path_row + 1];
+            if exclusive_values.dep_locals[row] == left_binding_id &&
+                SemanticAstCollectionAggregateSourcePathSelectsField(
+                    source_path, UnwrapOption(left_field)) {
+                left_matches = left_matches + 1;
+                left_formal = exclusive_values.dep_formals[row];
+                left_path = source_path;
+            } else if exclusive_values.dep_locals[row] == right_binding_id &&
+                SemanticAstCollectionAggregateSourcePathSelectsField(
+                    source_path, UnwrapOption(right_field)) {
+                right_matches = right_matches + 1;
+                right_formal = exclusive_values.dep_formals[row];
+                right_path = source_path;
+            }
+        }
+        row = row + 1;
+    }
+    return left_matches == 1 && right_matches == 1 &&
+        left_formal > 0 && right_formal > 0 &&
+        SemanticAstCollectionAggregateSourcePathsDisjoint(
+            left_path, right_path);
+}
+
+func SemanticAstCollectionAggregateNamedBindingFieldsDisjoint(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    binding_id: Int, source_id: Int, left_field_id: Int,
+    right_field_id: Int
+) -> Bool {
+    if !exclusive_values.ok || binding_id <= 0 || binding_id != source_id ||
+        left_field_id <= 0 || right_field_id <= 0 ||
+        left_field_id == right_field_id {
+        return false;
+    }
+    var source_type: Option<String> =
+        SemanticAstFunctionParamTypeForNode(signatures, binding_id);
+    if !IsSome(source_type) {
+        if !locals.ok || ArrayLength(locals.node_ids) !=
+                ArrayLength(inferred_types) {
+            return false;
+        }
+        var local_row: Int = -1;
+        var row: Int = 0;
+        while row < ArrayLength(locals.node_ids) {
+            if locals.node_ids[row] == binding_id {
+                if local_row >= 0 { return false; }
+                local_row = row;
+            }
+            row = row + 1;
+        }
+        if local_row < 0 { return false; }
+        source_type = Some(Concat("", inferred_types[local_row]));
+    }
+    let constructor: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(
+            constructors, UnwrapOption(source_type));
+    if !IsSome(constructor) { return false; }
+    let constructor_row: Int = UnwrapOption(constructor);
+    let start: Int = constructors.param_starts[constructor_row];
+    let count: Int = constructors.param_counts[constructor_row];
+    if start < 0 || count < 0 ||
+        start > ArrayLength(constructors.field_source_syntax_ids) ||
+        count > ArrayLength(constructors.field_source_syntax_ids) - start {
+        return false;
+    }
+    var left_in_type: Bool = false;
+    var right_in_type: Bool = false;
+    var field: Int = start;
+    while field < start + count {
+        if constructors.field_source_syntax_ids[field] == left_field_id {
+            left_in_type = true;
+        }
+        if constructors.field_source_syntax_ids[field] == right_field_id {
+            right_in_type = true;
+        }
+        field = field + 1;
+    }
+    if !left_in_type || !right_in_type { return false; }
+    let left: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, left_field_id);
+    let right: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, right_field_id);
+    if !IsSome(left) || !IsSome(right) ||
+        UnwrapOption(left) == UnwrapOption(right) {
+        return false;
+    }
+    let key: String = ToString(binding_id);
+    return !MapHas(exclusive_values.shared_locals, key) &&
+        !MapHas(exclusive_values.shared_locals, Concat(key, ".*")) &&
+        !MapHas(exclusive_values.shared_locals,
+            Concat(key, Concat(".", UnwrapOption(left)))) &&
+        !MapHas(exclusive_values.shared_locals,
+            Concat(key, Concat(".", UnwrapOption(right))));
+}
+

@@ -15,7 +15,7 @@ func Pick(a: Box, b: Box, first: Bool) -> Box {
 
 func Main() -> Int {
     let x: Box = Box([1, 2]);
-    let y: Box = Box([5, 6]);
+    var y: Box = Box([5, 6]);
     let r: Box = Pick(x, y, false);
     Print(ToString(x.items[0]));
     ArrayPush(y.items, 3);

@@ -16,7 +16,7 @@ func DirectMirCollectionProgramIdentityDigest(
     ref identity: DirectMirCollectionProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(719L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(719L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.producer.digest);
     hash = DirectMirCfgHashInt(hash, identity.consumer.digest);
     return DirectMirCfgBoundedDigest(hash);
@@ -77,13 +77,13 @@ func DirectMirCollectionProgramIdentityFromAdmitted(
         !MirProgramRoutineIndexStructureReady(admitted.routines) {
         Die("direct MIR collection program identity route is invalid");
     }
-    let entrypoint: DirectMirRoutineSignatureFact =
+    var entrypoint: DirectMirRoutineSignatureFact =
         InvalidDirectMirRoutineSignatureFact();
-    let producer: DirectMirRoutineSignatureFact =
+    var producer: DirectMirRoutineSignatureFact =
         InvalidDirectMirRoutineSignatureFact();
-    let consumer: DirectMirRoutineSignatureFact =
+    var consumer: DirectMirRoutineSignatureFact =
         InvalidDirectMirRoutineSignatureFact();
-    let row: Int = 0;
+    var row: Int = 0;
     while row < route.routine_count {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
             admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],

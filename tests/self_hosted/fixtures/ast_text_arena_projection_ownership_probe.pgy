@@ -1,0 +1,5 @@
+import "../../../src/self_hosted/hir/ast_text_arena_projection_owner.pgy";
+
+func Main() -> Void {
+    Log("ast-text-arena-projection-ready");
+}

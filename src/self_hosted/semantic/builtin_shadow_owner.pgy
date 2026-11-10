@@ -151,7 +151,7 @@ func SemanticBuiltinNameReservationFor(name: String) -> SemanticBuiltinNameReser
         return SemanticBuiltinNameReservation(false, "");
     }
     let name_length: Int = StringLength(name);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let separator: Int = StringIndexOf(rows[i], "^");
         if separator >= 0 && StringLength(rows[i]) - separator - 1 == name_length &&
@@ -167,7 +167,7 @@ func SemanticProgramFunctionClaimsName(
     signatures: SemanticAstFunctionSignatureFacts,
     name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
             signatures, i
@@ -202,14 +202,14 @@ func SeedSemanticOwnedBuiltinSignaturesUnclaimed(
     inout params: Array<String>
 ) -> Bool {
     let rows: Array<String> = SemanticBuiltinSignatureRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let parts: Array<String> = Split(rows[i], "^");
         if ArrayLength(parts) != 3 {
             return false;
         }
         if SemanticBuiltinSignatureSelectedForProgram(signatures, parts[0]) {
-            let param_types: String = parts[2];
+            var param_types: String = parts[2];
             if param_types == "none" {
                 param_types = "";
             }
@@ -226,9 +226,9 @@ func SeedSemanticOwnedBuiltinSignaturesUnclaimed(
 func SemanticAstFunctionSignatureFactsWithBuiltinNames(
     artifact: AstTreeArtifact
 ) -> SemanticAstFunctionSignatureFacts {
-    let signatures: SemanticAstFunctionSignatureFacts =
+    var signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
-    let i: Int = 0;
+    var i: Int = 0;
     while signatures.ok && i < SemanticAstFunctionSignatureCount(signatures) {
         let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
             signatures, i

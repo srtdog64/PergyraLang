@@ -1,0 +1,13 @@
+// The first literal takes the only payload authority. A second literal cannot
+// manufacture another owner for the same String pointer.
+func ReleaseOwnedStringTwice(own value: String) -> Int {
+    let first: Array<String> = [value];
+    let second: Array<String> = [value];
+    ArrayDropOwnedStrings(first);
+    ArrayDropOwnedStrings(second);
+    return 0;
+}
+
+func Main() -> Int {
+    return ReleaseOwnedStringTwice(Concat("owned", " value"));
+}

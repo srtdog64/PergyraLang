@@ -55,7 +55,7 @@ func CheckedBuiltinRuntimeCProgramBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
     let add_head: String = Concat("static inline ", Concat(int_type, Concat(" ", Concat(CheckedBuiltinRuntimeCAddFn(), Concat("(", Concat(int_type, Concat(" lhs_in, ", Concat(int_type, " rhs_in)\n{\n"))))))));
     let mul_head: String = Concat("static inline ", Concat(int_type, Concat(" ", Concat(CheckedBuiltinRuntimeCMulFn(), Concat("(", Concat(int_type, Concat(" lhs_in, ", Concat(int_type, " rhs_in)\n{\n"))))))));
-    let block: String = "#include \"pgy_runtime_panic_contract.h\"\n\n";
+    var block: String = "#include \"pgy_runtime_panic_contract.h\"\n\n";
     block = Concat(block, add_head);
     block = Concat(block, CheckedBuiltinRuntimeCNarrowPrologue());
     block = Concat(block, CheckedBuiltinRuntimeCAddGuard());

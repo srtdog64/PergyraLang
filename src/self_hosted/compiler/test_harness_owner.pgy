@@ -76,7 +76,7 @@ func CompilerHarnessRowIndexKnown(index: Int) -> Bool {
 }
 
 func CompilerHarnessRowKnown(row: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerHarnessRowCount() {
         if CompilerHarnessRowAt(index) == row {
             return true;
@@ -128,7 +128,7 @@ func CompilerHarnessProjectionIndexKnown(index: Int) -> Bool {
 }
 
 func CompilerHarnessProjectionKnown(projection: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerHarnessProjectionCount() {
         if CompilerHarnessProjectionAt(index) == projection {
             return true;

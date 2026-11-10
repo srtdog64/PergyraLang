@@ -88,7 +88,7 @@
     {
         const char *source =
             "func Rebind(ref pair: (Int, Int)) -> Void {\n"
-            "    let dst: (Int, Int) = (0, 0);\n"
+            "    var dst: (Int, Int) = (0, 0);\n"
             "    dst = pair;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -227,7 +227,7 @@
     {
         const char *source =
             "func Rebind(ref items: Array<Int>) -> Void {\n"
-            "    let dst: Array<Int> = [0];\n"
+            "    var dst: Array<Int> = [0];\n"
             "    dst = items;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -286,7 +286,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'items' cannot escape through helper/function call"));
+            "An own Array argument requires one current exclusive cleanup authority"));
         semantic_result_destroy(result);
         ast_destroy(program);
         parser_destroy(parser);
@@ -310,7 +310,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'items' cannot escape through helper/function call"));
+            "An own Array argument requires one current exclusive cleanup authority"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -351,7 +351,7 @@
     {
         const char *source =
             "func Store(ref pair: (Int, Int)) -> Void {\n"
-            "    let items: Queue<(Int, Int)> = QueueNew();\n"
+            "    var items: Queue<(Int, Int)> = QueueNew();\n"
             "    QueuePush(items, pair);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -406,7 +406,7 @@
         const char *source =
             "enum Mode { Idle, Active }\n"
             "func Snapshot(ref mode: Mode) -> Void {\n"
-            "    let states: List<Mode> = ListNew();\n"
+            "    var states: List<Mode> = ListNew();\n"
             "    ListPush(states, mode);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

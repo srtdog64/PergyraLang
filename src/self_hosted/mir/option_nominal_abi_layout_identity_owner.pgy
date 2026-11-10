@@ -19,7 +19,7 @@ func SelfMirOptionNominalAbiLayoutId(
     type_name: String, size: Int, align: Int,
     value_offset: Int, value_size: Int, value_align: Int
 ) -> Int {
-    let hash: Long = 60621699L;
+    var hash: Long = 60621699L;
     hash = MirAbiLayoutHashString(hash, type_name);
     hash = MirAbiLayoutHashU32(hash, size as Long);
     hash = MirAbiLayoutHashU32(hash, align as Long);

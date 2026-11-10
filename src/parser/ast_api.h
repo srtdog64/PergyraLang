@@ -15,10 +15,18 @@ bool ast_assign_stable_ids(ASTNode* root);
 /* Assign only missing identities after growth; existing node/binder IDs stay fixed. */
 bool ast_complete_stable_ids(ASTNode* root);
 uint32_t ast_stable_id_ceiling(ASTNode* root);
-/* Each node whose identity is in `ids` becomes the checker-built builtin
- * call `callee_name(node)`: the node keeps its place in its parent, a new
- * node takes its content and identity, and the call takes identities above
- * the tree's. False when identities or memory run out. */
+/* Checks whether the subtree contains any exact node identity. False means
+ * the structural inspection itself failed; `intersects_out` owns the
+ * successful yes/no verdict. */
+bool ast_subtree_intersects_stable_ids(const ASTNode* root,
+                                       const uint32_t* ids,
+                                       size_t count,
+                                       bool* intersects_out);
+/* Each unique nonzero identity in `ids` must name exactly one node. On
+ * success each node becomes the checker-built builtin call
+ * `callee_name(node)`: the node keeps its place in its parent, a new node
+ * takes its content and identity, and the call takes identities above the
+ * tree's. False leaves the tree unchanged. */
 bool ast_wrap_nodes_in_builtin_call(ASTNode* root, const uint32_t* ids, size_t count,
                                     const char* callee_name);
 uint32_t ast_node_stable_id(const ASTNode* node);
@@ -179,6 +187,9 @@ ASTNode* ast_array_access_index(const ASTNode* node);
 ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value);
 ASTNode* ast_assignment_target(const ASTNode* node);
 ASTNode* ast_assignment_value(const ASTNode* node);
+AstAssignmentOperation ast_assignment_operation(const ASTNode *node);
+const char *ast_assignment_operation_text(AstAssignmentOperation operation);
+PgyTokenType ast_assignment_binary_operator(AstAssignmentOperation operation);
 const char* ast_assignment_semantic_binding_type_name(const ASTNode* node);
 bool ast_assignment_set_semantic_binding_type_name_copy(ASTNode* node,
                                                         const char* type_name);

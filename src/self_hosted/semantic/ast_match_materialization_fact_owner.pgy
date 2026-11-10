@@ -47,11 +47,11 @@ func SemanticAstMatchMaterializationFactsAttach(
     inout analysis: SemanticAstArtifactAnalysis,
     ref statement_types: SemanticAstStatementTypeFacts
 ) -> SemanticAstMatchMaterializationFacts {
-    let node_ids: Array<Int> = [];
-    let function_node_ids: Array<Int> = [];
-    let type_names: Array<String> = [];
-    let synthetic_names: Array<String> = [];
-    let synthetic_roots: Array<Int> = [];
+    var node_ids: Array<Int> = [];
+    var function_node_ids: Array<Int> = [];
+    var type_names: Array<String> = [];
+    var synthetic_names: Array<String> = [];
+    var synthetic_roots: Array<Int> = [];
     if !SemanticAstStatementTypeRowsReady(statement_types) ||
         !SemanticAstExpressionSurfaceBorrowReady(
             artifact, analysis.expression_surfaces
@@ -61,7 +61,7 @@ func SemanticAstMatchMaterializationFactsAttach(
 
     // Every scrutinee is read before the first append: an append may release
     // the buffers the admitted graph still names.
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(statement_types.node_ids) {
         if statement_types.kind_tags[row] == TypedAstKindMatchStmtTag() {
             if statement_types.verified[row] != 1 ||
@@ -99,32 +99,32 @@ func SemanticAstMatchMaterializationFactsAttach(
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
     // Rows a marked input already passed; the appends below only add rows.
-    let sealed_rows: Int = -1;
+    var sealed_rows: Int = -1;
     if graph.arena.shape_ready {
         sealed_rows = SemanticExpressionGraphArenaNodeCount(graph.arena);
     }
-    let topology: AstExpressionArena = graph.arena.topology;
-    let graph_node_texts: Array<String> = graph.arena.node_texts;
-    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
-    let target_names: Array<String> = graph.arena.call_target_names;
-    let call_return_types: Array<String> =
+    var topology: AstExpressionArena = graph.arena.topology;
+    var graph_node_texts: Array<String> = graph.arena.node_texts;
+    var target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    var target_names: Array<String> = graph.arena.call_target_names;
+    var call_return_types: Array<String> =
         graph.arena.call_return_type_names;
-    let call_target_syntax_ids: Array<Int> =
+    var call_target_syntax_ids: Array<Int> =
         graph.arena.identities.call_target_syntax_ids;
-    let runtime_call_abi_ids: Array<Int> =
+    var runtime_call_abi_ids: Array<Int> =
         graph.arena.identities.runtime_call_abi_ids;
-    let binding_syntax_ids: Array<Int> =
+    var binding_syntax_ids: Array<Int> =
         graph.arena.identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> =
+    var binding_kinds: Array<Int> =
         graph.arena.identities.binding_kinds;
-    let binding_ordinals: Array<Int> =
+    var binding_ordinals: Array<Int> =
         graph.arena.identities.binding_ordinals;
     let retention_calls: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
         graph.arena.identities.builtin_argument_retention_calls;
-    let place_kinds: Array<Int> = graph.arena.place_kinds;
+    var place_kinds: Array<Int> = graph.arena.place_kinds;
 
-    let appended_all: Bool = true;
-    let index: Int = 0;
+    var appended_all: Bool = true;
+    var index: Int = 0;
     while index < ArrayLength(node_ids) && appended_all {
         let name: String = SemanticAstMatchMaterializationName(node_ids[index]);
         let appended: ProgramExpressionGraphAppend =
@@ -156,7 +156,7 @@ func SemanticAstMatchMaterializationFactsAttach(
 
     // The appended graph replaces the admitted one on every exit from here,
     // failed or not: the caller keeps reading it.
-    let arena: SemanticExpressionGraphArena =
+    var arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             topology, graph_node_texts, target_kinds, target_names,
             call_return_types,
@@ -206,7 +206,7 @@ func SemanticAstMatchMaterializationFactsReady(
         ) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let statement_type_row: Option<Int> =
             SemanticAstStatementTypeIndexForNode(
@@ -246,8 +246,8 @@ func SemanticAstMatchMaterializationFactsReady(
         row = row + 1;
     }
 
-    let expected_count: Int = 0;
-    let scan_row: Int = 0;
+    var expected_count: Int = 0;
+    var scan_row: Int = 0;
     while scan_row < ArrayLength(statement_types.node_ids) {
         if statement_types.kind_tags[scan_row] ==
             TypedAstKindMatchStmtTag() {

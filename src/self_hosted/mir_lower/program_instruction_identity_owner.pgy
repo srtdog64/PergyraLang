@@ -18,7 +18,7 @@ func MirProgramInstructionIdentityMark(
     if n <= 0 || (n > 1 && CharCode(id, n, 0) == CharCode("0", 1, 0)) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         let code: Int = CharCode(id, n, i);
         if code < CharCode("0", 1, 0) || code > CharCode("9", 1, 0) {
@@ -38,14 +38,14 @@ func MirProgramInstructionIdentitiesReady(
     ref routines: MirProgramRoutineIndex
 ) -> Bool {
     if !MirProgramRoutineIndexStructureReady(routines) { return false; }
-    let routine_row: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < ArrayLength(routines.starts) {
-        let ids: Array<Int> = [];
-        let local_block: Int = 0;
+        var ids: Array<Int> = [];
+        var local_block: Int = 0;
         while local_block < routines.routine_block_counts[routine_row] {
             let block_row: Int =
                 routines.routine_block_starts[routine_row] + local_block;
-            let local_instruction: Int = 0;
+            var local_instruction: Int = 0;
             while local_instruction <
                 routines.block_instruction_counts[block_row] {
                 let instruction_row: Int =
@@ -61,7 +61,7 @@ func MirProgramInstructionIdentitiesReady(
             local_block = local_block + 1;
         }
         ArraySort(ids);
-        let sorted_row: Int = 1;
+        var sorted_row: Int = 1;
         while sorted_row < ArrayLength(ids) {
             if ids[sorted_row] == ids[sorted_row - 1] {
                 return false;

@@ -45,23 +45,23 @@ func SemanticAstCollectionFormalEffectTrackedType(type_name: String) -> Bool {
 func SemanticAstCollectionFormalEffectInventoryFromSignatures(
     ref signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstCollectionFormalEffectInventory {
-    let nodes: Array<Int> = [];
-    let functions: Array<Int> = [];
-    let ordinals: Array<Int> = [];
-    let modes: Array<Int> = [];
-    let bodies: Array<Bool> = [];
-    let rows: HashMap<String, Int> = MapNew();
+    var nodes: Array<Int> = [];
+    var functions: Array<Int> = [];
+    var ordinals: Array<Int> = [];
+    var modes: Array<Int> = [];
+    var bodies: Array<Bool> = [];
+    var rows: HashMap<String, Int> = MapNew();
     let count: Int = ArrayLength(signatures.function_node_ids);
     let flat_count: Int = ArrayLength(signatures.param_node_ids);
-    let ok: Bool = signatures.ok && signatures.action_contracts.ok &&
+    var ok: Bool = signatures.ok && signatures.action_contracts.ok &&
         ArrayLength(signatures.param_starts) == count &&
         ArrayLength(signatures.param_counts) == count &&
         ArrayLength(signatures.action_contracts.callable_node_ids) == count &&
         ArrayLength(signatures.action_contracts.body_node_ids) == count &&
         ArrayLength(signatures.param_types) == flat_count &&
         ArrayLength(signatures.param_modes) == flat_count;
-    let row: Int = 0;
-    let flat: Int = 0;
+    var row: Int = 0;
+    var flat: Int = 0;
     while ok && row < count {
         let function: Int = signatures.function_node_ids[row];
         let size: Int = signatures.param_counts[row];
@@ -70,7 +70,7 @@ func SemanticAstCollectionFormalEffectInventoryFromSignatures(
             signatures.action_contracts.callable_node_ids[row] != function {
             ok = false; break;
         }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ok && ordinal < size {
             let node: Int = signatures.param_node_ids[flat + ordinal];
             let mode: Int = signatures.param_modes[flat + ordinal];
@@ -124,7 +124,7 @@ func SemanticAstCollectionArgumentFormalTargetForArgument(
         count > ArrayLength(signatures.param_node_ids) - start ||
         start > ArrayLength(signatures.param_types) || count > ArrayLength(signatures.param_types) - start ||
         start > ArrayLength(signatures.param_modes) || count > ArrayLength(signatures.param_modes) - start { return missing; }
-    let offset: Int = 0;
+    var offset: Int = 0;
     if UnwrapOption(kind) == SemanticCallTargetMember() {
         // Borrow the source-signature offset row; a projected name is not self.
         if ArrayLength(signatures.receiver_source_param_offsets) !=

@@ -20,7 +20,7 @@ func DirectMirScalarProgramCOptionIntMatchExpressionAt(
     let binding: Int = expressions.node_local_rows[node];
     if variant == DirectMirScalarProgramOptionIntMatchSomeVariant() &&
             binding >= 0 {
-        let value: String = Concat("(pgy_local_", ToString(binding));
+        var value: String = Concat("(pgy_local_", ToString(binding));
         value = Concat(value, " = pgy_scalar_option_int_payload(");
         value = Concat(value, left);
         value = Concat(value, "), pgy_scalar_option_int_is_some(");
@@ -50,7 +50,7 @@ func DirectMirScalarProgramLlvmOptionIntMatchExpressionAt(
     let variant: Int = expressions.node_member_ordinals[node];
     let binding: Int = expressions.node_local_rows[node];
     let option_type: String = DirectMirScalarProgramLlvmOptionIntTypeName();
-    let output: String = "";
+    var output: String = "";
     if variant == DirectMirScalarProgramOptionIntMatchSomeVariant() &&
             binding >= 0 {
         let payload: String = Concat(result, ".payload");

@@ -29,8 +29,8 @@ func DirectMirScalarProgramOwnedStringBoundArgumentSourceReady(
         plan.program.expressions.node_types[argument] !=
             CompilerAbiLayoutStringTypeName() { return false; }
     let kind: Int = plan.program.expressions.node_kinds[argument];
-    let local_row: Int = -1;
-    let member: Int = -1;
+    var local_row: Int = -1;
+    var member: Int = -1;
     if kind == DirectMirScalarProgramExprLocal() {
         local_row = plan.program.expressions.node_local_rows[argument];
     } else if DirectMirScalarProgramOwnedStringMemberArgumentReady(
@@ -49,7 +49,7 @@ func DirectMirScalarProgramOwnedStringBoundArgumentSourceReady(
         plan, routine, local_row);
     if definition < 0 || definition >=
             ArrayLength(plan.program.expressions.graph_roots) { return false; }
-    let source: Int = plan.program.expressions.graph_roots[definition];
+    var source: Int = plan.program.expressions.graph_roots[definition];
     if member >= 0 {
         if source < 0 || source >= ArrayLength(plan.program.expressions.node_kinds) ||
             plan.program.expressions.node_kinds[source] !=

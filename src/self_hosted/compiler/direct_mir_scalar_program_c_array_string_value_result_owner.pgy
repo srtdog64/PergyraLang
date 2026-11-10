@@ -1,13 +1,15 @@
 // C copy and mutation boundary for admitted Array<String> value-result formals.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_c_array_string_value_result_mutation_owner.pgy";
 
 func DirectMirScalarProgramCArrayStringValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
@@ -33,8 +35,8 @@ func DirectMirScalarProgramCArrayStringValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
@@ -46,25 +48,16 @@ func DirectMirScalarProgramCArrayStringValueResultCopyOut(
                     plan.program.array_string_abi, projection,
                     CompilerTargetCpuCProjection()) { Die(
                 "direct MIR C Array<String> value-result projection drifted"); }
+            let storage: String =
+                DirectMirScalarProgramCParameterValueResultStorage(
+                    plan, routine, parameter);
             output = Concat(output, "    *pgy_param_");
             output = Concat(output, ToString(parameter));
-            output = Concat(output, "_mutref = pgy_param_");
-            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref = ");
+            output = Concat(output, storage);
             output = Concat(output, ";\n");
         }
         parameter = parameter + 1;
     }
     return output;
-}
-func DirectMirScalarProgramCArrayStringValueResultPush(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    routine: Int, parameter: Int, value: String
-) -> String {
-    if parameter < 0 || value == "" ||
-        !DirectMirScalarProgramArrayStringValueResultAt(
-            plan.program.array_string_abi, routine, parameter) {
-        Die("direct MIR C Array<String> value-result push is invalid");
-    }
-    return Concat("    pgy_as_push(&pgy_param_", Concat(
-        ToString(parameter), Concat(", ", Concat(value, ");\n"))));
 }

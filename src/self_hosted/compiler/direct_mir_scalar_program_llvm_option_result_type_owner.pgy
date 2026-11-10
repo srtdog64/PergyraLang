@@ -2,7 +2,7 @@
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
-import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
 
 func DirectMirScalarProgramLlvmOptionResultType(type_name: String) -> String {
     if type_name == CompilerAbiLayoutOptionIntTypeName() {
@@ -14,8 +14,8 @@ func DirectMirScalarProgramLlvmOptionResultType(type_name: String) -> String {
     if type_name == CompilerAbiLayoutOptionBoolTypeName() {
         return DirectMirScalarProgramLlvmOptionBoolTypeName();
     }
-    if type_name == CompilerAbiLayoutResultIntTypeName() {
-        return DirectMirScalarProgramLlvmResultIntTypeName();
-    }
+    let scalar_result_type: String =
+        DirectMirScalarResultAbiLlvmTypeName(type_name);
+    if scalar_result_type != "" { return scalar_result_type; }
     return "";
 }

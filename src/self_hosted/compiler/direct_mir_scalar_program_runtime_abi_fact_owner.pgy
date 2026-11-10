@@ -19,6 +19,8 @@ struct DirectMirScalarProgramRuntimeAbiFact {
     let string_substring_with_len_id: Int;
     let string_sub_equals_with_len_id: Int;
     let string_sub_index_with_len_id: Int;
+    let string_sub_contains_with_len_id: Int;
+    let string_sub_starts_with_len_id: Int;
     let string_index: DirectMirScalarProgramStringIndexRuntimeFact;
     let string_trim: DirectMirScalarProgramStringTrimRuntimeFact;
     let string_contains_id: Int;
@@ -41,7 +43,7 @@ struct DirectMirScalarProgramRuntimeAbiFact {
 func DirectMirScalarProgramRuntimeAbiFactEmpty(
 ) -> DirectMirScalarProgramRuntimeAbiFact {
     return DirectMirScalarProgramRuntimeAbiFact(
-        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
         DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -62,6 +64,8 @@ func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
         fact.string_substring_with_len_id == 0 &&
         fact.string_sub_equals_with_len_id == 0 &&
         fact.string_sub_index_with_len_id == 0 &&
+        fact.string_sub_contains_with_len_id == 0 &&
+        fact.string_sub_starts_with_len_id == 0 &&
         DirectMirScalarProgramStringIndexRuntimeFactCanonicalEmpty(
             fact.string_index) &&
         DirectMirScalarProgramStringTrimRuntimeFactCanonicalEmpty(

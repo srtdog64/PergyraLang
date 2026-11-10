@@ -7,8 +7,8 @@ func SemanticCapabilityMaskHas(mask: Int, capability: Int) -> Bool {
 }
 
 func SemanticCapabilityMaskJoin(left: Int, right: Int) -> Int {
-    let result: Int = left;
-    let rank: Int = 0;
+    var result: Int = left;
+    var rank: Int = 0;
     while rank < 9 {
         let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
             CallableContractVocabularyCapabilityAxis(), rank
@@ -26,8 +26,8 @@ func SemanticCapabilityMaskJoin(left: Int, right: Int) -> Int {
 }
 
 func SemanticCapabilityMaskDifference(left: Int, right: Int) -> Int {
-    let result: Int = 0;
-    let rank: Int = 0;
+    var result: Int = 0;
+    var rank: Int = 0;
     while rank < 9 {
         let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
             CallableContractVocabularyCapabilityAxis(), rank
@@ -45,8 +45,8 @@ func SemanticCapabilityMaskDifference(left: Int, right: Int) -> Int {
 }
 
 func SemanticCapabilityMaskNames(mask: Int, external: Bool) -> String {
-    let output: String = "";
-    let rank: Int = 0;
+    var output: String = "";
+    var rank: Int = 0;
     while rank < 9 {
         let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
             CallableContractVocabularyCapabilityAxis(), rank

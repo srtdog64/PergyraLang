@@ -27,7 +27,7 @@ func SemanticAstZoneSpawnBoundaryVerdictFromAdmittedFacts(
             -1
         );
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < SemanticExpressionGraphArenaNodeCount(
         surfaces.expression_graph.arena
     ) {
@@ -75,7 +75,7 @@ func SemanticAstZoneSpawnBoundaryVerdictFromAdmittedFacts(
                     signatures.function_node_ids[row]
                 );
             }
-            let argument: Int = 0;
+            var argument: Int = 0;
             while argument < ArrayLength(call.argument_nodes) {
                 let parameter: Int = signatures.param_starts[row] + argument;
                 let type_name: String = signatures.param_types[parameter];

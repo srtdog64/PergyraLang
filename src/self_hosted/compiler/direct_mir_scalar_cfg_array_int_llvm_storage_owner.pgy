@@ -26,7 +26,7 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
     let initial_length: String = ToString(
         DirectMirScalarCfgArrayIntInitialLength(plan.array_int_program)
     );
-    let output: String = Concat(
+    var output: String = Concat(
         "  %pgy.array.int.storage = alloca [", capacity
     );
     output = Concat(output, " x i32], align 4\n");

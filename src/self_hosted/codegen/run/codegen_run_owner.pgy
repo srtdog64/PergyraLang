@@ -16,7 +16,7 @@ func EmitCodegenParityFixtureManifest() -> Void {
         Exit(1);
     }
     let rows: Array<String> = CodegenParityFixtureManifestRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;

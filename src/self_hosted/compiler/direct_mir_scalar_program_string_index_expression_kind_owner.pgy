@@ -5,3 +5,5 @@ func DirectMirScalarProgramExprCharAtN() -> Int { return 64; }
 func DirectMirScalarProgramExprCharCode() -> Int { return 65; }
 func DirectMirScalarProgramExprSubIndexOfWithLen() -> Int { return 68; }
 func DirectMirScalarProgramExprSubEqualsWithLen() -> Int { return 71; }
+func DirectMirScalarProgramExprSubContainsWithLen() -> Int { return 149; }
+func DirectMirScalarProgramExprSubStartsWithLen() -> Int { return 150; }

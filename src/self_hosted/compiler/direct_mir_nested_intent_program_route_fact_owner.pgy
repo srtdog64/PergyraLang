@@ -24,7 +24,7 @@ func DirectMirNestedIntentProgramRouteFactDigest(
     ref fact: DirectMirNestedIntentProgramRouteFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(967L, fact.main_row);
+    var hash: Long = DirectMirCfgHashInt(967L, fact.main_row);
     hash = DirectMirCfgHashInt(hash, fact.method_row);
     hash = DirectMirScalarCfgHashInts(hash, fact.intent_rows);
     hash = DirectMirCfgHashInt(hash, fact.subject_declaration_row);
@@ -62,11 +62,11 @@ func DirectMirNestedIntentProgramRouteFactReady(
 func DirectMirNestedIntentProgramRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirNestedIntentProgramRouteFact {
-    let subject_row: Int = -1;
-    let zone_row: Int = -1;
-    let subject_count: Int = 0;
-    let zone_count: Int = 0;
-    let declaration_row: Int = 0;
+    var subject_row: Int = -1;
+    var zone_row: Int = -1;
+    var subject_count: Int = 0;
+    var zone_count: Int = 0;
+    var declaration_row: Int = 0;
     while declaration_row < MirProgramDeclarationIndexCount(
             admitted.domain_runtime_admission.declarations) {
         if admitted.domain_runtime_admission.declarations.kinds[
@@ -84,18 +84,18 @@ func DirectMirNestedIntentProgramRouteFactFromAdmitted(
         }
         declaration_row = declaration_row + 1;
     }
-    let subject_name: String = "";
+    var subject_name: String = "";
     if subject_row >= 0 {
         subject_name = admitted.domain_runtime_admission.declarations.names[
             subject_row];
     }
-    let main_row: Int = -1;
-    let method_row: Int = -1;
-    let function_count: Int = 0;
-    let method_count: Int = 0;
-    let intents: Array<Int> = [];
-    let unsupported: Bool = false;
-    let routine_row: Int = 0;
+    var main_row: Int = -1;
+    var method_row: Int = -1;
+    var function_count: Int = 0;
+    var method_count: Int = 0;
+    var intents: Array<Int> = [];
+    var unsupported: Bool = false;
+    var routine_row: Int = 0;
     while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
         if admitted.routines.kinds[routine_row] == "function" {
             function_count = function_count + 1;

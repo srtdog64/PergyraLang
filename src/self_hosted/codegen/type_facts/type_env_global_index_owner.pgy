@@ -35,9 +35,9 @@ func CodegenTypeGlobalIndexHash(
 ) -> Int {
     if capacity <= 0 { return -1; }
     let modulus: Long = capacity as Long;
-    let hash: Long = 17L;
+    var hash: Long = 17L;
     let name_length: Int = StringLength(name);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < name_length {
         hash = (hash * 131L +
             (CodegenCharCodeAt(name, name_length, name_length, i) as Long)) % modulus;
@@ -65,8 +65,8 @@ func CodegenTypeGlobalIndexHashRow(
 ) -> Int {
     if capacity <= 0 { return -1; }
     let modulus: Long = capacity as Long;
-    let hash: Long = 17L;
-    let i: Int = 0;
+    var hash: Long = 17L;
+    var i: Int = 0;
     while i < name_length {
         hash = (hash * 131L +
             (CodegenCharCodeAt(rows, rows_extent, rows_length, name_start + i) as Long)) %
@@ -85,7 +85,7 @@ func CodegenTypeGlobalIndexHashRow(
 }
 
 func CodegenTypeGlobalIndexArraysReady(
-    index: CodegenTypeGlobalIndex
+    ref index: CodegenTypeGlobalIndex
 ) -> Bool {
     let count: Int = ArrayLength(index.occupied);
     return index.ok && index.rows_length >= 0 && count > 0 &&
@@ -103,7 +103,7 @@ func CodegenTypeGlobalIndexRowRangeEquals(
     right_start: Int,
     length: Int
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < length {
         if CodegenCharCodeAt(rows, rows_extent, rows_length, left_start + i) !=
             CodegenCharCodeAt(rows, rows_extent, rows_length, right_start + i) {
@@ -129,41 +129,32 @@ func CodegenTypeGlobalIndexInsertFirst(
         return false;
     }
     let capacity: Int = ArrayLength(index.occupied);
-    let occupied: Array<Bool> = index.occupied;
-    let name_starts: Array<Int> = index.name_starts;
-    let name_lengths: Array<Int> = index.name_lengths;
-    let kind_starts: Array<Int> = index.kind_starts;
-    let kind_lengths: Array<Int> = index.kind_lengths;
-    let values: Array<String> = index.values;
-    let slot: Int = CodegenTypeGlobalIndexHashRow(
+    var slot: Int = CodegenTypeGlobalIndexHashRow(
         rows, rows_extent, index.rows_length,
         name_start, name_length, kind_start, kind_length, capacity
     );
-    let probes: Int = 0;
+    var probes: Int = 0;
     while probes < capacity {
-        if !occupied[slot] {
-            ArraySet(occupied, slot, true);
-            ArraySet(name_starts, slot, name_start);
-            ArraySet(name_lengths, slot, name_length);
-            ArraySet(kind_starts, slot, kind_start);
-            ArraySet(kind_lengths, slot, kind_length);
-            ArraySet(values, slot, Substring(rows, value_start, value_length));
-            index.occupied = occupied;
-            index.name_starts = name_starts;
-            index.name_lengths = name_lengths;
-            index.kind_starts = kind_starts;
-            index.kind_lengths = kind_lengths;
-            index.values = values;
+        if !index.occupied[slot] {
+            // This index is one inout owner.  Mutating its fields directly
+            // avoids cloning every table once per row while preserving the
+            // established first-row-wins lookup contract.
+            ArraySet(index.occupied, slot, true);
+            ArraySet(index.name_starts, slot, name_start);
+            ArraySet(index.name_lengths, slot, name_length);
+            ArraySet(index.kind_starts, slot, kind_start);
+            ArraySet(index.kind_lengths, slot, kind_length);
+            ArraySet(index.values, slot, Substring(rows, value_start, value_length));
             return true;
         }
-        if name_lengths[slot] == name_length &&
-            kind_lengths[slot] == kind_length &&
+        if index.name_lengths[slot] == name_length &&
+            index.kind_lengths[slot] == kind_length &&
             CodegenTypeGlobalIndexRowRangeEquals(
                 rows, rows_extent, index.rows_length,
-                name_starts[slot], name_start, name_length
+                index.name_starts[slot], name_start, name_length
             ) && CodegenTypeGlobalIndexRowRangeEquals(
                 rows, rows_extent, index.rows_length,
-                kind_starts[slot], kind_start, kind_length
+                index.kind_starts[slot], kind_start, kind_length
             ) {
             // The flat row owner resolves the first row.  Duplicate rows must
             // not overwrite that established result in the projection.
@@ -183,8 +174,8 @@ func CodegenTypeGlobalIndexFromRows(
         !SubEqualsWithLen(rows, rows_length, 0, 1, "|") {
         return CodegenTypeGlobalIndexMissing();
     }
-    let row_count: Int = 0;
-    let cursor: Int = 0;
+    var row_count: Int = 0;
+    var cursor: Int = 0;
     while cursor < rows_length {
         if SubEqualsWithLen(rows, rows_length, cursor, 1, "|") {
             cursor = cursor + 1;
@@ -207,7 +198,7 @@ func CodegenTypeGlobalIndexFromRows(
             rows, rows_length, value_start,
             rows_length - value_start, "|"
         );
-        let row_end: Int = rows_length;
+        var row_end: Int = rows_length;
         if end_offset >= 0 { row_end = value_start + end_offset; }
         row_count = row_count + 1;
         cursor = row_end;
@@ -218,13 +209,13 @@ func CodegenTypeGlobalIndexFromRows(
     }
 
     let capacity: Int = row_count * 2 + 1;
-    let occupied: Array<Bool> = [];
-    let name_starts: Array<Int> = [];
-    let name_lengths: Array<Int> = [];
-    let kind_starts: Array<Int> = [];
-    let kind_lengths: Array<Int> = [];
-    let values: Array<String> = [];
-    let slot: Int = 0;
+    var occupied: Array<Bool> = [];
+    var name_starts: Array<Int> = [];
+    var name_lengths: Array<Int> = [];
+    var kind_starts: Array<Int> = [];
+    var kind_lengths: Array<Int> = [];
+    var values: Array<String> = [];
+    var slot: Int = 0;
     while slot < capacity {
         ArrayPush(occupied, false);
         ArrayPush(name_starts, 0);
@@ -234,7 +225,7 @@ func CodegenTypeGlobalIndexFromRows(
         ArrayPush(values, "");
         slot = slot + 1;
     }
-    let index: CodegenTypeGlobalIndex = CodegenTypeGlobalIndex(
+    var index: CodegenTypeGlobalIndex = CodegenTypeGlobalIndex(
         true, rows_length, occupied, name_starts, name_lengths,
         kind_starts, kind_lengths, values
     );
@@ -257,7 +248,7 @@ func CodegenTypeGlobalIndexFromRows(
             rows, rows_length, value_start,
             rows_length - value_start, "|"
         );
-        let row_end: Int = rows_length;
+        var row_end: Int = rows_length;
         if end_offset >= 0 { row_end = value_start + end_offset; }
         if !CodegenTypeGlobalIndexInsertFirst(
             index, rows, rows_length,
@@ -277,7 +268,7 @@ func CodegenTypeGlobalIndexFromRows(
 }
 
 func CodegenTypeGlobalIndexLookupAdmitted(
-    index: CodegenTypeGlobalIndex,
+    ref index: CodegenTypeGlobalIndex,
     rows: String, rows_extent: Int,
     name: String,
     kind: String
@@ -289,8 +280,8 @@ func CodegenTypeGlobalIndexLookupAdmitted(
     let capacity: Int = ArrayLength(index.occupied);
     let name_length: Int = StringLength(name);
     let kind_length: Int = StringLength(kind);
-    let slot: Int = CodegenTypeGlobalIndexHash(name, kind, capacity);
-    let probes: Int = 0;
+    var slot: Int = CodegenTypeGlobalIndexHash(name, kind, capacity);
+    var probes: Int = 0;
     while probes < capacity {
         if !index.occupied[slot] { return ""; }
         if index.name_lengths[slot] == name_length &&
@@ -311,7 +302,7 @@ func CodegenTypeGlobalIndexLookupAdmitted(
 }
 
 func CodegenTypeGlobalIndexLookup(
-    index: CodegenTypeGlobalIndex,
+    ref index: CodegenTypeGlobalIndex,
     rows: String,
     name: String,
     kind: String
@@ -324,7 +315,7 @@ func CodegenTypeGlobalIndexLookup(
 }
 
 func CodegenTypeGlobalIndexContainsAdmitted(
-    index: CodegenTypeGlobalIndex,
+    ref index: CodegenTypeGlobalIndex,
     rows: String, rows_extent: Int,
     name: String,
     kind: String
@@ -336,8 +327,8 @@ func CodegenTypeGlobalIndexContainsAdmitted(
     let capacity: Int = ArrayLength(index.occupied);
     let name_length: Int = StringLength(name);
     let kind_length: Int = StringLength(kind);
-    let slot: Int = CodegenTypeGlobalIndexHash(name, kind, capacity);
-    let probes: Int = 0;
+    var slot: Int = CodegenTypeGlobalIndexHash(name, kind, capacity);
+    var probes: Int = 0;
     while probes < capacity {
         if !index.occupied[slot] { return false; }
         if index.name_lengths[slot] == name_length &&
@@ -358,7 +349,7 @@ func CodegenTypeGlobalIndexContainsAdmitted(
 }
 
 func CodegenTypeGlobalIndexContains(
-    index: CodegenTypeGlobalIndex,
+    ref index: CodegenTypeGlobalIndex,
     rows: String,
     name: String,
     kind: String

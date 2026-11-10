@@ -36,7 +36,7 @@ func Check(analysis: Analysis, inout out: Array<Facts>) -> Int {
 
 func Main() -> Int {
     let analysis: Analysis = Analysis(Graph([Cell(1), Cell(2)]), true);
-    let out: Array<Facts> = [];
+    var out: Array<Facts> = [];
     let n: Int = Check(analysis, out);
     Print(ToString(out[0].graph.rows[0].value + n));
     return 0;

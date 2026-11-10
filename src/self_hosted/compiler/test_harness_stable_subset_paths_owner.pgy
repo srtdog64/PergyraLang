@@ -42,7 +42,7 @@ func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessStableSubsetSectionPathKnown(path: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessStableSubsetSectionPathCount() {
         if CompilerHarnessStableSubsetSectionPathAt(i) == path {
             return true;

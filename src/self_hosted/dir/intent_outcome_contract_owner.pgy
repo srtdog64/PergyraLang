@@ -18,8 +18,8 @@ func SelfDirIntentStepOutcomeContractReady(
     steps: SelfDirIntentStepFacts,
     step_index: Int
 ) -> Bool {
-    let owner_intent: Int = -1;
-    let intent_scan: Int = 0;
+    var owner_intent: Int = -1;
+    var intent_scan: Int = 0;
     while intent_scan < ArrayLength(step_starts) {
         if step_index >= step_starts[intent_scan] &&
             step_index < step_starts[intent_scan] + step_counts[intent_scan] {
@@ -29,7 +29,7 @@ func SelfDirIntentStepOutcomeContractReady(
         intent_scan = intent_scan + 1;
     }
     if owner_intent < 0 { return false; }
-    let exact_return_type: String = "";
+    var exact_return_type: String = "";
     if steps.target_kinds[step_index] == "action" {
         let exact_receiver_row: Int = SelfDirIntentParticipantIndex(
             participants.aliases, participant_starts[owner_intent],
@@ -57,9 +57,9 @@ func SelfDirIntentStepOutcomeContractReady(
         exact_return_type =
             intent_signatures.return_type_names[exact_intent_index];
     } else { return false; }
-    let artifact_outcome_node_id: Int = -1;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var artifact_outcome_node_id: Int = -1;
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, steps.node_ids[step_index], child_index
     );
     while IsSome(child) {

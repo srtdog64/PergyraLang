@@ -1,0 +1,38 @@
+// Growing the returned field invalidates the old descriptor.  Passing its
+// containing value to a callee that reads that exact field must stay refused.
+struct FieldMoveCell {
+    values: Array<Int>;
+}
+
+struct FieldMoveGraph {
+    rows: Array<FieldMoveCell>;
+    ok: Bool;
+}
+
+struct FieldMoveFacts {
+    graph: FieldMoveGraph;
+    count: Int;
+}
+
+struct FieldMoveCapture {
+    graph: FieldMoveGraph;
+}
+
+func FieldMoveCaptureGraph(graph: FieldMoveGraph) -> FieldMoveCapture {
+    return FieldMoveCapture(graph);
+}
+
+func FieldMoveReadGraph(facts: FieldMoveFacts) -> Int {
+    return ArrayLength(facts.graph.rows);
+}
+
+func Main() -> Int {
+    let facts: FieldMoveFacts = FieldMoveFacts(
+        FieldMoveGraph([FieldMoveCell([1, 2])], true), 7
+    );
+    var capture: FieldMoveCapture = FieldMoveCaptureGraph(facts.graph);
+    ArrayPush(capture.graph.rows, FieldMoveCell([3]));
+    Print(ToString(FieldMoveReadGraph(facts)));
+    Print(ToString(ArrayLength(capture.graph.rows)));
+    return 0;
+}

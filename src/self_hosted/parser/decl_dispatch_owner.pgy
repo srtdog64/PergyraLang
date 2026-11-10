@@ -26,11 +26,11 @@ import "format_surface_decl_owner.pgy";
 // the module and leave its type references pointing at a different identity.
 func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
     let n: Int = StringLength(content);
-    let cursor: Array<Int> = [0];
+    var cursor: Array<Int> = [0];
     // The word is looked up once; a match must start with its first byte.
     let export_word: String = LanguageWordSpelling(LanguageWordId.WordExport);
     let export_first: Int = CharCode(export_word, StringLength(export_word), 0);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         i = SkipWhitespaceAndCommentsWithin(content, n, n, i);
         if i >= n {
@@ -85,7 +85,7 @@ func ParseDeclsInto(
 ) -> Void {
     let location_context: ParserSourceLocationContext = ParserSourceLocationContextFromSource(source_path,
         SelfHostPath.RelativeToDirectory(source_path, display_root), content, diagnostic_projection);
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
     let active_within_zone: String = within_zone;
     let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(active_within_zone) == 0;
@@ -138,7 +138,7 @@ func ParseDeclsInto(
                 MapSet(import_paths, imp_path, 1);
                 let imp_content: String = ParserReadImportedSource(location_context, decl_start, imp_path);
                 let imp_dir: String = SelfHostPath.Dirname(imp_path);
-                let imp_cursor: Array<Int> = [0];
+                var imp_cursor: Array<Int> = [0];
                 ArrayPush(import_chain, imp_path);
                 ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
@@ -256,7 +256,7 @@ func ParseDeclsInto(
             let abi_name: String = Substring(raw_abi, 1, abi_len - 2);
             let extern_open: Int = SkipWhitespaceAndComments(content, i);
             i = ParseExpectIn(location_context, content, i, "{", "extern");
-            let extern_out: String = Concat("  Extern Block (", Concat(abi_name, "):"));
+            var extern_out: String = Concat("  Extern Block (", Concat(abi_name, "):"));
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if i >= n {
@@ -285,9 +285,9 @@ func ParseDeclsInto(
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordLifecycle) {
-            let lc_probe: Int = LanguageWordEnd(i, LanguageWordId.WordLifecycle);
+            var lc_probe: Int = LanguageWordEnd(i, LanguageWordId.WordLifecycle);
             lc_probe = SkipWhitespaceAndComments(content, lc_probe);
-            let lc_cursor: Array<Int> = [lc_probe];
+            var lc_cursor: Array<Int> = [lc_probe];
             let lc_name: String = ReadIdent(content, lc_probe, lc_cursor);
             lc_probe = SkipWhitespaceAndComments(content, lc_cursor[0]);
             if StringLength(lc_name) > 0 && ParserCharAt(content, lc_probe) == "{" {
@@ -312,8 +312,8 @@ func ParseDeclsInto(
         // Optional top-level visibility prefix on the next declaration.
         // Native AST identity maps both `export` and `public` to `[export]`;
         // `private` is explicit but carries the ordinary non-export shape.
-        let is_export: Bool = false;
-        let is_private: Bool = false;
+        var is_export: Bool = false;
+        var is_private: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordExport) ||
             MatchLanguageWord(content, i, LanguageWordId.WordPublic) {
             if MatchLanguageWord(content, i, LanguageWordId.WordExport) {
@@ -329,7 +329,7 @@ func ParseDeclsInto(
             is_private = true;
         }
 
-        let effective_export: Bool = is_export;
+        var effective_export: Bool = is_export;
         if force_export {
             if is_imported {
                 if has_exports {
@@ -342,7 +342,7 @@ func ParseDeclsInto(
             }
         }
 
-        let decl_prefix: String = name_prefix;
+        var decl_prefix: String = name_prefix;
         if is_imported && has_exports && !is_export {
             decl_prefix = Concat("__imp0_", name_prefix);
         }
@@ -449,7 +449,7 @@ func ParseDeclsInto(
         }
 
         // Preserve the async execution boundary in the canonical callable row.
-        let is_async_decl: Bool = false;
+        var is_async_decl: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordAsync) {
             is_async_decl = true;
             i = LanguageWordEnd(i, LanguageWordId.WordAsync);
@@ -479,12 +479,12 @@ func ParseDeclsInto(
             ParseRefuse(location_context, i, "expected_token", "expected", "declaration", "construct", "export");
         }
         ArraySet(cursor_out, 0, i);
-        let stmt_indent: Int = 2;
+        var stmt_indent: Int = 2;
         if collect_script {
             stmt_indent = 8;
         }
-        let statement_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
-        let stmt_block: String = "";
+        var statement_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+        var stmt_block: String = "";
         if collect_script {
             stmt_block = ParseOneStmtObservedProjected(
                 content, n, i, cursor_out, stmt_indent, statement_graphs,
@@ -529,10 +529,10 @@ func ParseDecls(
     inout source_locations: Array<ParserSourceLocationObservation>,
     inout declaration_module_paths: Array<String>
 ) -> String {
-    let out_blocks: Array<String> = [];
-    let script_blocks: Array<String> = [];
-    let script_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
-    let script_source_locations: Array<ParserSourceLocationObservation> = [];
+    var out_blocks: Array<String> = [];
+    var script_blocks: Array<String> = [];
+    var script_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+    var script_source_locations: Array<ParserSourceLocationObservation> = [];
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
         source_path, display_root, force_export, follow_imports,
@@ -551,7 +551,7 @@ func ParseDecls(
             first_statement.source_offset, "script_statement_with_main", "construct", "top_level_statement", "", "");
     }
     let out: TextBuilder = TextBuilderNew(4096);
-    let block_index: Int = 0;
+    var block_index: Int = 0;
     while block_index < ArrayLength(out_blocks) {
         if block_index > 0 { TextBuilderAppend(out, "\n"); }
         TextBuilderAppend(out, out_blocks[block_index]);
@@ -585,7 +585,7 @@ func ParseDecls(
             first_script.source_line, first_script.source_column,
             first_script.source_offset, "", source_locations
         );
-        let script_location_index: Int = 0;
+        var script_location_index: Int = 0;
         while script_location_index < ArrayLength(script_source_locations) {
             ArrayPush(
                 source_locations,

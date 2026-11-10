@@ -18,7 +18,7 @@ func ParseAbilityDecl(
     inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
-    let i: Int = start;
+    var i: Int = start;
     // `innate` only limits implementors to the declaring module; the native
     // tree prints an innate ability like a plain one.
     if MatchLanguageWord(content, i, LanguageWordId.WordInnate) {
@@ -31,7 +31,7 @@ func ParseAbilityDecl(
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
-    let ab_name: String = ReadIdent(content, i, cursor_out);
+    var ab_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(ab_name) == 0 {
         ParseRefuse(location_context, i, "declaration_name_missing", "construct", "ability", "", "");
@@ -44,7 +44,7 @@ func ParseAbilityDecl(
     if generic_parameters != "" {
         ab_name = Concat(ab_name, generic_parameters);
     }
-    let constraint_clause: String = "";
+    var constraint_clause: String = "";
     i = SkipWhitespaceAndComments(content, i);
     if MatchLanguageWord(content, i, LanguageWordId.WordWhere) {
         let where_start: Int = i;
@@ -57,7 +57,7 @@ func ParseAbilityDecl(
     }
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "ability");
-    let sig_blocks: String = "";
+    var sig_blocks: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -98,11 +98,11 @@ func ParseAbilityDecl(
         i = cursor_out[0];
         sig_blocks = AppendLine(sig_blocks, sig);
     }
-    let ability_label: String = "  Ability: ";
+    var ability_label: String = "  Ability: ";
     if exported {
         ability_label = "  [export] Ability: ";
     }
-    let ability_out: String = Concat(ability_label, Concat(decl_prefix, ab_name));
+    var ability_out: String = Concat(ability_label, Concat(decl_prefix, ab_name));
     if constraint_clause != "" {
         ability_out = AppendLine(
             ability_out,

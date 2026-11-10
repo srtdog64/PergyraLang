@@ -36,7 +36,7 @@ func DirectMirMutableNominalIdentityPlanDigest(
     ref plan: DirectMirMutableNominalIdentityPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(587L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(587L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashInt(hash, plan.admission.digest);
     hash = DirectMirCfgHashString(hash, plan.abi_provenance);

@@ -9,8 +9,9 @@ can overturn it.
 ## Rule
 
 An Array store (`ArrayPush`, `ArraySet`) may put a value that carries a
-by-value or `ref` formal's backing into an `inout` output. When `Clone`
-copies that value whole, the compiler stores `Clone(value)` instead.
+by-value or `ref` formal's backing into an `inout` output or a private local
+Array that the routine returns. When `Clone` copies that value whole, the
+compiler stores `Clone(value)` instead.
 
 - The formal's backing frame selects the store after the flow proof. The
   next analysis lands it, visible in MIR as `Clone`, or as
@@ -20,8 +21,24 @@ copies that value whole, the compiler stores `Clone(value)` instead.
   the caller's argument.
 - A value `Clone` copies only by value (an Array of elements that are not
   physical scalars or Strings, a generic instance) lands nothing, and the
-  move stays.
+  move stays. `formal_array_store_local_receiver_invalid` is the negative
+  control for that boundary.
 - Only the stored value is copied, never the formal.
+
+`private_array_push_return_escape_landed_valid` and
+`private_array_push_nonempty_ref_inserted_landed_valid` fix the returned-
+private-Array cases to the same rule. The backing frame owns the return
+dependency; the landing consumer must not depend on the older slot-name scan
+classifying the store as externally visible. An empty owned receiver can use
+`ArrayPushOwnedString`; an already populated receiver keeps ordinary
+`ArrayPush` and makes the inserted String independent with `Clone`.
+The same fact closes a caller-visible inout handoff after the returned local
+Array is independent (`ref_loan_local_stored_into_inout_output_landed_valid`).
+Wrapping that Array does not change the store boundary
+(`private_array_push_wrapper_escape_landed_valid`).
+This does not erase a later descriptor move: in
+`ref_string_through_inout_keeper_invalid` both String stores land, while the
+subsequent own handoff of the Array remains refused.
 
 ## Why
 

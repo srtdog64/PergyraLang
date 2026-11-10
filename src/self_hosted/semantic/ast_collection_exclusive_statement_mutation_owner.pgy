@@ -1,0 +1,281 @@
+// Statement-form exclusive mutation admission and exact compiler-Clone
+// detachment proof. General argument/member mutation remains owned by
+// ast_collection_exclusive_value_mutation_owner.pgy.
+import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+
+struct SemanticAstCollectionExclusiveStatementMutationProof {
+    ok: Bool;
+    compiler_clone_storage_detached: Bool;
+}
+
+func SemanticAstCollectionExclusiveStatementMutationProofReady(
+    compiler_clone_storage_detached: Bool
+) -> SemanticAstCollectionExclusiveStatementMutationProof {
+    return SemanticAstCollectionExclusiveStatementMutationProof(
+        true, compiler_clone_storage_detached);
+}
+
+func SemanticAstCollectionExclusiveStatementMutationProofInvalid(
+) -> SemanticAstCollectionExclusiveStatementMutationProof {
+    return SemanticAstCollectionExclusiveStatementMutationProof(false, false);
+}
+
+// A constructor escape no longer names the caller's storage only when every
+// reached input of the current definition has an exact compiler Clone. Other
+// retained-formal escapes remain owned by the call-effect fact and fail closed.
+func SemanticAstCollectionExclusiveCompilerClonesDetachStorageAt(
+    artifact: AstTreeArtifact,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    binding_row: Int, binding_id: Int, current_definition: Int,
+    function_id: Int, syntax_id: Int,
+    ref compiler_clone_expression_node_ids: Array<Int>
+) -> Bool {
+    if binding_row < 0 ||
+        binding_row >= ArrayLength(call_effects.first_storage_escape_sites) ||
+        current_definition < 0 ||
+        current_definition >=
+            ArrayLength(call_effects.definition_storage_escape_sites) ||
+        !SemanticAstCollectionConstructorFieldInputsShapeReady(
+            call_effects.constructor_inputs) { return false; }
+    let first_escape: Int =
+        call_effects.first_storage_escape_sites[binding_row];
+    if first_escape <= 0 ||
+        !SemanticAstCollectionMutableCallMayBeRetired(
+            artifact, syntax_id, first_escape) { return false; }
+    var matched: Bool = false;
+    var earliest: Int = -1;
+    var input: Int = 0;
+    while input < ArrayLength(
+            call_effects.constructor_inputs.argument_nodes) {
+        if call_effects.constructor_inputs.function_ids[input] == function_id &&
+            call_effects.constructor_inputs.definition_rows[input] ==
+                current_definition &&
+            call_effects.constructor_inputs.binding_ids[input] == binding_id {
+            let site: Int = SemanticAstCollectionCallRetirementSite(
+                artifact,
+                call_effects.constructor_inputs.syntax_ids[input]);
+            if site <= 0 &&
+                SemanticAstCollectionMutableCallMayBeRetired(
+                    artifact, syntax_id, site) { return false; }
+            if site > 0 &&
+                SemanticAstCollectionMutableCallMayBeRetired(
+                    artifact, syntax_id, site) {
+                matched = true;
+                if earliest < 0 || site < earliest { earliest = site; }
+                if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                        compiler_clone_expression_node_ids,
+                        call_effects.constructor_inputs.argument_nodes[input]) {
+                    return false;
+                }
+            }
+        }
+        input = input + 1;
+    }
+    if !matched || earliest != first_escape { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(
+            call_effects.formal_descriptor_retention.local_definitions) {
+        if call_effects.formal_descriptor_retention.local_definitions[row] ==
+                current_definition &&
+            call_effects.formal_descriptor_retention.local_bindings[row] ==
+                binding_row &&
+            !call_effects.formal_descriptor_retention.local_terminal[row] &&
+            SemanticAstCollectionMutableCallMayBeRetired(
+                artifact, syntax_id,
+                call_effects.formal_descriptor_retention.local_sites[row]) {
+            var retained: Bool = false;
+            var formal: Int = 0;
+            while formal < ArrayLength(
+                    call_effects.formal_descriptor_retention.retained_formals) {
+                if call_effects.formal_descriptor_retention.retained_formals[formal] ==
+                    call_effects.formal_descriptor_retention.local_targets[row] {
+                    retained = true;
+                }
+                formal = formal + 1;
+            }
+            if retained { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+// Select the exact earlier carrier when a later mutation would otherwise be
+// observed through a surviving copy.  Copy-site rows are produced beside the
+// structural copy edge; this source-order consumer never reconstructs them
+// from spelling or from a codegen type.
+func SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_starts: HashMap<String, Int>,
+    surface_ends: HashMap<String, Int>,
+    ref copies: HashMap<String, Int>,
+    inout compiler_clone_expression_node_ids: Array<Int>, function_id: Int,
+    syntax_id: Int, changed_binding: Int
+) -> Bool {
+    let function_key: String = ToString(function_id);
+    if !MapHas(surface_starts, function_key) ||
+        !MapHas(surface_ends, function_key) ||
+        MapGet(surface_starts, function_key) < 0 { return false; }
+    let count: Int = SemanticAstCollectionExclusiveCopyCount(
+        copies, "copy_site_count");
+    let no_uses: Array<Int> = [];
+    var site: Int = 0;
+    while site < count {
+        let key: String = ToString(site);
+        let function_row: String = Concat("copy_site_function:", key);
+        let syntax_row: String = Concat("copy_site_syntax:", key);
+        let node_row: String = Concat("copy_site_node:", key);
+        let root_row: String = Concat("copy_site_root:", key);
+        let source_field_row: String = Concat(
+            "copy_site_source_field:", key);
+        let holder_row: String = Concat("copy_site_holder:", key);
+        let destination_field_row: String = Concat(
+            "copy_site_destination_field:", key);
+        if !MapHas(copies, function_row) || !MapHas(copies, syntax_row) ||
+            !MapHas(copies, node_row) || !MapHas(copies, root_row) ||
+            !MapHas(copies, source_field_row) || !MapHas(copies, holder_row) ||
+            !MapHas(copies, destination_field_row) { return false; }
+        let copy_function: Int = MapGet(copies, function_row);
+        let copy_syntax: Int = MapGet(copies, syntax_row);
+        if copy_function == function_id && copy_syntax <= syntax_id {
+            let root: Int = MapGet(copies, root_row);
+            let holder: Int = MapGet(copies, holder_row);
+            var other: Int = 0;
+            if root == changed_binding {
+                other = holder;
+            } else if holder == changed_binding {
+                other = root;
+            }
+            if other > 0 &&
+                !SemanticAstCollectionExclusiveBindingUnreadAfter(
+                    artifact, signatures, locals, inferred_types, surfaces,
+                    MapGet(surface_starts, function_key),
+                    MapGet(surface_ends, function_key), function_id,
+                    syntax_id, false, 0, no_uses, false, other) {
+                SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                    compiler_clone_expression_node_ids,
+                    MapGet(copies, node_row));
+            }
+        }
+        site = site + 1;
+    }
+    return true;
+}
+
+// The statement-form mutation at `syntax_id` targets no member alias, or one
+// whose root may grow in place.
+func SemanticAstCollectionExclusiveStatementRootReady(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts, shared_locals: HashMap<String, Int>,
+    mutating: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
+    function_id: Int, syntax_id: Int, ref focus: SemanticAstCollectionFocusRecoveryFacts,
+    ref copies: HashMap<String, Int>,
+    inout compiler_clone_expression_node_ids: Array<Int>,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref current_definitions: Array<Int>,
+    surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>
+) -> SemanticAstCollectionExclusiveStatementMutationProof {
+    // Only a reallocating mutation retires the buffer other copies name;
+    // ArraySet and an indexed assignment write in place.
+    let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
+    if !IsSome(indexed) {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
+    let kind: Int = statements.kind_tags[UnwrapOption(indexed)];
+    let assignment: Option<Int> = SemanticAstAssignmentIndexForNode(
+        assignments, syntax_id);
+    let indexed_assignment: Bool = IsSome(assignment) &&
+        assignments.target_is_indexed[UnwrapOption(assignment)] != 0;
+    let mutates_storage: Bool = kind == TypedAstKindArrayPushStmtTag() ||
+        kind == TypedAstKindArrayPopStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag() || indexed_assignment;
+    if !mutates_storage {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
+    let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
+        artifact, locals, inferred_types, surfaces, function_id, syntax_id);
+    if !target.ok {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
+    if !SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
+            artifact, signatures, locals, inferred_types, surfaces,
+            surface_starts, surface_ends, copies,
+            compiler_clone_expression_node_ids,
+            function_id, syntax_id, locals.node_ids[target.row]) {
+        return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
+    }
+    // In-place element writes need independent value semantics but do not
+    // retire the shared descriptor.  Growth keeps the existing exclusivity
+    // admission below.
+    if kind != TypedAstKindArrayPushStmtTag() &&
+        kind != TypedAstKindArrayPopStmtTag() {
+        var detached: Bool = false;
+        if target.row < ArrayLength(current_definitions) {
+            detached = SemanticAstCollectionExclusiveCompilerClonesDetachStorageAt(
+                artifact, call_effects, target.row,
+                locals.node_ids[target.row], current_definitions[target.row],
+                function_id, syntax_id,
+                compiler_clone_expression_node_ids);
+        }
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(
+            detached);
+    }
+    if target.row >= ArrayLength(origins) {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
+    if SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id, locals.node_ids[target.row]) {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
+    // A local that shares its buffer grows it under every other name: its
+    // own definition names shared storage, a copy of it made before the
+    // growth (or carried round a loop to it) survives, or a followed copy is
+    // read from here on. A copy made after the growth names the new buffer.
+    if origins[target.row] != SemanticAstCollectionOriginMemberMove() {
+        let key: String = ToString(function_id);
+        let local_key: String = ToString(locals.node_ids[target.row]);
+        if MapHas(copies, Concat("d:", local_key)) || !MapHas(surface_starts, key) ||
+            !MapHas(surface_ends, key) || MapGet(surface_starts, key) < 0 {
+            return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
+        }
+        var copy_index: Int = 0;
+        while copy_index < SemanticAstCollectionExclusiveCopyCount(copies, Concat("s_n:", local_key)) {
+            let copied_at: Int = MapGet(copies, Concat("s_i:", Concat(local_key, Concat(":", ToString(copy_index)))));
+            if copied_at <= syntax_id ||
+                SemanticAstCollectionExclusiveLoopCarries(artifact, locals.node_ids[target.row], syntax_id, copied_at) {
+                return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
+            }
+            copy_index = copy_index + 1;
+        }
+        let no_chain: Array<Int> = [];
+        let grown_place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlace(
+            true, false, target.row, locals.node_ids[target.row], 0, no_chain);
+        let no_uses: Array<Int> = [];
+        let no_grown: Array<String> = [];
+        let no_sources: Array<Int> = [];
+        let ready: Bool = SemanticAstCollectionExclusiveCopiesUnread(artifact, signatures, locals, inferred_types, surfaces,
+            copies, grown_place, MapGet(surface_starts, key), MapGet(surface_ends, key), function_id, syntax_id,
+            false, 0, no_uses, false, no_grown, no_sources);
+        return SemanticAstCollectionExclusiveStatementMutationProof(
+            ready, false);
+    }
+    // The alias must have consumed its source: no later read sees the old buffer.
+    if MapHas(shared_locals, ToString(locals.node_ids[target.row])) {
+        return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
+    }
+    let ready: Bool = SemanticAstCollectionExclusiveMemberRootReady(signatures, locals, shared_locals, function_id,
+        source_binding_syntax_ids[target.row], SemanticAstCollectionExclusiveAliasField(surfaces, locals,
+            mutating, target.row));
+    return SemanticAstCollectionExclusiveStatementMutationProof(
+        ready, false);
+}
+
+// Whether a member alias of the first field `field` ("*": unknown) of the root
+// binding `root_id` may grow in place: an exclusive local, or a formal that is
+// not ref, whose field shares no storage.

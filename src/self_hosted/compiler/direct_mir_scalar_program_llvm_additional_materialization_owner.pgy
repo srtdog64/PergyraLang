@@ -9,7 +9,7 @@ func DirectMirScalarProgramLlvmAdditionalMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let output: String =
+    var output: String =
         DirectMirScalarProgramLlvmStringWindowMaterialization(plan, runtime);
     output = Concat(output,
         DirectMirScalarProgramLlvmStringIndexMaterialization(plan, runtime));

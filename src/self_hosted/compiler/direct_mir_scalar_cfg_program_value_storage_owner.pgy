@@ -25,18 +25,18 @@ func DirectMirScalarCfgProgramValuesAppendRoutine(
             storage.value_types, storage.value_local_rows,
             storage.value_definition_blocks);
     }
-    let local_names: Array<String> = storage.local_names;
-    let local_types: Array<String> = storage.local_types;
-    let local_ref_kinds: Array<Int> = storage.local_ref_kinds;
-    let local_ref_value_ids: Array<String> = storage.local_ref_value_ids;
-    let local_ref_syntax_ids: Array<Int> = storage.local_ref_syntax_ids;
-    let value_names: Array<String> = storage.value_names;
-    let value_types: Array<String> = storage.value_types;
-    let value_local_rows: Array<Int> = storage.value_local_rows;
-    let value_definition_blocks: Array<Int> =
+    var local_names: Array<String> = storage.local_names;
+    var local_types: Array<String> = storage.local_types;
+    var local_ref_kinds: Array<Int> = storage.local_ref_kinds;
+    var local_ref_value_ids: Array<String> = storage.local_ref_value_ids;
+    var local_ref_syntax_ids: Array<Int> = storage.local_ref_syntax_ids;
+    var value_names: Array<String> = storage.value_names;
+    var value_types: Array<String> = storage.value_types;
+    var value_local_rows: Array<Int> = storage.value_local_rows;
+    var value_definition_blocks: Array<Int> =
         storage.value_definition_blocks;
     let local_offset: Int = ArrayLength(local_names);
-    let local_binding: Int = 0;
+    var local_binding: Int = 0;
     while local_binding < ArrayLength(locals.local_names) {
         ArrayPush(local_names, locals.local_names[local_binding]);
         ArrayPush(local_types, types.local_types[local_binding]);
@@ -45,7 +45,7 @@ func DirectMirScalarCfgProgramValuesAppendRoutine(
         ArrayPush(local_ref_syntax_ids, locals.local_ref_syntax_ids[local_binding]);
         local_binding = local_binding + 1;
     }
-    let value: Int = 0;
+    var value: Int = 0;
     while value < ArrayLength(locals.value_names) {
         ArrayPush(value_names, locals.value_names[value]);
         ArrayPush(value_types, types.value_types[value]);

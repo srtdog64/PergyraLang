@@ -165,8 +165,8 @@ func SemanticExpressionGraphScalarTypeName(
             );
         }
         if SemanticBuiltinReturnDependsOnArguments(callee) {
-            let builtin_argument_types: Array<String> = [];
-            let builtin_argument_index: Int = 0;
+            var builtin_argument_types: Array<String> = [];
+            var builtin_argument_index: Int = 0;
             while builtin_argument_index < ArrayLength(call.argument_nodes) {
                 ArrayPush(
                     builtin_argument_types,
@@ -213,6 +213,13 @@ func SemanticExpressionGraphScalarTypeName(
             return "Unknown";
         }
         return UnwrapOption(target);
+    }
+    if kind == AstExpressionNodeIndex() {
+        let indexed: Option<String> = SemanticExpressionGraphIndexValueTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns, enum_values);
+        if IsSome(indexed) { return UnwrapOption(indexed); }
+        return "Unknown";
     }
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, root_id
@@ -262,12 +269,6 @@ func SemanticExpressionGraphScalarTypeName(
     let binary_scalar: String =
         SemanticExpressionGraphScalarBinaryResultTypeName(kind, left, right);
     if binary_scalar != "Unknown" { return binary_scalar; }
-    if kind == AstExpressionNodeIndex() && right == "Int" &&
-        StringLength(left) >= 8 &&
-        StartsWith(left, "Array<") &&
-        CharAt(left, StringLength(left) - 1) == ">" {
-        return Substring(left, 6, StringLength(left) - 7);
-    }
     return "Unknown";
 }
 
@@ -317,7 +318,7 @@ func SemanticExpressionGraphIndexValueTypeName(
             function_names, function_returns, enum_values
         );
     if !IsSome(collection_type) { return None; }
-    let element_type: Option<String> = SemanticArrayElementType(
+    var element_type: Option<String> = SemanticArrayElementType(
         UnwrapOption(collection_type)
     );
     if !IsSome(element_type) {
@@ -429,9 +430,9 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             wrapper_member_graph, wrapper_member.receiver_node
         );
     if !wrapper_call.ok { return false; }
-    let wrapper_target_kinds: Array<Int> =
+    var wrapper_target_kinds: Array<Int> =
         wrapper_member_graph.arena.call_target_kinds;
-    let wrapper_target_names: Array<String> =
+    var wrapper_target_names: Array<String> =
         wrapper_member_graph.arena.call_target_names;
     ArraySet(
         wrapper_target_kinds,

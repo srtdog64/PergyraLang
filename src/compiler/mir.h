@@ -290,7 +290,22 @@ bool        mir_program_has_top_level_exec(const MIRProgram *mir);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);
 void        mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir);
+typedef struct MIRCollectionEffectEvidenceReceipt {
+    const MIRProgram *program;
+    const struct PgyCollectionEffectSnapshot *snapshot;
+    const ASTNode *source_program;
+    const MIRRoutine *routines;
+    size_t routine_count;
+    bool verified;
+} MIRCollectionEffectEvidenceReceipt;
+bool        mir_validate_with_receipt(
+                const MIRProgram *mir,
+                MIRCollectionEffectEvidenceReceipt *receipt_out,
+                char **error_message);
 bool        mir_validate(const MIRProgram *mir, char **error_message);
+bool        mir_collection_effect_evidence_receipt_current(
+                const MIRCollectionEffectEvidenceReceipt *receipt,
+                const MIRProgram *mir);
 bool        mir_validate_emission_topology(const MIRRoutine *routine,
                                           bool require_cleanup,
                                           bool require_cleanup_source_mapping,
@@ -299,6 +314,12 @@ bool        mir_validate_emission_contract(const MIRRoutine *routine,
                                           bool require_cleanup,
                                           bool require_cleanup_source_mapping,
                                           char **error_message);
+bool        mir_validate_emission_contract_with_receipt(
+                const MIRRoutine *routine,
+                bool require_cleanup,
+                bool require_cleanup_source_mapping,
+                const MIRCollectionEffectEvidenceReceipt *receipt,
+                char **error_message);
 void        mir_destroy(MIRProgram *mir);
 void        mir_dump(const MIRProgram *mir, FILE *out);
 /* JSON serialization of MIR facts (schema pgy.mir.v1). The rung-0 self-host
@@ -309,6 +330,8 @@ void        mir_dump_json(const MIRProgram *mir, FILE *out);
 
 const char *mir_scope_kind_name(MIRScopeKind kind);
 const char *mir_inst_kind_name(MIRInstKind kind);
+const char *mir_compound_assignment_opcode(AstAssignmentOperation operation);
+bool mir_assignment_operation(const MIRInstruction *inst, AstAssignmentOperation *out);
 const char *mir_branch_shape_name(MIRBranchShape shape);
 
 #endif

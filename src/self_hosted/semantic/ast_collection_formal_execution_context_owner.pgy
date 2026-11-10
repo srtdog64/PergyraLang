@@ -40,10 +40,10 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref order: SemanticExpressionGraphSurfaceOrder
 ) -> SemanticAstCollectionFormalExecutionContexts {
-    let unsafe_functions: HashMap<String, Int> = MapNew();
-    let candidate_functions: HashMap<String, Int> = MapNew();
+    var unsafe_functions: HashMap<String, Int> = MapNew();
+    var candidate_functions: HashMap<String, Int> = MapNew();
     let surface_count: Int = ArrayLength(surfaces.node_ids);
-    let ok: Bool = order.ok && artifact.identity_digest > 0 &&
+    var ok: Bool = order.ok && artifact.identity_digest > 0 &&
         TypedAstArenaParallelRowsReady(artifact.arena) &&
         TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
         scopes.ok && scopes.artifact_node_count == artifact.count &&
@@ -60,7 +60,7 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
         ArrayLength(surfaces.expression_graph.roots) == surface_count * 3 &&
         ArrayLength(surfaces.expression_graph.has_roots) ==
             ArrayLength(surfaces.expression_graph.roots);
-    let row: Int = 0;
+    var row: Int = 0;
     while ok && row < ArrayLength(candidate_function_ids) {
         let function_node_id: Int = candidate_function_ids[row];
         let key: String = ToString(function_node_id);
@@ -73,7 +73,7 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
         }
         row = row + 1;
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while ok && node_id < artifact.count {
         let key: String = ToString(scopes.function_node_ids[node_id]);
         if MapHas(candidate_functions, key) &&
@@ -81,7 +81,7 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
                 artifact, node_id) { MapSet(unsafe_functions, key, 1); }
         node_id = node_id + 1;
     }
-    let surface: Int = 0;
+    var surface: Int = 0;
     while ok && surface < surface_count {
         let function_node_id: Int = surfaces.function_node_ids[surface];
         let key: String = ToString(function_node_id);
@@ -98,8 +98,8 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
         }
         surface = surface + 1;
     }
-    let last: Int = -1;
-    let root: Int = 0;
+    var last: Int = -1;
+    var root: Int = 0;
     while ok && root < ArrayLength(order.slots_by_root) {
         let slot: Int = order.slots_by_root[root];
         if slot == -2 { last = root; }
@@ -109,7 +109,7 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
             let key: String = ToString(function_node_id);
             if MapHas(candidate_functions, key) &&
                     !MapHas(unsafe_functions, key) {
-                let node: Int = last + 1;
+                var node: Int = last + 1;
                 while node <= root {
                     if SemanticAstCollectionFormalGraphNodeOmitsExecution(
                             surfaces.expression_graph, node) {

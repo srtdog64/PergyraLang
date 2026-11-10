@@ -367,7 +367,7 @@ require_max_lines \
     "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" 120
 require_max_lines "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" 120
 require_max_lines \
-    "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" 260
+    "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" 280
 require_max_lines \
     "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" 220
 require_max_lines \
@@ -386,6 +386,8 @@ require_max_lines "tests/self_hosted/fixtures/call_spine_root_projection.pgy" 16
 require_max_lines "tests/self_hosted/parity/call_spine_root_projection_owner.sh" 65
 require_max_lines "tests/self_hosted/fixtures/logical_record_shape_query.pgy" 170
 require_max_lines "tests/self_hosted/parity/logical_record_shape_query_owner.sh" 65
+require_max_lines "tests/self_hosted/fixtures/logical_record_negative_lookup_shortcut.pgy" 150
+require_max_lines "tests/self_hosted/parity/logical_record_validation_receipt_owner.sh" 45
 require_max_lines "tests/self_hosted/fixtures/logical_record_constructor_query.pgy" 210
 require_max_lines "tests/self_hosted/parity/logical_record_constructor_query_owner.sh" 65
 require_max_lines \
@@ -566,6 +568,9 @@ require_max_lines "src/self_hosted/semantic/ast_initializer_type_contract_owner.
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 60
 # Body assembly also seals and carries retained result/formal projections.
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy" 330
+require_max_lines "src/self_hosted/semantic/ast_body_type_stage_observer_owner.pgy" 5
+require_max_lines "src/self_hosted/semantic/ast_body_base_verdict_owner.pgy" 120
+require_max_lines "src/self_hosted/semantic/ast_body_post_ownership_verdict_owner.pgy" 140
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" 180
 require_max_lines "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 615
@@ -605,7 +610,7 @@ require_max_lines "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" 300
 require_max_lines "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" 140
 require_max_lines "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" 137
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
-require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 352
+require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 360
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" 300
 require_max_lines \
     "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" 240
@@ -775,7 +780,7 @@ require_max_lines \
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 130
 require_max_lines "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" 220
-require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 280
+require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 290
 require_max_lines "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 40
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 320
@@ -802,6 +807,10 @@ require_max_lines \
     "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 125
 require_max_lines \
     "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh" 340
+require_max_lines \
+    "tests/self_hosted/parity/self_host_fixed_point_profile_validation_owner.sh" 70
+require_max_lines \
+    "tests/self_hosted/parity/self_host_fixed_point_profile_negative_owner.sh" 80
 require_max_lines \
     "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh" 100
 require_max_lines \
@@ -908,6 +917,8 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/canonical_mir_routine_phase_identity_owner.sh" 140
 require_max_lines \
+    "tests/self_hosted/parity/canonical_mir_routine_phase_projection_owner.sh" 15
+require_max_lines \
     "tests/self_hosted/parity/generic_specialization_identity_epoch_owner.sh" 100
 require_max_lines \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" 100
@@ -976,6 +987,7 @@ require_max_lines "src/self_hosted/mir/routine_for_owner.pgy" 180
 require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 150
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" 100
 require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" 90
+require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_row_alignment_owner.pgy" 30
 require_max_lines "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" 220
 require_max_lines \
     "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" 70
@@ -1375,9 +1387,11 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_zero_parameter_callable_owner.sh" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_nominal_parameter_projection_owner.pgy" 90
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" 105
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_nominal_parameter_projection_owner.pgy" 100
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_set_string_value_parameter.pgy" 20
 require_max_lines \
@@ -1552,6 +1566,10 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" 130
 require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_enum_readonly_ref_owner.sh" 160
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_enum_readonly_ref_mutations.py" 60
+require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_owner.sh" 110
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py" 50
@@ -1646,7 +1664,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_bool_return_policy_owner.pgy" 20
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_array_bool_return.pgy" 30
 require_max_lines \
@@ -1708,7 +1726,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_return_array_string_value_result.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh" 100
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh" 120
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_mutations.py" 65
 require_max_lines \
@@ -1766,13 +1784,11 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_void_process_exit_mutations.py" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy" 210
-require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_expression_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_expression_owner.pgy" 32
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" 85
 require_max_lines \
@@ -1847,7 +1863,7 @@ require_max_lines \
     "tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py" 240
 for option_value_flow_owner_cap in \
     direct_mir_two_routine_nominal_classification_owner.pgy:150 \
-    direct_mir_two_routine_nominal_program_admission_owner.pgy:80 \
+    direct_mir_two_routine_nominal_program_admission_owner.pgy:90 \
     direct_mir_two_routine_nominal_projection_owner.pgy:55 \
     direct_mir_option_struct_value_flow_program_admission_owner.pgy:30 \
     direct_mir_option_struct_value_flow_program_identity_owner.pgy:230 \
@@ -2247,7 +2263,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" 190
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" 195
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy" 100
 require_max_lines \
@@ -2707,9 +2723,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 155
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 215
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 230
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy" 120
 require_max_lines \
@@ -2795,8 +2811,10 @@ require_max_lines "src/self_hosted/lsp/squiggle_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_max_lines "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" 600
 
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_readonly_string_parameter_owner.pgy" 40
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" 150
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_readonly_string_temporary_owner.pgy" 140
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_rewrite_owner.pgy" 80
 require_max_lines "tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh" 220
 require_max_lines "tests/self_hosted/parity/region_user_callee_mutations.py" 70
 
@@ -2849,7 +2867,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_constructor_empty_capture_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:84 \
     src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:104 \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy:40 \
@@ -2880,6 +2898,8 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_member_place_owner.pgy:64 \
     src/self_hosted/semantic/ast_collection_member_place_use_owner.pgy:200 \
     src/self_hosted/semantic/ast_string_formal_borrow_owner.pgy:235 \
+    src/self_hosted/semantic/ast_collection_aggregate_element_borrow_dependency_owner.pgy:400 \
+    src/self_hosted/semantic/ast_collection_aggregate_element_escape_projection_owner.pgy:420 \
     src/self_hosted/semantic/ast_collection_aggregate_release_element_borrow_owner.pgy:32 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
@@ -2889,6 +2909,8 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:110 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:162 \
+    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_record_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_aggregate_field_entry_formal_owner.pgy:70 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:316 \
     src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
     src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:590 \
@@ -2921,6 +2943,109 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100 \
     src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy:100 \
     src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_fact_owner.pgy:260 \
+    src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_completion_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_control_flow_owner.pgy:300 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_exit_flow_owner.pgy:260 \
+    src/self_hosted/semantic/ast_string_formal_local_text_containment_owner.pgy:100 \
+    src/self_hosted/semantic/ast_string_formal_source_text_containment_owner.pgy:140 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_statement_end_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_build_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_element_escape_readiness_owner.pgy:260 \
+    src/self_hosted/semantic/ast_collection_owned_element_escape_event_owner.pgy:140 \
+    src/self_hosted/semantic/ast_collection_ownership_verdict_schema_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_ownership_verdict_error_owner.pgy:40 \
+    src/self_hosted/semantic/ast_owned_string_fresh_expression_owner.pgy:100 \
+    src/self_hosted/semantic/ast_owned_string_allocation_domain_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_member_place_schema_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection_member_place_usage_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_constructor_named_vacant_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_constructor_field_input_producer_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection_formal_indexed_read_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection_call_argument_effect_admission_owner.pgy:220 \
+    src/self_hosted/semantic/ast_collection_formal_statement_effect_schema_owner.pgy:20 \
+    src/self_hosted/semantic/ast_collection_formal_statement_effect_build_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection_exclusive_copy_landing_fact_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_exclusive_copy_landing_field_owner.pgy:140 \
+    src/self_hosted/compiler/direct_mir_constructed_member_specialization_pair_fact_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_constructed_member_specialization_occurrence_owner.pgy:200 \
+    src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_schema_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_projection_owner.pgy:220 \
+    src/self_hosted/compiler/driver_mir_c_request_identity_owner.pgy:140 \
+    src/self_hosted/compiler/driver_mir_c_payload_admission_owner.pgy:100 \
+    src/self_hosted/mir_lower/collection_ownership_binding_move_fact_owner.pgy:120 \
+    src/self_hosted/mir_lower/collection_ownership_binding_move_query_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy:200 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy:165 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_artifact_emission_owner.pgy:180 \
+    src/self_hosted/compiler/direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_graph_owner.pgy:80 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_admission_owner.pgy:220 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_identity_schema_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_identity_query_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_scalar_program_option_int_instruction_abi_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir_scalar_program_option_int_parameter_abi_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_type_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_projection_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_scalar_type_family_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_type_family_owner.pgy:80 \
+    src/self_hosted/compiler/direct_mir_routine_signature_schema_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_routine_signature_projection_owner.pgy:140 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_schema_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_projection_owner.pgy:80 \
+    src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_schema_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_projection_owner.pgy:160 \
+    src/self_hosted/compiler/direct_mir_scalar_program_array_int_literal_operand_schema_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir_scalar_program_array_int_literal_operand_projection_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_aggregate_carrier_identity_owner.pgy:370 \
+    src/self_hosted/semantic/ast_collection_aggregate_moving_self_rebind_owner.pgy:135 \
+    src/self_hosted/semantic/ast_collection_aggregate_field_pack_restoration_owner.pgy:400 \
+    src/self_hosted/semantic/ast_collection_aggregate_result_path_owner.pgy:490 \
+    src/self_hosted/semantic/ast_collection_aggregate_terminal_path_transfer_owner.pgy:320 \
+    src/self_hosted/semantic/ast_collection_aggregate_whole_holder_restoration_owner.pgy:440 \
+    src/self_hosted/semantic/ast_collection_aggregate_result_transfer_owner.pgy:460 \
+    src/self_hosted/semantic/ast_collection_aggregate_source_path_uniqueness_owner.pgy:240 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_call_chain_owner.pgy:250 \
+    src/self_hosted/semantic/ast_collection_aggregate_terminal_alternative_owner.pgy:410 \
+    src/self_hosted/semantic/ast_collection_aggregate_forwarded_result_owner.pgy:350 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_uniqueness_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_restoration_owner.pgy:590 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_finalization_owner.pgy:430 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_alias_owner.pgy:440 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_record_owner.pgy:550 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_trace_owner.pgy:510 \
+    src/self_hosted/semantic/ast_collection_exclusive_whole_carried_field_owner.pgy:310 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_classification_owner.pgy:310 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_fact_build_owner.pgy:320 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_record_schema_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_readiness_owner.pgy:190 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_recording_owner.pgy:180 \
+    src/self_hosted/semantic/ast_body_flow_calculus_owner.pgy:580 \
+    src/self_hosted/semantic/ast_body_termination_fact_owner.pgy:200 \
+    src/self_hosted/semantic/ast_owned_string_literal_ownership_fact_owner.pgy:150 \
+    src/self_hosted/semantic/ast_owned_string_literal_definition_transfer_owner.pgy:420 \
+    src/self_hosted/semantic/ast_owned_string_literal_call_transfer_owner.pgy:230 \
+    src/self_hosted/semantic/ast_expression_graph_concrete_scalar_readiness_owner.pgy:440 \
+    src/self_hosted/semantic/ast_expression_graph_concrete_scalar_error_owner.pgy:270 \
+    src/self_hosted/semantic/ast_expression_graph_core_fact_owner.pgy:570 \
+    src/self_hosted/semantic/ast_expression_graph_equality_owner.pgy:80 \
+    src/self_hosted/semantic/ast_nominal_constructor_core_fact_owner.pgy:510 \
+    src/self_hosted/semantic/ast_nominal_role_slot_query_owner.pgy:60 \
+    src/self_hosted/semantic/ast_nominal_constructor_field_query_owner.pgy:110 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_core_owner.pgy:540 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_result_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_formal_use_entry_owner.pgy:50 \
+    src/self_hosted/semantic/ast_collection_owned_push_leaf_resolution_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection_formal_statement_transition_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_local_statement_transition_owner.pgy:150 \
+    src/self_hosted/semantic/ast_collection_ownership_finalization_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection_ownership_projection_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_call_storage_status_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection_owned_element_call_requirement_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_commit_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection_builtin_mutation_kind_owner.pgy:20 \
+    src/self_hosted/semantic/ast_collection_formal_execution_entry_owner.pgy:30 \
+    src/self_hosted/semantic/ast_collection_builtin_completion_identity_owner.pgy:10 \
     src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy:90; do
     collection_owner="${collection_owner_cap%%:*}"
     collection_cap="${collection_owner_cap##*:}"
@@ -2930,6 +3055,7 @@ require_max_lines "src/self_hosted/semantic/ast_collection_builtin_release_ident
 require_max_lines "tests/self_hosted/fixtures/collection_storage_producer_probe.pgy" 160
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe.pgy" 180
+require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe_support.pgy" 130
 require_max_lines "tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 129
 require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy" 220

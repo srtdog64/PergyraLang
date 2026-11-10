@@ -11,7 +11,7 @@ import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy";
-import "direct_mir_scalar_cfg_program_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_artifact_emission_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "direct_mir_llvm_entry_block_storage_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
@@ -50,7 +50,7 @@ func DirectMirScalarCfgEmitLlvm(
         DirectMirScalarLlvmFormatByteCount(int_line_format);
     let string_size: Int =
         DirectMirScalarLlvmFormatByteCount(string_line_format);
-    let output: String = "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
+    var output: String = "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
     output = Concat(output, ToString(int_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(
@@ -71,13 +71,17 @@ func DirectMirScalarCfgEmitLlvm(
     output = Concat(output, DirectMirScalarCfgStringArrayLlvmGlobals(plan));
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanLlvmGlobals(plan));
-    output = Concat(output, DirectMirScalarCfgLlvmForeignDeclarations(plan));
+    output = Concat(output, DirectMirScalarCfgLlvmForeignDeclarations(plan, false));
     output = Concat(output,
         DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
-    output = Concat(output, DirectMirScalarCfgLlvmLocalDeclarations(plan));
+    let no_array_string_projection: Option<DirectMirArrayStringAbiProjection> =
+        None();
+    output = Concat(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
+        plan, 0, ArrayLength(plan.local_names), 0,
+        no_array_string_projection));
     output = Concat(
         output, DirectMirScalarCfgForEachLlvmDeclarations(plan, target)
     );
@@ -88,7 +92,7 @@ func DirectMirScalarCfgEmitLlvm(
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanLlvmDeclarations(plan, target));
     output = Concat(output, "  br label %pgy.block.0\n");
-    let block: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         output = Concat(output, "\npgy.block.");
         output = Concat(output, ToString(block));
@@ -98,7 +102,7 @@ func DirectMirScalarCfgEmitLlvm(
                 plan, target, block
             )
         );
-        let operation: Int = plan.block_operation_starts[block];
+        var operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {

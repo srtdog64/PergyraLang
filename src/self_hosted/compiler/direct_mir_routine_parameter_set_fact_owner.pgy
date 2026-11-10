@@ -34,8 +34,8 @@ func DirectMirRoutineParameterSetFactDigest(
 ) -> Int {
     if !fact.valid || ArrayLength(fact.names) != ArrayLength(fact.param_digests) ||
         ArrayLength(fact.names) != ArrayLength(fact.abi_row_keys) { return 0; }
-    let hash: Long = DirectMirCfgHashInt(107L, ArrayLength(fact.names));
-    let row: Int = 0;
+    var hash: Long = DirectMirCfgHashInt(107L, ArrayLength(fact.names));
+    var row: Int = 0;
     while row < ArrayLength(fact.names) {
         hash = DirectMirCfgHashInt(hash, row);
         hash = DirectMirCfgHashInt(hash, fact.param_digests[row]);
@@ -65,7 +65,7 @@ func DirectMirRoutineParameterSetFactReady(
         (count > 0 && (!DirectMirRoutineParamFactReady(fact.first) ||
          fact.first.digest != fact.param_digests[0] ||
          fact.abi_row_keys[0] != DirectMirAbiRowIdentityText(fact.first.abi))) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.names[row] == "" || fact.source_syntax_ids[row] <= 0 ||
             fact.type_names[row] == "" ||
@@ -84,7 +84,7 @@ func DirectMirRoutineParameterSetFactReady(
                     fact.abi_layout_ids[row], fact.abi_required[row]) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.names[prior] == fact.names[row] ||
                 fact.source_syntax_ids[prior] ==
@@ -100,7 +100,7 @@ func DirectMirRoutineLocalParameterOrdinalAtName(
     ref fact: DirectMirRoutineParameterSetFact, name: String
 ) -> Int {
     if !DirectMirRoutineParameterSetFactReady(fact) || name == "" { return -1; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.names) {
         if fact.names[row] == name {
             if (fact.carriages[row] != "value" &&

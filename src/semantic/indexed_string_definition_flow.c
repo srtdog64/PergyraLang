@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "indexed_string_definition_recipe.h"
@@ -113,36 +114,91 @@ bool indexed_string_definition_classify_uses(SemanticContext *ctx,
             use->value, false);
         if (row == NULL || row->node != use->value || row->id != use->value_id ||
             !row->indexed_string_source_present ||
-            row->indexed_string_source_id != use->issued_source ||
-            !semantic_param_publication_checked_argument(ctx, use->sink,
-                use->actual_ordinal)) return false;
-        if (use->protected_candidate) {
+            row->indexed_string_source_id != use->issued_source)
+            return false;
+        bool return_use = use->sink != NULL
+            && use->sink->type == AST_RETURN
+            && use->actual_ordinal == SIZE_MAX
+            && ast_return_value(use->sink) == use->value;
+        if (!return_use && !semantic_param_publication_checked_argument(
+                ctx, use->sink, use->actual_ordinal))
+            return false;
+        if (return_use || use->protected_candidate) {
             use->protected_use = true;
         } else if (use->issued_source == 0) {
-            if (semantic_param_publication_argument_borrowed_for_call(ctx,
-                    use->sink, use->actual_ordinal)) continue;
-            ASTNode *callee = semantic_param_publication_callee(ctx,
-                use->sink, use->actual_ordinal);
-            if (callee != NULL) {
-                size_t formal = SIZE_MAX;
-                if (!semantic_param_publication_formal_for_actual(ctx,
-                        use->sink, use->actual_ordinal, &formal)) return false;
-                SlotFunctionLookup lookup = {ctx, ctx->program_root};
-                unsigned mask = function_param_flow_summary_for_call(&lookup,
-                    use->sink, use->actual_ordinal);
-                FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
-                size_t at = store == NULL ? SIZE_MAX : function_param_flow_find(store,
-                    ast_node_stable_id(callee), formal);
-                if (at == SIZE_MAX || store->entries[at].function_decl != callee ||
-                    store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE ||
-                    store->entries[at].analysis_unsupported ||
-                    !function_param_flow_output_current(store, at, false)) return false;
-                if ((mask & ~SLOT_PARAM_SUMMARY_READ) == 0) continue;
-            } else if (!semantic_param_publication_checked_call(ctx, use->sink)) return false;
-            use->protected_use = true;
+            bool requires_copy = false;
+            if (!indexed_string_definition_zero_source_use_requires_copy(
+                    ctx, use, &requires_copy))
+                return false;
+            use->protected_use = requires_copy;
         }
         if (use->protected_use) *protected_use = true;
     }
+    if (getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL
+        && recipe->binding_name != NULL
+        && strcmp(recipe->binding_name, "matched_target") == 0) {
+        fprintf(stderr,
+            "[semantic timing] definition_classify binding=%u name=%s assignments=%zu uses=%zu protected=%d selected=%d\n",
+            recipe->binding_id, recipe->binding_name,
+            recipe->assignment_count, recipe->use_count,
+            *protected_use ? 1 : 0, recipe->selected ? 1 : 0);
+        for (size_t i = 0; i < recipe->use_count; i++)
+            fprintf(stderr,
+                "[semantic timing] definition_classify_use value=%u sink=%u source=%u candidate=%d protected=%d\n",
+                recipe->uses[i].value_id, recipe->uses[i].sink_id,
+                recipe->uses[i].issued_source,
+                recipe->uses[i].protected_candidate ? 1 : 0,
+                recipe->uses[i].protected_use ? 1 : 0);
+    }
+    return true;
+}
+
+bool indexed_string_definition_zero_source_use_requires_copy(
+    SemanticContext *ctx, const IndexedStringDefinitionUse *use,
+    bool *requires_copy)
+{
+    if (ctx == NULL || use == NULL || requires_copy == NULL
+        || use->value == NULL || use->sink == NULL
+        || use->sink->type != AST_CALL
+        || use->value_id == 0
+        || use->value_id != ast_node_stable_id(use->value)
+        || use->sink_id == 0
+        || use->sink_id != ast_node_stable_id(use->sink)
+        || use->actual_ordinal >= ast_call_arg_count(use->sink)
+        || ast_call_argument(use->sink, use->actual_ordinal) != use->value
+        || !semantic_param_publication_checked_argument(
+            ctx, use->sink, use->actual_ordinal))
+        return false;
+    *requires_copy = false;
+    if (semantic_param_publication_argument_borrowed_for_call(
+            ctx, use->sink, use->actual_ordinal))
+        return true;
+    ASTNode *callee = semantic_param_publication_callee(
+        ctx, use->sink, use->actual_ordinal);
+    if (callee != NULL) {
+        size_t formal = SIZE_MAX;
+        if (!semantic_param_publication_formal_for_actual(
+                ctx, use->sink, use->actual_ordinal, &formal))
+            return false;
+        SlotFunctionLookup lookup = {ctx, ctx->program_root};
+        unsigned mask = function_param_flow_summary_for_call(
+            &lookup, use->sink, use->actual_ordinal);
+        FunctionParamFlowSummaryStore *store =
+            ctx->function_param_flow_summaries;
+        size_t at = store == NULL ? SIZE_MAX
+            : function_param_flow_find(
+                store, ast_node_stable_id(callee), formal);
+        if (at == SIZE_MAX || store->entries[at].function_decl != callee
+            || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE
+            || store->entries[at].analysis_unsupported
+            || !function_param_flow_output_current(store, at, false))
+            return false;
+        *requires_copy = (mask & ~SLOT_PARAM_SUMMARY_READ) != 0;
+        return true;
+    }
+    if (!semantic_param_publication_checked_call(ctx, use->sink))
+        return false;
+    *requires_copy = true;
     return true;
 }
 
@@ -291,6 +347,39 @@ bool indexed_string_definition_claims_roles(SemanticContext *ctx,
                         row->node, parent->node, row->id, parent->id,
                         recipe->binding_id, value_row->indexed_string_source_id,
                         row->shape, slot - 1, false, false};
+                    recipe->use_capacity = count;
+                    unsigned char *seen = realloc(seen_uses, count);
+                    if (seen == NULL) goto done;
+                    seen_uses = seen; seen_uses[count - 1] = 0;
+                    u = count - 1;
+                }
+                if (seen_uses[u]) goto done;
+                seen_uses[u] = 1;
+            } else if (parent->shape == AST_RETURN) {
+                write_only = false;
+                if (slot != 0 || ast_return_value(parent->node) != row->node)
+                    goto done;
+                size_t u = definition_use_at(
+                    recipe, row->node, parent->node, SIZE_MAX);
+                if (u == SIZE_MAX) {
+                    if (!prepare || recipe->use_count == SIZE_MAX ||
+                        recipe->use_count + 1 > SIZE_MAX / sizeof(*recipe->uses))
+                        goto done;
+                    PublishedNode *value_row = publication_node(
+                        ctx->function_param_publications, row->node, false);
+                    if (value_row == NULL || value_row->node != row->node ||
+                        value_row->id != row->id ||
+                        !value_row->indexed_string_source_present)
+                        goto done;
+                    size_t count = recipe->use_count + 1;
+                    IndexedStringDefinitionUse *grown = realloc(recipe->uses,
+                        count * sizeof(*grown));
+                    if (grown == NULL) goto done;
+                    recipe->uses = grown;
+                    grown[recipe->use_count++] = (IndexedStringDefinitionUse){
+                        row->node, parent->node, row->id, parent->id,
+                        recipe->binding_id, value_row->indexed_string_source_id,
+                        row->shape, SIZE_MAX, true, false};
                     recipe->use_capacity = count;
                     unsigned char *seen = realloc(seen_uses, count);
                     if (seen == NULL) goto done;

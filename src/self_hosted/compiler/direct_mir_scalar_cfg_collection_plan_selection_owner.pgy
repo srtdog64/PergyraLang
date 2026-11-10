@@ -27,9 +27,9 @@ func DirectMirScalarCfgCollectionPlansFromOwners(
         !collections.valid {
         Die("direct MIR collection operation legalization is invalid");
     }
-    let string_arrays: DirectMirScalarCfgStringArrayPlan =
+    var string_arrays: DirectMirScalarCfgStringArrayPlan =
         DirectMirScalarCfgStringArrayPlanEmpty();
-    let array_int_program: DirectMirScalarCfgArrayIntProgramFact =
+    var array_int_program: DirectMirScalarCfgArrayIntProgramFact =
         DirectMirScalarCfgArrayIntProgramFactEmpty();
     if !collections.valid {
         string_arrays = DirectMirScalarCfgStringArrayPlanFromOwners(

@@ -19,11 +19,11 @@ func IntentSubjectSlotSelect(
         ArrayLength(kinds) != count {
         return IntentSubjectSlotSelection(false, "zone-subject-slot-inventory", -1);
     }
-    let exact: Int = -1;
-    let exact_count: Int = 0;
-    let compatible: Int = -1;
-    let compatible_count: Int = 0;
-    let row: Int = 0;
+    var exact: Int = -1;
+    var exact_count: Int = 0;
+    var compatible: Int = -1;
+    var compatible_count: Int = 0;
+    var row: Int = 0;
     while row < count {
         if owner_rows[row] == owner && types[row] == participant_type &&
             kinds[row] == NominalFieldKindSubjectSlot() {

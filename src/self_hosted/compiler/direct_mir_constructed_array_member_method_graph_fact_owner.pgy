@@ -16,7 +16,7 @@ func DirectMirConstructedArrayMemberMethodGraphDigest(
     ref fact: DirectMirConstructedArrayMemberMethodGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(
+    var hash: Long = DirectMirCfgHashString(
         401L, fact.constructed_value_parameter
     );
     hash = DirectMirCfgHashString(hash, fact.identity_value_parameter);

@@ -19,7 +19,7 @@ func OtherFieldChanged() -> Int {
     var facts: Facts = Facts(table, carry);
     let fresh: HashMap<String, Int> = MapNew();
     facts.table = fresh;
-    let carrying: HashMap<String, Int> = facts.carry;
+    var carrying: HashMap<String, Int> = facts.carry;
     MapSet(carrying, "c", 1);
     return MapSize(fresh);
 }
@@ -28,7 +28,7 @@ func AssignedValueChanged() -> Int {
     let table: HashMap<String, Int> = MapNew();
     let carry: HashMap<String, Int> = MapNew();
     var facts: Facts = Facts(table, carry);
-    let fresh: HashMap<String, Int> = MapNew();
+    var fresh: HashMap<String, Int> = MapNew();
     facts.table = fresh;
     MapSet(fresh, "k", 1);
     return MapSize(facts.carry);
@@ -40,7 +40,7 @@ func StoredThenOtherFieldChanged() -> Int {
     var index: Index = Index(rows, carry);
     let row: Array<Int> = [1];
     MapSet(index.rows, 1, row);
-    let carrying: HashMap<String, Int> = index.carry;
+    var carrying: HashMap<String, Int> = index.carry;
     MapSet(carrying, "c", 1);
     return ArrayLength(row);
 }

@@ -1,5 +1,5 @@
-// Contiguous owned String pushes from formal paths share one bounded landing
-// snapshot even when each destination is a different local Array<String>.
+// Contiguous formal-path String stores are classified in one analysis even
+// when each destination is a different local Array<String>.
 struct FormalStringPushBatchRows {
     first: Array<String>;
     second: Array<String>;
@@ -16,10 +16,10 @@ func FormalStringPushBatchApply(
     rows: FormalStringPushBatchRows,
     fact: FormalStringPushBatchFact
 ) -> FormalStringPushBatchRows {
-    let first: Array<String> = rows.first;
-    let second: Array<String> = rows.second;
-    let third: Array<String> = rows.third;
-    let row: Int = 0;
+    var first: Array<String> = rows.first;
+    var second: Array<String> = rows.second;
+    var third: Array<String> = rows.third;
+    var row: Int = 0;
     while row < ArrayLength(fact.first) {
         ArrayPush(first, fact.first[row]);
         ArrayPush(second, fact.second[row]);

@@ -14,7 +14,7 @@ func DirectMirScalarCfgEmitCOperation(
     int_c_type: String
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
-    let output: String = "";
+    var output: String = "";
     let legalized_collection: String = DirectMirScalarCfgCollectionPlanCOperation(plan, operation, formatted_print, concat, int_line_format, string_line_format, int_c_type);
     if legalized_collection != "" { return legalized_collection; }
     if kind == DirectMirScalarCfgOpConstInt() ||

@@ -39,7 +39,7 @@ func DirectMirTwoRoutineClassificationDigest(
     ref fact: DirectMirTwoRoutineClassificationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(229L, fact.kind);
+    var hash: Long = DirectMirCfgHashInt(229L, fact.kind);
     hash = DirectMirCfgHashInt(hash, fact.specialization_count);
     hash = DirectMirCfgHashInt(hash, fact.shape.digest);
     return DirectMirCfgBoundedDigest(hash);
@@ -83,7 +83,7 @@ func DirectMirTwoRoutineClassificationFromAdmitted(
         return InvalidDirectMirTwoRoutineClassificationFact();
     }
     let count: Int = JsonArrayObjectFactCount(specializations);
-    let kind: Int = 0;
+    var kind: Int = 0;
     if count == 0 && shape.declaration_kind == "struct" &&
         shape.generic_routine_count == 0 && shape.method_routine_count == 0 {
         kind = DirectMirTwoRoutineClosedNominal();

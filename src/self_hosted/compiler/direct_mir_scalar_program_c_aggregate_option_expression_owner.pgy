@@ -1,0 +1,17 @@
+// C dispatch for declaration-backed aggregate Option values.
+
+import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_c_payload_enum_option_owner.pgy";
+
+func DirectMirScalarProgramCAggregateOptionExpression(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    kind: Int, result_type: String, left_type: String, left: String
+) -> Option<String> {
+    let enum_option: Option<String> =
+        DirectMirScalarProgramCPayloadEnumOptionExpression(
+            referenced_enum, kind, result_type, left_type, left);
+    if IsSome(enum_option) { return enum_option; }
+    return DirectMirScalarProgramCLogicalRecordOptionExpression(
+        logical_record, kind, result_type, left_type, left);
+}

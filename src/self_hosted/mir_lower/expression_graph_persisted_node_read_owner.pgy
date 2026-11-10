@@ -40,21 +40,21 @@ func MirExpressionGraphNodeCaptureWithin(
         JsonCharCodeAt(json, json_extent, array_end, start) != JsonAsciiCode("{") {
         return InvalidMirExpressionGraphNodeCapture();
     }
-    let kind: Int = 0 - 1; let text: String = "";
-    let target_kind: Int = 0 - 1; let target_name: String = "";
-    let call_target_syntax_id: Int = 0; let runtime_call_abi_id: Int = 0; let binding_syntax_id: Int = 0;
-    let binding_kind: Int = SemanticExpressionBindingNone();
-    let has_binding_ordinal: Bool = false; let binding_ordinal: Int = 0;
-    let has_left: Bool = false; let left: Int = 0;
-    let has_right: Bool = false; let right: Int = 0;
-    let kind_seen: Bool = false; let text_seen: Bool = false;
-    let target_kind_seen: Bool = false; let target_name_seen: Bool = false;
-    let target_syntax_seen: Bool = false; let runtime_call_abi_seen: Bool = false; let binding_syntax_seen: Bool = false;
-    let binding_kind_seen: Bool = false; let binding_ordinal_seen: Bool = false;
-    let left_seen: Bool = false; let right_seen: Bool = false;
-    let member_count: Int = 0; let expect_member: Bool = true;
-    let after_comma: Bool = false;
-    let i: Int = start + 1;
+    var kind: Int = 0 - 1; var text: String = "";
+    var target_kind: Int = 0 - 1; var target_name: String = "";
+    var call_target_syntax_id: Int = 0; var runtime_call_abi_id: Int = 0; var binding_syntax_id: Int = 0;
+    var binding_kind: Int = SemanticExpressionBindingNone();
+    var has_binding_ordinal: Bool = false; var binding_ordinal: Int = 0;
+    var has_left: Bool = false; var left: Int = 0;
+    var has_right: Bool = false; var right: Int = 0;
+    var kind_seen: Bool = false; var text_seen: Bool = false;
+    var target_kind_seen: Bool = false; var target_name_seen: Bool = false;
+    var target_syntax_seen: Bool = false; var runtime_call_abi_seen: Bool = false; var binding_syntax_seen: Bool = false;
+    var binding_kind_seen: Bool = false; var binding_ordinal_seen: Bool = false; var source_binding_seen: Bool = false; var source_binding: Int = 0;
+    var left_seen: Bool = false; var right_seen: Bool = false;
+    var member_count: Int = 0; var expect_member: Bool = true;
+    var after_comma: Bool = false;
+    var i: Int = start + 1;
     while i < array_end {
         i = JsonSkipWhitespaceWithin(json, json_extent, i, array_end);
         if i >= array_end {
@@ -68,7 +68,7 @@ func MirExpressionGraphNodeCaptureWithin(
                 binding_kind_seen && binding_ordinal_seen && !runtime_call_abi_seen;
             let runtime_only: Bool = member_count == 7 && !target_syntax_seen &&
                 !binding_kind_seen && !binding_ordinal_seen && runtime_call_abi_seen;
-            let complete: Bool = member_count == 11 && target_syntax_seen &&
+            let complete: Bool = (member_count == 11 || member_count == 12) && target_syntax_seen &&
                 runtime_call_abi_seen && binding_syntax_seen &&
                 binding_kind_seen && binding_ordinal_seen;
             if after_comma ||
@@ -78,6 +78,8 @@ func MirExpressionGraphNodeCaptureWithin(
                 !left_seen || !right_seen {
                 return InvalidMirExpressionGraphNodeCapture();
             }
+            // Cleanup/proof consumes native identity; AST reissues it separately from formal binding.
+            if source_binding > 0 && kind != AstExpressionNodeLeaf() { return InvalidMirExpressionGraphNodeCapture(); }
             if !legacy && !MirExpressionGraphPersistedNodeIdentityReady(
                 kind, target_kind, call_target_syntax_id,
                 runtime_call_abi_id, binding_syntax_id, binding_kind,
@@ -112,7 +114,7 @@ func MirExpressionGraphNodeCaptureWithin(
             return InvalidMirExpressionGraphNodeCapture();
         }
         let key_end: Int = UnwrapOption(key_end_opt);
-        let field_kind: Int = 0;
+        var field_kind: Int = 0;
         if JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "kind") {
             field_kind = 1;
         } else if JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "text") {
@@ -134,6 +136,7 @@ func MirExpressionGraphNodeCaptureWithin(
             field_kind = 8;
         } else if JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "binding_syntax_id") {
             field_kind = 11;
+        } else if JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "source_binding_syntax_id") { field_kind = 12;
         } else if JsonObjectKeyEqualsWithin(
             json, json_extent, i, key_end, "binding_ordinal") {
             field_kind = 9;
@@ -219,16 +222,15 @@ func MirExpressionGraphNodeCaptureWithin(
             }
             call_target_syntax_id = UnwrapOption(value);
             target_syntax_seen = true;
-        } else if field_kind == 10 {
-            if runtime_call_abi_seen { return InvalidMirExpressionGraphNodeCapture(); }
+        } else if field_kind == 10 || field_kind == 12 {
+            if (field_kind == 10 && runtime_call_abi_seen) ||
+                (field_kind == 12 && source_binding_seen) { return InvalidMirExpressionGraphNodeCapture(); }
             let value: Option<Int> =
                 MirExpressionGraphPersistedNodeIdentityValueWithin(
                     json, json_extent, i, value_end);
-            if !IsSome(value) {
-                return InvalidMirExpressionGraphNodeCapture();
-            }
-            runtime_call_abi_id = UnwrapOption(value);
-            runtime_call_abi_seen = true;
+            if !IsSome(value) { return InvalidMirExpressionGraphNodeCapture(); }
+            if field_kind == 10 { runtime_call_abi_id = UnwrapOption(value); runtime_call_abi_seen = true; }
+            else { source_binding = UnwrapOption(value); source_binding_seen = true; }
         } else if field_kind == 11 {
             if binding_syntax_seen { return InvalidMirExpressionGraphNodeCapture(); }
             let value: Option<Int> =
@@ -265,8 +267,8 @@ func MirExpressionGraphNodeCaptureWithin(
             let value_kind: String = JsonValueKindAt(
                 json, json_extent, i, value_end
             );
-            let present: Bool = false;
-            let child: Int = 0;
+            var present: Bool = false;
+            var child: Int = 0;
             if value_kind == "number" {
                 let child_opt: Option<Int> = MirExpressionGraphIndexWithin(
                     json, json_extent, i, value_end

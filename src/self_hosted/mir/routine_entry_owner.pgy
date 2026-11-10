@@ -9,7 +9,7 @@ func SelfMirRoutineFromInput(
     let body_opt: Option<Int> = SelfMirFunctionBodyBlock(
         input.artifact.arena, function_node_id
     );
-    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    var build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
     if !IsSome(body_opt) {
         return SelfMirRoutineBuildError(build, "function body block is missing");
     }
@@ -31,7 +31,7 @@ func SelfMirRoutineFromInput(
             build, "function parameter count is missing for MIR"
         );
     }
-    let p: Int = 0;
+    var p: Int = 0;
     while p < UnwrapOption(param_count_opt) {
         let param_name: Option<String> = SemanticAstFunctionParamNameAt(
             input.analysis.signatures, signature_index, p
@@ -50,9 +50,9 @@ func SelfMirRoutineFromInput(
         );
         p = p + 1;
     }
-    let root_break_exits: SelfMirLocalPredecessorSnapshots =
+    var root_break_exits: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
-    let root_backedge_snapshots: SelfMirLocalPredecessorSnapshots =
+    var root_backedge_snapshots: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),

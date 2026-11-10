@@ -14,7 +14,7 @@ struct CodegenNominalArrayUsageFacts {
 func CodegenNominalArrayElementKnown(
     ref elements: Array<String>, element_type: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(elements) {
         if elements[i] == element_type {
             return true;
@@ -61,11 +61,11 @@ func CodegenNominalArrayUsageFactsFromSemantic(
     specializations: CodegenGenericSpecializationFacts,
     ref constructors: SemanticAstNominalConstructorFacts
 ) -> CodegenNominalArrayUsageFacts {
-    let elements: Array<String> = [];
+    var elements: Array<String> = [];
     if !facts.ok || !specializations.ok || !constructors.ok {
         return CodegenNominalArrayUsageFacts(false, elements);
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let type_name: Option<String> =
             SemanticAstTypeSurfaceNameAt(facts, i);
@@ -76,13 +76,13 @@ func CodegenNominalArrayUsageFactsFromSemantic(
         }
         i = i + 1;
     }
-    let specialization_index: Int = 0;
+    var specialization_index: Int = 0;
     while specialization_index <
         CodegenGenericSpecializationCount(specializations) {
         let actuals: Array<String> = CodegenGenericSpecializationActuals(
             specializations, specialization_index
         );
-        let actual_index: Int = 0;
+        var actual_index: Int = 0;
         while actual_index < ArrayLength(actuals) {
             if !CodegenNominalArrayUsageAddType(
                 actuals[actual_index], signatures, constructors, elements

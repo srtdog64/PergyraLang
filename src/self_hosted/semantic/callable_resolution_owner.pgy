@@ -12,7 +12,7 @@ func SemanticCallableNameRangeValid(
         !SourceByteIsAlpha(SourceByteAt(source_name, n, n, start)) {
         return false;
     }
-    let i: Int = start + 1;
+    var i: Int = start + 1;
     while i < end {
         if !SourceByteIsAlphaNum(SourceByteAt(source_name, n, n, i)) {
             return false;
@@ -38,8 +38,8 @@ func SemanticCallableSourceNameValid(source_name: String) -> Bool {
     if dot == 0 || first < 65 || first > 90 {
         return false;
     }
-    let start: Int = 0;
-    let i: Int = 0;
+    var start: Int = 0;
+    var i: Int = 0;
     let separator: Int = SourceByteOf(".");
     while i <= n {
         if i == n || SourceByteAt(source_name, n, n, i) == separator {
@@ -98,9 +98,9 @@ func SemanticCallableIndex(
     }
     let lookup_name: String =
         SemanticCallableCanonicalLookupName(source_name);
-    let exact: Int = -1;
-    let exact_count: Int = 0;
-    let i: Int = 0;
+    var exact: Int = -1;
+    var exact_count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(declared_names) {
         if declared_names[i] == lookup_name {
             exact = i;
@@ -118,22 +118,22 @@ func SemanticCallableIndex(
         return None;
     }
 
-    let suffix: Int = -1;
-    let suffix_count: Int = 0;
+    var suffix: Int = -1;
+    var suffix_count: Int = 0;
     i = 0;
     while i < ArrayLength(declared_names) {
         // One unchanged row index lets every read observe the row in place.
         let declared_row: Int = i;
         let declared_len: Int = StringLength(declared_names[declared_row]);
         let local_len: Int = StringLength(source_name);
-        let matches: Bool = local_len > 0 && declared_len > local_len;
+        var matches: Bool = local_len > 0 && declared_len > local_len;
         let start: Int = declared_len - local_len;
         if matches && CharCode(
                 declared_names[declared_row], declared_len, start - 1) !=
                 SourceByteOf("_") {
             matches = false;
         }
-        let offset: Int = 0;
+        var offset: Int = 0;
         while matches && offset < local_len {
             if CharCode(declared_names[declared_row], declared_len, start + offset) !=
                 CharCode(source_name, local_len, offset) {
@@ -188,20 +188,20 @@ func SemanticCallableNameTableFill(
     inout suffix_row_counts: HashMap<String, Int>
 ) -> Void {
     let separator: Int = SourceByteOf("_");
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(names) {
         // One unchanged row index lets every read observe the row in place.
         let declared_row: Int = row;
         let declared_len: Int = StringLength(names[declared_row]);
-        let separators: Array<Int> = [];
-        let at: Int = 0;
+        var separators: Array<Int> = [];
+        var at: Int = 0;
         while at < declared_len - 1 {
             if CharCode(names[declared_row], declared_len, at) == separator {
                 ArrayPush(separators, at);
             }
             at = at + 1;
         }
-        let slot: Int = 0;
+        var slot: Int = 0;
         while slot < ArrayLength(separators) {
             let start: Int = separators[slot] + 1;
             SemanticCallableNameTableCount(
@@ -221,16 +221,16 @@ func SemanticCallableNameTableFill(
 func SemanticCallableNameTableFromNames(
     ref names: Array<String>
 ) -> SemanticCallableNameTable {
-    let table_names: Array<String> = [];
-    let row: Int = 0;
+    var table_names: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(names) {
         ArrayPushOwnedString(table_names, names[row]);
         row = row + 1;
     }
-    let exact_first_rows: HashMap<String, Int> = MapNew();
-    let exact_row_counts: HashMap<String, Int> = MapNew();
-    let suffix_first_rows: HashMap<String, Int> = MapNew();
-    let suffix_row_counts: HashMap<String, Int> = MapNew();
+    var exact_first_rows: HashMap<String, Int> = MapNew();
+    var exact_row_counts: HashMap<String, Int> = MapNew();
+    var suffix_first_rows: HashMap<String, Int> = MapNew();
+    var suffix_row_counts: HashMap<String, Int> = MapNew();
     SemanticCallableNameTableFill(table_names, exact_first_rows, exact_row_counts,
         suffix_first_rows, suffix_row_counts);
     return SemanticCallableNameTable(table_names, exact_first_rows,

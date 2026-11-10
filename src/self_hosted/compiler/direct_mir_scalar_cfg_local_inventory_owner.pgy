@@ -11,6 +11,7 @@ import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner
 import "direct_mir_routine_parameter_set_fact_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_projection_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     ref index: MirRoutineFactIndex,
@@ -27,37 +28,27 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
         ArrayLength(index.source_local_types) ||
         ArrayLength(local_names) != ArrayLength(local_types) ||
         !DirectMirRoutineParameterSetFactReady(parameters) { return false; }
-    let consumed: Array<Bool> = [];
-    let row: Int = 0;
+    var consumed: Array<Bool> = [];
+    var row: Int = 0;
     while row < ArrayLength(index.source_local_names) {
         ArrayPush(consumed, false); row = row + 1;
     }
     row = 0;
     while row < ArrayLength(local_names) {
-        let found: Int = -1; let source: Int = 0;
+        var found: Int = -1; var source: Int = 0;
         while source < ArrayLength(index.source_local_names) {
             if !consumed[source] && index.source_local_names[source] ==
                     local_names[row] &&
                 DirectMirScalarCfgSourceLocalTypeMatchesResolved(
                     index.source_local_types[source], local_types[row]) &&
-                (DirectMirScalarCfgSourceLocalTypeSupported(
-                    local_types[row]) ||
-                 CompilerRuntimeValueTypeReady(
-                    local_types[row]) ||
-                 DirectMirIdentityCellRow(logical_record.identity_cells, local_types[row]) >= 0 ||
-                 DirectMirScalarProgramLogicalRecordTypeReady(
-                    logical_record, local_types[row]) ||
-                 DirectMirScalarProgramLogicalRecordArrayTypeReady(
-                    logical_record, local_types[row]) ||
-                 DirectMirScalarProgramLogicalRecordOptionTypeReady(
-                    logical_record, local_types[row]) ||
-                 DirectMirScalarProgramReferencedEnumRow(
-                    referenced_enum, local_types[row]) >= 0) {
+                DirectMirScalarCfgValueTypeProject(
+                    local_types[row], logical_record, referenced_enum) ==
+                    local_types[row] {
                 found = source; break;
             }
             source = source + 1;
         }
-        let parameter_type: String = "";
+        var parameter_type: String = "";
         if found < 0 { parameter_type =
             DirectMirRoutineLocalParameterTypeAtName(
                 parameters, local_names[row]); }
@@ -68,8 +59,8 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     row = 0;
     while row < ArrayLength(index.source_local_names) {
         if !consumed[row] {
-            let claimed: Bool = false;
-            let fact_row: Int = 0;
+            var claimed: Bool = false;
+            var fact_row: Int = 0;
             while fact_row < DirectMirScalarCfgForEachFactCount(foreaches) {
                 let fact: DirectMirScalarCfgForEachFact =
                     DirectMirScalarCfgForEachFactAt(foreaches, fact_row);
@@ -79,7 +70,7 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
                     ) { claimed = true; }
                 fact_row = fact_row + 1;
             }
-            let collection_row: Int = 0;
+            var collection_row: Int = 0;
             while collection_row <
                     DirectMirScalarCfgStringArrayCollectionCount(string_arrays) {
                 if string_arrays.collections.names[collection_row] ==

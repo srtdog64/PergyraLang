@@ -23,8 +23,8 @@ func CompareCallArgs(
     ref func_rets: Array<String>,
     check_argument_identifiers: Bool
 ) -> String {
-    let i: Int = 0;
-    let arg_index: Int = 0;
+    var i: Int = 0;
+    var arg_index: Int = 0;
     while i < SemanticDelimitedRangeCount(argument_facts) {
         let part: String = SemanticDelimitedRangeText(
             argument_facts, args_src, i
@@ -101,8 +101,8 @@ func NumToStr(n: Int) -> String {
         return "0";
     }
     let digits: String = "0123456789";
-    let result: String = "";
-    let v: Int = n;
+    var result: String = "";
+    var v: Int = n;
     while v > 0 {
         let d: Int = v - (v / 10) * 10;
         result = Concat(Substring(digits, d, 1), result);
@@ -201,8 +201,8 @@ func CheckOptionBuiltinArgs(
 func SemanticCallParenSpansWholeText(
     trimmed: String, paren: Int, tn: Int
 ) -> Bool {
-    let depth: Int = 0;
-    let i: Int = paren;
+    var depth: Int = 0;
+    var i: Int = paren;
     while i < tn {
         let c: String = CharAt(trimmed, i);
         if c == "\"" {
@@ -260,7 +260,7 @@ func CheckCallWithIdentifierOwner(
         SemanticAstCallableTypeShapeFromName(
             EnvLookup(names, types, callee)
         );
-    let sig: String = "";
+    var sig: String = "";
     if local_callable.ok {
         sig = SemanticAstCallableTypeParameterSignature(local_callable);
     } else {
@@ -275,7 +275,7 @@ func CheckCallWithIdentifierOwner(
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);
     let argument_facts: SemanticDelimitedRangeFacts =
         SemanticNestedCommaRangeFactsFromSource(args_src);
-    let receiver_error: String = "";
+    var receiver_error: String = "";
     if check_collection_mutation {
         receiver_error = CheckCollectionMutatorReceiver(
             argument_facts, callee, args_src, names, types, modes,

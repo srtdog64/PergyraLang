@@ -80,6 +80,19 @@ pgy_selfhost_fixed_point_profile_run() {
     local label="$1"
     local kind="$2"
     shift 2
+    case "${PGY_SELFHOST_FULL_MIR_BULKHEAD:-0}" in
+        0|1) ;;
+        *) pgy_selfhost_fixed_point_profile_error "full-MIR bulkhead mode must be 0 or 1"; return 2 ;;
+    esac
+    if [[ "${PGY_SELFHOST_FULL_MIR_BULKHEAD:-0}" == "1" \
+        && ( "$label" == full_mir_seed || "$label" == full_mir_oracle ) ]]; then
+        [[ "$PGY_SELFHOST_PROFILE_ACTIVE" == "1" ]] || {
+            pgy_selfhost_fixed_point_profile_error "full-MIR bulkhead requires an active profile epoch"
+            return 2
+        }
+        set -- python3 "$PGY_SELFHOST_PROFILE_OWNER_DIR/full_mir_phase_process_owner.py" \
+            --receipt "${PGY_SELFHOST_PROFILE_RECEIPT}.${label}.process.json" -- "$@"
+    fi
     if [[ "$PGY_SELFHOST_PROFILE_ACTIVE" != "1" ]]; then
         "$@"
         return $?
@@ -200,61 +213,7 @@ pgy_selfhost_fixed_point_profile_required_phases() {
         bounded_mir_oracle bounded_seed bounded_oracle full_mir_seed \
         full_mir_oracle gen2_emit driver_gen2_compile bounded_gen2 gen3_emit
 }
-
-pgy_selfhost_fixed_point_profile_validate() {
-    local receipt="$1" fixed_receipt="$2" driver_source="$3"
-    local driver_seed_c="$4" driver_oracle_c="$5" mir_seed="$6"
-    local mir_oracle="$7" gen2_c="$8" gen3_c="$9" gen2_binary="${10}"
-    local native_pgy="${11}" codegen_seed="${12}"
-    local phase expected_count actual_count source_graph fixed_hash
-
-    [[ -f "$receipt" ]] || return 1
-    [[ "$(grep -Fc 'schema=pgy.selfhost.fixed-point-profile.v1' "$receipt")" -eq 1 ]] || return 1
-    expected_count="$(pgy_selfhost_fixed_point_profile_required_phases | wc -l | tr -d ' ')"
-    actual_count="$(grep -c '^phase=' "$receipt" || true)"
-    [[ "$actual_count" -eq "$expected_count" ]] || return 1
-    while IFS= read -r phase; do
-        [[ "$(grep -Fc "phase=$phase|" "$receipt")" -eq 1 ]] || return 1
-    done < <(pgy_selfhost_fixed_point_profile_required_phases)
-    awk -F'|' '
-        /^phase=/ {
-            if ($3 !~ /^wall_ms=[0-9]+$/ ||
-                $4 !~ /^user_ms=([0-9]+|unavailable)$/ ||
-                $5 !~ /^system_ms=([0-9]+|unavailable)$/ ||
-                $6 !~ /^max_rss_kb=([0-9]+|unavailable)$/ ||
-                $7 != "exit_code=0") exit 1
-        }
-    ' "$receipt" || return 1
-    for phase in full_mir_seed full_mir_oracle; do
-        grep -F "stage=$phase|" "$receipt" | grep -Fq 'event=[driver-pressure-stage] ast:start' || return 1
-        grep -F "stage=$phase|" "$receipt" | grep -Fq 'event=[driver-pressure-stage] json-write:done' || return 1
-    done
-    source_graph="$(sed -n 's/^source_graph=//p' "$fixed_receipt")"
-    [[ -n "$source_graph" ]] || return 1
-    grep -Fxq "source_graph=$source_graph" "$receipt" || return 1
-    fixed_hash="$(pgy_selfhost_driver_receipt_hash_file "$fixed_receipt")" || return 1
-    grep -Fxq "fixed_point_receipt=$fixed_hash" "$receipt" || return 1
-    grep -Fxq "tool=native_pgy|sha256=$(pgy_selfhost_driver_receipt_hash_file "$native_pgy")" "$receipt" || return 1
-    grep -Fxq "tool=codegen_seed|sha256=$(pgy_selfhost_driver_receipt_hash_file "$codegen_seed")" "$receipt" || return 1
-    local spec name path expected
-    for spec in \
-        "driver_source|$driver_source" "driver_seed_c|$driver_seed_c" \
-        "driver_oracle_c|$driver_oracle_c" "mir_seed|$mir_seed" \
-        "mir_oracle|$mir_oracle" "gen2_c|$gen2_c" "gen3_c|$gen3_c" \
-        "gen2_binary|$gen2_binary"; do
-        name="${spec%%|*}"
-        path="${spec#*|}"
-        expected="$(pgy_selfhost_fixed_point_profile_artifact_row "$name" "$path")" || return 1
-        grep -Fxq "$expected" "$receipt" || return 1
-    done
-    [[ "$(pgy_selfhost_driver_receipt_hash_file "$mir_seed")" == \
-        "$(pgy_selfhost_driver_receipt_hash_file "$mir_oracle")" ]] || return 1
-    [[ "$(pgy_selfhost_driver_receipt_hash_file "$gen2_c")" == \
-        "$(pgy_selfhost_driver_receipt_hash_file "$gen3_c")" ]] || return 1
-    if [[ "${PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE:-0}" == "1" ]]; then
-        grep -Fxq 'resource_metrics=gnu-time' "$receipt" || return 1
-    fi
-}
+source "$PGY_SELFHOST_PROFILE_OWNER_DIR/self_host_fixed_point_profile_validation_owner.sh"
 
 pgy_selfhost_fixed_point_profile_finish() {
     local root_dir="$1" native_pgy="$2" codegen_seed="$3" cc="$4"
@@ -316,6 +275,14 @@ pgy_selfhost_fixed_point_profile_finish() {
         pgy_selfhost_fixed_point_profile_artifact_row gen2_c "$gen2_c"
         pgy_selfhost_fixed_point_profile_artifact_row gen3_c "$gen3_c"
         pgy_selfhost_fixed_point_profile_artifact_row gen2_binary "$gen2_binary"
+        if [[ "${PGY_SELFHOST_FULL_MIR_BULKHEAD:-0}" == "1" ]]; then
+            local boundary admitted_hash
+            for boundary in full_mir_seed full_mir_oracle; do
+                admitted_hash="$(python3 "$PGY_SELFHOST_PROFILE_OWNER_DIR/full_mir_phase_process_owner.py" \
+                    --validate-receipt "${receipt}.${boundary}.process.json")" || return 2
+                printf 'process_boundary=%s|sha256=%s\n' "$boundary" "$admitted_hash"
+            done
+        fi
         while IFS=$'\t' read -r label kind wall_ms user_ms system_ms max_rss_kb exit_code; do
             printf 'phase=%s|kind=%s|wall_ms=%s|user_ms=%s|system_ms=%s|max_rss_kb=%s|exit_code=%s\n' \
                 "$label" "$kind" "$wall_ms" "$user_ms" "$system_ms" "$max_rss_kb" "$exit_code"

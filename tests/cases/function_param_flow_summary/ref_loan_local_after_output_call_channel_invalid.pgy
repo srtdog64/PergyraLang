@@ -10,7 +10,7 @@ func NameAt(ref graph: Graph, i: Int) -> String {
 
 func Send(ref graph: Graph, inout captured: Array<String>) -> Int {
     let count: Int = Count(graph, captured);
-    let actual: String = "Unknown";
+    var actual: String = "Unknown";
     actual = NameAt(graph, 0);
     let channel: Channel<String> = Channel(1);
     channel <- actual;
@@ -24,7 +24,7 @@ func Count(ref graph: Graph, inout captured: Array<String>) -> Int {
 
 func Main() -> Int {
     let g: Graph = Graph(["a", "b"]);
-    let captured: Array<String> = [];
+    var captured: Array<String> = [];
     Print(ToString(Send(g, captured)));
     return 0;
 }

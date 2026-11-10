@@ -29,7 +29,7 @@ func DirectMirLoopCfgShapeFactDigest(
     ref fact: DirectMirLoopCfgShapeFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(59L, fact.local_name);
+    var hash: Long = DirectMirCfgHashString(59L, fact.local_name);
     hash = DirectMirCfgHashString(hash, fact.entry_result_name);
     hash = DirectMirCfgHashString(hash, fact.phi_result_name);
     hash = DirectMirCfgHashString(hash, fact.backedge_result_name);
@@ -117,7 +117,7 @@ func DirectMirLoopCfgBinaryLiteral(
         sequence.arena.topology.right_children[2] != 1 {
         Die("direct MIR loop CFG binary graph is invalid");
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < 3 {
         if sequence.arena.call_target_kinds[node] !=
                 SemanticCallTargetNone() ||

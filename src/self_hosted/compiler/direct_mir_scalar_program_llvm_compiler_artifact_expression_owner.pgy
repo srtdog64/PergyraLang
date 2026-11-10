@@ -13,7 +13,7 @@ func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(
                 true, false, "", "");
         }
         let handle: String = Concat(result, ".handle");
-        let output: String = Concat("  ", handle);
+        var output: String = Concat("  ", handle);
         output = Concat(output, " = trunc i64 ");
         output = Concat(output, left);
         output = Concat(output, " to i32\n  ");
@@ -28,9 +28,9 @@ func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, result);
     }
-    let symbol: String = "";
-    let parameter_type: String = "i32";
-    let ready: Bool = false;
+    var symbol: String = "";
+    var parameter_type: String = "i32";
+    var ready: Bool = false;
     if kind == DirectMirScalarProgramExprCompilerArtifactBegin() {
         symbol = runtime.compiler_artifact_begin.symbol;
         parameter_type = "ptr";
@@ -49,8 +49,8 @@ func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let output: String = "";
-    let argument: String = left;
+    var output: String = "";
+    var argument: String = left;
     if parameter_type == "i32" {
         argument = Concat(result, ".handle");
         output = Concat(output, Concat("  ", argument));
@@ -79,7 +79,7 @@ func DirectMirScalarProgramLlvmCompilerArtifactDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let output: String = "";
+    var output: String = "";
     if DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprCompilerArtifactWrite()) {
         if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(

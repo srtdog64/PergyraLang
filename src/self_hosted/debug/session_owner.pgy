@@ -29,7 +29,7 @@ func DebugSessionPositiveDecimal(text: String) -> Bool {
     if text == "" {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < StringLength(text) {
         let code: Int = CharCode(text, StringLength(text), i);
         if code < 48 || code > 57 {
@@ -44,7 +44,7 @@ func DebugSessionHasBreakpoint(
     state: DebugSessionState,
     line: Int
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(state.breakpoints) {
         if state.breakpoints[i] == line {
             return true;
@@ -64,7 +64,7 @@ func DebugSessionAddBreakpoint(
         )));
         return;
     }
-    let breakpoints: Array<Int> = state.breakpoints;
+    var breakpoints: Array<Int> = state.breakpoints;
     ArrayPush(breakpoints, line);
     state.breakpoints = breakpoints;
     Print(Concat("[debug] breakpoint set at ", Concat(
@@ -76,8 +76,8 @@ func DebugSessionClearBreakpoint(
     line: Int,
     inout state: DebugSessionState
 ) -> Void with caps io_write {
-    let i: Int = 0;
-    let breakpoints: Array<Int> = state.breakpoints;
+    var i: Int = 0;
+    var breakpoints: Array<Int> = state.breakpoints;
     while i < ArrayLength(breakpoints) {
         if breakpoints[i] == line {
             let last: Int = ArrayLength(breakpoints) - 1;
@@ -105,7 +105,7 @@ func DebugSessionPrintBreakpoints(
         Print("[debug] no breakpoints\n");
         return;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(state.breakpoints) {
         Print(Concat("[debug] breakpoint ", Concat(
             ToString(state.breakpoints[i]), "\n"
@@ -148,7 +148,7 @@ func DebugSessionShowCurrent(
     artifact: AstTreeArtifact,
     state: DebugSessionState
 ) -> Void with caps io_write {
-    let provenance: String = "<typed-node>";
+    var provenance: String = "<typed-node>";
     let provenance_opt: Option<String> = TypedAstArenaProvenanceText(
         artifact.arena, state.current_node_id
     );
@@ -238,7 +238,7 @@ func DebugSessionPauseAt(
     state.current_line = line;
     state.current_path = UnwrapOption(path_opt);
     DebugSessionShowCurrent(artifact, state);
-    let advance: Bool = false;
+    var advance: Bool = false;
     while state.running && !advance {
         Print(Concat("(pgy-debug:", Concat(ToString(line), ") ")));
         let command_opt: Option<String> = DebugSessionReadCommand(state);
@@ -265,8 +265,8 @@ func DebugSessionWalkNode(
     if !state.running {
         return;
     }
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, node_id, child_index
     );
     while state.running && IsSome(child_opt) {
@@ -285,7 +285,7 @@ func RunDebugSession(
 ) -> Void with caps io_read, io_write {
     let build: ParserProgramBuild = ParseRootProgramBuild(source_path);
     let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(build);
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok || !SemanticAstArtifactAdmissionReady(
         artifact, analysis, true
@@ -315,7 +315,7 @@ func RunDebugSession(
     Print(Concat("Pergyra Debugger v0.1 - ", Concat(source_path, "\n")));
     Print("Commands: n(ext), c(ontinue), b <line>, l(ist), q(uit)\n\n");
     Print("[debug] entering Main()\n");
-    let state: DebugSessionState = NewDebugSessionState();
+    var state: DebugSessionState = NewDebugSessionState();
     DebugSessionWalkNode(
         artifact, locations, locations.main_node_id, state
     );

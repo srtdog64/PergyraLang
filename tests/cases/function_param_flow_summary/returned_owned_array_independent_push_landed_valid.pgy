@@ -1,0 +1,16 @@
+func OwnedRows() -> Array<String> {
+    var rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " first"));
+    return rows;
+}
+
+func Fresh(seed: Int) -> String {
+    return Concat("owned", " second");
+}
+
+func Main() -> Void {
+    var rows: Array<String> = OwnedRows();
+    ArrayPush(rows, Fresh(1));
+    ArrayPush(rows, Fresh(2));
+    Log(ArrayLength(rows));
+}

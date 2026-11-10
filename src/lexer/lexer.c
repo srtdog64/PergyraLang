@@ -472,13 +472,27 @@ Token lexer_next_token(Lexer* lexer) {
                 return make_token(lexer, TOKEN_SUBSCRIBE, start, 2); /* += */
             }
             return make_token(lexer, TOKEN_PLUS, start, 1);
-        case '*': return make_token(lexer, TOKEN_STAR, start, 1);
+        case '*':
+            if (peek(lexer) == '=') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_MUL_ASSIGN, start, 2);
+            }
+            return make_token(lexer, TOKEN_STAR, start, 1);
         case '/':
             if (peek(lexer) == '/' && peek_next(lexer) == '/') {
                 return scan_doc_comment(lexer, start);
             }
+            if (peek(lexer) == '=') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_DIV_ASSIGN, start, 2);
+            }
             return make_token(lexer, TOKEN_SLASH, start, 1);
-        case '%': return make_token(lexer, TOKEN_PERCENT, start, 1);
+        case '%':
+            if (peek(lexer) == '=') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_REM_ASSIGN, start, 2);
+            }
+            return make_token(lexer, TOKEN_PERCENT, start, 1);
         case '?':
             if (peek(lexer) == '.') {
                 advance(lexer);

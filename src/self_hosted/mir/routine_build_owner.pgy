@@ -43,7 +43,7 @@ func SelfMirRoutineBuildError(
     build: SelfMirRoutineBuild,
     message: String
 ) -> SelfMirRoutineBuild {
-    let failed: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    var failed: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
     failed.ok = false;
     failed.diagnostic_message = message;
     return failed;
@@ -51,7 +51,7 @@ func SelfMirRoutineBuildError(
 
 func SelfMirRoutineAddBlock(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {
     let cfg: SelfMirCfgRows = SelfMirCfgAddBlock(build.cfg);
-    let terminated: Array<Int> = build.terminated;
+    var terminated: Array<Int> = build.terminated;
     ArrayPush(terminated, 0);
     return SelfMirRoutineBuild(
         build.ok, build.diagnostic_message, cfg, build.current_block,
@@ -103,14 +103,8 @@ func SelfMirRoutineWithCfg(
 }
 
 func SelfMirRoutineTerminate(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {
-    let terminated: Array<Int> = build.terminated;
-    ArraySet(terminated, build.current_block, 1);
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, build.cfg, build.current_block,
-        build.next_instruction_id, terminated,
-        build.local_names, build.local_types, build.local_versions,
-        build.local_refs
-    );
+    ArraySet(build.terminated, build.current_block, 1);
+    return build;
 }
 
 func SelfMirRoutineAddInstruction(
@@ -129,12 +123,9 @@ func SelfMirRoutineAddInstruction(
         build.cfg, build.current_block, build.next_instruction_id,
         kind, name, result, arg0, arg1, expr0, expr1, source_type, uses
     );
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, cfg, build.current_block,
-        build.next_instruction_id + 1, build.terminated,
-        build.local_names, build.local_types, build.local_versions,
-        build.local_refs
-    );
+    build.cfg = cfg;
+    build.next_instruction_id = build.next_instruction_id + 1;
+    return build;
 }
 
 func SelfMirRoutineAttachLastAbiTypeName(
@@ -156,7 +147,7 @@ func SelfMirRoutineAttachLastExpressionGraph(
             build, "MIR instruction is missing its semantic expression graph"
         );
     }
-    let cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
+    var cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
         build.cfg, view, declaration
     );
     let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
@@ -181,12 +172,8 @@ func SelfMirRoutineAttachLastExpressionGraph(
             build.local_versions, build.local_refs
         )
     );
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, cfg, build.current_block,
-        build.next_instruction_id, build.terminated,
-        build.local_names, build.local_types, build.local_versions,
-        build.local_refs
-    );
+    build.cfg = cfg;
+    return build;
 }
 
 func SelfMirRoutineAttachLastSecondaryExpressionGraph(
@@ -208,12 +195,31 @@ func SelfMirRoutineAttachLastSecondaryExpressionGraph(
             build, "MIR secondary expression graph attachment failed"
         );
     }
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, cfg, build.current_block,
-        build.next_instruction_id, build.terminated,
-        build.local_names, build.local_types, build.local_versions,
-        build.local_refs
-    );
+    build.cfg = cfg;
+    return build;
+}
+
+func SelfMirRoutineAttachLastCollectionMutationTargetGraph(
+    build: SelfMirRoutineBuild,
+    view: SemanticExpressionGraphView
+) -> SelfMirRoutineBuild {
+    if !view.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR collection mutation target graph is missing"
+        );
+    }
+    let cfg: SelfMirCfgRows =
+        SelfMirCfgAttachLastCollectionMutationTargetGraph(build.cfg, view);
+    let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
+    if instruction_index < 0 ||
+        cfg.instructions.collection_mutation_target_graphs.has_roots[
+            instruction_index] != 1 {
+        return SelfMirRoutineBuildError(
+            build, "MIR collection mutation target graph attachment failed"
+        );
+    }
+    build.cfg = cfg;
+    return build;
 }
 
 func SelfMirRoutineAttachLastMatchCase(
@@ -248,7 +254,7 @@ func SelfMirRoutineLocalIndex(
     build: SelfMirRoutineBuild,
     name: String
 ) -> Option<Int> {
-    let i: Int = ArrayLength(build.local_names) - 1;
+    var i: Int = ArrayLength(build.local_names) - 1;
     while i >= 0 {
         if build.local_names[i] == name { return Some(i); }
         i = i - 1;
@@ -272,7 +278,7 @@ func SelfMirRoutineDeclareLocal(
             build, "MIR semantic local declaration identity is invalid"
         );
     }
-    let version: Int = binding_version;
+    var version: Int = binding_version;
     let active: Option<Int> = SelfMirRoutineLocalIndex(build, name);
     if IsSome(active) {
         let active_row: Int = UnwrapOption(active);
@@ -301,19 +307,11 @@ func SelfMirRoutinePushLocal(
             build, "MIR lexical local identity is invalid"
         );
     }
-    let names: Array<String> = build.local_names;
-    let types: Array<String> = build.local_types;
-    let versions: Array<Int> = build.local_versions;
-    let refs: Array<String> = build.local_refs;
-    ArrayPush(names, name);
-    ArrayPush(types, type_name);
-    ArrayPush(versions, initial_version);
-    ArrayPush(refs, local_ref);
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, build.cfg, build.current_block,
-        build.next_instruction_id, build.terminated, names, types, versions,
-        refs
-    );
+    ArrayPushOwnedString(build.local_names, name);
+    ArrayPushOwnedString(build.local_types, type_name);
+    ArrayPush(build.local_versions, initial_version);
+    ArrayPushOwnedString(build.local_refs, local_ref);
+    return build;
 }
 
 func SelfMirRoutineAddLocal(
@@ -332,29 +330,15 @@ func SelfMirRoutineAddLocal(
                 build, Concat("MIR shadowed local type changed: ", name)
             );
         }
-        let versions2: Array<Int> = build.local_versions;
-        let next_version: Int = versions2[existing] + 1;
-        ArraySet(versions2, existing, next_version);
-        return SelfMirRoutineBuild(
-            build.ok, build.diagnostic_message, build.cfg,
-            build.current_block, build.next_instruction_id,
-            build.terminated, build.local_names, build.local_types, versions2,
-            build.local_refs
-        );
+        let next_version: Int = build.local_versions[existing] + 1;
+        ArraySet(build.local_versions, existing, next_version);
+        return build;
     }
-    let names: Array<String> = build.local_names;
-    let types: Array<String> = build.local_types;
-    let versions: Array<Int> = build.local_versions;
-    let refs: Array<String> = build.local_refs;
-    ArrayPush(names, name);
-    ArrayPush(types, type_name);
-    ArrayPush(versions, initial_version);
-    ArrayPush(refs, local_ref);
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, build.cfg, build.current_block,
-        build.next_instruction_id, build.terminated, names, types, versions,
-        refs
-    );
+    ArrayPushOwnedString(build.local_names, name);
+    ArrayPushOwnedString(build.local_types, type_name);
+    ArrayPush(build.local_versions, initial_version);
+    ArrayPushOwnedString(build.local_refs, local_ref);
+    return build;
 }
 
 func SelfMirRoutineSetLocalVersion(
@@ -362,7 +346,7 @@ func SelfMirRoutineSetLocalVersion(
     local_index: Int,
     version: Int
 ) -> SelfMirRoutineBuild {
-    let versions: Array<Int> = build.local_versions;
+    var versions: Array<Int> = build.local_versions;
     ArraySet(versions, local_index, version);
     return SelfMirRoutineBuild(
         build.ok, build.diagnostic_message, build.cfg, build.current_block,
@@ -381,8 +365,8 @@ func SelfMirRoutineAdvanceLocalVersion(
 }
 
 func SelfMirLocalVersionsSnapshot(versions: Array<Int>) -> Array<Int> {
-    let snapshot: Array<Int> = [];
-    let i: Int = 0;
+    var snapshot: Array<Int> = [];
+    var i: Int = 0;
     while i < ArrayLength(versions) {
         ArrayPush(snapshot, versions[i]);
         i = i + 1;
@@ -393,9 +377,9 @@ func SelfMirLocalVersionsSnapshot(versions: Array<Int>) -> Array<Int> {
 func SelfMirLocalVersionsPrefix(
     versions: Array<Int>, count: Int
 ) -> Array<Int> {
-    let snapshot: Array<Int> = [];
+    var snapshot: Array<Int> = [];
     if count < 0 || count > ArrayLength(versions) { return snapshot; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         ArrayPush(snapshot, versions[i]);
         i = i + 1;
@@ -407,7 +391,7 @@ func SelfMirRoutineAtLocalVersions(
     build: SelfMirRoutineBuild,
     ref versions: Array<Int>
 ) -> SelfMirRoutineBuild {
-    let restored: Array<Int> = build.local_versions;
+    var restored: Array<Int> = build.local_versions;
     if ArrayLength(versions) > ArrayLength(build.local_names) ||
         ArrayLength(restored) != ArrayLength(build.local_names) ||
         ArrayLength(restored) != ArrayLength(build.local_types) ||
@@ -416,9 +400,9 @@ func SelfMirRoutineAtLocalVersions(
             build, "MIR restored local versions exceed local inventory"
         );
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(restored) {
-        let version: Int = 0;
+        var version: Int = 0;
         if i < ArrayLength(versions) { version = versions[i]; }
         ArraySet(restored, i, version);
         i = i + 1;
@@ -442,16 +426,8 @@ func SelfMirRoutineAtLocalCount(
             build, "MIR lexical local inventory boundary is invalid"
         );
     }
-    let names: Array<String> = build.local_names;
-    let types: Array<String> = build.local_types;
-    let versions: Array<Int> = build.local_versions;
-    let refs: Array<String> = build.local_refs;
-    while ArrayLength(names) > local_count {
-        ArrayPop(names); ArrayPop(types); ArrayPop(versions); ArrayPop(refs);
+    while ArrayLength(build.local_names) > local_count {
+        ArrayPop(build.local_names); ArrayPop(build.local_types); ArrayPop(build.local_versions); ArrayPop(build.local_refs);
     }
-    return SelfMirRoutineBuild(
-        build.ok, build.diagnostic_message, build.cfg, build.current_block,
-        build.next_instruction_id, build.terminated, names, types, versions,
-        refs
-    );
+    return build;
 }

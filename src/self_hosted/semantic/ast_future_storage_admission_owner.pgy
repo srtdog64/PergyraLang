@@ -69,7 +69,7 @@ func SemanticFutureStorageTypeContainsHandle(
     if !shape.ok || !SemanticAffineStorageConstructor(shape.nominal_base_name, family) {
         return false;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(shape.actual_type_names) {
         if SemanticFutureStorageTypeContainsHandle(
             shape.actual_type_names[index], depth + 1, family, box_builtin
@@ -91,7 +91,7 @@ func SemanticFutureAggregateStorageContainsHandle(
     if !shape.ok || !SemanticAffineStorageConstructor(shape.nominal_base_name, family) {
         return false;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(shape.actual_type_names) {
         if SemanticFutureStorageTypeContainsHandle(
             shape.actual_type_names[index], 1, family, box_builtin
@@ -124,7 +124,7 @@ func SemanticRuntimeHandleStorageRejected(
     boundary: String,
     node_id: Int
 ) -> SemanticAstBodyVerdict {
-    let code: String = "single_owner_handle_copy";
+    var code: String = "single_owner_handle_copy";
     if anchored { code = "anchored_handle_copy"; }
     return SemanticAstBodyVerdictError(
         code, SemanticError2(code, "type", type_name, "boundary", boundary), node_id);
@@ -138,9 +138,9 @@ func SemanticAffineStorageShapeVerdict(
     boundary: String,
     node_id: Int
 ) -> SemanticAstBodyVerdict {
-    let family: Int = SemanticAffineStorageFamilyCompletion();
+    var family: Int = SemanticAffineStorageFamilyCompletion();
     while family <= SemanticAffineStorageFamilyRuntimeHandle() {
-        let contains: Bool = false;
+        var contains: Bool = false;
         if whole_value {
             contains = SemanticFutureStorageTypeContainsHandle(type_name, 0, family, box_builtin);
         } else {
@@ -151,7 +151,7 @@ func SemanticAffineStorageShapeVerdict(
                 return SemanticFutureStorageRejected(
                     type_name, Concat(boundary, " stores an affine task handle"), node_id);
             }
-            let anchored: Bool = false;
+            var anchored: Bool = false;
             if whole_value {
                 anchored = SemanticFutureStorageTypeContainsHandle(
                     type_name, 0, SemanticAffineStorageFamilyAnchoredHandle(), box_builtin);
@@ -191,9 +191,9 @@ func SemanticAstFutureStorageAdmissionFromFacts(
 
     // Nominal fields and enum payloads are physical storage boundaries even
     // when no value is constructed in this source file.
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(constructors.param_type_names) {
-        let node_id: Int = -1;
+        var node_id: Int = -1;
         if index < ArrayLength(constructors.field_source_syntax_ids) {
             node_id = constructors.field_source_syntax_ids[index];
         }
@@ -214,7 +214,7 @@ func SemanticAstFutureStorageAdmissionFromFacts(
     // containing value shape is forbidden here.
     index = 0;
     while index < ArrayLength(signatures.param_types) {
-        let node_id: Int = -1;
+        var node_id: Int = -1;
         if index < ArrayLength(signatures.param_node_ids) {
             node_id = signatures.param_node_ids[index];
         }
@@ -234,7 +234,7 @@ func SemanticAstFutureStorageAdmissionFromFacts(
 
     index = 0;
     while index < SemanticAstLocalBindingCount(locals) {
-        let stored_type: String = initializers.inferred_type_names[index];
+        var stored_type: String = initializers.inferred_type_names[index];
         let declared: Option<String> =
             SemanticAstLocalBindingDeclaredTypeAt(locals, index);
         if IsSome(declared) { stored_type = UnwrapOption(declared); }

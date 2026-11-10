@@ -2,7 +2,7 @@
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    var hp: Int;\n"
             "    action Attack(self) -> Void\n"
             "        within BattleZone\n"
             "        causes Poisoned\n"

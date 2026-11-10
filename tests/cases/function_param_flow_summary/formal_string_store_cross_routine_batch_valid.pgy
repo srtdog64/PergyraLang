@@ -1,6 +1,6 @@
-// Both routines have an exact risk-owner receipt in the same analysis. Their
-// independent ArraySet copies land together instead of requiring one complete
-// whole-program reload per routine.
+// Both routines have exact current program-point evidence in the same
+// analysis. Their independent ArraySet copies land together instead of
+// requiring one complete whole-program reload per routine.
 struct FormalStringStoreCrossRoutineRows {
     names: Array<String>;
 }
@@ -13,7 +13,7 @@ func FormalStringStoreCrossRoutineFirst(
     rows: FormalStringStoreCrossRoutineRows,
     ref fact: FormalStringStoreCrossRoutineFact
 ) -> FormalStringStoreCrossRoutineRows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArraySet(names, 0, fact.name);
     return FormalStringStoreCrossRoutineRows(names);
 }
@@ -22,7 +22,7 @@ func FormalStringStoreCrossRoutineSecond(
     rows: FormalStringStoreCrossRoutineRows,
     ref fact: FormalStringStoreCrossRoutineFact
 ) -> FormalStringStoreCrossRoutineRows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArraySet(names, 0, fact.name);
     return FormalStringStoreCrossRoutineRows(names);
 }

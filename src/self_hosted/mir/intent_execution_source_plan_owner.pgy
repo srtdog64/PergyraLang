@@ -7,7 +7,7 @@ import "../dir/intent_fact_owner.pgy";
 
 // True when `target` is the node of a declared intent: the step's child.
 func SelfMirIntentTargetIsIntent(ref intents: SelfDirIntentFacts, target: Int) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(intents.intent_node_ids) {
         if intents.intent_node_ids[i] == target { return true; }
         i = i + 1;
@@ -19,12 +19,12 @@ func SelfMirIntentInstructionRow(
     ref facts: SelfMirProgramFacts, routine: Int,
     block_id: Int, name: String, anchor: String
 ) -> Int {
-    let found: Int = -1;
-    let local_block: Int = 0;
+    var found: Int = -1;
+    var local_block: Int = 0;
     while local_block < facts.routines.block_counts[routine] {
         let block: Int = facts.routines.block_starts[routine] + local_block;
         if block_id < 0 || facts.cfg.blocks.ids[block] == block_id {
-            let i: Int = facts.cfg.blocks.instruction_starts[block];
+            var i: Int = facts.cfg.blocks.instruction_starts[block];
             let end: Int = i + facts.cfg.blocks.instruction_counts[block];
             while i < end {
                 if facts.cfg.instructions.names[i] == name &&
@@ -44,7 +44,7 @@ func SelfMirIntentInstructionBlock(
     ref facts: SelfMirProgramFacts, routine: Int, instruction: Int
 ) -> Int {
     if instruction < 0 { return -1; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < facts.routines.block_counts[routine] {
         let block: Int = facts.routines.block_starts[routine] + i;
         let start: Int = facts.cfg.blocks.instruction_starts[block];
@@ -66,7 +66,8 @@ func SelfMirIntentPayloadDeclarationId(
 }
 
 func SelfMirIntentExecutionPlanAppend(
-    facts: SelfMirProgramFacts, ref intents: SelfDirIntentFacts, intent_index: Int
+    facts: SelfMirProgramFacts, ref intents: SelfDirIntentFacts, intent_index: Int,
+    ref expression_graph: SemanticExpressionGraphFacts
 ) -> SelfMirProgramFacts {
     if !facts.ok || intents.result_modes[intent_index] != "typed_enum" {
         return facts;
@@ -78,14 +79,14 @@ func SelfMirIntentExecutionPlanAppend(
         return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
             "typed Intent plan requires its just-emitted routine identity");
     }
-    let steps: MirIntentStepTransitionFacts = facts.intent_execution.steps;
-    let terminals: MirIntentTerminalTransitionFacts = facts.intent_execution.terminals;
+    var steps: MirIntentStepTransitionFacts = facts.intent_execution.steps;
+    var terminals: MirIntentTerminalTransitionFacts = facts.intent_execution.terminals;
     let first: Int = intents.step_starts[intent_index];
-    let step: Int = first;
+    var step: Int = first;
     let end: Int = first + intents.step_counts[intent_index];
     while step < end {
         let name: String = intents.steps.names[step];
-        let outcome: Int = SelfMirIntentInstructionRow(facts, routine, -1,
+        var outcome: Int = SelfMirIntentInstructionRow(facts, routine, -1,
             "IntentEval", name);
         // A compensation shares the step anchor, so select on by its block
         // from the unique outcome branch instead of accepting an arbitrary eval.
@@ -106,7 +107,7 @@ func SelfMirIntentExecutionPlanAppend(
             return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
                 "typed Intent outcome, branch or completion instruction is missing");
         }
-        let predecessor: Int = intents.transitions.predecessor_step_node_ids[step];
+        var predecessor: Int = intents.transitions.predecessor_step_node_ids[step];
         if predecessor < 0 { predecessor = 0; }
         ArrayPush(steps.transition_ids, intents.steps.node_ids[step]);
         ArrayPush(steps.routine_syntax_ids, routine_id);
@@ -169,18 +170,18 @@ func SelfMirIntentExecutionPlanAppend(
         ArrayPush(steps.completion_block_ids, SelfMirIntentInstructionBlock(facts, routine, completion));
         ArrayPush(steps.completion_instruction_ids, facts.cfg.instructions.ids[completion]);
         ArrayPush(steps.compensation_starts, ArrayLength(steps.compensations.transition_ids));
-        let compensation_count: Int = 0;
-        let block: Int = facts.routines.block_starts[routine];
+        var compensation_count: Int = 0;
+        var block: Int = facts.routines.block_starts[routine];
         let block_end: Int = block + facts.routines.block_counts[routine];
         while block < block_end {
-            let instruction: Int = facts.cfg.blocks.instruction_starts[block];
+            var instruction: Int = facts.cfg.blocks.instruction_starts[block];
             let instruction_end: Int = instruction + facts.cfg.blocks.instruction_counts[block];
             while instruction < instruction_end {
                 if facts.cfg.instructions.names[instruction] == "IntentEval" &&
                     facts.cfg.instructions.arg0s[instruction] == "compensate" &&
                     facts.cfg.instructions.slot_anchors[instruction] == name {
                     let root: Int = facts.cfg.instructions.expr0_graphs.roots[instruction];
-                    let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(facts.expression_graph, root);
+                    let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(expression_graph, root);
                     if facts.cfg.instructions.expr0_graphs.has_roots[instruction] != 1 ||
                         !IsSome(target_id) || compensation_count >= intents.steps.compensate_counts[step] {
                         return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
@@ -189,8 +190,8 @@ func SelfMirIntentExecutionPlanAppend(
                     // The graph's target name is a backend-neutral canonical
                     // callable name. The v3 row carries the declaration's
                     // source name, selected by identity, never unmangled text.
-                    let target_name: String = "";
-                    let target_row: Int = 0;
+                    var target_name: String = "";
+                    var target_row: Int = 0;
                     while target_row < ArrayLength(facts.routines.node_ids) {
                         if facts.routines.node_ids[target_row] == UnwrapOption(target_id) &&
                             (facts.routines.kinds[target_row] == "method" ||
@@ -208,7 +209,7 @@ func SelfMirIntentExecutionPlanAppend(
                         return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
                             "typed Intent compensation declaration is missing");
                     }
-                    let c: MirIntentCompensationFacts = steps.compensations;
+                    var c: MirIntentCompensationFacts = steps.compensations;
                     ArrayPush(c.transition_ids, intents.steps.node_ids[step]);
                     ArrayPush(c.expression_syntax_ids, intents.steps.compensate_node_ids[
                         intents.steps.compensate_starts[step] + compensation_count]);
@@ -216,7 +217,7 @@ func SelfMirIntentExecutionPlanAppend(
                     ArrayPush(c.instruction_ids, facts.cfg.instructions.ids[instruction]);
                     ArrayPush(c.graph_root_ids, root - facts.cfg.instructions.expr0_graphs.node_starts[instruction]);
                     ArrayPush(c.graph_digests, SelfMirExpressionGraphDigest(
-                        facts.cfg.instructions.expr0_graphs, facts.expression_graph, instruction));
+                        facts.cfg.instructions.expr0_graphs, expression_graph, instruction));
                     ArrayPushOwnedString(c.call_target_names, target_name);
                     ArrayPush(c.call_target_syntax_ids, UnwrapOption(target_id));
                     steps.compensations = c;
@@ -239,22 +240,22 @@ func SelfMirIntentExecutionPlanAppend(
             return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
                 "typed Intent step zone does not match its action or child intent target");
         }
-        let zone_id: Int = 0;
+        var zone_id: Int = 0;
         if zone_name != "" { zone_id = SelfMirIntentPayloadDeclarationId(facts.declarations, zone_name); }
         ArrayPushOwnedString(steps.where_zone_names, zone_name);
         ArrayPush(steps.where_zone_syntax_ids, zone_id);
         step = step + 1;
     }
-    let terminal: Int = intents.transitions.terminal_starts[intent_index];
+    var terminal: Int = intents.transitions.terminal_starts[intent_index];
     let terminal_end: Int = terminal + intents.transitions.terminal_counts[intent_index];
     while terminal < terminal_end {
         let source: Int = first + intents.transitions.terminal_source_step_indices[terminal];
         let expression_id: Int = intents.transitions.terminal_expression_node_ids[terminal];
         let definition: String = Concat("intent.result.", ToString(expression_id));
-        let instruction: Int = -1;
-        let block: Int = facts.routines.block_starts[routine];
+        var instruction: Int = -1;
+        var block: Int = facts.routines.block_starts[routine];
         while block < facts.routines.block_starts[routine] + facts.routines.block_counts[routine] {
-            let i: Int = facts.cfg.blocks.instruction_starts[block];
+            var i: Int = facts.cfg.blocks.instruction_starts[block];
             let end_i: Int = i + facts.cfg.blocks.instruction_counts[block];
             while i < end_i {
                 if facts.cfg.instructions.names[i] == "IntentTerminalResult" &&
@@ -273,10 +274,10 @@ func SelfMirIntentExecutionPlanAppend(
             return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
                 "typed Intent terminal source or instruction is missing");
         }
-        let variant_index: Int = intents.transitions.failure_variant_indices[source];
-        let variant: String = intents.transitions.failure_variant_names[source];
-        let payload: String = intents.transitions.failure_payload_names[source];
-        let payload_type: String = intents.transitions.failure_payload_type_names[source];
+        var variant_index: Int = intents.transitions.failure_variant_indices[source];
+        var variant: String = intents.transitions.failure_variant_names[source];
+        var payload: String = intents.transitions.failure_payload_names[source];
+        var payload_type: String = intents.transitions.failure_payload_type_names[source];
         if intents.transitions.terminal_roles[terminal] == "success" {
             variant_index = intents.transitions.success_variant_indices[source];
             variant = intents.transitions.success_variant_names[source];
@@ -328,7 +329,7 @@ func SelfMirIntentExecutionPlanAppend(
         ArrayPush(terminals.graph_root_ids, facts.cfg.instructions.expr0_graphs.roots[instruction] -
             facts.cfg.instructions.expr0_graphs.node_starts[instruction]);
         ArrayPush(terminals.graph_digests, SelfMirExpressionGraphDigest(
-            facts.cfg.instructions.expr0_graphs, facts.expression_graph, instruction));
+            facts.cfg.instructions.expr0_graphs, expression_graph, instruction));
         terminal = terminal + 1;
     }
     facts.intent_execution = MirIntentExecutionPlan(false, true,

@@ -8,7 +8,7 @@ func Both(inout a: Array<Int>, b: Array<Int>) -> Int {
 }
 
 func Main() -> Int {
-    let rows: Array<Int> = [1];
+    var rows: Array<Int> = [1];
     let k: Int = Both(rows, rows);
     Print(ToString(k + ArrayLength(rows)));
     return 0;

@@ -18,12 +18,12 @@ func MirFactGraphPayloadRootReady() -> Bool {
         return false;
     }
 
-    let decls: Array<Int> = [0, 0];
+    var decls: Array<Int> = [0, 0];
     if !MirDeclArrayBounds(json, decls) {
         return false;
     }
 
-    let routine: Array<Int> = [0, 0];
+    var routine: Array<Int> = [0, 0];
     if !MirRoutineObjectBoundsAt(json, 0, routine) {
         return false;
     }
@@ -32,12 +32,12 @@ func MirFactGraphPayloadRootReady() -> Bool {
         return false;
     }
 
-    let source_locals: Array<Int> = [0, 0];
+    var source_locals: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, routine[0], routine[1], "source_locals", source_locals) {
         return false;
     }
 
-    let inst: Array<Int> = [0, 0];
+    var inst: Array<Int> = [0, 0];
     if !MirObjectArrayObjectBoundsAt(json, json_extent, routine[0], routine[1], "body", 0, inst) {
         return false;
     }

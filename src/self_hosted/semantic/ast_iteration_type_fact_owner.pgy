@@ -72,7 +72,7 @@ func SemanticAstIterationCollectionIsBoundIdentifier(
         return false;
     }
     let name: String = UnwrapOption(root_text);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == name { return true; }
         i = i + 1;
@@ -96,7 +96,7 @@ func SemanticAstIterationSeedVisibleRows(
         ArrayLength(iteration_node_ids) != ArrayLength(iteration_verified) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(iteration_node_ids) {
         if iteration_verified[i] != 1 {
             i = i + 1;
@@ -170,31 +170,31 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
-    let member_root_names: Array<String> = [];
+    var member_root_names: Array<String> = [];
     if !SemanticAstExpressionMemberRootNames(
         constructors, enum_facts, member_root_names
     ) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
 
-    let node_ids: Array<Int> = [];
-    let binding_types: Array<String> = [];
-    let iterable_types: Array<String> = [];
-    let collection_hoists: Array<Int> = [];
-    let synthetic_names: Array<String> = [];
-    let synthetic_graph_root_ids: Array<Int> = [];
-    let verified: Array<Int> = [];
-    let diagnostic_codes: Array<String> = [];
-    let diagnostic_messages: Array<String> = [];
-    let i: Int = 0;
+    var node_ids: Array<Int> = [];
+    var binding_types: Array<String> = [];
+    var iterable_types: Array<String> = [];
+    var collection_hoists: Array<Int> = [];
+    var synthetic_names: Array<String> = [];
+    var synthetic_graph_root_ids: Array<Int> = [];
+    var verified: Array<Int> = [];
+    var diagnostic_codes: Array<String> = [];
+    var diagnostic_messages: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
         if statements.kind_tags[i] != TypedAstKindForStmtTag() {
             i = i + 1;
             continue;
         }
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
+        var names: Array<String> = [];
+        var types: Array<String> = [];
+        var modes: Array<String> = [];
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
         ) || !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
@@ -221,12 +221,12 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             return SemanticAstIterationTypeStructuralError(artifact);
         }
 
-        let binding_type: String = "";
-        let iterable_type: String = "";
-        let collection_hoist: Int = 0;
-        let row_verified: Int = 1;
-        let row_code: String = "";
-        let row_message: String = "";
+        var binding_type: String = "";
+        var iterable_type: String = "";
+        var collection_hoist: Int = 0;
+        var row_verified: Int = 1;
+        var row_code: String = "";
+        var row_message: String = "";
         let first_root: Option<Int> =
             SemanticAstExpressionGraphRootForNode(
                 expression_surfaces, statements.node_ids[i],
@@ -291,7 +291,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             }
         } else {
             iterable_type = first.inferred_type_name;
-            let collection_element_type: String = "";
+            var collection_element_type: String = "";
             if StartsWith(iterable_type, "Array<") &&
                 StringLength(iterable_type) > 7 &&
                 CharAt(iterable_type, StringLength(iterable_type) - 1) == ">" {
@@ -470,7 +470,7 @@ func SemanticAstIterationTypeFactsMatchArtifact(
         ArrayLength(facts.diagnostic_messages) != n {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
             rebuilt.binding_type_names[i] != facts.binding_type_names[i] ||
@@ -503,7 +503,7 @@ func SemanticAstIterationTypeFactsReadyForMirProjection(
         ArrayLength(facts.diagnostic_messages) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let statement_index: Option<Int> = SemanticAstStatementIndexForNode(
             statements, facts.node_ids[i]

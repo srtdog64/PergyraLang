@@ -38,7 +38,7 @@ func SemanticAstCollectionFormalDescriptorRetentionEmpty(
 func SemanticAstCollectionFormalDescriptorRetentionContains(
     ref retained_formals: Array<Int>, formal: Int
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(retained_formals) {
         if retained_formals[row] == formal { return true; }
         row = row + 1;
@@ -98,11 +98,11 @@ func SemanticAstCollectionFormalDescriptorRetentionSeal(
         ArrayLength(facts.local_targets) != local_count ||
         ArrayLength(facts.local_sites) != local_count ||
         ArrayLength(facts.local_terminal) != local_count) { return false; }
-    let changed: Bool = true;
-    let remaining: Int = edge_count + 1;
+    var changed: Bool = true;
+    var remaining: Int = edge_count + 1;
     while changed && remaining > 0 {
         changed = false;
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < edge_count {
             let source: Int = facts.formal_sources[edge];
             if SemanticAstCollectionFormalDescriptorRetentionContains(
@@ -116,7 +116,7 @@ func SemanticAstCollectionFormalDescriptorRetentionSeal(
         remaining = remaining - 1;
     }
     if changed { facts.ok = false; return false; }
-    let edge: Int = 0;
+    var edge: Int = 0;
     while edge < edge_count {
         let source_key: String = ToString(facts.formal_sources[edge]);
         if !facts.formal_terminal[edge] &&
@@ -128,7 +128,7 @@ func SemanticAstCollectionFormalDescriptorRetentionSeal(
         }
         edge = edge + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < local_count {
         let definition: Int = facts.local_definitions[row];
         let binding: Int = facts.local_bindings[row];

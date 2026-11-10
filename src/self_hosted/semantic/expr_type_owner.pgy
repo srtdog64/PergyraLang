@@ -22,7 +22,7 @@ func IsIdentText(text: String) -> Bool {
     if !SourceByteIsAlpha(SourceByteAt(text, n, n, 0)) {
         return false;
     }
-    let i: Int = 1;
+    var i: Int = 1;
     while i < n {
         if !SourceByteIsAlphaNum(SourceByteAt(text, n, n, i)) {
             return false;
@@ -32,7 +32,7 @@ func IsIdentText(text: String) -> Bool {
     return true;
 }
 func IsIntLiteral(text: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(text);
     if n == 0 {
         return false;
@@ -52,7 +52,7 @@ func IsIntLiteral(text: String) -> Bool {
     return true;
 }
 func IsLongLiteral(text: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(text);
     if n < 2 || SourceByteAt(text, n, n, n - 1) != SourceByteOf("L") {
         return false;
@@ -72,10 +72,10 @@ func IsLongLiteral(text: String) -> Bool {
     return true;
 }
 func IsFloatLiteral(text: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(text);
-    let seen_dot: Bool = false;
-    let seen_digit: Bool = false;
+    var seen_dot: Bool = false;
+    var seen_digit: Bool = false;
     if n == 0 {
         return false;
     }
@@ -217,8 +217,8 @@ func ParamTypeOf(part: String) -> String {
 func ParamTypes(param_src: String) -> String {
     let facts: SemanticDelimitedRangeFacts =
         SemanticNestedCommaRangeFactsFromSource(param_src);
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < SemanticDelimitedRangeCount(facts) {
         let part: String = SemanticDelimitedRangeText(facts, param_src, i);
         if StringLength(part) > 0 {
@@ -356,7 +356,7 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let split_idx: Int = SemanticExpressionArithmeticSplitIndex(text);
-    let split_op: String = "";
+    var split_op: String = "";
     if split_idx >= 0 { split_op = CharAt(text, split_idx); }
     if split_idx < 0 {
         return "";
@@ -491,7 +491,7 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, ref func
         }
         return "Unknown";
     }
-    let try_bounds: Array<Int> = [0, 0];
+    var try_bounds: Array<Int> = [0, 0];
     if TryOperandBounds(text, try_bounds) {
         let try_operand: String = SemanticTrimSourceRangeReuse(
             text, try_bounds[0], try_bounds[0] + try_bounds[1]

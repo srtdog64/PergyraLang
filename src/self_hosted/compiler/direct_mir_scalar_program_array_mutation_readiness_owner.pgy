@@ -4,6 +4,36 @@ import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_mutation_target_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayMutationRootType(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    target_local: Int, target_parameter: Int
+) -> String {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) {
+        return "";
+    }
+    if target_local >= 0 && target_parameter == -1 {
+        if target_local >= ArrayLength(plan.local_types) { return ""; }
+        return plan.local_types[target_local];
+    }
+    if target_local != -1 || target_parameter < 0 ||
+        target_parameter >= plan.routines.parameter_counts[routine] {
+        return "";
+    }
+    let parameter_row: Int =
+        plan.routines.parameter_starts[routine] + target_parameter;
+    if parameter_row < 0 ||
+        parameter_row >= ArrayLength(plan.routines.parameter_types) ||
+        parameter_row >= ArrayLength(plan.routines.parameter_carriages) ||
+        (plan.routines.parameter_carriages[parameter_row] != "value" &&
+         plan.routines.parameter_carriages[parameter_row] != "value-result" &&
+         !DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
+             plan.routines, routine, target_parameter)) {
+        return "";
+    }
+    return plan.routines.parameter_types[parameter_row];
+}
 
 func DirectMirScalarProgramArrayMutationOperationReady(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -16,9 +46,32 @@ func DirectMirScalarProgramArrayMutationOperationReady(
     let kind: Int = plan.operation_kinds[operation];
     let target_local: Int = plan.operation_left_locals[operation];
     let target_parameter: Int = plan.operation_right_locals[operation];
+    let member_count: Int =
+        DirectMirScalarProgramArrayMutationTargetMemberCount(
+            plan.program.operation_target_paths, operation);
     if !DirectMirScalarProgramArrayMutationKind(kind) ||
-        ((target_local < 0) == (target_parameter < 0)) { return false; }
-    if target_parameter >= 0 &&
+        ((target_local < 0) == (target_parameter < 0)) ||
+        member_count < 0 { return false; }
+    let record_target: DirectMirScalarProgramLogicalRecordArrayMutationTargetFact =
+        DirectMirScalarProgramLogicalRecordArrayMutationTargetFactAt(
+            plan, routine, target_local, target_parameter);
+    if member_count > 0 {
+        let root_type: String = DirectMirScalarProgramArrayMutationRootType(
+            plan, routine, target_local, target_parameter);
+        if !DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, root_type) { return false; }
+        let field_type: String =
+            DirectMirScalarProgramArrayMutationTargetFinalType(
+                plan.program.operation_target_paths, operation,
+                root_type, plan.program.logical_record);
+        if field_type == "" ||
+            !DirectMirScalarProgramArrayMutationTargetTypeReady(
+                kind, field_type) {
+            return false;
+        }
+    } else if DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
+        if !record_target.valid { return false; }
+    } else if target_parameter >= 0 &&
             (kind == DirectMirScalarCfgOpArrayIntPush() ||
              kind == DirectMirScalarCfgOpArrayIntValueResultSet() ||
              kind == DirectMirScalarCfgOpArrayIntPop()) {
@@ -34,20 +87,17 @@ func DirectMirScalarProgramArrayMutationOperationReady(
                 plan.program.array_bool_abi, routine,
                 target_parameter) { return false; }
     } else if target_parameter >= 0 &&
-            (kind == DirectMirScalarCfgOpArrayStringValueResultPush() ||
+            (kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+             kind == DirectMirScalarCfgOpArrayStringValueResultPush() ||
              kind == DirectMirScalarCfgOpArrayStringSet() ||
              kind == DirectMirScalarCfgOpArrayStringPop()) {
         if target_local != -1 ||
             !DirectMirScalarProgramArrayStringParameterMutationReady(
                 plan, routine, target_parameter, kind) { return false; }
-    } else if target_parameter >= 0 &&
-            DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
-        if target_local != -1 ||
-            !DirectMirScalarProgramLogicalRecordArrayValueResultAt(
-                plan, routine, target_parameter) { return false; }
     } else if target_parameter != -1 || target_local < 0 ||
-        target_local >= ArrayLength(plan.local_types) ||
-        !DirectMirScalarProgramLocalArrayMutationTargetTypeReady(
+        target_local >= ArrayLength(plan.local_types) {
+        return false;
+    } else if !DirectMirScalarProgramArrayMutationTargetTypeReady(
             kind, plan.local_types[target_local]) { return false; }
     let expression_row: Int =
         plan.program.operation_expression_rows[operation];
@@ -56,7 +106,7 @@ func DirectMirScalarProgramArrayMutationOperationReady(
     if DirectMirScalarProgramArrayPopKind(kind) {
         return expression_row == -1 && index_row == -1;
     }
-    let expected: String = CompilerAbiLayoutStringTypeName();
+    var expected: String = CompilerAbiLayoutStringTypeName();
     if kind == DirectMirScalarCfgOpArrayIntPush() ||
         kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
         kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
@@ -67,14 +117,7 @@ func DirectMirScalarProgramArrayMutationOperationReady(
         expected = CompilerAbiLayoutBoolTypeName();
     }
     if DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
-        let parameter_row: Int = plan.routines.parameter_starts[routine] +
-            target_parameter;
-        let element: Option<String> =
-            DirectMirScalarProgramLogicalRecordArrayElementType(
-                plan.program.logical_record,
-                plan.routines.parameter_types[parameter_row]);
-        if !IsSome(element) { return false; }
-        expected = UnwrapOption(element);
+        expected = record_target.element_type;
     }
     if !DirectMirScalarCfgProgramExpressionRowReady(
             plan, expression_row,

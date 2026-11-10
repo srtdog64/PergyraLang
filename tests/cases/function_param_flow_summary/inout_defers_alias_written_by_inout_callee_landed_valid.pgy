@@ -1,0 +1,29 @@
+// A local value copy of the inout defers is changed by an inout callee, then
+// the caller's place is read. The compiler lands one whole Clone at the copy,
+// then the callee's exact set retires the cloned element through the typed
+// owned-set lowering.
+func Mark(inout names: Array<String>) -> Int {
+    ArraySet(names, 0, "marked");
+    return 0;
+}
+
+func Emit(depth: Int, inout cur: Array<Int>, inout defers: Array<String>) -> String {
+    var result: String = "";
+    while cur[0] < depth {
+        ArraySet(cur, 0, cur[0] + 1);
+        let nested: String = Emit(depth - 1, cur, defers);
+        var alias: Array<String> = defers;
+        let marked: Int = Mark(alias);
+        ArraySet(defers, 0, Concat(defers[0], "d"));
+        result = Concat(result, nested);
+    }
+    return result;
+}
+
+func Main() -> Int {
+    var cur: Array<Int> = [0];
+    var defers: Array<String> = [""];
+    let text: String = Emit(2, cur, defers);
+    Print(Concat(text, defers[0]));
+    return 0;
+}

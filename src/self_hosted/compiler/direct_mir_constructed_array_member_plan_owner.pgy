@@ -26,7 +26,7 @@ func DirectMirConstructedArrayMemberPlanDigest(
     ref plan: DirectMirConstructedArrayMemberPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(433L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(433L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashInt(hash, plan.identity.digest);
     hash = DirectMirCfgHashInt(hash, MirAbiLayoutIdFromCapture(plan.abi));

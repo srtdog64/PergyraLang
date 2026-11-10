@@ -11,10 +11,10 @@ func DirectMirScalarCfgCollectionPlanCPreamble(
     target: CompilerTargetProjectionFact
 ) -> String {
     if DirectMirScalarCfgCollectionPlanAbsent(plan.collections) { return ""; }
-    let output: String = "#include <stdint.h>\n#include <stddef.h>\n";
-    let int_emitted: Bool = false;
-    let string_emitted: Bool = false;
-    let row: Int = 0;
+    var output: String = "#include <stdint.h>\n#include <stddef.h>\n";
+    var int_emitted: Bool = false;
+    var string_emitted: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(plan.collections.values.value_ids) {
         if plan.collections.values.predecessor_value_rows[row] < 0 {
             if plan.collections.values.element_types[row] == "Int" &&
@@ -60,15 +60,15 @@ func DirectMirScalarCfgCollectionPlanCDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(plan.collections.values.value_ids) {
         if plan.collections.values.predecessor_value_rows[row] < 0 {
             let length: Int =
                 plan.collections.values.initial_element_counts[row];
-            let element_type: String = "";
-            let array_type: String = "";
-            let initializer: String = "";
+            var element_type: String = "";
+            var array_type: String = "";
+            var initializer: String = "";
             let data: String = Concat("pgy_collection_storage_", ToString(row));
             if plan.collections.values.element_types[row] == "Int" {
                 let abi: DirectMirArrayIntAbiProjection =
@@ -103,7 +103,7 @@ func DirectMirScalarCfgCollectionPlanCDeclarations(
             output = Concat(output, Concat(" pgy_collection_storage_",
                 Concat(ToString(row), Concat("[", ToString(length)))));
             output = Concat(output, "] = {");
-            let item: Int = 0;
+            var item: Int = 0;
             while item < length {
                 if item > 0 { output = Concat(output, ", "); }
                 let start: Int =

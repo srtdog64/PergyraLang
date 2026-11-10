@@ -32,7 +32,8 @@ func SelfMirAssignmentParameterZeroUseCase(
         [0], [0], no_uses, value_graph.rows, target_graph.rows,
         SelfMirMatchFactRowsEmpty(), SelfMirDestructureFactRowsEmpty(),
         [""],
-        SelfMirRuntimeCallAbiRowsForInstructionCount(1), [0]
+        SelfMirRuntimeCallAbiRowsForInstructionCount(1), [0],
+        SelfMirExpressionGraphRowsForInstructionCount(1)
     );
     return SelfMirAssignmentParameterZeroUseContractCase(
         rows, target_graph.graph);

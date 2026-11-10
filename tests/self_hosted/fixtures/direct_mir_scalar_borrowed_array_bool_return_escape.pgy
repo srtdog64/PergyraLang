@@ -1,0 +1,11 @@
+func EscapeBoolRows(
+    ref rows: Array<Bool>
+) -> Array<Bool> {
+    return rows;
+}
+
+func Main() -> Void {
+    let rows: Array<Bool> = [true];
+    let escaped: Array<Bool> = EscapeBoolRows(rows);
+    Log(escaped[0]);
+}

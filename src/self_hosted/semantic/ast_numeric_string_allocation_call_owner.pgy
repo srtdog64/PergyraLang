@@ -34,7 +34,7 @@ func SemanticAstNumericStringAllocationCallsReady(
         ArrayLength(facts.lanes) != count ||
         ArrayLength(facts.local_call_ordinals) != count ||
         ArrayLength(facts.operand_types) != count { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if facts.call_nodes[row] < 0 || facts.terminal_nodes[row] <= facts.call_nodes[row] || facts.owner_node_ids[row] < 0 ||
             facts.lanes[row] < AstExpressionLaneAtom() ||
@@ -92,7 +92,7 @@ func SemanticAstNumericStringAllocationCallReady(
         ArrayLength(facts.operand_types) != count { return false; }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
     if !call.ok || ArrayLength(call.argument_nodes) != 1 { return false; }
-    let low: Int = 0; let high: Int = ArrayLength(facts.call_nodes);
+    var low: Int = 0; var high: Int = ArrayLength(facts.call_nodes);
     while low < high {
         let middle: Int = low + (high - low) / 2;
         if facts.call_nodes[middle] < call.call_node { low = middle + 1; }

@@ -13,8 +13,8 @@ import "../parser/ast_text_artifact_parse_owner.pgy";
 func SemanticEnumVariantParamSignature(
     facts: SemanticAstEnumFacts, variant_index: Int
 ) -> String {
-    let signature: String = "";
-    let param: Int = facts.variant_param_starts[variant_index];
+    var signature: String = "";
+    var param: Int = facts.variant_param_starts[variant_index];
     let end: Int = param + facts.variant_param_counts[variant_index];
     while param < end {
         if StringLength(signature) > 0 {
@@ -44,10 +44,10 @@ func SemanticEnumCallableRowsFromFacts(
         return false;
     }
     // Stage every row first: a partial projection must not reach the table.
-    let staged_names: Array<String> = [];
-    let staged_returns: Array<String> = [];
-    let staged_params: Array<String> = [];
-    let variant_index: Int = 0;
+    var staged_names: Array<String> = [];
+    var staged_returns: Array<String> = [];
+    var staged_params: Array<String> = [];
+    var variant_index: Int = 0;
     while variant_index < count {
         let enum_name: String = facts.variant_enum_names[variant_index];
         let variant_name: String = facts.variant_names[variant_index];
@@ -69,7 +69,7 @@ func SemanticEnumCallableRowsFromFacts(
         ));
         variant_index = variant_index + 1;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(staged_names) {
         ArrayPush(callable_names, staged_names[i]);
         ArrayPush(callable_returns, staged_returns[i]);
@@ -88,8 +88,8 @@ func SemanticEnumCallableRowsFromFacts(
 // mention in a comment, a string or an identifier is not one.
 func SemanticSourceMayDeclareEnum(content: String) -> Bool {
     let n: Int = StringLength(content);
-    let i: Int = 0;
-    let line_open: Bool = true;
+    var i: Int = 0;
+    var line_open: Bool = true;
     while i < n {
         let c: String = Substring(content, i, 1);
         if c == "\n" {
@@ -141,9 +141,9 @@ func SeedDeclaredEnumVariantSignatures(
 func SemanticEnumCallableProjectionContractReady() -> Bool {
     let source: String = "enum ImportedDecision {\n  ImportedReady\n  ImportedValue(value: Int)\n  func StableCode(self) -> Int { return 7;
     let source_extent: Int = StringLength(source); }\n  ImportedPair(left: Int, right: String)\n}\n";
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
     if !SeedDeclaredEnumVariantSignatures(
         "enum_callable_contract.pgy", source, names, returns, params
     ) || ArrayLength(names) != 3 || ArrayLength(returns) != 3 ||
@@ -171,9 +171,9 @@ func SemanticEnumCallableProjectionContractReady() -> Bool {
         return false;
     }
 
-    let non_enum_names: Array<String> = [];
-    let non_enum_returns: Array<String> = [];
-    let non_enum_params: Array<String> = [];
+    var non_enum_names: Array<String> = [];
+    var non_enum_returns: Array<String> = [];
+    var non_enum_params: Array<String> = [];
     if !SeedDeclaredEnumVariantSignatures(
         "enum_callable_contract_plain.pgy",
         "func Example() -> Void { let outcome_enum: String = \"ready\"; }\n",
@@ -194,9 +194,15 @@ func SemanticEnumCallableProjectionContractReady() -> Bool {
         empty_ints, empty_ints, empty_texts, empty_texts, empty_texts,
         empty_value_rows, empty_value_scope
     );
-    let preserved_names: Array<String> = ["Keep"];
-    let preserved_returns: Array<String> = ["Keep"];
-    let preserved_params: Array<String> = [""];
+    // This probe crosses an inout boundary, so its sentinels must own the
+    // storage whose preservation it checks. Borrowed literals would test a
+    // different (and correctly refused) contract.
+    var preserved_names: Array<String> = [];
+    var preserved_returns: Array<String> = [];
+    var preserved_params: Array<String> = [];
+    ArrayPush(preserved_names, Clone("Keep"));
+    ArrayPush(preserved_returns, Clone("Keep"));
+    ArrayPush(preserved_params, Clone(""));
     // The row writer runs before the terminal tail reads its rows.
     let broken_rows_published: Bool = SemanticEnumCallableRowsFromFacts(
         broken, preserved_names, preserved_returns, preserved_params

@@ -1,0 +1,15 @@
+// The loan returned by Observe is copied before it becomes the caller's
+// inout String.  ReadRecord returns the independent value to the caller while
+// the original record remains readable.
+struct TextRecord { text: String; }
+func Observe(ref text: String) -> String { return text; }
+func ReadRecord(ref record: TextRecord, field: String, inout output: String) -> Bool {
+    let observed: String = Observe(record.text); output = observed;
+    return StringLength(field) > 0;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    var output: String = "";
+    Log(ReadRecord(record, "field", output));
+    Log(output);
+}

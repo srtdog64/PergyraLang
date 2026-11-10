@@ -29,7 +29,7 @@ func DirectMirScalarCfgStringArrayCDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayCollectionCount(
         plan.string_arrays
     ) {
@@ -60,7 +60,7 @@ func DirectMirScalarCfgStringArrayCDeclarations(
         output = Concat(output, Concat("    ", abi.c_array_type));
         output = Concat(output, " pgy_indexed_collection_");
         output = Concat(output, Concat(ToString(row), " = "));
-        let data: String = "NULL";
+        var data: String = "NULL";
         if capacity > 0 { data = Concat("pgy_indexed_storage_", ToString(row)); }
         output = Concat(output, DirectMirScalarCfgArrayCInitializer(
             abi.storage, data, ToString(initial), ToString(capacity), "NULL"));

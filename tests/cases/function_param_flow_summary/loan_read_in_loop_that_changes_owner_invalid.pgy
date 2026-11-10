@@ -28,8 +28,8 @@ func FactsError(facts: Facts, code: Int) -> Facts {
 
 func Check(analysis: Analysis) -> Int {
     let facts: Facts = FactsEmpty(analysis.graph);
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 2 {
         total = total + facts.graph.rows[0].value;
         ArraySet(analysis.graph.rows, 0, Cell(9));

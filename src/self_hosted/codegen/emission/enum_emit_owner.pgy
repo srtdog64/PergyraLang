@@ -18,9 +18,9 @@ func CollectEnumsSelected(
     if ArrayLength(selected) != SemanticAstEnumCount(facts) {
         Die("enum declaration selection mask does not match semantic rows");
     }
-    let blocks: Array<String> = [];
-    let env_rows: Array<String> = [];
-    let i: Int = 0;
+    var blocks: Array<String> = [];
+    var env_rows: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
         if selected[i] == 0 {
             i = i + 1;
@@ -31,8 +31,8 @@ func CollectEnumsSelected(
         let payload_free: Bool = CodegenSemanticEnumPayloadFree(
             facts, ename
         );
-        let value: Int = 0;
-        let enum_rows: Array<String> = [];
+        var value: Int = 0;
+        var enum_rows: Array<String> = [];
         if payload_free {
             ArrayPush(enum_rows, "enum {\n");
             ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
@@ -110,7 +110,7 @@ func CollectEnumsSelected(
                     );
                 if param_count > 0 {
                     ArrayPush(enum_rows, "        struct {");
-                    let param_index: Int = 0;
+                    var param_index: Int = 0;
                     while param_index < param_count {
                         let param_type: String =
                             CodegenSemanticEnumVariantPayloadTypeAtOrDie(
@@ -175,10 +175,10 @@ func CollectEnumsSelected(
                 let tag_name: String = CompilerSymbolCEnumVariantName(
                     Concat(ename, "_TAG"), part
                 );
-                let params: String = "";
-                let param_types: String = "";
-                let param_modes: String = "";
-                let param_index: Int = 0;
+                var params: String = "";
+                var param_types: String = "";
+                var param_modes: String = "";
+                var param_index: Int = 0;
                 while param_index < param_count {
                     let param_type: String =
                         CodegenSemanticEnumVariantPayloadTypeAtOrDie(
@@ -198,7 +198,7 @@ func CollectEnumsSelected(
                     param_modes = Concat(param_modes, "default");
                     param_index = param_index + 1;
                 }
-                let constructor_signature: String = Concat(
+                var constructor_signature: String = Concat(
                     "static inline ", c_enum_name
                 );
                 constructor_signature = Concat(
@@ -218,7 +218,7 @@ func CollectEnumsSelected(
                 ));
                 param_index = 0;
                 while param_index < param_count {
-                    let assignment: String = Concat(
+                    var assignment: String = Concat(
                         "    _v.", CompilerSymbolCFieldName(part)
                     );
                     assignment = Concat(
@@ -282,18 +282,17 @@ func CollectEnumsSelected(
 
 func CollectEnums(
     facts: SemanticAstEnumFacts,
-    inout env_box: Array<String>
+    inout env_rows: String
 ) -> String {
-    let selected: Array<Int> = [];
-    let i: Int = 0;
+    var selected: Array<Int> = [];
+    var i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
         ArrayPush(selected, 1);
         i = i + 1;
     }
-    // The preseal row text is read through an owned copy of the box slot.
-    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(Concat("", env_box[0]), "");
+    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(env_rows, "");
     let batch: CodegenEnumDeclarationBatchFact =
         CollectEnumsSelected(facts, selected, env);
-    CodegenTypeEnvAdvancePresealRows(env_box, env, batch.env_rows);
+    CodegenTypeEnvAdvancePresealRows(env_rows, env, batch.env_rows);
     return batch.c_block;
 }

@@ -16,19 +16,19 @@ func DirectMirRoutineParameterSetFactFromBounds(
         count != ArrayLength(resources) || count != ArrayLength(pass_shapes) {
         return invalid;
     }
-    let source_syntax_ids: Array<Int> = [];
-    let abi_types: Array<String> = []; let abi_ids: Array<Int> = [];
-    let abi_required: Array<Bool> = []; let digests: Array<Int> = [];
-    let abi_row_keys: Array<String> = [];
-    let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
-    let admitted_types: Array<String> = [];
-    let cursor: Int = start + 1; let bounds: Array<Int> = [0, 0];
-    let row: Int = 0;
+    var source_syntax_ids: Array<Int> = [];
+    var abi_types: Array<String> = []; var abi_ids: Array<Int> = [];
+    var abi_required: Array<Bool> = []; var digests: Array<Int> = [];
+    var abi_row_keys: Array<String> = [];
+    var first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    var admitted_types: Array<String> = [];
+    var cursor: Int = start + 1; var bounds: Array<Int> = [0, 0];
+    var row: Int = 0;
     while row < count {
         if !JsonArrayNextObjectBounds(json, json_extent, cursor, end, bounds) {
             return invalid;
         }
-        let implicit_type: String = "";
+        var implicit_type: String = "";
         if row == 0 { implicit_type = receiver_type; }
         let param: DirectMirRoutineParamFact =
             DirectMirRoutineParamFactWithReceiverFromBounds(json, json_extent, bounds[0], bounds[1], implicit_type);

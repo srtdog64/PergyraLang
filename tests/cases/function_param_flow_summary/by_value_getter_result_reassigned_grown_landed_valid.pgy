@@ -17,7 +17,7 @@ func Part(outer: Outer) -> Inner {
 }
 
 func Grow(outer: Outer) -> Int {
-    let part: Inner = Inner([5]);
+    var part: Inner = Inner([5]);
     part = Part(outer);
     ArrayPush(part.items, 9);
     ArrayPush(part.items, 9);

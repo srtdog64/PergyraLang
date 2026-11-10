@@ -21,8 +21,8 @@ func SemanticAstSignatureFunctionTypeClose(
     if n < 8 || Substring(text, 0, 5) != "func(" {
         return None;
     }
-    let depth: Int = 1;
-    let i: Int = 5;
+    var depth: Int = 1;
+    var i: Int = 5;
     while i < n {
         if CharAt(text, i) == "(" {
             depth = depth + 1;
@@ -40,7 +40,7 @@ func SemanticAstSignatureFunctionTypeClose(
 func SemanticAstCallableTypeShapeFromName(
     type_name: String
 ) -> SemanticAstCallableTypeShape {
-    let parameters: Array<String> = [];
+    var parameters: Array<String> = [];
     let text: String = SemanticTrimSourceReuse(type_name);
     let n: Int = StringLength(text);
     let close_opt: Option<Int> =
@@ -49,7 +49,7 @@ func SemanticAstCallableTypeShapeFromName(
         return SemanticAstCallableTypeShapeInvalid();
     }
     let close: Int = UnwrapOption(close_opt);
-    let arrow: Int = close + 1;
+    var arrow: Int = close + 1;
     while arrow < n && SourceByteIsWhitespace(
         SourceByteAt(text, n, n, arrow)
     ) {
@@ -69,7 +69,7 @@ func SemanticAstCallableTypeShapeFromName(
     if SemanticTrimSourceReuse(parameter_text) != "" {
         let ranges: SemanticDelimitedRangeFacts =
             SemanticNestedCommaRangeFactsFromSource(parameter_text);
-        let i: Int = 0;
+        var i: Int = 0;
         while i < SemanticDelimitedRangeCount(ranges) {
             let parameter_type: String = SemanticTrimSourceReuse(
                 SemanticDelimitedRangeText(ranges, parameter_text, i)
@@ -89,8 +89,8 @@ func SemanticAstCallableTypeParameterSignature(
     shape: SemanticAstCallableTypeShape
 ) -> String {
     if !shape.ok { return ""; }
-    let signature: String = "";
-    let i: Int = 0;
+    var signature: String = "";
+    var i: Int = 0;
     while i < ArrayLength(shape.parameter_types) {
         if i > 0 { signature = Concat(signature, "|"); }
         signature = Concat(signature, shape.parameter_types[i]);

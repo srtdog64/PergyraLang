@@ -16,7 +16,7 @@ func ParserIntentParticipantTypePresent(
     ref participant_types: Array<String>,
     type_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(participant_types) {
         if participant_types[i] == type_name { return true; }
         i = i + 1;
@@ -32,7 +32,7 @@ func ParserIntentParameterResolvedLine(
     let marker_index: Int = StringIndexOf(line, marker);
     if marker_index < 0 { return Some(line); }
     let line_length: Int = StringLength(line);
-    let indent_index: Int = 0;
+    var indent_index: Int = 0;
     while indent_index < marker_index {
         let c: Int = SourceByteAt(line, line_length, line_length, indent_index);
         // The integrated parser parses this owner's own contract strings.
@@ -54,10 +54,10 @@ func ParserIntentParameterResolvedLine(
         payload, colon + 1, StringLength(payload) - colon - 1
     ));
     if !IsIdentifier(alias) || rendered_type == "" { return None; }
-    let cursor: Array<Int> = [0];
+    var cursor: Array<Int> = [0];
     let base_name: String = ReadIdent(rendered_type, 0, cursor);
     if base_name == "" { return None; }
-    let label: String = "IntentValue: ";
+    var label: String = "IntentValue: ";
     if StringIndexOf(rendered_type, "<") < 0 &&
         ParserIntentParticipantTypePresent(participant_types, base_name) {
         label = "IntentInvolves: ";
@@ -73,8 +73,8 @@ func ParserIntentParameterRowsResolve(
     let n: Int = StringLength(tree_text);
     let out: TextBuilder = TextBuilderNew(n + 1);
     let lines: Array<String> = StringSplit(tree_text, "\n");
-    let line_index: Int = 0;
-    let valid: Bool = true;
+    var line_index: Int = 0;
+    var valid: Bool = true;
     while line_index < ArrayLength(lines) && valid {
         let resolved: Option<String> =
             ParserIntentParameterResolvedLine(

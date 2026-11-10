@@ -14,13 +14,13 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     }
     let roots: Array<Int> = sequence.roots;
     let arena: SemanticExpressionGraphArena = sequence.arena;
-    let kinds: Array<Int> = arena.topology.node_kinds;
-    let texts: Array<String> = arena.node_texts;
-    let left: Array<Int> = arena.topology.left_children;
-    let right: Array<Int> = arena.topology.right_children;
-    let target_kinds: Array<Int> = arena.call_target_kinds;
-    let target_names: Array<String> = arena.call_target_names;
-    let places: Array<Int> = arena.place_kinds;
+    var kinds: Array<Int> = arena.topology.node_kinds;
+    var texts: Array<String> = arena.node_texts;
+    var left: Array<Int> = arena.topology.left_children;
+    var right: Array<Int> = arena.topology.right_children;
+    var target_kinds: Array<Int> = arena.call_target_kinds;
+    var target_names: Array<String> = arena.call_target_names;
+    var places: Array<Int> = arena.place_kinds;
     let callee_node: Int = ArrayLength(kinds);
     ArrayPush(kinds, AstExpressionNodeLeaf());
     ArrayPush(texts, callee_name);
@@ -60,15 +60,15 @@ func MirExpressionGraphSequenceCloseUnaryCall(
     sequence: MirExpressionGraphSequence, callee_name: String, subject_text: String,
     call_node: Int, negate: Bool
 ) -> MirExpressionGraphSequence {
-    let result_roots: Array<Int> = sequence.roots;
+    var result_roots: Array<Int> = sequence.roots;
     let result_arena: SemanticExpressionGraphArena = sequence.arena;
-    let result_kinds: Array<Int> = result_arena.topology.node_kinds;
-    let result_texts: Array<String> = result_arena.node_texts;
-    let result_left: Array<Int> = result_arena.topology.left_children;
-    let result_right: Array<Int> = result_arena.topology.right_children;
-    let result_target_kinds: Array<Int> = result_arena.call_target_kinds;
-    let result_target_names: Array<String> = result_arena.call_target_names;
-    let result_places: Array<Int> = result_arena.place_kinds;
+    var result_kinds: Array<Int> = result_arena.topology.node_kinds;
+    var result_texts: Array<String> = result_arena.node_texts;
+    var result_left: Array<Int> = result_arena.topology.left_children;
+    var result_right: Array<Int> = result_arena.topology.right_children;
+    var result_target_kinds: Array<Int> = result_arena.call_target_kinds;
+    var result_target_names: Array<String> = result_arena.call_target_names;
+    var result_places: Array<Int> = result_arena.place_kinds;
     let subject_root: Int = result_roots[ArrayLength(result_roots) - 1];
     let call_text: String = Concat(
         callee_name, Concat("(", Concat(subject_text, ")"))
@@ -81,7 +81,7 @@ func MirExpressionGraphSequenceCloseUnaryCall(
     ArrayPush(result_target_kinds, SemanticCallTargetNone());
     ArrayPush(result_target_names, "");
     ArrayPush(result_places, SemanticExpressionPlaceUnknown());
-    let final_root: Int = call_root;
+    var final_root: Int = call_root;
     if negate {
         final_root = ArrayLength(result_kinds);
         ArrayPush(result_kinds, AstExpressionNodeLogicalNot());
@@ -110,7 +110,7 @@ func MirExpressionGraphSequenceAppendOptionMatchOccurrence(
         return MirExpressionGraphSequenceError(sequence);
     }
     if lane == AstExpressionLaneAtom() {
-        let condition_name: String = "IsSome";
+        var condition_name: String = "IsSome";
         let negate: Bool = variant == "None";
         if variant == "Ok" { condition_name = "IsOk"; }
         if variant == "Err" { condition_name = "IsErr"; }
@@ -120,7 +120,7 @@ func MirExpressionGraphSequenceAppendOptionMatchOccurrence(
     if lane != AstExpressionLaneValue() || variant == "None" {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let unwrap_name: String = "UnwrapOption";
+    var unwrap_name: String = "UnwrapOption";
     if variant == "Ok" { unwrap_name = "Unwrap"; }
     if variant == "Err" { unwrap_name = "UnwrapErr"; }
     return MirExpressionGraphSequenceAppendUnaryCall(sequence, subject_graph, unwrap_name, subject_text, false);

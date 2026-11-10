@@ -5,6 +5,7 @@ import "direct_mir_identity_cell_fact_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
 
 func DirectMirIdentityCellCType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
     let row: Int = DirectMirIdentityCellRow(cells, type_name);
@@ -16,25 +17,47 @@ func DirectMirIdentityCellLlvmType(ref cells: DirectMirIdentityCellFacts, type_n
     if row < 0 { return ""; }
     return Concat("%pgy.identity.cell.", ToString(row));
 }
-func DirectMirIdentityCellCFieldType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
+func DirectMirIdentityCellCFieldType(
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> String {
     if type_name == "Int" { return "int64_t"; }
     if type_name == "Bool" { return "bool"; }
     if type_name == "String" { return CompilerAbiLayoutStringCValueType(); }
     if DirectMirIdentityCellRow(cells, type_name) >= 0 {
         return Concat(DirectMirIdentityCellCType(cells, type_name), " *");
     }
-    return "";
+    let option_enum: String =
+        DirectMirScalarProgramCPayloadEnumOptionTypeName(
+            referenced_enum, type_name);
+    if option_enum != "" { return option_enum; }
+    return DirectMirScalarProgramCPayloadEnumTypeName(
+        referenced_enum, type_name);
 }
-func DirectMirIdentityCellLlvmFieldType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
+func DirectMirIdentityCellLlvmFieldType(
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> String {
     if type_name == "Int" { return "i64"; }
     if type_name == "Bool" { return "i1"; }
     if type_name == "String" { return "ptr"; }
     if DirectMirIdentityCellRow(cells, type_name) >= 0 { return "ptr"; }
-    return "";
+    let option_enum: String =
+        DirectMirScalarProgramLlvmPayloadEnumOptionTypeName(
+            referenced_enum, type_name);
+    if option_enum != "" { return option_enum; }
+    return DirectMirScalarProgramLlvmPayloadEnumTypeName(
+        referenced_enum, type_name);
 }
-func DirectMirIdentityCellPreamble(ref cells: DirectMirIdentityCellFacts, llvm: Bool) -> String {
+func DirectMirIdentityCellPreamble(
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    llvm: Bool
+) -> String {
     if !DirectMirIdentityCellFactsReady(cells) { Die("identity cell declaration receipt is invalid"); }
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     // Slot types may be declared later. Forward declarations preserve source
     // identity without reordering the admitted inventory or copying a record.
     if !llvm {
@@ -49,14 +72,16 @@ func DirectMirIdentityCellPreamble(ref cells: DirectMirIdentityCellFacts, llvm: 
         let c_type: String = DirectMirIdentityCellCType(cells, cells.names[row]);
         if llvm { output = Concat(output, Concat(DirectMirIdentityCellLlvmType(cells, cells.names[row]), " = type { ")); }
         else { output = Concat(output, Concat("struct ", Concat(c_type, " { "))); }
-        let field: Int = 0;
+        var field: Int = 0;
         while field < cells.field_counts[row] {
             let source_type: String = cells.field_types[cells.field_starts[row] + field];
             if llvm {
                 if field > 0 { output = Concat(output, ", "); }
-                output = Concat(output, DirectMirIdentityCellLlvmFieldType(cells, source_type));
+                output = Concat(output, DirectMirIdentityCellLlvmFieldType(
+                    cells, referenced_enum, source_type));
             } else {
-                output = Concat(output, DirectMirIdentityCellCFieldType(cells, source_type));
+                output = Concat(output, DirectMirIdentityCellCFieldType(
+                    cells, referenced_enum, source_type));
                 output = Concat(output, Concat(" field_", Concat(ToString(field), "; ")));
             }
             field = field + 1;
@@ -79,10 +104,10 @@ func DirectMirIdentityCellGraphConstructors(
     if graph < 0 { return; }
     if graph >= ArrayLength(expressions.graph_starts) { Die("identity cell expression graph is missing"); }
     let start: Int = expressions.graph_starts[graph];
-    let node: Int = start;
+    var node: Int = start;
     while node < start + expressions.graph_counts[graph] {
         if expressions.node_kinds[node] == DirectMirScalarProgramExprIdentityCellConstructor() {
-            let prior: Int = 0;
+            var prior: Int = 0;
             while prior < ArrayLength(nodes) {
                 if nodes[prior] == node { Die("identity cell constructor has repeated graph ownership"); }
                 prior = prior + 1;
@@ -97,8 +122,8 @@ func DirectMirIdentityCellRoutineStorage(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, llvm: Bool
 ) -> String {
     if ArrayLength(plan.program.logical_record.identity_cells.names) == 0 { return ""; }
-    let nodes: Array<Int> = [];
-    let operation: Int = plan.routines.operation_starts[routine];
+    var nodes: Array<Int> = [];
+    var operation: Int = plan.routines.operation_starts[routine];
     let operation_end: Int = operation + plan.routines.operation_counts[routine];
     while operation < operation_end {
         DirectMirIdentityCellGraphConstructors(plan.program.expressions,
@@ -107,7 +132,7 @@ func DirectMirIdentityCellRoutineStorage(
             plan.program.operation_secondary_expression_rows[operation], nodes);
         operation = operation + 1;
     }
-    let block: Int = plan.routines.block_starts[routine];
+    var block: Int = plan.routines.block_starts[routine];
     let block_end: Int = block + plan.routines.block_counts[routine];
     while block < block_end {
         DirectMirIdentityCellGraphConstructors(plan.program.expressions,
@@ -116,7 +141,7 @@ func DirectMirIdentityCellRoutineStorage(
             plan.program.block_return_expression_rows[block], nodes);
         block = block + 1;
     }
-    let output: String = ""; let index: Int = 0;
+    var output: String = ""; var index: Int = 0;
     while index < ArrayLength(nodes) {
         let node: Int = nodes[index]; let type_name: String = plan.program.expressions.node_types[node];
         if llvm {
@@ -133,8 +158,10 @@ func DirectMirIdentityCellRoutineStorage(
 }
 
 func DirectMirIdentityCellCExpression(
-    ref cells: DirectMirIdentityCellFacts, kind: Int, node: Int,
-    type_name: String, left: String, arguments: Array<String>, member: Int
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    kind: Int, node: Int,
+    type_name: String, left: String, ref arguments: Array<String>, member: Int
 ) -> Option<String> {
     let row: Int = DirectMirIdentityCellRow(cells, type_name);
     if row < 0 { return None; }
@@ -145,7 +172,7 @@ func DirectMirIdentityCellCExpression(
     if kind != DirectMirScalarProgramExprIdentityCellConstructor() ||
         ArrayLength(arguments) != cells.field_counts[row] || member != -1 { return None; }
     let storage: String = Concat("pgy_identity_storage_", ToString(node));
-    let output: String = "("; let field: Int = 0;
+    var output: String = "("; var field: Int = 0;
     while field < ArrayLength(arguments) {
         output = Concat(output, Concat(storage, Concat(".field_", ToString(field))));
         output = Concat(output, Concat(" = (", Concat(arguments[field], "), ")));
@@ -158,15 +185,17 @@ func DirectMirIdentityCellCExpression(
 }
 
 func DirectMirIdentityCellLlvmExpression(
-    ref cells: DirectMirIdentityCellFacts, kind: Int, node: Int, result: String,
-    type_name: String, left: String, arguments: Array<String>, member: Int
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    kind: Int, node: Int, result: String,
+    type_name: String, left: String, ref arguments: Array<String>, member: Int
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let missing: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmStringExpression(false, false, "", "");
     if kind != DirectMirScalarProgramExprIdentityCellConstructor() && kind != DirectMirScalarProgramExprIdentityCellMember() { return missing; }
     let row: Int = DirectMirIdentityCellRow(cells, type_name);
     if row < 0 { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
     let storage_type: String = DirectMirIdentityCellLlvmType(cells, type_name);
-    let output: String = "";
+    var output: String = "";
     if kind == DirectMirScalarProgramExprIdentityCellMember() {
         if left == "" || member < 0 || member >= cells.field_counts[row] || ArrayLength(arguments) != 0 {
             return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
@@ -175,7 +204,9 @@ func DirectMirIdentityCellLlvmExpression(
         output = Concat("  ", Concat(pointer, Concat(" = getelementptr ", storage_type)));
         output = Concat(output, Concat(", ptr ", Concat(left, Concat(", i32 0, i32 ", Concat(ToString(member), "\n")))));
         output = Concat(output, Concat("  ", Concat(result, " = load ")));
-        output = Concat(output, DirectMirIdentityCellLlvmFieldType(cells, cells.field_types[cells.field_starts[row] + member]));
+        output = Concat(output, DirectMirIdentityCellLlvmFieldType(
+            cells, referenced_enum,
+            cells.field_types[cells.field_starts[row] + member]));
         output = Concat(output, Concat(", ptr ", Concat(pointer, "\n")));
         return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
     }
@@ -183,12 +214,15 @@ func DirectMirIdentityCellLlvmExpression(
         return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
     }
     let storage: String = Concat("%pgy.identity.storage.", ToString(node));
-    let field: Int = 0;
+    var field: Int = 0;
     while field < ArrayLength(arguments) {
         let pointer: String = Concat(result, Concat(".field.", ToString(field)));
         output = Concat(output, Concat("  ", Concat(pointer, Concat(" = getelementptr ", storage_type))));
         output = Concat(output, Concat(", ptr ", Concat(storage, Concat(", i32 0, i32 ", Concat(ToString(field), "\n")))));
-        output = Concat(output, Concat("  store ", DirectMirIdentityCellLlvmFieldType(cells, cells.field_types[cells.field_starts[row] + field])));
+        output = Concat(output, Concat("  store ",
+            DirectMirIdentityCellLlvmFieldType(
+                cells, referenced_enum,
+                cells.field_types[cells.field_starts[row] + field])));
         output = Concat(output, Concat(" ", Concat(arguments[field], Concat(", ptr ", Concat(pointer, "\n")))));
         field = field + 1;
     }

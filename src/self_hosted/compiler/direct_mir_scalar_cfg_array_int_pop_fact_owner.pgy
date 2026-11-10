@@ -29,13 +29,13 @@ func DirectMirScalarCfgArrayIntPopFactSourceReady(
         fact.length_log_operation_row != -1 || count > initial_length {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.global_rows[row] < 0 || fact.operation_rows[row] != -1 ||
             fact.expected_lengths_before[row] != initial_length - row {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.global_rows[prior] == fact.global_rows[row] {
                 return false;

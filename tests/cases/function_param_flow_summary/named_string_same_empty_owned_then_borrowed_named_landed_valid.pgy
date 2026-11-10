@@ -5,7 +5,7 @@ func AtomFor(node: TextNode) -> String {
     return node.type_name;
 }
 func Project(nodes: Array<TextNode>) -> Arena {
-    let atom_table: Array<String> = [];
+    var atom_table: Array<String> = [];
     ArrayPushOwnedString(atom_table, Concat("owned", " value"));
     let atom_text: String = AtomFor(nodes[0]);
     ArrayPush(atom_table, atom_text);

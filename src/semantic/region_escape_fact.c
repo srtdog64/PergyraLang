@@ -151,6 +151,33 @@ region_escape_walk(RegionEscapeCollector *collector,
             region_escape_walk(collector, ast_block_statement(node, i),
                                scope_id, function_syntax_id);
         break;
+    case AST_RETURN:
+        region_escape_walk(collector, ast_return_value(node),
+                           scope_id, function_syntax_id);
+        break;
+    case AST_LET_DECL:
+        region_escape_walk(collector, ast_let_initializer(node),
+                           scope_id, function_syntax_id);
+        break;
+    case AST_IF_STMT:
+        region_escape_walk(collector, ast_if_condition(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_if_then_branch(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_if_else_branch(node), scope_id, function_syntax_id);
+        break;
+    case AST_WHILE_LOOP:
+        region_escape_walk(collector, ast_while_condition(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_while_body(node), scope_id, function_syntax_id);
+        break;
+    case AST_FOR_LOOP:
+        region_escape_walk(collector, ast_for_range_start(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_for_range_end(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_for_iterable(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_for_body(node), scope_id, function_syntax_id);
+        break;
+    case AST_BINARY:
+        region_escape_walk(collector, ast_binary_left(node), scope_id, function_syntax_id);
+        region_escape_walk(collector, ast_binary_right(node), scope_id, function_syntax_id);
+        break;
     case AST_CALL:
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             if (region_escape_argument_is_borrowed(
@@ -160,7 +187,8 @@ region_escape_walk(RegionEscapeCollector *collector,
                 if (region_escape_is_string_concat(arg))
                     region_escape_append_concat_spine(
                         collector, arg, scope_id, function_syntax_id);
-                else if (semantic_region_is_string_clone(arg))
+                else if (semantic_region_is_string_clone(arg) ||
+                         semantic_region_is_string_concat(arg))
                     region_escape_append(collector, arg, scope_id,
                                          function_syntax_id);
             }

@@ -13,8 +13,8 @@ func DirectMirScalarProgramCArrayBoolPopulatedLiteralMaterialization(
         !plan.program.array_bool_abi.present {
         Die("direct MIR scalar C populated Array<Bool> ABI is invalid");
     }
-    let output: String = "";
-    let node: Int = 0;
+    var output: String = "";
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         if plan.program.expressions.node_kinds[node] !=
                 DirectMirScalarProgramExprArrayBoolPopulatedLiteral() {
@@ -37,7 +37,7 @@ func DirectMirScalarProgramCArrayBoolPopulatedLiteralMaterialization(
         output = Concat(output, "    out.length = ");
         output = Concat(output, ToString(ArrayLength(operands)));
         output = Concat(output, "; out.capacity = out.length;\n");
-        let item: Int = 0;
+        var item: Int = 0;
         while item < ArrayLength(operands) {
             output = Concat(output, "    out.data[");
             output = Concat(output, ToString(item));

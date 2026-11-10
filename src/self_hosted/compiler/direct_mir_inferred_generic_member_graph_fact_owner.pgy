@@ -51,7 +51,7 @@ func DirectMirInferredGenericMemberNestedCallReady(
         receiver == "" || method == "" || target == "" {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 11 {
         if sequence.arena.topology.node_kinds[row] != kinds[row] ||
             sequence.arena.topology.left_children[row] != lefts[row] ||
@@ -96,7 +96,7 @@ func DirectMirInferredGenericMemberGraphFactDigest(
     ref fact: DirectMirInferredGenericMemberGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(317L, fact.owner);
+    var hash: Long = DirectMirCfgHashString(317L, fact.owner);
     hash = DirectMirCfgHashString(hash, fact.method);
     hash = DirectMirCfgHashString(hash, fact.member_target);
     hash = DirectMirCfgHashString(hash, fact.receiver_parameter_name);

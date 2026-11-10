@@ -21,7 +21,7 @@ func DirectMirConstructedGenericMemberMainGraphDigest(
     ref fact: DirectMirConstructedGenericMemberMainGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(379L, fact.owner);
+    var hash: Long = DirectMirCfgHashString(379L, fact.owner);
     hash = DirectMirCfgHashString(hash, fact.outer_method);
     hash = DirectMirCfgHashString(hash, fact.outer_target);
     hash = DirectMirCfgHashString(hash, fact.inner_method);
@@ -55,7 +55,7 @@ func DirectMirConstructedGenericMemberNestedCallReadyWithArgumentKind(
     receiver: String, outer_method: String, outer_target: String,
     inner_method: String, inner_target: String, argument_kind: Int
 ) -> Bool {
-    let kinds: Array<Int> = [];
+    var kinds: Array<Int> = [];
     ArrayPush(kinds, AstExpressionNodeLeaf());
     ArrayPush(kinds, AstExpressionNodeLeaf());
     ArrayPush(kinds, AstExpressionNodeMemberAccess());
@@ -76,15 +76,15 @@ func DirectMirConstructedGenericMemberNestedCallReadyWithArgumentKind(
         inner_target == "" || outer_target == inner_target {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 11 {
         if sequence.arena.topology.node_kinds[row] != kinds[row] ||
             sequence.arena.topology.left_children[row] != lefts[row] ||
             sequence.arena.topology.right_children[row] != rights[row] {
             return false;
         }
-        let expected_target: String = "";
-        let expected_kind: Int = SemanticCallTargetNone();
+        var expected_target: String = "";
+        var expected_kind: Int = SemanticCallTargetNone();
         if row == 3 {
             expected_kind = SemanticCallTargetMember();
             expected_target = outer_target;

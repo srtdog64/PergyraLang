@@ -115,6 +115,21 @@ mir_source_local_expr_type_name(const MIRProgram *program,
     case AST_UNARY:
         if (ast_unary_operator(expr).type == TOKEN_NOT)
             return "Bool";
+        if (ast_unary_operator(expr).type == TOKEN_QUESTION) {
+            const char *operand_type = mir_source_local_expr_type_name(
+                program, routine, scratch, ast_unary_operand(expr));
+            char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+            char *buffer;
+
+            if (!mir_source_local_unwrap_try_success_type(operand_type,
+                    inner, sizeof(inner)))
+                return NULL;
+            buffer = mir_source_local_type_scratch_next(scratch);
+            if (buffer == NULL)
+                return NULL;
+            memcpy(buffer, inner, strlen(inner) + 1);
+            return buffer;
+        }
         return mir_source_local_expr_type_name(program, routine,
             scratch, ast_unary_operand(expr));
     case AST_BINARY:

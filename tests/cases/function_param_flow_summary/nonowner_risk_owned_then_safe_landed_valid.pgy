@@ -12,7 +12,7 @@ func Main() -> Void {
     let selected: Option<String> = VariantAt(arena, 0);
     if IsSome(selected) {
         let text: String = UnwrapOption(selected);
-        let owning_rows: Array<String> = [];
+        var owning_rows: Array<String> = [];
         ArrayPushOwnedString(owning_rows, Concat("owned", " value"));
         let no_texts: Array<String> = [];
         Log(NonownerRead(text));

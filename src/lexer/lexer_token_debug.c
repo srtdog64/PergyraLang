@@ -25,6 +25,9 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_STAR: return "*";
         case TOKEN_SLASH: return "/";
         case TOKEN_PERCENT: return "%";
+        case TOKEN_MUL_ASSIGN: return "*=";
+        case TOKEN_DIV_ASSIGN: return "/=";
+        case TOKEN_REM_ASSIGN: return "%=";
         case TOKEN_EQUAL: return "==";
         case TOKEN_NOT_EQUAL: return "!=";
         case TOKEN_LESS: return "<";

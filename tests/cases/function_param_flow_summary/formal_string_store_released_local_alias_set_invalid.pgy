@@ -1,14 +1,14 @@
 // Selecting an exact local is not ownership admission. Releasing the source
 // while its element is borrowed must still fail before ArraySet can keep it.
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPush(rows, StringConcat("owned", ""));
     return rows;
 }
 
 func Main() -> Int {
     let source: Array<String> = OwnedRows();
-    let destination: Array<String> = [];
+    var destination: Array<String> = [];
     ArrayPush(destination, "");
     let text: String = source[0];
     ArrayDropOwnedStrings(source);

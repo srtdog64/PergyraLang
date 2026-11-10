@@ -33,13 +33,13 @@ func SemanticAstTypeImplementsAbility(
     let count: Int = ArrayLength(roles.role_node_ids);
     if !roles.ok || count != ArrayLength(roles.target_type_names) ||
         count != ArrayLength(roles.impl_starts) || count != ArrayLength(roles.impl_counts) { return false; }
-    let role_index: Int = 0;
+    var role_index: Int = 0;
     while role_index < count {
         let start: Int = roles.impl_starts[role_index];
         let end: Int = start + roles.impl_counts[role_index];
         if start < 0 || end < start || end > ArrayLength(roles.impl_ability_names) { return false; }
         if roles.target_type_names[role_index] == type_name {
-            let impl_index: Int = start;
+            var impl_index: Int = start;
             while impl_index < end {
                 if roles.impl_ability_names[impl_index] == ability_name { return true; }
                 impl_index = impl_index + 1;
@@ -58,9 +58,9 @@ func SemanticAstAbilityGenericBoundsVerdict(
             "<invalid-role-facts>", "", ""
         );
     }
-    let ability_index: Int = 0;
+    var ability_index: Int = 0;
     while ability_index < SemanticAstAbilityCount(roles) {
-        let generic_index: Int = 0;
+        var generic_index: Int = 0;
         while generic_index < roles.ability_generic_counts[ability_index] {
             let generic_row: Int =
                 roles.ability_generic_starts[ability_index] + generic_index;
@@ -70,7 +70,7 @@ func SemanticAstAbilityGenericBoundsVerdict(
                 roles.ability_generic_default_type_names[generic_row];
             if constraint != "" {
                 let bounds: Array<String> = Split(constraint, "+");
-                let bound_index: Int = 0;
+                var bound_index: Int = 0;
                 while bound_index < ArrayLength(bounds) {
                     let bound: String = SemanticTrimSourceReuse(
                         bounds[bound_index]

@@ -21,7 +21,7 @@ func DirectMirOptionMatchCfgRouteClaimed(
         BuildMirRoutineInstructionMatchFacts(admitted.routines, 0);
     if !MirRoutineInstructionMatchFactsReady(
             matches, ArrayLength(matches.row_valid)) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(matches.row_valid) {
         // Claim carried match intent only. The certificate still owns exact
         // Option variant/type/topology/ABI admission and every refusal.

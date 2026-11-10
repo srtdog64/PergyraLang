@@ -7,7 +7,7 @@ import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 
 func SemanticAstSubjectBoundaryType(ref subject_types: Array<String>, type_name: String) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(subject_types) {
         if subject_types[row] == type_name { return true; }
         row = row + 1;
@@ -33,8 +33,8 @@ func SemanticAstSubjectValueBoundaryFromFacts(
     }
     // Most compiler routines contain only value facts. Build the small identity
     // set once; do not rescan the nominal inventory for every local binding.
-    let subject_types: Array<String> = [];
-    let row: Int = 0;
+    var subject_types: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(constructors.names) {
         if constructors.nominal_kinds[row] == "subject" {
             ArrayPush(subject_types, constructors.return_type_names[row]);

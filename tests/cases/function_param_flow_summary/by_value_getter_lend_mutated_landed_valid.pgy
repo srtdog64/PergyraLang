@@ -10,7 +10,7 @@ func AtomText(arena: Arena, index: Int) -> String {
 }
 
 func Grow(arena: Arena) -> Int {
-    let atoms: Array<String> = arena.atoms;
+    var atoms: Array<String> = arena.atoms;
     ArrayPush(atoms, StringConcat("zz", ""));
     return ArrayLength(atoms);
 }

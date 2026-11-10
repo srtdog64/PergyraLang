@@ -33,7 +33,7 @@ func DirectMirStructArgumentPlanDigest(
     ref plan: DirectMirStructArgumentPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(157L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(157L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
@@ -84,7 +84,7 @@ func DirectMirStructArgumentPlanMutationRejected(
     own plan: DirectMirStructArgumentPlan
 ) -> Bool {
     if !DirectMirStructArgumentPlanReady(plan) { return false; }
-    let bad_carriage: DirectMirStructArgumentPlan =
+    var bad_carriage: DirectMirStructArgumentPlan =
         DirectMirStructArgumentPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.target_capability_schema, plan.target_capability_fingerprint,
@@ -94,7 +94,7 @@ func DirectMirStructArgumentPlanMutationRejected(
     bad_carriage = DirectMirStructArgumentPlanWithDigest(
         bad_carriage, DirectMirStructArgumentPlanDigest(bad_carriage)
     );
-    let bad_target: DirectMirStructArgumentPlan =
+    var bad_target: DirectMirStructArgumentPlan =
         DirectMirStructArgumentPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.target_capability_schema,
@@ -120,10 +120,10 @@ func DirectMirStructArgumentPlanFromAdmitted(
     let abi_types: Array<String> = [
         "", CompilerAbiLayoutIntTypeName(), CompilerAbiLayoutIntTypeName()
     ];
-    let globals: Array<Int> = [];
-    let captures: Array<MirRoutineInstructionScalarCapture> = [];
-    let expressions: Array<MirProgramInstructionExpressionFact> = [];
-    let row: Int = 0;
+    var globals: Array<Int> = [];
+    var captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var expressions: Array<MirProgramInstructionExpressionFact> = [];
+    var row: Int = 0;
     while row < 3 {
         let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
             admitted.routines, rows[row]

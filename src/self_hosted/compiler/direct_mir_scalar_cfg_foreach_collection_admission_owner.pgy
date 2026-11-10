@@ -35,7 +35,7 @@ func DirectMirScalarCfgForEachCollectionAdmissionFromOwners(
     if !DirectMirScalarCfgIterationTypePairSupported(
         binding_type, iterable_type
     ) { return invalid; }
-    let strings: Array<String> = [];
+    var strings: Array<String> = [];
     if iterable_type == CompilerAbiLayoutArrayIntTypeName() {
         let fact: DirectMirScalarCfgForEachCollectionFact =
             DirectMirScalarCfgForEachCollectionFromOwners(

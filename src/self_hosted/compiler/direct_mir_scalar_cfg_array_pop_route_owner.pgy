@@ -6,7 +6,7 @@ func DirectMirScalarCfgArrayPopRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex
 ) -> Bool {
-    let instruction: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let capture: MirRoutineInstructionScalarCapture =

@@ -8,8 +8,18 @@ import "ast_intent_expression_environment_owner.pgy";
 
 func SemanticAstBodyExpressionEnvironmentSeed(
     ref artifact: AstTreeArtifact,
-    ref analysis: SemanticAstArtifactAnalysis,
-    inferred_types: Array<String>,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref local_bindings: SemanticAstLocalBindingFacts,
+    ref statements: SemanticAstStatementFacts,
+    expression_surfaces_ok: Bool,
+    expression_surface_artifact_node_count: Int,
+    ref expression_surface_node_ids: Array<Int>,
+    ref expression_graph: SemanticExpressionGraphFacts,
+    enums: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    ref intent_transitions: SemanticAstIntentTransitionFacts,
+    ref inferred_types: Array<String>,
     iteration_types: SemanticAstIterationTypeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
@@ -21,35 +31,36 @@ func SemanticAstBodyExpressionEnvironmentSeed(
     inout modes: Array<String>
 ) -> Bool {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let environment_ok: Bool = false;
+    var environment_ok: Bool = false;
     if IsSome(function_node_id) {
         environment_ok =
             SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
-            analysis.signatures, analysis.constructors,
+            signatures, constructors,
             UnwrapOption(function_node_id), names, types, modes
         ) && SemanticAstExpressionSeedParameters(
-            analysis.signatures, analysis.constructors, UnwrapOption(function_node_id), names, types
+            signatures, constructors, UnwrapOption(function_node_id), names, types
         ) && SemanticAstExpressionSeedParameterModes(
-            analysis.signatures, UnwrapOption(function_node_id), modes
+            signatures, UnwrapOption(function_node_id), modes
         ) && SemanticAstExpressionSeedVisibleLocals(
-            artifact, analysis.local_bindings, inferred_types,
+            artifact, local_bindings, inferred_types,
             UnwrapOption(function_node_id), use_node_id, names, types, modes
         ) && SemanticAstIterationSeedVisibleBindings(
-            artifact, analysis.statements, iteration_types,
+            artifact, statements, iteration_types,
             UnwrapOption(function_node_id), use_node_id, names, types, modes
-        ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-            artifact, analysis.statements,
-            analysis.expression_surfaces, analysis.constructors,
-            analysis.enums, analysis.function_scopes,
+        ) && SemanticAstExpressionSeedVisibleMatchBindingsFromProjection(
+            artifact, statements,
+            expression_surfaces_ok, expression_surface_artifact_node_count,
+            expression_surface_node_ids, expression_graph, constructors,
+            enums, function_scopes,
             UnwrapOption(function_node_id), use_node_id, names, types, modes,
             function_tables
         );
     } else if IsSome(intent_node_id) {
         environment_ok = SemanticAstExpressionSeedEnumValues(
-            analysis.enums, names, types, modes
+            enums, names, types, modes
         ) && SemanticAstIntentExpressionSeedEnvironment(
-            artifact, analysis.signatures, intent_signatures,
-            analysis.intent_transitions,
+            artifact, signatures, intent_signatures,
+            intent_transitions,
             UnwrapOption(intent_node_id), use_node_id, names, types, modes, no_enum_values
         );
     }

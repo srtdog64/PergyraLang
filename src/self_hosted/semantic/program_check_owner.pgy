@@ -39,8 +39,8 @@ func NominalDeclKeywordLength(
 }
 
 func FindNominalFieldEnd(content: String, content_extent: Int, start: Int, limit: Int) -> Int {
-    let i: Int = start;
-    let depth: Int = 0;
+    var i: Int = start;
+    var depth: Int = 0;
     while i < limit {
         let c: Int = SourceByteAt(content, content_extent, limit, i);
         if c == SourceByteOf("\"") {
@@ -77,7 +77,7 @@ func NominalConstructorFieldNameStart(
     if SemanticMatchKeywordWithin(content, content_extent, content_length, i, "zone") {
         return i + 4;
     }
-    let prefix_length: Int = 0;
+    var prefix_length: Int = 0;
     if SemanticMatchKeywordWithin(content, content_extent, content_length, i, "subject") {
         prefix_length = 7;
     } else if SemanticMatchKeywordWithin(
@@ -105,9 +105,9 @@ func NominalConstructorParams(
     content: String, content_extent: Int, content_length: Int,
     body_open: Int, body_close: Int, inout cursor: Array<Int>
 ) -> String {
-    let i: Int = body_open + 1;
-    let depth: Int = 0;
-    let params: String = "";
+    var i: Int = body_open + 1;
+    var depth: Int = 0;
+    var params: String = "";
     while i < body_close {
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_length, i);
         if i >= body_close {
@@ -183,8 +183,8 @@ func NominalConstructorParams(
 
 func SeedNominalConstructors(content: String, inout func_names: Array<String>, inout func_rets: Array<String>, inout func_params: Array<String>) -> Void {
     let n: Int = StringLength(content);
-    let scan: Int = 0;
-    let cursor: Array<Int> = [0];
+    var scan: Int = 0;
+    var cursor: Array<Int> = [0];
     while scan < n {
         scan = SkipWhitespaceAndCommentsWithin(content, n, n, scan);
         if scan >= n {
@@ -232,8 +232,8 @@ func SeedDeclaredFunctionSignatures(
     inout func_rets: Array<String>,
     inout func_params: Array<String>
 ) -> Void {
-    let cursor: Array<Int> = [0];
-    let scan: Int = start;
+    var cursor: Array<Int> = [0];
+    var scan: Int = start;
     while scan < end {
         scan = SkipWhitespaceAndCommentsWithin(content, content_extent, content_length, scan);
         if scan >= end {
@@ -290,8 +290,8 @@ func SeedDeclaredFunctionSignatures(
             continue;
         }
         let open: Int = UnwrapOption(open_match);
-        let depth: Int = 1;
-        let k: Int = open;
+        var depth: Int = 1;
+        var k: Int = open;
         while k < end && depth > 0 {
             let c: String = CharAtWithin(content, content_extent, content_length, k);
             if c == "(" {
@@ -302,7 +302,7 @@ func SeedDeclaredFunctionSignatures(
             k = k + 1;
         }
         let param_src: String = Substring(content, open, k - 1 - open);
-        let ret: String = "Void";
+        var ret: String = "Void";
         k = SkipWhitespaceAndCommentsWithin(content, content_extent, content_length, k);
         if CharAtWithin(content, content_extent, content_length, k) == "-" &&
             CharAtWithin(content, content_extent, content_length, k + 1) == ">" {
@@ -336,10 +336,10 @@ func SemanticReleaseClaimedBuiltinRows(
     builtin_row_count: Int,
     inout names: Array<String>
 ) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < builtin_row_count {
-        let claimed: Bool = false;
-        let j: Int = builtin_row_count;
+        var claimed: Bool = false;
+        var j: Int = builtin_row_count;
         while j < ArrayLength(names) && !claimed {
             claimed = names[j] == names[i];
             j = j + 1;
@@ -352,10 +352,10 @@ func SemanticReleaseClaimedBuiltinRows(
 }
 
 func CheckProgram(source_path: String, content: String) -> String {
-    let cursor: Array<Int> = [0];
-    let func_names: Array<String> = [];
-    let func_rets: Array<String> = [];
-    let func_params: Array<String> = [];
+    var cursor: Array<Int> = [0];
+    var func_names: Array<String> = [];
+    var func_rets: Array<String> = [];
+    var func_params: Array<String> = [];
     if !SeedSemanticBuiltinSignatures(func_names, func_rets, func_params) {
         return SemanticError1("function_signature_invalid", "owner", "SemanticBuiltinSignatureRows");
     }
@@ -376,7 +376,7 @@ func CheckProgram(source_path: String, content: String) -> String {
     SemanticReleaseClaimedBuiltinRows(builtin_row_count, func_names);
     let root_marker: String = "/*PGY_SEMANTIC_ROOT_START*/";
     let root_pos: Int = StringIndexOf(content, root_marker);
-    let i: Int = 0;
+    var i: Int = 0;
     if root_pos >= 0 {
         i = root_pos + StringLength(root_marker);
     }

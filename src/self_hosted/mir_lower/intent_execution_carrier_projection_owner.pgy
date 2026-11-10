@@ -53,15 +53,15 @@ func MirIntentExecutionCarrierProjectionAppend(
         projection.valid = false;
         return false;
     }
-    let names: Array<String> = projection.names;
-    let arg0s: Array<String> = projection.arg0s;
-    let arg1s: Array<String> = projection.arg1s;
-    let slots: Array<String> = projection.slots;
-    let results: Array<String> = projection.results;
-    let abi_type_names: Array<String> = projection.abi_type_names;
-    let source_types: Array<String> = projection.source_types;
-    let expr0s: Array<String> = projection.expr0s;
-    let global_rows: Array<Int> = projection.global_rows;
+    var names: Array<String> = projection.names;
+    var arg0s: Array<String> = projection.arg0s;
+    var arg1s: Array<String> = projection.arg1s;
+    var slots: Array<String> = projection.slots;
+    var results: Array<String> = projection.results;
+    var abi_type_names: Array<String> = projection.abi_type_names;
+    var source_types: Array<String> = projection.source_types;
+    var expr0s: Array<String> = projection.expr0s;
+    var global_rows: Array<Int> = projection.global_rows;
     ArrayPush(names, name);
     ArrayPush(arg0s, arg0);
     ArrayPush(arg1s, arg1);
@@ -90,9 +90,9 @@ func MirIntentExecutionCarrierProjectionFromPlan(
     ref plan: MirIntentExecutionPlan,
     topology_rows: Array<Int>
 ) -> MirIntentExecutionCarrierProjection {
-    let projection: MirIntentExecutionCarrierProjection =
+    var projection: MirIntentExecutionCarrierProjection =
         MirIntentExecutionCarrierProjectionEmpty(true);
-    let topology_i: Int = 0;
+    var topology_i: Int = 0;
     while topology_i < ArrayLength(topology_rows) {
         let step_row: Int = topology_rows[topology_i];
         let step_name: String = plan.steps.step_names[step_row];
@@ -128,7 +128,7 @@ func MirIntentExecutionCarrierProjectionFromPlan(
             ) {
             return MirIntentExecutionCarrierProjectionEmpty(false);
         }
-        let compensation: Int = plan.steps.compensation_starts[step_row];
+        var compensation: Int = plan.steps.compensation_starts[step_row];
         let compensation_end: Int = compensation +
             plan.steps.compensation_counts[step_row];
         while compensation < compensation_end {

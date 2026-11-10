@@ -13,7 +13,7 @@ func ParseMatchStmt(
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let content_extent: Int = StringLength(content);
-    let i: Int = after_head;
+    var i: Int = after_head;
     // `match EXPR { (case EXPR : STMT | default : STMT)* }`. Each
     // case/default body is a single statement (the C parser
     // currently rejects `{ ... }` brace bodies as object-literal
@@ -38,7 +38,7 @@ func ParseMatchStmt(
     i = cursor_out[0];
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "statement");
-    let out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", scrut));
+    var out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", scrut));
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= content_extent {
@@ -48,7 +48,7 @@ func ParseMatchStmt(
             i = i + 1;
             break;
         }
-        let case_label: String = "";
+        var case_label: String = "";
         if MatchLanguageWord(content, i, LanguageWordId.WordCase) {
             let case_at: Int = i;
             i = LanguageWordEnd(i, LanguageWordId.WordCase);
@@ -65,12 +65,12 @@ func ParseMatchStmt(
                     "construct", "match_arm", "", "");
             }
             case_label = case_pattern.text;
-            let pattern_at: Int = i;
+            var pattern_at: Int = i;
             i = cursor_out[0];
             // `case A | B:` lists values that share one arm, spelled on the
             // atom as native prints it. An alternative carries no payload
             // binding: native refuses `Some(x) | None` in semantic.
-            let after_pattern: Int = SkipWhitespaceAndComments(content, i);
+            var after_pattern: Int = SkipWhitespaceAndComments(content, i);
             while ParserCharAt(content, after_pattern) == "|" &&
                 ParserCharAt(content, after_pattern + 1) != "|" {
                 if StringIndexOf(case_label, "(") >= 0 {

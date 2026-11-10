@@ -48,7 +48,10 @@ func Main() -> Void with caps env, io_read {
     let instance: Int = 0;
     while instance < ArrayLength(closure.template_rows) {
         let bound: DirectMirRoutineInstanceSignatureFact =
-            DirectMirRoutineInstanceSignatureFromClosure(routines, occurrences, closure, instance, inventory.identity_cells);
+            DirectMirRoutineInstanceSignatureFromClosure(
+                routines, occurrences, closure, instance,
+                inventory.identity_cells, inventory.option_int_abi,
+                inventory.array_int_abi);
         if !bound.valid { Die(bound.diagnostic); }
         let row: Int = bound.template_row;
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
@@ -62,6 +65,16 @@ func Main() -> Void with caps env, io_read {
             if bound.signature.parameters.source_syntax_ids[parameter] != header.param_source_syntax_ids[parameter] ||
                 bound.signature.parameters.names[parameter] != header.param_names[parameter] {
                 Die("generic parameter source identity changed");
+            }
+            if DirectMirIdentityCellRow(inventory.identity_cells,
+                    bound.signature.parameters.type_names[parameter]) >= 0 &&
+                (bound.signature.parameters.carriages[parameter] != "mutable-identity" ||
+                 bound.signature.parameters.pass_shapes[parameter] != "indirect" ||
+                 bound.signature.parameters.resources[parameter] != "none" ||
+                 bound.signature.parameters.abi_required[parameter] ||
+                 bound.signature.parameters.abi_layout_ids[parameter] != 0 ||
+                 bound.signature.parameters.abi_row_keys[parameter] != "") {
+                Die("generic identity parameter did not adopt canonical carriage");
             }
             parameter = parameter + 1;
         }

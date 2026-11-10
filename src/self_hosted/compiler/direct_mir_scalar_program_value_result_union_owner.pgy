@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_hashmap_value_result_target_owner.pgy";
 
 func DirectMirScalarProgramScalarValueResultAt(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int) -> Bool {
@@ -25,6 +26,6 @@ func DirectMirScalarProgramParameterValueResultAt(
             plan.program.array_string_abi, routine, ordinal) ||
         DirectMirScalarProgramLogicalRecordValueResultAt(plan, routine, ordinal) ||
         DirectMirScalarProgramLogicalRecordArrayValueResultAt(plan, routine, ordinal) ||
-        DirectMirScalarProgramSetStringValueResultAt(
-            plan, routine, ordinal);
+        DirectMirScalarProgramSetStringValueResultAt(plan, routine, ordinal) ||
+        DirectMirScalarProgramHashMapValueResultAt(plan, routine, ordinal);
 }

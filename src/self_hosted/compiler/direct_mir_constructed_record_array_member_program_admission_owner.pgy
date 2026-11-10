@@ -39,9 +39,9 @@ func DirectMirConstructedRecordArrayMemberProgramEnvelopeReady(
     }
     let class_name: String =
         classification.mixed_constructed_member_shape.class_name;
-    let function_count: Int = 0;
-    let method_count: Int = 0;
-    let row: Int = 0;
+    var function_count: Int = 0;
+    var method_count: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],

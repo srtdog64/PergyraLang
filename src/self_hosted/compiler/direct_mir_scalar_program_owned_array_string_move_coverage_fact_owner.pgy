@@ -31,7 +31,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
             DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(fact) ||
         ((count == 0 && fact.input_digest != 0) || (count > 0 && fact.input_digest == 0)) ||
         count != ArrayLength(fact.call_block_rows) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.call_block_rows[row] < 0 { return false; }
         row = row + 1;

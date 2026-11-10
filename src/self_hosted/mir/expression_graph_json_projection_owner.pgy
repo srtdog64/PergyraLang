@@ -35,8 +35,8 @@ func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: Sem
     }
     let start: Int = rows.node_starts[instruction_index];
     let count: Int = rows.node_counts[instruction_index];
-    let nodes: Array<String> = [];
-    let i: Int = 0;
+    var nodes: Array<String> = [];
+    var i: Int = 0;
     while i < count {
         let node: Int = start + i;
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
@@ -54,7 +54,7 @@ func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: Sem
             return "null";
         }
         let kind: Int = UnwrapOption(kind_opt);
-        let fields: Array<String> = [
+        var fields: Array<String> = [
             JsonEmitFieldString(
                 "kind", SelfMirExpressionGraphKindName(kind)
             ),
@@ -72,7 +72,7 @@ func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: Sem
         let identity_fields: Array<String> =
             SelfMirJsonExpressionIdentityFields(graph, node);
         if ArrayLength(identity_fields) != 5 { return "null"; }
-        let identity_row: Int = 0;
+        var identity_row: Int = 0;
         while identity_row < ArrayLength(identity_fields) {
             ArrayPush(fields, identity_fields[identity_row]);
             identity_row = identity_row + 1;

@@ -70,9 +70,9 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineAddBlock(build);
     let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, loop_body);
-    let while_break_exits: SelfMirLocalPredecessorSnapshots =
+    var while_break_exits: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
-    let backedge_snapshots: SelfMirLocalPredecessorSnapshots =
+    var backedge_snapshots: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
     let body_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirLowerBlockFromArtifact(
@@ -98,14 +98,14 @@ func SelfMirLowerWhileFromArtifact(
     );
     build = SelfMirRoutineAddBlock(build);
     let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
-    let break_i: Int = 0;
+    var break_i: Int = 0;
     while break_i < ArrayLength(while_break_exits.blocks) {
         build = SelfMirRoutineSetSuccessors(
             build, while_break_exits.blocks[break_i], loop_exit, -1
         );
         break_i = break_i + 1;
     }
-    let condition_exit: Int = loop_exit;
+    var condition_exit: Int = loop_exit;
     if SelfMirLoopConstantTrueExitInfeasible(
         condition_graph, reachability, ArrayLength(while_break_exits.blocks)
     ) {

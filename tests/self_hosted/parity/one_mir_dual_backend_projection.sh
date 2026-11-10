@@ -117,16 +117,16 @@ compile_artifacts() {
         cat "$WORK_DIR/$CASE.c.compile.log" >&2
         fail "$CASE C projection did not compile"
     }
-    if grep -Fq '@pgy_checked_div_i32_export' "$LLVM_ARTIFACT"; then
+    if grep -Eq '^declare .*@pgy_.*_export\(' "$LLVM_ARTIFACT"; then
         "$CC" -std=c11 -O0 -DPGY_LLVM_ENABLED \
             -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
             -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
-            -o "$WORK_DIR/$CASE.checked-runtime.o" \
-            >"$WORK_DIR/$CASE.checked-runtime.compile.log" 2>&1 || {
-            cat "$WORK_DIR/$CASE.checked-runtime.compile.log" >&2
-            fail "$CASE checked arithmetic LLVM runtime did not compile"
+            -o "$WORK_DIR/$CASE.runtime.o" \
+            >"$WORK_DIR/$CASE.runtime.compile.log" 2>&1 || {
+            cat "$WORK_DIR/$CASE.runtime.compile.log" >&2
+            fail "$CASE LLVM runtime object did not compile"
         }
-        runtime_object=("$WORK_DIR/$CASE.checked-runtime.o")
+        runtime_object=("$WORK_DIR/$CASE.runtime.o")
     fi
     if [[ -z "$clang_bin" ]] && command -v clang >/dev/null 2>&1; then
         clang_bin="$(command -v clang)"

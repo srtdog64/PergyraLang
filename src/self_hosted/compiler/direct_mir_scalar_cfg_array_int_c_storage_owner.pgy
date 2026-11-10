@@ -27,9 +27,9 @@ func DirectMirScalarCfgArrayIntCDeclarations(
     let initial_length: String = ToString(
         DirectMirScalarCfgArrayIntInitialLength(plan.array_int_program)
     );
-    let initializer: String = "0";
+    var initializer: String = "0";
     if ArrayLength(plan.array_int_program.collection.elements) > 0 {
-        initializer = ""; let element: Int = 0;
+        initializer = ""; var element: Int = 0;
         while element < ArrayLength(
                 plan.array_int_program.collection.elements) {
             if element > 0 { initializer = Concat(initializer, ", "); }
@@ -38,7 +38,7 @@ func DirectMirScalarCfgArrayIntCDeclarations(
             element = element + 1;
         }
     }
-    let output: String = Concat("    ", abi.c_element_type);
+    var output: String = Concat("    ", abi.c_element_type);
     output = Concat(output, Concat(
         " pgy_array_int_storage[", Concat(capacity, "] = {"
     )));

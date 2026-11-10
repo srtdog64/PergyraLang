@@ -115,7 +115,13 @@ int main(void)
 
     /* Every fact a reader can see is a change; bookkeeping is not. */
     bool outputs[2] = {false, false};
-    FunctionParamFlowSummaryEntry base = {.function_decl = reader, .output_dependencies = outputs, .output_count = 2};
+    FunctionParamFlowSummaryEntry base = {
+        .function_decl = reader,
+        .output_dependencies = outputs,
+        .output_count = 2,
+        .result_path_ready = true,
+        .result_path = {.present = true, .count = 1, .fields = {101}},
+    };
     FunctionParamFlowEntryFacts facts = function_param_flow_entry_facts(&base);
     CHECK(function_param_flow_entry_facts_equal(facts, function_param_flow_entry_facts(&base)));
     CHANGED(c.mask = SLOT_PARAM_SUMMARY_READ);
@@ -128,12 +134,67 @@ int main(void)
     CHANGED(c.output_producer = FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR);
     CHANGED(copied[1] = true);
     CHANGED(c.output_dependencies = NULL);
+    CHANGED(c.result_path_ready = false);
+    CHANGED(c.result_path.present = false);
+    CHANGED(c.result_path.count = 0);
+    CHANGED(c.result_path.fields[0] = 102);
     FunctionParamFlowSummaryEntry kept = base;
     kept.state = FUNCTION_PARAM_FLOW_COMPUTING;
     kept.dirty = true;
     kept.readers_plus_one = 3;
     kept.output_current_epoch = 9;
     CHECK(function_param_flow_entry_facts_equal(facts, function_param_flow_entry_facts(&kept)));
+
+    /* A publication preparation owns one demand epoch. Ending it invalidates
+     * that epoch for later consumers, and illegal nesting fails the store
+     * closed instead of silently sharing an unrelated generation. */
+    SemanticContext *publication_ctx = semantic_context_create();
+    CHECK(publication_ctx != NULL);
+    if (publication_ctx != NULL) {
+        publication_ctx->program_root = program;
+        CHECK(function_param_flow_publication_demand_begin(
+            publication_ctx, reader));
+        FunctionParamFlowSummaryStore *publication_store =
+            publication_ctx->function_param_flow_summaries;
+        CHECK(publication_store != NULL &&
+            publication_store->publication_demand_active &&
+            publication_store->demand_epoch == 1);
+        CHECK(function_param_flow_publication_demand_end(publication_ctx));
+        CHECK(!publication_store->publication_demand_active &&
+            publication_store->demand_epoch == 2 &&
+            !publication_store->failed);
+        CHECK(!function_param_flow_publication_demand_end(publication_ctx));
+        semantic_context_destroy(publication_ctx);
+    }
+
+    SemanticContext *nested_ctx = semantic_context_create();
+    CHECK(nested_ctx != NULL);
+    if (nested_ctx != NULL) {
+        nested_ctx->program_root = program;
+        CHECK(function_param_flow_publication_demand_begin(nested_ctx, reader));
+        CHECK(!function_param_flow_publication_demand_begin(nested_ctx, reader));
+        CHECK(nested_ctx->function_param_flow_summaries != NULL &&
+            nested_ctx->function_param_flow_summaries->failed);
+        semantic_context_destroy(nested_ctx);
+    }
+
+    SemanticContext *overflow_ctx = semantic_context_create();
+    CHECK(overflow_ctx != NULL);
+    if (overflow_ctx != NULL) {
+        overflow_ctx->program_root = program;
+        FunctionParamFlowSummaryStore *overflow_store =
+            function_param_flow_store_get(&(SlotFunctionLookup){
+                overflow_ctx, program});
+        CHECK(overflow_store != NULL);
+        if (overflow_store != NULL) {
+            overflow_store->demand_epoch = SIZE_MAX;
+            CHECK(!function_param_flow_publication_demand_begin(
+                overflow_ctx, reader));
+            CHECK(overflow_store->failed &&
+                !overflow_store->publication_demand_active);
+        }
+        semantic_context_destroy(overflow_ctx);
+    }
 
     if (failures != 0) {
         fprintf(stderr, "flow closure worklist: %u of %u checks failed\n", failures, checks);

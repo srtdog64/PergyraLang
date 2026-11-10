@@ -27,7 +27,7 @@ func CollectionHashMapLlvmFactFromTypeName(type_name: String) -> CollectionHashM
     let key_abi: Option<String> = CollectionHashMapKeyLlvmType(key);
     let key_storage: Option<Int> = CollectionHashMapKeyStorageKind(key);
     if !IsSome(key_abi) || !IsSome(key_storage) { return missing; }
-    let key_llvm: String = UnwrapOption(key_abi); let value_llvm: String = ""; let storage: String = "";
+    let key_llvm: String = UnwrapOption(key_abi); var value_llvm: String = ""; var storage: String = "";
     if value == "Int" { value_llvm = "i64"; storage = "i32"; }
     if value == "Long" { value_llvm = "i64"; storage = "i64"; }
     if value == "Bool" { value_llvm = "i1"; storage = "i1"; }
@@ -49,7 +49,7 @@ func CollectionHashMapLlvmFunction(fact: CollectionHashMapLlvmFact, operation: S
     if !fact.ok { Die("HashMap raw runtime ABI fact is missing"); }
     if operation == "MapNew" { return "pgy_map_new_raw_export"; }
     if operation == "MapSize" { return "pgy_map_size_raw_export"; }
-    let word: String = "";
+    var word: String = "";
     if operation == "MapSet" { word = "set"; }
     if operation == "MapGet" { word = "get"; }
     if operation == "MapHas" { word = "has"; }
@@ -67,7 +67,7 @@ func CollectionHashMapLlvmDeclaration(fact: CollectionHashMapLlvmFact, operation
     if operation == "MapNew" { return "declare void @" + name + "(ptr, i64, i32)\n"; }
     if operation == "MapSize" { return "declare i32 @" + name + "(ptr)\n"; }
     if operation == "MapKeys" { return "declare void @" + name + "(ptr, ptr)\n"; }
-    let result: String = "void"; let parameters: String = "ptr, " + fact.key_llvm_type;
+    var result: String = "void"; var parameters: String = "ptr, " + fact.key_llvm_type;
     if operation == "MapHas" { result = "i1"; }
     if operation == "MapGet" || operation == "MapSet" {
         parameters = parameters + ", ptr";

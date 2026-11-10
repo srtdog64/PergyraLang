@@ -60,44 +60,44 @@ func BuildMirProgramRoutineIndexFromTable(
     declarations: MirProgramDeclarationIndex
 ) -> MirProgramRoutineIndex {
     let json: String = routines.json;
-    let starts: Array<Int> = [];
-    let ends: Array<Int> = [];
-    let kinds: Array<String> = [];
-    let owners: Array<String> = [];
-    let names: Array<String> = [];
-    let source_syntax_ids: Array<String> = [];
-    let source_module_paths: Array<String> = [];
-    let receiver_carriages: Array<String> = [];
-    let owner_nominal_kinds: Array<String> = [];
-    let owner_declaration_rows: Array<Int> = [];
-    let routine_block_starts: Array<Int> = [];
-    let routine_block_counts: Array<Int> = [];
-    let block_starts: Array<Int> = [];
-    let block_ends: Array<Int> = [];
-    let block_reachable: Array<Bool> = [];
-    let block_intent_roles: Array<String> = [];
-    let block_succ_true: Array<Int> = [];
-    let block_succ_false: Array<Int> = [];
-    let block_instruction_starts: Array<Int> = [];
-    let block_instruction_counts: Array<Int> = [];
-    let instruction_starts: Array<Int> = [];
-    let instruction_ends: Array<Int> = [];
-    let instruction_kinds: Array<String> = [];
-    let instruction_source_types: Array<String> = [];
-    let instruction_abi_type_names: Array<String> = [];
-    let instruction_machine_contact_starts: Array<Int> = [];
-    let instruction_machine_contact_ends: Array<Int> = [];
-    let instruction_machine_layer_starts: Array<Int> = [];
-    let instruction_machine_layer_ends: Array<Int> = [];
-    let instruction_expressions: MirProgramInstructionExpressionIndex =
+    var starts: Array<Int> = [];
+    var ends: Array<Int> = [];
+    var kinds: Array<String> = [];
+    var owners: Array<String> = [];
+    var names: Array<String> = [];
+    var source_syntax_ids: Array<String> = [];
+    var source_module_paths: Array<String> = [];
+    var receiver_carriages: Array<String> = [];
+    var owner_nominal_kinds: Array<String> = [];
+    var owner_declaration_rows: Array<Int> = [];
+    var routine_block_starts: Array<Int> = [];
+    var routine_block_counts: Array<Int> = [];
+    var block_starts: Array<Int> = [];
+    var block_ends: Array<Int> = [];
+    var block_reachable: Array<Bool> = [];
+    var block_intent_roles: Array<String> = [];
+    var block_succ_true: Array<Int> = [];
+    var block_succ_false: Array<Int> = [];
+    var block_instruction_starts: Array<Int> = [];
+    var block_instruction_counts: Array<Int> = [];
+    var instruction_starts: Array<Int> = [];
+    var instruction_ends: Array<Int> = [];
+    var instruction_kinds: Array<String> = [];
+    var instruction_source_types: Array<String> = [];
+    var instruction_abi_type_names: Array<String> = [];
+    var instruction_machine_contact_starts: Array<Int> = [];
+    var instruction_machine_contact_ends: Array<Int> = [];
+    var instruction_machine_layer_starts: Array<Int> = [];
+    var instruction_machine_layer_ends: Array<Int> = [];
+    var instruction_expressions: MirProgramInstructionExpressionIndex =
         MirProgramInstructionExpressionIndexEmpty();
-    let expression_routing_bounds: Array<Int> =
+    var expression_routing_bounds: Array<Int> =
         instruction_expressions.routing_bounds;
-    let expression_text_bounds: Array<Int> =
+    var expression_text_bounds: Array<Int> =
         instruction_expressions.text_bounds;
-    let expression_graph_bounds: Array<Int> =
+    var expression_graph_bounds: Array<Int> =
         instruction_expressions.graph_bounds;
-    let valid: Bool =
+    var valid: Bool =
         declarations.valid && declarations.field_identities.valid;
     if !JsonArrayObjectFactTableReady(routines) {
         return MirProgramRoutineIndex(
@@ -120,8 +120,8 @@ func BuildMirProgramRoutineIndexFromTable(
         );
     }
 
-    let cursor: Int = routines.start + 1;
-    let bounds: Array<Int> = [0, 0];
+    var cursor: Int = routines.start + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(routines.json, routines.json_extent, cursor, routines.end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
@@ -166,15 +166,15 @@ func BuildMirProgramRoutineIndexFromTable(
         ArrayPush(owner_declaration_rows,
             receiver_identity.owner_declaration_row);
         ArrayPush(routine_block_starts, ArrayLength(block_starts));
-        let routine_block_count: Int = 0;
-        let blocks_bounds: Array<Int> = [0, 0];
+        var routine_block_count: Int = 0;
+        var blocks_bounds: Array<Int> = [0, 0];
         if !MirObjectArrayBoundsAtBounds(
             routines.json, routines.json_extent, bounds[0], bounds[1], "blocks", blocks_bounds
         ) {
             valid = false;
         } else {
-            let block_cursor: Int = blocks_bounds[0] + 1;
-            let block_bounds: Array<Int> = [0, 0];
+            var block_cursor: Int = blocks_bounds[0] + 1;
+            var block_bounds: Array<Int> = [0, 0];
             while JsonArrayNextObjectBounds(
                 routines.json, routines.json_extent, block_cursor, blocks_bounds[1], block_bounds
             ) {
@@ -196,11 +196,11 @@ func BuildMirProgramRoutineIndexFromTable(
                 ArrayPush(
                     block_instruction_starts, ArrayLength(instruction_starts)
                 );
-                let instruction_count: Int = 0;
+                var instruction_count: Int = 0;
                 if block_fact.valid {
-                    let instruction_cursor: Int =
+                    var instruction_cursor: Int =
                         block_fact.instructions_start + 1;
-                    let instruction_bounds: Array<Int> = [0, 0];
+                    var instruction_bounds: Array<Int> = [0, 0];
                     while JsonArrayNextObjectBounds(
                         routines.json, routines.json_extent, instruction_cursor, block_fact.instructions_end,
                         instruction_bounds
@@ -319,7 +319,7 @@ func MirProgramRoutineIndexRowReady(
     let block_count: Int = index.routine_block_counts[row];
     let receiver_ready: Bool = MirProgramRoutineReceiverIdentityReady(
         index.kinds[row], index.owners[row], index.owner_nominal_kinds[row], index.receiver_carriages[row]);
-    let owner_ready: Bool = index.owner_declaration_rows[row] == (0 - 1);
+    var owner_ready: Bool = index.owner_declaration_rows[row] == (0 - 1);
     if index.kinds[row] == "method" {
         let owner_row: Int = index.owner_declaration_rows[row];
         owner_ready = owner_row >= 0 && owner_row < ArrayLength(index.declarations.names) &&
@@ -451,8 +451,8 @@ func MirProgramRoutineIndexStructureReady(
         ) {
         return false;
     }
-    let expected_block: Int = 0;
-    let routine_row: Int = 0;
+    var expected_block: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < routine_count {
         let count: Int = index.routine_block_counts[routine_row];
         if index.starts[routine_row] < 0 ||
@@ -473,7 +473,7 @@ func MirProgramRoutineIndexStructureReady(
             count < 0 || expected_block + count > block_count {
             return false;
         }
-        let local_block: Int = 0;
+        var local_block: Int = 0;
         while local_block < count {
             let block_row: Int = expected_block + local_block;
             if index.block_starts[block_row] < index.starts[routine_row] ||
@@ -487,15 +487,15 @@ func MirProgramRoutineIndexStructureReady(
         routine_row = routine_row + 1;
     }
     if expected_block != block_count { return false; }
-    let expected_instruction: Int = 0;
-    let block_row: Int = 0;
+    var expected_instruction: Int = 0;
+    var block_row: Int = 0;
     while block_row < block_count {
         let count: Int = index.block_instruction_counts[block_row];
         if index.block_instruction_starts[block_row] != expected_instruction ||
             count < 0 || expected_instruction + count > instruction_count {
             return false;
         }
-        let local_instruction: Int = 0;
+        var local_instruction: Int = 0;
         while local_instruction < count {
             let instruction_row: Int = expected_instruction + local_instruction;
             let instruction_start: Int = index.instruction_starts[instruction_row];
@@ -541,7 +541,7 @@ func MirProgramRoutineIndexFindMethodRow(
     owner: String,
     name: String
 ) -> Option<Int> {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(index.starts) {
         if index.kinds[row] == "method" &&
             index.owners[row] == owner && index.names[row] == name {

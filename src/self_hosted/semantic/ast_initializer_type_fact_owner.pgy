@@ -115,14 +115,14 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         ))
     );
 
-    let node_ids: Array<Int> = [];
-    let inferred_type_names: Array<String> = [];
-    let verified: Array<Int> = [];
-    let diagnostic_codes: Array<String> = [];
-    let diagnostic_messages: Array<String> = [];
-    let binding_kinds: Array<Int> = [];
-    let binding_indices: Array<Int> = [];
-    let member_root_names: Array<String> = [];
+    var node_ids: Array<Int> = [];
+    var inferred_type_names: Array<String> = [];
+    var verified: Array<Int> = [];
+    var diagnostic_codes: Array<String> = [];
+    var diagnostic_messages: Array<String> = [];
+    var binding_kinds: Array<Int> = [];
+    var binding_indices: Array<Int> = [];
+    var member_root_names: Array<String> = [];
     if !SemanticAstExpressionMemberRootNames(
         constructors, enum_facts, member_root_names
     ) {
@@ -136,14 +136,14 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             SemanticAstLocalBindingCount(locals)) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
         SemanticAstInitializerTypePressureRow(
             observe_pressure, "row:start", i
         );
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
+        var names: Array<String> = [];
+        var types: Array<String> = [];
+        var modes: Array<String> = [];
         let environment_ok: Bool = SemanticAstEnumValueRowsReady(enum_facts) && SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, locals.function_node_ids[i],
             names, types, modes
@@ -174,12 +174,14 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             ArrayLength(names) > persistent_environment_count;
         if reuse_unaffected && !iteration_environment_visible {
             ArrayPush(node_ids, base_facts.node_ids[i]);
-            ArrayPush(
+            ArrayPushOwnedString(
                 inferred_type_names, base_facts.inferred_type_names[i]
             );
             ArrayPush(verified, base_facts.verified[i]);
-            ArrayPush(diagnostic_codes, base_facts.diagnostic_codes[i]);
-            ArrayPush(
+            ArrayPushOwnedString(
+                diagnostic_codes, base_facts.diagnostic_codes[i]
+            );
+            ArrayPushOwnedString(
                 diagnostic_messages, base_facts.diagnostic_messages[i]
             );
             ArrayPush(binding_kinds, base_facts.binding_kinds[i]);
@@ -213,7 +215,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         SemanticAstInitializerTypePressureRow(
             observe_pressure, "row:graph-root", i
         );
-        let expression_verdict: SemanticAstExpressionVerdict =
+        var expression_verdict: SemanticAstExpressionVerdict =
             SemanticAstExpressionVerdictFromGraph(
                 expression, expression_surfaces.expression_graph,
                 UnwrapOption(graph_root),
@@ -226,8 +228,8 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         SemanticAstInitializerTypePressureRow(
             observe_pressure, "row:verdict", i
         );
-        let inferred: String = expression_verdict.inferred_type_name;
-        let destructure_element_missing: Bool = false;
+        var inferred: String = expression_verdict.inferred_type_name;
+        var destructure_element_missing: Bool = false;
         if locals.binding_kinds[i] ==
             SemanticAstLocalBindingKindDestructure() && expression_verdict.ok {
             let element_type: Option<String> = SemanticArrayElementType(inferred);
@@ -291,9 +293,9 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             expression_surfaces.expression_graph, UnwrapOption(graph_root),
             declared, expression_verdict.ok, inferred
         );
-        let row_verified: Int = 1;
-        let row_code: String = "";
-        let row_message: String = "";
+        var row_verified: Int = 1;
+        var row_code: String = "";
+        var row_message: String = "";
         if !expression_verdict.ok {
             row_verified = 0;
             row_code = expression_verdict.diagnostic_code;
@@ -332,10 +334,10 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             }
         }
         ArrayPush(node_ids, locals.node_ids[i]);
-        ArrayPush(inferred_type_names, Concat("", inferred));
+        ArrayPushOwnedString(inferred_type_names, Concat("", inferred));
         ArrayPush(verified, row_verified);
-        ArrayPush(diagnostic_codes, row_code);
-        ArrayPush(diagnostic_messages, row_message);
+        ArrayPushOwnedString(diagnostic_codes, row_code);
+        ArrayPushOwnedString(diagnostic_messages, row_message);
         ArrayPush(binding_kinds, locals.binding_kinds[i]);
         ArrayPush(binding_indices, locals.binding_indices[i]);
         SemanticAstExpressionEnvironmentClear(names, types, modes);
@@ -418,7 +420,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
 ) -> SemanticAstInitializerTypeFacts {
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
-    let function_tables: SemanticAstExpressionFunctionTableFacts =
+    var function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
             artifact, signatures, constructors, enum_facts
         );
@@ -506,7 +508,7 @@ func SemanticAstInitializerTypeFactsReadyProjection(
         ArrayLength(facts.binding_indices) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.node_ids[i] != locals.node_ids[i] ||
             facts.binding_kinds[i] != locals.binding_kinds[i] ||

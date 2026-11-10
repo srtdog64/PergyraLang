@@ -37,6 +37,8 @@ grep -Fq '"name":"DisableStateCopy"' "$MIR" ||
     fail "producer omitted the by-value record copy canary"
 grep -Fq '"arg0":"state","arg1":"default_param"' "$MIR" ||
     fail "producer omitted the by-value parameter member write"
+grep -Fq '"arg0":"state","arg1":"mutable_local"' "$MIR" ||
+    fail "producer omitted the mutable local member-write mode"
 python - "$MIR" <<'PY' || fail "producer confused a member name with its same-spelled formal"
 import json
 import sys
@@ -92,7 +94,7 @@ done
 
 for mutation in non-dominating-prefix missing-target-local-ref \
     foreign-target-local-ref wrong-rhs-type wrong-default-carriage \
-    wrong-default-binding member-name-binding; do
+    wrong-default-binding member-name-binding immutable-local-target; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

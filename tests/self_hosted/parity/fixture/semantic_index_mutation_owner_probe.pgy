@@ -33,6 +33,7 @@ func Main() -> Void {
     RequireMutationVerdict("comment-gap-inout", "func F(inout xs: Array<Int>) -> Void { (xs) /* gap */ [0] = 9; }", false);
     RequireMutationVerdict("whole-grouped-inout", "func F(inout xs: Array<Int>) -> Void { (xs[0]) = 9; }", false);
     RequireMutationVerdict("default-builtin", "func F(xs: Array<Int>) -> Void { ArraySet(xs, 0, 9); }", true);
+    RequireMutationVerdict("default-aggregate-field", "struct Buffer { values: Array<Int>; } func F(buffer: Buffer) -> Buffer { ArrayPush(buffer.values, 9); return buffer; }", false);
     RequireMutationVerdict("nested-index", "func F(xs: Array<Int>) -> Void { xs[(0)] = 9; }", true);
     RequireMutationVerdict("read", "func F(xs: Array<Int>) -> Int { return xs[0]; }", false);
     RequireMutationVerdict("comparison", "func F(xs: Array<Int>) -> Void { xs[0] == 9; }", false);

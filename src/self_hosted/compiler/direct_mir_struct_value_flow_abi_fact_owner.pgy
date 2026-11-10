@@ -42,7 +42,7 @@ func DirectMirStructValueFlowAbiFactDigest(
     ref fact: DirectMirStructValueFlowAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(167L, fact.declaration_digest);
+    var hash: Long = DirectMirCfgHashInt(167L, fact.declaration_digest);
     hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.return_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.initial_layout_id);

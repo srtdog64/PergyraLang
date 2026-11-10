@@ -13,11 +13,11 @@ func CodegenCallableParameterBindingRows(
     if !callable.ok { return ""; }
     let binding_key: String =
         CodegenCallableBindingSyntaxKey(parameter_syntax_id);
-    let rows: String = Concat(
+    var rows: String = Concat(
         "|", Concat(binding_key, Concat("=call:", Concat(c_name, "|")))
     );
     rows = Concat(rows, Concat(c_name, "=pm:"));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(callable.parameter_types) {
         if i > 0 { rows = Concat(rows, ","); }
         rows = Concat(rows, "default");

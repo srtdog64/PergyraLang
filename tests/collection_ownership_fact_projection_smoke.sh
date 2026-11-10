@@ -14,6 +14,7 @@ mkdir -p "$ROOT_DIR/.tmp"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/collection-ownership-fact-projection.XXXXXX")"
 
 OWNED_JSON="$WORK_DIR/owned.json"
+OWNED_LITERAL_JSON="$WORK_DIR/owned-literal.json"
 BORROWED_JSON="$WORK_DIR/borrowed.json"
 EMPTY_JSON="$WORK_DIR/empty.json"
 
@@ -21,6 +22,10 @@ EMPTY_JSON="$WORK_DIR/empty.json"
     tests/concept_semantics/hashmap/map_keys_owned_drop_valid.pgy) \
     >"$OWNED_JSON" 2>"$WORK_DIR/owned.err" ||
     fail "native oracle rejected the owned MapKeys fixture"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    tests/cases/function_param_flow_summary/array_slice_view_reader_valid.pgy) \
+    >"$OWNED_LITERAL_JSON" 2>"$WORK_DIR/owned-literal.err" ||
+    fail "native oracle rejected the owned literal fixture"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     tests/concept_semantics/hashmap/borrowed_string_array_fact_valid.pgy) \
     >"$BORROWED_JSON" 2>"$WORK_DIR/borrowed.err" ||
@@ -30,7 +35,7 @@ EMPTY_JSON="$WORK_DIR/empty.json"
     >"$EMPTY_JSON" 2>"$WORK_DIR/empty.err" ||
     fail "native oracle rejected the empty literal fixture"
 
-python3 - "$OWNED_JSON" "$BORROWED_JSON" "$EMPTY_JSON" <<'PY'
+python3 - "$OWNED_JSON" "$OWNED_LITERAL_JSON" "$BORROWED_JSON" "$EMPTY_JSON" <<'PY'
 import json
 import sys
 
@@ -72,7 +77,22 @@ if not (row["function_syntax_id"] > 0 and
         row["origin"] == "map-keys"):
     raise SystemExit(f"owned row meaning drifted: {row}")
 
-borrowed = main_routine(sys.argv[2])
+owned_literal = main_routine(sys.argv[2])
+if len(owned_literal) != 1:
+    raise SystemExit(f"owned-literal row cardinality: {len(owned_literal)}")
+row = owned_literal[0]
+if set(row) != expected_fields:
+    raise SystemExit(f"owned-literal row fields drifted: {sorted(row)}")
+if not (row["function_syntax_id"] > 0 and
+        row["binding_syntax_id"] > 0 and
+        row["origin_syntax_id"] > 0 and
+        row["source_binding_syntax_id"] == 0 and
+        row["element_ownership"] == "owned-elements" and
+        row["disposition"] == "live" and
+        row["origin"] == "owned-literal"):
+    raise SystemExit(f"owned-literal row meaning drifted: {row}")
+
+borrowed = main_routine(sys.argv[3])
 if len(borrowed) != 1:
     raise SystemExit(f"borrowed row cardinality: {len(borrowed)}")
 row = borrowed[0]
@@ -87,7 +107,7 @@ if not (row["function_syntax_id"] > 0 and
         row["origin"] == "borrowed-literal"):
     raise SystemExit(f"borrowed row meaning drifted: {row}")
 
-empty = main_routine(sys.argv[3])
+empty = main_routine(sys.argv[4])
 if len(empty) != 1:
     raise SystemExit(f"empty row cardinality: {len(empty)}")
 row = empty[0]
@@ -105,10 +125,12 @@ PY
 
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/owned.err" ||
     fail "owned oracle emitted diagnostics"
+grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/owned-literal.err" ||
+    fail "owned literal oracle emitted diagnostics"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/borrowed.err" ||
     fail "borrowed oracle emitted diagnostics"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/empty.err" ||
     fail "empty oracle emitted diagnostics"
 
 echo "[$LABEL] stable semantic -> HIR -> MIR rows PASS"
-echo "[$LABEL] borrowed/owned/empty-literal origin rows PASS"
+echo "[$LABEL] borrowed/owned/owned-literal/empty-literal origin rows PASS"

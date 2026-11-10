@@ -127,7 +127,7 @@ func SelfMirArtifactFailureDiagnostic(
         failure.prior_final_preserved
     );
     let removed: String = SelfMirArtifactBoolName(failure.temp_removed);
-    let diagnostic: String = Concat(
+    var diagnostic: String = Concat(
         "artifact transaction rejected: schema=", failure.schema
     );
     diagnostic = Concat(

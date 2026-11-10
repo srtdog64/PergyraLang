@@ -1,0 +1,61 @@
+// Body-ownership overlay for exact compiler-materialized Clone landings.
+// The immutable expression topology stays owned by the graph fact owner.
+import "ast_expression_graph_fact_owner.pgy";
+
+func SemanticExpressionGraphCompilerCloneLandingsAttach(
+    inout facts: SemanticExpressionGraphFacts,
+    ref selected_nodes: Array<Int>
+) -> Bool {
+    if !facts.ok { return false; }
+    let count: Int = SemanticExpressionGraphArenaNodeCount(facts.arena);
+    var kinds: Array<Int> = [];
+    var index: Int = 0;
+    while index < count {
+        ArrayPush(kinds, 0);
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(selected_nodes) {
+        let node: Int = selected_nodes[index];
+        if node < 0 || node >= count || kinds[node] != 0 { return false; }
+        ArraySet(kinds, node, 1);
+        index = index + 1;
+    }
+    facts.arena.compiler_clone_kinds = kinds;
+    return true;
+}
+
+func SemanticExpressionGraphCompilerCloneLandingsReady(
+    ref facts: SemanticExpressionGraphFacts,
+    ref selected_nodes: Array<Int>
+) -> Bool {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(facts.arena);
+    if !facts.ok || ArrayLength(facts.arena.compiler_clone_kinds) != count {
+        return false;
+    }
+    var selected: HashMap<String, Int> = MapNew();
+    var index: Int = 0;
+    while index < ArrayLength(selected_nodes) {
+        let node: Int = selected_nodes[index];
+        let key: String = ToString(node);
+        if node < 0 || node >= count || MapHas(selected, key) { return false; }
+        MapSet(selected, key, 1);
+        index = index + 1;
+    }
+    var node: Int = 0;
+    while node < count {
+        let kind: Int = facts.arena.compiler_clone_kinds[node];
+        if kind < 0 || kind > 1 ||
+            (kind == 1) != MapHas(selected, ToString(node)) { return false; }
+        node = node + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphCompilerCloneAt(
+    ref facts: SemanticExpressionGraphFacts, node: Int
+) -> Bool {
+    return node >= 0 &&
+        node < ArrayLength(facts.arena.compiler_clone_kinds) &&
+        facts.arena.compiler_clone_kinds[node] == 1;
+}

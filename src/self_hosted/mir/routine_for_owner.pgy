@@ -53,7 +53,7 @@ func SelfMirLowerForFromArtifact(
     let binding: String = iteration.binding_name;
     let start: String = iteration.start_expression;
     let stop: String = iteration.stop_expression;
-    let iteration_graph: SemanticExpressionGraphView = source_graph;
+    var iteration_graph: SemanticExpressionGraphView = source_graph;
     if iteration.collection_hoisted {
         iteration_graph = SelfMirIterationSyntheticGraphView(
             input.analysis.expression_surfaces, iteration
@@ -102,7 +102,7 @@ func SelfMirLowerForFromArtifact(
         input, build, UnwrapOption(body_opt), planned_backedge,
         iteration_scope_local_count
     );
-    let branch_graph: SemanticExpressionGraphView = iteration_graph;
+    var branch_graph: SemanticExpressionGraphView = iteration_graph;
     if !iteration.is_foreach {
         branch_graph = SemanticAstExpressionGraphForNode(
             input.analysis.expression_surfaces,
@@ -130,9 +130,9 @@ func SelfMirLowerForFromArtifact(
     build = SelfMirRoutineAddBlock(build);
     let body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, body);
-    let break_exits: SelfMirLocalPredecessorSnapshots =
+    var break_exits: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
-    let backedge_snapshots: SelfMirLocalPredecessorSnapshots =
+    var backedge_snapshots: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
     let body_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirLowerBlockFromArtifact(
@@ -158,7 +158,7 @@ func SelfMirLowerForFromArtifact(
     );
     build = SelfMirRoutineAddBlock(build);
     let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
-    let break_i: Int = 0;
+    var break_i: Int = 0;
     while break_i < ArrayLength(break_exits.blocks) {
         build = SelfMirRoutineSetSuccessors(
             build, break_exits.blocks[break_i], loop_exit, -1

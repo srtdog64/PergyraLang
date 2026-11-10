@@ -1,0 +1,7 @@
+// The parser bridge grows a nested Array<String> member and restores the
+// current descriptor into the returned aggregate. Its semantic owner carries
+// that member move to MIR as owned-elements/live.
+import "../../../../src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy";
+
+func Main() -> Void {
+}

@@ -27,12 +27,12 @@ func SemanticExpressionGraphBuildFromParserFact(
         return SemanticExpressionGraphInvalidBuild();
     }
     let offset: Int = ArrayLength(node_kinds);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < AstExpressionArenaNodeCount(parsed.arena) {
         let kind: Int = parsed.arena.node_kinds[i];
         let arity: Int = AstExpressionNodeArity(kind);
-        let left: Int = 0;
-        let right: Int = 0;
+        var left: Int = 0;
+        var right: Int = 0;
         if arity >= 1 { left = offset + parsed.arena.left_children[i]; }
         if arity == 2 { right = offset + parsed.arena.right_children[i]; }
         let root_id: Int = ArrayLength(node_kinds);
@@ -50,11 +50,14 @@ func SemanticExpressionGraphBuildFromParserFact(
             return SemanticExpressionGraphInvalidBuild();
         }
         ArrayPush(node_kinds, kind);
-        ArrayPush(node_texts, text);
+        // `parsed` is retired when this importer returns, while `node_texts`
+        // becomes part of the returned semantic arena.  The destination must
+        // therefore own an independent String for every imported row.
+        ArrayPushOwnedString(node_texts, Concat("", text));
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
         ArrayPush(call_target_kinds, SemanticCallTargetNone());
-        ArrayPush(call_target_names, "");
+        ArrayPushOwnedString(call_target_names, Concat("", ""));
         i = i + 1;
     }
     return SemanticExpressionGraphBuild(true, offset + parsed.root);

@@ -11,16 +11,16 @@ func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
 ) -> Bool {
     if !DirectMirScalarCfgStringArrayPushEntryExecutesOnceReady(plan, index) {
         return false; }
-    let collection: Int = 0;
+    var collection: Int = 0;
     while collection < DirectMirScalarCfgStringArrayCollectionCount(plan) {
         let definition: DirectMirScalarCfgInstructionPositionFact =
             DirectMirScalarCfgInstructionPositionAt(
                 index, plan.collections.definition_global_rows[collection]
             );
-        let last_push: DirectMirScalarCfgInstructionPositionFact =
+        var last_push: DirectMirScalarCfgInstructionPositionFact =
             DirectMirScalarCfgInstructionPositionFact(false, -1, -1);
-        let prior_global: Int = -1; let push_count: Int = 0;
-        let row: Int = 0;
+        var prior_global: Int = -1; var push_count: Int = 0;
+        var row: Int = 0;
         while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
             let fact: DirectMirScalarCfgStringArrayAccessFact =
                 DirectMirScalarCfgStringArrayAccessAt(plan, row);
@@ -43,7 +43,7 @@ func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
             row = row + 1;
         }
         if push_count > 0 {
-            let length_row: Int = 0;
+            var length_row: Int = 0;
             while length_row < DirectMirScalarCfgStringArrayLengthCount(plan) {
                 let fact: DirectMirScalarCfgStringArrayLengthFact =
                     DirectMirScalarCfgStringArrayLengthAt(plan, length_row);

@@ -17,7 +17,7 @@ func EmitFunctionSet(
     specializations: CodegenGenericSpecializationFacts,
     inout cur: Array<Int>,
     f_indent: Int,
-    base_env: CodegenTypeEnv,
+    inout base_env: CodegenTypeEnv,
     machine_startup: String,
     uses_args: Bool,
     ref domain_runtime: CodegenDomainRuntimeFacts,
@@ -51,14 +51,14 @@ func EmitFunctionSet(
         return direct_definition;
     }
 
-    let definitions: Array<String> = [];
-    let after_function: Int = -1;
-    let specialization_index: Int = 0;
+    var definitions: Array<String> = [];
+    var after_function: Int = -1;
+    var specialization_index: Int = 0;
     while specialization_index <
         CodegenGenericSpecializationCount(specializations) {
         if specializations.signature_indexes[specialization_index] ==
             signature_index {
-            let local_cur: Array<Int> = [function_node];
+            var local_cur: Array<Int> = [function_node];
             let actuals: Array<String> =
                 CodegenGenericSpecializationActuals(
                     specializations, specialization_index

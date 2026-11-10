@@ -46,16 +46,16 @@ func SelfMirRuntimeCallAbiRowsEmpty() -> SelfMirRuntimeCallAbiRows {
 func SelfMirRuntimeCallAbiRowsAppendInstruction(
     rows: SelfMirRuntimeCallAbiRows
 ) -> SelfMirRuntimeCallAbiRows {
-    let present: Array<Int> = rows.present;
-    let owners: Array<String> = rows.owners;
-    let domains: Array<String> = rows.domains;
-    let type_names: Array<String> = rows.type_names;
-    let operations: Array<String> = rows.operations;
-    let symbols: Array<String> = rows.symbols;
-    let target_kinds: Array<String> = rows.target_kinds;
-    let materializations: Array<String> = rows.materializations;
-    let call_shapes: Array<String> = rows.call_shapes;
-    let runtime_call_abi_ids: Array<Int> = rows.runtime_call_abi_ids;
+    var present: Array<Int> = rows.present;
+    var owners: Array<String> = rows.owners;
+    var domains: Array<String> = rows.domains;
+    var type_names: Array<String> = rows.type_names;
+    var operations: Array<String> = rows.operations;
+    var symbols: Array<String> = rows.symbols;
+    var target_kinds: Array<String> = rows.target_kinds;
+    var materializations: Array<String> = rows.materializations;
+    var call_shapes: Array<String> = rows.call_shapes;
+    var runtime_call_abi_ids: Array<Int> = rows.runtime_call_abi_ids;
     ArrayPush(present, 0);
     ArrayPush(owners, "");
     ArrayPush(domains, "");
@@ -81,9 +81,9 @@ func SelfMirRuntimeCallAbiRowsAppendInstruction(
 func SelfMirRuntimeCallAbiRowsForInstructionCount(
     instruction_count: Int
 ) -> SelfMirRuntimeCallAbiRows {
-    let rows: SelfMirRuntimeCallAbiRows =
+    var rows: SelfMirRuntimeCallAbiRows =
         SelfMirRuntimeCallAbiRowsEmpty();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < instruction_count {
         rows = SelfMirRuntimeCallAbiRowsAppendInstruction(rows);
         i = i + 1;
@@ -96,28 +96,28 @@ func SelfMirRuntimeCallAbiRowsAppendRows(
     source: SelfMirRuntimeCallAbiRows
 ) -> SelfMirRuntimeCallAbiRows {
     let instruction_offset: Int = ArrayLength(target.present);
-    let present: Array<Int> = target.present;
-    let owners: Array<String> = target.owners;
-    let domains: Array<String> = target.domains;
-    let type_names: Array<String> = target.type_names;
-    let operations: Array<String> = target.operations;
-    let symbols: Array<String> = target.symbols;
-    let target_kinds: Array<String> = target.target_kinds;
-    let materializations: Array<String> = target.materializations;
-    let call_shapes: Array<String> = target.call_shapes;
-    let runtime_call_abi_ids: Array<Int> = target.runtime_call_abi_ids;
-    let aux_instruction_indices: Array<Int> = target.aux_instruction_indices;
-    let aux_owners: Array<String> = target.aux_owners;
-    let aux_domains: Array<String> = target.aux_domains;
-    let aux_type_names: Array<String> = target.aux_type_names;
-    let aux_operations: Array<String> = target.aux_operations;
-    let aux_symbols: Array<String> = target.aux_symbols;
-    let aux_target_kinds: Array<String> = target.aux_target_kinds;
-    let aux_materializations: Array<String> = target.aux_materializations;
-    let aux_call_shapes: Array<String> = target.aux_call_shapes;
-    let aux_runtime_call_abi_ids: Array<Int> =
+    var present: Array<Int> = target.present;
+    var owners: Array<String> = target.owners;
+    var domains: Array<String> = target.domains;
+    var type_names: Array<String> = target.type_names;
+    var operations: Array<String> = target.operations;
+    var symbols: Array<String> = target.symbols;
+    var target_kinds: Array<String> = target.target_kinds;
+    var materializations: Array<String> = target.materializations;
+    var call_shapes: Array<String> = target.call_shapes;
+    var runtime_call_abi_ids: Array<Int> = target.runtime_call_abi_ids;
+    var aux_instruction_indices: Array<Int> = target.aux_instruction_indices;
+    var aux_owners: Array<String> = target.aux_owners;
+    var aux_domains: Array<String> = target.aux_domains;
+    var aux_type_names: Array<String> = target.aux_type_names;
+    var aux_operations: Array<String> = target.aux_operations;
+    var aux_symbols: Array<String> = target.aux_symbols;
+    var aux_target_kinds: Array<String> = target.aux_target_kinds;
+    var aux_materializations: Array<String> = target.aux_materializations;
+    var aux_call_shapes: Array<String> = target.aux_call_shapes;
+    var aux_runtime_call_abi_ids: Array<Int> =
         target.aux_runtime_call_abi_ids;
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(source.present) {
         ArrayPush(present, source.present[i]);
         ArrayPush(owners, source.owners[i]);
@@ -174,16 +174,16 @@ func SelfMirRuntimeCallAbiRowsAttachLast(
     if index < 0 || !fact.ok {
         return rows;
     }
-    let present: Array<Int> = rows.present;
-    let owners: Array<String> = rows.owners;
-    let domains: Array<String> = rows.domains;
-    let type_names: Array<String> = rows.type_names;
-    let operations: Array<String> = rows.operations;
-    let symbols: Array<String> = rows.symbols;
-    let target_kinds: Array<String> = rows.target_kinds;
-    let materializations: Array<String> = rows.materializations;
-    let call_shapes: Array<String> = rows.call_shapes;
-    let runtime_call_abi_ids: Array<Int> = rows.runtime_call_abi_ids;
+    var present: Array<Int> = rows.present;
+    var owners: Array<String> = rows.owners;
+    var domains: Array<String> = rows.domains;
+    var type_names: Array<String> = rows.type_names;
+    var operations: Array<String> = rows.operations;
+    var symbols: Array<String> = rows.symbols;
+    var target_kinds: Array<String> = rows.target_kinds;
+    var materializations: Array<String> = rows.materializations;
+    var call_shapes: Array<String> = rows.call_shapes;
+    var runtime_call_abi_ids: Array<Int> = rows.runtime_call_abi_ids;
     ArraySet(present, index, 1);
     ArraySet(owners, index, "MIRResource");
     ArraySet(domains, index, fact.domain);
@@ -213,16 +213,16 @@ func SelfMirRuntimeCallAbiRowsAttachLastAux(
 ) -> SelfMirRuntimeCallAbiRows {
     let instruction_index: Int = ArrayLength(rows.present) - 1;
     if instruction_index < 0 || !fact.ok { return rows; }
-    let aux_instruction_indices: Array<Int> = rows.aux_instruction_indices;
-    let aux_owners: Array<String> = rows.aux_owners;
-    let aux_domains: Array<String> = rows.aux_domains;
-    let aux_type_names: Array<String> = rows.aux_type_names;
-    let aux_operations: Array<String> = rows.aux_operations;
-    let aux_symbols: Array<String> = rows.aux_symbols;
-    let aux_target_kinds: Array<String> = rows.aux_target_kinds;
-    let aux_materializations: Array<String> = rows.aux_materializations;
-    let aux_call_shapes: Array<String> = rows.aux_call_shapes;
-    let aux_runtime_call_abi_ids: Array<Int> = rows.aux_runtime_call_abi_ids;
+    var aux_instruction_indices: Array<Int> = rows.aux_instruction_indices;
+    var aux_owners: Array<String> = rows.aux_owners;
+    var aux_domains: Array<String> = rows.aux_domains;
+    var aux_type_names: Array<String> = rows.aux_type_names;
+    var aux_operations: Array<String> = rows.aux_operations;
+    var aux_symbols: Array<String> = rows.aux_symbols;
+    var aux_target_kinds: Array<String> = rows.aux_target_kinds;
+    var aux_materializations: Array<String> = rows.aux_materializations;
+    var aux_call_shapes: Array<String> = rows.aux_call_shapes;
+    var aux_runtime_call_abi_ids: Array<Int> = rows.aux_runtime_call_abi_ids;
     ArrayPush(aux_instruction_indices, instruction_index);
     ArrayPush(aux_owners, "MIRResource");
     ArrayPush(aux_domains, fact.domain);
@@ -293,7 +293,7 @@ func SelfMirRuntimeCallAbiRowValidationError(
         if expected_operation != "" || rows.present[instruction_index] != 0 {
             return "runtime-value and resource call ABI rows overlap";
         }
-        let aux_index: Int = 0;
+        var aux_index: Int = 0;
         while aux_index < ArrayLength(rows.aux_instruction_indices) {
             if rows.aux_instruction_indices[aux_index] == instruction_index {
                 return "runtime-value and resource auxiliary ABI rows overlap";
@@ -318,7 +318,7 @@ func SelfMirRuntimeCallAbiRowValidationError(
             rows.runtime_call_abi_ids[instruction_index] != 0 {
             return "runtime-call ABI row is attached without an operation";
         }
-        let aux_index: Int = 0;
+        var aux_index: Int = 0;
         while aux_index < ArrayLength(rows.aux_instruction_indices) {
             if rows.aux_instruction_indices[aux_index] == instruction_index {
                 return "runtime-call ABI auxiliary row has no primary row";
@@ -353,7 +353,7 @@ func SelfMirRuntimeCallAbiRowValidationError(
             expected.runtime_call_abi_id {
         return "resource runtime-call ABI row has an invalid stable identity";
     }
-    let aux_index: Int = 0;
+    var aux_index: Int = 0;
     while aux_index < ArrayLength(rows.aux_instruction_indices) {
         if rows.aux_instruction_indices[aux_index] == instruction_index {
             let aux_operation: String = rows.aux_operations[aux_index];
@@ -377,7 +377,7 @@ func SelfMirRuntimeCallAbiRowValidationError(
                     aux_expected.runtime_call_abi_id {
                 return "resource runtime-call ABI auxiliary row differs from its owner";
             }
-            let prior: Int = 0;
+            var prior: Int = 0;
             while prior < aux_index {
                 if rows.aux_instruction_indices[prior] == instruction_index &&
                     rows.aux_operations[prior] == aux_operation {

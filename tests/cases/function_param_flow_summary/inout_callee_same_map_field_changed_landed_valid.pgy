@@ -12,7 +12,7 @@ func Mark(inout state: State, key: String) -> Void {
 }
 
 func MarkAlias(inout state: State, key: String) -> Void {
-    let marks: HashMap<String, Int> = state.marks;
+    var marks: HashMap<String, Int> = state.marks;
     MapSet(marks, key, 1);
     state.marks = marks;
 }

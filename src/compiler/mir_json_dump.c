@@ -255,6 +255,7 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
 {
     fprintf(out, "{\"id\":%zu,\"kind\":", inst->id);
     mir_json_emit_str(out, mir_inst_kind_name(inst->kind));
+    fprintf(out, ",\"binding_syntax_id\":%u", inst->binding_syntax_id);
     fputs(",\"name\":", out);
     mir_json_emit_str_or_null(out, inst->name);
     fputs(",\"result\":", out);
@@ -308,6 +309,13 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
     mir_json_emit_expr_or_null(out, inst->expr1);
     fputs(",\"expr1_graph\":", out);
     mir_json_emit_instruction_expression_graph(out, routine, inst, 1);
+    if (inst->kind == MIR_INST_STMT && inst->arg0 != NULL
+        && (strcmp(inst->arg0, "ArrayPush") == 0
+            || strcmp(inst->arg0, "ArraySet") == 0
+            || strcmp(inst->arg0, "ArrayPop") == 0)) {
+        fputs(",\"collection_mutation_target_graph\":", out);
+        mir_json_emit_instruction_expression_graph(out, routine, inst, 2);
+    }
     fputs(",\"collection_ownership_receipt\":", out);
     if (inst->has_collection_ownership_receipt) {
         const char *kind = NULL;
@@ -324,6 +332,9 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
             break;
         case PGY_COLLECTION_EFFECT_OWNED_STRING_SET:
             kind = "owned-string-set";
+            break;
+        case PGY_COLLECTION_EFFECT_OWNED_STRING_POP:
+            kind = "owned-string-pop";
             break;
         default:
             kind = "invalid";
@@ -508,6 +519,11 @@ mir_json_collection_disposition_name(PgyCollectionDisposition disposition)
             return "live";
         case PGY_COLLECTION_DISPOSITION_RETIRED:
             return "retired";
+        /* This is a transient semantic-checker state. A function-exit check
+         * must restore the empty carrier before HIR/MIR projection, so never
+         * serialize it as an ordinary retired fact. */
+        case PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE:
+            return "invalid";
     }
     return "invalid";
 }
@@ -530,6 +546,10 @@ mir_json_collection_origin_name(PgyCollectionOrigin origin)
             return "member-move";
         case PGY_COLLECTION_ORIGIN_CLONE:
             return "clone";
+        case PGY_COLLECTION_ORIGIN_CALL_RESULT:
+            return "call-result";
+        case PGY_COLLECTION_ORIGIN_OWNED_LITERAL:
+            return "owned-literal";
     }
     return "invalid";
 }

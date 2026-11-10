@@ -11,7 +11,7 @@ func LanguageWordRegistryProjectionReady() -> Bool {
         LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid {
         return false;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < LanguageWordRegistryCount() {
         let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);
         if !row.valid || StringLength(row.spelling) == 0 ||
@@ -34,12 +34,12 @@ func LanguageWordRegistryProjectionReady() -> Bool {
         }
         index = index + 1;
     }
-    return LanguageWordRegistryCount() == 147;
+    return LanguageWordRegistryCount() == 148;
 }
 
 func LanguageKeywordRegistryProjectionReady() -> Bool {
     if !LanguageWordRegistryProjectionReady() { return false; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < LanguageKeywordRegistryCount() {
         let spelling: String = LanguageKeywordSpellingAt(index);
         let identity: String = LanguageKeywordDebugIdentityAt(index);

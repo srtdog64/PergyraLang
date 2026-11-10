@@ -34,7 +34,7 @@ func DirectMirInferredGenericScalarPlanDigest(
     ref plan: DirectMirInferredGenericScalarPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(281L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(281L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);

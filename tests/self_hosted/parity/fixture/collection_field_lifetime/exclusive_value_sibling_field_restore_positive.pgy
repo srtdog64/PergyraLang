@@ -1,0 +1,20 @@
+// Distinct fields of a consumed value parameter may be grown independently
+// when every field is used to reconstruct the returned value.
+struct PairRows {
+    left: Array<Int>;
+    right: Array<Int>;
+}
+
+func AppendBoth(rows: PairRows) -> PairRows {
+    let left: Array<Int> = rows.left;
+    let right: Array<Int> = rows.right;
+    ArrayPush(left, 3);
+    ArrayPush(right, 4);
+    return PairRows(left, right);
+}
+
+func Main() -> Int {
+    let rows: PairRows = PairRows([1], [2]);
+    rows = AppendBoth(rows);
+    return rows.left[1] + rows.right[1];
+}

@@ -11,19 +11,25 @@ func DirectMirScalarProgramNaryExpressionNodeReady(
             DirectMirScalarProgramExprCharAtN() && kind !=
             DirectMirScalarProgramExprCharCode() && kind !=
             DirectMirScalarProgramExprSubIndexOfWithLen() && kind !=
-            DirectMirScalarProgramExprSubEqualsWithLen() { return None; }
+            DirectMirScalarProgramExprSubEqualsWithLen() && kind !=
+            DirectMirScalarProgramExprSubContainsWithLen() && kind !=
+            DirectMirScalarProgramExprSubStartsWithLen() { return None; }
     let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
         facts.nary_operands, node);
-    let expected: Int = 3;
+    var expected: Int = 3;
     if kind == DirectMirScalarProgramExprSubstringWithLen() { expected = 4; }
     if kind == DirectMirScalarProgramExprSubIndexOfWithLen() || kind ==
-            DirectMirScalarProgramExprSubEqualsWithLen() { expected = 5; }
-    let result_type: String = CompilerAbiLayoutStringTypeName();
+            DirectMirScalarProgramExprSubEqualsWithLen() || kind ==
+            DirectMirScalarProgramExprSubContainsWithLen() { expected = 5; }
+    if kind == DirectMirScalarProgramExprSubStartsWithLen() { expected = 4; }
+    var result_type: String = CompilerAbiLayoutStringTypeName();
     if kind == DirectMirScalarProgramExprCharCode() ||
             kind == DirectMirScalarProgramExprSubIndexOfWithLen() {
         result_type = CompilerAbiLayoutIntTypeName();
     }
-    if kind == DirectMirScalarProgramExprSubEqualsWithLen() {
+    if kind == DirectMirScalarProgramExprSubEqualsWithLen() || kind ==
+            DirectMirScalarProgramExprSubContainsWithLen() || kind ==
+            DirectMirScalarProgramExprSubStartsWithLen() {
         result_type = CompilerAbiLayoutBoolTypeName();
     }
     if ArrayLength(operands) != expected ||
@@ -33,12 +39,15 @@ func DirectMirScalarProgramNaryExpressionNodeReady(
         facts.node_parameter_ordinals[node] != -1 ||
         facts.node_literals[node] != "" ||
         facts.node_callable_rows[node] != -1 { return Some(false); }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < expected {
-        let expected_type: String = CompilerAbiLayoutIntTypeName();
+        var expected_type: String = CompilerAbiLayoutIntTypeName();
         if i == 0 || ((kind ==
                 DirectMirScalarProgramExprSubIndexOfWithLen() || kind ==
-                DirectMirScalarProgramExprSubEqualsWithLen()) && i == 4) {
+                DirectMirScalarProgramExprSubEqualsWithLen() || kind ==
+                DirectMirScalarProgramExprSubContainsWithLen()) && i == 4) ||
+                (kind == DirectMirScalarProgramExprSubStartsWithLen() &&
+                i == 3) {
             expected_type = CompilerAbiLayoutStringTypeName();
         }
         if operands[i] < 0 || operands[i] >= node ||

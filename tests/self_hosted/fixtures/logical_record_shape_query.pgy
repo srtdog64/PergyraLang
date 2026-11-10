@@ -10,12 +10,14 @@ func QueryRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLogicalR
     let counts: Array<Int> = [fields];
     let field_names: Array<String> = [];
     let field_types: Array<String> = [];
+    let field_dependencies: Array<String> = [];
     let field_ids: Array<Int> = [];
     let field_enums: Array<Int> = [];
     let field: Int = 0;
     while field < fields {
         ArrayPush(field_names, Concat("field", ToString(field)));
         ArrayPush(field_types, "Int");
+        ArrayPush(field_dependencies, "");
         let id: Int = 1001 + field;
         if corruption == 2 && field == fields - 1 { id = 1001; }
         ArrayPush(field_ids, id);
@@ -40,16 +42,18 @@ func QueryRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLogicalR
     }
     let source: DirectMirScalarProgramLogicalRecordFact = DirectMirScalarProgramLogicalRecordFact(
         true, 0, true, rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical,
-        DirectMirIdentityCellFactsEmpty());
+        field_names, field_types, field_dependencies, field_ids, field_enums,
+        physical, DirectMirIdentityCellFactsEmpty(),
+        DirectMirScalarProgramLogicalRecordValidationReceiptEmpty());
     let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
     if corruption == 1 {
         if digest == 1 { digest = 2; } else { digest = 1; }
     }
     return DirectMirScalarProgramLogicalRecordFact(true, digest, true,
         rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical,
-        DirectMirIdentityCellFactsEmpty());
+        field_names, field_types, field_dependencies, field_ids, field_enums,
+        physical, DirectMirIdentityCellFactsEmpty(),
+        DirectMirScalarProgramLogicalRecordValidationReceiptEmpty());
 }
 
 func QuerySequence() -> MirExpressionGraphSequence {

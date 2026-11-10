@@ -80,8 +80,8 @@ func SemanticAstEnumPayloadNodeDescendsFrom(
     node_id: Int,
     ancestor_id: Int
 ) -> Bool {
-    let cursor: Option<Int> = Some(node_id);
-    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    var cursor: Option<Int> = Some(node_id);
+    var remaining: Int = TypedAstArenaNodeCount(arena) + 1;
     while IsSome(cursor) && remaining > 0 {
         let current: Int = UnwrapOption(cursor);
         if current == ancestor_id { return true; }
@@ -95,8 +95,8 @@ func SemanticAstEnumPayloadUseWithinLoop(
     arena: AstArena,
     node_id: Int
 ) -> Bool {
-    let cursor: Option<Int> = Some(node_id);
-    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    var cursor: Option<Int> = Some(node_id);
+    var remaining: Int = TypedAstArenaNodeCount(arena) + 1;
     while IsSome(cursor) && remaining > 0 {
         let current: Int = UnwrapOption(cursor);
         if TypedAstArenaNodeKindIs(
@@ -116,8 +116,8 @@ func SemanticAstEnumPayloadDirectBodyBlock(
     arena: AstArena,
     owner_node_id: Int
 ) -> Option<Int> {
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         arena, owner_node_id, child_index
     );
     while IsSome(child) {
@@ -177,15 +177,15 @@ func SemanticAstEnumPayloadReceiverShadowedByMatchBinder(
         AstExpressionNodeLeaf() || !IsSome(receiver_name) {
         return false;
     }
-    let cursor: Option<Int> = Some(use_node_id);
-    let remaining: Int = artifact.count + 1;
+    var cursor: Option<Int> = Some(use_node_id);
+    var remaining: Int = artifact.count + 1;
     while IsSome(cursor) && remaining > 0 {
         let node_id: Int = UnwrapOption(cursor);
         if TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindMatchCaseStmtTag()
         ) {
-            let low: Int = 0;
-            let high: Int = ArrayLength(statements.node_ids);
+            var low: Int = 0;
+            var high: Int = ArrayLength(statements.node_ids);
             while low < high {
                 let middle: Int = low + ((high - low) / 2);
                 if statements.node_ids[middle] < node_id {
@@ -207,7 +207,7 @@ func SemanticAstEnumPayloadReceiverShadowedByMatchBinder(
                 count > ArrayLength(statements.match_pattern_bindings) - start {
                 return true;
             }
-            let binding: Int = 0;
+            var binding: Int = 0;
             while binding < count {
                 if statements.match_pattern_bindings[start + binding] ==
                     UnwrapOption(receiver_name) {
@@ -291,7 +291,7 @@ func SemanticAstEnumPayloadVariantRowForName(
     enum_name: String,
     variant_name: String
 ) -> Option<Int> {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(enums.variant_names) {
         if enums.variant_enum_names[row] == enum_name &&
             enums.variant_names[row] == variant_name {
@@ -357,15 +357,22 @@ func SemanticAstEnumPayloadConstructorVariant(
             SemanticCallTargetDirect() &&
          graph.arena.call_target_kinds[call.call_node] !=
             SemanticCallTargetNamespace()) ||
-        graph.arena.identities.call_target_syntax_ids[call.call_node] != 0 ||
         graph.arena.identities.runtime_call_abi_ids[call.call_node] != 0 ||
         graph.arena.call_return_type_names[call.call_node] != enum_name {
         return SemanticAstEnumPayloadVariantUnproven();
     }
+    var declared_id: Int = -1; var enum_row: Int = 0;
+    while enum_row < ArrayLength(enums.enum_names) {
+        if enums.enum_names[enum_row] == enum_name { declared_id = enums.node_ids[enum_row]; }
+        enum_row = enum_row + 1;
+    }
+    if declared_id <= 0 || graph.arena.identities.call_target_syntax_ids[call.call_node] != declared_id {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
     let target_name: String = graph.arena.call_target_names[call.call_node];
-    let variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(enums, enum_name, target_name);
+    var variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(enums, enum_name, target_name);
     // `Enum.Variant(..)` is a Namespace call to the variant's canonical declared name.
-    let row: Int = 0;
+    var row: Int = 0;
     while graph.arena.call_target_kinds[call.call_node] == SemanticCallTargetNamespace() &&
         row < ArrayLength(enums.variant_names) {
         variant = None;
@@ -466,9 +473,9 @@ func SemanticAstEnumPayloadAssignmentEffect(
     assignment_node_id: Int,
     current: SemanticAstEnumPayloadVariantFact
 ) -> SemanticAstEnumPayloadVariantFact {
-    let assignment: Option<Int> = None;
-    let assignment_low: Int = 0;
-    let assignment_high: Int = ArrayLength(assignments.node_ids);
+    var assignment: Option<Int> = None;
+    var assignment_low: Int = 0;
+    var assignment_high: Int = ArrayLength(assignments.node_ids);
     while assignment_low < assignment_high {
         let assignment_middle: Int = assignment_low +
             ((assignment_high - assignment_low) / 2);
@@ -517,7 +524,7 @@ func SemanticAstEnumPayloadSubtreeMayAssignBinding(
     ref key: SemanticAstEnumPayloadBindingIdentity,
     owner_node_id: Int
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(assignments.node_ids) {
         if assignments.function_node_ids[row] == key.function_node_id &&
             SemanticAstEnumPayloadNodeDescendsFrom(
@@ -555,7 +562,7 @@ func SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
     owner_node_id: Int,
     include_descendant_surfaces: Bool
 ) -> Bool {
-    let surface_row: Int = 0;
+    var surface_row: Int = 0;
     while surface_row < ArrayLength(surfaces.node_ids) {
         if surfaces.node_ids[surface_row] != owner_node_id &&
             (!include_descendant_surfaces ||
@@ -565,7 +572,7 @@ func SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
             surface_row = surface_row + 1;
             continue;
         }
-        let lane: Int = 0;
+        var lane: Int = 0;
         while lane < 3 {
             let root_slot: Int = surface_row * 3 + lane;
             if surfaces.expression_graph.has_roots[root_slot] {
@@ -574,7 +581,7 @@ func SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
                     surfaces.expression_graph, root
                 );
                 if !IsSome(start) { return true; }
-                let graph_node: Int = UnwrapOption(start);
+                var graph_node: Int = UnwrapOption(start);
                 while graph_node <= root {
                     let node_kind: Option<Int> =
                         SemanticExpressionGraphNodeKind(
@@ -610,7 +617,7 @@ func SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
                             if source_offset < 0 || source_offset > 1 {
                                 return true;
                             }
-                            let argument_index: Int = 0;
+                            var argument_index: Int = 0;
                             while argument_index <
                                 ArrayLength(call.argument_nodes) &&
                                 argument_index + source_offset <
@@ -662,8 +669,8 @@ func SemanticAstEnumPayloadControlChild(
     owner_node_id: Int,
     kind: Int
 ) -> Option<Int> {
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         arena, owner_node_id, child_index
     );
     while IsSome(child) {
@@ -696,9 +703,9 @@ func SemanticAstEnumPayloadApplyBlockToEnd(
     ) {
         return SemanticAstEnumPayloadVariantUnproven();
     }
-    let result: SemanticAstEnumPayloadVariantFact = current;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var result: SemanticAstEnumPayloadVariantFact = current;
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, block_node_id, child_index
     );
     while IsSome(child) {
@@ -767,7 +774,7 @@ func SemanticAstEnumPayloadApplyNodeToEnd(
                 statements, surfaces, enums, key,
                 UnwrapOption(then_block), current
             );
-        let else_result: SemanticAstEnumPayloadVariantFact = current;
+        var else_result: SemanticAstEnumPayloadVariantFact = current;
         let else_owner: Option<Int> = SemanticAstEnumPayloadControlChild(
             artifact.arena, node_id, TypedAstKindElseStmtTag()
         );
@@ -822,9 +829,9 @@ func SemanticAstEnumPayloadApplyNodeToEnd(
                 return SemanticAstEnumPayloadVariantUnproven();
             }
         }
-        let joined: SemanticAstEnumPayloadVariantFact = current;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var joined: SemanticAstEnumPayloadVariantFact = current;
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, node_id, child_index
         );
         while IsSome(child) {
@@ -947,9 +954,9 @@ func SemanticAstEnumPayloadStateBeforeUseInBlock(
     ) {
         return SemanticAstEnumPayloadVariantUnproven();
     }
-    let state: SemanticAstEnumPayloadVariantFact = current;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var state: SemanticAstEnumPayloadVariantFact = current;
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, block_node_id, child_index
     );
     while IsSome(child) {
@@ -1010,7 +1017,7 @@ func SemanticAstEnumPayloadStateBeforeUseInNode(
         );
     }
     if UnwrapOption(kind) == TypedAstKindIfStmtTag() {
-        let branch_entry: SemanticAstEnumPayloadVariantFact = current;
+        var branch_entry: SemanticAstEnumPayloadVariantFact = current;
         if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
             artifact, signatures, locals, inferred_types, surfaces, key,
             node_id, false
@@ -1023,7 +1030,7 @@ func SemanticAstEnumPayloadStateBeforeUseInNode(
         let else_owner: Option<Int> = SemanticAstEnumPayloadControlChild(
             artifact.arena, node_id, TypedAstKindElseStmtTag()
         );
-        let branch_owner: Option<Int> = None;
+        var branch_owner: Option<Int> = None;
         if IsSome(then_owner) && SemanticAstEnumPayloadNodeDescendsFrom(
             artifact.arena, use_node_id, UnwrapOption(then_owner)
         ) {
@@ -1066,15 +1073,15 @@ func SemanticAstEnumPayloadStateBeforeUseInNode(
         return SemanticAstEnumPayloadVariantUnproven();
     }
     if UnwrapOption(kind) == TypedAstKindMatchStmtTag() {
-        let match_entry: SemanticAstEnumPayloadVariantFact = current;
+        var match_entry: SemanticAstEnumPayloadVariantFact = current;
         if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
             artifact, signatures, locals, inferred_types, surfaces, key,
             node_id, false
         ) {
             match_entry = SemanticAstEnumPayloadVariantUnproven();
         }
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, node_id, child_index
         );
         while IsSome(child) {
@@ -1082,7 +1089,7 @@ func SemanticAstEnumPayloadStateBeforeUseInNode(
             if SemanticAstEnumPayloadNodeDescendsFrom(
                 artifact.arena, use_node_id, child_id
             ) {
-                let arm_state: SemanticAstEnumPayloadVariantFact = match_entry;
+                var arm_state: SemanticAstEnumPayloadVariantFact = match_entry;
                 if TypedAstArenaNodeKindIs(
                     artifact.arena, child_id,
                     TypedAstKindMatchCaseStmtTag()
@@ -1132,8 +1139,8 @@ func SemanticAstEnumPayloadStateBeforeUseInNode(
         }
         return SemanticAstEnumPayloadVariantUnproven();
     }
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, node_id, child_index
     );
     while IsSome(child) {
@@ -1167,22 +1174,22 @@ func SemanticAstEnumPayloadVariantAtUse(
     ref key: SemanticAstEnumPayloadBindingIdentity,
     use_node_id: Int
 ) -> SemanticAstEnumPayloadVariantFact {
-    let start_block: Option<Int> = None;
-    let initial: SemanticAstEnumPayloadVariantFact =
+    var start_block: Option<Int> = None;
+    var initial: SemanticAstEnumPayloadVariantFact =
         SemanticAstEnumPayloadVariantUnproven();
     if key.kind == SemanticAstEnumPayloadLocalBindingKind() {
-        let range_start: Int = 0;
+        var range_start: Int = 0;
         while range_start < ArrayLength(locals.node_ids) &&
             locals.node_ids[range_start] < key.syntax_node_id {
             range_start = range_start + 1;
         }
-        let range_end: Int = range_start;
+        var range_end: Int = range_start;
         while range_end < ArrayLength(locals.node_ids) &&
             locals.node_ids[range_end] == key.syntax_node_id {
             range_end = range_end + 1;
         }
         if range_start >= range_end { return initial; }
-        let local_row: Int = range_start;
+        var local_row: Int = range_start;
         while local_row < range_end &&
             locals.binding_indices[local_row] != key.ordinal {
             local_row = local_row + 1;
@@ -1266,11 +1273,11 @@ func SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
             -1, -1, "required semantic provenance facts"
         );
     }
-    let surface_index: Int = 0;
+    var surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(surfaces) {
         let function_node_id: Int = surfaces.function_node_ids[surface_index];
         if function_node_id >= 0 {
-            let lane: Int = 0;
+            var lane: Int = 0;
             while lane < 3 {
                 let root_slot: Int = surface_index * 3 + lane;
                 if surfaces.expression_graph.has_roots[root_slot] {
@@ -1285,7 +1292,7 @@ func SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
                             "valid expression graph"
                         );
                     }
-                    let projection_node_id: Int = UnwrapOption(start);
+                    var projection_node_id: Int = UnwrapOption(start);
                     while projection_node_id <= root {
                         let shape: SemanticExpressionGraphEnumPayloadShape =
                             SemanticExpressionGraphEnumPayloadShapeFromGraph(
@@ -1334,7 +1341,7 @@ func SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
                             if IsSome(receiver_type) {
                                 let enum_name: String =
                                     UnwrapOption(receiver_type);
-                                let generic_receiver: Bool = false;
+                                var generic_receiver: Bool = false;
                                 let signature_index: Option<Int> =
                                     SemanticAstFunctionSignatureIndexForNode(
                                         signatures, function_node_id
@@ -1342,7 +1349,7 @@ func SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
                                 if IsSome(signature_index) {
                                     let signature_row: Int =
                                         UnwrapOption(signature_index);
-                                    let generic_index: Int = 0;
+                                    var generic_index: Int = 0;
                                     while generic_index <
                                         signatures.generic_counts[
                                             signature_row
@@ -1377,10 +1384,10 @@ func SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
                                         shape.payload_index
                                     );
                                 if IsSome(required) && IsSome(payload_type) {
-                                    let active:
+                                    var active:
                                         SemanticAstEnumPayloadVariantFact =
                                             SemanticAstEnumPayloadVariantUnproven();
-                                    let binding_node_id: Int = -1;
+                                    var binding_node_id: Int = -1;
                                     if key.ok && key.type_name == enum_name {
                                         if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
                                             artifact, signatures, locals,

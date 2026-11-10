@@ -4,6 +4,7 @@ import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_local_ref_attachment_owner.pgy";
 import "routine_expression_use_owner.pgy";
+import "../hir/assignment_operation_owner.pgy";
 
 func SelfMirLowerLetFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -27,9 +28,13 @@ func SelfMirLowerLetFromArtifact(
         );
     }
     let local_row: Int = UnwrapOption(local_index);
+    let write_mode: Option<Int> = TypedAstArenaLocalWriteMode(input.artifact.arena, node_id);
+    if !IsSome(write_mode) { return SelfMirRoutineBuildError(build, "MIR local binding write mode is missing"); }
+    let opcode: Option<String> = BindingDeclarationMirName(UnwrapOption(write_mode));
+    if !IsSome(opcode) { return SelfMirRoutineBuildError(build, "MIR local binding write mode is invalid"); }
     let initializer_row: Int = UnwrapOption(initializer_index);
     let local_name: String = input.analysis.local_bindings.names[local_row];
-    let local_type: String = input.initializers.inferred_type_names[
+    var local_type: String = input.initializers.inferred_type_names[
         initializer_row
     ];
     if input.analysis.local_bindings.has_declared_types[local_row] == 1 {
@@ -84,10 +89,10 @@ func SelfMirLowerLetFromArtifact(
         );
     }
     let local_version: Int = build.local_versions[UnwrapOption(added_local)];
-    let nominal_type: String = "";
+    var nominal_type: String = "";
     if SelfMirTypeIsNominal(input, local_type) { nominal_type = local_type; }
     build = SelfMirRoutineAddInstruction(
-        build, "def", "ssa-def", SelfMirSsaName(local_name, local_version),
+        build, "def", UnwrapOption(opcode), SelfMirSsaName(local_name, local_version),
         local_name, nominal_type, expression, local_type,
         "AST_LET_DECL", initializer_uses
     );

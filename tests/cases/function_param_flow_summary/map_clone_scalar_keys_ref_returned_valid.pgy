@@ -14,11 +14,11 @@ func CopyFlags(ref flags: HashMap<Bool, Bool>) -> HashMap<Bool, Bool> {
 }
 
 func Main() -> Int {
-    let ids: HashMap<Int, Long> = MapNew();
+    var ids: HashMap<Int, Long> = MapNew();
     MapSet(ids, 3, 30L);
-    let weights: HashMap<Long, Int> = MapNew();
+    var weights: HashMap<Long, Int> = MapNew();
     MapSet(weights, 4L, 5);
-    let flags: HashMap<Bool, Bool> = MapNew();
+    var flags: HashMap<Bool, Bool> = MapNew();
     MapSet(flags, true, false);
     let ids_copy: HashMap<Int, Long> = CopyIds(ids);
     let weights_copy: HashMap<Long, Int> = CopyWeights(weights);

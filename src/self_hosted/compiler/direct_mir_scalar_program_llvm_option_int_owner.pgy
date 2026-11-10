@@ -13,9 +13,9 @@ func DirectMirScalarProgramLlvmOptionIntTypeName() -> String {
 func DirectMirScalarProgramLlvmOptionIntExpressionAt(
     kind: Int, result: String, left: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let function_name: String = "";
-    let result_type: String = "";
-    let argument_type: String = "";
+    var function_name: String = "";
+    var result_type: String = "";
+    var argument_type: String = "";
     if kind == DirectMirScalarProgramExprSomeInt() {
         function_name = "@pgy.scalar.option.int.some";
         result_type = DirectMirScalarProgramLlvmOptionIntTypeName();
@@ -34,7 +34,7 @@ func DirectMirScalarProgramLlvmOptionIntExpressionAt(
     } else {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
-    let output: String = Concat("  ", Concat(result, Concat(
+    var output: String = Concat("  ", Concat(result, Concat(
         " = call ", Concat(result_type, Concat(" ", function_name)))));
     if argument_type == "" {
         output = Concat(output, "()\n");
@@ -58,7 +58,7 @@ func DirectMirScalarProgramLlvmOptionIntPreamble(
         Die("direct MIR scalar program LLVM Option<Int> ABI is invalid");
     }
     let t: String = DirectMirScalarProgramLlvmOptionIntTypeName();
-    let output: String = t;
+    var output: String = t;
     output = Concat(output, " = type ");
     output = Concat(output, abi.llvm_aggregate_type);
     output = Concat(output, "\n\n");

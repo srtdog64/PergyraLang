@@ -7,7 +7,7 @@ struct Routines {
 }
 
 func Count(ref routines: Routines) -> Int {
-    let scratch: Array<String> = [];
+    var scratch: Array<String> = [];
     ArrayPush(scratch, routines.names[0]);
     return ArrayLength(scratch);
 }

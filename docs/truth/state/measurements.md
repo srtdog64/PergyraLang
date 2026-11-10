@@ -1,36 +1,27 @@
 # Measurements
 
-Owner: GPT root lane. Checked 2026-10-23 KST; no inferred speedup claim.
+Owner: GPT root lane. Checked 2026-11-07 KST; timings are observations, not a
+general performance claim.
 
-## Existing budgets
+## Current V.001 candidate
 
-| Budget | Value | Boundary |
-|---|---|---|
-| CI memory | 16 GB | ubuntu-latest |
-| Codegen/self-host bootstrap | 30/60 min | existing CI workflow |
-| Static/focused/integration edit loop | 60 s / 5 min / 30 min | existing agent rules |
+| Operation | Wall time | Peak / boundary | Result |
+|---|---:|---:|---|
+| fixed DRV-2 direct admission | 1,197.06 s | 9,507,424 KiB RSS | PASS: `body_ok=true` |
+| canonical full MIR seed | 138.753 s | 14 GiB address-space bulkhead | PASS |
+| canonical full MIR oracle | 197.767 s | 14 GiB address-space bulkhead | PASS |
+| gen2 C emit | 207.11 s | 10,351,924 KiB RSS | PASS |
+| gen2 host C compile | 129.64 s | 1,618,692 KiB RSS | PASS |
+| gen3 C emit | 206.58 s | 10,351,632 KiB RSS | PASS |
+| installed-driver contract | 60.64 s | 381,016 KiB RSS | PASS |
+| four bootstrap execution gates | 97.34 s | 468,820 KiB RSS | PASS |
+| policy corpus | 5.34 s | 202,724 KiB RSS | PASS |
 
-## Current observations
+The externally bounded full `make` run reached gen2 emission at 2,400 seconds
+and was terminated there. Exact continuation completed gen2, host compilation,
+bounded preflight and gen3 equality. The GitHub bootstrap job has a 60-minute
+whole-job budget; only the pushed exact-SHA run can establish that budget.
 
-At `f90dd7157`, the exact baseline canonical product run took 141.23 s and
-3,493,988 KiB; the exact candidate took 180.18 s and 3,494,172 KiB. An
-unrelated compiler process was active in the shared WSL environment, so these
-figures are observations only and are not a speed or memory regression claim.
-Both runs failed before MIR with the same 33647-error/21-warning summary; only
-the first diagnostic and timing line differed.
-
-The reporting-instrumented candidate took 177.10 s and 3,514,512 KiB. It found
-none of the eight targeted release rows, then exposed a deeper hard layer. Its
-final total is not comparable to the prior fixed 309 census.
-
-The minimal inout-member release/restoration C output passed ASan+UBSan with
-leak detection enabled. The output-bearing fixture exposed 7 bytes of existing
-temporary-String leakage, so this evidence covers the no-temporary release
-path, not general temporary cleanup or whole-compiler memory safety.
-
-## Historical, not current-main evidence
-
-`b8e66a387`: installed driver 203 s/13.7 GB, codegen 905 s,
-DRV-2 MIR consumer 3:45/16.3 GB; see
-[original record](../evidence/2026-10-16_b8e66a387_fixed_point.md).
-Post-`3cc0ecc47` consumer peak is unestablished here.
+The former 21.25 GiB full-MIR failure is no longer reproduced: both current
+producers completed under the 14 GiB process bulkhead. This does not prove a
+whole-language memory bound or compare against GC.

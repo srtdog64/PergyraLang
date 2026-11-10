@@ -89,7 +89,7 @@
             "    let title: String;\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let events: List<Event> = ListNew();\n"
+            "    var events: List<Event> = ListNew();\n"
             "    ListPush(events, Event(\"Kickoff\"));\n"
             "    for event in events {\n"
             "        Print(event.title);\n"

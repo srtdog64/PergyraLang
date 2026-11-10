@@ -19,8 +19,8 @@ func DirectMirIntentRoutineRowBySyntaxIdentity(
 ) -> Int {
     if syntax_id <= 0 || expected_kind == "" { return 0 - 1; }
     let syntax_text: String = ToString(syntax_id);
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(routines.starts) {
         if routines.source_syntax_ids[row] == syntax_text &&
             routines.kinds[row] == expected_kind {
@@ -74,14 +74,14 @@ func DirectMirIntentSemanticRootForExactInstruction(
 
 func DirectMirIntentExecutionViewFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    plan: MirIntentExecutionPlan,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref plan: MirIntentExecutionPlan,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     ref occurrences: MirExpressionSemanticOccurrenceIndex,
     canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenIntentExecutionView {
-    // The caller projects the admitted plan through this typed value parameter.
-    // Its complete readiness/digest was already established by machine
-    // admission; projection must not reconstruct or revalidate it.
+    // The admitted plan remains owned by the machine input. Codegen receives
+    // one storage-independent snapshot after its readiness/digest has already
+    // been established; projection does not reconstruct semantic facts.
     if !plan.present {
         return CodegenIntentExecutionViewEmpty(true);
     }
@@ -90,12 +90,12 @@ func DirectMirIntentExecutionViewFromAdmitted(
             MirProgramRoutineIndexCount(admitted.routines) {
         return CodegenIntentExecutionViewEmpty(false);
     }
-    let action_roots: Array<Int> = [];
-    let compensation_roots: Array<Int> = [];
-    let terminal_roots: Array<Int> = [];
-    let canonical_routine_ids: Array<Int> = [];
-    let terminal_canonical_routine_ids: Array<Int> = [];
-    let step: Int = 0;
+    var action_roots: Array<Int> = [];
+    var compensation_roots: Array<Int> = [];
+    var terminal_roots: Array<Int> = [];
+    var canonical_routine_ids: Array<Int> = [];
+    var terminal_canonical_routine_ids: Array<Int> = [];
+    var step: Int = 0;
     while step < ArrayLength(plan.steps.transition_ids) {
         let canonical_id: Int = DirectMirIntentCanonicalRoutineId(
             admitted, canonical_routine_source_syntax_ids,
@@ -111,7 +111,7 @@ func DirectMirIntentExecutionViewFromAdmitted(
         }
         ArrayPush(canonical_routine_ids, canonical_id);
         ArrayPush(action_roots, root);
-        let compensation: Int = plan.steps.compensation_starts[step];
+        var compensation: Int = plan.steps.compensation_starts[step];
         let compensation_end: Int = compensation +
             plan.steps.compensation_counts[step];
         while compensation < compensation_end {
@@ -132,7 +132,7 @@ func DirectMirIntentExecutionViewFromAdmitted(
         }
         step = step + 1;
     }
-    let terminal: Int = 0;
+    var terminal: Int = 0;
     while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
         let canonical_id: Int = DirectMirIntentCanonicalRoutineId(
             admitted, canonical_routine_source_syntax_ids,
@@ -152,10 +152,9 @@ func DirectMirIntentExecutionViewFromAdmitted(
         terminal = terminal + 1;
     }
     return CodegenIntentExecutionView(
-        true, true, plan,
+        true, true, MirIntentExecutionPlanOwnedCopy(plan),
         SelfDirIntentFactsSealedEmpty(0, 0),
         CodegenIntentZoneAuthorityTransitionFactsEmpty(true),
-        expression_surfaces.expression_graph,
         action_roots, compensation_roots, terminal_roots,
         canonical_routine_ids, terminal_canonical_routine_ids
     );

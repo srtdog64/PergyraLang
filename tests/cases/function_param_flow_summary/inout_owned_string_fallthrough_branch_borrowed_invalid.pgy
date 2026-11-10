@@ -1,0 +1,18 @@
+// Unlike a terminal return, this branch joins the later inout call.  The
+// branch can replace the empty Array with borrowed String storage, so the
+// merged path must not retain the all-elements-owned premise.
+func AppendFresh(inout rows: Array<String>) -> Void {
+    ArrayPush(rows, Concat("owned", " value"));
+}
+
+func Build(use_borrowed: Bool) -> Void {
+    var rows: Array<String> = ["borrowed"];
+    if !use_borrowed {
+        rows = [];
+    }
+    AppendFresh(rows);
+}
+
+func Main() -> Void {
+    Build(true);
+}

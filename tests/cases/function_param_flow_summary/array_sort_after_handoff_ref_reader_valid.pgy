@@ -11,8 +11,8 @@ func Mark(inout ids: Array<Int>, value: Int) -> Void {
 }
 
 func Unique(ref index: Index, inout seen: Array<Int>) -> Bool {
-    let ids: Array<Int> = [];
-    let i: Int = 0;
+    var ids: Array<Int> = [];
+    var i: Int = 0;
     while i < ArrayLength(index.counts) {
         Mark(ids, index.counts[i]);
         i = i + 1;

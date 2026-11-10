@@ -19,7 +19,7 @@ func SelfMirIfFrameVersionsAt(
     ref frames: SelfMirLocalPredecessorSnapshots,
     frame_index: Int
 ) -> SelfMirIfVersionSnapshot {
-    let versions: Array<Int> = [];
+    var versions: Array<Int> = [];
     if frame_index < 0 || frame_index >= ArrayLength(frames.blocks) ||
         frame_index >= ArrayLength(frames.version_starts) ||
         frame_index >= ArrayLength(frames.version_counts) {
@@ -30,7 +30,7 @@ func SelfMirIfFrameVersionsAt(
     if start < 0 || count < 0 || start + count > ArrayLength(frames.versions) {
         return SelfMirIfVersionSnapshot(false, versions);
     }
-    let local_index: Int = 0;
+    var local_index: Int = 0;
     while local_index < count {
         ArrayPush(versions, frames.versions[start + local_index]);
         local_index = local_index + 1;
@@ -82,12 +82,12 @@ func SelfMirMergeIfBranches(
             build, else_exit, merge_block, -1
         );
     }
-    let false_block: Int = merge_block;
+    var false_block: Int = merge_block;
     if else_block >= 0 { false_block = else_block; }
     build = SelfMirRoutineSetSuccessors(
         build, branch_block, then_block, false_block
     );
-    let merge_local_i: Int = 0;
+    var merge_local_i: Int = 0;
     while merge_local_i < ArrayLength(entry_versions) {
         // Version zero means the name is not live in the enclosing lexical
         // scope. A declaration in either arm cannot manufacture an outer phi.
@@ -150,17 +150,17 @@ func SelfMirLowerIfFromArtifact(
     inout backedge_snapshots: SelfMirLocalPredecessorSnapshots,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
-    let entry_frames: SelfMirLocalPredecessorSnapshots =
+    var entry_frames: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
-    let then_frames: SelfMirLocalPredecessorSnapshots =
+    var then_frames: SelfMirLocalPredecessorSnapshots =
         SelfMirLocalPredecessorSnapshotsEmpty();
-    let then_blocks: Array<Int> = [];
-    let else_blocks: Array<Int> = [];
-    let active_node_id: Int = node_id;
-    let active_condition: String = condition;
-    let terminal_else_exit: Int = -1;
-    let terminal_else_versions: Array<Int> = [];
-    let descending: Bool = true;
+    var then_blocks: Array<Int> = [];
+    var else_blocks: Array<Int> = [];
+    var active_node_id: Int = node_id;
+    var active_condition: String = condition;
+    var terminal_else_exit: Int = -1;
+    var terminal_else_versions: Array<Int> = [];
+    var descending: Bool = true;
     while descending && build.ok {
         let condition_graph: SemanticExpressionGraphView =
             SemanticAstExpressionGraphForNode(
@@ -214,7 +214,7 @@ func SelfMirLowerIfFromArtifact(
         then_frames = SelfMirLocalPredecessorSnapshotsAppend(
             then_frames, build
         );
-        let else_block: Int = -1;
+        var else_block: Int = -1;
         if IsSome(else_body_opt) {
             build = SelfMirRoutineAddBlock(build);
             else_block = SelfMirCfgBlockCount(build.cfg) - 1;
@@ -289,9 +289,9 @@ func SelfMirLowerIfFromArtifact(
             build, "MIR else-if frame cardinality drifted"
         );
     }
-    let frame_index: Int = ArrayLength(entry_frames.blocks) - 1;
-    let else_exit: Int = terminal_else_exit;
-    let else_versions: Array<Int> = terminal_else_versions;
+    var frame_index: Int = ArrayLength(entry_frames.blocks) - 1;
+    var else_exit: Int = terminal_else_exit;
+    var else_versions: Array<Int> = terminal_else_versions;
     while frame_index >= 0 {
         let entry_frame: SelfMirIfVersionSnapshot =
             SelfMirIfFrameVersionsAt(entry_frames, frame_index);

@@ -337,6 +337,7 @@ struct ASTNode
         struct {
             ASTNode* target;
             ASTNode* value;
+            AstAssignmentOperation operation;
             char* semantic_binding_type_name; /* checked bare-binding target */
         } assignment;
         

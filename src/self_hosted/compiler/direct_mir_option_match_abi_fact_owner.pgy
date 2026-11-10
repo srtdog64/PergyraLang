@@ -37,9 +37,10 @@ func DirectMirOptionMatchAbiFactEmpty() -> DirectMirOptionMatchAbiFact {
     );
 }
 
-func DirectMirOptionMatchAbiCanonicalLayoutId(
+func DirectMirOptionMatchAbiCapture(
     ref fact: DirectMirOptionMatchAbiFact
-) -> Int {
+) -> MirAbiLayoutRowCapture {
+    if !fact.valid { return InvalidMirAbiLayoutRowCapture(); }
     let names: Array<String> = [fact.tag_name, fact.value_name];
     let offsets: Array<String> = [
         ToString(fact.tag_offset), ToString(fact.value_offset)
@@ -50,13 +51,19 @@ func DirectMirOptionMatchAbiCanonicalLayoutId(
     let aligns: Array<String> = [
         ToString(fact.tag_align), ToString(fact.value_align)
     ];
-    let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCapture(
-        fact.valid, fact.type_name, ToString(fact.size),
-        ToString(fact.align), names, offsets, sizes, aligns,
-        fact.runtime_fn, fact.inner_c_type, ToString(fact.representation),
-        fact.discriminant, fact.some_tag, fact.none_tag,
-        fact.niche_none_pattern
+    return MirAbiLayoutRowCapture(
+        true, fact.type_name, ToString(fact.size), ToString(fact.align),
+        names, offsets, sizes, aligns, fact.runtime_fn, fact.inner_c_type,
+        ToString(fact.representation), fact.discriminant, fact.some_tag,
+        fact.none_tag, fact.niche_none_pattern
     );
+}
+
+func DirectMirOptionMatchAbiCanonicalLayoutId(
+    ref fact: DirectMirOptionMatchAbiFact
+) -> Int {
+    let row: MirAbiLayoutRowCapture =
+        DirectMirOptionMatchAbiCapture(fact);
     return MirAbiLayoutIdFromCapture(row);
 }
 
@@ -64,7 +71,7 @@ func DirectMirOptionMatchAbiFactDigest(
     ref fact: DirectMirOptionMatchAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(97L, fact.layout_id);
+    var hash: Long = DirectMirCfgHashInt(97L, fact.layout_id);
     hash = DirectMirCfgHashString(hash, fact.type_name);
     hash = DirectMirCfgHashInt(hash, fact.size);
     hash = DirectMirCfgHashInt(hash, fact.align);

@@ -1,5 +1,6 @@
 // Borrowed expression-graph view over artifact-bound surface facts.
 import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression_graph_root_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
 func SemanticAstExpressionSurfaceBorrowReady(artifact: AstTreeArtifact,
@@ -18,8 +19,8 @@ func SemanticAstExpressionSurfaceBorrowReady(artifact: AstTreeArtifact,
         !SemanticExpressionGraphFactsReady(facts.expression_graph, count * 3) {
         return false;
     }
-    let previous_node_id: Int = -1;
-    let i: Int = 0;
+    var previous_node_id: Int = -1;
+    var i: Int = 0;
     while i < count {
         let node_id: Int = facts.node_ids[i];
         let function_node_id: Int = facts.function_node_ids[i];
@@ -78,23 +79,8 @@ func SemanticAstExpressionFunctionNodeAt(ref facts: SemanticAstExpressionSurface
 func SemanticAstExpressionGraphRootForNode(
     ref facts: SemanticAstExpressionSurfaceFacts, node_id: Int, lane: Int
 ) -> Option<Int> {
-    if !facts.ok || lane < 0 || lane > 2 { return None; }
-    let low: Int = 0;
-    let high: Int = ArrayLength(facts.node_ids);
-    while low < high {
-        let middle: Int = low + ((high - low) / 2);
-        if facts.node_ids[middle] < node_id {
-            low = middle + 1;
-        } else {
-            high = middle;
-        }
-    }
-    if low >= ArrayLength(facts.node_ids) ||
-        facts.node_ids[low] != node_id { return None; }
-    let root_index: Int = low * 3 + lane;
-    if root_index < 0 ||
-        root_index >= ArrayLength(facts.expression_graph.roots) ||
-        root_index >= ArrayLength(facts.expression_graph.has_roots) ||
-        !facts.expression_graph.has_roots[root_index] { return None; }
-    return Some(facts.expression_graph.roots[root_index]);
+    if !facts.ok { return None; }
+    return SemanticAstExpressionGraphRootForProjection(
+        facts.node_ids, facts.expression_graph, node_id, lane
+    );
 }

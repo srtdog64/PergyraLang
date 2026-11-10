@@ -1,0 +1,53 @@
+// Target value types derived from the one referenced-enum fact.
+
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
+
+func DirectMirScalarProgramReferencedEnumValueTypeReady(
+    type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    return DirectMirScalarProgramPayloadFreeEnumResultTypeReady(
+            type_name, logical_record, referenced_enum) ||
+        DirectMirScalarProgramPayloadEnumOptionTypeReady(
+            referenced_enum, type_name) ||
+        DirectMirScalarProgramReferencedEnumRow(
+            referenced_enum, type_name) >= 0;
+}
+
+func DirectMirScalarProgramCReferencedEnumTargetType(
+    type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> String {
+    let result: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            type_name, logical_record, referenced_enum);
+    if DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            result, logical_record, referenced_enum) { return result.c_type; }
+    let option_type: String =
+        DirectMirScalarProgramCPayloadEnumOptionTypeName(
+            referenced_enum, type_name);
+    if option_type != "" { return option_type; }
+    return DirectMirScalarProgramCPayloadEnumTypeName(
+        referenced_enum, type_name);
+}
+
+func DirectMirScalarProgramLlvmReferencedEnumTargetType(
+    type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> String {
+    let result: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            type_name, logical_record, referenced_enum);
+    if DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            result, logical_record, referenced_enum) { return result.llvm_type; }
+    let option_type: String =
+        DirectMirScalarProgramLlvmPayloadEnumOptionTypeName(
+            referenced_enum, type_name);
+    if option_type != "" { return option_type; }
+    return DirectMirScalarProgramLlvmPayloadEnumTypeName(
+        referenced_enum, type_name);
+}

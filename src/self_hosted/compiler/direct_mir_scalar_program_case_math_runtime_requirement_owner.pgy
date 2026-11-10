@@ -27,7 +27,7 @@ func DirectMirScalarProgramCaseMathRuntimeIdsDigest(
     ref fact: DirectMirScalarProgramCaseMathRuntimeIds
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(263L, fact.replace_id);
+    var hash: Long = DirectMirCfgHashInt(263L, fact.replace_id);
     hash = DirectMirCfgHashInt(hash, fact.abs_id);
     hash = DirectMirCfgHashInt(hash, fact.min_id);
     hash = DirectMirCfgHashInt(hash, fact.max_id);
@@ -128,10 +128,10 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
                 CompilerRuntimeCallAbiMaterialTargetLibrary())) {
         return DirectMirScalarProgramCaseMathRuntimeIdsEmpty();
     }
-    let replace_id: Int = 0; let abs_id: Int = 0;
-    let min_id: Int = 0; let max_id: Int = 0;
-    let long_modulo_id: Int = 0;
-    let long_division_id: Int = 0;
+    var replace_id: Int = 0; var abs_id: Int = 0;
+    var min_id: Int = 0; var max_id: Int = 0;
+    var long_modulo_id: Int = 0;
+    var long_division_id: Int = 0;
     if replace_required { replace_id = replace.runtime_call_abi_id; }
     if abs_required { abs_id = abs.runtime_call_abi_id; }
     if min_required { min_id = min.runtime_call_abi_id; }

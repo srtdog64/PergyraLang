@@ -22,9 +22,9 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
 ) -> DirectMirScalarCfgStringArrayPlan {
     let empty: DirectMirScalarCfgStringArrayPlan =
         DirectMirScalarCfgStringArrayPlanEmpty();
-    let collections: DirectMirScalarCfgStringArrayCollectionSet =
+    var collections: DirectMirScalarCfgStringArrayCollectionSet =
         DirectMirScalarCfgStringArrayCollectionSetEmpty(true);
-    let instruction: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         if admitted.routines.instruction_kinds[global] == "def" &&
@@ -53,9 +53,9 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
         instruction = instruction + 1;
     }
     if ArrayLength(collections.value_ids) == 0 { return empty; }
-    let lengths: DirectMirScalarCfgStringArrayLengthSet =
+    var lengths: DirectMirScalarCfgStringArrayLengthSet =
         DirectMirScalarCfgStringArrayLengthSetEmpty(true);
-    let accesses: DirectMirScalarCfgStringArrayAccessSet =
+    var accesses: DirectMirScalarCfgStringArrayAccessSet =
         DirectMirScalarCfgStringArrayAccessSetEmpty(true);
     // The lookup plan names only the collections: the rows this loop grows
     // would go stale in it.
@@ -64,11 +64,11 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
             true, 0, collections, DirectMirScalarCfgStringArrayLengthSetEmpty(true),
             DirectMirScalarCfgStringArrayAccessSetEmpty(true)
         );
-    let collection_use_count: Int = 0;
-    let claimed_collection_use_count: Int = 0;
-    let block: Int = 0;
+    var collection_use_count: Int = 0;
+    var claimed_collection_use_count: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local_binding: Int = 0;
+        var local_binding: Int = 0;
         while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
                 index.block_instruction_starts[block] + local_binding;
@@ -77,7 +77,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
             let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
                 use_facts, global
             );
-            let use_row: Int = 0;
+            var use_row: Int = 0;
             while use_row < use_count {
                 if DirectMirScalarCfgStringArrayCollectionUse(
                     use_facts, source, global, use_row
@@ -180,7 +180,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                             collections.names[collection_row] {
                         Die("direct MIR String array concat identity is invalid");
                     }
-                    let index_fact: DirectMirScalarCfgStringArrayIndexFact =
+                    var index_fact: DirectMirScalarCfgStringArrayIndexFact =
                         DirectMirScalarCfgStringArrayIndexFactEmpty();
                     if use_count == 3 {
                         let index_use: Option<String> =
@@ -194,7 +194,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                             UnwrapOption(index_use), concat.index.index_name
                         );
                     } else {
-                        let range_row: Int = 0;
+                        var range_row: Int = 0;
                         while range_row < DirectMirScalarCfgRangeFactCount(ranges) {
                             let candidate: DirectMirScalarCfgRangeIterationFact =
                                 DirectMirScalarCfgRangeFactAt(ranges, range_row);
@@ -239,7 +239,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                             collections.names[collection_row] {
                         Die("direct MIR String array Log collection is invalid");
                     }
-                    let index_fact: DirectMirScalarCfgStringArrayIndexFact =
+                    var index_fact: DirectMirScalarCfgStringArrayIndexFact =
                         DirectMirScalarCfgStringArrayIndexFactEmpty();
                     if indexed.index_literal != "" {
                         if use_count != 1 { Die("direct MIR String array literal Log uses are invalid"); }
@@ -256,7 +256,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                             UnwrapOption(index_use), indexed.index_name
                         );
                     } else {
-                        let length_row: Int = 0;
+                        var length_row: Int = 0;
                         while length_row < ArrayLength(lengths.global_rows) {
                             if lengths.collection_rows[length_row] == collection_row &&
                                 lengths.indices.kinds[length_row] ==
@@ -273,7 +273,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                             length_row = length_row + 1;
                         }
                     }
-                    let guard: Int = -1;
+                    var guard: Int = -1;
                     if index_fact.kind !=
                             DirectMirScalarCfgStringArrayIndexLiteral() {
                         guard = DirectMirScalarCfgStringArrayDynamicGuardRow(

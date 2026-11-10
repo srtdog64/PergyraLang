@@ -22,7 +22,7 @@ func ParserExpressionCallableCallee(
     if fact.text == "" || !IsAlpha(ParserCharAt(fact.text, 0)) {
         return false;
     }
-    let i: Int = 1;
+    var i: Int = 1;
     while i < StringLength(fact.text) &&
         IsAlphaNum(ParserCharAt(fact.text, i)) {
         i = i + 1;
@@ -36,8 +36,8 @@ func ApplyPostfixFact(
     after_base: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let base: ParserExpressionFact = base_start;
-    let i: Int = after_base;
+    var base: ParserExpressionFact = base_start;
+    var i: Int = after_base;
 
     // Postfix loop: call, indexing, try, member access, object init, and a
     // leading turbofish whose ordered type actuals belong to the call graph.
@@ -49,11 +49,11 @@ func ApplyPostfixFact(
             // by precedence parsing and is never consumed here. The probe is
             // lexical and local: it must not search through an expression for
             // an unrelated later `>(` pair.
-            let tf: Int = after_ws + 1;
-            let tf_depth: Int = 1;
-            let tf_ok: Bool = false;
+            var tf: Int = after_ws + 1;
+            var tf_depth: Int = 1;
+            var tf_ok: Bool = false;
             let tf_first: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, tf);
-            let tf_scanning: Bool = IsAlpha(
+            var tf_scanning: Bool = IsAlpha(
                 ParserCharAtWithin(content, content_extent, tf_first)
             ) || (ParserCharAtWithin(content, content_extent, tf_first) == "(" &&
                 ParserCharAtWithin(content, content_extent, tf_first + 1) == ")");
@@ -97,9 +97,9 @@ func ApplyPostfixFact(
                 }
             }
             if tf_ok {
-                let actual_cursor: Int = after_ws + 1;
-                let actual_count: Int = 0;
-                let generic_callee: ParserExpressionFact = base;
+                var actual_cursor: Int = after_ws + 1;
+                var actual_count: Int = 0;
+                var generic_callee: ParserExpressionFact = base;
                 while true {
                     actual_cursor = SkipWhitespaceAndCommentsWithin(
                         content, content_extent, content_extent, actual_cursor
@@ -140,7 +140,7 @@ func ApplyPostfixFact(
         }
         if nc == "{" {
             let field_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, after_ws + 1);
-            let probe: Int = field_probe;
+            var probe: Int = field_probe;
             while IsAlphaNum(ParserCharAtWithin(content, content_extent, probe)) {
                 probe = probe + 1;
             }
@@ -154,8 +154,8 @@ func ApplyPostfixFact(
                 break;
             }
             i = after_ws + 1;
-            let init_args: String = "";
-            let struct_literal: ParserExpressionFact =
+            var init_args: String = "";
+            var struct_literal: ParserExpressionFact =
                 ParserExpressionStructLiteral(
                     Concat(base.text, " { }"), base
                 );
@@ -221,9 +221,9 @@ func ApplyPostfixFact(
         }
         if nc == "(" {
             i = after_ws + 1;
-            let arg_text: String = "";
+            var arg_text: String = "";
             let graph_call: Bool = ParserExpressionCallableCallee(base);
-            let call: ParserExpressionFact = ParserExpressionInvalid();
+            var call: ParserExpressionFact = ParserExpressionInvalid();
             if graph_call {
                 call = ParserExpressionCall(
                     Concat(base.text, "()"), base

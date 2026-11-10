@@ -7,10 +7,10 @@ func InspectNumericStringAllocation(
 ) -> Bool {
     let reached: Bool = bundle.verdict.ok ||
         (!bundle.collection_ownership.ok && bundle.collection_ownership.diagnostic_code == "borrow_boundary_escape");
-    let facts: SemanticAstNumericStringAllocationCalls = bundle.numeric_string_allocations;
+    var facts: SemanticAstNumericStringAllocationCalls = bundle.numeric_string_allocations;
     if !reached || !SemanticAstNumericStringAllocationCallsReady(facts) { return false; }
     if mode == "numeric-string-observe" {
-        let row: Int = 0; let digest_found: Bool = false; let indexed_delta_found: Bool = false;
+        var row: Int = 0; var digest_found: Bool = false; var indexed_delta_found: Bool = false;
         while row < ArrayLength(facts.call_nodes) {
             if !SemanticAstNumericStringAllocationCallReady(facts, analysis.expression_surfaces,
                     facts.owner_node_ids[row], facts.lanes[row], facts.terminal_nodes[row]) { return false; }

@@ -26,7 +26,7 @@ func InvalidDirectMirRoutineParamFact() -> DirectMirRoutineParamFact {
 func DirectMirRoutineParamFactDigestFromFields(
     name: String, source_syntax_id: Int, type_name: String, carriage: String, resource: String,
     pass_shape: String, abi_type_name: String, abi_layout_id: Int, abi_required: Bool) -> Int {
-    let hash: Long = DirectMirCfgHashString(103L, name);
+    var hash: Long = DirectMirCfgHashString(103L, name);
     hash = DirectMirCfgHashInt(hash, source_syntax_id);
     hash = DirectMirCfgHashString(hash, type_name);
     hash = DirectMirCfgHashString(hash, carriage);
@@ -79,10 +79,10 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
         "name", "source_syntax_id", "type", "carriage", "resource", "pass",
         "abi_type_name", "abi_layout_id", "abi_layout_required", "abi_layout"
     ];
-    let starts: Array<Int> = [
+    var starts: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    let ends: Array<Int> = [
+    var ends: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
@@ -96,7 +96,7 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
         json, json_extent, starts[0], ends[0], false
     );
     let source_syntax_id: Option<String> = MirAbiIntegerValueAtBounds(json, json_extent, starts[1], ends[1]);
-    let type_name: Option<String> = MirAbiStringValueAtBounds(
+    var type_name: Option<String> = MirAbiStringValueAtBounds(
         json, json_extent, starts[2], ends[2], false
     );
     let carriage: Option<String> = MirAbiStringValueAtBounds(
@@ -108,7 +108,7 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
     let pass_shape: Option<String> = MirAbiStringValueAtBounds(
         json, json_extent, starts[5], ends[5], false
     );
-    let abi_type_name: Option<String> = MirAbiStringValueAtBounds(
+    var abi_type_name: Option<String> = MirAbiStringValueAtBounds(
         json, json_extent, starts[6], ends[6], false
     );
     let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
@@ -141,7 +141,7 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
     if (!required && !not_required) || (receiver_type != "" && required) {
         return InvalidDirectMirRoutineParamFact();
     }
-    let abi: MirAbiLayoutRowCapture = InvalidMirAbiLayoutRowCapture();
+    var abi: MirAbiLayoutRowCapture = InvalidMirAbiLayoutRowCapture();
     if required {
         let admitted: Option<MirAbiLayoutRowCapture> =
             MirCapturedRequiredAbiLayoutRowAdmission(

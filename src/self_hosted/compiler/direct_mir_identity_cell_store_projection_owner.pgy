@@ -16,7 +16,7 @@ func DirectMirIdentityCellCStore(
         plan, plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
         plan.program.logical_record, plan.program.referenced_enum, plan.routines, routine,
         target, plan.program.array_string_abi, array_string_projection);
-    let output: String = "    pgy_param_0->field_" + ToString(member) + " = " + value + ";\n";
+    var output: String = "    pgy_param_0->field_" + ToString(member) + " = " + value + ";\n";
     if result >= 0 { output = output + "    pgy_local_" + ToString(plan.value_local_rows[result]) + " = pgy_param_0;\n"; }
     return output;
 }
@@ -39,10 +39,13 @@ func DirectMirIdentityCellLlvmStore(
         plan.program.array_int_value_result, array_int_projection, target);
     if !value.valid || value.type_name != field_type { Die("direct MIR LLVM identity cell store value is invalid"); }
     let address: String = "%pgy.cell.store." + ToString(operation);
-    let output: String = value.instructions + "  " + address + " = getelementptr " +
+    var output: String = value.instructions + "  " + address + " = getelementptr " +
         DirectMirIdentityCellLlvmType(plan.program.logical_record.identity_cells, type_name) +
         ", ptr %pgy.param.0, i32 0, i32 " + ToString(member) + "\n  store " +
-        DirectMirIdentityCellLlvmFieldType(plan.program.logical_record.identity_cells, field_type) + " " + value.value + ", ptr " + address + "\n";
+        DirectMirIdentityCellLlvmFieldType(
+            plan.program.logical_record.identity_cells,
+            plan.program.referenced_enum, field_type) + " " + value.value +
+        ", ptr " + address + "\n";
     if result >= 0 { output = output + "  store ptr %pgy.param.0, ptr %pgy.local." + ToString(plan.value_local_rows[result]) + ", align 8\n"; }
     return output;
 }

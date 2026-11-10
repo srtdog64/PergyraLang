@@ -14,8 +14,8 @@ func DirectMirScalarCfgBorrowedCollectionFactsReady(
             ArrayLength(index.source_local_types) {
         return false;
     }
-    let collection_count: Int = 0;
-    let local_row: Int = 0;
+    var collection_count: Int = 0;
+    var local_row: Int = 0;
     while local_row < index.declared_source_local_count {
         if index.source_local_types[local_row] ==
                 CompilerAbiLayoutArrayStringTypeName() {

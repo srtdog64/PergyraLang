@@ -11,6 +11,7 @@
 #include "capability_analyze.h"
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "collection_ownership_fact.h"
 #include "default_aggregate_move_owner.h"
 #include "allocator_lane_loan_owner.h"
 #include "string_window_extent.h"
@@ -94,7 +95,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     size_t topo_count = 0;
     size_t validated_node_count = 0;
     size_t validated_edge_count = 0;
-    bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
+    bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL
+        || getenv("PGY_DEBUG_SEMANTIC_PHASE_TIMING") != NULL;
     double t_mark = 0.0;
     double t_identity_host_index = 0.0;
     double t_precollect = 0.0;
@@ -573,6 +575,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
     if (timing) {
         t_pass2 = program_timing_now() - t_mark;
+        t_mark = program_timing_now();
         fprintf(stderr,
                 "[semantic timing] type_check_program:"
                 " identity_host_index=%.3f precollect=%.3f"
@@ -584,38 +587,205 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         type_check_stmt_debug_visit_report();
     }
 
+    if (!semantic_param_publication_seal_inputs(ctx)) {
+        if (!ctx->has_error)
+            semantic_error(ctx, program,
+                "Typed parameter publication input sealing failed closed");
+        free(topo_order);
+        return false;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] seal_inputs=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (!semantic_param_publication_prepare_flow_summaries(ctx)) {
+        if (!ctx->has_error)
+            semantic_error(ctx, program,
+                "Typed parameter flow preparation failed closed");
+        free(topo_order);
+        return false;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] prepare_flow=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    /* Copy landing consumes the sealed generation before escape diagnostics,
+     * but owns no safety diagnostic. The complete move checker remains in
+     * its original downstream position. */
+    if (!semantic_default_aggregate_landing_prepare(ctx)) {
+        if (!ctx->has_error)
+            semantic_error(ctx, program,
+                "Aggregate copy landing failed closed");
+        free(topo_order);
+        return false;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] aggregate_landing=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
     if (!semantic_param_publication_finalize(ctx)) {
         if (!ctx->has_error)
-            semantic_error(ctx, program, "Final typed parameter publication failed closed");
+            semantic_error(ctx, program,
+                "Final typed parameter publication failed closed");
         free(topo_order);
         return false;
     }
-    if (!semantic_array_storage_deferral_finalize(ctx)
-        || !semantic_collection_owned_element_requirements_finalize(ctx)
-        || !semantic_string_window_extent_finalize(ctx)
-        || !semantic_default_aggregate_move_finalize(ctx)
-        || !semantic_allocator_lane_loan_finalize(ctx)
-        || !semantic_indexed_string_named_call_finalize(ctx)) {
+    if (timing) {
+        fprintf(stderr, "[semantic phase] publication_finalize=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    size_t finalizer_copies_before = ctx->loan_copy_landing_selected_count;
+    size_t finalizer_stores_before = ctx->string_store_landing_selected_count;
+    bool owned_requirements_finalized =
+        semantic_collection_owned_string_results_prepare(ctx)
+        && semantic_array_storage_deferral_finalize(ctx)
+        && semantic_collection_owned_element_requirements_finalize(ctx);
+    if (!owned_requirements_finalized) {
         free(topo_order);
         return false;
     }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] owned_results=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] final_phase=owned copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
+    bool deferred_discovery = false;
+    if (!semantic_string_window_extent_finalize(ctx)) {
+        if (!ctx->has_error || !ctx->loan_copy_landing_has_deferred_error
+            || (ctx->loan_copy_landing_selected_count
+                    == finalizer_copies_before
+                && ctx->string_store_landing_selected_count
+                    == finalizer_stores_before)) {
+            free(topo_order);
+            return false;
+        }
+        ctx->has_error = false;
+        if (!semantic_default_aggregate_landing_discover_finalized(ctx)) {
+            free(topo_order);
+            return false;
+        }
+        /* Diagnostics from this planning walk describe the already rejected
+         * generation.  They grant no fact and must not prevent downstream
+         * owners from discovering their exact plans; the mandatory replay
+         * emits any error that survives those plans. */
+        ctx->has_error = false;
+        deferred_discovery = true;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] window=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] final_phase=window copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
+    if (!deferred_discovery
+        && !semantic_default_aggregate_move_finalize(ctx)) {
+        free(topo_order);
+        return false;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] aggregate_finalize=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] final_phase=aggregate copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
+    if (!semantic_allocator_lane_loan_finalize(ctx)) {
+        free(topo_order);
+        return false;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] allocator_finalize=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] final_phase=allocator copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
+    if (!semantic_indexed_string_named_call_finalize(ctx)) {
+        free(topo_order);
+        return false;
+    }
+    if (timing) {
+        fprintf(stderr, "[semantic phase] named_call_finalize=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] final_phase=named_call copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
 
     /* Pass 2 normally consumes the precollected graph.  If a legacy checker
      * still adds a dependency, validate that new graph generation exactly
      * once instead of unconditionally revalidating an unchanged graph. */
+    if (timing) fprintf(stderr,
+        "[semantic timing] post_phase=pre_graph copies=%zu stores=%zu error=%d changed=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0,
+        (ctx->type_resolution_graph.node_count != validated_node_count
+            || ctx->type_resolution_graph.edge_count != validated_edge_count)
+            ? 1 : 0);
     if ((ctx->type_resolution_graph.node_count != validated_node_count
          || ctx->type_resolution_graph.edge_count != validated_edge_count)
         && !type_resolution_validate_graph(ctx)) {
         free(topo_order);
         return false;
     }
+    if (timing) fprintf(stderr,
+        "[semantic timing] post_phase=graph copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
     semantic_maybe_print_type_resolution_stats(ctx);
 
     semantic_future_require_scope_retired(
         ctx->scope, program, ctx, "program exit");
+    if (timing) fprintf(stderr,
+        "[semantic timing] post_phase=future copies=%zu stores=%zu error=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
 
     free(topo_order);
-    return callable_capability_seal(ctx) && !ctx->has_error
-        && semantic_indexed_string_borrow_prepare(ctx)
-        && semantic_indexed_string_borrow_finalize(ctx);
+    bool capability_ok = callable_capability_seal(ctx);
+    if (timing) fprintf(stderr,
+        "[semantic timing] post_phase=capability copies=%zu stores=%zu error=%d ok=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0,
+        capability_ok ? 1 : 0);
+    if (!capability_ok || ctx->has_error) return false;
+    size_t receipt_copies_before = ctx->loan_copy_landing_selected_count;
+    size_t receipt_stores_before = ctx->string_store_landing_selected_count;
+    if (timing) fprintf(stderr,
+        "[semantic timing] post_phase=receipt_enter copies=%zu stores=%zu error=%d ready=%d\n",
+        receipt_copies_before, receipt_stores_before, ctx->has_error ? 1 : 0,
+        semantic_param_publication_ready(ctx) ? 1 : 0);
+    bool receipt_prepare_ok = semantic_indexed_string_borrow_prepare(ctx);
+    if (timing) {
+        fprintf(stderr, "[semantic phase] post_and_receipts=%.3f\n",
+            program_timing_now() - t_mark);
+        t_mark = program_timing_now();
+    }
+    if (timing) fprintf(stderr,
+        "[semantic timing] post_phase=receipt_exit copies=%zu stores=%zu error=%d ok=%d\n",
+        ctx->loan_copy_landing_selected_count,
+        ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0,
+        receipt_prepare_ok ? 1 : 0);
+    if (!receipt_prepare_ok) {
+        return false;
+    }
+    if (deferred_discovery) return false;
+    return semantic_indexed_string_borrow_finalize(ctx);
 }

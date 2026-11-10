@@ -16,8 +16,8 @@ func MirAssignmentBindingModesMatchSemanticFacts(
         !MirStructuredExpressionEmissionOrderReady(order) {
         return false;
     }
-    let assignment_i: Int = 0;
-    let order_i: Int = 0;
+    var assignment_i: Int = 0;
+    var order_i: Int = 0;
     let order_count: Int = ArrayLength(order.global_instruction_rows);
     let instruction_count: Int = ArrayLength(routines.instruction_starts);
     while order_i < order_count {
@@ -29,7 +29,7 @@ func MirAssignmentBindingModesMatchSemanticFacts(
             routines.instruction_kinds[global_row];
         let source: String = routines.instruction_source_types[global_row];
         let assignment_source: Bool = source == "AST_ASSIGNMENT";
-        let scalar: MirRoutineInstructionScalarCapture =
+        var scalar: MirRoutineInstructionScalarCapture =
             InvalidMirRoutineInstructionScalarCapture();
         if assignment_source || source == "AST_DEFER_STMT" {
             scalar = MirRoutineInstructionScalarCaptureWithin(

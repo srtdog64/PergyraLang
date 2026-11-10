@@ -7,12 +7,10 @@ import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_option_match_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 import "direct_mir_routine_instance_input_owner.pgy";
-func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput,
-    own route: DirectMirScalarProgramRouteFact) -> DirectMirScalarCfgGraphPlan {
+func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput, own route: DirectMirScalarProgramRouteFact) -> DirectMirScalarCfgGraphPlan {
     if !DirectMirScalarProgramRouteFactReady(route) {
-        Die("direct MIR scalar CFG program route is invalid");
-    }
-    let cell: Int = 0;
+        Die("direct MIR scalar CFG program route is invalid"); }
+    var cell: Int = 0;
     while cell < ArrayLength(route.logical_record.identity_cells.names) {
         if route.logical_record.identity_cells.nominal_kinds[cell] == "zone" &&
             (ArrayLength(admitted.domain_topology_plan.owner_names) != 0 ||
@@ -24,82 +22,116 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
     }
     let producer: DirectMirArrayIntProducerFact = DirectMirArrayIntProducerFactEmpty();
     let entry_signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(route.routine_instances, 0);
-    let entry: DirectMirScalarCfgGraphInput = DirectMirScalarCfgProgramGraphInputFromAdmitted(
-            admitted, route.entrypoint_row, producer, entry_signature.parameters.names);
+    let entry: DirectMirScalarCfgGraphInput = DirectMirScalarCfgProgramGraphInputFromAdmitted(admitted, route.entrypoint_row, producer, entry_signature.parameters.names);
     let callables: DirectMirScalarCfgProgramCallableInventory =
         DirectMirScalarCfgProgramCallableInventoryFromAdmitted(admitted, route.routine_instances,
-            route.logical_record, route.payload_free_enum, route.referenced_enum);
+            route.logical_record, route.payload_free_enum,
+            route.referenced_enum, route.opaque_readonly_zones);
     if !DirectMirScalarCfgProgramCallableInventoryReady(
-            callables, ArrayLength(route.routine_rows)) {
-        Die("direct MIR scalar CFG program callable inventory is invalid");
-    }
-    let storage: DirectMirScalarCfgProgramGraphStorage =
-        DirectMirScalarCfgProgramGraphStorageEmpty();
-    let expressions: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetEmpty();
-    let collection_ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact =
-        DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty();
-    let cfg_digests: Array<Int> = [];
-    let option_int_abi: DirectMirOptionMatchAbiFact =
-        DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(route.logical_record);
-    let result_int_abi: DirectMirResultIntAbiFact = DirectMirResultIntAbiFactEmpty();
-    let option_string_abi: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFactEmpty();
-    let option_bool_abi: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFactEmpty();
-    let ordinal: Int = 0;
+            callables, route.routine_instances,
+            ArrayLength(route.routine_rows)) {
+        Die("direct MIR scalar CFG program callable inventory is invalid"); }
+    // Keep the routine fold in one owner.  A separate call-result carrier
+    // would only borrow the String-bearing rows returned from the prior
+    // accumulator and could not prove their retirement across the loop.
+    var routine_state: DirectMirScalarCfgProgramRoutineAdmission =
+        DirectMirScalarCfgProgramRoutineAdmission(
+            true, DirectMirScalarCfgProgramGraphStorageEmpty(),
+            DirectMirScalarProgramExpressionSetEmpty(),
+            DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(
+                route.logical_record),
+            DirectMirScalarResultAbiSetEmpty(),
+            DirectMirOptionMatchAbiFactEmpty(),
+            DirectMirOptionMatchAbiFactEmpty(),
+            DirectMirScalarCfgRangeFactSetEmpty(),
+            DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty()
+        );
+    var cfg_digests: Array<Int> = [];
+    var parameter_flow_masks: Array<Int> = [];
+    var parameter_array_preserved: Array<Int> = [];
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(route.routine_rows) {
-        let input: DirectMirScalarCfgGraphInput = entry;
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineInstanceSignatureAt(
+                route.routine_instances, ordinal);
+        var input: DirectMirScalarCfgGraphInput = entry;
         if ordinal > 0 {
-            let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(route.routine_instances, ordinal);
             input = DirectMirScalarCfgProgramGraphInputFromAdmitted(
                 admitted, route.routine_rows[ordinal], producer, signature.parameters.names);
         }
         ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
         input = DirectMirRoutineInstanceGraphInput(
             input, admitted.routines.source_json, admitted.routines.source_json_extent, route.routine_instances, ordinal);
-        let admission: DirectMirScalarCfgProgramRoutineAdmission =
-            DirectMirScalarCfgProgramAppendRoutine(
-                admitted, route.routine_rows[ordinal], ordinal, callables, input,
-                storage, expressions, collection_ownership, option_int_abi, option_string_abi,
-                option_bool_abi, result_int_abi, route.logical_record,
+        var flow_row: Int = 0;
+        while flow_row < ArrayLength(
+                input.index.function_param_flow_parameter_indices) {
+            if input.index.function_param_flow_parameter_indices[flow_row] >=
+                    signature.param_count {
+                Die("direct MIR scalar CFG parameter flow identity is invalid");
+            }
+            flow_row = flow_row + 1;
+        }
+        var parameter: Int = 0;
+        while parameter < signature.param_count {
+            var mask: Int = -1;
+            var preserved: Int = -1;
+            flow_row = 0;
+            while flow_row < ArrayLength(
+                    input.index.function_param_flow_parameter_indices) {
+                if input.index.function_param_flow_parameter_indices[
+                        flow_row] == parameter {
+                    mask = input.index.function_param_flow_masks[flow_row];
+                    preserved = input.index.
+                        function_param_flow_array_preserved[flow_row];
+                }
+                flow_row = flow_row + 1;
+            }
+            ArrayPush(parameter_flow_masks, mask);
+            ArrayPush(parameter_array_preserved, preserved);
+            parameter = parameter + 1;
+        }
+        routine_state = DirectMirScalarCfgProgramAppendRoutine(
+                admitted, route.routine_rows[ordinal], ordinal, callables,
+                route.routine_instances, input,
+                routine_state.storage, routine_state.expressions,
+                routine_state.ranges,
+                routine_state.collection_ownership,
+                routine_state.option_int_abi, routine_state.option_string_abi,
+                routine_state.option_bool_abi, routine_state.result_abi,
+                route.logical_record,
                 route.payload_free_enum, route.referenced_enum,
                 route.array_int_value_result, route.array_bool_abi,
                 route.array_string_abi
             );
-        if !admission.valid {
-            Die(Concat(
-                "direct MIR scalar CFG program routine admission is invalid: ordinal=",
-                ToString(ordinal)));
-        }
-        storage = admission.storage;
-        expressions = admission.expressions;
-        collection_ownership = admission.collection_ownership;
-        option_int_abi = admission.option_int_abi;
-        result_int_abi = admission.result_int_abi;
-        option_string_abi = admission.option_string_abi;
-        option_bool_abi = admission.option_bool_abi;
+        if !routine_state.valid {
+            Die(Concat("direct MIR scalar CFG program routine admission is invalid: ordinal=",
+                ToString(ordinal))); }
         ordinal = ordinal + 1;
     }
     let partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgProgramRoutinePartitionFromOwners(
-            route.routine_instances, cfg_digests,
-            storage.routines.local_counts, storage.routines.value_counts,
-            storage.routines.block_counts,
-            storage.routines.operation_counts,
-            storage.routines.phi_counts,
+            route.routine_instances, cfg_digests, routine_state.storage.routines.local_counts,
+            routine_state.storage.routines.value_counts,
+            routine_state.storage.routines.block_counts,
+            routine_state.storage.routines.operation_counts,
+            routine_state.storage.routines.phi_counts,
+            parameter_flow_masks, parameter_array_preserved,
             route.logical_record, route.payload_free_enum,
-            route.referenced_enum
+            route.referenced_enum, route.opaque_readonly_zones
         );
-    let program: DirectMirScalarCfgProgramExtensionFact =
-        DirectMirScalarCfgProgramExtensionFromOwners(
-            admitted, route, callables, storage, expressions, collection_ownership,
-            option_int_abi, result_int_abi, option_string_abi,
-            option_bool_abi,
-            storage.blocks.condition_expression_rows,
-            storage.operations.expression_rows,
-            storage.operations.secondary_expression_rows,
-            storage.blocks.return_expression_rows
+    let preparation: DirectMirScalarCfgProgramExtensionPreparation = DirectMirScalarCfgProgramExtensionPreparationFromOwners(
+            admitted, route, callables, routine_state.storage,
+            routine_state.expressions, routine_state.option_int_abi,
+            routine_state.result_abi, routine_state.option_string_abi, routine_state.option_bool_abi);
+    let program: DirectMirScalarCfgProgramExtensionFact = DirectMirScalarCfgProgramExtensionFromPreparation(
+            preparation, routine_state.collection_ownership,
+            routine_state.storage.blocks.condition_expression_rows,
+            routine_state.storage.operations.expression_rows,
+            routine_state.storage.operations.secondary_expression_rows,
+            routine_state.storage.operations.target_paths,
+            routine_state.storage.blocks.return_expression_rows
         );
-    let value_storage: DirectMirScalarCfgProgramValueStorage = storage.values;
+    let value_storage: DirectMirScalarCfgProgramValueStorage = routine_state.storage.values;
     let value_plans: DirectMirScalarCfgProgramValuePlans =
         DirectMirScalarCfgProgramValuePlansFromStorage(value_storage);
     let locals: DirectMirScalarCfgLocalRefPlan = value_plans.locals;
@@ -107,23 +139,30 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
     let partition_digest: Int = partition.digest;
     return DirectMirScalarCfgSealGraphPlan(
         admitted, partition, partition_digest, locals, types,
-        storage.blocks.succ_true, storage.blocks.succ_false,
-        storage.blocks.operation_starts, storage.blocks.operation_counts,
-        storage.blocks.condition_kinds,
-        storage.blocks.condition_left_values,
-        storage.blocks.condition_right_values,
-        storage.blocks.condition_left_locals,
-        storage.blocks.condition_right_locals,
-        storage.blocks.condition_left_literals,
-        storage.blocks.condition_right_literals,
-        storage.operations.kinds, storage.operations.result_values,
-        storage.operations.left_values, storage.operations.right_values,
-        storage.operations.left_locals, storage.operations.right_locals,
-        storage.operations.left_literals, storage.operations.right_literals,
-        storage.operations.phi_starts, storage.operations.phi_counts,
-        storage.operations.phi_predecessor_blocks,
-        storage.operations.phi_incoming_values,
-        entry.ranges, entry.foreach_facts,
+        routine_state.storage.blocks.succ_true,
+        routine_state.storage.blocks.succ_false,
+        routine_state.storage.blocks.operation_starts,
+        routine_state.storage.blocks.operation_counts,
+        routine_state.storage.blocks.condition_kinds,
+        routine_state.storage.blocks.condition_left_values,
+        routine_state.storage.blocks.condition_right_values,
+        routine_state.storage.blocks.condition_left_locals,
+        routine_state.storage.blocks.condition_right_locals,
+        routine_state.storage.blocks.condition_left_literals,
+        routine_state.storage.blocks.condition_right_literals,
+        routine_state.storage.operations.kinds,
+        routine_state.storage.operations.result_values,
+        routine_state.storage.operations.left_values,
+        routine_state.storage.operations.right_values,
+        routine_state.storage.operations.left_locals,
+        routine_state.storage.operations.right_locals,
+        routine_state.storage.operations.left_literals,
+        routine_state.storage.operations.right_literals,
+        routine_state.storage.operations.phi_starts,
+        routine_state.storage.operations.phi_counts,
+        routine_state.storage.operations.phi_predecessor_blocks,
+        routine_state.storage.operations.phi_incoming_values,
+        routine_state.ranges, entry.foreach_facts,
         entry.foreach_elements, entry.string_arrays,
         entry.array_int_program, entry.collections, program
     );

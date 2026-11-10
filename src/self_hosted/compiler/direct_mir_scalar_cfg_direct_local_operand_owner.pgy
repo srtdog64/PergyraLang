@@ -6,7 +6,7 @@ func DirectMirScalarCfgDirectLocalOperandRow(
     ref wire: DirectMirScalarCfgWireLocalRefs,
     instruction_row: Int, node: Int, node_text: String
 ) -> Int {
-    let local_row: Int = -1;
+    var local_row: Int = -1;
     if wire.required {
         let direct_ref: String = DirectMirScalarCfgWireExprRefAt(
             wire, instruction_row, node
@@ -16,7 +16,7 @@ func DirectMirScalarCfgDirectLocalOperandRow(
             local_refs.local_ref_value_ids, direct_ref
         );
     } else {
-        let row: Int = 0;
+        var row: Int = 0;
         while row < ArrayLength(local_refs.local_names) {
             if (local_refs.local_ref_kinds[row] ==
                     DirectMirScalarCfgLocalRefIteration() ||

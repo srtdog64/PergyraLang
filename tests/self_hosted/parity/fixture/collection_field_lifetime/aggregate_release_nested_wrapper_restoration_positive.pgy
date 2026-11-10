@@ -1,0 +1,38 @@
+// A wrapper may restore a consumed default aggregate from a nested result
+// field when every carried storage path has the same formal origin.
+struct NestedWrapperFacts {
+    names: Array<String>;
+    ids: Array<Int>;
+}
+
+struct NestedWrapperAdmission {
+    recognized: Bool;
+    facts: NestedWrapperFacts;
+}
+
+func NestedWrapperUpdate(
+    facts: NestedWrapperFacts
+) -> NestedWrapperAdmission {
+    let names: Array<String> = facts.names;
+    let ids: Array<Int> = facts.ids;
+    ArrayPushOwnedString(names, "next");
+    return NestedWrapperAdmission(
+        true, NestedWrapperFacts(names, ids));
+}
+
+func NestedWrapperForward(
+    facts: NestedWrapperFacts
+) -> NestedWrapperFacts {
+    let update: NestedWrapperAdmission = NestedWrapperUpdate(facts);
+    if update.recognized { return update.facts; }
+    facts = update.facts;
+    return facts;
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let ids: Array<Int> = [];
+    let facts: NestedWrapperFacts = NestedWrapperFacts(names, ids);
+    let updated: NestedWrapperFacts = NestedWrapperForward(facts);
+    let count: Int = ArrayLength(updated.names);
+}

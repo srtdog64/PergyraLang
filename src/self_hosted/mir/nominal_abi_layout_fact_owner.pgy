@@ -49,8 +49,8 @@ func SelfMirNominalUniqueStructIndex(
     if candidate_row < 0 || candidate_row >= ArrayLength(candidate_names) {
         return None;
     }
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(names) {
         if nominal_kinds[row] == "struct" &&
             names[row] == candidate_names[candidate_row] {
@@ -98,7 +98,7 @@ func SelfMirNominalAbiLayoutsCapture(
     ref field_names: Array<String>, ref field_kinds: Array<String>,
     ref field_types: Array<String>
 ) -> SelfMirNominalAbiLayoutRows {
-    let layouts: SelfMirNominalAbiLayoutRows =
+    var layouts: SelfMirNominalAbiLayoutRows =
         SelfMirNominalAbiLayoutRowsEmpty();
     let declaration_count: Int = ArrayLength(names);
     if ArrayLength(nominal_kinds) != declaration_count ||
@@ -109,17 +109,17 @@ func SelfMirNominalAbiLayoutsCapture(
         layouts.ready = false;
         return layouts;
     }
-    let required: Array<Int> = layouts.required;
-    let layout_ids: Array<Int> = layouts.layout_ids;
-    let layout_sizes: Array<Int> = layouts.sizes;
-    let layout_aligns: Array<Int> = layouts.aligns;
-    let layout_field_starts: Array<Int> = layouts.field_starts;
-    let layout_field_counts: Array<Int> = layouts.field_counts;
-    let layout_field_names: Array<String> = [];
-    let layout_field_offsets: Array<Int> = layouts.field_offsets;
-    let layout_field_sizes: Array<Int> = layouts.field_sizes;
-    let layout_field_aligns: Array<Int> = layouts.field_aligns;
-    let row: Int = 0;
+    var required: Array<Int> = layouts.required;
+    var layout_ids: Array<Int> = layouts.layout_ids;
+    var layout_sizes: Array<Int> = layouts.sizes;
+    var layout_aligns: Array<Int> = layouts.aligns;
+    var layout_field_starts: Array<Int> = layouts.field_starts;
+    var layout_field_counts: Array<Int> = layouts.field_counts;
+    var layout_field_names: Array<String> = [];
+    var layout_field_offsets: Array<Int> = layouts.field_offsets;
+    var layout_field_sizes: Array<Int> = layouts.field_sizes;
+    var layout_field_aligns: Array<Int> = layouts.field_aligns;
+    var row: Int = 0;
     while row < declaration_count {
         ArrayPush(required, 0);
         ArrayPush(layout_ids, 0);
@@ -129,9 +129,9 @@ func SelfMirNominalAbiLayoutsCapture(
         ArrayPush(layout_field_counts, 0);
         row = row + 1;
     }
-    let pass: Int = 0;
+    var pass: Int = 0;
     while pass < declaration_count {
-        let progress: Int = 0;
+        var progress: Int = 0;
         row = 0;
         while row < declaration_count {
             if nominal_kinds[row] != "struct" || required[row] == 1 {
@@ -140,14 +140,14 @@ func SelfMirNominalAbiLayoutsCapture(
             }
             let count: Int = field_counts[row];
             let start: Int = field_starts[row];
-            let offsets: Array<Int> = [];
-            let sizes: Array<Int> = [];
-            let aligns: Array<Int> = [];
-            let cursor: Int = 0;
-            let max_align: Int = 1;
-            let complete: Bool = count > 0 && count <= 8 && start >= 0 &&
+            var offsets: Array<Int> = [];
+            var sizes: Array<Int> = [];
+            var aligns: Array<Int> = [];
+            var cursor: Int = 0;
+            var max_align: Int = 1;
+            var complete: Bool = count > 0 && count <= 8 && start >= 0 &&
                 start + count <= ArrayLength(field_names);
-            let field_i: Int = 0;
+            var field_i: Int = 0;
             while field_i < count && complete {
                 let field_row: Int = start + field_i;
                 let physical: SelfMirNominalFieldLayout =

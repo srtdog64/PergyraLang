@@ -11,7 +11,7 @@ func Copy(ref box: Box) -> Box {
 }
 
 func Main() -> Int {
-    let a: Box = Box([1], StringConcat("a", ""));
+    var a: Box = Box([1], StringConcat("a", ""));
     let b: Box = Copy(a);
     ArrayPush(a.items, 2);
     Print(ToString(ArrayLength(b.items)));

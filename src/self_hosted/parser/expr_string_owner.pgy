@@ -47,8 +47,8 @@ func ParserExpressionInterpolationValue(
 func ParserInterpolationOpenerEscaped(
     s: String, segment_start: Int, opener: Int
 ) -> Bool {
-    let slashes: Int = 0;
-    let p: Int = opener;
+    var slashes: Int = 0;
+    var p: Int = opener;
     while p > segment_start && ParserCharAt(s, p - 1) == "\\" {
         slashes = slashes + 1;
         p = p - 1;
@@ -61,9 +61,9 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
     if StringIndexOf(s, "${") < 0 {
         return ParserExpressionStringLiteral(s);
     }
-    let i: Int = 1;
-    let segment_start: Int = 1;
-    let expression: ParserExpressionFact = ParserExpressionInvalid();
+    var i: Int = 1;
+    var segment_start: Int = 1;
+    var expression: ParserExpressionFact = ParserExpressionInvalid();
     let content_end: Int = n - 1;
     while i < content_end {
         if ParserCharAt(s, i) == "$" && ParserCharAt(s, i + 1) == "{" {
@@ -135,9 +135,9 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
     if StringIndexOf(s, "{") < 0 {
         return ParserExpressionStringLiteral(s);
     }
-    let i: Int = 1;
-    let segment_start: Int = 1;
-    let expression: ParserExpressionFact = ParserExpressionInvalid();
+    var i: Int = 1;
+    var segment_start: Int = 1;
+    var expression: ParserExpressionFact = ParserExpressionInvalid();
     let content_end: Int = n - 1;
     while i < content_end {
         if ParserCharAt(s, i) == "{" {

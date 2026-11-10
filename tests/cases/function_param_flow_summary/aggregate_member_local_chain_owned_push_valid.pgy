@@ -1,0 +1,38 @@
+// Immutable aggregate carriers preserve one exact formal-relative field path.
+// The String Array is restored through both carriers and the moved root returns.
+struct Names {
+    values: Array<String>;
+    labels: Array<String>;
+}
+
+struct Rows {
+    names: Names;
+}
+
+struct State {
+    rows: Rows;
+}
+
+func Append(state: State) -> State {
+    var rows: Rows = state.rows;
+    var names: Names = rows.names;
+    var values: Array<String> = names.values;
+    var labels: Array<String> = names.labels;
+    ArrayPushOwnedString(values, Concat("b", ""));
+    ArrayPushOwnedString(labels, Concat("y", ""));
+    names.values = values;
+    names.labels = labels;
+    rows.names = names;
+    state.rows = rows;
+    return state;
+}
+
+func Main() -> Int {
+    var state: State = State(Rows(Names(
+        [Concat("a", "")], [Concat("x", "")]
+    )));
+    state = Append(state);
+    Print(state.rows.names.values[1]);
+    Log(ArrayLength(state.rows.names.values));
+    return 0;
+}

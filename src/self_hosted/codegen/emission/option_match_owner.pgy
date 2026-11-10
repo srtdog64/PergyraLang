@@ -41,7 +41,7 @@ func EmitOptionMatchCaseLine(
     }
     let inner_type: String =
         CodegenOptionMatchInnerTypeOrDie(subject_type, env);
-    let condition: String = "";
+    var condition: String = "";
     if fact.variant == "None" && ArrayLength(fact.bindings) == 0 {
         condition = Concat(
             "!", Concat(OptionResultRuntimeCOptionIsSomeFn(),
@@ -55,7 +55,7 @@ func EmitOptionMatchCaseLine(
     } else {
         Die(Concat("Option match case shape is invalid: ", fact.pattern));
     }
-    let prefix: String = "if (";
+    var prefix: String = "if (";
     if match_case_count != 0 { prefix = "} else if ("; }
     return Concat(prefix, Concat(condition, ") {\n"));
 }
@@ -80,7 +80,7 @@ func BindOptionMatchPayload(
         Concat("(", Concat(rendered_match_value, ")"))
     );
     CodegenTypeEnvStateAppendTypedValueBinding(
-        env_state, env, fact.bindings[0], inner_type,
+        env_state, fact.bindings[0], inner_type,
         CodegenBindingEnvKind(inner_type, env), c_value
     );
 }

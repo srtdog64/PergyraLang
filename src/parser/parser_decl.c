@@ -143,7 +143,7 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
              * value-result (copy-in/copy-out), not a live Rust-style borrow,
              * so the '&mut' sigil would mislabel it. */
             mode = PARAM_MODE_REF;
-            if (parser_current_is_retired_spelling(parser, PGY_RETIRED_SPELLING_MUT)) {
+            if (parser_current_is_language_word(parser, PGY_LANGUAGE_WORD_MUT)) {
                 parser_error(parser,
                     "'&mut' is not a binding mode in this language.\n"
                     "Reason: the mutation is value-result (copy-in/copy-out), "
@@ -604,15 +604,11 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             // 필드
             /* A `let name` field is immutable after construction; a
              * `var name` field, a bare struct field and a vessel field are
-             * mutable. `let mut name` is retired in favour of `var name`. */
+             * mutable. `let mut name` is an alias of `var name`. */
             bool field_is_mutable = !has_let;
             if (has_let
-                && parser_current_is_retired_spelling(parser, PGY_RETIRED_SPELLING_MUT)
+                && parser_current_is_language_word(parser, PGY_LANGUAGE_WORD_MUT)
                 && parser_peek_next(parser).type == TOKEN_IDENTIFIER) {
-                parser_error(parser,
-                    "`let mut` is no longer a field form.\n"
-                    "Reason: a mutable field is spelled `var`.\n"
-                    "Fix: write `var name: Type;` instead of `let mut name: Type;`.");
                 parser_advance(parser); /* consume 'mut' */
                 field_is_mutable = true;
             }

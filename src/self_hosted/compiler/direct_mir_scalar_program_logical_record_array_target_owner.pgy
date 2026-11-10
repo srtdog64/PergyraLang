@@ -98,7 +98,7 @@ func DirectMirScalarProgramLogicalRecordArrayTargetFromType(
             CompilerAbiLayoutFieldAllowedMaterialization() {
         Die("direct MIR logical-record Array layout fact is invalid");
     }
-    let projection: DirectMirScalarProgramLogicalRecordArrayTarget =
+    var projection: DirectMirScalarProgramLogicalRecordArrayTarget =
         DirectMirScalarProgramLogicalRecordArrayTarget(
             true, target.projection, target.target_capability_fingerprint,
             array_type, element_type, record_row,

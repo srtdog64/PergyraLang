@@ -38,8 +38,8 @@ func MirGenericCallOccurrenceNumber(ref row: JsonObjectFactTable, field: String)
 
 func MirGenericCallOccurrenceRoutine(ref routines: MirProgramRoutineIndex, syntax_id: Int) -> Option<Int> {
     if syntax_id <= 0 { return None; }
-    let result: Option<Int> = None;
-    let row: Int = 0;
+    var result: Option<Int> = None;
+    var row: Int = 0;
     while row < MirProgramRoutineIndexCount(routines) {
         if routines.source_syntax_ids[row] == ToString(syntax_id) {
             if IsSome(result) { return None; }
@@ -55,15 +55,15 @@ func MirGenericCallOccurrenceInstruction(
     block_id: Int, instruction_id: Int
 ) -> Option<Int> {
     if routine < 0 || block_id < 0 || instruction_id < 0 { return None; }
-    let result: Option<Int> = None;
-    let block: Int = routines.routine_block_starts[routine];
+    var result: Option<Int> = None;
+    var block: Int = routines.routine_block_starts[routine];
     let end: Int = block + routines.routine_block_counts[routine];
     while block < end {
         let block_fact: JsonObjectFactTable = JsonObjectFactTable(true,
             routines.source_json, routines.source_json_extent, routines.block_starts[block], routines.block_ends[block]);
         let candidate_block: Int = MirGenericCallOccurrenceNumber(block_fact, "id")?;
         if candidate_block == block_id {
-            let instruction: Int = routines.block_instruction_starts[block];
+            var instruction: Int = routines.block_instruction_starts[block];
             let instruction_end: Int = instruction + routines.block_instruction_counts[block];
             while instruction < instruction_end {
                 let fact: JsonObjectFactTable = JsonObjectFactTable(true,
@@ -89,22 +89,22 @@ func MirGenericCallOccurrenceIndexFromDocument(
     if !document.valid || !MirProgramRoutineIndexStructureReady(routines) { return invalid; }
     let table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         document.root, "generic_method_specializations");
-    let target_rows: Array<Int> = [];
-    let specialization_rows: Array<Int> = [];
-    let routine_rows: Array<Int> = [];
-    let instruction_rows: Array<Int> = [];
-    let lanes: Array<Int> = [];
-    let graph_nodes: Array<Int> = [];
-    let target_kinds: Array<Int> = [];
-    let generic_counts: Array<Int> = [];
-    let generic_starts: Array<Int> = [];
-    let generic_names: Array<String> = [];
-    let syntax_ids: Array<Int> = [];
-    let actual_starts: Array<Int> = [];
-    let actual_counts: Array<Int> = [];
-    let actual_types: Array<String> = [];
-    let routine: Int = 0;
-    let generic_routines: Int = 0;
+    var target_rows: Array<Int> = [];
+    var specialization_rows: Array<Int> = [];
+    var routine_rows: Array<Int> = [];
+    var instruction_rows: Array<Int> = [];
+    var lanes: Array<Int> = [];
+    var graph_nodes: Array<Int> = [];
+    var target_kinds: Array<Int> = [];
+    var generic_counts: Array<Int> = [];
+    var generic_starts: Array<Int> = [];
+    var generic_names: Array<String> = [];
+    var syntax_ids: Array<Int> = [];
+    var actual_starts: Array<Int> = [];
+    var actual_counts: Array<Int> = [];
+    var actual_types: Array<String> = [];
+    var routine: Int = 0;
+    var generic_routines: Int = 0;
     while routine < MirProgramRoutineIndexCount(routines) {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
             routines.source_json, routines.source_json_extent, routines.starts[routine], routines.ends[routine]);
@@ -113,7 +113,7 @@ func MirGenericCallOccurrenceIndexFromDocument(
         ArrayPush(generic_counts, count);
         ArrayPush(generic_starts, ArrayLength(generic_names));
         ArrayPush(syntax_ids, ToInt(routines.source_syntax_ids[routine]));
-        let formal: Int = 0;
+        var formal: Int = 0;
         while formal < count {
             ArrayPush(generic_names, header.generic_names[formal]);
             formal = formal + 1;
@@ -123,10 +123,10 @@ func MirGenericCallOccurrenceIndexFromDocument(
             // Seal template return receipts before an actual tuple can make
             // two distinct source types equal. Read the indexed body once
             // per template, not once for every concrete instance.
-            let block: Int = routines.routine_block_starts[routine];
+            var block: Int = routines.routine_block_starts[routine];
             let block_end: Int = block + routines.routine_block_counts[routine];
             while block < block_end {
-                let instruction: Int = routines.block_instruction_starts[block];
+                var instruction: Int = routines.block_instruction_starts[block];
                 let end: Int = instruction + routines.block_instruction_counts[block];
                 while instruction < end {
                     if routines.instruction_kinds[instruction] == "return" &&
@@ -149,7 +149,7 @@ func MirGenericCallOccurrenceIndexFromDocument(
             specialization_rows, routine_rows, instruction_rows, lanes, graph_nodes,
             templates, actual_starts, actual_counts, actual_types);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < JsonArrayObjectFactCount(table) {
         let fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
         let target_id: Option<Int> = MirGenericCallOccurrenceNumber(fact, "call_target_syntax_id");
@@ -181,8 +181,8 @@ func MirGenericCallOccurrenceIndexFromDocument(
             fact.json, fact.json_extent, fact.start, fact.end, "generic_params");
         let actuals: Array<String> = MirObjectArrayStringFactsAtBounds(
             fact.json, fact.json_extent, fact.start, fact.end, "generic_actuals");
-        let param_bounds: Array<Int> = [0, 0];
-        let actual_bounds: Array<Int> = [0, 0];
+        var param_bounds: Array<Int> = [0, 0];
+        var actual_bounds: Array<Int> = [0, 0];
         if !JsonObjectFactArrayBounds(fact, "generic_params", param_bounds) ||
             !JsonObjectFactArrayBounds(fact, "generic_actuals", actual_bounds) ||
             JsonArrayStringCount(fact.json, fact.json_extent, param_bounds[0], param_bounds[1]) != ArrayLength(params) ||
@@ -191,7 +191,7 @@ func MirGenericCallOccurrenceIndexFromDocument(
         }
         if ArrayLength(params) != generic_counts[target] ||
             ArrayLength(actuals) != ArrayLength(params) { return invalid; }
-        let param: Int = 0;
+        var param: Int = 0;
         ArrayPush(actual_starts, ArrayLength(actual_types));
         ArrayPush(actual_counts, ArrayLength(actuals));
         while param < ArrayLength(params) {
@@ -200,14 +200,14 @@ func MirGenericCallOccurrenceIndexFromDocument(
             param = param + 1;
         }
         ArrayPush(target_rows, target);
-        let kind: Int = SemanticCallTargetDirect();
+        var kind: Int = SemanticCallTargetDirect();
         if target_kind == "member" { kind = SemanticCallTargetMember(); }
         ArrayPush(target_kinds, kind);
         let occurrences: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(fact, "occurrences");
         if !JsonArrayObjectFactTableReady(occurrences) || JsonArrayObjectFactCount(occurrences) == 0 {
             return invalid;
         }
-        let occurrence: Int = 0;
+        var occurrence: Int = 0;
         while occurrence < JsonArrayObjectFactCount(occurrences) {
             let anchor: JsonObjectFactTable = JsonArrayObjectFactAt(occurrences, occurrence);
             if JsonObjectFactCount(anchor) != 5 { return invalid; }
@@ -228,7 +228,7 @@ func MirGenericCallOccurrenceIndexFromDocument(
             let lane: Int = UnwrapOption(lane_fact);
             let node: Int = UnwrapOption(node_fact);
             if lane > 1 { return invalid; }
-            let prior: Int = 0;
+            var prior: Int = 0;
             while prior < ArrayLength(instruction_rows) {
                 if instruction_rows[prior] == instruction && lanes[prior] == lane && graph_nodes[prior] == node {
                     return invalid;
@@ -246,17 +246,17 @@ func MirGenericCallOccurrenceIndexFromDocument(
     }
     // Decode each graph once and require a bijection between carried generic
     // invocations and occurrence anchors. A missing entire row must also fail.
-    let matched: Array<Bool> = [];
-    let occurrence: Int = 0;
+    var matched: Array<Bool> = [];
+    var occurrence: Int = 0;
     while occurrence < ArrayLength(instruction_rows) {
         ArrayPush(matched, false);
         occurrence = occurrence + 1;
     }
-    let instruction: Int = 0;
+    var instruction: Int = 0;
     while generic_routines > 0 && instruction < ArrayLength(routines.instruction_starts) {
         let expression: MirProgramInstructionExpressionFact = MirProgramInstructionExpressionIndexAt(
             routines.instruction_expressions, instruction);
-        let lane: Int = 0;
+        var lane: Int = 0;
         while lane < 2 {
             let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
                 routines.source_json, routines.source_json_extent, expression, lane);
@@ -264,14 +264,14 @@ func MirGenericCallOccurrenceIndexFromDocument(
                 let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
                     MirExpressionGraphSequenceEmpty(), graph);
                 if !sequence.ok { return invalid; }
-                let node: Int = 0;
+                var node: Int = 0;
                 while node < sequence.ready_node_count {
                     if sequence.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
                         let target_fact: Option<Int> = MirGenericCallOccurrenceRoutine(routines,
                             sequence.arena.identities.call_target_syntax_ids[node]);
                         if IsSome(target_fact) && generic_counts[UnwrapOption(target_fact)] > 0 {
                             let target: Int = UnwrapOption(target_fact);
-                            let found: Int = -1;
+                            var found: Int = -1;
                             occurrence = 0;
                             while occurrence < ArrayLength(instruction_rows) {
                                 if instruction_rows[occurrence] == instruction && lanes[occurrence] == lane &&

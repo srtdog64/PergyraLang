@@ -356,21 +356,40 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                                     ? SLOT_PARAM_SUMMARY_NONE
                                     : function_param_flow_summary_for_call(
                                         program_root, node, i);
-                                const char *trace_name = getenv(
-                                    "PGY_DEBUG_FUNCTION_PARAM_FLOW_ENTRY");
-                                const char *origin_name = origin == NULL
-                                    ? NULL : ast_declaration_name(
-                                        origin->function_decl);
-                                if (trace_name != NULL && origin_name != NULL &&
-                                    strcmp(trace_name, origin_name) == 0) {
-                                    const char *callee_name = callee_decl == NULL
-                                        ? NULL : ast_declaration_name(callee_decl);
-                                    fprintf(stderr,
-                                        "pgy: function-param-flow-edge function=%s"
-                                        " callee=%s actual=%zu formal=%zu mask=%u\n",
-                                        origin_name,
-                                        callee_name != NULL ? callee_name : "<unknown>",
-                                        i, formal, callee_mask);
+                                bool nested_borrow = !direct_self_reborrow &&
+                                    origin != NULL && own != NULL &&
+                                    (own->mode == PARAM_MODE_REF ||
+                                     own->mode == PARAM_MODE_MUT_REF) &&
+                                    (param->mode == PARAM_MODE_REF ||
+                                     param->mode == PARAM_MODE_DEFAULT);
+                                bool exact_backing_required = false;
+                                if (nested_borrow &&
+                                    !semantic_param_publication_return_backing_required(
+                                        program_root->ctx, callee_decl, formal,
+                                        &exact_backing_required)) {
+                                    if (failed_out != NULL) *failed_out = true;
+                                    return false;
+                                }
+                                nested_borrow &= exact_backing_required;
+                                if (nested_borrow) {
+                                    unsigned outward_effects =
+                                        SLOT_PARAM_SUMMARY_NONE;
+                                    if (function_param_flow_callee_outward_effects_current(
+                                            program_root, node, i,
+                                            &outward_effects)) {
+                                        callee_mask = outward_effects;
+                                    } else if (function_param_flow_callee_relation_pending(
+                                            program_root, node, i)) {
+                                        /* The closure read above replays this
+                                         * caller after the callee seals. A
+                                         * provisional coarse CALL must not
+                                         * become a monotone escape fact. */
+                                        callee_mask = SLOT_PARAM_SUMMARY_NONE;
+                                    } else {
+                                        if (failed_out != NULL)
+                                            *failed_out = true;
+                                        return false;
+                                    }
                                 }
                                 if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                                     if (!slot_escape_record(entries, count, capacity,
@@ -402,9 +421,13 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                     /* A formal's String a store builtin keeps can land as
                      * an owned copy in a second analysis. */
                     if (callee_decl == NULL && origin != NULL && selected_name != NULL &&
-                        strcmp(ast_identifier_name(root), selected_name) == 0)
-                        semantic_formal_string_store_landing_select(program_root->ctx, node, i,
-                            root, origin->function_decl);
+                        strcmp(ast_identifier_name(root), selected_name) == 0 &&
+                        !semantic_formal_string_store_landing_select(
+                            program_root->ctx, node, i, root,
+                            origin->function_decl)) {
+                        if (failed_out != NULL) *failed_out = true;
+                        return false;
+                    }
                     if (!slot_escape_record(entries, count, capacity,
                             ast_identifier_name(root), SLOT_ESCAPE_CALL))
                         return false;

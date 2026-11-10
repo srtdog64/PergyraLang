@@ -1,8 +1,9 @@
 // As local_copy_held_at_other_field_valid, but each change reaches the
 // field the value was assigned into, a map of Arrays Clone copies only by
 // value: the field read after a change through the value, and the value
-// read after a change through a copy of the field, through the whole holder
-// or through a path inside the field, are refused.
+// read after a change through a copy of the field or through a path inside
+// that field, are refused. HolderChanged changes only the disjoint carry
+// field and is deliberately not part of this negative.
 struct Facts {
     table: HashMap<String, Array<Int>>;
     carry: HashMap<String, Array<Int>>;
@@ -18,13 +19,13 @@ struct Holder {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let carry: HashMap<String, Array<Int>> = facts.carry;
+    var carry: HashMap<String, Array<Int>> = facts.carry;
     MapSet(carry, "t", [1]);
     return Facts(facts.table, carry);
 }
 
 func AssignedValueChanged(inout facts: Facts) -> Int {
-    let fresh: HashMap<String, Array<Int>> = MapNew();
+    var fresh: HashMap<String, Array<Int>> = MapNew();
     facts.table = fresh;
     MapSet(fresh, "k", [1]);
     return MapSize(facts.table);
@@ -33,7 +34,7 @@ func AssignedValueChanged(inout facts: Facts) -> Int {
 func FieldCopyChanged(inout facts: Facts) -> Int {
     let fresh: HashMap<String, Array<Int>> = MapNew();
     facts.table = fresh;
-    let again: HashMap<String, Array<Int>> = facts.table;
+    var again: HashMap<String, Array<Int>> = facts.table;
     MapSet(again, "k", [1]);
     return MapSize(fresh);
 }

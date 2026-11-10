@@ -1,0 +1,20 @@
+// Repacking member aliases into another live value keeps the old array
+// descriptors alive, so growing either alias must fail closed.
+struct PairRows {
+    left: Array<Int>;
+    right: Array<Int>;
+}
+
+func GrowAfterSnapshot(rows: PairRows) -> PairRows {
+    let left: Array<Int> = rows.left;
+    let right: Array<Int> = rows.right;
+    let snapshot: PairRows = PairRows(left, right);
+    ArrayPush(left, 3);
+    return snapshot;
+}
+
+func Main() -> Int {
+    let rows: PairRows = PairRows([1], [2]);
+    rows = GrowAfterSnapshot(rows);
+    return ArrayLength(rows.left);
+}

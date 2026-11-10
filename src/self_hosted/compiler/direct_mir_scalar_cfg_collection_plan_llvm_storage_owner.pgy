@@ -9,8 +9,8 @@ import "direct_mir_array_string_abi_projection_owner.pgy";
 func DirectMirScalarCfgCollectionPlanLlvmGlobals(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(plan.collections.values.value_ids) {
         if plan.collections.values.predecessor_value_rows[row] < 0 &&
             plan.collections.values.element_types[row] == "String" {
@@ -18,7 +18,7 @@ func DirectMirScalarCfgCollectionPlanLlvmGlobals(
                 plan.collections.values.initial_element_starts[row];
             let count: Int =
                 plan.collections.values.initial_element_counts[row];
-            let item: Int = 0;
+            var item: Int = 0;
             while item < count {
                 output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
                     Concat(".pgy.collection.", Concat(ToString(row),
@@ -51,20 +51,20 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(plan.collections.values.value_ids) {
         if plan.collections.values.predecessor_value_rows[row] < 0 {
             let length: Int =
                 plan.collections.values.initial_element_counts[row];
-            let llvm_element: String = "i32";
-            let element_align: String = "4";
-            let aggregate: String = "";
-            let storage_align: String = "";
-            let data_index: Int = -1;
-            let length_index: Int = -1;
-            let capacity_index: Int = -1;
-            let allocator_index: Int = -1;
+            var llvm_element: String = "i32";
+            var element_align: String = "4";
+            var aggregate: String = "";
+            var storage_align: String = "";
+            var data_index: Int = -1;
+            var length_index: Int = -1;
+            var capacity_index: Int = -1;
+            var allocator_index: Int = -1;
             if plan.collections.values.element_types[row] == "Int" {
                 let abi: DirectMirArrayIntAbiProjection =
                     DirectMirArrayIntAbiProjectionFromCanonicalLayout(
@@ -107,7 +107,7 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
                     llvm_element, "]")))));
             output = Concat(output, Concat(", align ",
                 Concat(element_align, "\n")));
-            let item: Int = 0;
+            var item: Int = 0;
             while item < length {
                 output = Concat(output, Concat("  %pgy.array.", prefix));
                 output = Concat(output, Concat(".slot.", ToString(item)));

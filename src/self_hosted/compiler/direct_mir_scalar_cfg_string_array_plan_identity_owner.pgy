@@ -20,10 +20,10 @@ func DirectMirScalarCfgStringArrayPlanDigest(
     ref plan: DirectMirScalarCfgStringArrayPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
+    var hash: Long = DirectMirCfgHashInt(
         251L, DirectMirScalarCfgStringArrayCollectionCount(plan)
     );
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
             DirectMirScalarCfgStringArrayCollectionAt(plan, row);
@@ -67,7 +67,7 @@ func DirectMirScalarCfgStringArrayPlanDigest(
         hash = DirectMirCfgHashInt(hash, fact.collection_row);
         hash = DirectMirCfgHashInt(hash, fact.guard_length_row);
         hash = DirectMirScalarCfgStringArrayIndexDigest(hash, fact.index);
-        let value_present: Int = 0;
+        var value_present: Int = 0;
         if fact.value_present { value_present = 1; }
         hash = DirectMirCfgHashInt(hash, value_present);
         hash = DirectMirCfgHashString(hash, fact.value_literal);

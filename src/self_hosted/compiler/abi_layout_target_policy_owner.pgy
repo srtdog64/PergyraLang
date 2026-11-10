@@ -75,7 +75,7 @@ func CompilerAbiLayoutTargetPolicyFallbacksAt(index: Int) -> String {
 }
 
 func CompilerAbiLayoutTargetPolicyKnown(abi_name: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerAbiLayoutTargetPolicyCount() {
         let row: CompilerAbiLayoutTargetPolicyRow =
             CompilerAbiLayoutTargetPolicyRowAt(i);
@@ -91,7 +91,7 @@ func CompilerAbiLayoutTargetPolicyRowKnown(
     required_facts: String,
     fallbacks: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerAbiLayoutTargetPolicyCount() {
         if CompilerAbiLayoutTargetPolicyAbiAt(i) == abi_name &&
             CompilerAbiLayoutTargetPolicyProjectionSetAt(i) == projection_set &&
@@ -105,7 +105,7 @@ func CompilerAbiLayoutTargetPolicyRowKnown(
 }
 
 func CompilerAbiLayoutTargetPolicyRowsReady() -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerAbiLayoutTargetPolicyCount() {
         let row: CompilerAbiLayoutTargetPolicyRow =
             CompilerAbiLayoutTargetPolicyRowAt(i);

@@ -3,9 +3,9 @@
 import "intent_execution_schema_owner.pgy";
 func MirIntentExecutionHashString(hash: Long, value: String) -> Long {
     let modulus: Long = 268435456L;
-    let out: Long =
+    var out: Long =
         (hash * 131L + (StringLength(value) as Long)) % modulus;
-    let i: Int = 0;
+    var i: Int = 0;
     while i < StringLength(value) {
         out = (out * 131L +
             (CharCode(value, StringLength(value), i) as Long)) % modulus;
@@ -22,7 +22,7 @@ func MirIntentExecutionHashStepRow(
     hash = MirIntentExecutionHashInt(hash, plan.steps.routine_syntax_ids[step]);
     hash = MirIntentExecutionHashInt(hash, plan.steps.step_syntax_ids[step]);
     hash = MirIntentExecutionHashString(hash, plan.steps.step_names[step]);
-    let has_predecessor: Int = 0;
+    var has_predecessor: Int = 0;
     if plan.steps.predecessor_transition_ids[step] != 0 {
         has_predecessor = 1;
     }
@@ -77,7 +77,7 @@ func MirIntentExecutionHashStepRow(
         plan.steps.completion_instruction_ids[step]);
     hash = MirIntentExecutionHashInt(hash,
         plan.steps.compensation_counts[step]);
-    let compensation: Int = plan.steps.compensation_starts[step];
+    var compensation: Int = plan.steps.compensation_starts[step];
     let compensation_end: Int = compensation +
         plan.steps.compensation_counts[step];
     while compensation < compensation_end {
@@ -164,15 +164,15 @@ func MirIntentExecutionPlanDigest(
     ref plan: MirIntentExecutionPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = MirIntentExecutionHashString(71L, plan.schema);
+    var hash: Long = MirIntentExecutionHashString(71L, plan.schema);
     // Native hashes each routine's steps then terminals. First occurrence
     // supplies routine order; cross-routine adjacency is not authority.
-    let routine_anchor: Int = 0;
+    var routine_anchor: Int = 0;
     while routine_anchor < ArrayLength(plan.steps.transition_ids) {
         let routine_syntax_id: Int =
             plan.steps.routine_syntax_ids[routine_anchor];
-        let first_for_routine: Bool = true;
-        let prior_anchor: Int = 0;
+        var first_for_routine: Bool = true;
+        var prior_anchor: Int = 0;
         while prior_anchor < routine_anchor {
             if plan.steps.routine_syntax_ids[prior_anchor] ==
                     routine_syntax_id {
@@ -181,14 +181,14 @@ func MirIntentExecutionPlanDigest(
             prior_anchor = prior_anchor + 1;
         }
         if first_for_routine {
-            let step: Int = 0;
+            var step: Int = 0;
             while step < ArrayLength(plan.steps.transition_ids) {
                 if plan.steps.routine_syntax_ids[step] == routine_syntax_id {
                     hash = MirIntentExecutionHashStepRow(hash, plan, step);
                 }
                 step = step + 1;
             }
-            let terminal: Int = 0;
+            var terminal: Int = 0;
             while terminal <
                     ArrayLength(plan.terminals.terminal_transition_ids) {
                 if plan.terminals.routine_syntax_ids[terminal] ==
@@ -208,7 +208,7 @@ func MirIntentExecutionPlanDigest(
 func MirIntentExecutionPlanEmpty(
     valid: Bool, present: Bool
 ) -> MirIntentExecutionPlan {
-    let plan: MirIntentExecutionPlan = MirIntentExecutionPlan(
+    var plan: MirIntentExecutionPlan = MirIntentExecutionPlan(
         valid, present, MirIntentExecutionPlanSchema(), 0,
         MirIntentStepTransitionFactsEmpty(),
         MirIntentTerminalTransitionFactsEmpty()

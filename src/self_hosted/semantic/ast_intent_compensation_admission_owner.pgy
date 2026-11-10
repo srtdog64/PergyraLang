@@ -1,0 +1,85 @@
+// A partial compensation list claims full rollback under the supported
+// default policy. Refuse an effect that could survive a later failure.
+import "ast_body_verdict_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
+import "ast_kind_surface_fact_owner.pgy";
+
+func SemanticAstIntentPredicateCanFail(ref surfaces: SemanticAstExpressionSurfaceFacts,
+    node_id: Int) -> Bool {
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, node_id, AstExpressionLaneAtom());
+    if !IsSome(root) { return true; }
+    let node: Int = UnwrapOption(root);
+    return surfaces.expression_graph.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() ||
+        surfaces.expression_graph.arena.node_texts[node] != "true";
+}
+
+func SemanticAstIntentCompensationAdmissionFromFacts(artifact: AstTreeArtifact,
+    ref kinds: SemanticAstKindSurfaceFacts, ref intents: SemanticAstIntentSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts) -> SemanticAstBodyVerdict {
+    if !kinds.ok || kinds.artifact_node_count != artifact.count ||
+        ArrayLength(kinds.kind_tags) != artifact.count ||
+        !SemanticAstIntentSignatureFactsReady(artifact, intents) {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "IntentCompensation"), -1);
+    }
+    var intent_index: Int = 0;
+    while intent_index < ArrayLength(intents.intent_node_ids) {
+        var step_nodes: Array<Int> = [];
+        var uncovered: Array<Bool> = [];
+        var post_failure: Array<Bool> = [];
+        var claims_full: Bool = false;
+        var completion_can_fail: Bool = intents.result_modes[intent_index] == "typed_enum";
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, intents.intent_node_ids[intent_index], child_index);
+        while IsSome(child) {
+            let node: Int = UnwrapOption(child);
+            if kinds.kind_tags[node] == TypedAstKindIntentSuccessTag() {
+                completion_can_fail = SemanticAstIntentPredicateCanFail(surfaces, node);
+            }
+            if kinds.kind_tags[node] == TypedAstKindIntentStepTag() {
+                var effectful: Bool = false;
+                var compensated: Bool = false;
+                var may_fail: Bool = false;
+                var clause_index: Int = 0;
+                var clause: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, clause_index);
+                while IsSome(clause) {
+                    let clause_node: Int = UnwrapOption(clause);
+                    let kind: Int = kinds.kind_tags[clause_node];
+                    if kind == TypedAstKindIntentStepOnTag() ||
+                        kind == TypedAstKindIntentStepIntentTag() ||
+                        kind == TypedAstKindIntentStepTransferTag() { effectful = true; }
+                    if kind == TypedAstKindIntentStepCompensateTag() { compensated = true; }
+                    if kind == TypedAstKindIntentStepGuardTag() ||
+                        kind == TypedAstKindIntentStepExpectTag() ||
+                        kind == TypedAstKindIntentStepPostTag() ||
+                        kind == TypedAstKindIntentStepInvariantTag() {
+                        if SemanticAstIntentPredicateCanFail(surfaces, clause_node) { may_fail = true; }
+                    }
+                    clause_index = clause_index + 1;
+                    clause = TypedAstArenaChildAt(artifact.arena, node, clause_index);
+                }
+                if compensated { claims_full = true; }
+                ArrayPush(step_nodes, node);
+                ArrayPush(uncovered, effectful && !compensated);
+                ArrayPush(post_failure, may_fail);
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(artifact.arena, intents.intent_node_ids[intent_index], child_index);
+        }
+        var step: Int = 0;
+        while claims_full && step < ArrayLength(step_nodes) {
+            if uncovered[step] && (step + 1 < ArrayLength(step_nodes) ||
+                post_failure[step] || completion_can_fail) {
+                return SemanticAstBodyVerdictError("intent_compensation_missing",
+                    SemanticError1("intent_compensation_missing", "intent", intents.names[intent_index]),
+                    step_nodes[step]);
+            }
+            step = step + 1;
+        }
+        intent_index = intent_index + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

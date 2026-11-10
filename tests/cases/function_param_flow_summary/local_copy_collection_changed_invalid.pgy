@@ -2,55 +2,55 @@
 // source holds, which Clone copies only by value: a set, removal or push
 // through the copy changes it in place, so the source's next use is refused.
 func MapSetCopy(seed: Int) -> Int {
-    let source: HashMap<String, Array<Int>> = MapNew();
+    var source: HashMap<String, Array<Int>> = MapNew();
     MapSet(source, "k", [seed]);
-    let copy: HashMap<String, Array<Int>> = source;
+    var copy: HashMap<String, Array<Int>> = source;
     MapSet(copy, "j", [2]);
     return MapGet(source, "k")[0];
 }
 
 func MapRemoveCopy(seed: Int) -> Bool {
-    let source: HashMap<String, Array<Int>> = MapNew();
+    var source: HashMap<String, Array<Int>> = MapNew();
     MapSet(source, "k", [seed]);
-    let copy: HashMap<String, Array<Int>> = source;
+    var copy: HashMap<String, Array<Int>> = source;
     MapRemove(copy, "k");
     return MapHas(source, "k");
 }
 
 func SetAddCopy(seed: Int) -> Bool {
-    let source: Set<Int> = SetNew();
+    var source: Set<Int> = SetNew();
     SetAdd(source, seed);
-    let copy: Set<Int> = source;
+    var copy: Set<Int> = source;
     SetAdd(copy, seed + 1);
     return SetHas(source, seed);
 }
 
 func SetRemoveCopy(seed: Int) -> Bool {
-    let source: Set<Int> = SetNew();
+    var source: Set<Int> = SetNew();
     SetAdd(source, seed);
-    let copy: Set<Int> = source;
+    var copy: Set<Int> = source;
     SetRemove(copy, seed);
     return SetHas(source, seed);
 }
 
 func ListPushCopy(seed: Int) -> Int {
-    let source: List<Int> = ListNew();
+    var source: List<Int> = ListNew();
     ListPush(source, seed);
-    let copy: List<Int> = source;
+    var copy: List<Int> = source;
     ListPush(copy, 2);
     return ListGet(source, 0);
 }
 
 func ListSetCopy(seed: Int) -> Int {
-    let source: List<Int> = ListNew();
+    var source: List<Int> = ListNew();
     ListPush(source, seed);
-    let copy: List<Int> = source;
+    var copy: List<Int> = source;
     ListSet(copy, 0, 2);
     return ListGet(source, 0);
 }
 
 func ListRemoveCopy(seed: Int) -> Int {
-    let source: List<Int> = ListNew();
+    var source: List<Int> = ListNew();
     ListPush(source, seed);
     ListPush(source, 2);
     let copy: List<Int> = source;
@@ -59,9 +59,9 @@ func ListRemoveCopy(seed: Int) -> Int {
 }
 
 func QueuePushCopy(seed: Int) -> Int {
-    let source: Queue<Int> = QueueNew();
+    var source: Queue<Int> = QueueNew();
     QueuePush(source, seed);
-    let copy: Queue<Int> = source;
+    var copy: Queue<Int> = source;
     QueuePush(copy, 2);
     return QueuePop(source);
 }

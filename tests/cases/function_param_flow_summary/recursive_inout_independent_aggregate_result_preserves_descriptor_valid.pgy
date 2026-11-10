@@ -1,0 +1,38 @@
+// The recursive call's aggregate result owns storage unrelated to cursor_out.
+// Its backing relation is pending on the first closure pass; settlement must
+// replay the caller instead of publishing a permanent descriptor escape.
+struct RecursiveCursorFact {
+    ok: Bool;
+    values: Array<Int>;
+}
+
+func RecursiveCursorFactAt(value: Int) -> RecursiveCursorFact {
+    return RecursiveCursorFact(true, [value]);
+}
+
+func ParseRecursiveCursorFact(
+    start: Int, inout cursor_out: Array<Int>
+) -> RecursiveCursorFact {
+    if start > 0 {
+        let fact: RecursiveCursorFact = ParseRecursiveCursorFact(
+            start - 1, cursor_out);
+        return fact;
+    }
+    ArraySet(cursor_out, 0, start);
+    return RecursiveCursorFactAt(start + 7);
+}
+
+func ParseRecursiveCursorFactByValue(
+    start: Int, cursor_out: Array<Int>
+) -> RecursiveCursorFact {
+    return ParseRecursiveCursorFact(start, cursor_out);
+}
+
+func Main() -> Int {
+    let cursor: Array<Int> = [0];
+    let fact: RecursiveCursorFact = ParseRecursiveCursorFactByValue(
+        2, cursor);
+    Print(ToString(cursor[0] + fact.values[0]));
+    ArrayDrop(cursor);
+    return 0;
+}

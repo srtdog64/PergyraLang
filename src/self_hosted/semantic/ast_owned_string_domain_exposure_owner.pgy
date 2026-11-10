@@ -34,24 +34,24 @@ func SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts(
     let calls: Array<Int> = [];
     let ordinals: Array<Int> = [];
     let string_writes: Array<Int> = [];
-    let facts: SemanticAstOwnedStringDomainExposureFacts =
+    var facts: SemanticAstOwnedStringDomainExposureFacts =
         SemanticAstOwnedStringDomainExposureFacts(false, ids, calls, ordinals, string_writes);
     if !roots.ok || ArrayLength(roots.root_nodes) !=
         SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) { return facts; }
-    let builtin_value_names: HashMap<String, Int> = MapNew();
+    var builtin_value_names: HashMap<String, Int> = MapNew();
     let builtin_rows: Array<String> = SemanticBuiltinSignatureRows();
-    let builtin: Int = 0;
+    var builtin: Int = 0;
     while builtin < ArrayLength(builtin_rows) {
         let columns: Array<String> = Split(builtin_rows[builtin], "^");
         if ArrayLength(columns) != 3 { return facts; }
         MapSet(builtin_value_names, columns[0], 1); builtin = builtin + 1;
     }
-    let last_root: Int = -1;
-    let slot: Int = 0;
+    var last_root: Int = -1;
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] {
             let root: Int = surfaces.expression_graph.roots[slot];
-            let node: Int = last_root + 1;
+            var node: Int = last_root + 1;
             while node <= root {
                 let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
                 if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
@@ -64,8 +64,8 @@ func SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts(
                     let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
                     if !IsSome(callee) || UnwrapOption(callee) <= last_root { return facts; }
                     let value: Int = edge.argument_node;
-                    let source: Int = 0;
-                    let source_type: String = "";
+                    var source: Int = 0;
+                    var source_type: String = "";
                     let binding: SemanticAstLocalBindingIdentity =
                         SemanticAstCollectionOwnershipLocalForArgument(
                             artifact, locals, initializer_types.inferred_type_names, surfaces, slot / 3, value);
@@ -116,7 +116,7 @@ func SemanticAstOwnedStringAllocatorDomainPreserved(
     if !exposures.ok || source_syntax_id <= 0 ||
         ArrayLength(exposures.call_nodes) != count ||
         ArrayLength(exposures.argument_ordinals) != count { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if exposures.source_syntax_ids[row] == source_syntax_id {
             let call: Int = exposures.call_nodes[row];
@@ -147,7 +147,7 @@ func SemanticAstOwnedStringValueDomainPreserved(
     ref exposures: SemanticAstOwnedStringDomainExposureFacts, source_syntax_id: Int
 ) -> Bool {
     if !exposures.ok || source_syntax_id <= 0 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(exposures.string_written_source_syntax_ids) {
         if exposures.string_written_source_syntax_ids[row] == source_syntax_id { return false; }
         row = row + 1;

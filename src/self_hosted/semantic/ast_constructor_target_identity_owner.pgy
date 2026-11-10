@@ -1,0 +1,61 @@
+// Constructor calls carry their declaration identity, distinct from callable
+// leaf bindings. Build one index from the admitted nominal/enum owners.
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+struct SemanticConstructorTargetIdentities {
+    valid: Bool;
+    ids: HashMap<String, Int>;
+}
+
+func SemanticConstructorTargetIdentitiesFromOwners(ref constructors: SemanticAstNominalConstructorFacts,
+    ref enums: SemanticAstEnumFacts) -> SemanticConstructorTargetIdentities {
+    var ids: HashMap<String, Int> = MapNew();
+    if !SemanticAstNominalConstructorRowsReady(constructors) || !SemanticAstEnumRowsReady(enums) {
+        return SemanticConstructorTargetIdentities(false, ids);
+    }
+    var row: Int = 0;
+    while row < ArrayLength(constructors.names) {
+        let name: String = constructors.names[row];
+        if MapHas(ids, name) { MapSet(ids, name, -1); }
+        else { MapSet(ids, Clone(name), constructors.node_ids[row]); }
+        row = row + 1;
+    }
+    var enum_ids: HashMap<String, Int> = MapNew();
+    row = 0;
+    while row < ArrayLength(enums.enum_names) {
+        if enums.node_ids[row] <= 0 || MapHas(enum_ids, enums.enum_names[row]) {
+            return SemanticConstructorTargetIdentities(false, ids);
+        }
+        MapSet(enum_ids, Clone(enums.enum_names[row]), enums.node_ids[row]);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(enums.variant_names) {
+        if !MapHas(enum_ids, enums.variant_enum_names[row]) {
+            return SemanticConstructorTargetIdentities(false, ids);
+        }
+        let id: Int = MapGet(enum_ids, enums.variant_enum_names[row]);
+        var name: String = enums.variant_names[row];
+        if MapHas(ids, name) { MapSet(ids, name, -1); }
+        else { MapSet(ids, Clone(name), id); }
+        name = enums.variant_qualified_names[row];
+        if MapHas(ids, name) { MapSet(ids, name, -1); }
+        else { MapSet(ids, Clone(name), id); }
+        let canonical: String = SemanticCallableCanonicalDeclaredName(
+            enums.variant_enum_names[row], enums.variant_names[row]);
+        if MapHas(ids, canonical) { MapSet(ids, canonical, -1); }
+        else { MapSet(ids, canonical, id); }
+        row = row + 1;
+    }
+    return SemanticConstructorTargetIdentities(true, ids);
+}
+
+// Zero names a nonconstructor; -1 is invalid/ambiguous evidence.
+func SemanticConstructorTargetSyntaxId(ref identities: SemanticConstructorTargetIdentities,
+    name: String) -> Int {
+    if !identities.valid { return -1; }
+    if !MapHas(identities.ids, name) { return 0; }
+    return MapGet(identities.ids, name);
+}

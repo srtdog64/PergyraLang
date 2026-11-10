@@ -25,7 +25,7 @@ func MirProgramDeclarationFieldIdentityPositiveDecimal(
     if n <= 0 || CharCode(value, n, 0) == CharCode("0", 1, 0) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         let code: Int = CharCode(value, n, i);
         if code < CharCode("0", 1, 0) || code > CharCode("9", 1, 0) {
@@ -60,21 +60,21 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
     declaration_kinds: Array<String>,
     declaration_nominal_kinds: Array<String>
 ) -> MirProgramDeclarationFieldIdentityIndex {
-    let names: Array<String> = [];
-    let kinds: Array<String> = [];
-    let nominal_kinds: Array<String> = [];
-    let owner_indices: Array<Int> = [];
-    let field_names: Array<String> = [];
-    let field_ids: Array<String> = [];
-    let field_kinds: Array<String> = [];
-    let field_types: Array<String> = [];
+    var names: Array<String> = [];
+    var kinds: Array<String> = [];
+    var nominal_kinds: Array<String> = [];
+    var owner_indices: Array<Int> = [];
+    var field_names: Array<String> = [];
+    var field_ids: Array<String> = [];
+    var field_kinds: Array<String> = [];
+    var field_types: Array<String> = [];
     if ArrayLength(starts) != ArrayLength(ends) ||
         ArrayLength(starts) != ArrayLength(declaration_names) ||
         ArrayLength(starts) != ArrayLength(declaration_kinds) ||
         ArrayLength(starts) != ArrayLength(declaration_nominal_kinds) {
         return EmptyMirProgramDeclarationFieldIdentityIndex();
     }
-    let declaration_index: Int = 0;
+    var declaration_index: Int = 0;
     while declaration_index < ArrayLength(starts) {
         let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             json, json_extent, starts[declaration_index], ends[declaration_index]
@@ -90,7 +90,7 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
         // An extern block is named by its ABI, not by an identity, and a
         // program may hold several blocks for one ABI, in one module or one
         // per module. Every other declaration name is an identity.
-        let prior_declaration: Int = 0;
+        var prior_declaration: Int = 0;
         while kind != "extern" && prior_declaration < ArrayLength(names) {
             if kinds[prior_declaration] != "extern" &&
                 names[prior_declaration] == name {
@@ -107,7 +107,7 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
             if !JsonArrayObjectFactTableReady(fields) {
                 return EmptyMirProgramDeclarationFieldIdentityIndex();
             }
-            let field_index: Int = 0;
+            var field_index: Int = 0;
             while field_index < JsonArrayObjectFactCount(fields) {
                 let field: JsonObjectFactTable = JsonArrayObjectFactAt(
                     fields, field_index
@@ -131,7 +131,7 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
                     StringLength(UnwrapOption(field_type_opt)) == 0 {
                     return EmptyMirProgramDeclarationFieldIdentityIndex();
                 }
-                let prior_field: Int = 0;
+                var prior_field: Int = 0;
                 while prior_field < ArrayLength(field_names) {
                     if field_ids[prior_field] == UnwrapOption(field_id_opt) ||
                         (owner_indices[prior_field] == declaration_index &&
@@ -169,7 +169,7 @@ func MirProgramDeclarationFieldIdentityFieldIndex(
         !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) {
         return 0 - 1;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(index.field_names) {
         if index.field_owner_indices[i] == owner_index &&
             index.field_names[i] == field_name &&
@@ -208,8 +208,8 @@ func MirProgramDeclarationFieldIdentitySourceMatchesType(
         StringLength(expected_type_name) == 0 {
         return false;
     }
-    let matched: Int = 0;
-    let i: Int = 0;
+    var matched: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(index.field_source_syntax_ids) {
         if index.field_owner_indices[i] == owner_index &&
             index.field_source_syntax_ids[i] == source_syntax_id &&
@@ -226,7 +226,7 @@ func MirProgramDeclarationFieldIdentityDeclarationIndex(
     owner_name: String
 ) -> Int {
     if !index.valid || StringLength(owner_name) == 0 { return 0 - 1; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(index.declaration_names) {
         if index.declaration_names[i] == owner_name { return i; }
         i = i + 1;
@@ -272,7 +272,7 @@ func MirProgramDeclarationFieldIdentityMatches(
         StringLength(expected_field_kind) == 0 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(index.field_names) {
         if index.field_owner_indices[i] == owner_index &&
             index.field_names[i] == field_name &&
@@ -293,8 +293,8 @@ func MirProgramDeclarationFieldIdentityKindCount(
     let owner_index: Int =
         MirProgramDeclarationFieldIdentityDeclarationIndex(index, owner_name);
     if owner_index < 0 { return 0; }
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(index.field_names) {
         if index.field_owner_indices[i] == owner_index &&
             index.field_kinds[i] == field_kind {

@@ -30,7 +30,7 @@ func DirectMirGenericRoutineSignatureFactDigest(
     ref fact: DirectMirGenericRoutineSignatureFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(191L, fact.name);
+    var hash: Long = DirectMirCfgHashString(191L, fact.name);
     hash = DirectMirCfgHashString(hash, fact.kind);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
@@ -67,14 +67,14 @@ func DirectMirGenericRoutineSignatureFactAt(
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]
     );
-    let param_bounds: Array<Int> = [0, 0];
+    var param_bounds: Array<Int> = [0, 0];
     if !MirRoutineHeaderSignatureEnvelopeReady(
             routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             routines.names[row], routines.kinds[row], routines.source_syntax_ids[row],
             routines.receiver_carriages[row], header, param_bounds) {
         return InvalidDirectMirGenericRoutineSignatureFact();
     }
-    let object_bounds: Array<Int> = [0, 0];
+    var object_bounds: Array<Int> = [0, 0];
     if ArrayLength(header.generic_names) != 1 ||
         ArrayLength(header.param_names) != 1 ||
         ArrayLength(header.param_types) != 1 ||

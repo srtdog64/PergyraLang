@@ -67,10 +67,10 @@ func SemanticAstBodyVerdictFromFacts(
             statements.failure_node_id
         );
     }
-    let first_node_id: Int = -1;
-    let first_code: String = "";
-    let first_message: String = "";
-    let i: Int = 0;
+    var first_node_id: Int = -1;
+    var first_code: String = "";
+    var first_message: String = "";
+    var i: Int = 0;
     while i < ArrayLength(initializers.node_ids) {
         if initializers.verified[i] != 1 &&
             (first_node_id < 0 || initializers.node_ids[i] < first_node_id) {
@@ -80,8 +80,8 @@ func SemanticAstBodyVerdictFromFacts(
         }
         i = i + 1;
     }
-    let a: Int = 0;
-    let r: Int = 0;
+    var a: Int = 0;
+    var r: Int = 0;
     while r < ArrayLength(iterations.node_ids) {
         if iterations.verified[r] != 1 &&
             (first_node_id < 0 || iterations.node_ids[r] < first_node_id) {
@@ -100,7 +100,7 @@ func SemanticAstBodyVerdictFromFacts(
         }
         a = a + 1;
     }
-    let s: Int = 0;
+    var s: Int = 0;
     while s < ArrayLength(statements.node_ids) {
         if statements.verified[s] != 1 &&
             (first_node_id < 0 || statements.node_ids[s] < first_node_id) {

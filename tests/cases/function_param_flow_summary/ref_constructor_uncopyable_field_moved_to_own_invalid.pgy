@@ -1,0 +1,31 @@
+// Array<struct> has no deep Clone contract. A borrowed field of that type
+// must remain refused instead of becoming a shallow second owner.
+struct Item {
+    names: Array<String>;
+}
+
+struct Source {
+    items: Array<Item>;
+}
+
+struct Carrier {
+    items: Array<Item>;
+}
+
+func BorrowIntoCarrier(ref source: Source) -> Carrier {
+    return Carrier(source.items);
+}
+
+func ConsumeCarrier(own carrier: Carrier) -> Int {
+    return ArrayLength(carrier.items);
+}
+
+func Route(ref source: Source) -> Int {
+    let carrier: Carrier = BorrowIntoCarrier(source);
+    return ConsumeCarrier(carrier);
+}
+
+func Main() -> Int {
+    let source: Source = Source([Item(["alpha"])]);
+    return Route(source);
+}

@@ -72,7 +72,7 @@ func IntentObservabilityAbiRowAt(index: Int) -> IntentObservabilityAbiRow {
 func IntentObservabilityAbiRowForSource(
     source_name: String
 ) -> IntentObservabilityAbiRow {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < IntentObservabilityAbiCount() {
         let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowAt(i);
         if row.source_name == source_name { return row; }
@@ -84,7 +84,7 @@ func IntentObservabilityAbiRowForSource(
 func IntentObservabilityAbiRowForId(
     runtime_call_abi_id: Int
 ) -> IntentObservabilityAbiRow {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < IntentObservabilityAbiCount() {
         let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowAt(i);
         if row.runtime_call_abi_id == runtime_call_abi_id { return row; }
@@ -105,12 +105,12 @@ func IntentObservabilityAbiRowForCarriedIdentity(
 }
 
 func IntentObservabilityAbiSignatureRows() -> Array<String> {
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < IntentObservabilityAbiCount() {
         let row: IntentObservabilityAbiRow =
             IntentObservabilityAbiRowAt(i);
-        let params: String = row.parameter_types;
+        var params: String = row.parameter_types;
         if params == "" { params = "none"; }
         ArrayPush(rows, row.source_name + "^" +
             row.return_type + "^" + params);
@@ -124,7 +124,7 @@ func IntentObservabilityAbiReady() -> Bool {
         IntentObservabilityAbiRowAt(IntentObservabilityAbiCount()).valid {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < IntentObservabilityAbiCount() {
         let row: IntentObservabilityAbiRow =
             IntentObservabilityAbiRowAt(i);

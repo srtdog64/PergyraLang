@@ -276,7 +276,7 @@
             "type NameList = List<String>;\n"
             "func Main() -> Void {\n"
             "    let id: UserId = 7;\n"
-            "    let names: NameList = ListNew();\n"
+            "    var names: NameList = ListNew();\n"
             "    ListPush(names, \"gyri\");\n"
             "    Log(id);\n"
             "}\n";

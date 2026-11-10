@@ -31,7 +31,7 @@ func SelfMirMachineLayerProjectionEmpty() -> SelfMirMachineLayerProjection {
 }
 
 func SelfMirMachineLayerContactIndex(contact_kind: String) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerRuntimeCallAbiMachineLayerContactCount() {
         if CompilerRuntimeCallAbiMachineLayerContactNameAt(i) == contact_kind {
             return i;
@@ -49,7 +49,7 @@ func SelfMirMachineLayerDeclarationMatchesContract(
             CompilerRuntimeCallAbiMachineLayerManifestId() {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerRuntimeCallAbiMachineLayerContactCount() {
         if declaration.operation_contacts[i] !=
                 CompilerRuntimeCallAbiMachineLayerContactNameAt(i) ||
@@ -79,7 +79,7 @@ func SelfMirMachineLayerProjectionForGraph(
     // lane root. The call node beneath that wrapper still owns the resolved
     // target fact; project that owner instead of treating the wrapper as a
     // non-machine expression.
-    let call_root: Int = root_id;
+    var call_root: Int = root_id;
     while graph.arena.topology.node_kinds[call_root] ==
         AstExpressionNodeCallArgument() {
         let call_root_opt: Option<Int> =

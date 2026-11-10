@@ -20,7 +20,7 @@ func DirectMirLoopCfgPlanFactDigest(
     ref fact: DirectMirLoopCfgPlanFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
+    var hash: Long = DirectMirCfgHashInt(
         61L, DirectMirLoopCfgCertificateFactDigest(fact.certificate)
     );
     hash = DirectMirCfgHashInt(

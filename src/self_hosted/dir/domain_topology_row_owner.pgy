@@ -58,7 +58,7 @@ func SelfDirDomainTopologyRowsEmpty() -> SelfDirDomainTopologyRows {
 func SelfDirDomainTopologyRowsError(
     message: String
 ) -> SelfDirDomainTopologyRows {
-    let rows: SelfDirDomainTopologyRows = SelfDirDomainTopologyRowsEmpty();
+    var rows: SelfDirDomainTopologyRows = SelfDirDomainTopologyRowsEmpty();
     rows.ok = false;
     rows.diagnostic_message = message;
     return rows;
@@ -68,7 +68,7 @@ func SelfDirDeclarationIndexForName(
     ref rows: SelfMirDeclarationRows,
     name: String
 ) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows.names) {
         if rows.names[i] == name { return i; }
         i = i + 1;
@@ -86,7 +86,7 @@ func SelfDirFieldKindPresent(
         declaration_index >= ArrayLength(rows.names) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + i;
         if rows.field_names[row] == field_name &&
@@ -108,7 +108,7 @@ func SelfDirFieldSourceSyntaxId(
         declaration_index >= ArrayLength(rows.names) {
         return 0;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + i;
         if rows.field_names[row] == field_name &&
@@ -153,7 +153,7 @@ func SelfDirProjectionSourceFieldSyntaxId(
     declaration_index: Int,
     field_name: String
 ) -> Int {
-    let source_id: Int = SelfDirFieldSourceSyntaxId(
+    var source_id: Int = SelfDirFieldSourceSyntaxId(
         rows, declaration_index, field_name, NominalFieldKindSubjectSlot()
     );
     if source_id > 0 { return source_id; }
@@ -174,25 +174,25 @@ func SelfDirDomainTopologyRowsFromArtifact(
     artifact: AstTreeArtifact,
     declarations: SelfMirDeclarationRows
 ) -> SelfDirDomainTopologyRows {
-    let owner_names: Array<String> = [];
-    let owner_ids: Array<Int> = [];
-    let source_ids: Array<Int> = [];
-    let kinds: Array<String> = [];
-    let projection_names: Array<String> = [];
-    let projection_ids: Array<Int> = [];
-    let source_names: Array<String> = [];
-    let source_slot_ids: Array<Int> = [];
-    let layer_names: Array<String> = [];
-    let layer_ids: Array<Int> = [];
-    let target_names: Array<String> = [];
-    let target_ids: Array<Int> = [];
-    let left_names: Array<String> = [];
-    let left_ids: Array<Int> = [];
-    let right_names: Array<String> = [];
-    let right_ids: Array<Int> = [];
-    let participant_names: Array<String> = [];
-    let participant_ids: Array<Int> = [];
-    let node_id: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_ids: Array<Int> = [];
+    var source_ids: Array<Int> = [];
+    var kinds: Array<String> = [];
+    var projection_names: Array<String> = [];
+    var projection_ids: Array<Int> = [];
+    var source_names: Array<String> = [];
+    var source_slot_ids: Array<Int> = [];
+    var layer_names: Array<String> = [];
+    var layer_ids: Array<Int> = [];
+    var target_names: Array<String> = [];
+    var target_ids: Array<Int> = [];
+    var left_names: Array<String> = [];
+    var left_ids: Array<Int> = [];
+    var right_names: Array<String> = [];
+    var right_ids: Array<Int> = [];
+    var participant_names: Array<String> = [];
+    var participant_ids: Array<Int> = [];
+    var node_id: Int = 0;
     while node_id < artifact.count {
         let kind_opt: Option<Int> = TypedAstArenaNodeKind(
             artifact.arena, node_id
@@ -253,8 +253,8 @@ func SelfDirDomainTopologyRowsFromArtifact(
         let participant_opt: Option<String> = TypedAstArenaAuxValueText(
             artifact.arena, node_id
         );
-        let participant_name: String = "";
-        let participant_id: Int = 0;
+        var participant_name: String = "";
+        var participant_id: Int = 0;
         if IsSome(participant_opt) {
             participant_name = UnwrapOption(participant_opt);
             participant_id = SelfDirFieldSourceSyntaxId(
@@ -280,7 +280,7 @@ func SelfDirDomainTopologyRowsFromArtifact(
             }
             let projection_name: String = UnwrapOption(primary_opt);
             let source_name: String = UnwrapOption(secondary_opt);
-            let topology_kind: String = "bind";
+            var topology_kind: String = "bind";
             if kind == TypedAstKindDomainRefreshTag() {
                 topology_kind = "refresh";
             } else if kind == TypedAstKindDomainPublishTag() {
@@ -441,7 +441,7 @@ func SelfDirDomainTopologyRowsReady(
         ArrayLength(rows.participant_slot_source_syntax_ids) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if rows.owner_names[i] == "" ||
             rows.owner_source_syntax_ids[i] <= 0 ||
@@ -453,7 +453,7 @@ func SelfDirDomainTopologyRowsReady(
              rows.kinds[i] != "link-relation") {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if rows.source_syntax_ids[prior] == rows.source_syntax_ids[i] {
                 return false;

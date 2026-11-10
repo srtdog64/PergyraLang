@@ -14,6 +14,8 @@
            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
        pgy_copy; })
 
+void pgy_array_drop_storage_raw_export(void *storage, size_t element_size);
+
 #define PGY_DEFINE_ARRAY_EXPORTS(Suffix, CType)                                  \
 typedef struct {                                                                 \
     CType  *data;                                                                \
@@ -28,6 +30,8 @@ typedef struct {                                                                
 } PgySlice_##Suffix;                                                             \
                                                                                  \
 void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value);                \
+void pgy_array_drop_##Suffix(PgyArray_##Suffix *arr)                             \
+{ pgy_array_drop_storage_raw_export(arr, sizeof(CType)); }                       \
                                                                                  \
 PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                        \
 {                                                                                \
@@ -93,16 +97,16 @@ void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value)               
 CType pgy_array_get_##Suffix(PgyArray_##Suffix *arr, size_t index)               \
 {                                                                                \
     if (arr == NULL) {                                                           \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "array get on null array");                            \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "array get on null array");                                        \
     }                                                                            \
     if (index >= arr->length) {                                                  \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
-                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);   \
+        pgy_runtime_panic_out_of_bounds_export(                                 \
+            PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);                 \
     }                                                                            \
     if (arr->data == NULL) {                                                     \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "array get on array without backing storage");         \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "array get on array without backing storage");                     \
     }                                                                            \
     return arr->data[index];                                                     \
 }                                                                                \
@@ -110,16 +114,16 @@ CType pgy_array_get_##Suffix(PgyArray_##Suffix *arr, size_t index)              
 void pgy_array_set_##Suffix(PgyArray_##Suffix *arr, size_t index, CType value)   \
 {                                                                                \
     if (arr == NULL) {                                                           \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "array set on null array");                            \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "array set on null array");                                        \
     }                                                                            \
     if (index >= arr->length) {                                                  \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
-                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);   \
+        pgy_runtime_panic_out_of_bounds_export(                                 \
+            PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);                 \
     }                                                                            \
     if (arr->data == NULL) {                                                     \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "array set on array without backing storage");         \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "array set on array without backing storage");                     \
     }                                                                            \
     arr->data[index] = value;                                                    \
 }                                                                                \
@@ -135,16 +139,16 @@ void pgy_array_pop_##Suffix(PgyArray_##Suffix *arr)                             
 CType pgy_slice_get_##Suffix(PgySlice_##Suffix *slice, size_t index)             \
 {                                                                                \
     if (slice == NULL) {                                                         \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "slice get on null slice");                            \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "slice get on null slice");                                        \
     }                                                                            \
     if (index >= slice->length) {                                                \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
-                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
+        pgy_runtime_panic_out_of_bounds_export(                                 \
+            PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);                       \
     }                                                                            \
     if (slice->data == NULL) {                                                   \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "slice get on slice without backing storage");         \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "slice get on slice without backing storage");                     \
     }                                                                            \
     return slice->data[index];                                                   \
 }                                                                                \
@@ -152,16 +156,16 @@ CType pgy_slice_get_##Suffix(PgySlice_##Suffix *slice, size_t index)            
 void pgy_slice_set_##Suffix(PgySlice_##Suffix *slice, size_t index, CType value) \
 {                                                                                \
     if (slice == NULL) {                                                         \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "slice set on null slice");                            \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "slice set on null slice");                                        \
     }                                                                            \
     if (index >= slice->length) {                                                \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
-                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
+        pgy_runtime_panic_out_of_bounds_export(                                 \
+            PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);                       \
     }                                                                            \
     if (slice->data == NULL) {                                                   \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "slice set on slice without backing storage");         \
+        pgy_runtime_panic_internal_invariant_export(                            \
+            "slice set on slice without backing storage");                     \
     }                                                                            \
     slice->data[index] = value;                                                  \
 }                                                                                \
@@ -251,6 +255,18 @@ void pgy_array_set_owned_String(PgyArray_String *arr, size_t index, char *value)
     }
     free(arr->data[index]);
     arr->data[index] = owned;
+}
+
+void pgy_array_pop_owned_String(PgyArray_String *arr)
+{
+    size_t index;
+
+    if (arr == NULL || arr->length == 0)
+        return;
+    index = arr->length - 1;
+    free(arr->data[index]);
+    arr->data[index] = NULL;
+    arr->length = index;
 }
 
 void pgy_array_drop_owned_String(PgyArray_String *arr)

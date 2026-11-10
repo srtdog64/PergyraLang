@@ -2,7 +2,7 @@ extern "C" { func Fill(inout text: String) -> Void; }
 func Echo(ref text: String) -> String { return text; }
 func Publish(ref output: Slot<String>) -> Void {
     var held: String = "literal";
-    let copy: String = held;
+    var copy: String = held;
     Fill(copy);
     Write(output, Echo(held));
 }

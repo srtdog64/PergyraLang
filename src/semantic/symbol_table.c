@@ -521,6 +521,11 @@ symbol_destroy(Symbol *sym)
     free(sym->name);
     free(sym->slot_info.paired_token_name);
     free(sym->slot_info.paired_slot_name);
+    while (sym->slice_borrow_sources != NULL) {
+        SliceBorrowSource *source = sym->slice_borrow_sources;
+        sym->slice_borrow_sources = source->next;
+        free(source);
+    }
     /* Type is owned by type_system, not freed here */
     free(sym);
 }

@@ -55,7 +55,7 @@ func DirectMirScalarCfgStringArrayDynamicGuardRow(
     ref lengths: DirectMirScalarCfgStringArrayLengthSet,
     collection_row: Int, index: DirectMirScalarCfgStringArrayIndexFact
 ) -> Int {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < ArrayLength(lengths.global_rows) {
         if lengths.collection_rows[row] == collection_row &&
             lengths.indices.kinds[row] == index.kind &&

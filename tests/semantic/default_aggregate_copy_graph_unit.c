@@ -24,7 +24,7 @@ static void edge(MoveWalk *walk, MoveState *state,
     uint32_t source, const char *from, uint32_t holder, const char *to)
 {
     CHECK(move_walk_state_add(walk, state, source, from,
-        NULL, NULL, &copied_at, holder, to, NULL));
+        NULL, NULL, NULL, &copied_at, holder, to, NULL, false));
 }
 
 /* Independent adjacency-matrix closure, not another worklist algorithm. */
@@ -145,7 +145,7 @@ static void actual_consumers(void)
     CHECK(move_walk_assignment_loan_for_path(&walk, &state, &source, &far) == &far);
     far.binding = 5;
     CHECK(move_walk_assignment_loan_for_path(&walk, &state, &source, &far) == NULL);
-    move_walk_copy_changed(&walk, &state, &source);
+    move_walk_copy_changed(&walk, &state, &source, false);
     unsigned changed = 0;
     for (size_t i = 0; i < state.count; i++)
         if (state.rows[i].carrier == 0) changed |= 1u << state.rows[i].binding;

@@ -1,0 +1,29 @@
+// A mutable aggregate carrier cannot issue the formal-relative field path
+// needed to admit a compiler-landed String copy into its Array field.
+struct Names {
+    values: Array<String>;
+}
+
+struct State {
+    names: Names;
+}
+
+struct Source {
+    title: String;
+}
+
+func Append(state: State, ref source: Source) -> State {
+    var names: Names = state.names;
+    var values: Array<String> = names.values;
+    ArrayPush(values, source.title);
+    names.values = values;
+    state.names = names;
+    return state;
+}
+
+func Main() -> Int {
+    let source: Source = Source(Concat("b", ""));
+    let state: State = State(Names([Concat("a", "")]));
+    let changed: State = Append(state, source);
+    return ArrayLength(changed.names.values);
+}

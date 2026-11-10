@@ -20,13 +20,13 @@ struct SemanticCallSpineRoots {
 func SemanticCallSpineRootsFromGraph(
     ref graph: SemanticExpressionGraphFacts
 ) -> SemanticCallSpineRoots {
-    let roots: Array<Int> = [];
+    var roots: Array<Int> = [];
     let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     if !graph.ok ||
         ArrayLength(graph.arena.topology.left_children) != count {
         return SemanticCallSpineRoots(false, roots);
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < count {
         ArrayPush(roots, node);
         node = node + 1;
@@ -53,10 +53,10 @@ func SemanticCallSpineViewFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int
 ) -> SemanticCallSpineView {
-    let reversed: Array<Int> = [];
+    var reversed: Array<Int> = [];
     let no_actuals: Array<String> = [];
-    let node: Int = root_id;
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    var node: Int = root_id;
+    var kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
     while IsSome(kind) &&
         UnwrapOption(kind) == AstExpressionNodeCallArgument() {
         let argument: Option<Int> = SemanticExpressionGraphRightChild(
@@ -81,9 +81,9 @@ func SemanticCallSpineViewFromGraph(
     if !IsSome(callee) {
         return SemanticCallSpineView(false, 0, 0, reversed, no_actuals);
     }
-    let base_callee: Int = UnwrapOption(callee);
-    let reversed_actuals: Array<String> = [];
-    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+    var base_callee: Int = UnwrapOption(callee);
+    var reversed_actuals: Array<String> = [];
+    var callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, base_callee
     );
     while IsSome(callee_kind) &&
@@ -150,8 +150,8 @@ func SemanticCallSpineViewForCallNodeWithin(
             false, 0, 0, no_arguments, no_actuals
         );
     }
-    let spine_root: Int = call_node;
-    let node: Int = call_node + 1;
+    var spine_root: Int = call_node;
+    var node: Int = call_node + 1;
     while node <= end_node {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
         if IsSome(kind) &&

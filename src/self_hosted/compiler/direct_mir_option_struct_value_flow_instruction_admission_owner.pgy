@@ -107,9 +107,9 @@ func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
         DirectMirOptionStructValueFlowInstructionCapture(
             admitted, producer_index, producer_row, 0
         );
-    let captures: Array<MirRoutineInstructionScalarCapture> = [];
-    let globals: Array<Int> = [];
-    let row: Int = 0;
+    var captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var globals: Array<Int> = [];
+    var row: Int = 0;
     while row < 9 {
         ArrayPush(captures, DirectMirOptionStructValueFlowInstructionCapture(
             admitted, main_index, main_row, row
@@ -156,9 +156,9 @@ func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
         captures[0].arg0 != identity.graph.option_local_name ||
         captures[0].arg1 != "" ||
         captures[1].arg0 != identity.graph.option_local_name ||
-        captures[1].arg1 != "local" ||
+        captures[1].arg1 != "mutable_local" ||
         captures[2].arg0 != identity.graph.option_local_name ||
-        captures[2].arg1 != "local" ||
+        captures[2].arg1 != "mutable_local" ||
         captures[3].arg0 != identity.graph.pair_local_name ||
         captures[3].arg1 != identity.declaration.name ||
         captures[4].arg0 != "Log" || captures[4].arg1 != "" ||

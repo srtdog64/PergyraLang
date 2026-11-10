@@ -1,4 +1,39 @@
 #include "mir.h"
+#include <string.h>
+
+/* Assignment operation is the instruction opcode. Its operands remain the
+ * ordinary checked value/place facts, including their SSA and ABI identity. */
+const char *
+mir_compound_assignment_opcode(AstAssignmentOperation operation)
+{
+    switch (operation) {
+    case AST_ASSIGN_ADD: return "assign-add";
+    case AST_ASSIGN_SUBTRACT: return "assign-subtract";
+    case AST_ASSIGN_MULTIPLY: return "assign-multiply";
+    case AST_ASSIGN_DIVIDE: return "assign-divide";
+    case AST_ASSIGN_REMAINDER: return "assign-remainder";
+    case AST_ASSIGN_SET: return NULL;
+    }
+    return NULL;
+}
+
+bool
+mir_assignment_operation(const MIRInstruction *inst, AstAssignmentOperation *out)
+{
+    if (inst == NULL || out == NULL || inst->name == NULL)
+        return false;
+    if (strcmp(inst->name, "assign") == 0 || strcmp(inst->name, "ssa-def") == 0) {
+        *out = AST_ASSIGN_SET;
+        return true;
+    }
+    for (AstAssignmentOperation op = AST_ASSIGN_ADD; op <= AST_ASSIGN_REMAINDER; ++op) {
+        if (strcmp(inst->name, mir_compound_assignment_opcode(op)) == 0) {
+            *out = op;
+            return true;
+        }
+    }
+    return false;
+}
 
 const char *
 mir_scope_kind_name(MIRScopeKind kind)

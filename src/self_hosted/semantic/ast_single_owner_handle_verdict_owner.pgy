@@ -64,7 +64,7 @@ func SemanticSingleOwnerHandleInvalid(owner: String, node_id: Int) -> SemanticAs
 func SemanticSingleOwnerTextBuilderBoundary(
     ref signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstBodyVerdict {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(signatures.param_types) {
         if signatures.param_types[row] == "TextBuilder" {
             return SemanticAstBodyVerdictError("single_owner_handle_boundary", SemanticError2(
@@ -99,9 +99,9 @@ func SemanticSingleOwnerHandleLocals(
     if ArrayLength(initializers.verified) != local_count {
         return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleInitializerTypes", -1);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < local_count {
-        let type_name: String = analysis.local_bindings.declared_type_names[row];
+        var type_name: String = analysis.local_bindings.declared_type_names[row];
         if analysis.local_bindings.has_declared_types[row] == 0 {
             type_name = "";
             if initializers.verified[row] == 1 { type_name = initializers.inferred_type_names[row]; }
@@ -112,10 +112,10 @@ func SemanticSingleOwnerHandleLocals(
             SemanticSingleOwnerHandleTypeName(type_name, box_builtin) {
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                 analysis.expression_surfaces, node_id, AstExpressionLaneValue());
-            let kind: Int = -1;
+            var kind: Int = -1;
             if IsSome(root) { kind = graph.arena.topology.node_kinds[UnwrapOption(root)]; }
             if type_name == "TextBuilder" {
-                let fresh: Bool = false;
+                var fresh: Bool = false;
                 if kind == AstExpressionNodeCall() || kind == AstExpressionNodeCallArgument() {
                     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, UnwrapOption(root));
                     fresh = call.ok && graph.arena.call_target_kinds[call.call_node] == SemanticCallTargetDirect() &&
@@ -173,7 +173,7 @@ func SemanticSingleOwnerHandleAssignments(
     box_builtin: Bool
 ) -> SemanticAstBodyVerdict {
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(assignment_types.target_type_names) {
         let type_name: String = assignment_types.target_type_names[index];
         if assignment_types.verified[index] == 1 && SemanticSingleOwnerHandleTypeName(type_name, box_builtin) {
@@ -204,12 +204,12 @@ func SemanticSingleOwnerHandleReturns(
     box_builtin: Bool
 ) -> SemanticAstBodyVerdict {
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(analysis.statements.node_ids) {
         if analysis.statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() {
             let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
                 analysis.signatures, analysis.statements.function_node_ids[row]);
-            let return_type: String = "";
+            var return_type: String = "";
             if IsSome(signature) { return_type = analysis.signatures.return_types[UnwrapOption(signature)]; }
             let anchored: Bool = SemanticAnchoredHandleTypeName(return_type);
             if IsSome(signature) && (anchored || SemanticSingleOwnerHandleTypeName(return_type, box_builtin)) {
@@ -222,7 +222,7 @@ func SemanticSingleOwnerHandleReturns(
                 if (kind == AstExpressionNodeLeaf() && graph.arena.identities.binding_kinds[value] ==
                     SemanticExpressionBindingFormalParameter()) ||
                     kind == AstExpressionNodeMemberAccess() || kind == AstExpressionNodeIndex() {
-                    let code: String = "single_owner_handle_copy";
+                    var code: String = "single_owner_handle_copy";
                     if anchored { code = "anchored_handle_copy"; }
                     return SemanticAstBodyVerdictError(code, SemanticError2(
                         code, "type", return_type,
@@ -245,9 +245,9 @@ func SemanticSingleOwnerHandleGenericActuals(
     if ArrayLength(specializations.source_owner_node_ids) != ArrayLength(specializations.call_node_ids) {
         return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleGenericActuals", -1);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(specializations.call_node_ids) {
-        let actual: Int = specializations.actual_starts[row];
+        var actual: Int = specializations.actual_starts[row];
         let end: Int = actual + specializations.actual_counts[row];
         while actual < end {
             if SemanticSingleOwnerHandleTypeName(specializations.actual_type_names[actual], box_builtin) {
@@ -303,14 +303,14 @@ func SemanticSingleOwnerTextBuilderOperation(
 ) -> SemanticAstBodyVerdict {
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
     let retires: Bool = target == "TextBuilderFinish" || target == "TextBuilderDrop";
-    let binding: Int = -1;
+    var binding: Int = -1;
     if ArrayLength(call.argument_nodes) > 0 {
         let node: Int = call.argument_nodes[0];
         let function_id: Option<Int> = SemanticAstFunctionScopeNodeId(analysis.function_scopes, use_node);
         if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() && IsSome(function_id) &&
             leaf_types[node] == "TextBuilder" && graph.arena.identities.binding_kinds[node] !=
                 SemanticExpressionBindingFormalParameter() {
-            let index: Int = ArrayLength(builders.node_ids) - 1;
+            var index: Int = ArrayLength(builders.node_ids) - 1;
             while index >= 0 && binding < 0 {
                 if builders.function_ids[index] == UnwrapOption(function_id) &&
                     builders.names[index] == graph.arena.node_texts[node] &&
@@ -352,15 +352,15 @@ func SemanticSingleOwnerHandleCalls(
     if ArrayLength(leaf_types) != count { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleLeafTypes", -1); }
     let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
     if !call_roots.ok { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleCallSpine", -1); }
-    let last_root: Int = -1;
-    let slot: Int = 0;
+    var last_root: Int = -1;
+    var slot: Int = 0;
     while slot < ArrayLength(graph.roots) {
         if graph.has_roots[slot] {
             let root_id: Int = graph.roots[slot];
             let use_node: Int = analysis.expression_surfaces.node_ids[slot / 3];
-            let node: Int = last_root + 1;
+            var node: Int = last_root + 1;
             while node <= root_id && node < count {
-                let target: String = "";
+                var target: String = "";
                 if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
                     graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() &&
                     graph.arena.identities.call_target_syntax_ids[node] == 0 {
@@ -372,7 +372,7 @@ func SemanticSingleOwnerHandleCalls(
                     if !payload_call.ok || payload_call.call_node != node {
                         return SemanticSingleOwnerHandleInvalid("SingleOwnerHandlePayload", use_node);
                     }
-                    let argument: Int = 0;
+                    var argument: Int = 0;
                     while argument < ArrayLength(payload_call.argument_nodes) {
                         let stored: SemanticAstBodyVerdict = SemanticHandleStoredLeafVerdict(
                             graph, leaf_types, payload_call.argument_nodes[argument], box_builtin,
@@ -395,9 +395,9 @@ func SemanticSingleOwnerHandleCalls(
                     if !call.ok || call.call_node != node {
                         return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleCall", use_node);
                     }
-                    let verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictOk();
+                    var verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictOk();
                     if target == "AllocatorDestroy" {
-                        let argument: Int = -1;
+                        var argument: Int = -1;
                         if ArrayLength(call.argument_nodes) == 1 { argument = call.argument_nodes[0]; }
                         if argument < 0 || graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() ||
                             graph.arena.identities.binding_kinds[argument] == SemanticExpressionBindingFormalParameter() {
@@ -426,12 +426,12 @@ func SemanticSingleOwnerTextBuilderRetirement(
     ref builders: SemanticSingleOwnerTextBuilders
 ) -> SemanticAstBodyVerdict {
     if ArrayLength(builders.node_ids) == 0 { return SemanticAstBodyVerdictOk(); }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(analysis.statements.node_ids) {
         let kind: Int = analysis.statements.kind_tags[row];
         if kind == TypedAstKindValueReturnStmtTag() || kind == TypedAstKindBareReturnStmtTag() {
             let node_id: Int = analysis.statements.node_ids[row];
-            let index: Int = 0;
+            var index: Int = 0;
             while index < ArrayLength(builders.node_ids) {
                 if builders.function_ids[index] == analysis.statements.function_node_ids[row] &&
                     builders.node_ids[index] < node_id &&
@@ -445,7 +445,7 @@ func SemanticSingleOwnerTextBuilderRetirement(
         }
         row = row + 1;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(builders.node_ids) {
         if builders.consume_ids[index] < 0 {
             return SemanticAstBodyVerdictError("single_owner_handle_not_consumed", SemanticError2(
@@ -468,10 +468,10 @@ func SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(
     // A source declaration named Box owns that spelling; Box<...> is then a
     // user type, not the builtin handle.
     let box_builtin: Bool = !IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, "Box"));
-    let verdict: SemanticAstBodyVerdict = SemanticSingleOwnerTextBuilderBoundary(analysis.signatures);
+    var verdict: SemanticAstBodyVerdict = SemanticSingleOwnerTextBuilderBoundary(analysis.signatures);
     let node_ids: Array<Int> = []; let function_ids: Array<Int> = []; let scope_ids: Array<Int> = [];
     let names: Array<String> = []; let consume_ids: Array<Int> = [];
-    let builders: SemanticSingleOwnerTextBuilders = SemanticSingleOwnerTextBuilders(
+    var builders: SemanticSingleOwnerTextBuilders = SemanticSingleOwnerTextBuilders(
         node_ids, function_ids, scope_ids, names, consume_ids);
     if verdict.ok {
         verdict = SemanticSingleOwnerHandleLocals(artifact, analysis, initializers, box_builtin, builders);

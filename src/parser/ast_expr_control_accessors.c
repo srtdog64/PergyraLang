@@ -66,6 +66,41 @@ ast_assignment_semantic_binding_type_name(const ASTNode* node)
     return node->data.assignment.semantic_binding_type_name;
 }
 
+AstAssignmentOperation
+ast_assignment_operation(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_ASSIGNMENT
+        ? node->data.assignment.operation : AST_ASSIGN_SET;
+}
+
+const char *
+ast_assignment_operation_text(AstAssignmentOperation operation)
+{
+    switch (operation) {
+    case AST_ASSIGN_SET: return "=";
+    case AST_ASSIGN_ADD: return "+=";
+    case AST_ASSIGN_SUBTRACT: return "-=";
+    case AST_ASSIGN_MULTIPLY: return "*=";
+    case AST_ASSIGN_DIVIDE: return "/=";
+    case AST_ASSIGN_REMAINDER: return "%=";
+    }
+    return NULL;
+}
+
+PgyTokenType
+ast_assignment_binary_operator(AstAssignmentOperation operation)
+{
+    switch (operation) {
+    case AST_ASSIGN_ADD: return TOKEN_PLUS;
+    case AST_ASSIGN_SUBTRACT: return TOKEN_MINUS;
+    case AST_ASSIGN_MULTIPLY: return TOKEN_STAR;
+    case AST_ASSIGN_DIVIDE: return TOKEN_SLASH;
+    case AST_ASSIGN_REMAINDER: return TOKEN_PERCENT;
+    case AST_ASSIGN_SET: return TOKEN_ASSIGN;
+    }
+    return TOKEN_ERROR;
+}
+
 bool
 ast_assignment_set_semantic_binding_type_name_copy(ASTNode* node,
                                                    const char* type_name)

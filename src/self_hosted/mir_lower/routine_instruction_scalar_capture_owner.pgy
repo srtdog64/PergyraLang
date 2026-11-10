@@ -57,56 +57,56 @@ func MirRoutineInstructionScalarCaptureWithin(
         JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return InvalidMirRoutineInstructionScalarCapture();
     }
-    let name: String = "";
-    let result: String = "";
-    let expr0: String = "";
-    let expr1: String = "";
-    let arg0: String = "";
-    let arg1: String = "";
-    let slot_anchor: String = "";
-    let abi_type_name: String = "";
-    let abi_type_value_ready: Bool = false;
-    let match_variant: String = "";
-    let name_seen: Bool = false;
-    let result_seen: Bool = false;
-    let expr0_seen: Bool = false;
-    let expr1_seen: Bool = false;
-    let arg0_seen: Bool = false;
-    let arg1_seen: Bool = false;
-    let slot_anchor_seen: Bool = false;
-    let match_variant_seen: Bool = false;
-    let abi_type_start: Int = 0 - 1;
-    let abi_type_end: Int = 0 - 1;
-    let abi_type_seen: Bool = false;
-    let abi_layout_id_start: Int = 0 - 1;
-    let abi_layout_id_end: Int = 0 - 1;
-    let abi_layout_id_seen: Bool = false;
-    let abi_layout_required_start: Int = 0 - 1;
-    let abi_layout_required_end: Int = 0 - 1;
-    let abi_layout_required_seen: Bool = false;
-    let abi_layout_start: Int = 0 - 1;
-    let abi_layout_end: Int = 0 - 1;
-    let abi_layout_seen: Bool = false;
-    let expr0_graph_start: Int = 0 - 1;
-    let expr0_graph_end: Int = 0 - 1;
-    let expr0_graph_seen: Bool = false;
-    let expr1_graph_start: Int = 0 - 1;
-    let expr1_graph_end: Int = 0 - 1;
-    let expr1_graph_seen: Bool = false;
-    let kind: String = "";
-    let source_type: String = "";
-    let kind_seen: Bool = false;
-    let source_type_seen: Bool = false;
-    let machine_contact_start: Int = 0 - 1;
-    let machine_contact_end: Int = 0 - 1;
-    let machine_contact_seen: Bool = false;
-    let machine_layer_start: Int = 0 - 1;
-    let machine_layer_end: Int = 0 - 1;
-    let machine_layer_seen: Bool = false;
-    let abi_fields_unique: Bool = true;
-    let expect_member: Bool = true;
-    let after_comma: Bool = false;
-    let i: Int = start + 1;
+    var name: String = "";
+    var result: String = "";
+    var expr0: String = "";
+    var expr1: String = "";
+    var arg0: String = "";
+    var arg1: String = "";
+    var slot_anchor: String = "";
+    var abi_type_name: String = "";
+    var abi_type_value_ready: Bool = false;
+    var match_variant: String = "";
+    var name_seen: Bool = false;
+    var result_seen: Bool = false;
+    var expr0_seen: Bool = false;
+    var expr1_seen: Bool = false;
+    var arg0_seen: Bool = false;
+    var arg1_seen: Bool = false;
+    var slot_anchor_seen: Bool = false;
+    var match_variant_seen: Bool = false;
+    var abi_type_start: Int = 0 - 1;
+    var abi_type_end: Int = 0 - 1;
+    var abi_type_seen: Bool = false;
+    var abi_layout_id_start: Int = 0 - 1;
+    var abi_layout_id_end: Int = 0 - 1;
+    var abi_layout_id_seen: Bool = false;
+    var abi_layout_required_start: Int = 0 - 1;
+    var abi_layout_required_end: Int = 0 - 1;
+    var abi_layout_required_seen: Bool = false;
+    var abi_layout_start: Int = 0 - 1;
+    var abi_layout_end: Int = 0 - 1;
+    var abi_layout_seen: Bool = false;
+    var expr0_graph_start: Int = 0 - 1;
+    var expr0_graph_end: Int = 0 - 1;
+    var expr0_graph_seen: Bool = false;
+    var expr1_graph_start: Int = 0 - 1;
+    var expr1_graph_end: Int = 0 - 1;
+    var expr1_graph_seen: Bool = false;
+    var kind: String = "";
+    var source_type: String = "";
+    var kind_seen: Bool = false;
+    var source_type_seen: Bool = false;
+    var machine_contact_start: Int = 0 - 1;
+    var machine_contact_end: Int = 0 - 1;
+    var machine_contact_seen: Bool = false;
+    var machine_layer_start: Int = 0 - 1;
+    var machine_layer_end: Int = 0 - 1;
+    var machine_layer_seen: Bool = false;
+    var abi_fields_unique: Bool = true;
+    var expect_member: Bool = true;
+    var after_comma: Bool = false;
+    var i: Int = start + 1;
     while i < end {
         i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end { return InvalidMirRoutineInstructionScalarCapture(); }
@@ -159,20 +159,14 @@ func MirRoutineInstructionScalarCaptureWithin(
         }
         let key_end: Int = UnwrapOption(key_end_opt);
         let raw_key_length: Int = key_end - i - 2;
-        let key_has_escape: Bool = false;
-        let key_row: Int = i + 1;
+        var key_has_escape: Bool = false;
+        var key_row: Int = i + 1;
         while key_row < key_end - 1 {
             if JsonCharCodeAt(json, json_extent, key_end, key_row) ==
                 JsonAsciiCode("\\") {
                 key_has_escape = true;
             }
             key_row = key_row + 1;
-        }
-        // The legacy consumers have no retirement-edge emitter. They must
-        // refuse this owned fact instead of silently discarding its cleanup.
-        if (key_has_escape || raw_key_length == 18) &&
-            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "collection_cleanup") {
-            return InvalidMirRoutineInstructionScalarCapture();
         }
         let is_name: Bool = (key_has_escape || raw_key_length == 4) &&
             JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "name");
@@ -249,9 +243,9 @@ func MirRoutineInstructionScalarCaptureWithin(
                 (is_source_type && source_type_seen) {
                 return InvalidMirRoutineInstructionScalarCapture();
             }
-            let value: String = "";
+            var value: String = "";
             if JsonCharCodeAt(json, json_extent, value_end, i) == JsonAsciiCode("\"") {
-                let decoded_end: Array<Int> = [0];
+                var decoded_end: Array<Int> = [0];
                 value = ReadJsonStringBounded(json, json_extent, i, value_end, decoded_end);
                 if decoded_end[0] != value_end {
                     return InvalidMirRoutineInstructionScalarCapture();
@@ -284,7 +278,7 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_type_end = value_end;
                 abi_type_seen = true;
                 if JsonValueKindAt(json, json_extent, i, value_end) == "string" {
-                    let decoded_end: Array<Int> = [0];
+                    var decoded_end: Array<Int> = [0];
                     abi_type_name = ReadJsonStringBounded(
                         json, json_extent, i, value_end, decoded_end
                     );
@@ -325,8 +319,8 @@ func MirRoutineInstructionScalarCaptureWithin(
                 (is_expr1_graph && expr1_graph_seen) {
                 return InvalidMirRoutineInstructionScalarCapture();
             }
-            let graph_start: Int = 0 - 1;
-            let graph_end: Int = 0 - 1;
+            var graph_start: Int = 0 - 1;
+            var graph_end: Int = 0 - 1;
             let graph_kind: String = JsonValueKindAt(json, json_extent, i, value_end);
             if graph_kind == "object" {
                 graph_start = i;

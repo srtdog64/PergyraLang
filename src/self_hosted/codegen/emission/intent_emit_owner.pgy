@@ -23,9 +23,9 @@ func CodegenIntentSourceRowOrDie(
     syntax_id: Int,
     name: String
 ) -> Int {
-    let found: Int = -1;
-    let matches: Int = 0;
-    let row: Int = 0;
+    var found: Int = -1;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(view.source_facts.intent_node_ids) {
         if view.source_facts.intent_node_ids[row] == syntax_id {
             matches = matches + 1;
@@ -59,16 +59,16 @@ func CodegenIntentOptionalRangeNameOrDie(
 
 func CodegenIntentDefinitionBlock(
     ref intents: SemanticAstIntentSignatureFacts,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     base_env: CodegenTypeEnv,
     own intent_execution: CodegenIntentExecutionView,
     ref domain_runtime: CodegenDomainRuntimeFacts,
     ref intent_policy: CodegenIntentPolicyView,
     uses_intent_observability: Bool
 ) -> String {
-    let definitions: Array<String> = [];
+    var definitions: Array<String> = [];
     let steps: SelfDirIntentStepFacts = intent_execution.source_facts.steps;
-    let intent_index: Int = 0;
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         let intent_node: Int = intents.intent_node_ids[intent_index];
         if CodegenIntentExecutionViewOwnsRoutine(
@@ -83,35 +83,35 @@ func CodegenIntentDefinitionBlock(
         let env: CodegenTypeEnv = CodegenIntentLocalEnv(
             intents, intent_index, base_env
         );
-        let body: Array<String> = [];
+        var body: Array<String> = [];
         let step_start: Int =
             intent_execution.source_facts.step_starts[source_intent];
         let step_count: Int =
             intent_execution.source_facts.step_counts[source_intent];
-        let compensation_starts: Array<Int> = [];
-        let compensation_counts: Array<Int> = [];
-        let compensation_expressions: Array<String> = [];
-        let step_sync_expressions: Array<String> = [];
-        let step_writeback_expressions: Array<String> = [];
+        var compensation_starts: Array<Int> = [];
+        var compensation_counts: Array<Int> = [];
+        var compensation_expressions: Array<String> = [];
+        var step_sync_expressions: Array<String> = [];
+        var step_writeback_expressions: Array<String> = [];
         CodegenIntentEmitControlPrologue(
             body, step_count, uses_intent_observability, intent_node,
             intent_policy, intents, intent_index,
             expression_surfaces, env
         );
-        let local_step: Int = 0;
+        var local_step: Int = 0;
         while local_step < step_count {
             let step_row: Int = step_start + local_step;
             let step_name: String = steps.names[step_row];
             let authority_alias: String =
                 CodegenIntentOptionalRangeNameOrDie(steps, step_row, "authority");
-            let outcome_count: Int = 0;
+            var outcome_count: Int = 0;
             if steps.outcome_node_ids[step_row] >= 0 {
                 if steps.outcome_names[step_row] == "" {
                     Die("codegen DIR intent outcome identity is missing");
                 }
                 outcome_count = 1;
             }
-            let step_env: CodegenTypeEnv = env;
+            var step_env: CodegenTypeEnv = env;
             if steps.target_kinds[step_row] == "intent" {
                 if outcome_count != 0 {
                     Die("codegen DIR nested intent boundary is invalid");
@@ -208,7 +208,7 @@ func CodegenIntentDefinitionBlock(
             let compensation_count: Int =
                 steps.compensate_counts[step_row];
             ArrayPush(compensation_counts, compensation_count);
-            let compensation: Int = 0;
+            var compensation: Int = 0;
             while compensation < compensation_count {
                 ArrayPush(
                     compensation_expressions,
@@ -253,12 +253,15 @@ func CodegenIntentDefinitionBlock(
             );
             local_step = local_step + 1;
         }
-        let completion: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+        let completion_root_id: Int = CodegenSemanticExpressionGraphOrDie(
             expression_surfaces,
             intent_execution.source_facts.success_expression_node_ids[source_intent],
             AstExpressionLaneAtom());
         ArrayPush(body, Concat("    __intent_result = ", Concat(
-            RewriteExprFromSemanticGraph(completion.graph, completion.root_id, env), ";\n")));
+            RewriteExprFromSemanticGraph(
+                expression_surfaces.expression_graph,
+                completion_root_id, env
+            ), ";\n")));
         CodegenIntentEmitCleanup(
             body, step_count, compensation_starts, compensation_counts,
             compensation_expressions, step_sync_expressions,

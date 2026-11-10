@@ -13,7 +13,8 @@ func SemanticCollectionMutatorName(callee: String) -> Bool {
         callee == "ListSet" || callee == "ListRemove" ||
         callee == "SetAdd" || callee == "SetRemove" ||
         callee == "QueuePush" || callee == "QueuePop" ||
-        callee == "MapSet" || callee == "MapRemove";
+        callee == "MapSet" || callee == "MapRemove" ||
+        callee == "ArrayPushOwnedString" || callee == "ArrayReverse" || callee == "ArraySort";
 }
 
 func SemanticCompilerRetireArrayStorageCallerContractReady(
@@ -120,8 +121,12 @@ func SemanticCollectionMutationResolvedError(
         return "";
     }
     if mode != "default_param" && mode != "ref_param" { return ""; }
-    if !SemanticCollectionTypeName(receiver_type) { return ""; }
-    let mode_name: String = "default";
+    // A Slice write has the same caller-visible default-parameter boundary
+    // as native indexed assignment. Explicit boundaries keep their existing policy.
+    let slice_write: Bool = callee == "ArraySet" && mode == "default_param" &&
+        IsSome(SemanticSliceElementType(receiver_type));
+    if !SemanticCollectionTypeName(receiver_type) && !slice_write { return ""; }
+    var mode_name: String = "default";
     if mode == "ref_param" { mode_name = "ref"; }
     return SemanticError3(
         "value_param_collection_mutation", "func", callee,

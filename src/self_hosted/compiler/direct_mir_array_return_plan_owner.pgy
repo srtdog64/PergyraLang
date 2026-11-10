@@ -46,7 +46,7 @@ func DirectMirArrayReturnPlanIdentityDigest(
     ref plan: DirectMirArrayReturnPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(101L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(101L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
@@ -54,7 +54,7 @@ func DirectMirArrayReturnPlanIdentityDigest(
     hash = DirectMirCfgHashString(hash, plan.local_name);
     hash = DirectMirCfgHashString(hash, plan.local_result);
     hash = DirectMirCfgHashString(hash, plan.consumer_result);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.returned_elements) {
         hash = DirectMirCfgHashInt(hash, plan.returned_elements[row]);
         row = row + 1;
@@ -134,21 +134,21 @@ func DirectMirArrayReturnPlanMutationRejected(
     own plan: DirectMirArrayReturnPlan
 ) -> Bool {
     if !DirectMirArrayReturnPlanReady(plan) { return false; }
-    let bad_use: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanMutation(
+    var bad_use: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanMutation(
         plan, Concat(plan.local_name, ".2"), plan.length_offset,
         plan.target_capability_fingerprint
     );
     bad_use = DirectMirArrayReturnPlanWithDigest(
         bad_use, DirectMirArrayReturnPlanIdentityDigest(bad_use)
     );
-    let bad_abi: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanMutation(
+    var bad_abi: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanMutation(
         plan, plan.consumer_result, plan.length_offset + 8,
         plan.target_capability_fingerprint
     );
     bad_abi = DirectMirArrayReturnPlanWithDigest(
         bad_abi, DirectMirArrayReturnPlanIdentityDigest(bad_abi)
     );
-    let bad_target: DirectMirArrayReturnPlan =
+    var bad_target: DirectMirArrayReturnPlan =
         DirectMirArrayReturnPlanMutation(
             plan, plan.consumer_result, plan.length_offset,
             plan.target_capability_fingerprint + 1
@@ -195,10 +195,10 @@ func DirectMirArrayReturnPlanFromAdmitted(
         !MirRoutineInstructionUseFactsReady(producer_uses, 1) {
         Die("direct MIR Array<Int> return routine facts are invalid");
     }
-    let main_globals: Array<Int> = [];
-    let main_captures: Array<MirRoutineInstructionScalarCapture> = [];
-    let main_expressions: Array<MirProgramInstructionExpressionFact> = [];
-    let row: Int = 0;
+    var main_globals: Array<Int> = [];
+    var main_captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var main_expressions: Array<MirProgramInstructionExpressionFact> = [];
+    var row: Int = 0;
     while row < 3 {
         let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, main_row, 0, row
@@ -297,7 +297,7 @@ func DirectMirArrayReturnPlanFromAdmitted(
         MirRoutineInstructionUseCountAtGlobal(main_uses, main_globals[0]) != 0 {
         Die("direct MIR Array<Int> return caller graph is invalid");
     }
-    let consumer_result: String = "";
+    var consumer_result: String = "";
     row = 1;
     while row < 3 {
         let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(

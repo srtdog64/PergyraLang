@@ -32,9 +32,9 @@ func SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunc
         ArrayLength(iterations.verified) != count {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
-    let function_node_ids: Array<Int> = [];
-    let binding_names: Array<String> = [];
-    let i: Int = 0;
+    var function_node_ids: Array<Int> = [];
+    var binding_names: Array<String> = [];
+    var i: Int = 0;
     while i < count {
         let statement_index: Option<Int> =
             SemanticAstStatementIndexForNode(
@@ -76,9 +76,9 @@ func SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables(
         ArrayLength(iterations.verified) != count {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
-    let function_node_ids: Array<Int> = [];
-    let binding_names: Array<String> = [];
-    let i: Int = 0;
+    var function_node_ids: Array<Int> = [];
+    var binding_names: Array<String> = [];
+    var i: Int = 0;
     while i < count {
         let statement_index: Option<Int> =
             SemanticAstStatementIndexForNode(

@@ -41,7 +41,7 @@ struct DirectMirScalarCfgArrayIntPushGraphFact {
 func DirectMirScalarCfgArrayIntPushGraphFactFrom(
     ref graph: MirExpressionGraphSequence
 ) -> DirectMirScalarCfgArrayIntPushGraphFact {
-    let kind: Int = 0;
+    var kind: Int = 0;
     if graph.ok && graph.ready_node_count == 3 &&
         ArrayLength(graph.roots) == 1 && graph.roots[0] == 2 &&
         graph.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
@@ -59,7 +59,7 @@ func DirectMirScalarCfgArrayIntPushGraphFactFrom(
             kind = DirectMirScalarCfgArrayIntPushValueAdd();
         }
     }
-    let value_name: String = "";
+    var value_name: String = "";
     if kind != 0 { value_name = graph.arena.node_texts[0]; }
     return DirectMirScalarCfgArrayIntPushGraphFact(
         kind != 0, kind, value_name

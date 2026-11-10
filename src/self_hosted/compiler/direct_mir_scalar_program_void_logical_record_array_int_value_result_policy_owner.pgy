@@ -16,7 +16,7 @@ func DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady(
             logical_record, signature.parameters.type_names[1]) ||
         signature.parameters.type_names[2] !=
             CompilerAbiLayoutStringTypeName() { return false; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         if signature.parameters.resources[ordinal] != "none" ||
             signature.parameters.pass_shapes[ordinal] != "direct" {

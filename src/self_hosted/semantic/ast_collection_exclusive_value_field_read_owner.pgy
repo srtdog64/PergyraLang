@@ -15,7 +15,7 @@ func SemanticAstCollectionExclusiveFormalIndex(
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
     if !IsSome(signature) { return None; }
     let start: Int = signatures.param_starts[UnwrapOption(signature)];
-    let index: Int = 0;
+    var index: Int = 0;
     while index < signatures.param_counts[UnwrapOption(signature)] {
         if signatures.param_node_ids[start + index] == root_id { return Some(start + index); }
         index = index + 1;
@@ -27,11 +27,11 @@ func SemanticAstCollectionExclusiveFormalIndex(
 func SemanticAstCollectionExclusiveTypeFields(
     ref constructors: SemanticAstNominalConstructorFacts, type_name: String
 ) -> Array<String> {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
     if !IsSome(constructor) { return fields; }
     let start: Int = constructors.param_starts[UnwrapOption(constructor)];
-    let index: Int = 0;
+    var index: Int = 0;
     while index < constructors.param_counts[UnwrapOption(constructor)] {
         ArrayPush(fields, Concat("", constructors.field_names[start + index]));
         index = index + 1;
@@ -75,7 +75,7 @@ func SemanticAstCollectionExclusiveStepName(
     ref occurrence: Array<Int>, index: Int
 ) -> String {
     let prefix: Int = aliases.chain_counts[alias_row];
-    let node: Int = -1;
+    var node: Int = -1;
     if index < prefix { node = aliases.chain_nodes[aliases.chain_starts[alias_row] + index]; }
     else if index - prefix < ArrayLength(occurrence) { node = occurrence[index - prefix]; }
     if node < 0 { return ""; }
@@ -120,10 +120,10 @@ func SemanticAstCollectionExclusiveSummarizedTarget(
 func SemanticAstCollectionExclusiveMemberPathAbove(
     ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int, root: Int
 ) -> String {
-    let path: String = "";
-    let top: Int = node;
-    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
-    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+    var path: String = "";
+    var top: Int = node;
+    var consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
+    var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
     while consumer >= 0 && member.ok && member.receiver_node == top {
         let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
         if !IsSome(field) { return ""; }
@@ -139,7 +139,7 @@ func SemanticAstCollectionExclusiveMemberPathAbove(
 // reads whole, "@~prefix" for each proper prefix it reads into.
 func SemanticAstCollectionExclusiveRecordReadPath(inout reads: HashMap<String, Int>, key: String, path: String) -> Void {
     MapSet(reads, Concat(key, Concat(":@", path)), 1);
-    let at: Int = 0;
+    var at: Int = 0;
     while at < StringLength(path) {
         if Substring(path, at, 1) == "." { MapSet(reads, Concat(key, Concat(":@~", Substring(path, 0, at))), 1); }
         at = at + 1;
@@ -153,7 +153,7 @@ func SemanticAstCollectionExclusivePathRead(reads: HashMap<String, Int>, formal:
     if MapHas(reads, Concat(key, Concat(":@", path))) || MapHas(reads, Concat(key, Concat(":@~", path))) {
         return true;
     }
-    let at: Int = 0;
+    var at: Int = 0;
     while at < StringLength(path) {
         if Substring(path, at, 1) == "." && MapHas(reads, Concat(key, Concat(":@", Substring(path, 0, at)))) {
             return true;
@@ -171,7 +171,7 @@ func SemanticAstCollectionExclusivePlaceType(
     function_id: Int, ref place: SemanticAstCollectionAggregateSinkPlace
 ) -> Option<String> {
     if !place.ok || place.temporary { return None; }
-    let type_name: String = "";
+    var type_name: String = "";
     if place.key >= 0 {
         if place.key >= ArrayLength(inferred_types) { return None; }
         type_name = Concat("", inferred_types[place.key]);
@@ -180,7 +180,7 @@ func SemanticAstCollectionExclusivePlaceType(
         if !IsSome(formal) { return None; }
         type_name = Concat("", signatures.param_types[UnwrapOption(formal)]);
     }
-    let step: Int = 0;
+    var step: Int = 0;
     while step < ArrayLength(place.chain) && type_name != "" {
         let field_name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[step]);
         let fact: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
@@ -222,9 +222,21 @@ func SemanticAstCollectionExclusiveValueRead(
         // call still evaluates its arguments.
         let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
             signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+        var readonly_ref: Bool = false;
+        if formal.ok && formal.signature_row >= 0 &&
+            formal.signature_row < ArrayLength(signatures.param_starts) &&
+            formal.ordinal >= 0 &&
+            formal.ordinal < signatures.param_counts[formal.signature_row] {
+            let parameter: Int = signatures.param_starts[formal.signature_row] +
+                formal.ordinal;
+            readonly_ref = parameter >= 0 &&
+                parameter < ArrayLength(signatures.param_modes) &&
+                signatures.param_modes[parameter] == 3;
+        }
         return formal.ok && formal.signature_row >= 0 &&
             formal.signature_row < ArrayLength(signatures.return_types) &&
-            !MapHas(field_reads, Concat(ToString(formal.syntax_id), ":!")) &&
+            (readonly_ref ||
+             !MapHas(field_reads, Concat(ToString(formal.syntax_id), ":!"))) &&
             SemanticAstCollectionExclusiveUntrackedType(signatures.return_types[formal.signature_row]) &&
             signatures.return_types[formal.signature_row] != "" &&
             call >= 0 && node >= call_start && node <= call;
@@ -244,14 +256,14 @@ func SemanticAstCollectionExclusiveFieldReads(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts
 ) -> HashMap<String, Int> {
-    let reads: HashMap<String, Int> = MapNew();
-    let forwarding: Array<Int> = [];
-    let slot: Int = 0;
+    var reads: HashMap<String, Int> = MapNew();
+    var forwarding: Array<Int> = [];
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] {
             let root: Int = surfaces.expression_graph.roots[slot];
             let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
-            let node: Int = root + 1;
+            var node: Int = root + 1;
             if IsSome(start) { node = UnwrapOption(start); }
             while node <= root {
                 let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
@@ -261,8 +273,8 @@ func SemanticAstCollectionExclusiveFieldReads(
                     // An own formal may be released whole by its body.
                     let key: String = ToString(formal.syntax_id);
                     let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
-                    let handled: Bool = false;
-                    let opaque_target: Bool = false;
+                    var handled: Bool = false;
+                    var opaque_target: Bool = false;
                     if consumer >= 0 && formal.mode != 2 {
                         let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
                             surfaces.expression_graph, consumer);
@@ -316,9 +328,9 @@ func SemanticAstCollectionExclusiveFieldReads(
     // argument reads whatever its target formal reads. A shortest chain of
     // edges is no longer than the edge list, so the bounded rounds this
     // replaces always reached this same closure.
-    let first_edges: HashMap<String, Int> = MapNew();
-    let next_edges: Array<Int> = [];
-    let edge_row: Int = 0;
+    var first_edges: HashMap<String, Int> = MapNew();
+    var next_edges: Array<Int> = [];
+    var edge_row: Int = 0;
     while edge_row < ArrayLength(forwarding) / 2 {
         ArrayPush(next_edges, 0 - 1);
         let edge_target: String = ToString(forwarding[edge_row * 2 + 1]);
@@ -326,9 +338,9 @@ func SemanticAstCollectionExclusiveFieldReads(
         MapSet(first_edges, edge_target, edge_row);
         edge_row = edge_row + 1;
     }
-    let frontier_keys: HashMap<String, Int> = MapNew();
+    var frontier_keys: HashMap<String, Int> = MapNew();
     let snapshot: Array<String> = MapKeys(reads);
-    let at: Int = 0;
+    var at: Int = 0;
     while at < ArrayLength(snapshot) {
         MapSet(frontier_keys, Concat("", snapshot[at]), 1);
         at = at + 1;
@@ -346,11 +358,11 @@ func SemanticAstCollectionExclusiveDestinationFields(
     first_surface: Int, end_surface: Int, function_id: Int, syntax_id: Int, destination: Int,
     inout fields: HashMap<String, Int>, inout paths: Array<String>
 ) -> Bool {
-    let row: Int = 1;
+    var row: Int = 1;
     while row < ArrayLength(family.keys) {
         if family.chain_counts[row] == 0 { return false; }
-        let path: String = "";
-        let step: Int = 0;
+        var path: String = "";
+        var step: Int = 0;
         while step < family.chain_counts[row] {
             let name: Option<String> = SemanticExpressionGraphNodeText(
                 surfaces.expression_graph, family.chain_nodes[family.chain_starts[row] + step]);
@@ -362,17 +374,17 @@ func SemanticAstCollectionExclusiveDestinationFields(
         ArrayPush(paths, path);
         row = row + 1;
     }
-    let surface: Int = first_surface;
+    var surface: Int = first_surface;
     while surface < end_surface {
         let statement: Int = surfaces.node_ids[surface];
-        let lane: Int = 0;
+        var lane: Int = 0;
         while lane < 3 {
             let slot: Int = surface * 3 + lane;
             if (statement != syntax_id || lane != AstExpressionLaneAtom()) &&
                 slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
                 let root: Int = surfaces.expression_graph.roots[slot];
                 let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
-                let node: Int = root + 1;
+                var node: Int = root + 1;
                 if IsSome(start) { node = UnwrapOption(start); }
                 while node <= root {
                     if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&

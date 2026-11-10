@@ -152,9 +152,12 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             event_node,
-            "Event %s target '%s' must be an event-compatible callable",
+            "Event %s target '%s' must be an event-compatible callable.\n"
+            "Reason: event %s requires a callable target.\n"
+            "Fix: select a declared event and a matching handler.",
             op_name != NULL ? op_name : "operation",
-            event_name);
+            event_name,
+            node->type == AST_EVENT_UNSUBSCRIBE ? "unsubscription" : "subscription");
         return false;
     }
 

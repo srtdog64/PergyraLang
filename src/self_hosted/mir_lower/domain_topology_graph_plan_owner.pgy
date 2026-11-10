@@ -41,9 +41,9 @@ func MirDomainTopologyGraphPlanSchema() -> String {
 
 func MirDomainTopologyGraphPlanHashString(hash: Long, value: String) -> Long {
     let modulus: Long = 268435456L;
-    let out: Long =
+    var out: Long =
         (hash * 131L + (StringLength(value) as Long)) % modulus;
-    let index: Int = 0;
+    var index: Int = 0;
     while index < StringLength(value) {
         out = (out * 131L +
             (CharCode(value, StringLength(value), index) as Long)) % modulus;
@@ -60,10 +60,10 @@ func MirDomainTopologyGraphPlanDigest(
     ref plan: MirDomainTopologyGraphPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = MirDomainTopologyGraphPlanHashString(47L, plan.schema);
+    var hash: Long = MirDomainTopologyGraphPlanHashString(47L, plan.schema);
     hash = MirDomainTopologyGraphPlanHashInt(hash, ArrayLength(plan.owner_names));
     hash = MirDomainTopologyGraphPlanHashString(hash, plan.domain_graph_id);
-    let owner: Int = 0;
+    var owner: Int = 0;
     while owner < ArrayLength(plan.owner_names) {
         hash = MirDomainTopologyGraphPlanHashString(
             hash, plan.owner_names[owner]
@@ -86,12 +86,12 @@ func MirDomainTopologyGraphPlanDigest(
         hash = MirDomainTopologyGraphPlanHashInt(
             hash, plan.owner_max_scc_sizes[owner]
         );
-        let cyclic: Int = 0;
+        var cyclic: Int = 0;
         if plan.owner_has_cycles[owner] { cyclic = 1; }
         hash = MirDomainTopologyGraphPlanHashInt(hash, cyclic);
         owner = owner + 1;
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(plan.node_names) {
         hash = MirDomainTopologyGraphPlanHashInt(
             hash, plan.node_owner_indexes[node]
@@ -102,7 +102,7 @@ func MirDomainTopologyGraphPlanDigest(
         );
         node = node + 1;
     }
-    let edge: Int = 0;
+    var edge: Int = 0;
     while edge < ArrayLength(plan.edge_from_node_indexes) {
         hash = MirDomainTopologyGraphPlanHashInt(
             hash, plan.edge_owner_indexes[edge]
@@ -115,7 +115,7 @@ func MirDomainTopologyGraphPlanDigest(
         );
         edge = edge + 1;
     }
-    let order: Int = 0;
+    var order: Int = 0;
     while order < ArrayLength(plan.schedule_node_indexes) {
         hash = MirDomainTopologyGraphPlanHashString(
             hash,
@@ -152,7 +152,7 @@ func EmptyMirDomainTopologyGraphPlan(
     let ints12: Array<Int> = [];
     let ints13: Array<Int> = [];
     let bools0: Array<Bool> = [];
-    let plan: MirDomainTopologyGraphPlan = MirDomainTopologyGraphPlan(
+    var plan: MirDomainTopologyGraphPlan = MirDomainTopologyGraphPlan(
         valid, present, MirDomainTopologyGraphPlanSchema(), 0,
         domain_graph_id,
         strings0, strings1, ints0, ints1, ints2, ints3, ints4, ints5,
@@ -174,33 +174,33 @@ func MirDomainTopologyGraphPlanFromFacts(
         !MirDomainTopologyPositiveDecimal(facts.domain_graph_id) {
         return EmptyMirDomainTopologyGraphPlan(false, true, facts.domain_graph_id);
     }
-    let owner_names: Array<String> = [];
-    let owner_source_syntax_ids: Array<String> = [];
-    let owner_node_starts: Array<Int> = [];
-    let owner_node_counts: Array<Int> = [];
-    let owner_edge_starts: Array<Int> = [];
-    let owner_edge_counts: Array<Int> = [];
-    let owner_schedule_starts: Array<Int> = [];
-    let owner_schedule_counts: Array<Int> = [];
-    let owner_chain_depths: Array<Int> = [];
-    let owner_pass_limits: Array<Int> = [];
-    let owner_max_scc_sizes: Array<Int> = [];
-    let owner_has_cycles: Array<Bool> = [];
-    let node_owner_indexes: Array<Int> = [];
-    let node_names: Array<String> = [];
-    let node_source_syntax_ids: Array<String> = [];
-    let edge_owner_indexes: Array<Int> = [];
-    let edge_from_node_indexes: Array<Int> = [];
-    let edge_to_node_indexes: Array<Int> = [];
-    let edge_from_source_syntax_ids: Array<String> = [];
-    let edge_to_source_syntax_ids: Array<String> = [];
-    let schedule_node_indexes: Array<Int> = [];
-    let row: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_source_syntax_ids: Array<String> = [];
+    var owner_node_starts: Array<Int> = [];
+    var owner_node_counts: Array<Int> = [];
+    var owner_edge_starts: Array<Int> = [];
+    var owner_edge_counts: Array<Int> = [];
+    var owner_schedule_starts: Array<Int> = [];
+    var owner_schedule_counts: Array<Int> = [];
+    var owner_chain_depths: Array<Int> = [];
+    var owner_pass_limits: Array<Int> = [];
+    var owner_max_scc_sizes: Array<Int> = [];
+    var owner_has_cycles: Array<Bool> = [];
+    var node_owner_indexes: Array<Int> = [];
+    var node_names: Array<String> = [];
+    var node_source_syntax_ids: Array<String> = [];
+    var edge_owner_indexes: Array<Int> = [];
+    var edge_from_node_indexes: Array<Int> = [];
+    var edge_to_node_indexes: Array<Int> = [];
+    var edge_from_source_syntax_ids: Array<String> = [];
+    var edge_to_source_syntax_ids: Array<String> = [];
+    var schedule_node_indexes: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(facts.kinds) {
         let owner_name: String = facts.owner_names[row];
         let owner_id: String = facts.owner_source_syntax_ids[row];
-        let owner_index: Int = 0 - 1;
-        let existing: Int = 0;
+        var owner_index: Int = 0 - 1;
+        var existing: Int = 0;
         while existing < ArrayLength(owner_names) {
             if owner_names[existing] == owner_name {
                 owner_index = existing;
@@ -237,7 +237,7 @@ func MirDomainTopologyGraphPlanFromFacts(
             ArrayPush(owner_max_scc_sizes, owner_graph.max_scc_size);
             ArrayPush(owner_has_cycles, owner_graph.has_cycle);
             let node_base: Int = ArrayLength(node_names);
-            let node: Int = 0;
+            var node: Int = 0;
             while node < ArrayLength(owner_graph.node_names) {
                 ArrayPush(node_owner_indexes, owner_index);
                 ArrayPush(node_names, owner_graph.node_names[node]);
@@ -245,7 +245,7 @@ func MirDomainTopologyGraphPlanFromFacts(
                     owner_graph.node_source_syntax_ids[node]);
                 node = node + 1;
             }
-            let edge: Int = 0;
+            var edge: Int = 0;
             while edge < ArrayLength(owner_graph.edge_from_node_indexes) {
                 let from_node: Int =
                     node_base + owner_graph.edge_from_node_indexes[edge];
@@ -260,7 +260,7 @@ func MirDomainTopologyGraphPlanFromFacts(
                     node_source_syntax_ids[to_node]);
                 edge = edge + 1;
             }
-            let order: Int = 0;
+            var order: Int = 0;
             while order < ArrayLength(owner_graph.schedule_node_indexes) {
                 ArrayPush(schedule_node_indexes,
                     node_base + owner_graph.schedule_node_indexes[order]);
@@ -273,7 +273,7 @@ func MirDomainTopologyGraphPlanFromFacts(
         }
         row = row + 1;
     }
-    let plan: MirDomainTopologyGraphPlan = MirDomainTopologyGraphPlan(
+    var plan: MirDomainTopologyGraphPlan = MirDomainTopologyGraphPlan(
         true, true, MirDomainTopologyGraphPlanSchema(), 0,
         facts.domain_graph_id,
         owner_names, owner_source_syntax_ids,
@@ -345,10 +345,10 @@ func MirDomainTopologyGraphPlanReady(
         node_count != ArrayLength(plan.schedule_node_indexes) {
         return false;
     }
-    let owner: Int = 0;
-    let expected_node_start: Int = 0;
-    let expected_edge_start: Int = 0;
-    let expected_order_start: Int = 0;
+    var owner: Int = 0;
+    var expected_node_start: Int = 0;
+    var expected_edge_start: Int = 0;
+    var expected_order_start: Int = 0;
     while owner < owner_count {
         let node_start: Int = plan.owner_node_starts[owner];
         let node_end: Int = node_start + plan.owner_node_counts[owner];
@@ -371,7 +371,7 @@ func MirDomainTopologyGraphPlanReady(
                  plan.owner_pass_limits[owner] <= 0)) {
             return false;
         }
-        let node: Int = node_start;
+        var node: Int = node_start;
         while node < node_end {
             if plan.node_owner_indexes[node] != owner ||
                 StringLength(plan.node_names[node]) == 0 ||
@@ -382,7 +382,7 @@ func MirDomainTopologyGraphPlanReady(
             }
             node = node + 1;
         }
-        let edge: Int = edge_start;
+        var edge: Int = edge_start;
         while edge < edge_end {
             let from_node: Int = plan.edge_from_node_indexes[edge];
             let to_node: Int = plan.edge_to_node_indexes[edge];
@@ -398,13 +398,13 @@ func MirDomainTopologyGraphPlanReady(
             }
             edge = edge + 1;
         }
-        let order: Int = order_start;
+        var order: Int = order_start;
         while order < order_end {
             let scheduled_node: Int = plan.schedule_node_indexes[order];
             if scheduled_node < node_start || scheduled_node >= node_end {
                 return false;
             }
-            let prior_order: Int = order_start;
+            var prior_order: Int = order_start;
             while prior_order < order {
                 if plan.schedule_node_indexes[prior_order] == scheduled_node {
                     return false;

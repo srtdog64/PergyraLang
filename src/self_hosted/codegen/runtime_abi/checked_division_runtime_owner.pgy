@@ -65,7 +65,7 @@ func CheckedDivisionRuntimeCBinaryEmit(
     if type_name == "Int" || type_name == "Long" {
         let symbols: CheckedDivisionRuntimeCSymbolFact =
             CheckedDivisionRuntimeCSymbolFactForType(type_name);
-        let checked_fn: String = symbols.divide;
+        var checked_fn: String = symbols.divide;
         if is_modulo {
             checked_fn = symbols.modulo;
         }

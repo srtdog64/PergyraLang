@@ -43,7 +43,7 @@ func DirectMirCompositeIntentLlvmIndexedSymbol(
 }
 
 func DirectMirCompositeIntentLlvmLiteralReady(value: String) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < StringLength(value) {
         let code: Int = CharCode(value, StringLength(value), row);
         if code < 32 || code > 126 || code == 34 || code == 37 ||
@@ -62,7 +62,7 @@ func DirectMirCompositeIntentLlvmStringGlobal(
     if symbol == "" || !DirectMirCompositeIntentLlvmLiteralReady(value) {
         Die("direct MIR composite intent LLVM string fact is invalid");
     }
-    let output: String = Concat("@", symbol);
+    var output: String = Concat("@", symbol);
     output = Concat(output, " = private unnamed_addr constant [");
     output = Concat(output, ToString(StringLength(value) + 1));
     output = Concat(output, " x i8] c\"");
@@ -75,8 +75,8 @@ func DirectMirCompositeIntentLlvmFormatGlobal(
     symbol: String,
     value: String
 ) -> String {
-    let ready: Bool = symbol != "";
-    let row: Int = 0;
+    var ready: Bool = symbol != "";
+    var row: Int = 0;
     while row < StringLength(value) {
         let code: Int = CharCode(value, StringLength(value), row);
         if code < 32 || code > 126 || code == 34 || code == 92 {
@@ -87,7 +87,7 @@ func DirectMirCompositeIntentLlvmFormatGlobal(
     if !ready {
         Die("direct MIR composite intent LLVM format fact is invalid");
     }
-    let output: String = Concat("@", symbol);
+    var output: String = Concat("@", symbol);
     output = Concat(output, " = private unnamed_addr constant [");
     output = Concat(output, ToString(StringLength(value) + 2));
     output = Concat(output, " x i8] c\"");
@@ -100,8 +100,8 @@ func DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
     symbol: String,
     value: String
 ) -> String {
-    let ready: Bool = symbol != "";
-    let row: Int = 0;
+    var ready: Bool = symbol != "";
+    var row: Int = 0;
     while row < StringLength(value) {
         let code: Int = CharCode(value, StringLength(value), row);
         if code < 32 || code > 126 || code == 34 || code == 92 {
@@ -112,7 +112,7 @@ func DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
     if !ready {
         Die("direct MIR composite intent LLVM format fact is invalid");
     }
-    let output: String = Concat("@", symbol);
+    var output: String = Concat("@", symbol);
     output = Concat(output, " = private unnamed_addr constant [");
     output = Concat(output, ToString(StringLength(value) + 1));
     output = Concat(output, " x i8] c\"");
@@ -124,8 +124,8 @@ func DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
 func DirectMirCompositeIntentLlvmGlobals(
     ref plan: DirectMirCompositeIntentProgramPlan
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(plan.intent_names) {
         output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
             DirectMirCompositeIntentLlvmIndexedSymbol("intent", row),
@@ -236,7 +236,7 @@ func DirectMirCompositeIntentLlvmDeclarations(
         ArrayLength(rows) != 9 {
         Die("direct MIR composite intent runtime ABI is invalid");
     }
-    let output: String = Concat("declare i32 @", formatted_print.symbol);
+    var output: String = Concat("declare i32 @", formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n");
     output = Concat(output, Concat("declare i32 @", Concat(
         IntentRuntimeCEnterFn(), "(ptr, ptr, i32, i1, i32)\n"
@@ -259,12 +259,12 @@ func DirectMirCompositeIntentLlvmDeclarations(
     output = Concat(output, Concat("declare void @", Concat(
         IntentRuntimeCTraceMaterializeFn(), "(i32, ptr, ptr, ptr)\n"
     )));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(rows) {
         if !rows[row].valid || rows[row].runtime_name == "" {
             Die("direct MIR composite intent observability ABI is invalid");
         }
-        let return_type: String = "ptr";
+        var return_type: String = "ptr";
         if rows[row].return_type == "Int" { return_type = "i32"; }
         else if rows[row].return_type == "Bool" { return_type = "i1"; }
         output = Concat(output, Concat("declare ", Concat(
@@ -289,7 +289,7 @@ func DirectMirCompositeIntentLlvmZoneSync(
     let zone_type: String = CompilerSymbolCIdentifier(
         plan.graph.zone_type_names[row]
     );
-    let output: String = Concat("define internal void @",
+    var output: String = Concat("define internal void @",
         DirectMirCompositeIntentLlvmZoneSyncSymbol(plan, row));
     output = Concat(output, "(ptr %zone) {\nentry:\n");
     output = Concat(output, Concat(
@@ -310,7 +310,7 @@ func DirectMirCompositeIntentLlvmMethod(
     let subject_type: String = CompilerSymbolCIdentifier(
         plan.graph.subject_type_name
     );
-    let output: String = Concat("define internal void @",
+    var output: String = Concat("define internal void @",
         DirectMirCompositeIntentLlvmMethodSymbol(plan, row));
     output = Concat(output, "(ptr %self) {\nentry:\n");
     output = Concat(output, Concat(
@@ -333,7 +333,7 @@ func DirectMirCompositeIntentLlvmEnter(
     intent_row: Int,
     first_label: String
 ) -> String {
-    let output: String =
+    var output: String =
         "  %subjects = alloca [1 x ptr], align 8\n";
     output = Concat(output,
         "  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n");
@@ -372,7 +372,7 @@ func DirectMirCompositeIntentLlvmLeafIntent(
     let zone_type: String = CompilerSymbolCIdentifier(
         plan.graph.zone_type_names[zone]
     );
-    let output: String = Concat("define internal i1 @",
+    var output: String = Concat("define internal i1 @",
         DirectMirCompositeIntentLlvmIntentSymbol(plan, intent_row));
     output = Concat(output, "(ptr %zone, ptr %subject) {\nentry:\n");
     output = Concat(output, DirectMirCompositeIntentLlvmEnter(
@@ -473,7 +473,7 @@ func DirectMirCompositeIntentLlvmNestedFailure(
     label: String,
     reason_family: String
 ) -> String {
-    let output: String = Concat(label, ":\n  call void @");
+    var output: String = Concat(label, ":\n  call void @");
     output = Concat(output, IntentRuntimeCTraceFailFn());
     output = Concat(output, "(i32 %handle, ptr @");
     output = Concat(output,
@@ -493,14 +493,14 @@ func DirectMirCompositeIntentLlvmNestedIntent(
     let subject_type: String = CompilerSymbolCIdentifier(
         plan.graph.subject_type_name
     );
-    let output: String = Concat("define internal i1 @",
+    var output: String = Concat("define internal i1 @",
         DirectMirCompositeIntentLlvmIntentSymbol(plan, intent_row));
     output = Concat(output,
         "(ptr %zone0, ptr %zone1, ptr %zone2, ptr %subject) {\nentry:\n");
     output = Concat(output, DirectMirCompositeIntentLlvmEnter(
         plan, intent_row, "step.0"
     ));
-    let step_offset: Int = 0;
+    var step_offset: Int = 0;
     while step_offset < count {
         let step: Int = start + step_offset;
         let zone: Int = plan.step_zone_ordinals[step];
@@ -618,7 +618,7 @@ func DirectMirCompositeIntentLlvmMain(
     let subject_type: String = CompilerSymbolCIdentifier(
         plan.graph.subject_type_name
     );
-    let output: String = "define internal void @Main() {\nentry:\n";
+    var output: String = "define internal void @Main() {\nentry:\n";
     output = Concat(output, Concat("  %subject = alloca %", Concat(
         subject_type, ", align 4\n  %subject.init.0 = insertvalue %"
     )));
@@ -626,7 +626,7 @@ func DirectMirCompositeIntentLlvmMain(
     output = Concat(output, Concat(" zeroinitializer, i32 ", Concat(
         ToString(plan.main.initial_values[0]), ", 0\n"
     )));
-    let field: Int = 1;
+    var field: Int = 1;
     while field < 3 {
         output = Concat(output, Concat("  %subject.init.", Concat(
             ToString(field), Concat(" = insertvalue %", Concat(
@@ -644,7 +644,7 @@ func DirectMirCompositeIntentLlvmMain(
     output = Concat(output, Concat("  store %", Concat(
         subject_type, Concat(" %subject.init.2, ptr %subject, align 4\n", "")
     )));
-    let zone: Int = 0;
+    var zone: Int = 0;
     while zone < 3 {
         let zone_type: String = CompilerSymbolCIdentifier(
             plan.graph.zone_type_names[zone]
@@ -803,10 +803,10 @@ func DirectMirCompositeIntentProgramEmitLlvm(
         plan.graph.subject_type_name
     );
     if subject_type == "" { Die("direct MIR composite intent subject symbol is invalid"); }
-    let output: String = Concat("%", Concat(
+    var output: String = Concat("%", Concat(
         subject_type, " = type { i32, i32, i32 }\n"
     ));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         let zone_type: String = CompilerSymbolCIdentifier(
             plan.graph.zone_type_names[row]

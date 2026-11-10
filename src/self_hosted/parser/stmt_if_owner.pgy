@@ -4,9 +4,9 @@ import "cursor_owner.pgy";
 import "source_location_observation_owner.pgy";
 
 func ParseIfLetPayload(location_context: ParserSourceLocationContext, content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
+    var i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) == "(" {
-        let pat_depth: Int = 1;
+        var pat_depth: Int = 1;
         i = i + 1;
         while i < StringLength(content) && pat_depth > 0 {
             if ParserCharAt(content, i) == "(" {
@@ -40,7 +40,7 @@ func ParseIfStmt(
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
-    let i: Int = after_head;
+    var i: Int = after_head;
     let if_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if MatchLanguageWordWithin(content, content_extent, if_probe, LanguageWordId.WordLet) {
         i = LanguageWordEnd(if_probe, LanguageWordId.WordLet);
@@ -61,7 +61,7 @@ func ParseIfStmt(
         ArraySet(cursor_out, 0, i);
         let match_expr: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
         i = cursor_out[0];
-        let match_out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", match_expr));
+        var match_out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", match_expr));
         match_out = AppendLine(match_out, Concat(IndentStr(stmt_indent + 2), Concat("Case: ", Concat(variant_name, Concat("(", Concat(case_payload, ")"))))));
         match_out = AppendLine(match_out, Concat(IndentStr(stmt_indent + 4), "Block:"));
         ArraySet(cursor_out, 0, i);
@@ -85,7 +85,7 @@ func ParseIfStmt(
     );
     let cond: String = condition.text;
     i = cursor_out[0];
-    let out: String = Concat(IndentStr(stmt_indent), Concat("If: ", cond));
+    var out: String = Concat(IndentStr(stmt_indent), Concat("If: ", cond));
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Then:")));
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 4), "Block:")));
     ArraySet(cursor_out, 0, i);

@@ -6,7 +6,8 @@ func Main() -> Int
     {
         var rows: Array<String> = [];
         ArrayPushOwnedString(rows, "x");
-        total = total + Count(rows) + ReadCount(rows);
+        let view: RowCount = RowCountFrom(rows);
+        total = total + Count(rows) + ReadCount(rows) + view.count;
         Observe(rows);
         n = n + 1;
     }
@@ -15,6 +16,10 @@ func Main() -> Int
 }
 
 // Keep declarations after Main: admission must not depend on source order.
+struct RowCount { count: Int; }
+func RowCountFrom(ref rows: Array<String>) -> RowCount {
+    return RowCount(ArrayLength(rows));
+}
 func Count(rows: Array<String>) -> Int { return ArrayLength(rows); }
 func ReadCount(ref rows: Array<String>) -> Int { return ArrayLength(rows); }
 func Observe(ref rows: Array<String>) -> Void { var size = ArrayLength(rows); }

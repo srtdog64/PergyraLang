@@ -1,0 +1,83 @@
+// Typed MIR assignment admission. The existing expression owner resolves both
+// graphs; the target remains a place and is never duplicated into the RHS.
+import "direct_mir_scalar_cfg_program_definition_admission_owner.pgy";
+import "../hir/assignment_operation_owner.pgy";
+
+func MirCompoundAssignmentScalarType(type_name: String, operation: Int) -> Bool {
+    return operation >= 1 && operation <= 5 &&
+        (type_name == "Int" || type_name == "Long" ||
+         (type_name == "Float" && operation != 5));
+}
+
+func MirCompoundAssignmentIndexedKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprArrayIntIndex() ||
+        kind == DirectMirScalarProgramExprArrayLongIndex() ||
+        kind == DirectMirScalarProgramExprSliceIntIndex();
+}
+
+func MirCompoundAssignmentPlaceRoot(ref expressions: DirectMirScalarProgramExpressionSet,
+    row: Int) -> Int {
+    if row < 0 || row >= ArrayLength(expressions.graph_roots) { return -1; }
+    let start: Int = expressions.graph_starts[row];
+    var node: Int = expressions.graph_roots[row];
+    if MirCompoundAssignmentIndexedKind(expressions.node_kinds[node]) {
+        node = expressions.node_lefts[node];
+    }
+    while node >= start &&
+        (expressions.node_kinds[node] == DirectMirScalarProgramExprLogicalRecordMember() ||
+         expressions.node_kinds[node] == DirectMirScalarProgramExprIdentityCellMember()) {
+        node = expressions.node_lefts[node];
+    }
+    if node < start { return -1; }
+    if expressions.node_kinds[node] != DirectMirScalarProgramExprLocal() &&
+        expressions.node_kinds[node] != DirectMirScalarProgramExprParameter() { return -1; }
+    return node;
+}
+
+func MirCompoundAssignmentAppend(
+    operations: DirectMirScalarCfgProgramOperationStorage,
+    expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    operation: Int, result: Int, wire_kind: String,
+    ref instruction: JsonObjectFactTable, ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex, global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan, ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs, local_offset: Int, value_offset: Int,
+    parameter_types: Array<String>, ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory, caller_ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarCfgProgramDefinitionAdmission {
+    var cursor: Int = 0;
+    var target_field: String = "expr1_graph"; var value_field: String = "expr0_graph";
+    if wire_kind == "assign" { target_field = "expr0_graph"; value_field = "expr1_graph"; }
+    let target: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
+        expressions, failure, instruction, uses, index, global_row, local_instruction,
+        locals, types, wire, local_offset, parameter_types, signature,
+        callables, routine_instances, caller_ordinal, logical_record,
+        payload_free_enum, referenced_enum, target_field, cursor, false, "", -1);
+    if !IsSome(target) { return DirectMirScalarCfgProgramDefinitionAdmission(false, operations, expressions); }
+    let target_row: Int = UnwrapOption(target);
+    let target_root: Int = expressions.graph_roots[target_row];
+    // The value parse below may grow expressions.node_types. Snapshot this
+    // element before that growth so the local never aliases retired storage.
+    let type_name: String = Clone(expressions.node_types[target_root]);
+    if !MirCompoundAssignmentScalarType(type_name, operation) ||
+        MirCompoundAssignmentPlaceRoot(expressions, target_row) < 0 {
+        return DirectMirScalarCfgProgramDefinitionAdmission(false, operations, expressions);
+    }
+    let value: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
+        expressions, failure, instruction, uses, index, global_row, local_instruction,
+        locals, types, wire, local_offset, parameter_types, signature,
+        callables, routine_instances, caller_ordinal, logical_record,
+        payload_free_enum, referenced_enum, value_field, cursor, true,
+        type_name, -1);
+    if !IsSome(value) { return DirectMirScalarCfgProgramDefinitionAdmission(false, operations, expressions); }
+    var stored_result: Int = -1;
+    if result >= 0 { stored_result = result + value_offset; }
+    operations = DirectMirScalarCfgProgramOperationsAppendExpression(operations,
+        MirCompoundAssignmentPlanKind(operation), stored_result, UnwrapOption(value), target_row);
+    return DirectMirScalarCfgProgramDefinitionAdmission(operations.valid, operations, expressions);
+}

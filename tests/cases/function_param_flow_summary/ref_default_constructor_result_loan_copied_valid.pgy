@@ -1,0 +1,30 @@
+// The observer changes no storage and retains none. Consuming the returned
+// carrier requires one independent copy of envelope.source; the carrier's
+// fresh Array<Item> prevents hiding the problem with a whole-result Clone.
+struct Item { names: Array<String>; }
+struct Source { names: Array<String>; }
+struct Envelope { source: Source; }
+struct Carrier { names: Array<String>; items: Array<Item>; }
+struct Wrapped { carrier: Carrier; }
+func Observe(inout source: Source) -> Int { return ArrayLength(source.names); }
+func Wrap(source: Source) -> Carrier {
+    Observe(source);
+    return Carrier(source.names, [Item(["fresh"])]);
+}
+func WrapAgain(carrier: Carrier) -> Wrapped { return Wrapped(carrier); }
+func Project(wrapped: Wrapped) -> Carrier { return wrapped.carrier; }
+func Consume(own carrier: Carrier) -> Int {
+    return ArrayLength(carrier.names);
+}
+func Route(ref envelope: Envelope) -> Int {
+    let first: Carrier = Wrap(envelope.source);
+    let second: Wrapped = WrapAgain(first);
+    let carrier: Carrier = Project(second);
+    return Consume(carrier);
+}
+func Main() -> Int {
+    let envelope: Envelope = Envelope(Source([Concat("alpha", "")]));
+    Print(ToString(Route(envelope)));
+    Print(envelope.source.names[0]);
+    return 0;
+}

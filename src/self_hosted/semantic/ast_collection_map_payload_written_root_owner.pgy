@@ -7,8 +7,8 @@ import "ast_collection_exclusive_value_flow_owner.pgy";
 func SemanticAstMapPayloadAssignmentRootNode(
     ref graph: SemanticExpressionGraphFacts, target: Int
 ) -> Int {
-    let node: Int = target;
-    let remaining: Int = 64;
+    var node: Int = target;
+    var remaining: Int = 64;
     while remaining > 0 {
         let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
         if member.ok { node = member.receiver_node; }
@@ -51,7 +51,7 @@ func SemanticAstMapPayloadRootWrittenBefore(
     let current: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, syntax_id);
     if !IsSome(current) || root_syntax_id <= 0 || root_syntax_id >= artifact.count ||
         function_id < 0 || function_id >= artifact.count { return true; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(assignments.node_ids) {
         if assignments.function_node_ids[row] == function_id {
             let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, assignments.node_ids[row]);

@@ -26,7 +26,7 @@ func DirectMirScalarCfgForEachElementFactsDigest(
     ref facts: DirectMirScalarCfgForEachElementFacts
 ) -> Int {
     if !facts.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
+    var hash: Long = DirectMirCfgHashInt(
         211L, ArrayLength(facts.loop_syntax_ids)
     );
     hash = DirectMirScalarCfgHashInts(hash, facts.loop_syntax_ids);
@@ -77,16 +77,16 @@ func DirectMirScalarCfgForEachElementFactsAppend(
             ArrayLength(string_elements) < 1) {
         return DirectMirScalarCfgForEachElementFactsInvalid();
     }
-    let loop_ids: Array<Int> = facts.loop_syntax_ids;
-    let types: Array<String> = facts.element_types;
-    let starts: Array<Int> = facts.string_starts;
-    let counts: Array<Int> = facts.string_counts;
-    let strings: Array<String> = facts.string_elements;
+    var loop_ids: Array<Int> = facts.loop_syntax_ids;
+    var types: Array<String> = facts.element_types;
+    var starts: Array<Int> = facts.string_starts;
+    var counts: Array<Int> = facts.string_counts;
+    var strings: Array<String> = facts.string_elements;
     ArrayPush(loop_ids, loop_syntax_id);
     ArrayPush(types, element_type);
     ArrayPush(starts, ArrayLength(strings));
     ArrayPush(counts, ArrayLength(string_elements));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(string_elements) {
         ArrayPush(strings, Concat("", string_elements[row]));
         row = row + 1;
@@ -109,8 +109,8 @@ func DirectMirScalarCfgForEachElementFactsReady(
         count != ArrayLength(facts.element_types) ||
         count != ArrayLength(facts.string_starts) ||
         count != ArrayLength(facts.string_counts) { return false; }
-    let cursor: Int = 0;
-    let row: Int = 0;
+    var cursor: Int = 0;
+    var row: Int = 0;
     while row < count {
         let type_name: String = facts.element_types[row];
         if facts.loop_syntax_ids[row] < 0 ||
@@ -131,8 +131,8 @@ func DirectMirScalarCfgForEachElementFactsReady(
 func DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
     ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
 ) -> String {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(facts.loop_syntax_ids) {
         if facts.loop_syntax_ids[row] == wanted {
             if found >= 0 { return ""; }
@@ -147,11 +147,11 @@ func DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
 func DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
     ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
 ) -> Array<String> {
-    let values: Array<String> = [];
-    let row: Int = 0;
+    var values: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(facts.loop_syntax_ids) {
         if facts.loop_syntax_ids[row] == wanted {
-            let item: Int = 0;
+            var item: Int = 0;
             while item < facts.string_counts[row] {
                 ArrayPush(
                     values,
@@ -169,7 +169,7 @@ func DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
 func DirectMirScalarCfgForEachStringElementStartAtLoopSyntaxId(
     ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
 ) -> Option<Int> {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.loop_syntax_ids) {
         if facts.loop_syntax_ids[row] == wanted {
             return Some(facts.string_starts[row]);

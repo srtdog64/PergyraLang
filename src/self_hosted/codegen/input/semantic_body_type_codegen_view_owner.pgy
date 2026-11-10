@@ -35,14 +35,14 @@ func CodegenSemanticFocusRootNamesOrDie(
     if !SemanticAstCollectionFocusRecoveryShapeReady(facts) {
         Die("codegen focus recovery carrier is missing or invalid");
     }
-    let names: Array<String> = [];
-    let group: Int = 0;
+    var names: Array<String> = [];
+    var group: Int = 0;
     while group < ArrayLength(facts.group_function_ids) {
         let signature: Int = CodegenSemanticSignatureIndexOrDie(
             analysis.signatures, facts.group_function_ids[group]);
         let count: Int = CodegenSemanticFunctionParamCountOrDie(analysis.signatures, signature);
-        let parameter: Int = 0;
-        let name: String = "";
+        var parameter: Int = 0;
+        var name: String = "";
         while parameter < count {
             if CodegenSemanticFunctionParamNodeOrDie(analysis.signatures, signature, parameter) ==
                     facts.group_root_binding_ids[group] {
@@ -65,8 +65,8 @@ func CodegenSemanticFocusLocalNamesOrDie(
     if !SemanticAstCollectionFocusRecoveryShapeReady(facts) {
         Die("codegen focus recovery carrier is missing or invalid");
     }
-    let names: Array<String> = [];
-    let part: Int = 0;
+    var names: Array<String> = [];
+    var part: Int = 0;
     while part < ArrayLength(facts.part_local_binding_ids) {
         ArrayPushOwnedString(names, CodegenSemanticLocalBindingNameOrDie(
             analysis.local_bindings, facts.part_local_binding_ids[part]));
@@ -80,8 +80,8 @@ func CodegenSemanticResourceLocalIndex(
     node_id: Int
 ) -> Option<Int> {
     let count: Int = ArrayLength(facts.fresh_resource_local_node_ids);
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.fresh_resource_local_node_ids[middle] < node_id {
@@ -135,8 +135,8 @@ func CodegenSemanticMutableResourceParameter(
 ) -> Bool {
     let count: Int =
         ArrayLength(facts.mutable_resource_parameter_node_ids);
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.mutable_resource_parameter_node_ids[middle] < node_id {
@@ -156,7 +156,7 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
     own generic_specializations: CodegenGenericSpecializationFacts
 ) -> CodegenSemanticBodyTypeFacts {
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
-        let readiness_error: String =
+        var readiness_error: String =
             SemanticAstBodyTypeBundleReadinessError(
                 artifact, analysis, bundle);
         if readiness_error == "call_return_type_rows" {

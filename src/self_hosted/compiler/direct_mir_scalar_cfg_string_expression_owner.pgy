@@ -179,8 +179,8 @@ func DirectMirScalarCfgTypedLogExpressionFact(
 func DirectMirScalarCfgStringConcatRuntimeCallAbiId(
     operation_kinds: Array<Int>
 ) -> Int {
-    let seen: Bool = false;
-    let row: Int = 0;
+    var seen: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(operation_kinds) {
         if operation_kinds[row] == DirectMirScalarCfgOpConcatString() ||
             operation_kinds[row] ==

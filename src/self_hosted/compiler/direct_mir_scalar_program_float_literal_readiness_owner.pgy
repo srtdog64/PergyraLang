@@ -1,0 +1,19 @@
+// Validates one normalized Float literal node without re-reading source AST.
+import "direct_mir_scalar_program_float_literal_kind_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramFloatLiteralNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if facts.node_types[node] != CompilerAbiLayoutFloatTypeName() ||
+        !DirectMirScalarProgramFloatLiteralPayloadReady(
+            facts.node_literals[node]) {
+        return false;
+    }
+    if facts.node_lefts[node] != -1 || facts.node_rights[node] != -1 {
+        return false;
+    }
+    return facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_callable_rows[node] == -1;
+}

@@ -16,8 +16,8 @@ func DirectMirScalarCfgCollectionIterationCount(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex
 ) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + row;
         if admitted.routines.instruction_kinds[global] == "loop-init" &&
@@ -27,8 +27,8 @@ func DirectMirScalarCfgCollectionIterationCount(
                 MirRoutineInstructionFactBundleAtGlobal(
                     index.instruction_facts, global
                 );
-            let matches: Int = 0;
-            let local_binding: Int = 0;
+            var matches: Int = 0;
+            var local_binding: Int = 0;
             while local_binding < ArrayLength(index.source_local_names) {
                 if index.source_local_names[local_binding] == init.expr0 &&
                     DirectMirScalarCfgCollectionTypeSupported(
@@ -65,15 +65,15 @@ func DirectMirScalarCfgForEachFactsFromOwners(
         ArrayLength(index.loop_flow_state_stable_indices) != 0 {
         return invalid;
     }
-    let facts: DirectMirScalarCfgForEachFactSet =
+    var facts: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactSetEmpty();
-    let elements: DirectMirScalarCfgForEachElementFacts =
+    var elements: DirectMirScalarCfgForEachElementFacts =
         DirectMirScalarCfgForEachElementFactsEmpty();
-    let prior_loop_id: Int = -1;
+    var prior_loop_id: Int = -1;
     while DirectMirScalarCfgForEachFactCount(facts) < expected {
-        let type_row: Int = -1;
-        let loop_id: Int = -1;
-        let row: Int = 0;
+        var type_row: Int = -1;
+        var loop_id: Int = -1;
+        var row: Int = 0;
         while row < ArrayLength(index.iteration_type_facts.iteration_syntax_ids) {
             let candidate: Int =
                 index.iteration_type_facts.iteration_syntax_ids[row];
@@ -92,7 +92,7 @@ func DirectMirScalarCfgForEachFactsFromOwners(
                 ToInt(index.source_syntax_id) {
             return invalid;
         }
-        let flow_row: Int = -1;
+        var flow_row: Int = -1;
         row = 0;
         while row < ArrayLength(index.loop_flow_summary_loop_ids) {
             if index.loop_flow_summary_loop_ids[row] == loop_id {
@@ -111,14 +111,14 @@ func DirectMirScalarCfgForEachFactsFromOwners(
         }
         let expected_ref: String =
             DirectMirScalarCfgIterationLocalRef(loop_id);
-        let init_global: Int = -1;
-        let branch_global: Int = -1;
-        let init_block: Int = -1;
-        let header: Int = -1;
-        let init_local_row: Int = -1;
-        let block: Int = 0;
+        var init_global: Int = -1;
+        var branch_global: Int = -1;
+        var init_block: Int = -1;
+        var header: Int = -1;
+        var init_local_row: Int = -1;
+        var block: Int = 0;
         while block < ArrayLength(index.block_starts) {
-            let local_binding: Int = 0;
+            var local_binding: Int = 0;
             while local_binding < index.block_instruction_counts[block] {
                 let instruction: Int = index.block_instruction_starts[block] + local_binding;
                 let global: Int = index.instruction_facts.global_start + instruction;
@@ -210,7 +210,7 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             index.backedge_headers[header] != 1 {
             return invalid;
         }
-        let backedges: Array<Int> = [];
+        var backedges: Array<Int> = [];
         block = 0;
         while block < ArrayLength(index.block_starts) {
             if block != init_block &&
@@ -220,13 +220,13 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             }
             block = block + 1;
         }
-        let receipt_elements: Array<Int> = collection.fact.elements;
+        var receipt_elements: Array<Int> = collection.fact.elements;
         if collection.element_type == CompilerAbiLayoutStringTypeName() {
             let string_receipt_elements: Array<Int> = [];
             receipt_elements = string_receipt_elements;
             let string_start: Int =
                 ArrayLength(elements.string_elements);
-            let string_row: Int = 0;
+            var string_row: Int = 0;
             while string_row < ArrayLength(collection.string_elements) {
                 ArrayPush(receipt_elements, string_start + string_row);
                 string_row = string_row + 1;

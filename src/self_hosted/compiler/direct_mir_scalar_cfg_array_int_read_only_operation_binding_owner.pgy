@@ -7,9 +7,9 @@ func DirectMirScalarCfgArrayIntReadOnlyAtOperation(
     global_row: Int, operation_row: Int
 ) -> DirectMirScalarCfgArrayIntReadOnlyRangeFact {
     if !fact.valid || operation_row < 0 { return fact; }
-    let initial: Int = fact.initial_read.operation_row;
-    let update: Int = fact.update_read.operation_row;
-    let log: Int = fact.log_operation_row;
+    var initial: Int = fact.initial_read.operation_row;
+    var update: Int = fact.update_read.operation_row;
+    var log: Int = fact.log_operation_row;
     if global_row == fact.initial_read.global_row { initial = operation_row; }
     else if global_row == fact.update_read.global_row { update = operation_row; }
     else if global_row == fact.log_global_row { log = operation_row; }

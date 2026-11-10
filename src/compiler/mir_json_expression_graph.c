@@ -16,8 +16,19 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
 {
     ASTNode *expr;
 
-    if (inst == NULL || lane < 0 || lane > 1)
+    if (inst == NULL || lane < 0 || lane > 2)
         return NULL;
+    if (lane == 2) {
+        if (inst->kind != MIR_INST_STMT || inst->expr0 == NULL
+            || inst->expr0->type != AST_CALL || inst->arg0 == NULL
+            || (strcmp(inst->arg0, "ArrayPush") != 0
+                && strcmp(inst->arg0, "ArraySet") != 0
+                && strcmp(inst->arg0, "ArrayPop") != 0)
+            || ast_call_arg_count(inst->expr0) == 0) {
+            return NULL;
+        }
+        return ast_call_argument(inst->expr0, 0);
+    }
     if (lane == 0 && inst->kind == MIR_INST_BRANCH
         && inst->branch_shape == MIR_BRANCH_FOR_RANGE) {
         return inst->expr1;
@@ -177,10 +188,12 @@ mir_json_emit_instruction_expression_graph(FILE *out,
         fprintf(out,
                 ",\"call_target_syntax_id\":%u"
                 ",\"runtime_call_abi_id\":%u"
-                ",\"binding_syntax_id\":%u",
+                ",\"binding_syntax_id\":%u"
+                ",\"source_binding_syntax_id\":%u",
                 node->call_target_syntax_id,
                 node->runtime_call_abi_id,
-                node->binding_syntax_id);
+                node->binding_syntax_id,
+                node->source_binding_syntax_id);
         fputs(",\"binding_kind\":", out);
         mir_json_emit_str(out, node->binding_kind);
         fputs(",\"binding_ordinal\":", out);

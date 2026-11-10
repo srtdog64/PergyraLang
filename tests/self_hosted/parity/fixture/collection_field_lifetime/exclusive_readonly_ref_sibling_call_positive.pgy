@@ -1,0 +1,23 @@
+// A readonly ref observer may inspect the value while a sibling argument
+// transfers that same value into the outer call.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetCount(ref facts: NodeSet) -> Int {
+    return ArrayLength(facts.types);
+}
+
+func NodeSetAddCounted(facts: NodeSet, count: Int) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, ToString(count));
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddCounted(facts, NodeSetCount(facts));
+    return ArrayLength(facts.types);
+}

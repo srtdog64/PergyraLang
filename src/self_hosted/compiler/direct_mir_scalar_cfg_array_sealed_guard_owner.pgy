@@ -13,8 +13,8 @@ func DirectMirScalarCfgSealedArrayGuardEdgeReady(
         ) || plan.block_succ_true[guard_block] != access_block {
         return false;
     }
-    let predecessor_count: Int = 0;
-    let predecessor: Int = 0;
+    var predecessor_count: Int = 0;
+    var predecessor: Int = 0;
     while predecessor < ArrayLength(plan.block_succ_true) {
         if plan.block_succ_true[predecessor] == access_block ||
             plan.block_succ_false[predecessor] == access_block {

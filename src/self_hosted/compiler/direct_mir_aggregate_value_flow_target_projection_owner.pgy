@@ -58,9 +58,9 @@ func DirectMirAggregateValueFlowTargetProjectionFromFacts(
             storage.target_capability_fingerprint {
         Die("direct MIR aggregate value-flow inputs are invalid");
     }
-    let call_linkage: String = "";
-    let allocator_literal: String = "";
-    let call_classifier: String = "";
+    var call_linkage: String = "";
+    var allocator_literal: String = "";
+    var call_classifier: String = "";
     if target_projection == CompilerTargetCpuCProjection() {
         call_linkage = "static";
         allocator_literal = "NULL";

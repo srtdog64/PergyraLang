@@ -2,6 +2,7 @@
 
 #include "type_checker_flow_resources.h"
 #include "type_checker_flow_universe.h"
+#include "array_storage_element_lifetime_owner.h"
 
 bool
 resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap, SemanticContext *ctx)
@@ -88,6 +89,24 @@ restore_resource_states(const ResourceConsumeSnapshot *snap)
                     missing_array_state || snap->array_storage_states[i].pending;
                 snap->symbols[i]->has_pending_array_result =
                     missing_array_state || snap->array_storage_states[i].result_pending;
+                bool return_elements_restored = missing_array_state
+                    || semantic_array_storage_restore_return_element_path_state(
+                        snap->symbols[i], snap->context,
+                        snap->array_storage_states[i].return_elements_present,
+                        snap->array_storage_states[i].return_elements_owned,
+                        snap->array_storage_states[i].return_elements_source,
+                        snap->array_storage_states[i]
+                            .return_elements_source_id);
+                bool member_elements_restored = missing_array_state
+                    || semantic_array_storage_restore_member_element_path_state(
+                        snap->symbols[i], snap->context,
+                        &snap->array_storage_states[i].member_elements);
+                if ((!return_elements_restored || !member_elements_restored)
+                    && snap->context != NULL) {
+                    semantic_error(snap->context,
+                        snap->context->current_function_decl,
+                        "Array element path snapshot identity changed");
+                }
             }
         }
     }
@@ -125,6 +144,23 @@ restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                     missing_array_state || snap->array_storage_states[i].pending;
                 symbol->has_pending_array_result =
                     missing_array_state || snap->array_storage_states[i].result_pending;
+                bool return_elements_restored = missing_array_state
+                    || semantic_array_storage_restore_return_element_path_state(
+                        symbol, ctx,
+                        snap->array_storage_states[i].return_elements_present,
+                        snap->array_storage_states[i].return_elements_owned,
+                        snap->array_storage_states[i].return_elements_source,
+                        snap->array_storage_states[i]
+                            .return_elements_source_id);
+                bool member_elements_restored = missing_array_state
+                    || semantic_array_storage_restore_member_element_path_state(
+                        symbol, ctx,
+                        &snap->array_storage_states[i].member_elements);
+                if ((!return_elements_restored || !member_elements_restored)
+                    && ctx != NULL) {
+                    semantic_error(ctx, ctx->current_function_decl,
+                        "Array element path snapshot identity changed");
+                }
             }
         }
     }
@@ -146,6 +182,7 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     free(snap->pool_ids);
     free(snap->array_storage_states);
     free(snap->deferred_strings);
+    free(snap->slice_permissions);
     snap->symbols = NULL;
     snap->symbol_indices = NULL;
     snap->states = NULL;
@@ -156,10 +193,13 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     snap->sem_states = NULL;
     snap->pool_ids = NULL;
     snap->array_storage_states = NULL;
+    snap->context = NULL;
     snap->deferred_strings = NULL;
     snap->deferred_string_count = 0;
     snap->deferred_string_capacity = 0;
     snap->deferred_strings_captured = false;
+    snap->slice_permissions = NULL;
+    snap->slice_permission_count = 0;
     snap->count = 0;
     snap->capacity = 0;
     snap->valid = false;

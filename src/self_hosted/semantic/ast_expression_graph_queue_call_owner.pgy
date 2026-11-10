@@ -146,7 +146,7 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
             );
         }
     }
-    let return_type: String = "Void";
+    var return_type: String = "Void";
     if protocol.return_kind == "element" { return_type = element_type; }
     if protocol.return_kind == "Int" { return_type = "Int"; }
     if protocol.return_kind == "Bool" { return_type = "Bool"; }

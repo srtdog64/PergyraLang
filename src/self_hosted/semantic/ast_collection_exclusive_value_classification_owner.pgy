@@ -1,0 +1,315 @@
+// Exclusive-place class construction.
+
+import "ast_constructor_call_identity_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
+import "ast_collection_exclusive_value_dead_definition_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "ast_collection_exclusive_copy_site_projection_owner.pgy";
+import "ast_collection_exclusive_whole_carried_field_owner.pgy";
+
+// The classification of the value at `node` in statement `syntax_id`. With
+// `consume`, a binding or member path must also be the last use of its place.
+// `holder` is the binding the definition writes, or 0.
+func SemanticAstCollectionExclusiveClassify(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    shared_results: HashMap<String, Int>, carrying: HashMap<String, Int>,
+    shared_locals: HashMap<String, Int>, ref dep_locals: Array<Int>, ref dep_formals: Array<Int>,
+    ref dep_paths: Array<Int>, ref paths: Array<String>,
+    surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
+    inout consumed: HashMap<String, Int>, inout copied: HashMap<String, Int>,
+    empty_locals: HashMap<String, Int>, field_reads: HashMap<String, Int>,
+    function_id: Int, syntax_id: Int, node: Int, consume: Bool, depth: Int, holder: Int
+) -> SemanticAstCollectionExclusiveClass {
+    if depth > 32 { return SemanticAstCollectionExclusiveShared(); }
+    let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(surfaces.expression_graph, node);
+    if literal.ok { return SemanticAstCollectionExclusiveFresh(); }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, node);
+    if call.ok {
+        let operation: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+        if IsSome(operation) {
+            let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+                SemanticExpressionGraphCollectionCallProtocolFromName(UnwrapOption(operation));
+            if protocol.applies && protocol.family == "HashMap" && protocol.return_kind == "constructor" &&
+                protocol.expected_arity == 0 && ArrayLength(call.argument_nodes) == 0 &&
+                SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, protocol.operation) {
+                return SemanticAstCollectionExclusiveFresh();
+            }
+        }
+        if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "Clone") ||
+            SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "MapKeys") {
+            return SemanticAstCollectionExclusiveFresh();
+        }
+        let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+        let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+        if !IsSome(target) || !IsSome(name) { return SemanticAstCollectionExclusiveShared(); }
+        var result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
+        let constructor: Option<Int> = SemanticExpressionGraphNominalConstructorRow(
+            constructors, surfaces.expression_graph, call.call_node);
+        if IsSome(constructor) {
+            if constructors.param_counts[UnwrapOption(constructor)] != ArrayLength(call.argument_nodes) {
+                return SemanticAstCollectionExclusiveShared();
+            }
+            let start: Int = constructors.param_starts[UnwrapOption(constructor)];
+            var index: Int = 0;
+            while index < ArrayLength(call.argument_nodes) {
+                if !SemanticAstCollectionExclusiveUntrackedType(constructors.param_type_names[start + index]) {
+                    let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
+                        artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                        shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths,
+                        surface_starts, surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id,
+                        call.argument_nodes[index], true, depth + 1, holder);
+                    SemanticAstCollectionExclusiveJoinField(result, part,
+                        constructors.field_names[start + index]);
+                    let here: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id,
+                        call.argument_nodes[index]);
+                    var other: Int = 0;
+                    while other < index {
+                        if !SemanticAstCollectionExclusiveUntrackedType(constructors.param_type_names[start + other]) {
+                            let there: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                                artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id,
+                                call.argument_nodes[other]);
+                            if SemanticAstCollectionExclusivePlacesOverlap(surfaces, here, there) &&
+                                !(here.key >= 0 && ArrayLength(here.chain) == 0 &&
+                                  MapHas(empty_locals, ToString(locals.node_ids[here.key]))) {
+                                // The earlier part is the carrier native
+                                // landing selects.  Codegen later consumes
+                                // this exact expression node; it must not
+                                // guess from the constructor's shape.
+                                SemanticAstCollectionExclusiveSelectCompilerClone(
+                                    copied, call.argument_nodes[other]);
+                                // Keep scanning the constructor: another later
+                                // field may repeat a different buffer and needs
+                                // its own earlier landing selected as well.
+                                result.exclusive = false;
+                            }
+                        }
+                        other = other + 1;
+                    }
+                }
+                index = index + 1;
+            }
+            return result;
+        }
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
+        if !IsSome(signature) || MapHas(shared_results, ToString(UnwrapOption(target))) {
+            return SemanticAstCollectionExclusiveShared();
+        }
+        // Result fields some return of the routine shares.
+        let target_key: String = ToString(UnwrapOption(target));
+        let shared_count: Int = SemanticAstCollectionExclusiveCopyCount(shared_results, Concat("rfn:", target_key));
+        var shared_index: Int = 0;
+        while shared_index < shared_count {
+            let shared_path: Int = MapGet(shared_results, Concat("rfi:", Concat(target_key,
+                Concat(":", ToString(shared_index)))));
+            SemanticAstCollectionExclusiveAddSharedField(result, paths[2 * shared_path]);
+            shared_index = shared_index + 1;
+        }
+        var ordinal: Int = 0;
+        while ordinal < ArrayLength(call.argument_nodes) {
+            let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+                signatures, surfaces.expression_graph, call.call_node, ordinal);
+            if !formal.ok { return SemanticAstCollectionExclusiveShared(); }
+            if MapHas(carrying, ToString(formal.syntax_id)) {
+                let whole: SemanticAstCollectionExclusiveWholeCarriedField =
+                    SemanticAstCollectionExclusiveWholeCarriedFieldForFormal(
+                        signatures, constructors, carrying, paths, formal);
+                var part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
+                    artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                    shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths,
+                    surface_starts, surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id,
+                    call.argument_nodes[ordinal], true, depth + 1, holder);
+                // Each carried path lands the argument (or its source field)
+                // at the result (or a result field).
+                let formal_key: String = ToString(formal.syntax_id);
+                let carried: Int = SemanticAstCollectionExclusiveCopyCount(carrying, Concat("cn:", formal_key));
+                if whole.ok {
+                    SemanticAstCollectionExclusiveCollapseWholeFormalClass(
+                        signatures, constructors, part);
+                    if whole.field == "" {
+                        SemanticAstCollectionExclusiveJoin(result, part);
+                    } else {
+                        SemanticAstCollectionExclusiveJoinField(
+                            result, part, whole.field);
+                    }
+                } else {
+                    if carried == 0 { SemanticAstCollectionExclusiveJoin(result, part); }
+                    var carried_index: Int = 0;
+                    while carried_index < carried {
+                        let path: Int = MapGet(carrying, Concat("ci:", Concat(formal_key,
+                            Concat(":", ToString(carried_index)))));
+                        var piece: SemanticAstCollectionExclusiveClass = part;
+                        if paths[2 * path + 1] != "" {
+                            piece = SemanticAstCollectionExclusiveFieldOf(part, paths[2 * path + 1]);
+                        }
+                        if paths[2 * path] == "" { SemanticAstCollectionExclusiveJoin(result, piece); }
+                        else { SemanticAstCollectionExclusiveJoinField(result, piece, paths[2 * path]); }
+                        carried_index = carried_index + 1;
+                    }
+                }
+            }
+            ordinal = ordinal + 1;
+        }
+        return result;
+    }
+    let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+    if !place.ok { return SemanticAstCollectionExclusiveShared(); }
+    if place.temporary {
+        // Project the exact member path of a call or constructor result. The
+        // receiver class owns result-to-formal lineage; returning it whole
+        // here would make one selected field inherit every sibling buffer.
+        var fields: Array<String> = [];
+        var receiver: Int = node;
+        var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, receiver);
+        while member.ok {
+            let field: Option<String> =
+                SemanticExpressionGraphNodeText(
+                    surfaces.expression_graph, member.member_node);
+            if !IsSome(field) { return SemanticAstCollectionExclusiveShared(); }
+            ArrayPush(fields, UnwrapOption(field));
+            receiver = member.receiver_node;
+            member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, receiver);
+        }
+        if receiver == node { return SemanticAstCollectionExclusiveShared(); }
+        var result: SemanticAstCollectionExclusiveClass =
+            SemanticAstCollectionExclusiveClassify(artifact, signatures, constructors, locals, inferred_types,
+            surfaces, assignments, shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths,
+            surface_starts, surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id, receiver, consume,
+            depth + 1, holder);
+        var field_index: Int = ArrayLength(fields);
+        while field_index > 0 {
+            field_index = field_index - 1;
+            result = SemanticAstCollectionExclusiveFieldOf(
+                result, fields[field_index]);
+        }
+        return result;
+    }
+    if place.key >= 0 && ArrayLength(place.chain) == 0 &&
+        MapHas(empty_locals, ToString(locals.node_ids[place.key])) {
+        return SemanticAstCollectionExclusiveFresh();
+    }
+    let root_id: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+    let followed: Bool = holder > 0 && holder != root_id &&
+        SemanticAstCollectionExclusiveHolderFollowed(artifact, signatures, locals, inferred_types, surfaces,
+            surface_starts, surface_ends, copied, function_id, holder);
+    var copy_shared: Array<String> = [];
+    if consume && !SemanticAstCollectionExclusiveConsumedAt(artifact, signatures, constructors, locals,
+            inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copied, consumed,
+            function_id, syntax_id, node) {
+        // A place whose only later readers are copies it shares moves, and
+        // stays exclusive outside the fields those copies reach.
+        var only_copies: Bool = false;
+        if depth == 0 || followed || holder == root_id {
+            let landing: SemanticAstCollectionExclusiveCopyLanding = SemanticAstCollectionExclusiveCopyLandingFor(
+                signatures, constructors, locals, inferred_types, copied, shared_locals, dep_locals, dep_formals,
+                dep_paths, paths, function_id, root_id);
+            let whole_copies: Array<String> = ["*"];
+            only_copies = landing.ok && SemanticAstCollectionExclusiveSinkArgumentConsumed(artifact, signatures,
+                constructors, locals, inferred_types, surfaces, assignments, surface_starts, surface_ends,
+                field_reads, copied, consumed, function_id, syntax_id, node, whole_copies, landing.sources);
+            if only_copies { copy_shared = landing.fields; }
+        }
+        // A copy into a holder the fixed point follows, a plain alias or one
+        // inside a call or constructor, makes the destination a second holder
+        // that keeps the place's dependencies. A holder it cannot follow
+        // shares the place instead. A definition that rebinds the place's own
+        // root keeps the copy edges already recorded into it.
+        if !only_copies && !followed && holder != root_id {
+            SemanticAstCollectionExclusiveRecordCopy(surfaces, locals, place, copied, syntax_id);
+            return SemanticAstCollectionExclusiveShared();
+        }
+        var field: String = "";
+        if ArrayLength(place.chain) > 0 {
+            let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+            if !IsSome(first) { return SemanticAstCollectionExclusiveShared(); }
+            field = UnwrapOption(first);
+        }
+        if depth > 0 || !only_copies {
+            let landings: Array<String> = SemanticAstCollectionExclusiveCopyLandingFields(
+                signatures, constructors, surfaces, carrying, paths, syntax_id, node);
+            SemanticAstCollectionExclusiveRecordCopySiteProjection(
+                signatures, constructors, locals, inferred_types, copied,
+                function_id, syntax_id, node, root_id, field, holder, landings);
+        }
+    }
+    // The destination of a holder holds what it holds.
+    if holder > 0 && holder != root_id && followed {
+        var moved_field: String = "";
+        if ArrayLength(place.chain) > 0 {
+            let moved_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+            if !IsSome(moved_text) { return SemanticAstCollectionExclusiveShared(); }
+            moved_field = UnwrapOption(moved_text);
+        }
+        let holder_landings: Array<String> = SemanticAstCollectionExclusiveCopyLandingFields(
+            signatures, constructors, surfaces, carrying, paths, syntax_id, node);
+        SemanticAstCollectionExclusivePropagateCopies(copied, root_id, holder, moved_field, holder_landings);
+    }
+    // A whole root whose fields were shared one by one keeps the rest.
+    var partly_shared: Array<String> = [];
+    if ArrayLength(place.chain) == 0 && MapHas(shared_locals, Concat(ToString(root_id), ".*")) {
+        let root_fields: Array<String> = SemanticAstCollectionExclusiveTypeFields(constructors,
+            SemanticAstCollectionExclusiveRootType(signatures, locals, inferred_types, function_id, root_id));
+        if ArrayLength(root_fields) == 0 { return SemanticAstCollectionExclusiveShared(); }
+        var root_field: Int = 0;
+        while root_field < ArrayLength(root_fields) {
+            if MapHas(shared_locals, Concat(ToString(root_id), Concat(".", root_fields[root_field]))) {
+                ArrayPush(partly_shared, root_fields[root_field]);
+            }
+            root_field = root_field + 1;
+        }
+    } else if SemanticAstCollectionExclusiveCopiedPlace(surfaces, locals, shared_locals, place) {
+        return SemanticAstCollectionExclusiveShared();
+    }
+    var copy_index: Int = 0;
+    while copy_index < ArrayLength(copy_shared) {
+        var known: Bool = false;
+        var seen: Int = 0;
+        while seen < ArrayLength(partly_shared) {
+            if partly_shared[seen] == copy_shared[copy_index] { known = true; }
+            seen = seen + 1;
+        }
+        if !known { ArrayPush(partly_shared, copy_shared[copy_index]); }
+        copy_index = copy_index + 1;
+    }
+    var first_field: String = "";
+    if ArrayLength(place.chain) > 0 {
+        let first_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+        if !IsSome(first_text) { return SemanticAstCollectionExclusiveShared(); }
+        first_field = UnwrapOption(first_text);
+    }
+    if place.key >= 0 {
+        let local_id: Int = locals.node_ids[place.key];
+        if MapHas(shared_locals, ToString(local_id)) { return SemanticAstCollectionExclusiveShared(); }
+        var local_class: SemanticAstCollectionExclusiveClass =
+            SemanticAstCollectionExclusiveLocalDeps(dep_locals, dep_formals, dep_paths, paths, local_id);
+        local_class.shared_fields = partly_shared;
+        if first_field != "" { return SemanticAstCollectionExclusiveFieldOf(local_class, first_field); }
+        return local_class;
+    }
+    if place.formal_mode != 0 && place.formal_mode != 1 && place.formal_mode != 2 {
+        return SemanticAstCollectionExclusiveShared();
+    }
+    // A reassigned formal also holds every value assigned to it.
+    let formal_id: Int = 0 - place.key;
+    if MapHas(shared_locals, ToString(formal_id)) { return SemanticAstCollectionExclusiveShared(); }
+    var result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveLocalDeps(
+        dep_locals, dep_formals, dep_paths, paths, formal_id);
+    result.shared_fields = partly_shared;
+    if first_field != "" { result = SemanticAstCollectionExclusiveFieldOf(result, first_field); }
+    // `own` makes the value locally exclusive, but returning it transfers the
+    // same cleanup responsibility back to the caller. Keep that origin in the
+    // existing dependency owner instead of turning the result into provenance-
+    // free fresh storage.
+    SemanticAstCollectionExclusiveAddDep(result, formal_id, "", first_field);
+    return result;
+}
+

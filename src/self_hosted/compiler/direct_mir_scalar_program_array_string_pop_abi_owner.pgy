@@ -1,0 +1,9 @@
+// Private scalar-program Array<String> pop ABI symbols shared by emitters and materializers.
+
+func DirectMirScalarProgramArrayStringShallowPopSymbol() -> String {
+    return "pgy_as_pop";
+}
+
+func DirectMirScalarProgramArrayStringOwnedPopSymbol() -> String {
+    return "pgy_as_pop_owned";
+}

@@ -140,7 +140,7 @@ test_qubit_slot_semantics_part_d(void)
             "    let envelope: Envelope;\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let state = State(Envelope(Packet(0)));\n"
+            "    var state = State(Envelope(Packet(0)));\n"
             "    state.envelope.packet = Proxy(wrapper.holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -257,7 +257,7 @@ test_qubit_slot_semantics_part_d(void)
             "    return Escape(q);\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let items: Array<QubitSlot> = [ClaimQubit()];\n"
+            "    var items: Array<QubitSlot> = [ClaimQubit()];\n"
             "    items[0] = Proxy(wrapper.holder.q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -278,7 +278,7 @@ test_qubit_slot_semantics_part_d(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ref movable-resource parameter reports nested projection path on transitive helper queue store");
+    TEST("ref movable-resource helper chain rejects the invalid inner return before queue store");
     {
         const char *source =
             "object Holder {\n"
@@ -294,7 +294,7 @@ test_qubit_slot_semantics_part_d(void)
             "    return Escape(q);\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let queue: Queue<QubitSlot> = QueueNew();\n"
+            "    var queue: Queue<QubitSlot> = QueueNew();\n"
             "    QueuePush(queue, Proxy(wrapper.holder.q));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -305,9 +305,9 @@ test_qubit_slot_semantics_part_d(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref slot handle (movable) 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.q'"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through return from 'q'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'wrapper.holder.q' is derived from that borrowed slot-handle (movable) provenance"));
+            "'q' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -315,7 +315,7 @@ test_qubit_slot_semantics_part_d(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ref movable-resource parameter reports nested projection path on transitive helper map store");
+    TEST("ref movable-resource helper chain rejects the invalid inner return before map store");
     {
         const char *source =
             "object Holder {\n"
@@ -331,7 +331,7 @@ test_qubit_slot_semantics_part_d(void)
             "    return Escape(q);\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let table: HashMap<String, QubitSlot> = MapNew();\n"
+            "    var table: HashMap<String, QubitSlot> = MapNew();\n"
             "    MapSet(table, \"slot\", Proxy(wrapper.holder.q));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -342,9 +342,9 @@ test_qubit_slot_semantics_part_d(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref slot handle (movable) 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.q'"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through return from 'q'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'wrapper.holder.q' is derived from that borrowed slot-handle (movable) provenance"));
+            "'q' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

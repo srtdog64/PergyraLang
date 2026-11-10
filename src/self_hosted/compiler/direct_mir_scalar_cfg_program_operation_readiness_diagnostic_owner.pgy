@@ -7,16 +7,16 @@ import "direct_mir_scalar_program_array_mutation_diagnostic_owner.pgy";
 func DirectMirScalarCfgProgramOperationReadinessFailed(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Void {
-    let operation: Int = 0;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         let kind: Int = plan.operation_kinds[operation];
         let expression_row: Int =
             plan.program.operation_expression_rows[operation];
         let routine: Int = DirectMirScalarCfgRoutinePartitionOperationOwner(
             plan.routines, operation);
-        let expected: String = "";
-        let prefix_ready: Bool = true;
-        let relevant: Bool = false;
+        var expected: String = "";
+        var prefix_ready: Bool = true;
+        var relevant: Bool = false;
         if kind == DirectMirScalarCfgOpExpressionLog() {
             relevant = true;
             let root: Int = plan.program.expressions.graph_roots[expression_row];
@@ -43,7 +43,7 @@ func DirectMirScalarCfgProgramOperationReadinessFailed(
                 !DirectMirScalarCfgProgramExpressionRowReady(
                     plan, expression_row, expected, routine)) {
             let root: Int = plan.program.expressions.graph_roots[expression_row];
-            let detail: String = "direct MIR scalar operation expression is invalid: operation=";
+            var detail: String = "direct MIR scalar operation expression is invalid: operation=";
             detail = Concat(detail, ToString(operation));
             detail = Concat(detail, Concat(" kind=", ToString(kind)));
             detail = Concat(detail, Concat(" routine=", ToString(routine)));
@@ -53,7 +53,7 @@ func DirectMirScalarCfgProgramOperationReadinessFailed(
                 ToString(plan.program.expressions.node_kinds[root])));
             detail = Concat(detail, Concat(" root_type=",
                 plan.program.expressions.node_types[root]));
-            let node: Int = plan.program.expressions.graph_starts[expression_row];
+            var node: Int = plan.program.expressions.graph_starts[expression_row];
             let end: Int = node + plan.program.expressions.graph_counts[expression_row];
             while node < end {
                 if !DirectMirScalarCfgProgramExpressionIdentityReady(

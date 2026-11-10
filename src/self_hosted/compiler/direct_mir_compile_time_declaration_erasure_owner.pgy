@@ -31,7 +31,7 @@ func DirectMirCompileTimeDeclarationErasureFactDigest(
     ref fact: DirectMirCompileTimeDeclarationErasureFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(607L, fact.declaration_count);
+    var hash: Long = DirectMirCfgHashInt(607L, fact.declaration_count);
     if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
     hash = DirectMirCfgHashInt(hash, fact.semantic_digest);
     hash = DirectMirCfgHashString(hash, fact.kind);
@@ -229,7 +229,7 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
         !IsSome(argument_type) || UnwrapOption(argument_type) != "Int" {
         Die("direct MIR compile-time declaration erasure parameter signature is invalid");
     }
-    let semantic_hash: Long = DirectMirCfgHashString(617L, UnwrapOption(kind));
+    var semantic_hash: Long = DirectMirCfgHashString(617L, UnwrapOption(kind));
     semantic_hash = DirectMirCfgHashString(semantic_hash, UnwrapOption(name));
     semantic_hash = DirectMirCfgHashInt(
         semantic_hash, ToInt(UnwrapOption(syntax))

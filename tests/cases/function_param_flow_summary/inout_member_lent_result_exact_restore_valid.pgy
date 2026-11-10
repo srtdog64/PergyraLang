@@ -1,0 +1,32 @@
+// A read-and-return call may take one exact member of an inout aggregate
+// when its result is restored to that same typed member path.
+struct Row {
+    value: Int;
+}
+
+struct DeepRows {
+    values: Array<Row>;
+}
+
+struct PairState {
+    left: DeepRows;
+    right: DeepRows;
+}
+
+func RelayDeepRows(rows: DeepRows) -> DeepRows {
+    return rows;
+}
+
+func RestoreLeft(inout state: PairState) -> Void {
+    let returned: DeepRows = RelayDeepRows(state.left);
+    state.left = returned;
+}
+
+func Main() -> Int {
+    var state: PairState = PairState(
+        DeepRows([Row(1)]), DeepRows([Row(2)])
+    );
+    RestoreLeft(state);
+    Log(ArrayLength(state.left.values));
+    return 0;
+}

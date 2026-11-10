@@ -18,7 +18,7 @@ func SelfMirIntentRoutineBuild(
     intents: SelfDirIntentFacts,
     intent_index: Int
 ) -> SelfMirRoutineBuild {
-    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    var build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
     let entry_block: Int = build.current_block;
     if !intents.ok || intent_index < 0 ||
         intent_index >= ArrayLength(intents.names) {
@@ -36,14 +36,14 @@ func SelfMirIntentRoutineBuild(
             build, "MIR intent projection requires participants and steps"
         );
     }
-    let outcome_result_names: Array<String> = [];
-    let outcome_step_i: Int = 0;
+    var outcome_result_names: Array<String> = [];
+    var outcome_step_i: Int = 0;
     while outcome_step_i < step_count {
         let outcome_step_row: Int = step_start + outcome_step_i;
         let outcome_result_name: String =
             intents.steps.outcome_names[outcome_step_row];
         if outcome_result_name != "" {
-            let prior_outcome: Int = 0;
+            var prior_outcome: Int = 0;
             while prior_outcome < ArrayLength(outcome_result_names) {
                 if outcome_result_names[prior_outcome] == outcome_result_name {
                     return SelfMirRoutineBuildError(
@@ -67,7 +67,7 @@ func SelfMirIntentRoutineBuild(
         build, input, intents, intent_index
     );
     if !build.ok { return build; }
-    let step_i: Int = 0;
+    var step_i: Int = 0;
     while step_i < step_count {
         let step_row: Int = step_start + step_i;
         let step_name: String = intents.steps.names[step_row];
@@ -92,7 +92,7 @@ func SelfMirIntentRoutineBuild(
                 using_alias, "", "AST_INTENT_STEP", SelfMirNoUses()
             );
         }
-        let effect_slot: String = "";
+        var effect_slot: String = "";
         if intents.steps.causes_names[step_row] != "" {
             effect_slot = SelfMirIntentEffectSlotForType(
                 rows, intents.steps.where_declaration_indices[step_row],
@@ -108,7 +108,7 @@ func SelfMirIntentRoutineBuild(
                 effect_slot, "", "AST_INTENT_STEP", SelfMirNoUses()
             );
         }
-        let authority_i: Int = 0;
+        var authority_i: Int = 0;
         while authority_i < intents.steps.authorized_counts[step_row] {
             let authority_name: String = intents.steps.authorized_names[
                 intents.steps.authorized_starts[step_row] + authority_i
@@ -130,12 +130,12 @@ func SelfMirIntentRoutineBuild(
         return SelfMirRoutineBuildError(build, "MIR Intent result mode is unknown");
     }
 
-    let participant_i: Int = 0;
+    var participant_i: Int = 0;
     while participant_i < participant_count {
         let row: Int = participant_start + participant_i;
-        let binding_kind: String = "participant";
-        let carrier_name: String = "IntentParticipant";
-        let source_type: String = "AST_INTENT_INVOLVES";
+        var binding_kind: String = "participant";
+        var carrier_name: String = "IntentParticipant";
+        var source_type: String = "AST_INTENT_INVOLVES";
         if intents.participants.is_values[row] {
             binding_kind = "value";
             carrier_name = "IntentValue";
@@ -183,7 +183,7 @@ func SelfMirIntentRoutineBuild(
                 "", "AST_INTENT_STEP", SelfMirNoUses()
             );
         }
-        let who_i: Int = 0;
+        var who_i: Int = 0;
         while who_i < intents.steps.who_counts[step_row] {
             build = SelfMirIntentAddInstruction(
                 build, "stmt", "IntentWho", intents.steps.who_names[
@@ -193,7 +193,7 @@ func SelfMirIntentRoutineBuild(
             );
             who_i = who_i + 1;
         }
-        let authority_i: Int = 0;
+        var authority_i: Int = 0;
         while authority_i < intents.steps.authorized_counts[step_row] {
             build = SelfMirIntentAddInstruction(
                 build, "stmt", "IntentAuthorizedBy",
@@ -282,7 +282,7 @@ func SelfMirIntentRoutineBuild(
             SelfMirIntentTargetPhase(intents.steps.target_kinds[step_row]), step_name,
             outcome_name, outcome_type_name
         );
-        let compensate_i: Int = 0;
+        var compensate_i: Int = 0;
         while compensate_i < intents.steps.compensate_counts[step_row] {
             let compensate_row: Int =
                 intents.steps.compensate_starts[step_row] + compensate_i;
@@ -348,13 +348,13 @@ func SelfMirIntentAppendEmptyRoutineFacts(
     rows: SelfMirRoutineRows
 ) -> SelfMirRoutineRows {
     let destructure: SelfMirDestructureTypeFactRows = rows.destructure_type_facts;
-    let destructure_starts: Array<Int> = destructure.routine_starts;
-    let destructure_counts: Array<Int> = destructure.routine_counts;
+    var destructure_starts: Array<Int> = destructure.routine_starts;
+    var destructure_counts: Array<Int> = destructure.routine_counts;
     ArrayPush(destructure_starts, ArrayLength(destructure.function_syntax_ids));
     ArrayPush(destructure_counts, 0);
     let loops: SelfMirLoopFlowRows = rows.loop_flows;
-    let loop_starts: Array<Int> = loops.routine_starts;
-    let loop_counts: Array<Int> = loops.routine_counts;
+    var loop_starts: Array<Int> = loops.routine_starts;
+    var loop_counts: Array<Int> = loops.routine_counts;
     ArrayPush(loop_starts, ArrayLength(loops.summaries.loop_node_ids));
     ArrayPush(loop_counts, 0);
     let collection: SelfMirCollectionOwnershipFactRows =
@@ -416,23 +416,23 @@ func SelfMirAppendIntentRoutine(
         );
     }
     let rows: SelfMirRoutineRows = facts.routines;
-    let node_ids: Array<Int> = rows.node_ids;
-    let names: Array<String> = rows.names;
-    let kinds: Array<String> = rows.kinds;
-    let owners: Array<String> = rows.owners;
-    let source_module_paths: Array<String> = rows.source_module_paths;
-    let receiver_carriages: Array<String> = rows.receiver_carriages;
-    let return_types: Array<String> = rows.return_types;
-    let generic_starts: Array<Int> = rows.generic_starts;
-    let generic_counts: Array<Int> = rows.generic_counts;
-    let param_starts: Array<Int> = rows.param_starts;
-    let param_counts: Array<Int> = rows.param_counts;
-    let block_starts: Array<Int> = rows.block_starts;
-    let block_counts: Array<Int> = rows.block_counts;
-    let local_starts: Array<Int> = rows.local_starts;
-    let local_counts: Array<Int> = rows.local_counts;
-    let iteration_starts: Array<Int> = rows.iteration_starts;
-    let iteration_counts: Array<Int> = rows.iteration_counts;
+    var node_ids: Array<Int> = rows.node_ids;
+    var names: Array<String> = rows.names;
+    var kinds: Array<String> = rows.kinds;
+    var owners: Array<String> = rows.owners;
+    var source_module_paths: Array<String> = rows.source_module_paths;
+    var receiver_carriages: Array<String> = rows.receiver_carriages;
+    var return_types: Array<String> = rows.return_types;
+    var generic_starts: Array<Int> = rows.generic_starts;
+    var generic_counts: Array<Int> = rows.generic_counts;
+    var param_starts: Array<Int> = rows.param_starts;
+    var param_counts: Array<Int> = rows.param_counts;
+    var block_starts: Array<Int> = rows.block_starts;
+    var block_counts: Array<Int> = rows.block_counts;
+    var local_starts: Array<Int> = rows.local_starts;
+    var local_counts: Array<Int> = rows.local_counts;
+    var iteration_starts: Array<Int> = rows.iteration_starts;
+    var iteration_counts: Array<Int> = rows.iteration_counts;
     ArrayPush(node_ids, intents.intent_node_ids[intent_index]);
     ArrayPush(names, intents.names[intent_index]);
     ArrayPush(kinds, "intent");

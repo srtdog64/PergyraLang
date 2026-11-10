@@ -5,8 +5,8 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 func DirectMirScalarCfgResultOperation(
     ref plan: DirectMirScalarCfgGraphPlan, value_row: Int
 ) -> Int {
-    let found: Int = -1;
-    let operation: Int = 0;
+    var found: Int = -1;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         if plan.operation_result_values[operation] == value_row {
             if found >= 0 { return -1; }
@@ -27,8 +27,8 @@ func DirectMirScalarCfgWhileInductionZeroUnitReady(
     if local_row < 0 || phi < 0 ||
         plan.operation_kinds[phi] != DirectMirScalarCfgOpPhiInt() ||
         plan.operation_phi_counts[phi] != 2 { return false; }
-    let init_count: Int = 0; let step_count: Int = 0;
-    let incoming: Int = 0;
+    var init_count: Int = 0; var step_count: Int = 0;
+    var incoming: Int = 0;
     while incoming < plan.operation_phi_counts[phi] {
         let incoming_value: Int = plan.phi_incoming_values[
             plan.operation_phi_starts[phi] + incoming

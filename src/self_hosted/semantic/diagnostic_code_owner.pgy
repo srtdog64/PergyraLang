@@ -8,6 +8,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "intent_retry_unavailable",
         "intent_step_clause_not_bool",
         "intent_child_cycle",
+        "intent_compensation_missing",
         "intent_predicate_plan_unavailable",
         "action_contract_invalid",
         "action_ability_unsatisfied",
@@ -73,6 +74,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "condition_not_bool",
         "assign_type_mismatch",
         "immutable_field_write",
+        "immutable_binding_write",
         "declared_capability_missing",
         "declared_effect_missing",
         "call_effect_fact_unavailable",
@@ -101,7 +103,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
 
 func SemanticDiagnosticCodeKnown(code: String) -> Bool {
     let codes: Array<String> = SemanticDiagnosticCodes();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(codes) {
         if code == codes[i] {
             return true;
@@ -248,6 +250,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "immutable_field_write" {
         return "PGY_SEM_IMMUTABLE_FIELD_WRITE";
     }
+    if code == "immutable_binding_write" {
+        return "PGY_SEM_IMMUTABLE_BINDING_WRITE";
+    }
     if code == "declared_capability_missing" || code == "declared_effect_missing" ||
         code == "call_effect_fact_unavailable" {
         return "PGY_SEM_EFFECT_CONFLICT";
@@ -265,7 +270,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         return "PGY_SEM_TYPE_MISMATCH";
     }
     if code == "intent_signature_invalid" || code == "intent_retry_unavailable" || code == "intent_predicate_plan_unavailable" ||
-        code == "intent_step_clause_not_bool" || code == "intent_child_cycle" {
+        code == "intent_step_clause_not_bool" || code == "intent_child_cycle" || code == "intent_compensation_missing" {
         return "PGY_SEM_INTENT_STEP_INVALID";
     }
     if code == "action_contract_invalid" { return "PGY_SEM_ACTION_CONTRACT_INVALID"; }

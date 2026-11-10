@@ -310,7 +310,7 @@ static ASTNode* parse_type_guarded(Parser* parser) {
      * parameter mode, not a borrow type. */
     if (parser_check(parser, TOKEN_AMP)) {
         parser_advance(parser);  /* consume '&' */
-        if (parser_current_is_retired_spelling(parser, PGY_RETIRED_SPELLING_MUT)) {
+        if (parser_current_is_language_word(parser, PGY_LANGUAGE_WORD_MUT)) {
             parser_error(parser,
                 "'&mut' is not a type in this language.\n"
                 "Reason: caller-visible mutation is value-result "

@@ -1,0 +1,184 @@
+// Declaration-backed opaque Zone handles used only through read-only refs.
+// This fact owns identity, not layout: construction, field access and mutation
+// remain outside the scalar GraphPlan until a complete Zone layout owner lands.
+
+import "direct_mir_routine_instance_inventory_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir/declaration_wire_kind_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+
+struct DirectMirScalarProgramOpaqueReadonlyZoneFact {
+    let valid: Bool;
+    let digest: Int;
+    let names: Array<String>;
+    let declaration_rows: Array<Int>;
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneFactDigest(
+    ref fact: DirectMirScalarProgramOpaqueReadonlyZoneFact
+) -> Int {
+    if !fact.valid { return 0; }
+    var hash: Long = DirectMirCfgHashString(
+        887L, "declaration-owned-opaque-readonly-zone");
+    hash = DirectMirScalarCfgHashStrings(hash, fact.names);
+    hash = DirectMirScalarCfgHashInts(hash, fact.declaration_rows);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneFactSeal(
+    fact: DirectMirScalarProgramOpaqueReadonlyZoneFact
+) -> DirectMirScalarProgramOpaqueReadonlyZoneFact {
+    return DirectMirScalarProgramOpaqueReadonlyZoneFact(
+        fact.valid,
+        DirectMirScalarProgramOpaqueReadonlyZoneFactDigest(fact),
+        fact.names, fact.declaration_rows);
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneFactEmpty(
+) -> DirectMirScalarProgramOpaqueReadonlyZoneFact {
+    let names: Array<String> = [];
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramOpaqueReadonlyZoneFactSeal(
+        DirectMirScalarProgramOpaqueReadonlyZoneFact(
+            true, 0, names, rows));
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid(
+) -> DirectMirScalarProgramOpaqueReadonlyZoneFact {
+    let names: Array<String> = [];
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramOpaqueReadonlyZoneFact(
+        false, 0, names, rows);
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+    ref fact: DirectMirScalarProgramOpaqueReadonlyZoneFact
+) -> Bool {
+    let count: Int = ArrayLength(fact.names);
+    if !fact.valid || fact.digest == 0 ||
+        fact.digest != DirectMirScalarProgramOpaqueReadonlyZoneFactDigest(
+            fact) || count != ArrayLength(fact.declaration_rows) {
+        return false;
+    }
+    var row: Int = 0;
+    while row < count {
+        if fact.names[row] == "" || fact.declaration_rows[row] < 0 {
+            return false;
+        }
+        var prior: Int = 0;
+        while prior < row {
+            if fact.names[prior] == fact.names[row] ||
+                fact.declaration_rows[prior] == fact.declaration_rows[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneRow(
+    ref fact: DirectMirScalarProgramOpaqueReadonlyZoneFact,
+    type_name: String
+) -> Int {
+    if !fact.valid || type_name == "" { return -1; }
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.names[row] == type_name {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref fact: DirectMirScalarProgramOpaqueReadonlyZoneFact
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count ||
+        DirectMirScalarProgramOpaqueReadonlyZoneRow(
+            fact, signature.parameters.type_names[ordinal]) < 0 {
+        return false;
+    }
+    let carriage: String = signature.parameters.carriages[ordinal];
+    let admitted_carriage: Bool = carriage == "readonly-ref" ||
+        (signature.kind == "intent" && carriage == "participant");
+    return admitted_carriage &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "indirect" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0 &&
+        signature.parameters.abi_row_keys[ordinal] == "";
+}
+
+func DirectMirScalarProgramOpaqueReadonlyZoneFactFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref instances: DirectMirRoutineInstanceInventory
+) -> DirectMirScalarProgramOpaqueReadonlyZoneFact {
+    if !DirectMirRoutineInstanceInventoryReady(instances) ||
+        !admitted.domain_runtime_admission.declarations.valid {
+        return DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid();
+    }
+    var names: Array<String> = [];
+    var rows: Array<Int> = [];
+    var routine: Int = 0;
+    while routine < ArrayLength(instances.signatures) {
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineInstanceSignatureAt(instances, routine);
+        var parameter: Int = 0;
+        while parameter < signature.param_count {
+            let type_name: String = signature.parameters.type_names[parameter];
+            var declaration: Int = -1;
+            var matches: Int = 0;
+            var row: Int = 0;
+            while row < MirProgramDeclarationIndexCount(
+                    admitted.domain_runtime_admission.declarations) {
+                if admitted.domain_runtime_admission.declarations.names[row] ==
+                        type_name {
+                    declaration = row;
+                    matches = matches + 1;
+                }
+                row = row + 1;
+            }
+            if matches > 1 {
+                return DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid();
+            }
+            if matches == 1 &&
+                admitted.domain_runtime_admission.declarations.nominal_kinds[
+                    declaration] == "zone" &&
+                DirectMirIdentityCellRow(instances.identity_cells,
+                    type_name) < 0 {
+                if admitted.domain_runtime_admission.declarations.kinds[
+                        declaration] !=
+                        MirDeclarationWireKind("zone") {
+                    return DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid();
+                }
+                var existing: Int = 0;
+                while existing < ArrayLength(names) &&
+                        names[existing] != type_name {
+                    existing = existing + 1;
+                }
+                if existing == ArrayLength(names) {
+                    ArrayPush(names, type_name);
+                    ArrayPush(rows, declaration);
+                } else if rows[existing] != declaration {
+                    return DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid();
+                }
+            }
+            parameter = parameter + 1;
+        }
+        routine = routine + 1;
+    }
+    let fact: DirectMirScalarProgramOpaqueReadonlyZoneFact =
+        DirectMirScalarProgramOpaqueReadonlyZoneFactSeal(
+            DirectMirScalarProgramOpaqueReadonlyZoneFact(
+                true, 0, names, rows));
+    if !DirectMirScalarProgramOpaqueReadonlyZoneFactReady(fact) {
+        return DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid();
+    }
+    return fact;
+}

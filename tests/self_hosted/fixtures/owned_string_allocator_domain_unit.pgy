@@ -8,10 +8,10 @@ func InspectOwnedStringAllocatorDomain(
     if !bundle.verdict.ok { return false; }
     let roots: SemanticCallSpineRoots =
         SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
-    let facts: SemanticAstOwnedStringResultFacts = bundle.owned_string_result_domains;
+    var facts: SemanticAstOwnedStringResultFacts = bundle.owned_string_result_domains;
     if !SemanticAstOwnedStringResultFactsReady(facts, analysis.signatures) { return false; }
-    let helper: Int = -1; let wrapper: Int = -1; let forward: Int = -1;
-    let row: Int = 0;
+    var helper: Int = -1; var wrapper: Int = -1; var forward: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(analysis.signatures.function_node_ids) {
         if analysis.signatures.names[row] == "BuildWithAllocator" { helper = row; }
         if analysis.signatures.names[row] == "MakeHeap" { wrapper = row; }
@@ -32,12 +32,12 @@ func InspectOwnedStringAllocatorDomain(
         forwarding.allocator_formal_syntax_id != analysis.signatures.param_node_ids[analysis.signatures.param_starts[forward] + 1] {
         return false;
     }
-    let fact_row: Int = -1; row = 0;
+    var fact_row: Int = -1; row = 0;
     while row < ArrayLength(facts.function_syntax_ids) {
         if facts.function_syntax_ids[row] == helper_id { fact_row = row; }
         row = row + 1;
     }
-    let surface: Int = -1; let foreign: Int = -1; let root: Int = -1;
+    var surface: Int = -1; var foreign: Int = -1; var root: Int = -1;
     row = 0;
     while row < ArrayLength(analysis.statements.node_ids) {
         if analysis.statements.kind_tags[row] == TypedAstKindArrayPushStmtTag() {
@@ -63,8 +63,8 @@ func InspectOwnedStringAllocatorDomain(
     }
     if mode == "allocator-domain-current" { return true; }
     if mode == "allocator-domain-foreign-finish" {
-        let slot: Int = 0;
-        let checked: Int = 0;
+        var slot: Int = 0;
+        var checked: Int = 0;
         while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
             if analysis.expression_surfaces.expression_graph.has_roots[slot] {
                 let finish: Int = analysis.expression_surfaces.expression_graph.roots[slot];
@@ -83,7 +83,7 @@ func InspectOwnedStringAllocatorDomain(
         return checked == 2;
     }
     if mode == "allocator-domain-cross-base" || mode == "allocator-domain-cross-callee" || mode == "allocator-domain-cross-actual" {
-        let node: Int = 0; let donor: Int = -1;
+        var node: Int = 0; var donor: Int = -1;
         while node < root && donor < 0 {
             if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
                 let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(analysis.expression_surfaces.expression_graph, node);
@@ -138,7 +138,7 @@ func InspectOwnedStringAllocatorDomain(
         let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(
             analysis.expression_surfaces.expression_graph, call.call_node);
         if !call.ok || !IsSome(callee) || ArrayLength(call.argument_nodes) != 2 { return false; }
-        let node: Int = UnwrapOption(callee);
+        var node: Int = UnwrapOption(callee);
         if mode == "allocator-domain-wrong-callee-binding" {
             analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] =
                 analysis.signatures.function_node_ids[wrapper];

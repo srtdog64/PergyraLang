@@ -1,0 +1,41 @@
+// The first call transfers only facts.graph storage.  The second call reads
+// sibling facts fields, receives the returned graph separately, and the final
+// scalar read does not touch any storage the second call moved.
+struct FieldMoveCell {
+    values: Array<Int>;
+}
+
+struct FieldMoveGraph {
+    rows: Array<FieldMoveCell>;
+    ok: Bool;
+}
+
+struct FieldMoveFacts {
+    graph: FieldMoveGraph;
+    count: Int;
+}
+
+struct FieldMoveCapture {
+    graph: FieldMoveGraph;
+}
+
+func FieldMoveCaptureGraph(graph: FieldMoveGraph) -> FieldMoveCapture {
+    return FieldMoveCapture(graph);
+}
+
+func FieldMoveReplaceGraph(
+    facts: FieldMoveFacts, graph: FieldMoveGraph
+) -> FieldMoveFacts {
+    return FieldMoveFacts(graph, facts.count);
+}
+
+func Main() -> Int {
+    let facts: FieldMoveFacts = FieldMoveFacts(
+        FieldMoveGraph([FieldMoveCell([1, 2])], true), 7
+    );
+    let capture: FieldMoveCapture = FieldMoveCaptureGraph(facts.graph);
+    let output: FieldMoveFacts = FieldMoveReplaceGraph(facts, capture.graph);
+    if !capture.graph.ok { return 1; }
+    Print(ToString(ArrayLength(output.graph.rows) + output.count));
+    return 0;
+}

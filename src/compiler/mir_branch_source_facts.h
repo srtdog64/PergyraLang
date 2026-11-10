@@ -30,6 +30,10 @@ bool mir_validate_collection_ownership_facts(
 bool mir_validate_collection_ownership_transitions(
     const MIRRoutine *routine,
     char **error_message);
+bool mir_validate_collection_ownership_transitions_with_receipt(
+    const MIRRoutine *routine,
+    const MIRCollectionEffectEvidenceReceipt *receipt,
+    char **error_message);
 bool mir_capture_match_case_facts(MIRRoutine *routine,
                                   MIRInstruction *inst,
                                   ASTNode *case_node,

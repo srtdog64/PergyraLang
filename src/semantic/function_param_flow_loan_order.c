@@ -122,6 +122,32 @@ static bool claim_runs_once(const FunctionParamFlowIndexClaims *claims, size_t r
     return false;
 }
 
+/* A value evaluated by `return` cannot remain live until code after an
+ * enclosing loop: either the return is not reached, or it exits this routine
+ * before that later code runs.  A delayed/concurrent/nested-callable boundary
+ * still fails closed; only ordinary control flow and loops may enclose the
+ * return on the path back to this routine's body. */
+static bool claim_returns_before_later_code(const FunctionParamFlowIndexClaims *claims,
+    size_t row, const ASTNode *body)
+{
+    bool returning = false;
+    for (size_t at = claims->order_parent[row], steps = 0; at != SIZE_MAX;
+         at = claims->order_parent[at], steps++) {
+        if (claims->rows[at].node == body) return returning;
+        if (steps > claims->count) return false;
+        ASTNodeType shape = claims->rows[at].shape;
+        if (shape == AST_RETURN) {
+            returning = true;
+            continue;
+        }
+        if (claim_order_straight(shape)) continue;
+        if (returning && (shape == AST_WHILE_LOOP || shape == AST_FOR_LOOP))
+            continue;
+        return false;
+    }
+    return false;
+}
+
 /* A row of these runs where it is written, a `while` body once per pass; a
  * type runs nothing. No deferred, concurrent or closure body is one. */
 static bool claim_shape_in_place(ASTNodeType shape)
@@ -169,7 +195,9 @@ size_t function_param_flow_claim_parent_row(FunctionParamFlowIndexClaims *claims
 FunctionParamFlowLoanSpan function_param_flow_loan_span(SemanticContext *ctx, FunctionParamFlowIndexClaims *claims,
     const ASTNode *call, const uint32_t *carriers, size_t carrier_count, const ASTNode *body)
 {
-    FunctionParamFlowLoanSpan span = {call, SIZE_MAX, SIZE_MAX, SIZE_MAX, NULL, 0, false};
+    FunctionParamFlowLoanSpan span = {
+        call, SIZE_MAX, SIZE_MAX, SIZE_MAX, NULL, 0, NULL, 0, false
+    };
     if (ctx == NULL || claims == NULL || claims->failed || call == NULL || body == NULL ||
         !claim_order_parents(claims)) return span;
     span.generation = claims->generation;
@@ -233,6 +261,171 @@ static bool claim_statement_finished_before(const FunctionParamFlowIndexClaims *
         (claim_order_straight(claims->rows[at].shape) && claim_runs_once(claims, at, body)));
 }
 
+/* Whether this identifier occurrence belongs only to an assignment target.
+ * Climb by the already-sealed claim parents so a nested field/index target is
+ * classified with its whole target expression. */
+static bool claim_assignment_target_only(
+    const FunctionParamFlowIndexClaims *claims, size_t row)
+{
+    for (size_t at = row, steps = 0;
+         at != SIZE_MAX && steps <= claims->count; steps++) {
+        size_t parent = claims->order_parent[at];
+        if (parent == SIZE_MAX)
+            return false;
+        const ASTNode *node = claims->rows[parent].node;
+        if (node != NULL && node->type == AST_ASSIGNMENT)
+            return claims->rows[at].node == ast_assignment_target(node);
+        at = parent;
+    }
+    return false;
+}
+
+/* Expression leaves do not own CFG reachability.  The nearest enclosing
+ * expression or statement that has an execution publication owns it.  A
+ * missing or stale execution owner is not evidence that the leaf runs. */
+static bool claim_execution_reachability(
+    const FunctionParamFlowIndexClaims *claims, size_t row, bool *reachable)
+{
+    if (claims == NULL || reachable == NULL || row >= claims->count)
+        return false;
+    for (size_t at = row, steps = 0;
+         at != SIZE_MAX && steps <= claims->count;
+         at = claims->order_parent[at], steps++) {
+        const FunctionParamFlowIndexClaim *owner = &claims->rows[at];
+        if (!owner->execution_present)
+            continue;
+        if (!owner->semantic_promoted || !owner->snapshot_semantic_complete)
+            return false;
+        *reachable = owner->reachable;
+        return true;
+    }
+    return false;
+}
+
+bool function_param_flow_binding_still_initializer_at_call(
+    SemanticContext *ctx, FunctionParamFlowIndexClaims *claims,
+    const ASTNode *call, uint32_t binding, const ASTNode *body)
+{
+    size_t call_row;
+    bool found_call_use = false;
+
+    if (ctx == NULL || claims == NULL || claims->failed || call == NULL
+        || binding == 0 || body == NULL
+        || !function_param_flow_claims_in_place(claims)
+        || !claim_order_parents(claims))
+        return false;
+    call_row = claim_row(claims, call);
+    if (call_row >= claims->count
+        || !claims->rows[call_row].execution_present
+        || !claims->rows[call_row].reachable)
+        return false;
+    for (size_t use = 0; use < claims->count; use++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[use];
+        bool reachable;
+        if (row->node == NULL || row->shape != AST_IDENTIFIER
+            || row->binding != binding)
+            continue;
+        if (ast_identifier_binding_syntax_id(row->node) != binding
+            || !row->semantic_promoted
+            || !row->snapshot_semantic_complete)
+            return false;
+        if (!claim_execution_reachability(claims, use, &reachable))
+            return false;
+        if (!reachable)
+            continue;
+        if (claim_within(claims, use, call_row)) {
+            found_call_use = true;
+            continue;
+        }
+        if (claim_statement_finished_before(
+                claims, use, call_row, body))
+            return false;
+        if (!claim_statement_finished_before(
+                claims, call_row, use, body))
+            return false;
+    }
+    return found_call_use;
+}
+
+bool function_param_flow_binding_read_after_call_current(
+    SemanticContext *ctx,
+    FunctionParamFlowIndexClaims *claims, const ASTNode *call,
+    uint32_t binding, const ASTNode *body, bool *read_after)
+{
+    FunctionParamFlowLoanSpan span;
+    bool current = false;
+
+    if (ctx == NULL || claims == NULL || claims->failed || call == NULL
+        || binding == 0 || body == NULL || read_after == NULL)
+        return false;
+    *read_after = false;
+    span = function_param_flow_loan_span(
+        ctx, claims, call, &binding, 1, body);
+    if (!span.uses_listed || span.call_row >= claims->count
+        || !claims->rows[span.call_row].execution_present
+        || !claims->rows[span.call_row].reachable)
+        goto done;
+    for (size_t i = 0; i < span.use_count; i++) {
+        size_t use = span.uses[i];
+        const FunctionParamFlowIndexClaim *row;
+        bool reachable;
+        if (use >= claims->count)
+            goto done;
+        row = &claims->rows[use];
+        if (row->node == NULL || row->shape != AST_IDENTIFIER
+            || row->binding != binding
+            || ast_identifier_binding_syntax_id(row->node) != binding
+            || !row->semantic_promoted
+            || !row->snapshot_semantic_complete
+            || claim_assignment_target_only(claims, use))
+            continue;
+        if (!claim_execution_reachability(claims, use, &reachable))
+            goto done;
+        if (!reachable)
+            continue;
+        if (claim_statement_finished_before(
+                claims, span.call_row, use, body)) {
+            *read_after = true;
+            break;
+        }
+    }
+    current = true;
+done:
+    function_param_flow_loan_span_release(&span);
+    return current;
+}
+
+bool function_param_flow_binding_read_after_call(SemanticContext *ctx,
+    FunctionParamFlowIndexClaims *claims, const ASTNode *call,
+    uint32_t binding, const ASTNode *body)
+{
+    bool read_after = false;
+    return function_param_flow_binding_read_after_call_current(
+        ctx, claims, call, binding, body, &read_after) && read_after;
+}
+
+bool function_param_flow_claim_completed_before(
+    FunctionParamFlowIndexClaims *claims, const ASTNode *first,
+    const ASTNode *second, const ASTNode *body)
+{
+    if (claims == NULL || claims->failed || first == NULL || second == NULL
+        || body == NULL || !claim_order_parents(claims))
+        return false;
+    size_t first_row = claim_row(claims, first);
+    size_t second_row = claim_row(claims, second);
+    if (first_row >= claims->count || second_row >= claims->count)
+        return false;
+    bool first_reachable = false, second_reachable = false;
+    if (!claim_execution_reachability(
+            claims, first_row, &first_reachable)
+        || !claim_execution_reachability(
+            claims, second_row, &second_reachable)
+        || !first_reachable || !second_reachable)
+        return false;
+    return claim_statement_finished_before(
+        claims, first_row, second_row, body);
+}
+
 /* `claim` starts after the statement that made the loan and after the
  * statement of every read of a local the loan reached, each finished and
  * not run again: when the claim changes the owner, nothing reads the loan. */
@@ -260,6 +453,11 @@ bool function_param_flow_claim_outside_loan(FunctionParamFlowIndexClaims *claims
         !claim_within(claims, claim, span->scope)) return true;
     if (claim_after_last_use(claims, claim, span, body)) return true;
     size_t site = claim_row(claims, span->call);
-    return site != SIZE_MAX && claim_starts_before(claims->rows[claim].node, span->call) &&
-        claim_runs_once(claims, claim, body) && !claim_within(claims, site, claim);
+    bool returns_before = claim_returns_before_later_code(claims, claim, body);
+    bool outside = site != SIZE_MAX &&
+        claim_starts_before(claims->rows[claim].node, span->call) &&
+        (claim_runs_once(claims, claim, body) ||
+         returns_before) &&
+        !claim_within(claims, site, claim);
+    return outside;
 }

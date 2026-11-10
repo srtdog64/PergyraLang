@@ -29,7 +29,7 @@ func DirectMirInferredGenericMemberPlanDigest(
     ref plan: DirectMirInferredGenericMemberPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(347L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(347L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);

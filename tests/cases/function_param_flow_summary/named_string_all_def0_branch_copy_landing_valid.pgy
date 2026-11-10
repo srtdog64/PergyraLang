@@ -1,7 +1,7 @@
 // A name that is either an element of rows or a fresh String has no one
 // owner proof, so pushing it into names lands as an owned copy.
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }
@@ -16,8 +16,8 @@ func TrimReuse(value: String, trimmed: Bool) -> String {
 func Observe(flag: Bool) -> Void {
     let rows: Array<String> = OwnedRows();
     let source: String = Substring("ready", 0, 5);
-    let name: String = source;
-    let names: Array<String> = [];
+    var name: String = source;
+    var names: Array<String> = [];
     if flag {
         name = rows[0];
     } else {

@@ -33,44 +33,44 @@ import "incremental_fact_graph_owner.pgy";
 import "path_manifest_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessBackendTriSmokeCaseCount() {
         Log(CompilerHarnessBackendTriSmokeCaseAt(i));
         i = i + 1;
     }
 }
 func EmitCompilerWorldProjectionPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerWorldProjectionPathCount() {
         Log(CompilerWorldProjectionPathAt(i));
         i = i + 1;
     }
 }
 func EmitBackendTriExtendedCases() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessBackendTriExtendedCaseCount() {
         Log(CompilerHarnessBackendTriExtendedCaseAt(i));
         i = i + 1;
     }
 }
-func EmitLinterParityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessLinterPathCount() { Log(CompilerHarnessLinterPathAt(i)); i = i + 1; } }
-func EmitCompatibilityCorpusPaths() -> Void { let i: Int = 0; while i < CompilerHarnessCompatibilityCorpusPathCount() { Log(CompilerHarnessCompatibilityCorpusPathAt(i)); i = i + 1; } }
+func EmitLinterParityPaths() -> Void { var i: Int = 0; while i < CompilerHarnessLinterPathCount() { Log(CompilerHarnessLinterPathAt(i)); i = i + 1; } }
+func EmitCompatibilityCorpusPaths() -> Void { var i: Int = 0; while i < CompilerHarnessCompatibilityCorpusPathCount() { Log(CompilerHarnessCompatibilityCorpusPathAt(i)); i = i + 1; } }
 func EmitModuleManifestResolverPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessModuleManifestResolverPathCount() {
         Log(CompilerHarnessModuleManifestResolverPathAt(i));
         i = i + 1;
     }
 }
 func EmitStableSubsetSectionPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessStableSubsetSectionPathCount() {
         Log(CompilerHarnessStableSubsetSectionPathAt(i));
         i = i + 1;
     }
 }
 func EmitRuntimeBoundaryPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessRuntimeBoundaryPathCount() {
         Log(CompilerHarnessRuntimeBoundaryPathAt(i));
         i = i + 1;
@@ -78,7 +78,7 @@ func EmitRuntimeBoundaryPaths() -> Void {
 }
 
 func EmitDocLinkCheckerPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessDocLinkCheckerPathCount() {
         Log(CompilerHarnessDocLinkCheckerPathAt(i));
         i = i + 1;
@@ -86,7 +86,7 @@ func EmitDocLinkCheckerPaths() -> Void {
 }
 
 func EmitExamplesInventoryPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessExamplesInventoryPathCount() {
         Log(CompilerHarnessExamplesInventoryPathAt(i));
         i = i + 1;
@@ -94,7 +94,7 @@ func EmitExamplesInventoryPaths() -> Void {
 }
 
 func EmitLexerParityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLexerPathCount() {
         Log(CompilerHarnessLexerPathAt(i));
         i = i + 1;
@@ -102,7 +102,7 @@ func EmitLexerParityPaths() -> Void {
 }
 
 func EmitCodegenParityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenPathCount() {
         Log(CompilerHarnessCodegenPathAt(i));
         i = i + 1;
@@ -110,7 +110,7 @@ func EmitCodegenParityPaths() -> Void {
 }
 
 func EmitParserParityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessParserPathCount() {
         Log(CompilerHarnessParserPathAt(i));
         i = i + 1;
@@ -118,7 +118,7 @@ func EmitParserParityPaths() -> Void {
 }
 
 func EmitSemanticParityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessSemanticPathCount() {
         Log(CompilerHarnessSemanticPathAt(i));
         i = i + 1;
@@ -126,7 +126,7 @@ func EmitSemanticParityPaths() -> Void {
 }
 
 func EmitMirJsonParityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessMirJsonPathCount() {
         Log(CompilerHarnessMirJsonPathAt(i));
         i = i + 1;
@@ -134,7 +134,7 @@ func EmitMirJsonParityPaths() -> Void {
 }
 
 func EmitCodegenBootstrapPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapPathCount() {
         Log(CompilerHarnessCodegenBootstrapPathAt(i));
         i = i + 1;
@@ -142,7 +142,7 @@ func EmitCodegenBootstrapPaths() -> Void {
 }
 
 func EmitCodegenBootstrapComponents() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapComponentCount() {
         Log(CompilerHarnessCodegenBootstrapComponentRowAt(i));
         i = i + 1;
@@ -150,7 +150,7 @@ func EmitCodegenBootstrapComponents() -> Void {
 }
 
 func EmitCodegenBootstrapTools() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapToolCount() {
         Log(CompilerHarnessCodegenBootstrapToolRowAt(i));
         i = i + 1;
@@ -158,7 +158,7 @@ func EmitCodegenBootstrapTools() -> Void {
 }
 
 func EmitCodegenBootstrapSamples() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapSampleCount() {
         Log(CompilerHarnessCodegenBootstrapSampleAt(i));
         i = i + 1;
@@ -166,7 +166,7 @@ func EmitCodegenBootstrapSamples() -> Void {
 }
 
 func EmitCodegenBootstrapMirFixtures() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapMirFixtureCount() {
         Log(CompilerHarnessCodegenBootstrapMirFixtureAt(i));
         i = i + 1;
@@ -174,7 +174,7 @@ func EmitCodegenBootstrapMirFixtures() -> Void {
 }
 
 func EmitFuzzBackendGeneratorPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessFuzzBackendGeneratorPathCount() {
         Log(CompilerHarnessFuzzBackendGeneratorPathAt(i));
         i = i + 1;
@@ -182,26 +182,26 @@ func EmitFuzzBackendGeneratorPaths() -> Void {
 }
 
 func EmitBackendOutputComparatorPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessBackendOutputComparatorPathCount() {
         Log(CompilerHarnessBackendOutputComparatorPathAt(i));
         i = i + 1;
     }
 }
 
-func EmitAbiLayoutRowsPaths() -> Void { let i: Int = 0; while i < CompilerHarnessAbiLayoutRowsPathCount() { Log(CompilerHarnessAbiLayoutRowsPathAt(i)); i = i + 1; } }
-func EmitRuntimeCallAbiRowsPaths() -> Void { let i: Int = 0; while i < CompilerHarnessRuntimeCallAbiRowsPathCount() { Log(CompilerHarnessRuntimeCallAbiRowsPathAt(i)); i = i + 1; } }
-func EmitTargetCapabilityEnvelopePaths() -> Void { let i: Int = 0; while i < CompilerHarnessTargetCapabilityEnvelopePathCount() { Log(CompilerHarnessTargetCapabilityEnvelopePathAt(i)); i = i + 1; } }
-func EmitSandboxCapabilityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessSandboxCapabilityPathCount() { Log(CompilerHarnessSandboxCapabilityPathAt(i)); i = i + 1; } }
-func EmitBackendEmitterContractPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendEmitterContractPathCount() { Log(CompilerHarnessBackendEmitterContractPathAt(i)); i = i + 1; } }
-func EmitBackendAirAccessPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendAirAccessPathCount() { Log(CompilerHarnessBackendAirAccessPathAt(i)); i = i + 1; } }
-func EmitBackendAbiLayoutContractPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendAbiLayoutContractPathCount() { Log(CompilerHarnessBackendAbiLayoutContractPathAt(i)); i = i + 1; } }
+func EmitAbiLayoutRowsPaths() -> Void { var i: Int = 0; while i < CompilerHarnessAbiLayoutRowsPathCount() { Log(CompilerHarnessAbiLayoutRowsPathAt(i)); i = i + 1; } }
+func EmitRuntimeCallAbiRowsPaths() -> Void { var i: Int = 0; while i < CompilerHarnessRuntimeCallAbiRowsPathCount() { Log(CompilerHarnessRuntimeCallAbiRowsPathAt(i)); i = i + 1; } }
+func EmitTargetCapabilityEnvelopePaths() -> Void { var i: Int = 0; while i < CompilerHarnessTargetCapabilityEnvelopePathCount() { Log(CompilerHarnessTargetCapabilityEnvelopePathAt(i)); i = i + 1; } }
+func EmitSandboxCapabilityPaths() -> Void { var i: Int = 0; while i < CompilerHarnessSandboxCapabilityPathCount() { Log(CompilerHarnessSandboxCapabilityPathAt(i)); i = i + 1; } }
+func EmitBackendEmitterContractPaths() -> Void { var i: Int = 0; while i < CompilerHarnessBackendEmitterContractPathCount() { Log(CompilerHarnessBackendEmitterContractPathAt(i)); i = i + 1; } }
+func EmitBackendAirAccessPaths() -> Void { var i: Int = 0; while i < CompilerHarnessBackendAirAccessPathCount() { Log(CompilerHarnessBackendAirAccessPathAt(i)); i = i + 1; } }
+func EmitBackendAbiLayoutContractPaths() -> Void { var i: Int = 0; while i < CompilerHarnessBackendAbiLayoutContractPathCount() { Log(CompilerHarnessBackendAbiLayoutContractPathAt(i)); i = i + 1; } }
 
-func EmitCompatibilityEvolutionPaths() -> Void { let i: Int = 0; while i < CompilerHarnessCompatibilityEvolutionPathCount() { Log(CompilerHarnessCompatibilityEvolutionPathAt(i)); i = i + 1; } }
-func EmitExecutionLaneParityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessExecutionLanePathCount() { Log(CompilerHarnessExecutionLanePathAt(i)); i = i + 1; } }
+func EmitCompatibilityEvolutionPaths() -> Void { var i: Int = 0; while i < CompilerHarnessCompatibilityEvolutionPathCount() { Log(CompilerHarnessCompatibilityEvolutionPathAt(i)); i = i + 1; } }
+func EmitExecutionLaneParityPaths() -> Void { var i: Int = 0; while i < CompilerHarnessExecutionLanePathCount() { Log(CompilerHarnessExecutionLanePathAt(i)); i = i + 1; } }
 
 func EmitAirGraphJsonValidatorPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAirGraphJsonValidatorPathCount() {
         Log(CompilerHarnessAirGraphJsonValidatorPathAt(i));
         i = i + 1;
@@ -209,7 +209,7 @@ func EmitAirGraphJsonValidatorPaths() -> Void {
 }
 
 func EmitAirGraphIdUniquenessPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAirGraphIdUniquenessPathCount() {
         Log(CompilerHarnessAirGraphIdUniquenessPathAt(i));
         i = i + 1;
@@ -217,7 +217,7 @@ func EmitAirGraphIdUniquenessPaths() -> Void {
 }
 
 func EmitAirGraphNodeCountPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAirGraphNodeCountPathCount() {
         Log(CompilerHarnessAirGraphNodeCountPathAt(i));
         i = i + 1;
@@ -225,7 +225,7 @@ func EmitAirGraphNodeCountPaths() -> Void {
 }
 
 func EmitAirGraphReachabilityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAirGraphReachabilityPathCount() {
         Log(CompilerHarnessAirGraphReachabilityPathAt(i));
         i = i + 1;
@@ -233,7 +233,7 @@ func EmitAirGraphReachabilityPaths() -> Void {
 }
 
 func EmitAirGraphRefIntegrityPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAirGraphRefIntegrityPathCount() {
         Log(CompilerHarnessAirGraphRefIntegrityPathAt(i));
         i = i + 1;
@@ -241,17 +241,17 @@ func EmitAirGraphRefIntegrityPaths() -> Void {
 }
 
 func EmitAirGraphRefLivePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAirGraphRefLivePathCount() {
         Log(CompilerHarnessAirGraphRefLivePathAt(i));
         i = i + 1;
     }
 }
 
-func EmitDiagnosticCatalogPaths() -> Void { let i: Int = 0; while i < CompilerHarnessDiagnosticCatalogPathCount() { Log(CompilerHarnessDiagnosticCatalogPathAt(i)); i = i + 1; } }
+func EmitDiagnosticCatalogPaths() -> Void { var i: Int = 0; while i < CompilerHarnessDiagnosticCatalogPathCount() { Log(CompilerHarnessDiagnosticCatalogPathAt(i)); i = i + 1; } }
 
 func EmitAstReadSurfacePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessAstReadSurfacePathCount() {
         Log(CompilerHarnessAstReadSurfacePathAt(i));
         i = i + 1;
@@ -259,7 +259,7 @@ func EmitAstReadSurfacePaths() -> Void {
 }
 
 func EmitStdlibDispatchInventoryPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessStdlibDispatchInventoryPathCount() {
         Log(CompilerHarnessStdlibDispatchInventoryPathAt(i));
         i = i + 1;
@@ -267,7 +267,7 @@ func EmitStdlibDispatchInventoryPaths() -> Void {
 }
 
 func EmitProductionCSizePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessProductionCSizePathCount() {
         Log(CompilerHarnessProductionCSizePathAt(i));
         i = i + 1;
@@ -275,19 +275,19 @@ func EmitProductionCSizePaths() -> Void {
 }
 
 func EmitProductionHeaderSizePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessProductionHeaderSizePathCount() {
         Log(CompilerHarnessProductionHeaderSizePathAt(i));
         i = i + 1;
     }
 }
 
-func EmitDriverRung0Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRung0PathCount() { Log(CompilerHarnessDriverRung0PathAt(i)); i = i + 1; } }
-func EmitDriverRung1Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRung1PathCount() { Log(CompilerHarnessDriverRung1PathAt(i)); i = i + 1; } }
-func EmitDriverRung2Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRung2PathCount() { Log(CompilerHarnessDriverRung2PathAt(i)); i = i + 1; } }
+func EmitDriverRung0Paths() -> Void { var i: Int = 0; while i < CompilerHarnessDriverRung0PathCount() { Log(CompilerHarnessDriverRung0PathAt(i)); i = i + 1; } }
+func EmitDriverRung1Paths() -> Void { var i: Int = 0; while i < CompilerHarnessDriverRung1PathCount() { Log(CompilerHarnessDriverRung1PathAt(i)); i = i + 1; } }
+func EmitDriverRung2Paths() -> Void { var i: Int = 0; while i < CompilerHarnessDriverRung2PathCount() { Log(CompilerHarnessDriverRung2PathAt(i)); i = i + 1; } }
 
 func EmitLspDiagnosticsPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspDiagnosticsPathCount() {
         Log(CompilerHarnessLspDiagnosticsPathAt(i));
         i = i + 1;
@@ -295,7 +295,7 @@ func EmitLspDiagnosticsPaths() -> Void {
 }
 
 func EmitLspTransportFramePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspTransportFramePathCount() {
         Log(CompilerHarnessLspTransportFramePathAt(i));
         i = i + 1;
@@ -303,7 +303,7 @@ func EmitLspTransportFramePaths() -> Void {
 }
 
 func EmitLspTransportStreamPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspTransportStreamPathCount() {
         Log(CompilerHarnessLspTransportStreamPathAt(i));
         i = i + 1;
@@ -311,7 +311,7 @@ func EmitLspTransportStreamPaths() -> Void {
 }
 
 func EmitLspRequestDispatchPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspRequestDispatchPathCount() {
         Log(CompilerHarnessLspRequestDispatchPathAt(i));
         i = i + 1;
@@ -319,7 +319,7 @@ func EmitLspRequestDispatchPaths() -> Void {
 }
 
 func EmitLspResponseEmissionPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspResponseEmissionPathCount() {
         Log(CompilerHarnessLspResponseEmissionPathAt(i));
         i = i + 1;
@@ -327,7 +327,7 @@ func EmitLspResponseEmissionPaths() -> Void {
 }
 
 func EmitLspSessionReplayPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspSessionReplayPathCount() {
         Log(CompilerHarnessLspSessionReplayPathAt(i));
         i = i + 1;
@@ -335,7 +335,7 @@ func EmitLspSessionReplayPaths() -> Void {
 }
 
 func EmitLspDocumentStorePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspDocumentStorePathCount() {
         Log(CompilerHarnessLspDocumentStorePathAt(i));
         i = i + 1;
@@ -343,7 +343,7 @@ func EmitLspDocumentStorePaths() -> Void {
 }
 
 func EmitLspSessionStatePaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspSessionStatePathCount() {
         Log(CompilerHarnessLspSessionStatePathAt(i));
         i = i + 1;
@@ -351,7 +351,7 @@ func EmitLspSessionStatePaths() -> Void {
 }
 
 func EmitLspHoverContentPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLspHoverContentPathCount() {
         Log(CompilerHarnessLspHoverContentPathAt(i));
         i = i + 1;

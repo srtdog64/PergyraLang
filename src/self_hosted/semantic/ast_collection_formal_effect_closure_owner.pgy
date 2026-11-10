@@ -22,21 +22,21 @@ func SemanticAstCollectionFormalEffectResolveRecursive(
         status.ok = false; return;
     }
 
-    let grounded: Array<Bool> = [];
-    let blocked: Array<Bool> = [];
-    let mutations: Array<Bool> = [];
-    let shallow: Array<Bool> = [];
-    let reads: Array<Bool> = [];
-    let opaque: Array<Bool> = [];
-    let unproved: Array<Bool> = [];
-    let unresolved: Array<Bool> = [];
-    let pending: Array<Bool> = [];
-    let queue: Array<Int> = [];
-    let row: Int = 0;
+    var grounded: Array<Bool> = [];
+    var blocked: Array<Bool> = [];
+    var mutations: Array<Bool> = [];
+    var shallow: Array<Bool> = [];
+    var reads: Array<Bool> = [];
+    var opaque: Array<Bool> = [];
+    var unproved: Array<Bool> = [];
+    var unresolved: Array<Bool> = [];
+    var pending: Array<Bool> = [];
+    var queue: Array<Int> = [];
+    var row: Int = 0;
     while row < count {
         let key: String = ToString(inventory.formal_nodes[row]);
         let has_effect: Bool = MapHas(effects, key);
-        let effect: Int = 0;
+        var effect: Int = 0;
         if has_effect {
             effect = MapGet(effects, key);
             if effect < 1 || effect > 6 { status.ok = false; }
@@ -75,15 +75,15 @@ func SemanticAstCollectionFormalEffectResolveRecursive(
         }
         row = row + 1;
     }
-    let cursor: Int = 0;
-    let edge: Int = 0;
+    var cursor: Int = 0;
+    var edge: Int = 0;
     while status.ok && cursor < ArrayLength(queue) {
         let target: Int = queue[cursor];
         pending[target] = false;
         edge = incoming_heads[target];
         while edge >= 0 {
             let source: Int = sources[edge];
-            let changed: Bool = false;
+            var changed: Bool = false;
             if grounded[target] && !grounded[source] {
                 grounded[source] = true; changed = true;
             }
@@ -114,7 +114,7 @@ func SemanticAstCollectionFormalEffectResolveRecursive(
         cursor = cursor + 1;
     }
 
-    let unresolved_queue: Array<Int> = [];
+    var unresolved_queue: Array<Int> = [];
     row = 0;
     while row < count {
         unresolved[row] = !grounded[row];

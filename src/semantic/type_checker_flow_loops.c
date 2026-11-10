@@ -43,6 +43,31 @@ destroy_loop_flow_state(LoopFlowState *loop_flow)
     loop_flow->has_continue_states = false;
 }
 
+/* A zero-trip loop still has typed source. Preserve diagnostics while none of
+ * its resource transitions, exits or effects reach the enclosing flow. */
+static void
+type_check_unreachable_loop_body(ASTNode *body, SemanticContext *ctx)
+{
+    ResourceConsumeSnapshot before = snapshot_resource_states(ctx);
+    uint32_t effects = ctx->current_function_effects;
+    if (!before.valid || !resource_snapshot_capture_deferred_strings(&before, ctx)) {
+        semantic_error(ctx, body, "Unreachable loop resource snapshot failed");
+        destroy_resource_snapshot(&before);
+        return;
+    }
+    LoopFlowState loop_flow = {0};
+    loop_flow.loop_scope = ctx->scope;
+    ctx->future_lifecycle_unreachable_depth++;
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    (void)type_check_block_flow(body, ctx, &loop_flow);
+    scope_exit(&ctx->scope);
+    ctx->future_lifecycle_unreachable_depth--;
+    restore_resource_states_for_context(&before, ctx);
+    ctx->current_function_effects = effects;
+    destroy_loop_flow_state(&loop_flow);
+    destroy_resource_snapshot(&before);
+}
+
 FlowFlags
 type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
 {
@@ -130,7 +155,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     bool dynamic_defer_rejected = false;
     size_t max_iterations = known_iterations && known_cap == 0
         ? 0
-        : (known_iterations && known_cap == 1 ? 1 : (base.count + 1));
+        : (known_iterations && known_cap == 1 ? 1
+            : (base.count + base.slice_permission_count + 1));
     if (!known_iterations && max_iterations == 0)
         max_iterations = 1;
 
@@ -150,6 +176,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         return FLOW_FALLTHROUGH;
     }
 
+    if (known_iterations && known_cap == 0)
+        type_check_unreachable_loop_body(body, ctx);
     FlowFlags cached_flags = FLOW_NONE;
     if (loop_flow_summary_try_apply(ctx, node, &base, effect_base,
                                     &cached_flags)) {
@@ -320,6 +348,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
                 "While condition must be Bool, got '%s'",
                 type_name_or_unknown(cond));
         }
+        type_check_unreachable_loop_body(ast_while_body(node), ctx);
         ctx->loop_depth--;
         if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
             ctx->loop_labels[ctx->loop_depth] = NULL;
@@ -335,7 +364,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         : (ResourceConsumeSnapshot){0};
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool dynamic_defer_rejected = false;
-    size_t max_iterations = base.count + 1;
+    size_t max_iterations = base.count + base.slice_permission_count + 1;
     if (max_iterations == 0)
         max_iterations = 1;
 

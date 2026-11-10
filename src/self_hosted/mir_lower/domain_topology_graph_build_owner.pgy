@@ -7,15 +7,15 @@ func MirDomainTopologyOwnerGraphFromFacts(
     ref facts: MirDomainTopologyFacts,
     owner_name: String
 ) -> MirDomainTopologyOwnerGraph {
-    let node_names: Array<String> = [];
-    let node_source_syntax_ids: Array<String> = [];
-    let edge_from_node_indexes: Array<Int> = [];
-    let edge_to_node_indexes: Array<Int> = [];
-    let row: Int = 0;
+    var node_names: Array<String> = [];
+    var node_source_syntax_ids: Array<String> = [];
+    var edge_from_node_indexes: Array<Int> = [];
+    var edge_to_node_indexes: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(facts.kinds) {
         if facts.owner_names[row] == owner_name {
             let kind: String = facts.kinds[row];
-            let edge_ok: Bool = false;
+            var edge_ok: Bool = false;
             if kind == "refresh" || kind == "publish" || kind == "bind" {
                 edge_ok = MirDomainTopologyOwnerGraphAddEdge(
                     node_names, node_source_syntax_ids,

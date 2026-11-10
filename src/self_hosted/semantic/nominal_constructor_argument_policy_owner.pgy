@@ -58,8 +58,8 @@ func SemanticAstNominalConstructorArgumentCountAt(
     if end > ArrayLength(constructors.field_names) ||
         end > ArrayLength(constructors.field_kinds) ||
         end > ArrayLength(constructors.param_type_names) { return None; }
-    let count: Int = 0;
-    let field_index: Int = 0;
+    var count: Int = 0;
+    var field_index: Int = 0;
     while field_index < constructors.param_counts[constructor_index] {
         if SemanticAstNominalConstructorFieldIsArgument(
             constructors, constructor_index, field_index
@@ -80,8 +80,8 @@ func SemanticAstNominalConstructorArgumentFieldIndexAt(
         constructors, constructor_index);
     if !IsSome(count) || argument_index < 0 ||
         argument_index >= UnwrapOption(count) { return None; }
-    let ordinal: Int = 0;
-    let field_index: Int = 0;
+    var ordinal: Int = 0;
+    var field_index: Int = 0;
     while field_index < constructors.param_counts[constructor_index] {
         if SemanticAstNominalConstructorFieldIsArgument(
             constructors, constructor_index, field_index

@@ -19,27 +19,27 @@ func ParsePrimaryFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let c: String = ParserCharAtWithin(content, content_extent, i);
-    let base: String = "";
-    let grouped: ParserExpressionFact = ParserExpressionInvalid();
-    let preserves_grouped_graph: Bool = false;
-    let array_literal: ParserExpressionFact = ParserExpressionInvalid();
-    let preserves_array_literal_graph: Bool = false;
-    let set_literal: ParserExpressionFact = ParserExpressionInvalid();
-    let preserves_set_literal_graph: Bool = false;
-    let interpolation: ParserExpressionFact = ParserExpressionInvalid();
-    let preserves_interpolation_graph: Bool = false;
-    let preserves_float_literal_fact: Bool = false;
-    let preserves_integer_literal_fact: Bool = false;
-    let preserves_long_literal_fact: Bool = false;
-    let preserves_bool_literal_fact: Bool = false;
+    var base: String = "";
+    var grouped: ParserExpressionFact = ParserExpressionInvalid();
+    var preserves_grouped_graph: Bool = false;
+    var array_literal: ParserExpressionFact = ParserExpressionInvalid();
+    var preserves_array_literal_graph: Bool = false;
+    var set_literal: ParserExpressionFact = ParserExpressionInvalid();
+    var preserves_set_literal_graph: Bool = false;
+    var interpolation: ParserExpressionFact = ParserExpressionInvalid();
+    var preserves_interpolation_graph: Bool = false;
+    var preserves_float_literal_fact: Bool = false;
+    var preserves_integer_literal_fact: Bool = false;
+    var preserves_long_literal_fact: Bool = false;
+    var preserves_bool_literal_fact: Bool = false;
     if c == "|" {
         i = i + 1;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        let lam_params: String = "";
+        var lam_params: String = "";
         if ParserCharAtWithin(content, content_extent, i) == "(" {
-            let pipe_pat_depth: Int = 1;
+            var pipe_pat_depth: Int = 1;
             i = i + 1;
             while i < content_extent && pipe_pat_depth > 0 {
                 if ParserCharAtWithin(content, content_extent, i) == "(" {
@@ -82,7 +82,7 @@ func ParsePrimaryFact(
         i = i + 1;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) == "{" {
-            let pipe_body_depth: Int = 1;
+            var pipe_body_depth: Int = 1;
             i = i + 1;
             while i < content_extent && pipe_body_depth > 0 {
                 if ParserCharAtWithin(content, content_extent, i) == "{" {
@@ -97,7 +97,7 @@ func ParsePrimaryFact(
             }
         } else {
             ArraySet(cursor_out, 0, i);
-            let pipe_body: String = ParseExpr(content, content_extent, i, cursor_out);
+            var pipe_body: String = ParseExpr(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             pipe_body = pipe_body;
         }
@@ -107,14 +107,14 @@ func ParsePrimaryFact(
         // parenthesised expression by peeking inside the parens for
         // `IDENT :` (typed param) or `)` followed by `=>`.
         let after_open: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i + 1);
-        let is_lambda: Bool = false;
+        var is_lambda: Bool = false;
         if ParserCharAtWithin(content, content_extent, after_open) == ")" {
             let after_close: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, after_open + 1);
             if ParserCharAtWithin(content, content_extent, after_close) == "=" && ParserCharAtWithin(content, content_extent, after_close + 1) == ">" {
                 is_lambda = true;
             }
         } else if IsAlpha(ParserCharAtWithin(content, content_extent, after_open)) {
-            let probe: Int = after_open;
+            var probe: Int = after_open;
             while IsAlphaNum(ParserCharAtWithin(content, content_extent, probe)) {
                 probe = probe + 1;
             }
@@ -122,8 +122,8 @@ func ParsePrimaryFact(
             if ParserCharAtWithin(content, content_extent, after_id) == ":" {
                 is_lambda = true;
             } else {
-                let list_probe: Int = after_open;
-                let list_ok: Bool = true;
+                var list_probe: Int = after_open;
+                var list_ok: Bool = true;
                 while true {
                     list_probe = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, list_probe);
                     if !IsAlpha(ParserCharAtWithin(content, content_extent, list_probe)) {
@@ -154,7 +154,7 @@ func ParsePrimaryFact(
             // silently dropped by `pgy --ast`, so we skip it after
             // parsing. Body can be `{ ... }` or a single expression.
             i = i + 1;
-            let lam_params: String = "";
+            var lam_params: String = "";
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if ParserCharAtWithin(content, content_extent, i) != ")" {
                 while true {
@@ -165,7 +165,7 @@ func ParsePrimaryFact(
                     if StringLength(lp_name) == 0 {
                         return ParserExpressionInvalidAt(i, "expected_token");
                     }
-                    let pair_text: String = lp_name;
+                    var pair_text: String = lp_name;
                     let after_lp_name: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     if ParserCharAtWithin(content, content_extent, after_lp_name) == ":" {
                         i = after_lp_name + 1;
@@ -210,7 +210,7 @@ func ParsePrimaryFact(
             // discarded.
             if ParserCharAtWithin(content, content_extent, i) == "{" {
                 let n_in: Int = StringLength(content);
-                let depth: Int = 1;
+                var depth: Int = 1;
                 i = i + 1;
                 while i < n_in && depth > 0 {
                     let ch: String = ParserCharAtWithin(content, content_extent, i);
@@ -227,7 +227,7 @@ func ParsePrimaryFact(
                 }
             } else {
                 ArraySet(cursor_out, 0, i);
-                let body_expr: String = ParseExpr(content, content_extent, i, cursor_out);
+                var body_expr: String = ParseExpr(content, content_extent, i, cursor_out);
                 i = cursor_out[0];
                 body_expr = body_expr;
             }
@@ -237,10 +237,10 @@ func ParsePrimaryFact(
                 i = after_open + 1;
                 base = "<node:26>";
             } else {
-                let tuple_probe: Int = i + 1;
-                let tuple_depth: Int = 1;
-                let tuple_in_str: Bool = false;
-                let is_tuple_lit: Bool = false;
+                var tuple_probe: Int = i + 1;
+                var tuple_depth: Int = 1;
+                var tuple_in_str: Bool = false;
+                var is_tuple_lit: Bool = false;
                 while tuple_probe < content_extent && tuple_depth > 0 {
                     let tuple_ch: String = ParserCharAtWithin(content, content_extent, tuple_probe);
                     if tuple_in_str {
@@ -370,7 +370,7 @@ func ParsePrimaryFact(
             if ParserCharAtWithin(content, content_extent, i) != "{" {
                 return ParserExpressionInvalidAt(i, "expected_token");
             }
-            let pbody_depth: Int = 1;
+            var pbody_depth: Int = 1;
             i = i + 1;
             while i < content_extent && pbody_depth > 0 {
                 if ParserCharAtWithin(content, content_extent, i) == "{" {
@@ -389,7 +389,7 @@ func ParsePrimaryFact(
         if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordAsync) {
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if ParserCharAtWithin(content, content_extent, i) == "{" {
-                let async_depth: Int = 1;
+                var async_depth: Int = 1;
                 i = i + 1;
                 while i < content_extent && async_depth > 0 {
                     if ParserCharAtWithin(content, content_extent, i) == "{" {
@@ -417,7 +417,7 @@ func ParsePrimaryFact(
         // Array literal: `[ EXPR , EXPR , ... ]`. Each element is a
         // full expression; binary subtrees come out parenthesised.
         i = i + 1;
-        let elems: String = "";
+        var elems: String = "";
         array_literal = ParserExpressionArrayLiteral("[]");
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) != "]" {
@@ -458,7 +458,7 @@ func ParsePrimaryFact(
         // A bare brace expression is a Set literal. Nominal struct literals
         // remain owned by the postfix parser (`Type { field: value }`).
         i = i + 1;
-        let elems: String = "";
+        var elems: String = "";
         set_literal = ParserExpressionSetLiteral("{}");
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) != "}" {
@@ -500,7 +500,7 @@ func ParsePrimaryFact(
         return ParserExpressionInvalidAt(i, "expression_invalid");
     }
 
-    let base_fact: ParserExpressionFact = ParserExpressionLeaf(base);
+    var base_fact: ParserExpressionFact = ParserExpressionLeaf(base);
     if preserves_integer_literal_fact {
         base_fact = ParserExpressionIntegerLiteral(base);
     }

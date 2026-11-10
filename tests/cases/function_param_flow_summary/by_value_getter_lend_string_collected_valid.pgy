@@ -1,8 +1,8 @@
 // NameAt lends Collect's by-value arena. Collect unwraps the name into a
 // local String and pushes it, and then another, onto a local Array literal
 // while it still uses the arena. The literal has a descriptor of its own, so
-// pushing onto it changes nothing of the arena: the loan holds and nothing
-// is copied.
+// pushing onto it changes nothing of the arena. The lent first String is
+// copied at the store; the independent StringConcat result transfers directly.
 struct Arena {
     names: Array<String>;
 }
@@ -15,8 +15,8 @@ func NameAt(arena: Arena, index: Int) -> Option<String> {
 }
 
 func Collect(arena: Arena) -> Int {
-    let names: Array<String> = [];
-    let value: String = "";
+    var names: Array<String> = [];
+    var value: String = "";
     let value_opt: Option<String> = NameAt(arena, 0);
     if IsSome(value_opt) {
         value = UnwrapOption(value_opt);

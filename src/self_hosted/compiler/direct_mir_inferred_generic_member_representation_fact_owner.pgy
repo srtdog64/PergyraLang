@@ -37,7 +37,7 @@ func DirectMirInferredGenericMemberRepresentationFactDigest(
     ref fact: DirectMirInferredGenericMemberRepresentationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(337L, fact.type_name);
+    var hash: Long = DirectMirCfgHashString(337L, fact.type_name);
     hash = DirectMirCfgHashString(hash, fact.field_name);
     hash = DirectMirCfgHashString(hash, fact.field_type);
     hash = DirectMirCfgHashString(hash, fact.representation);

@@ -4,7 +4,7 @@ import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 func DirectMirScalarProgramArrayStringLiteralOperandRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Array<Int> {
-    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+    var rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
         facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
     if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
@@ -30,7 +30,7 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
     if nary && (facts.node_lefts[node] != -1 ||
             facts.node_rights[node] != -1) { return false; }
     if !nary && ArrayLength(operands) > 2 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(operands) {
         let operand: Int = operands[row];
         if operand < 0 || operand >= node ||
@@ -86,13 +86,28 @@ func DirectMirScalarProgramArrayStringLiteralOwnsElements(
     }
     let operands: Array<Int> =
         DirectMirScalarProgramArrayStringLiteralOperandRows(facts, node);
-    if ArrayLength(operands) != 1 || facts.node_kinds[operands[0]] !=
-            DirectMirScalarProgramExprParameter() { return false; }
-    let ordinal: Int = facts.node_parameter_ordinals[operands[0]];
-    if ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
-        return false;
+    if ArrayLength(operands) == 0 { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(operands) {
+        let operand: Int = operands[row];
+        if !DirectMirScalarProgramFreshStringExpressionKind(
+                facts.node_kinds[operand]) {
+            if facts.node_kinds[operand] !=
+                    DirectMirScalarProgramExprParameter() {
+                return false;
+            }
+            let ordinal: Int = facts.node_parameter_ordinals[operand];
+            if ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+                return false;
+            }
+            let parameter: Int = routines.parameter_starts[routine] + ordinal;
+            if routines.parameter_carriages[parameter] != "owner-handle" ||
+                routines.parameter_types[parameter] !=
+                    CompilerAbiLayoutStringTypeName() {
+                return false;
+            }
+        }
+        row = row + 1;
     }
-    let parameter: Int = routines.parameter_starts[routine] + ordinal;
-    return routines.parameter_carriages[parameter] == "owner-handle" &&
-        routines.parameter_types[parameter] == CompilerAbiLayoutStringTypeName();
+    return true;
 }

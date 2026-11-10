@@ -46,6 +46,8 @@ tests/self_hosted/parity/regen_expected.sh	Manual expected-artifact regeneration
 tests/self_hosted/parity/zone_authority_fact_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/zone_rule_admission_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/verify_arena_closure.sh	Manual readiness-scorecard probe; explicit run only.
+tests/raw_view_memory_bridge_smoke.sh	Manual fixed-snapshot bridge proof; requires explicit native compiler, MIR reader, source root and Rocq toolchain inputs.
+tests/self_hosted/parity/exclusive_value_flow_owner.sh	Manual source-pair observer; requires supplied C and optional LLVM probe executables and has no standalone compiler subject.
 tests/self_hosted/parity/codegen_qualified_kind_match_owner.sh	P0 inout/ArrayDrop checkpoint falsifier run by hand at each checkpoint (docs/agent_work_directives/inout_array_release_2026-10-05.md); no make target yet, not push or platform proof.
 tests/self_hosted/parity/collection_borrowed_descriptor_read.sh	P0 inout/ArrayDrop checkpoint falsifier run by hand at each checkpoint (docs/agent_work_directives/inout_array_release_2026-10-05.md); no make target yet, not push or platform proof.
 tests/self_hosted/parity/collection_owned_generation_order.sh	P0 inout/ArrayDrop checkpoint falsifier run by hand at each checkpoint (docs/agent_work_directives/inout_array_release_2026-10-05.md); no make target yet, not push or platform proof.

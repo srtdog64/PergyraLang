@@ -1,0 +1,41 @@
+// A recoverable owned-String store refusal before a world declaration must
+// not stop that world's method rows from joining the same publication pass.
+struct LandingRows {
+    names: Array<String>;
+}
+
+struct LandingFact {
+    name: String;
+}
+
+func ApplyLanding(rows: LandingRows, ref fact: LandingFact) -> LandingRows {
+    var names: Array<String> = rows.names;
+    ArraySet(names, 0, fact.name);
+    return LandingRows(names);
+}
+
+world LandingWorld {
+    func Pass(self, request: LandingRows, ref fact: LandingFact) -> LandingRows {
+        var names: Array<String> = request.names;
+        ArraySet(names, 0, fact.name);
+        return LandingRows(names);
+    }
+}
+
+func PassThroughLandingWorld(
+    inout world: LandingWorld,
+    request: LandingRows,
+    ref fact: LandingFact
+) -> LandingRows {
+    return world.Pass(request, fact);
+}
+
+func Main() -> Int {
+    let rows: LandingRows = LandingRows(Clone(["before"]));
+    let fact: LandingFact = LandingFact("after");
+    let landed: LandingRows = ApplyLanding(rows, fact);
+    var world: LandingWorld = LandingWorld();
+    let result: LandingRows = PassThroughLandingWorld(world, landed, fact);
+    Print(result.names[0]);
+    return 0;
+}

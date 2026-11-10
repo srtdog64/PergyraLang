@@ -4,7 +4,7 @@ func Make(value: String) -> Option<String> {
 func Main() -> Void {
     let risk: Array<String> = [Concat("he", "ap")];
     let chosen: Option<String> = Make("ready");
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     if IsSome(chosen) {
         let text: String = UnwrapOption(chosen);
         ArrayPush(rows, text);

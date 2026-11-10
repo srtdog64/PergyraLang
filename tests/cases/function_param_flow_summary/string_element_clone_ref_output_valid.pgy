@@ -19,9 +19,9 @@ func Make() -> String {
 }
 
 func Main() -> Int {
-    let arena: Arena = Arena([StringConcat("ab", "")]);
+    var arena: Arena = Arena([StringConcat("ab", "")]);
     let first: String = FirstCopy(arena);
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     let n: Int = Keep(arena, out);
     ArrayPush(arena.names, StringConcat("cd", ""));
     Print(first);

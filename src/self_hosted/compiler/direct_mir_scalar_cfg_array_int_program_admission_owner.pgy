@@ -27,10 +27,10 @@ func DirectMirScalarCfgArrayIntProgramFromOwners(
             admitted, index, uses, foreaches
         );
     if foreach_pop.valid { return foreach_pop; }
-    let collection: DirectMirScalarCfgArrayIntCollectionFact =
+    var collection: DirectMirScalarCfgArrayIntCollectionFact =
         DirectMirScalarCfgArrayIntCollectionFactEmpty();
-    let reverse_count: Int = 0;
-    let instruction: Int = 0;
+    var reverse_count: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let declaration: MirRoutineInstructionScalarCapture =

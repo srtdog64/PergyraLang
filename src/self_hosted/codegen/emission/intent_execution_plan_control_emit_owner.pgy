@@ -10,6 +10,7 @@ import "../text/text_owner.pgy";
 func CodegenIntentPlanEmitTransition(
     inout body: Array<String>,
     ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     routine_syntax_id: Int,
     step: Int,
     env: CodegenTypeEnv,
@@ -62,7 +63,7 @@ func CodegenIntentPlanEmitTransition(
     ArrayPush(body, Concat(
         "    ", Concat(outcome_name, Concat(" = ", Concat(
             CodegenIntentPlanExpression(
-                view, view.action_graph_roots[step], env
+                view, expression_graph, view.action_graph_roots[step], env
             ), ";\n"
         )))
     ));
@@ -87,7 +88,7 @@ func CodegenIntentPlanEmitTransition(
     CodegenIntentObservabilityEmitStepOk(
         body, uses_intent_observability, view.plan.steps.step_names[step]
     );
-    let success_label: String = "";
+    var success_label: String = "";
     if child >= 0 {
         success_label = CodegenIntentPlanTransitionLabel(
             view.plan.steps.transition_ids[child]
@@ -132,15 +133,16 @@ func CodegenIntentPlanEmitTransition(
 func CodegenIntentPlanEmitPredecessorCompensation(
     inout body: Array<String>,
     ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     routine_syntax_id: Int,
     failed_step: Int,
     env: CodegenTypeEnv
 ) -> Void {
     // Start at the explicit predecessor: the failed current step is never
     // compensated because it never crossed its success-only completion edge.
-    let predecessor_id: Int =
+    var predecessor_id: Int =
         view.plan.steps.predecessor_transition_ids[failed_step];
-    let depth: Int = 0;
+    var depth: Int = 0;
     while predecessor_id != 0 {
         if depth >= CodegenIntentPlanRoutineStepCount(
             view, routine_syntax_id
@@ -165,13 +167,13 @@ func CodegenIntentPlanEmitPredecessorCompensation(
                     predecessor_id
                 ), ") {\n")
             ));
-            let compensation_offset: Int = count;
+            var compensation_offset: Int = count;
             while compensation_offset > 0 {
                 compensation_offset = compensation_offset - 1;
                 let compensation: Int = start + compensation_offset;
                 ArrayPush(body, Concat(
                     "        ", Concat(CodegenIntentPlanExpression(
-                        view,
+                        view, expression_graph,
                         view.compensation_graph_roots[compensation], env
                     ), ";\n")
                 ));
@@ -187,11 +189,12 @@ func CodegenIntentPlanEmitPredecessorCompensation(
 func CodegenIntentPlanEmitTerminals(
     inout body: Array<String>,
     ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     routine_syntax_id: Int,
     env: CodegenTypeEnv,
     uses_intent_observability: Bool
 ) -> Void {
-    let terminal: Int = 0;
+    var terminal: Int = 0;
     while terminal < ArrayLength(
         view.plan.terminals.terminal_transition_ids
     ) {
@@ -209,7 +212,8 @@ func CodegenIntentPlanEmitTerminals(
             ), ":\n"));
             if view.plan.terminals.roles[terminal] == "failure" {
                 CodegenIntentPlanEmitPredecessorCompensation(
-                    body, view, routine_syntax_id, source_step, env
+                    body, view, expression_graph,
+                    routine_syntax_id, source_step, env
                 );
             } else if view.plan.terminals.roles[terminal] != "success" {
                 Die("typed intent terminal role is invalid");
@@ -219,7 +223,8 @@ func CodegenIntentPlanEmitTerminals(
             );
             ArrayPush(body, Concat(
                 "    return ", Concat(CodegenIntentPlanExpression(
-                    view, view.terminal_graph_roots[terminal], env
+                    view, expression_graph,
+                    view.terminal_graph_roots[terminal], env
                 ), ";\n")
             ));
         }

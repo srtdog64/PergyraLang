@@ -30,9 +30,9 @@ func DirectMirConstructedArrayMemberMainLocalsReady(
         result_name == "" || receiver_name == result_name {
         return false;
     }
-    let receiver_seen: Bool = false;
-    let result_seen: Bool = false;
-    let row: Int = 0;
+    var receiver_seen: Bool = false;
+    var result_seen: Bool = false;
+    var row: Int = 0;
     while row < 2 {
         if index.source_local_names[row] == receiver_name &&
             index.source_local_types[row] == receiver_type && !receiver_seen {
@@ -135,7 +135,7 @@ func DirectMirConstructedArrayMemberMainInstructionsFromProgram(
         Die("direct MIR constructed Array Main SSA use is invalid");
     }
     let values: Array<String> = [constructor.result, result.result];
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         let definition: MirRoutineResultDefinitionFact =
             MirRoutineFactIndexUniqueResultDefinition(index, values[row]);

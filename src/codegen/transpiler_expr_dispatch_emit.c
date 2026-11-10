@@ -447,7 +447,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *target_node = ast_assignment_target(node);
         ASTNode *value_node = ast_assignment_value(node);
         return transpiler_emit_assignment_expression_parts(ctx,
-            target_node, value_node);
+            target_node, value_node, ast_assignment_operation(node));
     }
 
     case AST_AWAIT_EXPR:

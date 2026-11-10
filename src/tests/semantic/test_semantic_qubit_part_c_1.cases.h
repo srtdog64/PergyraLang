@@ -131,7 +131,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref packet: Packet) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(0)];\n"
+            "    var items: Array<Packet> = [Packet(0)];\n"
             "    ArrayPush(items, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -157,7 +157,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref packet: Packet) -> Void {\n"
-            "    let table: HashMap<String, Packet> = MapNew();\n"
+            "    var table: HashMap<String, Packet> = MapNew();\n"
             "    MapSet(table, \"hp\", packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -180,7 +180,7 @@ test_qubit_slot_semantics_part_c(void)
     {
         const char *source =
             "func Store(ref pair: (Int, Int)) -> Void {\n"
-            "    let items: Queue<(Int, Int)> = QueueNew();\n"
+            "    var items: Queue<(Int, Int)> = QueueNew();\n"
             "    QueuePush(items, pair);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -209,7 +209,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let packet: Packet;\n"
             "}\n"
             "func Store(ref holder: Holder) -> Void {\n"
-            "    let items: Queue<Packet> = QueueNew();\n"
+            "    var items: Queue<Packet> = QueueNew();\n"
             "    QueuePush(items, holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -235,7 +235,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref packets: Array<Packet>) -> Void {\n"
-            "    let table: HashMap<String, Packet> = MapNew();\n"
+            "    var table: HashMap<String, Packet> = MapNew();\n"
             "    MapSet(table, \"hp\", packets[0]);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -261,7 +261,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref packet: Packet) -> Void {\n"
-            "    let items: Queue<Packet> = QueueNew();\n"
+            "    var items: Queue<Packet> = QueueNew();\n"
             "    QueuePush(items, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -287,7 +287,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref packet: Packet) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(0)];\n"
+            "    var items: Array<Packet> = [Packet(0)];\n"
             "    ArrayPush(items, Packet(packet.hp));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -344,7 +344,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let holder: Holder;\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let items: Queue<Packet> = QueueNew();\n"
+            "    var items: Queue<Packet> = QueueNew();\n"
             "    QueuePush(items, wrapper.holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

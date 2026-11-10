@@ -26,7 +26,7 @@ func DirectMirScalarProgramCArrayBoolPreamble(
         fact.allocator_offset != storage.allocator_offset {
         Die("direct MIR C Array<Bool> target projection is invalid");
     }
-    let output: String = "#include <stddef.h>\n";
+    var output: String = "#include <stddef.h>\n";
     output = Concat(output,
         "typedef struct { bool *data; size_t length; size_t capacity; void *allocator; } ");
     output = Concat(output, CompilerAbiLayoutArrayBoolCValueType());

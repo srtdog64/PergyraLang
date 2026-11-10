@@ -167,12 +167,12 @@ func CodegenSemanticGenericFormalKnown(
     facts: SemanticAstFunctionSignatureFacts,
     formal_name: String
 ) -> Bool {
-    let signature_index: Int = 0;
+    var signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(facts) {
         let generic_count: Int = CodegenSemanticFunctionGenericCountOrDie(
             facts, signature_index
         );
-        let generic_index: Int = 0;
+        var generic_index: Int = 0;
         while generic_index < generic_count {
             let name: Option<String> = SemanticAstFunctionGenericNameAt(
                 facts, signature_index, generic_index

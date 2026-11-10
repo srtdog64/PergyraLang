@@ -24,13 +24,13 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let specialization_count: Int = JsonArrayObjectFactCount(specializations);
     let generic_routine_count: Int =
         DirectMirThreeRoutineGenericRoutineCount(admitted.routines);
-    let constructed_shape: DirectMirThreeRoutineConstructedMemberShapeFact =
+    var constructed_shape: DirectMirThreeRoutineConstructedMemberShapeFact =
         InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
-    let mixed_shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
+    var mixed_shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
         InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
-    let role_override: DirectMirRoleOverrideProgramIdentity =
+    var role_override: DirectMirRoleOverrideProgramIdentity =
         InvalidDirectMirRoleOverrideProgramIdentity();
-    let kind: String = "";
+    var kind: String = "";
     if DirectMirArrayArgumentLegacyRouteClaimed(admitted) &&
         declarations == 0 && specialization_count == 0 &&
         generic_routine_count == 0 {

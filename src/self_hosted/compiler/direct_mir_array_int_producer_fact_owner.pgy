@@ -46,11 +46,11 @@ func DirectMirArrayIntProducerFactDigest(
     ref fact: DirectMirArrayIntProducerFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(197L, fact.routine_row);
+    var hash: Long = DirectMirCfgHashInt(197L, fact.routine_row);
     hash = DirectMirCfgHashString(hash, fact.routine_name);
     hash = DirectMirCfgHashInt(hash, fact.routine_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.storage_identity);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.elements) {
         hash = DirectMirCfgHashInt(hash, fact.elements[row]);
         row = row + 1;

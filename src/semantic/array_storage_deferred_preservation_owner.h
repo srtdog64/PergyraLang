@@ -34,6 +34,8 @@ typedef struct ArrayStoragePendingCallReceipt {
     uint32_t binding_id;
     ASTNode *call;
     uint32_t call_id;
+    ASTNode *caller_decl;
+    uint32_t caller_id;
     ASTNode *argument;
     uint32_t argument_id;
     ASTNode *callee_decl;
@@ -45,6 +47,12 @@ typedef struct ArrayStoragePendingCallReceipt {
     size_t sequence;
     bool payload;
     uint32_t source_id;
+    /* Captured at the exact call boundary.  A returned default formal may
+     * transfer only a descriptor that was exclusive before this call; later
+     * symbol state cannot recreate that premise. */
+    bool source_exclusive;
+    bool elements_captured;
+    ArrayStorageReturnElementReceipt elements;
 } ArrayStoragePendingCallReceipt;
 
 typedef enum {
@@ -52,7 +60,10 @@ typedef enum {
     ARRAY_RESULT_LITERAL,
     ARRAY_RESULT_INDEPENDENT_CALL,
     ARRAY_RESULT_OWNED_BINDING,
-    ARRAY_RESULT_DECLARED_CALL
+    ARRAY_RESULT_DECLARED_CALL,
+    /* Call-supplied ownership: the exact call actual supplies the descriptor.
+     * A declaration-only query must not promote this to an owned result. */
+    ARRAY_RESULT_DEFAULT_FORMAL
 } ArrayStorageReturnSource;
 
 /* An issued RETURN event is immutable evidence; the private deferred store
@@ -89,6 +100,18 @@ bool semantic_array_storage_deferral_active(const SemanticContext *ctx);
 /* Records one authority-bearing handoff of `binding` to `callee_decl`. */
 bool semantic_array_storage_record_pending_call(SemanticContext *ctx,
     Symbol *binding, ASTNode *call, ASTNode *callee_decl, size_t ordinal);
+/* Replays the exact non-payload handoff just recorded for this call actual.
+ * This is identity evidence only; it grants neither preservation nor owned
+ * elements. Consumers validate those facets after the store is finalized. */
+bool semantic_array_storage_exact_pending_call_identity(SemanticContext *ctx,
+    const Symbol *binding, const ASTNode *call, const ASTNode *callee_decl,
+    size_t ordinal, size_t formal_ordinal, size_t *sequence_out);
+/* Replays one immutable call-entry receipt after the deferred store is
+ * finalized.  This proves the exact call edge that issued `sequence`; it does
+ * not recreate the pre-call ownership premise from post-call Symbol state. */
+bool semantic_array_storage_pending_call_entry_current(SemanticContext *ctx,
+    uint32_t binding_id, const ASTNode *call, const ASTNode *callee_decl,
+    size_t ordinal, size_t formal_ordinal, size_t sequence);
 bool semantic_array_storage_record_pending_payload(SemanticContext *ctx,
     Symbol *binding, ASTNode *call, ASTNode *callee_decl, size_t ordinal);
 bool semantic_array_storage_record_pending_call_consumer(SemanticContext *ctx,
@@ -113,8 +136,30 @@ bool semantic_array_storage_owned_result_current(SemanticContext *ctx,
 /* String-element lifetime is independent of the outer Array descriptor. */
 bool semantic_array_storage_owned_string_result_current(SemanticContext *ctx,
     const ASTNode *call);
+/* The result also has a non-vacuous fresh-owner source: Clone/MapKeys, a
+ * recursively proved result, or an owned push into the returned local. */
+bool semantic_array_storage_fresh_owned_string_result_current(
+    SemanticContext *ctx, const ASTNode *call);
 bool semantic_array_storage_function_result_owned(SemanticContext *ctx,
     ASTNode *decl, const Type *result);
+/* Declaration admission for one default Array formal. It proves that every
+ * reachable Array return transfers this exact whole formal. Call-specific
+ * descriptor ownership is still required by
+ * semantic_array_storage_owned_result_current. */
+bool semantic_array_storage_default_formal_result_current(
+    SemanticContext *ctx, ASTNode *decl, uint32_t formal_id);
+/* An exact default Array formal returned on only some reachable exits cannot
+ * carry one path-dependent transfer contract at the call boundary. Select
+ * those exact return carriers for the existing whole-value Clone landing;
+ * replay must then publish an independent result. False means the current
+ * typed owner could not prove and record every selected carrier. */
+bool semantic_array_storage_select_default_formal_return_copies(
+    SemanticContext *ctx, ASTNode *decl, uint32_t formal_id,
+    bool *selected_out);
+/* The transfer result must flow into a real expression consumer. A CALL used
+ * directly as a block statement would otherwise discard its cleanup right. */
+bool semantic_array_storage_default_formal_call_result_consumed_current(
+    SemanticContext *ctx, const ArrayStoragePendingCallReceipt *source);
 bool semantic_array_storage_literal_result_prepare(SemanticContext *ctx,
     const ASTNode *result_call, ArrayStorageLiteralResultObserver observer,
     void *user);
@@ -126,6 +171,21 @@ bool semantic_array_storage_literal_result_current(SemanticContext *ctx,
  * a missing identity or record fails closed at the caller. */
 bool semantic_array_storage_record_pending_drop(SemanticContext *ctx,
     ASTNode *receiver, const Symbol *binding, ArrayStorageReleaseOperation operation);
+/* Records an ordinary ArrayPush whose String result is an exact unpublished
+ * owned-result candidate.  The row carries no ownership verdict: finalization
+ * replays the producer receipt before a dependent deep drop may succeed. */
+bool semantic_array_storage_record_pending_owned_string_result(
+    SemanticContext *ctx, ASTNode *push_call, ASTNode *receiver,
+    ASTNode *result_call,
+    uint32_t producer_syntax_id);
+bool semantic_array_storage_has_pending_owned_string_result(
+    const SemanticContext *ctx, uint32_t binding_id);
+/* Provisional only: the exact parameter push is admitted through flow
+ * preparation because this owner will fail finalization unless the declared
+ * result and every caller-owned-element requirement become current. */
+bool semantic_array_storage_pending_owned_string_parameter_push(
+    SemanticContext *ctx, const ASTNode *push_call,
+    const ASTNode *function_decl, size_t formal_index);
 
 /* Ordering point for consumers that snapshot exclusivity during Pass 2. */
 size_t semantic_array_storage_pending_sequence(const SemanticContext *ctx);

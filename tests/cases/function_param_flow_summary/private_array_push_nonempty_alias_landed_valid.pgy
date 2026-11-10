@@ -2,7 +2,7 @@ extern "C" { func Keep(rows: Array<String>) -> Void; }
 
 func Build(ref text: String) -> Array<String> {
     let rows: Array<String> = ["known"];
-    let alias = rows;
+    var alias = rows;
     ArrayPush(alias, text);
     return alias;
 }

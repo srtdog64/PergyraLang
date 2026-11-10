@@ -19,7 +19,7 @@ func Fill(inout rows: Rows, other: Rows) -> Int {
 }
 
 func Build(rows: Rows, other: Rows) -> Route {
-    let count: Int = 0;
+    var count: Int = 0;
     count = Fill(rows, other);
     return Route(count >= 0, rows);
 }
@@ -29,7 +29,7 @@ func Main() -> Int {
     let values: Array<Int> = [1];
     let rows: Rows = Rows(empty, 0);
     let other: Rows = Rows(values, 1);
-    let route: Route = Build(rows, other);
+    var route: Route = Build(rows, other);
     ArrayPush(route.rows.values, 2);
     Print(ToString(ArrayLength(other.values)));
     return 0;

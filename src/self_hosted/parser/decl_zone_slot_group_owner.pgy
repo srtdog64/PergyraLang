@@ -25,9 +25,9 @@ func ParseZoneSlotGroupRows(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserZoneSlotGroupRows {
-    let group_word: LanguageWordId = LanguageWordId.WordSubjects;
-    let row_label: String = "SubjectSlot";
-    let layer: Bool = false;
+    var group_word: LanguageWordId = LanguageWordId.WordSubjects;
+    var row_label: String = "SubjectSlot";
+    var layer: Bool = false;
     if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordObjects) {
         group_word = LanguageWordId.WordObjects;
         row_label = "ObjectSlot";
@@ -46,9 +46,9 @@ func ParseZoneSlotGroupRows(
         ArraySet(cursor_out, 0, start);
         return ParserZoneSlotGroupRows(false, false, "");
     }
-    let i: Int = ParseExpectIn(context, content,
+    var i: Int = ParseExpectIn(context, content,
         LanguageWordEnd(start, group_word), "[", "zone_slot_group");
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     while true {
         ArrayPush(names, ParseNameIn(context, content, i,
             "slot name in group", "zone_slot_group", cursor_out));
@@ -60,7 +60,7 @@ func ParseZoneSlotGroupRows(
     }
     i = ParseExpectIn(context, content, i, "]", "zone_slot_group");
     i = ParseExpectIn(context, content, i, ":", "zone_slot_group");
-    let group_type: String = "";
+    var group_type: String = "";
     if layer {
         group_type = ParseNameIn(context, content, i,
             "layer type", "zone_slot_group", cursor_out);
@@ -73,8 +73,8 @@ func ParseZoneSlotGroupRows(
         }
     }
     let end: Int = cursor_out[0];
-    let rows: String = "";
-    let k: Int = 0;
+    var rows: String = "";
+    var k: Int = 0;
     while k < ArrayLength(names) {
         rows = AppendLine(rows, Concat("    ", Concat(row_label, Concat(": ",
             Concat(names[k], Concat(": ", group_type))))));

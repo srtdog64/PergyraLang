@@ -1,0 +1,37 @@
+func IntValue() -> Int {
+    let values: Array<Int> = [1, 2];
+    let view: Slice<Int> = values.Slice(0, 2);
+    view[0] = 3;
+    return view[0];
+}
+func LongValue() -> Long {
+    let values: Array<Long> = [1L, 2L];
+    let view: Slice<Long> = values.Slice(0, 2);
+    view[0] = 3L;
+    return view[0];
+}
+func FloatValue() -> Float {
+    let values: Array<Float> = [1.5, 2.5];
+    let view: Slice<Float> = values.Slice(0, 2);
+    view[0] = 3.5;
+    return view[0];
+}
+func DoubleValue() -> Double {
+    let one: Double = 1.5;
+    let two: Double = 2.5;
+    let three: Double = 3.5;
+    let values: Array<Double> = [one, two];
+    let view: Slice<Double> = values.Slice(0, 2);
+    view[0] = three;
+    return view[0];
+}
+func BoolValue() -> Bool {
+    let values: Array<Bool> = [true, false];
+    let view: Slice<Bool> = values.Slice(0, 2);
+    view[1] = true;
+    return view[1];
+}
+func Main() -> Void {
+    Log(IntValue()); Log(LongValue()); Log(FloatValue());
+    Log(DoubleValue()); Log(BoolValue());
+}

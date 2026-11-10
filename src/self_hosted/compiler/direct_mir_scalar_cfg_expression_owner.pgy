@@ -69,13 +69,13 @@ func DirectMirScalarCfgValueExpressionFact(
         sequence.arena.topology.right_children[2] != 1 {
         return DirectMirScalarCfgExpressionFactEmpty();
     }
-    let left_value: Int = -1;
-    let right_value: Int = -1;
-    let left_local: Int = -1;
-    let right_local: Int = -1;
-    let left_literal: String = "";
-    let right_literal: String = "";
-    let expected_uses: Int = 0;
+    var left_value: Int = -1;
+    var right_value: Int = -1;
+    var left_local: Int = -1;
+    var right_local: Int = -1;
+    var left_literal: String = "";
+    var right_literal: String = "";
+    var expected_uses: Int = 0;
     if sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() {
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
@@ -153,7 +153,7 @@ func DirectMirScalarCfgConditionExpressionFact(
         sequence.arena.topology.right_children[2] != 1 {
         return DirectMirScalarCfgExpressionFactEmpty();
     }
-    let condition_kind: Int = 0;
+    var condition_kind: Int = 0;
     if sequence.arena.topology.node_kinds[2] == AstExpressionNodeLess() {
         condition_kind = DirectMirScalarCfgConditionLess();
     } else if sequence.arena.topology.node_kinds[2] ==
@@ -165,14 +165,14 @@ func DirectMirScalarCfgConditionExpressionFact(
     } else {
         return DirectMirScalarCfgExpressionFactEmpty();
     }
-    let left_value: Int = -1;
-    let right_value: Int = -1;
-    let left_local: Int = -1;
-    let right_local: Int = -1;
-    let left_literal: String = "";
-    let right_literal: String = "";
-    let expected_uses: Int = 0;
-    let node: Int = 0;
+    var left_value: Int = -1;
+    var right_value: Int = -1;
+    var left_local: Int = -1;
+    var right_local: Int = -1;
+    var left_literal: String = "";
+    var right_literal: String = "";
+    var expected_uses: Int = 0;
+    var node: Int = 0;
     while node < 2 {
         if sequence.arena.topology.node_kinds[node] ==
                 AstExpressionNodeLeaf() {
@@ -243,7 +243,7 @@ func DirectMirScalarCfgLogExpressionFact(
             );
         }
     }
-    let value_node: Int = -1;
+    var value_node: Int = -1;
     if count == 1 && sequence.arena.topology.node_kinds[0] ==
             AstExpressionNodeLeaf() &&
         DirectMirScalarCfgNoCallTargets(sequence) {

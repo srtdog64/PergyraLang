@@ -33,17 +33,17 @@ func SelfMirDeclarationZoneAuthorityRowsFromFacts(
         ArrayLength(declaration_nominal_kinds) {
         return SelfMirDeclarationZoneAuthorityRowsEmpty();
     }
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let slots: Array<String> = [];
-    let ability_starts: Array<Int> = [];
-    let ability_counts: Array<Int> = [];
-    let abilities: Array<String> = [];
-    let matched: Int = 0;
-    let declaration: Int = 0;
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var slots: Array<String> = [];
+    var ability_starts: Array<Int> = [];
+    var ability_counts: Array<Int> = [];
+    var abilities: Array<String> = [];
+    var matched: Int = 0;
+    var declaration: Int = 0;
     while declaration < ArrayLength(declaration_names) {
         let start: Int = ArrayLength(slots);
-        let fact: Int = 0;
+        var fact: Int = 0;
         while fact < ArrayLength(facts.authority_node_ids) {
             if facts.owner_zone_names[fact] == declaration_names[declaration] {
                 if declaration_nominal_kinds[declaration] != "zone" {
@@ -51,7 +51,7 @@ func SelfMirDeclarationZoneAuthorityRowsFromFacts(
                 }
                 ArrayPush(slots, facts.subject_slot_names[fact]);
                 ArrayPush(ability_starts, ArrayLength(abilities));
-                let ability_i: Int = 0;
+                var ability_i: Int = 0;
                 while ability_i < facts.required_ability_counts[fact] {
                     ArrayPush(
                         abilities,
@@ -93,9 +93,9 @@ func SelfMirDeclarationZoneAuthorityRowsReady(
             ArrayLength(rows.required_ability_counts) {
         return false;
     }
-    let authority_cursor: Int = 0;
-    let ability_cursor: Int = 0;
-    let declaration: Int = 0;
+    var authority_cursor: Int = 0;
+    var ability_cursor: Int = 0;
+    var declaration: Int = 0;
     while declaration < declaration_count {
         let count: Int = rows.declaration_counts[declaration];
         if rows.declaration_starts[declaration] != authority_cursor ||
@@ -103,7 +103,7 @@ func SelfMirDeclarationZoneAuthorityRowsReady(
             (declaration_nominal_kinds[declaration] != "zone" && count != 0) {
             return false;
         }
-        let authority_i: Int = 0;
+        var authority_i: Int = 0;
         while authority_i < count {
             let row: Int = authority_cursor + authority_i;
             if rows.subject_slot_names[row] == "" ||
@@ -111,20 +111,20 @@ func SelfMirDeclarationZoneAuthorityRowsReady(
                 rows.required_ability_counts[row] < 0 {
                 return false;
             }
-            let prior: Int = authority_cursor;
+            var prior: Int = authority_cursor;
             while prior < row {
                 if rows.subject_slot_names[prior] ==
                     rows.subject_slot_names[row] { return false; }
                 prior = prior + 1;
             }
-            let ability_i: Int = 0;
+            var ability_i: Int = 0;
             while ability_i < rows.required_ability_counts[row] {
                 let ability_row: Int = ability_cursor + ability_i;
                 if ability_row >= ArrayLength(rows.required_ability_names) ||
                     rows.required_ability_names[ability_row] == "" {
                     return false;
                 }
-                let prior_ability: Int = ability_cursor;
+                var prior_ability: Int = ability_cursor;
                 while prior_ability < ability_row {
                     if rows.required_ability_names[prior_ability] ==
                         rows.required_ability_names[ability_row] {

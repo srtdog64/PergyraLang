@@ -52,7 +52,7 @@ func CompileAdmittedDirectMirCfgPayloadForTarget(ref admitted: MirMachineLayerAd
     if !DirectMirCfgPlanReady(plan) {
         Die("direct MIR CFG verified plan identity is invalid before emission");
     }
-    let line_format: String = StringRuntimeCStringLineFormat();
+    var line_format: String = StringRuntimeCStringLineFormat();
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) ||
         DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
         plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
@@ -90,9 +90,9 @@ func CompileAdmittedDirectMirForTargetObserved(
     }
     let generic_instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(generic_calls);
     if !generic_instances.valid { Die(generic_instances.diagnostic); }
-    let kind: String = "emitted-c";
+    var kind: String = "emitted-c";
     if is_llvm { kind = "emitted_llvm"; }
-    let payload: String = "";
+    var payload: String = "";
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
     if routine_count > 1 {
         let routed: CodegenRoutePayload = CompileAdmittedDirectMirMultiRoutineForTargetObserved(

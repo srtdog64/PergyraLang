@@ -60,24 +60,42 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_assignme
 IndexedStringDefinitionRecord semantic_indexed_string_definition_record_use(
     SemanticContext *ctx, const ASTNode *value, const ASTNode *sink,
     size_t actual_ordinal);
+/* Record a returned local String as an exact definition consumer.  This does
+ * not grant independence: the sealed definition recipe must still prove every
+ * reaching initializer/replacement, or select an exact copy, before the
+ * return can publish source zero. */
+IndexedStringDefinitionRecord semantic_indexed_string_definition_record_return(
+    SemanticContext *ctx, const ASTNode *value, const ASTNode *return_stmt);
 bool semantic_indexed_string_definition_protect_use(SemanticContext *ctx,
     const ASTNode *value, const ASTNode *sink, size_t actual_ordinal,
     bool require_assignment);
+/* Pending identity query for a use whose binding has at least one exact
+ * replacement definition.  This grants no source independence by itself;
+ * collection stores use it only to choose an owned copy instead of treating
+ * Option-payload source zero as deep-cleanup authority. */
+bool semantic_indexed_string_definition_assignment_use_candidate(
+    SemanticContext *ctx, const ASTNode *value, const ASTNode *sink,
+    size_t actual_ordinal);
 bool semantic_indexed_string_definition_protect_option_use(SemanticContext *ctx,
     const ASTNode *value, const ASTNode *sink, size_t actual_ordinal);
 bool semantic_indexed_string_definition_selected(SemanticContext *ctx,
     const ASTNode *value);
 bool semantic_indexed_string_definition_source_current(SemanticContext *ctx,
     const ASTNode *value, uint32_t *source);
-/* An UNKNOWN local that survives a destructive Array<String> operation is
- * made independent at every reaching definition.  Exact-source aliases are
- * deliberately excluded: their stale-use refusal remains the safety gate. */
+/* An UNKNOWN local that survives a destructive Array<String> operation or is
+ * handed to an inout String formal is made independent at every reaching
+ * definition.  This may run while facts are being collected or after the
+ * same generation's inputs are sealed. Exact-source aliases are deliberately
+ * excluded: their stale-use refusal remains the safety gate. */
 bool semantic_indexed_string_definition_select_independent_storage(
     SemanticContext *ctx, uint32_t binding_id);
 bool indexed_string_definition_claims_roles(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe, bool prepare);
 bool indexed_string_definition_classify_uses(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe, bool *protected_use);
+bool indexed_string_definition_zero_source_use_requires_copy(
+    SemanticContext *ctx, const IndexedStringDefinitionUse *use,
+    bool *requires_copy);
 bool indexed_string_definition_source_raw_current(SemanticContext *ctx,
     const IndexedStringDefinitionRecipe *recipe,
     const IndexedStringDefinitionSource *source);

@@ -8,6 +8,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "type_checker_assignment.h"
 #include "function_param_publication_owner.h"
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
@@ -203,7 +204,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     if (callable_decl != NULL && callable_decl->type == AST_FUNC_DECL &&
         semantic_param_publication_pending(ctx) &&
-        !semantic_param_publication_record_selected_callable(ctx, expr, callable_decl)) {
+        !semantic_param_publication_record_selected_callable(
+            ctx, expr, callable_decl, NULL)) {
         semantic_error(ctx, expr, "Selected function formal identity could not be published");
         return TYPE_UNKNOWN;
     }
@@ -292,6 +294,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         /* Resolve identities only after the original argument's type issuer;
            spelling is diagnostic text, never overlap or source-mode authority. */
         FuncParam *borrow_param = callable_decl == NULL ? NULL : ast_func_param(callable_decl, i);
+        if (borrow_param != NULL && borrow_param->mode == PARAM_MODE_MUT_REF)
+            (void)semantic_admit_value_mutation(arg_expr, ctx);
         if (borrow_param != NULL && arg_expr != NULL && arg_expr->type == AST_IDENTIFIER &&
             (borrow_param->mode == PARAM_MODE_REF || borrow_param->mode == PARAM_MODE_MUT_REF)) {
             uint32_t binding = ast_identifier_binding_syntax_id(arg_expr);
@@ -375,6 +379,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_array_storage_call_argument(arg_expr, arg_type,
             type_function_return_type(sym->type), type_function_param_mode(sym->type, i),
             sym->kind == SYMBOL_ENUM_CONSTRUCTOR, expr, callable_decl, i, ctx);
+        if (ctx->diagnostic_count > argument_diagnostic_base)
+            continue;
         if (arg_type == TYPE_UNKNOWN
             && (invalid_future_use
                 || ctx->diagnostic_count > argument_diagnostic_base)) {
@@ -412,25 +418,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         require_assignable(arg_type, param_type, arg_expr, ctx);
     }
 
-    semantic_validate_function_call_generic_where(
-        expr, ctx, display_name, provided, call_arg_types);
+    Type *return_type = semantic_validate_function_call_generic_where(
+        expr, ctx, display_name, provided, call_arg_types,
+        type_function_return_type(sym->type));
     callable_capability_record_call(ctx, expr, sym, call_arg_types);
-
-    Type *return_type = type_function_return_type(sym->type);
-    if (effective_generic_types != NULL
-        && callable_decl != NULL
-        && callable_decl->type == AST_FUNC_DECL
-        && ast_func_return_type(callable_decl) != NULL
-        && ast_type_name(ast_func_return_type(callable_decl)) != NULL) {
-        int return_index = find_generic_param_index(
-            callable_generic_params,
-            ast_type_name(ast_func_return_type(callable_decl)));
-        if (return_index >= 0
-            && (size_t)return_index < callable_generic_count
-            && effective_generic_types[return_index] != NULL) {
-            return_type = effective_generic_types[return_index];
-        }
-    }
 
     free(effective_generic_types);
     free(call_arg_types);

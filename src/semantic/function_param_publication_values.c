@@ -160,7 +160,7 @@ pending_string_concat_current(const ASTNode *value, const SemanticContext *ctx,
             || !operand->value_present || operand->value_shape != snapshot->shape || type != snapshot->type
             || effective != TYPE_STRING || effective->kind != TYPE_KIND_PRIMITIVE
             || (nodes[i]->type == AST_IDENTIFIER && operand->binding_id != snapshot->binding)
-            || (nodes[i]->type == AST_CALL && !publication_call_ready(operand))) return false;
+            || (nodes[i]->type == AST_CALL && !publication_call_ready(ctx, operand))) return false;
         if (nodes[i]->type == AST_BINARY && !pending_string_concat_current(nodes[i], ctx, &visit)) return false;
     }
     return true;

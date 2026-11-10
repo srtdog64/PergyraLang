@@ -8,5 +8,5 @@ func label() {
 
 func Main() {
     let s = add(2, 3)
-    Log(Concat(label(), Concat(" sum=", ToString(s))))
+    Log(f"{label()} sum={s}")
 }

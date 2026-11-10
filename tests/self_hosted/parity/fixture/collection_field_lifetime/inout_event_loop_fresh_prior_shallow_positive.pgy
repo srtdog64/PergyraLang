@@ -1,0 +1,17 @@
+func Append(inout values: Array<String>) -> Void {
+    ArrayPush(values, "after");
+}
+
+func Main() -> Void {
+    let iteration: Int = 0;
+    while iteration < 2 {
+        let values: Array<String> = [];
+        let input: Int = 0;
+        while input < 1 {
+            ArrayPush(values, "before");
+            input = input + 1;
+        }
+        Append(values);
+        iteration = iteration + 1;
+    }
+}

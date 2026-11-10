@@ -9,7 +9,7 @@ struct Taken {
 subject Runner {
     var outcome: Option<Taken>;
     action Run(self, items: Array<Int>) -> Bool {
-        let sorted: Array<Int> = Clone(items);
+        var sorted: Array<Int> = Clone(items);
         self.outcome = Some(Taken(ArraySort(sorted)));
         return true;
     }

@@ -1,5 +1,5 @@
 func Inspect(ref input: Array<String>) -> Int {
-    let rows: Array<String> = ["known", Concat("local", " value")];
+    var rows: Array<String> = ["known", Concat("local", " value")];
     ArrayPush(rows, Concat("added", " value"));
     return ArrayLength(rows) + ArrayLength(input);
 }

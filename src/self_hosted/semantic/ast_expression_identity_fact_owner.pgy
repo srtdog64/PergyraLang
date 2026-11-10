@@ -75,14 +75,14 @@ func SemanticExpressionBindingIdentityOrdinal(
 func SemanticExpressionIdentityRowsUnknown(
     count: Int
 ) -> SemanticExpressionIdentityRows {
-    let targets: Array<Int> = [];
-    let runtime_ids: Array<Int> = [];
-    let binding_ids: Array<Int> = [];
-    let kinds: Array<Int> = [];
-    let ordinals: Array<Int> = [];
+    var targets: Array<Int> = [];
+    var runtime_ids: Array<Int> = [];
+    var binding_ids: Array<Int> = [];
+    var kinds: Array<Int> = [];
+    var ordinals: Array<Int> = [];
     let retention_calls:
         Array<SemanticAstBuiltinArgumentRetentionCallFact> = [];
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         ArrayPush(targets, 0);
         ArrayPush(runtime_ids, 0);
@@ -96,36 +96,47 @@ func SemanticExpressionIdentityRowsUnknown(
         retention_calls, false, 0);
 }
 
-func SemanticExpressionIdentityRowsReady(
+func SemanticExpressionIdentityRowsHeaderReady(
     ref rows: SemanticExpressionIdentityRows, count: Int
 ) -> Bool {
-    if count < 0 || ArrayLength(rows.call_target_syntax_ids) != count ||
-        ArrayLength(rows.runtime_call_abi_ids) != count ||
-        ArrayLength(rows.binding_syntax_ids) != count ||
-        ArrayLength(rows.binding_kinds) != count ||
-        ArrayLength(rows.binding_ordinals) != count ||
-        rows.builtin_argument_retention_call_sealed_count < 0 ||
-        (!rows.builtin_argument_retention_calls_sealed &&
-         (rows.builtin_argument_retention_call_sealed_count != 0 ||
-          ArrayLength(rows.builtin_argument_retention_calls) != 0)) ||
-        (rows.builtin_argument_retention_calls_sealed &&
-         rows.builtin_argument_retention_call_sealed_count !=
-            ArrayLength(rows.builtin_argument_retention_calls)) {
-        return false;
+    return count >= 0 && ArrayLength(rows.call_target_syntax_ids) == count &&
+        ArrayLength(rows.runtime_call_abi_ids) == count &&
+        ArrayLength(rows.binding_syntax_ids) == count &&
+        ArrayLength(rows.binding_kinds) == count &&
+        ArrayLength(rows.binding_ordinals) == count &&
+        rows.builtin_argument_retention_call_sealed_count >= 0 &&
+        (rows.builtin_argument_retention_calls_sealed ||
+         (rows.builtin_argument_retention_call_sealed_count == 0 &&
+          ArrayLength(rows.builtin_argument_retention_calls) == 0)) &&
+        (!rows.builtin_argument_retention_calls_sealed ||
+         rows.builtin_argument_retention_call_sealed_count ==
+            ArrayLength(rows.builtin_argument_retention_calls));
+}
+
+func SemanticExpressionIdentityRowReady(
+    ref rows: SemanticExpressionIdentityRows, row: Int
+) -> Bool {
+    if row < 0 || row >= ArrayLength(rows.binding_kinds) { return false; }
+    let kind: Int = rows.binding_kinds[row];
+    let ordinal: Int = rows.binding_ordinals[row];
+    var binding_ready: Bool = false;
+    if kind == SemanticExpressionBindingFormalParameter() {
+        binding_ready = rows.binding_syntax_ids[row] > 0 && ordinal >= 0;
+    } else if kind == SemanticExpressionBindingDeclaredCallable() {
+        binding_ready = rows.binding_syntax_ids[row] > 0 &&
+            ordinal == SemanticExpressionBindingOrdinalAbsent();
+    } else if kind == SemanticExpressionBindingNone() {
+        binding_ready = ordinal == SemanticExpressionBindingOrdinalAbsent();
     }
-    let row: Int = 0;
-    while row < count {
-        let binding: SemanticExpressionBindingIdentityFact =
-            SemanticExpressionBindingIdentityAt(rows, row);
-        if rows.call_target_syntax_ids[row] < 0 ||
-            rows.runtime_call_abi_ids[row] < 0 ||
-            rows.binding_syntax_ids[row] < 0 ||
-            !binding.ok {
-            return false;
-        }
-        row = row + 1;
-    }
-    row = 0;
+    return rows.call_target_syntax_ids[row] >= 0 &&
+        rows.runtime_call_abi_ids[row] >= 0 &&
+        rows.binding_syntax_ids[row] >= 0 && binding_ready;
+}
+
+func SemanticExpressionIdentityRetentionRowsReady(
+    ref rows: SemanticExpressionIdentityRows, count: Int
+) -> Bool {
+    var row: Int = 0;
     while row < ArrayLength(rows.builtin_argument_retention_calls) {
         if rows.builtin_argument_retention_calls[row].call_node < 0 ||
             rows.builtin_argument_retention_calls[row].call_node >= count ||
@@ -145,6 +156,20 @@ func SemanticExpressionIdentityRowsReady(
     return true;
 }
 
+func SemanticExpressionIdentityRowsReady(
+    ref rows: SemanticExpressionIdentityRows, count: Int
+) -> Bool {
+    if !SemanticExpressionIdentityRowsHeaderReady(rows, count) {
+        return false;
+    }
+    var row: Int = 0;
+    while row < count {
+        if !SemanticExpressionIdentityRowReady(rows, row) { return false; }
+        row = row + 1;
+    }
+    return SemanticExpressionIdentityRetentionRowsReady(rows, count);
+}
+
 func SemanticExpressionBuiltinRetentionCallFactsEqual(
     ref left: SemanticExpressionIdentityRows,
     ref right: SemanticExpressionIdentityRows
@@ -157,7 +182,7 @@ func SemanticExpressionBuiltinRetentionCallFactsEqual(
         ArrayLength(right.builtin_argument_retention_calls) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(left.builtin_argument_retention_calls) {
         if left.builtin_argument_retention_calls[row].call_node !=
                 right.builtin_argument_retention_calls[row].call_node ||

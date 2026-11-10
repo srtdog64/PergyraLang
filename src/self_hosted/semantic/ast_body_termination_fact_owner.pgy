@@ -1,0 +1,187 @@
+// Whole-body termination fact construction and verdict publication.
+
+import "ast_body_verdict_owner.pgy";
+import "ast_statement_type_query_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_body_flow_calculus_owner.pgy";
+
+func SemanticAstBodyTerminationFactsFromFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>
+) -> SemanticAstBodyTerminationFacts {
+    let count: Int = ArrayLength(signatures.function_node_ids);
+    var nonreturning: Array<Bool> = [];
+    var function_nodes: Array<Bool> = [];
+    var reachable: Array<Bool> = [];
+    let ready: Bool = signatures.ok && statements.ok &&
+        SemanticAstStatementTypeRowsReady(types) &&
+        artifact.identity_digest > 0 &&
+        types.artifact_node_count == artifact.count &&
+        surfaces.ok && surfaces.artifact_node_count == artifact.count &&
+        ArrayLength(signatures.return_types) == count &&
+        ArrayLength(signatures.action_contracts.body_node_ids) == count;
+    var row: Int = 0;
+    while row < count {
+        ArrayPush(nonreturning, false);
+        row = row + 1;
+    }
+    var node: Int = 0;
+    while node < artifact.count {
+        ArrayPush(function_nodes, false);
+        ArrayPush(reachable, false);
+        node = node + 1;
+    }
+    if !ready {
+        return SemanticAstBodyTerminationFacts(
+            false, artifact.identity_digest, artifact.count,
+            nonreturning, function_nodes, reachable);
+    }
+
+    // A bodyless Never declaration is an external non-returning contract.
+    // Bodyful callables, including declared Never callables, must earn the
+    // same fact from their admitted body.
+    row = 0;
+    while row < count {
+        if signatures.action_contracts.body_node_ids[row] < 0 &&
+            signatures.return_types[row] == "Never" {
+            nonreturning[row] = true;
+            function_nodes[signatures.function_node_ids[row]] = true;
+        }
+        row = row + 1;
+    }
+
+    var ignored_reachability: Array<Bool> = [];
+    var changed: Bool = true;
+    var pass: Int = 0;
+    while changed && pass < count {
+        changed = false;
+        let partial: SemanticAstBodyTerminationFacts =
+            SemanticAstBodyTerminationFacts(
+                true, artifact.identity_digest, artifact.count,
+                nonreturning, function_nodes, ignored_reachability);
+        row = 0;
+        while row < count {
+            let body_node: Int =
+                signatures.action_contracts.body_node_ids[row];
+            if !nonreturning[row] && body_node >= 0 {
+                let block: Option<Int> =
+                    SemanticAstBodyFlowBlockChild(artifact, body_node);
+                if !IsSome(block) {
+                    return SemanticAstBodyTerminationFacts(
+                        false, artifact.identity_digest, artifact.count,
+                        nonreturning, function_nodes, reachable);
+                }
+                let flow: SemanticAstBodyFlowFact =
+                    SemanticAstBodyFlowOfBlockObserved(
+                        artifact, statements, types, surfaces,
+                        exhaustive_match_nodes, partial,
+                        ignored_reachability, UnwrapOption(block), false);
+                if !flow.valid {
+                    return SemanticAstBodyTerminationFacts(
+                        false, artifact.identity_digest, artifact.count,
+                        nonreturning, function_nodes, reachable);
+                }
+                if !flow.falls_through && !flow.breaks &&
+                    !flow.continues && flow.first_return_node < 0 {
+                    nonreturning[row] = true;
+                    function_nodes[signatures.function_node_ids[row]] = true;
+                    changed = true;
+                }
+            }
+            row = row + 1;
+        }
+        pass = pass + 1;
+    }
+
+    let fixed: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFacts(
+            true, artifact.identity_digest, artifact.count,
+            nonreturning, function_nodes, reachable);
+    row = 0;
+    while row < count {
+        let body_node: Int = signatures.action_contracts.body_node_ids[row];
+        if body_node >= 0 {
+            let block: Option<Int> =
+                SemanticAstBodyFlowBlockChild(artifact, body_node);
+            if !IsSome(block) {
+                return SemanticAstBodyTerminationFacts(
+                    false, artifact.identity_digest, artifact.count,
+                    nonreturning, function_nodes, reachable);
+            }
+            let flow: SemanticAstBodyFlowFact =
+                SemanticAstBodyFlowOfBlockObserved(
+                    artifact, statements, types, surfaces,
+                    exhaustive_match_nodes, fixed, reachable,
+                    UnwrapOption(block), true);
+            if !flow.valid {
+                return SemanticAstBodyTerminationFacts(
+                    false, artifact.identity_digest, artifact.count,
+                    nonreturning, function_nodes, reachable);
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyTerminationFacts(
+        true, artifact.identity_digest, artifact.count,
+        nonreturning, function_nodes, reachable);
+}
+
+func SemanticAstBodyFlowVerdictFromFacts(
+    artifact: AstTreeArtifact, signatures: SemanticAstFunctionSignatureFacts,
+    ref statements: SemanticAstStatementFacts, ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref exhaustive_match_nodes: Array<Int>
+) -> SemanticAstBodyVerdict {
+    let count: Int = ArrayLength(signatures.function_node_ids);
+    if !statements.ok || !SemanticAstStatementTypeRowsReady(types) ||
+        types.artifact_node_count != artifact.count ||
+        ArrayLength(signatures.return_types) != count ||
+        ArrayLength(signatures.names) != count ||
+        ArrayLength(signatures.action_contracts.body_node_ids) != count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "BodyFlow"), -1);
+    }
+    var signature: Int = 0;
+    while signature < count {
+        let return_type: String = signatures.return_types[signature];
+        let body_node: Int = signatures.action_contracts.body_node_ids[signature];
+        // A signature-only callable has no body to flow, as in native.
+        if return_type != "Void" && body_node >= 0 {
+            let function_node: Int = signatures.function_node_ids[signature];
+            let block: Option<Int> = SemanticAstBodyFlowBlockChild(artifact, body_node);
+            var flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowInvalid();
+            if IsSome(block) {
+                flow = SemanticAstBodyFlowOfBlock(artifact, statements, types, surfaces,
+                    exhaustive_match_nodes, UnwrapOption(block));
+            }
+            if !flow.valid {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid", SemanticError2(
+                    "ast_artifact_invalid", "node_id", ToString(function_node),
+                    "owner", "BodyFlow"), function_node);
+            }
+            if return_type == "Never" && flow.first_return_node >= 0 {
+                return SemanticAstBodyVerdictError("return_type_mismatch", SemanticError2(
+                    "return_type_mismatch", "expected", "Never", "actual", "return"),
+                    flow.first_return_node);
+            }
+            if flow.falls_through && return_type == "Never" {
+                return SemanticAstBodyVerdictError("never_function_fallthrough", SemanticError1(
+                    "never_function_fallthrough", "function", signatures.names[signature]),
+                    function_node);
+            }
+            if flow.falls_through {
+                return SemanticAstBodyVerdictError("missing_return", SemanticError2(
+                    "missing_return", "function", signatures.names[signature],
+                    "return_type", return_type), function_node);
+            }
+        }
+        signature = signature + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+

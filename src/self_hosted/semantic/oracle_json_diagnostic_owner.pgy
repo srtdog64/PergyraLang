@@ -2,7 +2,7 @@
 import "../lib/json_fact_table.pgy";
 
 func SemanticOracleJsonRootFact(content: String) -> JsonObjectFactTable {
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(content);
     while i < n {
         if Substring(content, i, 1) == "{" {

@@ -11,7 +11,7 @@ world GameWorld {
     func ReadHp() -> Int { return battle.hp; }
 }
 func Main() -> Void {
-    let battle = BattleZone(Player(10));
+    var battle = BattleZone(Player(10));
     let world = GameWorld(Clone(battle));
     battle.hp = 3;
     battle.Hurt();

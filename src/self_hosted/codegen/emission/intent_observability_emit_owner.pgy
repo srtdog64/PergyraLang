@@ -11,6 +11,7 @@ func CodegenIntentObservabilityEmitPrologue(
     enabled: Bool,
     intent_node: Int,
     ref policy: CodegenIntentPolicyView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     ref intents: SemanticAstIntentSignatureFacts,
     intent_index: Int,
     env: CodegenTypeEnv,
@@ -33,8 +34,8 @@ func CodegenIntentObservabilityEmitPrologue(
         start + count > ArrayLength(intents.param_is_values) {
         Die("self-host intent observability parameter range is invalid");
     }
-    let subjects: Array<String> = [];
-    let row: Int = start;
+    var subjects: Array<String> = [];
+    var row: Int = start;
     while row < start + count {
         if !intents.param_is_values[row] &&
             LookupKindType(env, intents.param_types[row], "nk") == "subject" {
@@ -52,7 +53,7 @@ func CodegenIntentObservabilityEmitPrologue(
                 ToString(subject_count), "];\n"
             )
         ));
-        let subject_index: Int = 0;
+        var subject_index: Int = 0;
         while subject_index < subject_count {
             ArrayPush(body, Concat(
                 "    __intent_subjects[", Concat(ToString(subject_index),
@@ -69,7 +70,7 @@ func CodegenIntentObservabilityEmitPrologue(
         )
     );
     let priority: String = CodegenIntentPriorityExpression(
-        policy, intent_index, intent_node,
+        policy, expression_graph, intent_index, intent_node,
         intents.names[intent_index], env
     );
     let enter_suffix: String = Concat(
@@ -153,7 +154,7 @@ func CodegenIntentObservabilityEmitAttributionRange(
             "(__intent_handle, \"")),
         Concat(step_name, Concat("\", \"", Concat(zone_name, "\");\n")))
     ));
-    let row: Int = start;
+    var row: Int = start;
     while row < start + count {
         ArrayPush(body, Concat(
             Concat("    ", Concat(IntentRuntimeCTraceBindFn(),

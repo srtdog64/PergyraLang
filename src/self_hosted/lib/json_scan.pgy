@@ -32,7 +32,7 @@ func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
 }
 
 func JsonSkipWhitespaceWithin(json: String, json_extent: Int, index: Int, end: Int) -> Int {
-    let i: Int = index;
+    var i: Int = index;
     let n: Int = end;
     while i < end {
         let c: Int = JsonCharCodeAt(json, json_extent, n, i);
@@ -45,7 +45,7 @@ func JsonSkipWhitespaceWithin(json: String, json_extent: Int, index: Int, end: I
 }
 
 func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
-    let i: Int = index;
+    var i: Int = index;
     let n: Int = StringLength(json);
     while i < end {
         let c: Int = JsonCharCodeAt(json, n, n, i);

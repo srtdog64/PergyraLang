@@ -16,8 +16,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady(
     let definition_block: Int = DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
         storage, routine, definition);
     if definition_block < 0 { return false; }
-    let consuming_blocks: Array<Int> = [];
-    let member: Int = 0;
+    var consuming_blocks: Array<Int> = [];
+    var member: Int = 0;
     while member < ArrayLength(callers) {
         if callers[member] == routine && locals[member] == local_row {
             if !DirectMirScalarProgramOwnedArrayStringMoveCallLastUseReady(
@@ -41,8 +41,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram(
     ref callables: Array<Int>, ref parameters: Array<Int>,
     ref layouts: Array<Int>
 ) -> DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
-    let call_blocks: Array<Int> = [];
-    let row: Int = 0;
+    var call_blocks: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(callers) {
         let block: Int = DirectMirScalarProgramOwnedArrayStringMoveCallBlock(
             storage, callers[row], operations[row], graphs[row]);
@@ -52,8 +52,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram(
     }
     row = 0;
     while row < ArrayLength(callers) {
-        let first: Bool = true;
-        let previous: Int = 0;
+        var first: Bool = true;
+        var previous: Int = 0;
         while previous < row {
             if callers[previous] == callers[row] && locals[previous] == locals[row] {
                 first = false;

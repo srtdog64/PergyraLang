@@ -1,0 +1,343 @@
+// Native MIR loop-local Array<String> retirement edges admitted by the
+// self-hosted reader.
+//
+// Cleanup is not source text. This owner validates the carried edge against
+// its routine-local binding, ownership fact, SSA definition/use and concrete
+// CFG exit. The structured source consumer may then consume the fact without
+// rendering a statement; normal compilation resynthesizes the retirement from
+// the same ownership evidence.
+
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "routine_instruction_fact_bundle_owner.pgy";
+import "collection_ownership_fact_owner.pgy";
+import "resource_runtime_abi_fact_owner.pgy";
+
+struct MirCollectionCleanupFacts {
+    valid: Bool;
+    instruction_global_rows: Array<Int>;
+    binding_syntax_ids: Array<Int>;
+    kinds: Array<Int>;
+    targets: Array<Int>;
+}
+
+func MirCollectionCleanupOwnershipRow(
+    ref ownership: MirCollectionOwnershipFacts,
+    binding_syntax_id: Int
+) -> Int {
+    if !ownership.valid || binding_syntax_id <= 0 ||
+        ArrayLength(ownership.binding_syntax_ids) !=
+            ArrayLength(ownership.element_ownerships) ||
+        ArrayLength(ownership.binding_syntax_ids) !=
+            ArrayLength(ownership.dispositions) ||
+        ArrayLength(ownership.binding_syntax_ids) !=
+            ArrayLength(ownership.origins) {
+        return 0 - 1;
+    }
+    var found: Int = 0 - 1;
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(ownership.binding_syntax_ids) {
+        if ownership.binding_syntax_ids[row] == binding_syntax_id {
+            found = row;
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    if matched != 1 { return 0 - 1; }
+    return found;
+}
+
+func MirCollectionCleanupDefinitionReady(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    local_name: String,
+    binding_syntax_id: Int,
+    value_name: String,
+    scalar_type: String
+) -> Bool {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        local_name == "" || binding_syntax_id <= 0 || value_name == "" {
+        return false;
+    }
+    var matched: Int = 0;
+    var block_offset: Int = 0;
+    while block_offset < routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] +
+            block_offset;
+        var instruction_offset: Int = 0;
+        while instruction_offset < routines.block_instruction_counts[block] {
+            let global_row: Int =
+                routines.block_instruction_starts[block] + instruction_offset;
+            if routines.instruction_kinds[global_row] == "def" &&
+                routines.instruction_source_types[global_row] ==
+                    "AST_LET_DECL" {
+                let start: Int = routines.instruction_starts[global_row];
+                let end: Int = routines.instruction_ends[global_row];
+                var identity_ready: Bool = true;
+                if scalar_type != "" {
+                    let binding_text: String = MirObjectNumberFactAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        start, end, "binding_syntax_id");
+                    let expression: MirProgramInstructionExpressionFact =
+                        MirProgramInstructionExpressionIndexAt(
+                            routines.instruction_expressions, global_row);
+                    let graph: JsonObjectFactTable =
+                        MirProgramInstructionExpressionGraphTable(
+                            routines.source_json, routines.source_json_extent, expression, 0);
+                    let sequence: MirExpressionGraphSequence =
+                        MirExpressionGraphSequenceAppend(MirExpressionGraphSequenceEmpty(), graph);
+                    var root: Int = 0 - 1;
+                    if ArrayLength(sequence.roots) == 1 { root = sequence.roots[0]; }
+                    identity_ready = binding_text == ToString(binding_syntax_id) &&
+                        MirObjectFieldOccurrenceCountAtBounds(
+                            routines.source_json, routines.source_json_extent,
+                            start, end, "binding_syntax_id") == 1 &&
+                        MirObjectStringFactAtBounds(
+                            routines.source_json, routines.source_json_extent,
+                            start, end, "abi_type_name") == scalar_type &&
+                        sequence.ok && root >= 0 && root < sequence.ready_node_count;
+                    if identity_ready {
+                        identity_ready = sequence.arena.topology.node_kinds[root] ==
+                            AstExpressionNodeArrayLiteral() ||
+                            sequence.arena.topology.node_kinds[root] == AstExpressionNodeArrayElement();
+                    }
+                }
+                if identity_ready && MirObjectStringFactAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        start, end, "arg0") == local_name &&
+                    MirObjectStringFactAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        start, end, "result") == value_name {
+                    matched = matched + 1;
+                }
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return matched == 1;
+}
+
+func BuildMirCollectionCleanupFacts(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    ref instruction_facts: MirRoutineInstructionFactBundle,
+    ref ownership: MirCollectionOwnershipFacts,
+    ref local_names: Array<String>,
+    ref local_types: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>,
+    ref block_reachable: Array<Bool>,
+    ref block_succ_true: Array<Int>,
+    ref block_succ_false: Array<Int>
+) -> MirCollectionCleanupFacts {
+    var rows: Array<Int> = [];
+    var bindings: Array<Int> = [];
+    var kinds: Array<Int> = [];
+    var targets: Array<Int> = [];
+    var valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row) &&
+        ownership.valid && instruction_facts.valid &&
+        ArrayLength(local_names) == ArrayLength(local_types) &&
+        ArrayLength(local_names) == ArrayLength(local_binding_syntax_ids) &&
+        ArrayLength(block_reachable) == ArrayLength(block_succ_true) &&
+        ArrayLength(block_reachable) == ArrayLength(block_succ_false);
+    var block_offset: Int = 0;
+    while valid && block_offset < routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] +
+            block_offset;
+        var instruction_offset: Int = 0;
+        while valid && instruction_offset <
+                routines.block_instruction_counts[block] {
+            let global_row: Int = routines.block_instruction_starts[block] +
+                instruction_offset;
+            let start: Int = routines.instruction_starts[global_row];
+            let end: Int = routines.instruction_ends[global_row];
+            let cleanup_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
+                routines.source_json, routines.source_json_extent,
+                start, end, "collection_cleanup");
+            let is_cleanup: Bool =
+                routines.instruction_kinds[global_row] == "cleanup";
+            let scalar: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    instruction_facts, global_row);
+            // `cleanup` is the shared MIR control-edge kind. Collection
+            // retirement is the narrower local-collection-retire operation;
+            // intent rollback and invalidation edges do not own a
+            // collection_cleanup object.
+            let is_collection_cleanup: Bool = is_cleanup &&
+                scalar.name == "local-collection-retire";
+            if cleanup_occurrences > 1 ||
+                (!is_collection_cleanup && cleanup_occurrences != 0) ||
+                (is_collection_cleanup && cleanup_occurrences != 1) {
+                valid = false;
+            } else if is_collection_cleanup {
+                let instruction: JsonObjectFactTable =
+                    JsonObjectFactTableFromBounds(
+                        routines.source_json, routines.source_json_extent,
+                        start, end);
+                let cleanup: JsonObjectFactTable =
+                    JsonObjectFactObjectTable(
+                        instruction, "collection_cleanup");
+                let binding_text: String = MirObjectNumberFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    cleanup.start, cleanup.end, "binding_syntax_id");
+                let kind_text: String = MirObjectNumberFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    cleanup.start, cleanup.end, "kind");
+                var target_bounds: Array<Int> = [0, 0];
+                var target: Int = 0 - 2;
+                if JsonObjectFactValueBounds(cleanup, "target", target_bounds) {
+                    let target_kind: String = JsonValueKindAt(
+                        routines.source_json, routines.source_json_extent,
+                        target_bounds[0], target_bounds[1]);
+                    let target_text: String = JsonScalarToken(
+                        routines.source_json, routines.source_json_extent,
+                        target_bounds[0], target_bounds[1]);
+                    if target_kind == "null" && target_text == "null" {
+                        target = 0 - 1;
+                    } else if target_kind == "number" &&
+                        target_text != "" &&
+                        ToString(ToInt(target_text)) == target_text &&
+                        ToInt(target_text) >= 0 {
+                        target = ToInt(target_text);
+                    }
+                }
+                var binding: Int = 0;
+                var cleanup_kind: Int = 0;
+                if binding_text != "" &&
+                    ToString(ToInt(binding_text)) == binding_text {
+                    binding = ToInt(binding_text);
+                }
+                if kind_text != "" &&
+                    ToString(ToInt(kind_text)) == kind_text {
+                    cleanup_kind = ToInt(kind_text);
+                }
+                let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    start, end, "uses");
+                let local_row: Int = MirCollectionOwnershipLocalRow(
+                    local_binding_syntax_ids, binding);
+                let ownership_row: Int = MirCollectionCleanupOwnershipRow(
+                    ownership, binding);
+                let shape_ready: Bool = scalar.valid &&
+                    JsonObjectFactTableReady(cleanup) &&
+                    JsonObjectFactCount(cleanup) == 3 &&
+                    MirObjectFieldOccurrenceCountAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        cleanup.start, cleanup.end,
+                        "binding_syntax_id") == 1 &&
+                    MirObjectFieldOccurrenceCountAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        cleanup.start, cleanup.end, "kind") == 1 &&
+                    MirObjectFieldOccurrenceCountAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        cleanup.start, cleanup.end, "target") == 1 &&
+                    scalar.name == "local-collection-retire" &&
+                    scalar.result == "" && scalar.arg0 != "" &&
+                    scalar.arg1 == "" && scalar.slot_anchor == "" &&
+                    scalar.expr0 == "" && scalar.expr1 == "" &&
+                    routines.instruction_source_types[global_row] == "" &&
+                    ArrayLength(uses) == 1 && uses[0] == scalar.arg0;
+                var ownership_ready: Bool = local_row >= 0 &&
+                    ownership_row >= 0 && local_types[local_row] ==
+                        "Array<String>" &&
+                    (ownership.origins[ownership_row] == "empty-literal" ||
+                     ownership.origins[ownership_row] == "call-result" ||
+                     ownership.origins[ownership_row] == "owned-literal") &&
+                    ownership.dispositions[ownership_row] == "live" &&
+                    ((ownership.element_ownerships[ownership_row] ==
+                        "owned-elements" && cleanup_kind == 2) ||
+                     (ownership.element_ownerships[ownership_row] ==
+                        "borrowed-elements" && cleanup_kind == 1) ||
+                     (ownership.element_ownerships[ownership_row] ==
+                        "unknown" &&
+                        (cleanup_kind == 1 || cleanup_kind == 2)));
+                var scalar_type: String = "";
+                if cleanup_kind == 3 && local_row >= 0 {
+                    let runtime: JsonObjectFactTable =
+                        JsonObjectFactObjectTable(instruction, "runtime_call_abi");
+                    scalar_type = local_types[local_row];
+                    ownership_ready = JsonObjectFactStringFieldEquals(
+                        runtime, "operation", "ReleaseStorage") &&
+                        MirResourceRuntimeAuxRowFactReady(runtime, scalar_type);
+                }
+                var exit_ready: Bool = false;
+                if target == 0 - 1 {
+                    var candidate: Int = 0;
+                    while candidate < routines.block_instruction_counts[block] {
+                        let candidate_global: Int =
+                            routines.block_instruction_starts[block] + candidate;
+                        if routines.instruction_kinds[candidate_global] ==
+                                "return" {
+                            exit_ready = true;
+                        }
+                        candidate = candidate + 1;
+                    }
+                } else if target >= 0 &&
+                    target < ArrayLength(block_succ_true) &&
+                    (block_succ_true[block_offset] == target ||
+                     block_succ_false[block_offset] == target) {
+                    exit_ready = true;
+                }
+                var duplicate: Bool = false;
+                var prior: Int = 0;
+                while prior < ArrayLength(rows) {
+                    if bindings[prior] == binding &&
+                        targets[prior] == target &&
+                        rows[prior] >= routines.block_instruction_starts[block] &&
+                        rows[prior] < routines.block_instruction_starts[block] +
+                            routines.block_instruction_counts[block] &&
+                        rows[prior] != global_row {
+                        duplicate = true;
+                    }
+                    prior = prior + 1;
+                }
+                var definition_ready: Bool = false;
+                if local_row >= 0 && local_row < ArrayLength(local_names) {
+                    definition_ready = MirCollectionCleanupDefinitionReady(
+                        routines, routine_row, local_names[local_row],
+                        binding, scalar.arg0, scalar_type
+                    );
+                }
+                if !shape_ready || !ownership_ready || !exit_ready ||
+                    binding <= 0 || !block_reachable[block_offset] ||
+                    duplicate || !definition_ready {
+                    valid = false;
+                } else {
+                    ArrayPush(rows, global_row);
+                    ArrayPush(bindings, binding);
+                    ArrayPush(kinds, cleanup_kind);
+                    ArrayPush(targets, target);
+                }
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return MirCollectionCleanupFacts(
+        valid, rows, bindings, kinds, targets);
+}
+
+func MirCollectionCleanupFactReadyAtGlobal(
+    ref facts: MirCollectionCleanupFacts,
+    global_row: Int
+) -> Bool {
+    if !facts.valid || global_row < 0 ||
+        ArrayLength(facts.instruction_global_rows) !=
+            ArrayLength(facts.binding_syntax_ids) ||
+        ArrayLength(facts.instruction_global_rows) !=
+            ArrayLength(facts.kinds) ||
+        ArrayLength(facts.instruction_global_rows) !=
+            ArrayLength(facts.targets) {
+        return false;
+    }
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(facts.instruction_global_rows) {
+        if facts.instruction_global_rows[row] == global_row {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}

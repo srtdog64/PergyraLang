@@ -26,7 +26,7 @@ func DirectMirReturnedArrayForEachProgramFactDigest(
     ref fact: DirectMirReturnedArrayForEachProgramFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(199L, fact.main_row);
+    var hash: Long = DirectMirCfgHashInt(199L, fact.main_row);
     hash = DirectMirCfgHashInt(hash, fact.main_syntax_id);
     hash = DirectMirCfgHashInt(hash, fact.collection_iteration_count);
     hash = DirectMirCfgHashInt(hash, fact.producer.digest);
@@ -91,9 +91,9 @@ func DirectMirReturnedArrayForEachProgramFactFromAdmitted(
         JsonArrayObjectFactCount(generic_specializations) != 0 {
         return invalid;
     }
-    let main_row: Int = -1;
-    let producer_row: Int = -1;
-    let row: Int = 0;
+    var main_row: Int = -1;
+    var producer_row: Int = -1;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.names[row] == "Main" { main_row = row; }
         else { producer_row = row; }

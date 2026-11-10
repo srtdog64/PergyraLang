@@ -34,7 +34,7 @@ func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> Str
 func ReadIdentWithin(
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
-    let i: Int = start;
+    var i: Int = start;
     while i < content_extent &&
         SourceByteIsAlphaNum(SourceByteAt(content, content_extent, content_extent, i)) {
         i = i + 1;
@@ -95,7 +95,7 @@ func LanguageWordEnd(start: Int, id: LanguageWordId) -> Int {
 // spellings are identifiers.
 func ParserBindingNameReserved(name: String) -> Bool {
     if LanguageKeywordDebugIdentity(name) == "IDENTIFIER" { return false; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < LanguageWordRegistryCount() {
         let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);
         if row.spelling == name {
@@ -114,12 +114,12 @@ func ParserBindingNameReserved(name: String) -> Bool {
 // followed by a digit, so `0..10` lexes as `0`, `..`, `10`.
 func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
-    let i: Int = start;
+    var i: Int = start;
     while i < n && SourceByteIsDigit(SourceByteAt(content, n, n, i)) {
         i = i + 1;
     }
-    let has_frac: Bool = false;
-    let frac_start: Int = 0;
+    var has_frac: Bool = false;
+    var frac_start: Int = 0;
     if i + 1 < n && SourceByteAt(content, n, n, i) == SourceByteOf(".") &&
         SourceByteIsDigit(SourceByteAt(content, n, n, i + 1)) {
         has_frac = true;
@@ -130,11 +130,11 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
         }
     }
     ArraySet(cursor_out, 0, i);
-    let text: String = Substring(content, start, i - start);
+    var text: String = Substring(content, start, i - start);
     if has_frac {
         // dot_idx in `text` is (frac_start - start).
         let dot_idx: Int = frac_start - start;
-        let trim_to: Int = StringLength(text);
+        var trim_to: Int = StringLength(text);
         // `text` mirrors content[start, i); read its digits in place.
         while trim_to > dot_idx + 1 &&
             SourceByteAt(content, n, n, start + trim_to - 1) == SourceByteOf("0") {
@@ -149,7 +149,7 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
 }
 
 func ParserNumberSpellingContractReady() -> Bool {
-    let cursor: Array<Int> = [0];
+    var cursor: Array<Int> = [0];
     if ReadNumber("16.0", 0, cursor) != "16.0" || cursor[0] != 4 {
         return false;
     }
@@ -169,7 +169,7 @@ func ParserNumberSpellingContractReady() -> Bool {
 // Read a literal string including the surrounding double-quotes.
 func ReadString(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
-    let i: Int = start + 1;
+    var i: Int = start + 1;
     while i < n {
         if SourceByteAt(content, n, n, i) == SourceByteOf("\\") {
             i = i + 1;
@@ -224,7 +224,7 @@ func Expect(content: String, start: Int, tok: String) -> Int {
 
 func ConsumeStmtTerminatorOpt(content: String, start: Int) -> Option<Int> {
     let n: Int = StringLength(content);
-    let i: Int = start;
+    var i: Int = start;
     while i < n {
         let c: Int = SourceByteAt(content, n, n, i);
         if c == SourceByteOf(" ") || c == SourceByteOf("\t") ||

@@ -8,7 +8,7 @@ import "source_refusal_owner.pgy";
 // `event NAME(PNAME: PTYPE, ...);` top-level event signature.
 func ParseEventDecl(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     location_context: ParserSourceLocationContext) -> String {
-    let i: Int = LanguageWordEnd(start, LanguageWordId.WordEvent);
+    var i: Int = LanguageWordEnd(start, LanguageWordId.WordEvent);
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     ArraySet(cursor_out, 0, i);
     let ev_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
@@ -21,7 +21,7 @@ func ParseEventDecl(content: String, content_extent: Int, start: Int, inout curs
         i = i + 1;
     }
     i = ParseExpectIn(location_context, content, i, "(", "event");
-    let ev_params: Array<String> = [];
+    var ev_params: Array<String> = [];
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if ParserCharAtWithin(content, content_extent, i) != ")" {
         while true {
@@ -50,11 +50,11 @@ func ParseEventDecl(content: String, content_extent: Int, start: Int, inout curs
     }
     i = ParseExpectIn(location_context, content, i, ")", "event");
     i = ParseExpectIn(location_context, content, i, ";", "event");
-    let event_out: String = Concat("  Event: ", Concat(decl_prefix, ev_name));
+    var event_out: String = Concat("  Event: ", Concat(decl_prefix, ev_name));
     let ev_len: Int = ArrayLength(ev_params);
     if ev_len > 0 {
         event_out = AppendLine(event_out, "    Parameters:");
-        let ei: Int = 0;
+        var ei: Int = 0;
         while ei < ev_len {
             event_out = AppendLine(event_out, ev_params[ei]);
             ei = ei + 1;

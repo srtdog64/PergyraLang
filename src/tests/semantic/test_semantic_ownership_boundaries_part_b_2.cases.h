@@ -11,7 +11,7 @@
             "    let wrapper: Wrapper;\n"
             "}\n"
             "func BorrowList(ref cargo: Cargo) -> Void {\n"
-            "    let items: List<Packet> = ListNew();\n"
+            "    var items: List<Packet> = ListNew();\n"
             "    ListPush(items, cargo.wrapper.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -45,7 +45,7 @@
             "    let wrapper: Wrapper;\n"
             "}\n"
             "func BorrowQueue(ref cargo: Cargo) -> Void {\n"
-            "    let items: Queue<Packet> = QueueNew();\n"
+            "    var items: Queue<Packet> = QueueNew();\n"
             "    QueuePush(items, cargo.wrapper.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -79,7 +79,7 @@
             "    let wrapper: Wrapper;\n"
             "}\n"
             "func BorrowMap(ref cargo: Cargo) -> Void {\n"
-            "    let items: HashMap<String, Packet> = MapNew();\n"
+            "    var items: HashMap<String, Packet> = MapNew();\n"
             "    MapSet(items, \"lead\", cargo.wrapper.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -113,7 +113,7 @@
             "    let wrapper: Wrapper;\n"
             "}\n"
             "func BorrowArraySet(ref cargo: Cargo) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(1)];\n"
+            "    var items: Array<Packet> = [Packet(1)];\n"
             "    ArraySet(items, 0, cargo.wrapper.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -147,7 +147,7 @@
             "    let wrapper: Wrapper;\n"
             "}\n"
             "func BorrowSet(ref cargo: Cargo) -> Void {\n"
-            "    let items: Set<Packet> = SetNew();\n"
+            "    var items: Set<Packet> = SetNew();\n"
             "    SetAdd(items, cargo.wrapper.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -181,7 +181,7 @@
             "    let wrapper: Wrapper;\n"
             "}\n"
             "func BorrowArrayPush(ref cargo: Cargo) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(1)];\n"
+            "    var items: Array<Packet> = [Packet(1)];\n"
             "    ArrayPush(items, cargo.wrapper.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -465,6 +465,76 @@
         lexer_destroy(lexer);
     }
 
+    TEST("borrowed aggregate may cross a proved read-only default boundary");
+    {
+        const char *source =
+            "struct Packet { size: Int; }\n"
+            "func ReadSize(packet: Packet) -> Int { return packet.size; }\n"
+            "func BorrowRead(ref packet: Packet) -> Int {\n"
+            "    return ReadSize(packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("borrowed aggregate may cross a proved lending default getter");
+    {
+        const char *source =
+            "struct Packet { label: String; }\n"
+            "func Label(packet: Packet) -> String { return packet.label; }\n"
+            "func BorrowLabel(ref packet: Packet) -> String {\n"
+            "    let label: String = Label(packet);\n"
+            "    return Concat(\"\", label);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("borrowed aggregate still cannot cross a moving default boundary");
+    {
+        const char *source =
+            "struct Packet { size: Int; }\n"
+            "func MovePacket(packet: Packet) -> Packet { return packet; }\n"
+            "func BorrowMove(ref packet: Packet) -> Void {\n"
+            "    let moved: Packet = MovePacket(packet);\n"
+            "    Log(moved.size);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through helper/function call to 'MovePacket'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     {
         static const struct {
             const char *name;
@@ -472,41 +542,41 @@
             const char *refusal;
         } cases[] = {
             {"owned functional update restores the assigned generation",
-             "let packet: Packet = Packet(1); packet = Step(packet); "
+             "var packet: Packet = Packet(1); packet = Step(packet); "
              "packet = Step(packet); Log(packet.size);", NULL},
             {"owned functional update restores each loop generation",
-             "let packet: Packet = Packet(1); let i: Int = 0; "
+             "var packet: Packet = Packet(1); var i: Int = 0; "
              "while i < 3 { packet = Step(packet); i = i + 1; } "
              "Log(packet.size);", NULL},
             {"fresh value can initialize a previously consumed value place",
-             "let packet: Packet = Packet(1); let next: Packet = Step(packet); "
+             "var packet: Packet = Packet(1); let next: Packet = Step(packet); "
              "packet = Packet(7); Log(packet.size); Log(next.size);", NULL},
             {"owned array functional update restores the assigned generation",
-             "let values: Array<Int> = [1]; values = StepArray(values); "
+             "var values: Array<Int> = [1]; values = StepArray(values); "
              "Log(values[1]);", NULL},
             {"empty literal initializes a consumed array place",
-             "let values: Array<Int> = [1]; let next: Array<Int> = StepArray(values); "
+             "var values: Array<Int> = [1]; let next: Array<Int> = StepArray(values); "
              "values = []; Log(ArrayLength(values)); Log(next[1]);", NULL},
             {"terminal move does not poison the continuing branch",
-             "let packet: Packet = Packet(1); packet = Choose(packet, false); "
+             "var packet: Packet = Packet(1); packet = Choose(packet, false); "
              "Log(packet.size);", NULL},
             {"both continuing branches restore an owned generation",
-             "let packet: Packet = Packet(1); packet = ChooseRestored(packet, true); "
+             "var packet: Packet = Packet(1); packet = ChooseRestored(packet, true); "
              "Log(packet.size);", NULL},
             {"read of old generation without assignment remains rejected",
              "let packet: Packet = Packet(1); let next: Packet = Step(packet); "
              "Log(packet.size);", "was moved or released"},
             {"assignment cannot conceal two moves in its RHS",
-             "let packet: Packet = Packet(1); packet = Pair(packet, packet);",
+             "var packet: Packet = Packet(1); packet = Pair(packet, packet);",
              "was moved or released"},
             {"later call argument cannot read the earlier moved value",
-             "let packet: Packet = Packet(1); packet = WithSize(packet, packet.size);",
+             "var packet: Packet = Packet(1); packet = WithSize(packet, packet.size);",
              "was moved or released"},
             {"assignment cannot read an already consumed RHS",
-             "let packet: Packet = Packet(1); let next: Packet = Step(packet); "
+             "var packet: Packet = Packet(1); let next: Packet = Step(packet); "
              "packet = packet;", "was moved or released"},
             {"functional update does not waive result type admission",
-             "let packet: Packet = Packet(1); packet = Count(packet);",
+             "var packet: Packet = Packet(1); packet = Count(packet);",
              "cannot assign 'Int' to 'Packet'"},
             {"continuing branch without restoration leaves the old value dead",
              "let packet: Packet = Packet(1); if true { let next: Packet = Step(packet); } "

@@ -15,7 +15,7 @@ func Peek(ref rows: Array<Int>) -> Int {
 }
 
 func Build() -> Facts {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, 41);
     defer { ArrayDrop(rows); };
     Peek(rows);

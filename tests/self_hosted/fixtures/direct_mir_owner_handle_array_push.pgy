@@ -1,0 +1,9 @@
+func AppendAndCount(own values: Array<String>) -> Int {
+    ArrayPush(values, "borrowed");
+    return ArrayLength(values);
+}
+
+func Main() -> Void {
+    var values: Array<String> = [];
+    Log(AppendAndCount(values));
+}

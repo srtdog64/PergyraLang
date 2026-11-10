@@ -47,7 +47,7 @@ func DirectMirLegacyIntentProgramPlanDigest(
     ref plan: DirectMirLegacyIntentProgramPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(929L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(929L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
@@ -59,7 +59,7 @@ func DirectMirLegacyIntentProgramPlanDigest(
     hash = DirectMirCfgHashInt(hash, plan.priority);
     hash = DirectMirCfgHashInt(hash, plan.threshold);
     hash = DirectMirIntentCompletionFactHash(hash, plan.completion);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.rollback_names) {
         hash = DirectMirCfgHashString(hash, plan.rollback_names[row]);
         hash = DirectMirCfgHashString(hash, plan.rollback_slots[row]);
@@ -85,7 +85,7 @@ func DirectMirLegacyIntentCleanupRowsReady(
         ArrayLength(args) != 3 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if names[row] == "" || slots[row] == "" { return false; }
         row = row + 1;
@@ -203,10 +203,10 @@ func DirectMirLegacyIntentZoneFieldName(
     let zone_owner: Int = MirProgramDeclarationFieldIdentityDeclarationIndex(
         fields, graph.zone_type_name
     );
-    let zone_field: String = "";
-    let subject_count: Int = 0;
-    let zone_count: Int = 0;
-    let row: Int = 0;
+    var zone_field: String = "";
+    var subject_count: Int = 0;
+    var zone_count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fields.field_names) {
         if fields.field_owner_indices[row] == subject_owner &&
             fields.field_names[row] == graph.subject_field_name &&
@@ -297,7 +297,7 @@ func DirectMirLegacyIntentCleanupRows(
     inout slots: Array<String>,
     inout args: Array<String>
 ) -> Void {
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < MirProgramRoutineIndexBlockInstructionCountAt(
         admitted.routines, routine_row, block_row
     ) {
@@ -313,7 +313,7 @@ func DirectMirLegacyIntentCleanupRows(
             scalar.name == "" {
             Die("direct MIR legacy intent cleanup row is invalid");
         }
-        let slot: String = scalar.slot_anchor;
+        var slot: String = scalar.slot_anchor;
         if slot == "" { slot = scalar.arg0; }
         if slot == "" {
             Die("direct MIR legacy intent cleanup slot is missing");
@@ -400,7 +400,7 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
         phases.compensate_counts[0] != 0 {
         Die("direct MIR legacy intent phase plan is invalid");
     }
-    let completion: DirectMirIntentCompletionFact = DirectMirIntentCompletionFact(true, 0, 0, 0);
+    var completion: DirectMirIntentCompletionFact = DirectMirIntentCompletionFact(true, 0, 0, 0);
     if !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) {
         completion = DirectMirIntentCompletionFact(false, 0, 0,
             DirectMirLegacyIntentThresholdValue(admitted, graph, zone_field,
@@ -421,12 +421,12 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
         action_contract.authority_required {
         Die("direct MIR legacy intent action identity is invalid");
     }
-    let where_count: Int = 0;
-    let alias_count: Int = 0;
-    let invalidation_count: Int = 0;
-    let who_count: Int = 0;
-    let other_step_contract_count: Int = 0;
-    let carrier_row: Int = 0;
+    var where_count: Int = 0;
+    var alias_count: Int = 0;
+    var invalidation_count: Int = 0;
+    var who_count: Int = 0;
+    var other_step_contract_count: Int = 0;
+    var carrier_row: Int = 0;
     while carrier_row < ArrayLength(carriers.carrier_names) {
         let name: String = carriers.carrier_names[carrier_row];
         if name == "IntentZoneWhere" &&
@@ -455,8 +455,8 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
         }
         carrier_row = carrier_row + 1;
     }
-    let read_count: Int = 0;
-    let resource_row: Int = 0;
+    var read_count: Int = 0;
+    var resource_row: Int = 0;
     while resource_row < ArrayLength(carriers.resource_names) {
         if carriers.resource_names[resource_row] == "Read" &&
             carriers.resource_arg0s[resource_row] == graph.zone_alias &&
@@ -471,12 +471,12 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
         ArrayLength(carriers.resource_names) != 2 {
         Die("direct MIR legacy intent placement contract is invalid");
     }
-    let rollback_names: Array<String> = [];
-    let rollback_slots: Array<String> = [];
-    let rollback_args: Array<String> = [];
-    let invalidation_names: Array<String> = [];
-    let invalidation_slots: Array<String> = [];
-    let invalidation_args: Array<String> = [];
+    var rollback_names: Array<String> = [];
+    var rollback_slots: Array<String> = [];
+    var rollback_args: Array<String> = [];
+    var invalidation_names: Array<String> = [];
+    var invalidation_slots: Array<String> = [];
+    var invalidation_args: Array<String> = [];
     let block_topology: MirIntentRoutineBlockTopology =
         MirIntentRoutineBlockTopologyFromIndex(admitted.routines, index, route.intent_row);
     if !block_topology.valid { Die("direct MIR legacy intent block topology is invalid"); }

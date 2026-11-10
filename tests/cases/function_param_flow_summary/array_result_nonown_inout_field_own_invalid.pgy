@@ -12,7 +12,7 @@ func Consume(own rows: Array<String>) -> Int
 
 func Main() -> Void
 {
-    let state: State = State(["row"]);
+    var state: State = State(["row"]);
     let rows: Array<String> = Extract(state);
     Log(Consume(rows));
     Log(ArrayLength(state.rows));

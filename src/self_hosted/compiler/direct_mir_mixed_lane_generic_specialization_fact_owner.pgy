@@ -24,7 +24,7 @@ func DirectMirMixedLaneGenericSpecializationFactDigest(
     ref fact: DirectMirMixedLaneGenericSpecializationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(263L, fact.callable);
+    var hash: Long = DirectMirCfgHashString(263L, fact.callable);
     hash = DirectMirCfgHashString(hash, fact.specialized_symbol);
     hash = DirectMirCfgHashString(hash, fact.generic_param);
     hash = DirectMirCfgHashString(hash, fact.generic_actual);
@@ -59,13 +59,13 @@ func DirectMirMixedLaneGenericSpecializationFactFromDocument(
         JsonArrayObjectFactCount(table) != 2 {
         return InvalidDirectMirMixedLaneGenericSpecializationFact();
     }
-    let seen: Array<Bool> = [false, false];
-    let lane_owners: Array<Int> = [0, 0];
-    let callable: String = "";
-    let specialized_symbol: String = "";
-    let generic_param: String = "";
-    let generic_actual: String = "";
-    let row_i: Int = 0;
+    var seen: Array<Bool> = [false, false];
+    var lane_owners: Array<Int> = [0, 0];
+    var callable: String = "";
+    var specialized_symbol: String = "";
+    var generic_param: String = "";
+    var generic_actual: String = "";
+    var row_i: Int = 0;
     while row_i < 2 {
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
         let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(

@@ -13,7 +13,7 @@ func DirectMirScalarProgramArrayMutationReadinessFailed(
     let expression: Int = plan.program.operation_expression_rows[operation];
     let index: Int =
         plan.program.operation_secondary_expression_rows[operation];
-    let detail: String =
+    var detail: String =
         "direct MIR scalar Array mutation readiness is invalid: operation=";
     detail = Concat(detail, ToString(operation));
     detail = Concat(detail, Concat(" kind=", ToString(kind)));
@@ -36,7 +36,7 @@ func DirectMirScalarProgramArrayMutationReadinessFailed(
             ToString(plan.program.expressions.node_kinds[root])));
         detail = Concat(detail, Concat(" root_type=",
             plan.program.expressions.node_types[root]));
-        let node: Int = start;
+        var node: Int = start;
         while node < end {
             if !DirectMirScalarCfgProgramExpressionIdentityReady(
                     plan, plan.program.expressions, node, routine, start) {

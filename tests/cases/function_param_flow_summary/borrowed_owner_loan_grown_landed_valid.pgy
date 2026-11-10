@@ -1,7 +1,8 @@
 // Borrow lends env's rows inside the Env it returns, and Nest grows that
 // loan through an inout call while its own env is an inout borrowed from
 // Main. No proof admits a loan of a borrowed owner that leaves, so the next
-// analysis copies the loan where Borrow makes it: Clone copies an Env whole.
+// analysis copies the loan where Borrow makes it: Clone copies env.rows,
+// while the returned Env's epochs field already has fresh storage.
 struct Env {
     rows: String;
     epochs: Array<String>;

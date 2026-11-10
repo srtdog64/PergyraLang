@@ -44,12 +44,12 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
     declaration_kinds: Array<String>,
     declaration_names: Array<String>
 ) -> MirProgramEnumVariantIndex {
-    let names: Array<String> = [];
-    let owners: Array<String> = [];
-    let ordinals: Array<Int> = [];
-    let param_counts: Array<Int> = [];
-    let param_type_starts: Array<Int> = [];
-    let param_types: Array<String> = [];
+    var names: Array<String> = [];
+    var owners: Array<String> = [];
+    var ordinals: Array<Int> = [];
+    var param_counts: Array<Int> = [];
+    var param_type_starts: Array<Int> = [];
+    var param_types: Array<String> = [];
     let declaration_count: Int = ArrayLength(declaration_starts);
     if ArrayLength(declaration_ends) != declaration_count ||
         ArrayLength(declaration_kinds) != declaration_count ||
@@ -59,20 +59,20 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
             param_type_starts, param_types
         );
     }
-    let valid: Bool = true;
-    let declaration_row: Int = 0;
+    var valid: Bool = true;
+    var declaration_row: Int = 0;
     while declaration_row < declaration_count {
         if declaration_kinds[declaration_row] == "enum" {
-            let variants: Array<Int> = [0, 0];
+            var variants: Array<Int> = [0, 0];
             if !MirObjectArrayBoundsAtBounds(
                 json, json_extent, declaration_starts[declaration_row],
                 declaration_ends[declaration_row], "variants", variants
             ) || declaration_names[declaration_row] == "" {
                 valid = false;
             } else {
-                let cursor: Int = variants[0] + 1;
-                let variant: Array<Int> = [0, 0];
-                let ordinal: Int = 0;
+                var cursor: Int = variants[0] + 1;
+                var variant: Array<Int> = [0, 0];
+                var ordinal: Int = 0;
                 while JsonArrayNextObjectBounds(
                     json, json_extent, cursor, variants[1], variant
                 ) {
@@ -82,8 +82,8 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
                     let count_text: String = MirObjectNumberFactAtBounds(
                         json, json_extent, variant[0], variant[1], "param_count"
                     );
-                    let payload_bounds: Array<Int> = [0, 0];
-                    let payloads: Array<String> = [];
+                    var payload_bounds: Array<Int> = [0, 0];
+                    var payloads: Array<String> = [];
                     if MirObjectArrayBoundsAtBounds(
                         json, json_extent, variant[0], variant[1], "param_types",
                         payload_bounds
@@ -105,7 +105,7 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
                         param_count < 0 || param_count != ArrayLength(payloads) {
                         valid = false;
                     }
-                    let prior: Int = 0;
+                    var prior: Int = 0;
                     while prior < ArrayLength(names) {
                         if owners[prior] == declaration_names[declaration_row] &&
                             names[prior] == name {
@@ -118,7 +118,7 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
                     ArrayPush(ordinals, ordinal);
                     ArrayPush(param_counts, param_count);
                     ArrayPush(param_type_starts, ArrayLength(param_types));
-                    let payload: Int = 0;
+                    var payload: Int = 0;
                     while payload < ArrayLength(payloads) {
                         if payloads[payload] == "" { valid = false; }
                         ArrayPush(param_types, payloads[payload]);
@@ -153,8 +153,8 @@ func MirProgramEnumVariantIndexReady(
         count != ArrayLength(index.param_type_starts) {
         return false;
     }
-    let expected_payload_start: Int = 0;
-    let row: Int = 0;
+    var expected_payload_start: Int = 0;
+    var row: Int = 0;
     while row < count {
         if index.names[row] == "" || index.owners[row] == "" ||
             index.ordinals[row] < 0 || index.param_counts[row] < 0 ||
@@ -176,8 +176,8 @@ func MirProgramEnumVariantRowForOwnerAndName(
     if !MirProgramEnumVariantIndexReady(index) || owner == "" || name == "" {
         return None;
     }
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(index.names) {
         if index.owners[row] == owner && index.names[row] == name {
             if found >= 0 { return None; }
@@ -202,9 +202,9 @@ func MirProgramEnumVariantOwnerForName(
     if !MirProgramEnumVariantIndexReady(index) || variant == "" {
         return "";
     }
-    let owner: String = "";
-    let ambiguous: Bool = false;
-    let row: Int = 0;
+    var owner: String = "";
+    var ambiguous: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(index.names) {
         if index.names[row] == variant {
             if owner == "" {

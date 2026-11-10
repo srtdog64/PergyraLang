@@ -50,10 +50,10 @@ func ParserExpressionUnary(
     if text == "" || !AstExpressionNodeIsUnaryOperator(kind) {
         return ParserExpressionInvalid();
     }
-    let kinds: Array<Int> = operand.arena.node_kinds;
-    let texts: Array<String> = operand.arena.node_texts;
-    let left_children: Array<Int> = operand.arena.left_children;
-    let right_children: Array<Int> = operand.arena.right_children;
+    var kinds: Array<Int> = operand.arena.node_kinds;
+    var texts: Array<String> = operand.arena.node_texts;
+    var left_children: Array<Int> = operand.arena.left_children;
+    var right_children: Array<Int> = operand.arena.right_children;
     let root: Int = ArrayLength(kinds);
     ArrayPush(kinds, kind);
     ArrayPush(texts, text);
@@ -78,10 +78,10 @@ func ParserExpressionCall(
         ) {
         return ParserExpressionInvalid();
     }
-    let kinds: Array<Int> = callee.arena.node_kinds;
-    let texts: Array<String> = callee.arena.node_texts;
-    let left_children: Array<Int> = callee.arena.left_children;
-    let right_children: Array<Int> = callee.arena.right_children;
+    var kinds: Array<Int> = callee.arena.node_kinds;
+    var texts: Array<String> = callee.arena.node_texts;
+    var left_children: Array<Int> = callee.arena.left_children;
+    var right_children: Array<Int> = callee.arena.right_children;
     let root: Int = ArrayLength(kinds);
     ArrayPush(kinds, AstExpressionNodeCall());
     ArrayPush(texts, text);
@@ -151,10 +151,10 @@ func ParserExpressionStructLiteral(
             AstExpressionNodeLeaf() {
         return ParserExpressionInvalid();
     }
-    let kinds: Array<Int> = type_expression.arena.node_kinds;
-    let texts: Array<String> = type_expression.arena.node_texts;
-    let left_children: Array<Int> = type_expression.arena.left_children;
-    let right_children: Array<Int> = type_expression.arena.right_children;
+    var kinds: Array<Int> = type_expression.arena.node_kinds;
+    var texts: Array<String> = type_expression.arena.node_texts;
+    var left_children: Array<Int> = type_expression.arena.left_children;
+    var right_children: Array<Int> = type_expression.arena.right_children;
     let root: Int = ArrayLength(kinds);
     ArrayPush(kinds, AstExpressionNodeStructLiteral());
     ArrayPush(texts, text);
@@ -213,12 +213,12 @@ func ParserExpressionBinary(
         !AstExpressionNodeKindKnown(kind) {
         return ParserExpressionInvalid();
     }
-    let kinds: Array<Int> = [];
-    let texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
+    var kinds: Array<Int> = [];
+    var texts: Array<String> = [];
+    var left_children: Array<Int> = [];
+    var right_children: Array<Int> = [];
     let left_count: Int = AstExpressionArenaNodeCount(left.arena);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < left_count {
         ArrayPush(kinds, left.arena.node_kinds[i]);
         ArrayPush(texts, left.arena.node_texts[i]);
@@ -231,8 +231,8 @@ func ParserExpressionBinary(
     while i < right_count {
         ArrayPush(kinds, right.arena.node_kinds[i]);
         ArrayPush(texts, right.arena.node_texts[i]);
-        let child_left: Int = right.arena.left_children[i];
-        let child_right: Int = right.arena.right_children[i];
+        var child_left: Int = right.arena.left_children[i];
+        var child_right: Int = right.arena.right_children[i];
         let arity: Int = AstExpressionNodeArity(
             right.arena.node_kinds[i]
         );
@@ -284,49 +284,8 @@ func ParserExpressionGraphsAppend(
     lane: Int,
     fact: ParserExpressionFact
 ) -> AstExpressionGraphRows {
-    if !ParserExpressionGraphRowsAppendShapeReady(rows) || !fact.ok ||
-        !AstExpressionOwnerKindKnown(owner_kind) ||
-        lane < AstExpressionLaneAtom() || lane > AstExpressionLaneAuxiliary() {
-        return AstExpressionGraphRows(
-            false, rows.root_owner_kinds, rows.root_lanes,
-            rows.roots, rows.arena
-        );
-    }
-    let kinds: Array<Int> = rows.arena.node_kinds;
-    let texts: Array<String> = rows.arena.node_texts;
-    let left_children: Array<Int> = rows.arena.left_children;
-    let right_children: Array<Int> = rows.arena.right_children;
-    let owner_kinds: Array<Int> = rows.root_owner_kinds;
-    let lanes: Array<Int> = rows.root_lanes;
-    let roots: Array<Int> = rows.roots;
-    let offset: Int = ArrayLength(kinds);
-    let i: Int = 0;
-    while i < AstExpressionArenaNodeCount(fact.arena) {
-        ArrayPush(kinds, fact.arena.node_kinds[i]);
-        ArrayPush(texts, fact.arena.node_texts[i]);
-        let left: Int = fact.arena.left_children[i];
-        let right: Int = fact.arena.right_children[i];
-        let arity: Int = AstExpressionNodeArity(fact.arena.node_kinds[i]);
-        if arity >= 1 {
-            left = left + offset;
-        }
-        if arity == 2 {
-            right = right + offset;
-        }
-        ArrayPush(left_children, left);
-        ArrayPush(right_children, right);
-        i = i + 1;
-    }
-    ArrayPush(owner_kinds, owner_kind);
-    ArrayPush(lanes, lane);
-    ArrayPush(roots, fact.root + offset);
-    let arena: AstExpressionArena = AstExpressionArena(
-        kinds, texts, left_children, right_children
-    );
-    let next: AstExpressionGraphRows = AstExpressionGraphRows(
-        true, owner_kinds, lanes, roots, arena
-    );
-    return next;
+    ParserExpressionGraphsAppendInto(rows, owner_kind, lane, fact);
+    return rows;
 }
 
 func ParserExpressionGraphsAppendInto(
@@ -335,62 +294,76 @@ func ParserExpressionGraphsAppendInto(
     lane: Int,
     fact: ParserExpressionFact
 ) -> Void {
-    rows = ParserExpressionGraphsAppend(rows, owner_kind, lane, fact);
+    if !ParserExpressionGraphRowsAppendShapeReady(rows) || !fact.ok ||
+        !AstExpressionOwnerKindKnown(owner_kind) ||
+        lane < AstExpressionLaneAtom() || lane > AstExpressionLaneAuxiliary() {
+        rows.ok = false;
+        return;
+    }
+    let offset: Int = ArrayLength(rows.arena.node_kinds);
+    var i: Int = 0;
+    while i < AstExpressionArenaNodeCount(fact.arena) {
+        ArrayPush(rows.arena.node_kinds, fact.arena.node_kinds[i]);
+        ArrayPush(rows.arena.node_texts, fact.arena.node_texts[i]);
+        var left: Int = fact.arena.left_children[i];
+        var right: Int = fact.arena.right_children[i];
+        let arity: Int = AstExpressionNodeArity(fact.arena.node_kinds[i]);
+        if arity >= 1 {
+            left = left + offset;
+        }
+        if arity == 2 {
+            right = right + offset;
+        }
+        ArrayPush(rows.arena.left_children, left);
+        ArrayPush(rows.arena.right_children, right);
+        i = i + 1;
+    }
+    ArrayPush(rows.root_owner_kinds, owner_kind);
+    ArrayPush(rows.root_lanes, lane);
+    ArrayPush(rows.roots, fact.root + offset);
+    rows.ok = true;
 }
 
 func ParserExpressionGraphsAppendRows(
     target: AstExpressionGraphRows,
     source: AstExpressionGraphRows
 ) -> AstExpressionGraphRows {
-    if !ParserExpressionGraphRowsAppendShapeReady(target) ||
-        !ParserExpressionGraphRowsAppendShapeReady(source) {
-        return AstExpressionGraphRows(
-            false, target.root_owner_kinds, target.root_lanes,
-            target.roots, target.arena
-        );
-    }
-    let kinds: Array<Int> = target.arena.node_kinds;
-    let texts: Array<String> = target.arena.node_texts;
-    let left_children: Array<Int> = target.arena.left_children;
-    let right_children: Array<Int> = target.arena.right_children;
-    let owner_kinds: Array<Int> = target.root_owner_kinds;
-    let lanes: Array<Int> = target.root_lanes;
-    let roots: Array<Int> = target.roots;
-    let offset: Int = ArrayLength(kinds);
-    let i: Int = 0;
-    while i < AstExpressionArenaNodeCount(source.arena) {
-        let kind: Int = source.arena.node_kinds[i];
-        let left: Int = source.arena.left_children[i];
-        let right: Int = source.arena.right_children[i];
-        let arity: Int = AstExpressionNodeArity(kind);
-        if arity >= 1 { left = left + offset; }
-        if arity == 2 { right = right + offset; }
-        ArrayPush(kinds, kind);
-        ArrayPush(texts, source.arena.node_texts[i]);
-        ArrayPush(left_children, left);
-        ArrayPush(right_children, right);
-        i = i + 1;
-    }
-    let root_index: Int = 0;
-    while root_index < ArrayLength(source.roots) {
-        ArrayPush(owner_kinds, source.root_owner_kinds[root_index]);
-        ArrayPush(lanes, source.root_lanes[root_index]);
-        ArrayPush(roots, source.roots[root_index] + offset);
-        root_index = root_index + 1;
-    }
-    let arena: AstExpressionArena = AstExpressionArena(
-        kinds, texts, left_children, right_children
-    );
-    return AstExpressionGraphRows(
-        true, owner_kinds, lanes, roots, arena
-    );
+    ParserExpressionGraphsAppendRowsInto(target, source);
+    return target;
 }
 
 func ParserExpressionGraphsAppendRowsInto(
     inout target: AstExpressionGraphRows,
     source: AstExpressionGraphRows
 ) -> Void {
-    target = ParserExpressionGraphsAppendRows(target, source);
+    if !ParserExpressionGraphRowsAppendShapeReady(target) ||
+        !ParserExpressionGraphRowsAppendShapeReady(source) {
+        target.ok = false;
+        return;
+    }
+    let offset: Int = ArrayLength(target.arena.node_kinds);
+    var i: Int = 0;
+    while i < AstExpressionArenaNodeCount(source.arena) {
+        let kind: Int = source.arena.node_kinds[i];
+        var left: Int = source.arena.left_children[i];
+        var right: Int = source.arena.right_children[i];
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity >= 1 { left = left + offset; }
+        if arity == 2 { right = right + offset; }
+        ArrayPush(target.arena.node_kinds, kind);
+        ArrayPush(target.arena.node_texts, source.arena.node_texts[i]);
+        ArrayPush(target.arena.left_children, left);
+        ArrayPush(target.arena.right_children, right);
+        i = i + 1;
+    }
+    var root_index: Int = 0;
+    while root_index < ArrayLength(source.roots) {
+        ArrayPush(target.root_owner_kinds, source.root_owner_kinds[root_index]);
+        ArrayPush(target.root_lanes, source.root_lanes[root_index]);
+        ArrayPush(target.roots, source.roots[root_index] + offset);
+        root_index = root_index + 1;
+    }
+    target.ok = true;
 }
 func ParserExpressionSubtree(
     fact: ParserExpressionFact,
@@ -400,8 +373,8 @@ func ParserExpressionSubtree(
     if !fact.ok || root < 0 || root >= count {
         return ParserExpressionInvalid();
     }
-    let pending: Array<Int> = [root];
-    let start: Int = root;
+    var pending: Array<Int> = [root];
+    var start: Int = root;
     while ArrayLength(pending) > 0 {
         let node: Int = pending[ArrayLength(pending) - 1];
         ArrayPop(pending);
@@ -416,15 +389,15 @@ func ParserExpressionSubtree(
             ArrayPush(pending, fact.arena.right_children[node]);
         }
     }
-    let kinds: Array<Int> = [];
-    let texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    let i: Int = start;
+    var kinds: Array<Int> = [];
+    var texts: Array<String> = [];
+    var left_children: Array<Int> = [];
+    var right_children: Array<Int> = [];
+    var i: Int = start;
     while i <= root {
         let kind: Int = fact.arena.node_kinds[i];
-        let left: Int = fact.arena.left_children[i];
-        let right: Int = fact.arena.right_children[i];
+        var left: Int = fact.arena.left_children[i];
+        var right: Int = fact.arena.right_children[i];
         let arity: Int = AstExpressionNodeArity(kind);
         if arity >= 1 { left = left - start; }
         if arity == 2 { right = right - start; }
@@ -456,8 +429,8 @@ func ParserExpressionNamedCallArgumentAt(
     if !fact.ok || expected_callee == "" || argument_index < 0 {
         return ParserExpressionInvalid();
     }
-    let reversed_arguments: Array<Int> = [];
-    let call: Int = fact.root;
+    var reversed_arguments: Array<Int> = [];
+    var call: Int = fact.root;
     while fact.arena.node_kinds[call] == AstExpressionNodeCallArgument() {
         ArrayPush(reversed_arguments, fact.arena.right_children[call]);
         call = fact.arena.left_children[call];
@@ -466,7 +439,7 @@ func ParserExpressionNamedCallArgumentAt(
         argument_index >= ArrayLength(reversed_arguments) {
         return ParserExpressionInvalid();
     }
-    let callee: Int = fact.arena.left_children[call];
+    var callee: Int = fact.arena.left_children[call];
     while fact.arena.node_kinds[callee] ==
         AstExpressionNodeGenericCallee() {
         callee = fact.arena.left_children[callee];
@@ -498,7 +471,7 @@ func ParserExpressionDirectCallCalleeName(
     fact: ParserExpressionFact
 ) -> Option<String> {
     if !fact.ok { return None; }
-    let node: Int = fact.root;
+    var node: Int = fact.root;
     while fact.arena.node_kinds[node] ==
         AstExpressionNodeCallArgument() {
         node = fact.arena.left_children[node];
@@ -506,7 +479,7 @@ func ParserExpressionDirectCallCalleeName(
     if fact.arena.node_kinds[node] != AstExpressionNodeCall() {
         return None;
     }
-    let callee: Int = fact.arena.left_children[node];
+    var callee: Int = fact.arena.left_children[node];
     while fact.arena.node_kinds[callee] ==
         AstExpressionNodeGenericCallee() {
         callee = fact.arena.left_children[callee];

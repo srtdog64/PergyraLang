@@ -30,7 +30,7 @@ func DirectMirPayloadFreeEnumAbiFactDigest(
     ref fact: DirectMirPayloadFreeEnumAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(641L, fact.representation);
+    var hash: Long = DirectMirCfgHashString(641L, fact.representation);
     hash = DirectMirCfgHashString(hash, fact.abi_type_name);
     hash = DirectMirCfgHashInt(hash, fact.variant_count);
     hash = DirectMirCfgHashInt(hash, fact.selected_ordinal);

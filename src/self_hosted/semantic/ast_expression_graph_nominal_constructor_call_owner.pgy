@@ -77,7 +77,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
         graph, call.call_node);
     if !binding.ok || binding.kind != SemanticExpressionBindingNone() ||
         binding.syntax_id != 0 ||
-        !IsSome(target_id) || UnwrapOption(target_id) != 0 ||
+        !IsSome(target_id) ||
         !IsSome(runtime_id) || UnwrapOption(runtime_id) != 0 ||
         SemanticAstCallableTypeShapeFromName(EnvValueLookup(names, types, enum_values, target.name)).ok {
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
@@ -88,6 +88,13 @@ func SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
     }
     let index: Int = UnwrapOption(constructor_index);
+    // Unsealed initializer analysis has no target yet; a sealed target must
+    // equal the declaration already selected by the nominal owner.
+    if UnwrapOption(target_id) != 0 && UnwrapOption(target_id) != constructors.node_ids[index] {
+        return SemanticExpressionGraphNominalConstructorCallError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "nominal_constructor_target_identity"),
+            ArrayLength(call.argument_nodes));
+    }
     // Initializer admission precedes identity sealing. Source signatures, not
     // a not-yet-filled zero call ID, distinguish a declared function here.
     let declared: Result<Int> = SemanticExpressionDeclaredFunctionSyntaxId(
@@ -125,7 +132,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
             ), actual_count
         );
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < actual_count {
         let argument: SemanticExpressionGraphNominalConstructorArgumentFact =
             SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(

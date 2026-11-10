@@ -1,14 +1,38 @@
 // Ordered admission for literal families and their exact owned use prefix.
 import "direct_mir_scalar_program_array_string_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy";
-import "direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy";
 import "direct_mir_scalar_program_array_bool_empty_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_array_bool_populated_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
 
-struct DirectMirScalarProgramLiteralExpressionAdmission {
-    let recognized: Bool;
-    let facts: DirectMirScalarProgramExpressionSet;
+func DirectMirScalarProgramEmptyArrayLiteralKind(
+    expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramExpressionKindFact {
+    if expected_type == CompilerAbiLayoutArrayStringTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprArrayStringLiteral(),
+            expected_type, "");
+    }
+    if expected_type == CompilerAbiLayoutArrayIntTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprArrayIntEmptyLiteral(),
+            expected_type, "");
+    }
+    if expected_type == CompilerAbiLayoutArrayBoolTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprArrayBoolEmptyLiteral(),
+            expected_type, "");
+    }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, expected_type) {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral(),
+            expected_type, "");
+    }
+    return DirectMirScalarProgramExpressionKindFactInvalid();
 }
 
 func DirectMirScalarProgramAppendLiteralExpression(
@@ -17,6 +41,7 @@ func DirectMirScalarProgramAppendLiteralExpression(
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
     local_instruction: Int, local_offset: Int, inout use_offset: Int,
     expected_type: String,
+    parameter_types: Array<String>,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
@@ -24,62 +49,44 @@ func DirectMirScalarProgramAppendLiteralExpression(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLiteralExpressionAdmission {
-    let string_array: DirectMirScalarProgramArrayStringLiteralAdmission =
-        DirectMirScalarProgramAppendArrayStringLiteral(
+    let root: Int = sequence.roots[0];
+    let source_kind: Int = sequence.arena.topology.node_kinds[root];
+    // Select one typed literal owner before transferring `facts`.  Calling
+    // every candidate in sequence would make their effect summaries compete
+    // for the same storage generation even though only one type can match.
+    if expected_type == CompilerAbiLayoutArrayStringTypeName() &&
+        (source_kind == AstExpressionNodeArrayLiteral() ||
+         source_kind == AstExpressionNodeArrayElement()) {
+        return DirectMirScalarProgramAppendArrayStringLiteral(
             facts, sequence, uses, global_row, local_instruction,
             local_offset, use_offset, expected_type, locals, value_types,
             wire, signature);
-    if string_array.recognized {
-        return DirectMirScalarProgramLiteralExpressionAdmission(
-            true, string_array.facts);
     }
-    // An unrecognized literal hands the set back untouched.
-    facts = string_array.facts;
-    let int_populated:
-        DirectMirScalarProgramArrayIntPopulatedLiteralAdmission =
-        DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
-            facts, sequence, uses, global_row, local_instruction,
-            local_offset, use_offset, expected_type, locals, value_types,
-            wire, signature, callables, logical_record);
-    if int_populated.recognized {
-        return DirectMirScalarProgramLiteralExpressionAdmission(
-            true, int_populated.facts);
+    if expected_type == CompilerAbiLayoutArrayIntTypeName() {
+        // Populated literals use the general typed expression DAG. Their
+        // elements have the same call, arithmetic and SSA rules as other
+        // expressions; a separate literal operand grammar loses those facts.
+        if source_kind == AstExpressionNodeArrayLiteral() {
+            return DirectMirScalarProgramAppendArrayIntEmptyLiteral(
+                facts, sequence, uses, global_row, expected_type);
+        }
     }
-    facts = int_populated.facts;
-    let bool_populated:
-        DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission =
-        DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
-            facts, sequence, uses, global_row, expected_type);
-    if bool_populated.recognized {
-        return DirectMirScalarProgramLiteralExpressionAdmission(
-            true, bool_populated.facts);
+    if expected_type == CompilerAbiLayoutArrayBoolTypeName() {
+        if source_kind == AstExpressionNodeArrayElement() {
+            return DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
+                facts, sequence, uses, global_row, expected_type);
+        }
+        if source_kind == AstExpressionNodeArrayLiteral() {
+            return DirectMirScalarProgramAppendArrayBoolEmptyLiteral(
+                facts, sequence, uses, global_row, expected_type);
+        }
     }
-    facts = bool_populated.facts;
-    let int_empty: DirectMirScalarProgramArrayIntEmptyLiteralAdmission =
-        DirectMirScalarProgramAppendArrayIntEmptyLiteral(
-            facts, sequence, uses, global_row, expected_type);
-    if int_empty.recognized {
-        return DirectMirScalarProgramLiteralExpressionAdmission(
-            true, int_empty.facts);
-    }
-    facts = int_empty.facts;
-    let bool_empty: DirectMirScalarProgramArrayBoolEmptyLiteralAdmission =
-        DirectMirScalarProgramAppendArrayBoolEmptyLiteral(
-            facts, sequence, uses, global_row, expected_type);
-    if bool_empty.recognized {
-        return DirectMirScalarProgramLiteralExpressionAdmission(
-            true, bool_empty.facts);
-    }
-    facts = bool_empty.facts;
-    let record_array:
-        DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission =
-        DirectMirScalarProgramAppendLogicalRecordArrayEmptyLiteral(
+    if source_kind == AstExpressionNodeArrayLiteral() &&
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, expected_type) {
+        return DirectMirScalarProgramAppendLogicalRecordArrayEmptyLiteral(
             facts, sequence, uses, global_row, expected_type,
             logical_record);
-    if record_array.recognized {
-        return DirectMirScalarProgramLiteralExpressionAdmission(
-            true, record_array.facts);
     }
-    facts = record_array.facts;
     return DirectMirScalarProgramLiteralExpressionAdmission(false, facts);
 }

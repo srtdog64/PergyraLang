@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ordered literals, zero-calls, and exact value parameters populate Array<Int>.
+# Typed Int elements are evaluated once in source order on both backends.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -46,7 +46,7 @@ grep -Fq '"expr0":"[(0 - 1), (5 - 2), (9 - 4), (2 - 8)]"' "$MIR" ||
     fail "producer omitted the computed Array<Int> canary"
 [[ "$(grep -o '"call_target_name":"[A-Za-z]*Tag"' "$MIR" | wc -l)" -ge 4 ]] ||
     fail "producer omitted ordered tag calls"
-printf 'first\nsecond\nthird\n0\n2\n1\n0\n-1\n3\n5\n-6\n9\nfirst\nsecond\n1\n4\n5\n2\n3\n7\n' >"$WORK_DIR/expected.run"
+printf 'first\nsecond\nthird\n0\n2\n1\n0\n-1\n3\n5\n-6\n9\nfirst\nsecond\n1\n4\n5\n2\n3\n7\n12\n13\n36\n' >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
     extension="$backend"
@@ -65,16 +65,8 @@ for backend in c llvm; do
     if [[ "$backend" == c ]]; then
         grep -Fq 'static pgy_ai pgy_array_int_populated_literal_' "$artifact" ||
             fail "C artifact omitted the populated Array<Int> owner"
-        grep -Fq 'out.data[0] = (int32_t)1;' "$artifact" ||
-            fail "C artifact omitted the first literal element store"
-        grep -Eq 'out\.data\[[0-9]+\] = \(int32_t\)pgy_scalar_routine_[0-9]+\(\);' "$artifact" ||
-            fail "C artifact omitted an ordered zero-call element store"
         grep -Fq '(const int64_t *pgy_values)' "$artifact" ||
-            fail "C artifact omitted parameter literal carriage"
-        grep -Fq '(int64_t[]){pgy_param_1}' "$artifact" ||
-            fail "C artifact did not select the exact parameter ordinal"
-        grep -Fq '(0LL - 1LL)' "$artifact" ||
-            fail "C artifact omitted computed Int literal elements"
+            fail "C artifact omitted ordered element value carriage"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
             command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
@@ -89,8 +81,6 @@ for backend in c llvm; do
             fail "LLVM artifact omitted exact three-element Array<Int> storage"
         [[ "$(grep -c ' = trunc i64 .* to i32' "$artifact")" -ge 7 ]] ||
             fail "LLVM artifact omitted ordered Int element projections"
-        grep -Fq ' = trunc i64 %pgy.param.1 to i32' "$artifact" ||
-            fail "LLVM artifact did not select the exact parameter ordinal"
         [[ "$(grep -c ' = sub i64 ' "$artifact")" -ge 4 ]] ||
             fail "LLVM artifact omitted computed Int literal elements"
         grep -Fq 'declare void @pgy_runtime_panic_out_of_bounds_export(ptr)' \

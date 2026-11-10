@@ -207,9 +207,11 @@ semantic_context_destroy(SemanticContext *ctx)
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
     free(ctx->string_store_landing_selected);
+    free(ctx->string_store_landing_selected_kinds);
+    free(ctx->string_store_landing_selected_nodes);
     free(ctx->string_store_landing_selected_routines);
     free(ctx->string_store_landing_selected_formals);
-    free(ctx->string_store_landing_risk_owners);
+    free(ctx->owned_string_array_push_candidates);
     free(ctx->loan_copy_landing_selected);
     function_param_flow_summary_store_destroy(ctx);
     semantic_param_publication_destroy(ctx);
@@ -269,15 +271,18 @@ semantic_context_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->type_resolution_graph.node_count; i++)
         free(ctx->type_resolution_graph.nodes[i].label);
     free(ctx->type_resolution_graph.nodes);
+    free(ctx->type_resolution_graph.node_identity_slots);
     for (size_t i = 0; i < ctx->type_resolution_graph.edge_count; i++)
         free(ctx->type_resolution_graph.edges[i].reason);
     free(ctx->type_resolution_graph.edges);
+    free(ctx->type_resolution_graph.edge_reason_slots);
     semantic_type_resolution_free_metadata(ctx);
     free(ctx->host_decl_index.decls);
     free(ctx->host_decl_index.names);
     free(ctx->host_decl_index.types);
     free(ctx->host_decl_index.hash);
     free(ctx->host_decl_index.nested_callables);
+    free(ctx->host_decl_index.roles_by_type);
     semantic_parallel_capture_facts_clear(
         ctx->parallel_capture_boundaries,
         ctx->parallel_capture_boundary_capacity);

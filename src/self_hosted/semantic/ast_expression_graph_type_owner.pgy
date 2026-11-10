@@ -31,7 +31,7 @@ func SemanticExpressionGraphStructLiteralTypeName(
         return None;
     }
     let name: String = UnwrapOption(type_name);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(function_names.names) {
         if function_names.names[i] == name && function_returns[i] == name {
             return Some(name);

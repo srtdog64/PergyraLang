@@ -55,35 +55,35 @@ func MirIntentRoutineStepPlanFromOwners(
         (!typed_execution && ArrayLength(topology_rows) != 0) {
         MirLowerFailClosed("MIR Intent step plan owner inputs are inconsistent");
     }
-    let steps: Array<MirIntentRoutineStepFact> = [];
-    let carrier_row: Int = 0;
+    var steps: Array<MirIntentRoutineStepFact> = [];
+    var carrier_row: Int = 0;
     let total_outcome_carrier_count: Int = MirIntentCarrierCount(
         routine_carriers.carrier_names, "IntentOutcomeBinding"
     );
-    let outcome_result_names: Array<String> = [];
-    let step_index: Int = 0;
+    var outcome_result_names: Array<String> = [];
+    var step_index: Int = 0;
     while step_index < ArrayLength(step_names) {
         let step_name: String = Concat("", step_names[step_index]);
-        let zone_name: String = "";
-        let zone_alias: String = "";
-        let who_name: String = "";
-        let authority_name: String = "";
+        var zone_name: String = "";
+        var zone_alias: String = "";
+        var who_name: String = "";
+        var authority_name: String = "";
         let eval_text: String = phase_projection.on_texts[step_index];
-        let outcome_name: String = "";
-        let outcome_type_name: String = "";
-        let outcome_action_syntax_id: String = "";
+        var outcome_name: String = "";
+        var outcome_type_name: String = "";
+        var outcome_action_syntax_id: String = "";
         let eval_result: String = phase_projection.on_results[step_index];
         let eval_type_name: String =
             phase_projection.on_type_names[step_index];
         let eval_row: Int = phase_projection.on_rows[step_index];
-        let typed_step_row: Int = 0 - 1;
-        let zone_count: Int = 0;
-        let alias_count: Int = 0;
-        let invalidation_count: Int = 0;
-        let who_count: Int = 0;
-        let authority_count: Int = 0;
-        let cause_count: Int = 0;
-        let outcome_count: Int = 0;
+        var typed_step_row: Int = 0 - 1;
+        var zone_count: Int = 0;
+        var alias_count: Int = 0;
+        var invalidation_count: Int = 0;
+        var who_count: Int = 0;
+        var authority_count: Int = 0;
+        var cause_count: Int = 0;
+        var outcome_count: Int = 0;
         carrier_row = 0;
         while carrier_row < ArrayLength(routine_carriers.carrier_names) {
             let carrier_name: String = routine_carriers.carrier_names[carrier_row];
@@ -146,7 +146,7 @@ func MirIntentRoutineStepPlanFromOwners(
             MirIntentActionGraphFromInstruction(
                 routines, eval_row, eval_text
             );
-        let direct_target_syntax_id: String = "";
+        var direct_target_syntax_id: String = "";
         if eval_action.ok && eval_action.receiver_alias == "" &&
             eval_action.action_name == eval_action.call_target_name {
             direct_target_syntax_id = MirIntentDirectTargetSyntaxId(
@@ -183,7 +183,7 @@ func MirIntentRoutineStepPlanFromOwners(
                 );
             }
         } else {
-            let prior_outcome: Int = 0;
+            var prior_outcome: Int = 0;
             while prior_outcome < ArrayLength(outcome_result_names) {
                 if outcome_result_names[prior_outcome] == outcome_name {
                     MirLowerFailClosed(
@@ -194,11 +194,11 @@ func MirIntentRoutineStepPlanFromOwners(
             }
             ArrayPush(outcome_result_names, outcome_name);
         }
-        let read_count: Int = 0;
-        let authorize_count: Int = 0;
-        let authorize_name: String = "";
-        let authorize_slot: String = "";
-        let resource_row: Int = 0;
+        var read_count: Int = 0;
+        var authorize_count: Int = 0;
+        var authorize_name: String = "";
+        var authorize_slot: String = "";
+        var resource_row: Int = 0;
         while resource_row < ArrayLength(routine_carriers.resource_names) {
             if routine_carriers.resource_names[resource_row] == "Read" &&
                 routine_carriers.resource_arg0s[resource_row] == zone_alias &&
@@ -228,17 +228,17 @@ func MirIntentRoutineStepPlanFromOwners(
                 "MIR intent action expression graph identity is invalid"
             );
         }
-        let target_kind: String = "action";
+        var target_kind: String = "action";
         if eval_action.receiver_alias == "" { target_kind = "intent"; }
         // Typed steps take the `on` phase for an action or a child intent alike.
-        let expected_phase: String = SelfMirIntentTargetPhase(target_kind);
+        var expected_phase: String = SelfMirIntentTargetPhase(target_kind);
         if typed_execution { expected_phase = "on"; }
         if phase_projection.on_phases[step_index] != expected_phase {
             MirLowerFailClosed("MIR intent evaluation phase disagrees with its target kind");
         }
         let receiver_binding_row: Int = MirIntentBindingRowForAlias(
             binding_projection, eval_action.receiver_alias);
-        let action_syntax_id: String = "";
+        var action_syntax_id: String = "";
         if outcome_count == 1 && MirIntentBindingRowForAlias(binding_projection, outcome_name) >= 0 {
             MirLowerFailClosed("MIR intent outcome binding collides with a participant");
         }
@@ -306,7 +306,7 @@ func MirIntentRoutineStepPlanFromOwners(
                 );
             }
         }
-        let placement_receiver: Int = receiver_binding_row;
+        var placement_receiver: Int = receiver_binding_row;
         if direct_intent_target && placement.present {
             placement_receiver = MirIntentBindingRowForAlias(binding_projection, who_name);
         }

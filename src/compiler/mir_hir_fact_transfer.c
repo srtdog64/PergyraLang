@@ -12,6 +12,7 @@
 #include "../parser/ast_api.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 static bool mir_collection_evidence_error(char **error)
 {
@@ -367,6 +368,67 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
     free(write_seen);
     free(source_occurrences);
     return valid || mir_collection_evidence_error(error);
+}
+
+bool
+mir_collection_effect_evidence_receipt_current(
+    const MIRCollectionEffectEvidenceReceipt *receipt,
+    const MIRProgram *mir)
+{
+    return receipt != NULL
+        && receipt->verified
+        && mir != NULL
+        && receipt->program == mir
+        && receipt->snapshot == mir->collection_effect_snapshot
+        && receipt->source_program == mir->collection_effect_source_program
+        && receipt->routines == mir->routines
+        && receipt->routine_count == mir->routine_count;
+}
+
+bool
+mir_validate_collection_effect_evidence_and_issue(
+    const MIRProgram *mir,
+    MIRCollectionEffectEvidenceReceipt *receipt_out,
+    char **error_message)
+{
+    if (receipt_out == NULL)
+        return mir_collection_evidence_error(error_message);
+    memset(receipt_out, 0, sizeof(*receipt_out));
+    if (!mir_validate_collection_effect_evidence(mir, NULL, error_message))
+        return false;
+    receipt_out->program = mir;
+    receipt_out->snapshot = mir->collection_effect_snapshot;
+    receipt_out->source_program = mir->collection_effect_source_program;
+    receipt_out->routines = mir->routines;
+    receipt_out->routine_count = mir->routine_count;
+    receipt_out->verified = true;
+    return true;
+}
+
+bool
+mir_use_collection_effect_evidence_receipt(
+    const MIRCollectionEffectEvidenceReceipt *receipt,
+    const MIRRoutine *routine,
+    char **error_message)
+{
+    const char *verify_reuse;
+    const MIRRoutine *canonical;
+
+    if (routine == NULL
+        || !mir_collection_effect_evidence_receipt_current(
+               receipt, routine->program)
+        || routine->id >= receipt->routine_count) {
+        return mir_collection_evidence_error(error_message);
+    }
+    canonical = &receipt->routines[routine->id];
+    if (!mir_collection_body_borrow_current(routine, canonical))
+        return mir_collection_evidence_error(error_message);
+
+    verify_reuse = getenv("PGY_VERIFY_MIR_COLLECTION_EVIDENCE_REUSE");
+    if (verify_reuse != NULL && strcmp(verify_reuse, "1") == 0)
+        return mir_validate_collection_effect_evidence(
+            receipt->program, routine, error_message);
+    return true;
 }
 
 bool

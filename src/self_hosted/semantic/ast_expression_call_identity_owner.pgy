@@ -30,9 +30,9 @@ func SemanticExpressionGraphRootStartAt(
     // The nearest earlier slot with a root bounds this subtree. Scanning back
     // from the slot finds the same slot a forward pass ends on, without
     // visiting every earlier slot on each call.
-    let previous_root: Int = -1;
-    let found: Bool = false;
-    let i: Int = root_slot - 1;
+    var previous_root: Int = -1;
+    var found: Bool = false;
+    var i: Int = root_slot - 1;
     while i >= 0 && !found {
         if graph.has_roots[i] {
             previous_root = graph.roots[i];
@@ -58,7 +58,7 @@ func SemanticExpressionCallIdentityForNode(
             AstExpressionNodeCall() {
         return SemanticExpressionCallIdentityInvalid();
     }
-    let slot: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] {
             let start_opt: Option<Int> =
@@ -71,8 +71,8 @@ func SemanticExpressionCallIdentityForNode(
             let start: Int = UnwrapOption(start_opt);
             let root: Int = surfaces.expression_graph.roots[slot];
             if call_node_id >= start && call_node_id <= root {
-                let ordinal: Int = 0;
-                let node: Int = start;
+                var ordinal: Int = 0;
+                var node: Int = start;
                 while node <= call_node_id {
                     if surfaces.expression_graph.arena.topology.node_kinds[node] ==
                         AstExpressionNodeCall() {
@@ -110,7 +110,7 @@ func SemanticExpressionCallNodeForIdentity(
         lane > AstExpressionLaneAuxiliary() || local_call_ordinal < 0 {
         return None;
     }
-    let surface_index: Int = 0;
+    var surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(surfaces) &&
         surfaces.node_ids[surface_index] != owner_node_id {
         surface_index = surface_index + 1;
@@ -123,8 +123,8 @@ func SemanticExpressionCallNodeForIdentity(
         surfaces.expression_graph, slot
     );
     if !IsSome(start_opt) { return None; }
-    let ordinal: Int = 0;
-    let node: Int = UnwrapOption(start_opt);
+    var ordinal: Int = 0;
+    var node: Int = UnwrapOption(start_opt);
     let root: Int = surfaces.expression_graph.roots[slot];
     while node <= root {
         if surfaces.expression_graph.arena.topology.node_kinds[node] ==

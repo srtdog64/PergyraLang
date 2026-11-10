@@ -1,0 +1,16 @@
+// EchoText lends the String created in Publish, but that String already has a
+// local owner.  Writing it to the Slot transfers the local value; it does not
+// copy a caller-borrowed value and therefore needs no semantic landing round.
+struct TextRecord { text: String; }
+func EchoText(ref text: String) -> String { return text; }
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    Write(output, EchoText(record.text));
+    return true;
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Log(Read(output));
+    Release(output);
+}

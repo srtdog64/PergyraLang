@@ -25,6 +25,9 @@ func SemanticAstCollectionOwnershipEffectDrop() -> Int {
     return 3;
 }
 
+func SemanticAstCollectionOwnershipEffectOwnedStringSet() -> Int { return 4; }
+func SemanticAstCollectionOwnershipEffectOwnedStringPop() -> Int { return 5; }
+
 func SemanticAstCollectionOwnershipReceiptRowsEmpty(
 ) -> SemanticAstCollectionOwnershipReceiptRows {
     let function_ids: Array<Int> = [];
@@ -52,7 +55,7 @@ func SemanticAstCollectionOwnershipReceiptRowsReady(
         count != ArrayLength(rows.source_binding_syntax_ids) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if rows.function_syntax_ids[row] <= 0 ||
             rows.owner_node_ids[row] <= 0 ||
@@ -61,7 +64,7 @@ func SemanticAstCollectionOwnershipReceiptRowsReady(
             rows.effect_kinds[row] <
                 SemanticAstCollectionOwnershipEffectOwnedStringPush() ||
             rows.effect_kinds[row] >
-                SemanticAstCollectionOwnershipEffectDrop() ||
+                SemanticAstCollectionOwnershipEffectOwnedStringPop() ||
             rows.receiver_binding_syntax_ids[row] <= 0 ||
             rows.source_binding_syntax_ids[row] < 0 ||
             (rows.source_binding_syntax_ids[row] != 0 &&
@@ -69,7 +72,7 @@ func SemanticAstCollectionOwnershipReceiptRowsReady(
                 SemanticAstCollectionOwnershipEffectOwnedStringPush()) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if rows.function_syntax_ids[prior] ==
                     rows.function_syntax_ids[row] &&
@@ -96,13 +99,13 @@ func SemanticAstCollectionOwnershipReceiptRowsAppend(
     receiver_binding_syntax_id: Int,
     source_binding_syntax_id: Int
 ) -> SemanticAstCollectionOwnershipReceiptRows {
-    let function_ids: Array<Int> = rows.function_syntax_ids;
-    let owner_ids: Array<Int> = rows.owner_node_ids;
-    let lanes: Array<Int> = rows.lanes;
-    let ordinals: Array<Int> = rows.local_call_ordinals;
-    let effects: Array<Int> = rows.effect_kinds;
-    let receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
-    let source_ids: Array<Int> = rows.source_binding_syntax_ids;
+    var function_ids: Array<Int> = rows.function_syntax_ids;
+    var owner_ids: Array<Int> = rows.owner_node_ids;
+    var lanes: Array<Int> = rows.lanes;
+    var ordinals: Array<Int> = rows.local_call_ordinals;
+    var effects: Array<Int> = rows.effect_kinds;
+    var receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
+    var source_ids: Array<Int> = rows.source_binding_syntax_ids;
     ArrayPush(function_ids, function_syntax_id);
     ArrayPush(owner_ids, owner_node_id);
     ArrayPush(lanes, lane);

@@ -13,13 +13,14 @@ func EmitResultLetDeclaration(
     expr: String,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
     CodegenTypeEnvStateAppendTypedValueBinding(
-        env_state, env, name, type_name, type_name, c_name
+        env_state, name, type_name, type_name, c_name
     );
     let value: String = RewriteExpectedValueWithSemanticGraph(
-        expr, type_name, env, graph
+        expr, type_name, env, graph, root_id
     );
     return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
         Concat(c_name, Concat(" = ", Concat(value, ";")))));

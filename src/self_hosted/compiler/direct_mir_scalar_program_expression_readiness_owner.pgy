@@ -29,11 +29,10 @@ import "direct_mir_scalar_program_runtime_value_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_slice_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_float_literal_readiness_owner.pgy";
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
-    if node < 0 || node >= ArrayLength(facts.node_kinds) {
-        return false;
-    }
+    if node < 0 || node >= ArrayLength(facts.node_kinds) { return false; }
     let kind: Int = facts.node_kinds[node];
     let type_name: String = facts.node_types[node];
     let left: Int = facts.node_lefts[node];
@@ -84,6 +83,9 @@ func DirectMirScalarProgramExpressionNodeReady(
     let option_ready: Option<Bool> =
         DirectMirScalarProgramOptionIntExpressionFamilyNodeReady(facts, node);
     if IsSome(option_ready) { return UnwrapOption(option_ready); }
+    let result_ready: Option<Bool> =
+        DirectMirScalarProgramResultIntExpressionNodeReady(facts, node);
+    if IsSome(result_ready) { return UnwrapOption(result_ready); }
     if member != -1 { return false; }
     let cast_ready: Option<Bool> = DirectMirScalarProgramNumericCastExpressionNodeReady(facts, node); if IsSome(cast_ready) { return UnwrapOption(cast_ready); }
     let comparison_ready: Option<Bool> = DirectMirScalarProgramComparisonExpressionNodeReady(facts, node);
@@ -108,9 +110,6 @@ func DirectMirScalarProgramExpressionNodeReady(
     let option_bool_ready: Option<Bool> =
         DirectMirScalarProgramOptionBoolExpressionNodeReady(facts, node);
     if IsSome(option_bool_ready) { return UnwrapOption(option_bool_ready); }
-    let result_int_ready: Option<Bool> =
-        DirectMirScalarProgramResultIntExpressionNodeReady(facts, node);
-    if IsSome(result_int_ready) { return UnwrapOption(result_int_ready); }
     let record_option_ready: Option<Bool> = DirectMirScalarProgramLogicalRecordOptionExpressionNodeReady(facts, node);
     if IsSome(record_option_ready) { return UnwrapOption(record_option_ready); }
     if kind == DirectMirScalarProgramExprLocal() {
@@ -131,6 +130,7 @@ func DirectMirScalarProgramExpressionNodeReady(
             AstExpressionLongLiteralPayloadReady(Concat(literal, "L")) &&
             left == -1 && right == -1 && local_binding == -1 && param == -1 && callable == -1;
     }
+    if kind == DirectMirScalarProgramExprFloatLiteral() { return DirectMirScalarProgramFloatLiteralNodeReady(facts, node); }
     if kind == DirectMirScalarProgramExprBoolLiteral() {
         return type_name == CompilerAbiLayoutBoolTypeName() &&
             (literal == "true" || literal == "false") && left == -1 &&
@@ -173,6 +173,13 @@ func DirectMirScalarProgramExpressionNodeReady(
             right == -1 && local_binding == -1 && param == -1 &&
             literal == "" && callable == -1;
     }
+    if kind == DirectMirScalarProgramExprStringClone() {
+        return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
+            left < node &&
+            facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
+            right == -1 && local_binding == -1 && param == -1 &&
+            literal == "" && callable == -1;
+    }
     if kind == DirectMirScalarProgramExprStringLength() {
         return type_name == CompilerAbiLayoutIntTypeName() && left >= 0 &&
             facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
@@ -196,7 +203,7 @@ func DirectMirScalarProgramExpressionNodeReady(
         return false;
     }
     if string_binary {
-        let expected_type: String = CompilerAbiLayoutBoolTypeName();
+        var expected_type: String = CompilerAbiLayoutBoolTypeName();
         if kind == DirectMirScalarProgramExprConcatString() {
             expected_type = CompilerAbiLayoutStringTypeName();
         }
@@ -229,7 +236,7 @@ func DirectMirScalarProgramExpressionSetSemanticallyReady(
     ref facts: DirectMirScalarProgramExpressionSet
 ) -> Bool {
     if !DirectMirScalarProgramExpressionSetReady(facts) { return false; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(facts.node_kinds) {
         if !DirectMirScalarProgramExpressionNodeReady(facts, node) {
             return false;

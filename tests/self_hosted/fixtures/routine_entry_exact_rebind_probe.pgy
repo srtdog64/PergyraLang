@@ -1,0 +1,8 @@
+// Import the production routine-lowering chain so the emitted artifact can
+// prove that exact build = F(build) updates remain moves, not whole-build
+// Clones, even when the build carries facts derived from ref input.
+import "../../../src/self_hosted/mir/routine_entry_owner.pgy";
+
+func Main() -> Void with caps io_write {
+    Print("routine-entry-exact-rebind-ready");
+}

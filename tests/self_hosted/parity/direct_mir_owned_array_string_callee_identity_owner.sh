@@ -2,9 +2,11 @@
 # Callee identity, not declaration order, owns a last-use Array<String> move.
 # Callee-order permutation and independent returns preserve last-use C/LLVM moves with owned ABI and returned-use refusals
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+ROOT_DIR="$(cd "${PGY_TEST_ROOT:-$(dirname "${BASH_SOURCE[0]}")/../../..}" && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+pgy_selfhost_select_linked_runtime_compile_profile
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-owned-array-string-callee-identity"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -19,6 +21,17 @@ mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/owned-array-callee-identity.XXXXXX")"
 WORK_REL="${WORK_DIR#"$ROOT_DIR/"}"
 echo "[$LABEL] evidence: $WORK_REL"
+
+# Every LLVM projection links the canonical runtime. Bounds and invariant
+# panics share that owner; one guessed panic symbol cannot select its presence.
+runtime_obj="$WORK_DIR/runtime.o"
+"$CC" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" \
+    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$runtime_obj" \
+    >"$WORK_DIR/runtime.compile.log" 2>&1 || {
+        cat "$WORK_DIR/runtime.compile.log" >&2
+        fail "canonical LLVM runtime support did not compile"
+    }
 
 for name in first_callee late_callee independent_return real_join; do
     source_rel="tests/self_hosted/fixtures/direct_mir_owned_array_string_$name.pgy"
@@ -48,20 +61,8 @@ for name in first_callee late_callee independent_return real_join; do
             fi
             command+=(-lm -o "$bin")
         else
-            runtime_object=()
-            if grep -Fq '@pgy_runtime_panic_internal_invariant_export' "$artifact"; then
-                runtime_object=("$WORK_DIR/$name.runtime.o")
-                "$CC" -std=c11 -O0 -DPGY_LLVM_ENABLED \
-                    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
-                    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
-                    -o "${runtime_object[0]}" \
-                    >"$WORK_DIR/$name.runtime.compile.log" 2>&1 || {
-                        cat "$WORK_DIR/$name.runtime.compile.log" >&2
-                        fail "$name LLVM runtime support did not compile"
-                    }
-            fi
             command=("$CLANG" -x ir "$artifact" -x none \
-                "${runtime_object[@]}" -pthread -lm -o "$bin")
+                "$runtime_obj" -pthread -lm -o "$bin")
         fi
         "${command[@]}" >"$WORK_DIR/$name.$backend.compile.log" 2>&1 || {
             cat "$WORK_DIR/$name.$backend.compile.log" >&2; fail "$name/$backend compile failed";

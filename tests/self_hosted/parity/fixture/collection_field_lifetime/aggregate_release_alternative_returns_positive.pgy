@@ -11,15 +11,15 @@ func HolderFromTables(tables: SemanticAstExpressionFunctionTableFacts) -> TableH
 }
 
 func HolderRelease(inout holder: TableHolder) -> Void {
-    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    var tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
     SemanticAstExpressionFunctionTableFactsRelease(tables);
     holder.tables = tables;
 }
 
 func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
     ArrayPushOwnedString(names, "OwnedCallable");
     ArrayPushOwnedString(returns, "Void");
     ArrayPushOwnedString(params, "");
@@ -36,6 +36,6 @@ func HolderFromChoice(first: Bool) -> TableHolder {
 }
 
 func Main() -> Void {
-    let holder: TableHolder = HolderFromChoice(true);
+    var holder: TableHolder = HolderFromChoice(true);
     HolderRelease(holder);
 }

@@ -1,0 +1,32 @@
+// Demand-local receipt for one fully replayed logical-record fact generation.
+
+struct DirectMirScalarProgramLogicalRecordValidationReceipt {
+    let admitted: Bool;
+    let fact_digest: Int;
+    let present: Bool;
+    let declaration_count: Int;
+    let field_count: Int;
+    let identity_digest: Int;
+    let verification_replay: Bool;
+}
+
+func DirectMirScalarProgramLogicalRecordValidationReceiptEmpty(
+) -> DirectMirScalarProgramLogicalRecordValidationReceipt {
+    return DirectMirScalarProgramLogicalRecordValidationReceipt(
+        false, 0, false, 0, 0, 0, false);
+}
+
+func DirectMirScalarProgramLogicalRecordValidationReceiptMatches(
+    ref receipt: DirectMirScalarProgramLogicalRecordValidationReceipt,
+    fact_digest: Int, present: Bool, declaration_count: Int,
+    field_count: Int, identity_digest: Int
+) -> Bool {
+    return receipt.admitted && receipt.fact_digest > 0 &&
+        receipt.fact_digest == fact_digest && receipt.present == present &&
+        receipt.declaration_count == declaration_count &&
+        receipt.field_count == field_count &&
+        receipt.identity_digest > 0 &&
+        receipt.identity_digest == identity_digest &&
+        receipt.present == (receipt.declaration_count > 0) &&
+        receipt.declaration_count >= 0 && receipt.field_count >= 0;
+}

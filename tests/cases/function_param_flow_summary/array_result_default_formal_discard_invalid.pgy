@@ -1,0 +1,10 @@
+// A transferred default Array result owns the only cleanup right. Discarding
+// it would leak that storage, so the call must remain fail-closed.
+func Relay(rows: Array<Int>) -> Array<Int> {
+    return rows;
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [3];
+    Relay(rows);
+}

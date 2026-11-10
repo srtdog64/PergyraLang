@@ -12,7 +12,9 @@ typedef enum {
     PGY_COLLECTION_TRANSITION_BIRTH = 1,
     PGY_COLLECTION_TRANSITION_MOVE,
     PGY_COLLECTION_TRANSITION_DROP,
-    PGY_COLLECTION_TRANSITION_OWNED_STRING_SET
+    PGY_COLLECTION_TRANSITION_OWNED_STRING_SET,
+    PGY_COLLECTION_TRANSITION_OWNED_STRING_POP,
+    PGY_COLLECTION_TRANSITION_OWNED_STRING_PUSH
 } PgyCollectionTransitionOperationKind;
 
 typedef struct {
@@ -31,6 +33,15 @@ typedef struct {
     size_t operation_count;
 } PgyCollectionTransitionBlock;
 
+/* One cleanup that executes only while control crosses predecessor ->
+ * successor. SIZE_MAX names a terminal return edge. HIR may defer issuance
+ * of these rows to MIR, but MIR validation must provide every actual row. */
+typedef struct {
+    size_t predecessor;
+    size_t successor;
+    uint32_t binding_syntax_id;
+} PgyCollectionTransitionRetirement;
+
 typedef struct {
     uint32_t function_syntax_id;
     const PgyCollectionOwnershipFact *bindings;
@@ -42,6 +53,13 @@ typedef struct {
     const PgyCollectionTransitionOperation *operations;
     size_t operation_count;
     size_t entry_block;
+    const PgyCollectionTransitionRetirement *retirements;
+    size_t retirement_count;
+    /* HIR may name exact retired bindings whose cleanup topology is issued
+     * only after MIR exists. MIR must pass an empty pending set and provide
+     * concrete retirement rows instead. */
+    const uint32_t *pending_retirement_bindings;
+    size_t pending_retirement_count;
 } PgyCollectionTransitionView;
 
 /* The subset is owned local birth/transfer facts, never formal/unknown rows. */

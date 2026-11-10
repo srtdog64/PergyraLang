@@ -46,8 +46,8 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
         json, json_extent, start, end);
     let logical_only: Bool = declarations.kinds[declaration_row] != "struct";
     let keys: Array<String> = DirectMirScalarProgramLogicalRecordDeclarationKeys(logical_only);
-    let starts: Array<Int> = [];
-    let ends: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var ends: Array<Int> = [];
     while ArrayLength(starts) < ArrayLength(keys) {
         ArrayPush(starts, -1);
         ArrayPush(ends, -1);
@@ -77,11 +77,17 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
         ToInt(UnwrapOption(syntax)) <= 0 {
         return invalid;
     }
-    let physical: DirectMirNominalDeclarationAbiFact =
+    var physical: DirectMirNominalDeclarationAbiFact =
         InvalidDirectMirNominalDeclarationAbiFact();
     if logical_only {
-        if ends[6] - starts[6] != 2 ||
-            !StringWindowSubEquals(json, json_extent, ends[6], starts[6], 2, "[]") {
+        // A value declaration may own methods while its fields still form one
+        // passive record. Method identity and bodies remain owned by the
+        // admitted routine index; this envelope only verifies their array
+        // boundary instead of requiring a method-free declaration.
+        let methods: JsonArrayObjectFactTable =
+            JsonArrayObjectFactTableFromBounds(
+                json, json_extent, starts[6], ends[6]);
+        if !JsonArrayObjectFactTableReady(methods) {
             return invalid;
         }
     } else {

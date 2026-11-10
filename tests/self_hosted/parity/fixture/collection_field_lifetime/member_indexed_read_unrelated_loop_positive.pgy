@@ -1,0 +1,18 @@
+// An opaque loop hazard belongs to its root, not every member read in the program.
+struct LoopReadTable { names: Array<String>; }
+
+func LoopReadNames(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+
+func LoopReadObserve(table: LoopReadTable) -> Bool {
+    return LoopReadNames(table.names);
+}
+
+func LoopReadReturn(table: LoopReadTable, repeat: Bool) -> LoopReadTable {
+    while repeat { return table; }
+    return table;
+}
+
+func Main() -> Void {
+    let table: LoopReadTable = LoopReadTable(["x"]);
+    Log(LoopReadObserve(table));
+}

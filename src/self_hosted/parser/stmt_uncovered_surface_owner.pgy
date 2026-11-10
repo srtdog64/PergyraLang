@@ -35,7 +35,7 @@ func ParseRefuseUncoveredStatementSurface(
     // name, number or string on the same line makes it that statement;
     // anything else leaves `give` an ordinary name.
     if MatchLanguageWord(content, head_start, LanguageWordId.WordGive) {
-        let after_give: Int = LanguageWordEnd(head_start, LanguageWordId.WordGive);
+        var after_give: Int = LanguageWordEnd(head_start, LanguageWordId.WordGive);
         while ParserCharAt(content, after_give) == " " || ParserCharAt(content, after_give) == "\t" {
             after_give = after_give + 1;
         }

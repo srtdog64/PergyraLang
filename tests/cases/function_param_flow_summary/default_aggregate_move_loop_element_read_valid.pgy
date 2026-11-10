@@ -9,7 +9,7 @@ struct Arena {
 }
 
 func Count(arena: Arena) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for block in arena.blocks {
         total = total + ArrayLength(block.ids) + block.ids[0];
     }

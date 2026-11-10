@@ -40,6 +40,7 @@ func SemanticReason(code: String) -> String {
     if code == "match_pattern_invalid" { return "Invalid or non-exhaustive match pattern"; }
     if code == "intent_retry_unavailable" { return "Intent retry execution lowering is not implemented"; }
     if code == "intent_step_clause_not_bool" { return "An intent step's intent clause gates the step on a Bool child intent; a typed intent returns its outcome enum"; }
+    if code == "intent_compensation_missing" { return "The intent compensates other steps, but this effect could remain applied after a later failure"; }
     if code == "intent_child_cycle" { return "A nested intent is a sub-purpose of its parent, but this child's intents lead back to the parent"; }
     if code == "intent_predicate_plan_unavailable" { return "the typed Intent outcome plan required by this boundary predicate is unavailable"; }
     if code == "action_contract_invalid" { return "Action authority requires a declared binding and matching zone contract"; }
@@ -104,6 +105,7 @@ func SemanticReason(code: String) -> String {
     if code == "condition_not_bool" { return "branch condition must be Bool"; }
     if code == "assign_type_mismatch" { return "assigned expression type does not match the local type"; }
     if code == "immutable_field_write" { return "assignment requires a mutable field and a writable receiver"; }
+    if code == "immutable_binding_write" { return "let fixes the binding after initialization; rebinding requires a mutable declaration"; }
     if code == "declared_capability_missing" { return "the callable body requires capabilities outside its declared bound"; }
     if code == "declared_effect_missing" {
         return "the callable body reaches effects outside its declared bound";
@@ -181,6 +183,7 @@ func SemanticFix(code: String) -> String {
     if code == "match_pattern_invalid" { return "cover every enum variant with the declared payload arity or add a default arm"; }
     if code == "intent_retry_unavailable" { return "remove the retry modifier until both backends implement the same retry contract"; }
     if code == "intent_step_clause_not_bool" { return "call an intent without a return type here, or call the typed intent outside the step gate and match its outcome"; }
+    if code == "intent_compensation_missing" { return "add a compensation for the effectful step; keep a zero-compensation workflow only when no step claims rollback"; }
     if code == "intent_child_cycle" { return "call a child intent that does not reach the parent intent again"; }
     if code == "intent_predicate_plan_unavailable" { return "use an admitted Intent outcome plan before checking the boundary predicate"; }
     if code == "action_contract_invalid" { return "align the action binding, subject slot and explicit zone authority"; }
@@ -252,6 +255,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "immutable_field_write" {
         return "construct a replacement, or use a mutable field through a writable boundary";
+    }
+    if code == "immutable_binding_write" {
+        return "declare the binding with var or let mut when rebinding is intended";
     }
     if code == "declared_capability_missing" {
         return "declare the required capabilities or remove the corresponding operations";
@@ -358,8 +364,8 @@ func SemanticVerdictPayloadBaseName(path: String, suffix: String) -> Option<Stri
     if !SemanticVerdictPayloadPathEndsWith(path, suffix) {
         return None;
     }
-    let last_slash: Int = -1;
-    let i: Int = 0;
+    var last_slash: Int = -1;
+    var i: Int = 0;
     while i < StringLength(path) {
         if Substring(path, i, 1) == "/" {
             last_slash = i;
@@ -407,7 +413,7 @@ func SemanticExpectedDiagnosticCode(base: String) -> Option<String> {
     }
     let lines: Array<String> = Split(ReadFile(expected_path), "\n");
     let prefix: String = "Code: ";
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(lines) {
         let line: String = lines[i];
         if SemanticDiagnosticLineStartsWith(line, prefix) {
@@ -423,8 +429,8 @@ func SemanticExpectedDiagnosticCode(base: String) -> Option<String> {
 }
 
 func SemanticVerdictPayloadFixtureManifestRow(base: String, status: String) -> String {
-    let code: String = "";
-    let oracle: String = "";
+    var code: String = "";
+    var oracle: String = "";
     if status == "error" {
         let code_opt: Option<String> = SemanticExpectedDiagnosticCode(base);
         if IsSome(code_opt) {
@@ -439,8 +445,8 @@ func SemanticVerdictPayloadFixtureManifestRow(base: String, status: String) -> S
 
 func SemanticVerdictPayloadFixtureManifestRows() -> Array<String> {
     let entries: Array<String> = DirWalk(SemanticVerdictPayloadFixtureDir());
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(entries) {
         let path: String = entries[i];
         if SemanticVerdictPayloadPathEndsWith(path, ".pgy") {
@@ -461,7 +467,7 @@ func SemanticVerdictPayloadFixtureManifestRows() -> Array<String> {
 
 func EmitSemanticVerdictPayloadFixtureManifest() -> Void {
     let rows: Array<String> = SemanticVerdictPayloadFixtureManifestRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;
@@ -480,7 +486,7 @@ func SemanticDiagnosticCodeRendered(code: String) -> Bool {
 
 func SemanticDiagnosticVocabularyRow(code: String) -> String {
     let oracle: String = SemanticDiagnosticOracleCode(code);
-    let rendered: String = "missing-renderer";
+    var rendered: String = "missing-renderer";
     if SemanticDiagnosticCodeRendered(code) {
         rendered = "rendered";
     }
@@ -490,8 +496,8 @@ func SemanticDiagnosticVocabularyRow(code: String) -> String {
 
 func SemanticDiagnosticVocabularyRows() -> Array<String> {
     let codes: Array<String> = SemanticDiagnosticCodes();
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(codes) {
         ArrayPush(rows, SemanticDiagnosticVocabularyRow(codes[i]));
         i = i + 1;
@@ -500,7 +506,7 @@ func SemanticDiagnosticVocabularyRows() -> Array<String> {
 }
 func SemanticDiagnosticCodeFromMessage(message: String) -> Option<String> {
     let codes: Array<String> = SemanticDiagnosticCodes();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(codes) {
         if StringContains(message, Concat("Code: ", codes[i])) {
             return Some(codes[i]);
@@ -512,7 +518,7 @@ func SemanticDiagnosticCodeFromMessage(message: String) -> Option<String> {
 
 func EmitSemanticDiagnosticVocabularyManifest() -> Void {
     let rows: Array<String> = SemanticDiagnosticVocabularyRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;
@@ -521,7 +527,7 @@ func EmitSemanticDiagnosticVocabularyManifest() -> Void {
 
 func SemanticDiagnosticCodeDuplicate(code: String, codes: Array<String>, end: Int) -> Bool {
     let seen: Bool = false;
-    let i: Int = 0;
+    var i: Int = 0;
     while i < end {
         if codes[i] == code {
             return true;
@@ -532,8 +538,8 @@ func SemanticDiagnosticCodeDuplicate(code: String, codes: Array<String>, end: In
 }
 
 func SemanticDiagnosticCallCodesFromContent(content: String) -> Array<String> {
-    let codes: Array<String> = [];
-    let rest: String = content;
+    var codes: Array<String> = [];
+    var rest: String = content;
     while StringLength(rest) > 0 {
         let mark: Int = StringIndexOf(rest, "SemanticError");
         if mark < 0 {
@@ -562,13 +568,13 @@ func SemanticDiagnosticCallCodesFromContent(content: String) -> Array<String> {
 
 func SemanticSourceDiagnosticCallCodes() -> Array<String> {
     let entries: Array<String> = DirWalk("src/self_hosted/semantic");
-    let codes: Array<String> = [];
-    let i: Int = 0;
+    var codes: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(entries) {
         let path: String = entries[i];
         if SemanticVerdictPayloadPathEndsWith(path, ".pgy") {
             let found: Array<String> = SemanticDiagnosticCallCodesFromContent(ReadFile(path));
-            let j: Int = 0;
+            var j: Int = 0;
             while j < ArrayLength(found) {
                 ArrayPush(codes, found[j]);
                 j = j + 1;
@@ -581,8 +587,8 @@ func SemanticSourceDiagnosticCallCodes() -> Array<String> {
 
 func SemanticExpectedDiagnosticCodes() -> Array<String> {
     let rows: Array<String> = SemanticVerdictPayloadFixtureManifestRows();
-    let codes: Array<String> = [];
-    let i: Int = 0;
+    var codes: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let parts: Array<String> = Split(rows[i], ":");
         if ArrayLength(parts) >= 4 && parts[1] == "error" {
@@ -594,9 +600,9 @@ func SemanticExpectedDiagnosticCodes() -> Array<String> {
 }
 
 func SemanticDiagnosticSurfaceAuditFindings() -> Array<String> {
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     let codes: Array<String> = SemanticDiagnosticCodes();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(codes) {
         let code: String = codes[i];
         if SemanticDiagnosticCodeDuplicate(code, codes, i) {
@@ -638,7 +644,7 @@ func EmitSemanticDiagnosticSurfaceAudit() -> Void {
         Log("ok");
         return;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(findings) {
         Log(findings[i]);
         i = i + 1;
@@ -647,13 +653,13 @@ func EmitSemanticDiagnosticSurfaceAudit() -> Void {
 }
 
 func SemanticErrorWithFacts(code: String, facts: String) -> String {
-    let stable_code: String = code;
-    let stable_facts: String = facts;
+    var stable_code: String = code;
+    var stable_facts: String = facts;
     if !SemanticDiagnosticCodeKnown(code) {
         stable_code = "unregistered_diagnostic_code";
         stable_facts = SelfHostDiagnostic_Fact2("code", code, "owner", "diagnostic_code_owner");
     }
-    let stage: String = "semantic";
+    var stage: String = "semantic";
     if stable_code == "parse_syntax" {
         stage = "syntax";
     }

@@ -17,6 +17,12 @@
 typedef struct Symbol  Symbol;
 typedef struct Scope   Scope;
 typedef struct ASTNode ASTNode;
+typedef struct SliceBorrowSource {
+    Symbol *root;
+    ASTNode *place;
+    bool readonly;
+    struct SliceBorrowSource *next;
+} SliceBorrowSource;
 
 /*
  * Symbol kinds
@@ -158,15 +164,15 @@ struct Symbol
 
     /*
      * Disjoint slice-split provenance (docs/178 WO-DOP-1 rung 0).
-     * Recorded only on immutable Slice bindings whose initializer is the
+     * Recorded on Slice bindings whose initializer is the
      * canonical split shape over one Array local:
-     *   let lo = base.Slice(0, B);      -> lower half, [0, B)
-     *   let hi = base.Slice(B, LEN);    -> upper half, [B, B+LEN)
+     *   var lo = base.Slice(0, B);      -> lower half, [0, B)
+     *   var hi = base.Slice(B, LEN);    -> upper half, [B, B+LEN)
      * [0,B) and [B,B+LEN) are disjoint for every B and LEN, so the fact
      * only needs base identity and the shared boundary (an immutable Int
-     * local or an Int literal). Immutable-binding-only means a recorded
-     * fact can never go stale through rebinding. Consumed as Disjointness
-     * evidence by the parallel boundary check.
+     * local or an Int literal). Descriptor replacement retires the fact;
+     * replacement during an admitted parallel split is refused. Consumed
+     * as Disjointness evidence by the parallel boundary check.
      */
     struct
     {
@@ -181,8 +187,10 @@ struct Symbol
      * lexical identity stable under shadowing; the non-owning AST place keeps
      * the exact member projection (`array` or `record.field...`) so unrelated
      * fields of one root are not conflated. The AST outlives semantic scopes. */
-    Symbol* slice_borrow_base_sym;
-    ASTNode* slice_borrow_base_place;
+    /* A reassigned view retains all lexical backing loans. Keeping the union
+     * is conservative across branches and loop backedges; it cannot grant a
+     * capability on just one path. A missing place records an unproved origin. */
+    SliceBorrowSource *slice_borrow_sources;
 
     /*
      * Memo for flow-snapshot tracking (docs/183 round 2). Branch/loop flow

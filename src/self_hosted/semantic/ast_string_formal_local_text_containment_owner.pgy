@@ -1,0 +1,103 @@
+// Formal and local borrowed-text containment.
+
+import "ast_string_formal_borrow_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+
+func SemanticAstFormalTextContained(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, borrow_only: HashMap<String, Int>,
+    function_id: Int, formal: Int
+) -> Bool {
+    if function_id <= 0 || function_id >= artifact.count || ArrayLength(artifact.arena.modes) != artifact.count ||
+        artifact.arena.modes[function_id] < 0 || artifact.arena.modes[function_id] == TypedAstModeCallableAsync() {
+        return false;
+    }
+    // Local row -> 1 for a contained String local, 2 for a contained array.
+    var contained: HashMap<String, Int> = MapNew();
+    var changed: Bool = true;
+    var passes: Int = ArrayLength(locals.node_ids) + 1;
+    while changed && passes > 0 {
+        let before: Int = MapSize(contained);
+        var slot: Int = 0;
+        while slot < ArrayLength(surfaces.expression_graph.roots) {
+            if surfaces.function_node_ids[slot / 3] == function_id && surfaces.expression_graph.has_roots[slot] &&
+                !SemanticAstFormalTextRootContained(artifact, signatures, locals, inferred_types, surfaces,
+                    borrow_only, slot, formal, contained) {
+                return false;
+            }
+            slot = slot + 1;
+        }
+        changed = MapSize(contained) != before;
+        passes = passes - 1;
+    }
+    return !changed;
+}
+
+// A String local initialized from borrowed text stays inside its frame when
+// every value derived from that local satisfies the same containment rules as
+// a borrowed formal. This is a local lifetime proof, not a blanket exemption:
+// returning the text, storing it in external storage, or forwarding it to a
+// retaining String formal still fails.
+func SemanticAstBorrowedTextLocalContainedAt(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    borrow_only: HashMap<String, Int>,
+    syntax_id: Int
+) -> Bool {
+    let local_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        locals, syntax_id);
+    if !IsSome(local_index) || UnwrapOption(local_index) < 0 ||
+        UnwrapOption(local_index) >= ArrayLength(inferred_types) ||
+        inferred_types[UnwrapOption(local_index)] != "String" {
+        return false;
+    }
+    let row: Int = UnwrapOption(local_index);
+    let function_id: Int = locals.function_node_ids[row];
+    if function_id <= 0 || function_id >= artifact.count ||
+        ArrayLength(artifact.arena.modes) != artifact.count ||
+        artifact.arena.modes[function_id] < 0 ||
+        artifact.arena.modes[function_id] == TypedAstModeCallableAsync() {
+        return false;
+    }
+    var contained: HashMap<String, Int> = MapNew();
+    MapSet(contained, ToString(row), 1);
+    var changed: Bool = true;
+    var passes: Int = ArrayLength(locals.node_ids) + 1;
+    while changed && passes > 0 {
+        let before: Int = MapSize(contained);
+        var slot: Int = 0;
+        while slot < ArrayLength(surfaces.expression_graph.roots) {
+            if surfaces.function_node_ids[slot / 3] == function_id &&
+                surfaces.expression_graph.has_roots[slot] &&
+                !SemanticAstFormalTextRootContained(
+                    artifact, signatures, locals, inferred_types, surfaces,
+                    borrow_only, slot, 0, contained) {
+                return false;
+            }
+            slot = slot + 1;
+        }
+        changed = MapSize(contained) != before;
+        passes = passes - 1;
+    }
+    return !changed;
+}
+
+// The local a leaf names, or -1 for a formal, a callable or an unresolved name.
+func SemanticAstFormalTextLocal(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, node: Int, type_name: String
+) -> Int {
+    let identity: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, node);
+    if !identity.ok || identity.kind != SemanticExpressionBindingNone() { return -1; }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, surfaces.function_node_ids[slot / 3], surfaces.node_ids[slot / 3],
+        surfaces.expression_graph, node);
+    if !binding.ok || binding.type_name != type_name { return -1; }
+    return binding.row;
+}
+

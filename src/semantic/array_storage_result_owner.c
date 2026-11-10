@@ -5,9 +5,12 @@
 #include "slot_summary.h"
 #include "function_param_publication_owner.h"
 #include "function_param_flow_summary_internal.h"
+#include "function_param_flow_loan_order.h"
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
 #include "collection_ownership_fact.h"
+#include "default_aggregate_move_rule.h"
+#include "loan_copy_landing_owner.h"
 
 typedef struct ArrayStorageResultVisit {
     const ASTNode *decl;
@@ -16,7 +19,8 @@ typedef struct ArrayStorageResultVisit {
 
 static bool
 owned_function_result_current(SemanticContext *ctx, ASTNode *decl,
-    const Type *result, const ArrayStorageResultVisit *parent, bool elements);
+    const Type *result, const ArrayStorageResultVisit *parent, bool elements,
+    const ASTNode *result_call);
 
 static bool
 literal_return_current(SemanticContext *ctx,
@@ -36,7 +40,7 @@ owned_string_call_current(SemanticContext *ctx, const ASTNode *call,
     ASTNode *callee = semantic_param_publication_declared_result(ctx, call, &result);
     return callee != NULL && type_is_constructed_named(result, "Array")
         && type_equals(type_get_constructed_arg(result, 0), TYPE_STRING)
-        && owned_function_result_current(ctx, callee, result, visit, true);
+        && owned_function_result_current(ctx, callee, result, visit, true, call);
 }
 
 static bool
@@ -55,10 +59,60 @@ owned_return_elements_current(SemanticContext *ctx, const ArrayStorageOwnedRetur
     return owned_string_call_current(ctx, source, visit);
 }
 
+/* A default Array formal owns no descriptor by declaration alone.  The exact
+ * call owns the transfer proof: its named actual was exclusive at this call,
+ * every earlier handoff preserved it, and the final callee summary says this
+ * formal moves.  This is the last consumer of that receipt; it never falls
+ * back to the mutable Symbol state left after the call. */
+static const ArrayStoragePendingCallReceipt *
+default_formal_transfer_current(SemanticContext *ctx,
+    const ArrayStorageOwnedReturn *event, const ASTNode *result_call)
+{
+    ArrayStorageDeferredPreservationStore *storage =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    if (storage == NULL || !storage->finalized || event == NULL
+        || event->source != ARRAY_RESULT_DEFAULT_FORMAL
+        || event->decl == NULL || event->binding_id == 0
+        || result_call == NULL || result_call->type != AST_CALL)
+        return NULL;
+    const ArrayStoragePendingCallReceipt *found = NULL;
+    for (size_t i = 0; i < storage->call_count; i++) {
+        const ArrayStoragePendingCallReceipt *source = &storage->calls[i].source;
+        if (source->payload || source->call != result_call
+            || source->callee_decl != event->decl
+            || source->formal_id != event->binding_id)
+            continue;
+        if (found != NULL || !source->source_exclusive
+            || source->formal_ordinal >= ast_func_param_count(event->decl)
+            || !type_equals(source->binding_type, event->type)
+            || !semantic_array_storage_pending_call_current(ctx, source)
+            || !semantic_default_aggregate_formal_moves(
+                ctx, event->decl, source->formal_ordinal)
+            || !semantic_array_storage_pending_preserved(
+                ctx, source->binding_id, source->sequence))
+            return NULL;
+        found = source;
+    }
+    return found;
+}
+
+static bool
+default_formal_elements_current(SemanticContext *ctx,
+    const ArrayStoragePendingCallReceipt *source)
+{
+    return source != NULL && source->elements_captured
+        && source->elements.owned
+        && semantic_array_storage_pending_owned_elements(
+            ctx, source->binding_id, source->sequence)
+        && semantic_array_storage_element_use_current(
+            source->argument, ctx, &source->elements);
+}
+
 static bool
 owned_function_result_replay(SemanticContext *ctx, ASTNode *decl,
     const Type *result, const ArrayStorageResultVisit *parent, bool elements,
-    bool prepare, ArrayStorageLiteralResultObserver observer, void *user)
+    const ASTNode *result_call, bool prepare,
+    ArrayStorageLiteralResultObserver observer, void *user)
 {
     ArrayStorageDeferredPreservationStore *storage =
         ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
@@ -116,6 +170,12 @@ owned_function_result_replay(SemanticContext *ctx, ASTNode *decl,
             event->statement_id != claim->id || !type_equals(event->type, result) ||
             !semantic_array_storage_return_source_current(ctx, event, &callee, &callee_result))
             return false;
+        const ArrayStoragePendingCallReceipt *default_transfer =
+            event->source == ARRAY_RESULT_DEFAULT_FORMAL
+                ? default_formal_transfer_current(ctx, event, result_call) : NULL;
+        if (event->source == ARRAY_RESULT_DEFAULT_FORMAL
+            && default_transfer == NULL)
+            return false;
         if (observer != NULL) {
             const ASTNode *declaration = NULL, *literal = NULL;
             if (elements || callee != NULL
@@ -123,8 +183,10 @@ owned_function_result_replay(SemanticContext *ctx, ASTNode *decl,
                 || !observer(ctx, decl, claims, event, declaration, literal, user))
                 return false;
         } else if ((callee != NULL && !owned_function_result_current(ctx, callee,
-                callee_result, &visit, elements)) ||
-            (elements && !owned_return_elements_current(ctx, event, &visit))) return false;
+                callee_result, &visit, elements, event->value)) ||
+            (elements && (default_transfer != NULL
+                ? !default_formal_elements_current(ctx, default_transfer)
+                : !owned_return_elements_current(ctx, event, &visit)))) return false;
         reached++;
     }
     if (reached == 0) return false;
@@ -136,17 +198,286 @@ owned_function_result_replay(SemanticContext *ctx, ASTNode *decl,
 
 static bool
 owned_function_result_current(SemanticContext *ctx, ASTNode *decl,
-    const Type *result, const ArrayStorageResultVisit *parent, bool elements)
+    const Type *result, const ArrayStorageResultVisit *parent, bool elements,
+    const ASTNode *result_call)
 {
     return owned_function_result_replay(ctx, decl, result, parent, elements,
-        true, NULL, NULL);
+        result_call, true, NULL, NULL);
+}
+
+static bool
+owned_binding_has_grounded_push(const FunctionParamFlowIndexClaims *claims,
+                                uint32_t binding_id)
+{
+    if (claims == NULL || binding_id == 0)
+        return false;
+    for (size_t i = 0; i < claims->count; i++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[i];
+        if (row->collection_effect_present
+            && row->collection_effect_kind
+                == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+            && row->collection_effect_receiver == binding_id
+            && row->execution_present && row->reachable)
+            return true;
+    }
+    return false;
+}
+
+static bool
+owned_string_result_plan_current(SemanticContext *ctx, ASTNode *decl,
+    const Type *result, const ArrayStorageResultVisit *parent,
+    const ASTNode *result_call)
+{
+    ArrayStorageDeferredPreservationStore *storage =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    FunctionParamFlowSummaryStore *flow =
+        ctx != NULL ? ctx->function_param_flow_summaries : NULL;
+    if (storage == NULL || flow == NULL || decl == NULL
+        || !owned_function_result_current(
+            ctx, decl, result, parent, true, result_call))
+        return false;
+    for (const ArrayStorageResultVisit *at = parent; at != NULL; at = at->parent)
+        if (at->decl == decl)
+            return false;
+    size_t index_at = function_param_flow_program_point_index_find(
+        flow, ast_node_stable_id(decl));
+    if (index_at == SIZE_MAX)
+        return false;
+    FunctionParamFlowIndexClaims *claims =
+        flow->program_point_indexes[index_at].claims;
+    if (!function_param_flow_index_claims_current(ctx,
+            &flow->program_point_indexes[index_at]) || claims == NULL)
+        return false;
+
+    const ArrayStorageResultVisit visit = {decl, parent};
+    bool grounded = false;
+    size_t reached = 0;
+    for (size_t i = 0; i < storage->return_count; i++) {
+        const ArrayStorageOwnedReturn *event = &storage->returns[i];
+        if (event->decl != decl)
+            continue;
+        reached++;
+        ASTNode *callee = NULL;
+        const Type *callee_result = NULL;
+        if (!semantic_array_storage_return_source_current(
+                ctx, event, &callee, &callee_result))
+            return false;
+        if (event->source == ARRAY_RESULT_INDEPENDENT_CALL) {
+            grounded = true;
+        } else if (event->source == ARRAY_RESULT_DECLARED_CALL) {
+            if (callee == NULL || !owned_string_result_plan_current(
+                    ctx, callee, callee_result, &visit, event->value))
+                return false;
+            grounded = true;
+        } else if (event->source == ARRAY_RESULT_LITERAL) {
+            if (event->value == NULL || event->value->type != AST_ARRAY_LITERAL)
+                return false;
+            /* The full return replay above already proved every element's
+             * ownership. A nonempty literal grounds that proof; an empty
+             * literal alone must not ground an owned-element result cycle. */
+            if (ast_array_literal_count(event->value) != 0)
+                grounded = true;
+        } else if (event->source == ARRAY_RESULT_OWNED_BINDING) {
+            const PgyCollectionOwnershipFact *fact =
+                semantic_collection_ownership_fact_find(
+                    ctx, event->decl_id, event->binding_id);
+            if (fact == NULL
+                || fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE)
+                return false;
+            if (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
+                || fact->origin == PGY_COLLECTION_ORIGIN_CLONE
+                || owned_binding_has_grounded_push(claims, event->binding_id)) {
+                grounded = true;
+            } else if (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL) {
+                const ASTNode *source = fact->return_elements_source;
+                const Type *source_result = NULL;
+                ASTNode *source_decl = source != NULL && source->type == AST_CALL
+                    ? semantic_param_publication_declared_result(
+                        ctx, source, &source_result) : NULL;
+                if (source_decl == NULL || !owned_string_result_plan_current(
+                        ctx, source_decl, source_result, &visit, source))
+                    return false;
+                grounded = true;
+            }
+        } else {
+            return false;
+        }
+    }
+    return reached != 0 && grounded;
 }
 
 bool
 semantic_array_storage_function_result_owned(SemanticContext *ctx,
     ASTNode *decl, const Type *result)
 {
-    return owned_function_result_current(ctx, decl, result, NULL, false);
+    return owned_function_result_current(ctx, decl, result, NULL, false, NULL);
+}
+
+bool
+semantic_array_storage_default_formal_result_current(
+    SemanticContext *ctx, ASTNode *decl, uint32_t formal_id)
+{
+    ArrayStorageDeferredPreservationStore *storage =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    FunctionParamFlowSummaryStore *flow =
+        ctx != NULL ? ctx->function_param_flow_summaries : NULL;
+    if (storage == NULL || decl == NULL || decl->type != AST_FUNC_DECL
+        || formal_id == 0 || flow == NULL || flow->failed
+        || !semantic_param_publication_inputs_ready(ctx))
+        return false;
+    size_t formal_matches = 0;
+    for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+        FuncParam *formal = ast_func_param(decl, p);
+        if (formal != NULL && ast_func_param_stable_id(formal) == formal_id
+            && formal->mode == PARAM_MODE_DEFAULT
+            && semantic_default_aggregate_formal_moves(ctx, decl, p))
+            formal_matches++;
+    }
+    size_t index_at = function_param_flow_program_point_index_find(
+        flow, ast_node_stable_id(decl));
+    if (formal_matches != 1 || index_at == SIZE_MAX)
+        return false;
+    FunctionParamFlowProgramPointIndex *index =
+        &flow->program_point_indexes[index_at];
+    if (!function_param_flow_index_claims_current(ctx, index)
+        || index->claims == NULL)
+        return false;
+    size_t reached = 0, recorded = 0;
+    for (size_t i = 0; i < index->claims->count; i++) {
+        const FunctionParamFlowIndexClaim *claim = &index->claims->rows[i];
+        if (claim->shape != AST_RETURN)
+            continue;
+        bool reachable = false;
+        if (!claim->semantic_promoted || !claim->snapshot_semantic_complete
+            || !claim->execution_present
+            || !semantic_param_publication_execution(
+                ctx, claim->node, &reachable)
+            || claim->reachable != reachable)
+            return false;
+        if (!reachable)
+            continue;
+        const ArrayStorageOwnedReturn *event = NULL;
+        for (size_t r = 0; r < storage->return_count; r++) {
+            const ArrayStorageOwnedReturn *candidate = &storage->returns[r];
+            if (candidate->decl != decl
+                || candidate->statement != claim->node)
+                continue;
+            if (event != NULL)
+                return false;
+            event = candidate;
+        }
+        if (event == NULL || event->decl_id != ast_node_stable_id(decl)
+            || event->statement_id != claim->id
+            || event->source != ARRAY_RESULT_DEFAULT_FORMAL
+            || event->binding_id != formal_id)
+            return false;
+        reached++;
+    }
+    for (size_t r = 0; r < storage->return_count; r++)
+        if (storage->returns[r].decl == decl)
+            recorded++;
+    return reached != 0 && recorded == reached;
+}
+
+bool
+semantic_array_storage_select_default_formal_return_copies(
+    SemanticContext *ctx, ASTNode *decl, uint32_t formal_id,
+    bool *selected_out)
+{
+    ArrayStorageDeferredPreservationStore *storage =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    FunctionParamFlowSummaryStore *flow =
+        ctx != NULL ? ctx->function_param_flow_summaries : NULL;
+    if (selected_out == NULL)
+        return false;
+    *selected_out = false;
+    if (storage == NULL || decl == NULL || decl->type != AST_FUNC_DECL
+        || formal_id == 0 || flow == NULL
+        || flow->failed || !semantic_param_publication_inputs_ready(ctx))
+        return false;
+
+    size_t formal_matches = 0;
+    for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+        FuncParam *formal = ast_func_param(decl, p);
+        if (formal != NULL && ast_func_param_stable_id(formal) == formal_id
+            && formal->mode == PARAM_MODE_DEFAULT)
+            formal_matches++;
+    }
+    size_t index_at = function_param_flow_program_point_index_find(
+        flow, ast_node_stable_id(decl));
+    if (formal_matches != 1 || index_at == SIZE_MAX)
+        return false;
+    FunctionParamFlowProgramPointIndex *index =
+        &flow->program_point_indexes[index_at];
+    if (!function_param_flow_index_claims_current(ctx, index)
+        || index->claims == NULL)
+        return false;
+
+    size_t selected = 0;
+    for (size_t i = 0; i < index->claims->count; i++) {
+        const FunctionParamFlowIndexClaim *claim = &index->claims->rows[i];
+        if (claim->shape != AST_RETURN)
+            continue;
+        bool reachable = false;
+        if (!claim->semantic_promoted || !claim->snapshot_semantic_complete
+            || !claim->execution_present
+            || !semantic_param_publication_execution(
+                ctx, claim->node, &reachable)
+            || claim->reachable != reachable)
+            return false;
+        if (!reachable)
+            continue;
+
+        const ArrayStorageOwnedReturn *event = NULL;
+        for (size_t r = 0; r < storage->return_count; r++) {
+            const ArrayStorageOwnedReturn *candidate = &storage->returns[r];
+            if (candidate->decl != decl
+                || candidate->statement != claim->node)
+                continue;
+            if (event != NULL)
+                return false;
+            event = candidate;
+        }
+        if (event == NULL || event->decl_id != ast_node_stable_id(decl)
+            || event->statement_id != claim->id)
+            return false;
+        if (event->source != ARRAY_RESULT_DEFAULT_FORMAL
+            || event->binding_id != formal_id)
+            continue;
+
+        ASTNode *callee = NULL;
+        const Type *callee_result = NULL;
+        if (event->value == NULL || ast_node_stable_id(event->value) == 0
+            || !type_is_constructed_named(event->type, "Array")
+            || !semantic_array_storage_return_source_current(
+                ctx, event, &callee, &callee_result)
+            || callee != NULL || callee_result != NULL
+            || !semantic_loan_copy_landing_select_typed_carrier(
+                ctx, event->value, event->type))
+            return false;
+        selected++;
+    }
+    *selected_out = selected != 0;
+    return true;
+}
+
+bool
+semantic_array_storage_default_formal_call_result_consumed_current(
+    SemanticContext *ctx, const ArrayStoragePendingCallReceipt *source)
+{
+    FunctionParamFlowSummaryStore *flow =
+        ctx != NULL ? ctx->function_param_flow_summaries : NULL;
+    if (flow == NULL || flow->failed || source == NULL || source->payload
+        || source->call == NULL || source->call->type != AST_CALL
+        || source->caller_decl == NULL || source->callee_decl == NULL
+        || source->call_id == 0
+        || source->call_id != ast_node_stable_id(source->call)
+        || source->formal_id == 0
+        || !semantic_array_storage_default_formal_result_current(
+            ctx, source->callee_decl, source->formal_id))
+        return false;
+    return function_param_flow_call_result_consumed_current(flow,
+        source->caller_decl, source->call);
 }
 
 bool
@@ -159,7 +490,8 @@ semantic_array_storage_owned_result_current(SemanticContext *ctx, const ASTNode 
     if (semantic_array_storage_independent_call_result(call, ctx)) return true;
     const Type *result = NULL;
     ASTNode *callee = semantic_param_publication_declared_result(ctx, call, &result);
-    return callee != NULL && owned_function_result_current(ctx, callee, result, NULL, false);
+    return callee != NULL
+        && owned_function_result_current(ctx, callee, result, NULL, false, call);
 }
 
 bool
@@ -167,6 +499,21 @@ semantic_array_storage_owned_string_result_current(SemanticContext *ctx,
     const ASTNode *call)
 {
     return owned_string_call_current(ctx, call, NULL);
+}
+
+bool
+semantic_array_storage_fresh_owned_string_result_current(
+    SemanticContext *ctx, const ASTNode *call)
+{
+    if (call == NULL || call->type != AST_CALL)
+        return false;
+    if (semantic_array_storage_independent_call_result(call, ctx))
+        return true;
+    const Type *result = NULL;
+    ASTNode *decl = semantic_param_publication_declared_result(
+        ctx, call, &result);
+    return decl != NULL && owned_string_result_plan_current(
+        ctx, decl, result, NULL, call);
 }
 
 /* A literal's bytes are permanent, but its Array descriptor and element
@@ -306,7 +653,7 @@ literal_result_replay(SemanticContext *ctx, const ASTNode *result_call,
         || !type_equals(type_get_constructed_arg(result, 0), TYPE_STRING)
         || (!prepare && ctx->function_param_flow_summaries == NULL)) return false;
     return owned_function_result_replay(ctx, decl, result, NULL, false,
-        prepare, observer, user);
+        result_call, prepare, observer, user);
 }
 
 bool

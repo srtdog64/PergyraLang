@@ -11,7 +11,7 @@ func CharAtWithin(s: String, s_extent: Int, length: Int, i: Int) -> String {
     return StringWindowCharAt(s, s_extent, length, i);
 }
 func SkipQuotedString(content: String, content_extent: Int, start: Int, limit: Int) -> Int {
-    let i: Int = start + 1;
+    var i: Int = start + 1;
     while i < limit &&
         SourceByteAt(content, content_extent, limit, i) != SourceByteOf("\"") {
         if SourceByteAt(content, content_extent, limit, i) == SourceByteOf("\\") {
@@ -22,7 +22,7 @@ func SkipQuotedString(content: String, content_extent: Int, start: Int, limit: I
     return i + 1;
 }
 func SkipLineComment(content: String, content_extent: Int, start: Int, limit: Int) -> Int {
-    let i: Int = start + 2;
+    var i: Int = start + 2;
     while i < limit &&
         SourceByteAt(content, content_extent, limit, i) != SourceByteOf("\n") {
         i = i + 1;
@@ -30,7 +30,7 @@ func SkipLineComment(content: String, content_extent: Int, start: Int, limit: In
     return i;
 }
 func SkipBlockComment(content: String, content_extent: Int, start: Int, limit: Int) -> Int {
-    let i: Int = start + 2;
+    var i: Int = start + 2;
     while i < limit {
         if SourceByteAt(content, content_extent, limit, i) == SourceByteOf("*") &&
             SourceByteAt(content, content_extent, limit, i + 1) == SourceByteOf("/") {
@@ -67,7 +67,7 @@ func SemanticReadIdentWithin(
         ArraySet(cursor_out, 0, i);
         return "";
     }
-    let end: Int = i + 1;
+    var end: Int = i + 1;
     while end < n && SourceByteIsAlphaNum(SourceByteAt(content, content_extent, n, end)) {
         end = end + 1;
     }
@@ -82,8 +82,8 @@ func SemanticReadIdent(content: String, start: Int, inout cursor_out: Array<Int>
 }
 func Trim(content: String) -> String {
     let content_extent: Int = StringLength(content);
-    let start: Int = 0;
-    let end: Int = content_extent;
+    var start: Int = 0;
+    var end: Int = content_extent;
     while start < end {
         let c: Int = SourceByteAt(content, content_extent, end, start);
         if !SourceByteIsWhitespace(c) {
@@ -104,8 +104,8 @@ func ReadTypeNameWithin(
     content: String, content_extent: Int, n: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
     let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, n, start);
-    let depth: Int = 0;
-    let end: Int = i;
+    var depth: Int = 0;
+    var end: Int = i;
     while end < n {
         let c: Int = SourceByteAt(content, content_extent, n, end);
         if c == SourceByteOf("<") {
@@ -154,8 +154,8 @@ func ExpectLiteral(content: String, start: Int, tok: String) -> Option<Int> {
     );
 }
 func FindStatementEnd(content: String, content_extent: Int, start: Int, limit: Int) -> Int {
-    let i: Int = start;
-    let depth: Int = 0;
+    var i: Int = start;
+    var depth: Int = 0;
     while i < limit {
         let c: Int = SourceByteAt(content, content_extent, limit, i);
         if c == SourceByteOf("\"") {
@@ -183,8 +183,8 @@ func FindStatementEnd(content: String, content_extent: Int, start: Int, limit: I
     return limit;
 }
 func FindMatchingBraceWithin(content: String, content_extent: Int, open_idx: Int, limit: Int) -> Int {
-    let i: Int = open_idx;
-    let depth: Int = 0;
+    var i: Int = open_idx;
+    var depth: Int = 0;
     while i < limit {
         let c: Int = SourceByteAt(content, content_extent, limit, i);
         if c == SourceByteOf("\"") {
@@ -215,8 +215,8 @@ func FindMatchingBrace(content: String, open_idx: Int) -> Int {
     return FindMatchingBraceWithin(content, n, open_idx, n);
 }
 func FindBlockOpen(content: String, content_extent: Int, start: Int, limit: Int) -> Int {
-    let i: Int = start;
-    let depth: Int = 0;
+    var i: Int = start;
+    var depth: Int = 0;
     while i < limit {
         let c: Int = SourceByteAt(content, content_extent, limit, i);
         if c == SourceByteOf("\"") {

@@ -58,7 +58,7 @@ func DirectMirScalarProgramArrayStringSingleElementFromOwners(
                 uses, global_row, use_row, local_instruction, 1,
                 sequence.arena.node_texts[1], locals.value_names,
                 locals, wire, true);
-        let local_row: Int = operand.local_row;
+        var local_row: Int = operand.local_row;
         if operand.value_row >= 0 && operand.value_row <
                 ArrayLength(locals.value_local_rows) {
             local_row = locals.value_local_rows[operand.value_row];

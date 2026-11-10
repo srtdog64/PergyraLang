@@ -16,15 +16,15 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 
 func CodegenIntentPolicyViewFromDirFactsOrDie(
-    analysis: SemanticAstArtifactAnalysis,
+    ref analysis: SemanticAstArtifactAnalysis,
     ref facts: SelfDirIntentFacts
 ) -> CodegenIntentPolicyView {
-    let syntax_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let concurrent: Array<Bool> = [];
-    let priority_present: Array<Bool> = [];
-    let priority_roots: Array<Int> = [];
-    let row: Int = 0;
+    var syntax_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var concurrent: Array<Bool> = [];
+    var priority_present: Array<Bool> = [];
+    var priority_roots: Array<Int> = [];
+    var row: Int = 0;
     while row < SemanticAstIntentSignatureCount(
         analysis.intent_signatures
     ) {
@@ -43,10 +43,11 @@ func CodegenIntentPolicyViewFromDirFactsOrDie(
     }
     let view: CodegenIntentPolicyView = CodegenIntentPolicyView(
         true, syntax_ids, names, concurrent, priority_present,
-        priority_roots, analysis.expression_surfaces.expression_graph
+        priority_roots
     );
     if !CodegenIntentPolicyViewReadyForSignatures(
-        view, analysis.intent_signatures
+        view, analysis.intent_signatures,
+        analysis.expression_surfaces.expression_graph
     ) {
         Die("semantic intent policy receipt did not cross codegen admission");
     }
@@ -64,9 +65,9 @@ func CodegenIntentPolicyMirRoutineRowOrDie(
             MirProgramRoutineIndexCount(admitted.routines) {
         Die("MIR intent policy identity epoch is incomplete");
     }
-    let found: Option<Int> = None;
-    let matches: Int = 0;
-    let row: Int = 0;
+    var found: Option<Int> = None;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < MirProgramRoutineIndexCount(admitted.routines) {
         if admitted.routines.kinds[row] == "intent" &&
             canonical_routine_source_syntax_ids[row] ==
@@ -91,15 +92,15 @@ func CodegenIntentPolicyMirRoutineRowOrDie(
 
 func CodegenIntentPolicyViewFromAdmittedMirOrDie(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    analysis: SemanticAstArtifactAnalysis,
+    ref analysis: SemanticAstArtifactAnalysis,
     ref occurrences: MirExpressionSemanticOccurrenceIndex,
     canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenIntentPolicyView {
     if !occurrences.valid {
         Die("MIR intent policy expression occurrence identity is invalid");
     }
-    let mir_intent_count: Int = 0;
-    let routine_row: Int = 0;
+    var mir_intent_count: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
         if admitted.routines.kinds[routine_row] == "intent" {
             mir_intent_count = mir_intent_count + 1;
@@ -111,12 +112,12 @@ func CodegenIntentPolicyViewFromAdmittedMirOrDie(
     ) {
         Die("MIR intent policy inventory does not match semantic signatures");
     }
-    let syntax_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let concurrent: Array<Bool> = [];
-    let priority_present: Array<Bool> = [];
-    let priority_roots: Array<Int> = [];
-    let intent_index: Int = 0;
+    var syntax_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var concurrent: Array<Bool> = [];
+    var priority_present: Array<Bool> = [];
+    var priority_roots: Array<Int> = [];
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(
         analysis.intent_signatures
     ) {
@@ -146,7 +147,7 @@ func CodegenIntentPolicyViewFromAdmittedMirOrDie(
                 admitted.routines, intent_name, carriers);
         if !mode.valid { Die(mode.diagnostic_message); }
         if !priority.valid { Die(priority.diagnostic_message); }
-        let priority_root: Int = 0;
+        var priority_root: Int = 0;
         if priority.present {
             priority_root = MirExpressionSemanticRootForInstruction(
                 occurrences, priority.global_row,
@@ -165,10 +166,11 @@ func CodegenIntentPolicyViewFromAdmittedMirOrDie(
     }
     let view: CodegenIntentPolicyView = CodegenIntentPolicyView(
         true, syntax_ids, names, concurrent, priority_present,
-        priority_roots, analysis.expression_surfaces.expression_graph
+        priority_roots
     );
     if !CodegenIntentPolicyViewReadyForSignatures(
-        view, analysis.intent_signatures
+        view, analysis.intent_signatures,
+        analysis.expression_surfaces.expression_graph
     ) {
         Die("MIR intent policy did not cross codegen admission");
     }

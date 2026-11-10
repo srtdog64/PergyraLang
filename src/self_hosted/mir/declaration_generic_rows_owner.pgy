@@ -13,9 +13,9 @@ func SelfMirDeclarationAppendNominalGenericRows(
     inout generic_constraints: Array<String>,
     inout generic_defaults: Array<String>
 ) -> Option<Int> {
-    let appended: Int = 0;
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var appended: Int = 0;
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, decl_node_id, child_index
     );
     while IsSome(child_opt) {
@@ -31,7 +31,7 @@ func SelfMirDeclarationAppendNominalGenericRows(
             ) {
                 return None;
             }
-            let row: Int = before;
+            var row: Int = before;
             while row < ArrayLength(generic_names) {
                 ArrayPush(generic_constraints, "");
                 row = row + 1;

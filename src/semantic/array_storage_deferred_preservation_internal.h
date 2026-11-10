@@ -29,6 +29,16 @@ typedef struct {
     bool proved, checking;
 } ArrayStoragePendingResult;
 
+typedef struct {
+    ASTNode *push_call, *receiver, *result_call, *function_decl;
+    uint32_t push_call_id, receiver_id, result_call_id;
+    uint32_t binding_id, producer_id, function_id, formal_id;
+    size_t formal_index;
+    ParamMode formal_mode;
+    size_t sequence;
+    bool parameter_receiver, parameter_requirement_recorded;
+} ArrayStoragePendingOwnedStringResult;
+
 /* Mutable ordering remains private to this physical array-return owner. */
 struct ArrayStorageDeferredPreservationStore {
     bool active, finalized, sealing, consuming_checked_calls;
@@ -41,6 +51,21 @@ struct ArrayStorageDeferredPreservationStore {
     size_t return_count, return_capacity;
     ArrayStoragePendingResult *results;
     size_t result_count, result_capacity;
+    ArrayStoragePendingOwnedStringResult *owned_string_results;
+    size_t owned_string_result_count, owned_string_result_capacity;
 };
+
+bool array_storage_deferred_reserve(void **rows, size_t *capacity,
+    size_t needed, size_t row_size);
+bool array_storage_pending_owned_string_result_current(SemanticContext *ctx,
+    ArrayStoragePendingOwnedStringResult *row, bool record_requirement);
+bool array_storage_pending_result_proof(SemanticContext *ctx,
+    ArrayStoragePendingResult *row);
+bool array_storage_pending_drop_element_source_current(SemanticContext *ctx,
+    struct ArrayStorageDeferredPreservationStore *store,
+    const ArrayStoragePendingDrop *drop);
+bool array_storage_same_call_arguments_copied(SemanticContext *ctx,
+    const struct ArrayStorageDeferredPreservationStore *store,
+    const ArrayStoragePendingDrop *drop);
 
 #endif

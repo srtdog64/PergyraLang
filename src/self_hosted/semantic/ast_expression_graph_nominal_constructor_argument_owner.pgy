@@ -34,7 +34,7 @@ func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
         constructors.field_source_syntax_ids[row] <= 0 { return invalid; }
     let expected: String = constructors.param_type_names[row];
     if expected == "" || expected == "Unknown" { return invalid; }
-    let actual: Option<String> = SemanticExpressionGraphFieldValueTypeName(
+    var actual: Option<String> = SemanticExpressionGraphFieldValueTypeName(
         graph, argument_node_id, constructors, names, types,
         function_names, function_returns, enum_values);
     // The declared field contextualizes empty values; nonempty values retain

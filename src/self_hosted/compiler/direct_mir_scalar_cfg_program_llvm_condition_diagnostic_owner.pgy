@@ -8,9 +8,9 @@ func DirectMirScalarCfgProgramLlvmConditionProjectionFailed(
     let expression: Int =
         plan.program.block_condition_expression_rows[block];
     let root: Int = plan.program.expressions.graph_roots[expression];
-    let node: Int = plan.program.expressions.graph_starts[expression];
+    var node: Int = plan.program.expressions.graph_starts[expression];
     let end: Int = node + plan.program.expressions.graph_counts[expression];
-    let detail: String =
+    var detail: String =
         "direct MIR scalar CFG LLVM condition is invalid: routine=";
     detail = Concat(detail, ToString(routine));
     detail = Concat(detail, Concat(" block=", ToString(block)));

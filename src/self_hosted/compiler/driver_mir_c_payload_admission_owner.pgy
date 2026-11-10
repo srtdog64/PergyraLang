@@ -1,0 +1,85 @@
+// MIR-to-C payload admission and diagnostics.
+
+import "driver_rung2_execution_protocol_owner.pgy";
+import "driver_mir_c_request_identity_owner.pgy";
+
+func DriverRung2MirCPayloadDeniedAdmission(
+    ref identity: DriverRung2MirCPayloadRequestIdentity,
+    mir_json_path: String,
+    diagnostic: String
+) -> DriverRung2MirCPayloadAdmission {
+    return DriverRung2MirCPayloadDenied(DriverRung2MirCPayloadRejection(
+        DriverRung2ExecutionOutcomeSchema(),
+        identity.observation_mode,
+        identity.machine_mode, mir_json_path,
+        identity.machine_manifest_id,
+        identity.machine_manifest_fingerprint,
+        CompilerTargetCpuCProjection(), diagnostic
+    ));
+}
+
+func DriverRung2MirCPayloadReceiptReadyFor(
+    ref receipt: DriverRung2MirCPayloadReceipt,
+    expected_mir_json_path: String,
+    ref expected_identity: DriverRung2MirCPayloadRequestIdentity
+) -> Bool {
+    return DriverRung2MirCPayloadRequestIdentityReady(expected_identity) &&
+        receipt.schema == DriverRung2ExecutionOutcomeSchema() &&
+        receipt.observation_mode == expected_identity.observation_mode &&
+        receipt.machine_mode == expected_identity.machine_mode &&
+        receipt.mir_json_path == expected_mir_json_path &&
+        receipt.machine_manifest_id ==
+            expected_identity.machine_manifest_id &&
+        receipt.machine_manifest_fingerprint ==
+            expected_identity.machine_manifest_fingerprint &&
+        receipt.target_projection.projection ==
+            CompilerTargetCpuCProjection() &&
+        DriverRung2EmissionArtifactReadyForTarget(
+            receipt.artifact, receipt.target_projection
+        );
+}
+
+func DriverRung2MirCPayloadAdmissionReadyFor(
+    ref admission: DriverRung2MirCPayloadAdmission,
+    expected_mir_json_path: String,
+    ref expected_identity: DriverRung2MirCPayloadRequestIdentity
+) -> Bool {
+    match admission {
+        case DriverRung2MirCPayloadAdmitted(receipt):
+            return DriverRung2MirCPayloadReceiptReadyFor(
+                receipt, expected_mir_json_path, expected_identity
+            );
+        case DriverRung2MirCPayloadDenied(rejection): return false;
+    }
+}
+
+func DriverRung2MirCPayloadAdmissionDiagnostic(
+    ref admission: DriverRung2MirCPayloadAdmission,
+    expected_mir_json_path: String,
+    ref expected_identity: DriverRung2MirCPayloadRequestIdentity
+) -> String {
+    match admission {
+        case DriverRung2MirCPayloadAdmitted(receipt):
+            if DriverRung2MirCPayloadReceiptReadyFor(
+                receipt, expected_mir_json_path, expected_identity
+            ) { return ""; }
+            return "MIR C payload receipt is invalid";
+        case DriverRung2MirCPayloadDenied(rejection):
+            if rejection.schema != DriverRung2ExecutionOutcomeSchema() ||
+                rejection.observation_mode !=
+                    expected_identity.observation_mode ||
+                rejection.machine_mode != expected_identity.machine_mode ||
+                rejection.mir_json_path != expected_mir_json_path ||
+                rejection.machine_manifest_id !=
+                    expected_identity.machine_manifest_id ||
+                rejection.machine_manifest_fingerprint !=
+                    expected_identity.machine_manifest_fingerprint ||
+                rejection.target_projection !=
+                    CompilerTargetCpuCProjection() ||
+                rejection.diagnostic == "" {
+                return "MIR C payload rejection is invalid";
+            }
+            return rejection.diagnostic;
+    }
+}
+

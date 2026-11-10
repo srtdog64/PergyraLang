@@ -1,0 +1,35 @@
+// Two copy-required Strings stored through one moved member carrier are
+// interleaved with writes to a sibling field. The first deferred copy must
+// not erase the member path needed to validate and land the second copy.
+struct NamesArena {
+    texts: Array<String>;
+    names: Array<String>;
+}
+
+struct NamesSequence {
+    arena: NamesArena;
+}
+
+func Build(sequence: NamesSequence, source: String) -> NamesSequence {
+    var texts: Array<String> = sequence.arena.texts;
+    var names: Array<String> = sequence.arena.names;
+    let index_text: String = ToString(1);
+    ArrayPush(texts, source);
+    ArrayPush(names, "");
+    ArrayPush(texts, index_text);
+    ArrayPush(names, "");
+    ArrayPush(texts, Concat(source, index_text));
+    ArrayPush(names, "");
+    sequence.arena.texts = texts;
+    sequence.arena.names = names;
+    return sequence;
+}
+
+func Main() -> Int {
+    let sequence: NamesSequence = NamesSequence(
+        NamesArena([Concat("seed", "")], [Concat("seed", "")])
+    );
+    let changed: NamesSequence = Build(sequence, "value");
+    Log(ArrayLength(changed.arena.texts) + ArrayLength(changed.arena.names));
+    return 0;
+}

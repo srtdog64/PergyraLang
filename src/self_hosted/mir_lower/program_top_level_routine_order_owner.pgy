@@ -19,7 +19,7 @@ func MirTopLevelRoutineNextKindRow(
     kind: String,
     prior_source_syntax_id: Int
 ) -> Int {
-    let row: Int = start;
+    var row: Int = start;
     while row < MirProgramRoutineIndexCount(routines) {
         if routines.kinds[row] == kind {
             let source_syntax_id: Int =
@@ -73,8 +73,8 @@ func MirTopLevelRoutineOrderAdvance(
     cursor: MirTopLevelRoutineOrderCursor,
     emitted_row: Int
 ) -> MirTopLevelRoutineOrderCursor {
-    let function_row: Int = cursor.function_row;
-    let intent_row: Int = cursor.intent_row;
+    var function_row: Int = cursor.function_row;
+    var intent_row: Int = cursor.intent_row;
     if !cursor.ok || emitted_row < 0 {
         return MirTopLevelRoutineOrderCursor(false, function_row, intent_row);
     }

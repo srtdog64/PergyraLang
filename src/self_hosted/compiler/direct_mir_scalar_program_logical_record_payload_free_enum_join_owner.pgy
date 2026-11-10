@@ -14,7 +14,7 @@ func DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
         !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) {
         return false;
     }
-    let field: Int = 0;
+    var field: Int = 0;
     while field < ArrayLength(record.field_types) {
         let expected: Bool = DirectMirScalarProgramPayloadFreeEnumTypeReady(
             payload_free_enum, record.field_types[field]);
@@ -32,8 +32,8 @@ func DirectMirScalarProgramLogicalRecordPayloadFreeEnumFieldTypeReady(
 ) -> Bool {
     if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
         type_name == "" { return false; }
-    let found: Bool = false;
-    let field: Int = 0;
+    var found: Bool = false;
+    var field: Int = 0;
     while field < ArrayLength(record.field_types) {
         if record.field_types[field] == type_name {
             if record.field_payload_free_enums[field] != 1 { return false; }

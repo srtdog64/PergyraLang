@@ -15,6 +15,7 @@ func DirectMirScalarProgramLeafIdentityFactFromOwners(
     binding_kind: Int,
     binding_syntax_id: Int,
     binding_ordinal: Int,
+    source_parameter_offset: Int,
     ref parameter_names: Array<String>,
     ref parameter_syntax_ids: Array<Int>
 ) -> DirectMirScalarProgramLeafIdentityFact {
@@ -23,18 +24,21 @@ func DirectMirScalarProgramLeafIdentityFactFromOwners(
         parameter_count != ArrayLength(parameter_syntax_ids) {
         return DirectMirScalarProgramLeafIdentityFact(false, -1, -1);
     }
-    let parameter_ordinal: Int = -1;
+    var parameter_ordinal: Int = -1;
     if binding_kind == SemanticExpressionBindingFormalParameter() {
-        if binding_ordinal < 0 || binding_ordinal >= parameter_count ||
+        let abi_ordinal: Int = binding_ordinal + source_parameter_offset;
+        if binding_ordinal < 0 || source_parameter_offset < 0 ||
+            source_parameter_offset > 1 || abi_ordinal < 0 ||
+            abi_ordinal >= parameter_count ||
             binding_syntax_id <= 0 ||
-            parameter_syntax_ids[binding_ordinal] != binding_syntax_id ||
-            parameter_names[binding_ordinal] != text {
+            parameter_syntax_ids[abi_ordinal] != binding_syntax_id ||
+            parameter_names[abi_ordinal] != text {
             return DirectMirScalarProgramLeafIdentityFact(false, -1, -1);
         }
-        parameter_ordinal = binding_ordinal;
+        parameter_ordinal = abi_ordinal;
     }
-    let bound_local: Int = -1;
-    let row: Int = 0;
+    var bound_local: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(bound_texts) {
         if bound_texts[row] == text {
             if bound_local >= 0 && bound_local != bound_locals[row] {
@@ -49,4 +53,15 @@ func DirectMirScalarProgramLeafIdentityFactFromOwners(
     return DirectMirScalarProgramLeafIdentityFact(
         true, bound_local, parameter_ordinal
     );
+}
+
+// Declaration identity cannot repair a conflicting published owner. An absent
+// wire row is allowed only when optional or replaced by an admitted SSA use.
+func DirectMirScalarProgramFormalWireIdentityReady(
+    published: String, instruction_owner: String, expected: String,
+    required: Bool, has_ssa: Bool
+) -> Bool {
+    if published != "" { return published == expected; }
+    if instruction_owner == expected { return true; }
+    return !required || has_ssa;
 }

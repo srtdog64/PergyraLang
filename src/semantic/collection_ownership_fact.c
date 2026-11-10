@@ -1,4 +1,5 @@
 #include "collection_ownership_fact_internal.h"
+#include "indexed_string_borrow_owner.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -9,8 +10,10 @@
 #include "type_checker.h"
 #include "type_checker_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_defer_release_owner.h"
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
+#include "function_param_publication_owner.h"
 #include "../parser/ast_api.h"
 
 bool
@@ -38,7 +41,7 @@ array_literal_is_empty(const ASTNode *expr)
 }
 
 static bool
-array_literal_is_entirely_borrowed_string_literals(const ASTNode *expr)
+array_literal_is_entirely_borrowed_string_values(const ASTNode *expr)
 {
     size_t count;
     if (expr == NULL || expr->type != AST_ARRAY_LITERAL)
@@ -48,7 +51,34 @@ array_literal_is_entirely_borrowed_string_literals(const ASTNode *expr)
         return false;
     for (size_t i = 0; i < count; i++) {
         ASTNode *element = ast_array_literal_element(expr, i);
-        if (element == NULL || element->type != AST_STRING)
+        /* String literals have permanent backing. An indexed String is a
+         * shallow descriptor borrowed from its source Array. Neither gives
+         * this new Array deep-release authority. Calls and identifiers remain
+         * UNKNOWN because they may carry an owned result or mixed lineage. */
+        if (element == NULL || (element->type != AST_STRING
+                && element->type != AST_ARRAY_ACCESS))
+            return false;
+    }
+    return true;
+}
+
+static bool
+array_literal_is_entirely_owned_string_values(const ASTNode *expr,
+                                               SemanticContext *ctx)
+{
+    size_t count;
+    if (expr == NULL || expr->type != AST_ARRAY_LITERAL || ctx == NULL)
+        return false;
+    count = ast_array_literal_count(expr);
+    if (count == 0)
+        return false;
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *element = ast_array_literal_element(expr, i);
+        /* A literal String has permanent borrowed backing.  Only a typed
+         * independently allocated String result can issue owned-literal
+         * element authority for the whole Array. */
+        if (element == NULL || element->type == AST_STRING
+            || !semantic_indexed_string_independent_result(element, ctx))
             return false;
     }
     return true;
@@ -177,10 +207,14 @@ semantic_collection_ownership_initialize_binding(
     } else if (collection_call_is_unshadowed_builtin(initializer, "Clone")) {
         fact.element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
         fact.origin = PGY_COLLECTION_ORIGIN_CLONE;
-    } else if (array_literal_is_entirely_borrowed_string_literals(
+    } else if (array_literal_is_entirely_borrowed_string_values(
                    initializer)) {
         fact.element_ownership = PGY_STRING_ARRAY_BORROWED_ELEMENTS;
         fact.origin = PGY_COLLECTION_ORIGIN_BORROWED_LITERAL;
+    } else if (array_literal_is_entirely_owned_string_values(
+                   initializer, ctx)) {
+        fact.element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
+        fact.origin = PGY_COLLECTION_ORIGIN_OWNED_LITERAL;
     } else if (initializer != NULL
                && initializer->type == AST_MEMBER_ACCESS) {
         PgyCollectionMemberPath path;
@@ -196,6 +230,7 @@ semantic_collection_ownership_initialize_binding(
             fact.source_birth_serial = root != NULL ? root->birth_serial : 0;
             fact.member_move_source = initializer;
             fact.member_move_source_id = ast_node_stable_id(initializer);
+            fact.member_move_elements_current = true;
         }
     } else if (initializer != NULL
                && initializer->type == AST_IDENTIFIER && ctx != NULL) {
@@ -207,6 +242,9 @@ semantic_collection_ownership_initialize_binding(
         source_fact = collection_ownership_fact_find_mutable(
             ctx, fact.function_syntax_id, fact.source_binding_syntax_id);
         if (source_fact != NULL) {
+            if (!semantic_array_storage_admit_move_before_defer_release(
+                    (ASTNode *)initializer, ctx))
+                return true;
             if (source_fact->disposition !=
                     PGY_COLLECTION_DISPOSITION_LIVE) {
                 semantic_error_with_hints(ctx,
@@ -243,6 +281,19 @@ semantic_collection_ownership_initialize_binding(
         }
     }
 
+    /* Birth classification must be reproduced on every semantic replay.
+     * The first pass and a loop recheck therefore ask the same element-path
+     * owner for the literal/call result premise before comparing the live
+     * birth.  Reusing the stored classification here would hide a stale
+     * publication; skipping the producer made a previously admitted owned
+     * literal become UNKNOWN only on replay. */
+    bool owned_literal = semantic_array_storage_initialize_return_elements(
+        &fact, binding, initializer, ctx);
+    if (owned_literal) {
+        fact.element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
+        fact.origin = PGY_COLLECTION_ORIGIN_OWNED_LITERAL;
+    }
+
     source_fact = collection_ownership_fact_find_mutable(
         ctx, fact.function_syntax_id, fact.binding_syntax_id);
     if (source_fact != NULL) {
@@ -258,8 +309,9 @@ semantic_collection_ownership_initialize_binding(
         /* The rechecked birth moved the field of the source's current
          * incarnation. */
         source_fact->source_birth_serial = fact.source_birth_serial;
+        source_fact->member_move_elements_current =
+            fact.member_move_elements_current;
     } else {
-        semantic_array_storage_initialize_return_elements(&fact, binding, initializer, ctx);
         if (!collection_ownership_fact_reserve(
                 ctx, ctx->collection_ownership_fact_count + 1))
             return false;
@@ -287,6 +339,93 @@ semantic_collection_ownership_initialize_binding(
         source_fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
         source->is_consumed = true;
     }
+    return true;
+}
+
+bool
+semantic_collection_ownership_finalize_call_result_births(
+    SemanticContext *ctx)
+{
+    if (ctx == NULL)
+        return false;
+    for (size_t i = 0; i < ctx->collection_ownership_fact_count; i++) {
+        PgyCollectionOwnershipFact *fact =
+            &ctx->collection_ownership_facts[i];
+        if (fact->origin != PGY_COLLECTION_ORIGIN_UNKNOWN
+            || fact->element_ownership
+                != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+            || !fact->return_elements_owned)
+            continue;
+
+        const ASTNode *call = fact->return_elements_source;
+        if (call == NULL || call->type != AST_CALL
+            || !ast_call_semantic_callee_declared_callable(call)
+            || ast_call_semantic_callee_value_binding_id(call) != 0
+            || ast_call_semantic_callee_decl_id(call) == 0)
+            continue;
+        uint32_t call_id = call != NULL ? ast_node_stable_id(call) : 0;
+        uint32_t callee_id = call != NULL
+            ? ast_call_semantic_callee_decl_id(call) : 0;
+        if ((fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+                && fact->disposition
+                    != PGY_COLLECTION_DISPOSITION_RETIRED)
+            || fact->source_binding_syntax_id != 0 || call_id == 0
+            || fact->origin_syntax_id != call_id
+            || fact->return_elements_source_id != call_id)
+            return false;
+
+        const Type *result_type = NULL;
+        ASTNode *callee = semantic_param_publication_declared_result(
+            ctx, call, &result_type);
+        if (callee == NULL || !collection_array_string_type(result_type)
+            || !semantic_array_storage_fresh_owned_string_result_current(
+                ctx, call)) {
+            if (fact->call_result_effect_pending) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                    call,
+                    "Array<String> call result cannot be released without a grounded owned-element result summary");
+            }
+            continue;
+        }
+        if (ast_node_stable_id(callee) != callee_id)
+            return false;
+
+        fact->origin = PGY_COLLECTION_ORIGIN_CALL_RESULT;
+        fact->element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
+        fact->origin_syntax_id = callee_id;
+    }
+    return true;
+}
+
+bool
+semantic_collection_owned_member_constructor_source(
+    const ASTNode *value,
+    SemanticContext *ctx)
+{
+    if (value == NULL || value->type != AST_IDENTIFIER || ctx == NULL
+        || ctx->current_function_decl == NULL)
+        return true;
+    Symbol *binding = scope_lookup(ctx->scope, ast_identifier_name(value));
+    uint32_t binding_id = ast_identifier_binding_syntax_id(value);
+    uint32_t function_id = ast_node_stable_id(ctx->current_function_decl);
+    PgyCollectionOwnershipFact *fact = collection_ownership_fact_find_mutable(
+        ctx, function_id, binding_id);
+    if (fact == NULL || fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE)
+        return true;
+    if (binding == NULL || binding_id == 0
+        || binding->decl_syntax_id != binding_id
+        || binding->is_parameter || binding->is_host_field
+        || binding->is_consumed || !collection_array_string_type(binding->type)
+        || fact->function_syntax_id != function_id
+        || fact->binding_syntax_id != binding_id
+        || fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+        || !fact->return_elements_owned
+        || !collection_member_move_path_matches_fact(
+            fact, fact->member_move_source, ctx, false))
+        return false;
     return true;
 }
 
@@ -448,12 +587,28 @@ semantic_collection_admit_owned_string_drop(
     if (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN) {
         if (fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
             && !fact->return_elements_owned) {
+            if (binding != NULL
+                && semantic_array_storage_has_pending_owned_string_result(
+                    ctx, binding->decl_syntax_id))
+                return true;
             if (!ctx->has_error)
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
                     PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, receiver,
                     "ArrayDropOwnedStrings cannot release '%s': shallow mutation withdrew its owned String-element premise",
                     name);
+            return false;
+        }
+        if (fact->origin == PGY_COLLECTION_ORIGIN_UNKNOWN
+            && fact->return_elements_source != NULL
+            && !fact->return_elements_owned) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                receiver,
+                "ArrayDropOwnedStrings cannot release '%s': shallow mutation withdrew its owned String-element premise",
+                name);
             return false;
         }
         if (fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE) {

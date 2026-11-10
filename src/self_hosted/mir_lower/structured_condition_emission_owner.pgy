@@ -72,15 +72,15 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         }
         // Each alternative of an or-pattern is one equality; native C emits
         // `(s == 401) || (s == 403)` from the same MIR row.
-        let condition: String = "";
-        let alternative: Int = 0;
+        var condition: String = "";
+        var alternative: Int = 0;
         while alternative < pattern_count {
-            let variant_name: String = variant;
+            var variant_name: String = variant;
             if variant_name == "" { variant_name = patterns[alternative]; }
             let enum_owner: String = MirProgramEnumVariantOwnerForName(
                 routines.declarations.enum_variants, variant_name
             );
-            let equality: String = Concat(match_subject, Concat(" == ", patterns[alternative]));
+            var equality: String = Concat(match_subject, Concat(" == ", patterns[alternative]));
             if StringLength(enum_owner) > 0 {
                 equality = Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
             } else if ToString(ToInt(patterns[alternative])) != patterns[alternative] {
@@ -171,7 +171,7 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
 func BlockCond(ref index: MirRoutineFactIndex,
     ref routines: MirProgramRoutineIndex, routine_row: Int,
     block_row: Int) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
+    var ignored_order: MirStructuredExpressionEmissionOrder =
         MirStructuredExpressionEmissionOrderEmpty();
     return BlockCondWithExpressionOrder(
         index, routines, routine_row, block_row, ignored_order
@@ -204,7 +204,7 @@ func BlockMatchBindingLineWithExpressionOrder(ref index: MirRoutineFactIndex,
     let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
         routines.source_json, routines.source_json_extent, instruction.start, instruction.end, "match_bindings"
     );
-    let binding_index: Int = 0;
+    var binding_index: Int = 0;
     while binding_index < ArrayLength(bindings) {
         if !MirStructuredExpressionEmissionOrderAppend(
             expression_order, instruction.global_row,
@@ -220,7 +220,7 @@ func BlockMatchBindingLineWithExpressionOrder(ref index: MirRoutineFactIndex,
 func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
     ref routines: MirProgramRoutineIndex, routine_row: Int,
     block_row: Int, indent: String) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
+    var ignored_order: MirStructuredExpressionEmissionOrder =
         MirStructuredExpressionEmissionOrderEmpty();
     return BlockMatchBindingLineWithExpressionOrder(
         index, routines, routine_row, block_row, indent, ignored_order

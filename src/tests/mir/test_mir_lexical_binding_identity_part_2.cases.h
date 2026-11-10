@@ -9,7 +9,7 @@ test_mir_scalar_parameter_wire_identity(void)
         "func Constant(inout n: Int) -> Int { n = 7; return 9; }"
         "func Formal(inout n: Int) -> Int { return n; }"
         "func Shadow(inout n: Int) -> Int {"
-        " unsafe { let label: String = \"inner\"; label = Concat(label, \"!\"); Log(label); } return n; }"
+        " unsafe { var label: String = \"inner\"; label = Concat(label, \"!\"); Log(label); } return n; }"
         "func Main() -> Void {}", &hir, &rir, &mir);
     TEST("MIR scalar copy-out wire controls lower successfully");
     EXPECT(ok);

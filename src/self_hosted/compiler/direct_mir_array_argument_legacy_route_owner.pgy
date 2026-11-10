@@ -10,7 +10,7 @@ func DirectMirArrayArgumentLegacyRouteClaimed(
         JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if admitted.routines.routine_block_counts[row] != 1 {
             return false;

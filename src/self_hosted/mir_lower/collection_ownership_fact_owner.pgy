@@ -5,6 +5,7 @@ import "program_routine_index_owner.pgy";
 import "program_instruction_expression_index_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
 import "collection_ownership_binding_move_owner.pgy";
+import "collection_owned_result_proof_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
 import "../mir/collection_ownership_state_table_owner.pgy";
@@ -25,8 +26,8 @@ func MirCollectionOwnershipLocalRow(
     ref local_binding_syntax_ids: Array<Int>,
     binding_syntax_id: Int
 ) -> Int {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(local_binding_syntax_ids) {
         if local_binding_syntax_ids[row] == binding_syntax_id {
             if found >= 0 { return -2; }
@@ -43,14 +44,14 @@ func MirCollectionOwnershipParameterType(
     routine_end: Int,
     binding_syntax_id: Int
 ) -> String {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if binding_syntax_id <= 0 || !MirObjectArrayBoundsAtBounds(
         json, json_extent, routine_start, routine_end, "params", bounds
     ) { return ""; }
-    let cursor: Int = bounds[0] + 1;
-    let row_bounds: Array<Int> = [0, 0];
-    let matched: Int = 0;
-    let found_type: String = "";
+    var cursor: Int = bounds[0] + 1;
+    var row_bounds: Array<Int> = [0, 0];
+    var matched: Int = 0;
+    var found_type: String = "";
     while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
         let source_id: String = MirObjectNumberFactAtBounds(
             json, json_extent, row_bounds[0], row_bounds[1], "source_syntax_id");
@@ -74,33 +75,181 @@ func MirCollectionOwnershipParameterType(
     return "";
 }
 
+func MirCollectionOwnershipMemberPathReady(
+    ref routines: MirProgramRoutineIndex,
+    source_type: String,
+    source_name: String,
+    source_binding_syntax_id: Int,
+    instruction_source_binding_syntax_id: Int,
+    field_syntax_id: Int,
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    if !sequence.ok || sequence.ready_node_count <= 0 ||
+        ArrayLength(sequence.roots) != 1 || source_type == "" ||
+        source_binding_syntax_id <= 0 || field_syntax_id <= 0 {
+        return false;
+    }
+    var member_names: Array<String> = [];
+    var node: Int = sequence.roots[0];
+    var depth: Int = 0;
+    while node >= 0 && node < sequence.ready_node_count &&
+            sequence.arena.topology.node_kinds[node] ==
+                AstExpressionNodeMemberAccess() {
+        if depth >= 64 { return false; }
+        let receiver: Int = sequence.arena.topology.left_children[node];
+        let selector: Int = sequence.arena.topology.right_children[node];
+        if receiver < 0 || receiver >= sequence.ready_node_count ||
+            selector < 0 || selector >= sequence.ready_node_count ||
+            sequence.arena.topology.node_kinds[selector] !=
+                AstExpressionNodeLeaf() ||
+            sequence.arena.node_texts[selector] == "" {
+            return false;
+        }
+        ArrayPush(member_names, sequence.arena.node_texts[selector]);
+        node = receiver;
+        depth = depth + 1;
+    }
+    if node < 0 || node >= sequence.ready_node_count ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() ||
+        (source_name != "" && sequence.arena.node_texts[node] != source_name) ||
+        ArrayLength(member_names) == 0 {
+        return false;
+    }
+    let graph_source_binding_syntax_id: Int =
+        sequence.arena.identities.binding_syntax_ids[node];
+    if graph_source_binding_syntax_id != source_binding_syntax_id &&
+        (graph_source_binding_syntax_id != 0 ||
+         instruction_source_binding_syntax_id != source_binding_syntax_id) {
+        return false;
+    }
+    var current_type: String =
+        SemanticCanonicalTypeNameFactFrom(source_type).canonical_name;
+    var final_field: Int = 0 - 1;
+    var segment: Int = ArrayLength(member_names) - 1;
+    while segment >= 0 {
+        let owner_name: String =
+            SemanticCanonicalTypeNameFactFrom(current_type).nominal_base_name;
+        let owner: Int = MirProgramDeclarationFieldIdentityDeclarationIndex(
+            routines.declarations.field_identities, owner_name
+        );
+        if owner < 0 { return false; }
+        var matched: Int = 0;
+        var candidate: Int = 0 - 1;
+        var field: Int = 0;
+        while field < ArrayLength(
+                routines.declarations.field_identities.field_names) {
+            if routines.declarations.field_identities
+                    .field_owner_indices[field] == owner &&
+                routines.declarations.field_identities.field_names[field] ==
+                    member_names[segment] {
+                matched = matched + 1;
+                candidate = field;
+            }
+            field = field + 1;
+        }
+        if matched != 1 { return false; }
+        current_type = SemanticCanonicalTypeNameFactFrom(
+            routines.declarations.field_identities.field_type_names[candidate]
+        ).canonical_name;
+        final_field = candidate;
+        segment = segment - 1;
+    }
+    return final_field >= 0 && current_type == "Array<String>" &&
+        routines.declarations.field_identities
+            .field_source_syntax_ids[final_field] == ToString(field_syntax_id);
+}
+
 func MirCollectionOwnershipMemberSourceReady(
     ref routines: MirProgramRoutineIndex,
+    ref binding_moves: MirCollectionOwnershipBindingMoveFacts,
+    routine_row: Int,
     routine_start: Int,
     routine_end: Int,
+    ref local_names: Array<String>,
     ref local_types: Array<String>,
     ref local_binding_syntax_ids: Array<Int>,
+    destination_binding_syntax_id: Int,
     source_binding_syntax_id: Int,
     field_syntax_id: Int
 ) -> Bool {
-    let source_type: String = "";
+    var source_type: String = "";
+    var source_name: String = "";
     let source_row: Int = MirCollectionOwnershipLocalRow(
         local_binding_syntax_ids, source_binding_syntax_id);
     if source_row >= 0 {
         source_type = Concat("", local_types[source_row]);
+        source_name = Concat("", local_names[source_row]);
     } else {
         source_type = MirCollectionOwnershipParameterType(
             routines.source_json, routines.source_json_extent, routine_start, routine_end,
             source_binding_syntax_id);
     }
-    if source_type == "" || field_syntax_id <= 0 { return false; }
-    let source_shape: SemanticCanonicalTypeNameFact =
-        SemanticCanonicalTypeNameFactFrom(source_type);
-    return MirProgramDeclarationFieldIdentitySourceMatchesType(
-        routines.declarations.field_identities,
-        source_shape.nominal_base_name, ToString(field_syntax_id),
-        "Array<String>"
-    );
+    let destination_row: Int = MirCollectionOwnershipLocalRow(
+        local_binding_syntax_ids, destination_binding_syntax_id);
+    if source_type == "" || field_syntax_id <= 0 ||
+        destination_row < 0 || destination_row >= ArrayLength(local_names) ||
+        !MirProgramRoutineIndexRowReady(routines, routine_row) {
+        return false;
+    }
+    let destination_name: String = local_names[destination_row];
+    var same_name_count: Int = 0;
+    var local_row: Int = 0;
+    while local_row < ArrayLength(local_names) {
+        if local_names[local_row] == destination_name {
+            same_name_count = same_name_count + 1;
+        }
+        local_row = local_row + 1;
+    }
+    if destination_name == "" || same_name_count != 1 { return false; }
+    var matched: Int = 0;
+    var path_ready: Bool = false;
+    var block_offset: Int = 0;
+    while block_offset < routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] +
+            block_offset;
+        var instruction_offset: Int = 0;
+        while instruction_offset < routines.block_instruction_counts[block] {
+            let instruction: Int =
+                routines.block_instruction_starts[block] + instruction_offset;
+            let start: Int = routines.instruction_starts[instruction];
+            let end: Int = routines.instruction_ends[instruction];
+            let local_name: String = MirObjectStringFactAtBounds(
+                routines.source_json, routines.source_json_extent,
+                start, end, "arg0");
+            if routines.instruction_kinds[instruction] == "def" &&
+                routines.instruction_source_types[instruction] ==
+                    "AST_LET_DECL" && local_name == destination_name {
+                matched = matched + 1;
+                let expression: MirProgramInstructionExpressionFact =
+                    MirProgramInstructionExpressionIndexAt(
+                        routines.instruction_expressions, instruction);
+                let graph: JsonObjectFactTable =
+                    MirProgramInstructionExpressionGraphTable(
+                        routines.source_json, routines.source_json_extent,
+                        expression, 0);
+                let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    start, end, "uses");
+                var instruction_source_binding_syntax_id: Int = 0 - 1;
+                if ArrayLength(uses) == 1 {
+                    instruction_source_binding_syntax_id =
+                        MirCollectionOwnershipDefinitionValueBinding(
+                            binding_moves, uses[0]);
+                }
+                let sequence: MirExpressionGraphSequence =
+                    MirExpressionGraphSequenceAppend(
+                        MirExpressionGraphSequenceEmpty(), graph);
+                path_ready = MirCollectionOwnershipMemberPathReady(
+                    routines, source_type, source_name,
+                    source_binding_syntax_id,
+                    instruction_source_binding_syntax_id,
+                    field_syntax_id, sequence);
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return matched == 1 && path_ready;
 }
 
 func MirCollectionOwnershipCallResultSourceReady(
@@ -108,8 +257,8 @@ func MirCollectionOwnershipCallResultSourceReady(
     origin_syntax_id: Int
 ) -> Bool {
     if origin_syntax_id <= 0 { return false; }
-    let matched: Int = 0;
-    let routine: Int = 0;
+    var matched: Int = 0;
+    var routine: Int = 0;
     while routine < ArrayLength(routines.source_syntax_ids) {
         if routines.source_syntax_ids[routine] ==
                 ToString(origin_syntax_id) {
@@ -140,14 +289,14 @@ func MirCollectionOwnershipEmptyLiteralReceipt(
     let expected_ref: String = Concat(
         "declaration:", Concat(ToString(binding_syntax_id), ":0")
     );
-    let matched: Int = 0;
-    let receipt_ok: Bool = false;
-    let block_offset: Int = 0;
+    var matched: Int = 0;
+    var receipt_ok: Bool = false;
+    var block_offset: Int = 0;
     let block_start: Int = routines.routine_block_starts[routine_row];
     let block_count: Int = routines.routine_block_counts[routine_row];
     while block_offset < block_count {
         let block: Int = block_start + block_offset;
-        let instruction_offset: Int = 0;
+        var instruction_offset: Int = 0;
         let instruction_start: Int =
             routines.block_instruction_starts[block];
         let instruction_count: Int =
@@ -156,7 +305,7 @@ func MirCollectionOwnershipEmptyLiteralReceipt(
             let instruction: Int = instruction_start + instruction_offset;
             let start: Int = routines.instruction_starts[instruction];
             let end: Int = routines.instruction_ends[instruction];
-            let local_ref: String = "";
+            var local_ref: String = "";
             if MirObjectFieldOccurrenceCountAtBounds(
                     routines.source_json, routines.source_json_extent, start, end, "local_ref") == 1 {
                 local_ref = MirObjectStringFactAtBounds(
@@ -180,7 +329,7 @@ func MirCollectionOwnershipEmptyLiteralReceipt(
                     MirExpressionGraphSequenceAppend(
                         MirExpressionGraphSequenceEmpty(), graph
                     );
-                let root: Int = 0 - 1;
+                var root: Int = 0 - 1;
                 if ArrayLength(sequence.roots) == 1 {
                     root = sequence.roots[0];
                 }
@@ -212,26 +361,26 @@ func BuildMirCollectionOwnershipFacts(
     ref local_types: Array<String>,
     ref local_binding_syntax_ids: Array<Int>
 ) -> MirCollectionOwnershipFacts {
-    let function_ids: Array<Int> = [];
-    let binding_ids: Array<Int> = [];
-    let origin_ids: Array<Int> = [];
-    let source_ids: Array<Int> = [];
-    let ownerships: Array<String> = [];
-    let dispositions: Array<String> = [];
-    let origins: Array<String> = [];
+    var function_ids: Array<Int> = [];
+    var binding_ids: Array<Int> = [];
+    var origin_ids: Array<Int> = [];
+    var source_ids: Array<Int> = [];
+    var ownerships: Array<String> = [];
+    var dispositions: Array<String> = [];
+    var origins: Array<String> = [];
     let binding_moves: MirCollectionOwnershipBindingMoveFacts =
         BuildMirCollectionOwnershipBindingMoveFacts(
             routines, routine_row, local_names,
             local_binding_syntax_ids);
-    let valid: Bool = StringLength(routine_syntax_id) > 0 &&
+    var valid: Bool = StringLength(routine_syntax_id) > 0 &&
         ArrayLength(local_types) == ArrayLength(local_binding_syntax_ids) &&
         binding_moves.valid;
-    let stage: String = "ok";
+    var stage: String = "ok";
     let declared_count: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end,
         "collection_ownership_fact_count"
     );
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if MirObjectFieldOccurrenceCountAtBounds(
             json, json_extent, routine_start, routine_end,
             "collection_ownership_fact_count") != 1 ||
@@ -247,8 +396,8 @@ func BuildMirCollectionOwnershipFacts(
         valid = false;
         stage = "collection_ownership_shape";
     } else {
-        let cursor: Int = bounds[0] + 1;
-        let row_bounds: Array<Int> = [0, 0];
+        var cursor: Int = bounds[0] + 1;
+        var row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, json_extent, cursor, bounds[1], row_bounds
         ) {
@@ -267,13 +416,13 @@ func BuildMirCollectionOwnershipFacts(
                 json, json_extent, row_bounds[0], row_bounds[1], "disposition");
             let origin: String = MirObjectStringFactAtBounds(
                 json, json_extent, row_bounds[0], row_bounds[1], "origin");
-            let exact_fields: Bool = true;
+            var exact_fields: Bool = true;
             let field_names: Array<String> = [
                 "function_syntax_id", "binding_syntax_id",
                 "origin_syntax_id", "source_binding_syntax_id",
                 "element_ownership", "disposition", "origin"
             ];
-            let field: Int = 0;
+            var field: Int = 0;
             while field < ArrayLength(field_names) {
                 if MirObjectFieldOccurrenceCountAtBounds(
                     json, json_extent, row_bounds[0], row_bounds[1], field_names[field]
@@ -286,16 +435,16 @@ func BuildMirCollectionOwnershipFacts(
                 ToString(ToInt(binding_id)) == binding_id &&
                 ToString(ToInt(origin_id)) == origin_id &&
                 ToString(ToInt(source_id)) == source_id;
-            let local_row: Int = -1;
-            let source_row: Int = -1;
-            let source_fact_row: Int = -1;
+            var local_row: Int = -1;
+            var source_row: Int = -1;
+            var source_fact_row: Int = -1;
             if numeric {
                 local_row = MirCollectionOwnershipLocalRow(
                     local_binding_syntax_ids, ToInt(binding_id));
                 if ToInt(source_id) > 0 {
                     source_row = MirCollectionOwnershipLocalRow(
                         local_binding_syntax_ids, ToInt(source_id));
-                    let source_candidate: Int = 0;
+                    var source_candidate: Int = 0;
                     while source_candidate < ArrayLength(binding_ids) {
                         if binding_ids[source_candidate] == ToInt(source_id) {
                             source_fact_row = source_candidate;
@@ -310,7 +459,8 @@ func BuildMirCollectionOwnershipFacts(
                 MirCollectionOwnershipStateAdmitted(
                     origin, ownership, disposition) &&
                 (((origin == "unknown" || origin == "borrowed-literal" ||
-                   origin == "map-keys" || origin == "clone") &&
+                   origin == "map-keys" || origin == "clone" ||
+                   origin == "owned-literal") &&
                     source_id == "0") ||
                 (origin == "empty-literal" && source_id == "0" &&
                     numeric &&
@@ -320,12 +470,17 @@ func BuildMirCollectionOwnershipFacts(
                     ToInt(source_id) > 0 &&
                     ToInt(source_id) != ToInt(binding_id) &&
                     MirCollectionOwnershipMemberSourceReady(
-                        routines, routine_start, routine_end,
-                        local_types, local_binding_syntax_ids,
-                        ToInt(source_id), ToInt(origin_id))) ||
+                        routines, binding_moves, routine_row,
+                        routine_start, routine_end,
+                        local_names, local_types, local_binding_syntax_ids,
+                        ToInt(binding_id), ToInt(source_id),
+                        ToInt(origin_id))) ||
                 (origin == "call-result" && numeric && source_id == "0" &&
                     MirCollectionOwnershipCallResultSourceReady(
-                        routines, ToInt(origin_id))) ||
+                        routines, ToInt(origin_id)) &&
+                    (ownership == "unknown" ||
+                     MirCollectionOwnedResultSourceReady(
+                        routines, ToInt(origin_id)))) ||
                 ((origin == "formal-string-transfer" ||
                   origin == "local-string-transfer") && numeric &&
                     ToInt(source_id) > 0 &&
@@ -341,8 +496,8 @@ func BuildMirCollectionOwnershipFacts(
                     dispositions[source_fact_row] == "retired" &&
                     MirCollectionOwnershipBindingMoveSourceReady(
                         binding_moves, ToInt(binding_id), ToInt(source_id))));
-            let duplicate: Bool = false;
-            let prior: Int = 0;
+            var duplicate: Bool = false;
+            var prior: Int = 0;
             while numeric && prior < ArrayLength(binding_ids) {
                 if function_ids[prior] == ToInt(function_id) &&
                     binding_ids[prior] == ToInt(binding_id) {
@@ -369,13 +524,13 @@ func BuildMirCollectionOwnershipFacts(
             cursor = row_bounds[1];
         }
     }
-    let retired_row: Int = 0;
+    var retired_row: Int = 0;
     while valid && retired_row < ArrayLength(binding_ids) {
         if dispositions[retired_row] == "retired" &&
             !MirCollectionOwnershipRetiredWithoutDestination(
                 origins[retired_row], ownerships[retired_row]) {
-            let destination_count: Int = 0;
-            let destination: Int = 0;
+            var destination_count: Int = 0;
+            var destination: Int = 0;
             while destination < ArrayLength(binding_ids) {
                 if origins[destination] == "binding" &&
                     source_ids[destination] == binding_ids[retired_row] &&
@@ -391,8 +546,8 @@ func BuildMirCollectionOwnershipFacts(
         }
         retired_row = retired_row + 1;
     }
-    if declared_count == "" ||
-        ToInt(declared_count) != ArrayLength(binding_ids) {
+    if valid && (declared_count == "" ||
+        ToInt(declared_count) != ArrayLength(binding_ids)) {
         valid = false;
         stage = "collection_ownership_count";
     }

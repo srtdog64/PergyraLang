@@ -1,0 +1,31 @@
+// Constructor field-input producer query.
+
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_constructor_storage_escape_owner.pgy";
+import "ast_collection_constructor_named_vacant_owner.pgy";
+
+func SemanticAstCollectionConstructorFieldInputProducerAt(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, argument: Int,
+    binding_row: Int, ref current: Array<Int>
+) -> SemanticAstCollectionConstructorFieldInputProducer {
+    var producer: SemanticAstCollectionConstructorFieldInputProducer = SemanticAstCollectionConstructorFieldInputProducer(false, 0, -1, 0, 0);
+    if slot < 0 || slot >= ArrayLength(surfaces.expression_graph.roots) || slot / 3 >= ArrayLength(surfaces.function_node_ids) ||
+        !surfaces.expression_graph.has_roots[slot] { return producer; }
+    if binding_row >= 0 {
+        if binding_row >= ArrayLength(current) { return producer; }
+        let definition: Int = current[binding_row];
+        if !definitions.ok || binding_row >= ArrayLength(locals.node_ids) || definition < 0 ||
+            definition >= ArrayLength(definitions.syntax_ids) || definitions.binding_rows[definition] != binding_row ||
+            locals.function_node_ids[binding_row] != surfaces.function_node_ids[slot / 3] { return producer; }
+        producer.kind = 1; producer.definition_row = definition;
+        producer.definition_id = definitions.syntax_ids[definition]; producer.binding_id = locals.node_ids[binding_row];
+        if SemanticAstCollectionConstructorNamedVacantAt(artifact, locals, inferred_types, definitions, surfaces, slot, argument, binding_row, current) {
+            producer.kind = 3;
+        }
+    } else if SemanticAstCollectionOwnershipLiteralIsEmpty(surfaces.expression_graph, argument) { producer.kind = 2; }
+    producer.ok = true;
+    return producer;
+}
+

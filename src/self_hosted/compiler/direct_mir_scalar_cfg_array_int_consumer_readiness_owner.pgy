@@ -15,7 +15,7 @@ func DirectMirScalarCfgArrayIntSumPhiReady(
         DirectMirScalarCfgOperationBlock(plan, phi) !=
             fact.consumer.header_block ||
         plan.operation_phi_counts[phi] != 2 { return false; }
-    let zero: Int = 0; let recurrence: Int = 0; let incoming: Int = 0;
+    var zero: Int = 0; var recurrence: Int = 0; var incoming: Int = 0;
     while incoming < plan.operation_phi_counts[phi] {
         let value: Int = plan.phi_incoming_values[
             plan.operation_phi_starts[phi] + incoming

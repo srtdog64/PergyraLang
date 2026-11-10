@@ -29,7 +29,7 @@ func DirectMirScalarProgramCIntentObservabilityExpressionAt(
     let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowForId(
         expressions.node_runtime_call_abi_ids[node]);
     if !row.valid { Die("direct MIR C intent-observability ABI is invalid"); }
-    let arguments: String = "";
+    var arguments: String = "";
     if row.argument_count == 1 { arguments = left; }
     else if row.argument_count == 2 {
         arguments = Concat(left, Concat(", ", right));

@@ -30,7 +30,7 @@ func DirectMirInferredGenericScalarEmitC(
         wrapper_parameter == "" || local_binding == "" || specialized == wrapper {
         Die("direct MIR inferred scalar C symbols are invalid");
     }
-    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nstatic int32_t ";
+    var output: String = "#include <stdint.h>\n#include <stdio.h>\n\nstatic int32_t ";
     output = Concat(output, specialized);
     output = Concat(output, "(int32_t ");
     output = Concat(output, generic_parameter);

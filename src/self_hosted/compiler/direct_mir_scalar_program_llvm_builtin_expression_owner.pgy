@@ -7,7 +7,7 @@ import "direct_mir_scalar_program_llvm_array_int_empty_literal_expression_owner.
 import "direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_result_expression_owner.pgy";
-import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_llvm_aggregate_option_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_set_string_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
 func DirectMirScalarProgramLlvmBuiltinExpressionAt(
@@ -15,9 +15,9 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     left: String, left_address: String, left_type: String,
     right: String, right_type: String,
     owns_array_string_elements: Bool,
-    inout arguments: Array<String>, inout argument_types: Array<String>,
-    inout argument_kinds: Array<Int>,
-    inout argument_carriages: Array<String>,
+    ref arguments: Array<String>, ref argument_types: Array<String>,
+    ref argument_kinds: Array<Int>,
+    ref argument_carriages: Array<String>,
     callable_ordinal: Int, callable_parameter_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
@@ -26,11 +26,12 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let artifact: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(kind, result, left, right, runtime);
     if artifact.matched { return artifact; }
-    let record_option: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(logical_record, kind, result, result_type, left_type, left);
-    if record_option.matched { return record_option; }
+    let aggregate_option: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmAggregateOptionExpressionAt(logical_record, referenced_enum, kind, result, result_type, left_type, left);
+    if aggregate_option.matched { return aggregate_option; }
     let option_result: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmOptionResultExpressionAt(
-            kind, result, left, right);
+            kind, result, result_type, left, left_type, right,
+            logical_record, payload_free_enum, referenced_enum);
     if option_result.matched { return option_result; }
     let set_string: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmSetStringExpressionAt(

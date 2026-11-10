@@ -6,11 +6,13 @@ import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_nominal_parameter_projection_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
-import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
+import "direct_mir_scalar_program_readonly_string_parameter_owner.pgy";
 import "direct_mir_identity_cell_store_readiness_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 struct DirectMirScalarProgramLlvmCallArgument {
     let valid: Bool;
     let instructions: String;
@@ -62,13 +64,54 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
         }
         return invalid;
     }
-    let projected: DirectMirScalarProgramLlvmStringExpression =
+    if carriage == "readonly-ref" &&
+        CollectionHashMapLlvmFactFromTypeName(
+            routines.parameter_types[parameter_row]).ok {
+        return DirectMirScalarProgramLlvmCallArgument(
+            true, "", value, carriage);
+    }
+    if DirectMirScalarProgramOpaqueReadonlyZoneRow(
+            plan.program.opaque_readonly_zones,
+            routines.parameter_types[parameter_row]) >= 0 {
+        if (carriage != "readonly-ref" && carriage != "participant") ||
+            expressions.node_kinds[argument_node] !=
+                DirectMirScalarProgramExprParameter() {
+            return invalid;
+        }
+        let source: Int =
+            expressions.node_parameter_ordinals[argument_node];
+        if source < 0 || source >= routines.parameter_counts[routine] {
+            return invalid;
+        }
+        let source_row: Int = routines.parameter_starts[routine] + source;
+        if routines.parameter_types[source_row] !=
+                routines.parameter_types[parameter_row] ||
+            routines.parameter_carriages[source_row] != carriage ||
+            DirectMirScalarProgramOpaqueReadonlyZoneRow(
+                plan.program.opaque_readonly_zones,
+                routines.parameter_types[source_row]) < 0 {
+            return invalid;
+        }
+        return DirectMirScalarProgramLlvmCallArgument(
+            true, "", value, carriage);
+    }
+    let enum_argument: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmEnumCallArgument(
+            expressions, routines, logical_record,
+            plan.program.payload_free_enum, plan.program.referenced_enum,
+            routine, callable, argument, argument_node, value);
+    if enum_argument.matched {
+        if !enum_argument.valid { return invalid; }
+        return DirectMirScalarProgramLlvmCallArgument(
+            true, enum_argument.instructions, enum_argument.value, carriage);
+    }
+    var projected: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmStringExpression(false, true, "", value);
     if DirectMirScalarProgramArrayReadonlyRefAt(
             routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(
             expressions, routines, logical_record, routine, argument_node, value);
-    } else if !DirectMirScalarProgramVoidReadonlyStringTargetAt(
+    } else if !DirectMirScalarProgramReadonlyStringTargetAt(
             routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmLogicalRecordCallArgument(
             expressions, routines, logical_record, routine, callable,
@@ -81,28 +124,14 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
 func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     kind: Int, result: String, result_type: String,
     left: String, left_type: String, right: String, right_type: String,
-    inout arguments: Array<String>, inout argument_types: Array<String>,
-    inout argument_kinds: Array<Int>, inout argument_carriages: Array<String>,
+    ref arguments: Array<String>, ref argument_types: Array<String>,
+    ref argument_kinds: Array<Int>, ref argument_carriages: Array<String>,
     callable_ordinal: Int, callable_parameter_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact, ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprDirectCall() && kind != DirectMirScalarProgramExprCallableParameterCall() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
-    }
-    if ArrayLength(arguments) == 0 {
-        if left != "" {
-            ArrayPush(arguments, left);
-            ArrayPush(argument_types, left_type);
-            ArrayPush(argument_kinds, 0);
-            ArrayPush(argument_carriages, "value");
-        }
-        if right != "" {
-            ArrayPush(arguments, right);
-            ArrayPush(argument_types, right_type);
-            ArrayPush(argument_kinds, 0);
-            ArrayPush(argument_carriages, "value");
-        }
     }
     let direct: Bool = kind == DirectMirScalarProgramExprDirectCall() && callable_ordinal >= 0 && callable_parameter_ordinal == -1;
     let indirect: Bool = kind == DirectMirScalarProgramExprCallableParameterCall() && callable_ordinal == -1 && callable_parameter_ordinal >= 0;
@@ -119,29 +148,41 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let output: String = "  ";
+    var output: String = "  ";
     if result_type != "Void" {
         output = Concat(output, Concat(result, " = "));
     }
-    let callee: String = Concat("@pgy.scalar.routine.", ToString(callable_ordinal));
+    var callee: String = Concat("@pgy.scalar.routine.", ToString(callable_ordinal));
     if indirect {
         callee = Concat("%pgy.param.", ToString(callable_parameter_ordinal));
     }
     output = Concat(output, Concat("call ", Concat(result_llvm_type,
         Concat(" ", Concat(callee, "(")))));
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         if ordinal > 0 { output = Concat(output, ", "); }
-        let argument_type: String = "";
-        if argument_carriages[ordinal] == "readonly-ref" ||
+        var argument_type: String = "";
+        let readonly_hashmap: Bool =
+            argument_carriages[ordinal] == "readonly-ref" &&
+            CollectionHashMapLlvmFactFromTypeName(
+                argument_types[ordinal]).ok;
+        let readonly_payload_free_enum: Bool =
+            argument_carriages[ordinal] == "readonly-ref" &&
+            DirectMirScalarProgramPayloadFreeEnumTypeReady(
+                payload_free_enum, argument_types[ordinal]);
+        if (argument_carriages[ordinal] == "readonly-ref" &&
+                !readonly_hashmap && !readonly_payload_free_enum) ||
             argument_carriages[ordinal] == "mutable-identity" ||
+            argument_carriages[ordinal] == "participant" ||
             argument_carriages[ordinal] == "value-result" {
             argument_type = "ptr";
         } else if argument_carriages[ordinal] == "value" ||
+                readonly_hashmap || readonly_payload_free_enum ||
                 argument_carriages[ordinal] == "owner-handle" {
             if argument_carriages[ordinal] == "owner-handle" &&
-                !DirectMirScalarProgramOwnedDirectParameterTypeReady(
-                    logical_record, argument_types[ordinal]) {
+                !DirectMirScalarProgramOwnedDirectParameterTypeReadyWithReferencedEnum(
+                    logical_record, referenced_enum,
+                    argument_types[ordinal]) {
                 return DirectMirScalarProgramLlvmStringExpression(
                     true, false, "", "");
             }
@@ -158,7 +199,7 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         ordinal = ordinal + 1;
     }
     output = Concat(output, ")\n");
-    let value: String = result;
+    var value: String = result;
     if result_type == "Void" { value = ""; }
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, output, value);

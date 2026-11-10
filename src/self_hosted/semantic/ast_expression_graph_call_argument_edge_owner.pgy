@@ -12,10 +12,10 @@ struct SemanticCallArgumentEdgeView {
 func SemanticCallBaseCalleeFromGraph(
     ref graph: SemanticExpressionGraphFacts, call_node: Int
 ) -> Option<Int> {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, call_node);
+    var kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, call_node);
     if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() { return None; }
-    let callee: Option<Int> = SemanticExpressionGraphLeftChild(graph, call_node);
-    let previous: Int = call_node;
+    var callee: Option<Int> = SemanticExpressionGraphLeftChild(graph, call_node);
+    var previous: Int = call_node;
     while IsSome(callee) {
         let node: Int = UnwrapOption(callee);
         if node < 0 || node >= previous { return None; }
@@ -35,12 +35,12 @@ func SemanticCallArgumentEdgeFromGraph(
     ref graph: SemanticExpressionGraphFacts, edge_node: Int
 ) -> SemanticCallArgumentEdgeView {
     let invalid: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeView(false, 0, 0, -1);
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, edge_node);
+    var kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, edge_node);
     if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCallArgument() { return invalid; }
     let argument: Option<Int> = SemanticExpressionGraphRightChild(graph, edge_node);
     if !IsSome(argument) { return invalid; }
-    let node: Int = edge_node;
-    let ordinal: Int = -1;
+    var node: Int = edge_node;
+    var ordinal: Int = -1;
     while IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
         let previous: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
         if !IsSome(previous) || UnwrapOption(previous) < 0 || UnwrapOption(previous) >= node { return invalid; }

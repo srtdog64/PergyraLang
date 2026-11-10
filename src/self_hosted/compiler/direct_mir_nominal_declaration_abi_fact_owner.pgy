@@ -35,10 +35,10 @@ func DirectMirNominalDeclarationAbiFactDigest(ref fact: DirectMirNominalDeclarat
         ArrayLength(fact.abi.field_aligns) != count {
         return 0;
     }
-    let hash: Long = DirectMirCfgHashString(137L, fact.name);
+    var hash: Long = DirectMirCfgHashString(137L, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.source_module_path);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         hash = DirectMirCfgHashString(hash, fact.field_names[row]);
         hash = DirectMirCfgHashString(hash, fact.field_types[row]);
@@ -81,7 +81,7 @@ func DirectMirNominalDeclarationAbiFactReady(
         ArrayLength(fact.abi.field_names) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.field_names[row] == "" || fact.field_types[row] == "" ||
             fact.field_kinds[row] != "field" ||
@@ -89,7 +89,7 @@ func DirectMirNominalDeclarationAbiFactReady(
             fact.abi.field_names[row] != fact.field_names[row] {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.field_names[prior] == fact.field_names[row] ||
                 fact.field_source_syntax_ids[prior] ==
@@ -123,10 +123,10 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
         "source_module_path", "fields", "abi_layout_id",
         "abi_layout_required", "abi_layout"
     ];
-    let starts: Array<Int> = [
+    var starts: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    let ends: Array<Int> = [
+    var ends: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
     if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 9 ||
@@ -165,11 +165,11 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     if !IsSome(admitted_abi) || !JsonArrayObjectFactTableReady(fields) {
         return InvalidDirectMirNominalDeclarationAbiFact();
     }
-    let field_names: Array<String> = [];
-    let field_types: Array<String> = [];
-    let field_kinds: Array<String> = [];
-    let field_ids: Array<Int> = [];
-    let field_row: Int = 0;
+    var field_names: Array<String> = [];
+    var field_types: Array<String> = [];
+    var field_kinds: Array<String> = [];
+    var field_ids: Array<Int> = [];
+    var field_row: Int = 0;
     while field_row < JsonArrayObjectFactCount(fields) {
         let field: JsonObjectFactTable = JsonArrayObjectFactAt(
             fields, field_row

@@ -14,7 +14,7 @@ func Main() -> Int {
     let names: Array<String> = ["a", "b"];
     let ids: Array<Int> = [1, 2];
     let input: Holder = Holder(names, ids);
-    let copy: Holder = Copy(input);
+    var copy: Holder = Copy(input);
     ArrayPush(copy.names, "c");
     copy.ids[0] = 7;
     Print(ToString(ArrayLength(copy.names) + copy.ids[0]));

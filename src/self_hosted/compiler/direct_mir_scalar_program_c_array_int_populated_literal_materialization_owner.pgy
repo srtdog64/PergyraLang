@@ -16,8 +16,8 @@ func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(
             abi, CompilerTargetCpuCProjection()) {
         Die("direct MIR scalar C populated Array<Int> literal ABI is invalid");
     }
-    let output: String = "";
-    let node: Int = 0;
+    var output: String = "";
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         if plan.program.expressions.node_kinds[node] !=
                 DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
@@ -43,38 +43,16 @@ func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(
         output = Concat(output, "    out.length = ");
         output = Concat(output, ToString(ArrayLength(operands)));
         output = Concat(output, "; out.capacity = out.length;\n");
-        let item: Int = 0;
-        let parameter: Int = 0;
+        var item: Int = 0;
         while item < ArrayLength(operands) {
-            let operand: Int = operands[item];
             output = Concat(output, "    out.data[");
             output = Concat(output, ToString(item));
             output = Concat(output, "] = (");
             output = Concat(output, abi.c_element_type);
             output = Concat(output, ")");
-            if plan.program.expressions.node_kinds[operand] ==
-                    DirectMirScalarProgramExprIntLiteral() {
-                output = Concat(output,
-                    plan.program.expressions.node_literals[operand]);
-            } else if plan.program.expressions.node_kinds[operand] ==
-                    DirectMirScalarProgramExprDirectCall() {
-                output = Concat(output, "pgy_scalar_routine_");
-                output = Concat(output, ToString(
-                    plan.program.expressions.node_callable_rows[operand]));
-                output = Concat(output, "()");
-            } else if plan.program.expressions.node_kinds[operand] ==
-                    DirectMirScalarProgramExprParameter() ||
-                plan.program.expressions.node_kinds[operand] ==
-                    DirectMirScalarProgramExprLocal() ||
-                plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprLogicalRecordMember() || plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprArrayIntIndex() ||
-                plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprSubtractInt() ||
-                plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprNegateInt() {
-                output = Concat(output, "pgy_values[");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output, "]"); parameter = parameter + 1;
-            } else {
-                Die("direct MIR scalar C populated Array<Int> operand is invalid");
-            }
+            output = Concat(output, "pgy_values[");
+            output = Concat(output, ToString(item));
+            output = Concat(output, "]");
             output = Concat(output, ";\n");
             item = item + 1;
         }

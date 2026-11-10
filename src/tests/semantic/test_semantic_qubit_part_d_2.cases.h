@@ -8,7 +8,7 @@
             "    let holder: Holder;\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let seen: Set<QubitSlot> = SetNew();\n"
+            "    var seen: Set<QubitSlot> = SetNew();\n"
             "    SetAdd(seen, wrapper.holder.q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -29,7 +29,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref movable-resource parameter reports nested projection path on transitive helper list store");
+    TEST("ref movable-resource helper chain rejects the invalid inner return before list store");
     {
         const char *source =
             "object Holder {\n"
@@ -45,7 +45,7 @@
             "    return Escape(q);\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let list: List<QubitSlot> = ListNew();\n"
+            "    var list: List<QubitSlot> = ListNew();\n"
             "    ListPush(list, Proxy(wrapper.holder.q));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -56,9 +56,9 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref slot handle (movable) 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.q'"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through return from 'q'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'wrapper.holder.q' is derived from that borrowed slot-handle (movable) provenance"));
+            "'q' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -124,7 +124,7 @@
             "    return Escape(packet);\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let packets: Array<Packet> = [Packet(0)];\n"
+            "    var packets: Array<Packet> = [Packet(0)];\n"
             "    packets[0] = Proxy(wrapper.holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -183,7 +183,7 @@
     {
         const char *source =
             "func Store(ref pair: (Int, Int)) -> Void {\n"
-            "    let pairs: Array<(Int, Int)> = [(0, 0)];\n"
+            "    var pairs: Array<(Int, Int)> = [(0, 0)];\n"
             "    pairs[0] = pair;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -215,7 +215,7 @@
             "    let holder: Holder;\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let packets: Array<Packet> = [Packet(0)];\n"
+            "    var packets: Array<Packet> = [Packet(0)];\n"
             "    packets[0] = wrapper.holder.packet;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -255,7 +255,7 @@
             "    return Escape(packet);\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let packets: Array<Packet> = [Packet(0)];\n"
+            "    var packets: Array<Packet> = [Packet(0)];\n"
             "    packets[0] = Proxy(wrapper.holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -312,7 +312,7 @@
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref packet: Packet) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(0)];\n"
+            "    var items: Array<Packet> = [Packet(0)];\n"
             "    items[0] = packet;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

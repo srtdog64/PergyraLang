@@ -39,7 +39,7 @@ func DirectMirScalarCfgProgramCallableExpressionIdentityReady(
         plan.routines.parameter_carriages[parameter_row] != "value" ||
         !shape.ok || facts.node_types[node] != shape.return_type ||
         ArrayLength(arguments) != ArrayLength(shape.parameter_types) { return false; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         let argument: Int = arguments[ordinal];
         if argument < graph_start || argument >= node ||

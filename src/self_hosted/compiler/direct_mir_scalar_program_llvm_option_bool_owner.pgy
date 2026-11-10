@@ -13,9 +13,9 @@ func DirectMirScalarProgramLlvmOptionBoolTypeName() -> String {
 func DirectMirScalarProgramLlvmOptionBoolExpressionAt(
     kind: Int, result: String, left: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let function_name: String = "";
-    let result_type: String = "";
-    let argument_type: String = "";
+    var function_name: String = "";
+    var result_type: String = "";
+    var argument_type: String = "";
     if kind == DirectMirScalarProgramExprSomeBool() {
         function_name = "@pgy.scalar.option.bool.some";
         result_type = DirectMirScalarProgramLlvmOptionBoolTypeName();
@@ -34,7 +34,7 @@ func DirectMirScalarProgramLlvmOptionBoolExpressionAt(
     } else {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
-    let output: String = Concat("  ", Concat(result, Concat(
+    var output: String = Concat("  ", Concat(result, Concat(
         " = call ", Concat(result_type, Concat(" ", function_name)))));
     if argument_type == "" { output = Concat(output, "()\n"); }
     else {
@@ -57,7 +57,7 @@ func DirectMirScalarProgramLlvmOptionBoolPreamble(
         Die("direct MIR scalar program LLVM Option<Bool> ABI is invalid");
     }
     let t: String = DirectMirScalarProgramLlvmOptionBoolTypeName();
-    let output: String = t;
+    var output: String = t;
     output = Concat(output,
         " = type { i32, i1 }\n\n");
     output = Concat(output, "define internal ");

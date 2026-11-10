@@ -46,8 +46,8 @@ func SelfMirLowerDestructureFromArtifact(
     let uses: Array<String> = SelfMirExpressionGraphUses(
         build, initializer_graph
     );
-    let bindings: Array<String> = [];
-    let i: Int = 0;
+    var bindings: Array<String> = [];
+    var i: Int = 0;
     while local_range.start + i < local_range.end {
         let local_row: Int = local_range.start + i;
         let initializer_row: Int = initializer_range.start + i;

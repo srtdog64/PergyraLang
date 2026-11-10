@@ -17,7 +17,7 @@ func SinkIds(own ids: Array<Int>) -> Void
 
 func Main() -> Void
 {
-    let state: State = State([7, 8]);
+    var state: State = State([7, 8]);
     Retire(state);
     Log(ArrayLength(state.ids));
 }

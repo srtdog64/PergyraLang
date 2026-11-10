@@ -1,67 +1,33 @@
-// Seals typed program cross-links after the sole flat GraphPlan loop closes.
-import "direct_mir_scalar_program_callable_admission_owner.pgy";
-import "direct_mir_scalar_program_route_fact_owner.pgy";
-import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
-import "direct_mir_scalar_program_extension_abi_seal_owner.pgy";
+// Consumes graph row storage only after its complete-storage readers finish.
+import "direct_mir_scalar_cfg_program_extension_preparation_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
-import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy";
-import "direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy";
-func DirectMirScalarCfgProgramExtensionFromOwners(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    own route: DirectMirScalarProgramRouteFact,
-    ref callables: DirectMirScalarCfgProgramCallableInventory,
-    ref storage: DirectMirScalarCfgProgramGraphStorage,
-    expressions: DirectMirScalarProgramExpressionSet,
+func DirectMirScalarCfgProgramExtensionFromPreparation(
+    preparation: DirectMirScalarCfgProgramExtensionPreparation,
     collection_ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
-    option_int_abi: DirectMirOptionMatchAbiFact,
-    result_int_abi: DirectMirResultIntAbiFact,
-    option_string_abi: DirectMirOptionMatchAbiFact,
-    option_bool_abi: DirectMirOptionMatchAbiFact,
     block_condition_expression_rows: Array<Int>,
     operation_expression_rows: Array<Int>,
     operation_secondary_expression_rows: Array<Int>,
+    operation_target_paths: DirectMirScalarCfgProgramOperationTargetPaths,
     block_return_expression_rows: Array<Int>
 ) -> DirectMirScalarCfgProgramExtensionFact {
-    let callable: DirectMirScalarCfgProgramCallableFact =
-        DirectMirScalarCfgProgramCallableFactInvalid();
-    let closed_call_abi: DirectMirClosedModuleCallAbiFact =
-        DirectMirClosedModuleCallAbiFactEmpty();
-    if ArrayLength(route.routine_rows) == 2 {
-        callable = DirectMirScalarProgramCallableFactFromInstance(
-            route.routine_instances, 1,
-            route.logical_record, route.payload_free_enum,
-            route.referenced_enum
-        );
-        closed_call_abi = DirectMirClosedModuleCallAbiFactFromOwner();
-    }
-    let sealed_expressions: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetWithDigest(
-            expressions, DirectMirScalarProgramExpressionSetDigest(expressions)
-        );
-    let abi: DirectMirScalarProgramExtensionAbiSeal =
-        DirectMirScalarProgramExtensionAbiSealFromOwners(
-            admitted, route, storage, sealed_expressions,
-            option_int_abi, result_int_abi,
-            option_string_abi, option_bool_abi, callable);
-    if !abi.valid {
-        Die(Concat("direct MIR scalar program extension ABI is invalid: stage=", abi.stage));
-    }
-    let owned_array_string_move: DirectMirScalarProgramOwnedArrayStringMoveFact =
-        DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
-            callables, storage, sealed_expressions, abi.array_string);
     let source: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
-            true, 0, callable, sealed_expressions,
+            true, 0, preparation.callable, preparation.expressions,
             block_condition_expression_rows, operation_expression_rows,
-            operation_secondary_expression_rows, block_return_expression_rows,
-            closed_call_abi, abi.runtime, abi.option_int, abi.result_int,
-            abi.option_string, abi.option_bool,
-            abi.logical_record, abi.referenced_enum,
-            abi.payload_free_enum,
-            abi.array_int_value_result,
-            abi.array_bool,
-            abi.array_string, abi.boundary, DirectMirScalarProgramCollectionOwnershipTransitionFactSealOrDie(collection_ownership), owned_array_string_move
+            operation_secondary_expression_rows, operation_target_paths,
+            block_return_expression_rows,
+            preparation.closed_call_abi, preparation.abi.runtime,
+            preparation.abi.option_int, preparation.abi.result,
+            preparation.abi.option_string, preparation.abi.option_bool,
+            preparation.abi.logical_record, preparation.abi.referenced_enum,
+            preparation.abi.payload_free_enum,
+            preparation.abi.opaque_readonly_zones,
+            preparation.abi.array_int_value_result,
+            preparation.abi.array_bool,
+            preparation.abi.array_string, preparation.abi.boundary,
+            DirectMirScalarProgramCollectionOwnershipTransitionFactSealOrDie(
+                collection_ownership), preparation.owned_array_string_move
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

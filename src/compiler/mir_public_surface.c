@@ -279,11 +279,12 @@ mir_validate_emission_topology(const MIRRoutine *routine,
                                           error_message);
 }
 
-bool
-mir_validate_emission_contract(const MIRRoutine *routine,
-                               bool require_cleanup,
-                               bool require_cleanup_source_mapping,
-                               char **error_message)
+static bool
+mir_validate_emission_contract_local(
+    const MIRRoutine *routine,
+    bool require_cleanup,
+    bool require_cleanup_source_mapping,
+    char **error_message)
 {
     char *contract_error = NULL;
 
@@ -305,9 +306,7 @@ mir_validate_emission_contract(const MIRRoutine *routine,
     free(contract_error);
     contract_error = NULL;
 
-    if (!mir_validate_collection_effect_evidence(routine->program, routine,
-                                                   &contract_error)
-        || !mir_validate_routine_emission_facts(routine, &contract_error)) {
+    if (!mir_validate_routine_emission_facts(routine, &contract_error)) {
         if (error_message != NULL)
             *error_message = contract_error != NULL
                 ? contract_error
@@ -318,6 +317,45 @@ mir_validate_emission_contract(const MIRRoutine *routine,
     }
     free(contract_error);
     return true;
+}
+
+bool
+mir_validate_emission_contract_with_receipt(
+    const MIRRoutine *routine,
+    bool require_cleanup,
+    bool require_cleanup_source_mapping,
+    const MIRCollectionEffectEvidenceReceipt *receipt,
+    char **error_message)
+{
+    if (routine == NULL
+        || !mir_use_collection_effect_evidence_receipt(
+               receipt, routine, error_message)) {
+        return false;
+    }
+    return mir_validate_emission_contract_local(
+        routine,
+        require_cleanup,
+        require_cleanup_source_mapping,
+        error_message);
+}
+
+bool
+mir_validate_emission_contract(const MIRRoutine *routine,
+                               bool require_cleanup,
+                               bool require_cleanup_source_mapping,
+                               char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (!mir_validate_collection_effect_evidence(
+            routine->program, routine, error_message)) {
+        return false;
+    }
+    return mir_validate_emission_contract_local(
+        routine,
+        require_cleanup,
+        require_cleanup_source_mapping,
+        error_message);
 }
 
 size_t

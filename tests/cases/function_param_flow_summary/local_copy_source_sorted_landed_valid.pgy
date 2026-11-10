@@ -2,7 +2,7 @@
 // still uses the local. The local is an independent value, so it is copied
 // where it is bound and keeps the unsorted order.
 func Main() -> Int {
-    let items: Array<Int> = [3, 1, 2];
+    var items: Array<Int> = [3, 1, 2];
     let before: Array<Int> = items;
     ArraySort(items);
     Print(ToString(before[0] * 10 + items[0]));

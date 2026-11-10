@@ -21,9 +21,9 @@ func SemanticSetLiteralViewFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int
 ) -> SemanticSetLiteralView {
-    let reversed: Array<Int> = [];
-    let node: Int = root_id;
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    var reversed: Array<Int> = [];
+    var node: Int = root_id;
+    var kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
     while IsSome(kind) &&
         UnwrapOption(kind) == AstExpressionNodeSetElement() {
         let previous: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -43,8 +43,8 @@ func SemanticSetLiteralViewFromGraph(
         UnwrapOption(kind) != AstExpressionNodeSetLiteral() {
         return SemanticSetLiteralView(false, reversed);
     }
-    let elements: Array<Int> = [];
-    let i: Int = ArrayLength(reversed) - 1;
+    var elements: Array<Int> = [];
+    var i: Int = ArrayLength(reversed) - 1;
     while i >= 0 {
         ArrayPush(elements, reversed[i]);
         i = i - 1;
@@ -98,8 +98,8 @@ func SemanticExpressionGraphSetLiteralTypeName(
     if ArrayLength(view.element_nodes) == 0 {
         return Some("Set<Unknown>");
     }
-    let element_type: String = "";
-    let i: Int = 0;
+    var element_type: String = "";
+    var i: Int = 0;
     while i < ArrayLength(view.element_nodes) {
         let actual: Option<String> = SemanticSetLiteralElementTypeName(
             graph, view.element_nodes[i], constructors, names, types,
@@ -171,7 +171,7 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
         SemanticSetLiteralViewFromGraph(graph, root_id);
     if !view.ok { return false; }
     let element_type: String = shape.actual_type_names[0];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(view.element_nodes) {
         if !SemanticSetLiteralElementMatchesDeclaredType(
             graph, view.element_nodes[i], element_type, constructors,

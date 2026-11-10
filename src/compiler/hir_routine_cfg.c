@@ -182,7 +182,7 @@ bool hir_cfg_program_execution_current(const HIRProgram *hir, const ASTNode *exp
             ast_node_stable_id(r->ast) != saved->ast_id || ast_node_stable_id(r->body) != saved->body_id ||
             r->routine_id != saved->routine_id || r->source_syntax_id != saved->source_id ||
             r->execution_layout != saved->layout ||
-            (w->program_id != 0 && !hir_cfg_execution_owner_current(r))) return false;
+            (w->program_id != 0 && !hir_cfg_execution_current(r))) return false;
     }
     return true;
 }
@@ -276,7 +276,9 @@ bool hir_cfg_execution_current(const HIRRoutine *routine)
     if (!hir_cfg_execution_owner_current(routine)) return false;
     const HIRCFGExecutionWitness *w = routine->execution_layout;
     if (w->has_cfg != routine->has_cfg || w->entry != routine->cfg.entry_block ||
-        w->block_count != routine->cfg.block_count || w->original_blocks != routine->cfg.blocks ||
+        w->block_count != routine->cfg.block_count ||
+        routine->cfg.block_count > routine->cfg.block_capacity ||
+        w->original_blocks != routine->cfg.blocks ||
         (w->block_count != 0 && (w->blocks == NULL || routine->cfg.blocks == NULL)) ||
         (w->statement_count != 0 && w->statements == NULL)) return false;
     size_t at = 0;
@@ -285,6 +287,7 @@ bool hir_cfg_execution_current(const HIRRoutine *routine)
         const HIRExecutionBlock *saved = &w->blocks[b];
         if (at > w->statement_count || saved->id != b || block->id != saved->id || saved->statement_start != at ||
             saved->statement_count != block->statement_count || block->statement_count > w->statement_count - at ||
+            block->statement_count > block->statement_capacity ||
             (block->statement_count != 0 && block->statements == NULL) ||
             saved->kind != block->terminator_kind || saved->condition != block->terminator_condition ||
             saved->value != block->terminator_value || saved->condition_id != ast_node_stable_id(block->terminator_condition) ||

@@ -29,7 +29,7 @@ void callable_capability_record_subscription(SemanticContext *ctx,
     ASTNode *event, ASTNode *handler);
 void callable_capability_record_method_call(SemanticContext *ctx,
     ASTNode *call, Type **params, Type **actual_types);
-void callable_capability_record_abstract_method(SemanticContext *ctx,
+Type *callable_capability_record_abstract_method(SemanticContext *ctx,
     ASTNode *method, Type **params, size_t count, Type *result);
 void callable_capability_record_implementation(SemanticContext *ctx,
     ASTNode *signature, ASTNode *implementation);

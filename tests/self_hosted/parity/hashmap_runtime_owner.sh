@@ -15,10 +15,10 @@ sha256sum "$PGY" tests/self_hosted/fixtures/hashmap_runtime_fact.pgy >"$WORK/inp
 timeout 240 "$PGY" --native-pipeline --backend=c --opt=dev tests/self_hosted/fixtures/hashmap_runtime_fact.pgy -o "$WORK/probe.exe" >"$WORK/compile.log" 2>&1
 timeout 10 "$WORK/probe.exe" >"$WORK/raw" 2>"$WORK/err"
 tr -d '\r' <"$WORK/raw" >"$WORK/actual"
-for ((i=0; i<36; i++)); do printf 'true\n'; done >"$WORK/expected"
+for ((i=0; i<41; i++)); do printf 'true\n'; done >"$WORK/expected"
 [[ ! -s "$WORK/err" ]]
 cmp "$WORK/expected" "$WORK/actual"
-echo '[hashmap-runtime] 36 ABI/key/storage/release/header/negative controls PASS'
+echo '[hashmap-runtime] 41 ABI/key/storage/Clone/header/negative controls PASS'
 sha256sum tests/self_hosted/fixtures/hashmap_normalized_fact.pgy >>"$WORK/inputs.sha256"
 timeout 240 "$PGY" --native-pipeline --backend=c --opt=dev tests/self_hosted/fixtures/hashmap_normalized_fact.pgy -o "$WORK/normalized.exe" >"$WORK/normalized.compile.log" 2>&1
 timeout 10 "$WORK/normalized.exe" >"$WORK/normalized.raw" 2>"$WORK/normalized.err"

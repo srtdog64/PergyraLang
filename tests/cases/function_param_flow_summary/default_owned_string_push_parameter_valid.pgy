@@ -1,0 +1,18 @@
+// A default Array<String> formal shares the caller's descriptor, but this
+// mutation makes the call a move.  The exact call actual owns every element.
+struct Source {
+    title: String;
+}
+
+func Append(rows: Array<String>, ref source: Source) -> Void {
+    let names: Array<String> = rows;
+    ArrayPush(names, source.title);
+}
+
+func Main() -> Int {
+    let source: Source = Source(Concat("b", ""));
+    var rows: Array<String> = [Concat("a", "")];
+    Append(rows, source);
+    Print(source.title);
+    return 0;
+}

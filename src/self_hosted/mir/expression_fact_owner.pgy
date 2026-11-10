@@ -16,7 +16,7 @@ func SelfMirExpressionKindFromText(expression: String) -> SelfMirExpressionKind 
         " + ", " - ", " * ", " / ", " < ", " <= ", " > ", " >= ",
         " == ", " != ", " && ", " || "
     ];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(operators) {
         if StringIndexOf(expression, operators[i]) >= 0 {
             return SelfMirExpressionKind.Binary;

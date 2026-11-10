@@ -1,0 +1,71 @@
+// A ref callee returns one borrowed String beside an independently fresh,
+// deeply nested Array. The whole result is not independently cloneable, so
+// the compiler must copy only the original String projection at its source.
+struct RefReturnExpressions { node_literals: Array<String>; }
+struct RefReturnBoundary { literal: String; }
+struct RefReturnItem { names: Array<String>; }
+struct RefReturnSeal {
+    boundary: RefReturnBoundary;
+    items: Array<RefReturnItem>;
+}
+struct RefReturnProgram {
+    expressions: RefReturnExpressions;
+    boundary: RefReturnBoundary;
+}
+
+func RefReturnBoundaryFromExpressions(
+    ref expressions: RefReturnExpressions,
+    choose: Bool
+) -> RefReturnBoundary {
+    var literal: String = "";
+    if choose {
+        literal = expressions.node_literals[0];
+    }
+    return RefReturnBoundary(literal);
+}
+
+func RefReturnSealFromExpressions(
+    ref expressions: RefReturnExpressions,
+    choose: Bool
+) -> RefReturnSeal {
+    var boundary: RefReturnBoundary = RefReturnBoundary("");
+    if choose {
+        boundary = RefReturnBoundaryFromExpressions(expressions, choose);
+    }
+    return RefReturnSeal(
+        boundary, [RefReturnItem(["fresh"])]);
+}
+
+func RefReturnProgramDigest(ref source: RefReturnProgram) -> Int {
+    return ArrayLength(source.expressions.node_literals);
+}
+
+func RefReturnProgramWithDigest(
+    source: RefReturnProgram,
+    digest: Int
+) -> RefReturnProgram {
+    if digest < 0 { return source; }
+    return RefReturnProgram(source.expressions, source.boundary);
+}
+
+func RefReturnBuild(
+    expressions: RefReturnExpressions,
+    choose: Bool
+) -> RefReturnProgram {
+    let sealed: RefReturnExpressions = expressions;
+    let seal: RefReturnSeal =
+        RefReturnSealFromExpressions(sealed, choose);
+    let source: RefReturnProgram =
+        RefReturnProgram(sealed, seal.boundary);
+    let fact: RefReturnProgram = RefReturnProgramWithDigest(
+        source, RefReturnProgramDigest(source));
+    return fact;
+}
+
+func Main() -> Int {
+    let program: RefReturnProgram = RefReturnBuild(
+        RefReturnExpressions([Concat("alpha", "")]), true);
+    Print(program.boundary.literal);
+    Print(program.expressions.node_literals[0]);
+    return 0;
+}

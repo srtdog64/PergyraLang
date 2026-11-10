@@ -57,6 +57,12 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
         body_types.collection_ownership.origin_syntax_ids;
     let collection_source_ids: Array<Int> =
         body_types.collection_ownership.source_binding_syntax_ids;
+    let collection_member_path_starts: Array<Int> =
+        body_types.collection_ownership.member_path_starts;
+    let collection_member_path_counts: Array<Int> =
+        body_types.collection_ownership.member_path_counts;
+    let collection_member_path_field_ids: Array<Int> =
+        body_types.collection_ownership.member_path_field_syntax_ids;
     let collection_ownerships: Array<Int> =
         body_types.collection_ownership.element_ownerships;
     let collection_dispositions: Array<Int> =
@@ -135,6 +141,9 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(collection_binding_ids);
     CompilerRetireArrayStorage(collection_origin_ids);
     CompilerRetireArrayStorage(collection_source_ids);
+    CompilerRetireArrayStorage(collection_member_path_starts);
+    CompilerRetireArrayStorage(collection_member_path_counts);
+    CompilerRetireArrayStorage(collection_member_path_field_ids);
     CompilerRetireArrayStorage(collection_ownerships);
     CompilerRetireArrayStorage(collection_dispositions);
     CompilerRetireArrayStorage(collection_origins);
@@ -145,20 +154,13 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(receipt_source_ids); CompilerRetireArrayStorage(zone_fresh_local_ids);
     CompilerRetireArrayStorage(zone_resource_path_starts); CompilerRetireArrayStorage(zone_resource_path_counts);
     CompilerRetireArrayStorage(zone_resource_field_paths); CompilerRetireArrayStorage(zone_mutable_borrow_parameter_ids);
-    CompilerRetireArrayStorage(capability_callable_ids); CompilerRetireArrayStorage(capability_declared_masks);
-    CompilerRetireArrayStorage(capability_used_masks); CompilerRetireArrayStorage(capability_exported_masks);
-    CompilerRetireArrayStorage(capability_deferred_uses); CompilerRetireArrayStorage(capability_declared_effects);
-    CompilerRetireArrayStorage(capability_known_call_effects); CompilerRetireArrayStorage(capability_unknown_call_effects);
-    CompilerRetireArrayStorage(generic_call_node_ids); CompilerRetireArrayStorage(generic_owner_node_ids);
-    CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
-    CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts);
-    CompilerRetireArrayStorage(generic_actual_counts); CompilerRetireArrayStorage(generic_actual_types);
-    CompilerRetireArrayStorage(numeric_call_nodes); CompilerRetireArrayStorage(numeric_terminal_nodes);
-    CompilerRetireArrayStorage(numeric_owner_nodes); CompilerRetireArrayStorage(numeric_lanes);
+    CompilerRetireArrayStorage(capability_callable_ids); CompilerRetireArrayStorage(capability_declared_masks); CompilerRetireArrayStorage(capability_used_masks); CompilerRetireArrayStorage(capability_exported_masks);
+    CompilerRetireArrayStorage(capability_deferred_uses); CompilerRetireArrayStorage(capability_declared_effects); CompilerRetireArrayStorage(capability_known_call_effects); CompilerRetireArrayStorage(capability_unknown_call_effects);
+    CompilerRetireArrayStorage(generic_call_node_ids); CompilerRetireArrayStorage(generic_owner_node_ids); CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
+    CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts); CompilerRetireArrayStorage(generic_actual_counts); CompilerRetireArrayStorage(generic_actual_types);
+    CompilerRetireArrayStorage(numeric_call_nodes); CompilerRetireArrayStorage(numeric_terminal_nodes); CompilerRetireArrayStorage(numeric_owner_nodes); CompilerRetireArrayStorage(numeric_lanes);
     CompilerRetireArrayStorage(numeric_ordinals); CompilerRetireArrayStorage(numeric_operand_types);
-    CompilerRetireArrayStorage(result_function_ids); CompilerRetireArrayStorage(result_domain_kinds);
-    CompilerRetireArrayStorage(result_allocator_ids); CompilerRetireArrayStorage(result_allocator_ordinals);
-    CompilerRetireArrayStorage(result_written_rows); CompilerRetireArrayStorage(result_written_formals);
-    CompilerRetireArrayStorage(exposure_call_nodes); CompilerRetireArrayStorage(exposure_ordinals);
+    CompilerRetireArrayStorage(result_function_ids); CompilerRetireArrayStorage(result_domain_kinds); CompilerRetireArrayStorage(result_allocator_ids); CompilerRetireArrayStorage(result_allocator_ordinals);
+    CompilerRetireArrayStorage(result_written_rows); CompilerRetireArrayStorage(result_written_formals); CompilerRetireArrayStorage(exposure_call_nodes); CompilerRetireArrayStorage(exposure_ordinals);
     CompilerRetireArrayStorage(exposure_source_ids); CompilerRetireArrayStorage(exposure_written_ids);
 }

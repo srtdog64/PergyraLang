@@ -40,22 +40,22 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
     ref constructors: SemanticAstNominalConstructorFacts,
     ref roles: SemanticAstRoleFacts
 ) -> SemanticAstZoneAuthorityFacts {
-    let authority_node_ids: Array<Int> = [];
-    let owner_node_ids: Array<Int> = [];
-    let owners: Array<String> = [];
-    let slot_node_ids: Array<Int> = [];
-    let slots: Array<String> = [];
-    let required_starts: Array<Int> = [];
-    let required_counts: Array<Int> = [];
-    let required_node_ids: Array<Int> = [];
-    let required_names: Array<String> = [];
+    var authority_node_ids: Array<Int> = [];
+    var owner_node_ids: Array<Int> = [];
+    var owners: Array<String> = [];
+    var slot_node_ids: Array<Int> = [];
+    var slots: Array<String> = [];
+    var required_starts: Array<Int> = [];
+    var required_counts: Array<Int> = [];
+    var required_node_ids: Array<Int> = [];
+    var required_names: Array<String> = [];
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstNominalConstructorRowsReady(constructors) ||
         constructors.artifact_node_count != artifact.count || !roles.ok ||
         roles.artifact_node_count != artifact.count {
         return SemanticAstZoneAuthorityFactsError(artifact.count);
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if !TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
@@ -73,8 +73,8 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
             !IsIdentifier(UnwrapOption(slot)) {
             return SemanticAstZoneAuthorityFactsError(artifact.count);
         }
-        let owner_index: Int = -1;
-        let owner_row: Int = 0;
+        var owner_index: Int = -1;
+        var owner_row: Int = 0;
         while owner_row < ArrayLength(constructors.node_ids) {
             if constructors.node_ids[owner_row] == UnwrapOption(parent) {
                 if owner_index >= 0 {
@@ -89,9 +89,9 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
             return SemanticAstZoneAuthorityFactsError(artifact.count);
         }
         let owner: String = constructors.names[owner_index];
-        let field_matches: Int = 0;
-        let slot_node_id: Int = -1;
-        let field_index: Int = 0;
+        var field_matches: Int = 0;
+        var slot_node_id: Int = -1;
+        var field_index: Int = 0;
         while field_index < constructors.param_counts[owner_index] {
             let row: Int = constructors.param_starts[owner_index] + field_index;
             if constructors.field_names[row] == UnwrapOption(slot) &&
@@ -105,7 +105,7 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
         if field_matches != 1 || slot_node_id <= 0 {
             return SemanticAstZoneAuthorityFactsError(artifact.count);
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(owners) {
             if owners[prior] == owner &&
                 slots[prior] == UnwrapOption(slot) {
@@ -136,7 +136,7 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
             let ability_names: Array<String> = Split(
                 UnwrapOption(required), ","
             );
-            let ability_i: Int = 0;
+            var ability_i: Int = 0;
             while ability_i < ArrayLength(ability_names) {
                 let required_name_fact: SemanticCanonicalTypeNameFact =
                     SemanticCanonicalTypeNameFactFrom(
@@ -144,9 +144,9 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
                     );
                 let ability_name: String =
                     required_name_fact.nominal_base_name;
-                let ability_index: Int = -1;
-                let ability_matches: Int = 0;
-                let ability_row: Int = 0;
+                var ability_index: Int = -1;
+                var ability_matches: Int = 0;
+                var ability_row: Int = 0;
                 while ability_row < ArrayLength(roles.ability_node_ids) {
                     if roles.ability_names[ability_row] == ability_name {
                         ability_index = ability_row;
@@ -159,7 +159,7 @@ func SemanticAstZoneAuthorityFactsFromArtifact(
                     roles.ability_node_ids[ability_index] <= 0 {
                     return SemanticAstZoneAuthorityFactsError(artifact.count);
                 }
-                let prior_ability: Int = required_start;
+                var prior_ability: Int = required_start;
                 while prior_ability < ArrayLength(required_node_ids) {
                     if required_node_ids[prior_ability] ==
                         roles.ability_node_ids[ability_index] {
@@ -200,7 +200,7 @@ func SemanticAstZoneAuthoritySlotPresent(
     slot_name: String
 ) -> Bool {
     if !facts.ok || zone_name == "" || slot_name == "" { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.owner_zone_names) {
         if facts.owner_zone_names[row] == zone_name &&
             facts.subject_slot_names[row] == slot_name {

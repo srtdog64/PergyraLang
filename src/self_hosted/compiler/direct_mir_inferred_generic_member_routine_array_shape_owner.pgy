@@ -11,9 +11,9 @@ func DirectMirInferredGenericMemberRoutineArrayShapeReady(
         generic_count < 0 || param_count < 0 || local_count < 0 {
         return false;
     }
-    let generic_bounds: Array<Int> = [0, 0];
-    let param_bounds: Array<Int> = [0, 0];
-    let local_bounds: Array<Int> = [0, 0];
+    var generic_bounds: Array<Int> = [0, 0];
+    var param_bounds: Array<Int> = [0, 0];
+    var local_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             "generics", generic_bounds

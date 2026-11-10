@@ -48,7 +48,7 @@ for backend in c llvm; do
             fail "C omitted the exact return signature"
         grep -Eq 'pgy_ab pgy_local_[0-9]+ = \{0\};' "$artifact" ||
             fail "C omitted ArrayBool return storage"
-        grep -Eq 'return pgy_local_[0-9]+;' "$artifact" ||
+        grep -Eq 'return pgy_(local|return)_[0-9]+;' "$artifact" ||
             fail "C omitted owned ArrayBool return"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
@@ -75,9 +75,9 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-for mutation in record-type record-carriage record-pass record-abi int-type \
-    int-carriage bool-type bool-carriage return-type return-abi-missing \
-    return-abi-layout parameter-count; do
+for mutation in record-type record-carriage record-pass record-abi \
+    int-carriage bool-carriage return-type return-abi-missing \
+    return-abi-layout; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

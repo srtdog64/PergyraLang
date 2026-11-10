@@ -32,15 +32,15 @@ func DirectMirScalarProgramSliceBuiltinCallFactInvalid(
 func DirectMirScalarProgramSliceBuiltinRegistryRowReady(
     name: String
 ) -> Bool {
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
     if !SeedSemanticBuiltinSignatures(names, returns, params) { return false; }
-    let matches: Int = 0;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(names) {
         if names[row] == name {
-            let expected_params: String = "Unknown";
+            var expected_params: String = "Unknown";
             if name == "Array_Slice" {
                 expected_params = "Unknown|Int|Int";
             }
@@ -72,7 +72,7 @@ func DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
             AstExpressionNodeCallArgument() { return missing; }
     let chain: DirectMirScalarProgramBuiltinArgumentChain =
         DirectMirScalarProgramBuiltinArgumentChainFromGraph(
-            sequence, node, source_rows, normalized_types
+            sequence, node, source_rows, ArrayLength(normalized_types)
         );
     if !chain.valid || chain.call_node < 0 { return missing; }
     let name: String = sequence.arena.call_target_names[chain.call_node];
@@ -107,7 +107,7 @@ func DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
         }
         let receiver_row: Int = source_rows[receiver_source];
         let receiver_type: String = Concat("", normalized_types[receiver_row]);
-        let return_type: String = CompilerAbiLayoutSliceIntTypeName();
+        var return_type: String = CompilerAbiLayoutSliceIntTypeName();
         if receiver_type == CompilerAbiLayoutArrayStringTypeName() {
             return_type = CompilerAbiLayoutSliceStringTypeName();
         } else if receiver_type != CompilerAbiLayoutArrayIntTypeName() {
@@ -142,7 +142,7 @@ func DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
         );
     }
     let slice_type: String = Concat("", normalized_types[chain.argument_rows[0]]);
-    let return_type: String = CompilerAbiLayoutArrayIntTypeName();
+    var return_type: String = CompilerAbiLayoutArrayIntTypeName();
     if slice_type == CompilerAbiLayoutSliceStringTypeName() {
         return_type = CompilerAbiLayoutArrayStringTypeName();
     } else if slice_type != CompilerAbiLayoutSliceIntTypeName() {

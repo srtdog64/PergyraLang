@@ -1,0 +1,16 @@
+// A conditional default-Array return has one stable caller contract: the
+// fallback exit is copied, while the fresh exit already owns its result.
+func Select(flag: Bool, fallback: Array<Int>) -> Array<Int> {
+    if flag {
+        return [7];
+    }
+    return fallback;
+}
+
+func Main() -> Int {
+    let fallback: Array<Int> = [3];
+    let selected_fallback: Array<Int> = Select(false, fallback);
+    Print(ToString(selected_fallback[0]));
+    Print(ToString(fallback[0]));
+    return 0;
+}

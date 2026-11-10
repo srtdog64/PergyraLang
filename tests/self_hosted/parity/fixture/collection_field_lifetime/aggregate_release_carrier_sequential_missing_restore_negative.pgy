@@ -1,0 +1,24 @@
+// Exact mutation edges do not replace restoration evidence. Without the
+// writeback, the source aggregate still names the carrier's old descriptor.
+struct CarrierMissingRestoreFacts { values: Array<String>; }
+
+func CarrierMissingRestoreAppend(
+    inout values: Array<String>, text: String
+) -> Void {
+    ArrayPushOwnedString(values, text);
+}
+
+func CarrierMissingRestoreGrow(
+    facts: CarrierMissingRestoreFacts
+) -> CarrierMissingRestoreFacts {
+    let values: Array<String> = facts.values;
+    CarrierMissingRestoreAppend(values, "first");
+    CarrierMissingRestoreAppend(values, "second");
+    return facts;
+}
+
+func Main() -> Void {
+    let facts: CarrierMissingRestoreFacts = CarrierMissingRestoreFacts([]);
+    let updated: CarrierMissingRestoreFacts = CarrierMissingRestoreGrow(facts);
+    let count: Int = ArrayLength(updated.values);
+}

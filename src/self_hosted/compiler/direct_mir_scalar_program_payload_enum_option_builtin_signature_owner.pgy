@@ -1,0 +1,55 @@
+// Contextual projection of generic Option builtins for payload enums.
+
+import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
+
+func DirectMirScalarProgramPayloadEnumOptionBuiltinType(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    name: String, actual_types: Array<String>, expected_type: String
+) -> String {
+    var option_type: String = expected_type;
+    if name == "Some" {
+        if ArrayLength(actual_types) < 1 ||
+            !DirectMirScalarProgramPayloadEnumTypeReady(fact, actual_types[0]) {
+            return "";
+        }
+        option_type = Concat("Option<", Concat(actual_types[0], ">"));
+    } else if name == "IsSome" || name == "UnwrapOption" {
+        if ArrayLength(actual_types) < 1 { return ""; }
+        option_type = Concat("", actual_types[0]);
+    } else if name != "None" { return ""; }
+    if !DirectMirScalarProgramPayloadEnumOptionTypeReady(fact, option_type) {
+        return "";
+    }
+    return option_type;
+}
+
+func DirectMirScalarProgramPayloadEnumOptionBuiltinReturnType(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    name: String, option_type: String
+) -> String {
+    if name == "Some" || name == "None" { return option_type; }
+    if name == "IsSome" { return CompilerAbiLayoutBoolTypeName(); }
+    return DirectMirScalarProgramPayloadEnumOptionPayloadType(
+        fact, option_type);
+}
+
+func DirectMirScalarProgramPayloadEnumOptionBuiltinParameterTypes(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    name: String, option_type: String
+) -> Array<String> {
+    if name == "None" { return []; }
+    if name == "Some" { return [
+        DirectMirScalarProgramPayloadEnumOptionPayloadType(
+            fact, option_type)]; }
+    return [option_type];
+}
+
+func DirectMirScalarProgramPayloadEnumOptionBuiltinExpressionKind(
+    name: String
+) -> Int {
+    if name == "Some" { return DirectMirScalarProgramExprSomePayloadEnum(); }
+    if name == "None" { return DirectMirScalarProgramExprNonePayloadEnum(); }
+    if name == "IsSome" { return DirectMirScalarProgramExprIsSomePayloadEnum(); }
+    return DirectMirScalarProgramExprUnwrapOptionPayloadEnum();
+}

@@ -1,4 +1,4 @@
-// C value/address projection for admitted read-only Int/String array parameters.
+// C value/address projection for admitted read-only scalar-array parameters.
 
 import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";

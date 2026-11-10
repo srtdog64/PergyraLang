@@ -3,24 +3,19 @@
 import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
 
-struct DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission {
-    let recognized: Bool;
-    let facts: DirectMirScalarProgramExpressionSet;
-}
-
 func DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
     facts: DirectMirScalarProgramExpressionSet,
     ref sequence: MirExpressionGraphSequence,
     ref uses: MirRoutineInstructionUseFacts,
     global_row: Int, expected_type: String
-) -> DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission {
+) -> DirectMirScalarProgramLiteralExpressionAdmission {
     let root: Int = sequence.roots[0];
     let recognized: Bool = expected_type ==
             CompilerAbiLayoutArrayBoolTypeName() &&
         sequence.arena.topology.node_kinds[root] ==
             AstExpressionNodeArrayElement();
     if !recognized {
-        return DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission(
+        return DirectMirScalarProgramLiteralExpressionAdmission(
             false, facts);
     }
     let invalid: DirectMirScalarProgramExpressionSet =
@@ -31,52 +26,68 @@ func DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
         MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 ||
         !DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
             sequence, 0) {
-        return DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission(
+        return DirectMirScalarProgramLiteralExpressionAdmission(
             true, invalid);
     }
-    let graph_rows: Array<Int> = facts.graph_global_rows;
-    let starts: Array<Int> = facts.graph_starts;
-    let counts: Array<Int> = facts.graph_counts;
-    let roots: Array<Int> = facts.graph_roots;
-    let kinds: Array<Int> = facts.node_kinds;
-    let types: Array<String> = facts.node_types;
-    let lefts: Array<Int> = facts.node_lefts;
-    let rights: Array<Int> = facts.node_rights;
-    let locals: Array<Int> = facts.node_local_rows;
-    let params: Array<Int> = facts.node_parameter_ordinals;
-    let members: Array<Int> = facts.node_member_ordinals;
-    let literals: Array<String> = facts.node_literals;
-    let callable_rows: Array<Int> = facts.node_callable_rows;
-    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
-    let nary: DirectMirScalarProgramNaryOperands = facts.nary_operands;
-    let start: Int = ArrayLength(kinds);
-    let operands: Array<Int> = [];
-    let prior_spine: Int = 0;
-    let source: Int = 1;
-    while source < count {
-        let spine: Int = source + 1;
+    // Validate the complete Bool spine before taking the expression-set
+    // buffers apart. The materialization pass below has no failure exit.
+    var validated_prior_spine: Int = 0;
+    var validated_source: Int = 1;
+    var validated_operands: Int = 0;
+    while validated_source < count {
+        let spine: Int = validated_source + 1;
         if spine >= count ||
-            sequence.arena.topology.node_kinds[source] !=
+            sequence.arena.topology.node_kinds[validated_source] !=
                 AstExpressionNodeBoolLiteral() ||
-            (sequence.arena.node_texts[source] != "true" &&
-             sequence.arena.node_texts[source] != "false") ||
-            sequence.arena.call_target_kinds[source] !=
+            (sequence.arena.node_texts[validated_source] != "true" &&
+             sequence.arena.node_texts[validated_source] != "false") ||
+            sequence.arena.call_target_kinds[validated_source] !=
                 SemanticCallTargetNone() ||
-            sequence.arena.call_target_names[source] != "" ||
-            sequence.arena.identities.binding_kinds[source] !=
+            sequence.arena.call_target_names[validated_source] != "" ||
+            sequence.arena.identities.binding_kinds[validated_source] !=
                 SemanticExpressionBindingNone() ||
             sequence.arena.topology.node_kinds[spine] !=
                 AstExpressionNodeArrayElement() ||
-            sequence.arena.topology.left_children[spine] != prior_spine ||
-            sequence.arena.topology.right_children[spine] != source ||
+            sequence.arena.topology.left_children[spine] !=
+                validated_prior_spine ||
+            sequence.arena.topology.right_children[spine] !=
+                validated_source ||
             sequence.arena.call_target_kinds[spine] !=
                 SemanticCallTargetNone() ||
             sequence.arena.call_target_names[spine] != "" ||
             sequence.arena.identities.binding_kinds[spine] !=
                 SemanticExpressionBindingNone() {
-            return DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission(
+            return DirectMirScalarProgramLiteralExpressionAdmission(
                 true, invalid);
         }
+        validated_prior_spine = spine;
+        validated_source = spine + 1;
+        validated_operands = validated_operands + 1;
+    }
+    if validated_prior_spine != root || validated_operands == 0 {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, invalid);
+    }
+    var graph_rows: Array<Int> = facts.graph_global_rows;
+    var starts: Array<Int> = facts.graph_starts;
+    var counts: Array<Int> = facts.graph_counts;
+    var roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var locals: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callable_rows: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    var nary: DirectMirScalarProgramNaryOperands = facts.nary_operands;
+    let start: Int = ArrayLength(kinds);
+    var operands: Array<Int> = [];
+    var source: Int = 1;
+    while source < count {
+        let spine: Int = source + 1;
         DirectMirScalarProgramAppendExpressionNode(
             kinds, types, lefts, rights, locals, params, members,
             literals, callable_rows, runtime_ids,
@@ -84,15 +95,10 @@ func DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
             CompilerAbiLayoutBoolTypeName(), -1, -1, -1, -1, -1,
             sequence.arena.node_texts[source], -1, -1);
         ArrayPush(operands, ArrayLength(kinds) - 1);
-        prior_spine = spine;
         source = spine + 1;
     }
-    if prior_spine != root || ArrayLength(operands) == 0 {
-        return DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission(
-            true, invalid);
-    }
-    let normalized_left: Int = -1;
-    let normalized_right: Int = -1;
+    var normalized_left: Int = -1;
+    var normalized_right: Int = -1;
     if ArrayLength(operands) == 1 { normalized_left = operands[0]; }
     if ArrayLength(operands) == 2 {
         normalized_left = operands[0]; normalized_right = operands[1];
@@ -111,7 +117,7 @@ func DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
     ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
     ArrayPush(counts, ArrayLength(kinds) - start);
     ArrayPush(roots, normalized_root);
-    return DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission(
+    return DirectMirScalarProgramLiteralExpressionAdmission(
         true, DirectMirScalarProgramExpressionSet(
             true, 0, graph_rows, starts, counts, roots, kinds, types,
             lefts, rights, locals, params, members, literals, callable_rows,

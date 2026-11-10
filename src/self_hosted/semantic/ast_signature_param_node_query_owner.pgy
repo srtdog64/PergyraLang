@@ -3,7 +3,7 @@
 import "ast_signature_fact_owner.pgy";
 
 func SemanticAstFunctionParamTypeForNode(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     parameter_node_id: Int
 ) -> Option<String> {
     if parameter_node_id <= 0 ||
@@ -11,8 +11,8 @@ func SemanticAstFunctionParamTypeForNode(
             ArrayLength(facts.param_types) {
         return None;
     }
-    let found: Int = -1;
-    let i: Int = 0;
+    var found: Int = -1;
+    var i: Int = 0;
     while i < ArrayLength(facts.param_node_ids) {
         if facts.param_node_ids[i] == parameter_node_id {
             if found >= 0 { return None; }
@@ -21,5 +21,7 @@ func SemanticAstFunctionParamTypeForNode(
         i = i + 1;
     }
     if found < 0 { return None; }
-    return Some(facts.param_types[found]);
+    // The result outlives this borrowed query. Return an owned String rather
+    // than leaking the signature table's element storage through the boundary.
+    return Some(Concat("", facts.param_types[found]));
 }

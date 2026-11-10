@@ -23,7 +23,7 @@ func DirectMirScalarProgramComparisonExpressionNodeReady(
     if !int_comparison && !long_comparison && !bool_comparison { return None(); }
     let left: Int = facts.node_lefts[node];
     let right: Int = facts.node_rights[node];
-    let operand_type: String = CompilerAbiLayoutIntTypeName();
+    var operand_type: String = CompilerAbiLayoutIntTypeName();
     if long_comparison { operand_type = CompilerAbiLayoutLongTypeName(); }
     if bool_comparison { operand_type = CompilerAbiLayoutBoolTypeName(); }
     return Some(left >= 0 && left < node && right >= 0 && right < node &&

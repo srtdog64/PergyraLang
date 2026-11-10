@@ -7,8 +7,8 @@ struct Target {
 
 func Rows() -> Array<String> {
     let entries: Array<String> = DirWalk("tests/cases/function_param_flow_summary");
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(entries) {
         let path: String = entries[i];
         if StringLength(path) > 0 {
@@ -25,7 +25,7 @@ func TargetOf(path: String) -> Target {
 
 func Main() -> Int {
     let rows: Array<String> = Rows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let path: String = rows[i];
         let target: Target = TargetOf(path);

@@ -5,6 +5,54 @@
 > 구성체 선택은 [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md).
 > 이 문서는 *현재 파서가 실제로 받는 것*을 요약한다(미래 계획은 맨 아래 §9).
 
+## 처음에는 `func`와 `struct`부터
+
+계산은 `func`, 그냥 데이터를 묶을 때는 `struct`로 시작한다. 처음부터 여섯
+구성체 중 하나를 고를 필요는 없다. 변경할 지역값은 `var`, 나머지는 `let`이다.
+
+```pergyra
+struct Point
+{
+    x: Int;
+    y: Int;
+}
+
+func Main() -> Void
+{
+    let point = Point(2, 3);
+    var total: Int = 94;
+    total += 1;
+    Log(f"total={total} point={point.x},{point.y}");
+}
+```
+
+표시할 문자열은 `Log(f"grade={Grade(total)}");`처럼 보간한다. 출력 예제를
+위해 `Concat`과 `ToString`을 중첩할 필요는 없다. 문자열 escape와 보간의
+지원 범위는 [문자열 문법](01_syntax.md#41-문자열-literal--interpolation-stable-subset)을 따른다.
+
+`subject`는 상태와 판단의 주체, `vessel`은 그 주체의 내부 상태를 담는 역할이
+필요할 때 선택한다. `object`는 같은 실행의 읽기 모델, `tobject`는 경계 밖으로
+내보내는 독립 값, `class`는 메서드를 가진 값형 계산 도구가 필요할 때 사용한다.
+그 책임이 없는 데이터는 계속 `struct`에 둔다.
+
+오류 종류로 분기하려면 `Result<T, E>`의 `E`에 enum을 쓴다. `Err`의 payload는
+문자열로 제한되지 않는다. `case Err(problem)`에서 꺼낸 값을 다시 enum으로
+매칭할 수 있다. 실행 가능한 전체 예제는
+[`everyday_values.pgy`](../../examples/everyday_values.pgy)에 있다.
+
+현재 컬렉션 표기는 다음과 같다. `HashMap`의 연산 접두사는 `Map`이다.
+
+| 타입 | 생성 | 읽기 | 변경 |
+|---|---|---|---|
+| `Array<T>` | `let xs: Array<T> = [];` | `xs[index]` | `ArrayPush`, `ArraySet` |
+| `List<T>` | `let xs: List<T> = ListNew();` | `ListGet` | `ListPush` |
+| `HashMap<K, V>` | `let values: HashMap<K, V> = MapNew();` | `MapGet` | `MapSet` |
+
+숫자 갱신은 `total += value;`처럼 쓴다. `-=`, `*=`, `/=`, `%=`도 받는다.
+`var`와 `let mut`는 같은 가변 선언이며, `let`은 재대입과 값 변경을 금지한다.
+이벤트 대상의 `+=`·`-=`는 구독·해제 연산이다. 이 변경은 현재 소스에서
+검증 중이며 설치본 반영 여부는 [작업 기록](../agent_work_directives/mutable_bindings_and_compound_assignment_2026-11-08.md)을 확인한다.
+
 ## 0. 항상 참인 6가지
 
 - 블록은 `{ ... }`, **정규 표기는 BSD/Allman** (formatter 기준; 파서는 K&R도 읽음).
@@ -131,7 +179,8 @@ parallel { ... }       let h = spawn F(args); await h;
 select { ... }
 ```
 
-`channel` 예약어 행은 레지스트리에서 **제거됐다**(현재 146행: 70 예약 + 73 문맥 + 3 soft).
+`channel` 예약어 행은 레지스트리에서 **제거됐다**. 예약어와 문맥별 단어의
+구분은 [언어 단어 레지스트리](../../src/lexer/language_keyword_registry.def)가 소유한다.
 런타임 타입 `Channel<T>`와 송수신 연산자 `<-`는 그대로 유효하다 — 사라진 것은
 소문자 키워드 형태(`channel<Int> ch;`)뿐이다. 제거 결정 기록은
 `docs/199_language_word_and_dogfood_grammar.md` §5가 소유한다.

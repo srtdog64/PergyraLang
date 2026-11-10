@@ -9,7 +9,7 @@ import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
 func DirectMirScalarCfgCollectionPopProgramReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let actual_pop_count: Int = 0; let operation: Int = 0;
+    var actual_pop_count: Int = 0; var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         if plan.operation_kinds[operation] ==
                 DirectMirScalarCfgOpArrayPopInt() ||
@@ -77,7 +77,7 @@ func DirectMirScalarCfgCollectionPopProgramReady(
             DirectMirScalarCfgStringArrayStaticCapacity(
                 plan.string_arrays, string_row
             ) { return false; }
-    let row: Int = 0; let prior_operation: Int = -1;
+    var row: Int = 0; var prior_operation: Int = -1;
     while row < effects {
         operation = plan.collection_pops.effect_operation_rows[row];
         let source: Int = plan.collection_pops.effect_source_rows[row];

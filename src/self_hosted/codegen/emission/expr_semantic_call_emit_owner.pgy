@@ -32,7 +32,7 @@ import "expr_semantic_struct_call_emit_owner.pgy";
 import "expr_semantic_slice_call_emit_owner.pgy";
 import "expr_semantic_slot_call_emit_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
-func RewriteSemanticMemberAccessTracked(graph: SemanticExpressionGraphFacts, node_id: Int,
+func RewriteSemanticMemberAccessTracked(ref graph: SemanticExpressionGraphFacts, node_id: Int,
     env: CodegenTypeEnv, inout owned_fragments: Array<String>) -> CodegenCExpressionText {
     let view: SemanticMemberAccessView =
         SemanticMemberAccessViewFromGraph(graph, node_id);
@@ -55,7 +55,7 @@ func RewriteSemanticMemberAccessTracked(graph: SemanticExpressionGraphFacts, nod
         Die(Concat("semantic member-access member text fact is missing: node=", ToString(node_id)));
     }
     if !IsIdentifier(UnwrapOption(member_text)) {
-        let receiver_debug: String = "<missing>";
+        var receiver_debug: String = "<missing>";
         if IsSome(receiver_text) {
             receiver_debug = UnwrapOption(receiver_text);
         }
@@ -94,7 +94,7 @@ func RewriteSemanticMemberAccessTracked(graph: SemanticExpressionGraphFacts, nod
         graph, view.receiver_node, env
     );
     if !IsSome(receiver_type) {
-        let missing_receiver: String = "<unknown>";
+        var missing_receiver: String = "<unknown>";
         if IsSome(receiver_text) {
             missing_receiver = UnwrapOption(receiver_text);
         }
@@ -139,15 +139,15 @@ func RewriteSemanticMemberAccessTracked(graph: SemanticExpressionGraphFacts, nod
         receiver, Concat(".", CompilerSymbolCFieldName(member_name))
     ));
 }
-func RewriteSemanticMemberAccess(graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv) -> String {
-    let owned_fragments: Array<String> = [];
+func RewriteSemanticMemberAccess(ref graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv) -> String {
+    var owned_fragments: Array<String> = [];
     let value: CodegenCExpressionText = RewriteSemanticMemberAccessTracked(
         graph, node_id, env, owned_fragments
     );
     return CodegenCExpressionTextCommitRoot(owned_fragments, value);
 }
 func RewriteSemanticMemberCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     env: CodegenTypeEnv,
     inout owned_fragments: Array<String>
@@ -166,10 +166,10 @@ func RewriteSemanticMemberCall(
     if !IsSome(target_kind) || !IsSome(target_name) {
         Die("semantic member-call target fact is missing");
     }
-    let call_symbol: String = "";
-    let param_offset: Int = 0;
-    let prefix_argument: String = "";
-    let receiver_node: Int = -1;
+    var call_symbol: String = "";
+    var param_offset: Int = 0;
+    var prefix_argument: String = "";
+    var receiver_node: Int = -1;
     if UnwrapOption(target_kind) == SemanticCallTargetNamespace() {
         if UnwrapOption(target_name) == "" {
             Die("semantic qualified-call target fact is missing");
@@ -234,14 +234,14 @@ func RewriteSemanticMemberCall(
     );
 }
 func RewriteSemanticOwnedStringArrayCall(
-    graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
+    ref graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
     source_name: String, env: CodegenTypeEnv
 ) -> String {
     let argc: Int = ArrayLength(view.argument_nodes);
     if source_name == "ArrayPushOwnedString" {
         if argc != 2 { Die("ArrayPushOwnedString requires exactly two arguments"); }
-        let array_arg: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[0], "Array<String>", "inout", env);
+        let array_arg: String = RewriteSemanticCollectionRuntimeInoutArgument(
+            graph, view.argument_nodes[0], "Array<String>", env);
         let value_arg: String = RewriteSemanticCallArgument(
             graph, view.argument_nodes[1], "String", "default", env);
         return Concat(CollectionRuntimeCOwnedStringPushFn(),
@@ -249,8 +249,8 @@ func RewriteSemanticOwnedStringArrayCall(
     }
     if source_name == "ArraySetOwnedString" {
         if argc != 3 { Die("ArraySetOwnedString requires exactly three arguments"); }
-        let array_arg: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[0], "Array<String>", "inout", env);
+        let array_arg: String = RewriteSemanticCollectionRuntimeInoutArgument(
+            graph, view.argument_nodes[0], "Array<String>", env);
         let index_arg: String = RewriteSemanticCallArgument(
             graph, view.argument_nodes[1], "Int", "default", env);
         let value_arg: String = RewriteSemanticCallArgument(
@@ -261,8 +261,8 @@ func RewriteSemanticOwnedStringArrayCall(
     }
     if source_name == "ArrayDropOwnedStrings" {
         if argc != 1 { Die("ArrayDropOwnedStrings requires exactly one argument"); }
-        let array_arg: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[0], "Array<String>", "inout", env);
+        let array_arg: String = RewriteSemanticCollectionRuntimeInoutArgument(
+            graph, view.argument_nodes[0], "Array<String>", env);
         return Concat(CollectionRuntimeCOwnedStringDropFn(),
             Concat("(", Concat(array_arg, ")")));
     }
@@ -270,7 +270,7 @@ func RewriteSemanticOwnedStringArrayCall(
     return "";
 }
 func RewriteSemanticDirectCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     env: CodegenTypeEnv,
     inout owned_fragments: Array<String>
@@ -378,7 +378,7 @@ func RewriteSemanticDirectCall(
         }
         return UnwrapOption(float_constant);
     }
-    let call_symbol: String = source_name;
+    var call_symbol: String = source_name;
     let runtime_call_abi_id: Option<Int> =
         SemanticExpressionGraphRuntimeCallAbiId(graph, view.call_node);
     if !IsSome(runtime_call_abi_id) {
@@ -426,7 +426,7 @@ func RewriteSemanticDirectCall(
     } else if source_name == "IsOk" || source_name == "IsErr" ||
         source_name == "Unwrap" || source_name == "UnwrapErr" ||
         source_name == "UnwrapOr" {
-        let projection_arguments: Int = 1;
+        var projection_arguments: Int = 1;
         if source_name == "UnwrapOr" { projection_arguments = 2; }
         if ArrayLength(view.argument_nodes) != projection_arguments {
             Die("Result projection call argument graphs do not match its builtin");
@@ -475,6 +475,19 @@ func RewriteSemanticDirectCall(
             }
             call_symbol = UnwrapOption(tostring_symbol);
         }
+    } else if source_name == "ArrayReverse" {
+        if ArrayLength(view.argument_nodes) != 1 {
+            Die("ArrayReverse call requires exactly one argument graph");
+        }
+        let array_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, view.argument_nodes[0], env
+        );
+        if !IsSome(array_type) {
+            Die("ArrayReverse argument type fact is missing");
+        }
+        call_symbol = CollectionRuntimeFactFromTypeName(
+            UnwrapOption(array_type), env
+        ).c_reverse_fn;
     } else if source_name == "ArrayLength" {
         if ArrayLength(view.argument_nodes) != 1 {
             Die("ArrayLength call requires exactly one argument graph");
@@ -514,7 +527,7 @@ func RewriteSemanticDirectCall(
     );
 }
 func RewriteSemanticCallTracked(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     env: CodegenTypeEnv,
     inout owned_fragments: Array<String>
@@ -574,9 +587,9 @@ func RewriteSemanticCallTracked(
     return CodegenCExpressionTextOwned(owned_fragments, result);
 }
 func RewriteSemanticCall(
-    graph: SemanticExpressionGraphFacts, root_id: Int, env: CodegenTypeEnv
+    ref graph: SemanticExpressionGraphFacts, root_id: Int, env: CodegenTypeEnv
 ) -> String {
-    let owned_fragments: Array<String> = [];
+    var owned_fragments: Array<String> = [];
     let value: CodegenCExpressionText = RewriteSemanticCallTracked(
         graph, root_id, env, owned_fragments
     );

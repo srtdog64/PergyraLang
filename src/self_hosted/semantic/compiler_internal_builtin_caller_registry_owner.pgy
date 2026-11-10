@@ -69,9 +69,9 @@ func SemanticCompilerInternalBuiltinModulePathMatches(
     let path_length: Int = StringLength(source_path);
     let suffix_length: Int = StringLength(suffix);
     if path_length < suffix_length { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < suffix_length {
-        let actual: Int = CharCode(
+        var actual: Int = CharCode(
             source_path, path_length, path_length - suffix_length + i
         );
         let expected: Int = CharCode(suffix, suffix_length, i);
@@ -94,7 +94,7 @@ func SemanticCompilerInternalBuiltinCallerReady(
     if source_path == "" || !own_parameter || param_count != 1 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticCompilerInternalBuiltinCallerCount() {
         let row: SemanticCompilerInternalBuiltinCallerRow =
             SemanticCompilerInternalBuiltinCallerRowAt(i);

@@ -1,0 +1,416 @@
+// Final aggregate release alias admission.
+
+import "ast_collection_aggregate_release_plan_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_collection_owned_argument_admission_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_compiler_clone_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
+import "ast_collection_aggregate_release_restoration_owner.pgy";
+import "ast_collection_aggregate_release_finalization_owner.pgy";
+
+func SemanticAstCollectionAggregateReleaseAliasesReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref body_termination: SemanticAstBodyTerminationFacts,
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts
+) -> Bool {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) { return false; }
+    var local_row: Int = 0;
+    while local_row < ArrayLength(locals.node_ids) {
+        let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, locals.node_ids[local_row], AstExpressionLaneValue());
+        if IsSome(initializer) {
+            let source: Int = SemanticAstCollectionAggregateMemberStorageBindingForNode(
+                artifact, signatures, constructors, locals, inferred_types,
+                resolved_leaf_types, locals.function_node_ids[local_row],
+                locals.node_ids[local_row], surfaces, UnwrapOption(initializer));
+            let identity: SemanticAstCollectionMemberMoveIdentity =
+                SemanticAstCollectionMemberMoveIdentityForNode(
+                    artifact, signatures, constructors, locals, inferred_types,
+                    resolved_leaf_types, locals.function_node_ids[local_row],
+                    locals.node_ids[local_row], surfaces.expression_graph,
+                    UnwrapOption(initializer));
+            var extraction: Bool = false;
+            var requirement: Int = 0;
+            while requirement < ArrayLength(requirements.local_ids) {
+                if requirements.local_ids[requirement] == locals.node_ids[local_row] &&
+                    requirements.function_ids[requirement] == locals.function_node_ids[local_row] &&
+                    requirements.formal_ids[requirement] == source {
+                    extraction = identity.ok && identity.field_syntax_id == requirements.field_ids[requirement];
+                }
+                requirement = requirement + 1;
+            }
+            let restored_member_carrier: Bool = identity.ok &&
+                identity.source_binding_syntax_id == source &&
+                SemanticAstCollectionAggregateMemberCarrierRestoredExactlyOnce(
+                    moved_use, locals.node_ids[local_row],
+                    locals.node_ids[local_row]);
+            if source < 0 {
+                plan.diagnostic_syntax_id = locals.node_ids[local_row];
+                return false;
+            }
+            if !extraction && source > 0 && source != locals.node_ids[local_row] &&
+                SemanticAstCollectionAggregateProtectedBinding(plan, source) &&
+                !restored_member_carrier {
+                plan.diagnostic_syntax_id = locals.node_ids[local_row];
+                return false;
+            }
+        }
+        local_row = local_row + 1;
+    }
+    var assignment: Int = 0;
+    while assignment < ArrayLength(assignments.node_ids) {
+        let syntax_id: Int = assignments.node_ids[assignment];
+        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, syntax_id, AstExpressionLaneValue());
+        if IsSome(value) {
+            let source: Int = SemanticAstCollectionAggregateMemberStorageBindingForNode(
+                artifact, signatures, constructors, locals, inferred_types,
+                resolved_leaf_types,
+                assignments.function_node_ids[assignment], syntax_id,
+                surfaces, UnwrapOption(value));
+            let target_node: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, syntax_id, AstExpressionLaneAtom());
+            var target_storage: Int = -1;
+            if IsSome(target_node) {
+                target_storage = SemanticAstCollectionAggregateMemberStorageBindingForNode(
+                    artifact, signatures, constructors, locals, inferred_types,
+                    resolved_leaf_types, assignments.function_node_ids[assignment],
+                    syntax_id, surfaces, UnwrapOption(target_node));
+            }
+            if source < 0 || target_storage < 0 {
+                plan.diagnostic_syntax_id = syntax_id;
+                plan.diagnostic_reason = "alias_assignment_identity";
+                return false;
+            }
+            let source_place: SemanticAstCollectionAggregateSinkPlace =
+                SemanticAstCollectionAggregateSinkPlaceForNode(
+                    artifact, signatures, locals, inferred_types, surfaces,
+                    assignments.function_node_ids[assignment], syntax_id,
+                    UnwrapOption(value));
+            let target_place: SemanticAstCollectionAggregateSinkPlace =
+                SemanticAstCollectionAggregateSinkPlaceForNode(
+                    artifact, signatures, locals, inferred_types, surfaces,
+                    assignments.function_node_ids[assignment], syntax_id,
+                    UnwrapOption(target_node));
+            var source_holder: Int = 0;
+            var target_holder: Int = 0;
+            if source_place.ok && !source_place.temporary {
+                if source_place.key >= 0 &&
+                    source_place.key < ArrayLength(locals.node_ids) {
+                    source_holder = locals.node_ids[source_place.key];
+                } else if source_place.key < 0 {
+                    source_holder = 0 - source_place.key;
+                }
+            }
+            if target_place.ok && !target_place.temporary {
+                if target_place.key >= 0 &&
+                    target_place.key < ArrayLength(locals.node_ids) {
+                    target_holder = locals.node_ids[target_place.key];
+                } else if target_place.key < 0 {
+                    target_holder = 0 - target_place.key;
+                }
+            }
+            let result_path_restoration: Bool =
+                source_holder > 0 && target_holder > 0 &&
+                SemanticAstCollectionAggregateResultPathRestoration(
+                    exclusive_values, surfaces, source_holder, target_holder,
+                    UnwrapOption(value), UnwrapOption(target_node));
+            let aggregate_reconstruction: Bool = source == 0 &&
+                target_storage > 0 && target_holder == target_storage &&
+                SemanticAstCollectionAggregateStringArraysReconstructedAt(
+                    artifact, signatures, constructors, locals,
+                    inferred_types, resolved_leaf_types, surfaces,
+                    exclusive_values,
+                    assignments.function_node_ids[assignment], syntax_id,
+                    UnwrapOption(value), UnwrapOption(target_node),
+                    target_storage);
+            var moving_self_rebind: Bool = false;
+            var field_pack_self_rebind: Bool = false;
+            if IsSome(target_node) {
+                moving_self_rebind =
+                    SemanticAstCollectionAggregateMovingSelfRebind(
+                        artifact, signatures, constructors, locals,
+                        inferred_types, surfaces, assignments,
+                        exclusive_values,
+                        assignments.function_node_ids[assignment], syntax_id,
+                        UnwrapOption(target_node), UnwrapOption(value));
+            }
+            if aggregate_reconstruction &&
+                !SemanticAstCollectionAggregateReleaseRecordReconstruction(
+                    target_storage, syntax_id, plan) {
+                plan.diagnostic_syntax_id = syntax_id;
+                plan.diagnostic_reason = "alias_assignment_reconstruction";
+                return false;
+            }
+            let protected_assignment: Bool =
+                SemanticAstCollectionAggregateProtectedBinding(plan, source) ||
+                SemanticAstCollectionAggregateProtectedBinding(
+                    plan, target_storage);
+            let existing_restoration: Bool =
+                SemanticAstCollectionAggregateRestorationForValue(
+                    plan, moved_use, source, syntax_id) ||
+                result_path_restoration || aggregate_reconstruction ||
+                moving_self_rebind;
+            if protected_assignment && !existing_restoration {
+                if IsSome(target_node) {
+                    field_pack_self_rebind =
+                        SemanticAstCollectionAggregateFieldPackSelfRebind(
+                            artifact, signatures, constructors, locals,
+                            inferred_types, resolved_leaf_types, surfaces,
+                            assignments, statements, body_termination,
+                            exclusive_values,
+                            assignments.function_node_ids[assignment], syntax_id,
+                            UnwrapOption(target_node), UnwrapOption(value));
+                }
+                if !field_pack_self_rebind {
+                    plan.diagnostic_syntax_id = syntax_id;
+                    plan.diagnostic_reason = "alias_assignment_restoration";
+                    return false;
+                }
+            }
+        }
+        assignment = assignment + 1;
+    }
+    var statement: Int = 0;
+    while statement < ArrayLength(statements.node_ids) {
+        if statements.kind_tags[statement] ==
+                TypedAstKindValueReturnStmtTag() {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, statements.node_ids[statement],
+                AstExpressionLaneAtom());
+            if !IsSome(root) {
+                plan.diagnostic_syntax_id = statements.node_ids[statement];
+                return false;
+            }
+            let source: Int =
+                SemanticAstCollectionAggregateMemberStorageBindingForNode(
+                    artifact, signatures, constructors, locals, inferred_types,
+                    resolved_leaf_types,
+                    statements.function_node_ids[statement],
+                    statements.node_ids[statement], surfaces,
+                    UnwrapOption(root));
+            if source < 0 {
+                plan.diagnostic_syntax_id = statements.node_ids[statement];
+                return false;
+            }
+            if SemanticAstCollectionAggregateProtectedBinding(
+                    plan, source) {
+                let source_place: SemanticAstCollectionAggregateSinkPlace =
+                    SemanticAstCollectionAggregateSinkPlaceForNode(
+                        artifact, signatures, locals, inferred_types, surfaces,
+                        statements.function_node_ids[statement],
+                        statements.node_ids[statement], UnwrapOption(root));
+                var holder: Int = 0;
+                if source_place.ok && !source_place.temporary {
+                    if source_place.key >= 0 &&
+                        source_place.key < ArrayLength(locals.node_ids) {
+                        holder = locals.node_ids[source_place.key];
+                    } else if source_place.key < 0 {
+                        holder = 0 - source_place.key;
+                    }
+                }
+                let returned_formal: Int =
+                    SemanticAstCollectionAggregateResultPathFormal(
+                        exclusive_values, surfaces, holder,
+                        UnwrapOption(root));
+                var formal_matches: Int = 0;
+                var default_formal: Bool = false;
+                var parameter: Int = 0;
+                while parameter < ArrayLength(signatures.param_node_ids) {
+                    if signatures.param_node_ids[parameter] ==
+                            returned_formal {
+                        formal_matches = formal_matches + 1;
+                        default_formal = signatures.param_modes[parameter] == 0;
+                    }
+                    parameter = parameter + 1;
+                }
+                if formal_matches != 1 || !default_formal ||
+                    !SemanticAstCollectionAggregateResultPathReturned(
+                        exclusive_values, surfaces, holder, returned_formal,
+                        UnwrapOption(root), "") {
+                    plan.diagnostic_syntax_id = statements.node_ids[statement];
+                    return false;
+                }
+            }
+        }
+        statement = statement + 1;
+    }
+    var last: Int = -1;
+    var slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            var node: Int = last + 1;
+            while node <= root {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                    surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) ==
+                        AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView =
+                        SemanticCallArgumentEdgeFromGraph(
+                            surfaces.expression_graph, node);
+                    if !edge.ok {
+                        plan.diagnostic_syntax_id = surfaces.node_ids[slot / 3];
+                        return false;
+                    }
+                    let source: Int =
+                        SemanticAstCollectionAggregateMemberStorageBindingForNode(
+                            artifact, signatures, constructors, locals, inferred_types,
+                            resolved_leaf_types,
+                            surfaces.function_node_ids[slot / 3],
+                            surfaces.node_ids[slot / 3], surfaces,
+                            edge.argument_node);
+                    var returned_constructor_transfer: Bool = false;
+                    if source > 0 &&
+                        SemanticAstCollectionAggregateProtectedBinding(
+                            plan, source) {
+                        var return_statement: Bool = false;
+                        var statement_row: Int = 0;
+                        while statement_row < ArrayLength(statements.node_ids) {
+                            if statements.node_ids[statement_row] ==
+                                    surfaces.node_ids[slot / 3] &&
+                                statements.kind_tags[statement_row] ==
+                                    TypedAstKindValueReturnStmtTag() {
+                                return_statement = true;
+                            }
+                            statement_row = statement_row + 1;
+                        }
+                        let returned: Option<Int> =
+                            SemanticAstExpressionGraphRootForNode(
+                                surfaces, surfaces.node_ids[slot / 3],
+                                AstExpressionLaneAtom());
+                        var result_path: Option<String> = None;
+                        if IsSome(returned) {
+                            result_path =
+                                SemanticAstCollectionAggregateReturnedResultPath(
+                                    artifact, signatures, constructors, locals,
+                                    inferred_types, surfaces, exclusive_values,
+                                    slot / 3, UnwrapOption(returned), edge,
+                                    "");
+                        }
+                        let place: SemanticAstCollectionAggregateSinkPlace =
+                            SemanticAstCollectionAggregateSinkPlaceForNode(
+                                artifact, signatures, locals, inferred_types,
+                                surfaces, surfaces.function_node_ids[slot / 3],
+                                surfaces.node_ids[slot / 3], edge.argument_node);
+                        var holder: Int = 0;
+                        if place.ok && !place.temporary {
+                            if place.key >= 0 &&
+                                place.key < ArrayLength(locals.node_ids) {
+                                holder = locals.node_ids[place.key];
+                            } else if place.key < 0 {
+                                holder = 0 - place.key;
+                            }
+                        }
+                        let returned_formal: Int =
+                            SemanticAstCollectionAggregateResultPathFormal(
+                                exclusive_values, surfaces, holder,
+                                edge.argument_node);
+                        var formal_matches: Int = 0;
+                        var default_formal: Bool = false;
+                        var parameter: Int = 0;
+                        while parameter < ArrayLength(signatures.param_node_ids) {
+                            if signatures.param_node_ids[parameter] ==
+                                    returned_formal {
+                                formal_matches = formal_matches + 1;
+                                default_formal =
+                                    signatures.param_modes[parameter] == 0;
+                            }
+                            parameter = parameter + 1;
+                        }
+                        if return_statement &&
+                            IsSome(result_path) &&
+                            formal_matches == 1 && default_formal &&
+                            SemanticAstCollectionAggregateResultPathReturned(
+                                exclusive_values, surfaces, holder,
+                                returned_formal,
+                                edge.argument_node,
+                                UnwrapOption(result_path)) {
+                            returned_constructor_transfer = true;
+                        }
+                    }
+                    if source < 0 || (SemanticAstCollectionAggregateProtectedBinding(
+                            plan, source) &&
+                        !SemanticAstCollectionAggregateLineageEdge(
+                            plan, node) &&
+                        !returned_constructor_transfer) {
+                        let borrowed: Bool = SemanticAstCollectionAggregateArgumentAliasReady(
+                            artifact, signatures, constructors, locals, inferred_types,
+                            surfaces, formal_effects, moved_use, plan,
+                            slot, node, edge, source);
+                        let carrier_transfer: Bool =
+                            SemanticAstCollectionAggregateExactCarrierMutationAt(
+                                plan, source, node);
+                        var moving_self_rebind_edge: Bool = false;
+                        if !borrowed && !carrier_transfer {
+                            moving_self_rebind_edge =
+                                SemanticAstCollectionAggregateMovingSelfRebindEdge(
+                                    artifact, signatures, constructors, locals,
+                                    inferred_types, surfaces, assignments,
+                                    exclusive_values,
+                                    surfaces.function_node_ids[slot / 3],
+                                    surfaces.node_ids[slot / 3], edge);
+                        }
+                        var terminal_local_transfer: Bool = false;
+                        if !borrowed && !carrier_transfer &&
+                            !moving_self_rebind_edge {
+                            terminal_local_transfer =
+                                SemanticAstCollectionAggregateTerminalOwnedLocalPathTransfer(
+                                    artifact, signatures, constructors, locals,
+                                    inferred_types, resolved_leaf_types,
+                                    surfaces, assignments,
+                                    statements, body_termination,
+                                    exclusive_values, slot / 3, edge, source);
+                        }
+                        var local_constructor_transfer: Bool = false;
+                        if !borrowed && !carrier_transfer &&
+                            !moving_self_rebind_edge &&
+                            !terminal_local_transfer {
+                            local_constructor_transfer =
+                                SemanticAstCollectionAggregateLocalHolderConstructorTransfer(
+                                    artifact, signatures, constructors, locals,
+                                    inferred_types, resolved_leaf_types,
+                                    surfaces, statements, body_termination,
+                                    exclusive_values,
+                                    slot / 3, edge, source);
+                        }
+                        if !borrowed && !carrier_transfer &&
+                            !moving_self_rebind_edge &&
+                            !terminal_local_transfer &&
+                            !local_constructor_transfer {
+                            plan.diagnostic_syntax_id = surfaces.node_ids[slot / 3];
+                            plan.diagnostic_reason = "alias_call";
+                            return false;
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    return true;
+}
+

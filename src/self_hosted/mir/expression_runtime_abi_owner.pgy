@@ -73,10 +73,10 @@ func SelfMirSlotRuntimeOperation(source_name: String) -> String {
     if source_name == "DeviceWrite" { return "Write"; }
     if source_name == "ReleaseDeviceSlot" { return "Release"; }
     if source_name == "SubmitDeviceRead" { return "SubmitRead"; }
-    if source_name == "Read" || source_name == "Write" ||
-        source_name == "Release" {
-        return source_name;
-    }
+    // Return the registry-owned spelling, not the graph's borrowed String.
+    if source_name == "Read" { return "Read"; }
+    if source_name == "Write" { return "Write"; }
+    if source_name == "Release" { return "Release"; }
     return "";
 }
 
@@ -86,7 +86,7 @@ func SelfMirExpressionRuntimeAbiLocalType(
     name: String
 ) -> String {
     if ArrayLength(local_names) != ArrayLength(local_types) { return ""; }
-    let i: Int = ArrayLength(local_names) - 1;
+    var i: Int = ArrayLength(local_names) - 1;
     while i >= 0 {
         // Publish only the selected type; the input binding inventory stays borrowed.
         if local_names[i] == name { return Concat("", local_types[i]); }
@@ -99,7 +99,7 @@ func SelfMirExpressionRuntimeAbiReceiverNode(
     ref graph: SemanticExpressionGraphFacts,
     call_node: Int
 ) -> Option<Int> {
-    let node: Int = call_node + 1;
+    var node: Int = call_node + 1;
     while node < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
         if IsSome(kind) &&
@@ -122,15 +122,15 @@ func SelfMirExpressionRuntimeAbiProjectionFromGraph(
     local_names: Array<String>,
     local_types: Array<String>
 ) -> SelfMirExpressionRuntimeAbiProjection {
-    let type_names: Array<String> = [];
-    let operations: Array<String> = [];
+    var type_names: Array<String> = [];
+    var operations: Array<String> = [];
     if !view.ok || ArrayLength(local_names) != ArrayLength(local_types) {
         return SelfMirExpressionRuntimeAbiProjection(
             false, "MIR runtime-call ABI projection input is invalid",
             type_names, operations
         );
     }
-    let stack: Array<Int> = [view.root_id];
+    var stack: Array<Int> = [view.root_id];
     while ArrayLength(stack) > 0 {
         let last: Int = ArrayLength(stack) - 1;
         let node: Int = stack[last];
@@ -157,7 +157,7 @@ func SelfMirExpressionRuntimeAbiProjectionFromGraph(
             let target_name: String = UnwrapOption(target_opt);
             let operation: String = SelfMirSlotRuntimeOperation(target_name);
             if operation != "" {
-                let expected_kind: Int = 0;
+                var expected_kind: Int = 0;
                 if target_name == "ClaimDeviceSlot" ||
                     target_name == "DeviceRead" ||
                     target_name == "DeviceWrite" ||
@@ -165,7 +165,7 @@ func SelfMirExpressionRuntimeAbiProjectionFromGraph(
                     target_name == "SubmitDeviceRead" {
                     expected_kind = 2;
                 }
-                let type_name: String = expected_type;
+                var type_name: String = expected_type;
                 if operation != "Claim" {
                     let receiver_opt: Option<Int> =
                         SelfMirExpressionRuntimeAbiReceiverNode(
@@ -212,8 +212,8 @@ func SelfMirExpressionRuntimeAbiProjectionFromGraph(
                         type_names, operations
                     );
                 }
-                let duplicate: Bool = false;
-                let i: Int = 0;
+                var duplicate: Bool = false;
+                var i: Int = 0;
                 while i < ArrayLength(operations) {
                     if operations[i] == operation &&
                         type_names[i] == type_name {

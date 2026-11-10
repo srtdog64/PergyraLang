@@ -6,7 +6,7 @@ func Keep(inout out: Array<String>, text: String) -> Void {
 }
 
 func Main() -> Int {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     Keep(out, "a");
     Keep(out, "b");
     Print(ToString(ArrayLength(out)));

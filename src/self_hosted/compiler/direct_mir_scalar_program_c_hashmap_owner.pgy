@@ -18,7 +18,7 @@ func DirectMirScalarProgramCHashMapExpressionAt(
     if ArrayLength(rows) != ArrayLength(arguments) {
         Die("direct MIR scalar C HashMap operands are invalid");
     }
-    let map_type: String = facts.node_types[node];
+    var map_type: String = facts.node_types[node];
     if ArrayLength(rows) > 0 { map_type = facts.node_types[rows[0]]; }
     let runtime: CollectionHashMapRuntimeFact =
         CollectionHashMapRuntimeFactFromTypeName(map_type);
@@ -33,8 +33,9 @@ func DirectMirScalarProgramCHashMapExpressionAt(
         return Some(function_name + "()");
     }
     if ArrayLength(rows) == 0 ||
-        facts.node_kinds[rows[0]] != DirectMirScalarProgramExprLocal() {
-        Die("direct MIR scalar C HashMap receiver is not a local owner");
+        (facts.node_kinds[rows[0]] != DirectMirScalarProgramExprLocal() &&
+         facts.node_kinds[rows[0]] != DirectMirScalarProgramExprParameter()) {
+        Die("direct MIR scalar C HashMap receiver is not addressable");
     }
     let receiver: String = "&(" + arguments[0] + ")";
     if operation == "MapSize" {
@@ -51,7 +52,7 @@ func DirectMirScalarProgramCHashMapExpressionAt(
     }
     let key_c_type: String =
         CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(key_row));
-    let call: String = function_name + "(" + receiver + ", (" +
+    var call: String = function_name + "(" + receiver + ", (" +
         key_c_type + ")(" + arguments[1] + ")";
     if operation == "MapSet" {
         if ArrayLength(arguments) != 3 {
@@ -75,7 +76,7 @@ func DirectMirScalarProgramCHashMapArgumentRows(
 func DirectMirScalarProgramCHashMapTypeUsesKeys(
     ref facts: DirectMirScalarProgramExpressionSet, type_name: String
 ) -> Bool {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(facts.node_kinds) {
         if facts.node_kinds[node] == DirectMirScalarProgramExprMapKeys() {
             let rows: Array<Int> =
@@ -88,20 +89,50 @@ func DirectMirScalarProgramCHashMapTypeUsesKeys(
     return false;
 }
 
+func DirectMirScalarProgramCHashMapReachTypes(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Array<String> {
+    var types: Array<String> = [];
+    var row: Int = 0;
+    while row < ArrayLength(plan.local_types) {
+        ArrayPush(types, Concat("", plan.local_types[row]));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.routines.parameter_types) {
+        ArrayPush(types, Concat("", plan.routines.parameter_types[row]));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.routines.return_types) {
+        ArrayPush(types, Concat("", plan.routines.return_types[row]));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.program.logical_record.field_types) {
+        ArrayPush(types, Concat("",
+            plan.program.logical_record.field_types[row]));
+        row = row + 1;
+    }
+    return types;
+}
+
 func DirectMirScalarProgramCHashMapPreamble(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
-    let seen_types: Array<String> = [];
-    let emitted_values: Array<String> = [];
-    let output: String = "";
-    let row: Int = 0;
-    while row < ArrayLength(plan.local_types) {
+    var seen_types: Array<String> = [];
+    var emitted_values: Array<String> = [];
+    var output: String = "";
+    let reached_types: Array<String> =
+        DirectMirScalarProgramCHashMapReachTypes(plan);
+    var row: Int = 0;
+    while row < ArrayLength(reached_types) {
         let runtime: CollectionHashMapRuntimeFact =
-            CollectionHashMapRuntimeFactFromTypeName(plan.local_types[row]);
+            CollectionHashMapRuntimeFactFromTypeName(reached_types[row]);
         if runtime.ok {
-            let seen: Bool = false;
-            let index: Int = 0;
+            var seen: Bool = false;
+            var index: Int = 0;
             while index < ArrayLength(seen_types) {
                 if seen_types[index] == runtime.type_name { seen = true; }
                 index = index + 1;
@@ -115,8 +146,8 @@ func DirectMirScalarProgramCHashMapPreamble(
                     output = output + CollectionHashMapRuntimeKeysBridgeBlock(
                         runtime, env);
                 }
-                ArrayPush(seen_types, runtime.type_name);
-                ArrayPush(emitted_values, runtime.value_type);
+                ArrayPush(seen_types, Concat("", runtime.type_name));
+                ArrayPush(emitted_values, Concat("", runtime.value_type));
             }
         }
         row = row + 1;
@@ -128,10 +159,12 @@ func DirectMirScalarProgramCHashMapPreamble(
 func DirectMirScalarProgramCHashMapReached(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let row: Int = 0;
-    while row < ArrayLength(plan.local_types) {
+    let reached_types: Array<String> =
+        DirectMirScalarProgramCHashMapReachTypes(plan);
+    var row: Int = 0;
+    while row < ArrayLength(reached_types) {
         if CollectionHashMapRuntimeFactFromTypeName(
-                plan.local_types[row]).ok { return true; }
+                reached_types[row]).ok { return true; }
         row = row + 1;
     }
     return false;

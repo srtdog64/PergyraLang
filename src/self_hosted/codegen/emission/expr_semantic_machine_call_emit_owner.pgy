@@ -9,7 +9,7 @@ import "expr_semantic_call_argument_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticMachineCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     env: CodegenTypeEnv
 ) -> String {

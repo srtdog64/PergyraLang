@@ -10,7 +10,7 @@ func Main() -> Void with caps env, io_read, io_write {
     let compatibility_receipt: CompilerCompatibilityEvolutionReceipt = CompilerCompatibilityEvolutionReceiptFromOwner();
     let compatibility_view: CompilerCompatibilityExecutionView =
         CompilerCompatibilityExecutionViewFromReceipt(compatibility_receipt);
-    let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
+    var compiler_world: PgyCompilerWorld = PgyCompilerWorld(
         DriverRung2DirectMirZone(
             DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
         ),

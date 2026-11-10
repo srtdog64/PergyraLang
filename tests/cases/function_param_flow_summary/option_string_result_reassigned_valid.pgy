@@ -14,7 +14,7 @@ func NameAt(arena: Arena, index: Int) -> Option<String> {
 }
 
 func Label(arena: Arena, second: Bool) -> Int {
-    let label: Option<String> = NameAt(arena, 0);
+    var label: Option<String> = NameAt(arena, 0);
     if second {
         label = NameAt(arena, 1);
     }

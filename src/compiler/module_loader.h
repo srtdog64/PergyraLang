@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "../parser/ast.h"
+#include "import_resolver.h"
 
 typedef struct
 {
@@ -28,11 +29,17 @@ typedef struct
     PgySourceModuleRow *rows;
     size_t row_count;
     size_t row_capacity;
+    ImportSourceSnapshot inputs;
 } PgySourceModuleGraph;
 
 ASTNode *module_loader_load_program_with_graph(const char *source_path,
                                                PgySourceModuleGraph **graph_out,
                                                char **error_message);
+/* Landing rounds belong to the initial graph's immutable source generation.
+ * Reparse only those retained bytes; a live-file reread would create a second
+ * source authority during one compilation. */
+ASTNode *module_loader_reload_program_from_graph(
+    const PgySourceModuleGraph *source_graph, char **error_message);
 bool module_loader_validate_graph(const PgySourceModuleGraph *graph,
                                   char **error_message);
 void module_loader_destroy_graph(PgySourceModuleGraph *graph);

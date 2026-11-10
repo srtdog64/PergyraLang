@@ -61,7 +61,7 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstC
 func SemanticAstCollectionAggregateFieldEntryIndexReady(rows: HashMap<String, Int>, ref local_ids: Array<Int>) -> Bool {
     let count: Int = ArrayLength(local_ids);
     if MapSize(rows) != count { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let key: String = ToString(local_ids[row]);
         if !MapHas(rows, key) || MapGet(rows, key) != row { return false; }
@@ -87,8 +87,8 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
         return false;
     }
     if !SemanticAstCollectionAggregateFieldEntryIndexReady(facts.row_by_local, facts.local_ids) { return false; }
-    let path_cursor: Int = 0;
-    let row: Int = 0;
+    var path_cursor: Int = 0;
+    var row: Int = 0;
     while row < count {
         if facts.function_ids[row] <= 0 || facts.formal_ids[row] <= 0 || facts.formal_ordinals[row] < 0 ||
             facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3 || facts.field_ids[row] <= 0 || facts.local_ids[row] <= 0 ||
@@ -96,7 +96,7 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
             facts.path_starts[row] != path_cursor || facts.path_counts[row] <= 0 ||
             facts.path_counts[row] > ArrayLength(facts.path_field_ids) - path_cursor { return false; }
         let path_end: Int = path_cursor + facts.path_counts[row];
-        let path_row: Int = path_cursor;
+        var path_row: Int = path_cursor;
         while path_row < path_end {
             if facts.path_field_ids[path_row] <= 0 { return false; }
             path_row = path_row + 1;
@@ -106,110 +106,4 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
         row = row + 1;
     }
     return path_cursor == ArrayLength(facts.path_field_ids);
-}
-
-// The member identity owner already joined the field and root. This owner
-// joins that exact root to this function's formal, retaining ordinal and mode.
-func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
-    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
-    function_id: Int, root_id: Int,
-    ref source_path_field_ids: Array<Int>, source_path_start: Int, source_path_count: Int,
-    local_id: Int,
-    effect_mask: Int,
-    inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
-) -> Bool {
-    let signature_count: Int = ArrayLength(signatures.function_node_ids);
-    if !signatures.ok || !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) ||
-        ArrayLength(signatures.param_starts) != signature_count || ArrayLength(signatures.param_counts) != signature_count ||
-        ArrayLength(signatures.param_node_ids) != ArrayLength(signatures.param_modes) ||
-        ArrayLength(locals.node_ids) != ArrayLength(locals.function_node_ids) { return false; }
-    let destination: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, local_id);
-    if !locals.ok || !IsSome(destination) || locals.function_node_ids[UnwrapOption(destination)] != function_id { return false; }
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) || root_id <= 0 || source_path_start < 0 ||
-        source_path_count <= 0 || source_path_start > ArrayLength(source_path_field_ids) ||
-        source_path_count > ArrayLength(source_path_field_ids) - source_path_start || local_id <= 0 ||
-        (effect_mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() &&
-         effect_mask != SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
-        return false;
-    }
-    let selected: Int = UnwrapOption(signature);
-    let start: Int = signatures.param_starts[selected];
-    let length: Int = signatures.param_counts[selected];
-    if start < 0 || length < 0 || start > ArrayLength(signatures.param_node_ids) ||
-        length > ArrayLength(signatures.param_node_ids) - start ||
-        (selected > 0 && signatures.function_node_ids[selected - 1] == function_id) ||
-        (selected + 1 < signature_count && signatures.function_node_ids[selected + 1] == function_id) { return false; }
-    let count: Option<Int> = SemanticAstFunctionParamCountAt(signatures, UnwrapOption(signature));
-    if !IsSome(count) { return false; }
-    let ordinal: Int = 0;
-    let found: Int = -1;
-    let mode: Int = 0;
-    while ordinal < UnwrapOption(count) {
-        let formal: Option<Int> = SemanticAstFunctionParamNodeAt(signatures, UnwrapOption(signature), ordinal);
-        if !IsSome(formal) || UnwrapOption(formal) <= 0 { return false; }
-        if UnwrapOption(formal) == root_id {
-            if found >= 0 { return false; }
-            let declared_mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, UnwrapOption(signature), ordinal);
-            if !IsSome(declared_mode) { return false; }
-            found = ordinal; mode = UnwrapOption(declared_mode);
-        }
-        ordinal = ordinal + 1;
-    }
-    // Only an admitted local of this function is a non-formal root. A foreign
-    // formal or a missing root must not silently erase the entry obligation.
-    if found < 0 {
-        let root: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, root_id);
-        return IsSome(root) && locals.function_node_ids[UnwrapOption(root)] == function_id;
-    }
-    // Preserve the signature owner's raw modes: default=0/inout=1/own=2/ref=3.
-    if mode < 0 || mode > 3 { return false; }
-    let field_id: Int = source_path_field_ids[source_path_start + source_path_count - 1];
-    let path_row: Int = 0;
-    while path_row < source_path_count {
-        if source_path_field_ids[source_path_start + path_row] <= 0 { return false; }
-        path_row = path_row + 1;
-    }
-    let indexed: Int = SemanticAstCollectionAggregateFieldEntryIndexRow(facts.row_by_local, local_id);
-    if indexed >= 0 {
-        let row: Int = indexed;
-        if row < 0 || row >= ArrayLength(facts.local_ids) ||
-            facts.function_ids[row] != function_id ||
-            facts.local_ids[row] != local_id || facts.formal_ids[row] != root_id ||
-            facts.formal_ordinals[row] != found ||
-            facts.formal_modes[row] != mode || facts.field_ids[row] != field_id ||
-            facts.path_counts[row] != source_path_count {
-            return false;
-        }
-        let existing: Int = 0;
-        while existing < source_path_count {
-            if facts.path_field_ids[facts.path_starts[row] + existing] !=
-                    source_path_field_ids[source_path_start + existing] { return false; }
-            existing = existing + 1;
-        }
-        if facts.effect_masks[row] != effect_mask &&
-            facts.effect_masks[row] != 3 {
-            facts.effect_masks[row] = facts.effect_masks[row] + effect_mask;
-        }
-        return true;
-    }
-    let row: Int = ArrayLength(facts.local_ids);
-    ArrayPush(facts.function_ids, function_id); ArrayPush(facts.formal_ids, root_id);
-    ArrayPush(facts.formal_ordinals, found); ArrayPush(facts.formal_modes, mode);
-    ArrayPush(facts.field_ids, field_id);
-    ArrayPush(facts.path_starts, ArrayLength(facts.path_field_ids));
-    ArrayPush(facts.path_counts, source_path_count);
-    let path_entry: Int = 0;
-    while path_entry < source_path_count {
-        ArrayPush(facts.path_field_ids, source_path_field_ids[source_path_start + path_entry]);
-        path_entry = path_entry + 1;
-    }
-    ArrayPush(facts.local_ids, local_id);
-    ArrayPush(facts.effect_masks, effect_mask);
-    // This mutable owner writes the potentially grown descriptor back. It is
-    // not a retained view of a ref fact and never crosses an async boundary.
-    let rows: HashMap<String, Int> = facts.row_by_local;
-    MapSet(rows, ToString(local_id), row);
-    facts.row_by_local = rows;
-    return true;
 }

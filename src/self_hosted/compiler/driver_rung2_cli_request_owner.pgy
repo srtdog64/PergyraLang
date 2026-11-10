@@ -118,7 +118,7 @@ func DriverRung2CliRequestFromArgsOrDie(
             DriverRung2CliPathOperandOrDie(args[1], "source C input path");
         let output_path: String = DriverRung2CliPathOperandOrDie(
             args[2], "source C artifact output path");
-        let manifest_path: String = "";
+        var manifest_path: String = "";
         if count == 5 { manifest_path = DriverRung2CliPathOperandOrDie(
             args[4], "source C machine manifest path"); }
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
@@ -272,7 +272,7 @@ func DriverRung2CliRequestFromArgsOrDie(
         let input_path: String = DriverRung2CliPathOperandOrDie(
             args[1], "direct MIR input path"
         );
-        let output_index: Int = 3;
+        var output_index: Int = 3;
         if observe_pressure { output_index = 4; }
         let output_path: String = DriverRung2CliPathOperandOrDie(
             args[output_index],

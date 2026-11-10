@@ -54,7 +54,7 @@ func DirectMirRangeCfgCertificateFactDigest(
     ref fact: DirectMirRangeCfgCertificateFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(67L, fact.block_count);
+    var hash: Long = DirectMirCfgHashInt(67L, fact.block_count);
     hash = DirectMirCfgHashInt(hash, fact.preheader_block);
     hash = DirectMirCfgHashInt(hash, fact.header_block);
     hash = DirectMirCfgHashInt(hash, fact.body_block);
@@ -179,8 +179,8 @@ func DirectMirRangeCfgCertificateFactFromIndex(
         ) {
         Die("direct MIR range CFG inventory or type owner is invalid");
     }
-    let header: Int = 0 - 1;
-    let candidate_block: Int = 0;
+    var header: Int = 0 - 1;
+    var candidate_block: Int = 0;
     while candidate_block < block_count {
         let candidate: MirRoutineInstructionSelection =
             MirRoutineFactIndexBranchAtBlock(
@@ -217,8 +217,8 @@ func DirectMirRangeCfgCertificateFactFromIndex(
     if !branch.valid || !branch.found || !branch_scalar.valid || !init.valid {
         Die("direct MIR range CFG init and branch binding is invalid");
     }
-    let preheader: Int = 0 - 1;
-    let predecessor_block: Int = 0;
+    var preheader: Int = 0 - 1;
+    var predecessor_block: Int = 0;
     while predecessor_block < block_count {
         let global_block: Int =
             admitted.routines.routine_block_starts[0] + predecessor_block;
@@ -248,11 +248,11 @@ func DirectMirRangeCfgCertificateFactFromIndex(
         index.block_succ_false[exit] >= 0 {
         Die("direct MIR range CFG header, backedge, or exit is invalid");
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < block_count {
-        let expected_count: Int = 0;
-        let expected_branch: Int = 0;
-        let expected_backedge_header: Int = 0;
+        var expected_count: Int = 0;
+        var expected_branch: Int = 0;
+        var expected_backedge_header: Int = 0;
         if block == preheader || block == header || block == body {
             expected_count = 1;
         }

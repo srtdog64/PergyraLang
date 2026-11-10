@@ -31,7 +31,7 @@ func CompilerHarnessLexerPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessLexerPathKnown(path: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLexerPathCount() {
         if CompilerHarnessLexerPathAt(i) == path {
             return true;

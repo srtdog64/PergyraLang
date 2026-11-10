@@ -14,9 +14,9 @@ func DirectMirScalarProgramCLogicalValueExpression(
 ) -> Option<String> {
     if kind == DirectMirScalarProgramExprArrayIntIndex() || kind ==
             DirectMirScalarProgramExprArrayBoolIndex() {
-        let expected_left: String = CompilerAbiLayoutArrayIntTypeName();
-        let expected_node: String = CompilerAbiLayoutIntTypeName();
-        let runtime_kind: Int = 1;
+        var expected_left: String = CompilerAbiLayoutArrayIntTypeName();
+        var expected_node: String = CompilerAbiLayoutIntTypeName();
+        var runtime_kind: Int = 1;
         if kind == DirectMirScalarProgramExprArrayBoolIndex() {
             expected_left = CompilerAbiLayoutArrayBoolTypeName();
             expected_node = CompilerAbiLayoutBoolTypeName();

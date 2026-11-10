@@ -10,8 +10,8 @@ func CodegenIntentPlanLocalEnv(
     routine_syntax_id: Int,
     base_env: CodegenTypeEnv
 ) -> CodegenTypeEnv {
-    let env: CodegenTypeEnv = base_env;
-    let step: Int = 0;
+    var env: CodegenTypeEnv = base_env;
+    var step: Int = 0;
     while step < ArrayLength(view.plan.steps.transition_ids) {
         if view.routine_canonical_syntax_ids[step] == routine_syntax_id {
             let outcome_name: String =
@@ -54,7 +54,7 @@ func CodegenIntentPlanEmitLocals(
     routine_syntax_id: Int,
     env: CodegenTypeEnv
 ) -> Void {
-    let step: Int = 0;
+    var step: Int = 0;
     while step < ArrayLength(view.plan.steps.transition_ids) {
         if view.routine_canonical_syntax_ids[step] == routine_syntax_id {
             ArrayPush(body, Concat(

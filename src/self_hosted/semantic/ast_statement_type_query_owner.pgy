@@ -19,7 +19,7 @@ func SemanticAstStatementTypeIndexForNode(
     node_id: Int
 ) -> Option<Int> {
     if !SemanticAstStatementTypeRowsReady(facts) { return None; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.node_ids[i] == node_id { return Some(i); }
         i = i + 1;
@@ -27,22 +27,22 @@ func SemanticAstStatementTypeIndexForNode(
     return None;
 }
 
-func SemanticAstStatementInferredTypeForNode(
+func SemanticAstStatementTypeForNode(
     ref facts: SemanticAstStatementTypeFacts,
     node_id: Int,
-    expected_kind: Int
+    expected_kind: Int,
+    expected: Bool
 ) -> Option<String> {
-    let index: Option<Int> = SemanticAstStatementTypeIndexForNode(
-        facts, node_id
-    );
+    let index: Option<Int> = SemanticAstStatementTypeIndexForNode(facts, node_id);
     if !IsSome(index) { return None; }
     let row: Int = UnwrapOption(index);
+    var type_name: String = facts.inferred_type_names[row];
+    if expected { type_name = facts.expected_type_names[row]; }
     if facts.kind_tags[row] != expected_kind || facts.verified[row] != 1 ||
-        facts.inferred_type_names[row] == "" ||
-        facts.inferred_type_names[row] == "Unknown" {
+        type_name == "" || type_name == "Unknown" {
         return None;
     }
-    return Some(facts.inferred_type_names[row]);
+    return Some(type_name);
 }
 
 func SemanticAstStatementTypeQueryContractReady() -> Bool {
@@ -52,22 +52,22 @@ func SemanticAstStatementTypeQueryContractReady() -> Bool {
         ["String", "Unknown", "Int"], [1, 1, 0],
         ["", "", ""], ["", "", ""], 0 - 1
     );
-    let found: Option<String> = SemanticAstStatementInferredTypeForNode(
-        facts, 7, 41
+    let found: Option<String> = SemanticAstStatementTypeForNode(
+        facts, 7, 41, false
     );
     return SemanticAstStatementTypeRowsReady(facts) &&
         IsSome(found) && UnwrapOption(found) == "String" &&
-        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 7, 42)) &&
-        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 9, 41)) &&
-        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 11, 41)) &&
-        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 12, 41));
+        !IsSome(SemanticAstStatementTypeForNode(facts, 7, 42, false)) &&
+        !IsSome(SemanticAstStatementTypeForNode(facts, 9, 41, false)) &&
+        !IsSome(SemanticAstStatementTypeForNode(facts, 11, 41, false)) &&
+        !IsSome(SemanticAstStatementTypeForNode(facts, 12, 41, false));
 }
 
 func SemanticAstStatementTypesAllVerified(
     ref facts: SemanticAstStatementTypeFacts
 ) -> Bool {
     if !facts.ok { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] != 1 { return false; }
         i = i + 1;
@@ -79,7 +79,7 @@ func SemanticAstStatementFirstDiagnosticCode(
     facts: SemanticAstStatementTypeFacts
 ) -> String {
     if !facts.ok { return facts.diagnostic_code; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] != 1 { return facts.diagnostic_codes[i]; }
         i = i + 1;
@@ -91,7 +91,7 @@ func SemanticAstStatementFirstDiagnosticMessage(
     facts: SemanticAstStatementTypeFacts
 ) -> String {
     if !facts.ok { return facts.diagnostic_message; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] != 1 { return facts.diagnostic_messages[i]; }
         i = i + 1;
@@ -133,7 +133,7 @@ func SemanticAstStatementTypeFactsMatchArtifact(
         ArrayLength(facts.diagnostic_messages) != n {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
             rebuilt.kind_tags[i] != facts.kind_tags[i] ||

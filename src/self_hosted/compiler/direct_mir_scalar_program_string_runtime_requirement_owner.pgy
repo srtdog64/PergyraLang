@@ -58,6 +58,12 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     let sub_equals: CompilerRuntimeCallAbiFact =
         DirectMirScalarProgramStringGeneratedAbiFact(
             "sub-equals-with-len", StringRuntimeCSubEqualsWithLenFn());
+    let sub_contains: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramStringGeneratedAbiFact(
+            "sub-contains-with-len", StringRuntimeCSubContainsWithLenFn());
+    let sub_starts: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramStringGeneratedAbiFact(
+            "sub-starts-with-len", StringRuntimeCSubStartsWithLenFn());
     let string_index: DirectMirScalarProgramStringIndexRuntimeFact =
         DirectMirScalarProgramStringIndexRuntimeRequirement(expressions);
     let string_trim: DirectMirScalarProgramStringTrimRuntimeFact =
@@ -68,7 +74,9 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprNotEqualString());
     let concat_required: Bool = DirectMirScalarProgramExpressionContainsKind(
-        expressions, DirectMirScalarProgramExprConcatString());
+        expressions, DirectMirScalarProgramExprConcatString()) ||
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprStringClone());
     let to_string_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToStringSignedInteger());
     let to_upper_required: Bool = DirectMirScalarProgramExpressionContainsKind(
@@ -93,6 +101,12 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     let sub_equals_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprSubEqualsWithLen());
+    let sub_contains_required: Bool =
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprSubContainsWithLen());
+    let sub_starts_required: Bool =
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprSubStartsWithLen());
     let collection: DirectMirScalarProgramStringCollectionRuntimeIds =
         DirectMirScalarProgramStringCollectionRuntimeRequirement(expressions);
     let host_io: DirectMirScalarProgramHostIoRuntimeIds =
@@ -127,6 +141,16 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             !DirectMirScalarProgramStringGeneratedAbiReady(
                 sub_equals, "sub-equals-with-len",
                 StringRuntimeCSubEqualsWithLenFn(),
+                "string_int_string_int_to_bool")) ||
+        (sub_contains_required &&
+            !DirectMirScalarProgramStringGeneratedAbiReady(
+                sub_contains, "sub-contains-with-len",
+                StringRuntimeCSubContainsWithLenFn(),
+                "string_int_string_int_to_bool")) ||
+        (sub_starts_required &&
+            !DirectMirScalarProgramStringGeneratedAbiReady(
+                sub_starts, "sub-starts-with-len",
+                StringRuntimeCSubStartsWithLenFn(),
                 "string_int_string_int_to_bool")) || !collection.valid ||
         !DirectMirScalarProgramStringIndexRuntimeFactReady(string_index) ||
         !DirectMirScalarProgramStringTrimRuntimeFactReady(string_trim) ||
@@ -134,14 +158,15 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         !host_io.valid {
         return DirectMirScalarProgramRuntimeAbiFactEmpty();
     }
-    let compare_id: Int = 0; let concat_id: Int = 0;
-    let to_string_id: Int = 0;
-    let to_upper_id: Int = 0;
-    let to_lower_id: Int = 0; let length_id: Int = 0;
-    let char_code_id: Int = 0;
-    let char_at_n_id: Int = 0;
-    let substring_id: Int = 0; let bounded_id: Int = 0;
-    let sub_index_id: Int = 0; let sub_equals_id: Int = 0;
+    var compare_id: Int = 0; var concat_id: Int = 0;
+    var to_string_id: Int = 0;
+    var to_upper_id: Int = 0;
+    var to_lower_id: Int = 0; var length_id: Int = 0;
+    var char_code_id: Int = 0;
+    var char_at_n_id: Int = 0;
+    var substring_id: Int = 0; var bounded_id: Int = 0;
+    var sub_index_id: Int = 0; var sub_equals_id: Int = 0;
+    var sub_contains_id: Int = 0; var sub_starts_id: Int = 0;
     if compare_required { compare_id = compare.runtime_call_abi_id; }
     if concat_required { concat_id = concat.runtime_call_abi_id; }
     if to_string_required { to_string_id = to_string.runtime_call_abi_id; }
@@ -156,12 +181,19 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     if sub_equals_required {
         sub_equals_id = sub_equals.runtime_call_abi_id;
     }
+    if sub_contains_required {
+        sub_contains_id = sub_contains.runtime_call_abi_id;
+    }
+    if sub_starts_required {
+        sub_starts_id = sub_starts.runtime_call_abi_id;
+    }
     let source: DirectMirScalarProgramRuntimeAbiFact =
         DirectMirScalarProgramRuntimeAbiFact(
             true, 0, compare_id, concat_id, to_string_id,
             bool_to_string.runtime_call_abi_id, to_upper_id,
             to_lower_id, length_id, char_code_id, char_at_n_id,
             substring_id, bounded_id, sub_equals_id, sub_index_id,
+            sub_contains_id, sub_starts_id,
             string_index, string_trim,
             collection.contains_id, collection.split_id,
             collection.join_id,

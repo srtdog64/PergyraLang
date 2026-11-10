@@ -43,6 +43,8 @@ for type_name in 'Array<Int>' 'Array<String>'; do
 done
 grep -Fq '"return":"CollectionIndex"' "$MIR" ||
     fail "producer omitted collection-record return identity"
+grep -Fq '"name":"MapIndex"' "$MIR" ||
+    fail "producer omitted HashMap-bearing record identity"
 grep -Fq '"uses":["selected.1","target_index.1","value_index.1"]' "$MIR" ||
     fail "producer omitted the receiver/index/value local-use ordering falsifier"
 printf '7\n1\n' >"$WORK_DIR/expected.run"
@@ -61,6 +63,8 @@ for backend in c llvm; do
     if [[ "$backend" == c ]]; then
         grep -Fq 'bool field_0; pgy_as field_1; pgy_as field_2; pgy_as field_3; pgy_ai field_4;' "$artifact" ||
             fail "C artifact omitted ordered collection fields"
+        grep -Fq 'PgyHashMap_Int field_0;' "$artifact" ||
+            fail "C artifact omitted the HashMap record field ABI"
         grep -Fq 'pgy_ai pgy_local_' "$artifact" ||
             fail "C artifact omitted Array<Int> local storage"
         grep -Fq ').field_0' "$artifact" ||
@@ -78,6 +82,8 @@ for backend in c llvm; do
     else
         grep -Fq '%pgy.scalar.logical.record.value.0 = type { i1, %pgy.array.string, %pgy.array.string, %pgy.array.string, %pgy.array.int, %pgy.array.string, %pgy.array.string, %pgy.array.string, %pgy.array.string }' "$artifact" ||
             fail "LLVM artifact omitted ordered collection fields"
+        grep -Fq '{ ptr, ptr, ptr, i64, i64, i64, i32 }' "$artifact" ||
+            fail "LLVM artifact omitted the HashMap record field ABI"
         grep -Fq 'alloca %pgy.array.int' "$artifact" ||
             fail "LLVM artifact omitted Array<Int> local storage"
         grep -Fq 'extractvalue %pgy.scalar.logical.record.value.0' "$artifact" ||
@@ -107,6 +113,7 @@ for backend in c llvm; do
 done
 
 for mutation in logical-record-collection-cross-identity \
+        logical-record-hashmap-field-unsupported \
         logical-record-collection-index-use-order \
         logical-record-collection-index-missing-formal \
         logical-record-collection-index-wrong-formal \

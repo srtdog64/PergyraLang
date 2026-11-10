@@ -17,13 +17,13 @@ func DirectMirScalarCfgCollectionPlanLlvmOperation(
         let root: Int = DirectMirScalarCfgCollectionRootValueRow(
             plan.collections, receiver
         );
-        let llvm_type: String = "i32";
-        let alignment: String = "4";
+        var llvm_type: String = "i32";
+        var alignment: String = "4";
         if plan.collections.operations.input_types[set_row] == "String" {
             llvm_type = "ptr"; alignment = "8";
         }
         let stem: String = Concat("%pgy.op.", ToString(operation));
-        let output: String = Concat("  ", Concat(stem,
+        var output: String = Concat("  ", Concat(stem,
             Concat(".set.ptr = getelementptr inbounds ", llvm_type)));
         output = Concat(output, Concat(", ptr %pgy.array.collection.",
             Concat(ToString(root), Concat(".data, i64 ", ToString(
@@ -56,12 +56,12 @@ func DirectMirScalarCfgCollectionPlanLlvmOperation(
         plan.collections.observations.get_operation_counts[observation];
     let is_int: Bool = plan.collections.observations.kinds[observation] ==
         DirectMirScalarCfgCollectionObservationSumInt();
-    let llvm_type: String = "ptr";
-    let alignment: String = "8";
+    var llvm_type: String = "ptr";
+    var alignment: String = "8";
     if is_int { llvm_type = "i32"; alignment = "4"; }
-    let output: String = "";
-    let accumulator: String = "";
-    let item: Int = 0;
+    var output: String = "";
+    var accumulator: String = "";
+    var item: Int = 0;
     while item < count {
         let stem: String = Concat("%pgy.op.", Concat(ToString(operation),
             Concat(".get.", ToString(item))));

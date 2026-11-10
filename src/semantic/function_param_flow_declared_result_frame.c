@@ -28,8 +28,8 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
         } else if (function_param_flow_receiver_readonly_current(store, call, true) == NULL) return NULL;
     }
     FunctionParamFlowProgramPointIndex *index;
-    if (!function_param_flow_program_point_index_build(store, decl, &index) ||
-        !function_param_flow_index_roots_current(index)) return NULL;
+    if (!function_param_flow_program_point_index_build(store, decl, &index))
+        return NULL;
     size_t arity = ast_func_param_count(decl);
     if (index->param_count != arity) return NULL;
     if (store->validating_current) {
@@ -38,8 +38,11 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
             !fact->analysis_unsupported && fact->private_stores_closed && fact->claims == index->claims &&
             fact->declared_result_type == result_type && fact->input_id == 0 && fact->input_ordinal == SIZE_MAX &&
             fact->origin_count == 1 && fact->origin_words == 1 && fact->destination_count == 1 &&
-            fact->destination_words == 1 && semantic_param_publication_routine_result_current(store->ctx, decl, result_type) &&
-            function_param_flow_backing_rows_current(store, decl) ? fact : NULL;
+            fact->destination_words == 1 &&
+            function_param_flow_backing_effect_facets_current(fact) &&
+            semantic_param_publication_routine_result_current(store->ctx, decl, result_type) &&
+            function_param_flow_declared_result_rows_current(store, decl)
+                ? fact : NULL;
     }
     if (arity != 0 && index->backing_frames == NULL) {
         if (arity > SIZE_MAX / sizeof(*index->backing_frames)) return NULL;
@@ -58,8 +61,11 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
         created->declared_result_type = result_type;
         created->claims = index->claims;
         created->effects = calloc(1, sizeof(*created->effects));
+        created->outward_effects = calloc(1,
+            sizeof(*created->outward_effects));
         created->outputs = calloc(1, sizeof(*created->outputs));
-        if (created->effects == NULL || created->outputs == NULL) {
+        if (created->effects == NULL || created->outward_effects == NULL ||
+            created->outputs == NULL) {
             function_param_flow_fail(store, call, "declared result matrix allocation failed"); return NULL;
         }
         ReturnedBacking seed = {.store = store, .decl = decl, .fact = created};
@@ -72,12 +78,16 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
     FunctionParamFlowBackingFact *fact = index->declared_result;
     FunctionParamFlowControlProjection *projection = index->control_projection;
     if (fact->declared_result_type != result_type || fact->input_id != 0 || fact->input_ordinal != SIZE_MAX ||
-        fact->origin_count != 1 || fact->origin_words != 1 || fact->destination_count != 1 || fact->destination_words != 1)
+        fact->origin_count != 1 || fact->origin_words != 1 ||
+        !function_param_flow_backing_effect_facets_current(fact) ||
+        fact->destination_count != 1 || fact->destination_words != 1)
         return NULL;
     if (fact->building) { if (consumer != NULL) consumer->pending = true; return NULL; }
     if (!function_param_flow_no_store_graph(store, decl)) return NULL;
     fact->private_stores_closed = true;
-    if (fact->epoch != 0 && !function_param_flow_backing_rows_current(store, decl)) return NULL;
+    if (fact->epoch != 0 &&
+        !function_param_flow_declared_result_rows_current(store, decl))
+        return NULL;
     if (fact->epoch == 0 || (fact->pending && fact->evaluation_pass != store->fixed_point_passes + 1)) {
         fact->building = true; fact->complete = true; fact->pending = false;
         fact->evaluation_pass = store->fixed_point_passes + 1;
@@ -98,7 +108,8 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
     }
     if (!fact->complete || fact->pending || fact->analysis_unsupported ||
         !semantic_param_publication_routine_result_current(store->ctx, decl, result_type) ||
-        !function_param_flow_backing_rows_current(store, decl)) return NULL;
+        !function_param_flow_declared_result_rows_current(store, decl))
+        return NULL;
     if (consumer != NULL) {
         ReturnedBacking destination = {.store = store, .decl = decl, .fact = consumer};
         size_t at = backing_node(&destination, call);

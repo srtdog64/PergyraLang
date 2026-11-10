@@ -317,10 +317,10 @@ type_check_special_match_pattern(ASTNode *match_case_node, ASTNode *pat,
                 return false;
             }
             {
-                Type *err_type = type_get_constructed_arg(subj_type, 1);
+                Type *err_type = type_constructed_arg_count(subj_type) == 1
+                    ? TYPE_STRING : type_get_constructed_arg(subj_type, 1);
                 return declare_match_binding(
-                    ctx, match_case_node, args[0], 0, 1,
-                    err_type != NULL ? err_type : TYPE_STRING);
+                    ctx, match_case_node, args[0], 0, 1, err_type);
             }
         }
 

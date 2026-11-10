@@ -47,7 +47,7 @@ func SelfMirDomainRuntimeAssignmentFactsReady(
             ArrayLength(projections.source_path_segment_type_names) {
         return false;
     }
-    let role_row: Int = 0;
+    var role_row: Int = 0;
     while role_row < role_count {
         if (roles.roles[role_row] != "effect-bearer" &&
             roles.roles[role_row] != "relation-source" &&
@@ -59,7 +59,7 @@ func SelfMirDomainRuntimeAssignmentFactsReady(
             roles.field_type_names[role_row] == "" {
             return false;
         }
-        let prior_role: Int = 0;
+        var prior_role: Int = 0;
         while prior_role < role_row {
             if (roles.owner_names[prior_role] == roles.owner_names[role_row] &&
                 roles.roles[prior_role] == roles.roles[role_row]) ||
@@ -72,8 +72,8 @@ func SelfMirDomainRuntimeAssignmentFactsReady(
         }
         role_row = role_row + 1;
     }
-    let segment_cursor: Int = 0;
-    let projection: Int = 0;
+    var segment_cursor: Int = 0;
+    var projection: Int = 0;
     while projection < projection_count {
         let segment_count: Int =
             projections.source_path_segment_counts[projection];
@@ -101,7 +101,7 @@ func SelfMirDomainRuntimeAssignmentFactsReady(
             segment_count <= 0 {
             return false;
         }
-        let segment: Int = 0;
+        var segment: Int = 0;
         while segment < segment_count {
             let row: Int = segment_cursor + segment;
             if row >= ArrayLength(projections.source_path_segment_names) ||
@@ -112,7 +112,7 @@ func SelfMirDomainRuntimeAssignmentFactsReady(
             }
             segment = segment + 1;
         }
-        let prior_projection: Int = 0;
+        var prior_projection: Int = 0;
         while prior_projection < projection {
             if projections.directive_source_syntax_ids[prior_projection] ==
                     projections.directive_source_syntax_ids[projection] &&

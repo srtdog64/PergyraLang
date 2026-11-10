@@ -9,7 +9,7 @@ func DirectMirScalarCfgForEachTypedLlvmCondition(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact, block: Int
 ) -> String {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -30,7 +30,7 @@ func DirectMirScalarCfgForEachTypedLlvmCondition(
         DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
             plan.foreach_elements, fact.loop_syntax_id
         );
-    let aggregate_type: String = ""; let length_index: Int = -1;
+    var aggregate_type: String = ""; var length_index: Int = -1;
     if type_name == CompilerAbiLayoutIntTypeName() {
         let abi: DirectMirArrayIntAbiProjection =
             DirectMirArrayIntAbiProjectionFromCanonicalLayout(
@@ -56,7 +56,7 @@ func DirectMirScalarCfgForEachTypedLlvmCondition(
     let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
         plan.foreach_iterations, found
     );
-    let output: String = Concat("  ", Concat(stem,
+    var output: String = Concat("  ", Concat(stem,
         Concat(".cursor = load i64, ptr %pgy.foreach.", Concat(
             ToString(found), ".cursor, align 8\n  "
         ))));

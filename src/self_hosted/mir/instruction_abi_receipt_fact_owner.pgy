@@ -24,15 +24,15 @@ func SelfMirInstructionAbiReceiptRowsAppend(
     abi_type_names: Array<String>,
     ref declarations: SelfMirDeclarationRows
 ) -> SelfMirInstructionAbiReceiptRows {
-    let kinds: Array<Int> = target.kinds;
-    let declaration_rows: Array<Int> = target.nominal_declaration_rows;
-    let layout_ids: Array<Int> = target.layout_ids;
-    let ready: Bool = target.ready;
-    let instruction_i: Int = 0;
+    var kinds: Array<Int> = target.kinds;
+    var declaration_rows: Array<Int> = target.nominal_declaration_rows;
+    var layout_ids: Array<Int> = target.layout_ids;
+    var ready: Bool = target.ready;
+    var instruction_i: Int = 0;
     while instruction_i < ArrayLength(abi_type_names) {
-        let declaration_row: Int = 0 - 1;
-        let layout_id: Int = 0;
-        let kind: Int = 0;
+        var declaration_row: Int = 0 - 1;
+        var layout_id: Int = 0;
+        var kind: Int = 0;
         let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
             declarations.names, declarations.nominal_kinds,
             abi_type_names, instruction_i

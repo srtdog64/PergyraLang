@@ -1,0 +1,9 @@
+// Stable normalized identities for payload enums and their Option wrapper.
+
+func DirectMirScalarProgramExprPayloadEnumConstructor() -> Int { return 114; }
+func DirectMirScalarProgramExprPayloadEnumMatch() -> Int { return 115; }
+func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }
+func DirectMirScalarProgramExprSomePayloadEnum() -> Int { return 139; }
+func DirectMirScalarProgramExprNonePayloadEnum() -> Int { return 140; }
+func DirectMirScalarProgramExprIsSomePayloadEnum() -> Int { return 141; }
+func DirectMirScalarProgramExprUnwrapOptionPayloadEnum() -> Int { return 142; }

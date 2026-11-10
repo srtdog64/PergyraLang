@@ -11,7 +11,7 @@ func DirectMirScalarProgramToStringExpressionNodeReady(
     let left: Int = facts.node_lefts[node];
     if left < 0 || left >= node { return Some(false); }
     let input: String = facts.node_types[left];
-    let expected: Bool = input == CompilerAbiLayoutIntTypeName() ||
+    var expected: Bool = input == CompilerAbiLayoutIntTypeName() ||
         input == CompilerAbiLayoutLongTypeName();
     if kind == DirectMirScalarProgramExprToStringString() {
         expected = input == CompilerAbiLayoutStringTypeName();

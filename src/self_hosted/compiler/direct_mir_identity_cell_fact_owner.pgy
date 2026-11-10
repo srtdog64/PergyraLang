@@ -28,7 +28,7 @@ struct DirectMirIdentityCellFacts {
 
 func DirectMirIdentityCellFactsDigest(ref fact: DirectMirIdentityCellFacts) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(733L, "compiler-private-noncopy-cell");
+    var hash: Long = DirectMirCfgHashString(733L, "compiler-private-noncopy-cell");
     hash = DirectMirScalarCfgHashStrings(hash, fact.names);
     hash = DirectMirScalarCfgHashInts(hash, fact.declaration_rows);
     hash = DirectMirScalarCfgHashInts(hash, fact.source_syntax_ids);
@@ -60,10 +60,6 @@ func DirectMirIdentityCellNominalKindReady(nominal_kind: String) -> Bool {
         nominal_kind == "zone" || nominal_kind == "world";
 }
 
-func DirectMirIdentityCellFieldTypeReady(type_name: String) -> Bool {
-    return type_name == "Int" || type_name == "Bool" || type_name == "String";
-}
-
 func DirectMirIdentityCellFieldCarriageReady(
     owner_kind: String, field_kind: String, field_type: String,
     target_kind: String
@@ -74,8 +70,9 @@ func DirectMirIdentityCellFieldCarriageReady(
     if owner_kind == "world" {
         return field_kind == "world_zone" && target_kind == "zone";
     }
-    return field_kind == "field" && target_kind == "" &&
-        DirectMirIdentityCellFieldTypeReady(field_type);
+    return field_kind == "field" && field_type != "" &&
+        target_kind != "subject" && target_kind != "zone" &&
+        target_kind != "world";
 }
 
 func DirectMirIdentityCellFactsReady(ref fact: DirectMirIdentityCellFacts) -> Bool {
@@ -87,26 +84,26 @@ func DirectMirIdentityCellFactsReady(ref fact: DirectMirIdentityCellFacts) -> Bo
         count != ArrayLength(fact.field_counts) || fields != ArrayLength(fact.field_types) ||
         fields != ArrayLength(fact.field_source_syntax_ids) ||
         fields != ArrayLength(fact.field_kinds) { return false; }
-    let row: Int = 0; let next_field: Int = 0;
+    var row: Int = 0; var next_field: Int = 0;
     while row < count {
         if fact.names[row] == "" || fact.source_syntax_ids[row] <= 0 || fact.declaration_rows[row] < 0 ||
             !DirectMirIdentityCellNominalKindReady(fact.nominal_kinds[row]) ||
             fact.field_starts[row] != next_field || fact.field_counts[row] <= 0 ||
             next_field + fact.field_counts[row] > fields { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.names[prior] == fact.names[row] || fact.source_syntax_ids[prior] == fact.source_syntax_ids[row] ||
                 fact.declaration_rows[prior] == fact.declaration_rows[row] { return false; }
             prior = prior + 1;
         }
         let end: Int = next_field + fact.field_counts[row];
-        let field: Int = next_field;
+        var field: Int = next_field;
         while field < end {
             if fact.field_names[field] == "" || fact.field_source_syntax_ids[field] <= 0 ||
                 fact.field_source_syntax_ids[field] == fact.source_syntax_ids[row] { return false; }
             let target_row: Int = DirectMirIdentityCellRow(
                 fact, fact.field_types[field]);
-            let target_kind: String = "";
+            var target_kind: String = "";
             if target_row >= 0 {
                 target_kind = fact.nominal_kinds[target_row];
             }
@@ -130,7 +127,7 @@ func DirectMirIdentityCellFactsReady(ref fact: DirectMirIdentityCellFacts) -> Bo
 
 func DirectMirIdentityCellRow(ref fact: DirectMirIdentityCellFacts, type_name: String) -> Int {
     if !fact.valid || type_name == "" { return -1; }
-    let row: Int = 0; let found: Int = -1;
+    var row: Int = 0; var found: Int = -1;
     while row < ArrayLength(fact.names) {
         if fact.names[row] == type_name {
             if found >= 0 { return -1; }
@@ -149,10 +146,10 @@ func DirectMirIdentityCellEnvelopeSyntaxId(
         declarations.kinds[row] != MirDeclarationWireKind(declarations.nominal_kinds[row]) { return 0; }
     let start: Int = declarations.starts[row]; let end: Int = declarations.ends[row];
     let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, json_extent, start, end);
-    let keys: Array<String> = ["kind", "nominal_kind", "name", "source_syntax_id",
+    var keys: Array<String> = ["kind", "nominal_kind", "name", "source_syntax_id",
         "source_module_path", "fields", "methods"];
-    let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
-    let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    var starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    var ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
     if declarations.nominal_kinds[row] == "zone" {
         ArrayPush(keys, "zone_authorities"); ArrayPush(starts, -1); ArrayPush(ends, -1);
     }
@@ -174,7 +171,11 @@ func DirectMirIdentityCellEnvelopeSyntaxId(
     if declarations.nominal_kinds[row] == "zone" {
         let authorities: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, json_extent, starts[7], ends[7]);
         if !DirectMirExactObjectArrayCount(methods, 0) ||
-            !DirectMirExactObjectArrayCount(authorities, 0) { return 0; }
+            !DirectMirExactObjectArrayCount(
+                authorities,
+                declarations.zone_authorities.declaration_counts[row]) {
+            return 0;
+        }
     }
     return ToInt(UnwrapOption(syntax));
 }
@@ -184,7 +185,7 @@ func DirectMirIdentityCellFieldOrdinal(
 ) -> Int {
     let row: Int = DirectMirIdentityCellRow(fact, type_name);
     if row < 0 { return -1; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < fact.field_counts[row] {
         if fact.field_names[fact.field_starts[row] + ordinal] == field_name { return ordinal; }
         ordinal = ordinal + 1;
@@ -203,11 +204,20 @@ func DirectMirIdentityCellFieldType(
 func DirectMirIdentityCellFactsFromDeclarations(
     json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex
 ) -> DirectMirIdentityCellFacts {
-    let result: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsEmpty();
+    var names: Array<String> = [];
+    var declaration_rows: Array<Int> = [];
+    var source_syntax_ids: Array<Int> = [];
+    var nominal_kinds: Array<String> = [];
+    var field_starts: Array<Int> = [];
+    var field_counts: Array<Int> = [];
+    var field_names: Array<String> = [];
+    var field_types: Array<String> = [];
+    var field_source_syntax_ids: Array<Int> = [];
+    var field_kinds: Array<String> = [];
     if !declarations.valid || !declarations.field_identities.valid {
         Die("direct MIR identity cell declaration owner is invalid");
     }
-    let row: Int = 0; let cursor: Int = 0;
+    var row: Int = 0; var cursor: Int = 0;
     let fields: Int = ArrayLength(declarations.field_identities.field_names);
     while row < MirProgramDeclarationIndexCount(declarations) {
         let start: Int = cursor;
@@ -215,8 +225,8 @@ func DirectMirIdentityCellFactsFromDeclarations(
             cursor = cursor + 1;
         }
         let syntax: Int = DirectMirIdentityCellEnvelopeSyntaxId(json, json_extent, declarations, row);
-        let supported: Bool = syntax > 0 && cursor > start;
-        let field: Int = start;
+        var supported: Bool = syntax > 0 && cursor > start;
+        var field: Int = start;
         while field < cursor {
             if !MirProgramDeclarationFieldIdentityPositiveDecimal(
                     declarations.field_identities.field_source_syntax_ids[field]) { supported = false; }
@@ -224,7 +234,7 @@ func DirectMirIdentityCellFactsFromDeclarations(
                 MirProgramDeclarationFieldIdentityDeclarationIndex(
                     declarations.field_identities,
                     declarations.field_identities.field_type_names[field]);
-            let target_kind: String = "";
+            var target_kind: String = "";
             if target_row >= 0 {
                 target_kind = declarations.nominal_kinds[target_row];
             }
@@ -238,24 +248,25 @@ func DirectMirIdentityCellFactsFromDeclarations(
             field = field + 1;
         }
         if supported {
-            ArrayPush(result.names, declarations.names[row]);
-            ArrayPush(result.declaration_rows, row); ArrayPush(result.source_syntax_ids, syntax);
-            ArrayPush(result.nominal_kinds, declarations.nominal_kinds[row]);
-            ArrayPush(result.field_starts, ArrayLength(result.field_names));
-            ArrayPush(result.field_counts, cursor - start);
+            ArrayPush(names, declarations.names[row]);
+            ArrayPush(declaration_rows, row); ArrayPush(source_syntax_ids, syntax);
+            ArrayPush(nominal_kinds, declarations.nominal_kinds[row]);
+            ArrayPush(field_starts, ArrayLength(field_names));
+            ArrayPush(field_counts, cursor - start);
             field = start;
             while field < cursor {
-                ArrayPush(result.field_names, declarations.field_identities.field_names[field]);
-                ArrayPush(result.field_types, declarations.field_identities.field_type_names[field]);
-                ArrayPush(result.field_source_syntax_ids,
+                ArrayPush(field_names, declarations.field_identities.field_names[field]);
+                ArrayPush(field_types, declarations.field_identities.field_type_names[field]);
+                ArrayPush(field_source_syntax_ids,
                     ToInt(declarations.field_identities.field_source_syntax_ids[field]));
-                ArrayPush(result.field_kinds, declarations.field_identities.field_kinds[field]);
+                ArrayPush(field_kinds, declarations.field_identities.field_kinds[field]);
                 field = field + 1;
             }
         }
         row = row + 1;
     }
-    let sealed: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsSeal(result);
+    let sealed: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsSeal(DirectMirIdentityCellFacts(true, 0,
+        names, declaration_rows, source_syntax_ids, nominal_kinds, field_starts, field_counts, field_names, field_types, field_source_syntax_ids, field_kinds));
     if cursor != fields || !DirectMirIdentityCellFactsReady(sealed) {
         return DirectMirIdentityCellFactsInventoryRefused();
     }

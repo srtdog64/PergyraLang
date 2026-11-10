@@ -1,0 +1,9 @@
+func Fresh(text: String) -> String {
+    return Concat(text, "!");
+}
+
+func Main() -> Void {
+    let rows: Array<String> = [Fresh("a"), Fresh("b")];
+    ArrayPush(rows, Fresh("c"));
+    Log(ArrayLength(rows));
+}

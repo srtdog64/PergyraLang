@@ -141,6 +141,9 @@ typedef struct
     char name[128];
 } AbilityVtableSpecEntry;
 
+typedef struct TranspilerDeclHeaderLookupProjection
+    TranspilerDeclHeaderLookupProjection;
+
 /* -----------------------------------------------------------------
  * Transpiler context
  * ----------------------------------------------------------------- */
@@ -162,6 +165,10 @@ typedef struct
     int               indent;       /* current indent level          */
     bool              in_parallel;  /* inside a Parallel block       */
     const MIRProgram *mir;          /* MIR program (required)        */
+    /* Positive rows from the immutable MIR declaration inventory.  This
+     * projection owns no header and never invents a missing declaration. */
+    TranspilerDeclHeaderLookupProjection *decl_header_lookup_projection;
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt;
     const PgyVerifiedProjectionPlanRow *projection_plan;
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan;
     const PgySpawnLanePlan *spawn_lane_plan; /* AIR-carried spawn lane facts */
@@ -412,6 +419,7 @@ TranspileResult *transpile_from_mir_with_projection_plans(
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
     const PgyRegionPlan *region_plan,
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
     const char *output_path);
 TranspileResult *transpile_with_mir(const HIRProgram *hir,
                                     const MIRProgram *mir,

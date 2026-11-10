@@ -30,7 +30,7 @@ func SemanticAstZoneValueCarriageResourceKind(
     let index: Int = UnwrapOption(index_opt);
     if constructors.nominal_kinds[index] == "zone" { return 1; }
     if constructors.nominal_kinds[index] != "world" { return 0; }
-    let field_index: Int = 0;
+    var field_index: Int = 0;
     while field_index < constructors.param_counts[index] {
         let flat_index: Int = constructors.param_starts[index] + field_index;
         if constructors.field_kinds[flat_index] ==
@@ -62,8 +62,8 @@ func SemanticAstZoneValueCarriageFreshIdentity(
         return false;
     }
     let count: Int = SemanticAstExpressionSurfaceCount(expression_surfaces);
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if expression_surfaces.node_ids[middle] < syntax_node_id {

@@ -350,7 +350,7 @@ transpiler_scalar_emit_string(TranspilerScalarOp op,
             free(b);
             return NULL;
         }
-        char *result = strdup_fmt("StringConcat(%s, %s)", a, b);
+        char *result = transpiler_region_concat(ctx, call, a, b);
         free(a); free(b);
         return result;
     }

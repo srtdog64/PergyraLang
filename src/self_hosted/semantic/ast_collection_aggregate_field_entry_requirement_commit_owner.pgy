@@ -1,0 +1,81 @@
+// Commits one exact formal/path obligation into the indexed field-entry rows.
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+
+func SemanticAstCollectionAggregateFieldEntryRequirementCommit(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    signature_row: Int, parameter_count: Int, root_id: Int,
+    ref reversed_path: Array<Int>, function_id: Int, local_id: Int,
+    effect_mask: Int,
+    inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    var ordinal: Int = 0;
+    var found: Int = -1;
+    var mode: Int = 0;
+    while ordinal < parameter_count {
+        let formal: Option<Int> =
+            SemanticAstFunctionParamNodeAt(signatures, signature_row, ordinal);
+        if !IsSome(formal) || UnwrapOption(formal) <= 0 { return false; }
+        if UnwrapOption(formal) == root_id {
+            if found >= 0 { return false; }
+            let declared_mode: Option<Int> =
+                SemanticAstFunctionParamModeAt(signatures, signature_row, ordinal);
+            if !IsSome(declared_mode) { return false; }
+            found = ordinal;
+            mode = UnwrapOption(declared_mode);
+        }
+        ordinal = ordinal + 1;
+    }
+    // A foreign root has no entry obligation.
+    if found < 0 { return true; }
+    if mode < 0 || mode > 3 { return false; }
+    let source_path_count: Int = ArrayLength(reversed_path);
+    let field_id: Int = reversed_path[0];
+    let indexed: Int = SemanticAstCollectionAggregateFieldEntryIndexRow(
+        facts.row_by_local, local_id);
+    if indexed >= 0 {
+        let row: Int = indexed;
+        if row >= ArrayLength(facts.local_ids) ||
+            facts.function_ids[row] != function_id ||
+            facts.local_ids[row] != local_id ||
+            facts.formal_ids[row] != root_id ||
+            facts.formal_ordinals[row] != found ||
+            facts.formal_modes[row] != mode ||
+            facts.field_ids[row] != field_id ||
+            facts.path_counts[row] != source_path_count {
+            return false;
+        }
+        var existing: Int = 0;
+        while existing < source_path_count {
+            if facts.path_field_ids[facts.path_starts[row] + existing] !=
+                    reversed_path[source_path_count - existing - 1] {
+                return false;
+            }
+            existing = existing + 1;
+        }
+        if facts.effect_masks[row] != effect_mask &&
+            facts.effect_masks[row] != 3 {
+            facts.effect_masks[row] = facts.effect_masks[row] + effect_mask;
+        }
+        return true;
+    }
+    let row: Int = ArrayLength(facts.local_ids);
+    ArrayPush(facts.function_ids, function_id);
+    ArrayPush(facts.formal_ids, root_id);
+    ArrayPush(facts.formal_ordinals, found);
+    ArrayPush(facts.formal_modes, mode);
+    ArrayPush(facts.field_ids, field_id);
+    ArrayPush(facts.path_starts, ArrayLength(facts.path_field_ids));
+    ArrayPush(facts.path_counts, source_path_count);
+    var path_entry: Int = 0;
+    while path_entry < source_path_count {
+        ArrayPush(facts.path_field_ids,
+            reversed_path[source_path_count - path_entry - 1]);
+        path_entry = path_entry + 1;
+    }
+    ArrayPush(facts.local_ids, local_id);
+    ArrayPush(facts.effect_masks, effect_mask);
+    var rows: HashMap<String, Int> = facts.row_by_local;
+    MapSet(rows, ToString(local_id), row);
+    facts.row_by_local = rows;
+    return true;
+}

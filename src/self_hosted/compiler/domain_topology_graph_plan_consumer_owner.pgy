@@ -69,7 +69,7 @@ func MirDomainTopologyGraphPlanConsumptionMutationRejected(
     ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
     ref plan: MirDomainTopologyGraphPlan
 ) -> Bool {
-    let mutated_digest: Int = receipt.plan_digest + 1;
+    var mutated_digest: Int = receipt.plan_digest + 1;
     if mutated_digest == 0 { mutated_digest = receipt.plan_digest - 1; }
     let mutated: MirDomainTopologyGraphPlanConsumptionReceipt =
         MirDomainTopologyGraphPlanConsumptionWithDigest(
@@ -83,8 +83,8 @@ func MirDomainTopologyGraphPlanTraceProjection(
     ref plan: MirDomainTopologyGraphPlan,
     line_prefix: String
 ) -> String {
-    let output: String = "";
-    let owner: Int = 0;
+    var output: String = "";
+    var owner: Int = 0;
     while owner < ArrayLength(plan.owner_names) {
         output = Concat(output, line_prefix);
         output = Concat(output, "[domain-topology-plan] owner=");
@@ -102,7 +102,7 @@ func MirDomainTopologyGraphPlanTraceProjection(
         } else {
             output = Concat(output, " acyclic\n");
         }
-        let edge: Int = plan.owner_edge_starts[owner];
+        var edge: Int = plan.owner_edge_starts[owner];
         let edge_end: Int = edge + plan.owner_edge_counts[owner];
         while edge < edge_end {
             let from_node: Int = plan.edge_from_node_indexes[edge];
@@ -132,12 +132,12 @@ func MirDomainTopologyGraphPlanCProjection(
         Die("production C consumer rejected the domain topology graph plan");
     }
     if receipt.node_count == 0 { return ""; }
-    let output: String = MirDomainTopologyGraphPlanTraceProjection(plan, "// ");
+    var output: String = MirDomainTopologyGraphPlanTraceProjection(plan, "// ");
     output = Concat(output,
         "enum { _pgy_mir_domain_topology_plan_digest = ");
     output = Concat(output, ToString(receipt.plan_digest));
     output = Concat(output, " };\n");
-    let owner: Int = 0;
+    var owner: Int = 0;
     while owner < receipt.owner_count {
         output = Concat(output,
             "enum { _pgy_mir_domain_topology_owner_");
@@ -170,12 +170,12 @@ func MirDomainTopologyGraphPlanLlvmProjection(
         Die("production LLVM consumer rejected the domain topology graph plan");
     }
     if receipt.node_count == 0 { return ""; }
-    let output: String = MirDomainTopologyGraphPlanTraceProjection(plan, "; ");
+    var output: String = MirDomainTopologyGraphPlanTraceProjection(plan, "; ");
     output = Concat(output,
         "@_pgy.mir.domain.topology.plan.digest = private constant i64 ");
     output = Concat(output, ToString(receipt.plan_digest));
     output = Concat(output, "\n");
-    let owner: Int = 0;
+    var owner: Int = 0;
     while owner < receipt.owner_count {
         output = Concat(output, "@_pgy.mir.domain.topology.owner.");
         output = Concat(output, ToString(owner));

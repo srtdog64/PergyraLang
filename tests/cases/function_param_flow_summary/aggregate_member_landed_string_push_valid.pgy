@@ -1,0 +1,32 @@
+// A compiler-landed String copy may enter an immutable aggregate field
+// carrier when the exact field is restored and the moved root returns.
+struct Names {
+    values: Array<String>;
+}
+
+struct State {
+    names: Names;
+}
+
+struct Source {
+    title: String;
+}
+
+func Append(state: State, ref source: Source) -> State {
+    var names: Names = state.names;
+    var values: Array<String> = names.values;
+    ArrayPush(values, source.title);
+    names.values = values;
+    state.names = names;
+    return state;
+}
+
+func Main() -> Int {
+    let source: Source = Source(Concat("b", ""));
+    var state: State = State(Names([Concat("a", "")]));
+    state = Append(state, source);
+    Print(state.names.values[1]);
+    Print(source.title);
+    Log(ArrayLength(state.names.values));
+    return 0;
+}

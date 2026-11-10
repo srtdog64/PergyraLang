@@ -1,0 +1,33 @@
+struct CarrierBranchFacts {
+    values: Array<String>;
+}
+
+func CarrierBranchStore(
+    inout values: Array<String>, value: String
+) -> Void {
+    ArrayPushOwnedString(values, value);
+}
+
+func CarrierBranchGrow(
+    facts: CarrierBranchFacts, ref choices: Array<Bool>
+) -> CarrierBranchFacts {
+    let values: Array<String> = facts.values;
+    let index: Int = 0;
+    while index < ArrayLength(choices) {
+        if choices[index] {
+            CarrierBranchStore(values, "left");
+        } else {
+            CarrierBranchStore(values, "right");
+        }
+        index = index + 1;
+    }
+    facts.values = values;
+    return facts;
+}
+
+func Main() -> Int {
+    let choices: Array<Bool> = [true, false];
+    let facts: CarrierBranchFacts = CarrierBranchFacts([]);
+    let updated: CarrierBranchFacts = CarrierBranchGrow(facts, choices);
+    return ArrayLength(updated.values);
+}

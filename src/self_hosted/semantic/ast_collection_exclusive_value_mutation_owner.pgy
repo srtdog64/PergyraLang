@@ -1,69 +1,10 @@
 // Exclusive-value mutation admission: the checks that keep growth to
 // exclusive roots and consumed arguments, at the first fields the growth
 // owner summarizes.
+import "ast_constructor_call_identity_owner.pgy";
 import "ast_collection_exclusive_value_growth_owner.pgy";
 import "ast_collection_focus_recovery_admission_owner.pgy";
 import "ast_collection_exclusive_value_restoration_owner.pgy";
-
-// The statement-form mutation at `syntax_id` targets no member alias, or one
-// whose root may grow in place.
-func SemanticAstCollectionExclusiveStatementRootReady(
-    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
-    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
-    ref assignments: SemanticAstAssignmentFacts, shared_locals: HashMap<String, Int>,
-    mutating: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
-    function_id: Int, syntax_id: Int, ref focus: SemanticAstCollectionFocusRecoveryFacts,
-    copies: HashMap<String, Int>, surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>
-) -> Bool {
-    // Only a reallocating mutation retires the buffer other copies name;
-    // ArraySet and an indexed assignment write in place.
-    let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
-    if !IsSome(indexed) { return true; }
-    let kind: Int = statements.kind_tags[UnwrapOption(indexed)];
-    if kind != TypedAstKindArrayPushStmtTag() && kind != TypedAstKindArrayPopStmtTag() { return true; }
-    let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
-        artifact, locals, inferred_types, surfaces, function_id, syntax_id);
-    if !target.ok || target.row >= ArrayLength(origins) { return true; }
-    if SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id, locals.node_ids[target.row]) { return true; }
-    // A local that shares its buffer grows it under every other name: its
-    // own definition names shared storage, a copy of it made before the
-    // growth (or carried round a loop to it) survives, or a followed copy is
-    // read from here on. A copy made after the growth names the new buffer.
-    if origins[target.row] != SemanticAstCollectionOriginMemberMove() {
-        let key: String = ToString(function_id);
-        let local_key: String = ToString(locals.node_ids[target.row]);
-        if MapHas(copies, Concat("d:", local_key)) || !MapHas(surface_starts, key) ||
-            !MapHas(surface_ends, key) || MapGet(surface_starts, key) < 0 { return false; }
-        let copy_index: Int = 0;
-        while copy_index < SemanticAstCollectionExclusiveCopyCount(copies, Concat("s_n:", local_key)) {
-            let copied_at: Int = MapGet(copies, Concat("s_i:", Concat(local_key, Concat(":", ToString(copy_index)))));
-            if copied_at <= syntax_id ||
-                SemanticAstCollectionExclusiveLoopCarries(artifact, locals.node_ids[target.row], syntax_id, copied_at) {
-                return false;
-            }
-            copy_index = copy_index + 1;
-        }
-        let no_chain: Array<Int> = [];
-        let grown_place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlace(
-            true, false, target.row, locals.node_ids[target.row], 0, no_chain);
-        let no_uses: Array<Int> = [];
-        let no_grown: Array<String> = [];
-        let no_sources: Array<Int> = [];
-        return SemanticAstCollectionExclusiveCopiesUnread(artifact, signatures, locals, inferred_types, surfaces,
-            copies, grown_place, MapGet(surface_starts, key), MapGet(surface_ends, key), function_id, syntax_id,
-            false, 0, no_uses, false, no_grown, no_sources);
-    }
-    // The alias must have consumed its source: no later read sees the old buffer.
-    if MapHas(shared_locals, ToString(locals.node_ids[target.row])) { return false; }
-    return SemanticAstCollectionExclusiveMemberRootReady(signatures, locals, shared_locals, function_id,
-        source_binding_syntax_ids[target.row], SemanticAstCollectionExclusiveAliasField(surfaces, locals,
-            mutating, target.row));
-}
-
-// Whether a member alias of the first field `field` ("*": unknown) of the root
-// binding `root_id` may grow in place: an exclusive local, or a formal that is
-// not ref, whose field shares no storage.
 func SemanticAstCollectionExclusiveMemberRootReady(
     ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
     shared_locals: HashMap<String, Int>, function_id: Int, root_id: Int, field: String
@@ -78,7 +19,6 @@ func SemanticAstCollectionExclusiveMemberRootReady(
     let mode: Int = SemanticAstCollectionExclusiveRootMode(signatures, function_id, root_id);
     return mode == 0 || mode == 1 || mode == 2;
 }
-
 // The argument at `node` is not a member alias, or its root may grow in place.
 func SemanticAstCollectionExclusiveAliasRootReadyAt(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -98,7 +38,6 @@ func SemanticAstCollectionExclusiveAliasRootReadyAt(
         surfaces.function_node_ids[surface_row], source_binding_syntax_ids[binding.row],
         SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, binding.row));
 }
-
 // A root that grows in this routine may not be handed, while it stays live, to
 // a formal whose storage flows into a result or to a constructor: the result
 // would keep the buffer the growth frees.
@@ -115,7 +54,7 @@ func SemanticAstCollectionExclusiveSharingUseReady(
     let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
         artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, edge.argument_node);
     if !place.ok || place.temporary { return true; }
-    let root_id: Int = 0 - place.key;
+    var root_id: Int = 0 - place.key;
     if place.key >= 0 { root_id = locals.node_ids[place.key]; }
     if !MapHas(mutating, Concat("root:", ToString(root_id))) { return true; }
     // Storage the routine never grows is never freed by its growth.
@@ -124,14 +63,11 @@ func SemanticAstCollectionExclusiveSharingUseReady(
         let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
         if IsSome(first) && !MapHas(mutating, Concat(grown_key, UnwrapOption(first))) { return true; }
     }
-    let carried: Bool = false;
-    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
-    if IsSome(target) && UnwrapOption(target) == 0 {
-        // A constructor stores its argument; a builtin call has no target either.
-        let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, edge.call_node);
-        let type_name: String = "";
-        if IsSome(name) { type_name = UnwrapOption(name); }
-        carried = IsSome(SemanticAstNominalConstructorIndexForName(constructors, type_name));
+    var carried: Bool = false;
+    let constructor: Option<Int> = SemanticExpressionGraphNominalConstructorRow(
+        constructors, surfaces.expression_graph, edge.call_node);
+    if IsSome(constructor) {
+        carried = true;
     } else {
         let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
             signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
@@ -140,7 +76,7 @@ func SemanticAstCollectionExclusiveSharingUseReady(
     if !carried { return true; }
     // A copy the fixed point follows into this definition is checked at the
     // growth instead: the alias that grows must outlive every use of it.
-    let holder: Int = 0;
+    var holder: Int = 0;
     let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, syntax_id);
     let written: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
     if IsSome(declared) { holder = locals.node_ids[UnwrapOption(declared)]; }
@@ -187,7 +123,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     if !IsSome(callee_kind) { return false; }
     if UnwrapOption(callee_kind) == AstExpressionNodeLeaf() &&
         (!IsSome(original_name) || UnwrapOption(original_name) == "") { return false; }
-    let source_name: String = "";
+    var source_name: String = "";
     if IsSome(original_name) { source_name = UnwrapOption(original_name); }
     let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
         SemanticExpressionGraphCollectionCallProtocolFromName(source_name);
@@ -232,13 +168,13 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     // The fields the formal grows, when it names them; a sink of a place then
     // needs its last use only for copies of that storage.
     let grown_key: String = Concat("g:", Concat(ToString(formal.syntax_id), ":"));
-    let grown: Array<String> = [];
+    var grown: Array<String> = [];
     // `grown` names texts this column owns, so it lives as long as `grown`.
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     if !MapHas(mutating, Concat(grown_key, "*")) {
         fields = SemanticAstCollectionExclusiveTypeFields(constructors,
             signatures.param_types[signatures.param_starts[formal.signature_row] + formal.ordinal]);
-        let field_index: Int = 0;
+        var field_index: Int = 0;
         while field_index < ArrayLength(fields) {
             if MapHas(mutating, Concat(grown_key, fields[field_index])) { ArrayPush(grown, fields[field_index]); }
             field_index = field_index + 1;
@@ -249,7 +185,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     let whole_grown: Bool = ArrayLength(grown) > 0 && place.ok && !place.temporary && ArrayLength(place.chain) == 0;
     let restricted: Bool = UnwrapOption(mode) != 1 && whole_grown;
     // Formal sources of copies the place holds only outside the grown fields.
-    let ignored: Array<Int> = [];
+    var ignored: Array<Int> = [];
     if whole_grown {
         ignored = SemanticAstCollectionExclusiveUngrownSources(signatures, locals, copies,
             shared_locals, dep_locals, dep_formals, dep_paths, paths, function_id,
@@ -284,7 +220,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     }
     // Only the storage the formal grows must be exclusive.
     if MapHas(mutating, Concat(grown_key, "*")) { return ArrayLength(part.shared_fields) == 0; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(part.shared_fields) {
         if MapHas(mutating, Concat(grown_key, part.shared_fields[index])) { return false; }
         index = index + 1;
@@ -310,7 +246,7 @@ func SemanticAstCollectionExclusiveArgumentBoundary(
             locals.node_ids[binding.row]) && SemanticAstCollectionFocusRecoveryCallTargetReady(artifact, signatures,
                 surfaces.expression_graph, formal_effects, focus, edge, inferred_types[binding.row], end_node) { return ""; }
     // The copies map moves out for the entry check and back before any read.
-    let copies: HashMap<String, Int> = values.copies;
+    var copies: HashMap<String, Int> = values.copies;
     let entry_ready: Bool = SemanticAstCollectionExclusiveSinkEntryReady(artifact, signatures, constructors, locals,
             inferred_types, surfaces, assignments, values.shared_results, values.carrying, values.shared_locals,
             values.dep_locals, values.dep_formals, values.dep_paths, values.paths, values.surface_starts,

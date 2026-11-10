@@ -15,6 +15,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_assignment_emit.h"
+#include "transpiler_expr_core_emit.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_expr_ssa.h"
@@ -41,6 +42,7 @@ static char *
 transpiler_mir_emit_assignment_parts_with_ssa_map(
     ASTNode *target,
     ASTNode *value,
+    AstAssignmentOperation operation,
     const char *expected_type,
     TranspilerCtx *ctx,
     const TranspilerSSANameMap *ssa_map)
@@ -58,7 +60,7 @@ transpiler_mir_emit_assignment_parts_with_ssa_map(
         && strcmp(expected_type, "Unknown") != 0) {
         ctx->expected_type = expected_type;
     }
-    result = transpiler_emit_assignment_expression_parts(ctx, target, value);
+    result = transpiler_emit_assignment_expression_parts(ctx, target, value, operation);
     ctx->expected_type = saved_expected_type;
     ctx->active_ssa_map = saved_active_ssa_map;
     return result;
@@ -165,8 +167,13 @@ transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
 
     expected_type = transpiler_mir_assignment_expected_type_name(
         ctx, mir_routine, inst->expr0, &type_scratch);
+    AstAssignmentOperation operation;
+    if (!mir_assignment_operation(inst, &operation)) {
+        transpiler_mir_reasonf(reason, reason_cap, "MIR assignment opcode is missing or invalid");
+        return false;
+    }
     expr = transpiler_mir_emit_assignment_parts_with_ssa_map(
-        inst->expr0, inst->expr1, expected_type, ctx, ssa_map_out);
+        inst->expr0, inst->expr1, operation, expected_type, ctx, ssa_map_out);
     if (expr == NULL) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,
@@ -206,6 +213,11 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
 
     if (!transpiler_mir_def_is_source_assignment_emit(inst))
         return TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED;
+    AstAssignmentOperation operation;
+    if (!mir_assignment_operation(inst, &operation)) {
+        transpiler_mir_reasonf(reason, reason_cap, "MIR assignment DEF opcode is missing or invalid");
+        return TRANSPILE_MIR_ASSIGNMENT_FAILED;
+    }
     if (target == NULL
         || target->type != AST_IDENTIFIER
         || inst->arg0 == NULL
@@ -315,6 +327,13 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
             }
             field_rhs = emit_expression_with_ssa_map(
                 value, ctx, ssa_map_out);
+            if (operation != AST_ASSIGN_SET) {
+                char *updated = transpiler_sequence_scalar_operation(ctx,
+                    ast_assignment_binary_operator(operation), expected_type,
+                    field_lhs, field_rhs, value);
+                free(field_rhs);
+                field_rhs = updated;
+            }
             ctx->expected_type = saved_expected_type;
         }
         if (field_lhs == NULL || field_rhs == NULL) {
@@ -392,6 +411,14 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
             ctx->expected_type = expected_type;
         }
         rhs = emit_expression_with_ssa_map(value, ctx, ssa_map_out);
+        if (operation != AST_ASSIGN_SET) {
+            char *old = emit_expression_with_ssa_map(target, ctx, ssa_map_out);
+            char *updated = transpiler_sequence_scalar_operation(ctx,
+                ast_assignment_binary_operator(operation), expected_type, old, rhs, value);
+            free(old);
+            free(rhs);
+            rhs = updated;
+        }
         ctx->expected_type = saved_expected_type;
     }
     if (rhs == NULL) {

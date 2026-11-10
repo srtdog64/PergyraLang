@@ -13,7 +13,7 @@ func SelfMirCfgAttachLastDestructure(
         ArrayLength(bindings) == 0 {
         return cfg;
     }
-    let destructure_facts: SelfMirDestructureFactRows =
+    var destructure_facts: SelfMirDestructureFactRows =
         instructions.destructure_facts;
     SelfMirDestructureFactRowsAttach(
         destructure_facts, instruction_index, element_type, bindings
@@ -39,7 +39,9 @@ func SelfMirCfgAttachLastDestructure(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             destructure_facts, instructions.abi_type_names,
-            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
+            instructions.runtime_call_abi,
+            instructions.binding_source_syntax_ids,
+            instructions.collection_mutation_target_graphs
         ), cfg.local_refs
     );
 }

@@ -12,7 +12,7 @@ func CodegenTypeLocalRowValueStart(
     if name_length == 0 {
         return None;
     }
-    let cursor: Int = 0;
+    var cursor: Int = 0;
     while cursor < rows_length {
         let name_offset: Int = SubIndexOfWithLen(
             rows, rows_length, cursor, rows_length - cursor, name
@@ -23,7 +23,7 @@ func CodegenTypeLocalRowValueStart(
         let name_start: Int = cursor + name_offset;
         let kind_start: Int = name_start + name_length + 1;
         let value_start: Int = kind_start + kind_length + 1;
-        let row_start: Bool = name_start == 0;
+        var row_start: Bool = name_start == 0;
         if !row_start && name_start > 0 {
             row_start = SubEqualsWithLen(
                 rows, rows_length, name_start - 1, 1, "|"

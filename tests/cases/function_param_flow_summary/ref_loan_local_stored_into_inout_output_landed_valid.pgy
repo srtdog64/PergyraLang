@@ -1,0 +1,38 @@
+// Lend copies every String borrowed from index at the local Array store.
+// The returned Array is therefore independent before Fill moves it into the
+// caller's inout output.
+struct Index {
+    labels: Array<String>;
+}
+
+struct Out {
+    names: Array<String>;
+}
+
+func Lend(ref index: Index) -> Array<String> {
+    var names: Array<String> = [];
+    var i: Int = 0;
+    while i < ArrayLength(index.labels) {
+        ArrayPush(names, index.labels[i]);
+        i = i + 1;
+    }
+    return names;
+}
+
+func Fill(ref index: Index, inout out: Out) -> Void {
+    let lent: Array<String> = Lend(index);
+    out.names = lent;
+}
+
+func Make(inout o: Out) -> Void {
+    let index: Index = Index([Concat("a", "")]);
+    Fill(index, o);
+}
+
+func Main() -> Int {
+    let none: Array<String> = [];
+    var o: Out = Out(none);
+    Make(o);
+    Log(o.names[0]);
+    return 0;
+}

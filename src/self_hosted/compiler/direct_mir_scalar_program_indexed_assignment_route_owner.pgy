@@ -41,7 +41,7 @@ func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
         DirectMirScalarProgramLocalIndexedAssignmentElementType(
             capture.abi_type_name);
     if source != "AST_ASSIGNMENT" || wire_kind != "def" ||
-        capture.arg1 != "local" || element_type == "" {
+        capture.arg1 != "mutable_local" || element_type == "" {
         return unclaimed;
     }
     let graph: MirExpressionGraphSequence =
@@ -131,7 +131,7 @@ func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
         return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
             true, "local_indexed_predecessor");
     }
-    let occurrences: Int = 0; let use_row: Int = 0;
+    var occurrences: Int = 0; var use_row: Int = 0;
     while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global_row) {
         let use_fact: Option<String> =
             MirRoutineInstructionUseAtGlobal(uses, global_row, use_row);
@@ -148,7 +148,7 @@ func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
         return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
             true, "local_indexed_predecessor_count");
     }
-    let literal: String = "";
+    var literal: String = "";
     if graph.arena.topology.node_kinds[index_root] ==
             AstExpressionNodeIntegerLiteral() {
         literal = graph.arena.node_texts[index_root];
@@ -179,6 +179,7 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory, caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
@@ -199,20 +200,20 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     if !local_fact.valid && !formal.valid {
         return DirectMirScalarProgramIndexedAssignmentRoute(false, true, "", operations, expressions);
     }
-    let target_local: Int = -1;
-    let target_parameter: Int = formal.parameter_ordinal;
-    let element_type: String = formal.element_type;
-    let index_root: Int = formal.index_root;
-    let index_literal: String = formal.index_literal;
-    let index_use_offset: Int = formal.use_prefix_count;
-    let value_use_offset: Int = formal.use_prefix_count;
+    var target_local: Int = -1;
+    var target_parameter: Int = formal.parameter_ordinal;
+    var element_type: String = formal.element_type;
+    var index_root: Int = formal.index_root;
+    var index_literal: String = formal.index_literal;
+    var index_use_offset: Int = formal.use_prefix_count;
+    var value_use_offset: Int = formal.use_prefix_count;
     if local_fact.valid {
         target_local = local_fact.local_row + local_offset; target_parameter = -1;
         element_type = local_fact.element_type; index_root = local_fact.index_root;
         index_literal = local_fact.index_literal;
         index_use_offset = 0;
     }
-    let index_expression: Option<Int> = None;
+    var index_expression: Option<Int> = None;
     if index_literal != "" {
         index_expression = DirectMirScalarCfgProgramAppendIntLiteralExpression(
             expressions, global_row, index_literal);
@@ -220,8 +221,8 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
         index_expression = DirectMirScalarCfgProgramAppendTypedExpressionField(
             expressions, failure, instruction, uses, index, global_row,
             local_instruction, locals, types, wire, local_offset,
-            parameter_types, signature, callables, logical_record,
-            payload_free_enum, referenced_enum, "expr1_graph",
+            parameter_types, signature, callables, routine_instances,
+            caller_ordinal, logical_record, payload_free_enum, referenced_enum, "expr1_graph",
             index_use_offset, false, CompilerAbiLayoutIntTypeName(),
             index_root);
     }
@@ -236,13 +237,13 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
         DirectMirScalarCfgProgramAppendTypedExpression(
             expressions, failure, instruction, uses, index, global_row,
             local_instruction, locals, types, wire, local_offset,
-            parameter_types, signature, callables, logical_record,
-            payload_free_enum, referenced_enum, value_use_offset,
-            element_type);
+            parameter_types, signature, callables, routine_instances,
+            caller_ordinal, logical_record, payload_free_enum, referenced_enum, value_use_offset,
+            element_type, false);
     if !IsSome(value_expression) || !IsSome(index_expression) {
         return DirectMirScalarProgramIndexedAssignmentRoute(true, false, "indexed_assignment_expression", operations, expressions);
     }
-    let kind: Int = DirectMirScalarCfgOpArrayStringSet();
+    var kind: Int = DirectMirScalarCfgOpArrayStringSet();
     if element_type == CompilerAbiLayoutIntTypeName() {
         kind = DirectMirScalarCfgOpArrayIntValueResultSet();
         if local_fact.valid { kind = DirectMirScalarCfgOpLocalArrayIntSet(); }
@@ -252,9 +253,11 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
         return DirectMirScalarProgramIndexedAssignmentRoute(true, false,
             "indexed_assignment_element_type", operations, expressions);
     }
+    let target_member_ordinals: Array<Int> = [];
     operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
         operations, kind, target_local, target_parameter,
-        UnwrapOption(value_expression), UnwrapOption(index_expression));
+        UnwrapOption(value_expression), UnwrapOption(index_expression),
+        target_member_ordinals);
     return DirectMirScalarProgramIndexedAssignmentRoute(true, operations.valid,
         "indexed_assignment_operation", operations, expressions);
 }

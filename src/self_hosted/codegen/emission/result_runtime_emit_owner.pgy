@@ -15,7 +15,7 @@ func EmitResultRuntimeDefinition(
     }
     let payload_c: String = AbiLayoutCValueType(fact.payload_type, env);
     let error_c: String = AbiLayoutCValueType(fact.error_type, env);
-    let block: String = Concat(
+    var block: String = Concat(
             "typedef struct { bool is_ok; union { ", Concat(
                 payload_c, Concat(" ok; ", Concat(
                     error_c, Concat(" err; } value; } ", Concat(

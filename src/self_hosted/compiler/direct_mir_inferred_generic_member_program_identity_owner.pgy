@@ -21,7 +21,7 @@ func DirectMirInferredGenericMemberProgramIdentityDigest(
     ref identity: DirectMirInferredGenericMemberProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(331L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(331L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.generic_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
     hash = DirectMirCfgHashInt(hash, identity.declaration.digest);
@@ -100,8 +100,8 @@ func DirectMirInferredGenericMemberInstructionGraph(
 func DirectMirInferredGenericMemberUniqueRoutineRow(
     ref routines: MirProgramRoutineIndex, name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < MirProgramRoutineIndexCount(routines) {
         if routines.names[row] == name {
             if found >= 0 {

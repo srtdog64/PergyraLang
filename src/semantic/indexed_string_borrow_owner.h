@@ -46,6 +46,11 @@ bool semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
 void semantic_indexed_string_borrow_call_argument(ASTNode *expression,
     ASTNode *call, ASTNode *callee, size_t ordinal, bool constructor,
     SemanticContext *ctx);
+/* A return is a distinct retention boundary, not a call with a missing sink.
+ * Mutable local Strings register that exact boundary with the definition
+ * owner so all reaching replacements are proved before source zero is used. */
+void semantic_indexed_string_borrow_return_value(ASTNode *expression,
+    ASTNode *return_stmt, SemanticContext *ctx);
 /* The String an ArrayPush stores. Where no owner proves that String alive
  * for the receiver, *copy_landing is set instead of a refusal: the push must
  * store an owned copy. Every other refusal is reported as for any argument. */

@@ -32,14 +32,14 @@ struct MirIntentExecutionStringArray {
 func MirIntentExecutionExactObjectFields(
     json: String, json_extent: Int, start: Int, end: Int, expected: Array<String>
 ) -> MirIntentExecutionExactFields {
-    let starts: Array<Int> = [];
-    let ends: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var ends: Array<Int> = [];
     if start < 0 || end <= start + 1 ||
         JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return MirIntentExecutionExactFields(false, starts, ends);
     }
-    let cursor: Int = start + 1;
-    let row: Int = 0;
+    var cursor: Int = start + 1;
+    var row: Int = 0;
     while row < ArrayLength(expected) {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
         if row > 0 {
@@ -153,7 +153,7 @@ func MirIntentExecutionBoolAt(
 func MirIntentExecutionStringArrayAt(
     json: String, json_extent: Int, ref fields: MirIntentExecutionExactFields, row: Int
 ) -> MirIntentExecutionStringArray {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     if !fields.valid || row < 0 || row >= ArrayLength(fields.starts) ||
         row >= ArrayLength(fields.ends) {
         return MirIntentExecutionStringArray(false, values);
@@ -164,8 +164,8 @@ func MirIntentExecutionStringArrayAt(
         JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("[") {
         return MirIntentExecutionStringArray(false, values);
     }
-    let cursor: Int = start + 1;
-    let first: Bool = true;
+    var cursor: Int = start + 1;
+    var first: Bool = true;
     while cursor < end {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
         if cursor < end &&

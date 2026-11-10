@@ -60,7 +60,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy` -- Intent participant/value bindings admitted independently of ordinary JSON formals.
 - `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy` -- Validate carried physical record layout and project field storage policy.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy` -- Ordered C constructor operands and member reads over admitted record layout.
-- `src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy` -- Exact formal identity selects scalar value-result storage for normal copyout.
+- `src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy` -- Exact formal identity selects current value-result storage after copy-in.
 - `src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy` -- Payload enum guard identity and stable scrutinee equivalence for exhaustiveness.
 - `src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy` -- Read oracle JSON diagnostics at the semantic CLI comparison boundary.
 - `src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy` -- Exact length-prefixed ABI receipt identity for persisted parameter projections.
@@ -4089,14 +4089,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   target representation for that logical value carrier. Field ordinals come
   only from the ordered declaration fact, while offsets remain intentionally
   absent because the MIR owns no interoperability layout receipt.
-- `src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy`
-  and
-  `direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy` --
-  backend projections of signature-owned logical-record carriage. A
-  `readonly-ref` is a C const pointer or LLVM pointer plus bounded aggregate
-  load; an already-admitted `owner-handle` is the direct aggregate value in
-  both targets. Neither backend may invent ownership, coerce readonly carriage
-  to by-value, or admit an unaddressable call argument.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_nominal_parameter_projection_owner.pgy`,
+  `direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_nominal_parameter_projection_owner.pgy` --
+  backend projections of signature-owned record and enum carriage. A payload
+  enum or logical-record `readonly-ref` is a C const pointer or LLVM pointer
+  plus bounded aggregate load; a payload-free enum stays a direct scalar.
+  Neither backend may invent ownership, coerce readonly carriage to by-value,
+  or admit an unaddressable call argument.
 - `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_value_result_policy_owner.pgy`,
   `direct_mir_scalar_program_logical_record_value_result_target_owner.pgy`,
   `direct_mir_scalar_program_c_logical_record_value_result_owner.pgy`, and
@@ -4183,14 +4183,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   and ArrayInt C/LLVM owners remain the last consumers. Routine-name branches,
   broad mixed-copyout widening, count-only matching, copied or cross-family
   layouts, and backend MIR rereads are forbidden.
-- `src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy`
-  -- the exact three-parameter owned `Array<Bool>` return signature joining one
-  declaration-keyed indirect readonly-ref logical record with direct Int and
-  Bool values. The signature policy creates no layout fact; the program-wide
-  ArrayBool ABI owner must prove every return instruction carries its sealed
-  layout before C/LLVM emit the aggregate value. Routine/record-name branches,
-  general ArrayBool-return widening, guessed record shapes, copied layouts,
-  and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_array_bool_return_policy_owner.pgy`
+  -- the general owned `Array<Bool>` return family. Parameter rows remain under
+  the callable role owner; this policy creates no parameter-shaped exception.
+  The program ArrayBool ABI owner must prove every return instruction carries
+  its sealed layout before C/LLVM emit the aggregate value. Routine-name
+  branches, borrowed-array escape, guessed or copied layouts, and backend MIR
+  rereads are forbidden.
 - `src/self_hosted/compiler/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy`
   -- the exact single-parameter signature transferring one declaration-keyed
   logical record by `owner-handle` and returning that same record identity.
@@ -4603,12 +4602,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   empty-literal fallback, or backend MIR reread is permitted.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_readonly_string_parameter_owner.pgy`,
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_empty_owner.pgy`
   -- one
-  callable value/carriage/ABI policy, broad typed claimant envelope with its
-  exact failure assessment, and the canonical empty signature projection.
+  callable value/carriage/ABI policy, exact direct borrowed-String parameter
+  row, broad typed claimant envelope with its exact failure assessment, and
+  the canonical empty signature projection.
   Zero-parameter non-entrypoint callables are admitted only for bounded returns
   and C emits an exact `(void)` prototype. Standalone zero-argument call
   expressions stay closed; the populated ArrayInt literal owner admits only

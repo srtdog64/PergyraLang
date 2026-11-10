@@ -154,8 +154,8 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
         );
     }
 
-    let actual_types: Array<String> = [];
-    let i: Int = 0;
+    var actual_types: Array<String> = [];
+    var i: Int = 0;
     while i < actual_count {
         let actual: String = SemanticExpressionGraphScalarTypeName(
             graph, call.argument_nodes[i], constructors, names, types,

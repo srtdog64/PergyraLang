@@ -3,18 +3,18 @@
 // is made where it is bound, so a change through it leaves the source as it
 // was.
 func MapSetCopy(seed: Int) -> Int {
-    let source: HashMap<String, Int> = MapNew();
+    var source: HashMap<String, Int> = MapNew();
     MapSet(source, "k", seed);
-    let copy: HashMap<String, Int> = source;
+    var copy: HashMap<String, Int> = source;
     MapSet(copy, "j", 2);
     MapSet(copy, "k", 7);
     return MapGet(source, "k") * 10 + MapSize(source);
 }
 
 func MapRemoveCopy(seed: Int) -> Bool {
-    let source: HashMap<String, Int> = MapNew();
+    var source: HashMap<String, Int> = MapNew();
     MapSet(source, "k", seed);
-    let copy: HashMap<String, Int> = source;
+    var copy: HashMap<String, Int> = source;
     MapRemove(copy, "k");
     return MapHas(source, "k");
 }

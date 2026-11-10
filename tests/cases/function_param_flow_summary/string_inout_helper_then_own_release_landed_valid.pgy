@@ -9,7 +9,7 @@ func Drain(own out: Array<String>) -> Void {
 }
 
 func Main() -> Int {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     Keep(out, "a");
     Drain(out);
     return 0;

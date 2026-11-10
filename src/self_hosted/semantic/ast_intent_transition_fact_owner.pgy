@@ -91,41 +91,41 @@ func SemanticAstIntentTransitionFactsFromArtifact(
             "typed intent transition inputs are incomplete", artifact.count
         );
     }
-    let intent_starts: Array<Int> = [];
-    let intent_counts: Array<Int> = [];
-    let requireds: Array<Bool> = [];
-    let node_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let predecessor_names: Array<String> = [];
-    let predecessor_node_ids: Array<Int> = [];
-    let predecessor_indices: Array<Int> = [];
-    let outcome_enum_names: Array<String> = [];
-    let outcome_enum_node_ids: Array<Int> = [];
-    let success_node_ids: Array<Int> = [];
-    let success_variant_names: Array<String> = [];
-    let success_variant_indices: Array<Int> = [];
-    let success_payload_names: Array<String> = [];
-    let success_payload_types: Array<String> = [];
-    let failure_node_ids: Array<Int> = [];
-    let failure_variant_names: Array<String> = [];
-    let failure_variant_indices: Array<Int> = [];
-    let failure_payload_names: Array<String> = [];
-    let failure_payload_types: Array<String> = [];
-    let terminal_starts: Array<Int> = [];
-    let terminal_counts: Array<Int> = [];
-    let terminal_roles: Array<String> = [];
-    let terminal_node_ids: Array<Int> = [];
-    let terminal_step_names: Array<String> = [];
-    let terminal_step_node_ids: Array<Int> = [];
-    let terminal_step_indices: Array<Int> = [];
-    let terminal_enum_names: Array<String> = [];
-    let terminal_enum_node_ids: Array<Int> = [];
-    let terminal_variant_names: Array<String> = [];
-    let terminal_variant_indices: Array<Int> = [];
-    let terminal_payload_names: Array<String> = [];
-    let terminal_payload_types: Array<String> = [];
+    var intent_starts: Array<Int> = [];
+    var intent_counts: Array<Int> = [];
+    var requireds: Array<Bool> = [];
+    var node_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var predecessor_names: Array<String> = [];
+    var predecessor_node_ids: Array<Int> = [];
+    var predecessor_indices: Array<Int> = [];
+    var outcome_enum_names: Array<String> = [];
+    var outcome_enum_node_ids: Array<Int> = [];
+    var success_node_ids: Array<Int> = [];
+    var success_variant_names: Array<String> = [];
+    var success_variant_indices: Array<Int> = [];
+    var success_payload_names: Array<String> = [];
+    var success_payload_types: Array<String> = [];
+    var failure_node_ids: Array<Int> = [];
+    var failure_variant_names: Array<String> = [];
+    var failure_variant_indices: Array<Int> = [];
+    var failure_payload_names: Array<String> = [];
+    var failure_payload_types: Array<String> = [];
+    var terminal_starts: Array<Int> = [];
+    var terminal_counts: Array<Int> = [];
+    var terminal_roles: Array<String> = [];
+    var terminal_node_ids: Array<Int> = [];
+    var terminal_step_names: Array<String> = [];
+    var terminal_step_node_ids: Array<Int> = [];
+    var terminal_step_indices: Array<Int> = [];
+    var terminal_enum_names: Array<String> = [];
+    var terminal_enum_node_ids: Array<Int> = [];
+    var terminal_variant_names: Array<String> = [];
+    var terminal_variant_indices: Array<Int> = [];
+    var terminal_payload_names: Array<String> = [];
+    var terminal_payload_types: Array<String> = [];
 
-    let intent_index: Int = 0;
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intent_signatures) {
         let intent_node_id: Int = intent_signatures.intent_node_ids[intent_index];
         let step_start: Int = ArrayLength(node_ids);
@@ -143,8 +143,8 @@ func SemanticAstIntentTransitionFactsFromArtifact(
             );
         }
 
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, intent_node_id, child_index
         );
         while IsSome(child) {
@@ -161,7 +161,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                         "typed intent step header is invalid", artifact.count
                     );
                 }
-                let prior_name: Int = step_start;
+                var prior_name: Int = step_start;
                 while prior_name < ArrayLength(names) {
                     if names[prior_name] == header.name {
                         return SemanticAstIntentTransitionFactsError(
@@ -180,7 +180,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
         }
         let step_count: Int = ArrayLength(node_ids) - step_start;
 
-        let local_step: Int = 0;
+        var local_step: Int = 0;
         while local_step < step_count {
             let step_row: Int = step_start + local_step;
             let step_node_id: Int = node_ids[step_row];
@@ -188,10 +188,10 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                 SemanticAstIntentStepHeaderFromArtifact(
                     artifact, step_node_id
                 );
-            let predecessor_index: Int = -1;
-            let predecessor_node_id: Int = -1;
+            var predecessor_index: Int = -1;
+            var predecessor_node_id: Int = -1;
             if header.predecessor_name != "" {
-                let p: Int = 0;
+                var p: Int = 0;
                 while p < local_step {
                     if names[step_start + p] == header.predecessor_name {
                         if predecessor_index >= 0 {
@@ -220,16 +220,16 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                 );
             }
 
-            let outcome_name: String = "";
-            let on_text: String = "";
-            let success_node_id: Int = -1;
-            let failure_node_id: Int = -1;
-            let success_binding: SemanticAstIntentVariantBindingRow =
+            var outcome_name: String = "";
+            var on_text: String = "";
+            var success_node_id: Int = -1;
+            var failure_node_id: Int = -1;
+            var success_binding: SemanticAstIntentVariantBindingRow =
                 SemanticAstIntentVariantBindingRow(false, "", "");
-            let failure_binding: SemanticAstIntentVariantBindingRow =
+            var failure_binding: SemanticAstIntentVariantBindingRow =
                 SemanticAstIntentVariantBindingRow(false, "", "");
-            let step_child_index: Int = 0;
-            let step_child: Option<Int> = TypedAstArenaChildAt(
+            var step_child_index: Int = 0;
+            var step_child: Option<Int> = TypedAstArenaChildAt(
                 artifact.arena, step_node_id, step_child_index
             );
             while IsSome(step_child) {
@@ -298,14 +298,14 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                     "typed intent step transition is incomplete", artifact.count
                 );
             }
-            let outcome_enum_name: String = "";
-            let outcome_enum_node_id: Int = -1;
-            let success_seal: SemanticAstIntentVariantSeal =
+            var outcome_enum_name: String = "";
+            var outcome_enum_node_id: Int = -1;
+            var success_seal: SemanticAstIntentVariantSeal =
                 SemanticAstIntentVariantSeal(false, -1, -1, "");
-            let failure_seal: SemanticAstIntentVariantSeal =
+            var failure_seal: SemanticAstIntentVariantSeal =
                 SemanticAstIntentVariantSeal(false, -1, -1, "");
             if typed {
-                let call: SemanticAstIntentActionCallFact =
+                var call: SemanticAstIntentActionCallFact =
                     SemanticAstIntentActionCallFromText(
                         signatures, intent_signatures, intent_index, on_text
                     );
@@ -357,7 +357,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
         child = TypedAstArenaChildAt(artifact.arena, intent_node_id, child_index);
         while IsSome(child) {
             let terminal_node_id: Int = UnwrapOption(child);
-            let terminal_role: String = "";
+            var terminal_role: String = "";
             if TypedAstArenaNodeKindIs(
                 artifact.arena, terminal_node_id,
                 TypedAstKindIntentTerminalSuccessTag()
@@ -389,11 +389,11 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                 let expression: String = UnwrapOption(terminal_atom);
                 let result_binding: SemanticAstIntentVariantBindingRow =
                     SemanticAstIntentVariantBindingFromText(expression);
-                let source_step_index: Int = -1;
-                let source_step_node_id: Int = -1;
-                let source_payload_name: String = "";
-                let source_payload_type: String = "";
-                let s: Int = 0;
+                var source_step_index: Int = -1;
+                var source_step_node_id: Int = -1;
+                var source_payload_name: String = "";
+                var source_payload_type: String = "";
+                var s: Int = 0;
                 while s < step_count {
                     let step_row: Int = step_start + s;
                     if names[step_row] == source_step_name {
@@ -428,7 +428,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                         artifact.count
                     );
                 }
-                let duplicate: Int = terminal_start;
+                var duplicate: Int = terminal_start;
                 while duplicate < ArrayLength(terminal_node_ids) {
                     if terminal_roles[duplicate] == terminal_role &&
                         terminal_step_indices[duplicate] == source_step_index {
@@ -466,9 +466,9 @@ func SemanticAstIntentTransitionFactsFromArtifact(
         }
         let terminal_count: Int = ArrayLength(terminal_node_ids) - terminal_start;
         if typed {
-            let success_count: Int = 0;
-            let failure_count: Int = 0;
-            let t: Int = terminal_start;
+            var success_count: Int = 0;
+            var failure_count: Int = 0;
+            var t: Int = terminal_start;
             while t < ArrayLength(terminal_node_ids) {
                 if terminal_roles[t] == "success" { success_count = success_count + 1; }
                 if terminal_roles[t] == "failure" { failure_count = failure_count + 1; }
@@ -481,7 +481,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                     artifact.count
                 );
             }
-            let success_step: Int = -1;
+            var success_step: Int = -1;
             t = terminal_start;
             while t < ArrayLength(terminal_node_ids) {
                 if terminal_roles[t] == "success" {
@@ -489,8 +489,8 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                 }
                 t = t + 1;
             }
-            let has_successor: Bool = false;
-            let s: Int = 0;
+            var has_successor: Bool = false;
+            var s: Int = 0;
             while s < step_count {
                 if predecessor_indices[step_start + s] == success_step {
                     has_successor = true;

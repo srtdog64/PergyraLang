@@ -1,0 +1,24 @@
+// Rejects a call whose formal execution or element-entry proof is unresolved.
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_formal_effect_fixed_point_owner.pgy";
+
+func SemanticAstCollectionFormalExecutionEntryVerdict(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, effect: Int,
+    element_escape_ready: Bool
+) -> SemanticAstCollectionOwnershipVerdict {
+    if (effect == SemanticAstCollectionFormalUnprovedElementUseEffect() &&
+            !element_escape_ready) ||
+        effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
+        var boundary: String = "unproved_formal_execution_context";
+        if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() {
+            boundary = "unproved_formal_element_use_entry";
+        }
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", boundary,
+                "type", "Array<String>"),
+            surfaces.node_ids[surface_row], call_node);
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

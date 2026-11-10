@@ -1,0 +1,43 @@
+// Issues a receipt only after the complete logical-record replay succeeds.
+// The returned fact keeps the same immutable generation; it does not copy or
+// rebuild the owned inventory.
+
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordValidationReceiptFromFact(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    verification_replay: Bool
+) -> DirectMirScalarProgramLogicalRecordValidationReceipt {
+    if !DirectMirScalarProgramLogicalRecordFactReplayReady(fact) {
+        return DirectMirScalarProgramLogicalRecordValidationReceiptEmpty();
+    }
+    return DirectMirScalarProgramLogicalRecordValidationReceipt(
+        true, fact.digest, fact.present,
+        ArrayLength(fact.declaration_rows), ArrayLength(fact.field_names),
+        fact.identity_cells.digest, verification_replay);
+}
+
+func DirectMirScalarProgramLogicalRecordFactForRouteDemand(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    cells: DirectMirIdentityCellFacts,
+    verification_replay: Bool
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactFromAdmitted(
+            admitted, routine_instances, payload_free_enum, cells);
+    let receipt: DirectMirScalarProgramLogicalRecordValidationReceipt =
+        DirectMirScalarProgramLogicalRecordValidationReceiptFromFact(
+            source, verification_replay);
+    if !receipt.admitted {
+        return DirectMirScalarProgramLogicalRecordFactInvalid();
+    }
+    return DirectMirScalarProgramLogicalRecordFact(
+        source.valid, source.digest, source.present, source.declaration_rows,
+        source.names, source.source_syntax_ids, source.field_starts,
+        source.field_counts, source.field_names, source.field_types,
+        source.field_dependency_types, source.field_source_syntax_ids,
+        source.field_payload_free_enums, source.physical,
+        source.identity_cells, receipt);
+}

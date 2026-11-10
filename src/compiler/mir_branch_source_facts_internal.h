@@ -8,5 +8,8 @@ const char *mir_collection_binding_type_name(const MIRRoutine *routine,
 bool mir_collection_binding_move_source_value_matches(
     const MIRRoutine *routine, const MIRInstruction *destination,
     uint32_t source_binding_syntax_id);
+bool mir_collection_member_receiver_path_matches(
+    const MIRRoutine *routine, const ASTNode *receiver,
+    uint32_t leaf_field_syntax_id, uint32_t *root_binding_syntax_id_out);
 
 #endif

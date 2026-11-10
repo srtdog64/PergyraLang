@@ -13,7 +13,7 @@ func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: Str
     if DirectMirScalarProgramArrayTransformKind(kind) {
         let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
         if !abi.ok || left_type != CompilerAbiLayoutArrayIntTypeName() { return None; }
-        let callee: String = CollectionRuntimeCIntSortFn();
+        var callee: String = CollectionRuntimeCIntSortFn();
         if kind == DirectMirScalarProgramExprArrayIntReverse() { callee = CollectionRuntimeCIntReverseFn(); }
         return Some(Concat(callee, Concat("(", Concat(left, ")"))));
     }
@@ -36,8 +36,6 @@ func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: Str
         return Some(Concat(CollectionRuntimeCOwnedStringPushFn(),
             Concat("(&", Concat(left, Concat(", ", Concat(right, ")"))))));
     }
-    if kind == DirectMirScalarProgramExprStringContains() { return Some(Concat(
-        runtime.string_contains.symbol, Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
     if kind == DirectMirScalarProgramExprStringSplit() { return Some(Concat(
         runtime.string_split.symbol, Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
     if kind == DirectMirScalarProgramExprStringJoin() { return Some(Concat(runtime.string_join.symbol,

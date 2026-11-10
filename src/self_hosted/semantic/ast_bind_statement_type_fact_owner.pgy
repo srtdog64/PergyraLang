@@ -36,7 +36,7 @@ func SemanticAstBindVisibleLetScope(
     ref locals: SemanticAstLocalBindingFacts,
     arena: AstArena, function_node: Int, name: String, node_id: Int
 ) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
         if locals.function_node_ids[row] == function_node && locals.names[row] == name &&
             locals.node_ids[row] < node_id &&
@@ -83,7 +83,7 @@ func SemanticAstBindStatementTypeVerdictFor(
         );
     }
     let node_id: Int = statements.node_ids[row];
-    let subject_name: String = "";
+    var subject_name: String = "";
     let subject_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
         expression_surfaces, node_id, AstExpressionLaneValue());
     if IsSome(subject_root) {
@@ -102,14 +102,14 @@ func SemanticAstBindStatementTypeVerdictFor(
             Concat(party_type, Concat(".", slot_name)));
     }
     let role_index: Option<Int> = SemanticAstRoleIndexForName(roles, role_name);
-    let target: Option<String> = None;
+    var target: Option<String> = None;
     if IsSome(role_index) { target = SemanticAstRoleTargetTypeAt(roles, UnwrapOption(role_index)); }
     let subject_type: String = EnvValueLookup(names, types, enum_values, subject_name);
     if subject_name == "" || subject_type == "" {
         return SemanticAstBindSubjectInvalid(subject_name, "not_local", party_binding);
     }
     if !IsSome(target) || UnwrapOption(target) != subject_type {
-        let expected: String = "";
+        var expected: String = "";
         if IsSome(target) { expected = UnwrapOption(target); }
         return SemanticAstBindSubjectInvalid(subject_name, "type",
             Concat(subject_type, Concat(" is not ", expected)));

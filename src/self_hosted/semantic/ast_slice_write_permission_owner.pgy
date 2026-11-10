@@ -1,0 +1,296 @@
+// Writable Slice authority is derived from its backing places. A new local
+// name or a later descriptor assignment cannot manufacture that authority.
+import "ast_member_write_verdict_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "ast_body_flow_calculus_owner.pgy";
+import "ast_expression_builtin_member_call_target_owner.pgy";
+import "ast_callable_receiver_source_parameter_owner.pgy";
+
+func SemanticAstSliceDefinitionReachesUse(
+    artifact: AstTreeArtifact, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    definition: Int, use_node: Int
+) -> Bool {
+    if definition < use_node { return true; }
+    var parent: Option<Int> = TypedAstArenaParentId(artifact.arena, use_node);
+    var remaining: Int = artifact.count;
+    while IsSome(parent) && remaining > 0 {
+        let node: Int = UnwrapOption(parent);
+        let kind: Int = artifact.arena.kinds[node];
+        var repeats: Bool = kind == TypedAstKindWhileStmtTag();
+        if kind == TypedAstKindForStmtTag() {
+            let lower: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+                AstExpressionLaneValue(), AstExpressionNodeIntegerLiteral());
+            let upper: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+                AstExpressionLaneAuxiliary(), AstExpressionNodeIntegerLiteral());
+            repeats = lower == "" || upper == "" ||
+                (ToInt(upper) as Long) - (ToInt(lower) as Long) > 1L;
+        }
+        if repeats && SemanticAstExpressionScopeVisible(artifact.arena, node, definition) {
+            return true;
+        }
+        parent = TypedAstArenaParentId(artifact.arena, node);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+// Query one use over a finite set of (value, occurrence) demands. Rebinding
+// cycles terminate through exact graph identities; their other origins still
+// participate. Lexical scopes bound the lifetime of every local backing place.
+func SemanticAstSliceBackingAdmittedAt(
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts,
+    ref leaf_types: Array<String>, function_id: Int, use_node: Int, value: Int,
+    lifetime_node: Int, require_write: Bool
+) -> Bool {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    var values: Array<Int> = [value];
+    var uses: Array<Int> = [use_node];
+    var seen: HashMap<String, Int> = MapNew();
+    var cursor: Int = 0;
+    var origins: Int = 0;
+    while cursor < ArrayLength(values) {
+        var node: Int = values[cursor];
+        let occurrence: Int = uses[cursor];
+        cursor = cursor + 1;
+        if node < 0 || node >= ArrayLength(graph.arena.topology.node_kinds) { return false; }
+        let key: String = "${node}:${occurrence}";
+        if MapHas(seen, key) { continue; }
+        MapSet(seen, key, 1);
+        let kind: Int = graph.arena.topology.node_kinds[node];
+        if AstExpressionNodeIsCallSpine(kind) {
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node);
+            if !call.ok { return false; }
+            if !SemanticExpressionBuiltinMemberCallTargetReady(
+                    graph, analysis.function_tables, call.call_node) {
+                // A returned descriptor's lifetime is admitted by its call
+                // boundary. It does not establish local write authority.
+                if require_write || lifetime_node < 0 { return false; }
+                origins = origins + 1;
+                continue;
+            }
+            let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, call.callee_node);
+            if !member.ok { return false; }
+            ArrayPush(values, member.receiver_node);
+            ArrayPush(uses, occurrence);
+            continue;
+        }
+        var fields: Array<Int> = [];
+        while node >= 0 && graph.arena.topology.node_kinds[node] == AstExpressionNodeMemberAccess() {
+            let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+            if !member.ok || member.receiver_node < 0 || member.receiver_node >= node { return false; }
+            ArrayPush(fields, member.member_node);
+            node = member.receiver_node;
+        }
+        if node < 0 || graph.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() ||
+            node >= ArrayLength(leaf_types) { return false; }
+        var type_name: String = Concat("", leaf_types[node]);
+        if type_name == "" || type_name == "Unknown" { return false; }
+        let local_binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, analysis.local_bindings, initializers.inferred_type_names,
+            function_id, occurrence, graph, node);
+        var mode: String = "";
+        if local_binding.ok {
+            let write_mode: Option<Int> = TypedAstArenaLocalWriteMode(artifact.arena, local_binding.declaration_node_id);
+            if !IsSome(write_mode) { return false; }
+            if UnwrapOption(write_mode) == 1 { mode = "mutable_local"; }
+            else { mode = "immutable_local"; }
+            if lifetime_node < 0 || !SemanticAstExpressionScopeVisible(artifact.arena,
+                    analysis.local_bindings.scope_node_ids[local_binding.row], lifetime_node) { return false; }
+        } else {
+            let formal: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, node);
+            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function_id);
+            if !formal.ok || formal.kind != SemanticExpressionBindingFormalParameter() ||
+                !IsSome(signature) || !formal.has_ordinal { return false; }
+            let row: Int = UnwrapOption(signature);
+            if formal.ordinal >= analysis.signatures.param_counts[row] { return false; }
+            let parameter: Int = analysis.signatures.param_starts[row] + formal.ordinal;
+            if analysis.signatures.param_node_ids[parameter] != formal.syntax_id { return false; }
+            let parameter_mode: Int = analysis.signatures.param_modes[parameter];
+            if parameter_mode == 3 && (require_write || lifetime_node < 0) { return false; }
+            if require_write && IsSome(SemanticSliceElementType(type_name)) && parameter_mode != 1 && parameter_mode != 2 { return false; }
+            mode = "default_param";
+        }
+        let canonical: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+        let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, canonical.nominal_base_name);
+        let identity: Bool = IsSome(nominal) && ArrayLength(fields) > 0 &&
+            analysis.constructors.nominal_kinds[UnwrapOption(nominal)] == "subject";
+        if require_write && mode == "immutable_local" && !identity { return false; }
+        var field: Int = ArrayLength(fields) - 1;
+        while field >= 0 {
+            let name: String = graph.arena.node_texts[fields[field]];
+            let permission: SemanticDiagnosticMessageFact = SemanticAstNominalFieldWriteVerdict(
+                analysis.constructors, type_name, name, mode);
+            if require_write && permission.code != "" { return false; }
+            let receiver: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+            let next: Option<String> = SemanticAstNominalFieldType(analysis.constructors, receiver.nominal_base_name, name);
+            if !IsSome(next) { return false; }
+            type_name = Concat("", UnwrapOption(next));
+            field = field - 1;
+        }
+        if IsSome(SemanticArrayElementType(type_name)) {
+            origins = origins + 1;
+            continue;
+        }
+        if !IsSome(SemanticSliceElementType(type_name)) { return false; }
+        if ArrayLength(fields) != 0 {
+            if require_write || lifetime_node < 0 { return false; }
+            origins = origins + 1;
+            continue;
+        }
+        if !local_binding.ok {
+            origins = origins + 1;
+            continue;
+        }
+        let birth: Option<Int> = SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces,
+            local_binding.declaration_node_id, AstExpressionLaneValue());
+        if !IsSome(birth) { return false; }
+        ArrayPush(values, UnwrapOption(birth));
+        ArrayPush(uses, local_binding.declaration_node_id);
+        var assignment: Int = 0;
+        while assignment < ArrayLength(analysis.assignments.node_ids) {
+            let definition: Int = analysis.assignments.node_ids[assignment];
+            if analysis.assignments.function_node_ids[assignment] == function_id &&
+                SemanticAstSliceDefinitionReachesUse(artifact, analysis.expression_surfaces, definition, occurrence) {
+                let target: Option<Int> = SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces, definition, AstExpressionLaneAtom());
+                if !IsSome(target) { return false; }
+                let destination: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, analysis.local_bindings, initializers.inferred_type_names,
+                    function_id, definition, graph, UnwrapOption(target));
+                if destination.ok && destination.declaration_node_id == local_binding.declaration_node_id &&
+                    destination.binding_index == local_binding.binding_index {
+                    let rhs: Option<Int> = SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces, definition, AstExpressionLaneValue());
+                    if !IsSome(rhs) { return false; }
+                    ArrayPush(values, UnwrapOption(rhs));
+                    ArrayPush(uses, definition);
+                }
+            }
+            assignment = assignment + 1;
+        }
+    }
+    return origins > 0;
+}
+
+func SemanticAstSliceReceiverType(
+    ref graph: SemanticExpressionGraphFacts, ref leaf_types: Array<String>,
+    ref constructors: SemanticAstNominalConstructorFacts, node: Int
+) -> String {
+    if node < 0 || node >= ArrayLength(leaf_types) { return "Unknown"; }
+    if leaf_types[node] != "" && leaf_types[node] != "Unknown" {
+        return Concat("", leaf_types[node]);
+    }
+    let kind: Int = graph.arena.topology.node_kinds[node];
+    if kind == AstExpressionNodeMemberAccess() {
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+        if !member.ok || member.receiver_node < 0 || member.receiver_node >= node { return "Unknown"; }
+        let receiver: String = SemanticAstSliceReceiverType(graph, leaf_types, constructors, member.receiver_node);
+        let canonical: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(receiver);
+        let field: Option<String> = SemanticAstNominalFieldType(constructors, canonical.nominal_base_name,
+            graph.arena.node_texts[member.member_node]);
+        if IsSome(field) { return Concat("", UnwrapOption(field)); }
+    }
+    if kind == AstExpressionNodeIndex() {
+        let child: Int = graph.arena.topology.left_children[node];
+        if child < 0 || child >= node { return "Unknown"; }
+        let receiver: String = SemanticAstSliceReceiverType(graph, leaf_types, constructors, child);
+        var element: Option<String> = SemanticArrayElementType(receiver);
+        if !IsSome(element) { element = SemanticSliceElementType(receiver); }
+        if IsSome(element) { return Concat("", UnwrapOption(element)); }
+    }
+    return "Unknown";
+}
+
+func SemanticAstSliceWritePermissionVerdict(
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref leaf_types: Array<String>,
+    ref call_roots: SemanticCallSpineRoots
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    var surface: Int = 0;
+    while surface < ArrayLength(analysis.expression_surfaces.node_ids) {
+        let syntax: Int = analysis.expression_surfaces.node_ids[surface];
+        let function_id: Int = analysis.expression_surfaces.function_node_ids[surface];
+        if TypedAstArenaNodeKindIs(artifact.arena, syntax, TypedAstKindAssignStmtTag()) {
+            let target: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, syntax, AstExpressionLaneAtom());
+            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, syntax, AstExpressionLaneValue());
+            if !IsSome(target) || !IsSome(value) {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid", "Slice assignment graph is missing", syntax);
+            }
+            if IsSome(SemanticSliceElementType(SemanticAstSliceReceiverType(
+                    graph, leaf_types, analysis.constructors, UnwrapOption(target)))) {
+                let destination: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, analysis.local_bindings, initializers.inferred_type_names,
+                    function_id, syntax, graph, UnwrapOption(target));
+                var lifetime_node: Int = -1;
+                if destination.ok { lifetime_node = destination.declaration_node_id; }
+                if !SemanticAstSliceBackingAdmittedAt(artifact, analysis, initializers,
+                        leaf_types, function_id, syntax, UnwrapOption(value), lifetime_node, false) {
+                    return SemanticAstBodyVerdictError("borrow_boundary_escape",
+                        "Slice backing scope must outlive the view binding and its borrowed call boundary", syntax);
+                }
+            }
+        }
+        var lane: Int = 0;
+        while lane < 3 {
+            let root: Option<Int> = SemanticExpressionGraphRootAt(graph, surface, lane);
+            if IsSome(root) {
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, UnwrapOption(root));
+                if !IsSome(start) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Slice expression partition is missing", syntax); }
+                var node: Int = UnwrapOption(start);
+                while node <= UnwrapOption(root) {
+                    var writes: Array<Int> = [];
+                    if node == UnwrapOption(root) && lane == AstExpressionLaneAtom() &&
+                        TypedAstArenaNodeKindIs(artifact.arena, syntax, TypedAstKindAssignStmtTag()) &&
+                        graph.arena.topology.node_kinds[node] == AstExpressionNodeIndex() {
+                        ArrayPush(writes, graph.arena.topology.left_children[node]);
+                    }
+                    if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+                        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, call_roots.root_nodes[node]);
+                        if !call.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Slice call spine is missing", syntax); }
+                        let name: String = graph.arena.call_target_names[node];
+                        let target_id: Int = graph.arena.identities.call_target_syntax_ids[node];
+                        if target_id == 0 && graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() &&
+                            SemanticCollectionMutatorName(name) && ArrayLength(call.argument_nodes) > 0 {
+                            ArrayPush(writes, call.argument_nodes[0]);
+                        } else if target_id > 0 {
+                            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, target_id);
+                            if IsSome(signature) {
+                                let row: Int = UnwrapOption(signature);
+                                let source_offset: Option<Int> = SemanticAstFunctionReceiverSourceParameterOffsetAt(analysis.signatures, row);
+                                if !IsSome(source_offset) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Slice formal mapping is missing", syntax); }
+                                let offset: Int = UnwrapOption(source_offset);
+                                if analysis.signatures.param_counts[row] - offset != ArrayLength(call.argument_nodes) {
+                                    return SemanticAstBodyVerdictError("ast_artifact_invalid", "Slice formal arity is stale", syntax);
+                                }
+                                var argument: Int = 0;
+                                while argument < ArrayLength(call.argument_nodes) {
+                                    if analysis.signatures.param_modes[analysis.signatures.param_starts[row] + offset + argument] == 1 {
+                                        ArrayPush(writes, call.argument_nodes[argument]);
+                                    }
+                                    argument = argument + 1;
+                                }
+                            }
+                        }
+                    }
+                    var write: Int = 0;
+                    while write < ArrayLength(writes) {
+                        let receiver: Int = writes[write];
+                        let type_name: String = SemanticAstSliceReceiverType(
+                            graph, leaf_types, analysis.constructors, receiver);
+                        if IsSome(SemanticSliceElementType(type_name)) &&
+                            !SemanticAstSliceBackingAdmittedAt(artifact, analysis, initializers, leaf_types, function_id, syntax, receiver, syntax, true) {
+                            return SemanticAstBodyVerdictError("immutable_binding_write", "Slice write requires a proved writable backing place", syntax);
+                        }
+                        write = write + 1;
+                    }
+                    node = node + 1;
+                }
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

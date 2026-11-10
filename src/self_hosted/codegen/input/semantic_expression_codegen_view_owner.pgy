@@ -5,22 +5,30 @@ import "../text/text_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func CodegenSemanticExpressionGraphOrDie(
-    facts: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstExpressionSurfaceFacts,
     node_id: Int,
     lane: Int
-) -> SemanticExpressionGraphView {
-    let graph: SemanticExpressionGraphView =
-        SemanticAstExpressionGraphForNode(
-            facts, node_id, lane
-    );
-    if !graph.ok {
+) -> Int {
+    let surface_index: Option<Int> =
+        SemanticAstExpressionSurfaceIndexForNode(facts, node_id);
+    if !IsSome(surface_index) {
         Die(Concat(
             "self-host codegen requires a semantic expression graph: node=",
             Concat(ToString(node_id), Concat(" lane=", ToString(lane)))
         ));
     }
+    let root: Option<Int> = SemanticExpressionGraphRootAt(
+        facts.expression_graph, UnwrapOption(surface_index), lane
+    );
+    if !IsSome(root) {
+        Die(Concat(
+            "self-host codegen requires a semantic expression graph: node=",
+            Concat(ToString(node_id), Concat(" lane=", ToString(lane)))
+        ));
+    }
+    let root_id: Int = UnwrapOption(root);
     let graph_text: Option<String> = SemanticExpressionGraphNodeText(
-        graph.graph, graph.root_id
+        facts.expression_graph, root_id
     );
     let shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionShapeForNode(
@@ -30,27 +38,28 @@ func CodegenSemanticExpressionGraphOrDie(
         UnwrapOption(graph_text) != shape.normalized_text {
         Die("semantic expression graph root does not match its surface row");
     }
-    return graph;
+    return root_id;
 }
 
 func CodegenSemanticExpressionGraphIsTry(
-    view: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> Bool {
-    if !view.ok { return false; }
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        view.graph, view.root_id
+        graph, root_id
     );
     return IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeTry();
 }
 
 func CodegenSemanticTryOperandNodeOrDie(
-    view: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> Int {
-    if !CodegenSemanticExpressionGraphIsTry(view) {
+    if !CodegenSemanticExpressionGraphIsTry(graph, root_id) {
         Die("self-host codegen requires a semantic try-expression graph");
     }
     let operand: Option<Int> = SemanticExpressionGraphLeftChild(
-        view.graph, view.root_id
+        graph, root_id
     );
     if !IsSome(operand) {
         Die("semantic try-expression operand edge is missing");

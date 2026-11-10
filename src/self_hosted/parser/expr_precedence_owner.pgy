@@ -10,7 +10,7 @@ func ParseUnaryFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     // Native reads `reflect X` as a compile-time projection; not covered yet.
     if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordReflect) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
     if ParserCharAtWithin(content, content_extent, i) == "!" && ParserCharAtWithin(content, content_extent, i + 1) != "=" {
@@ -28,7 +28,7 @@ func ParseUnaryFact(
         // native parse_unary. Any other magnitude stays a negation.
         let magnitude_start: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if IsDigit(ParserCharAtWithin(content, content_extent, magnitude_start)) {
-            let magnitude_cursor: Array<Int> = [magnitude_start];
+            var magnitude_cursor: Array<Int> = [magnitude_start];
             let magnitude: String =
                 ReadNumber(content, magnitude_start, magnitude_cursor);
             let magnitude_end: Int = magnitude_cursor[0];
@@ -86,11 +86,11 @@ func ParseCastFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseUnaryFact(
+    var left: ParserExpressionFact = ParseUnaryFact(
         content, content_extent, start, cursor_out
     );
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -130,9 +130,9 @@ func ParseMulFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseCastFact(content, content_extent, start, cursor_out);
+    var left: ParserExpressionFact = ParseCastFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -145,7 +145,7 @@ func ParseMulFact(
         let right: ParserExpressionFact = ParseCastFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
-        let kind: Int = AstExpressionNodeMultiply();
+        var kind: Int = AstExpressionNodeMultiply();
         if op == "/" { kind = AstExpressionNodeDivide(); }
         else if op == "%" { kind = AstExpressionNodeModulo(); }
         let text: String = Concat(
@@ -163,9 +163,9 @@ func ParseAdditiveFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseMulFact(content, content_extent, start, cursor_out);
+    var left: ParserExpressionFact = ParseMulFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -178,7 +178,7 @@ func ParseAdditiveFact(
         let right: ParserExpressionFact = ParseMulFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
-        let kind: Int = AstExpressionNodeAdd();
+        var kind: Int = AstExpressionNodeAdd();
         if op == "-" { kind = AstExpressionNodeSubtract(); }
         let text: String = Concat(
             "(", Concat(left.text, Concat(" ", Concat(
@@ -195,9 +195,9 @@ func ParsePipeFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseAdditiveFact(content, content_extent, start, cursor_out);
+    var left: ParserExpressionFact = ParseAdditiveFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -211,8 +211,8 @@ func ParsePipeFact(
         i = cursor_out[0];
         if fn_name == "" { return ParserExpressionInvalidAt(i, "expected_token"); }
         let after_fn: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        let combined_args: String = left.text;
-        let call: ParserExpressionFact = ParserExpressionCall(
+        var combined_args: String = left.text;
+        var call: ParserExpressionFact = ParserExpressionCall(
             Concat(fn_name, "()"), ParserExpressionLeaf(fn_name)
         );
         if !call.ok { return call; }
@@ -263,15 +263,15 @@ func ParseComparisonFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParsePipeFact(content, content_extent, start, cursor_out);
+    var left: ParserExpressionFact = ParsePipeFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         let c0: String = ParserCharAtWithin(content, content_extent, i);
         let c1: String = ParserCharAtWithin(content, content_extent, i + 1);
-        let op: String = "";
+        var op: String = "";
         if c0 == "=" && c1 == "=" { op = "=="; }
         else if c0 == "!" && c1 == "=" { op = "!="; }
         else if c0 == "<" && c1 == "=" { op = "<="; }
@@ -325,9 +325,9 @@ func ParseLogicalAndFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseComparisonFact(content, content_extent, start, cursor_out);
+    var left: ParserExpressionFact = ParseComparisonFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -354,9 +354,9 @@ func ParseLogicalOrFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseLogicalAndFact(content, content_extent, start, cursor_out);
+    var left: ParserExpressionFact = ParseLogicalAndFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -383,11 +383,11 @@ func ParseCoalesceFact(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseLogicalOrFact(
+    var left: ParserExpressionFact = ParseLogicalOrFact(
         content, content_extent, start, cursor_out
     );
     if !left.ok { return left; }
-    let i: Int = cursor_out[0];
+    var i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);

@@ -36,6 +36,21 @@ elif mutation == "record-physical-abi":
     declaration = next(row for row in bad["decls"] if row["name"] == "ProbeFact")
     declaration["abi_layout_required"] = True
     assert declaration["abi_layout_id"] == 0 and declaration["abi_layout"] is None
+elif mutation.startswith("parameter-"):
+    routine = next(row for row in bad["routines"] if row["name"] == "ProbeOptionPairReady")
+    parameter = routine["params"][0]
+    if mutation == "parameter-carriage":
+        parameter["carriage"] = "readonly-ref"
+    elif mutation == "parameter-resource":
+        parameter["resource"] = "owned"
+    elif mutation == "parameter-pass":
+        parameter["pass"] = "indirect"
+    elif mutation == "parameter-physical-abi":
+        parameter["abi_layout_required"] = True
+    elif mutation == "parameter-unknown-payload":
+        parameter["type"] = parameter["abi_type_name"] = "Option<Unknown>"
+    else:
+        raise SystemExit(f"unknown mutation: {mutation}")
 else:
     raise SystemExit(f"unknown mutation: {mutation}")
 

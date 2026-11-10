@@ -76,7 +76,7 @@ func SemanticAstCollectionMemberCaptureSiteForNode(
     let statement: Int = UnwrapOption(statement_fact);
     let lane: Int = slot % 3;
     let destructure: Bool = statement == TypedAstKindDestructureStmtTag();
-    let store: Bool = lane == AstExpressionLaneValue() &&
+    var store: Bool = lane == AstExpressionLaneValue() &&
         (statement == TypedAstKindLetStmtTag() || statement == TypedAstKindAssignStmtTag() ||
          statement == TypedAstKindArrayPushStmtTag() || destructure);
     store = store || (lane == AstExpressionLaneAuxiliary() && statement == TypedAstKindArraySetStmtTag()) ||

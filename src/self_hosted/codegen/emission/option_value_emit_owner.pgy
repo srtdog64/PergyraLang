@@ -13,13 +13,11 @@ func EmitOptionExprFactForType(
     expression: String,
     option_type: String,
     env: CodegenTypeEnv,
-    view: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> OptionExprEmissionFact {
-    if !view.ok {
-        Die("semantic Option graph is missing");
-    }
     let root_text: Option<String> = SemanticExpressionGraphNodeText(
-        view.graph, view.root_id
+        graph, root_id
     );
     if !IsSome(root_text) ||
         UnwrapOption(root_text) != SemanticStripOuterParens(expression) {
@@ -28,7 +26,7 @@ func EmitOptionExprFactForType(
 
     return OptionExprEmissionFact(
         RewriteSemanticExpectedValue(
-            view.graph, view.root_id, option_type, env
+            graph, root_id, option_type, env
         )
     );
 }

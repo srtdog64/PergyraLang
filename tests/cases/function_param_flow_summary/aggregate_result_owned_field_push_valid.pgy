@@ -1,0 +1,21 @@
+// A field moved from a fresh aggregate result keeps the constructor's exact
+// owned-element receipt. The later owned push may therefore retire that field.
+struct Rows {
+    names: Array<String>;
+}
+
+func MakeRows() -> Rows {
+    let names: Array<String> = [Concat("a", "")];
+    return Rows(names);
+}
+
+func Append() -> Void {
+    let rows: Rows = MakeRows();
+    var names: Array<String> = rows.names;
+    ArrayPush(names, Concat("b", ""));
+}
+
+func Main() -> Int {
+    Append();
+    return 0;
+}

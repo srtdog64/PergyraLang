@@ -65,16 +65,16 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(artifact: AstTreeArtif
     initializer_types: SemanticAstInitializerTypeFacts, assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts, ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     mutable_borrow_parameter_node_ids: Array<Int>) -> SemanticAstZoneValueCarriageVerdict {
-    let fresh_local_node_ids: Array<Int> = [];
-    let resource_path_starts: Array<Int> = [];
-    let resource_path_counts: Array<Int> = [];
-    let resource_field_paths: Array<String> = [];
+    var fresh_local_node_ids: Array<Int> = [];
+    var resource_path_starts: Array<Int> = [];
+    var resource_path_counts: Array<Int> = [];
+    var resource_field_paths: Array<String> = [];
     if !SemanticAstZoneValueCarriageFactsReady(artifact, constructors, locals, initializer_types, assignments,
         assignment_types, expression_surfaces) {
         return SemanticAstZoneValueCarriageVerdictError("ast_artifact_invalid", SemanticError1(
                 "ast_artifact_invalid", "owner", "SemanticAstZoneValueCarriageVerdict"), -1);
     }
-    let local_index: Int = 0;
+    var local_index: Int = 0;
     while local_index < SemanticAstLocalBindingCount(locals) {
         if initializer_types.verified[local_index] == 1 {
             let type_name: String = initializer_types.inferred_type_names[local_index];
@@ -101,7 +101,7 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(artifact: AstTreeArtif
                     }
                     let constructor_index: Int = UnwrapOption(constructor_opt);
                     let path_start: Int = ArrayLength(resource_field_paths);
-                    let field_index: Int = 0;
+                    var field_index: Int = 0;
                     while field_index <
                         constructors.param_counts[constructor_index] {
                         let flat_index: Int = constructors.param_starts[constructor_index] +
@@ -123,7 +123,7 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(artifact: AstTreeArtif
         }
         local_index = local_index + 1;
     }
-    let assignment_index: Int = 0;
+    var assignment_index: Int = 0;
     while assignment_index < SemanticAstAssignmentCount(assignments) {
         if assignment_types.verified[assignment_index] == 1 {
             let target_type: String = assignment_types.target_type_names[assignment_index];
@@ -149,11 +149,11 @@ func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalCon
         !SemanticExpressionGraphFactsReady(graph, ArrayLength(graph.roots)) {
         return Some("world-zone use requires complete admitted owner facts");
     }
-    let has_world_zones: Bool = false;
-    let owner: Int = 0;
+    var has_world_zones: Bool = false;
+    var owner: Int = 0;
     while owner < SemanticAstNominalConstructorCount(constructors) {
         if constructors.nominal_kinds[owner] == "world" {
-            let field: Int = constructors.param_starts[owner];
+            var field: Int = constructors.param_starts[owner];
             let end: Int = field + constructors.param_counts[owner];
             while field < end {
                 if constructors.field_kinds[field] == NominalFieldKindWorldZone() { has_world_zones = true; }
@@ -170,21 +170,21 @@ func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalCon
     }
     let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
     if !call_roots.ok { return Some("world-zone call spine is incomplete"); }
-    let i: Int = 0;
+    var i: Int = 0;
     // Each node carries the nominal declaration its value names (-1: none).
     // The type text is only ever used to find that declaration, so the
     // borrowed leaf type is resolved in place instead of being stored.
-    let value_decls: Array<Int> = [];
-    let world_field_ids: Array<Int> = [];
-    let world_field_names: Array<String> = [];
-    let node: Int = 0;
+    var value_decls: Array<Int> = [];
+    var world_field_ids: Array<Int> = [];
+    var world_field_names: Array<String> = [];
+    var node: Int = 0;
     while node < count {
         let kind: Int = graph.arena.topology.node_kinds[node];
         let left: Int = graph.arena.topology.left_children[node];
         let right: Int = graph.arena.topology.right_children[node];
-        let value_decl: Int = -1;
-        let world_field_id: Int = 0;
-        let world_field_name: String = "";
+        var value_decl: Int = -1;
+        var world_field_id: Int = 0;
+        var world_field_name: String = "";
         if kind == AstExpressionNodeLeaf() {
             let leaf_declaration: Option<Int> =
                 SemanticAstNominalConstructorIndexForNameAt(constructors, leaf_type_names, node);

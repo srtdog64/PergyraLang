@@ -17,7 +17,7 @@ func Same(inner: Inner) -> Inner {
 
 func Grow(arena: Arena) -> Int {
     let inner: Inner = arena.inner;
-    let kept: Inner = Same(inner);
+    var kept: Inner = Same(inner);
     ArrayPush(kept.ids, 7);
     ArrayPush(kept.ids, 8);
     return ArrayLength(kept.ids);

@@ -15,7 +15,7 @@ func NameAt(arena: Arena, index: Int) -> Option<String> {
 
 func Collect(arena: Arena) -> Int {
     let name: Option<String> = NameAt(arena, 0);
-    let text: String = "";
+    var text: String = "";
     if IsSome(name) {
         text = UnwrapOption(name);
     }

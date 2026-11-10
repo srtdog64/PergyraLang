@@ -21,7 +21,7 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
         if ArrayLength(operands) != 3 || facts.node_lefts[node] != -1 ||
             facts.node_rights[node] != -1 || facts.node_types[node] !=
                 CompilerAbiLayoutStringTypeName() { return Some(false); }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < 3 {
             if operands[ordinal] < 0 || operands[ordinal] >= node ||
                 facts.node_types[operands[ordinal]] !=

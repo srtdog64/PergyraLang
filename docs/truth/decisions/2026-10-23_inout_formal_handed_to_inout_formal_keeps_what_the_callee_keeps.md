@@ -25,9 +25,22 @@ reaches the caller through that place is what the caller lent; it is not
 storage of the routine's that outlives the call. What the callee keeps of
 the formal elsewhere, in another `inout` place, a channel or its result,
 is its summary's call, channel or return escape, which the hand-off now
-adds as before (`inout_defers_kept_by_callee_before_nested_call_invalid`).
+adds as before. A later landing analysis may remove that escape only by
+inserting an independent copy at the exact store, as checked by
+`inout_defers_kept_by_callee_before_nested_call_landed_valid`.
 An alias of the place that the callee changes is refused at its next use
-or at the routine's exit (`inout_defers_alias_written_by_inout_callee_invalid`).
+or at the routine's exit. Under the already adopted local-copy rule, a next
+analysis may discharge that refusal only by landing an independent whole-value
+`Clone` where the copy was made. The copyable case is
+`inout_defers_alias_written_by_inout_callee_landed_valid`; it must reach MIR
+with exactly one `Clone(defers)` and execute equally on C and LLVM. The
+descriptor-retention case
+`inout_defers_kept_by_callee_before_nested_call_landed_valid` likewise lands
+one `Clone(defers)` at the store into `stash`; its recursive handoff then uses
+the unchanged owner place. The
+uncopyable `HashMap<String, Array<Int>>` carrier remains refused by
+`inout_uncopyable_map_array_copy_changed_invalid` at both its later read and
+the inout exit. Merely clearing the escape or exit fact is not admission.
 
 ## Why
 

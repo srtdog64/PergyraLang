@@ -200,7 +200,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
                 free(subject);
                 return true;
             }
-            transpiler_mir_emit_match_payload_binding(buf, ctx, subject_node,
+            transpiler_mir_emit_match_payload_binding(buf, ctx, case_stable_id,
                                                       subject, kind, binding,
                                                       emitted_name);
             if (!transpiler_mir_set_payload_binding_name(
@@ -382,7 +382,7 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                                                   emitted_name,
                                                   sizeof(emitted_name));
                 if (!transpiler_mir_declare_guard_payload_binding(
-                        ctx->out, ctx, subject_node, kind, binding,
+                        ctx->out, ctx, case_stable_id, kind, binding,
                         emitted_name)) {
                     free(subject);
                     free(cond);
@@ -415,7 +415,7 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                                                   emitted_name,
                                                   sizeof(emitted_name));
                 if (!transpiler_mir_declare_guard_payload_binding(
-                        ctx->out, ctx, subject_node, kind, binding,
+                        ctx->out, ctx, case_stable_id, kind, binding,
                         emitted_name)) {
                     free(subject);
                     free(cond);

@@ -20,9 +20,9 @@ func SemanticAstBuiltinArgumentRetentionCallFactsReady(
     let fact_count: Int =
         ArrayLength(surfaces.expression_graph.arena.identities
             .builtin_argument_retention_calls);
-    let fact_row: Int = 0;
-    let last_root: Int = -1;
-    let slot: Int = 0;
+    var fact_row: Int = 0;
+    var last_root: Int = -1;
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] {
             let surface_row: Int = slot / 3;
@@ -32,13 +32,13 @@ func SemanticAstBuiltinArgumentRetentionCallFactsReady(
                 root <= last_root || root >= node_count {
                 return false;
             }
-            let local_call_ordinal: Int = 0;
-            let node: Int = last_root + 1;
+            var local_call_ordinal: Int = 0;
+            var node: Int = last_root + 1;
             while node <= root {
                 let is_call: Bool = surfaces.expression_graph.arena.topology
                     .node_kinds[node] == AstExpressionNodeCall();
-                let source_name: String = "";
-                let required: Bool = false;
+                var source_name: String = "";
+                var required: Bool = false;
                 if is_call {
                     let target: Option<String> =
                         SemanticExpressionGraphCallTargetName(

@@ -12,7 +12,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
     }
     if !fact.present { return true; }
     if !DirectMirScalarProgramArrayStringAbiFactReady(abi) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.abi_layout_ids) {
         if fact.abi_layout_ids[row] != abi.layout_id { return false; }
         row = row + 1;
@@ -27,7 +27,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
     if !DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.caller_routines) {
         if fact.caller_routines[row] == routine &&
             fact.local_rows[row] == local_row { return true; }

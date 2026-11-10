@@ -15,7 +15,7 @@ namespace SelfHostPath {
     export func NormalizeSeparators(path: String) -> String {
         let result_allocator: Allocator = AllocatorResult();
         let output: TextBuilder = TextBuilderNew(StringLength(path) + 1);
-        let i: Int = 0;
+        var i: Int = 0;
         while i < StringLength(path) {
             let c: String = PathCharAt(path, i);
             if c == "\\" {
@@ -31,8 +31,8 @@ namespace SelfHostPath {
     }
 
     export func Dirname(path: String) -> String {
-        let last_slash: Int = -1;
-        let i: Int = 0;
+        var last_slash: Int = -1;
+        var i: Int = 0;
         while i < StringLength(path) {
             if PathCharAt(path, i) == "/" {
                 last_slash = i;
@@ -72,8 +72,8 @@ namespace SelfHostPath {
         if IsAbsolute(rel_path) {
             return rel_path;
         }
-        let dir: String = base_dir;
-        let path: String = rel_path;
+        var dir: String = base_dir;
+        var path: String = rel_path;
         while StringLength(path) >= 3 && Substring(path, 0, 3) == "../" {
             dir = Dirname(dir);
             path = Substring(path, 3, StringLength(path) - 3);

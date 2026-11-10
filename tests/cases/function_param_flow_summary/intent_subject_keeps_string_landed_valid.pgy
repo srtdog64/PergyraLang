@@ -40,7 +40,7 @@ func Keep(zone: HoldZone, holder: Holder, path: String) -> Taken {
 func Main() -> Int {
     let zone: HoldZone = HoldZone(Holder(None));
     let holder: Holder = Holder(None);
-    let paths: Array<String> = [];
+    var paths: Array<String> = [];
     ArrayPushOwnedString(paths, Concat("a", "b"));
     let taken: Taken = Keep(zone, holder, paths[0]);
     ArrayDropOwnedStrings(paths);

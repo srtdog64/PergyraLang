@@ -49,8 +49,8 @@ func MirDomainRuntimePlanRoleRow(
     role: String,
     field_type_name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(roles.roles) {
         if roles.owner_names[row] == owner_name &&
             roles.roles[row] == role &&
@@ -91,18 +91,18 @@ func MirDomainRuntimePlanFromFacts(
     if !MirDomainTopologyDeclarationIndexReady(declarations) {
         return EmptyMirDomainRuntimePlan(true);
     }
-    let topology_rows: Array<Int> = [];
-    let owner_names: Array<String> = [];
-    let owner_ids: Array<String> = [];
-    let directive_ids: Array<String> = [];
-    let operations: Array<String> = [];
-    let projection_starts: Array<Int> = [];
-    let projection_counts: Array<Int> = [];
-    let projection_rows: Array<Int> = [];
-    let role_starts: Array<Int> = [];
-    let role_counts: Array<Int> = [];
-    let role_rows: Array<Int> = [];
-    let topology_row: Int = 0;
+    var topology_rows: Array<Int> = [];
+    var owner_names: Array<String> = [];
+    var owner_ids: Array<String> = [];
+    var directive_ids: Array<String> = [];
+    var operations: Array<String> = [];
+    var projection_starts: Array<Int> = [];
+    var projection_counts: Array<Int> = [];
+    var projection_rows: Array<Int> = [];
+    var role_starts: Array<Int> = [];
+    var role_counts: Array<Int> = [];
+    var role_rows: Array<Int> = [];
+    var topology_row: Int = 0;
     while topology_row < ArrayLength(topology.kinds) {
         ArrayPush(topology_rows, topology_row);
         ArrayPush(owner_names, topology.owner_names[topology_row]);
@@ -111,10 +111,10 @@ func MirDomainRuntimePlanFromFacts(
         ArrayPush(operations, topology.kinds[topology_row]);
         ArrayPush(projection_starts, ArrayLength(projection_rows));
         ArrayPush(role_starts, ArrayLength(role_rows));
-        let projection_count: Int = 0;
-        let role_count: Int = 0;
+        var projection_count: Int = 0;
+        var role_count: Int = 0;
         if MirDomainRuntimeProjectionOperation(topology.kinds[topology_row]) {
-            let assignment_row: Int = 0;
+            var assignment_row: Int = 0;
             while assignment_row < ArrayLength(
                 facts.projection_members.topology_row_indices
             ) {
@@ -216,7 +216,7 @@ func MirDomainRuntimePlanReady(ref plan: MirDomainRuntimePlan) -> Bool {
         count != ArrayLength(plan.participant_role_counts) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if plan.topology_row_indices[row] != row ||
             StringLength(plan.owner_names[row]) == 0 ||
@@ -249,8 +249,8 @@ func MirDomainRuntimePlanOperationCountForOwner(
     if !plan.valid || !plan.present || StringLength(owner_name) == 0 {
         return 0;
     }
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.owner_names) {
         if plan.owner_names[row] == owner_name { count = count + 1; }
         row = row + 1;
@@ -266,8 +266,8 @@ func MirDomainRuntimePlanOperationRowForOwnerAt(
             ArrayLength(plan.topology_row_indices) {
         return 0 - 1;
     }
-    let seen: Int = 0;
-    let row: Int = 0;
+    var seen: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.owner_names) {
         if plan.owner_names[row] == owner_name {
             if seen == ordinal { return row; }

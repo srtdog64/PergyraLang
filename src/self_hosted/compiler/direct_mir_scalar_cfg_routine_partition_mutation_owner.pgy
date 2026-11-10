@@ -6,8 +6,8 @@ func DirectMirScalarCfgRoutinePartitionMutationRejected(
     own fact: DirectMirScalarCfgRoutinePartitionFact
 ) -> Bool {
     if !fact.valid || ArrayLength(fact.block_starts) < 1 { return false; }
-    let bad_block_starts: Array<Int> = [];
-    let row: Int = 0;
+    var bad_block_starts: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(fact.block_starts) {
         ArrayPush(bad_block_starts, fact.block_starts[row]);
         row = row + 1;
@@ -17,8 +17,10 @@ func DirectMirScalarCfgRoutinePartitionMutationRejected(
         DirectMirScalarCfgRoutinePartitionFact(
             fact.valid, 0, fact.entrypoint_ordinal, fact.roles,
             fact.source_rows, fact.source_syntax_ids, fact.instance_keys, fact.names,
-            fact.return_types, fact.parameter_counts, fact.parameter_starts,
+            fact.return_types, fact.receiver_carriages, fact.receiver_owner_rows,
+            fact.parameter_counts, fact.parameter_starts,
             fact.parameter_types, fact.parameter_carriages,
+            fact.parameter_flow_masks, fact.parameter_array_preserved,
             fact.signature_digests, fact.cfg_digests, fact.local_starts,
             fact.local_counts, fact.value_starts, fact.value_counts,
             bad_block_starts, fact.block_counts, fact.operation_starts,
@@ -29,8 +31,11 @@ func DirectMirScalarCfgRoutinePartitionMutationRejected(
             changed.valid, DirectMirScalarCfgRoutinePartitionDigest(changed),
             changed.entrypoint_ordinal, changed.roles, changed.source_rows,
             changed.source_syntax_ids, changed.instance_keys, changed.names, changed.return_types,
+            changed.receiver_carriages, changed.receiver_owner_rows,
             changed.parameter_counts, changed.parameter_starts,
             changed.parameter_types, changed.parameter_carriages,
+            changed.parameter_flow_masks,
+            changed.parameter_array_preserved,
             changed.signature_digests, changed.cfg_digests,
             changed.local_starts, changed.local_counts, changed.value_starts,
             changed.value_counts, changed.block_starts, changed.block_counts,

@@ -1,0 +1,17 @@
+// Mutation and the final loan use different aliases of one local owner. The
+// owner remains held and transfers into the Slot without a Clone.
+extern "C" { func Fill(inout text: String) -> Void; }
+func Echo(ref text: String) -> String { return text; }
+func Publish(ref output: Slot<String>) -> Void {
+    var held: String = "literal";
+    using held as first;
+    using first as second;
+    Fill(held);
+    Write(output, Echo(second));
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Publish(output);
+    Log(Read(output));
+    Release(output);
+}

@@ -96,7 +96,7 @@ func InputErrorJson(
         JsonEmitFieldNumber("extra_actual_lines", "0"),
         JsonEmitFieldNumber("missing_actual_lines", "0")
     ];
-    let findings: Array<String> = [];
+    var findings: Array<String> = [];
     AppendMismatchFinding(findings, "input_error", 0, path);
     let report_fields: Array<String> = [
         JsonEmitFieldString("schema", "pgy.selfhost.backend-output-comparator.v1"),
@@ -110,11 +110,11 @@ func InputErrorJson(
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    let expected_path: String = CompilerHarnessComparableArtifactPathAt(0);
-    let actual_path: String = CompilerHarnessComparableArtifactPathAt(1);
-    let expected_projection: String = CompilerHarnessProjectionOrExit(0);
-    let actual_projection: String = CompilerHarnessProjectionOrExit(1);
-    let artifact_kind: String = CompilerRunOutputArtifactKind();
+    var expected_path: String = CompilerHarnessComparableArtifactPathAt(0);
+    var actual_path: String = CompilerHarnessComparableArtifactPathAt(1);
+    var expected_projection: String = CompilerHarnessProjectionOrExit(0);
+    var actual_projection: String = CompilerHarnessProjectionOrExit(1);
+    var artifact_kind: String = CompilerRunOutputArtifactKind();
     if ArrayLength(args) > 0 {
         expected_path = args[0];
     }
@@ -148,23 +148,18 @@ func Main() -> Void {
     let exp_n: Int = ArrayLength(exp_lines);
     let act_n: Int = ArrayLength(act_lines);
 
-    let common: Int = exp_n;
-    if act_n < common {
-        common = act_n;
-    }
-
-    let max_n: Int = exp_n;
+    var max_n: Int = exp_n;
     if act_n > max_n {
         max_n = act_n;
     }
 
-    let mismatch_count: Int = 0;
-    let extra_actual: Int = 0;
-    let missing_actual: Int = 0;
-    let findings: Array<String> = [];
+    var mismatch_count: Int = 0;
+    var extra_actual: Int = 0;
+    var missing_actual: Int = 0;
+    var findings: Array<String> = [];
     let findings_cap: Int = CompilerHarnessFindingCap();
 
-    let i: Int = 0;
+    var i: Int = 0;
     while i < max_n {
         let in_expected: Bool = i < exp_n;
         let in_actual: Bool = i < act_n;

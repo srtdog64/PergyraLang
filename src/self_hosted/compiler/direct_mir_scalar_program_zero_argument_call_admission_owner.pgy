@@ -20,7 +20,7 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
     }
     let callee_is_leaf: Bool =
         sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf();
-    let binding_kind: Int = SemanticExpressionBindingNone();
+    var binding_kind: Int = SemanticExpressionBindingNone();
     if callee_is_leaf {
         binding_kind = sequence.arena.identities.binding_kinds[callee];
     }

@@ -6,11 +6,11 @@ func DirectMirScalarCfgArrayIntMutatingAtOperation(
     fact: DirectMirScalarCfgArrayIntProgramFact,
     global_row: Int, operation_row: Int
 ) -> DirectMirScalarCfgArrayIntProgramFact {
-    let push: Int = fact.producer.push_operation_row;
-    let read: Int = fact.consumer.read_operation_row;
-    let length_log: Int = fact.consumer.length_log_operation_row;
-    let set: Int = fact.static_mutation.set_operation_row;
-    let indexed_log: Int = fact.static_mutation.indexed_log_operation_row;
+    var push: Int = fact.producer.push_operation_row;
+    var read: Int = fact.consumer.read_operation_row;
+    var length_log: Int = fact.consumer.length_log_operation_row;
+    var set: Int = fact.static_mutation.set_operation_row;
+    var indexed_log: Int = fact.static_mutation.indexed_log_operation_row;
     if fact.producer.valid &&
         global_row == fact.producer.push_global_row { push = operation_row; }
     else if global_row == fact.consumer.read_global_row { read = operation_row; }

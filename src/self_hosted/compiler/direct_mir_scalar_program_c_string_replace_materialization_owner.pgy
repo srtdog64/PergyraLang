@@ -9,7 +9,7 @@ func DirectMirScalarProgramCStringReplaceMaterialization(
     if ids.replace_id == 0 { return ""; }
     if !projection.replace.ok || projection.replace.runtime_call_abi_id !=
             ids.replace_id { return ""; }
-    let output: String = Concat("static char *", projection.replace.symbol);
+    var output: String = Concat("static char *", projection.replace.symbol);
     output = Concat(output,
         "(const char *source, const char *old_value, const char *new_value)\n{\n");
     output = Concat(output,

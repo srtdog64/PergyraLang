@@ -7,6 +7,7 @@ LLVMValueRef llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                                         ASTNode *target,
                                         ASTNode *value,
+                                        AstAssignmentOperation operation,
                                         LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_mir_assignment_parts(const MIRRoutine *routine,
                                             const MIRInstruction *inst,

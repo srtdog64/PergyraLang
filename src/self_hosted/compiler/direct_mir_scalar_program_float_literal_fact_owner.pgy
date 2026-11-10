@@ -1,0 +1,15 @@
+// Projects one source Float literal into the normalized expression kind fact.
+import "direct_mir_scalar_program_float_literal_kind_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
+
+func DirectMirScalarProgramFloatLiteralKindFact(
+    source_kind: Int, text: String, arity: Int
+) -> DirectMirScalarProgramExpressionKindFact {
+    if source_kind != AstExpressionNodeFloatLiteral() || arity != 0 ||
+        !DirectMirScalarProgramFloatLiteralPayloadReady(text) {
+        return DirectMirScalarProgramExpressionKindFactInvalid();
+    }
+    return DirectMirScalarProgramExpressionKindFact(
+        true, DirectMirScalarProgramExprFloatLiteral(),
+        CompilerAbiLayoutFloatTypeName(), text);
+}

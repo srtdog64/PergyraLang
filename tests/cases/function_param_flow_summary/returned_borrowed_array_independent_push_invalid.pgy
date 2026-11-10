@@ -1,0 +1,12 @@
+func BorrowedRows() -> Array<String> {
+    return ["borrowed"];
+}
+
+func Fresh(seed: Int) -> String {
+    return Concat("owned", " second");
+}
+
+func Main() -> Void {
+    var rows: Array<String> = BorrowedRows();
+    ArrayPush(rows, Fresh(1));
+}

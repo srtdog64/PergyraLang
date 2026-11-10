@@ -101,22 +101,37 @@ module_loader_load_program_with_graph(const char *source_path,
                                       char **error_message)
 {
     ASTNode *program;
+    ImportSourceSnapshot inputs = {0};
     if (graph_out != NULL)
         *graph_out = NULL;
-    program = import_resolver_load_program(source_path, error_message);
+    program = import_resolver_load_program_with_snapshot(source_path, error_message,
+        graph_out != NULL ? &inputs : NULL);
     if (program == NULL)
         return NULL;
     if (graph_out != NULL) {
         *graph_out = module_loader_build_graph(source_path, program);
         if (*graph_out == NULL) {
             ast_destroy(program);
+            import_resolver_destroy_source_snapshot(&inputs);
             if (error_message != NULL)
                 *error_message = pergyra_strdup(
                     "module loader could not anchor the source module graph");
             return NULL;
         }
+        (*graph_out)->inputs = inputs;
     }
     return program;
+}
+
+ASTNode *
+module_loader_reload_program_from_graph(
+    const PgySourceModuleGraph *source_graph, char **error_message)
+{
+    if (!module_loader_validate_graph(source_graph, error_message))
+        return NULL;
+    return import_resolver_load_program_from_snapshot(
+        source_graph->rows[0].canonical_path, &source_graph->inputs,
+        error_message);
 }
 
 bool
@@ -126,7 +141,8 @@ module_loader_validate_graph(const PgySourceModuleGraph *graph,
     if (error_message != NULL)
         *error_message = NULL;
     if (graph == NULL || graph->graph_id == 0 || graph->row_count == 0
-        || graph->rows == NULL) {
+        || graph->rows == NULL || graph->inputs.count == 0
+        || graph->inputs.rows == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
                 "module graph is missing its stable source anchor");
@@ -163,6 +179,7 @@ module_loader_destroy_graph(PgySourceModuleGraph *graph)
         return;
     for (size_t i = 0; i < graph->row_count; i++)
         free(graph->rows[i].canonical_path);
+    import_resolver_destroy_source_snapshot(&graph->inputs);
     free(graph->rows);
     free(graph);
 }

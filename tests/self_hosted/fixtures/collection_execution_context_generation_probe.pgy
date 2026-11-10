@@ -16,7 +16,7 @@ func InspectCollectionExecutionContextGeneration(artifact: AstTreeArtifact,
     if main_row < 0 || main_row >= SemanticAstFunctionSignatureCount(analysis.signatures) { return false; }
     let function_id: Int = analysis.signatures.function_node_ids[main_row];
     if !SemanticAstCollectionFormalExecutionContextCallableReady(artifact, contexts, function_id) { return false; }
-    let bad: SemanticAstCollectionFormalExecutionContexts = contexts;
+    var bad: SemanticAstCollectionFormalExecutionContexts = contexts;
     bad.ok = false;
     if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) { return false; }
     bad = contexts;
@@ -30,7 +30,7 @@ func InspectCollectionExecutionContextGeneration(artifact: AstTreeArtifact,
     bad.candidate_functions = no_candidates;
     if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) { return false; }
     bad = contexts;
-    let opaque: HashMap<String, Int> = MapNew();
+    var opaque: HashMap<String, Int> = MapNew();
     MapSet(opaque, ToString(function_id), 1);
     bad.unsafe_functions = opaque;
     if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) ||

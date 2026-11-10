@@ -28,8 +28,18 @@ func CollectionMemberCaptureSourceProbe(input_path: String) -> Void with caps en
             let types: Array<String> = [];
             let modes: Array<String> = [];
             let intent_node: Option<Int> = SemanticAstExpressionIntentNodeAt(analysis.expression_surfaces, analysis.intent_signatures, surface);
-            if !SemanticAstBodyExpressionEnvironmentSeed(artifact, analysis, bundle.initializer_types.inferred_type_names,
-                bundle.iteration_types, analysis.function_tables, analysis.intent_signatures, function_node, intent_node, syntax,
+            if !SemanticAstBodyExpressionEnvironmentSeed(
+                artifact, analysis.signatures, analysis.constructors,
+                analysis.local_bindings, analysis.statements,
+                analysis.expression_surfaces.ok,
+                analysis.expression_surfaces.artifact_node_count,
+                analysis.expression_surfaces.node_ids,
+                analysis.expression_surfaces.expression_graph,
+                analysis.enums, analysis.function_scopes,
+                analysis.intent_transitions,
+                bundle.initializer_types.inferred_type_names,
+                bundle.iteration_types, analysis.function_tables,
+                analysis.intent_signatures, function_node, intent_node, syntax,
                 names, types, modes) { Exit(2); }
             let text: Option<String> = SemanticExpressionGraphNodeText(analysis.expression_surfaces.expression_graph, spine.leaf_node);
             if !IsSome(text) { Exit(2); }

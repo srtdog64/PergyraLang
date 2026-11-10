@@ -13,8 +13,8 @@ func SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     start: Int, root: Int, use_node: Int
 ) -> Bool {
-    let found: Bool = false;
-    let node: Int = start;
+    var found: Bool = false;
+    var node: Int = start;
     while node <= root {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             surfaces.expression_graph, node);
@@ -45,8 +45,8 @@ func SemanticAstOwnedStringLiteralTransferComparisonUseExclusive(
     ref graph: SemanticExpressionGraphFacts,
     start: Int, root: Int, use_node: Int
 ) -> Bool {
-    let found: Bool = false;
-    let node: Int = start;
+    var found: Bool = false;
+    var node: Int = start;
     while node <= root {
         let left: Option<Int> =
             SemanticExpressionGraphLeftChild(graph, node);
@@ -76,7 +76,7 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
     ref binding: SemanticAstLocalBindingIdentity,
     consuming_syntax_id: Int, consuming_node: Int
 ) -> Bool {
-    let slot: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] &&
             surfaces.function_node_ids[slot / 3] ==
@@ -86,7 +86,7 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
                     surfaces.expression_graph, slot);
             if !IsSome(start) { return false; }
             let root: Int = surfaces.expression_graph.roots[slot];
-            let node: Int = UnwrapOption(start);
+            var node: Int = UnwrapOption(start);
             while node <= root {
                 let occurrence: SemanticAstLocalBindingIdentity =
                     SemanticAstScopedLocalBindingIdentityForGraphLeaf(
@@ -140,8 +140,8 @@ func SemanticAstOwnedStringLiteralTransferFunctionResultExclusive(
     function_id: Int, depth: Int
 ) -> Bool {
     if depth > 16 { return false; }
-    let saw_return: Bool = false;
-    let surface: Int = 0;
+    var saw_return: Bool = false;
+    var surface: Int = 0;
     while surface < ArrayLength(surfaces.node_ids) {
         if surfaces.function_node_ids[surface] == function_id &&
             TypedAstArenaNodeKindIs(
@@ -229,6 +229,10 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
             surfaces, call, start, use_id, lane, root) ||
         SemanticAstOwnedStringFreshJoinCallReady(
             surfaces, call, start, root) ||
+        SemanticAstOwnedStringFreshCloneCallReady(
+            surfaces, call, start, root) ||
+        SemanticAstOwnedStringFreshTransformCallReady(
+            surfaces, call, start, use_id, lane, root) ||
         SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call.call_node,
             "TextBuilderFinish") {

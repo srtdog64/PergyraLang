@@ -24,7 +24,7 @@ func DriverSourceMirStdoutReceiptOrDie(
         ));
         Exit(1);
     }
-    let admitted_receipt: Option<DriverSourceMirPayloadReceipt> = None;
+    var admitted_receipt: Option<DriverSourceMirPayloadReceipt> = None;
     match outcome {
         case DriverSourceMirPayloadAdmitted(receipt):
             admitted_receipt = Some(receipt);

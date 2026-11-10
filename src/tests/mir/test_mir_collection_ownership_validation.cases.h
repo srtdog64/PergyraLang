@@ -8,6 +8,173 @@ static void
 test_mir_collection_ownership_validation(void)
 {
     {
+        HIRProgram *owned_hir = NULL;
+        RIRProgram *owned_rir = NULL;
+        MIRProgram *owned_mir = NULL;
+        MIRRoutine *owned_routine = NULL;
+        MIRInstruction *owned_push = NULL;
+        const char *owned_source =
+            "struct TextNode{text:String;}struct Arena{rows:Array<String>;}"
+            "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+            "func Project(nodes:Array<TextNode>)->Arena{var rows:Array<String> = [];"
+            "ArrayPush(rows,Fresh(nodes[0]));return Arena(rows);}"
+            "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
+            "let arena=Project(nodes);Log(arena.rows[0]);}";
+        if (lower_mir_from_landed_source(
+                owned_source, &owned_hir, &owned_rir, &owned_mir))
+            owned_routine = find_mir_routine_mut(
+                owned_mir, "Project", MIR_SCOPE_FUNCTION);
+        for (size_t b = 0; owned_routine != NULL
+             && b < owned_routine->block_count; b++)
+            for (size_t i = 0;
+                 i < owned_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst =
+                    &owned_routine->blocks[b].instructions[i];
+                if (inst->has_collection_ownership_receipt
+                    && inst->collection_ownership_effect_kind
+                        == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH)
+                    owned_push = inst;
+            }
+        uint32_t owned_source_id = owned_push == NULL ? 0
+            : ast_call_semantic_callee_decl_id(
+                ast_call_argument(owned_push->expr0, 1));
+        uint32_t owned_ast_kind = 0, owned_ast_receiver = 0;
+        uint32_t owned_ast_source = 0;
+        bool owned_ast_receipt = owned_push != NULL
+            && ast_call_semantic_collection_effect(owned_push->expr0,
+                &owned_ast_kind, &owned_ast_receiver, &owned_ast_source);
+        bool owned_control = owned_push != NULL && owned_source_id != 0
+            && owned_push->collection_ownership_receiver_binding_id != 0
+            && owned_push->collection_ownership_source_binding_id
+                == owned_source_id
+            && owned_ast_receipt
+            && owned_ast_kind == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+            && owned_ast_receiver
+                == owned_push->collection_ownership_receiver_binding_id
+            && owned_ast_source == owned_source_id
+            && mir_validate(owned_mir, NULL);
+        TEST("MIR independent String push retains its exact owned transfer");
+        EXPECT(owned_control);
+        if (owned_control) {
+            MIRInstruction saved = *owned_push;
+            ASTNode saved_call = *owned_push->expr0;
+            for (unsigned fault = 0; fault < 8; fault++) {
+                if (fault == 0)
+                    owned_push->collection_ownership_effect_kind =
+                        PGY_COLLECTION_EFFECT_SHALLOW_MUTATION;
+                if (fault == 1)
+                    owned_push->collection_ownership_source_binding_id = 0;
+                if (fault == 2)
+                    owned_push->expr0->data.call.semantic_collection_effect_kind =
+                        PGY_COLLECTION_EFFECT_SHALLOW_MUTATION;
+                if (fault == 3)
+                    owned_push->expr0->data.call.semantic_collection_receiver_binding_id++;
+                if (fault == 4)
+                    owned_push->expr0->data.call.semantic_collection_source_binding_id++;
+                if (fault == 5)
+                    owned_push->expr0->data.call.semantic_collection_effect_set = false;
+                if (fault == 6)
+                    owned_push->has_collection_ownership_receipt = false;
+                if (fault == 7)
+                    owned_push->collection_ownership_receiver_binding_id++;
+                bool refused = !mir_validate_collection_ownership_transitions(
+                    owned_routine, NULL);
+                *saved.expr0 = saved_call;
+                *owned_push = saved;
+                TEST("MIR independent owned push refuses tuple drift or erasure");
+                EXPECT(refused && mir_validate_collection_ownership_transitions(
+                    owned_routine, NULL));
+            }
+        }
+        mir_destroy(owned_mir);
+        rir_destroy(owned_rir);
+        hir_destroy(owned_hir);
+    }
+    {
+        HIRProgram *member_hir = NULL;
+        RIRProgram *member_rir = NULL;
+        MIRProgram *member_mir = NULL;
+        MIRRoutine *member_routine = NULL;
+        MIRInstruction *member_push = NULL;
+        const char *member_source =
+            "struct Rows{names:Array<String>;}"
+            "func Append(inout rows:Rows,ref text:String)->Void{"
+            "ArrayPush(rows.names,text);}"
+            "func Main()->Int{let text=Concat(\"b\",\"\");"
+            "var rows=Rows([Concat(\"a\",\"\")]);Append(rows,text);"
+            "Print(rows.names[1]);Print(text);return 0;}";
+        if (lower_mir_from_landed_source(
+                member_source, &member_hir, &member_rir, &member_mir))
+            member_routine = find_mir_routine_mut(
+                member_mir, "Append", MIR_SCOPE_FUNCTION);
+        for (size_t b = 0; member_routine != NULL
+             && b < member_routine->block_count; b++)
+            for (size_t i = 0;
+                 i < member_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst =
+                    &member_routine->blocks[b].instructions[i];
+                if (inst->has_collection_ownership_receipt
+                    && inst->collection_ownership_effect_kind
+                        == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH)
+                    member_push = inst;
+            }
+        ASTNode *member_receiver = member_push == NULL ? NULL
+            : ast_call_argument(member_push->expr0, 0);
+        ASTNode *member_root = member_receiver != NULL
+                && member_receiver->type == AST_MEMBER_ACCESS
+            ? ast_member_object(member_receiver) : NULL;
+        uint32_t member_root_id = member_root != NULL
+                && member_root->type == AST_IDENTIFIER
+            ? ast_identifier_binding_syntax_id(member_root) : 0;
+        const MIRDeclHeader *rows_header = member_mir == NULL ? NULL
+            : mir_find_decl_header(member_mir, "Rows");
+        uint32_t names_field_id = 0;
+        for (size_t i = 0; rows_header != NULL
+             && i < mir_decl_header_field_count(rows_header); i++) {
+            const MIRDeclField *field = mir_decl_header_field(rows_header, i);
+            if (field != NULL && field->name != NULL
+                && strcmp(field->name, "names") == 0)
+                names_field_id = field->source_syntax_id;
+        }
+        uint32_t member_ast_kind = 0, member_ast_receiver = 0;
+        uint32_t member_ast_source = 0;
+        bool member_ast_receipt = member_push != NULL
+            && ast_call_semantic_collection_effect(member_push->expr0,
+                &member_ast_kind, &member_ast_receiver, &member_ast_source);
+        bool member_control = member_push != NULL && names_field_id != 0
+            && member_root_id != 0 && names_field_id != member_root_id
+            && member_push->collection_ownership_receiver_binding_id
+                == names_field_id
+            && member_ast_receipt
+            && member_ast_kind == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+            && member_ast_receiver == names_field_id
+            && member_ast_source
+                == member_push->collection_ownership_source_binding_id
+            && mir_validate(member_mir, NULL);
+        TEST("MIR direct member String push retains the exact leaf-field identity");
+        EXPECT(member_control);
+        if (member_control) {
+            MIRInstruction saved = *member_push;
+            ASTNode saved_call = *member_push->expr0;
+            uint32_t forged_id = names_field_id + 1;
+            if (forged_id == 0 || forged_id == member_root_id)
+                forged_id = names_field_id + 2;
+            member_push->collection_ownership_receiver_binding_id = forged_id;
+            member_push->expr0->data.call.semantic_collection_receiver_binding_id
+                = forged_id;
+            bool refused = !mir_validate_collection_ownership_transitions(
+                member_routine, NULL);
+            *saved.expr0 = saved_call;
+            *member_push = saved;
+            TEST("MIR direct member receipt refuses coherent leaf-field forgery");
+            EXPECT(refused && mir_validate_collection_ownership_transitions(
+                member_routine, NULL) && mir_validate(member_mir, NULL));
+        }
+        mir_destroy(member_mir);
+        rir_destroy(member_rir);
+        hir_destroy(member_hir);
+    }
+    {
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
@@ -26,14 +193,17 @@ test_mir_collection_ownership_validation(void)
             mir_validate(mir, NULL) && mir_validate_loop_collection_cleanup(caller, NULL);
         TEST("MIR loop cleanup consumes a later declared callee's published Array verdict");
         EXPECT(control);
-        for (unsigned fault = 0; control && fault < 7; fault++) {
+        for (unsigned fault = 0; control && fault < 10; fault++) {
             MIRFunctionParamFlowSummary saved = *row;
             size_t saved_count = callee->function_param_flow_summary_count;
             if (fault < 4) row->array_preserved = fault;
             if (fault == 3) row->array_preserved = 4;
             if (fault == 4) row->parameter_index = 1;
             if (fault == 5) row->mask |= SLOT_PARAM_SUMMARY_WRITE;
-            if (fault == 6) callee->function_param_flow_summary_count = 0;
+            if (fault == 6) row->mask |= SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+            if (fault == 7) row->mask |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+            if (fault == 8) row->mask |= SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+            if (fault == 9) callee->function_param_flow_summary_count = 0;
             bool rejected = !mir_validate(mir, NULL) && !mir_validate_loop_collection_cleanup(caller, NULL);
             *row = saved;
             callee->function_param_flow_summary_count = saved_count;
@@ -81,6 +251,62 @@ test_mir_collection_ownership_validation(void)
             EXPECT(!mir_validate_function_flow_hir_projection(hir, &snapshot, NULL));
             snapshot.function_param_flow_fact_count = count;
             free(snapshot.function_param_flow_facts);
+        }
+        mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+    }
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_mir_from_source(
+            "func Fill(inout rows:Array<String>)->Void{"
+            "ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));}"
+            "func Main()->Int{var n:Int=0;while n<2{"
+            "var rows:Array<String> = [];"
+            "ArrayPushOwnedString(rows,Concat(\"direct\",\" value\"));"
+            "Fill(rows);n=n+ArrayLength(rows);}return n;}",
+            &hir, &rir, &mir);
+        MIRRoutine *caller = lowered
+            ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *callee = lowered
+            ? find_mir_routine_mut(mir, "Fill", MIR_SCOPE_FUNCTION) : NULL;
+        MIRFunctionParamFlowSummary *row = NULL;
+        size_t cleanup_count = 0;
+        for (size_t i = 0; callee != NULL
+             && i < callee->function_param_flow_summary_count; i++)
+            if (callee->function_param_flow_summaries[i].parameter_index == 0)
+                row = &callee->function_param_flow_summaries[i];
+        for (size_t b = 0; caller != NULL && b < caller->block_count; b++)
+            for (size_t i = 0; i < caller->blocks[b].instruction_count; i++)
+                cleanup_count += caller->blocks[b].instructions[i]
+                    .collection_cleanup_kind != 0;
+        bool control = row != NULL && callee->param_abi_facts != NULL
+            && callee->param_abi_facts[0].carriage
+                == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            && row->mask == SLOT_PARAM_SUMMARY_NONE
+            && row->array_preserved == PGY_FUNCTION_PARAM_ARRAY_PRESERVED_ALL
+            && cleanup_count == 1
+            && mir_validate_loop_collection_cleanup(caller, NULL)
+            && mir_validate(mir, NULL);
+        TEST("MIR loop cleanup retains responsibility after an exact restored inout Array call");
+        EXPECT(control);
+        for (unsigned fault = 0; control && fault < 10; fault++) {
+            MIRFunctionParamFlowSummary saved = *row;
+            size_t saved_count = callee->function_param_flow_summary_count;
+            if (fault < 4) row->array_preserved = fault;
+            if (fault == 3) row->array_preserved = 4;
+            if (fault == 4) row->parameter_index = 1;
+            if (fault == 5) row->mask = SLOT_PARAM_SUMMARY_RELEASE;
+            if (fault == 6) row->mask = SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+            if (fault == 7) row->mask = SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+            if (fault == 8) row->mask = SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+            if (fault == 9) callee->function_param_flow_summary_count = 0;
+            bool rejected = !mir_validate_loop_collection_cleanup(caller, NULL)
+                && !mir_validate(mir, NULL);
+            *row = saved;
+            callee->function_param_flow_summary_count = saved_count;
+            TEST("MIR restored inout cleanup refuses missing, escaping, releasing or partial evidence");
+            EXPECT(rejected && mir_validate(mir, NULL));
         }
         mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
     }
@@ -167,10 +393,14 @@ test_mir_collection_ownership_validation(void)
             "let unrelated:Array<String> = [];let data=FieldRows([1]);"
             "return FieldDigest(artifact.text,0,data,data)>0;}"
             "func FieldForeign()->Bool{return true;}"
-            "func Main()->Void{if FieldProbe(){Log(\"ok\");}}";
+             "func Main()->Void{if FieldProbe(){Log(\"ok\");}}"
+             "subject Player{var hp:Int;action Guard(self)->Void within Arena authorized by self{return;}}"
+             "zone Arena{subject slot hero:Player authority hero}"
+             "intent Patrol(arena:Arena,hero:Player){step Verify{on:hero.Guard();expect:true;}}";
         bool lowered = lower_mir_from_source(source, &field_hir, &field_rir, &field_mir);
         MIRRoutine *probe = lowered ? find_mir_routine_mut(field_mir, "FieldProbe", MIR_SCOPE_FUNCTION) : NULL;
         MIRRoutine *foreign = lowered ? find_mir_routine_mut(field_mir, "FieldForeign", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *patrol = lowered ? find_mir_routine_mut(field_mir, "Patrol", MIR_SCOPE_INTENT) : NULL;
         MIRInstruction *returned = NULL, *foreign_return = NULL;
         MIRBasicBlock *return_block = NULL;
         for (size_t b = 0; probe != NULL && b < probe->block_count; b++)
@@ -187,14 +417,14 @@ test_mir_collection_ownership_validation(void)
         ASTNode *sink = root != NULL && root->type == AST_BINARY ? ast_binary_left(root) : NULL;
         ASTNode *member = sink != NULL && sink->type == AST_CALL ? ast_call_argument(sink, 0) : NULL;
         PgyCollectionEffectView view = {0};
-        bool control = lowered && probe != NULL && foreign_return != NULL && return_block != NULL &&
+        bool control = lowered && probe != NULL && patrol != NULL && foreign_return != NULL && return_block != NULL &&
             sink != NULL && sink->type == AST_CALL && ast_call_arg_count(sink) == 4 &&
             member != NULL && member->type == AST_MEMBER_ACCESS &&
             semantic_collection_effect_snapshot_current(field_mir->collection_effect_snapshot,
                 field_mir->collection_effect_source_program, &view) && view.source_use_count != 0 &&
             mir_validate_collection_effect_evidence(field_mir, NULL, NULL) && mir_validate(field_mir, NULL) &&
             mir_validate_emission_contract(probe, probe->has_cleanup_block, false, NULL);
-        TEST("MIR nested selected-field source has an admitted immutable recipe");
+        TEST("MIR nested selected-field source remains admitted beside an unrelated intent step");
         EXPECT(control);
         if (control) {
             MIRRoutine *producer = find_mir_routine_mut(field_mir, "FieldArtifactFrom", MIR_SCOPE_FUNCTION);
@@ -328,7 +558,7 @@ test_mir_collection_ownership_validation(void)
             "func NonownerRead(text:String)->Int{return StringLength(text);}"
             "func Main()->Void{let arena=Arena([\"red,blue\"]);"
             "let selected=VariantAt(arena,0);if IsSome(selected){"
-            "let text=UnwrapOption(selected);let no_texts:Array<String> = [];"
+            "let text=UnwrapOption(selected);var no_texts:Array<String> = [];"
             "var spare:Array<String> = [\"literal\"];spare=[\"other\"];"
             "var marker:Int=0;marker=1;"
             "ArrayPush(no_texts,\"literal\");Log(no_texts[0]);Log(NonownerRead(text));"
@@ -547,8 +777,9 @@ test_mir_collection_ownership_validation(void)
             "let arena:Arena=Arena([\"red,blue\"]);"
             "let selected:Option<String> = VariantAt(arena,0);"
             "let text:String=UnwrapOption(selected);"
-            "let no_texts:Array<String> = [];"
+            "var no_texts:Array<String> = [];"
             "let spare:Stored = Stored([]);"
+            "ArrayPush(no_texts,\"literal\");"
             "Log(NonownerRead(text));"
             "return Stored(no_texts);}"
             "func Main()->Void{let stored=Build();Log(ArrayLength(stored.values));}";
@@ -560,7 +791,7 @@ test_mir_collection_ownership_validation(void)
             terminal_mir->collection_effect_source_program;
         ASTNode *build_ast = program == NULL ? NULL : ast_program_statement(program, 4);
         ASTNode *body = build_ast == NULL ? NULL : ast_func_body(build_ast);
-        ASTNode *outer_return = body == NULL ? NULL : ast_block_statement(body, 6);
+        ASTNode *outer_return = body == NULL ? NULL : ast_block_statement(body, 7);
         MIRInstruction *spare_def = NULL, *statement_template = NULL, *terminal_return = NULL;
         MIRBasicBlock *terminal_block = NULL;
         size_t terminal_index = 0;
@@ -595,7 +826,7 @@ test_mir_collection_ownership_validation(void)
             statement_template != NULL && terminal_return != NULL &&
             terminal_return->expr0 == ast_return_value(outer_return) &&
             terminal_block != NULL;
-        TEST("MIR nonowner terminal nominal return has an admitted risk snapshot");
+        TEST("MIR terminal nominal transfer retains its exact risk evidence");
         if (!control) printf("\n  terminal control lowered=%d build=%d body=%d return=%d snapshot=%d risks=%zu evidence=%d full=%d emission=%d\n",
             (int)lowered, build != NULL, body != NULL,
             outer_return != NULL && outer_return->type == AST_RETURN,
@@ -667,13 +898,13 @@ test_mir_collection_ownership_validation(void)
                 /* Original claims, terminal mapping, and MIR are unchanged.
                  * The live AST's original RETURN is now under a new, unclaimed
                  * lambda parent rather than Build's terminal statement. */
-                body->data.block.statements[6] = capture;
+                body->data.block.statements[7] = capture;
                 bool evidence_refused = !mir_validate_collection_effect_evidence(
                     terminal_mir, build, NULL);
                 bool full_refused = !mir_validate(terminal_mir, NULL);
                 bool emission_refused = !mir_validate_emission_contract(build,
                     build->has_cleanup_block, false, NULL);
-                body->data.block.statements[6] = outer_return;
+                body->data.block.statements[7] = outer_return;
                 captured_statements[0] = NULL;
                 TEST("MIR unclaimed nested lambda cannot disguise a nominal terminal return");
                 EXPECT(evidence_refused && full_refused && emission_refused &&
@@ -700,17 +931,18 @@ test_mir_collection_ownership_validation(void)
         RIRProgram *defs_rir = NULL;
         MIRProgram *defs_mir = NULL;
         const char *source =
-            "func MakeVariant()->String{return Substring(\"ready\",0,5);}"
+            "func MakeVariant()->String{return \"ready\";}"
             "func TrimReuse(value:String,trimmed:Bool)->String{"
-            "if trimmed{return Substring(value,0,StringLength(value));}return value;}"
+            "if trimmed{return Concat(value,\"\");}return Concat(value,\"\");}"
             "func Main()->Void{let variant:String=MakeVariant();"
-            "let variant_name:String=variant;let names:Array<String> = [];"
-            "let borrowed_rows:Array<String> = [\"seed\"];Log(borrowed_rows[0]);"
-            "ArrayPush(names,variant_name);"
+            "var variant_name:String=variant;var names:Array<String> = [];"
+            "var borrowed_rows:Array<String> = [\"seed\"];Log(borrowed_rows[0]);"
+            "ArrayPush(borrowed_rows,variant_name);"
             "if StringLength(variant)>0{variant_name=TrimReuse(variant,true);}"
             "ArrayPush(names,variant_name);Log(names[0]);Log(names[1]);"
-            "let foreign_text:String=\"left\";foreign_text=\"right\";Log(foreign_text);}";
-        bool lowered = lower_mir_from_source(source, &defs_hir, &defs_rir, &defs_mir);
+            "var foreign_text:String=\"left\";foreign_text=\"right\";Log(foreign_text);}";
+        bool lowered = lower_mir_from_landed_source(
+            source, &defs_hir, &defs_rir, &defs_mir);
         MIRRoutine *main_routine = lowered ? find_mir_routine_mut(defs_mir,
             "Main", MIR_SCOPE_FUNCTION) : NULL;
         const ASTNode *program = defs_mir == NULL ? NULL :
@@ -923,12 +1155,15 @@ test_mir_collection_ownership_validation(void)
                     main_routine->has_cleanup_block, false, NULL));
 
             ASTNode *saved_sink = second_push_inst->expr0;
-            second_push_inst->expr0 = first_push;
-            bool pure_pair_reuse = mir_validate_collection_effect_evidence(
-                defs_mir, main_routine, NULL) && mir_validate(defs_mir, NULL) &&
+            bool pure_pair_reuse =
+                semantic_collection_effect_snapshot_source_use(snapshot,
+                    caller_id, second_push, 1, protected_use) &&
+                semantic_collection_effect_snapshot_source_use(snapshot,
+                    caller_id, second_push, 1, protected_use) &&
+                mir_validate_collection_effect_evidence(
+                    defs_mir, main_routine, NULL) && mir_validate(defs_mir, NULL) &&
                 mir_validate_emission_contract(main_routine,
                     main_routine->has_cleanup_block, false, NULL);
-            second_push_inst->expr0 = saved_sink;
             TEST("MIR all-def0 complete pure source-use pair remains reusable");
             EXPECT(pure_pair_reuse);
 
@@ -1052,23 +1287,25 @@ test_mir_collection_ownership_validation(void)
         RIRProgram *return_rir = NULL;
         MIRProgram *return_mir = NULL;
         const char *source =
-            "func MakeVariant()->String{return Substring(\"ready\",0,5);}"
-            "func TrimReuse(value:String)->String{return Substring(value,0,StringLength(value));}"
+            "func MakeVariant()->String{return \"ready\";}"
+            "func TrimReuse(value:String)->String{return Concat(value,\"\");}"
             "func BuildText()->String{let variant:String=MakeVariant();"
-            "let variant_name:String=variant;let names:Array<String> = [];"
-            "ArrayPush(names,variant_name);variant_name=TrimReuse(variant);"
+            "var variant_name:String=variant;var names:Array<String> = [];"
+            "var borrowed_names:Array<String> = [\"seed\"];"
+            "ArrayPush(borrowed_names,variant_name);variant_name=TrimReuse(variant);"
             "ArrayPush(names,variant_name);return \"steady\";}"
             "func Main()->Void{Log(BuildText());}";
-        bool lowered = lower_mir_from_source(source, &return_hir, &return_rir, &return_mir);
+        bool lowered = lower_mir_from_landed_source(
+            source, &return_hir, &return_rir, &return_mir);
         MIRRoutine *build = lowered ? find_mir_routine_mut(return_mir,
             "BuildText", MIR_SCOPE_FUNCTION) : NULL;
         const ASTNode *program = return_mir == NULL ? NULL :
             return_mir->collection_effect_source_program;
         ASTNode *build_ast = program == NULL ? NULL : ast_program_statement(program, 2);
         ASTNode *body = build_ast == NULL ? NULL : ast_func_body(build_ast);
-        ASTNode *push = body == NULL ? NULL : ast_block_statement(body, 5);
+        ASTNode *push = body == NULL ? NULL : ast_block_statement(body, 6);
         ASTNode *protected_use = push == NULL ? NULL : ast_call_argument(push, 1);
-        ASTNode *return_statement = body == NULL ? NULL : ast_block_statement(body, 6);
+        ASTNode *return_statement = body == NULL ? NULL : ast_block_statement(body, 7);
         ASTNode *original_value = return_statement == NULL ? NULL :
             ast_return_value(return_statement);
         MIRInstruction *returned = NULL;
@@ -1336,7 +1573,7 @@ test_mir_collection_ownership_validation(void)
         const char *source =
             "func Load(path:String)->String{return ReadFile(path);}"
             "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
-            "let rows:Array<String> = [];let alternate:String = \"missing-result-source-probe.txt\";"
+            "var rows:Array<String> = [];let alternate:String = \"missing-result-source-probe.txt\";"
             "let loaded:String = ReadFile(\"tests/cases/backend_compare/string_io/io.txt\");"
             "ArrayPush(rows,loaded);Log(rows[0]);Log(risk[0]);}";
         Lexer *lexer = lexer_create(source);
@@ -2573,7 +2810,7 @@ test_mir_collection_ownership_validation(void)
             "if kind==0{return None;}"
             "if kind==1{return Some(Substring(value,0,StringLength(value)));}"
             "return Some(\"literal\");}"
-            "func Main()->Void{let rows:Array<String> = [];"
+            "func Main()->Void{var rows:Array<String> = [];"
             "let candidate:Option<String> = Choose(\"ready\",1);"
             "let alternate:Option<String> = Some(\"other\");"
             "var foreign:Option<String> = None;foreign=Some(\"other\");"
@@ -2779,7 +3016,7 @@ test_mir_collection_ownership_validation(void)
             "var i:Int=0;while i<ArrayLength(codes){if StringContains(message,codes[i]){"
             "return Some(codes[i]);}i=i+1;}return None;}"
             "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
-            "let found:Option<String> = FindCode(\"alpha\");let rows:Array<String> = [];"
+            "let found:Option<String> = FindCode(\"alpha\");var rows:Array<String> = [];"
             "if IsSome(found){let text:String=UnwrapOption(found);ArrayPush(rows,text);"
             "Log(rows[0]);}Log(risk[0]);}";
         bool lowered = lower_mir_from_source(source, &literal_hir, &literal_rir, &literal_mir);
@@ -2962,7 +3199,7 @@ test_mir_collection_ownership_validation(void)
             "if !found{return None;}"
             "let payload:String=Substring(value,0,StringLength(value));"
             "return Some(payload);}"
-            "func Main()->Void{let rows:Array<String> = [];"
+            "func Main()->Void{var rows:Array<String> = [];"
             "let candidate:Option<String> = AliasOptional(\"ready\",true);"
             "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
             "let liveRisk:Array<String> = [Concat(\"he\",\"ap\")];"
@@ -3091,7 +3328,7 @@ test_mir_collection_ownership_validation(void)
     MIRCollectionOwnershipFact *borrow_fact = NULL;
     if (lower_mir_from_source("struct TextNode{text:String;}struct Arena{rows:Array<String>;risk:Array<String>;}"
             "func Project(nodes:Array<TextNode>)->Arena{let risk:Array<String> = [];"
-            "let rows:Array<String> = [\"a\"];ArrayPush(rows,nodes[0].text);return Arena(rows,risk);}"
+            "var rows:Array<String> = [\"a\"];ArrayPush(rows,nodes[0].text);return Arena(rows,risk);}"
             "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
             "let arena=Project(nodes);Log(arena.rows[1]);}", &borrow_hir, &borrow_rir, &borrow_mir))
         borrow_routine = find_mir_routine_mut(borrow_mir, "Project", MIR_SCOPE_FUNCTION);
@@ -3150,44 +3387,125 @@ test_mir_collection_ownership_validation(void)
         const char *fresh_source =
             "struct TextNode{text:String;}struct Arena{rows:Array<String>;}"
             "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
-            "func Project(nodes:Array<TextNode>)->Arena{let rows:Array<String> = [];"
+            "func Project(nodes:Array<TextNode>)->Arena{var rows:Array<String> = [\"seed\"];"
             "ArrayPush(rows,Fresh(nodes[0]));return Arena(rows);}"
             "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
-            "let arena=Project(nodes);Log(arena.rows[0]);}";
-        if (lower_mir_from_source(fresh_source, &fresh_hir, &fresh_rir, &fresh_mir))
+            "let arena=Project(nodes);Log(arena.rows[1]);}";
+        if (lower_mir_from_landed_source(
+                fresh_source, &fresh_hir, &fresh_rir, &fresh_mir))
             fresh_routine = find_mir_routine_mut(fresh_mir, "Project", MIR_SCOPE_FUNCTION);
         for (size_t b = 0; fresh_routine != NULL && b < fresh_routine->block_count; b++)
             for (size_t i = 0; i < fresh_routine->blocks[b].instruction_count; i++) {
                 MIRInstruction *inst = &fresh_routine->blocks[b].instructions[i];
                 if (inst->has_collection_ownership_receipt &&
-                    inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION) {
+                    inst->collection_ownership_effect_kind ==
+                        PGY_COLLECTION_EFFECT_SHALLOW_MUTATION) {
                     push = inst;
                     push_block = &fresh_routine->blocks[b];
                     push_index = i;
                 }
             }
-        uint32_t fresh_id = push == NULL ? 0 :
-            ast_call_semantic_callee_decl_id(ast_call_argument(push->expr0, 1));
-        bool control = push != NULL && fresh_id != 0 && mir_validate(fresh_mir, NULL);
-        TEST("MIR independent String push retains its semantic SHALLOW effect");
+        ASTNode *stored = push == NULL ? NULL
+            : ast_call_argument(push->expr0, 1);
+        ASTNode *fresh_call = stored != NULL && stored->type == AST_CALL
+            && ast_call_arg_count(stored) == 1
+            ? ast_call_argument(stored, 0) : NULL;
+        uint32_t fresh_id = fresh_call == NULL ? 0
+            : ast_call_semantic_callee_decl_id(fresh_call);
+        bool control = push != NULL && fresh_id != 0
+            && push->collection_ownership_source_binding_id == 0
+            && mir_validate(fresh_mir, NULL);
+        TEST("MIR landed independent String copy retains its SHALLOW effect");
         EXPECT(control);
         if (control) {
+            MIRCollectionEffectEvidenceReceipt receipt = {0};
+            char *receipt_error = NULL;
+            bool receipt_control = mir_validate_with_receipt(
+                fresh_mir, &receipt, &receipt_error)
+                && mir_validate_collection_ownership_transitions_with_receipt(
+                    fresh_routine, &receipt, &receipt_error)
+                && mir_validate_emission_contract_with_receipt(
+                    fresh_routine,
+                    fresh_routine->has_cleanup_block,
+                    false,
+                    &receipt,
+                    &receipt_error);
+            free(receipt_error);
+            receipt_error = NULL;
+            TEST("MIR collection-effect receipt admits its exact immutable generation");
+            EXPECT(receipt_control);
+            MIRRoutine specialized_view = *fresh_routine;
+            specialized_view.name = "Project_Int";
+            bool specialized_control =
+                mir_validate_collection_ownership_transitions_with_receipt(
+                    &specialized_view, &receipt, &receipt_error)
+                && mir_validate_emission_contract_with_receipt(
+                    &specialized_view,
+                    specialized_view.has_cleanup_block,
+                    false,
+                    &receipt,
+                    &receipt_error);
+            free(receipt_error);
+            receipt_error = NULL;
+            MIRRoutine damaged_view = specialized_view;
+            damaged_view.block_count++;
+            bool specialized_drift_refused =
+                !mir_validate_emission_contract_with_receipt(
+                    &damaged_view,
+                    damaged_view.has_cleanup_block,
+                    false,
+                    &receipt,
+                    &receipt_error)
+                && receipt_error != NULL;
+            free(receipt_error);
+            receipt_error = NULL;
+            TEST("MIR collection-effect receipt admits ABI views and refuses body drift");
+            EXPECT(specialized_control && specialized_drift_refused);
+            MIRCollectionEffectEvidenceReceipt damaged_receipt = receipt;
+            damaged_receipt.snapshot = NULL;
+            bool snapshot_refused =
+                !mir_validate_emission_contract_with_receipt(
+                    fresh_routine,
+                    fresh_routine->has_cleanup_block,
+                    false,
+                    &damaged_receipt,
+                    &receipt_error)
+                && receipt_error != NULL;
+            free(receipt_error);
+            receipt_error = NULL;
+            damaged_receipt = receipt;
+            damaged_receipt.routine_count++;
+            bool inventory_refused =
+                !mir_validate_collection_ownership_transitions_with_receipt(
+                    fresh_routine, &damaged_receipt, &receipt_error)
+                && receipt_error != NULL;
+            free(receipt_error);
+            TEST("MIR collection-effect receipt refuses snapshot and inventory drift");
+            EXPECT(snapshot_refused && inventory_refused);
             MIRInstruction saved = *push;
             ASTNode saved_call = *push->expr0;
             for (unsigned fault = 0; fault < 7; fault++) {
                 if (fault == 0) {
-                    push->collection_ownership_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                    push->collection_ownership_effect_kind =
+                        PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
                     push->collection_ownership_source_binding_id = fresh_id;
                 }
-                if (fault == 1) push->expr0->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
-                if (fault == 2) push->expr0->data.call.semantic_collection_receiver_binding_id++;
-                if (fault == 3) push->expr0->data.call.semantic_collection_source_binding_id++;
-                if (fault == 4) push->expr0->data.call.semantic_collection_effect_set = false;
-                if (fault == 5) push->has_collection_ownership_receipt = false;
-                if (fault == 6) push->collection_ownership_receiver_binding_id++;
+                if (fault == 1)
+                    push->expr0->data.call.semantic_collection_effect_kind =
+                        PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                if (fault == 2)
+                    push->expr0->data.call.semantic_collection_receiver_binding_id++;
+                if (fault == 3)
+                    push->expr0->data.call.semantic_collection_source_binding_id++;
+                if (fault == 4)
+                    push->expr0->data.call.semantic_collection_effect_set = false;
+                if (fault == 5)
+                    push->has_collection_ownership_receipt = false;
+                if (fault == 6)
+                    push->collection_ownership_receiver_binding_id++;
                 bool refused = !mir_validate_collection_ownership_transitions(fresh_routine, NULL);
                 *saved.expr0 = saved_call; *push = saved;
-                TEST("MIR independent push cannot promote SHALLOW into owned cleanup");
+                TEST("MIR landed independent copy cannot forge owned cleanup");
                 if (!refused) printf("\n  empty independent effect fault=%u not refused\n", fault);
                 EXPECT(refused && mir_validate_collection_ownership_transitions(fresh_routine, NULL));
             }
@@ -3529,13 +3847,18 @@ test_mir_collection_ownership_validation(void)
             "struct TextNode{text:String;}struct Arena{rows:Array<String>;risk:Array<String>;}"
             "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
             "func Project(nodes:Array<TextNode>)->Arena{let risk:Array<String> = [];"
-            "let rows:Array<String> = [\"a\"];ArrayPush(rows,Fresh(nodes[0]));return Arena(rows,risk);}"
+            "var rows:Array<String> = [\"a\"];ArrayPush(rows,Fresh(nodes[0]));return Arena(rows,risk);}"
             "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
             "let arena=Project(nodes);Log(arena.rows[1]);}";
         Lexer *lexer = lexer_create(transport_source);
         Parser *parser = parser_create(lexer);
         ASTNode *ast = parser_parse_program(parser);
-        SemanticResult *sem = parser_has_error(parser) ? NULL : semantic_analyze(ast);
+        MIRLandingSource transport_landing = {transport_source};
+        char *landing_error = NULL;
+        SemanticResult *sem = parser_has_error(parser) ? NULL :
+            semantic_analyze_landing_fixed_point(&ast,
+                reload_mir_landing_source, &transport_landing,
+                &landing_error);
         ASTNode *project = ast == NULL ? NULL : ast_program_statement(ast, 3);
         ASTNode *body = project == NULL ? NULL : ast_func_body(project);
         ASTNode *call = body == NULL ? NULL : ast_block_statement(body, 2);
@@ -3658,6 +3981,7 @@ test_mir_collection_ownership_validation(void)
         EXPECT(sem != NULL && sem->success &&
             semantic_collection_effect_snapshot_current(
                 sem->collection_effect_snapshot, sem->annotated_ast, NULL));
+        free(landing_error);
         semantic_result_destroy(sem);
         ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
     }
@@ -3665,7 +3989,7 @@ test_mir_collection_ownership_validation(void)
         const char *source =
             "struct TextNode{text:String;}struct Arena{rows:Array<String>;}"
             "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
-            "func Project(nodes:Array<TextNode>)->Arena{let rows:Array<String> = [];"
+            "func Project(nodes:Array<TextNode>)->Arena{var rows:Array<String> = [];"
             "ArrayPush(rows,Fresh(nodes[0]));return Arena(rows);}"
             "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
             "let arena=Project(nodes);Log(arena.rows[0]);}";
@@ -3713,9 +4037,9 @@ test_mir_collection_ownership_validation(void)
     }
     const char *source =
         "func Main() -> Void {\n"
-        "    let values: HashMap<String, Int> = MapNew();\n"
+        "    var values: HashMap<String, Int> = MapNew();\n"
         "    MapSet(values, \"owned\", 1);\n"
-        "    let keys: Array<String> = MapKeys(values);\n"
+        "    var keys: Array<String> = MapKeys(values);\n"
         "    ArrayDropOwnedStrings(keys);\n"
         "}\n";
     const char *empty_source =
@@ -3886,9 +4210,9 @@ test_mir_collection_ownership_validation(void)
      * routine entry and a join alone must never invent a live allocation. */
     for (unsigned loop_local = 0; loop_local < 2; loop_local++) {
         const char *birth_source = loop_local
-            ? "func Main()->Void{var i:Int=0;while i<2{let names:Array<String> = [];"
+            ? "func Main()->Void{var i:Int=0;while i<2{var names:Array<String> = [];"
               "ArrayPushOwnedString(names,\"entry\");ArrayDropOwnedStrings(names);i=i+1;}}"
-            : "func Main()->Void{let names:Array<String> = [];"
+            : "func Main()->Void{var names:Array<String> = [];"
               "ArrayPushOwnedString(names,\"entry\");ArrayDropOwnedStrings(names);}";
         HIRProgram *birth_hir = NULL;
         RIRProgram *birth_rir = NULL;
@@ -3995,10 +4319,10 @@ test_mir_collection_ownership_validation(void)
      * This does not grant an unsupported second-hop move or revive the source. */
     for (unsigned dropped = 0; dropped < 2; dropped++) {
         const char *move_source = dropped
-            ? "func Main() -> Void { let values: HashMap<String,Int> = MapNew();"
+            ? "func Main() -> Void { var values: HashMap<String,Int> = MapNew();"
               " MapSet(values,\"owned\",1); let keys: Array<String> = MapKeys(values);"
-              " let alias: Array<String> = keys; ArrayDropOwnedStrings(alias); }"
-            : "func Main() -> Void { let values: HashMap<String,Int> = MapNew();"
+              " var alias: Array<String> = keys; ArrayDropOwnedStrings(alias); }"
+            : "func Main() -> Void { var values: HashMap<String,Int> = MapNew();"
               " MapSet(values,\"owned\",1); let keys: Array<String> = MapKeys(values);"
               " let alias: Array<String> = keys; Log(ArrayLength(alias)); }";
         HIRProgram *move_hir = NULL;
@@ -4274,6 +4598,68 @@ test_mir_collection_ownership_validation(void)
         EXPECT(canonical_control && canonical_refused);
         semantic_result_destroy(clone_sem); ast_destroy(clone_ast);
         parser_destroy(clone_parser); lexer_destroy(clone_lexer);
+    }
+
+    {
+        HIRProgram *sentinel_hir = NULL;
+        RIRProgram *sentinel_rir = NULL;
+        MIRProgram *sentinel_mir = NULL;
+        MIRRoutine *sentinel_routine = NULL;
+        MIRInstruction *sentinel_seed = NULL;
+        MIRInstruction *sentinel_set = NULL;
+        const char *sentinel_source =
+            "func Main()->Int{var names:Array<String> = [];"
+            "ArrayPushOwnedString(names,Concat(\"\",\"\"));"
+            "var row:Int=0;while row<ArrayLength(names){"
+            "ArraySet(names,row,Concat(\"row\",ToString(row)));"
+            "row=row+1;}return ArrayLength(names);}";
+        bool sentinel_lowered = lower_mir_from_landed_source(
+            sentinel_source, &sentinel_hir, &sentinel_rir, &sentinel_mir);
+        if (sentinel_lowered)
+            sentinel_routine = find_mir_routine_mut(
+                sentinel_mir, "Main", MIR_SCOPE_FUNCTION);
+        for (size_t b = 0; sentinel_routine != NULL
+             && b < sentinel_routine->block_count; b++)
+            for (size_t i = 0;
+                 i < sentinel_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst =
+                    &sentinel_routine->blocks[b].instructions[i];
+                if (inst->has_collection_ownership_receipt
+                    && inst->collection_ownership_effect_kind
+                        == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH)
+                    sentinel_seed = inst;
+                if (inst->has_collection_ownership_receipt
+                    && inst->collection_ownership_effect_kind
+                        == PGY_COLLECTION_EFFECT_OWNED_STRING_SET)
+                    sentinel_set = inst;
+            }
+        char *sentinel_error = NULL;
+        bool sentinel_valid = sentinel_mir != NULL
+            && mir_validate(sentinel_mir, &sentinel_error);
+        bool sentinel_control = sentinel_seed != NULL && sentinel_set != NULL
+            && sentinel_valid;
+        TEST("MIR indexed owned String set accepts an established sentinel generation");
+        if (!sentinel_control)
+            printf("\n  sentinel fixture: lowered=%d seed=%d set=%d valid=%d error=%s\n",
+                (int)sentinel_lowered, sentinel_seed != NULL,
+                sentinel_set != NULL, (int)sentinel_valid,
+                sentinel_error != NULL ? sentinel_error : "<none>");
+        EXPECT(sentinel_control);
+        free(sentinel_error);
+        if (sentinel_control) {
+            MIRInstruction saved_seed = *sentinel_seed;
+            sentinel_seed->expr0 = NULL;
+            sentinel_seed->has_collection_ownership_receipt = false;
+            bool missing_seed_refused =
+                !mir_validate_collection_ownership_transitions(
+                    sentinel_routine, NULL);
+            *sentinel_seed = saved_seed;
+            TEST("MIR indexed owned String set refuses a missing owned sentinel seed");
+            EXPECT(missing_seed_refused && mir_validate(sentinel_mir, NULL));
+        }
+        mir_destroy(sentinel_mir);
+        rir_destroy(sentinel_rir);
+        hir_destroy(sentinel_hir);
     }
 
     hir = NULL;

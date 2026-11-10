@@ -6,7 +6,7 @@ func DirectMirScalarCfgArrayIntProgramDigest(
     ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(389L, fact.mode);
+    var hash: Long = DirectMirCfgHashInt(389L, fact.mode);
     hash = DirectMirCfgHashInt(hash, fact.collection.definition_global_row);
     hash = DirectMirCfgHashString(hash, fact.collection.collection_value_id);
     hash = DirectMirCfgHashString(hash, fact.collection.collection_name);

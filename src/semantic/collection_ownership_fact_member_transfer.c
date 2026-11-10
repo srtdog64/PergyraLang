@@ -13,6 +13,7 @@
 #include "builtin_kind.h"
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
+#include "formal_string_store_landing_owner.h"
 #include "indexed_string_borrow_owner.h"
 #include "../parser/ast_api.h"
 
@@ -34,8 +35,10 @@ struct PendingPrivateStringPush {
     PgyCollectionDisposition receiver_disposition;
     uint32_t caller_formal_id, dependency_formal_id;
     size_t caller_formal, dependency_actual, dependency_formal;
+    size_t receiver_mutation_sequence;
     ASTNodeType source_shape;
-    bool named, prepared, independent;
+    bool named, independent_candidate, landed_value_copy, receiver_pending;
+    bool prepared, independent;
 };
 
 void semantic_indexed_string_private_push_destroy(void *receipt)
@@ -91,14 +94,130 @@ static bool private_push_same(const PendingPrivateStringPush *a,
         a->caller_formal == b->caller_formal &&
         a->dependency_actual == b->dependency_actual &&
         a->dependency_formal == b->dependency_formal &&
-        a->source_shape == b->source_shape && a->named == b->named;
+        a->receiver_mutation_sequence == b->receiver_mutation_sequence &&
+        a->source_shape == b->source_shape && a->named == b->named &&
+        a->independent_candidate == b->independent_candidate &&
+        a->landed_value_copy == b->landed_value_copy &&
+        a->receiver_pending == b->receiver_pending;
+}
+
+static bool
+private_push_landed_value_copy(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *source,
+    const ASTNode **dependency_out)
+{
+    uint32_t builtin = 0;
+    if (dependency_out != NULL) *dependency_out = NULL;
+    bool planned = semantic_formal_string_store_landing_value_copy(
+        (ASTNode *)call, ctx);
+    bool source_call = source != NULL && source->type == AST_CALL;
+    bool one_argument = source_call && ast_call_arg_count(source) == 1;
+    bool compiler_builtin = source_call && ast_call_compiler_builtin(source);
+    bool builtin_current = source_call
+        && ast_call_semantic_callee_builtin_kind(source, &builtin);
+    bool builtin_clone = builtin_current && builtin == BUILTIN_CLONE;
+    bool stdlib = source_call && ast_call_semantic_callee_is_stdlib(source);
+    bool declaration_free = source_call
+        && ast_call_semantic_callee_decl_id(source) == 0;
+    bool binding_free = source_call
+        && ast_call_semantic_callee_value_binding_id(source) == 0;
+    bool landed_value_copy = planned && source_call && one_argument
+        && compiler_builtin && builtin_clone && stdlib
+        && declaration_free && binding_free;
+    if (landed_value_copy && dependency_out != NULL)
+        *dependency_out = ast_call_argument(source, 0);
+    return landed_value_copy;
+}
+
+static const ASTNode *
+private_push_independent_dependency(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *source)
+{
+    const ASTNode *dependency = NULL;
+    return private_push_landed_value_copy(ctx, call, source, &dependency)
+        ? dependency : source;
+}
+
+/* A moved local Array keeps the source literal as its storage provenance.
+ * The live destination fact owns the move, while the retired source fact and
+ * publication rows keep the exact literal identity. */
+static bool
+private_push_receiver_literal_anchor(
+    SemanticContext *ctx, uint32_t caller_id, uint32_t receiver_binding_id,
+    const PgyCollectionOwnershipFact *receiver_fact,
+    const ASTNode **declaration_out, const ASTNode **literal_out)
+{
+    if (declaration_out != NULL) *declaration_out = NULL;
+    if (literal_out != NULL) *literal_out = NULL;
+    FunctionParamPublicationStore *store = ctx != NULL
+        ? ctx->function_param_publications : NULL;
+    PublishedNode *receiver_row = store != NULL && receiver_binding_id != 0
+        ? publication_node_by_id(store, receiver_binding_id) : NULL;
+    const ASTNode *receiver_decl = receiver_row != NULL
+        ? receiver_row->node : NULL;
+    if (receiver_fact == NULL || caller_id == 0
+        || receiver_binding_id == 0
+        || receiver_fact->function_syntax_id != caller_id
+        || receiver_fact->binding_syntax_id != receiver_binding_id
+        || receiver_fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+        || receiver_decl == NULL || receiver_decl->type != AST_LET_DECL
+        || ast_node_stable_id(receiver_decl) != receiver_binding_id
+        || ast_let_is_alias(receiver_decl))
+        return false;
+
+    uint32_t anchor_binding_id = receiver_binding_id;
+    const PgyCollectionOwnershipFact *anchor_fact = receiver_fact;
+    if (receiver_fact->origin == PGY_COLLECTION_ORIGIN_BINDING) {
+        const ASTNode *move = ast_let_initializer(receiver_decl);
+        anchor_binding_id = receiver_fact->source_binding_syntax_id;
+        anchor_fact = semantic_collection_ownership_fact_find(
+            ctx, caller_id, anchor_binding_id);
+        if (move == NULL || move->type != AST_IDENTIFIER
+            || ast_node_stable_id(move) == 0
+            || receiver_fact->origin_syntax_id != ast_node_stable_id(move)
+            || anchor_binding_id == 0
+            || ast_identifier_binding_syntax_id(move) != anchor_binding_id
+            || anchor_fact == NULL
+            || anchor_fact->function_syntax_id != caller_id
+            || anchor_fact->binding_syntax_id != anchor_binding_id
+            || anchor_fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED
+            || anchor_fact->origin != PGY_COLLECTION_ORIGIN_BORROWED_LITERAL
+            || anchor_fact->element_ownership
+                != receiver_fact->element_ownership
+            || anchor_fact->source_binding_syntax_id != 0)
+            return false;
+    } else if (receiver_fact->source_binding_syntax_id != 0
+        || (receiver_fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+            && receiver_fact->origin != PGY_COLLECTION_ORIGIN_BORROWED_LITERAL)) {
+        return false;
+    }
+
+    PublishedNode *anchor_row = publication_node_by_id(
+        store, anchor_binding_id);
+    const ASTNode *declaration = anchor_row != NULL
+        ? anchor_row->node : NULL;
+    const ASTNode *literal = declaration != NULL
+        && declaration->type == AST_LET_DECL
+        ? ast_let_initializer(declaration) : NULL;
+    if (declaration == NULL || ast_let_is_alias(declaration)
+        || ast_node_stable_id(declaration) != anchor_binding_id
+        || literal == NULL || literal->type != AST_ARRAY_LITERAL
+        || ast_node_stable_id(literal) == 0
+        || anchor_fact->origin_syntax_id != ast_node_stable_id(literal))
+        return false;
+    if (declaration_out != NULL) *declaration_out = declaration;
+    if (literal_out != NULL) *literal_out = literal;
+    return true;
 }
 
 IndexedStringPushRecord semantic_indexed_string_record_private_push(
     SemanticContext *ctx, ASTNode *call, ASTNode *source,
     ASTNode *receiver, uint32_t risk_binding_id)
 {
-    if (ctx == NULL || ctx->has_error || !semantic_param_publication_pending(ctx) ||
+    if (ctx == NULL ||
+        !semantic_param_publication_local_fact_after_borrow_refusals(
+            ctx, ctx->diagnostic_count) ||
+        !semantic_param_publication_pending(ctx) ||
         call == NULL || call->type != AST_CALL || source == NULL ||
         receiver == NULL || receiver->type != AST_IDENTIFIER ||
         ast_call_arg_count(call) != 2 || ast_call_argument(call, 0) != receiver ||
@@ -106,12 +225,16 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         !collection_call_is_unshadowed_builtin(call, "ArrayPush") ||
         ast_call_semantic_callee_decl_id(call) != 0 ||
         ast_call_semantic_callee_value_binding_id(call) != 0)
+    {
         return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    }
     uint32_t builtin = 0;
     /* Stdlib dispatch marks the completed call only after checking its
      * arguments. This pending identity gains no permission until replay. */
     if (!ast_call_semantic_callee_builtin_kind(call, &builtin) ||
-        builtin != BUILTIN_NOT_BUILTIN) return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+        builtin != BUILTIN_NOT_BUILTIN) {
+        return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    }
     ASTNode *caller = ctx->current_function_decl;
     uint32_t caller_id = caller == NULL ? 0 : ast_node_stable_id(caller);
     const PgyCollectionOwnershipFact *risk = semantic_collection_ownership_fact_find(
@@ -120,20 +243,38 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         risk_binding_id == 0 || risk == NULL ||
         risk->function_syntax_id != caller_id ||
         risk->binding_syntax_id != risk_binding_id ||
-        risk->disposition != PGY_COLLECTION_DISPOSITION_LIVE ||
-        risk->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS)
+        risk->disposition != PGY_COLLECTION_DISPOSITION_LIVE)
         return INDEXED_STRING_PUSH_FAILED;
     Symbol *receiver_binding = NULL;
     const PgyCollectionOwnershipFact *receiver_fact =
         receiver_collection_fact(receiver, ctx, &receiver_binding);
     uint32_t receiver_id = receiver_binding == NULL ? 0 : receiver_binding->decl_syntax_id;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
-    PublishedNode *receiver_let = publication_node_by_id(store, receiver_id);
-    const ASTNode *local = receiver_let == NULL ? NULL : receiver_let->node;
-    const ASTNode *initial = local != NULL && local->type == AST_LET_DECL
-        ? ast_let_initializer(local) : NULL;
+    const ASTNode *local = NULL;
+    const ASTNode *initial = NULL;
+    if (!private_push_receiver_literal_anchor(ctx, caller_id, receiver_id,
+            receiver_fact, &local, &initial)) {
+        return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    }
     PublishedNode *source_row = publication_node(store, source, false);
     PublishedNode *receiver_row = publication_node(store, receiver, false);
+    const ASTNode *landed_dependency = NULL;
+    bool landed_value_copy = private_push_landed_value_copy(
+        ctx, call, source, &landed_dependency);
+    const ASTNode *independent_dependency = landed_value_copy
+        ? landed_dependency : source;
+    bool independent_candidate = independent_dependency != NULL
+        && independent_dependency->type == AST_CALL
+        && !landed_value_copy
+        && source_row != NULL && source_row->indexed_string_source_present
+        && source_row->indexed_string_source_id == 0
+        && ast_call_semantic_callee_decl_id(independent_dependency) != 0;
+    bool independent_receiver_anchor =
+        (independent_candidate || landed_value_copy) && receiver_fact == risk
+        && receiver_id != 0 && receiver_id == risk_binding_id;
+    if (risk->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
+        !independent_receiver_anchor)
+        return INDEXED_STRING_PUSH_NOT_APPLICABLE;
     bool shape = source->type == AST_MEMBER_ACCESS ||
         source->type == AST_ARRAY_ACCESS || source->type == AST_CALL ||
         source->type == AST_IDENTIFIER;
@@ -142,13 +283,12 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         receiver_binding->is_host_field || receiver_binding->is_consumed ||
         !receiver_binding->has_exclusive_array_storage ||
         receiver_binding->has_escaped_array_storage ||
-        receiver_binding->has_pending_inout_preservation ||
-        receiver_binding->has_pending_array_result ||
+        (semantic_array_storage_has_pending(receiver_binding) &&
+            !landed_value_copy && !independent_candidate) ||
         !type_is_constructed_named(receiver_binding->type, "Array") ||
         !type_equals(type_get_constructed_arg(receiver_binding->type, 0), TYPE_STRING) ||
         receiver_id == 0 || receiver_id != ast_identifier_binding_syntax_id(receiver) ||
         local == NULL || local->type != AST_LET_DECL || ast_let_is_alias(local) ||
-        ast_node_stable_id(local) != receiver_id ||
         initial == NULL || initial->type != AST_ARRAY_LITERAL ||
         receiver_row == NULL || !receiver_row->value_present || receiver_row->meta ||
         receiver_row->id != ast_node_stable_id(receiver) ||
@@ -159,12 +299,17 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         source_row->caller != caller || source_row->caller_id != caller_id ||
         source_row->value_type != TYPE_STRING ||
         !source_row->indexed_string_source_present ||
-        source_row->indexed_string_source_id != UINT32_MAX)
+        (source_row->indexed_string_source_id != UINT32_MAX
+            && !independent_candidate && !landed_value_copy))
+    {
         return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    }
     bool borrowed_receiver = receiver_fact != NULL &&
-        receiver_fact->origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL &&
+        (receiver_fact->origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL
+            || receiver_fact->origin == PGY_COLLECTION_ORIGIN_BINDING) &&
         receiver_fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
-        receiver_id != risk_binding_id && ast_array_literal_count(initial) != 0;
+        (receiver_id != risk_binding_id || independent_receiver_anchor) &&
+        ast_array_literal_count(initial) != 0;
     bool empty_receiver = receiver_fact != NULL &&
         receiver_fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
         receiver_fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN &&
@@ -172,16 +317,24 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
     if ((!borrowed_receiver && !empty_receiver) ||
         receiver_fact->function_syntax_id != caller_id ||
         receiver_fact->binding_syntax_id != receiver_id ||
-        receiver_fact->origin_syntax_id != ast_node_stable_id(initial) ||
-        receiver_fact->source_binding_syntax_id != 0 ||
+        (receiver_fact->origin != PGY_COLLECTION_ORIGIN_BINDING
+            && receiver_fact->origin_syntax_id
+                != ast_node_stable_id(initial)) ||
+        (receiver_fact->origin == PGY_COLLECTION_ORIGIN_BINDING
+            ? receiver_fact->source_binding_syntax_id
+                != ast_node_stable_id(local)
+            : receiver_fact->source_binding_syntax_id != 0) ||
         receiver_fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE)
+    {
         return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    }
     PendingPrivateStringPush r = {0};
     r.call = call; r.source = source; r.receiver = receiver; r.caller = caller;
     r.receiver_let = local; r.receiver_init = initial;
     r.call_id = ast_node_stable_id(call); r.source_id = ast_node_stable_id(source);
     r.receiver_id = ast_node_stable_id(receiver); r.caller_id = caller_id;
-    r.receiver_let_id = receiver_id; r.receiver_init_id = ast_node_stable_id(initial);
+    r.receiver_let_id = ast_node_stable_id(local);
+    r.receiver_init_id = ast_node_stable_id(initial);
     r.risk_binding_id = risk_binding_id; r.receiver_binding_id = receiver_id;
     r.risk_origin_id = risk->origin_syntax_id;
     r.risk_source_binding_id = risk->source_binding_syntax_id;
@@ -191,15 +344,28 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
     r.receiver_origin = receiver_fact->origin;
     r.receiver_elements = receiver_fact->element_ownership;
     r.receiver_disposition = receiver_fact->disposition;
+    r.receiver_pending = semantic_array_storage_has_pending(receiver_binding);
+    r.receiver_mutation_sequence = SIZE_MAX;
     r.source_shape = source->type;
     if (r.call_id == 0 || r.source_id == 0 || r.receiver_id == 0 ||
-        r.receiver_init_id == 0) return INDEXED_STRING_PUSH_FAILED;
+        r.receiver_init_id == 0)
+        return INDEXED_STRING_PUSH_FAILED;
     if (source->type == AST_MEMBER_ACCESS || source->type == AST_ARRAY_ACCESS) {
         if (!semantic_param_publication_pending_projection_formal_root(
                 ctx, caller, source, &r.formal_root, &r.caller_formal))
             return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    } else if (landed_value_copy) {
+        if (independent_dependency == NULL ||
+            ast_node_stable_id(independent_dependency) == 0 ||
+            !semantic_indexed_string_independent_result(source, ctx)) {
+            return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+        }
+        r.named = true;
+        r.dependency = independent_dependency;
+        r.dependency_id = ast_node_stable_id(independent_dependency);
+        r.landed_value_copy = true;
     } else {
-        const ASTNode *dependency = source;
+        const ASTNode *dependency = independent_dependency;
         if (source->type == AST_IDENTIFIER) {
             PublishedNode *let = publication_node_by_id(store,
                 ast_identifier_binding_syntax_id(source));
@@ -226,55 +392,87 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         r.named = true; r.dependency = dependency;
         r.dependency_id = ast_node_stable_id(dependency);
         r.callee_id = dep_row->declaration;
-        size_t matches = 0;
-        for (size_t a = 0; a < dep_row->argument_count; a++) {
-            const PublishedCallArgument *arg = &dep_row->arguments[a];
-            const ASTNode *root = NULL;
-            size_t formal = SIZE_MAX;
-            if (!semantic_param_publication_pending_projection_formal_root(
-                    ctx, caller, arg->node, &root, &formal)) continue;
-            if (arg->node != ast_call_argument(dependency, a) ||
-                arg->id == 0 || arg->id != ast_node_stable_id(arg->node) ||
-                arg->formal_ordinal >= ast_func_param_count(dep_row->selected_callable) ||
-                arg->formal_id == 0 ||
-                arg->formal_id != ast_func_param_stable_id(
-                    ast_func_param(dep_row->selected_callable, arg->formal_ordinal)))
-                return INDEXED_STRING_PUSH_FAILED;
-            matches++;
-            r.actual = arg->node; r.actual_id = arg->id;
-            r.dependency_actual = a; r.dependency_formal = arg->formal_ordinal;
-            r.dependency_formal_id = arg->formal_id;
-            r.formal_root = root; r.caller_formal = formal;
+        r.independent_candidate = independent_candidate;
+        if (!r.independent_candidate) {
+            size_t matches = 0;
+            for (size_t a = 0; a < dep_row->argument_count; a++) {
+                const PublishedCallArgument *arg = &dep_row->arguments[a];
+                const ASTNode *root = NULL;
+                size_t formal = SIZE_MAX;
+                if (!semantic_param_publication_pending_projection_formal_root(
+                        ctx, caller, arg->node, &root, &formal)) continue;
+                if (arg->node != ast_call_argument(dependency, a) ||
+                    arg->id == 0 || arg->id != ast_node_stable_id(arg->node) ||
+                    arg->formal_ordinal >= ast_func_param_count(dep_row->selected_callable) ||
+                    arg->formal_id == 0 ||
+                    arg->formal_id != ast_func_param_stable_id(
+                        ast_func_param(dep_row->selected_callable, arg->formal_ordinal)))
+                    return INDEXED_STRING_PUSH_FAILED;
+                matches++;
+                r.actual = arg->node; r.actual_id = arg->id;
+                r.dependency_actual = a; r.dependency_formal = arg->formal_ordinal;
+                r.dependency_formal_id = arg->formal_id;
+                r.formal_root = root; r.caller_formal = formal;
+            }
+            /* A dependent result has exactly one source formal. An independent
+             * candidate deliberately has none: preparation must replay the
+             * declared-result owner across every actual before it grants the
+             * receipt. */
+            if (matches != 1) return INDEXED_STRING_PUSH_NOT_APPLICABLE;
         }
-        /* Ambiguous or unrelated named results retain the old b53 source
-         * obligation. This receipt never guesses a later formal. */
-        if (matches != 1) return INDEXED_STRING_PUSH_NOT_APPLICABLE;
     }
-    PublishedNode *projected = publication_node(store,
-        r.named ? r.actual : r.source, false);
-    if (projected == NULL || !projected->projection.present)
-        return INDEXED_STRING_PUSH_FAILED;
-    r.projected_receiver_id = projected->projection.receiver_id;
-    r.projected_index_id = projected->projection.index_id;
-    r.projected_field_id = projected->projection.field_id;
-    r.projected_decl_id = projected->projection.declaration_id;
-    r.formal_root_id = ast_node_stable_id(r.formal_root);
-    r.formal_binding_id = ast_identifier_binding_syntax_id(r.formal_root);
-    r.caller_formal_id = ast_func_param_stable_id(
-        ast_func_param(caller, r.caller_formal));
-    if (r.formal_root_id == 0 || r.formal_binding_id == 0 ||
-        r.caller_formal_id != r.formal_binding_id ||
-        (r.named && (r.dependency_id == 0 || r.actual_id == 0)))
-        return INDEXED_STRING_PUSH_FAILED;
+    if (r.landed_value_copy) {
+        if (!r.named || r.dependency == NULL || r.dependency_id == 0 ||
+            r.callee_id != 0)
+            return INDEXED_STRING_PUSH_FAILED;
+    } else if (r.independent_candidate) {
+        if (!r.named || r.dependency_id == 0 || r.callee_id == 0)
+            return INDEXED_STRING_PUSH_FAILED;
+    } else {
+        PublishedNode *projected = publication_node(store,
+            r.named ? r.actual : r.source, false);
+        if (projected == NULL || !projected->projection.present)
+            return INDEXED_STRING_PUSH_FAILED;
+        r.projected_receiver_id = projected->projection.receiver_id;
+        r.projected_index_id = projected->projection.index_id;
+        r.projected_field_id = projected->projection.field_id;
+        r.projected_decl_id = projected->projection.declaration_id;
+        r.formal_root_id = ast_node_stable_id(r.formal_root);
+        r.formal_binding_id = ast_identifier_binding_syntax_id(r.formal_root);
+        r.caller_formal_id = ast_func_param_stable_id(
+            ast_func_param(caller, r.caller_formal));
+        if (r.formal_root_id == 0 || r.formal_binding_id == 0 ||
+            r.caller_formal_id != r.formal_binding_id ||
+            (r.named && (r.dependency_id == 0 || r.actual_id == 0)))
+            return INDEXED_STRING_PUSH_FAILED;
+    }
     PublishedNode *call_row = publication_node(store, call, true);
     if (call_row == NULL) return INDEXED_STRING_PUSH_FAILED;
-    if (call_row->private_string_push != NULL)
+    if (call_row->private_string_push != NULL) {
+        r.receiver_mutation_sequence =
+            call_row->private_string_push->receiver_mutation_sequence;
         return private_push_same(call_row->private_string_push, &r)
             ? INDEXED_STRING_PUSH_RECORDED : INDEXED_STRING_PUSH_FAILED;
+    }
     if (store->private_string_push_count == SIZE_MAX)
         return INDEXED_STRING_PUSH_FAILED;
     PendingPrivateStringPush *owned = malloc(sizeof(*owned));
     if (owned == NULL) return INDEXED_STRING_PUSH_FAILED;
+    if (r.receiver_pending) {
+        r.receiver_mutation_sequence =
+            semantic_array_storage_pending_sequence(ctx);
+        /* A pending inout/result handoff grants no private-storage authority.
+         * Register this exact owned-String mutation with the deferral owner;
+         * it later proves every earlier handoff before the private receipt can
+         * become current.  This is the same ordering contract used by the
+         * explicit owned-push path, not a bypass around it. */
+        if (r.receiver_mutation_sequence == SIZE_MAX ||
+            !semantic_array_storage_record_pending_drop(ctx, receiver,
+                receiver_binding, ARRAY_STORAGE_MUTATE_OWNED_STRINGS)) {
+            free(owned);
+            return INDEXED_STRING_PUSH_FAILED;
+        }
+    }
     *owned = r;
     call_row->private_string_push = owned;
     store->private_string_push_count++;
@@ -288,15 +486,20 @@ bool semantic_indexed_string_prepare_private_push(SemanticContext *ctx, const AS
     PendingPrivateStringPush *r = row == NULL ? NULL : row->private_string_push;
     if (r == NULL || r->call != call || r->call_id != ast_node_stable_id(call)) return false;
     if (r->prepared) return true;
-    if (r->named && (r->dependency == NULL || r->dependency->type != AST_CALL ||
+    if (r->named && (r->dependency == NULL ||
         r->dependency_id != ast_node_stable_id(r->dependency) ||
-        !semantic_param_publication_checked_call(ctx, r->dependency) ||
-        function_param_flow_declared_result_frame_current(ctx->function_param_flow_summaries,
-            (ASTNode *)r->dependency, NULL) == NULL)) return false;
+        (!r->landed_value_copy &&
+            (r->dependency->type != AST_CALL ||
+             !semantic_param_publication_checked_call(ctx, r->dependency)))))
+        return false;
     uint32_t prepared_source = UINT32_MAX;
     /* Only this unprepared receipt may materialize; its answer grants nothing here. */
-    if (r->named && !function_param_flow_string_result_source_prepare(
+    if (r->named && !r->landed_value_copy &&
+        !function_param_flow_string_result_source_prepare(
             ctx, r->dependency, &prepared_source) && ctx->function_param_flow_summaries->failed) return false;
+    if (r->named && !r->landed_value_copy &&
+        function_param_flow_declared_result_frame_current(
+            ctx->function_param_flow_summaries, (ASTNode *)r->dependency, NULL) == NULL) return false;
     FunctionParamFlowProgramPointIndex *caller_index = NULL;
     if (!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries,
             (ASTNode *)r->caller, &caller_index) || caller_index == NULL) return false;
@@ -312,8 +515,23 @@ bool semantic_indexed_string_prepare_private_push(SemanticContext *ctx, const AS
         receiver_fact->return_elements_owned ||
         receiver_fact->return_elements_source != NULL ||
         receiver_fact->return_elements_source_id != 0) return false;
-    r->independent = r->named && function_param_flow_string_result_independent_current(
-        ctx, r->dependency);
+    if (r->landed_value_copy) {
+        const ASTNode *dependency = NULL;
+        uint32_t source_id = UINT32_MAX;
+        r->independent = private_push_landed_value_copy(
+                ctx, call, r->source, &dependency)
+            && dependency == r->dependency
+            && semantic_indexed_string_independent_result(r->source, ctx)
+            && semantic_indexed_string_borrow_source_current(
+                (ASTNode *)r->source, ctx, &source_id)
+            && source_id == 0;
+    } else {
+        r->independent = r->named &&
+            function_param_flow_string_result_independent_current(
+                ctx, r->dependency);
+    }
+    if (r->landed_value_copy && !r->independent) return false;
+    if (r->independent_candidate && !r->independent) return false;
     if (!r->independent) {
         if (!(r->named ? function_param_flow_string_result_nonlocal_current(ctx,
                 r->dependency, (ASTNode *)r->caller, r->caller_formal) :
@@ -335,6 +553,16 @@ static bool private_push_current_body(SemanticContext *ctx,
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     PublishedNode *row = publication_node(store, call, false);
     const PendingPrivateStringPush *r = row == NULL ? NULL : row->private_string_push;
+    bool direct_literal_private = r != NULL
+        && semantic_param_publication_private_array_push(
+            ctx, call, r->caller);
+    /* The publication owner recognizes a receiver whose own declaration is
+     * the Array literal.  A moved receiver instead carries the same private
+     * storage through the collection fact's exact retired-source anchor,
+     * which is replayed below.  Do not require the obsolete direct-literal
+     * projection in addition to that stronger move receipt. */
+    bool moved_literal_private = r != NULL
+        && r->receiver_origin == PGY_COLLECTION_ORIGIN_BINDING;
     if (r == NULL || !r->prepared || row->node != call || r->call != call ||
         r->call_id == 0 || r->call_id != ast_node_stable_id(call) ||
         r->caller == NULL || row->caller != r->caller ||
@@ -349,7 +577,7 @@ static bool private_push_current_body(SemanticContext *ctx,
         ast_call_argument(call, 1) != r->source ||
         r->receiver_binding_id == 0 ||
         ast_identifier_binding_syntax_id(r->receiver) != r->receiver_binding_id ||
-        r->receiver_let == NULL || r->receiver_let_id != r->receiver_binding_id ||
+        r->receiver_let == NULL || r->receiver_let_id == 0 ||
         ast_node_stable_id(r->receiver_let) != r->receiver_let_id ||
         r->receiver_let->type != AST_LET_DECL ||
         ast_let_is_alias(r->receiver_let) ||
@@ -358,34 +586,66 @@ static bool private_push_current_body(SemanticContext *ctx,
         r->receiver_init->type != AST_ARRAY_LITERAL ||
         ast_let_initializer(r->receiver_let) != r->receiver_init ||
         r->risk_binding_id == 0 ||
-        r->formal_root == NULL || r->formal_root_id == 0 ||
+        !semantic_param_publication_checked_call(ctx, call) ||
+        !semantic_param_publication_checked_argument(ctx, call, 0) ||
+        !semantic_param_publication_checked_argument(ctx, call, 1) ||
+        (!direct_literal_private && !moved_literal_private) ||
+        !function_param_flow_typed_expression_children_current(ctx,
+            (ASTNode *)r->caller, call) ||
+        !semantic_param_publication_routine_inputs_current(ctx, (ASTNode *)r->caller, true))
+        return false;
+    if (r->landed_value_copy) {
+        const ASTNode *dependency = NULL;
+        if (!r->named || !r->independent || r->dependency == NULL ||
+            r->dependency_id == 0 || r->callee_id != 0 ||
+            !private_push_landed_value_copy(ctx, call, r->source,
+                &dependency) || dependency != r->dependency ||
+            r->dependency_id != ast_node_stable_id(dependency) ||
+            !semantic_indexed_string_independent_result(r->source, ctx) ||
+            r->formal_root != NULL || r->actual != NULL ||
+            r->formal_root_id != 0 || r->formal_binding_id != 0 ||
+            r->caller_formal_id != 0 || r->actual_id != 0 ||
+            r->dependency_formal_id != 0 ||
+            r->projected_receiver_id != 0 || r->projected_index_id != 0 ||
+            r->projected_field_id != 0 || r->projected_decl_id != 0 ||
+            r->risk_binding_id != r->receiver_binding_id)
+            return false;
+    } else if (r->independent_candidate) {
+        if (!r->named || !r->independent || r->formal_root != NULL ||
+            r->actual != NULL || r->formal_root_id != 0 ||
+            r->formal_binding_id != 0 || r->caller_formal_id != 0 ||
+            r->actual_id != 0 || r->dependency_formal_id != 0 ||
+            r->projected_receiver_id != 0 || r->projected_index_id != 0 ||
+            r->projected_field_id != 0 || r->projected_decl_id != 0 ||
+            r->risk_binding_id != r->receiver_binding_id)
+            return false;
+    } else if (r->formal_root == NULL || r->formal_root_id == 0 ||
         r->formal_root_id != ast_node_stable_id(r->formal_root) ||
         r->formal_binding_id != ast_identifier_binding_syntax_id(r->formal_root) ||
         r->caller_formal >= ast_func_param_count(r->caller) ||
         r->caller_formal_id == 0 ||
         r->caller_formal_id != ast_func_param_stable_id(
             ast_func_param(r->caller, r->caller_formal)) ||
-        r->caller_formal_id != r->formal_binding_id ||
-        !semantic_param_publication_checked_call(ctx, call) ||
-        !semantic_param_publication_checked_argument(ctx, call, 0) ||
-        !semantic_param_publication_checked_argument(ctx, call, 1) ||
-        !semantic_param_publication_private_array_push(ctx, call, r->caller) ||
-        !function_param_flow_typed_expression_children_current(ctx,
-            (ASTNode *)r->caller, call) ||
-        !semantic_param_publication_routine_inputs_current(ctx, (ASTNode *)r->caller, true))
-        return false;
+        r->caller_formal_id != r->formal_binding_id) return false;
     const PgyCollectionOwnershipFact *risk = semantic_collection_ownership_fact_find(
         ctx, r->caller_id, r->risk_binding_id);
     if (risk == NULL || risk->function_syntax_id != r->caller_id ||
         risk->binding_syntax_id != r->risk_binding_id ||
         risk->disposition != PGY_COLLECTION_DISPOSITION_LIVE ||
-        risk->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS ||
+        (risk->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
+            ((!r->independent_candidate && !r->landed_value_copy) ||
+             r->risk_binding_id != r->receiver_binding_id)) ||
         risk->origin != r->risk_origin ||
         risk->origin_syntax_id != r->risk_origin_id ||
         risk->source_binding_syntax_id != r->risk_source_binding_id)
         return false;
     const PgyCollectionOwnershipFact *receiver_fact = semantic_collection_ownership_fact_find(
         ctx, r->caller_id, r->receiver_binding_id);
+    const ASTNode *current_receiver_let = NULL;
+    const ASTNode *current_receiver_init = NULL;
+    bool receiver_anchor_current = private_push_receiver_literal_anchor(
+        ctx, r->caller_id, r->receiver_binding_id, receiver_fact,
+        &current_receiver_let, &current_receiver_init);
     if (receiver_fact == NULL || receiver_fact->function_syntax_id != r->caller_id ||
         receiver_fact->binding_syntax_id != r->receiver_binding_id ||
         receiver_fact->origin != r->receiver_origin ||
@@ -396,15 +656,24 @@ static bool private_push_current_body(SemanticContext *ctx,
         receiver_fact->return_elements_owned ||
         receiver_fact->return_elements_source != NULL ||
         receiver_fact->return_elements_source_id != 0 ||
-        r->receiver_origin_id != r->receiver_init_id ||
+        !receiver_anchor_current
+        || current_receiver_let != r->receiver_let
+        || current_receiver_init != r->receiver_init
+        || (r->receiver_origin != PGY_COLLECTION_ORIGIN_BINDING
+            && r->receiver_origin_id != r->receiver_init_id)
+        || (r->receiver_origin == PGY_COLLECTION_ORIGIN_BINDING
+            && r->receiver_source_binding_id != r->receiver_let_id) ||
         (r->receiver_origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
             (r->receiver_binding_id != r->risk_binding_id ||
              ast_array_literal_count(r->receiver_init) != 0)) ||
-        (r->receiver_origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL &&
-            (r->receiver_binding_id == r->risk_binding_id ||
+        ((r->receiver_origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL
+            || r->receiver_origin == PGY_COLLECTION_ORIGIN_BINDING) &&
+            ((!r->independent_candidate && !r->landed_value_copy &&
+              r->receiver_binding_id == r->risk_binding_id) ||
              ast_array_literal_count(r->receiver_init) == 0)) ||
         (r->receiver_origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
-         r->receiver_origin != PGY_COLLECTION_ORIGIN_BORROWED_LITERAL)) return false;
+         r->receiver_origin != PGY_COLLECTION_ORIGIN_BORROWED_LITERAL &&
+         r->receiver_origin != PGY_COLLECTION_ORIGIN_BINDING)) return false;
     uint32_t kind = 0, receiver = 0, source = 0;
     if (r->effect_kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
         r->effect_receiver_id != r->receiver_binding_id || r->effect_source_id != 0 ||
@@ -418,20 +687,33 @@ static bool private_push_current_body(SemanticContext *ctx,
             !function_param_flow_no_store_graph(ctx->function_param_flow_summaries,
                 (ASTNode *)r->caller)) return false;
     }
+    if ((r->receiver_pending &&
+            (r->receiver_mutation_sequence == SIZE_MAX ||
+             !semantic_array_storage_pending_preserved(ctx,
+                r->receiver_binding_id, r->receiver_mutation_sequence) ||
+             !semantic_array_storage_pending_owned_elements(ctx,
+                r->receiver_binding_id, r->receiver_mutation_sequence))) ||
+        (!r->receiver_pending &&
+            r->receiver_mutation_sequence != SIZE_MAX))
+        return false;
     SemanticPublishedValue typed = semantic_param_publication_value(ctx, r->source);
     if (!typed.ok || typed.meta || typed.type != TYPE_STRING) return false;
     PublishedNode *source_row = publication_current_value(ctx, r->source);
     if (source_row == NULL || !source_row->indexed_string_source_present ||
-        source_row->indexed_string_source_id != UINT32_MAX)
+        (r->independent
+            ? source_row->indexed_string_source_id != 0
+            : source_row->indexed_string_source_id != UINT32_MAX))
         return false;
-    PublishedNode *projected = publication_current_value(ctx,
-        r->named ? r->actual : r->source);
-    if (projected == NULL || !projected->projection.present ||
-        projected->projection.receiver_id != r->projected_receiver_id ||
-        projected->projection.index_id != r->projected_index_id ||
-        projected->projection.field_id != r->projected_field_id ||
-        projected->projection.declaration_id != r->projected_decl_id)
-        return false;
+    if (!r->independent_candidate && !r->landed_value_copy) {
+        PublishedNode *projected = publication_current_value(ctx,
+            r->named ? r->actual : r->source);
+        if (projected == NULL || !projected->projection.present ||
+            projected->projection.receiver_id != r->projected_receiver_id ||
+            projected->projection.index_id != r->projected_index_id ||
+            projected->projection.field_id != r->projected_field_id ||
+            projected->projection.declaration_id != r->projected_decl_id)
+            return false;
+    }
     ASTNode *actual_caller = NULL, *actual_root = NULL;
     if (!r->named) {
         if (r->source->type != AST_MEMBER_ACCESS &&
@@ -442,8 +724,17 @@ static bool private_push_current_body(SemanticContext *ctx,
             function_param_flow_nonlocal_input_current(ctx,
                 (ASTNode *)r->caller, r->caller_formal);
     }
-    const ASTNode *dependency = r->source;
-    if (r->source->type == AST_IDENTIFIER &&
+    const ASTNode *dependency = private_push_independent_dependency(
+        ctx, call, r->source);
+    if (r->landed_value_copy) {
+        uint32_t source_id = UINT32_MAX;
+        return dependency == r->dependency && dependency != NULL &&
+            r->dependency_id == ast_node_stable_id(dependency) &&
+            semantic_indexed_string_independent_result(r->source, ctx) &&
+            semantic_indexed_string_borrow_source_current(
+                (ASTNode *)r->source, ctx, &source_id) && source_id == 0;
+    }
+    if (dependency == r->source && r->source->type == AST_IDENTIFIER &&
         !semantic_indexed_string_borrow_result_dependency_current(
             ctx, (ASTNode *)r->source, &dependency)) return false;
     if (dependency != r->dependency || dependency == NULL ||
@@ -451,17 +742,25 @@ static bool private_push_current_body(SemanticContext *ctx,
         r->dependency_id != ast_node_stable_id(dependency) ||
         r->callee_id == 0 ||
         ast_call_semantic_callee_decl_id(dependency) != r->callee_id ||
-        r->dependency_actual >= ast_call_arg_count(dependency) ||
+        !semantic_param_publication_checked_call(ctx, dependency)) return false;
+    PublishedNode *dep_row = publication_result_current(ctx, dependency);
+    if (dep_row == NULL || dep_row->selected_callable == NULL ||
+        dep_row->selected_callable_id != r->callee_id) return false;
+    if (r->independent_candidate) {
+        uint32_t independent_source = UINT32_MAX;
+        return r->independent &&
+            function_param_flow_string_result_independent_current(ctx, dependency) &&
+            semantic_indexed_string_borrow_source_current(
+                (ASTNode *)r->source, ctx, &independent_source) &&
+            independent_source == 0;
+    }
+    if (r->dependency_actual >= ast_call_arg_count(dependency) ||
         ast_call_argument(dependency, r->dependency_actual) != r->actual ||
         r->actual_id == 0 || r->actual_id != ast_node_stable_id(r->actual) ||
-        !semantic_param_publication_checked_call(ctx, dependency) ||
         !semantic_param_publication_checked_argument(ctx, dependency,
             r->dependency_actual)) return false;
-    PublishedNode *dep_row = publication_result_current(ctx, dependency);
     size_t selected = SIZE_MAX;
-    if (dep_row == NULL || dep_row->selected_callable == NULL ||
-        dep_row->selected_callable_id != r->callee_id ||
-        r->dependency_actual >= dep_row->argument_count ||
+    if (r->dependency_actual >= dep_row->argument_count ||
         dep_row->arguments[r->dependency_actual].node != r->actual ||
         dep_row->arguments[r->dependency_actual].id != r->actual_id ||
         dep_row->arguments[r->dependency_actual].formal_ordinal != r->dependency_formal ||

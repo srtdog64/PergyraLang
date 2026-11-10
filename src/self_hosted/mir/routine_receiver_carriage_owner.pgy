@@ -19,9 +19,9 @@ func SelfMirRoutineReceiverForOwner(
             true, "", "function", CallableReceiverCarriageNone()
         );
     }
-    let match_count: Int = 0;
-    let match_index: Int = -1;
-    let i: Int = 0;
+    var match_count: Int = 0;
+    var match_index: Int = -1;
+    var i: Int = 0;
     while i < ArrayLength(declarations.names) {
         if declarations.names[i] == owner_name {
             match_count = match_count + 1;

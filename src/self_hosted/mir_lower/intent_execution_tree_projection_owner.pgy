@@ -19,8 +19,8 @@ func MirIntentExecutionInstructionGlobalRow(
     );
     if block_row < 0 || instruction_id < 0 { return 0 - 1; }
     let instruction_text: String = ToString(instruction_id);
-    let found: Int = 0 - 1;
-    let local_row: Int = 0;
+    var found: Int = 0 - 1;
+    var local_row: Int = 0;
     while local_row < routines.block_instruction_counts[block_row] {
         let global_row: Int = routines.block_instruction_starts[block_row] +
             local_row;
@@ -41,10 +41,10 @@ func MirIntentExecutionRoutineStepRows(
     ref plan: MirIntentExecutionPlan,
     routine_syntax_id: Int
 ) -> Array<Int> {
-    let rows: Array<Int> = [];
-    let expected_count: Int = 0;
-    let root: Int = 0 - 1;
-    let row: Int = 0;
+    var rows: Array<Int> = [];
+    var expected_count: Int = 0;
+    var root: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(plan.steps.transition_ids) {
         if plan.steps.routine_syntax_ids[row] == routine_syntax_id {
             expected_count = expected_count + 1;
@@ -56,10 +56,10 @@ func MirIntentExecutionRoutineStepRows(
         row = row + 1;
     }
     if root < 0 { return rows; }
-    let current: Int = root;
+    var current: Int = root;
     while current >= 0 {
         ArrayPush(rows, current);
-        let child: Int = 0 - 1;
+        var child: Int = 0 - 1;
         row = 0;
         while row < ArrayLength(plan.steps.transition_ids) {
             if plan.steps.routine_syntax_ids[row] == routine_syntax_id &&
@@ -80,9 +80,9 @@ func MirIntentExecutionReturnTypeForRoutine(
     ref plan: MirIntentExecutionPlan,
     routine_syntax_id: Int
 ) -> String {
-    let result_type: String = "";
-    let count: Int = 0;
-    let row: Int = 0;
+    var result_type: String = "";
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.terminals.terminal_transition_ids) {
         if plan.terminals.routine_syntax_ids[row] == routine_syntax_id {
             if result_type != "" && result_type !=
@@ -109,7 +109,7 @@ func MirIntentExecutionStepHeader(
         (zone_alias == "") != (plan.steps.where_zone_names[step_row] == "") {
         return "";
     }
-    let header: String = Concat(
+    var header: String = Concat(
         "    IntentStep: ", plan.steps.step_names[step_row]
     );
     if plan.steps.predecessor_transition_ids[step_row] != 0 {
@@ -156,11 +156,11 @@ func MirIntentExecutionPhaseTreeLines(
         step_index >= ArrayLength(phases.compensate_counts) {
         return "";
     }
-    let tree: String = MirIntentTreeAppendLine(
+    var tree: String = MirIntentTreeAppendLine(
         "", Concat("      On: ", phases.on_texts[step_index])
     );
     tree = Concat(tree, MirIntentExecutionStepBranchLines(plan, step_row));
-    let compensation: Int = 0;
+    var compensation: Int = 0;
     while compensation < phases.compensate_counts[step_index] {
         let row: Int = phases.compensate_starts[step_index] + compensation;
         if row < 0 || row >= ArrayLength(phases.compensate_texts) {
@@ -203,10 +203,10 @@ func MirIntentExecutionAppendTerminalLines(
     routine_syntax_id: Int,
     inout order: MirStructuredExpressionEmissionOrder
 ) -> String {
-    let success_lines: String = "";
-    let failure_lines: String = "";
-    let success_count: Int = 0;
-    let row: Int = 0;
+    var success_lines: String = "";
+    var failure_lines: String = "";
+    var success_count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.terminals.terminal_transition_ids) {
         if plan.terminals.routine_syntax_ids[row] == routine_syntax_id {
             let global_row: Int = MirIntentExecutionInstructionGlobalRow(

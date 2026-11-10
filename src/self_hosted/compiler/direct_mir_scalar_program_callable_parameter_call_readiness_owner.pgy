@@ -18,7 +18,7 @@ func DirectMirScalarProgramCallableParameterCallNodeReady(
     if nary && (facts.node_lefts[node] != -1 || facts.node_rights[node] != -1) {
         return false;
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         let argument: Int = arguments[ordinal];
         if argument < 0 || argument >= node ||

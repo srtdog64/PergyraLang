@@ -15,22 +15,22 @@ func CodegenIntentZoneAuthorityTransitionsFromMirOrDie(
             ArrayLength(routines.names) {
         Die("MIR Intent Zone authority transition receipt is missing");
     }
-    let canonical_ids: Array<Int> = [];
-    let intent_names: Array<String> = [];
-    let step_names: Array<String> = [];
-    let zone_aliases: Array<String> = [];
-    let zone_type_names: Array<String> = [];
-    let zone_binding_kinds: Array<String> = [];
-    let actor_aliases: Array<String> = [];
-    let actor_type_names: Array<String> = [];
-    let actor_slot_names: Array<String> = [];
-    let actor_slot_ids: Array<String> = [];
-    let authority_present: Array<Bool> = [];
-    let authority_aliases: Array<String> = [];
-    let authority_type_names: Array<String> = [];
-    let authority_slot_names: Array<String> = [];
-    let authority_slot_ids: Array<String> = [];
-    let row: Int = 0;
+    var canonical_ids: Array<Int> = [];
+    var intent_names: Array<String> = [];
+    var step_names: Array<String> = [];
+    var zone_aliases: Array<String> = [];
+    var zone_type_names: Array<String> = [];
+    var zone_binding_kinds: Array<String> = [];
+    var actor_aliases: Array<String> = [];
+    var actor_type_names: Array<String> = [];
+    var actor_slot_names: Array<String> = [];
+    var actor_slot_ids: Array<String> = [];
+    var authority_present: Array<Bool> = [];
+    var authority_aliases: Array<String> = [];
+    var authority_type_names: Array<String> = [];
+    var authority_slot_names: Array<String> = [];
+    var authority_slot_ids: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(source.routine_rows) {
         let routine: Int = source.routine_rows[row];
         if routine < 0 || routine >= ArrayLength(routines.names) {

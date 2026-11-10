@@ -14,7 +14,7 @@ func Fail(code: String, ids: Array<Int>, names: Array<String>) -> Facts {
 }
 
 func IndexFor(ref ids: Array<Int>, id: Int) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(ids) {
         if ids[i] == id { return Some(i); }
         i = i + 1;
@@ -27,7 +27,7 @@ func Append(inout ids: Array<Int>, inout names: Array<String>, id: Int,
     if IsSome(IndexFor(ids, id)) { return true; }
     if id < 0 { return false; }
     ArrayPush(ids, id);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(actuals) {
         ArrayPushOwnedString(names, actuals[i]);
         i = i + 1;
@@ -36,14 +36,14 @@ func Append(inout ids: Array<Int>, inout names: Array<String>, id: Int,
 }
 
 func Build(n: Int) -> Facts {
-    let ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let actuals: Array<String> = [];
+    var ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var actuals: Array<String> = [];
     ArrayPush(actuals, "x");
     if n < 0 {
         return Fail("negative", ids, names);
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < n {
         if !IsSome(IndexFor(ids, node)) {
             if node == 7 {

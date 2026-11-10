@@ -21,6 +21,8 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let string_substring_with_len: CompilerRuntimeCallAbiFact;
     let string_sub_equals_with_len: CompilerRuntimeCallAbiFact;
     let string_sub_index_with_len: CompilerRuntimeCallAbiFact;
+    let string_sub_contains_with_len: CompilerRuntimeCallAbiFact;
+    let string_sub_starts_with_len: CompilerRuntimeCallAbiFact;
     let string_index: CompilerRuntimeCallAbiFact;
     let string_trim: CompilerRuntimeCallAbiFact;
     let string_contains: CompilerRuntimeCallAbiFact;
@@ -65,6 +67,10 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
             "sub-equals-with-len", StringRuntimeCSubEqualsWithLenFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "sub-index-of-with-len", StringRuntimeCSubIndexOfWithLenFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "sub-contains-with-len", StringRuntimeCSubContainsWithLenFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "sub-starts-with-len", StringRuntimeCSubStartsWithLenFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "index-of", StringRuntimeCStringIndexOfFn()),
         DirectMirScalarProgramStringTrimRuntimeProjection(),

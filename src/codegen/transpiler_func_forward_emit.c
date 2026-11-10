@@ -281,7 +281,12 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_destroy(params_sig);
         return;
     }
-    codebuf_write(buf, "%s;\n", header_decl);
+    /* A non-exported source routine belongs to this composed translation
+     * unit. Keep that identity visible to C's interprocedural optimizer;
+     * foreign declarations and explicitly exported routines retain linkage. */
+    bool local_routine = mir_routine != NULL && !extern_func
+        && node != NULL && !node->is_exported;
+    codebuf_write(buf, "%s%s;\n", local_routine ? "static " : "", header_decl);
     free(header_decl);
     codebuf_destroy(params_sig);
 }

@@ -10,9 +10,9 @@ func DirectMirScalarProgramBuiltinArgumentPrefixReady(
 ) -> Bool {
     if !signature.valid || ArrayLength(actual_types) >
             ArrayLength(signature.parameter_types) { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(actual_types) {
-        let expected: String = signature.parameter_types[i];
+        var expected: String = signature.parameter_types[i];
         if signature.name == "ToUpper" ||
                 signature.name == "ToLower" { expected = "String"; }
         expected = DirectMirScalarProgramCollectionBuiltinArgumentType(

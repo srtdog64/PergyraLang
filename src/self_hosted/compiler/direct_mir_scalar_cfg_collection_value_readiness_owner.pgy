@@ -7,8 +7,8 @@ func DirectMirScalarCfgCollectionValueLength(
     ref values: DirectMirScalarCfgCollectionValueSet, wanted: Int
 ) -> Int {
     if wanted < 0 || wanted >= ArrayLength(values.value_ids) { return -1; }
-    let row: Int = wanted;
-    let steps: Int = 0;
+    var row: Int = wanted;
+    var steps: Int = 0;
     while values.predecessor_value_rows[row] >= 0 {
         row = values.predecessor_value_rows[row]; steps = steps + 1;
         if row < 0 || row >= ArrayLength(values.value_ids) ||
@@ -39,7 +39,7 @@ func DirectMirScalarCfgCollectionValuesReady(
         count != ArrayLength(values.initial_element_counts) { return false; }
     let layout: DirectMirArrayStorageLayoutContract =
         DirectMirArrayStorageLayoutContractFact();
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let predecessor: Int = values.predecessor_value_rows[row];
         if values.definition_global_rows[row] < 0 ||
@@ -83,7 +83,7 @@ func DirectMirScalarCfgCollectionValuesReady(
                 values.capacity_offsets[row] ||
             values.allocator_offsets[predecessor] !=
                 values.allocator_offsets[row] { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if values.value_ids[prior] == values.value_ids[row] ||
                 values.definition_global_rows[prior] ==

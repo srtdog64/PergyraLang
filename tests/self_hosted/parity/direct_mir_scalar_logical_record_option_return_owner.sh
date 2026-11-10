@@ -37,8 +37,12 @@ rm -f "$WORK_DIR"/*
 grep -Fq '"name":"ProbeFact"' "$MIR" || fail "record declaration missing"
 grep -Fq '"abi_type_name":"Option<ProbeFact>","abi_layout_id":0,"abi_layout_required":false,"abi_layout":null' "$MIR" ||
     fail "producer omitted ABI-free logical-record Option carrier"
+for parameter in left right; do
+    grep -Fq "\"name\":\"$parameter\",\"source_syntax_id\":" "$MIR" ||
+        fail "producer omitted $parameter Option parameter"
+done
 
-printf 'record-option\nwrapped\n' >"$WORK_DIR/expected.run"
+printf 'record-option\nwrapped\ntrue\nfalse\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do
     artifact_rel="$WORK_REL/program.$backend"
     artifact="$ROOT_DIR/$artifact_rel"
@@ -53,6 +57,8 @@ for backend in c llvm; do
     if [[ "$backend" == c ]]; then
         grep -Eq 'pgy_scalar_option_logical_record_[0-9]+' "$artifact" ||
             fail "C artifact omitted logical-record Option representation"
+        grep -Eq 'pgy_scalar_option_logical_record_[0-9]+ pgy_param_0, pgy_scalar_option_logical_record_[0-9]+ pgy_param_1' "$artifact" ||
+            fail "C artifact omitted two direct Option parameters"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
             command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
@@ -66,6 +72,8 @@ for backend in c llvm; do
     else
         grep -Eq '^%pgy\.scalar\.option\.logical\.record\.[0-9]+ = type' "$artifact" ||
             fail "LLVM artifact omitted logical-record Option representation"
+        grep -Eq '%pgy\.scalar\.option\.logical\.record\.[0-9]+ %pgy\.param\.0, %pgy\.scalar\.option\.logical\.record\.[0-9]+ %pgy\.param\.1' "$artifact" ||
+            fail "LLVM artifact omitted two direct Option parameters"
         # UnwrapOption's failing path reports through the runtime panic export.
         grep -Fq 'declare void @pgy_runtime_panic_internal_invariant_export(ptr)' "$artifact" ||
             fail "LLVM logical-record Option unwrap lost the runtime panic ABI"
@@ -84,7 +92,9 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-for mutation in return-carrier local-carrier record-physical-abi; do
+for mutation in return-carrier local-carrier record-physical-abi \
+        parameter-carriage parameter-resource parameter-pass \
+        parameter-physical-abi parameter-unknown-payload; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

@@ -21,10 +21,10 @@ func SelfMirDeclarationStringRangeReady(
     if start < 0 || count < 0 || start + count > ArrayLength(rows) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if rows[start + i] == "" { return false; }
-        let j: Int = 0;
+        var j: Int = 0;
         while j < i {
             if rows[start + j] == rows[start + i] { return false; }
             j = j + 1;
@@ -40,8 +40,8 @@ func SelfMirDeclarationContractVocabularyRangeReady(
     if !SelfMirDeclarationStringRangeReady(rows, start, count) {
         return false;
     }
-    let previous_rank: Int = -1;
-    let i: Int = 0;
+    var previous_rank: Int = -1;
+    var i: Int = 0;
     while i < count {
         let index: Int = CallableContractVocabularyFindIndex(
             axis, Concat("", rows[start + i])
@@ -135,13 +135,13 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
         !SelfMirEnumDeclarationPayloadRowsReady(rows) {
         return false;
     }
-    let field_cursor: Int = 0;
-    let method_cursor: Int = 0;
-    let variant_cursor: Int = 0;
-    let generic_cursor: Int = 0;
-    let role_slot_cursor: Int = 0;
-    let role_impl_cursor: Int = 0;
-    let i: Int = 0;
+    var field_cursor: Int = 0;
+    var method_cursor: Int = 0;
+    var variant_cursor: Int = 0;
+    var generic_cursor: Int = 0;
+    var role_slot_cursor: Int = 0;
+    var role_impl_cursor: Int = 0;
+    var i: Int = 0;
     while i < count {
         if rows.names[i] == "" || rows.kinds[i] == "" ||
             rows.source_module_paths[i] == "" ||
@@ -163,8 +163,8 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
             rows.role_impl_counts[i] < 0 {
             return false;
         }
-        let subject_slot_count: Int = 0;
-        let field_i: Int = 0;
+        var subject_slot_count: Int = 0;
+        var field_i: Int = 0;
         while field_i < rows.field_counts[i] {
             let field_row: Int = field_cursor + field_i;
             if rows.field_names[field_row] == "" ||
@@ -175,7 +175,7 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
                 ) {
                 return false;
             }
-            let prior_field_row: Int = 0;
+            var prior_field_row: Int = 0;
             while prior_field_row < field_row {
                 if rows.field_source_syntax_ids[prior_field_row] ==
                     rows.field_source_syntax_ids[field_row] { return false; }
@@ -192,13 +192,13 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
                 subject_slot_count != 2) {
             return false;
         }
-        let authority_i: Int = 0;
+        var authority_i: Int = 0;
         while authority_i <
             rows.zone_authorities.declaration_counts[i] {
             let authority_row: Int =
                 rows.zone_authorities.declaration_starts[i] + authority_i;
-            let slot_matches: Int = 0;
-            let authority_field_i: Int = 0;
+            var slot_matches: Int = 0;
+            var authority_field_i: Int = 0;
             while authority_field_i < rows.field_counts[i] {
                 let authority_field_row: Int =
                     field_cursor + authority_field_i;
@@ -229,15 +229,15 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
         role_impl_cursor != ArrayLength(rows.role_impl_ability_names) {
         return false;
     }
-    let method_param_cursor: Int = 0;
-    let requires_cursor: Int = 0;
-    let authority_cursor: Int = 0;
-    let cap_cursor: Int = 0;
-    let effect_cursor: Int = 0;
+    var method_param_cursor: Int = 0;
+    var requires_cursor: Int = 0;
+    var authority_cursor: Int = 0;
+    var cap_cursor: Int = 0;
+    var effect_cursor: Int = 0;
     i = 0;
     while i < ArrayLength(rows.method_names) {
         if rows.method_source_syntax_ids[i] <= 0 { return false; }
-        let previous_method: Int = 0;
+        var previous_method: Int = 0;
         while previous_method < i {
             if rows.method_source_syntax_ids[previous_method] ==
                 rows.method_source_syntax_ids[i] { return false; }

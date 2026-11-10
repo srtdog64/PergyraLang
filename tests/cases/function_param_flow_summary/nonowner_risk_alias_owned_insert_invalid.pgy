@@ -13,7 +13,7 @@ func Main() -> Void {
     if IsSome(selected) {
         let text: String = UnwrapOption(selected);
         let no_texts: Array<String> = [];
-        let alias = no_texts;
+        var alias = no_texts;
         Log(NonownerRead(text));
         ArrayPushOwnedString(alias, Concat("owned", " value"));
     }

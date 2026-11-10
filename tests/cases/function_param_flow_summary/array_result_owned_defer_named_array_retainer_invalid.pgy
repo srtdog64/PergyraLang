@@ -3,7 +3,7 @@ extern "C" {
 }
 
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }

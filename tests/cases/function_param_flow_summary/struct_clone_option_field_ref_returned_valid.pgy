@@ -10,7 +10,7 @@ func Copy(ref box: Box) -> Box {
 }
 
 func Main() -> Int {
-    let a: Box = Box(Some(StringConcat("l", "")), [1]);
+    var a: Box = Box(Some(StringConcat("l", "")), [1]);
     let b: Box = Copy(a);
     ArrayPush(a.ids, 2);
     Print(UnwrapOption(b.label));

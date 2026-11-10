@@ -54,7 +54,7 @@ func CompilerHarnessSemanticParityReady() -> Bool {
     if CompilerHarnessSemanticPathCount() != 7 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessSemanticPathCount() {
         if CompilerHarnessSemanticPathAt(i) == "" {
             return false;

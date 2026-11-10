@@ -17,7 +17,9 @@ func DirectMirScalarControlFlowProgramRouteClaimed(ref admitted: MirMachineLayer
     let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
             admitted.routines, 0, first_block_count);
     if !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.name != "Main" || signature.return_type != "Void" || signature.param_count != 0 {
+        signature.name != "Main" ||
+        !DirectMirScalarCfgEntrypointReturnTypeSupported(signature.return_type) ||
+        signature.param_count != 0 {
         return false;
     }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(admitted.routines, 0);
@@ -32,20 +34,20 @@ func DirectMirScalarControlFlowRoutineRouteClaimed(ref admitted: MirMachineLayer
     if !DirectMirRoutineSignatureFactReady(signature) || !index.valid ||
         signature.kind != "function" || (signature.return_type != "Void" &&
             !DirectMirScalarCfgScalarTypeSupported(signature.return_type)) { return false; }
-    let parameter: Int = 0;
+    var parameter: Int = 0;
     while parameter < signature.param_count {
         if !DirectMirScalarCfgScalarTypeSupported(signature.parameters.type_names[parameter]) ||
             (signature.parameters.carriages[parameter] != "value" &&
              signature.parameters.carriages[parameter] != "value-result") { return false; }
         parameter = parameter + 1;
     }
-    let local_binding: Int = 0;
+    var local_binding: Int = 0;
     while local_binding < ArrayLength(index.source_local_types) {
         if !DirectMirScalarCfgSourceLocalTypeSupported(index.source_local_types[local_binding]) &&
             !CompilerRuntimeValueTypeReady(index.source_local_types[local_binding]) { return false; }
         local_binding = local_binding + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(index.instruction_facts.starts) {
         let global_row: Int = index.instruction_facts.global_start + row;
         let kind: String = admitted.routines.instruction_kinds[global_row];

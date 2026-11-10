@@ -69,7 +69,7 @@ func SemanticAstOwnedStringResultDomainForFunction(
         ArrayLength(facts.allocator_formal_ordinals) != count {
         return SemanticAstOwnedStringDomainUnknown();
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if facts.function_syntax_ids[row] == function_syntax_id {
             let domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringAllocationDomain(
@@ -97,7 +97,7 @@ func SemanticAstOwnedStringResultFactsReady(
         ArrayLength(facts.domain_kinds) != count ||
         ArrayLength(facts.allocator_formal_syntax_ids) != count ||
         ArrayLength(facts.allocator_formal_ordinals) != count { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let id: Int = facts.function_syntax_ids[row];
         let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, id);
@@ -117,7 +117,7 @@ func SemanticAstOwnedStringResultFactsReady(
                 signatures.param_types[UnwrapOption(parameter)] != "Allocator" ||
                 signatures.param_modes[UnwrapOption(parameter)] != 0 { return false; }
         } else { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if facts.function_syntax_ids[prior] == id { return false; }
             prior = prior + 1;

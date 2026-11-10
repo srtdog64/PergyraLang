@@ -52,7 +52,7 @@ func DirectMirObjectFieldKindEquals(
 
 func DirectMirObjectArrayEmpty(
     ref fact_table: JsonObjectFactTable, field: String) -> Bool {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(fact_table, field, bounds) { return false; }
     let cursor: Int = JsonSkipWhitespaceWithin(
         fact_table.json, fact_table.json_extent, bounds[0] + 1, bounds[1]);
@@ -108,7 +108,7 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     let length: Int = StringLength(literal);
     if length < 2 || CharCode(literal, length, 0) != 34 ||
         CharCode(literal, length, length - 1) != 34 { return None; }
-    let i: Int = 1;
+    var i: Int = 1;
     while i < length - 1 {
         let code: Int = CharCode(literal, length, i);
         if code < 32 || code > 126 || code == 34 || code == 92 { return None; }
@@ -258,7 +258,7 @@ func DirectMirHelloGraphProjection(
 
 func DirectMirScalarLocalRow(
     local_names: Array<String>, wanted: String) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(local_names) {
         if local_names[row] == wanted { return row; }
         row = row + 1;
@@ -329,15 +329,15 @@ func DirectMirScalarUsesMatch(
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int, left_result: String, right_result: String
 ) -> Bool {
-    let expected_count: Int = 2;
+    var expected_count: Int = 2;
     if left_result == right_result { expected_count = 1; }
     if MirRoutineInstructionUseCountAtGlobal(
         use_facts, global_row) != expected_count {
         return false;
     }
-    let left_seen: Bool = false;
-    let right_seen: Bool = false;
-    let use_row: Int = 0;
+    var left_seen: Bool = false;
+    var right_seen: Bool = false;
+    var use_row: Int = 0;
     while use_row < expected_count {
         let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
             use_facts, global_row, use_row);
@@ -400,7 +400,7 @@ func DirectMirScalarLogGraphAppend(
         sequence.arena.topology.right_children[5] != 4 {
         Die("direct MIR scalar arithmetic add node or multiply operator node or edge is missing or invalid");
     }
-    let target_row: Int = 2;
+    var target_row: Int = 2;
     while target_row < 6 {
         if sequence.arena.call_target_kinds[target_row] !=
                 SemanticCallTargetNone() ||
@@ -446,7 +446,7 @@ func DirectMirScalarBlockProjectionCandidate(
     if !routine_index.valid || local_count < 1 ||
         local_count != ArrayLength(routine_index.source_local_types) ||
         instruction_count <= local_count { return false; }
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < local_count {
         if routine_index.source_local_types[local_row] != "Int" ||
             StringLength(routine_index.source_local_names[local_row]) == 0 {
@@ -476,13 +476,13 @@ func DirectMirScalarBlockProjectionFromAdmitted(
         instruction_count <= local_count {
         Die("direct MIR scalar local inventory or instruction order is invalid");
     }
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < local_count {
         if routine_index.source_local_types[local_row] != "Int" ||
             StringLength(routine_index.source_local_names[local_row]) == 0 {
             Die("direct MIR scalar local type inventory is missing or invalid");
         }
-        let prior_row: Int = 0;
+        var prior_row: Int = 0;
         while prior_row < local_row {
             if routine_index.source_local_names[prior_row] ==
                     routine_index.source_local_names[local_row] {
@@ -514,9 +514,9 @@ func DirectMirScalarBlockProjectionFromAdmitted(
     }
     let local_names: Array<String> =
         routine_index.source_local_names;
-    let result_names: Array<String> = [];
-    let integer_literals: Array<String> = [];
-    let definition_row: Int = 0;
+    var result_names: Array<String> = [];
+    var integer_literals: Array<String> = [];
+    var definition_row: Int = 0;
     while definition_row < local_count {
         let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, 0, 0, definition_row
@@ -551,10 +551,10 @@ func DirectMirScalarBlockProjectionFromAdmitted(
         ArrayPush(integer_literals, literal);
         definition_row = definition_row + 1;
     }
-    let left_rows: Array<Int> = [];
-    let right_rows: Array<Int> = [];
-    let binary_kinds: Array<Int> = [];
-    let statement_row: Int = local_count;
+    var left_rows: Array<Int> = [];
+    var right_rows: Array<Int> = [];
+    var binary_kinds: Array<Int> = [];
+    var statement_row: Int = local_count;
     while statement_row < instruction_count {
         let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, 0, 0, statement_row

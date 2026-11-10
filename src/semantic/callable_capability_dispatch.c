@@ -2,19 +2,34 @@
 #include "callable_capability_equations_internal.h"
 #include "type_checker_internal.h"
 
-void
+Type *
 callable_capability_record_abstract_method(SemanticContext *ctx,
     ASTNode *method, Type **params, size_t count, Type *result)
 {
     CallableCapabilityRoutine *previous = callable_capability_enter(ctx, method, params, count);
     CallableCapabilityRoutine *routine = ctx->current_callable_capability;
-    if (routine == NULL || routine == previous) return;
+    if (routine == NULL || routine == previous) return NULL;
     routine->abstract_dispatch = true;
     routine->declared_effects = declared_effects_from_function_node(method, ctx,
         &routine->has_effect_contract);
     Type *signature = type_create_function(params, count, result);
-    if (signature == NULL) semantic_error(ctx, method, "Could not allocate abstract callable capability signature");
+    if (signature == NULL) {
+        semantic_error(ctx, method,
+            "Could not allocate abstract callable capability signature");
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            FuncParam *param = ast_func_param(method, i);
+            if (param != NULL)
+                type_function_set_param_mode(signature, i, param->mode);
+        }
+        /* An abstract declaration has no body that can prove a borrowed
+         * parameter stays local.  Publish the typed signature, but retain the
+         * conservative escape summary until the dynamic implementation owner
+         * closes the call. */
+        type_function_set_body_summary(signature, BODY_SUMMARY_MAY_ESCAPE_REF);
+    }
     callable_capability_leave(ctx, previous, signature, 0, 0);
+    return signature;
 }
 
 void

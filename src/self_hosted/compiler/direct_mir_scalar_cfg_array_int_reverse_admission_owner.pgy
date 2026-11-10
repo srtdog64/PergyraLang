@@ -18,15 +18,15 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     let invalid: DirectMirScalarCfgArrayIntProgramFact =
         DirectMirScalarCfgArrayIntProgramFactEmpty();
-    let result: DirectMirScalarCfgArrayIntDerivedCollectionFact =
+    var result: DirectMirScalarCfgArrayIntDerivedCollectionFact =
         DirectMirScalarCfgArrayIntDerivedCollectionFactEmpty();
-    let reverse_global: Int = -1;
-    let log_globals: Array<Int> = [];
-    let log_kinds: Array<Int> = [];
-    let log_indices: Array<Int> = [];
-    let source_uses: Int = 0;
-    let result_uses: Int = 0;
-    let instruction: Int = 0;
+    var reverse_global: Int = -1;
+    var log_globals: Array<Int> = [];
+    var log_kinds: Array<Int> = [];
+    var log_indices: Array<Int> = [];
+    var source_uses: Int = 0;
+    var result_uses: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -101,7 +101,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
                 ArrayPush(log_indices, observation.index);
             }
         }
-        let use_row: Int = 0;
+        var use_row: Int = 0;
         while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
             let value: Option<String> =
                 MirRoutineInstructionUseAtGlobal(uses, global, use_row);
@@ -123,7 +123,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
         );
     let reverse_position: DirectMirScalarCfgInstructionPositionFact =
         DirectMirScalarCfgInstructionPositionAt(index, reverse_global);
-    let log_row: Int = 0;
+    var log_row: Int = 0;
     while log_row < ArrayLength(log_globals) {
         let position: DirectMirScalarCfgInstructionPositionFact =
             DirectMirScalarCfgInstructionPositionAt(
@@ -145,7 +145,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
             index, source_definition,
             reverse_position.block, reverse_position.local_binding
         ) { return invalid; }
-    let operation_rows: Array<Int> = [];
+    var operation_rows: Array<Int> = [];
     log_row = 0;
     while log_row < ArrayLength(log_globals) {
         ArrayPush(operation_rows, -1); log_row = log_row + 1;

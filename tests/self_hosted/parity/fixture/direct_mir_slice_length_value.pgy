@@ -1,0 +1,6 @@
+func NumberLength(view: Slice<Int>) -> Int { return ArrayLength(view); }
+func LabelLength(view: Slice<String>) -> Int { return ArrayLength(view); }
+
+func Main() -> Void {
+    Log(7);
+}

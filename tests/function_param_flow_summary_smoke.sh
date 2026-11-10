@@ -38,6 +38,26 @@ env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"
 # must fail at the borrow boundary, never at artifact OOM.
 # Reuse the admitted worker/capture inputs at their existing owners. A
 # conservative unknown-capture result must not replace their checked facts.
+
+# An `own String` formal transfers into an Array literal exactly once.  The
+# positive must reach MIR; the duplicate transfer must fail at its second use,
+# before either backend can emit or execute it.
+owned_string_literal = root / "tests/cases/function_param_flow_summary"
+checked = subprocess.run(
+    [pgy, "--native-pipeline", "--mir-json", "--error-format=json",
+     str(owned_string_literal / "owned_string_formal_literal_transfer_valid.pgy")],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15.0, check=False)
+if checked.returncode != 0 or b'"pgy.mir.v1"' not in checked.stdout:
+    sys.stderr.buffer.write(checked.stderr)
+    raise SystemExit("owned String formal literal transfer lost MIR admission")
+reused = subprocess.run(
+    [pgy, "--native-pipeline", "--mir-json", "--error-format=json",
+     str(owned_string_literal / "owned_string_formal_literal_reuse_invalid.pgy")],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15.0, check=False)
+if reused.returncode == 0 or b'PGY_SEM_MOVE_FROM_RELEASED' not in reused.stderr:
+    sys.stderr.buffer.write(reused.stderr)
+    raise SystemExit("owned String formal duplicate transfer was not refused")
+
 for relative in (
     "backend_compare/closure_copy_capture/main.pgy",
     "backend_compare/event_lambda_handler/main.pgy",
@@ -58,6 +78,23 @@ for relative in (
     if checked.returncode != 0 or b'"pgy.mir.v1"' not in checked.stdout:
         sys.stderr.buffer.write(checked.stderr)
         raise SystemExit(f"existing worker/capture positive lost MIR admission: {relative}")
+
+# This production bridge detaches several arrays from one aggregate, then
+# hands them to one multi-inout parser importer.  The importer may replace the
+# String-element fact while preserving the exact call-entry premise.  Recheck
+# the executable module itself so finalization cannot regress to replaying the
+# post-call fact as the pre-call MEMBER_MOVE carrier.
+aggregate_member_inout_bridge = (
+    root / "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy"
+)
+checked = subprocess.run(
+    [pgy, "--native-pipeline", "--mir-json", "--error-format=json",
+     str(aggregate_member_inout_bridge)],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30.0, check=False)
+if checked.returncode != 0 or b'"pgy.mir.v1"' not in checked.stdout:
+    sys.stderr.buffer.write(checked.stderr)
+    raise SystemExit(
+        "aggregate member inout bridge lost its exact call-entry receipt")
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 selected_call_targets = {
     "source_callable_class_tostring_constructor_valid": ("ToString", "class", "ToString", "none"),
@@ -69,16 +106,41 @@ selected_call_targets = {
 # Positive fixtures whose String push lands as an owned copy: routine and the
 # number of ArrayPushOwnedString calls it must reach MIR with.
 owned_push_landings = {
-    "owned_copy_string_push_landed_valid": ("Main", 1),
+    "aggregate_inout_member_constructor_transfer_valid": ("Attach", 1),
+    "aggregate_inout_member_local_chain_owned_push_valid": ("Append", 2),
+    "aggregate_member_constructor_transfer_valid": ("Append", 2),
+    "aggregate_member_local_chain_owned_push_valid": ("Append", 2),
+    "aggregate_member_landed_string_push_valid": ("Append", 1),
     "formal_string_push_same_routine_batch_valid": ("FormalStringPushBatchApply", 3),
     "owned_string_push_multi_receiver_batch_valid": ("OwnedStringPushBatchApply", 3),
     "string_element_push_copy_landing_valid": ("Selected", 1),
+    "nested_member_carrier_interleaved_value_copy_preserves_elements_valid":
+        ("Build", 2),
+    "constructor_string_field_snapshot_before_finalize_landed_valid": ("IdentityNames", 1),
+    "nonowner_risk_owned_constructor_transfer_landed_valid": ("Build", 1),
+    "nonowner_risk_read_before_terminal_constructor_transfer_landed_valid":
+        ("Build", 1),
+    "nonowner_risk_declared_result_transfer_landed_valid": ("Main", 1),
+    "nonowner_risk_local_nominal_carrier_return_landed_valid": ("Build", 1),
     # The recursive chain itself remains scoped by push/pop; only the result
     # stored in out_blocks lands as one owned String.
     "inout_string_chain_popped_by_recursive_parser_valid": ("Decls", 1),
     "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
+    "returned_owned_array_independent_push_landed_valid": ("Main", 2),
+    "returned_owned_array_literal_independent_push_landed_valid": ("Main", 1),
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
     "formal_string_store_landing_local_receiver_valid": ("Gather", 1),
+    "empty_local_shallow_push_then_inout_owned_writer_landed_valid":
+        ("Main", 1),
+    "formal_string_store_released_local_member_path_set_landed_valid":
+        ("Main", 1),
+    "ref_loan_local_stored_into_inout_output_landed_valid": ("Lend", 1),
+    "private_array_push_return_escape_landed_valid": ("Build", 1),
+    "private_array_push_wrapper_escape_landed_valid": ("Build", 1),
+    # The two mutually-recursive results have no final owned-source proof, so
+    # their owned pushes perform the two required independent String copies.
+    # Fresh keeps its proved owned result and needs no copy.
+    "mutual_recursion_declared_result_stored_valid": ("Main", 2),
     # A loan pushed into inout Arrays is copied by the owned pushes alone.
     "by_value_getter_lend_kept_landed_valid": ("Collect", 1),
     "by_value_getter_lend_kept_twice_landed_valid": ("Collect", 2),
@@ -86,6 +148,9 @@ owned_push_landings = {
     "formal_store_landing_alias_output_valid": ("Append", 1),
     "formal_string_store_landing_field_take_valid": ("Append", 1),
     "formal_string_store_landing_value_source_valid": ("Append", 1),
+    # The returned private Array takes ownership at its store; the caller's
+    # inout assignment transfers that already-independent descriptor.
+    "ref_loan_stored_into_inout_output_landed_valid": ("CarriersFrom", 1),
     "named_string_same_empty_borrowed_then_owned_direct_landed_valid": ("Project", 2),
     "named_string_same_empty_owned_then_borrowed_direct_landed_valid": ("Project", 2),
     "named_string_same_empty_owned_then_borrowed_named_landed_valid": ("Project", 2),
@@ -94,9 +159,106 @@ owned_push_landings = {
     "string_inout_unwrapped_literal_then_escape_call_landed_valid": ("Mark", 1),
     "string_inout_returned_literal_then_own_release_landed_valid": ("Mark", 1),
 }
+# The first push already stores a compiler-inserted independent Clone and
+# therefore remains the general ArrayPush with an owned-effect receipt.  The
+# later ambiguous value lands as ArrayPushOwnedString.  Both receipts must
+# reach MIR; spelling alone is not the ownership source of truth.
+mixed_owned_push_receipts = {
+    "named_string_all_def0_branch_valid": ("Observe", 1, 1),
+    # The borrowed getter result is copied at its store. The independent
+    # StringConcat result transfers directly through the general push receipt.
+    "by_value_getter_lend_string_collected_valid": ("Collect", 1, 1),
+    # Static literals need independent element copies; the CharAtN result is
+    # already an owned producer and transfers without a redundant strdup.
+    "static_literal_and_owned_string_push_landed_valid": ("Main", 1, 2),
+    # Clone owns the existing elements and StringConcat owns the new result;
+    # the general push transfers that exact producer without a copy landing.
+    "owned_copy_string_push_landed_valid": ("Main", 1, 0),
+    # Both direct Fresh results transfer through the general push. The two
+    # branch-held named values keep their selected independent-copy ABI.
+    "owned_string_array_mixed_push_plan_landed_valid": ("Main", 2, 2),
+    # A previous fixed-point round has already materialized the first typed
+    # push. It is the receiver-wide seed that lands the remaining shallow
+    # store; both stores must carry source-free owned receipts into MIR.
+    "replayed_owned_push_seeds_receiver_batch_landed_valid":
+        ("Main", 0, 2),
+    # The field carrier is the exact fresh empty Array from RowsEmpty. Both
+    # routines copy their borrowed element through an owned-push receipt.
+    "string_local_pushed_into_field_array_landed_valid": {
+        "Build": (0, 1), "Plan": (0, 1)},
+    "aggregate_local_direct_member_owned_push_valid": ("Build", 1, 0),
+    "aggregate_result_owned_field_push_valid": ("Append", 1, 0),
+    "aggregate_inout_direct_member_owned_push_valid": ("Append", 1, 0),
+    # The declared result owns the exact Option payload proof, so both plain
+    # pushes keep their general spelling and carry that producer identity.
+    "option_payload_owned_string_result_valid": ("Main", 2, 0),
+    # Only the static return branch is landed; the owned Option payload is
+    # neither copied again nor weakened to a shallow push.
+    "mixed_owned_static_string_result_valid": ("Main", 2, 0),
+    # The exact result receipt remains authoritative while the inout
+    # parameter summary is replayed during deferred finalization.
+    "inout_mixed_owned_string_result_valid": ("AppendMixed", 1, 0),
+}
+# A source ArraySet through an inout formal can replace an element owned by
+# every caller only through the typed copy-then-retire lowering.
+owned_set_landings = {
+    "array_result_owned_named_inout_shallow_set_landed_valid":
+        ("Corrupt", 1),
+    "inout_defers_alias_written_by_inout_callee_landed_valid":
+        ("Mark", 1),
+    "formal_string_store_landing_map_array_set_valid":
+        ("Put", 1),
+    "formal_string_store_ref_array_element_local_alias_set_landed_valid":
+        ("Replace", 1),
+    "string_element_inout_owner_named_call_landed_valid":
+        ("Replaced", 1),
+}
 # Positive fixtures whose landing reaches MIR as Clone calls (a formal's
 # String store, a copied getter loan): each routine and its Clone count.
 landed_clones = {
+    "aggregate_inout_direct_member_owned_push_valid": {"Append": 1},
+    "array_push_loan_past_owner_landed_valid": {"LabelsOf": 1},
+    "option_none_local_argument_kept_landed_valid": {"Make": 1},
+    "inout_string_chain_kept_before_pop_landed_valid": {"Keep": 1},
+    "inout_owned_string_nonempty_reused_landed_valid": {"Main": 1},
+    "inout_defers_kept_by_callee_before_nested_call_landed_valid": {"Stash": 1},
+    "inout_member_lent_result_exact_restore_valid": {"RestoreLeft": 0},
+    "aggregate_member_constructor_reuse_landed_valid": {
+        "MoveThenReuse": 1},
+    "constructor_owned_string_array_reuse_batch_landed_valid": {
+        "Main": 3},
+    "local_aggregate_copy_moved_to_own_landed_valid": {"Build": 1},
+    "local_ref_aggregate_carrier_moved_to_own_landed_valid": {
+        "Project": 1},
+    "ref_constructor_copyable_field_moved_to_own_landed_valid": {
+        "BorrowIntoCarrier": 1},
+    "own_rebind_ref_input_return_landed_valid": {"Adopt": 1},
+    "mapnew_ref_box_value_storage_landed_valid": {"Make": 1},
+    "physical_return_inout_landed_valid": {"ReadRecord": 1},
+    "call_result_field_inout_landed_valid": {"StoreRecord": 1},
+    "option_none_ref_loan_returned_landed_valid": {"Keep": 1},
+    # A borrowed Option payload does not receive owned-result authority; the
+    # existing copy owner lands the one independent String at its store.
+    "option_payload_borrowed_string_result_landed_valid": {"Main": 1},
+    "mixed_owned_static_string_result_valid": {"MixedText": 1},
+    "return_loan_direct_slot_valid": {"Publish": 0},
+    "return_loan_staged_slot_valid": {"Publish": 0},
+    "return_loan_mutated_literal_opaque_slot_valid": {"Publish": 0},
+    "return_loan_mutated_literal_assignment_valid": {"Publish": 0},
+    "return_loan_mutated_literal_bodyful_inout_valid": {"Publish": 0},
+    "return_loan_mutated_literal_two_aliases_valid": {"Publish": 0},
+    "return_loan_site_two_aliases_valid": {"Publish": 0},
+    "return_loan_two_alias_assignment_valid": {"Publish": 0},
+    "return_loan_using_alias_opaque_inout_valid": {"Publish": 0},
+    "local_ref_string_carrier_moved_to_own_landed_valid": {"BorrowText": 1},
+    # Every reaching replacement and the final return of one mutable String
+    # crosses an exact retention boundary. The definition owner lands those
+    # three copies; a shallow return without that receipt must stay refused.
+    "mutable_string_concat_branch_return_landed_valid": {"BuildFindings": 3},
+    "private_array_push_nonempty_ref_inserted_landed_valid": {"Build": 1},
+    "private_array_push_nonempty_ref_initial_landed_valid": {
+        "Build": 1, "Publish": 0},
+    "array_result_default_formal_conditional_copy_valid": {"Select": 1},
     "string_element_tostring_opaque_call_landed_valid": {"Main": 1},
     "string_argument_kept_copy_landed_valid": {"Block": 1},
     "string_copy_landing_same_function_batch_valid": {"Build": 2},
@@ -112,11 +274,15 @@ landed_clones = {
     "formal_string_store_batch_boundary_valid": {
         "FormalStringStoreBoundaryApply": 2},
     "formal_string_store_local_alias_set_landed_valid": {"Rename": 1},
-    "formal_string_store_ref_array_element_local_alias_set_landed_valid": {
-        "Replace": 1},
+    "formal_string_store_local_member_path_set_landed_valid": {"Rename": 1},
+    "formal_string_store_released_local_member_path_set_landed_valid":
+        {"Main": 1},
     "formal_string_store_landing_ref_push_valid": {"Collect": 1},
-    "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
-    "borrowed_owner_loan_grown_landed_valid": {"Nest": 1},
+    "formal_string_store_landing_map_array_set_valid": {"Label": 1},
+    "borrowed_owner_loan_grown_landed_valid": {"Borrow": 1},
+    "array_handoff_same_return_value_landed_valid": {"Build": 1},
+    "enum_payload_constructor_ref_field_owner_changed_landed_valid":
+        {"RefusalOf": 2},
     "string_crossing_window_pair_landed_valid": {"Wrap": 1},
     "formal_string_store_landing_value_set_valid": {"Rename": 1},
     "formal_string_store_landing_value_map_valid": {"Label": 1},
@@ -132,6 +298,7 @@ landed_clones = {
     "by_value_getter_lend_kept_landed_valid": {"Collect": 0},
     "by_value_getter_lend_kept_twice_landed_valid": {"Collect": 0},
     "by_value_getter_lend_kept_then_owned_landed_valid": {"Collect": 1},
+    "receiver_result_string_field_escape_landed_valid": {"Inspect": 1},
     "by_value_lend_result_written_argument_copied_landed_valid": {"Main": 1},
     "by_value_getter_lend_held_then_owned_landed_valid": {"Collect": 1},
     # One call lends two owners, and each gets its own verdict.
@@ -153,9 +320,15 @@ landed_clones = {
     "by_value_getter_lend_inout_then_returned_landed_valid": {"Use": 1},
     "nonowner_risk_rebind_clone_landed_valid": {"Main": 2},
     "nonowner_risk_local_carrier_landed_valid": {"Main": 1},
+    "nonowner_risk_empty_descriptor_nested_transfer_landed_valid": {
+        "Rebuild": 1},
+    "nonowner_risk_local_nominal_carrier_return_landed_valid": {"Build": 1},
     "array_result_owned_element_direct_return_landed_valid": {
         "CaptureDirect": 1, "Main": 1},
-    "named_string_identity_loop_reassignment_landed_valid": {"Main": 1},
+    "array_descriptor_kept_then_read_landed_valid": {"Keep": 1},
+    # The loop's selected ArrayPushOwnedString duplicates `text` on every
+    # execution.  A separate Clone would duplicate the same store again.
+    "named_string_identity_loop_reassignment_landed_valid": {"Main": 0},
     "named_string_field_lineage_same_call_retire_grow_landed_valid": {"Main": 2},
     "named_string_field_lineage_named_mapping_landed_valid": {"Main": 2},
     "named_string_field_lineage_mixed_return_landed_valid": {"Main": 2},
@@ -190,9 +363,6 @@ landed_clones = {
     # which no change reaches after the loan is made.
     "string_element_kept_by_callee_landed_valid": {"Lines": 1},
     "ref_loan_field_written_back_valid": {"Plan": 1},
-    "ref_loan_stored_into_inout_output_landed_valid": {"Fill": 1},
-    # The borrowed String each push into an Array taken from a field keeps.
-    "string_local_pushed_into_field_array_landed_valid": {"Build": 1, "Plan": 1},
     # Among borrowed literals a plain push keeps a Clone; an owned push has none.
     "string_element_push_copy_landing_mixed_landed_valid": {"Selected": 1},
     # The node Fill keeps holds a copy of the Array's String, so the drop is safe.
@@ -208,13 +378,17 @@ landed_clones = {
     # The by-value Array Pass hands to an inout writer is copied where Main passes it.
     "by_value_array_grown_by_inout_callee_landed_valid": {"Main": 1},
     "by_value_array_grown_two_calls_deep_landed_valid": {"Main": 1},
-    "by_value_array_grown_through_recursive_hand_off_landed_valid": {"Primary": 1, "Main": 1},
+    "by_value_array_grown_through_recursive_hand_off_landed_valid": {"Primary": 0, "Main": 1},
     # A by-value argument beside an inout one naming the same Array.
     "by_value_argument_beside_its_inout_landed_valid": {"Main": 1},
     "by_value_argument_before_its_inout_landed_valid": {"Main": 1},
     # One Array to several keeping formals of a call: each earlier argument is copied.
     "array_handed_to_two_keeping_formals_landed_valid": {"Build": 1},
     "array_handed_to_three_keeping_formals_landed_valid": {"Main": 2},
+    # A prior keeping call and the first of two later keeping arguments each
+    # receive an independent value; the final argument moves the original.
+    "array_kept_by_earlier_call_and_two_formals_landed_valid": {
+        "Keep": 1, "Main": 1},
     # Detaching and retiring an inout aggregate's fields moves the caller's
     # original value; its later-used shallow alias becomes independent.
     "array_field_detach_caller_alias_landed_valid": {"Main": 1},
@@ -223,34 +397,43 @@ landed_clones = {
     "one_storage_through_alias_in_two_parts_landed_valid": {"Make": 1},
     "one_storage_in_two_literal_elements_landed_valid": {"Grid": 1},
     "one_storage_in_two_map_parts_landed_valid": {"Make": 1},
-    # The two recursive results are copied; Fresh's new String is not, as the
-    # flow summaries stay open across the mutually recursive demand.
-    "mutual_recursion_declared_result_stored_valid": {"Main": 2},
-    # Maps Clone copies slot by slot: each copy the rules select lands.
+    # Maps Clone copies slot by slot: each copy the rules select lands.  The
+    # HolderChanged call mutates only the disjoint `carry` field, so its
+    # `table` field must not acquire a whole-aggregate Clone.
     "default_aggregate_move_map_field_set_landed_valid": {"Main": 1},
     "formal_field_map_copy_changed_at_exit_landed_valid": {"GrowAndReturn": 1, "GrowAndFallOff": 1},
     "inout_callee_same_map_field_changed_landed_valid": {
         "AfterMark": 1, "AfterAlias": 1, "AfterNested": 1, "AfterReset": 1, "AfterReplace": 1},
     "local_copy_map_changed_landed_valid": {"MapSetCopy": 1, "MapRemoveCopy": 1},
     "local_copy_map_held_at_field_changed_landed_valid": {
-        "AssignedValueChanged": 1, "FieldCopyChanged": 2, "HolderChanged": 1, "InnerPathChanged": 1},
+        "AssignedValueChanged": 1, "FieldCopyChanged": 2, "HolderChanged": 0, "InnerPathChanged": 1},
     "local_copy_map_inout_callee_changes_landed_valid": {"Probe": 1, "Record": 1},
     "two_parts_of_distinct_storage_valid": {"Make": 1},
     "string_element_returned_in_result_loop_kept_landed_valid": {"Collect": 1},
     "string_element_returned_by_named_call_past_owner_landed_valid": {"Pick": 1},
     "string_element_returned_by_named_call_owner_changed_landed_valid": {"Main": 1},
-    "string_element_inout_owner_named_call_landed_valid": {"Replaced": 1, "Main": 1},
+    "string_element_inout_owner_named_call_landed_valid": {"Main": 1},
     "readfile_result_borrowed_identity_landed_valid": {"Main": 1},
     "named_string_identity_owned_element_retain_landed_valid": {"Main": 1},
-    "named_string_field_make_nodes_drop_landed_valid": {"Main": 1},
+    # MakeNodes' returned private Array owns the cloned TextNode at its store;
+    # Main no longer needs a second copy at the call boundary.
+    "named_string_field_make_nodes_drop_landed_valid": {"MakeNodes": 1},
     "intent_subject_keeps_string_landed_valid": {"Main": 1},
     "array_result_owned_element_host_method_retainer_landed_valid": {"Main": 1},
     "array_result_owned_defer_late_scalar_retention_landed_valid": {"Main": 1},
+    "inout_string_unknown_definition_copy_landed_valid": {
+        "UnknownDefinitionAppend": 1, "Main": 1},
 }
 # Positive fixtures whose loan is copied where it leaves: the routine and
 # the value its Clone must wrap, not the call that made the loan; or the
 # exact (kind, text) list of what every Clone in the routine wraps.
 landed_at_exit = {
+    "borrowed_owner_loan_grown_landed_valid":
+        ("Borrow", [("member_access", "env.rows")]),
+    "local_ref_string_carrier_moved_to_own_landed_valid":
+        ("BorrowText", [("member_access", "source.text")]),
+    "option_none_ref_loan_returned_landed_valid":
+        ("Keep", [("member_access", "fact.ids")]),
     "by_value_getter_lend_passed_kept_landed_valid": ("Collect", "first"),
     # No copy stands at the result, which holds an Array of structs.
     "by_value_lend_result_written_argument_copied_landed_valid": ("Main", "box"),
@@ -264,19 +447,63 @@ landed_at_exit = {
     # A dropped chain: the loan is copied where it is made, and only there.
     "by_value_getter_lend_kept_then_owned_landed_valid": ("Collect", [("call_argument", "AtomText(arena, 0)")]),
     "by_value_getter_lend_held_then_owned_landed_valid": ("Collect", [("call_argument", "AtomText(arena, 0)")]),
+    "inout_defers_alias_written_by_inout_callee_landed_valid": ("Emit", "defers"),
+    "constructor_owned_string_array_reuse_batch_landed_valid": (
+        "Main", [("leaf", "names"), ("leaf", "names"), ("leaf", "names")]),
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
 # in one more, and a store or loan no copy can land selects none.
 landing_rounds = {
+    "aggregate_local_direct_member_owned_push_valid": 1,
+    # The exact inout member receipt and its Clone are both selected in the
+    # initial semantic pass; no replay is needed to materialize them.
+    "aggregate_inout_direct_member_owned_push_valid": 0,
+    "aggregate_mutable_local_direct_member_owned_push_invalid": 1,
+    "ref_default_constructor_result_loan_copied_valid": 1,
+    "ref_returned_nested_projection_copy_landed_valid": 2,
+    "ref_field_array_set_batch_landed_valid": 1,
+    "array_push_loan_past_owner_landed_valid": 2,
+    "local_aggregate_copy_moved_to_own_landed_valid": 1,
+    "local_ref_aggregate_carrier_moved_to_own_landed_valid": 3,
+    "ref_constructor_copyable_field_moved_to_own_landed_valid": 1,
+    "constructor_owned_string_array_reuse_batch_landed_valid": 1,
+    "own_rebind_ref_input_return_landed_valid": 1,
+    "mapnew_ref_box_value_storage_landed_valid": 1,
+    "physical_return_inout_landed_valid": 1,
+    "call_result_field_inout_landed_valid": 1,
+    "option_none_ref_loan_returned_landed_valid": 1,
+    "option_payload_owned_string_result_valid": 0,
+    "option_payload_borrowed_string_result_landed_valid": 1,
+    "mixed_owned_static_string_result_valid": 1,
+    "inout_mixed_owned_string_result_valid": 1,
+    "inout_mixed_owned_string_result_borrowed_invalid": 1,
+    "local_ref_string_carrier_moved_to_own_landed_valid": 1,
+    "aggregate_result_owned_field_push_valid": 0,
+    # The store candidate is replayed once, then the missing exact receipt on
+    # the mutable root remains a fail-closed borrow refusal.
+    "aggregate_result_mutable_root_field_push_invalid": 1,
+    "constructor_string_field_snapshot_before_finalize_landed_valid": 1,
+    "nonowner_risk_owned_constructor_transfer_landed_valid": 1,
+    "nonowner_risk_empty_descriptor_nested_transfer_landed_valid": 1,
+    "array_result_owned_named_inout_shallow_set_landed_valid": 1,
+    # The ownership receipt now lowers this directly to
+    # ArrayPushOwnedString; no semantic re-analysis round is needed.
+    "nonowner_risk_read_before_terminal_constructor_transfer_landed_valid": 0,
+    "nonowner_risk_declared_result_transfer_landed_valid": 1,
+    "nonowner_risk_local_nominal_carrier_return_landed_valid": 2,
+    "inout_defers_alias_written_by_inout_callee_landed_valid": 3,
+    "inout_defers_kept_by_callee_before_nested_call_landed_valid": 1,
+    "inout_string_chain_kept_before_pop_landed_valid": 1,
     "string_push_after_loop_walk_landed_valid": 1,
     "by_value_getter_lend_kept_twice_landed_valid": 1,
-    "by_value_getter_lend_kept_then_owned_landed_valid": 1,
+    "by_value_getter_lend_kept_then_owned_landed_valid": 2,
+    "receiver_result_string_field_escape_landed_valid": 1,
     "by_value_lend_result_written_argument_copied_landed_valid": 1,
     "default_aggregate_move_reuse_landed_valid": 1,
     "default_aggregate_move_cloned_growth_landed_valid": 1,
     "by_value_getter_lend_growing_landed_valid": 1,
-    "by_value_getter_lend_held_then_owned_landed_valid": 1,
+    "by_value_getter_lend_held_then_owned_landed_valid": 2,
     "by_value_lend_two_owners_second_changed_landed_valid": 1,
     "by_value_getter_lend_growing_invalid": 0,
     "default_aggregate_move_branch_use_invalid": 0,
@@ -286,16 +513,31 @@ landing_rounds = {
     "string_copy_landing_function_boundary_valid": 2,
     "formal_string_store_same_routine_batch_valid": 1,
     "formal_string_store_multiple_formals_batch_valid": 1,
-    "formal_string_push_same_routine_batch_valid": 1,
+    "formal_string_push_same_routine_batch_valid": 0,
+    # The value-only set plan must first materialize before the sealed
+    # publication can refine the same call and its earlier push as one owned
+    # receiver lifecycle. The constructor copy lands after store kinds seal.
+    "formal_string_store_released_local_member_path_set_landed_valid": 3,
     "owned_string_push_multi_receiver_batch_valid": 1,
     "formal_string_store_cross_routine_batch_valid": 1,
     "formal_string_store_batch_boundary_valid": 2,
+    "empty_local_shallow_push_then_inout_owned_writer_landed_valid": 1,
+    "world_method_after_string_landing_valid": 1,
     "output_field_store_of_ref_formal_landed_valid": 1,
     "inout_self_assignment_lands_nothing_valid": 0,
     "nonowner_risk_rebind_clone_landed_valid": 1,
     "nonowner_risk_local_carrier_landed_valid": 1,
     "array_result_owned_element_direct_return_landed_valid": 1,
+    "returned_owned_array_independent_push_landed_valid": 1,
+    "returned_borrowed_array_independent_push_invalid": 0,
+    "returned_owned_array_literal_independent_push_landed_valid": 1,
+    "static_literal_and_owned_string_push_landed_valid": 1,
+    "owned_string_array_mixed_push_plan_landed_valid": 1,
+    "replayed_owned_push_seeds_receiver_batch_landed_valid": 1,
+    "mixed_string_array_literal_push_invalid": 0,
+    "array_descriptor_kept_then_read_landed_valid": 1,
     "named_string_identity_loop_reassignment_landed_valid": 1,
+    "named_string_all_def0_branch_valid": 1,
     "named_string_field_lineage_same_call_retire_grow_landed_valid": 2,
     "named_string_field_lineage_named_mapping_landed_valid": 2,
     "named_string_field_lineage_mixed_return_landed_valid": 2,
@@ -305,10 +547,11 @@ landing_rounds = {
     "string_inout_returned_literal_then_escape_call_landed_valid": 1,
     "string_inout_unwrapped_literal_then_escape_call_landed_valid": 1,
     "string_inout_returned_literal_then_own_release_landed_valid": 1,
+    "inout_string_unknown_definition_copy_landed_valid": 2,
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
     "moved_argument_two_branches_landed_valid": 1,
     "moved_argument_chain_batch_landed_valid": 1,
-    "by_value_getter_lend_into_own_formal_landed_valid": 1,
+    "by_value_getter_lend_into_own_formal_landed_valid": 2,
     "returned_alias_lends_formal_valid": 0,
     "loan_carrier_unchanged_by_call_before_loan_valid": 0,
     "loan_owner_read_by_constructor_valid": 0,
@@ -334,6 +577,7 @@ landing_rounds = {
     "by_value_array_to_two_reading_formals_valid": 0,
     "array_handed_to_two_keeping_formals_landed_valid": 1,
     "array_handed_to_three_keeping_formals_landed_valid": 1,
+    "array_kept_by_earlier_call_and_two_formals_landed_valid": 2,
     "array_field_detach_two_own_valid": 0,
     "array_field_detach_caller_alias_landed_valid": 1,
     "array_field_detach_later_declared_own_valid": 0,
@@ -346,6 +590,8 @@ landing_rounds = {
     "distinct_fields_of_a_local_copy_in_two_parts_valid": 0,
     "lent_path_copy_grown_landed_valid": 1,
     "borrowed_owner_loan_grown_landed_valid": 1,
+    "array_handoff_same_return_value_landed_valid": 1,
+    "enum_payload_constructor_ref_field_owner_changed_landed_valid": 1,
     "string_crossing_window_pair_landed_valid": 1,
     "by_value_lend_then_owner_cloned_valid": 1,
     "by_value_lend_then_shallow_clone_grown_invalid": 1,
@@ -383,21 +629,23 @@ landing_rounds = {
     "declared_array_borrow_landed_valid": 1,
     "default_string_option_return_landed_valid": 1,
     "default_string_string_return_landed_valid": 1,
+    # One typed owned-push replay both duplicates the borrowed String and
+    # changes the receiver to the matching owned cleanup route.
     "result_frame_formal_array_push_landed_valid": 1,
     "result_frame_formal_nominal_landed_valid": 1,
     "result_frame_formal_return_landed_valid": 1,
     "result_frame_formal_some_landed_valid": 1,
-    "return_loan_direct_slot_landed_valid": 1,
+    "return_loan_direct_slot_valid": 0,
     "return_loan_inout_landed_valid": 1,
-    "return_loan_mutated_literal_assignment_landed_valid": 1,
-    "return_loan_mutated_literal_bodyful_inout_landed_valid": 1,
+    "return_loan_mutated_literal_assignment_valid": 0,
+    "return_loan_mutated_literal_bodyful_inout_valid": 0,
     "return_loan_mutated_literal_opaque_inout_landed_valid": 1,
-    "return_loan_mutated_literal_opaque_slot_landed_valid": 1,
-    "return_loan_mutated_literal_two_aliases_landed_valid": 1,
-    "return_loan_site_two_aliases_landed_valid": 1,
-    "return_loan_staged_slot_landed_valid": 1,
-    "return_loan_two_alias_assignment_landed_valid": 1,
-    "return_loan_using_alias_opaque_inout_landed_valid": 1,
+    "return_loan_mutated_literal_opaque_slot_valid": 0,
+    "return_loan_mutated_literal_two_aliases_valid": 0,
+    "return_loan_site_two_aliases_valid": 0,
+    "return_loan_staged_slot_valid": 0,
+    "return_loan_two_alias_assignment_valid": 0,
+    "return_loan_using_alias_opaque_inout_valid": 0,
     "return_loan_wrap_slot_landed_valid": 1,
     "stdlib_tostring_string_forward_landed_valid": 1,
     "match_payload_return_moves_landed_valid": 1,
@@ -423,14 +671,23 @@ landing_rounds = {
     "path_alias_returned_in_constructor_grown_landed_valid": 1,
     "unit_enum_constant_constructor_moves_landed_valid": 1,
     "array_result_owned_element_inout_escape_landed_valid": 1,
-    "string_element_tostring_opaque_call_landed_valid": 1,
+    "string_element_tostring_opaque_call_landed_valid": 2,
     "string_argument_kept_copy_landed_valid": 1,
     "formal_string_store_landing_ref_push_valid": 0,
     "formal_string_store_landing_local_receiver_valid": 1,
+    "private_array_push_return_escape_landed_valid": 1,
+    "private_array_push_nonempty_ref_inserted_landed_valid": 1,
+    "private_array_push_nonempty_ref_initial_landed_valid": 1,
+    "ref_loan_local_stored_into_inout_output_landed_valid": 1,
+    # Both String stores batch into one replay; the later descriptor move
+    # still fails closed at the same preserved-storage boundary.
+    "ref_string_through_inout_keeper_invalid": 1,
+    "private_array_push_wrapper_escape_landed_valid": 1,
     "formal_string_store_landing_value_map_valid": 1,
     "formal_array_store_local_receiver_invalid": 0,
     "formal_array_store_field_take_landed_valid": 1,
     "formal_string_store_local_alias_set_landed_valid": 1,
+    "formal_string_store_local_member_path_set_landed_valid": 2,
     "formal_string_store_ref_array_element_local_alias_set_landed_valid": 1,
     "by_value_getter_lend_owner_written_landed_valid": 1,
     "by_value_getter_lend_shared_result_owner_changed_invalid": 0,
@@ -446,8 +703,8 @@ landing_rounds = {
     "formal_store_landing_struct_output_valid": 1,
     "formal_store_landing_alias_output_valid": 1,
     "formal_store_landing_struct_output_shallow_invalid": 0,
-    "array_push_loan_inout_landed_valid": 1,
-    "array_push_loan_inout_nested_clone_landed_valid": 1,
+    "array_push_loan_inout_landed_valid": 2,
+    "array_push_loan_inout_nested_clone_landed_valid": 2,
     "aggregate_move_void_call_landed_valid": 1,
     "aggregate_move_void_call_nested_clone_landed_valid": 1,
     "by_value_getter_lend_result_grown_landed_valid": 1,
@@ -456,7 +713,7 @@ landing_rounds = {
     "by_value_getter_lend_result_lent_on_valid": 0,
     "by_value_getter_lend_string_reassigned_valid": 0,
     "by_value_getter_lend_option_string_unwrapped_valid": 0,
-    "by_value_getter_lend_string_collected_valid": 0,
+    "by_value_getter_lend_string_collected_valid": 1,
     "option_string_result_reassigned_valid": 0,
     "string_struct_result_reassigned_valid": 0,
     "by_value_getter_lend_result_path_grown_landed_valid": 1,
@@ -486,12 +743,13 @@ landing_rounds = {
     "local_let_alias_grown_invalid": 0,
     "local_copied_path_then_moved_landed_valid": 1,
     "local_copy_changed_then_moved_landed_valid": 1,
-    "owned_copy_string_push_landed_valid": 1,
+    "owned_copy_string_push_landed_valid": 0,
     "local_copy_source_sorted_landed_valid": 1,
     "array_sort_after_handoff_ref_reader_valid": 0,
     "by_value_formal_array_sorted_landed_valid": 1,
     "by_value_getter_lend_result_passed_grown_invalid": 0,
     "by_value_getter_second_lend_grown_invalid": 0,
+    "world_method_default_aggregate_body_edge_valid": 0,
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
@@ -500,12 +758,24 @@ builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_m
 # particular, a stale read can also trigger a checked builtin-arity cascade;
 # it must not be mistaken for a fresh BORROW-only refusal or a MIR artifact.
 release_lifetime_refusals = {
+    "world_method_overlapping_moving_arguments_invalid": [
+        (*borrow_refusal, 21, 34)],
+    # A moved descendant remains observable when the next callee reads that
+    # exact field; field-sensitive sibling admission must not hide this use.
+    "default_struct_field_move_observed_descendant_invalid": [
+        (*released_refusal, 35, 39)],
     # A call that grows its default-mode aggregate argument in place moves it.
     "default_aggregate_move_reuse_invalid": [(*released_refusal, 29, 28), (*released_refusal, 30, 34)],
     "returned_alias_lends_formal_grown_invalid": [(*released_refusal, 29, 15)],
-    # A loan of a borrowed owner that leaves stays refused where Clone copies
-    # its result only by value.
-    "borrowed_owner_loan_grown_by_value_clone_invalid": [(*borrow_refusal, 24, 5)],
+    # Copying env.rows does not cover the separately borrowed Array<Group>.
+    # The direct field-store refusal remains primary and the exact loan proof
+    # keeps the uncopyable loan attached to the call that created it.  Do
+    # not restore the old routine-level CHANNEL/CALL pair: those diagnostics
+    # came from a missing call receipt widening the summary to ALL.
+    "borrowed_owner_loan_grown_by_value_clone_invalid": [
+        (*borrow_refusal, 15, 30),
+        (*borrow_refusal, 23, 22),
+    ],
     # A window pair whose text passes through a routine stays unproved.
     # A change through a by-value Clone of a lent owner reaches the loan.
     "by_value_lend_then_shallow_clone_grown_invalid": [(*released_refusal, 26, 40)],
@@ -523,15 +793,18 @@ release_lifetime_refusals = {
         (*released_refusal, 58, 20), (*released_refusal, 66, 21)],
     # A value stored into a map that Clone copies only by value stays shared.
     "collection_value_store_shallow_grown_invalid": [(*released_refusal, 14, 35)],
-    # A whole Array read after a call kept its descriptor: no element copy.
-    "array_descriptor_kept_then_read_invalid": [(*borrow_refusal, 22, 16)],
+    # A whole Array read after a call kept its descriptor is copied only when
+    # Clone owns the complete value; Array<Pair> remains shallow and refused.
+    "array_descriptor_uncopyable_kept_then_read_invalid": [
+        (*borrow_refusal, 26, 16)],
     # An inout callee that writes the field a caller copied, five ways.
     "inout_callee_same_field_changed_invalid": [
         (*released_refusal, 38, 20), (*released_refusal, 44, 20), (*released_refusal, 50, 20),
         (*released_refusal, 56, 20), (*released_refusal, 62, 20)],
-    # A lent local stored into an inout output that did not hold it escapes
-    # the ref index: Fill's summary and its caller both refuse.
-    "ref_loan_local_stored_into_inout_output_invalid": [(*borrow_refusal, 22, 6), (*borrow_refusal, 29, 10)],
+    # A moved aggregate member may cross a declared read only when the sealed
+    # callee summary is read-only before a later owned-element mutation.
+    "aggregate_member_retaining_read_before_owned_push_invalid": [
+        (*borrow_refusal, 13, 5)],
     # A copy of an inout formal's field changed and not assigned back
     # refuses each exit: two returns and the end of a body.
     "formal_field_copy_changed_at_exit_invalid": [
@@ -539,8 +812,8 @@ release_lifetime_refusals = {
     # A value assigned into a field shares that field: a change through
     # either side refuses the other.
     "local_copy_held_at_field_changed_invalid": [
-        (*released_refusal, 30, 26), (*released_refusal, 30, 5), (*released_refusal, 38, 20),
-        (*released_refusal, 38, 5), (*released_refusal, 48, 20), (*released_refusal, 56, 24)],
+        (*released_refusal, 31, 26), (*released_refusal, 31, 5), (*released_refusal, 39, 20),
+        (*released_refusal, 39, 5), (*released_refusal, 57, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 25, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 28, 41)],
     # A call result that holds a formal's storage is a path of that formal:
@@ -551,17 +824,18 @@ release_lifetime_refusals = {
     "local_let_alias_grown_invalid": [(*released_refusal, 25, 73)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
-    # An inout fill of a by-value parameter from a second input moves it.
-    # Take's result carries the ref input's stored field, a loan Main then
-    # grows (17:23); without that relation only the assignment refusal
-    # would remain.
+    # The member assignment owns the direct refusal. The exact caller loan is
+    # independently copyable, so do not preserve the former duplicate call
+    # diagnostic after the outward fact becomes current.
     "owned_param_field_store_ref_return_invalid": [
-        (*borrow_refusal, 0, 0), (*borrow_refusal, 17, 23)],
-    # Route's enum payload lends the ref input, and a case body replaces
-    # Main's admission while the payload lives; Main's call is refused for
-    # that loan (32:28). An enum constructor without its result relation
-    # would lend nothing and lose the refusal.
-    "enum_payload_constructor_ref_field_owner_changed_invalid": [(*borrow_refusal, 32, 28)],
+        (*borrow_refusal, 0, 0)],
+    # The String field can land an independent copy; Array<Group> cannot. The
+    # exact facts keep the constructor store and the outer payload-producing
+    # call fail-closed without the old summary-ALL declaration cascades.
+    "enum_payload_constructor_ref_field_uncopyable_owner_changed_invalid": [
+        (*borrow_refusal, 24, 47),
+        (*borrow_refusal, 36, 28),
+    ],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -576,11 +850,11 @@ release_lifetime_refusals = {
     "array_result_owned_element_defer_lifo_drop_then_read_invalid": [(*borrow_refusal, 10, 35)],
     "array_result_owned_element_defer_mutable_reassign_invalid": [(*borrow_refusal, 12, 27)],
     "array_result_owned_element_inner_defer_then_drop_invalid": [(*borrow_refusal, 12, 27)],
-    # A defer's release is admitted again where the routine exits: the
-    # alias moved rows (13:6), KeepRows may keep it (9:6), the return hands
+    # A defer's release is admitted again where the routine exits. A direct
+    # alias move is refused at its source (16:17); KeepRows may keep it (9:6), the return hands
     # it on (10:5), the constructor holds it (12:5), or RetainRows, judged
     # after every body, does not preserve it (15:35).
-    "array_result_owned_defer_alias_retainer_invalid": [(*borrow_refusal, 13, 6)],
+    "array_result_owned_defer_alias_retainer_invalid": [(*borrow_refusal, 16, 17)],
     "array_result_owned_defer_direct_retainer_invalid": [(*borrow_refusal, 15, 35)],
     "array_result_owned_defer_host_own_invalid": [(*borrow_refusal, 19, 28)],
     "array_result_owned_defer_return_invalid": [(*borrow_refusal, 10, 5)],
@@ -588,6 +862,8 @@ release_lifetime_refusals = {
     "array_result_owned_defer_constructor_return_invalid": [(*borrow_refusal, 12, 5)],
     "array_release_host_own_reuse_invalid": [
         (*released_refusal, 19, 21), (*builtin_refusal, 19, 21)],
+    "nonowner_risk_released_empty_descriptor_transfer_invalid": [
+        (*released_refusal, 17, 41), (*released_refusal, 17, 48)],
     "physical_return_opaque_invalid": [
         (*borrow_refusal, 4, 6), (*borrow_refusal, 5, 14),
         (*borrow_refusal, 10, 20)],
@@ -596,12 +872,9 @@ release_lifetime_refusals = {
     # A call keeps the Array's String in a node Clone copies only by value;
     # the deep drop after it is refused for it.
     "named_string_field_shallow_node_drop_invalid": [(*borrow_refusal, 41, 27)],
-    # The corresponding read-only inout case is a landed positive below: its
-    # String store receives one independent Clone and the call adds no escape.
-    # One that hands the local to an own formal keeps it: every caller refuses.
-    "ref_string_through_inout_keeper_invalid": [
-        (*borrow_refusal, 43, 6), (*borrow_refusal, 59, 6), (*borrow_refusal, 60, 28),
-        (*borrow_refusal, 66, 26)],
+    # Its two String stores land as independent copies, but Rewrite still
+    # moves the Array descriptor through an own boundary and Names reuses it.
+    "ref_string_through_inout_keeper_invalid": [(*borrow_refusal, 56, 12)],
     # An owner assigned after its view is made, in the loop before the view,
     # or from a view of itself, changes under a loan: each later use refuses.
     "loan_owner_assigned_after_loan_invalid": [
@@ -662,35 +935,30 @@ release_lifetime_refusals = {
     "local_copy_other_side_passed_to_reader_of_changed_rows_invalid": [(*released_refusal, 35, 41)],
     "local_copy_other_side_passed_through_to_reader_of_changed_rows_invalid": [(*released_refusal, 39, 41)],
     "local_copy_other_side_aliased_whole_by_callee_invalid": [(*released_refusal, 37, 41)],
-    # Under a by-value formal the change reaches the caller's value through
-    # the storage the formal shares: the copy must land, and none can here.
-    "local_copy_of_by_value_formal_passed_to_reader_of_other_rows_invalid": [(*released_refusal, 36, 41)],
     # An inout Array handed on whole as an inout argument keeps what the
-    # callee keeps: an alias of it written by an inout callee, or a callee
-    # that keeps its descriptor, still refuses the next call that takes it.
-    "inout_defers_alias_written_by_inout_callee_invalid": [(*borrow_refusal, 12, 30)],
-    "inout_defers_kept_by_callee_before_nested_call_invalid": [(*borrow_refusal, 13, 25), (*borrow_refusal, 14, 30)],
+    # callee keeps. A copyable local carrier lands an independent Clone; an
+    # uncopyable carrier still refuses its later read and inout exit.
+    "inout_uncopyable_map_array_copy_changed_invalid": [
+        (*released_refusal, 15, 43), (*released_refusal, 16, 5)],
     # A by-value Array formal handed to an inout callee moves; a later use
     # of maps Clone cannot copy whole is refused.
     "by_value_array_of_maps_grown_by_inout_callee_invalid": [(*released_refusal, 18, 32)],
     # ArrayPop keeps nothing of an inout chain; a callee that keeps the chain
     # before popping it still refuses the nested call that takes it.
-    "inout_string_chain_kept_before_pop_invalid": [(*borrow_refusal, 13, 9)],
     # A by-value argument beside an inout one naming the same variable is
     # copied; an Array of maps Clone cannot copy whole is refused.
     "by_value_maps_beside_their_inout_invalid": [(*borrow_refusal, 13, 31)],
-    # An Array an earlier call keeps too is not copied at the later call.
-    "array_kept_by_earlier_call_and_two_formals_invalid": [(*borrow_refusal, 22, 24)],
     # A refused text is not reported again as a TextBuilderAppend type mismatch.
     "text_builder_append_of_released_element_invalid": [(*borrow_refusal, 10, 31)],
     # One map of Arrays in two parts of a value: no copy can stand in.
     "one_storage_in_two_array_map_parts_invalid": [(*released_refusal, 11, 26)],
-    # Snapshot currentness must not replay ownership early. The actual owned
-    # element consumer still replays the receipt and emits this refusal.
-    "constructor_string_field_snapshot_before_finalize_invalid": [(*borrow_refusal, 14, 6)],
-    "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
-    # Selecting an exact local is only a candidate. Releasing its source
-    # still invalidates the alias before a later store can copy it.
+    # Returning the exact default-mode Array formal is a transfer. Reusing the
+    # moved Array at Project requires a whole-value Clone, which is unsupported
+    # for TextNode's owned String field, so the later use owns the refusal.
+    "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 24, 24)],
+    # A direct local alias still points into the released source. A member
+    # captured by the nominal constructor is copied at that keeping boundary
+    # and is covered by the positive landed fixture instead.
     "formal_string_store_released_local_alias_set_invalid": [(*borrow_refusal, 15, 30)],
     "struct_clone_generic_ref_returned_invalid": [(*borrow_refusal, 13, 25)],
     "map_clone_array_value_ref_returned_invalid": [(*borrow_refusal, 10, 42)],
@@ -712,12 +980,9 @@ release_lifetime_refusals = {
     "readfile_result_defer_released_path_invalid": [(*borrow_refusal, 12, 27)],
     "nonowner_risk_alias_owned_insert_invalid": [
         (*borrow_refusal, 16, 21), (*borrow_refusal, 18, 30)],
-    "nonowner_risk_later_actual_handoff_invalid": [(*borrow_refusal, 22, 13)],
     "nonowner_risk_lambda_capture_invalid": [(*borrow_refusal, 16, 56)],
-    # The String-field getter returns its receiver's storage. EchoWrapper
-    # and Inspect lend it on; MakeInspected returns that loan past the
-    # holder it owns (24:5). Do not treat this as a physical-storage grant.
-    "receiver_result_string_field_escape_invalid": [(*borrow_refusal, 24, 5)],
+    "nonowner_risk_declared_result_transfer_discard_invalid": [
+        (*borrow_refusal, 27, 13)],
     # A host field is `self` storage; these returns of it are refused as
     # `self` escapes, not by an incomplete frame.
     "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
@@ -745,22 +1010,31 @@ release_lifetime_refusals = {
     "string_released_before_returning_if_invalid": [(*borrow_refusal, 15, 25)],
     "ref_loan_local_after_output_call_channel_invalid": [
         (*borrow_refusal, 11, 6), (*borrow_refusal, 28, 25)],
+    # A local owner has no formal summary to own the channel escape, so the
+    # returned loan remains refused at its exact channel-send escape.
+    "ref_loan_local_owner_channel_invalid": [(*borrow_refusal, 15, 12)],
     # No caller proves a loan of a receiver, so a `ref self` method's
     # return of its own storage stays refused where it returns.
     "receiver_ref_self_local_return_invalid": [(*borrow_refusal, 19, 10)],
     "receiver_ref_self_string_return_invalid": [(*borrow_refusal, 6, 10)],
     # A push stores its value in the Array it names: a local Array carries
     # the loan where it goes (here past its owner, 27:5).
-    "array_push_loan_past_owner_invalid": [(*borrow_refusal, 27, 5)],
-    # A stored struct Clone copies only by value lands nothing, so the
-    # caller's later use of its context reads a moved value.
-    "formal_store_landing_struct_output_shallow_invalid": [(*released_refusal, 26, 28)],
+    # A stored struct Clone copies only by value and cannot recover cleanup
+    # authority. The caller's later use therefore reports the exact outward
+    # storage escape rather than pretending a repairable move occurred.
+    "formal_store_landing_struct_output_shallow_invalid": [(*borrow_refusal, 26, 28)],
     # A handoff a return value makes ends the path: the next iteration's
     # Contains is not refused for it, and the handoff is not judged against
     # its own call. A call before it that may rebind the Array still refuses
-    # it (21:23), and two calls in one return value still run in order (24:45).
+    # it (21:23). Two calls in one return value copy the first handoff when
+    # possible; the nested-storage control below remains uncopyable.
     "array_handoff_after_rebinding_call_invalid": [(*borrow_refusal, 21, 23)],
-    "array_handoff_same_return_value_invalid": [(*borrow_refusal, 24, 45)],
+    "array_handoff_same_return_value_uncopyable_invalid": [
+        (*released_refusal, 27, 39)],
+    # A pending recursive backing relation is replayed after settlement. A
+    # result that actually contains the inout Array remains an alias, so the
+    # caller cannot release the Array while that result survives.
+    "recursive_inout_returned_array_alias_invalid": [(*borrow_refusal, 20, 15)],
     # A defer releases its Array when the routine exits, so at each exit the
     # Array must still own its storage: an own handoff (14:5), returning the
     # binding (7:5), a fallthrough after an extern keeps it (5:6), or a
@@ -795,9 +1069,6 @@ release_lifetime_refusals = {
     # the caller's aggregate shares, so the call moves the argument.
     "default_aggregate_move_nested_field_store_invalid": [(*released_refusal, 21, 39)],
     "default_aggregate_move_map_field_set_invalid": [(*released_refusal, 17, 41)],
-    # A local that starts at None() and is then bound to a ref input's field
-    # lends that input; Make returns the loan past its plan (29:5).
-    "option_none_local_argument_kept_invalid": [(*borrow_refusal, 29, 5)],
     # A Slice view of a by-value Array is its storage: handed to a routine
     # that returns it and returned, the call moves the Array (15:15).
     # A local or loop variable that takes a path of the arena is an alias of
@@ -824,11 +1095,31 @@ release_lifetime_refusals = {
     "by_value_getter_lend_growing_invalid": [(*released_refusal, 23, 53)],
     # A Clone of a growing call's result is no copy of its argument.
     "default_aggregate_move_cloned_result_growth_invalid": [(*released_refusal, 31, 34)],
+    # A precise owned result inside the callee does not retroactively make
+    # the caller's pre-existing borrowed elements deep-drop safe.
+    "inout_mixed_owned_string_result_borrowed_invalid": [
+        (*borrow_refusal, 22, 17)],
     # An inout formal may change while the loan lives, so it is not lent.
 }
 paired = (
+    ("aggregate_local_direct_member_owned_push_valid", True),
+    ("aggregate_inout_direct_member_owned_push_valid", True),
+    ("aggregate_mutable_local_direct_member_owned_push_invalid", False),
+    ("ref_default_constructor_result_loan_copied_valid", True),
+    ("ref_default_constructor_result_loan_uncopyable_invalid", False),
+    ("aggregate_result_owned_field_push_valid", True),
+    ("aggregate_result_mutable_root_field_push_invalid", False),
+    ("ref_returned_nested_projection_copy_landed_valid", True),
+    ("ref_field_array_set_batch_landed_valid", True),
+    ("recursive_inout_independent_aggregate_result_preserves_descriptor_valid", True),
+    ("recursive_inout_returned_array_alias_invalid", False),
     ("unit_enum_qualified_result_valid", True),
     ("option_payload_fresh_literal_none_valid", True),
+    ("option_payload_owned_string_result_valid", True),
+    ("option_payload_borrowed_string_result_landed_valid", True),
+    ("mixed_owned_static_string_result_valid", True),
+    ("inout_mixed_owned_string_result_valid", True),
+    ("inout_mixed_owned_string_result_borrowed_invalid", False),
     ("option_payload_local_alias_valid", True),
     ("option_payload_shared_carrier_valid", True),
     ("option_payload_mixed_borrow_landed_valid", True),
@@ -853,12 +1144,13 @@ paired = (
     ("readfile_result_borrowed_identity_landed_valid", True),
     ("readfile_result_defer_released_path_invalid", False),
     ("nonowner_risk_option_reader_valid", True),
+    ("nonowner_risk_declared_reader_only_valid", True),
     ("nonowner_risk_shallow_loop_valid", True),
     ("nonowner_risk_alias_owned_insert_invalid", False),
     ("nonowner_risk_rebind_clone_landed_valid", True),
     ("nonowner_risk_branch_owned_insert_landed_valid", True),
     ("nonowner_risk_later_loop_owned_landed_valid", True),
-    ("nonowner_risk_later_actual_handoff_invalid", False),
+    ("nonowner_risk_later_actual_handoff_landed_valid", True),
     ("nonowner_risk_local_carrier_landed_valid", True),
     ("nonowner_risk_safe_then_owned_landed_valid", True),
     ("nonowner_risk_owned_then_safe_landed_valid", True),
@@ -895,7 +1187,10 @@ paired = (
     ("array_result_owned_element_inner_defer_then_drop_invalid", False),
     ("defer_multipart_mutable_exit_valid", True),
     ("receiver_result_readonly_scalar_valid", True),
-    ("receiver_result_string_field_escape_invalid", False),
+    # The String-field getter lends its receiver's storage. The compiler
+    # detaches that loan at Inspect's reaching definition before the owned
+    # Holder frame ends, so MakeInspected receives independent storage.
+    ("receiver_result_string_field_escape_landed_valid", True),
     ("array_release_named_reader_own_unseeded_valid", True),
     ("array_release_owned_strings_move_valid", True),
     ("array_release_recursive_inout_owned_strings_valid", True),
@@ -915,6 +1210,10 @@ paired = (
     ("array_alias_tuple_destructure_own_invalid", False),
     ("array_alias_array_element_destructure_own_invalid", False),
     ("array_alias_slice_element_destructure_own_invalid", False),
+    # The typed for-in binding is a value for String elements. Its backing
+    # row must still be present so body calls and the returned String summary
+    # replay from the sealed loop claim instead of failing closed.
+    ("for_string_binding_backing_valid", True),
     ("array_alias_for_payload_own_invalid", False),
     ("array_alias_for_payload_once_own_invalid", False),
     ("array_alias_match_payload_own_invalid", False),
@@ -940,6 +1239,10 @@ paired = (
     ("array_result_nonown_default_forward_own_invalid", False),
     ("array_result_nonown_default_local_alias_own_invalid", False),
     ("array_result_nonown_default_mixed_return_own_invalid", False),
+    ("array_result_default_formal_conditional_copy_valid", True),
+    ("array_result_default_formal_conditional_uncopyable_invalid", False),
+    ("array_result_default_formal_discard_invalid", False),
+    ("array_result_default_formal_transfer_valid", True),
     ("array_result_nonown_inout_field_own_invalid", False),
     ("array_result_nonown_ref_nested_projection_invalid", False),
     ("array_result_nonown_ref_mapget_descriptor_invalid", False),
@@ -966,9 +1269,16 @@ paired = (
     ("array_result_local_owned_element_external_keep_landed_valid", True),
     ("array_result_local_owned_element_constructor_landed_valid", True),
     ("array_result_owned_named_inout_shallow_push_landed_valid", True),
-    ("array_result_owned_named_inout_shallow_set_invalid", False),
+    ("array_result_owned_named_inout_shallow_set_landed_valid", True),
     ("array_result_owned_named_inout_index_assign_invalid", False),
     ("array_result_local_owned_element_container_copy_landing_valid", True),
+    ("returned_owned_array_independent_push_landed_valid", True),
+    ("returned_borrowed_array_independent_push_invalid", False),
+    ("returned_owned_array_literal_independent_push_landed_valid", True),
+    ("static_literal_and_owned_string_push_landed_valid", True),
+    ("owned_string_array_mixed_push_plan_landed_valid", True),
+    ("replayed_owned_push_seeds_receiver_batch_landed_valid", True),
+    ("mixed_string_array_literal_push_invalid", False),
     ("array_result_local_owned_element_index_assign_invalid", False),
     ("array_result_local_owned_element_field_retention_landed_valid", True),
     ("array_result_owned_element_inout_escape_landed_valid", True),
@@ -1062,10 +1372,8 @@ paired = (
     ("selector_array_effectful_index_invalid", False),
     ("declared_empty_map_scope_valid", True),
     ("mapnew_ref_key_copy_valid", True),
-    # The runtime copies String values, but source-retention ordinal 2 is not
-    # proved here. This is a conservative source refusal, not runtime UB.
     ("mapnew_ref_string_value_copy_valid", True),
-    ("mapnew_ref_box_value_storage_invalid", False),
+    ("mapnew_ref_box_value_storage_landed_valid", True),
     ("declared_static_array_valid", True),
     ("declared_array_borrow_landed_valid", True),
     ("declared_empty_forward_valid", True),
@@ -1110,10 +1418,10 @@ paired = (
     ("stdlib_trim_opaque_invalid", False),
     ("private_array_push_local_read_valid", True),
     ("private_array_push_nonempty_mixed_valid", True),
-    ("private_array_push_return_escape_invalid", False),
-    ("private_array_push_wrapper_escape_invalid", False),
-    ("private_array_push_nonempty_ref_initial_invalid", False),
-    ("private_array_push_nonempty_ref_inserted_invalid", False),
+    ("private_array_push_return_escape_landed_valid", True),
+    ("private_array_push_wrapper_escape_landed_valid", True),
+    ("private_array_push_nonempty_ref_initial_landed_valid", True),
+    ("private_array_push_nonempty_ref_inserted_landed_valid", True),
     ("private_array_push_nonempty_nested_retain_invalid", False),
     ("private_array_push_nonempty_alias_landed_valid", True),
     ("private_array_push_nonempty_branch_escape_invalid", False),
@@ -1121,7 +1429,7 @@ paired = (
     ("physical_return_default_record_valid", True),
     ("physical_return_opaque_invalid", False),
     ("physical_return_slot_invalid", False),
-    ("physical_return_inout_invalid", False),
+    ("physical_return_inout_landed_valid", True),
     ("high_output65_dynamic_invalid", False),
     ("high_output65_literal_valid", True),
     ("backward_loop_output_dynamic_invalid", False),
@@ -1138,7 +1446,7 @@ paired = (
     ("builtin_string_add_record_return_valid", True),
     ("builtin_string_add_retaining_operand_invalid", False),
     ("call_result_field_read_valid", True),
-    ("call_result_field_inout_invalid", False),
+    ("call_result_field_inout_landed_valid", True),
     ("slot_read_payload_log_valid", True),
     ("slot_read_payload_keep_invalid", False),
     ("slot_read_payload_same_write_valid", True),
@@ -1152,18 +1460,18 @@ paired = (
     ("local_read_payload_log_valid", True),
     ("implicit_main_string_read_valid", True),
     ("implicit_main_int_read_valid", True),
-    ("return_loan_direct_slot_landed_valid", True),
-    ("return_loan_staged_slot_landed_valid", True),
+    ("return_loan_direct_slot_valid", True),
+    ("return_loan_staged_slot_valid", True),
     ("return_loan_wrap_slot_landed_valid", True),
     ("return_loan_inout_landed_valid", True),
-    ("return_loan_mutated_literal_opaque_slot_landed_valid", True),
+    ("return_loan_mutated_literal_opaque_slot_valid", True),
     ("return_loan_mutated_literal_opaque_inout_landed_valid", True),
-    ("return_loan_mutated_literal_assignment_landed_valid", True),
-    ("return_loan_mutated_literal_bodyful_inout_landed_valid", True),
-    ("return_loan_using_alias_opaque_inout_landed_valid", True),
-    ("return_loan_mutated_literal_two_aliases_landed_valid", True),
-    ("return_loan_site_two_aliases_landed_valid", True),
-    ("return_loan_two_alias_assignment_landed_valid", True),
+    ("return_loan_mutated_literal_assignment_valid", True),
+    ("return_loan_mutated_literal_bodyful_inout_valid", True),
+    ("return_loan_using_alias_opaque_inout_valid", True),
+    ("return_loan_mutated_literal_two_aliases_valid", True),
+    ("return_loan_site_two_aliases_valid", True),
+    ("return_loan_two_alias_assignment_valid", True),
     ("return_loan_ordinary_copy_opaque_inout_valid", True),
     ("return_loan_literal_slot_valid", True),
     ("return_loan_read_static_local_valid", True),
@@ -1230,10 +1538,11 @@ paired = (
     ("local_copy_other_side_passed_to_reader_of_changed_rows_invalid", False),
     ("local_copy_other_side_passed_through_to_reader_of_changed_rows_invalid", False),
     ("local_copy_other_side_aliased_whole_by_callee_invalid", False),
-    ("local_copy_of_by_value_formal_passed_to_reader_of_other_rows_invalid", False),
+    ("local_copy_of_by_value_formal_passed_to_reader_of_other_rows_valid", True),
     ("inout_defers_handed_to_recursive_emitter_valid", True),
-    ("inout_defers_alias_written_by_inout_callee_invalid", False),
-    ("inout_defers_kept_by_callee_before_nested_call_invalid", False),
+    ("inout_defers_alias_written_by_inout_callee_landed_valid", True),
+    ("inout_uncopyable_map_array_copy_changed_invalid", False),
+    ("inout_defers_kept_by_callee_before_nested_call_landed_valid", True),
     ("by_value_array_grown_by_inout_callee_landed_valid", True),
     ("by_value_array_grown_by_inout_callee_last_use_valid", True),
     ("by_value_array_of_maps_grown_by_inout_callee_invalid", False),
@@ -1241,10 +1550,28 @@ paired = (
     ("by_value_array_grown_two_calls_deep_landed_valid", True),
     ("by_value_array_grown_through_recursive_hand_off_landed_valid", True),
     ("by_value_cursor_set_through_recursive_parser_valid", True),
+    ("inout_owned_set_then_push_preserves_elements_valid", True),
+    ("inout_owned_set_loop_result_then_push_preserves_elements_valid", True),
+    ("inout_owned_string_terminal_branch_preserves_elements_valid", True),
+    ("inout_owned_string_fallthrough_branch_borrowed_invalid", False),
+    ("inout_owned_string_fresh_push_empty_valid", True),
+    ("inout_owned_string_fresh_push_borrowed_invalid", False),
+    ("inout_owned_string_nonempty_reused_landed_valid", True),
+    ("empty_local_shallow_push_then_inout_owned_writer_landed_valid", True),
+    ("inout_owned_string_explicit_push_empty_valid", True),
+    ("inout_owned_string_explicit_push_borrowed_invalid", False),
+    ("inout_owned_string_loop_member_carrier_preserves_elements_valid", True),
+    ("inout_owned_string_loop_member_carrier_borrowed_invalid", False),
+    ("member_carrier_selected_string_copy_preserves_elements_valid", True),
+    ("nested_member_carrier_interleaved_value_copy_preserves_elements_valid", True),
+    ("owned_string_array_literal_loop_recheck_valid", True),
+    ("mixed_string_array_literal_loop_recheck_invalid", False),
+    ("direct_member_default_owned_elements_valid", True),
+    ("direct_member_default_mutable_root_invalid", False),
     ("by_value_array_popped_by_inout_callee_valid", True),
     ("by_value_array_handed_to_generic_reader_valid", True),
     ("inout_string_chain_popped_by_recursive_parser_valid", True),
-    ("inout_string_chain_kept_before_pop_invalid", False),
+    ("inout_string_chain_kept_before_pop_landed_valid", True),
     ("by_value_argument_beside_its_inout_landed_valid", True),
     ("by_value_argument_before_its_inout_landed_valid", True),
     ("scalar_and_string_beside_their_inout_valid", True),
@@ -1252,7 +1579,7 @@ paired = (
     ("by_value_maps_beside_their_inout_invalid", False),
     ("array_handed_to_two_keeping_formals_landed_valid", True),
     ("array_handed_to_three_keeping_formals_landed_valid", True),
-    ("array_kept_by_earlier_call_and_two_formals_invalid", False),
+    ("array_kept_by_earlier_call_and_two_formals_landed_valid", True),
     ("text_builder_append_of_released_element_invalid", False),
     ("one_storage_in_two_constructor_parts_returned_landed_valid", True),
     ("one_storage_through_alias_in_two_parts_landed_valid", True),
@@ -1261,7 +1588,14 @@ paired = (
     ("distinct_fields_of_a_local_copy_in_two_parts_valid", True),
     ("one_storage_in_two_map_parts_landed_valid", True),
     ("one_storage_in_two_array_map_parts_invalid", False),
-    ("constructor_string_field_snapshot_before_finalize_invalid", False),
+    ("constructor_string_field_snapshot_before_finalize_landed_valid", True),
+    ("nonowner_risk_owned_constructor_transfer_landed_valid", True),
+    ("nonowner_risk_empty_descriptor_nested_transfer_landed_valid", True),
+    ("nonowner_risk_released_empty_descriptor_transfer_invalid", False),
+    ("nonowner_risk_read_before_terminal_constructor_transfer_landed_valid", True),
+    ("nonowner_risk_declared_result_transfer_landed_valid", True),
+    ("nonowner_risk_declared_result_transfer_discard_invalid", False),
+    ("nonowner_risk_local_nominal_carrier_return_landed_valid", True),
     ("declared_result_member_chain_qualifier_valid", True),
     ("mutual_recursion_declared_result_stored_valid", True),
     ("named_string_field_alias_mutation_invalid", False),
@@ -1354,16 +1688,19 @@ paired = (
     ("string_inout_returned_literal_then_escape_call_landed_valid", True),
     ("string_inout_unwrapped_literal_then_escape_call_landed_valid", True),
     ("string_inout_returned_literal_then_own_release_landed_valid", True),
+    ("inout_string_unknown_definition_copy_landed_valid", True),
     ("default_aggregate_move_reassign_valid", True),
     ("default_aggregate_move_reuse_invalid", False),
     ("default_aggregate_move_loop_reuse_invalid", False),
     ("default_aggregate_move_branch_use_invalid", False),
     ("default_aggregate_move_ref_param_invalid", False),
     ("own_rebind_scalar_frame_valid", True),
-    ("own_rebind_ref_input_return_invalid", False),
+    ("own_rebind_ref_input_return_landed_valid", True),
     ("clone_string_array_ref_input_result_valid", True),
     ("clone_struct_array_ref_input_result_invalid", False),
     ("default_aggregate_move_read_only_struct_valid", True),
+    ("default_struct_field_move_sibling_use_valid", True),
+    ("default_struct_field_move_observed_descendant_invalid", False),
     ("default_aggregate_move_shared_field_return_nested_clone_landed_valid", True),
     ("default_aggregate_move_shared_field_return_landed_valid", True),
     ("by_value_getter_result_grown_landed_valid", True),
@@ -1436,13 +1773,14 @@ paired = (
     ("formal_field_copy_changed_at_exit_landed_valid", True),
     ("formal_field_copy_stored_back_valid", True),
     ("string_element_kept_by_callee_landed_valid", True),
-    ("array_descriptor_kept_then_read_invalid", False),
+    ("array_descriptor_kept_then_read_landed_valid", True),
+    ("array_descriptor_uncopyable_kept_then_read_invalid", False),
     ("ref_loan_through_popping_helper_valid", True),
     ("inout_callee_other_field_changed_valid", True),
     ("inout_callee_same_field_changed_invalid", False),
     ("ref_loan_field_written_back_valid", True),
     ("ref_loan_stored_into_inout_output_landed_valid", True),
-    ("ref_loan_local_stored_into_inout_output_invalid", False),
+    ("ref_loan_local_stored_into_inout_output_landed_valid", True),
     ("string_local_pushed_into_field_array_landed_valid", True),
     ("string_copy_landing_same_function_batch_valid", True),
     ("string_copy_landing_function_boundary_valid", True),
@@ -1486,9 +1824,10 @@ paired = (
     ("default_aggregate_move_map_field_read_valid", True),
     ("default_aggregate_move_map_field_set_invalid", False),
     ("option_none_ref_reader_valid", True),
-    ("option_none_ref_loan_returned_invalid", False),
+    ("option_none_ref_loan_returned_landed_valid", True),
+    ("option_none_ref_uncopyable_loan_returned_invalid", False),
     ("option_none_local_argument_valid", True),
-    ("option_none_local_argument_kept_invalid", False),
+    ("option_none_local_argument_kept_landed_valid", True),
     ("array_slice_view_reader_valid", True),
     ("array_slice_view_returned_landed_valid", True),
     ("string_element_clone_after_drop_valid", True),
@@ -1508,8 +1847,10 @@ paired = (
     ("formal_array_store_local_receiver_invalid", False),
     ("formal_array_store_field_take_landed_valid", True),
     ("formal_string_store_local_alias_set_landed_valid", True),
+    ("formal_string_store_local_member_path_set_landed_valid", True),
     ("formal_string_store_ref_array_element_local_alias_set_landed_valid", True),
     ("formal_string_store_released_local_alias_set_invalid", False),
+    ("formal_string_store_released_local_member_path_set_landed_valid", True),
     ("formal_string_store_landing_shadowed_function_valid", True),
     ("formal_string_store_landing_shadowed_struct_valid", True),
     ("formal_string_store_landing_shadowed_method_valid", True),
@@ -1535,6 +1876,26 @@ paired = (
     ("default_aggregate_move_field_alias_rebound_valid", True),
     ("default_aggregate_move_field_alias_returned_landed_valid", True),
     ("default_aggregate_move_field_alias_passed_on_landed_valid", True),
+    ("aggregate_member_local_chain_owned_push_valid", True),
+    ("aggregate_member_landed_string_push_valid", True),
+    ("aggregate_member_landed_string_push_mutable_carrier_invalid", False),
+    ("aggregate_inout_member_local_chain_owned_push_valid", True),
+    ("aggregate_member_retaining_read_before_owned_push_invalid", False),
+    ("aggregate_member_constructor_transfer_valid", True),
+    ("aggregate_inout_member_constructor_transfer_valid", True),
+    ("aggregate_member_constructor_reuse_landed_valid", True),
+    ("constructor_owned_string_array_reuse_batch_landed_valid", True),
+    ("local_aggregate_copy_moved_to_own_landed_valid", True),
+    ("local_ref_aggregate_carrier_moved_to_own_landed_valid", True),
+    ("ref_constructor_copyable_field_moved_to_own_landed_valid", True),
+    ("ref_constructor_uncopyable_field_moved_to_own_invalid", False),
+    ("ref_aggregate_through_nonretaining_helper_valid", True),
+    ("ref_aggregate_through_own_helper_invalid", False),
+    ("direct_ref_aggregate_moved_to_own_invalid", False),
+    ("local_ref_string_carrier_moved_to_own_landed_valid", True),
+    ("direct_ref_string_moved_to_own_invalid", False),
+    ("local_aggregate_copy_moved_to_own_beside_refusal_invalid", False),
+    ("aggregate_member_mutable_local_chain_owned_push_invalid", False),
     ("default_aggregate_move_loop_element_read_valid", True),
     ("default_aggregate_move_loop_element_store_invalid", False),
     ("default_aggregate_move_array_loop_element_store_invalid", False),
@@ -1542,6 +1903,7 @@ paired = (
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),
     ("string_element_push_copy_landing_mixed_landed_valid", True),
+    ("world_method_after_string_landing_valid", True),
     ("world_ref_self_scalar_result_valid", True),
     ("world_ref_self_member_return_invalid", False),
     ("method_self_array_field_length_valid", True),
@@ -1571,6 +1933,7 @@ paired = (
     ("string_released_in_else_falling_invalid", False),
     ("string_released_before_returning_if_invalid", False),
     ("ref_loan_local_after_output_call_channel_invalid", False),
+    ("ref_loan_local_owner_channel_invalid", False),
     ("aggregate_string_loan_getter_valid", True),
     ("aggregate_string_loan_struct_escape_landed_valid", True),
     ("aggregate_string_loan_local_owner_landed_valid", True),
@@ -1586,7 +1949,7 @@ paired = (
     ("receiver_ref_self_local_return_invalid", False),
     ("receiver_ref_self_string_return_invalid", False),
     ("array_push_loan_local_view_valid", True),
-    ("array_push_loan_past_owner_invalid", False),
+    ("array_push_loan_past_owner_landed_valid", True),
     ("array_push_loan_inout_nested_clone_landed_valid", True),
     ("aggregate_move_never_call_valid", True),
     ("aggregate_move_void_call_nested_clone_landed_valid", True),
@@ -1612,7 +1975,8 @@ paired = (
     ("output_field_store_of_ref_formal_by_value_clone_invalid", False),
     ("array_handoff_error_return_after_append_valid", True),
     ("array_handoff_after_rebinding_call_invalid", False),
-    ("array_handoff_same_return_value_invalid", False),
+    ("array_handoff_same_return_value_landed_valid", True),
+    ("array_handoff_same_return_value_uncopyable_invalid", False),
     ("defer_array_drop_reads_valid", True),
     ("defer_array_drop_fallthrough_valid", True),
     ("defer_owned_strings_read_valid", True),
@@ -1630,7 +1994,8 @@ paired = (
     ("defer_array_drop_struct_reader_valid", True),
     ("defer_array_drop_lambda_kept_invalid", False),
     ("enum_payload_constructor_ref_field_return_valid", True),
-    ("enum_payload_constructor_ref_field_owner_changed_invalid", False),
+    ("enum_payload_constructor_ref_field_owner_changed_landed_valid", True),
+    ("enum_payload_constructor_ref_field_uncopyable_owner_changed_invalid", False),
     ("by_value_getter_lend_valid", True),
     ("by_value_getter_lend_local_valid", True),
     ("by_value_getter_lend_forward_valid", True),
@@ -1674,6 +2039,8 @@ paired = (
     ("formal_store_landing_alias_output_valid", True),
     ("formal_store_landing_struct_output_shallow_invalid", False),
     ("array_push_loan_inout_landed_valid", True),
+    ("inout_member_lent_result_exact_restore_valid", True),
+    ("inout_member_lent_result_wrong_restore_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
@@ -1693,6 +2060,43 @@ for name, valid in paired:
         if checked.returncode != 0 or '"pgy.mir.v1"' not in checked.stdout.decode(errors="replace"):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"physical-return positive {name} failed")
+        if name == "ref_default_constructor_result_loan_copied_valid":
+            clones = []
+            for routine in json.loads(checked.stdout).get("routines", []):
+                for block in routine.get("blocks", []):
+                    for instruction in block.get("instructions", []):
+                        for lane in ("expr0_graph", "expr1_graph"):
+                            nodes = (instruction.get(lane) or {}).get("nodes", [])
+                            for index, node in enumerate(nodes):
+                                if node.get("kind") == "call" and node.get("call_target_name") == "Clone":
+                                    clones.append((routine.get("name"), index, nodes))
+            if len(clones) != 1 or clones[0][0] != "Route":
+                raise SystemExit("constructor-result loan did not land exactly one independent copy")
+            _, clone, nodes = clones[0]
+            arguments = [node for node in nodes
+                         if node.get("kind") == "call_argument" and node.get("left") == clone]
+            if len(arguments) != 1 or nodes[arguments[0]["right"]].get("kind") != "member_access":
+                raise SystemExit("constructor-result loan copied a whole result instead of its original field")
+        if name == "ref_returned_nested_projection_copy_landed_valid":
+            clones = []
+            for routine in json.loads(checked.stdout).get("routines", []):
+                for block in routine.get("blocks", []):
+                    for instruction in block.get("instructions", []):
+                        for lane in ("expr0_graph", "expr1_graph"):
+                            nodes = (instruction.get(lane) or {}).get("nodes", [])
+                            for index, node in enumerate(nodes):
+                                if node.get("kind") == "call" and node.get("call_target_name") == "Clone":
+                                    clones.append((routine.get("name"), index, nodes))
+            source_clones = []
+            for routine, clone, nodes in clones:
+                arguments = [node for node in nodes
+                             if node.get("kind") == "call_argument" and node.get("left") == clone]
+                if (routine == "RefReturnBoundaryFromExpressions" and
+                        len(arguments) == 1 and
+                        nodes[arguments[0]["right"]].get("kind") == "index"):
+                    source_clones.append((routine, clone, nodes))
+            if len(source_clones) != 1:
+                raise SystemExit("nested ref return copied a whole result instead of its original index")
         if name in selected_call_targets:
             target_name, owner_kind, owner_name, binding_kind = selected_call_targets[name]
             document = json.loads(checked.stdout)
@@ -1779,6 +2183,75 @@ for name, valid in paired:
                      for node in instruction[lane].get("nodes", []) if node.get("kind") == "call"]
             if calls.count("ArrayPushOwnedString") != landed or "ArrayPush" in calls:
                 raise SystemExit(f"owned push landing {name} did not reach MIR as ArrayPushOwnedString: {calls}")
+        if name in mixed_owned_push_receipts:
+            document = json.loads(checked.stdout)
+            expected = mixed_owned_push_receipts[name]
+            routines = expected.items() if isinstance(expected, dict) else (
+                (expected[0], (expected[1], expected[2])),)
+            for routine_name, counts in routines:
+                general_count, landed_count = counts
+                stores = []
+                for row in document.get("routines", []):
+                    if row.get("name") != routine_name:
+                        continue
+                    for block in row.get("blocks", []):
+                        for instruction in block.get("instructions", []):
+                            name_at_call = instruction.get("arg0")
+                            receipt = instruction.get("collection_ownership_receipt")
+                            if name_at_call not in ("ArrayPush", "ArrayPushOwnedString"):
+                                continue
+                            stores.append((name_at_call, receipt))
+                general = [receipt for call, receipt in stores if call == "ArrayPush"]
+                landed = [receipt for call, receipt in stores if call == "ArrayPushOwnedString"]
+                if (len(general) != general_count or len(landed) != landed_count or
+                        any(not isinstance(receipt, dict) or
+                            receipt.get("kind") != "owned-string-push" or
+                            not isinstance(receipt.get("source_binding_syntax_id"), int) or
+                            receipt.get("source_binding_syntax_id") <= 0 for receipt in general) or
+                        any(not isinstance(receipt, dict) or
+                            receipt.get("kind") != "owned-string-push" or
+                            receipt.get("source_binding_syntax_id") != 0 for receipt in landed)):
+                    raise SystemExit(
+                        f"mixed owned-push receipt {name}/{routine_name} lost its exact MIR effects: {stores}")
+            if name in (
+                    "aggregate_inout_direct_member_owned_push_valid",
+                    "aggregate_local_direct_member_owned_push_valid"):
+                root_name = "rows" if name.startswith("aggregate_inout") else "result"
+                fields = [field for decl in document.get("decls", [])
+                          if decl.get("name") == "Rows"
+                          for field in decl.get("fields", [])
+                          if field.get("name") == "names"]
+                roots = [param.get("source_syntax_id")
+                         for row in document.get("routines", [])
+                         if row.get("name") == routine_name
+                         for param in row.get("params", [])
+                         if param.get("name") == root_name]
+                roots += [local.get("binding_syntax_id")
+                          for row in document.get("routines", [])
+                          if row.get("name") == routine_name
+                          for local in row.get("source_locals", [])
+                          if local.get("name") == root_name]
+                leaf = fields[0].get("source_syntax_id") if len(fields) == 1 else 0
+                receipt = general[0] if len(general) == 1 else None
+                if (leaf <= 0 or not isinstance(receipt, dict)
+                        or receipt.get("receiver_binding_syntax_id") != leaf
+                        or len(roots) != 1
+                        or not isinstance(roots[0], int)
+                        or roots[0] == leaf or roots[0] <= 0):
+                    raise SystemExit(
+                        f"direct member receipt did not preserve leaf-field identity: fields={fields}, roots={roots}, receipt={receipt}")
+        if name in owned_set_landings:
+            routine_name, landed = owned_set_landings[name]
+            document = json.loads(checked.stdout)
+            calls = [node.get("call_target_name") for row in document.get("routines", [])
+                     if row.get("name") == routine_name for block in row.get("blocks", [])
+                     for instruction in block.get("instructions", [])
+                     for lane in ("expr0_graph", "expr1_graph")
+                     if isinstance(instruction.get(lane), dict)
+                     for node in instruction[lane].get("nodes", []) if node.get("kind") == "call"]
+            if calls.count("ArraySetOwnedString") != landed or "ArraySet" in calls:
+                raise SystemExit(
+                    f"owned set landing {name} did not reach MIR as ArraySetOwnedString: {calls}")
     else:
         output = (checked.stdout + checked.stderr).decode(errors="replace")
         try:
@@ -1818,6 +2291,95 @@ for name, valid in paired:
                     "Intent aggregate argument 1 cannot satisfy an owned String-array field requirement")):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit("intent aggregate boundary lost its fail-closed source proof refusal")
+        if name == "aggregate_member_mutable_local_chain_owned_push_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (14, 26) or
+                errors[0].get("message") !=
+                    "ArrayPushOwnedString cannot mutate escaped array storage in 'values'"):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("mutable aggregate carrier lost its fail-closed lineage refusal")
+        if name == "aggregate_member_landed_string_push_mutable_carrier_invalid" and (
+                checked.stdout or not any(
+                    (row.get("location", {}).get("line"),
+                     row.get("location", {}).get("column")) == (18, 30) and
+                    row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
+                    row.get("message") ==
+                        "A landed String copy has no exact private-push receipt"
+                    for row in errors)):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("landed copy bypassed the mutable aggregate carrier refusal")
+        if name == "aggregate_result_mutable_root_field_push_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (15, 22) or
+                errors[0].get("message") !=
+                    "A landed String copy has no exact private-push receipt"):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("aggregate-result push bypassed its mutable-root refusal")
+        if name == "direct_member_default_mutable_root_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (19, 39) or
+                not errors[0].get("message", "").startswith(
+                    "A moving default Array<String> actual requires current owned elements")):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("moving direct member bypassed its mutable-root refusal")
+        if name == "aggregate_mutable_local_direct_member_owned_push_invalid" and (
+                checked.stdout or not any(
+                    (row.get("location", {}).get("line"),
+                     row.get("location", {}).get("column")) == (9, 27) and
+                    row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
+                    row.get("message") ==
+                        "A landed String copy has no exact private-push receipt"
+                    for row in errors)):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("mutable direct-member receiver gained an unproved owned push")
+        if name == "returned_borrowed_array_independent_push_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (11, 21) or
+                errors[0].get("message") !=
+                    "An independent String push has no current owned-Array element proof"):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("returned borrowed Array lost its exact fail-closed push refusal")
+        if name == "mixed_string_array_literal_push_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (8, 21) or
+                errors[0].get("message") !=
+                    "An independent String push has no current owned-Array element proof"):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("mixed String literal lost its exact fail-closed push refusal")
+        if name == "mixed_string_array_literal_loop_recheck_invalid" and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != (10, 25) or
+                errors[0].get("message") !=
+                    "An independent String push has no current owned-Array element proof"):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("loop-rechecked mixed String literal lost its fail-closed push refusal")
+        inout_owned_element_sites = {
+            "inout_owned_string_fallthrough_branch_borrowed_invalid":
+                ((13, 17), "AppendFresh", "rows"),
+            "inout_owned_string_fresh_push_borrowed_invalid":
+                ((7, 17), "AppendFresh", "rows"),
+            "inout_owned_string_explicit_push_borrowed_invalid":
+                ((7, 20), "AppendExplicit", "rows"),
+            "inout_owned_string_loop_member_carrier_borrowed_invalid":
+                ((19, 16), "Append", "types"),
+        }
+        if name in inout_owned_element_sites and (
+                checked.stdout or len(errors) != 1 or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) !=
+                    inout_owned_element_sites[name][0] or
+                not errors[0].get("message", "").startswith(
+                    "An inout Array<String> replacement for "
+                    f"'{inout_owned_element_sites[name][1]}' parameter "
+                    f"'{inout_owned_element_sites[name][2]}' requires current owned elements")):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"inout owned-element negative {name} lost its call-time premise refusal")
         if name in direct_own_named_sites and (
                 checked.stdout or len(errors) != 1 or errors[0].get("stage") != "semantic" or
                 (errors[0].get("location", {}).get("line"),
@@ -1825,9 +2387,8 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"direct own actual {name} lost its named-source refusal site")
         retained_sites = {
-            # These sites are the outer consumer of Make's retained result,
-            # not evidence of a refusal directly on the MapSet statement.
-            "mapnew_ref_box_value_storage_invalid": [(18, 15), (24, 17)],
+            # These sites are outer consumers of retained results, not direct
+            # evidence about the storage operation itself.
             "direct_ref_string_local_retain_invalid": [(8, 20)],
             "direct_ref_string_slot_invalid": [(7, 30)],
             "direct_ref_string_channel_invalid": [(9, 25)],
@@ -1870,6 +2431,7 @@ for name, valid in paired:
             "array_alias_field_read_own_invalid": (12, 17),
             "array_alias_index_read_own_invalid": (10, 17),
             "array_alias_two_hop_own_invalid": (11, 17),
+            "local_aggregate_copy_moved_to_own_beside_refusal_invalid": (24, 21),
             "array_field_detach_wrong_field_own_invalid": (12, 20),
             "array_field_detach_partial_branch_own_invalid": (14, 20),
             "array_field_detach_opaque_hold_own_invalid": (15, 20),
@@ -1905,9 +2467,6 @@ for name, valid in paired:
             "array_release_loop_second_iteration_escape_invalid": {(20, 30)},
             "array_release_inout_retaining_reader_invalid": {(12, 26), (22, 27)},
             "array_result_owned_retain_before_deepdrop_invalid": {(19, 27)},
-            # The in-place helper call takes no element ownership; the deep
-            # drop of the array it left with a borrowed String is the refusal.
-            "array_result_owned_named_inout_shallow_set_invalid": {(17, 27)},
             "array_result_owned_named_inout_index_assign_invalid": {(17, 27)},
             # The earlier extraction is independently cloned when the field is
             # read again.  The final shallow carrier still lacks a release
@@ -1928,7 +2487,12 @@ for name, valid in paired:
             "array_result_nonown_default_forward_own_invalid": [(3, 6), (8, 6)],
             "array_result_nonown_default_local_alias_own_invalid": [(3, 6)],
             "array_result_nonown_default_mixed_return_own_invalid": [(3, 6)],
+            "array_result_default_formal_conditional_uncopyable_invalid": [(7, 6)],
+            "array_result_default_formal_discard_invalid": [(9, 5)],
             "array_result_nonown_inout_field_own_invalid": [(3, 6)],
+            # Preserve both the ref-return owner refusal and the caller's
+            # transitive helper refusal.  A prior fail-closed diagnostic must
+            # not suppress the independently owned call-boundary evidence.
             "array_result_nonown_ref_nested_projection_invalid": [(3, 5), (14, 28)],
             "array_result_nonown_ref_mapget_descriptor_invalid": [(1, 6), (1, 6)],
             "array_result_local_owned_element_index_assign_invalid": [(6, 27)],
@@ -2096,8 +2660,8 @@ print("[function-param-flow-summary] resource-birth unready constructor controls
 
 # A private Int push may justify a local store, but an external call before or
 # after it still cannot make the returned nested rows input-independent. The
-# old compiler also reports an incomplete result relation; once the local
-# store premise lands, the exact borrow refusal must remain at the consumer.
+# backing owner must fail closed at Probe; do not widen that failure to ALL and
+# invent an unrelated caller-side escape for the scalar use of label.
 for name in (
     "zeroarg_private_int_keep_before_invalid",
     "zeroarg_private_int_keep_after_invalid",
@@ -2116,15 +2680,10 @@ for name in (
         return (row.get("stage") == "semantic" and row.get("message") == required_backing_message and
                 "code" not in row and "cause_ir" not in row and
                 (row.get("location", {}).get("line"), row.get("location", {}).get("column")) == (35, 6))
-    def borrowed_at_consumer(row):
-        return (row.get("stage") == "semantic" and row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
-                row.get("cause_ir") == "semantic:borrow_escape" and
-                (row.get("location", {}).get("line"), row.get("location", {}).get("column")) == (47, 28))
-    if checked.returncode != 1 or checked.stdout or not errors or not any(map(borrowed_at_consumer, errors)) or any(
-            not required_relation(row) and not borrowed_at_consumer(row) for row in errors):
+    if checked.returncode != 1 or checked.stdout or len(errors) != 1 or not required_relation(errors[0]):
         sys.stderr.buffer.write(checked.stderr)
-        raise SystemExit(f"private Int store negative {name} lost its exact borrow refusal")
-print("[function-param-flow-summary] private Int store retention refusals: PASS")
+        raise SystemExit(f"private Int store negative {name} lost its exact fail-closed relation")
+print("[function-param-flow-summary] private Int store relation failures: PASS")
 
 # This original full-program falsifier intentionally keeps ClaimSlot, Release
 # and invocation after the rejected Make definition. Native error recovery can
@@ -2171,6 +2730,7 @@ for name, code, cause in (
             row.get("code") == code and row.get("cause_ir") == cause for row in errors):
         raise SystemExit(f"stdlib identity/arity negative {name} lost {code}/{cause}")
 runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
+runtime_progress = os.environ.get("PGY_DEBUG_GATE_PROGRESS") == "1"
 # ToString(Bool) output parity is behavioral only: LLVM may return static text.
 # These cases do not assert a fresh allocation or an exit-drop right.
 for name, expected in (
@@ -2268,6 +2828,10 @@ for name, expected in (
     ("named_string_same_empty_named_valid", "TypeName\nTypeName\n"),
     ("named_string_same_empty_fresh_valid", "fresh value\n"),
     ("option_payload_fresh_literal_none_valid", "seed!\nliteral!\nfalse\nfalse\n"),
+    ("option_payload_owned_string_result_valid", "owned value\nfallback value\n"),
+    ("option_payload_borrowed_string_result_landed_valid", "borrowed value\n"),
+    ("mixed_owned_static_string_result_valid", "owned\n\n"),
+    ("inout_mixed_owned_string_result_valid", "owned\n\n"),
     ("option_payload_local_alias_valid", "ready\nheap\n"),
     ("option_payload_shared_carrier_valid", "shared\nshared\nheap\n"),
     ("option_payload_literal_array_return_valid", "alpha\nfalse\nheap\n"),
@@ -2280,6 +2844,7 @@ for name, expected in (
     ("readfile_result_multipart_defer_valid", "heap\n9\n0\n"),
     ("readfile_result_control_flow_valid", "while\n9\nfor-start\n3\nfor-end\n9\nnested-if\nmatched\nshort-circuit\ntaken\nheap\n"),
     ("nonowner_risk_option_reader_valid", "9\n0\n"),
+    ("nonowner_risk_declared_reader_only_valid", "8\n0\n"),
     ("nonowner_risk_shallow_loop_valid", "8\n8\n2\n"),
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
@@ -2300,11 +2865,53 @@ for name, expected in (
     ("formal_string_store_landing_ref_push_valid", "2ba"),
     ("formal_string_store_landing_map_array_set_valid", "2tt"),
     ("formal_string_store_landing_local_receiver_valid", "aa"),
+    ("ref_loan_local_stored_into_inout_output_landed_valid", "a\n"),
+    ("constructor_string_field_snapshot_before_finalize_landed_valid", "A"),
+    ("nonowner_risk_owned_constructor_transfer_landed_valid", "alpha"),
+    ("nonowner_risk_read_before_terminal_constructor_transfer_landed_valid", "alpha"),
+    ("nonowner_risk_declared_result_transfer_landed_valid", "5\nalpha"),
+    ("nonowner_risk_local_nominal_carrier_return_landed_valid", "alpha"),
+    ("aggregate_inout_member_constructor_transfer_valid", "b2\n"),
+    ("aggregate_inout_member_local_chain_owned_push_valid", "b2\n"),
+    ("aggregate_member_constructor_transfer_valid", "b2\n"),
+    ("aggregate_member_constructor_reuse_landed_valid", "2"),
+    ("constructor_owned_string_array_reuse_batch_landed_valid", "4"),
+    ("local_aggregate_copy_moved_to_own_landed_valid", "true1"),
+    ("local_ref_aggregate_carrier_moved_to_own_landed_valid", "011"),
+    ("ref_constructor_copyable_field_moved_to_own_landed_valid", "11"),
+    ("own_rebind_ref_input_return_landed_valid", "1"),
+    ("local_ref_string_carrier_moved_to_own_landed_valid", "5alpha"),
+    ("ref_default_constructor_result_loan_copied_valid", "1alpha"),
+    ("ref_returned_nested_projection_copy_landed_valid", "alphaalpha"),
+    ("ref_field_array_set_batch_landed_valid", "a1b2c3"),
+    ("recursive_inout_independent_aggregate_result_preserves_descriptor_valid", "7"),
+    ("inout_owned_set_then_push_preserves_elements_valid", "2new-value"),
+    ("inout_owned_set_loop_result_then_push_preserves_elements_valid", "old-value2new-value"),
+    ("inout_owned_string_terminal_branch_preserves_elements_valid",
+     "true\n1\nowned value\n"),
+    ("inout_owned_string_fresh_push_empty_valid", "1\nowned value\n"),
+    ("inout_owned_string_nonempty_reused_landed_valid",
+     "2\nborrowed\nowned value\n"),
+    ("inout_owned_string_explicit_push_empty_valid", "1\nowned value\n"),
+    ("inout_owned_string_loop_member_carrier_preserves_elements_valid", "3\n"),
+    ("member_carrier_selected_string_copy_preserves_elements_valid", "4\n"),
+    ("nested_member_carrier_interleaved_value_copy_preserves_elements_valid", "8\n"),
+    ("owned_string_array_literal_loop_recheck_valid", "3\n3\n"),
+    ("aggregate_member_local_chain_owned_push_valid", "b2\n"),
+    ("aggregate_member_landed_string_push_valid", "bb2\n"),
+    ("aggregate_inout_direct_member_owned_push_valid", "bb2\n"),
+    ("aggregate_local_direct_member_owned_push_valid", "ownedowned1\n"),
+    ("array_result_default_formal_transfer_valid", "3\n"),
+    ("array_result_default_formal_conditional_copy_valid", "33"),
     ("formal_string_store_landing_private_local_valid", "1a"),
     ("formal_string_store_landing_field_take_valid", "tt"),
     ("formal_store_landing_struct_output_valid", "src.pgysrc.pgy1"),
     ("formal_store_landing_alias_output_valid", "src.pgysrc.pgy3"),
     ("array_push_loan_inout_landed_valid", "ab7"),
+    ("inout_member_lent_result_exact_restore_valid", "1\n"),
+    ("inout_defers_alias_written_by_inout_callee_landed_valid", "dd"),
+    ("inout_defers_kept_by_callee_before_nested_call_landed_valid", "dd"),
+    ("inout_string_chain_kept_before_pop_landed_valid", "2"),
     ("aggregate_move_void_call_landed_valid", "3"),
     ("by_value_getter_lend_inout_passed_landed_valid", "2"),
     ("by_value_getter_lend_inout_then_returned_landed_valid", "21"),
@@ -2312,6 +2919,8 @@ for name, expected in (
     ("formal_string_store_landing_value_set_valid", "tt1"),
     ("formal_string_store_landing_value_map_valid", "tt1"),
     ("formal_string_store_local_alias_set_landed_valid", "tt"),
+    ("formal_string_store_local_member_path_set_landed_valid", "tt"),
+    ("formal_string_store_released_local_member_path_set_landed_valid", ""),
     ("formal_string_store_ref_array_element_local_alias_set_landed_valid", "onon"),
     ("named_string_same_empty_borrowed_then_owned_direct_landed_valid", "TypeName\n"),
     ("named_string_same_empty_owned_then_borrowed_direct_landed_valid", "TypeName\n"),
@@ -2320,8 +2929,10 @@ for name, expected in (
     ("string_inout_returned_literal_then_escape_call_landed_valid", "1"),
     ("string_inout_unwrapped_literal_then_escape_call_landed_valid", "1"),
     ("string_inout_returned_literal_then_own_release_landed_valid", ""),
+    ("inout_string_unknown_definition_copy_landed_valid", "a\nb\nownera"),
     ("struct_clone_array_field_copied_valid", "11a"),
     ("struct_clone_option_payload_copied_valid", "1"),
+    ("option_none_local_argument_kept_landed_valid", "2"),
     ("struct_clone_nested_field_copied_valid", "1t"),
     ("struct_clone_ref_returned_valid", "1a"),
     ("struct_clone_map_field_ref_returned_valid", "11a"),
@@ -2341,6 +2952,7 @@ for name, expected in (
     ("by_value_getter_lend_kept_then_owned_landed_valid", "2abab"),
     ("by_value_lend_result_written_argument_copied_landed_valid", "19"),
     ("default_aggregate_move_reuse_landed_valid", "141"),
+    ("default_struct_field_move_sibling_use_valid", "8"),
     ("default_aggregate_move_cloned_growth_landed_valid", "141"),
     ("by_value_getter_lend_growing_landed_valid", "ab1"),
     ("default_aggregate_move_branch_use_landed_valid", "31"),
@@ -2362,6 +2974,7 @@ for name, expected in (
     ("by_value_getter_result_local_returned_valid", "6"),
     ("constructor_of_getter_result_returned_valid", "7"),
     ("enum_payload_constructor_ref_field_return_valid", "owner"),
+    ("enum_payload_constructor_ref_field_owner_changed_landed_valid", "owner"),
     ("inout_defers_handed_to_recursive_emitter_valid", "dd"),
     ("by_value_array_grown_by_inout_callee_landed_valid", "2"),
     ("by_value_array_grown_by_inout_callee_last_use_valid", "2"),
@@ -2378,6 +2991,7 @@ for name, expected in (
     ("by_value_array_to_two_reading_formals_valid", "32"),
     ("array_handed_to_two_keeping_formals_landed_valid", "1"),
     ("array_handed_to_three_keeping_formals_landed_valid", "102"),
+    ("array_kept_by_earlier_call_and_two_formals_landed_valid", "4"),
     ("array_field_detach_two_own_valid", "1\n1\n0\n0\n"),
     ("array_field_detach_caller_alias_landed_valid", "1110"),
     ("array_field_detach_later_declared_own_valid", "2\n0\n"),
@@ -2440,8 +3054,10 @@ for name, expected in (
     ("moved_argument_chain_batch_landed_valid", "2221"),
     ("by_value_getter_lend_into_own_formal_landed_valid", "1"),
     ("returned_alias_lends_formal_valid", "22"),
+    ("array_descriptor_kept_then_read_landed_valid", "3\n"),
     ("lent_path_copy_grown_landed_valid", "75"),
     ("borrowed_owner_loan_grown_landed_valid", "31"),
+    ("array_handoff_same_return_value_landed_valid", "0"),
     ("string_crossing_window_pair_landed_valid", "row"),
     ("by_value_lend_then_owner_cloned_valid", "a41"),
     ("local_copy_inout_read_only_callee_valid", "10"),
@@ -2470,6 +3086,7 @@ for name, expected in (
     ("aggregate_string_loan_owner_moved_landed_valid", "ab71"),
     ("aggregate_string_loan_owner_mutated_landed_valid", "ab7"),
     ("aggregate_string_loan_struct_escape_landed_valid", "abc"),
+    ("array_push_loan_past_owner_landed_valid", "abc"),
     ("callee_alias_branch_return_record_landed_valid", "heap text\n"),
     ("callee_alias_return_record_landed_valid", "heap text\n"),
     ("declared_array_borrow_landed_valid", "2\n"),
@@ -2479,11 +3096,11 @@ for name, expected in (
     ("result_frame_formal_nominal_landed_valid", "9\n"),
     ("result_frame_formal_return_landed_valid", "9\n"),
     ("result_frame_formal_some_landed_valid", "9\n"),
-    ("return_loan_direct_slot_landed_valid", "true\nheap text\n"),
+    ("return_loan_direct_slot_valid", "true\nheap text\n"),
     ("return_loan_inout_landed_valid", "heap text\n"),
-    ("return_loan_mutated_literal_assignment_landed_valid", "heap text\n"),
-    ("return_loan_mutated_literal_bodyful_inout_landed_valid", "heap text\n"),
-    ("return_loan_staged_slot_landed_valid", "true\nheap text\n"),
+    ("return_loan_mutated_literal_assignment_valid", "heap text\n"),
+    ("return_loan_mutated_literal_bodyful_inout_valid", "heap text\n"),
+    ("return_loan_staged_slot_valid", "true\nheap text\n"),
     ("return_loan_wrap_slot_landed_valid", "true\nheap text\n"),
     ("stdlib_tostring_string_forward_landed_valid", "9\n"),
     ("match_payload_return_moves_landed_valid", "a"),
@@ -2498,6 +3115,7 @@ for name, expected in (
     ("intent_aggregate_readonly_boundary_valid", ""),
     ("nonowner_risk_branch_owned_insert_landed_valid", "8\n"),
     ("nonowner_risk_later_loop_owned_landed_valid", "8\n8\n"),
+    ("nonowner_risk_later_actual_handoff_landed_valid", "9\n"),
     ("nonowner_risk_safe_then_owned_landed_valid", "8\n0\n"),
     ("nonowner_risk_owned_then_safe_landed_valid", "8\n0\n"),
     ("inout_owned_param_input_return_moves_landed_valid", "1"),
@@ -2531,13 +3149,32 @@ for name, expected in (
     ("string_push_after_loop_walk_landed_valid", "cd"),
     ("ref_view_beside_unit_variant_valid", "1"),
     ("string_inout_literal_then_escape_call_landed_valid", "1"),
+    ("empty_local_shallow_push_then_inout_owned_writer_landed_valid", "2"),
     ("array_result_owned_named_inout_shallow_push_landed_valid", ""),
+    ("array_result_owned_named_inout_shallow_set_landed_valid", ""),
     ("string_local_pushed_into_field_array_landed_valid", "yx"),
     ("string_element_push_copy_landing_mixed_landed_valid", "header023"),
     ("ref_input_through_call_result_into_inout_output_landed_valid", "f26"),
     ("ref_string_through_inout_reader_shallow_store_landed_valid", "2\n2c"),
+    ("returned_owned_array_independent_push_landed_valid", "3\n"),
+    ("returned_owned_array_literal_independent_push_landed_valid", "3\n"),
+    ("static_literal_and_owned_string_push_landed_valid", "3\n"),
+    ("owned_string_array_mixed_push_plan_landed_valid", "6\n"),
+    ("replayed_owned_push_seeds_receiver_batch_landed_valid", "2\n"),
+    ("receiver_result_string_field_escape_landed_valid", "1\n"),
+    ("physical_return_inout_landed_valid", "true\nheap text\n"),
+    ("call_result_field_read_valid", "9\n"),
+    ("call_result_field_inout_landed_valid", "heap text\n"),
+    ("option_none_ref_loan_returned_landed_valid", "2"),
+    ("mutable_string_concat_branch_return_landed_valid",
+     "kind|key|location\nkind2|key2|location2\nkind3|key3|location3\n"),
+    ("for_string_binding_backing_valid", "keep one!,keep two!\n"),
+    ("array_slice_view_reader_valid", "5ab"),
 ):
     for backend in ("c", "llvm"):
+        if runtime_progress:
+            print(f"[function-param-flow-summary] runtime {name} {backend}",
+                  flush=True)
         executable = runtime_dir / (name + "-" + backend + ".exe")
         source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
         compiled = subprocess.run(
@@ -2693,7 +3330,8 @@ for shape, count in (("independent", 4097), ("single-closure", 4096)):
         if pressure.returncode != 0 or tuple(map(int, telemetry.groups()[:2])) != (count, count):
             raise SystemExit("independent demands consumed an unrelated episode's budget")
     elif pressure.returncode != 1 or pressure.stdout or int(work[1]) != 4096 or (
-        b"recursive summary work budget exceeded" not in pressure.stderr
+        b"recursive summary work budget exceeded" not in pressure.stderr and
+        b"sparse loan proof work budget exceeded" not in pressure.stderr
     ):
         raise SystemExit("one oversized demand closure escaped the unchanged work cap")
 # The cap counts a closure's entry evaluations, not its frame node visits: a
@@ -2705,7 +3343,7 @@ wide_actuals = ", ".join(f"a{i}" for i in range(wide_inputs))
 def wide_body(other):
     rows = ["    let out: Array<Int> = [];", "    let s: Int = 0;"]
     rows += ["    s = s + " + " + ".join(f"a{(i + k) % wide_inputs}[0]" for i in range(wide_inputs)) + ";"
-             for k in range(100)]
+             for k in range(180)]
     rows += ["    if n > 0 {", f"        let rest: Array<Int> = {other}({wide_actuals}, n - 1);",
              "        s = s + rest[0];", "    }", "    ArrayPush(out, s);", "    return out;"]
     return "\n".join(rows)

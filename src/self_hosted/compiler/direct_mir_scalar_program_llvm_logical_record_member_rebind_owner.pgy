@@ -38,8 +38,8 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
         plan.program.expressions.node_member_ordinals[target_root] != member {
         Die("direct MIR LLVM logical-record member rebind type is invalid");
     }
-    let members: Array<Int> = [];
-    let node: Int = target_root;
+    var members: Array<Int> = [];
+    var node: Int = target_root;
     while node >= 0 && plan.program.expressions.node_kinds[node] ==
             DirectMirScalarProgramExprLogicalRecordMember() {
         ArrayPush(members, plan.program.expressions.node_member_ordinals[node]);
@@ -49,8 +49,8 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
         "%pgy.record.rebind.base.", ToString(operation));
     let updated: String = Concat(
         "%pgy.record.rebind.value.", ToString(operation));
-    let output: String = expression.instructions;
-    let stored: String = expression.value;
+    var output: String = expression.instructions;
+    var stored: String = expression.value;
     if DirectMirScalarProgramLogicalRecordPhysicalIntField(
             plan.program.logical_record, receiver_type, member) {
         stored = Concat(updated, ".physical");
@@ -68,7 +68,7 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     output = Concat(output, Concat(" ", base));
     output = Concat(output, Concat(", ", llvm_field));
     output = Concat(output, Concat(" ", stored));
-    let path: Int = ArrayLength(members);
+    var path: Int = ArrayLength(members);
     while path > 0 {
         path = path - 1;
         output = Concat(output, Concat(", ", ToString(members[path])));

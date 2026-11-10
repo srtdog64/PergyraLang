@@ -4,7 +4,6 @@ import json
 import pathlib
 import sys
 
-
 def nodes(value):
     if isinstance(value, dict):
         yield value
@@ -19,14 +18,20 @@ source, output = map(pathlib.Path, sys.argv[1:])
 base = json.loads(source.read_text(encoding="utf-8"))
 mutations = ["missing-abi", "layout-id", "abi-required", "storage-align",
              "element-width", "cross-family", "pass-shape", "resource",
-             "owner-carriage", "binding-ordinal", "writer-readonly",
-             "negate-child", "negate-kind", "negate-binding"]
+             "unsupported-carriage", "binding-ordinal", "writer-readonly",
+             "negate-child", "negate-kind", "negate-binding",
+             "bool-missing-abi", "bool-storage-align"]
 for mutation in mutations:
     data = copy.deepcopy(base)
     routine = next(row for row in data["routines"] if row["name"] == "Count")
     param = routine["params"][0]
     assert param["type"] == "Array<Int>" and param["carriage"] == "readonly-ref"
-    if mutation == "missing-abi":
+    if mutation.startswith("bool-"):
+        bool_param = next(row for row in data["routines"] if row["name"] == "BoolCount")["params"][0]
+        assert bool_param["type"] == "Array<Bool>" and bool_param["carriage"] == "readonly-ref"
+        if mutation == "bool-missing-abi": bool_param.pop("abi_layout")
+        else: bool_param["abi_layout"]["align"] = 4
+    elif mutation == "missing-abi":
         param.pop("abi_layout")
     elif mutation == "layout-id":
         param["abi_layout_id"] = 0
@@ -46,8 +51,8 @@ for mutation in mutations:
         param["pass"] = "indirect"
     elif mutation == "resource":
         param["resource"] = "result"
-    elif mutation == "owner-carriage":
-        param["carriage"] = "owner-handle"
+    elif mutation == "unsupported-carriage":
+        param["carriage"] = "mutable-identity"
     elif mutation == "binding-ordinal":
         bindings = [row for row in nodes(routine["blocks"])
                     if row.get("binding_kind") == "formal_parameter"]

@@ -20,7 +20,7 @@ func DirectMirScalarCfgCollectionPlanCOperation(
             plan.collections, receiver
         );
         if root < 0 { Die("direct MIR collection C Set root is invalid"); }
-        let output: String = Concat("    pgy_collection_",
+        var output: String = Concat("    pgy_collection_",
             Concat(ToString(root), ".data["));
         output = Concat(output, Concat(ToString(
             plan.collections.operations.indices[set_row]
@@ -53,12 +53,12 @@ func DirectMirScalarCfgCollectionPlanCOperation(
     if root < 0 || count < 1 {
         Die("direct MIR collection C observation is invalid");
     }
-    let output: String = Concat("    ", formatted_print.symbol);
+    var output: String = Concat("    ", formatted_print.symbol);
     if plan.collections.observations.kinds[observation] ==
             DirectMirScalarCfgCollectionObservationSumInt() {
         output = Concat(output, Concat("(\"", int_line_format));
         output = Concat(output, Concat("\", (", Concat(int_c_type, ")(")));
-        let item: Int = 0;
+        var item: Int = 0;
         while item < count {
             if item > 0 { output = Concat(output, " + "); }
             output = Concat(output, Concat("pgy_collection_",
@@ -76,7 +76,7 @@ func DirectMirScalarCfgCollectionPlanCOperation(
     }
     output = Concat(output, Concat("(\"", string_line_format));
     output = Concat(output, Concat("\", ", Concat(concat.symbol, "(")));
-    let item: Int = 0;
+    var item: Int = 0;
     while item < 2 {
         if item > 0 { output = Concat(output, ", "); }
         output = Concat(output, Concat("pgy_collection_",

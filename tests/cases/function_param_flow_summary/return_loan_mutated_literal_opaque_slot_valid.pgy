@@ -1,0 +1,16 @@
+// Fill mutates the local String but does not change who owns it.  Echo lends
+// that same local value and the Slot receives the owner directly, without a
+// semantic copy-landing round.
+extern "C" { func Fill(inout text: String) -> Void; }
+func Echo(ref text: String) -> String { return text; }
+func Publish(ref output: Slot<String>) -> Void {
+    var held: String = "literal";
+    Fill(held);
+    Write(output, Echo(held));
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Publish(output);
+    Log(Read(output));
+    Release(output);
+}

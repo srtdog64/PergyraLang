@@ -19,16 +19,16 @@ func ParserIntentDefaultClauseNone(start: Int) -> ParserIntentDefaultClause {
 func ParserIntentDefaultClauseFromSource(
     context: ParserSourceLocationContext, content: String, content_extent: Int, start: Int
 ) -> ParserIntentDefaultClause {
-    let cursor: Array<Int> = [start];
+    var cursor: Array<Int> = [start];
     if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordWho) {
-        let i: Int = LanguageWordEnd(start, LanguageWordId.WordWho);
+        var i: Int = LanguageWordEnd(start, LanguageWordId.WordWho);
         // Native also admits `who <alias>: <Type>;` participant declarations.
         if ParserCharAtWithin(content, content_extent, SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i)) != ":" {
             ParseRefuse(context, start, "surface_not_covered", "surface",
                 "intent who participant declaration", "construct", "intent");
         }
         i = ParseExpectIn(context, content, i, ":", "intent_who");
-        let names: String = "";
+        var names: String = "";
         while true {
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor, 0, i);
@@ -48,7 +48,7 @@ func ParserIntentDefaultClauseFromSource(
         return ParserIntentDefaultClause(true, i, names, "");
     }
     if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordWhere) {
-        let i: Int = ParseExpectIn(context, content,
+        var i: Int = ParseExpectIn(context, content,
             LanguageWordEnd(start, LanguageWordId.WordWhere), ":", "intent_where");
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor, 0, i);
@@ -74,9 +74,9 @@ func ParserIntentStepDefaultsResolve(
     default_who: String, default_where: String,
     explicit_who: String, explicit_where: String
 ) -> ParserIntentStepDefaults {
-    let who_names: String = explicit_who;
-    let where_type: String = explicit_where;
-    let provenance: String = "";
+    var who_names: String = explicit_who;
+    var where_type: String = explicit_where;
+    var provenance: String = "";
     if who_names == "" && default_who != "" {
         who_names = default_who;
         provenance = "reused who from intent-level default";

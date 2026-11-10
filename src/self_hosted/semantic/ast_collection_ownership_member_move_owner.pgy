@@ -34,9 +34,9 @@ func SemanticAstCollectionMemberMoveIdentityForNode(
     let no_path: Array<Int> = [];
     let unresolved: SemanticAstCollectionMemberMoveIdentity =
         SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false, no_path);
-    let reversed_members: Array<Int> = [];
-    let current: Int = node_id;
-    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, current);
+    var reversed_members: Array<Int> = [];
+    var current: Int = node_id;
+    var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, current);
     while member.ok && ArrayLength(reversed_members) < 64 {
         ArrayPush(reversed_members, member.member_node);
         current = member.receiver_node;
@@ -48,11 +48,11 @@ func SemanticAstCollectionMemberMoveIdentityForNode(
             artifact, signatures, locals, inferred_types, resolved_leaf_types, function_node_id,
             use_node_id, graph, current);
     if !root.ok { return unresolved; }
-    let path: Array<Int> = [];
-    let value_type: String = Concat("", root.type_name);
-    let key: String = Concat(ToString(function_node_id),
+    var path: Array<Int> = [];
+    var value_type: String = Concat("", root.type_name);
+    var key: String = Concat(ToString(function_node_id),
         Concat(":", ToString(root.source_binding_syntax_id)));
-    let index: Int = ArrayLength(reversed_members) - 1;
+    var index: Int = ArrayLength(reversed_members) - 1;
     while index >= 0 {
         let field_name: Option<String> = SemanticExpressionGraphNodeText(
             graph, reversed_members[index]);

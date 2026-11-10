@@ -7,7 +7,7 @@ func DirectMirScalarProgramLlvmStringWindowMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let out: String = "";
+    var out: String = "";
     if plan.program.runtime_abi.string_length_id != 0 {
         out = Concat(out, Concat("define internal i64 @",
             Concat(runtime.string_length.symbol,
@@ -32,15 +32,31 @@ func DirectMirScalarProgramLlvmStringWindowMaterialization(
             DirectMirScalarProgramLlvmBoundedSubstringMaterialization(
                 runtime.string_substring_with_len));
     }
-    if plan.program.runtime_abi.string_sub_index_with_len_id != 0 {
+    if plan.program.runtime_abi.string_sub_index_with_len_id != 0 ||
+            plan.program.runtime_abi.string_sub_contains_with_len_id != 0 {
         out = Concat(out, Concat("define internal i64 @",
             Concat(runtime.string_sub_index_with_len.symbol,
             "(ptr %source, i64 %source.length, i64 %start, i64 %length, ptr %needle) {\nentry:\n  %source.null = icmp eq ptr %source, null\n  %needle.null = icmp eq ptr %needle, null\n  %negative.source = icmp slt i64 %source.length, 0\n  %negative.start = icmp slt i64 %start, 0\n  %past.end = icmp sge i64 %start, %source.length\n  %empty.length = icmp sle i64 %length, 0\n  %invalid.0 = or i1 %source.null, %needle.null\n  %invalid.1 = or i1 %negative.source, %negative.start\n  %invalid.2 = or i1 %past.end, %empty.length\n  %invalid.3 = or i1 %invalid.0, %invalid.1\n  %invalid = or i1 %invalid.3, %invalid.2\n  br i1 %invalid, label %missing, label %clamp\n\nclamp:\n  %remaining = sub i64 %source.length, %start\n  %too.long = icmp sgt i64 %length, %remaining\n  %bounded.length = select i1 %too.long, i64 %remaining, i64 %length\n  %needle.length = call i64 @strlen(ptr %needle)\n  %needle.empty = icmp eq i64 %needle.length, 0\n  br i1 %needle.empty, label %empty.needle, label %size.check\n\nempty.needle:\n  ret i64 0\n\nsize.check:\n  %too.short = icmp ult i64 %bounded.length, %needle.length\n  br i1 %too.short, label %missing, label %loop\n\nloop:\n  %position = phi i64 [ 0, %size.check ], [ %next, %continue ]\n  %source.offset = add i64 %start, %position\n  %source.slot = getelementptr inbounds i8, ptr %source, i64 %source.offset\n  %compared = call i32 @memcmp(ptr %source.slot, ptr %needle, i64 %needle.length)\n  %found = icmp eq i32 %compared, 0\n  br i1 %found, label %present, label %continue\n\npresent:\n  ret i64 %position\n\ncontinue:\n  %next = add i64 %position, 1\n  %candidate.end = add i64 %next, %needle.length\n  %within = icmp ule i64 %candidate.end, %bounded.length\n  br i1 %within, label %loop, label %missing\n\nmissing:\n  ret i64 -1\n}\n\n")));
     }
-    if plan.program.runtime_abi.string_sub_equals_with_len_id != 0 {
+    if plan.program.runtime_abi.string_sub_contains_with_len_id != 0 {
+        out = Concat(out, Concat("define internal i1 @",
+            Concat(runtime.string_sub_contains_with_len.symbol,
+            Concat("(ptr %source, i64 %source.length, i64 %start, i64 %length, ptr %needle) {\nentry:\n  %index = call i64 @",
+            Concat(runtime.string_sub_index_with_len.symbol,
+            "(ptr %source, i64 %source.length, i64 %start, i64 %length, ptr %needle)\n  %present = icmp sge i64 %index, 0\n  ret i1 %present\n}\n\n")))));
+    }
+    if plan.program.runtime_abi.string_sub_equals_with_len_id != 0 ||
+            plan.program.runtime_abi.string_sub_starts_with_len_id != 0 {
         out = Concat(out, Concat("define internal i1 @",
             Concat(runtime.string_sub_equals_with_len.symbol,
             "(ptr %source, i64 %source.length, i64 %start, i64 %length, ptr %other) {\nentry:\n  %other.null = icmp eq ptr %other, null\n  br i1 %other.null, label %false, label %source.check\n\nsource.check:\n  %source.null = icmp eq ptr %source, null\n  %negative.source = icmp slt i64 %source.length, 0\n  %negative.start = icmp slt i64 %start, 0\n  %past.end = icmp sge i64 %start, %source.length\n  %empty.length = icmp sle i64 %length, 0\n  %invalid.0 = or i1 %source.null, %negative.source\n  %invalid.1 = or i1 %negative.start, %past.end\n  %invalid.2 = or i1 %invalid.0, %invalid.1\n  %invalid = or i1 %invalid.2, %empty.length\n  br i1 %invalid, label %empty.input, label %clamp\n\nempty.input:\n  %empty.other.length = call i64 @strlen(ptr %other)\n  %empty.other = icmp eq i64 %empty.other.length, 0\n  ret i1 %empty.other\n\nclamp:\n  %remaining = sub i64 %source.length, %start\n  %too.long = icmp sgt i64 %length, %remaining\n  %bounded.length = select i1 %too.long, i64 %remaining, i64 %length\n  %other.length = call i64 @strlen(ptr %other)\n  %same.length = icmp eq i64 %bounded.length, %other.length\n  br i1 %same.length, label %content.check, label %false\n\ncontent.check:\n  %other.empty = icmp eq i64 %other.length, 0\n  br i1 %other.empty, label %true, label %compare\n\ncompare:\n  %source.slot = getelementptr inbounds i8, ptr %source, i64 %start\n  %compared = call i32 @memcmp(ptr %source.slot, ptr %other, i64 %other.length)\n  %equal = icmp eq i32 %compared, 0\n  ret i1 %equal\n\ntrue:\n  ret i1 true\n\nfalse:\n  ret i1 false\n}\n\n")));
+    }
+    if plan.program.runtime_abi.string_sub_starts_with_len_id != 0 {
+        out = Concat(out, Concat("define internal i1 @",
+            Concat(runtime.string_sub_starts_with_len.symbol,
+            Concat("(ptr %source, i64 %source.length, i64 %start, ptr %prefix) {\nentry:\n  %source.null = icmp eq ptr %source, null\n  %prefix.null = icmp eq ptr %prefix, null\n  %negative.source = icmp slt i64 %source.length, 0\n  %negative.start = icmp slt i64 %start, 0\n  %past.end = icmp sgt i64 %start, %source.length\n  %invalid.0 = or i1 %source.null, %prefix.null\n  %invalid.1 = or i1 %negative.source, %negative.start\n  %invalid.2 = or i1 %invalid.0, %invalid.1\n  %invalid = or i1 %invalid.2, %past.end\n  br i1 %invalid, label %false, label %prefix.length\n\nprefix.length:\n  %length = call i64 @strlen(ptr %prefix)\n  %empty = icmp eq i64 %length, 0\n  br i1 %empty, label %true, label %size.check\n\nsize.check:\n  %remaining = sub i64 %source.length, %start\n  %too.short = icmp slt i64 %remaining, %length\n  br i1 %too.short, label %false, label %compare\n\ncompare:\n  %equal = call i1 @",
+            Concat(runtime.string_sub_equals_with_len.symbol,
+            "(ptr %source, i64 %source.length, i64 %start, i64 %length, ptr %prefix)\n  ret i1 %equal\n\ntrue:\n  ret i1 true\n\nfalse:\n  ret i1 false\n}\n\n")))));
     }
     return out;
 }

@@ -15,9 +15,9 @@ func SemanticExpressionGraphRowConsumes(ref topology: AstExpressionArena, row: I
 // For every node, the first later row that consumes it, or -1.
 func SemanticExpressionGraphConsumerRows(ref topology: AstExpressionArena) -> Array<Int> {
     let count: Int = AstExpressionArenaNodeCount(topology);
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     while ArrayLength(rows) < count { ArrayPush(rows, -1); }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let left: Int = topology.left_children[row];
         let right: Int = topology.right_children[row];

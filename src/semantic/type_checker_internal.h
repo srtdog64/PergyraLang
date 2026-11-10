@@ -91,11 +91,12 @@ bool semantic_param_summary_has_call_escape(unsigned summary_mask);
  * the checked argument types structurally, or default), refuses a
  * conflicting or missing binding, seals the binding on the call and checks
  * the where-clause against it. */
-void semantic_validate_function_call_generic_where(ASTNode *expr,
-                                                   SemanticContext *ctx,
-                                                   const char *display_name,
-                                                   size_t provided,
-                                                   Type **call_arg_types);
+Type *semantic_validate_function_call_generic_where(ASTNode *expr,
+                                                    SemanticContext *ctx,
+                                                    const char *display_name,
+                                                    size_t provided,
+                                                    Type **call_arg_types,
+                                                    Type *declared_return_type);
 /* Seals one checked type argument per generic parameter on the call, in MIR
  * type grammar; MIR's generic specialization reads only this. Reports a
  * coded diagnostic and returns false when a type has no such spelling. */
@@ -372,6 +373,9 @@ ASTNode *semantic_host_index_find_top_level_decl_by_label(
 ASTNode *semantic_host_index_find_next_decl_of_type(SemanticContext *ctx,
                                                     ASTNodeType decl_type,
                                                     const ASTNode *after);
+ASTNode *semantic_host_index_find_next_role_for_type(SemanticContext *ctx,
+                                                     const char *type_name,
+                                                     const ASTNode *after);
 ASTNode *semantic_find_type_alias_decl_by_name(SemanticContext *ctx,
                                                const char *name);
 ASTNode *semantic_find_zone_decl_by_name(SemanticContext *ctx,
@@ -559,6 +563,8 @@ void type_check_intent_step_transfer_contract(ASTNode *node,
                                               ASTNode *step,
                                               SemanticContext *ctx);
 bool type_check_event_decl(ASTNode *node, SemanticContext *ctx);
+bool semantic_check_numeric_operands(ASTNode *node, PgyTokenType op,
+    Type *left, Type *right, SemanticContext *ctx);
 bool type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
                                    const char *op_name);
 bool type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx);

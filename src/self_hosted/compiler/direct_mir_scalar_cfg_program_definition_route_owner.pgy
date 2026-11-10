@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_indexed_assignment_owner.pgy";
 import "direct_mir_routine_instance_type_owner.pgy";
 import "direct_mir_identity_cell_store_admission_owner.pgy";
+import "mir_compound_assignment_admission_owner.pgy";
 
 struct DirectMirScalarCfgProgramDefinitionRoute {
     let valid: Bool;
@@ -28,6 +29,8 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
     ref types: DirectMirScalarCfgValueTypePlan, ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, value_offset: Int, parameter_types: Array<String>,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact, ref signature: DirectMirRoutineSignatureFact,
@@ -39,12 +42,28 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         (result < 0 && wire_kind != "assign") || (source != "AST_LET_DECL" && source != "AST_ASSIGNMENT") {
         return DirectMirScalarCfgProgramDefinitionRouteInvalid("definition_shape", operations, expressions);
     }
+    if source == "AST_LET_DECL" && !IsSome(BindingDeclarationModeFromMirName(capture.name)) {
+        return DirectMirScalarCfgProgramDefinitionRouteInvalid("binding_declaration_mode", operations, expressions);
+    }
+    if source == "AST_ASSIGNMENT" {
+        let operation: Option<Int> = AssignmentOperationFromMirName(capture.name);
+        if !IsSome(operation) { return DirectMirScalarCfgProgramDefinitionRouteInvalid("assignment_operation", operations, expressions); }
+        if UnwrapOption(operation) != 0 {
+            let compound: DirectMirScalarCfgProgramDefinitionAdmission = MirCompoundAssignmentAppend(
+                operations, expressions, failure, UnwrapOption(operation), result, wire_kind,
+                instruction, uses, index, global_row, local_instruction, locals, types, wire,
+                local_offset, value_offset, parameter_types, signature, callables,
+                routine_instances, caller_ordinal, logical_record, payload_free_enum, referenced_enum);
+            return DirectMirScalarCfgProgramDefinitionRoute(compound.valid,
+                "compound_assignment", compound.operations, compound.expressions);
+        }
+    }
     if source == "AST_LET_DECL" && DirectMirScalarProgramLogicalRecordTypeReady(
             logical_record, types.value_types[result]) {
         let declared: Option<String> = DirectMirRoutineInstanceTypeName(
-            callables.instances, callables.caller_ordinal, capture.arg1);
+            routine_instances, caller_ordinal, capture.arg1);
         let expression: Option<String> = DirectMirRoutineInstanceTypeName(
-            callables.instances, callables.caller_ordinal, capture.expr1);
+            routine_instances, caller_ordinal, capture.expr1);
         if !IsSome(declared) || !IsSome(expression) ||
             (UnwrapOption(declared) != "" && UnwrapOption(declared) != types.value_types[result]) ||
             (UnwrapOption(expression) != "" && UnwrapOption(expression) != types.value_types[result]) {
@@ -61,17 +80,19 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         if !store.valid {
             return DirectMirScalarCfgProgramDefinitionRouteInvalid("identity_cell_store_target", operations, expressions);
         }
-        let target_field: String = "expr1_graph"; let value_field: String = "expr0_graph";
-        let stored_result: Int = result + value_offset;
-        let use_offset: Int = store.use_prefix;
+        var target_field: String = "expr1_graph"; var value_field: String = "expr0_graph";
+        var stored_result: Int = result + value_offset;
+        var use_offset: Int = store.use_prefix;
         if wire_kind == "assign" { target_field = "expr0_graph"; value_field = "expr1_graph"; stored_result = -1; }
         let target_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
             expressions, failure, instruction, uses, index, global_row, local_instruction,
-            locals, types, wire, local_offset, parameter_types, signature, callables,
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, routine_instances, caller_ordinal,
             logical_record, payload_free_enum, referenced_enum, target_field, use_offset, false, store.type_name, -1);
         let value_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
             expressions, failure, instruction, uses, index, global_row, local_instruction,
-            locals, types, wire, local_offset, parameter_types, signature, callables,
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, routine_instances, caller_ordinal,
             logical_record, payload_free_enum, referenced_enum, value_field, use_offset, true, store.type_name, -1);
         if !IsSome(target_expression) || !IsSome(value_expression) {
             return DirectMirScalarCfgProgramDefinitionRouteInvalid("identity_cell_store_expression", operations, expressions);
@@ -81,17 +102,21 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         return DirectMirScalarCfgProgramDefinitionRoute(operations.valid, "identity_cell_store_operation", operations, expressions);
     }
     if member_rebind.valid {
-        let use_offset: Int = member_rebind.use_prefix_count;
+        var use_offset: Int = member_rebind.use_prefix_count;
         let target_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
                 expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
-                parameter_types, signature, callables, logical_record,
+                parameter_types, signature, callables, routine_instances,
+                caller_ordinal,
+                logical_record,
                 payload_free_enum, referenced_enum, "expr1_graph", use_offset, false, member_rebind.member_type, -1);
         let value_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpression(
                 expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
-                parameter_types, signature, callables, logical_record, payload_free_enum, referenced_enum, use_offset,
-                member_rebind.member_type);
+                parameter_types, signature, callables, routine_instances,
+                caller_ordinal,
+                logical_record, payload_free_enum, referenced_enum, use_offset,
+                member_rebind.member_type, false);
         if !IsSome(target_expression) || !IsSome(value_expression) {
             return DirectMirScalarCfgProgramDefinitionRouteInvalid("member_rebind_expression", operations, expressions);
         }
@@ -103,17 +128,21 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         return DirectMirScalarCfgProgramDefinitionRoute(true, "", operations, expressions);
     }
     if nested_indexed.valid {
-        let use_offset: Int = nested_indexed.use_prefix_count;
+        var use_offset: Int = nested_indexed.use_prefix_count;
         let target_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
                 expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
-                parameter_types, signature, callables, logical_record,
+                parameter_types, signature, callables, routine_instances,
+                caller_ordinal,
+                logical_record,
                 payload_free_enum, referenced_enum, "expr1_graph", use_offset, false, nested_indexed.element_type, -1);
         let value_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpression(
                 expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
-                parameter_types, signature, callables, logical_record, payload_free_enum, referenced_enum, use_offset,
-                nested_indexed.element_type);
+                parameter_types, signature, callables, routine_instances,
+                caller_ordinal,
+                logical_record, payload_free_enum, referenced_enum, use_offset,
+                nested_indexed.element_type, false);
         if !IsSome(target_expression) || !IsSome(value_expression) {
             return DirectMirScalarCfgProgramDefinitionRouteInvalid("logical_record_array_indexed_expression",
                 operations, expressions);
@@ -132,6 +161,7 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
             operations, expressions, failure, source, wire_kind, capture,
             instruction, uses, index, global_row, local_instruction, locals,
             types, wire, local_offset, parameter_types, callables,
+            routine_instances, caller_ordinal,
             logical_record, payload_free_enum, referenced_enum, signature,
             indexed_assignment);
     if indexed_route.claimed {
@@ -155,7 +185,9 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         DirectMirScalarCfgProgramAppendDefinition(
             operations, expressions, failure, result, instruction, uses, index,
             global_row, local_instruction, locals, types, wire, local_offset,
-            value_offset, parameter_types, callables, logical_record,
+            value_offset, parameter_types, callables, routine_instances,
+            caller_ordinal,
+            logical_record,
             payload_free_enum, referenced_enum, signature);
     if !definition.valid {
         return DirectMirScalarCfgProgramDefinitionRouteInvalid(

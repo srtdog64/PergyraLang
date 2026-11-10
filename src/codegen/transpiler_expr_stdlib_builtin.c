@@ -13,6 +13,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/collection_ownership_fact.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -397,7 +398,22 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free(arr);
                 return NULL;
             }
-            char *result = strdup_fmt("pgy_array_pop_%s(&%s)", inner, arr);
+            bool owned_string =
+                semantic_collection_owned_string_pop_receipt_ready(call, arg0);
+            if (owned_string && strcmp(inner, "String") != 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                    "C backend: owned ArrayPop receipt requires Array<String>");
+                free(arr);
+                return NULL;
+            }
+            char *result = strdup_fmt(
+                owned_string
+                    ? "pgy_array_pop_owned_%s(&%s)"
+                    : "pgy_array_pop_%s(&%s)",
+                inner, arr);
             free(arr);
             return result;
         }

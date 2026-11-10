@@ -28,10 +28,10 @@ func MirMatchBindingLineForInstruction(
             variant, " match case is missing subject MIR fact"
         ));
     }
-    let bindings: Array<String> = [];
-    let binding_types: Array<String> = [];
-    let binding_bounds: Array<Int> = [0, 0];
-    let type_bounds: Array<Int> = [0, 0];
+    var bindings: Array<String> = [];
+    var binding_types: Array<String> = [];
+    var binding_bounds: Array<Int> = [0, 0];
+    var type_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
             json, json_extent, instruction_start, instruction_end, "match_bindings",
             binding_bounds
@@ -59,7 +59,7 @@ func MirMatchBindingLineForInstruction(
         ));
     }
     if binding_count == 0 { return ""; }
-    let is_wrapper: Bool =
+    var is_wrapper: Bool =
         variant == "Some" || variant == "Ok" || variant == "Err";
     let family: Option<String> = JsonObjectStringFieldOptWithin(
         json, json_extent, instruction_start, instruction_end, "match_subject_family"
@@ -80,11 +80,11 @@ func MirMatchBindingLineForInstruction(
             variant, " wrapper match case binding cardinality is invalid"
         ));
     }
-    let unwrap_name: String = "UnwrapOption";
+    var unwrap_name: String = "UnwrapOption";
     if variant == "Ok" { unwrap_name = "Unwrap"; }
     if variant == "Err" { unwrap_name = "UnwrapErr"; }
-    let lines: Array<String> = [];
-    let binding_index: Int = 0;
+    var lines: Array<String> = [];
+    var binding_index: Int = 0;
     while binding_index < binding_count {
         let binding: String = bindings[binding_index];
         let binding_type: String = binding_types[binding_index];
@@ -95,7 +95,7 @@ func MirMatchBindingLineForInstruction(
                 " match case is missing a concrete match_binding_type MIR fact"
             ));
         }
-        let initializer: String = "";
+        var initializer: String = "";
         if is_wrapper {
             let unwrap_parts: Array<String> = [
                 unwrap_name, "(", match_subject, ")"

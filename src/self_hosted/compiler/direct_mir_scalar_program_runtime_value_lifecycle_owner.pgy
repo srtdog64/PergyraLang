@@ -27,7 +27,7 @@ func DirectMirScalarProgramRuntimeValueOperationBlock(
     if routine < 0 || routine >= ArrayLength(plan.routines.block_starts) {
         return -1;
     }
-    let block: Int = plan.routines.block_starts[routine];
+    var block: Int = plan.routines.block_starts[routine];
     let end: Int = block + plan.routines.block_counts[routine];
     while block < end {
         if operation >= plan.block_operation_starts[block] &&
@@ -45,7 +45,7 @@ func DirectMirScalarProgramRuntimeValueExpressionContainsLocal(
             ArrayLength(plan.program.expressions.graph_starts) {
         return false;
     }
-    let node: Int = plan.program.expressions.graph_starts[expression_row];
+    var node: Int = plan.program.expressions.graph_starts[expression_row];
     let end: Int = node + plan.program.expressions.graph_counts[expression_row];
     while node < end {
         if plan.program.expressions.node_kinds[node] ==
@@ -93,7 +93,7 @@ func DirectMirScalarProgramRuntimeValueCallOwnerLocal(
 func DirectMirScalarProgramRuntimeValueScratchReset(
     inout seen: Array<Bool>, inout pending_blocks: Array<Int>
 ) -> Void {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(seen) {
         ArraySet(seen, row, false);
         row = row + 1;
@@ -140,7 +140,7 @@ func DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
 func DirectMirScalarProgramRuntimeValueBlockHasProcessExit(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> Bool {
-    let operation: Int = plan.block_operation_starts[block];
+    var operation: Int = plan.block_operation_starts[block];
     let end: Int = operation + plan.block_operation_counts[block];
     while operation < end {
         if plan.operation_kinds[operation] ==
@@ -188,8 +188,8 @@ func DirectMirScalarProgramRuntimeValueCreationOperation(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     local_row: Int, local_type: String
 ) -> Int {
-    let found: Int = -1;
-    let operation: Int = plan.routines.operation_starts[routine];
+    var found: Int = -1;
+    var operation: Int = plan.routines.operation_starts[routine];
     let end: Int = operation + plan.routines.operation_counts[routine];
     while operation < end {
         let result: Int = plan.operation_result_values[operation];
@@ -218,8 +218,8 @@ func DirectMirScalarProgramRuntimeValueTerminalOperation(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     local_row: Int, local_type: String
 ) -> Int {
-    let found: Int = -1;
-    let operation: Int = plan.routines.operation_starts[routine];
+    var found: Int = -1;
+    var operation: Int = plan.routines.operation_starts[routine];
     let end: Int = operation + plan.routines.operation_counts[routine];
     while operation < end {
         let expression_row: Int =
@@ -324,8 +324,8 @@ func DirectMirScalarProgramRuntimeValueLocalReady(
             seen, pending_blocks)) {
         return false;
     }
-    let use_count: Int = 0;
-    let operation: Int = plan.routines.operation_starts[routine];
+    var use_count: Int = 0;
+    var operation: Int = plan.routines.operation_starts[routine];
     let operation_end: Int = operation +
         plan.routines.operation_counts[routine];
     while operation < operation_end {
@@ -361,7 +361,7 @@ func DirectMirScalarProgramRuntimeValueLocalReady(
         }
         operation = operation + 1;
     }
-    let block: Int = plan.routines.block_starts[routine];
+    var block: Int = plan.routines.block_starts[routine];
     let block_end: Int = block + plan.routines.block_counts[routine];
     while block < block_end {
         let position: Int = plan.block_operation_starts[block] +
@@ -402,14 +402,14 @@ func DirectMirScalarProgramRuntimeValueLifecycleReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
     if !plan.program.valid { return true; }
-    let seen: Array<Bool> = [];
-    let pending_blocks: Array<Int> = [];
-    let block: Int = 0;
+    var seen: Array<Bool> = [];
+    var pending_blocks: Array<Int> = [];
+    var block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         ArrayPush(seen, false);
         block = block + 1;
     }
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < ArrayLength(plan.local_types) {
         if CompilerRuntimeValueTypeReady(
                 plan.local_types[local_row]) &&

@@ -69,7 +69,7 @@ func DirectMirScalarCfgCollectionConditionExpressionFact(
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
-    let condition: DirectMirScalarCfgExpressionFact =
+    var condition: DirectMirScalarCfgExpressionFact =
         DirectMirScalarCfgStringArrayLengthConditionFact(
             string_arrays, global_row
         );

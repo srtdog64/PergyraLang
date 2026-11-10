@@ -19,7 +19,7 @@ func FindCode() -> Option<String> {
 func Main() -> Void {
     let risk: Array<String> = [Concat("li", "ve")];
     let found: Option<String> = FindCode();
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     if IsSome(found) {
         let text: String = UnwrapOption(found);
         ArrayPush(rows, text);

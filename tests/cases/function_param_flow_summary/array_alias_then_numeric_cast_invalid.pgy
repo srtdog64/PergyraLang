@@ -15,8 +15,8 @@ func Main() -> Void
 
 func Later(value: String) -> Long
 {
-    let out: Long = StringLength(value) as Long;
-    let i: Int = 0;
+    var out: Long = StringLength(value) as Long;
+    var i: Int = 0;
     while i < StringLength(value) {
         out = out + (CharCode(value, StringLength(value), i) as Long);
         i = i + 1;

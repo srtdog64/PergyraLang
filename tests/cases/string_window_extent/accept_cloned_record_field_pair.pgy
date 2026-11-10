@@ -1,0 +1,30 @@
+// P7 survives compiler-owned copies of both the String field and its Int
+// extent while a readonly aggregate crosses a function boundary.
+struct SourcePair {
+    let json: String;
+    let json_extent: Int;
+}
+
+struct TargetPair {
+    let source_json: String;
+    let source_json_extent: Int;
+}
+
+func ReadSource(ref source: SourcePair) -> Int {
+    return CharCode(source.json, source.json_extent, 0);
+}
+
+func ReadTarget(ref target: TargetPair) -> Int {
+    return CharCode(target.source_json, target.source_json_extent, 0);
+}
+
+func CopyPair(ref source: SourcePair) -> TargetPair {
+    return TargetPair(source.json, source.json_extent);
+}
+
+func Main() -> Void {
+    let source: SourcePair = SourcePair("a", StringLength("a"));
+    let target: TargetPair = CopyPair(source);
+    Print(ToString(ReadSource(source)));
+    Print(ToString(ReadTarget(target)));
+}

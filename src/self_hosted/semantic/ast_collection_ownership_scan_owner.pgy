@@ -10,6 +10,7 @@ import "ast_collection_read_literal_argument_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
 import "ast_collection_element_escape_entry_owner.pgy";
 import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "ast_collection_exclusive_statement_mutation_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
 import "ast_collection_definition_transition_owner.pgy";
 import "ast_collection_owned_result_return_owner.pgy";
@@ -20,6 +21,9 @@ import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_ownership_receipt_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_member_read_completion_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
+import "ast_collection_ownership_finalization_owner.pgy";
+import "ast_collection_ownership_projection_owner.pgy";
 
 func SemanticAstCollectionOwnershipScanIntoVerdict(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -32,6 +36,9 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref owned_string_store_clone_nodes: Array<Int>,
+    ref owned_string_store_nodes: Array<Int>,
+    ref body_termination: SemanticAstBodyTerminationFacts,
     ref owned_result_plan: SemanticAstFreshOwnedStringArrayResultPlan,
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
@@ -41,8 +48,10 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     inout ownership: Array<Int>, inout dispositions: Array<Int>,
     inout origins: Array<Int>, inout transition_states: Array<Int>,
     inout origin_syntax_ids: Array<Int>, inout source_binding_syntax_ids: Array<Int>,
+    ref member_path_starts: Array<Int>, ref member_path_counts: Array<Int>,
+    ref member_path_field_syntax_ids: Array<Int>,
     inout current_definitions: Array<Int>,
-    inout receipts: SemanticAstCollectionOwnershipReceiptRows,
+    own receipts: SemanticAstCollectionOwnershipReceiptRows,
     inout literal_transfers: SemanticAstOwnedStringLiteralTransferFacts,
     inout call_effects: SemanticAstCollectionCallEffectFacts,
     inout aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan,
@@ -55,39 +64,59 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
 ) -> Void {
     // Unpublished exact-consumption scratch. This descriptor cannot escape
     // the scan; physical HashMap reclamation remains the backend's contract.
-    let retired_arguments: HashMap<String, Int> = MapNew();
-    let sink_consumed: HashMap<String, Int> = MapNew();
+    var retired_arguments: HashMap<String, Int> = MapNew();
+    var sink_consumed: HashMap<String, Int> = MapNew();
     let released_fields: SemanticAstCollectionReleasedFields =
         SemanticAstCollectionReleasedFieldsFrom(constructors, field_requirements);
-    let local_count: Int = ArrayLength(locals.node_ids);
-    let local_row: Int = 0;
-    let root_slot: Int = 0;
+    var root_slot: Int = 0;
+    // Constructor selections precede source-ordered mutation selections.
+    // Keep the exact landing projection separate from the structural copy
+    // graph so the scan never copies that graph merely to append a node id.
+    var compiler_clone_expression_node_ids: Array<Int> =
+        SemanticAstCollectionExclusiveCompilerCloneNodes(
+            exclusive_values.copies);
+    var planned_clone: Int = 0;
+    while planned_clone < ArrayLength(owned_string_store_clone_nodes) {
+        let node: Int = owned_string_store_clone_nodes[planned_clone];
+        if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                compiler_clone_expression_node_ids, node) &&
+            !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                compiler_clone_expression_node_ids, node) {
+            verdict = SemanticAstCollectionOwnershipVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner",
+                    "owned_string_store_landing_projection"), -1, -1);
+            return;
+        }
+        planned_clone = planned_clone + 1;
+    }
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         // Each syntax event precedes its own call lanes, not every call in the
         // program. Keeping statements first also closes same-syntax RHS effects.
         if root_slot % 3 == 0 {
-            if !SemanticAstCollectionExclusiveStatementRootReady(
-                    artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
-                    statements, assignments, exclusive_values.shared_locals, mutating_formals, origins,
-                    source_binding_syntax_ids, surfaces.function_node_ids[root_slot / 3],
-                    surfaces.node_ids[root_slot / 3], focus_recovery, exclusive_values.copies,
-                    exclusive_values.surface_starts, exclusive_values.surface_ends) {
+            let mutation_proof: SemanticAstCollectionExclusiveStatementMutationProof = SemanticAstCollectionExclusiveStatementRootReady(artifact, signatures, locals,
+                    initializer_types.inferred_type_names, surfaces, statements, assignments,
+                    exclusive_values.shared_locals, mutating_formals, origins, source_binding_syntax_ids,
+                    surfaces.function_node_ids[root_slot / 3], surfaces.node_ids[root_slot / 3], focus_recovery,
+                    exclusive_values.copies, compiler_clone_expression_node_ids, call_effects, current_definitions, exclusive_values.surface_starts, exclusive_values.surface_ends);
+            if !mutation_proof.ok {
                 verdict = SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
                     SemanticError2("borrow_boundary_escape", "boundary", "unproved_exclusive_member_mutation",
                         "type", "Array<String>"),
                     surfaces.node_ids[root_slot / 3], -1); return;
             }
-            let statement_transitions: SemanticAstCollectionStatementTransitionResult =
-                SemanticAstCollectionStatementTransitionForSyntax(
-                    artifact, signatures, locals, initializer_types, surfaces, statements, assignments,
-                    surfaces.node_ids[root_slot / 3], call_effects, definitions, storage, current_definitions,
-                    ownership, dispositions, origins,
-                    transition_states, owned_string_results, receipts);
+            let statement_transitions: SemanticAstCollectionStatementTransitionResult = SemanticAstCollectionStatementTransitionForSyntax(artifact, signatures, locals, initializer_types,
+                    surfaces, statements, assignments, surfaces.node_ids[root_slot / 3], call_effects, definitions,
+                    storage, current_definitions, ownership, dispositions, origins, transition_states,
+                    owned_string_results, numeric_string_allocations,
+                    compiler_clone_expression_node_ids,
+                    owned_string_store_nodes,
+                    element_requirements,
+                    mutation_proof.compiler_clone_storage_detached, receipts);
             if !statement_transitions.ok {
                 verdict = SemanticAstCollectionOwnershipVerdictError(statement_transitions.diagnostic_code,
                     statement_transitions.diagnostic_message, statement_transitions.syntax_node_id, -1); return;
             }
-            receipts = statement_transitions.receipts;
         }
         if surfaces.expression_graph.has_roots[root_slot] {
             let root: Int = surfaces.expression_graph.roots[root_slot];
@@ -96,8 +125,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     SemanticError1("ast_artifact_invalid", "owner", "collection_lifetime_event_order"),
                     surfaces.node_ids[root_slot / 3], root); return;
             }
-            let pending: Array<Int> = [root];
-            let prefixes: Array<Bool> = [false];
+            var pending: Array<Int> = [root];
+            var prefixes: Array<Bool> = [false];
             while ArrayLength(pending) > 0 {
                 let entry: Int = pending[ArrayLength(pending) - 1];
                 let prefix: Bool = prefixes[ArrayLength(prefixes) - 1];
@@ -130,7 +159,10 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         initializer_types.inferred_type_names, resolved_leaf_types, surfaces,
                         assignments, formal_effects.borrowed_text_formals,
                         released_fields.ok, released_fields.field_ids, released_fields.names,
-                        ownership, origins, transition_states, origin_syntax_ids, root_slot, node);
+                        ownership, origins, transition_states,
+                        origin_syntax_ids,
+                        compiler_clone_expression_node_ids,
+                        root_slot, node);
                 if !owned_element_use.ok {
                     ArrayDrop(pending); ArrayDrop(prefixes);
                     verdict = owned_element_use; return;
@@ -268,7 +300,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         verdict = aggregate_owned_push_leaf; return;
                     }
                     let completed: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, node);
-                    let receiver_root_ready: Bool = true;
+                    var receiver_root_ready: Bool = true;
                     if completed.ok && ArrayLength(completed.argument_nodes) > 0 {
                         receiver_root_ready = SemanticAstCollectionExclusiveAliasRootReadyAt(
                             artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
@@ -350,77 +382,21 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
         }
         root_slot = root_slot + 1;
     }
-    if !SemanticAstOwnedStringLiteralTransfersConsumed(literal_transfers) {
-        verdict = SemanticAstCollectionOwnershipVerdictError(
-            "borrow_boundary_escape",
-            SemanticError2("borrow_boundary_escape", "boundary",
-                "owned_string_literal_transfer_incomplete", "type",
-                "String"), -1, -1); return;
-    }
-    // The transition scan above proves that no use occurs after an exact
-    // field restore.  Apply the terminal disposition only after earlier
-    // statement/call effects have been checked in source order; otherwise a
-    // valid mutation between move-out and move-back is seen as post-restore.
-    SemanticAstCollectionApplyMemberMoveRestorations(
-        locals, moved_use, dispositions
-    );
-    let element_borrow: Int = SemanticAstCollectionAggregateReleaseElementBorrowSite(aggregate_release_plan, moved_use);
-    if element_borrow > 0 {
-        verdict = SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-            SemanticError2("borrow_boundary_escape", "boundary", "aggregate_release_element_borrow", "type", "String"),
-            element_borrow, -1); return;
-    }
-    if !SemanticAstCollectionAggregateReleasePlanFinalized(
+    let finalized: SemanticAstCollectionOwnershipVerdict =
+        SemanticAstCollectionOwnershipFinalize(
             artifact, signatures, constructors, locals,
             initializer_types.inferred_type_names, resolved_leaf_types,
-            surfaces, assignments, aggregate_release_plan,
-            field_requirements,
-            call_effects.constructor_inputs, statements, moved_use, formal_effects) {
-        verdict = SemanticAstCollectionOwnershipVerdictError(
-            "borrow_boundary_escape",
-            SemanticError2("borrow_boundary_escape", "boundary",
-                "aggregate_release_incomplete", "type", "Array<String>"),
-            aggregate_release_plan.diagnostic_syntax_id, -1); return;
-    }
-    SemanticAstCollectionApplyTerminalCallEffects(call_effects, ownership, dispositions, transition_states);
-    // Returned bound-array retirement remains unproved; a shallow field copy
-    // cannot satisfy public ArrayDrop's exclusive named-binding contract.
-    let function_syntax_ids: Array<Int> = [];
-    let binding_syntax_ids: Array<Int> = [];
-    let carried_origin_syntax_ids: Array<Int> = [];
-    let carried_source_binding_syntax_ids: Array<Int> = [];
-    let element_ownerships: Array<Int> = [];
-    let carried_dispositions: Array<Int> = [];
-    let carried_origins: Array<Int> = [];
-    local_row = 0;
-    while local_row < local_count {
-        if SemanticAstCollectionOwnershipIsStringArray(
-            initializer_types.inferred_type_names[local_row]
-        ) {
-            ArrayPush(function_syntax_ids, locals.function_node_ids[local_row]);
-            ArrayPush(binding_syntax_ids, locals.node_ids[local_row]);
-            ArrayPush(carried_origin_syntax_ids,
-                origin_syntax_ids[local_row]);
-            ArrayPush(carried_source_binding_syntax_ids,
-                source_binding_syntax_ids[local_row]);
-            ArrayPush(element_ownerships, ownership[local_row]);
-            ArrayPush(carried_dispositions, dispositions[local_row]);
-            ArrayPush(carried_origins, origins[local_row]);
-        }
-        local_row = local_row + 1;
-    }
-    if !SemanticAstCollectionOwnershipReceiptRowsReady(receipts) {
-        verdict = SemanticAstCollectionOwnershipVerdictError(
-            "ast_artifact_invalid",
-            SemanticError1("ast_artifact_invalid", "owner",
-                "collection_ownership_receipts"), -1, -1
-        ); return;
-    }
-    // The published verdict must not retain the readonly result-plan descriptor.
-    verdict = SemanticAstCollectionOwnershipVerdictOkWithFacts(
-        function_syntax_ids, binding_syntax_ids, carried_origin_syntax_ids,
-        carried_source_binding_syntax_ids, element_ownerships,
-        carried_dispositions, carried_origins,
-        Clone(owned_result_plan.function_syntax_ids), receipts
-    ); return;
+            surfaces, assignments, literal_transfers, moved_use,
+            aggregate_release_plan, exclusive_values, field_requirements,
+            formal_effects, compiler_clone_expression_node_ids, call_effects,
+            statements, body_termination, ownership, dispositions,
+            transition_states);
+    if !finalized.ok { verdict = finalized; return; }
+    verdict = SemanticAstCollectionOwnershipProjectFacts(
+        locals, initializer_types.inferred_type_names,
+        origin_syntax_ids, source_binding_syntax_ids,
+        member_path_starts, member_path_counts,
+        member_path_field_syntax_ids, ownership, dispositions, origins,
+        owned_result_plan, compiler_clone_expression_node_ids, receipts);
+    return;
 }

@@ -29,14 +29,14 @@ func ViewAt(graph: Graph, i: Int) -> View {
 
 func WithGraph(graph: Graph) -> Int {
     let sealed: Graph = graph;
-    let keep: View = View([]);
-    let i: Int = 0;
+    var keep: View = View([]);
+    var i: Int = 0;
     while i < 2 {
         let view: View = ViewAt(sealed, i);
         keep = view;
         i = i + 1;
     }
-    let held: Holder = Holder(0, sealed);
+    var held: Holder = Holder(0, sealed);
     held.graph.arena.rows[0] = Cell(7);
     return keep.rows[0].value;
 }

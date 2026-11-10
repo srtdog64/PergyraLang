@@ -16,17 +16,17 @@ func SelfMirMatchJsonFieldsForInstruction(
     rows: SelfMirInstructionRows,
     instruction_index: Int
 ) -> SelfMirMatchJsonFields {
-    let patterns: Array<String> = [];
-    let bindings: Array<String> = [];
-    let binding_types: Array<String> = [];
-    let variant: String = "null";
-    let subject_family: String = "";
+    var patterns: Array<String> = [];
+    var bindings: Array<String> = [];
+    var binding_types: Array<String> = [];
+    var variant: String = "null";
+    var subject_family: String = "";
     let fact_index: Option<Int> = SelfMirMatchFactIndexForInstruction(
         rows.match_facts, instruction_index
     );
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
-        let pattern_i: Int = 0;
+        var pattern_i: Int = 0;
         while pattern_i < rows.match_facts.pattern_counts[row] {
             ArrayPush(
                 patterns,
@@ -38,7 +38,7 @@ func SelfMirMatchJsonFieldsForInstruction(
             );
             pattern_i = pattern_i + 1;
         }
-        let binding_i: Int = 0;
+        var binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
             ArrayPush(
                 bindings,

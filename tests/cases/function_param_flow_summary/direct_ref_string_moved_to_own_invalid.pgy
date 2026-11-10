@@ -1,0 +1,14 @@
+// A ref formal is not an owned local carrier. The compiler must not insert
+// a copy that hides this direct ownership-boundary violation.
+func Consume(own text: String) -> Int {
+    return StringLength(text);
+}
+
+func Bad(ref text: String) -> Int {
+    return Consume(text);
+}
+
+func Main() -> Int {
+    let source: String = Concat("alpha", "");
+    return Bad(source);
+}

@@ -410,7 +410,8 @@ func Main() -> Void with caps env, io_read, io_write
             artifact, analysis, declarations);
         let intent_policy: CodegenIntentPolicyView = CodegenIntentPolicyViewFromDirFactsOrDie(analysis, source_intents);
         let intent_execution: CodegenIntentExecutionView = CodegenIntentExecutionViewFromSemanticOrDie(
-            artifact.identity_digest, analysis.intent_signatures, source_intents, declarations);
+            artifact.identity_digest, analysis.intent_signatures,
+            analysis.expression_surfaces.expression_graph, source_intents, declarations);
         let output: String = GenerateCUnitFromReadySemanticFacts(
             artifact, analysis, body_types, receiver_facts, domain_runtime, intent_execution,
             intent_policy, true, SelfHostMachineLayerDeclarationEmpty(), false);

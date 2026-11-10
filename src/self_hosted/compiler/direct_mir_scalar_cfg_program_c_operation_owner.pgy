@@ -1,3 +1,4 @@
+import "owned_local_lifetime_emission_owner.pgy";
 // Per-operation C projection for the typed scalar-program extension.
 import "direct_mir_scalar_program_c_expression_owner.pgy";
 import "direct_mir_identity_cell_store_projection_owner.pgy";
@@ -9,13 +10,19 @@ import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_try_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_assignment_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy";
+import "direct_mir_scalar_cfg_program_c_log_operation_owner.pgy";
+import "mir_compound_assignment_c_owner.pgy";
 
-func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, ref lifetime: DirectMirOwnedLocalLifetimeFact, routine: Int, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact, process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, int_line_format: String, string_line_format: String,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
+    if MirCompoundAssignmentPlanOperation(kind) > 0 {
+        return MirCompoundAssignmentC(plan, routine, operation, runtime, array_string_projection, target);
+    }
     let expression_row: Int = plan.program.operation_expression_rows[operation];
     if kind == DirectMirScalarCfgOpIdentityCellStore() {
         return DirectMirIdentityCellCStore(plan, routine, operation, runtime, array_string_projection, target);
@@ -44,14 +51,16 @@ func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, 
             plan.routines, routine, target, plan.program.array_string_abi, array_string_projection), ";\n"));
     }
     if kind == DirectMirScalarCfgOpArrayStringValueResultPush() {
-        return DirectMirScalarProgramCArrayStringValueResultPush(plan, routine, plan.operation_right_locals[operation],
+        return DirectMirScalarProgramCArrayStringValueResultPush(plan, routine,
+            operation, plan.operation_right_locals[operation],
             DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions, expression_row, runtime,
                 plan.program.logical_record, plan.program.referenced_enum,
-                plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
+                plan.routines, routine, target, plan.program.array_string_abi,
+                array_string_projection), runtime);
     }
     if DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
         let root: Int = plan.program.expressions.graph_roots[expression_row];
-        let index: String = "";
+        var index: String = "";
         if kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() {
             index = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation], runtime, plan.program.logical_record,
@@ -62,14 +71,16 @@ func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, 
             plan.program.logical_record, plan.program.referenced_enum,
             plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
         return DirectMirScalarProgramCLogicalRecordArrayValueResultMutation(
-            plan, routine, plan.operation_right_locals[operation], index,
+            plan, routine, plan.operation_left_locals[operation],
+            plan.operation_right_locals[operation], index,
             plan.program.expressions.node_types[root], value, target);
     }
     if DirectMirScalarProgramArrayMutationKind(kind) {
         if DirectMirScalarProgramArrayPopKind(kind) {
-            return DirectMirScalarProgramCArrayMutation(plan, routine, operation, "", "");
+            return DirectMirScalarProgramCArrayMutation(
+                plan, routine, operation, "", "", runtime);
         }
-        let index: String = "";
+        var index: String = "";
         if DirectMirScalarProgramArraySetKind(kind) {
             index = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation], runtime, plan.program.logical_record,
@@ -80,10 +91,40 @@ func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, 
             DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions,
                 expression_row, runtime, plan.program.logical_record,
                 plan.program.referenced_enum, plan.routines, routine, target,
-                plan.program.array_string_abi, array_string_projection));
+                plan.program.array_string_abi, array_string_projection),
+            runtime);
     }
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
-        let output: String = "    ";
+        let owned_value: Int = plan.operation_result_values[operation];
+        let owned_local: Int = plan.value_local_rows[owned_value];
+        if owned_local >= 0 && lifetime.local_modes[owned_local] > 0 {
+            let value_type: String = plan.local_types[owned_local];
+            let c_type: String = DirectMirScalarProgramCLogicalRecordFieldType(plan.program.logical_record, value_type);
+            if c_type == "" { Die("owned local C storage type is missing"); }
+            let next: String = "pgy_owned_next_${operation}";
+            let expression: String = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions,
+                expression_row, runtime, plan.program.logical_record, plan.program.referenced_enum,
+                plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
+            return "    " + c_type + " " + next + " = " + expression + ";\n" +
+                DirectMirOwnedLocalCRelease(plan, lifetime.release, lifetime.local_recipes[owned_local], "pgy_local_${owned_local}") +
+                "    pgy_local_${owned_local} = " + next + ";\n";
+        }
+        let replacement_drop: String = DirectMirScalarProgramArrayStringReplacementDropSymbol(
+            plan, routine, operation);
+        if replacement_drop != "" {
+            let result: Int = plan.operation_result_values[operation];
+            let replacement: String = "pgy_replacement_" + ToString(operation);
+            let local_storage: String = DirectMirScalarCfgCLocal(plan, result);
+            let expression: String = DirectMirScalarProgramCExpressionAt(
+                plan, plan.program.expressions, expression_row, runtime,
+                plan.program.logical_record, plan.program.referenced_enum,
+                plan.routines, routine, target, plan.program.array_string_abi,
+                array_string_projection);
+            return "    " + CompilerAbiLayoutArrayStringCValueType() + " " + replacement +
+                " = " + expression + ";\n    " + replacement_drop + "(&" + local_storage +
+                ");\n    " + local_storage + " = " + replacement + ";\n";
+        }
+        var output: String = "    ";
         output = Concat(output, DirectMirScalarCfgCLocal(plan, plan.operation_result_values[operation]));
         output = Concat(output, " = ");
         output = Concat(output, DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions, expression_row, runtime,
@@ -92,29 +133,7 @@ func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, 
         return Concat(output, ";\n");
     }
     if kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
-    let line_format: String = string_line_format;
-    let root: Int = plan.program.expressions.graph_roots[expression_row];
-    if plan.program.expressions.node_types[root] == CompilerAbiLayoutIntTypeName() { line_format = int_line_format; }
-    if plan.program.expressions.node_types[root] == CompilerAbiLayoutLongTypeName() {
-        line_format = StringRuntimeCIntLineFormat();
-    }
-    let output: String = Concat("    ", formatted_print.symbol);
-    output = Concat(output, Concat("(\"", line_format));
-    output = Concat(output, "\", ");
-    let log_value: String = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions, expression_row, runtime,
-        plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
-    if plan.program.expressions.node_types[root] == CompilerAbiLayoutBoolTypeName() {
-        log_value = "(" + log_value + " ? \"true\" : \"false\")";
-    }
-    if plan.program.expressions.node_types[root] == CompilerAbiLayoutIntTypeName() {
-        // Logical record storage is compiler-private i64; the public Int
-        // vararg contract still requires the target's promoted Int value.
-        log_value = "(" + CompilerAbiLayoutIntCValueType() + ")(" + log_value + ")";
-    }
-    if plan.program.expressions.node_types[root] == CompilerAbiLayoutLongTypeName() {
-        log_value = "(" + StringRuntimeCLongPrintArgumentType() + ")(" + log_value + ")";
-    }
-    output = Concat(output, log_value);
-    return Concat(output, ");\n");
+    return DirectMirScalarCfgProgramCLogOperation(
+        plan, routine, operation, formatted_print, runtime,
+        int_line_format, string_line_format, array_string_projection, target);
 }

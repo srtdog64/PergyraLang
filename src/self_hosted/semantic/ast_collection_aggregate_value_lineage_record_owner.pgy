@@ -1,0 +1,543 @@
+// Aggregate value-lineage demand and carrier recording.
+
+import "ast_constructor_call_identity_owner.pgy";
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "ast_collection_storage_mutation_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "nominal_constructor_argument_policy_owner.pgy";
+import "ast_collection_exclusive_value_consumption_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+
+func SemanticAstCollectionAggregateTypeOwnsField(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    type_name: String, field_id: Int
+) -> Bool {
+    let canonical: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(type_name);
+    let constructor: Result<Int> =
+        SemanticAstNominalConstructorUniqueIndexForName(
+            constructors, canonical.nominal_base_name
+        );
+    if canonical.nominal_base_name == "" ||
+        IsErr(constructor) || Unwrap(constructor) < 0 {
+        return false;
+    }
+    let row: Int = Unwrap(constructor);
+    let start: Int = constructors.param_starts[row];
+    let count: Int = constructors.param_counts[row];
+    var field: Int = 0;
+    while field < count {
+        if constructors.field_source_syntax_ids[start + field] == field_id {
+            return true;
+        }
+        field = field + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateSourcePathSelectsField(
+    path: String, field: String
+) -> Bool {
+    if path == "" || field == "" || StringLength(path) < StringLength(field) ||
+        Substring(path, 0, StringLength(field)) != field {
+        return false;
+    }
+    return StringLength(path) == StringLength(field) ||
+        Substring(path, StringLength(field), 1) == ".";
+}
+
+func SemanticAstCollectionAggregateLocalUnchangedBeforeUse(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    binding_row: Int, use_syntax_id: Int
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        let syntax_id: Int = assignments.node_ids[row];
+        if assignments.function_node_ids[row] ==
+                locals.function_node_ids[binding_row] &&
+            syntax_id > locals.node_ids[binding_row] &&
+            syntax_id < use_syntax_id {
+            let target: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, syntax_id, AstExpressionLaneAtom()
+                );
+            if !IsSome(target) { return false; }
+            let binding: SemanticAstLocalBindingIdentity =
+                SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, inferred_types,
+                    locals.function_node_ids[binding_row], syntax_id,
+                    surfaces.expression_graph, UnwrapOption(target)
+                );
+            if binding.ok && binding.row == binding_row { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateConstructorFieldArgument(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    call_node: Int, field_id: Int
+) -> Option<Int> {
+    let identity: Option<Int> = SemanticExpressionGraphNominalConstructorRow(
+        constructors, surfaces.expression_graph, call_node);
+    if !IsSome(identity) { return None; }
+    let constructor: Int = UnwrapOption(identity);
+    var selected: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(plan.call_nodes) {
+        if plan.call_nodes[row] == call_node {
+            let field: Option<Int> =
+                SemanticAstNominalConstructorArgumentFieldIndexAt(
+                    constructors, constructor,
+                    plan.call_ordinals[row]
+                );
+            if !IsSome(field) { return None; }
+            let flat: Int = constructors.param_starts[constructor] +
+                UnwrapOption(field);
+            if constructors.field_source_syntax_ids[flat] == field_id {
+                if selected >= 0 { return None; }
+                selected = row;
+            }
+        }
+        row = row + 1;
+    }
+    if selected < 0 { return None; }
+    return Some(selected);
+}
+
+func SemanticAstCollectionAggregateInputRow(
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    call_node: Int, argument_node: Int, field_id: Int
+) -> Int {
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(inputs.call_nodes) {
+        if inputs.call_nodes[row] == call_node &&
+            inputs.argument_nodes[row] == argument_node &&
+            inputs.field_ids[row] == field_id {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func SemanticAstCollectionAggregateRecordDemand(
+    requirement_row: Int, demand_edge_node: Int, aggregate_origin_id: Int,
+    input_row: Int,
+    ref trace: SemanticAstCollectionAggregateTrace,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if requirement_row < 0 || aggregate_origin_id <= 0 || input_row < 0 {
+        return false;
+    }
+    if SemanticAstCollectionAggregateReleaseDemandRecorded(
+            plan, trace, requirement_row, demand_edge_node, aggregate_origin_id, input_row) {
+        return true;
+    }
+    ArrayPush(plan.demand_chain_starts, ArrayLength(plan.demand_chain_edges));
+    var entry: Int = ArrayLength(trace.entry_edges) - 1;
+    while entry >= 0 {
+        ArrayPush(plan.demand_chain_edges, trace.entry_edges[entry]);
+        entry = entry - 1;
+    }
+    ArrayPush(plan.demand_chain_edges, demand_edge_node);
+    ArrayPush(plan.demand_invocation_starts, ArrayLength(plan.demand_invocation_nodes));
+    var frame: Int = 0;
+    while frame < ArrayLength(trace.invocation_call_nodes) {
+        ArrayPush(plan.demand_invocation_nodes, trace.invocation_call_nodes[frame]);
+        frame = frame + 1;
+    }
+    ArrayPush(plan.demand_edge_nodes, demand_edge_node);
+    ArrayPush(plan.aggregate_origin_ids, aggregate_origin_id);
+    ArrayPush(plan.requirement_rows, requirement_row);
+    ArrayPush(plan.constructor_input_rows, input_row);
+    ArrayPush(plan.reserved, false);
+    return true;
+}
+
+func SemanticAstCollectionAggregateRecordCarrierMutationStep(
+    local_id: Int, edge_node: Int,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if local_id <= 0 || edge_node < 0 ||
+        ArrayLength(plan.carrier_mutation_step_local_ids) !=
+            ArrayLength(plan.carrier_mutation_step_edge_nodes) {
+        return false;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(plan.carrier_mutation_step_local_ids) {
+        if plan.carrier_mutation_step_edge_nodes[row] == edge_node {
+            return plan.carrier_mutation_step_local_ids[row] == local_id;
+        }
+        row = row + 1;
+    }
+    ArrayPush(plan.carrier_mutation_step_local_ids, local_id);
+    ArrayPush(plan.carrier_mutation_step_edge_nodes, edge_node);
+    return true;
+}
+
+func SemanticAstCollectionAggregateRecordCarrier(
+    ref locals: SemanticAstLocalBindingFacts,
+    function_id: Int, local_row: Int, source_binding_id: Int,
+    field_id: Int, release_edge_node: Int,
+    mutation_boundary_syntax_id: Int,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if local_row < 0 || local_row >= ArrayLength(locals.node_ids) ||
+        function_id <= 0 || locals.function_node_ids[local_row] != function_id ||
+        locals.node_ids[local_row] <= 0 ||
+        locals.scope_node_ids[local_row] <= 0 ||
+        source_binding_id <= 0 || field_id <= 0 || release_edge_node < 0 ||
+        mutation_boundary_syntax_id <= locals.node_ids[local_row] {
+        return false;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[row] == locals.node_ids[local_row] &&
+            plan.carrier_release_edge_nodes[row] == release_edge_node {
+            let same_carrier: Bool =
+                plan.carrier_function_ids[row] == function_id &&
+                plan.carrier_scope_ids[row] ==
+                    locals.scope_node_ids[local_row] &&
+                plan.carrier_source_binding_ids[row] == source_binding_id &&
+                plan.carrier_field_ids[row] == field_id &&
+                plan.carrier_mutation_boundary_syntax_ids[row] ==
+                    mutation_boundary_syntax_id;
+            return same_carrier;
+        }
+        row = row + 1;
+    }
+    ArrayPush(plan.carrier_function_ids, function_id);
+    ArrayPush(plan.carrier_local_ids, locals.node_ids[local_row]);
+    ArrayPush(plan.carrier_scope_ids, locals.scope_node_ids[local_row]);
+    ArrayPush(plan.carrier_source_binding_ids, source_binding_id);
+    ArrayPush(plan.carrier_field_ids, field_id);
+    ArrayPush(plan.carrier_release_edge_nodes, release_edge_node);
+    ArrayPush(plan.carrier_mutation_boundary_syntax_ids,
+        mutation_boundary_syntax_id);
+    ArrayPush(plan.carrier_restoration_syntax_ids, -1);
+    return true;
+}
+
+// Project one exact field dependency from the exclusive-value fixed point.
+// A scalar storage id cannot name a field-owned buffer, so this source is
+// valid only when one non-shared local depends on exactly one positive source
+// through the selected constructor field.
+func SemanticAstCollectionAggregateExactFieldCarrierSource(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    binding_id: Int, field_id: Int
+) -> Int {
+    if !exclusive_values.ok || binding_id <= 0 || field_id <= 0 ||
+        ArrayLength(exclusive_values.dep_locals) !=
+            ArrayLength(exclusive_values.dep_formals) ||
+        ArrayLength(exclusive_values.dep_locals) !=
+            ArrayLength(exclusive_values.dep_paths) ||
+        ArrayLength(exclusive_values.paths) % 2 != 0 ||
+        MapHas(exclusive_values.shared_locals, ToString(binding_id)) ||
+        MapHas(exclusive_values.shared_locals,
+            Concat(ToString(binding_id), ".*")) {
+        return 0;
+    }
+    let field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, field_id);
+    if !IsSome(field) { return 0; }
+    var source: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(exclusive_values.dep_locals) {
+        if exclusive_values.dep_locals[row] == binding_id {
+            let path_row: Int = exclusive_values.dep_paths[row];
+            if path_row < -1 || path_row >=
+                    ArrayLength(exclusive_values.paths) / 2 {
+                return 0;
+            }
+            if path_row >= 0 &&
+                exclusive_values.paths[2 * path_row] == "" &&
+                SemanticAstCollectionAggregateSourcePathSelectsField(
+                    exclusive_values.paths[2 * path_row + 1],
+                    UnwrapOption(field)) {
+                if exclusive_values.dep_formals[row] <= 0 { return 0; }
+                source = exclusive_values.dep_formals[row];
+                matches = matches + 1;
+            }
+        }
+        row = row + 1;
+    }
+    if matches != 1 { return 0; }
+    return source;
+}
+
+// Dependency facts also describe fresh arrays whose elements were derived
+// from a formal. Such arrays own new storage and are not descriptor carriers.
+// A carrier must originate as one exact member-path initializer of the same
+// source formal and selected field name; later in-place mutation does not
+// change that definition identity.
+func SemanticAstCollectionAggregateExactFieldCarrierInitializerReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, local_id: Int, definition_id: Int,
+    source_binding_id: Int, destination_field_id: Int
+) -> Bool {
+    if function_id <= 0 || local_id <= 0 || definition_id != local_id ||
+        source_binding_id <= 0 || destination_field_id <= 0 {
+        return false;
+    }
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, local_id, AstExpressionLaneValue());
+    if !IsSome(value) { return false; }
+    let identity: SemanticAstCollectionMemberMoveIdentity =
+        SemanticAstCollectionMemberMoveIdentityForNode(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, function_id, local_id,
+            surfaces.expression_graph, UnwrapOption(value));
+    if !identity.ok || !identity.string_array_field ||
+        identity.source_binding_syntax_id != source_binding_id ||
+        identity.field_syntax_id <= 0 {
+        return false;
+    }
+    let source_field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, identity.field_syntax_id);
+    let destination_field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, destination_field_id);
+    return IsSome(source_field) && IsSome(destination_field) &&
+        UnwrapOption(source_field) == UnwrapOption(destination_field);
+}
+
+// Resolve one call-argument row, not merely its statement. A single call may
+// have several Array arguments at the same syntax site; only the row carrying
+// this local owns its mutation edge.
+func SemanticAstCollectionAggregateMutatingLocalArgumentCallReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    formal_effects: HashMap<String, Int>,
+    local_id: Int, call: Int
+) -> Bool {
+    if local_id <= 0 || call < 0 ||
+        call >= ArrayLength(plan.call_syntax_ids) ||
+        !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) {
+        return false;
+    }
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstCollectionOwnershipLocalForArgument(
+            artifact, locals, inferred_types, surfaces,
+            plan.call_surface_rows[call], plan.call_argument_nodes[call]);
+    if !binding.ok || binding.declaration_node_id != local_id {
+        return false;
+    }
+    let formal: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph,
+            plan.call_nodes[call], plan.call_ordinals[call]);
+    let builtin_mutation: Bool = plan.call_ordinals[call] == 0 &&
+        (SemanticAstCollectionStorageMutationKind(
+            surfaces.expression_graph, plan.call_nodes[call]) > 0 ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, plan.call_nodes[call], "ArraySet"));
+    var proved_mutation: Bool = false;
+    if formal.ok && MapHas(formal_effects, ToString(formal.syntax_id)) {
+        let effect: Int = MapGet(
+            formal_effects, ToString(formal.syntax_id));
+        proved_mutation = effect == 2 || effect ==
+            SemanticAstCollectionFormalShallowMutationEffect();
+    }
+    return builtin_mutation || proved_mutation;
+}
+
+func SemanticAstCollectionAggregateMutatingLocalArgumentAt(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    formal_effects: HashMap<String, Int>,
+    local_id: Int, site: Int
+) -> Bool {
+    if site <= 0 { return false; }
+    var call: Int = 0;
+    while call < ArrayLength(plan.call_syntax_ids) {
+        if plan.call_syntax_ids[call] == site &&
+            SemanticAstCollectionAggregateMutatingLocalArgumentCallReady(
+                artifact, signatures, locals, inferred_types, surfaces,
+                plan, formal_effects, local_id, call) {
+            return true;
+        }
+        call = call + 1;
+    }
+    return false;
+}
+
+// Materialize every exact mutation of one carrier and return their lexical
+// upper bound. The upper bound locates the later restoration; it is not a
+// claim that one physical edge runs after all branch or loop projections.
+// Each step must stay in this callable execution context. Deferred, async,
+// parallel, and nested-callable mutations remain fail-closed.
+func SemanticAstCollectionAggregateCarrierMutationPlanForLocal(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    formal_effects: HashMap<String, Int>,
+    function_id: Int, local_id: Int,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Int {
+    if function_id <= 0 || local_id <= 0 ||
+        ArrayLength(plan.call_edge_nodes) !=
+            ArrayLength(plan.call_function_ids) {
+        return -1;
+    }
+    var mutation_count: Int = 0;
+    var mutation_boundary_syntax_id: Int = -1;
+    var call: Int = 0;
+    while call < ArrayLength(plan.call_edge_nodes) {
+        if plan.call_function_ids[call] == function_id &&
+            SemanticAstCollectionAggregateMutatingLocalArgumentCallReady(
+                artifact, signatures, locals, inferred_types, surfaces,
+                plan, formal_effects, local_id, call) {
+            let syntax_id: Int = plan.call_syntax_ids[call];
+            if syntax_id <= local_id ||
+                SemanticAstCollectionCallRetirementBound(
+                    artifact, syntax_id, local_id, function_id, true) !=
+                    syntax_id {
+                return -1;
+            }
+            if !SemanticAstCollectionAggregateRecordCarrierMutationStep(
+                    local_id, plan.call_edge_nodes[call], plan) {
+                return -1;
+            }
+            mutation_count = mutation_count + 1;
+            if syntax_id > mutation_boundary_syntax_id {
+                mutation_boundary_syntax_id = syntax_id;
+            }
+        }
+        call = call + 1;
+    }
+    if mutation_count <= 0 { return -1; }
+    return mutation_boundary_syntax_id;
+}
+
+// Demand tracing and the exclusive-value fixed point have different evidence
+// lifetimes. Once every demand is known, project exact field lineage into the
+// release plan instead of re-scanning local initializers during the trace.
+func SemanticAstCollectionAggregateRecordDemandInputCarriers(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    formal_effects: HashMap<String, Int>,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if !SemanticAstCollectionConstructorFieldInputsShapeReady(inputs) ||
+        !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        !locals.ok || ArrayLength(locals.node_ids) !=
+            ArrayLength(inferred_types) {
+        return false;
+    }
+    var demand: Int = 0;
+    while demand < ArrayLength(plan.constructor_input_rows) {
+        let input: Int = plan.constructor_input_rows[demand];
+        if input < 0 || input >= ArrayLength(inputs.binding_ids) {
+            plan.diagnostic_reason = "carrier_input";
+            return false;
+        }
+        plan.diagnostic_syntax_id = inputs.syntax_ids[input];
+        if inputs.producer_kinds[input] == 1 {
+            let source: Int =
+                SemanticAstCollectionAggregateExactFieldCarrierSource(
+                    constructors, exclusive_values,
+                    inputs.binding_ids[input], inputs.field_ids[input]);
+            if source > 0 &&
+                SemanticAstCollectionAggregateExactFieldCarrierInitializerReady(
+                    artifact, signatures, constructors, locals,
+                    inferred_types, resolved_leaf_types, surfaces,
+                    inputs.function_ids[input], inputs.binding_ids[input],
+                    inputs.definition_ids[input], source,
+                    inputs.field_ids[input]) {
+                var local_row: Int = -1;
+                var matches: Int = 0;
+                var row: Int = 0;
+                while row < ArrayLength(locals.node_ids) {
+                    if locals.node_ids[row] == inputs.binding_ids[input] {
+                        local_row = row;
+                        matches = matches + 1;
+                    }
+                    row = row + 1;
+                }
+                if matches != 1 || local_row < 0 {
+                    plan.diagnostic_reason = "carrier_local_cardinality";
+                    return false;
+                }
+                if locals.function_node_ids[local_row] !=
+                    inputs.function_ids[input] {
+                    plan.diagnostic_reason = "carrier_local_function";
+                    return false;
+                }
+                if !SemanticAstCollectionOwnershipIsStringArray(
+                        inferred_types[local_row]) {
+                    plan.diagnostic_reason = "carrier_local_type";
+                    return false;
+                }
+                let mutation_boundary_syntax_id: Int =
+                    SemanticAstCollectionAggregateCarrierMutationPlanForLocal(
+                        artifact, signatures, locals, inferred_types,
+                        surfaces, formal_effects, inputs.function_ids[input],
+                        inputs.binding_ids[input], plan);
+                if mutation_boundary_syntax_id < 0 {
+                    plan.diagnostic_reason = "carrier_mutation_plan";
+                    return false;
+                }
+                if plan.demand_edge_nodes[demand] < 0 {
+                    plan.diagnostic_reason = "carrier_demand_edge";
+                    return false;
+                }
+                if !SemanticAstCollectionAggregateRecordCarrier(
+                        locals, inputs.function_ids[input], local_row,
+                        source, inputs.field_ids[input],
+                        plan.demand_edge_nodes[demand],
+                        mutation_boundary_syntax_id, plan) {
+                    plan.diagnostic_reason = "carrier_record_conflict";
+                    return false;
+                }
+            }
+        }
+        demand = demand + 1;
+    }
+    return true;
+}
+

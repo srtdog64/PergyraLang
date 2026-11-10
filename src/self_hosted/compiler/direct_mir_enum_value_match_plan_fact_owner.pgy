@@ -37,7 +37,7 @@ func DirectMirEnumValueMatchPlanFactDigest(
     ref fact: DirectMirEnumValueMatchPlanFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
+    var hash: Long = DirectMirCfgHashInt(
         643L, DirectMirEnumValueMatchRouteFactDigest(fact.route)
     );
     hash = DirectMirCfgHashInt(hash, fact.certificate_digest);

@@ -1,5 +1,5 @@
 schema=pgy.selfhost.runtime-call-abi-row.v2
-count=270
+count=275
 0|collection|array-int.new|pgy_ai_new|function|generated_runtime_helper|returns_collection
 1|collection|array-int.push|pgy_ai_push|function|generated_runtime_helper|collection_value_to_void
 2|collection|array-int.set|pgy_ai_set|function|generated_runtime_helper|collection_index_value_to_void
@@ -270,6 +270,11 @@ count=270
 267|task|is-cancelled|pgy_task_is_cancelled_export|function|target_library|returns_bool
 268|host-io|now-ms|pgy_host_now_ms|function|generated_runtime_helper|returns_int
 269|host-io|sleep-ms|pgy_host_sleep_ms|function|generated_runtime_helper|int_to_void
+270|native-resource|Array<Int>.ReleaseStorage|pgy_array_drop_Int|function|mir_abi_resource_row|container_ptr_to_void
+271|native-resource|Array<Long>.ReleaseStorage|pgy_array_drop_Long|function|mir_abi_resource_row|container_ptr_to_void
+272|native-resource|Array<Float>.ReleaseStorage|pgy_array_drop_Float|function|mir_abi_resource_row|container_ptr_to_void
+273|native-resource|Array<Double>.ReleaseStorage|pgy_array_drop_Double|function|mir_abi_resource_row|container_ptr_to_void
+274|native-resource|Array<Bool>.ReleaseStorage|pgy_array_drop_Bool|function|mir_abi_resource_row|container_ptr_to_void
 constructed_probe=Vec2
 constructed_probe=Array<Int>
 constructed_probe=HashMap<String, Int>

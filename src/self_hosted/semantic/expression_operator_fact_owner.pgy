@@ -38,20 +38,20 @@ func SemanticTopLevelOperatorFactsFromExpression(
     let star: Int = SourceByteOf("*");
     let slash: Int = SourceByteOf("/");
     let percent: Int = SourceByteOf("%");
-    let i: Int = 0;
-    let depth: Int = 0;
-    let logical_index: Int = -1;
-    let logical_or_index: Int = -1;
-    let logical_and_index: Int = -1;
-    let comparison_index: Int = -1;
-    let comparison_length: Int = 0;
-    let equality_index: Int = -1;
-    let equality_is_not: Bool = false;
-    let additive_index: Int = -1;
-    let multiplicative_index: Int = -1;
-    let arithmetic_marker_index: Int = -1;
-    let assignment_index: Int = -1;
-    let index_open_index: Int = -1;
+    var i: Int = 0;
+    var depth: Int = 0;
+    var logical_index: Int = -1;
+    var logical_or_index: Int = -1;
+    var logical_and_index: Int = -1;
+    var comparison_index: Int = -1;
+    var comparison_length: Int = 0;
+    var equality_index: Int = -1;
+    var equality_is_not: Bool = false;
+    var additive_index: Int = -1;
+    var multiplicative_index: Int = -1;
+    var arithmetic_marker_index: Int = -1;
+    var assignment_index: Int = -1;
+    var index_open_index: Int = -1;
     while i < n {
         let c: Int = SourceByteAt(expression, n, n, i);
         if c == quote {
@@ -154,12 +154,12 @@ func SemanticTopLevelOperatorFactsFromExpression(
             if arithmetic_marker_index < 0 {
                 arithmetic_marker_index = i;
             }
-            let previous: Int = i - 1;
+            var previous: Int = i - 1;
             while previous >= 0 &&
                 SourceByteIsWhitespace(SourceByteAt(expression, n, n, previous)) {
                 previous = previous - 1;
             }
-            let previous_code: Int = -1;
+            var previous_code: Int = -1;
             if previous >= 0 {
                 previous_code = SourceByteAt(expression, n, n, previous);
             }

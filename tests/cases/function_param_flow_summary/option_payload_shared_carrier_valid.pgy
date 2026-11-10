@@ -3,7 +3,7 @@ func SharedOptional() -> Option<String> {
 }
 
 func Main() -> Void {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     let candidate: Option<String> = SharedOptional();
     if IsSome(candidate) {
         let first: String = UnwrapOption(candidate);

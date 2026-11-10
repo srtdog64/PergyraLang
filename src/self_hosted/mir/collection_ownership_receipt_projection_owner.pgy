@@ -5,35 +5,87 @@ import "collection_ownership_receipt_fact_owner.pgy";
 import "../semantic/ast_collection_ownership_verdict_owner.pgy";
 import "../semantic/ast_expression_call_identity_owner.pgy";
 
+func SelfMirCollectionOwnershipReceiptFormalOrdinal(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    function_syntax_id: Int,
+    binding_syntax_id: Int
+) -> Option<Int> {
+    let signature: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_syntax_id);
+    if !IsSome(signature) { return None; }
+    let signature_row: Int = UnwrapOption(signature);
+    let start: Int = signatures.param_starts[signature_row];
+    let count: Int = signatures.param_counts[signature_row];
+    var matched: Int = -1;
+    var ordinal: Int = 0;
+    while ordinal < count {
+        if signatures.param_node_ids[start + ordinal] == binding_syntax_id {
+            if matched >= 0 { return None; }
+            matched = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    if matched < 0 { return None; }
+    return Some(matched);
+}
+
 func SelfMirCollectionOwnershipReceiptBindingReady(
     ref facts: SemanticAstCollectionOwnershipVerdict,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     function_syntax_id: Int,
     binding_syntax_id: Int, effect: Int
 ) -> Bool {
-    let matched: Int = 0;
-    let row: Int = 0;
+    var matched: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.binding_syntax_ids) {
         if facts.function_syntax_ids[row] == function_syntax_id &&
             facts.binding_syntax_ids[row] == binding_syntax_id {
             matched = matched + 1;
-            let owned_drop: Bool = effect == SemanticAstCollectionOwnershipEffectDrop() &&
+            let owned_effect: Bool =
+                (effect == SemanticAstCollectionOwnershipEffectOwnedStringPush() ||
+                 effect == SemanticAstCollectionOwnershipEffectDrop() ||
+                 effect == SemanticAstCollectionOwnershipEffectOwnedStringSet() ||
+                 effect == SemanticAstCollectionOwnershipEffectOwnedStringPop()) &&
                 (facts.element_ownerships[row] == SemanticAstCollectionOwnershipOwnedElements() ||
                  facts.element_ownerships[row] == SemanticAstCollectionOwnershipMapKeysSnapshot()) &&
                 (facts.origins[row] == SemanticAstCollectionOriginMapKeys() ||
                  facts.origins[row] == SemanticAstCollectionOriginClone() ||
+                 facts.origins[row] == SemanticAstCollectionOriginOwnedLiteral() ||
                  facts.origins[row] == SemanticAstCollectionOriginBinding());
-            if facts.origins[row] != SemanticAstCollectionOriginEmptyLiteral() && !owned_drop {
+            if facts.origins[row] != SemanticAstCollectionOriginEmptyLiteral() &&
+                !owned_effect {
                 return false;
             }
         }
         row = row + 1;
     }
-    return matched == 1;
+    if matched == 1 { return true; }
+    if matched != 0 ||
+        (effect != SemanticAstCollectionOwnershipEffectOwnedStringPush() &&
+         effect != SemanticAstCollectionOwnershipEffectShallowMutation() &&
+         effect != SemanticAstCollectionOwnershipEffectOwnedStringSet() &&
+         effect != SemanticAstCollectionOwnershipEffectOwnedStringPop()) {
+        return false;
+    }
+    let formal_ordinal: Option<Int> =
+        SelfMirCollectionOwnershipReceiptFormalOrdinal(
+            signatures, function_syntax_id, binding_syntax_id);
+    if !IsSome(formal_ordinal) { return false; }
+    let signature_row: Int = UnwrapOption(
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_syntax_id));
+    let start: Int = signatures.param_starts[signature_row];
+    let flat: Int = start + UnwrapOption(formal_ordinal);
+    return signatures.param_modes[flat] == 1 &&
+        SemanticAstCollectionOwnershipIsStringArray(
+            signatures.param_types[flat]);
 }
 
 func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
     rows: SelfMirCollectionOwnershipReceiptRows,
     ref facts: SemanticAstCollectionOwnershipVerdict,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     function_syntax_id: Int,
     ref instructions: SelfMirInstructionRows,
@@ -43,12 +95,12 @@ func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
     rows = SelfMirCollectionOwnershipReceiptRowsAppendEmptyInstructions(
         rows, ArrayLength(instructions.ids)
     );
-    let effects: Array<Int> = rows.effect_kinds;
-    let receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
-    let source_ids: Array<Int> = rows.source_binding_syntax_ids;
-    let valid: Bool = rows.valid && facts.ok &&
+    var effects: Array<Int> = rows.effect_kinds;
+    var receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
+    var source_ids: Array<Int> = rows.source_binding_syntax_ids;
+    var valid: Bool = rows.valid && facts.ok &&
         SemanticAstCollectionOwnershipReceiptRowsReady(facts.receipts);
-    let receipt: Int = 0;
+    var receipt: Int = 0;
     while valid && receipt < ArrayLength(
             facts.receipts.function_syntax_ids) {
         if facts.receipts.function_syntax_ids[receipt] !=
@@ -56,7 +108,7 @@ func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
             receipt = receipt + 1;
             continue;
         }
-        let target_node: Int = -1;
+        var target_node: Int = -1;
         let ordinal: Int = facts.receipts.local_call_ordinals[receipt];
         if ordinal >= 0 {
             let node: Option<Int> = SemanticExpressionCallNodeForIdentity(
@@ -68,18 +120,26 @@ func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
         }
         if (ordinal >= 0 && target_node < 0) ||
             !SelfMirCollectionOwnershipReceiptBindingReady(
-                facts, function_syntax_id,
+                facts, signatures, function_syntax_id,
                 facts.receipts.receiver_binding_syntax_ids[receipt],
                 facts.receipts.effect_kinds[receipt]) {
             valid = false;
             continue;
         }
-        let matched: Int = -1;
-        let expected_ref: String = SelfMirLocalRef(
-            "declaration",
-            facts.receipts.receiver_binding_syntax_ids[receipt], 0
-        );
-        let instruction: Int = 0;
+        var matched: Int = -1;
+        let receiver_binding: Int =
+            facts.receipts.receiver_binding_syntax_ids[receipt];
+        var expected_ref: String = SelfMirLocalRef(
+            "declaration", receiver_binding, 0);
+        let formal_ordinal: Option<Int> =
+            SelfMirCollectionOwnershipReceiptFormalOrdinal(
+                signatures, function_syntax_id, receiver_binding);
+        if IsSome(formal_ordinal) {
+            expected_ref = SelfMirLocalRef(
+                "parameter", function_syntax_id,
+                UnwrapOption(formal_ordinal));
+        }
+        var instruction: Int = 0;
         while instruction < ArrayLength(instructions.ids) {
             let call_match: Bool = ordinal >= 0 &&
                 instructions.expr0_graphs.has_roots[instruction] == 1 &&

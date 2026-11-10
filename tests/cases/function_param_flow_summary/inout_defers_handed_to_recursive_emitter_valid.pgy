@@ -2,7 +2,7 @@
 // routine defers, sets its first element to a fresh String after a nested
 // call, and hands it to the next nested call.
 func Emit(depth: Int, inout cur: Array<Int>, inout defers: Array<String>) -> String {
-    let result: String = "";
+    var result: String = "";
     while cur[0] < depth {
         ArraySet(cur, 0, cur[0] + 1);
         let nested: String = Emit(depth - 1, cur, defers);
@@ -13,8 +13,8 @@ func Emit(depth: Int, inout cur: Array<Int>, inout defers: Array<String>) -> Str
 }
 
 func Main() -> Int {
-    let cur: Array<Int> = [0];
-    let defers: Array<String> = [""];
+    var cur: Array<Int> = [0];
+    var defers: Array<String> = [""];
     let text: String = Emit(2, cur, defers);
     Print(Concat(text, defers[0]));
     return 0;

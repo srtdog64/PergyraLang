@@ -17,7 +17,7 @@ func EmitStep(inout body: Array<String>, alias: String, steps: StepFacts, row: I
 
 func Block(own execution: Execution) -> Int {
     let steps: StepFacts = execution.steps;
-    let body: Array<String> = [];
+    var body: Array<String> = [];
     let n: Int = EmitStep(body, steps.aliases[0], steps, 0);
     Print(body[0]);
     return n;

@@ -12,7 +12,7 @@ func Keep(rows: Array<Int>) -> Facts {
 }
 
 func Build() -> Facts {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, 41);
     defer { ArrayDrop(rows); };
     return Keep(rows);

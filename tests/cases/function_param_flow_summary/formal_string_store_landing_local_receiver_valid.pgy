@@ -7,7 +7,7 @@ struct Routines {
 }
 
 func Gather(ref routines: Routines) -> Array<String> {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, routines.names[0]);
     return out;
 }

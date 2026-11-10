@@ -32,6 +32,12 @@ mir_instruction_capture_source_provenance(MIRInstruction *inst,
     inst->source_column = source->column;
     inst->source_stable_id = ast_node_stable_id(source);
     inst->source_node_type = source->type;
+    if (source->type == AST_LET_DECL && inst->kind == MIR_INST_DEF)
+        inst->name = ast_let_is_mutable(source) ? "mutable-def" : "ssa-def";
+    if (source->type == AST_ASSIGNMENT
+        && (inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_ASSIGN)
+        && ast_assignment_operation(source) != AST_ASSIGN_SET)
+        inst->name = mir_compound_assignment_opcode(ast_assignment_operation(source));
 }
 
 bool

@@ -35,20 +35,27 @@ func DirectMirScalarProgramLlvmSliceTypeFactFor(
 func DirectMirScalarProgramLlvmSliceExpressionAt(
     kind: Int, result: String, result_type: String,
     left: String, left_type: String, right: String, right_type: String,
-    arguments: Array<String>, argument_types: Array<String>,
+    ref arguments: Array<String>, ref argument_types: Array<String>,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprArraySlice() &&
         kind != DirectMirScalarProgramExprSliceCopy() &&
         kind != DirectMirScalarProgramExprArrayClone() &&
+        kind != DirectMirScalarProgramExprArrayStringLength() &&
         kind != DirectMirScalarProgramExprSliceIntIndex() &&
         kind != DirectMirScalarProgramExprSliceStringIndex() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
-    let slice_type: String = result_type;
+    if kind == DirectMirScalarProgramExprArrayStringLength() &&
+        left_type != CompilerAbiLayoutSliceIntTypeName() &&
+        left_type != CompilerAbiLayoutSliceStringTypeName() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    var slice_type: String = result_type;
     if kind == DirectMirScalarProgramExprSliceCopy() ||
         kind == DirectMirScalarProgramExprArrayClone() ||
+        kind == DirectMirScalarProgramExprArrayStringLength() ||
         kind == DirectMirScalarProgramExprSliceIntIndex() ||
         kind == DirectMirScalarProgramExprSliceStringIndex() {
         slice_type = left_type;
@@ -69,8 +76,8 @@ func DirectMirScalarProgramLlvmSliceExpressionAt(
     }
     let suffix: String = type_fact.suffix;
     let llvm_slice: String = type_fact.llvm_slice_type;
-    let llvm_array: String = type_fact.llvm_array_type;
-    let storage: DirectMirArrayStorageAbiProjection =
+    var llvm_array: String = type_fact.llvm_array_type;
+    var storage: DirectMirArrayStorageAbiProjection =
         DirectMirArrayStorageAbiProjectionFromTarget(target);
     if suffix == "String" && (kind == DirectMirScalarProgramExprArraySlice() ||
             kind == DirectMirScalarProgramExprSliceCopy() ||
@@ -85,6 +92,20 @@ func DirectMirScalarProgramLlvmSliceExpressionAt(
         }
         llvm_array = abi.llvm_value_type;
         storage = abi.storage;
+    }
+    if kind == DirectMirScalarProgramExprArrayStringLength() {
+        if left == "" || right != "" ||
+            result_type != CompilerAbiLayoutIntTypeName() ||
+            ArrayLength(arguments) != 0 || ArrayLength(argument_types) != 0 {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", ""
+            );
+        }
+        let instructions: String =
+            "  ${result} = extractvalue ${llvm_slice} ${left}, 1\n";
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, result
+        );
     }
     if kind == DirectMirScalarProgramExprArraySlice() {
         let expected_array: String = type_fact.source_array_type;
@@ -138,7 +159,7 @@ func DirectMirScalarProgramLlvmSliceExpressionAt(
             true, true, instructions, result
         );
     }
-    let expected_result: String = CompilerAbiLayoutIntTypeName();
+    var expected_result: String = CompilerAbiLayoutIntTypeName();
     if kind == DirectMirScalarProgramExprSliceStringIndex() {
         expected_result = CompilerAbiLayoutStringTypeName();
     }
@@ -150,7 +171,7 @@ func DirectMirScalarProgramLlvmSliceExpressionAt(
         );
     }
     let operand: String = Concat(result, ".operand");
-    let instructions: String =
+    var instructions: String =
         "  ${operand} = alloca ${llvm_slice}, align 8\n" +
         "  store ${llvm_slice} ${left}, ptr ${operand}, align 8\n";
     if kind == DirectMirScalarProgramExprSliceIntIndex() {
@@ -288,7 +309,7 @@ func DirectMirScalarProgramLlvmStringSliceCopyHelper(
 func DirectMirScalarProgramSliceStringCopyReached(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(expressions.node_kinds) {
         if (expressions.node_kinds[row] == DirectMirScalarProgramExprSliceCopy() ||
                 expressions.node_kinds[row] == DirectMirScalarProgramExprArrayClone()) &&
@@ -313,6 +334,21 @@ func DirectMirScalarProgramSliceCopyReached(
 func DirectMirScalarProgramSliceAnyReached(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[row] ==
+                DirectMirScalarProgramExprArrayStringLength() {
+            let left: Int = expressions.node_lefts[row];
+            if left >= 0 && left < row &&
+                (expressions.node_types[left] ==
+                    CompilerAbiLayoutSliceIntTypeName() ||
+                 expressions.node_types[left] ==
+                    CompilerAbiLayoutSliceStringTypeName()) {
+                return true;
+            }
+        }
+        row = row + 1;
+    }
     return DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprArraySlice()) ||
         DirectMirScalarProgramSliceCopyReached(expressions) ||
@@ -327,18 +363,27 @@ func DirectMirScalarProgramLlvmSlicePreamble(
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let int_reached: Bool = false;
-    let string_reached: Bool = false;
-    let row: Int = 0;
+    var int_reached: Bool = false;
+    var string_reached: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[row];
         let type_name: String = expressions.node_types[row];
+        var slice_length_type: String = "";
+        if kind == DirectMirScalarProgramExprArrayStringLength() {
+            let left: Int = expressions.node_lefts[row];
+            if left < 0 || left >= row {
+                Die("direct MIR LLVM Slice length source is missing");
+            }
+            slice_length_type = expressions.node_types[left];
+        }
         if (kind == DirectMirScalarProgramExprArraySlice() &&
                 type_name == CompilerAbiLayoutSliceIntTypeName()) ||
             (kind == DirectMirScalarProgramExprSliceCopy() &&
                 type_name == CompilerAbiLayoutArrayIntTypeName()) ||
             (kind == DirectMirScalarProgramExprArrayClone() &&
                 type_name == CompilerAbiLayoutArrayIntTypeName()) ||
+            slice_length_type == CompilerAbiLayoutSliceIntTypeName() ||
             kind == DirectMirScalarProgramExprSliceIntIndex() {
             int_reached = true;
         }
@@ -348,12 +393,13 @@ func DirectMirScalarProgramLlvmSlicePreamble(
                 type_name == CompilerAbiLayoutArrayStringTypeName()) ||
             (kind == DirectMirScalarProgramExprArrayClone() &&
                 type_name == CompilerAbiLayoutArrayStringTypeName()) ||
+            slice_length_type == CompilerAbiLayoutSliceStringTypeName() ||
             kind == DirectMirScalarProgramExprSliceStringIndex() {
             string_reached = true;
         }
         row = row + 1;
     }
-    let output: String = "";
+    var output: String = "";
     if int_reached || string_reached {
         output = output + "@.pgy.slice.bounds.reason = private unnamed_addr constant [20 x i8] c\"slice out of bounds\\00\"\n";
         output = output + "@.pgy.slice.empty.string = private unnamed_addr constant [1 x i8] zeroinitializer\n";
@@ -386,9 +432,9 @@ func DirectMirScalarProgramLlvmSlicePreamble(
             "String", abi.llvm_value_type, "%pgy.slice.string", abi.llvm_element_type, abi.storage
         );
     }
-    let copy_row: Int = 0;
-    let int_copy: Bool = false;
-    let string_copy: Bool = false;
+    var copy_row: Int = 0;
+    var int_copy: Bool = false;
+    var string_copy: Bool = false;
     while copy_row < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[copy_row] == DirectMirScalarProgramExprSliceCopy() ||
             expressions.node_kinds[copy_row] == DirectMirScalarProgramExprArrayClone() {
@@ -415,7 +461,7 @@ func DirectMirScalarProgramLlvmSlicePreamble(
 func DirectMirScalarProgramLlvmSliceForeignDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let output: String = "";
+    var output: String = "";
     // The internal-invariant panic export it also calls is declared once by
     // the foreign declaration owner, which the unwrap helpers share.
     if DirectMirScalarProgramSliceCopyReached(expressions) {

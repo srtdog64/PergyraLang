@@ -27,7 +27,7 @@ func Append(inout state: State, env: Env, row: String) -> Void {
     let rows: String = Concat(row, "=v");
     let view: Env = View(state, env);
     let combined: String = Concat(rows, view.local_rows);
-    let epochs: Array<String> = state.owned_epochs;
+    var epochs: Array<String> = state.owned_epochs;
     AppendEpoch(epochs, combined);
     state.owned_epochs = epochs;
     state.local_rows = state.owned_epochs[ArrayLength(state.owned_epochs) - 1];

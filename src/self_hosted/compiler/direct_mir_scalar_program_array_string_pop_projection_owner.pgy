@@ -1,0 +1,52 @@
+// Exact ownership receipt selects the private C/LLVM Array<String> pop ABI.
+
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_mutation_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_pop_abi_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayStringPopSymbol(
+    ref ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    operation: Int
+) -> String {
+    let effect: Int =
+        DirectMirScalarProgramCollectionOwnershipOperationEffect(
+            ownership, operation);
+    if effect == 2 {
+        return DirectMirScalarProgramArrayStringShallowPopSymbol();
+    }
+    if effect == 5 {
+        return DirectMirScalarProgramArrayStringOwnedPopSymbol();
+    }
+    Die("direct MIR Array<String> pop ownership receipt is missing");
+    return "";
+}
+
+func DirectMirScalarProgramCArrayStringPop(
+    ref ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    operation: Int, target: String
+) -> String {
+    if operation < 0 || target == "" { Die(
+        "direct MIR C Array<String> pop target is invalid"); }
+    return Concat("    ", Concat(
+        DirectMirScalarProgramArrayStringPopSymbol(ownership, operation),
+        Concat("(&", Concat(target, ");\n"))));
+}
+
+func DirectMirScalarProgramLlvmArrayStringPop(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>,
+    ref ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    operation: Int, target: String
+) -> String {
+    if operation < 0 || target == "" { Die(
+        "direct MIR LLVM Array<String> pop target is invalid"); }
+    let projection: DirectMirArrayStringAbiProjection =
+        DirectMirScalarProgramLlvmArrayStringMutationProjection(
+            fact, projection_opt);
+    if projection.length_index < 0 { Die(
+        "direct MIR LLVM Array<String> pop projection is invalid"); }
+    return Concat("  call void @", Concat(
+        DirectMirScalarProgramArrayStringPopSymbol(ownership, operation),
+        Concat("(ptr ", Concat(target, ")\n"))));
+}

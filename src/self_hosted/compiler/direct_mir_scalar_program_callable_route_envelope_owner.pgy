@@ -1,7 +1,6 @@
 // Broad typed claimant envelope; final callable support remains a later gate.
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_owner.pgy";
-import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
 struct DirectMirScalarProgramCallableRouteEnvelopeAssessment {
     let valid: Bool;
     let supported: Bool;
@@ -36,7 +35,9 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
 ) -> DirectMirScalarProgramCallableRouteEnvelopeAssessment {
     if !DirectMirRoutineSignatureFactReady(signature) {
         return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
@@ -45,7 +46,7 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
     if signature.param_count == 0 {
         if DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
                 signature, logical_record, payload_free_enum,
-                referenced_enum) ||
+                referenced_enum, opaque_readonly_zones) ||
             DirectMirScalarProgramZeroParameterReturnTypeSupportedWithReferencedEnum(
                 signature.return_type, logical_record, referenced_enum) ||
             DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(
@@ -71,16 +72,12 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
     let void_logical_record_array_int: Bool =
         DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady(
             signature, logical_record);
-    let readonly_record_array_bool_return: Bool =
-        DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady(
-            signature, logical_record);
     if !DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
             signature, logical_record, payload_free_enum,
-            referenced_enum) &&
+            referenced_enum, opaque_readonly_zones) &&
         !array_string_value_result && !owned_array_string_return &&
         !logical_record_array_value_result &&
         !void_logical_record_array_int &&
-        !readonly_record_array_bool_return &&
         !DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) &&
         !DirectMirScalarProgramCallableReturnTypeSupportedWithReferencedEnum(
             signature.return_type, logical_record,
@@ -88,11 +85,12 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
         return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
             true, false, "return-type", -1, signature.return_type, "");
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         if !DirectMirScalarProgramCallableParameterSupportedWithReferencedEnum(
                 signature, ordinal, logical_record,
-                payload_free_enum, referenced_enum) {
+                payload_free_enum, referenced_enum,
+                opaque_readonly_zones) {
             return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
                 true, false, "parameter-type-or-carriage", ordinal,
                 signature.parameters.type_names[ordinal],
@@ -110,9 +108,12 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssess(
 ) -> DirectMirScalarProgramCallableRouteEnvelopeAssessment {
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    let opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact =
+            DirectMirScalarProgramOpaqueReadonlyZoneFactEmpty();
     return DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
         signature, logical_record, payload_free_enum,
-        referenced_enum);
+        referenced_enum, opaque_readonly_zones);
 }
 func DirectMirScalarProgramCallableRouteEnvelopeSupported(
     ref signature: DirectMirRoutineSignatureFact

@@ -1,0 +1,22 @@
+// The constructor keeps an independently copied String, so releasing the
+// source does not invalidate projected.title. The destination then upgrades
+// its empty-origin String lifecycle through owned push and owned set receipts.
+struct Projection {
+    title: String;
+}
+
+func OwnedRows() -> Array<String> {
+    var rows: Array<String> = [];
+    ArrayPush(rows, StringConcat("owned", ""));
+    return rows;
+}
+
+func Main() -> Int {
+    let source: Array<String> = OwnedRows();
+    var destination: Array<String> = [];
+    ArrayPush(destination, "");
+    let projected: Projection = Projection(source[0]);
+    ArrayDropOwnedStrings(source);
+    ArraySet(destination, 0, projected.title);
+    return 0;
+}

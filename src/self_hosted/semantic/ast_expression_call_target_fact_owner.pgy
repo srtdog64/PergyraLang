@@ -101,7 +101,7 @@ func SemanticExpressionGraphResolvedCallTarget(
             );
         if local_callable.ok {
             return SemanticExpressionCallTargetFact(
-                true, SemanticCallTargetDirect(), callee_name, 0
+                true, SemanticCallTargetDirect(), Concat("", callee_name), 0
             );
         }
         let direct: Option<Int> = SemanticCallableIndexInTable(
@@ -114,7 +114,8 @@ func SemanticExpressionGraphResolvedCallTarget(
                 );
             if protocol.applies {
                 return SemanticExpressionCallTargetFact(
-                    true, SemanticCallTargetDirect(), protocol.name, 0
+                    true, SemanticCallTargetDirect(),
+                    Concat("", protocol.name), 0
                 );
             }
             return SemanticExpressionCallTargetFact(
@@ -177,7 +178,7 @@ func SemanticExpressionGraphResolvedCallTarget(
         ) {
         return SemanticExpressionCallTargetFact(
             true, SemanticCallTargetMember(),
-            UnwrapOption(carried_name), 1
+            Concat("", UnwrapOption(carried_name)), 1
         );
     }
     let receiver_type: Option<String> =
@@ -216,7 +217,7 @@ func SemanticExpressionGraphCarriedCallTargetsReady(
     if !graph.ok || !SemanticExpressionGraphArenaReady(graph.arena) {
         return false;
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCall() {
             let target_kind: Int = graph.arena.call_target_kinds[node_id];

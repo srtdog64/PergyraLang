@@ -47,7 +47,7 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
     if array_required && !IsSome(projection_opt) {
         Die("direct MIR scalar program C Array<String> projection is missing");
     }
-    let output: String = "#include <stddef.h>\n#include <stdlib.h>\n#include <string.h>\n\n";
+    var output: String = "#include <stddef.h>\n#include <stdlib.h>\n#include <string.h>\n\n";
     if DirectMirScalarProgramArrayStringAbiFactReady(
             plan.program.array_string_abi) {
         let projection: DirectMirArrayStringAbiProjection =

@@ -1,0 +1,21 @@
+struct BoolReturnPlan {
+    let enabled: Bool;
+}
+
+func BuildBoolRows(
+    ref plan: BoolReturnPlan,
+    ref values: Array<Int>
+) -> Array<Bool> {
+    var rows: Array<Bool> = [];
+    ArrayPush(rows, plan.enabled && values[0] > 0);
+    ArrayPush(rows, plan.enabled && values[1] > 0);
+    return rows;
+}
+
+func Main() -> Void {
+    let plan: BoolReturnPlan = BoolReturnPlan(true);
+    let values: Array<Int> = [1, -1];
+    let rows: Array<Bool> = BuildBoolRows(plan, values);
+    Log(rows[0]);
+    Log(rows[1]);
+}

@@ -66,6 +66,10 @@ semantic_find_next_role_decl_for_type_name(SemanticContext *ctx,
     if (ctx == NULL || type_name == NULL)
         return NULL;
 
+    if (ctx->host_decl_index.roles_by_type_ready)
+        return semantic_host_index_find_next_role_for_type(
+            ctx, type_name, after);
+
     if (ctx->host_decl_index.count > 0) {
         stmt = (ASTNode *)after;
         while ((stmt = semantic_host_index_find_next_decl_of_type(

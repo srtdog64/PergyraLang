@@ -2,7 +2,7 @@ import "direct_mir_scalar_program_c_string_expression_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_c_extended_expression_owner.pgy";
 import "direct_mir_scalar_program_c_option_result_expression_owner.pgy";
-import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_c_aggregate_option_expression_owner.pgy";
 import "direct_mir_scalar_program_c_set_string_expression_owner.pgy";
 import "direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy";
 
@@ -12,6 +12,7 @@ func DirectMirScalarProgramCBuiltinExpression(
     owns_array_string_elements: Bool, expression_row: Int, callable_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> Option<String> {
@@ -19,11 +20,15 @@ func DirectMirScalarProgramCBuiltinExpression(
         DirectMirScalarProgramCCompilerArtifactExpression(
             kind, left, right, runtime);
     if IsSome(artifact) { return artifact; }
-    let record_option: Option<String> = DirectMirScalarProgramCLogicalRecordOptionExpression(
-        logical_record, kind, result_type, left_type, left);
-    if IsSome(record_option) { return record_option; }
+    let aggregate_option: Option<String> =
+        DirectMirScalarProgramCAggregateOptionExpression(
+            logical_record, referenced_enum, kind,
+            result_type, left_type, left);
+    if IsSome(aggregate_option) { return aggregate_option; }
     let option_result: Option<String> =
-        DirectMirScalarProgramCOptionResultExpression(kind, left, right);
+        DirectMirScalarProgramCOptionResultExpression(
+            kind, result_type, left_type, left, right, logical_record,
+            referenced_enum);
     if IsSome(option_result) { return option_result; }
     let set_string: Option<String> =
         DirectMirScalarProgramCSetStringExpression(

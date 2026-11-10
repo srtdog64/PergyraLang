@@ -53,7 +53,7 @@ func SemanticExpressionGraphGenericCallFactWithReturnType(
 }
 
 func SemanticGenericCallSignatureIndex(
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     callable_name: String
 ) -> Option<Int> {
     // First row with this canonical name, from the signature index.
@@ -170,12 +170,12 @@ func SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
             )
         );
     }
-    let bindings: Array<String> = [];
-    let binding_parameter_indices: Array<Int> = [];
-    let binding_actual_type_names: Array<String> = [];
-    let input_failure: SemanticExpressionGraphGenericCallFact =
+    var bindings: Array<String> = [];
+    var binding_parameter_indices: Array<Int> = [];
+    var binding_actual_type_names: Array<String> = [];
+    var input_failure: SemanticExpressionGraphGenericCallFact =
         SemanticExpressionGraphGenericCallNotApplicable();
-    let i: Int = 0;
+    var i: Int = 0;
     if ArrayLength(call.generic_actual_type_names) > 0 {
         while i < ArrayLength(call.generic_actual_type_names) {
             let explicit_actual: String = SemanticCanonicalTypeName(
@@ -226,7 +226,7 @@ func SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
             input_failure = nested_generic;
             break;
         }
-        let actual: String = "Unknown";
+        var actual: String = "Unknown";
         if nested_generic.applies {
             actual = nested_generic.return_type_name;
         } else {
@@ -270,7 +270,7 @@ func SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
         } else {
             let argument_text: Option<String> =
                 SemanticExpressionGraphNodeText(graph, call.argument_nodes[i]);
-            let assignable: Bool = UnwrapOption(expected) == actual;
+            var assignable: Bool = UnwrapOption(expected) == actual;
             if IsSome(argument_text) {
                 assignable = ExpressionAssignableTo(
                     UnwrapOption(expected), actual, UnwrapOption(argument_text)
@@ -301,7 +301,7 @@ func SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
         );
     ArrayDropOwnedStrings(bindings);
     ArrayDropOwnedStrings(binding_actual_type_names);
-    let output: SemanticExpressionGraphGenericCallFact =
+    var output: SemanticExpressionGraphGenericCallFact =
         SemanticExpressionGraphGenericCallNotApplicable();
     if input_failure.applies {
         output = input_failure;
@@ -354,13 +354,13 @@ func SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
                     )
                 );
             } else {
-                let captured_actual_start: Int = -1;
-                let captured_actual_count: Int = 0;
+                var captured_actual_start: Int = -1;
+                var captured_actual_count: Int = 0;
                 if capture_actual_type_names {
                     captured_actual_start =
                         ArrayLength(captured_actual_type_names);
                     captured_actual_count = ArrayLength(resolved_bindings);
-                    let captured_index: Int = 0;
+                    var captured_index: Int = 0;
                     while captured_index < captured_actual_count {
                         ArrayPushOwnedString(
                             captured_actual_type_names,
@@ -392,7 +392,7 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
     ref function_returns: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphGenericCallFact {
-    let ignored_actual_type_names: Array<String> = [];
+    var ignored_actual_type_names: Array<String> = [];
     return SemanticExpressionGraphGenericCallFactCaptureFromGraph(
         graph, root_id, signatures, constructors, names, types,
         function_names, function_returns, ignored_actual_type_names, false, enum_values
@@ -411,7 +411,7 @@ func SemanticExpressionGraphGenericCallFactFromResolvedTarget(
     ref function_returns: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphGenericCallFact {
-    let ignored_actual_type_names: Array<String> = [];
+    var ignored_actual_type_names: Array<String> = [];
     return SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
         graph, root_id, target, signatures, constructors, names, types,
         function_names, function_returns, ignored_actual_type_names, false, enum_values

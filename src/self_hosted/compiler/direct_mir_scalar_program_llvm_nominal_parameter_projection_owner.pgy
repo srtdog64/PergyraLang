@@ -1,0 +1,91 @@
+// LLVM value/address projection for admitted record and enum parameters.
+import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramLlvmNominalParameterRead(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    routine: Int, node: Int, result: String, pointer: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let ordinal: Int = expressions.node_parameter_ordinals[node];
+    if !DirectMirScalarProgramPayloadEnumReadonlyRefAt(
+            routines, referenced_enum, routine, ordinal) {
+        return DirectMirScalarProgramLlvmLogicalRecordParameterRead(
+            expressions, routines, logical_record, routine,
+            node, result, pointer);
+    }
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    let type_name: String =
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            routines.parameter_types[row], logical_record,
+            payload_free_enum, referenced_enum);
+    if type_name == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let instructions: String = "  " + result + " = load " + type_name +
+        ", ptr %pgy.param." + ToString(ordinal) + "\n";
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, instructions, result);
+}
+
+func DirectMirScalarProgramLlvmEnumCallArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    routine: Int, target: Int, ordinal: Int,
+    argument_node: Int, value: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if DirectMirScalarProgramPayloadFreeEnumReadonlyRefAt(
+            routines, payload_free_enum, target, ordinal) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", value);
+    }
+    if !DirectMirScalarProgramPayloadEnumReadonlyRefAt(
+            routines, referenced_enum, target, ordinal) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            false, true, "", value);
+    }
+    if expressions.node_kinds[argument_node] ==
+            DirectMirScalarProgramExprLocal() {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", Concat("%pgy.local.", ToString(
+                expressions.node_local_rows[argument_node])));
+    }
+    if expressions.node_kinds[argument_node] !=
+            DirectMirScalarProgramExprParameter() {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let source: Int = expressions.node_parameter_ordinals[argument_node];
+    let source_row: Int = routines.parameter_starts[routine] + source;
+    if routines.parameter_carriages[source_row] == "readonly-ref" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", Concat("%pgy.param.", ToString(source)));
+    }
+    if routines.parameter_carriages[source_row] != "value" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let type_name: String =
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            routines.parameter_types[source_row], logical_record,
+            payload_free_enum, referenced_enum);
+    if type_name == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let pointer: String = Concat(
+        "%pgy.readonly.enum.", ToString(argument_node));
+    let instructions: String = "  " + pointer + " = alloca " +
+        type_name + "\n  store " + type_name + " " + value +
+        ", ptr " + pointer + "\n";
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, instructions, pointer);
+}

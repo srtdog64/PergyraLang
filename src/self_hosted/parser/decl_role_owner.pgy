@@ -16,9 +16,9 @@ func ParseRoleDecl(
     inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
+    var out: String = "";
     i = LanguageWordEnd(i, LanguageWordId.WordRole);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -39,7 +39,7 @@ func ParseRoleDecl(
     if StringLength(role_subj) == 0 {
         ParseRefuse(location_context, i, "type_name_invalid", "construct", "role", "", "");
     }
-    let compact_impl: String = "";
+    var compact_impl: String = "";
     i = SkipWhitespaceAndComments(content, i);
     if MatchLanguageWord(content, i, LanguageWordId.WordImpl) {
         i = LanguageWordEnd(i, LanguageWordId.WordImpl);
@@ -57,7 +57,7 @@ func ParseRoleDecl(
     }
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "role");
-    let impl_blocks: String = "";
+    var impl_blocks: String = "";
     if StringLength(compact_impl) > 0 {
         impl_blocks = AppendLine(impl_blocks, Concat("    Impl ability: ", compact_impl));
     }
@@ -128,7 +128,7 @@ func ParseRoleDecl(
         }
         let impl_open_at: Int = SkipWhitespaceAndComments(content, i);
         i = ParseExpectIn(location_context, content, i, "{", "role_impl");
-        let impl_methods: String = "";
+        var impl_methods: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n {

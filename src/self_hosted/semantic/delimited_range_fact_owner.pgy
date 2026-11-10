@@ -14,7 +14,7 @@ func SemanticDelimitedTrimmedStart(
     start: Int,
     end: Int
 ) -> Int {
-    let result: Int = start;
+    var result: Int = start;
     while result < end && SourceByteIsWhitespace(
         SourceByteAt(source, source_extent, source_length, result)
     ) {
@@ -29,7 +29,7 @@ func SemanticDelimitedTrimmedEnd(
     start: Int,
     end: Int
 ) -> Int {
-    let result: Int = end;
+    var result: Int = end;
     while result > start && SourceByteIsWhitespace(
         SourceByteAt(source, source_extent, source_length, result - 1)
     ) {
@@ -47,7 +47,7 @@ func SemanticDelimitedAngleOpensTypeRange(
         SourceByteIsWhitespace(SourceByteAt(source, source_extent, source_length, index - 1)) {
         return false;
     }
-    let next: Int = index + 1;
+    var next: Int = index + 1;
     while next < source_length && SourceByteIsWhitespace(
         SourceByteAt(source, source_extent, source_length, next)
     ) {
@@ -62,8 +62,8 @@ func SemanticNestedCommaRangeFactsFromSource(
     source: String
 ) -> SemanticDelimitedRangeFacts {
     let n: Int = StringLength(source);
-    let starts: Array<Int> = [];
-    let lengths: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var lengths: Array<Int> = [];
     let quote: Int = SourceByteOf("\"");
     let escape: Int = SourceByteOf("\\");
     let comma: Int = SourceByteOf(",");
@@ -73,14 +73,14 @@ func SemanticNestedCommaRangeFactsFromSource(
     let close_paren: Int = SourceByteOf(")");
     let open_bracket: Int = SourceByteOf("[");
     let close_bracket: Int = SourceByteOf("]");
-    let i: Int = 0;
-    let angle_depth: Int = 0;
-    let paren_depth: Int = 0;
-    let bracket_depth: Int = 0;
-    let range_start: Int = 0;
+    var i: Int = 0;
+    var angle_depth: Int = 0;
+    var paren_depth: Int = 0;
+    var bracket_depth: Int = 0;
+    var range_start: Int = 0;
     while i <= n {
         let at_end: Bool = i >= n;
-        let c: Int = -1;
+        var c: Int = -1;
         if !at_end {
             c = SourceByteAt(source, n, n, i);
         }
@@ -147,11 +147,11 @@ func SemanticSignatureRangeFactsFromSource(
     source: String
 ) -> SemanticDelimitedRangeFacts {
     let n: Int = StringLength(source);
-    let starts: Array<Int> = [];
-    let lengths: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var lengths: Array<Int> = [];
     let separator: Int = SourceByteOf("|");
-    let range_start: Int = 0;
-    let i: Int = 0;
+    var range_start: Int = 0;
+    var i: Int = 0;
     while i <= n {
         if i == n || SourceByteAt(source, n, n, i) == separator {
             let trimmed_start: Int = SemanticDelimitedTrimmedStart(
@@ -178,8 +178,8 @@ func SemanticDelimitedRangeCount(
 func SemanticDelimitedNonEmptyRangeCount(
     ref facts: SemanticDelimitedRangeFacts
 ) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.lengths) {
         if facts.lengths[i] > 0 {
             count = count + 1;

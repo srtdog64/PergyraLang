@@ -1,0 +1,69 @@
+// Maps one admitted payload-enum match local back to its exact source formal.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+
+func DirectMirOwnedPayloadEnumMatchBindingSourceParameter(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> Int {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        local_row < 0 || local_row >= ArrayLength(plan.local_ref_kinds) ||
+        plan.local_ref_kinds[local_row] !=
+            DirectMirScalarCfgLocalRefMatchBinding() {
+        return -1;
+    }
+    var found: Int = -1;
+    var node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprPayloadEnumMatch() {
+            let receiver: Int = plan.program.expressions.node_lefts[node];
+            if receiver >= 0 && receiver < node &&
+                plan.program.expressions.node_kinds[receiver] ==
+                    DirectMirScalarProgramExprParameter() {
+                let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+                    plan.program.referenced_enum,
+                    plan.program.expressions.node_types[receiver]);
+                let ordinal: Int =
+                    plan.program.expressions.node_member_ordinals[node];
+                if enum_row >= 0 && ordinal >= 0 && ordinal <
+                        plan.program.referenced_enum.variant_counts[enum_row] {
+                    let variant: Int = plan.program.referenced_enum.
+                        variant_starts[enum_row] + ordinal;
+                    let binding_start: Int =
+                        plan.program.expressions.node_local_rows[node];
+                    let binding_count: Int = plan.program.referenced_enum.
+                        variant_param_counts[variant];
+                    if local_row >= binding_start &&
+                        local_row < binding_start + binding_count {
+                        let field: Int = local_row - binding_start;
+                        let source_ordinal: Int = plan.program.expressions.
+                            node_parameter_ordinals[receiver];
+                        if source_ordinal < 0 || source_ordinal >=
+                                plan.routines.parameter_counts[routine] {
+                            return -1;
+                        }
+                        let source: Int =
+                            plan.routines.parameter_starts[routine] +
+                                source_ordinal;
+                        let carriage: String =
+                            plan.routines.parameter_carriages[source];
+                        if plan.routines.parameter_types[source] !=
+                                plan.program.expressions.node_types[receiver] ||
+                            (carriage != "value" &&
+                             carriage != "owner-handle") ||
+                            plan.local_types[local_row] != plan.program.
+                                referenced_enum.variant_param_types[plan.program.
+                                    referenced_enum.variant_param_type_starts[
+                                        variant] + field] || found >= 0 {
+                            return -1;
+                        }
+                        found = source;
+                    }
+                }
+            }
+        }
+        node = node + 1;
+    }
+    return found;
+}

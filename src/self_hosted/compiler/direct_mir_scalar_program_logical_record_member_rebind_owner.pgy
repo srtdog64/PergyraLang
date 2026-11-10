@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
 import "direct_mir_scalar_program_logical_record_member_path_owner.pgy";
 import "../mir_lower/latest_local_value_fact_owner.pgy";
+import "../hir/assignment_operation_owner.pgy";
 struct DirectMirScalarProgramLogicalRecordMemberRebindTarget {
     let valid: Bool;
     let member_ordinal: Int;
@@ -59,9 +60,11 @@ func DirectMirScalarProgramLogicalRecordMemberRebindTargetFromGraph(
         graph.roots[0] + 1 != graph.ready_node_count {
         return invalid;
     }
+    var path_carriage: String = target_carriage;
+    if path_carriage == "mutable_local" { path_carriage = "local"; }
     let path: DirectMirScalarProgramLogicalRecordMemberPathFact =
         DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
-            graph, graph.roots[0], target_name, target_type, target_carriage,
+            graph, graph.roots[0], target_name, target_type, path_carriage,
             parameter_ordinal, signature, record);
     if !path.valid { return invalid; }
     return DirectMirScalarProgramLogicalRecordMemberRebindTarget(
@@ -76,7 +79,7 @@ func DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
         MirRoutineFactIndexUniqueResultDefinition(index, result);
     let first: Option<String> = MirRoutineInstructionUseAtGlobal(
         uses, global, 0);
-    let predecessor: Int = -1;
+    var predecessor: Int = -1;
     if IsSome(first) {
         predecessor = DirectMirScalarCfgGraphValueRow(
             locals.value_names, UnwrapOption(first));
@@ -121,11 +124,11 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
         signature.source_syntax_id != ToInt(index.source_syntax_id) {
         return invalid;
     }
-    let globals: Array<Int> = [];
-    let members: Array<Int> = [];
-    let member_types: Array<String> = [];
-    let prefixes: Array<Int> = [];
-    let instruction: Int = 0;
+    var globals: Array<Int> = [];
+    var members: Array<Int> = [];
+    var member_types: Array<String> = [];
+    var prefixes: Array<Int> = [];
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let capture: MirRoutineInstructionScalarCapture =
@@ -138,9 +141,9 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
                 DirectMirScalarProgramLogicalRecordTypeReady(
                     record, capture.abi_type_name) &&
                 (capture.arg1 == "inout_param" || capture.arg1 ==
-                    "default_param" || capture.arg1 == "local") {
-            let ordinal: Int = -1;
-            let row: Int = 0;
+                    "default_param" || capture.arg1 == "mutable_local") {
+            var ordinal: Int = -1;
+            var row: Int = 0;
             while row < signature.param_count {
                 if signature.parameters.names[row] == capture.arg0 {
                     if ordinal >= 0 { return invalid; }
@@ -150,8 +153,8 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
             }
             let parameter_target: Bool = capture.arg1 == "inout_param" || capture.arg1 == "default_param";
             if (parameter_target && ordinal < 0) ||
-                (capture.arg1 == "local" && ordinal >= 0) ||
-                capture.name != "ssa-def" || capture.result == "" ||
+                (capture.arg1 == "mutable_local" && ordinal >= 0) ||
+                !IsSome(AssignmentOperationFromMirName(capture.name)) || capture.result == "" ||
                 !MirSsaNameMatches(capture.result, capture.arg0, false) {
                 return invalid;
             }
@@ -175,7 +178,7 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
                 let target_graph: MirExpressionGraphSequence =
                     DirectMirScalarCfgInstructionGraphAt(
                         instruction_object, "expr1_graph");
-                let target_root: Int = -1;
+                var target_root: Int = -1;
                 if target_graph.ok && ArrayLength(target_graph.roots) == 1 {
                     target_root = target_graph.roots[0];
                 }
@@ -194,7 +197,7 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
                     let prefix: Int =
                         DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
                             index, uses, global, capture.result, target_local,
-                            capture.arg1 == "local", locals, types);
+                            capture.arg1 == "mutable_local", locals, types);
                     if prefix < 0 { return invalid; }
                     ArrayPush(globals, global);
                     ArrayPush(members, target.member_ordinal);
@@ -221,8 +224,8 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactAtGlobal(
         ArrayLength(facts.global_rows) != ArrayLength(facts.use_prefix_counts) {
         return invalid;
     }
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(facts.global_rows) {
         if facts.global_rows[row] == global {
             if found >= 0 { return invalid; }
@@ -244,9 +247,9 @@ func DirectMirScalarProgramLogicalRecordMemberRebindAppendOperation(
     let appended: DirectMirScalarCfgProgramOperationStorage =
         DirectMirScalarCfgProgramOperationsAppendExpression(
             storage, DirectMirScalarCfgOpLogicalRecordMemberRebind(),
-            result, expression);
-    let right_locals: Array<Int> = appended.right_locals;
-    let target_rows: Array<Int> = appended.secondary_expression_rows;
+            result, expression, -1);
+    var right_locals: Array<Int> = appended.right_locals;
+    var target_rows: Array<Int> = appended.secondary_expression_rows;
     ArraySet(right_locals, ArrayLength(right_locals) - 1, member_ordinal);
     ArraySet(target_rows, ArrayLength(target_rows) - 1, target_expression);
     return DirectMirScalarCfgProgramOperationStorage(
@@ -255,5 +258,5 @@ func DirectMirScalarProgramLogicalRecordMemberRebindAppendOperation(
         right_locals, appended.left_literals, appended.right_literals,
         appended.phi_starts, appended.phi_counts,
         appended.phi_predecessor_blocks, appended.phi_incoming_values,
-        appended.expression_rows, target_rows);
+        appended.expression_rows, target_rows, appended.target_paths);
 }

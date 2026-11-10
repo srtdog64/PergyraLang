@@ -1,4 +1,50 @@
 
+    TEST("MIR try locals carry success types instead of wrapper types");
+    {
+        const char *src =
+            "enum Problem { Failed }\n"
+            "struct Pair { left: Int; right: Int; }\n"
+            "func Typed(input: Result<Int, Problem>) -> Result<Int, Problem> {\n"
+            "    let value = input?; return Ok(value);\n"
+            "}\n"
+            "func Legacy(input: Result<Int>) -> Result<Int> {\n"
+            "    let value = input?; return Ok(value);\n"
+            "}\n"
+            "func Optional(input: Option<Bool>) -> Option<Bool> {\n"
+            "    let value = input?; return Some(value);\n"
+            "}\n"
+            "func Record(input: Result<Pair, Problem>) -> Result<Pair, Problem> {\n"
+            "    let value = input?; return Ok(value);\n"
+            "}\n"
+            "func Nested(input: Result<Result<Int, Problem>, Problem>) -> Result<Int, Problem> {\n"
+            "    let inner = input?; let value = inner?; return Ok(value);\n"
+            "}\n";
+        const char *names[] = { "Typed", "Legacy", "Optional", "Record", "Nested" };
+        const char *expected[] = { "Int", "Int", "Bool", "Pair", "Int" };
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        EXPECT(ok && mir_validate(mir, NULL));
+        for (size_t i = 0; ok && i < sizeof(names) / sizeof(names[0]); ++i) {
+            const MIRRoutine *routine = find_mir_routine(
+                mir, names[i], MIR_SCOPE_FUNCTION);
+            const char *type = routine != NULL
+                ? mir_routine_source_local_type_name(routine, "value") : NULL;
+            EXPECT(type != NULL && strcmp(type, expected[i]) == 0);
+        }
+        if (ok) {
+            const MIRRoutine *nested = find_mir_routine(
+                mir, "Nested", MIR_SCOPE_FUNCTION);
+            const char *inner = nested != NULL
+                ? mir_routine_source_local_type_name(nested, "inner") : NULL;
+            EXPECT(inner != NULL && strcmp(inner, "Result<Int,Problem>") == 0);
+        }
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures builtin call return types for source locals");
     {
         const char *src =
@@ -62,7 +108,7 @@
     {
         const char *src =
             "func ForLocalFacts(values: List<Int>, names: Array<String>) -> Int {\n"
-            "    let total: Int = 0;\n"
+            "    var total: Int = 0;\n"
             "    for value in values {\n"
             "        total = total + value;\n"
             "    }\n"
@@ -311,7 +357,7 @@
         const char *src =
             "func BranchLocalFact(flag: Bool) -> Int {\n"
             "    if flag {\n"
-            "        let push_fn: String = \"\";\n"
+            "        var push_fn: String = \"\";\n"
             "        push_fn = \"pgy_ai_push\";\n"
             "        return StringLength(push_fn);\n"
             "    }\n"

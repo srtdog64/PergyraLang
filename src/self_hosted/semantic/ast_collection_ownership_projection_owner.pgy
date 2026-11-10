@@ -1,0 +1,90 @@
+// Projects admitted local ownership rows into the published verdict fact.
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstCollectionOwnershipProjectFacts(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref origin_syntax_ids: Array<Int>,
+    ref source_binding_syntax_ids: Array<Int>,
+    ref member_path_starts: Array<Int>,
+    ref member_path_counts: Array<Int>,
+    ref member_path_field_syntax_ids: Array<Int>,
+    ref ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>,
+    ref owned_result_plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    own compiler_clone_expression_node_ids: Array<Int>,
+    own receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionOwnershipVerdict {
+    var function_syntax_ids: Array<Int> = [];
+    var binding_syntax_ids: Array<Int> = [];
+    var carried_origin_syntax_ids: Array<Int> = [];
+    var carried_source_binding_syntax_ids: Array<Int> = [];
+    var carried_member_path_starts: Array<Int> = [];
+    var carried_member_path_counts: Array<Int> = [];
+    var carried_member_path_field_syntax_ids: Array<Int> = [];
+    var element_ownerships: Array<Int> = [];
+    var carried_dispositions: Array<Int> = [];
+    var carried_origins: Array<Int> = [];
+    let local_count: Int = ArrayLength(locals.node_ids);
+    var local_row: Int = 0;
+    while local_row < local_count {
+        if SemanticAstCollectionOwnershipIsStringArray(inferred_types[local_row]) {
+            ArrayPush(function_syntax_ids, locals.function_node_ids[local_row]);
+            ArrayPush(binding_syntax_ids, locals.node_ids[local_row]);
+            ArrayPush(carried_origin_syntax_ids, origin_syntax_ids[local_row]);
+            ArrayPush(carried_source_binding_syntax_ids,
+                source_binding_syntax_ids[local_row]);
+            ArrayPush(carried_member_path_starts,
+                ArrayLength(carried_member_path_field_syntax_ids));
+            var carried_member_path_count: Int = 0;
+            if origins[local_row] == SemanticAstCollectionOriginMemberMove() {
+                if local_row >= ArrayLength(member_path_starts) ||
+                    local_row >= ArrayLength(member_path_counts) {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "ast_artifact_invalid",
+                        SemanticError1("ast_artifact_invalid", "owner",
+                            "collection_member_path_rows"), -1, -1);
+                }
+                let member_path_start: Int = member_path_starts[local_row];
+                carried_member_path_count = member_path_counts[local_row];
+                if member_path_start < 0 || carried_member_path_count <= 0 ||
+                    member_path_start > ArrayLength(member_path_field_syntax_ids) ||
+                    carried_member_path_count >
+                        ArrayLength(member_path_field_syntax_ids) - member_path_start {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "ast_artifact_invalid",
+                        SemanticError1("ast_artifact_invalid", "owner",
+                            "collection_member_path_bounds"), -1, -1);
+                }
+                var member_path_row: Int = 0;
+                while member_path_row < carried_member_path_count {
+                    ArrayPush(carried_member_path_field_syntax_ids,
+                        member_path_field_syntax_ids[
+                            member_path_start + member_path_row]);
+                    member_path_row = member_path_row + 1;
+                }
+            }
+            ArrayPush(carried_member_path_counts, carried_member_path_count);
+            ArrayPush(element_ownerships, ownership[local_row]);
+            ArrayPush(carried_dispositions, dispositions[local_row]);
+            ArrayPush(carried_origins, origins[local_row]);
+        }
+        local_row = local_row + 1;
+    }
+    if !SemanticAstCollectionOwnershipReceiptRowsReady(receipts) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_ownership_receipts"), -1, -1);
+    }
+    return SemanticAstCollectionOwnershipVerdictOkWithFacts(
+        function_syntax_ids, binding_syntax_ids, carried_origin_syntax_ids,
+        carried_source_binding_syntax_ids,
+        carried_member_path_starts, carried_member_path_counts,
+        carried_member_path_field_syntax_ids, element_ownerships,
+        carried_dispositions, carried_origins,
+        Clone(owned_result_plan.function_syntax_ids),
+        compiler_clone_expression_node_ids, receipts);
+}

@@ -66,10 +66,10 @@ func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
     let owner_name: String = UnwrapOption(owner);
     if owner_name == "" { return true; }
 
-    let constructor_index: Int = 0;
+    var constructor_index: Int = 0;
     while constructor_index < SemanticAstNominalConstructorCount(constructors) {
         if constructors.names[constructor_index] == owner_name {
-            let field_index: Int = 0;
+            var field_index: Int = 0;
             while field_index < constructors.param_counts[constructor_index] {
                 let field_name: Option<String> =
                     SemanticAstNominalConstructorFieldNameAt(
@@ -84,7 +84,14 @@ func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
                 }
                 ArrayPushOwnedString(names, UnwrapOption(field_name));
                 ArrayPushOwnedString(types, UnwrapOption(field_type));
-                ArrayPushOwnedString(modes, "owner_field");
+                let field_row: Int = constructors.param_starts[constructor_index] + field_index;
+                if field_row < 0 || field_row >= ArrayLength(constructors.field_write_modes) { return false; }
+                let write_mode: Int = constructors.field_write_modes[field_row];
+                if write_mode != 0 && write_mode != 1 { return false; }
+                var permission: String = "mutable_owner_field";
+                if write_mode == 1 || constructors.nominal_kinds[constructor_index] == "object" ||
+                    constructors.nominal_kinds[constructor_index] == "tobject" { permission = "immutable_owner_field"; }
+                ArrayPushOwnedString(modes, permission);
                 field_index = field_index + 1;
             }
             return true;
@@ -106,11 +113,11 @@ func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let function_node: Option<Int> = SemanticAstFunctionNodeAt(signatures, 0);
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    let value_type: Option<String> = None;
-    let limit_type: Option<String> = None;
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
+    var value_type: Option<String> = None;
+    var limit_type: Option<String> = None;
     if IsSome(function_node) {
         value_type = SemanticAstExpressionOwnerFieldType(
             signatures, constructors, UnwrapOption(function_node), "value"
@@ -119,7 +126,7 @@ func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
             signatures, constructors, UnwrapOption(function_node), "limit"
         );
     }
-    let seeded: Bool = false;
+    var seeded: Bool = false;
     if IsSome(function_node) &&
         SemanticAstNominalConstructorRowsReady(constructors) {
         seeded = SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
@@ -132,5 +139,5 @@ func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
         UnwrapOption(limit_type) == "Long" && seeded &&
         ArrayLength(names) == 2 && names[0] == "value" &&
         names[1] == "limit" && types[0] == "Int" && types[1] == "Long" &&
-        modes[0] == "owner_field" && modes[1] == "owner_field";
+        modes[0] == "mutable_owner_field" && modes[1] == "mutable_owner_field";
 }

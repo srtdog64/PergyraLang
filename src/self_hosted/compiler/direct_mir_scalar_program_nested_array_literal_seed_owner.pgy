@@ -14,8 +14,8 @@ func DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
         sequence.arena.call_target_names[node] != "" ||
         sequence.arena.identities.binding_kinds[node] !=
             SemanticExpressionBindingNone() { return false; }
-    let parents: Int = 0;
-    let candidate: Int = node + 1;
+    var parents: Int = 0;
+    var candidate: Int = node + 1;
     while candidate < count {
         if sequence.arena.topology.node_kinds[candidate] ==
                 AstExpressionNodeArrayElement() &&

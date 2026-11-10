@@ -74,8 +74,8 @@ func DirectMirScalarProgramHostIoRuntimeRequirement(
         !artifact_write.valid {
         return DirectMirScalarProgramHostIoRuntimeIdsEmpty();
     }
-    let args_id: Int = 0; let walk_id: Int = 0;
-    let exists_id: Int = 0; let read_id: Int = 0; let write_id: Int = 0;
+    var args_id: Int = 0; var walk_id: Int = 0;
+    var exists_id: Int = 0; var read_id: Int = 0; var write_id: Int = 0;
     if args_required { args_id = args.runtime_call_abi_id; }
     if walk_required { walk_id = walk.runtime_call_abi_id; }
     if exists_required { exists_id = exists.runtime_call_abi_id; }

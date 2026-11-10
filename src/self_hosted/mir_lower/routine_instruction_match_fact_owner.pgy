@@ -23,24 +23,24 @@ func BuildMirRoutineInstructionMatchFacts(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int
 ) -> MirRoutineInstructionMatchFacts {
-    let row_valid: Array<Bool> = [];
-    let pattern_counts: Array<Int> = [];
-    let patterns: Array<String> = [];
-    let variants: Array<String> = [];
-    let binding_counts: Array<Int> = [];
-    let binding_starts: Array<Int> = [];
-    let bindings: Array<String> = [];
-    let binding_type_counts: Array<Int> = [];
-    let binding_types: Array<String> = [];
-    let valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
-    let global_start: Int = 0 - 1;
-    let block_start: Int = 0;
-    let block_count: Int = 0;
+    var row_valid: Array<Bool> = [];
+    var pattern_counts: Array<Int> = [];
+    var patterns: Array<String> = [];
+    var variants: Array<String> = [];
+    var binding_counts: Array<Int> = [];
+    var binding_starts: Array<Int> = [];
+    var bindings: Array<String> = [];
+    var binding_type_counts: Array<Int> = [];
+    var binding_types: Array<String> = [];
+    var valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
+    var global_start: Int = 0 - 1;
+    var block_start: Int = 0;
+    var block_count: Int = 0;
     if valid {
         block_start = routines.routine_block_starts[routine_row];
         block_count = routines.routine_block_counts[routine_row];
     }
-    let block_offset: Int = 0;
+    var block_offset: Int = 0;
     while valid && block_offset < block_count {
         let global_block: Int = block_start + block_offset;
         if global_block < 0 || global_block >= ArrayLength(
@@ -65,7 +65,7 @@ func BuildMirRoutineInstructionMatchFacts(
             continue;
         }
         if global_start < 0 { global_start = instruction_start; }
-        let instruction_offset: Int = 0;
+        var instruction_offset: Int = 0;
         while instruction_offset < instruction_count {
             let global_row: Int = instruction_start + instruction_offset;
             let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -83,7 +83,7 @@ func BuildMirRoutineInstructionMatchFacts(
             ArrayPush(binding_counts, capture.binding_count);
             ArrayPush(binding_starts, ArrayLength(bindings));
             ArrayPush(binding_type_counts, capture.binding_type_count);
-            let binding: Int = 0;
+            var binding: Int = 0;
             while capture.valid && binding < capture.binding_count {
                 ArrayPush(bindings, capture.bindings[binding]);
                 ArrayPush(binding_types, capture.binding_types[binding]);
@@ -114,8 +114,8 @@ func MirRoutineInstructionMatchFactsReady(
         count == ArrayLength(facts.binding_type_counts) &&
         ArrayLength(facts.bindings) == ArrayLength(facts.binding_types) &&
         (count == 0 || facts.global_start >= 0)) { return false; }
-    let expected_start: Int = 0;
-    let row: Int = 0;
+    var expected_start: Int = 0;
+    var row: Int = 0;
     while row < count {
         if !facts.row_valid[row] || facts.binding_counts[row] < 0 ||
             facts.binding_starts[row] != expected_start ||
@@ -135,9 +135,9 @@ func MirRoutineInstructionMatchAtGlobal(
     global_row: Int
 ) -> MirMatchInstructionCapture {
     let row: Int = global_row - facts.global_start;
-    let bindings: Array<String> = [];
-    let binding_types: Array<String> = [];
-    let patterns: Array<String> = [];
+    var bindings: Array<String> = [];
+    var binding_types: Array<String> = [];
+    var patterns: Array<String> = [];
     if !facts.valid || facts.global_start < 0 || row < 0 ||
         row >= ArrayLength(facts.row_valid) ||
         row >= ArrayLength(facts.binding_starts) ||
@@ -154,7 +154,7 @@ func MirRoutineInstructionMatchAtGlobal(
         return MirMatchInstructionCapture(
             false, 0, "", "", 0, bindings, 0, binding_types, patterns);
     }
-    let binding: Int = 0;
+    var binding: Int = 0;
     while binding < count {
         ArrayPush(bindings, facts.bindings[start + binding]);
         ArrayPush(binding_types, facts.binding_types[start + binding]);

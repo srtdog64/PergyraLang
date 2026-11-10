@@ -1,0 +1,16 @@
+// The opaque inout call mutates the one local owner through an alias. Echo
+// lends the resulting local value and the Slot receives its ownership.
+extern "C" { func Fill(inout text: String) -> Void; }
+func Echo(ref text: String) -> String { return text; }
+func Publish(ref output: Slot<String>) -> Void {
+    var held: String = "literal";
+    using held as alias;
+    Fill(alias);
+    Write(output, Echo(held));
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Publish(output);
+    Log(Read(output));
+    Release(output);
+}

@@ -105,7 +105,6 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "StringJoin" { return Some(StringRuntimeCStringJoinFn()); }
     if source_name == "Join" { return Some(StringRuntimeCStringJoinFn()); }
     if source_name == "ArraySort" { return Some(CollectionRuntimeCIntSortFn()); }
-    if source_name == "ArrayReverse" { return Some(CollectionRuntimeCIntReverseFn()); }
     if source_name == "ArrayMap" { return Some(CollectionRuntimeCIntMapFn()); }
     if source_name == "ArrayFilter" { return Some(CollectionRuntimeCIntFilterFn()); }
     if source_name == "ArrayPushOwnedString" {
@@ -141,8 +140,8 @@ func RewriteRuntimeCallsOutsideStrings(source: String) -> String {
     let n: Int = StringLength(source);
     let result_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(n + 1);
-    let i: Int = 0;
-    let in_string: Bool = false;
+    var i: Int = 0;
+    var in_string: Bool = false;
     while i < n {
         let c: String = CodegenCharAt(source, i);
         if in_string {
@@ -165,12 +164,12 @@ func RewriteRuntimeCallsOutsideStrings(source: String) -> String {
             continue;
         }
         if IsIdentStart(c) {
-            let end: Int = i + 1;
+            var end: Int = i + 1;
             while end < n && IsIdentChar(CodegenCharAt(source, end)) {
                 end = end + 1;
             }
             let source_name: String = Substring(source, i, end - i);
-            let runtime_name: Option<String> = None;
+            var runtime_name: Option<String> = None;
             if end < n && CodegenCharAt(source, end) == "(" {
                 runtime_name = RuntimeCallCName(source_name);
             }

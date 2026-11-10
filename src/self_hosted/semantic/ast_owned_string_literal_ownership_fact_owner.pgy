@@ -1,0 +1,138 @@
+// Owned String literal ownership facts.
+
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+import "ast_owned_string_expression_domain_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_owned_string_actual_exclusivity_owner.pgy";
+
+struct SemanticAstOwnedStringLiteralTransferFacts {
+    ok: Bool;
+    definition_rows: Array<Int>;
+    definition_slots: Array<Int>;
+    formal_syntax_ids: Array<Int>;
+    source_kinds: Array<Int>;
+    element_leaf_nodes: Array<Int>;
+    element_event_nodes: Array<Int>;
+    states: Array<Int>;
+}
+
+struct SemanticAstOwnedStringLiteralOwnershipFacts {
+    ok: Bool;
+    owned_by_local: Array<Bool>;
+}
+
+func SemanticAstOwnedStringLiteralOwnershipFactsEmpty(
+) -> SemanticAstOwnedStringLiteralOwnershipFacts {
+    let rows: Array<Bool> = [];
+    return SemanticAstOwnedStringLiteralOwnershipFacts(false, rows);
+}
+
+// A non-empty Array<String> literal owns every element only when the existing
+// typed allocation-domain owner proves each exact element independently
+// allocated. String literals remain permanent borrowed values, and an
+// allocator-dependent or unknown result fails closed.
+func SemanticAstCollectionOwnershipLiteralIsOwned(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    function_id: Int, use_id: Int, root_id: Int
+) -> Bool {
+    let literal: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(
+            surfaces.expression_graph, root_id);
+    if !literal.ok || ArrayLength(literal.element_nodes) == 0 {
+        return false;
+    }
+    var element: Int = 0;
+    while element < ArrayLength(literal.element_nodes) {
+        let node: Int = literal.element_nodes[element];
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            surfaces.expression_graph, node);
+        if !IsSome(kind) ||
+            (UnwrapOption(kind) != AstExpressionNodeCall() &&
+             UnwrapOption(kind) != AstExpressionNodeCallArgument() &&
+             UnwrapOption(kind) != AstExpressionNodeAdd()) {
+            return false;
+        }
+        let domain: SemanticAstOwnedStringAllocationDomain =
+            SemanticAstOwnedStringExpressionAllocationDomain(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results.writes,
+                owned_string_results.domain_exposures,
+                owned_string_results, numeric_string_allocations,
+                function_id, use_id, AstExpressionLaneValue(), node, 0);
+        if domain.kind != 1 ||
+            !SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results, numeric_string_allocations,
+                function_id, use_id, AstExpressionLaneValue(), node, 0,
+                use_id, root_id) {
+            return false;
+        }
+        element = element + 1;
+    }
+    return true;
+}
+
+// Literal ownership is expensive because a declared String result must be
+// traced to every return. Publish it once per local generation; landing and
+// collection admission consume the same rows instead of repeating that walk.
+func SemanticAstOwnedStringLiteralOwnershipFactsFromResolvedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls
+) -> SemanticAstOwnedStringLiteralOwnershipFacts {
+    var facts: SemanticAstOwnedStringLiteralOwnershipFacts =
+        SemanticAstOwnedStringLiteralOwnershipFactsEmpty();
+    if !SemanticAstLocalBindingIdentityRowsReady(
+            locals, initializer_types.inferred_type_names) ||
+        !surfaces.ok || !owned_string_results.ok ||
+        !SemanticAstNumericStringAllocationCallsReady(
+            numeric_string_allocations) {
+        return facts;
+    }
+    var local_row: Int = 0;
+    while local_row < ArrayLength(locals.node_ids) {
+        var owned: Bool = false;
+        if SemanticAstCollectionOwnershipIsStringArray(
+                initializer_types.inferred_type_names[local_row]) {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, locals.node_ids[local_row],
+                AstExpressionLaneValue());
+            if !IsSome(root) { return facts; }
+            owned = SemanticAstCollectionOwnershipLiteralIsOwned(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results, numeric_string_allocations,
+                locals.function_node_ids[local_row],
+                locals.node_ids[local_row], UnwrapOption(root));
+        }
+        ArrayPush(facts.owned_by_local, owned);
+        local_row = local_row + 1;
+    }
+    facts.ok = true;
+    return facts;
+}
+
+func SemanticAstOwnedStringLiteralOwnershipFactsReady(
+    ref facts: SemanticAstOwnedStringLiteralOwnershipFacts,
+    ref locals: SemanticAstLocalBindingFacts
+) -> Bool {
+    return facts.ok && ArrayLength(facts.owned_by_local) ==
+        ArrayLength(locals.node_ids);
+}
+

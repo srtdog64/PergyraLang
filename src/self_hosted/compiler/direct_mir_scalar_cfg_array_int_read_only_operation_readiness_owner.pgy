@@ -42,7 +42,7 @@ func DirectMirScalarCfgArrayIntReadOnlyOperationsReady(
         plan.operation_right_values[fact.log_operation_row] != -1 ||
         DirectMirScalarCfgOperationBlock(plan, fact.log_operation_row) !=
             range.exit_block { return false; }
-    let read_count: Int = 0; let operation: Int = 0;
+    var read_count: Int = 0; var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         let kind: Int = plan.operation_kinds[operation];
         if kind == DirectMirScalarCfgOpArrayReadInt() {

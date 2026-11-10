@@ -11,7 +11,7 @@ struct Outer {
 }
 
 func Grow(outer: Outer) -> Int {
-    let other: Inner = outer.inner;
+    var other: Inner = outer.inner;
     ArrayPush(other.items, 9);
     ArrayPush(other.items, 9);
     ArrayPush(other.items, 9);

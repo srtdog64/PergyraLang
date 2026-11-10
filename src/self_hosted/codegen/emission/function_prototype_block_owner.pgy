@@ -23,8 +23,8 @@ func CodegenFunctionPrototypeBlock(
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
-    let emitted_count: Int = 0;
-    let i: Int = 0;
+    var emitted_count: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
             CodegenSemanticFunctionGenericCountOrDie(signatures, i) > 0 {
@@ -63,7 +63,7 @@ func CodegenFunctionPrototypeBlock(
                 receiver_carriage ==
                     CallableReceiverCarriageMutableIdentity() &&
                 !IsSome(role_receiver_type);
-            let wrote_param: Bool = false;
+            var wrote_param: Bool = false;
             let implicit_receiver: Option<String> =
                 CodegenImplicitReceiverCParameterOrDie(
                     receiver_facts, i, owner, struct_env
@@ -72,7 +72,7 @@ func CodegenFunctionPrototypeBlock(
                 TextBuilderAppend(output, UnwrapOption(implicit_receiver));
                 wrote_param = true;
             }
-            let pn: Int = 0;
+            var pn: Int = 0;
             while pn < param_count {
                 if wrote_param { TextBuilderAppend(output, ", "); }
                 let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
@@ -81,10 +81,10 @@ func CodegenFunctionPrototypeBlock(
                 let p_name: String = CodegenSemanticFunctionParamNameOrDie(
                     signatures, i, pn
                 );
-                let p_type: String = CodegenSemanticFunctionParamTypeOrDie(
+                var p_type: String = CodegenSemanticFunctionParamTypeOrDie(
                     signatures, i, pn
                 );
-                let role_receiver_param: Bool = false;
+                var role_receiver_param: Bool = false;
                 let source_receiver_parameter: Bool =
                     pn < receiver_source_parameter_offset;
                 if source_receiver_parameter && IsSome(role_receiver_type) {
@@ -184,14 +184,14 @@ func CodegenFunctionPrototypeBlock(
             CodegenImplicitReceiverCParameterOrDie(
                 receiver_facts, signature_index, specialized_owner, struct_env
             );
-        let wrote_param: Bool = false;
+        var wrote_param: Bool = false;
         if IsSome(specialized_implicit_receiver) {
             TextBuilderAppend(
                 output, UnwrapOption(specialized_implicit_receiver)
             );
             wrote_param = true;
         }
-        let pn: Int = 0;
+        var pn: Int = 0;
         while pn < param_count {
             if wrote_param { TextBuilderAppend(output, ", "); }
             let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(

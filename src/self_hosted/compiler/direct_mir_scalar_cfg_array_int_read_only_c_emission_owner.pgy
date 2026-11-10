@@ -12,7 +12,7 @@ func DirectMirScalarCfgArrayIntReadOnlyCRead(
             plan.array_int_program.read_only.update_read.operation_row) {
         Die("direct MIR scalar CFG read-only Array<Int> C read is invalid");
     }
-    let output: String = Concat("    ", DirectMirScalarCfgCLocal(
+    var output: String = Concat("    ", DirectMirScalarCfgCLocal(
         plan, plan.operation_result_values[operation]
     ));
     output = Concat(output, " = pgy_array_int_collection.data[(size_t)");
@@ -30,7 +30,7 @@ func DirectMirScalarCfgArrayIntReadOnlyCCondition(
     if !DirectMirScalarCfgArrayIntIndexedConditionBlock(plan, block) {
         Die("direct MIR scalar CFG read-only Array<Int> C condition is invalid");
     }
-    let output: String = "pgy_array_int_collection.data[(size_t)";
+    var output: String = "pgy_array_int_collection.data[(size_t)";
     output = Concat(output, DirectMirScalarCfgCOperand(
         plan, plan.block_condition_left_values[block],
         plan.block_condition_left_locals[block],

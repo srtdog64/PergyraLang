@@ -30,6 +30,7 @@ type_check_overlay_bind_shared_fields(ASTNode **shared_fields,
         field_sym->decl_col = shared->column;
         symbol_mark_declaration(field_sym, ast_node_stable_id(shared), false);
         field_sym->is_host_field = true;
+        field_sym->is_mut_binding = true;
         if (field_sym->name == NULL || !scope_declare(ctx->scope, field_sym)) {
             symbol_destroy(field_sym);
             semantic_error(ctx, shared, "Cannot register hosted field binding '%s'",
@@ -37,7 +38,10 @@ type_check_overlay_bind_shared_fields(ASTNode **shared_fields,
             return false;
         }
     }
-    return !ctx->has_error;
+    /* This owner reports only whether hosted-field bindings were published.
+     * Earlier diagnostics belong to earlier statements and must not suppress
+     * the current host's method pass. */
+    return true;
 }
 
 bool

@@ -7,7 +7,7 @@ func DirectMirScalarCfgArrayIntPhiHasIncoming(
     ref plan: DirectMirScalarCfgGraphPlan,
     operation: Int, predecessor: Int, value: Int
 ) -> Bool {
-    let matches: Int = 0; let row: Int = 0;
+    var matches: Int = 0; var row: Int = 0;
     while row < plan.operation_phi_counts[operation] {
         let incoming: Int = plan.operation_phi_starts[operation] + row;
         if plan.phi_predecessor_blocks[incoming] == predecessor &&

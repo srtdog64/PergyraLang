@@ -53,7 +53,7 @@ func DirectMirScalarProgramArrayStringAbiFactDigest(
     ref fact: DirectMirScalarProgramArrayStringAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(263L, fact.layout_id);
+    var hash: Long = DirectMirCfgHashInt(263L, fact.layout_id);
     hash = DirectMirCfgHashInt(hash, fact.size);
     hash = DirectMirCfgHashInt(hash, fact.align);
     hash = DirectMirCfgHashInt(hash, fact.data_offset);
@@ -90,12 +90,12 @@ func DirectMirScalarProgramArrayStringAbiFactReady(
         count != ArrayLength(fact.value_result_parameter_ordinals) ||
         count != ArrayLength(fact.value_result_parameter_digests) ||
         (fact.value_result_present != (count > 0)) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.value_result_routine_ordinals[row] <= 0 ||
             fact.value_result_parameter_ordinals[row] < 0 ||
             fact.value_result_parameter_digests[row] == 0 { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.value_result_routine_ordinals[prior] ==
                     fact.value_result_routine_ordinals[row] &&
@@ -132,13 +132,13 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
     let empty: DirectMirScalarProgramArrayStringAbiFact =
         DirectMirScalarProgramArrayStringAbiFactEmpty();
     if ArrayLength(routine_rows) < 1 { return empty; }
-    let source: DirectMirScalarProgramArrayStringAbiFact = empty;
-    let value_result_routines: Array<Int> = [];
-    let value_result_parameters: Array<Int> = [];
-    let value_result_digests: Array<Int> = [];
-    let owned_return_present: Bool = false;
-    let found: Int = 0;
-    let routine: Int = 0;
+    var source: DirectMirScalarProgramArrayStringAbiFact = empty;
+    var value_result_routines: Array<Int> = [];
+    var value_result_parameters: Array<Int> = [];
+    var value_result_digests: Array<Int> = [];
+    var owned_return_present: Bool = false;
+    var found: Int = 0;
+    var routine: Int = 0;
     while routine < ArrayLength(routine_rows) {
         let routine_row: Int = routine_rows[routine];
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -152,7 +152,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
         if !index.valid || !DirectMirRoutineSignatureFactReady(signature) {
             return empty;
         }
-        let parameter: Int = 0;
+        var parameter: Int = 0;
         while parameter < signature.param_count {
             if signature.parameters.type_names[parameter] ==
                     CompilerAbiLayoutArrayStringTypeName() {
@@ -195,8 +195,8 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
             }
             parameter = parameter + 1;
         }
-        let owned_return_count: Int = 0;
-        let instruction: Int = 0;
+        var owned_return_count: Int = 0;
+        var instruction: Int = 0;
         while instruction < ArrayLength(index.instruction_facts.starts) {
             let global: Int = index.instruction_facts.global_start + instruction;
             let capture: MirRoutineInstructionScalarCapture =
@@ -273,7 +273,7 @@ func DirectMirScalarProgramArrayStringValueResultAt(
 ) -> Bool {
     if !DirectMirScalarProgramArrayStringAbiFactReady(fact) ||
         !fact.value_result_present { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.value_result_routine_ordinals) {
         if fact.value_result_routine_ordinals[row] == routine &&
             fact.value_result_parameter_ordinals[row] == parameter {
@@ -287,7 +287,7 @@ func DirectMirScalarProgramArrayStringValueResultAt(
 func DirectMirScalarProgramArrayStringAbiRequired(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[row];
         if kind == DirectMirScalarProgramExprStringSplit() || kind ==

@@ -1,0 +1,122 @@
+// C/LLVM projection of the sealed Result<P, E> match node.
+
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramCPayloadFreeEnumResultMatchAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, left: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Option<String> {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprPayloadFreeEnumResultMatch() {
+        return None;
+    }
+    let source: Int = expressions.node_lefts[node];
+    let binding: Int = expressions.node_local_rows[node];
+    if left == "" || source < 0 || binding < 0 { return Some(""); }
+    let projection: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            expressions.node_types[source], logical_record, referenced_enum);
+    if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            projection, logical_record, referenced_enum) {
+        return Some("");
+    }
+    var test_fn: String = "";
+    var unwrap_fn: String = "";
+    let variant: Int = expressions.node_member_ordinals[node];
+    if variant == DirectMirScalarProgramPayloadFreeEnumResultMatchOkVariant() {
+        test_fn = projection.c_is_ok_fn;
+        unwrap_fn = projection.c_unwrap_fn;
+    } else if variant ==
+            DirectMirScalarProgramPayloadFreeEnumResultMatchErrVariant() {
+        test_fn = projection.c_is_err_fn;
+        unwrap_fn = projection.c_unwrap_err_fn;
+    } else { return Some(""); }
+    var output: String = Concat("(", Concat(test_fn, Concat("(", left)));
+    output = Concat(output, ") && (pgy_local_");
+    output = Concat(output, Concat(ToString(binding), " = "));
+    output = Concat(output, Concat(unwrap_fn, Concat("(", left)));
+    output = Concat(output, "), true))");
+    return Some(output);
+}
+
+func DirectMirScalarProgramLlvmPayloadFreeEnumResultMatchAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, result: String, left: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprPayloadFreeEnumResultMatch() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let source: Int = expressions.node_lefts[node];
+    let binding: Int = expressions.node_local_rows[node];
+    if left == "" || result == "" || source < 0 || binding < 0 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let projection: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            expressions.node_types[source], logical_record, referenced_enum);
+    if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            projection, logical_record, referenced_enum) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let variant: Int = expressions.node_member_ordinals[node];
+    var payload_index: Int = 1;
+    var payload_type: String = projection.payload_type;
+    var tag_value: String = "true";
+    if variant == DirectMirScalarProgramPayloadFreeEnumResultMatchErrVariant() {
+        payload_index = 2;
+        payload_type = projection.error_type;
+        tag_value = "false";
+    } else if variant !=
+            DirectMirScalarProgramPayloadFreeEnumResultMatchOkVariant() {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let llvm_payload_type: String =
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            payload_type, logical_record, payload_free_enum, referenced_enum);
+    if llvm_payload_type == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let tag: String = Concat(result, ".tag");
+    let payload: String = Concat(result, ".payload");
+    var output: String = Concat("  ", tag);
+    output = Concat(output, " = extractvalue ");
+    output = Concat(output, projection.llvm_type);
+    output = Concat(output, " ");
+    output = Concat(output, left);
+    output = Concat(output, ", 0\n  ");
+    output = Concat(output, payload);
+    output = Concat(output, " = extractvalue ");
+    output = Concat(output, projection.llvm_type);
+    output = Concat(output, " ");
+    output = Concat(output, left);
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(payload_index));
+    output = Concat(output, "\n  store ");
+    output = Concat(output, llvm_payload_type);
+    output = Concat(output, " ");
+    output = Concat(output, payload);
+    output = Concat(output, ", ptr %pgy.local.");
+    output = Concat(output, ToString(binding));
+    output = Concat(output, ", align 1\n  ");
+    output = Concat(output, result);
+    output = Concat(output, " = icmp eq i1 ");
+    output = Concat(output, tag);
+    output = Concat(output, ", ");
+    output = Concat(output, tag_value);
+    output = Concat(output, "\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

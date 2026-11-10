@@ -11,8 +11,8 @@ func DirectMirScalarProgramArrayStringLiteralParameterCarriageReady(
     }
     let operands: Array<Int> =
         DirectMirScalarProgramArrayStringLiteralOperandRows(facts, node);
-    let owned: Int = 0;
-    let row: Int = 0;
+    var owned: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(operands) {
         let operand: Int = operands[row];
         if facts.node_kinds[operand] == DirectMirScalarProgramExprParameter() {

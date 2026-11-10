@@ -199,6 +199,73 @@ test_resource_flow_generation_reentry(void)
 }
 
 static void
+test_resource_flow_snapshot_scope_boundary(void)
+{
+    TEST("resource snapshots stop at named functions but retain lambda captures and implicit Main");
+    Type future_constructor = {0}, future = {0};
+    future_constructor.kind = TYPE_KIND_CLASS;
+    future_constructor.name = "Future";
+    future.kind = TYPE_KIND_CONSTRUCTED;
+    future.data.constructed.constructor = &future_constructor;
+    Symbol global = {.name = "global_value", .kind = SYMBOL_VARIABLE,
+        .type = &future, .decl_syntax_id = 401};
+    Symbol function = {.name = "function_value", .kind = SYMBOL_VARIABLE,
+        .type = &future, .decl_syntax_id = 402};
+    Symbol lambda = {.name = "lambda_value", .kind = SYMBOL_VARIABLE,
+        .type = &future, .decl_syntax_id = 403};
+    Symbol *global_symbols[] = {&global};
+    Symbol *function_symbols[] = {&function};
+    Symbol *lambda_symbols[] = {&lambda};
+    Scope global_scope = {.kind = SCOPE_GLOBAL, .symbols = global_symbols,
+        .symbol_count = 1};
+    Scope function_scope = {.parent = &global_scope, .kind = SCOPE_FUNCTION,
+        .symbols = function_symbols, .symbol_count = 1};
+    Scope lambda_scope = {.parent = &function_scope, .kind = SCOPE_FUNCTION,
+        .is_lambda = true, .symbols = lambda_symbols, .symbol_count = 1};
+    ASTNode function_decl = {0};
+    function_decl.type = AST_FUNC_DECL;
+    SemanticContext ctx = {0};
+    ctx.current_function_decl = &function_decl;
+    resource_flow_universe_begin(&ctx);
+
+    ctx.scope = &function_scope;
+    ResourceConsumeSnapshot snapshot = snapshot_resource_states(&ctx);
+    EXPECT(snapshot.valid && snapshot.count == 1);
+    EXPECT(snapshot.valid && snapshot.count == 1
+        && snapshot.symbols[0] == &function);
+    destroy_resource_snapshot(&snapshot);
+
+    ctx.scope = &lambda_scope;
+    snapshot = snapshot_resource_states(&ctx);
+    EXPECT(snapshot.valid && snapshot.count == 2);
+    EXPECT(snapshot.valid && snapshot.count == 2
+        && snapshot.symbols[0] == &lambda
+        && snapshot.symbols[1] == &function);
+    destroy_resource_snapshot(&snapshot);
+
+    ctx.scope = &function_scope;
+    EXPECT(resource_flow_universe_capture_function_facts(&ctx, 404));
+    EXPECT(ctx.resource_flow_fact_count == 2);
+    if (ctx.resource_flow_fact_count == 2) {
+        EXPECT(ctx.resource_flow_facts[0].declaration_syntax_id == 402);
+        EXPECT(ctx.resource_flow_facts[1].declaration_syntax_id == 403);
+    }
+
+    resource_flow_universe_end(&ctx);
+    pgy_resource_flow_facts_destroy(
+        ctx.resource_flow_facts, ctx.resource_flow_fact_count);
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.scope = &global_scope;
+    resource_flow_universe_begin(&ctx);
+    snapshot = snapshot_resource_states(&ctx);
+    EXPECT(snapshot.valid && snapshot.count == 1);
+    EXPECT(snapshot.valid && snapshot.count == 1
+        && snapshot.symbols[0] == &global);
+    destroy_resource_snapshot(&snapshot);
+    resource_flow_universe_end(&ctx);
+}
+
+static void
 test_resource_flow_source_admission(void)
 {
     TEST("resource-flow source keeps typed/generic parameters and nested Slot only");
@@ -206,7 +273,7 @@ test_resource_flow_source_admission(void)
         "struct UnusedRows { let items: Array<Int>; }\n"
         "subject UnusedSubject { let name: String; }\n"
         "func Leaf() -> Int {\n"
-        "    let n: Int = 0; while n < 2 { n = n + 1; } return n;\n"
+        "    var n: Int = 0; while n < 2 { n = n + 1; } return n;\n"
         "}\n"
         "func Inspect(ref row: UnusedRows) -> Int {\n"
         "    if true { Log(ArrayLength(row.items)); }\n"

@@ -33,10 +33,10 @@ func SelfMirExpressionGraphNodeCount(
 func SelfMirExpressionGraphAppendInstruction(
     rows: SelfMirExpressionGraphRows
 ) -> SelfMirExpressionGraphRows {
-    let has_roots: Array<Int> = rows.has_roots;
-    let roots: Array<Int> = rows.roots;
-    let starts: Array<Int> = rows.node_starts;
-    let counts: Array<Int> = rows.node_counts;
+    var has_roots: Array<Int> = rows.has_roots;
+    var roots: Array<Int> = rows.roots;
+    var starts: Array<Int> = rows.node_starts;
+    var counts: Array<Int> = rows.node_counts;
     ArrayPush(has_roots, 0);
     ArrayPush(roots, 0);
     ArrayPush(starts, 0);
@@ -45,8 +45,8 @@ func SelfMirExpressionGraphAppendInstruction(
 }
 
 func SelfMirExpressionGraphRowsForInstructionCount(count: Int) -> SelfMirExpressionGraphRows {
-    let rows: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsEmpty();
-    let i: Int = 0;
+    var rows: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsEmpty();
+    var i: Int = 0;
     while i < count {
         rows = SelfMirExpressionGraphAppendInstruction(rows);
         i = i + 1;
@@ -74,10 +74,10 @@ func SelfMirExpressionGraphAttachLast(
     );
     if !IsSome(source_start_opt) { return rows; }
     let source_start: Int = UnwrapOption(source_start_opt);
-    let has_roots: Array<Int> = rows.has_roots;
-    let roots: Array<Int> = rows.roots;
-    let starts: Array<Int> = rows.node_starts;
-    let counts: Array<Int> = rows.node_counts;
+    var has_roots: Array<Int> = rows.has_roots;
+    var roots: Array<Int> = rows.roots;
+    var starts: Array<Int> = rows.node_starts;
+    var counts: Array<Int> = rows.node_counts;
     let copied_count: Int = view.root_id - source_start + 1;
     ArraySet(has_roots, instruction_index, 1);
     ArraySet(roots, instruction_index, view.root_id);
@@ -90,11 +90,11 @@ func SelfMirExpressionGraphRowsAppendRows(
     target: SelfMirExpressionGraphRows,
     source: SelfMirExpressionGraphRows
 ) -> SelfMirExpressionGraphRows {
-    let has_roots: Array<Int> = target.has_roots;
-    let roots: Array<Int> = target.roots;
-    let starts: Array<Int> = target.node_starts;
-    let counts: Array<Int> = target.node_counts;
-    let instruction_i: Int = 0;
+    var has_roots: Array<Int> = target.has_roots;
+    var roots: Array<Int> = target.roots;
+    var starts: Array<Int> = target.node_starts;
+    var counts: Array<Int> = target.node_counts;
+    var instruction_i: Int = 0;
     while instruction_i < ArrayLength(source.has_roots) {
         ArrayPush(has_roots, source.has_roots[instruction_i]);
         ArrayPush(roots, source.roots[instruction_i]);
@@ -112,14 +112,14 @@ func SelfMirExpressionGraphRangeReachable(
     count: Int,
     root: Int
 ) -> Bool {
-    let seen: Array<Bool> = [];
-    let i: Int = 0;
+    var seen: Array<Bool> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(seen, false);
         i = i + 1;
     }
-    let pending: Array<Int> = [root];
-    let visited: Int = 0;
+    var pending: Array<Int> = [root];
+    var visited: Int = 0;
     while ArrayLength(pending) > 0 {
         let last: Int = ArrayLength(pending) - 1;
         let node: Int = pending[last];
@@ -173,7 +173,7 @@ func SelfMirExpressionGraphRowsReady(
         ) {
         return false;
     }
-    let instruction_i: Int = 0;
+    var instruction_i: Int = 0;
     while instruction_i < instruction_count {
         let has_root: Int = rows.has_roots[instruction_i];
         let start: Int = rows.node_starts[instruction_i];
@@ -218,13 +218,13 @@ func SelfMirExpressionGraphContractFixtureFromLegacy(
     call_target_kinds: Array<Int>,
     call_target_names: Array<String>
 ) -> SelfMirExpressionGraphContractFixture {
-    let bool_roots: Array<Bool> = [];
-    let i: Int = 0;
+    var bool_roots: Array<Bool> = [];
+    var i: Int = 0;
     while i < ArrayLength(has_roots) {
         ArrayPush(bool_roots, has_roots[i] == 1);
         i = i + 1;
     }
-    let place_kinds: Array<Int> = [];
+    var place_kinds: Array<Int> = [];
     i = 0;
     while i < ArrayLength(kinds) {
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());

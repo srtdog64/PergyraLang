@@ -39,7 +39,7 @@ func DirectMirScalarProgramCOptionBoolPreamble(
         Die("direct MIR scalar program C Option<Bool> ABI is invalid");
     }
     let t: String = DirectMirScalarProgramCOptionBoolTypeName();
-    let output: String = "#include <stddef.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <stdlib.h>\n";
+    var output: String = "#include <stddef.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <stdlib.h>\n";
     output = Concat(output, "typedef struct { int32_t ");
     output = Concat(output, fact.tag_name);
     output = Concat(output, "; bool ");

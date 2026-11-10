@@ -14,7 +14,7 @@ func ParseIntentVariantBinding(
     context: ParserSourceLocationContext,
     content: String, start: Int, inout cursor_out: Array<Int>
 ) -> ParserIntentVariantBinding {
-    let i: Int = SkipWhitespaceAndComments(content, start);
+    var i: Int = SkipWhitespaceAndComments(content, start);
     ArraySet(cursor_out, 0, i);
     let variant_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];

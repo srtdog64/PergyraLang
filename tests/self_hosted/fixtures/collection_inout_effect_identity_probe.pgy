@@ -919,7 +919,8 @@ func InspectOwnArgumentOccurrenceOrder(
         texts[7] = "ReadFirst(ArrayLength(values))"; texts[8] = "ReadFirst(ArrayLength(values), values)";
     }
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
-        AstExpressionArena(kinds, texts, left, right), texts, target_kinds, names,
+        AstExpressionArena(kinds, Clone(texts), left, right), Clone(texts),
+        Clone(target_kinds), names,
         texts, target_kinds);
     let runtime_ids: Array<Int> = [];
     row = 0;
@@ -1057,9 +1058,20 @@ func InspectFormalStorageAuthority(
             let modes: Array<String> = [];
             let function_node: Option<Int> = SemanticAstExpressionFunctionNodeAt(analysis.expression_surfaces, analysis.signatures, surface_row);
             let intent_node: Option<Int> = SemanticAstExpressionIntentNodeAt(analysis.expression_surfaces, analysis.intent_signatures, surface_row);
-            if storage.ok && SemanticAstBodyExpressionEnvironmentSeed(artifact, analysis, bundle.initializer_types.inferred_type_names,
-                bundle.iteration_types, analysis.function_tables, analysis.intent_signatures, function_node, intent_node,
-                analysis.expression_surfaces.node_ids[surface_row], names, types, modes) {
+            if storage.ok && SemanticAstBodyExpressionEnvironmentSeed(
+                artifact, analysis.signatures, analysis.constructors,
+                analysis.local_bindings, analysis.statements,
+                analysis.expression_surfaces.ok,
+                analysis.expression_surfaces.artifact_node_count,
+                analysis.expression_surfaces.node_ids,
+                analysis.expression_surfaces.expression_graph,
+                analysis.enums, analysis.function_scopes,
+                analysis.intent_transitions,
+                bundle.initializer_types.inferred_type_names,
+                bundle.iteration_types, analysis.function_tables,
+                analysis.intent_signatures, function_node, intent_node,
+                analysis.expression_surfaces.node_ids[surface_row],
+                names, types, modes) {
                 row = last_root + 1;
                 while row <= root {
                     if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[row] == AstExpressionNodeLeaf() {

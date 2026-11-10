@@ -9,9 +9,9 @@ func SemanticAstCollectionApplyMemberMoveRestorations(
     ref locals: SemanticAstLocalBindingFacts, ref moved_use: SemanticAstCollectionMemberMoveUse,
     inout dispositions: Array<Int>
 ) -> Void {
-    let restored: Int = 0;
+    var restored: Int = 0;
     while restored < ArrayLength(moved_use.restored_binding_syntax_ids) {
-        let local_row: Int = 0;
+        var local_row: Int = 0;
         while local_row < ArrayLength(locals.node_ids) {
             if locals.node_ids[local_row] ==
                     moved_use.restored_binding_syntax_ids[restored] {

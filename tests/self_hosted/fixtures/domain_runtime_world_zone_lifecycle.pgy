@@ -23,6 +23,6 @@ func ForwardWorld(inout compiler_world: CartWorld) -> Int {
 }
 
 func Main() -> Void {
-    let compiler_world: CartWorld = CartWorld(CartZone(Buyer(7)));
+    var compiler_world: CartWorld = CartWorld(CartZone(Buyer(7)));
     Log(ForwardWorld(compiler_world));
 }

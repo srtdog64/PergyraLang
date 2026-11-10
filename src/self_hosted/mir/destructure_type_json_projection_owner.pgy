@@ -8,9 +8,9 @@ func SelfMirJsonDestructureTypeFacts(
     routine_index: Int
 ) -> String {
     let facts: SelfMirDestructureTypeFactRows = rows.destructure_type_facts;
-    let result: Array<String> = [];
+    var result: Array<String> = [];
     let start: Int = facts.routine_starts[routine_index];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < facts.routine_counts[routine_index] {
         let row: Int = start + i;
         ArrayPush(result, JsonEmitObject([

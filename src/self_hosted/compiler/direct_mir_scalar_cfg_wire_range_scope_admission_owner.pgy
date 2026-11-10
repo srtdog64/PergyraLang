@@ -1,61 +1,7 @@
 // Exact expression LocalRef admission for every scalar-CFG range binding.
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
-
-func DirectMirScalarCfgRangeBindingNameKnown(
-    ref facts: DirectMirScalarCfgRangeFactSet, wanted: String
-) -> Bool {
-    let row: Int = 0;
-    while row < DirectMirScalarCfgRangeFactCount(facts) {
-        if facts.binding_names[row] == wanted { return true; }
-        row = row + 1;
-    }
-    return false;
-}
-
-func DirectMirScalarCfgInstructionBlock(
-    ref index: MirRoutineFactIndex, instruction: Int
-) -> Int {
-    let block: Int = 0;
-    while block < ArrayLength(index.block_starts) {
-        if instruction >= index.block_instruction_starts[block] &&
-            instruction < index.block_instruction_starts[block] +
-                index.block_instruction_counts[block] {
-            return block;
-        }
-        block = block + 1;
-    }
-    return -1;
-}
-
-func DirectMirScalarCfgRangeOwnsDirectUseBlock(
-    ref index: MirRoutineFactIndex,
-    ref facts: DirectMirScalarCfgRangeFactSet,
-    ref selected: DirectMirScalarCfgRangeIterationFact,
-    block: Int
-) -> Bool {
-    if !selected.valid || block < 0 ||
-        !MirRoutineBlockDominates(index, selected.header_block, block) ||
-        MirRoutineBlockDominates(index, selected.exit_block, block) {
-        return false;
-    }
-    let row: Int = 0;
-    while row < DirectMirScalarCfgRangeFactCount(facts) {
-        let candidate: DirectMirScalarCfgRangeIterationFact =
-            DirectMirScalarCfgRangeFactAt(facts, row);
-        if candidate.loop_syntax_id != selected.loop_syntax_id &&
-            candidate.binding_name == selected.binding_name &&
-            MirRoutineBlockDominates(index, candidate.header_block, block) &&
-            !MirRoutineBlockDominates(index, candidate.exit_block, block) &&
-            MirRoutineBlockDominates(
-                index, selected.header_block, candidate.header_block
-            ) {
-            return false;
-        }
-        row = row + 1;
-    }
-    return true;
-}
+import "direct_mir_scalar_cfg_range_scope_query_owner.pgy";
 
 func DirectMirScalarCfgWireRangeScopesReady(
     ref wire: DirectMirScalarCfgWireLocalRefs,
@@ -67,7 +13,7 @@ func DirectMirScalarCfgWireRangeScopesReady(
     let range_count: Int = DirectMirScalarCfgRangeFactCount(facts);
     if !wire.required { return range_count <= 1; }
     if range_count == 0 { return true; }
-    let instruction: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let block: Int = DirectMirScalarCfgInstructionBlock(
@@ -80,10 +26,13 @@ func DirectMirScalarCfgWireRangeScopesReady(
         );
         let sequence: MirExpressionGraphSequence =
             DirectMirScalarCfgExpressionSequence(object_table);
-        let matching_nodes: Int = 0;
-        let direct_nodes: Int = 0;
+        var matching_nodes: Int = 0;
+        var direct_nodes: Int = 0;
+        var bound_nodes: Int = 0;
+        let branch_range: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAtBranchGlobalRow(facts, global);
         if sequence.ok {
-            let node: Int = 0;
+            var node: Int = 0;
             while node < ArrayLength(sequence.arena.topology.node_kinds) {
                 let direct_ref: String = DirectMirScalarCfgWireExprRefAt(
                     wire, instruction, node
@@ -108,23 +57,30 @@ func DirectMirScalarCfgWireRangeScopesReady(
                                 index, facts, fact, block
                             ) { return false; }
                         direct_nodes = direct_nodes + 1;
+                    } else if branch_range.valid && is_leaf &&
+                        branch_range.stop_local_ref != "" &&
+                        direct_ref == branch_range.stop_local_ref {
+                        bound_nodes = bound_nodes + 1;
+                    } else {
+                        return false;
                     }
                 }
                 node = node + 1;
             }
-            if direct_nodes != wire.expr0_counts[instruction] {
+            if direct_nodes + bound_nodes !=
+                    wire.expr0_counts[instruction] {
                 return false;
             }
         } else if wire.expr0_counts[instruction] != 0 { return false; }
-        let matching_uses: Int = 0;
-        let use_entry: Int = 0;
+        var matching_uses: Int = 0;
+        var use_entry: Int = 0;
         while use_entry < MirRoutineInstructionUseCountAtGlobal(use_facts, global) {
             let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
                 use_facts, global, use_entry
             );
             if IsSome(use_opt) {
-                let fact_row: Int = 0;
-                let matched: Bool = false;
+                var fact_row: Int = 0;
+                var matched: Bool = false;
                 while fact_row < DirectMirScalarCfgRangeFactCount(facts) {
                     if MirSsaNameMatches(
                         UnwrapOption(use_opt),

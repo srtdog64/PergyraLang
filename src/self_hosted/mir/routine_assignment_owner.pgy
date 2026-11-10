@@ -22,6 +22,9 @@ func SelfMirLowerAssignmentFromArtifact(
         );
     }
     let assignment_index: Int = UnwrapOption(assignment_index_opt);
+    let operation: Int = input.analysis.assignments.operations[assignment_index];
+    let opcode: Option<String> = AssignmentOperationMirName(operation);
+    if !IsSome(opcode) { return SelfMirRoutineBuildError(build, "MIR assignment operation is missing"); }
     let target: String =
         input.analysis.assignments.target_root_names[assignment_index];
     let target_text: String =
@@ -37,7 +40,7 @@ func SelfMirLowerAssignmentFromArtifact(
     let binding_row: Int = UnwrapOption(binding_row_opt);
     let binding_mode: String =
         input.assignments.target_binding_modes[binding_row];
-    let local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
+    var local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
     if !IsSome(local_opt) && binding_mode == "owner_field" {
         build = SelfMirRoutineAddLocal(
             build, target,
@@ -83,19 +86,19 @@ func SelfMirLowerAssignmentFromArtifact(
             input.analysis.expression_surfaces,
             node_id, AstExpressionLaneAtom()
         );
-    let uses: Array<String> = [];
+    var uses: Array<String> = [];
     if binding_mode == "owner_field" &&
         SelfMirExpressionGraphContainsLeafBinding(value_graph, target) {
         SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
     }
-    if target_text != target {
+    if target_text != target || operation != 0 {
         if binding_mode == "owner_field" &&
             SelfMirExpressionGraphContainsLeafBinding(target_graph, target) {
             SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
         }
         let target_uses: Array<String> =
             SelfMirExpressionGraphUses(build, target_graph);
-        let target_use_i: Int = 0;
+        var target_use_i: Int = 0;
         while target_use_i < ArrayLength(target_uses) {
             SelfMirUsesAppendUnique(uses, Concat("", target_uses[target_use_i]));
             target_use_i = target_use_i + 1;
@@ -103,7 +106,7 @@ func SelfMirLowerAssignmentFromArtifact(
     }
     let value_uses: Array<String> =
         SelfMirExpressionGraphUses(build, value_graph);
-    let value_use_i: Int = 0;
+    var value_use_i: Int = 0;
     while value_use_i < ArrayLength(value_uses) {
         SelfMirUsesAppendUnique(uses, Concat("", value_uses[value_use_i]));
         value_use_i = value_use_i + 1;
@@ -111,7 +114,7 @@ func SelfMirLowerAssignmentFromArtifact(
     build = SelfMirRoutineAdvanceLocalVersion(build, local_index);
     let version: Int = build.local_versions[local_index];
     build = SelfMirRoutineAddInstruction(
-        build, "def", "ssa-def", SelfMirSsaName(target, version),
+        build, "def", UnwrapOption(opcode), SelfMirSsaName(target, version),
         target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses
     );
     build = SelfMirRoutineAttachLastPrimaryLocalRef(build, local_index);

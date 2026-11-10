@@ -31,8 +31,8 @@ func CanonicalMirIdentityEpochSourceFieldKind(
         !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) {
         return "";
     }
-    let found_kind: String = "";
-    let i: Int = 0;
+    var found_kind: String = "";
+    var i: Int = 0;
     while i < ArrayLength(index.field_names) {
         if index.field_owner_indices[i] == owner_index &&
             index.field_names[i] == field_name &&
@@ -51,11 +51,11 @@ func CanonicalMirIdentityEpochCanonicalFieldId(
     field_name: String,
     field_kind: String
 ) -> String {
-    let found_id: Int = 0 - 1;
-    let declaration_index: Int = 0;
+    var found_id: Int = 0 - 1;
+    var declaration_index: Int = 0;
     while declaration_index < ArrayLength(declarations.names) {
         if declarations.names[declaration_index] == owner_name {
-            let field_offset: Int = 0;
+            var field_offset: Int = 0;
             while field_offset < declarations.field_counts[declaration_index] {
                 let field_index: Int =
                     declarations.field_starts[declaration_index] + field_offset;
@@ -80,12 +80,12 @@ func CanonicalMirIdentityEpochArtifactFieldId(
     field_name: String,
     field_kind: String
 ) -> Int {
-    let found_id: Int = 0 - 1;
-    let constructor_index: Int = 0;
+    var found_id: Int = 0 - 1;
+    var constructor_index: Int = 0;
     while constructor_index < ArrayLength(constructors.names) {
         if constructors.names[constructor_index] == owner_name &&
             constructors.nominal_kinds[constructor_index] == nominal_kind {
-            let field_offset: Int = 0;
+            var field_offset: Int = 0;
             while field_offset < constructors.param_counts[constructor_index] {
                 let field_index: Int =
                     constructors.param_starts[constructor_index] + field_offset;
@@ -109,10 +109,10 @@ func CanonicalMirIdentityEpochBindDeclarationFields(
     if !SemanticAstNominalConstructorRowsReady(constructors) {
         return CanonicalMirDeclarationIdentityEpoch(false, declarations);
     }
-    let field_ids: Array<Int> = declarations.field_source_syntax_ids;
-    let declaration_index: Int = 0;
+    var field_ids: Array<Int> = declarations.field_source_syntax_ids;
+    var declaration_index: Int = 0;
     while declaration_index < ArrayLength(declarations.names) {
-        let field_offset: Int = 0;
+        var field_offset: Int = 0;
         while field_offset < declarations.field_counts[declaration_index] {
             let field_index: Int =
                 declarations.field_starts[declaration_index] + field_offset;

@@ -6,7 +6,7 @@ func Copy(ref words: HashMap<String, String>) -> HashMap<String, String> {
 }
 
 func Main() -> Int {
-    let a: HashMap<String, String> = MapNew();
+    var a: HashMap<String, String> = MapNew();
     MapSet(a, "k", StringConcat("one", ""));
     let b: HashMap<String, String> = Copy(a);
     MapSet(a, "k", "two");

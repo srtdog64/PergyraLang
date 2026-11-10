@@ -6,8 +6,8 @@ func DirectMirScalarProgramCToStringExpression(
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
     if kind == DirectMirScalarProgramExprToStringString() { return Some(left); }
-    let symbol: String = "";
-    let ready: Bool = false;
+    var symbol: String = "";
+    var ready: Bool = false;
     if kind == DirectMirScalarProgramExprToStringSignedInteger() {
         symbol = runtime.string_to_string.symbol;
         ready = CompilerRuntimeCallAbiStringToStringFactReady(

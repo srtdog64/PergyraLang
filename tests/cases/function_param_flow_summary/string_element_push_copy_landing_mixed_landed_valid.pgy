@@ -1,8 +1,8 @@
 // A receiver that already holds borrowed literals has no uniform element
 // ownership for an owned push: the String lands as a Clone a plain push keeps.
 func Names(n: Int) -> Array<String> {
-    let out: Array<String> = [];
-    let i: Int = 0;
+    var out: Array<String> = [];
+    var i: Int = 0;
     while i < n {
         ArrayPush(out, ToString(i));
         i = i + 1;
@@ -16,8 +16,8 @@ func Marked(path: String) -> Bool {
 
 func Selected(n: Int) -> Array<String> {
     let entries: Array<String> = Names(n);
-    let rows: Array<String> = ["header"];
-    let i: Int = 0;
+    var rows: Array<String> = ["header"];
+    var i: Int = 0;
     while i < ArrayLength(entries) {
         let path: String = entries[i];
         if Marked(path) {
@@ -30,7 +30,7 @@ func Selected(n: Int) -> Array<String> {
 
 func Main() -> Int {
     let rows: Array<String> = Selected(4);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Print(rows[i]);
         i = i + 1;

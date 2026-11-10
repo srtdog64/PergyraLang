@@ -15,7 +15,7 @@ func ParserExpressionCallStatementKind(
     if IsSome(direct) {
         return TypedAstCallStatementKindForCallee(UnwrapOption(direct));
     }
-    let call: Int = fact.root;
+    var call: Int = fact.root;
     while fact.arena.node_kinds[call] ==
         AstExpressionNodeCallArgument() {
         call = fact.arena.left_children[call];
@@ -23,7 +23,7 @@ func ParserExpressionCallStatementKind(
     if fact.arena.node_kinds[call] != AstExpressionNodeCall() {
         return TypedAstKindUnknownTag();
     }
-    let callee: Int = fact.arena.left_children[call];
+    var callee: Int = fact.arena.left_children[call];
     while fact.arena.node_kinds[callee] ==
         AstExpressionNodeGenericCallee() {
         callee = fact.arena.left_children[callee];

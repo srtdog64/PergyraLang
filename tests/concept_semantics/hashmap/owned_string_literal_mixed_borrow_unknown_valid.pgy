@@ -1,0 +1,8 @@
+// One permanent String literal prevents the Array from owning every element.
+// The allocating sibling does not grant deep-release authority for the whole
+// aggregate, so its ownership row must stay unknown.
+func Main() -> Void {
+    let values: Array<String> = [StringConcat("owned", ""), "borrowed"];
+    let count: Int = ArrayLength(values);
+    Log(count);
+}

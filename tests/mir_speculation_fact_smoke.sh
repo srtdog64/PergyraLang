@@ -53,6 +53,20 @@ for key, fact in expected.items():
         raise SystemExit(
             f"missing speculation fact for expr0={key[0]!r}, expr1={key[1]!r}"
         )
+
+copyouts = [
+    instruction
+    for routine in document.get("routines", [])
+    if routine.get("name") == "RestoreBeforeEarlyReturn"
+    for block in routine.get("blocks", [])
+    for instruction in block.get("instructions", [])
+    if instruction.get("name") == "inout-member-copyout"
+]
+if len(copyouts) != 1 or copyouts[0].get("speculation") != {
+        "pure": False, "non_trapping": False}:
+    raise SystemExit(
+        "post-lowering inout member copyout lost its fail-closed speculation fact"
+    )
 PY
 
-echo "[mir-speculation-fact] local/literal safety and composite fail-closed facts ok"
+echo "[mir-speculation-fact] local/literal, composite, and post-lowering copyout facts ok"

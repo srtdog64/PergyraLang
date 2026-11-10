@@ -92,8 +92,8 @@ func DirectMirStructValueFlowInstructionAdmissionFromProgram(
         DirectMirStructValueFlowInstructionCapture(
             admitted, producer_index, producer_row, 0
         );
-    let globals: Array<Int> = [];
-    let row: Int = 0;
+    var globals: Array<Int> = [];
+    var row: Int = 0;
     while row < 4 {
         ArrayPush(globals, MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, main_row, 0, row
@@ -118,7 +118,8 @@ func DirectMirStructValueFlowInstructionAdmissionFromProgram(
         returned.name != "return" || initial.arg0 != identity.graph.source_local_name ||
         assignment.arg0 != identity.graph.source_local_name ||
         result.arg0 != identity.graph.result_local_name || output.arg0 != "Log" ||
-        initial.arg1 != identity.declaration.name || assignment.arg1 != "local" ||
+        initial.arg1 != identity.declaration.name ||
+        assignment.arg1 != "mutable_local" ||
         result.arg1 != identity.declaration.name || output.arg1 != "" ||
         returned.result != "" || returned.arg0 != "" || returned.arg1 != "" ||
         MirRoutineInstructionUseCountAtGlobal(main_uses, globals[0]) != 0 ||

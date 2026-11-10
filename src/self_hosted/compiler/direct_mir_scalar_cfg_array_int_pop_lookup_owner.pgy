@@ -5,8 +5,8 @@ import "direct_mir_scalar_cfg_array_int_pop_fact_owner.pgy";
 func DirectMirScalarCfgArrayIntPopOperationGlobal(
     ref fact: DirectMirScalarCfgArrayIntPopFact, global_row: Int
 ) -> Bool {
-    let matches: Int = 0;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.global_rows) {
         if fact.global_rows[row] == global_row { matches = matches + 1; }
         row = row + 1;
@@ -18,8 +18,8 @@ func DirectMirScalarCfgArrayIntPopOperationGlobal(
 func DirectMirScalarCfgArrayIntPopOperationRow(
     ref fact: DirectMirScalarCfgArrayIntPopFact, operation: Int
 ) -> Int {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(fact.operation_rows) {
         if fact.operation_rows[row] == operation {
             if found >= 0 { return -1; }

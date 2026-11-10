@@ -21,17 +21,17 @@ struct MirDocumentFactIndex {
 }
 
 func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
-    let root: JsonObjectFactTable = EmptyJsonObjectFactTable();
-    let declarations: JsonArrayObjectFactTable =
+    var root: JsonObjectFactTable = EmptyJsonObjectFactTable();
+    var declarations: JsonArrayObjectFactTable =
         EmptyJsonArrayObjectFactTable();
-    let domain_topology: JsonObjectFactTable = EmptyJsonObjectFactTable();
-    let domain_runtime_assignments: JsonObjectFactTable =
+    var domain_topology: JsonObjectFactTable = EmptyJsonObjectFactTable();
+    var domain_runtime_assignments: JsonObjectFactTable =
         EmptyJsonObjectFactTable();
-    let intent_execution: JsonObjectFactTable = EmptyJsonObjectFactTable();
-    let routines: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
-    let boundaries: JsonArrayObjectFactTable =
+    var intent_execution: JsonObjectFactTable = EmptyJsonObjectFactTable();
+    var routines: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
+    var boundaries: JsonArrayObjectFactTable =
         EmptyJsonArrayObjectFactTable();
-    let intent_execution_seen: Bool = false;
+    var intent_execution_seen: Bool = false;
     let n: Int = StringLength(json);
     if n <= 0 || JsonCharCodeAt(json, n, n, 0) != JsonAsciiCode("{") {
         return MirDocumentFactIndex(
@@ -39,9 +39,9 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
             domain_runtime_assignments, intent_execution, routines, boundaries
         );
     }
-    let cursor: Int = 1;
-    let expect_member: Bool = true;
-    let after_comma: Bool = false;
+    var cursor: Int = 1;
+    var expect_member: Bool = true;
+    var after_comma: Bool = false;
     while cursor < n {
         cursor = JsonSkipWhitespaceWithin(json, n, cursor, n);
         if cursor >= n { break; }
@@ -152,7 +152,7 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
     if JsonCharCodeAt(json, n, n, start) == JsonAsciiCode("{") {
         return start;
     }
-    let i: Int = start - 1;
+    var i: Int = start - 1;
     while i >= 0 {
         let c: Int = JsonCharCodeAt(json, n, n, i);
         if c == JsonAsciiCode("{") {
@@ -227,8 +227,8 @@ func MirObjectFieldOccurrenceCountAtBounds(
         JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return 0;
     }
-    let count: Int = 0;
-    let cursor: Int = start + 1;
+    var count: Int = 0;
+    var cursor: Int = start + 1;
     while cursor < end {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
         if cursor >= end ||
@@ -329,7 +329,7 @@ func MirObjectArrayStringFactAt(json: String, json_extent: Int, start: Int, end:
 }
 
 func MirObjectArrayStringFactCount(json: String, json_extent: Int, start: Int, end: Int, field: String) -> Int {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, start, end, field, bounds) {
         return 0;
     }
@@ -355,7 +355,7 @@ func MirObjectArrayObjectBoundsAt(
     row: Int,
     inout bounds: Array<Int>
 ) -> Bool {
-    let array_bounds: Array<Int> = [0, 0];
+    var array_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, start, end, field, array_bounds) {
         return false;
     }
@@ -370,12 +370,12 @@ func MirObjectArrayStringFactsAtBounds(
     end: Int,
     field: String
 ) -> Array<String> {
-    let values: Array<String> = [];
-    let array_bounds: Array<Int> = [0, 0];
+    var values: Array<String> = [];
+    var array_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, start, end, field, array_bounds
     ) { return values; }
-    let cursor: Int = array_bounds[0] + 1;
+    var cursor: Int = array_bounds[0] + 1;
     while cursor < array_bounds[1] {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_bounds[1]);
         if cursor >= array_bounds[1] { break; }

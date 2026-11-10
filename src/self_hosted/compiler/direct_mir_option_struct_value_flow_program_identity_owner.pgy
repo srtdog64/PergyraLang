@@ -18,7 +18,7 @@ func DirectMirOptionStructValueFlowProgramIdentityDigest(
     ref identity: DirectMirOptionStructValueFlowProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(191L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(191L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.producer.digest);
     hash = DirectMirCfgHashInt(hash, identity.declaration.digest);
     hash = DirectMirCfgHashInt(hash, identity.graph.digest);

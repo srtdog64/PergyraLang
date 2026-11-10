@@ -2,7 +2,7 @@
     {
         const char *source =
             "func Store(ref items: Array<QubitSlot>) -> Void {\n"
-            "    let dst: QubitSlot = ClaimQubit();\n"
+            "    var dst: QubitSlot = ClaimQubit();\n"
             "    dst = items[0];\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -27,7 +27,7 @@
     {
         const char *source =
             "func Store(ref items: Array<QubitSlot>) -> Void {\n"
-            "    let queue: Queue<QubitSlot> = QueueNew();\n"
+            "    var queue: Queue<QubitSlot> = QueueNew();\n"
             "    QueuePush(queue, items[0]);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -52,7 +52,7 @@
     {
         const char *source =
             "func Store(ref items: Array<QubitSlot>) -> Void {\n"
-            "    let table: HashMap<String, QubitSlot> = MapNew();\n"
+            "    var table: HashMap<String, QubitSlot> = MapNew();\n"
             "    MapSet(table, \"slot\", items[0]);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -77,7 +77,7 @@
     {
         const char *source =
             "func Store(ref items: Array<QubitSlot>) -> Void {\n"
-            "    let list: List<QubitSlot> = ListNew();\n"
+            "    var list: List<QubitSlot> = ListNew();\n"
             "    ListPush(list, items[0]);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -201,7 +201,7 @@
             "    let holder: Holder;\n"
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Void {\n"
-            "    let items: Queue<Packet> = QueueNew();\n"
+            "    var items: Queue<Packet> = QueueNew();\n"
             "    QueuePush(items, wrapper.holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

@@ -23,7 +23,7 @@ struct CodegenAdmittedCView {
 
 func CodegenCallableReceiverFactsFromAdmittedOrDie(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    analysis: SemanticAstArtifactAnalysis,
+    ref analysis: SemanticAstArtifactAnalysis,
     canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenCallableReceiverFacts {
     return CodegenCallableReceiverFactsFromAdmittedRowsOrDie(
@@ -39,7 +39,7 @@ func CodegenCallableReceiverFactsFromAdmittedOrDie(
 
 func CodegenAdmittedCViewFromFactsOrDie(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    analysis: SemanticAstArtifactAnalysis,
+    ref analysis: SemanticAstArtifactAnalysis,
     artifact: AstTreeArtifact,
     own semantic_body_types: SemanticAstBodyTypeBundle,
     own generic_specializations: CodegenGenericSpecializationFacts,
@@ -80,7 +80,7 @@ func CodegenAdmittedCViewFromFactsOrDie(
             intent_expression_occurrences,
             canonical_routine_source_syntax_ids
         );
-    let source_intents: SelfDirIntentFacts =
+    var source_intents: SelfDirIntentFacts =
         SelfDirIntentFactsSealedEmpty(0, 0);
     if CodegenIntentExecutionViewSourceFactsRequired(
         plan_intent_execution, analysis.intent_signatures) {
@@ -96,12 +96,13 @@ func CodegenAdmittedCViewFromFactsOrDie(
     let intent_execution: CodegenIntentExecutionView =
         CodegenIntentExecutionViewAttachSemanticOrDie(
             plan_intent_execution, artifact.identity_digest,
-            analysis.intent_signatures, source_intents,
+            analysis.intent_signatures,
+            analysis.expression_surfaces.expression_graph, source_intents,
             zone_authority_transitions
         );
     if !CodegenIntentExecutionViewReadyForSemantic(
         artifact.identity_digest, analysis.intent_signatures,
-        intent_execution
+        intent_execution, analysis.expression_surfaces.expression_graph
     ) {
         Die("MIR typed intent execution plan did not cross machine admission");
     }

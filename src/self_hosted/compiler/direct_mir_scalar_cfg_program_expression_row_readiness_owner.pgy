@@ -14,7 +14,7 @@ func DirectMirScalarCfgProgramExpressionRowReady(
     let root: Int = plan.program.expressions.graph_roots[expression_row];
     if plan.program.expressions.node_types[root] !=
             expected_type { return false; }
-    let node: Int = start;
+    var node: Int = start;
     while node < start + count {
         if !DirectMirScalarCfgProgramExpressionIdentityReady(
                 plan, plan.program.expressions, node, routine, start

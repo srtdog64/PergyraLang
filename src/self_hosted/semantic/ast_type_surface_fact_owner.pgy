@@ -13,10 +13,10 @@ struct SemanticAstTypeSurfaceFacts {
 func SemanticAstTypeSurfaceFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstTypeSurfaceFacts {
-    let node_ids: Array<Int> = [];
-    let type_names: Array<String> = [];
+    var node_ids: Array<Int> = [];
+    var type_names: Array<String> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count && ok {
         let type_name: Option<String> = TypedAstArenaTypeName(
             artifact.arena, node_id
@@ -52,7 +52,7 @@ func SemanticAstTypeSurfaceContains(
     facts: SemanticAstTypeSurfaceFacts,
     needle: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let type_name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
         if IsSome(type_name) {
@@ -77,7 +77,7 @@ func SemanticAstTypeSurfaceFactsMatchArtifact(
         SemanticAstTypeSurfaceCount(rebuilt) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
             facts.type_names[i] != rebuilt.type_names[i] {

@@ -68,7 +68,8 @@ func InspectCollectionLifetimeEventProjection(mode: Int) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(kinds) { ArrayPush(texts, "unit"); ArrayPush(zeros, 0); row = row + 1; }
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
-        AstExpressionArena(kinds, texts, left, right), texts, zeros, texts, texts, zeros);
+        AstExpressionArena(kinds, Clone(texts), left, right), Clone(texts),
+        Clone(zeros), Clone(texts), texts, zeros);
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, [root, 0, 0], [true, false, false], arena);
     if mode == 68 { graph.ok = false; }
     if mode == 77 { return !SemanticAstCollectionLifetimeEventStepFromGraph(graph, -999, false).ok; }

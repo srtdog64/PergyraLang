@@ -26,7 +26,7 @@ import "intent_participant_contract_owner.pgy";
 // copied explicitly because the current self-host Clone route is Int/String.
 func SelfDirIntentTransitionFactsOwnedForResult(
     ref source: SemanticAstIntentTransitionFacts) -> SemanticAstIntentTransitionFacts {
-    let requireds: Array<Bool> = []; let row: Int = 0;
+    var requireds: Array<Bool> = []; var row: Int = 0;
     while row < ArrayLength(source.step_requireds) {
         ArrayPush(requireds, source.step_requireds[row]);
         row = row + 1;
@@ -84,72 +84,72 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
         );
     }
 
-    let intent_node_ids: Array<Int> = [];
-    let intent_names: Array<String> = [];
-    let intent_result_modes: Array<String> = [];
-    let intent_return_type_names: Array<String> = [];
-    let intent_success_expression_node_ids: Array<Int> = [];
-    let participant_starts: Array<Int> = [];
-    let participant_counts: Array<Int> = [];
-    let participant_node_ids: Array<Int> = [];
-    let participant_is_values: Array<Bool> = [];
-    let participant_aliases: Array<String> = [];
-    let participant_type_names: Array<String> = [];
-    let participant_declaration_indices: Array<Int> = [];
-    let step_starts: Array<Int> = [];
-    let step_counts: Array<Int> = [];
-    let step_node_ids: Array<Int> = [];
-    let step_names: Array<String> = [];
-    let step_where_zone_names: Array<String> = [];
-    let step_where_declaration_indices: Array<Int> = [];
-    let step_using_aliases: Array<String> = [];
-    let step_transfer_from_aliases: Array<String> = [];
-    let step_transfer_to_aliases: Array<String> = [];
-    let step_receiver_aliases: Array<String> = [];
-    let step_action_names: Array<String> = [];
-    let step_action_signature_indices: Array<Int> = [];
-    let step_target_kinds: Array<String> = [];
-    let step_target_declaration_node_ids: Array<Int> = [];
-    let step_target_indices: Array<Int> = [];
-    let step_target_names: Array<String> = [];
-    let step_target_return_type_names: Array<String> = [];
-    let step_target_param_counts: Array<Int> = [];
-    let step_outcome_node_ids: Array<Int> = [];
-    let step_outcome_names: Array<String> = [];
-    let step_outcome_type_names: Array<String> = [];
-    let step_target_expression_node_ids: Array<Int> = [];
-    let step_guard_node_ids: Array<Int> = [];
-    let step_post_node_ids: Array<Int> = [];
-    let step_expect_node_ids: Array<Int> = [];
-    let step_pre_node_ids: Array<Int> = [];
-    let step_invariant_node_ids: Array<Int> = [];
-    let step_compensate_starts: Array<Int> = [];
-    let step_compensate_counts: Array<Int> = [];
-    let step_compensate_node_ids: Array<Int> = [];
-    let step_child_counts: Array<Int> = [];
-    let step_predecessor_indices: Array<Int> = [];
-    let step_causes_names: Array<String> = [];
-    let step_causes_declaration_indices: Array<Int> = [];
-    let who_starts: Array<Int> = [];
-    let who_counts: Array<Int> = [];
-    let who_names: Array<String> = [];
-    let requires_starts: Array<Int> = [];
-    let requires_counts: Array<Int> = [];
-    let requires_names: Array<String> = [];
-    let requires_declaration_indices: Array<Int> = [];
-    let authorized_starts: Array<Int> = [];
-    let authorized_counts: Array<Int> = [];
-    let authorized_names: Array<String> = [];
-    let step_provenance: SelfDirIntentStepProvenanceFacts =
+    var intent_node_ids: Array<Int> = [];
+    var intent_names: Array<String> = [];
+    var intent_result_modes: Array<String> = [];
+    var intent_return_type_names: Array<String> = [];
+    var intent_success_expression_node_ids: Array<Int> = [];
+    var participant_starts: Array<Int> = [];
+    var participant_counts: Array<Int> = [];
+    var participant_node_ids: Array<Int> = [];
+    var participant_is_values: Array<Bool> = [];
+    var participant_aliases: Array<String> = [];
+    var participant_type_names: Array<String> = [];
+    var participant_declaration_indices: Array<Int> = [];
+    var step_starts: Array<Int> = [];
+    var step_counts: Array<Int> = [];
+    var step_node_ids: Array<Int> = [];
+    var step_names: Array<String> = [];
+    var step_where_zone_names: Array<String> = [];
+    var step_where_declaration_indices: Array<Int> = [];
+    var step_using_aliases: Array<String> = [];
+    var step_transfer_from_aliases: Array<String> = [];
+    var step_transfer_to_aliases: Array<String> = [];
+    var step_receiver_aliases: Array<String> = [];
+    var step_action_names: Array<String> = [];
+    var step_action_signature_indices: Array<Int> = [];
+    var step_target_kinds: Array<String> = [];
+    var step_target_declaration_node_ids: Array<Int> = [];
+    var step_target_indices: Array<Int> = [];
+    var step_target_names: Array<String> = [];
+    var step_target_return_type_names: Array<String> = [];
+    var step_target_param_counts: Array<Int> = [];
+    var step_outcome_node_ids: Array<Int> = [];
+    var step_outcome_names: Array<String> = [];
+    var step_outcome_type_names: Array<String> = [];
+    var step_target_expression_node_ids: Array<Int> = [];
+    var step_guard_node_ids: Array<Int> = [];
+    var step_post_node_ids: Array<Int> = [];
+    var step_expect_node_ids: Array<Int> = [];
+    var step_pre_node_ids: Array<Int> = [];
+    var step_invariant_node_ids: Array<Int> = [];
+    var step_compensate_starts: Array<Int> = [];
+    var step_compensate_counts: Array<Int> = [];
+    var step_compensate_node_ids: Array<Int> = [];
+    var step_child_counts: Array<Int> = [];
+    var step_predecessor_indices: Array<Int> = [];
+    var step_causes_names: Array<String> = [];
+    var step_causes_declaration_indices: Array<Int> = [];
+    var who_starts: Array<Int> = [];
+    var who_counts: Array<Int> = [];
+    var who_names: Array<String> = [];
+    var requires_starts: Array<Int> = [];
+    var requires_counts: Array<Int> = [];
+    var requires_names: Array<String> = [];
+    var requires_declaration_indices: Array<Int> = [];
+    var authorized_starts: Array<Int> = [];
+    var authorized_counts: Array<Int> = [];
+    var authorized_names: Array<String> = [];
+    var step_provenance: SelfDirIntentStepProvenanceFacts =
         SelfDirIntentStepProvenanceFactsEmpty();
-    let edge_count: Int = 0;
+    var edge_count: Int = 0;
 
-    let intent_index: Int = 0;
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(signature_facts) {
         let intent_node_id: Int = signature_facts.intent_node_ids[intent_index];
         let participant_start: Int = ArrayLength(participant_node_ids);
         let source_start: Int = signature_facts.param_starts[intent_index];
-        let p: Int = 0;
+        var p: Int = 0;
         while p < signature_facts.param_counts[intent_index] {
             let source_row: Int = source_start + p;
             let type_name: String = signature_facts.param_types[source_row];
@@ -176,9 +176,9 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
         let participant_count: Int =
             ArrayLength(participant_node_ids) - participant_start;
         let step_start: Int = ArrayLength(step_node_ids);
-        let success_expression_node_id: Int = -1;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var success_expression_node_id: Int = -1;
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, intent_node_id, child_index
         );
         while IsSome(child) {
@@ -225,7 +225,7 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
                     );
                 }
                 let who_start: Int = ArrayLength(who_names);
-                let i: Int = 0;
+                var i: Int = 0;
                 while i < ArrayLength(resolved.who_names) {
                     ArrayPush(who_names, resolved.who_names[i]);
                     i = i + 1;
@@ -419,13 +419,13 @@ func SelfDirIntentFactsReady(
         return intent_count == 0 && participant_count == 0 && step_count == 0 &&
             facts.edge_count == 0;
     }
-    let expected_participant_start: Int = 0;
-    let expected_step_start: Int = 0;
-    let expected_who_start: Int = 0;
-    let expected_requires_start: Int = 0;
-    let expected_authorized_start: Int = 0;
-    let expected_edges: Int = 0;
-    let intent_i: Int = 0;
+    var expected_participant_start: Int = 0;
+    var expected_step_start: Int = 0;
+    var expected_who_start: Int = 0;
+    var expected_requires_start: Int = 0;
+    var expected_authorized_start: Int = 0;
+    var expected_edges: Int = 0;
+    var intent_i: Int = 0;
     while intent_i < intent_count {
         let p_start: Int = facts.participant_starts[intent_i];
         let p_count: Int = facts.participant_counts[intent_i];
@@ -441,10 +441,10 @@ func SelfDirIntentFactsReady(
             s_start != expected_step_start || p_count < 0 || s_count < 0 {
             return false;
         }
-        let local_step: Int = 0;
+        var local_step: Int = 0;
         while local_step < s_count {
             let step_row: Int = s_start + local_step;
-            let expected_predecessor: Int = -1;
+            var expected_predecessor: Int = -1;
             if !facts.transitions.step_requireds[step_row] && local_step > 0 {
                 expected_predecessor = local_step - 1;
             }
@@ -494,9 +494,9 @@ func SelfDirIntentFactsReady(
         expected_authorized_start != ArrayLength(facts.steps.authorized_names) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < participant_count {
-        let expected_kind: Int = TypedAstKindIntentInvolvesTag();
+        var expected_kind: Int = TypedAstKindIntentInvolvesTag();
         if facts.participants.is_values[i] {
             expected_kind = TypedAstKindIntentValueTag();
         }
@@ -553,7 +553,7 @@ func SelfDirIntentFactsReady(
         ) {
             return false;
         }
-        let requirement_i: Int = 0;
+        var requirement_i: Int = 0;
         while requirement_i < facts.steps.requires_counts[i] {
             let requirement_row: Int =
                 facts.steps.requires_starts[i] + requirement_i;

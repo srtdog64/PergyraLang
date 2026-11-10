@@ -6,7 +6,7 @@ struct Names {
 }
 
 func Build() -> Names {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("a", "b"));
     defer { ArrayDropOwnedStrings(names); };
     let facts: Names = Names(true, names);

@@ -20,15 +20,15 @@ func SelfDirGraphInventoryAppendPrimaryNodes(
     intents: SelfDirIntentFacts,
     inout facts: SelfDirGraphInventoryFacts
 ) -> Bool {
-    let declarations_by_source: Array<Int> = [];
-    let intents_by_source: Array<Int> = [];
-    let node_id: Int = 0;
+    var declarations_by_source: Array<Int> = [];
+    var intents_by_source: Array<Int> = [];
+    var node_id: Int = 0;
     while node_id < artifact.count {
         ArrayPush(declarations_by_source, -1);
         ArrayPush(intents_by_source, -1);
         node_id = node_id + 1;
     }
-    let declaration: Int = 0;
+    var declaration: Int = 0;
     while declaration < ArrayLength(rows.names) {
         let source_id: Int = rows.source_syntax_ids[declaration];
         if source_id <= 0 || source_id >= artifact.count ||
@@ -38,7 +38,7 @@ func SelfDirGraphInventoryAppendPrimaryNodes(
         declarations_by_source[source_id] = declaration;
         declaration = declaration + 1;
     }
-    let intent_row: Int = 0;
+    var intent_row: Int = 0;
     while intent_row < ArrayLength(intents.intent_node_ids) {
         let source_id: Int = intents.intent_node_ids[intent_row];
         if source_id <= 0 || source_id >= artifact.count ||
@@ -86,8 +86,8 @@ func SelfDirGraphInventoryAppendRoleEdges(
         SelfDirGraphInventoryNodeIndex(facts, "type", target_name),
         "for", target_name
     ) { return false; }
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, rows.source_syntax_ids[declaration], child_index
     );
     while IsSome(child) {
@@ -109,7 +109,7 @@ func SelfDirGraphInventoryAppendRoleEdges(
             artifact.arena, rows.source_syntax_ids[declaration], child_index
         );
     }
-    let impl_i: Int = 0;
+    var impl_i: Int = 0;
     while impl_i < rows.role_impl_counts[declaration] {
         let impl_row: Int = rows.role_impl_starts[declaration] + impl_i;
         let ability_name: String = rows.role_impl_ability_names[impl_row];
@@ -135,8 +135,8 @@ func SelfDirGraphInventoryRoleSlotSourceSyntaxId(
     party_source_syntax_id: Int,
     slot_name: String
 ) -> Int {
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, party_source_syntax_id, child_index
     );
     while IsSome(child) {
@@ -165,7 +165,7 @@ func SelfDirGraphInventoryAppendPartyEdges(
     inout facts: SelfDirGraphInventoryFacts
 ) -> Bool {
     let party_name: String = rows.names[declaration];
-    let slot_i: Int = 0;
+    var slot_i: Int = 0;
     while slot_i < rows.role_slot_counts[declaration] {
         let slot_row: Int = rows.role_slot_starts[declaration] + slot_i;
         let slot_name: String = rows.role_slot_names[slot_row];
@@ -211,7 +211,7 @@ func SelfDirGraphInventoryAppendDomainFieldEdges(
     let owner_kind: String = facts.nodes.kinds[node_id];
     let owner_name: String = rows.names[declaration];
     let owner_source_id: Int = rows.source_syntax_ids[declaration];
-    let field_i: Int = 0;
+    var field_i: Int = 0;
     while field_i < rows.field_counts[declaration] {
         let field_row: Int = rows.field_starts[declaration] + field_i;
         let field_kind: String = rows.field_kinds[field_row];
@@ -223,8 +223,8 @@ func SelfDirGraphInventoryAppendDomainFieldEdges(
             continue;
         }
         if owner_kind == "world" {
-            let target_kind: String = "zone";
-            let edge_kind: String = "world-zone";
+            var target_kind: String = "zone";
+            var edge_kind: String = "world-zone";
             if field_kind == NominalFieldKindWorldRoster() {
                 target_kind = "roster";
                 edge_kind = "world-roster";
@@ -246,7 +246,7 @@ func SelfDirGraphInventoryAppendDomainFieldEdges(
         } else if owner_kind == "zone" &&
             (field_kind == NominalFieldKindEffectSlot() ||
              field_kind == NominalFieldKindRelationSlot()) {
-            let target_kind: String = "effect";
+            var target_kind: String = "effect";
             if field_kind == NominalFieldKindRelationSlot() {
                 target_kind = "relation";
             }
@@ -263,7 +263,7 @@ func SelfDirGraphInventoryAppendDomainFieldEdges(
                 field_kind == NominalFieldKindSubjectSlot() ||
                 field_kind == NominalFieldKindBindingSlot();
             if !projection && !subject_slot { return false; }
-            let slot_kind: String = "zone-slot";
+            var slot_kind: String = "zone-slot";
             if projection { slot_kind = "projection-slot"; }
             let qualified: String = SelfDirGraphInventoryQualifiedName(
                 owner_name, field_name
@@ -277,7 +277,7 @@ func SelfDirGraphInventoryAppendDomainFieldEdges(
             );
             if slot_node < 0 { return false; }
             if owner_kind == "zone" {
-                let owner_edge_kind: String = "zone-has-slot";
+                var owner_edge_kind: String = "zone-has-slot";
                 if projection { owner_edge_kind = "owner-has-projection-slot"; }
                 if !SelfDirGraphInventoryAppendEdge(
                     facts, owner_edge_kind, node_id, slot_node,
@@ -290,7 +290,7 @@ func SelfDirGraphInventoryAppendDomainFieldEdges(
                 facts, "owner-has-projection-slot", node_id, slot_node,
                 field_name, qualified
             ) { return false; }
-            let slot_edge_kind: String = "zone-slot";
+            var slot_edge_kind: String = "zone-slot";
             if projection { slot_edge_kind = "projection-slot-type"; }
             if !SelfDirGraphInventoryAppendEdge(
                 facts, slot_edge_kind, slot_node, target_node,
@@ -307,7 +307,7 @@ func SelfDirGraphInventoryAppendAuthorityEdges(
     owner_name_filter: String,
     inout facts: SelfDirGraphInventoryFacts
 ) -> Bool {
-    let authority_i: Int = 0;
+    var authority_i: Int = 0;
     while authority_i < ArrayLength(authorities.authority_node_ids) {
         let owner_name: String = authorities.owner_zone_names[authority_i];
         if owner_name != owner_name_filter {
@@ -337,7 +337,7 @@ func SelfDirGraphInventoryAppendAuthorityEdges(
                 facts, "authority-slot-subject", authority_node, subject_node,
                 slot_name, slot_name
             ) { return false; }
-        let ability_i: Int = 0;
+        var ability_i: Int = 0;
         while ability_i < authorities.required_ability_counts[authority_i] {
             let ability_row: Int =
                 authorities.required_ability_starts[authority_i] + ability_i;
@@ -366,7 +366,7 @@ func SelfDirGraphInventoryAppendProjectionTopologyEdges(
     owner_node: Int,
     inout facts: SelfDirGraphInventoryFacts
 ) -> Bool {
-    let topology_i: Int = 0;
+    var topology_i: Int = 0;
     while topology_i < ArrayLength(topology.kinds) {
         if topology.owner_names[topology_i] != owner_name ||
             (topology.kinds[topology_i] != "refresh" &&
@@ -384,7 +384,7 @@ func SelfDirGraphInventoryAppendProjectionTopologyEdges(
         let projection_node: Int = SelfDirGraphInventoryNodeIndex(
             facts, "projection-slot", projection_name
         );
-        let source_node: Int = SelfDirGraphInventoryNodeIndex(
+        var source_node: Int = SelfDirGraphInventoryNodeIndex(
             facts, "zone-slot", source_name
         );
         if source_node < 0 {
@@ -412,15 +412,15 @@ func SelfDirGraphInventoryAppendIntentEdges(
     intents: SelfDirIntentFacts,
     inout facts: SelfDirGraphInventoryFacts
 ) -> Bool {
-    let intent_i: Int = 0;
+    var intent_i: Int = 0;
     while intent_i < ArrayLength(intents.intent_node_ids) {
         let intent_node: Int = SelfDirGraphInventoryNodeIndex(
             facts, "intent", intents.names[intent_i]
         );
-        let participant_i: Int = 0;
+        var participant_i: Int = 0;
         while participant_i < intents.participant_counts[intent_i] {
             let row: Int = intents.participant_starts[intent_i] + participant_i;
-            let to_node: Int = -1;
+            var to_node: Int = -1;
             let declaration: Int = intents.participants.declaration_indices[row];
             if declaration >= 0 {
                 to_node = SelfDirGraphInventoryNodeIndex(
@@ -436,7 +436,7 @@ func SelfDirGraphInventoryAppendIntentEdges(
             ) { return false; }
             participant_i = participant_i + 1;
         }
-        let local_step: Int = 0;
+        var local_step: Int = 0;
         while local_step < intents.step_counts[intent_i] {
             let step: Int = intents.step_starts[intent_i] + local_step;
             let step_name: String = intents.steps.names[step];
@@ -461,7 +461,7 @@ func SelfDirGraphInventoryAppendIntentEdges(
                         intents.steps.predecessor_step_indices[step]
                     ], step_name
                 ) { return false; }
-            let name_i: Int = 0;
+            var name_i: Int = 0;
             while name_i < intents.steps.who_counts[step] {
                 let row: Int = intents.steps.who_starts[step] + name_i;
                 if !SelfDirGraphInventoryAppendEdge(
@@ -514,14 +514,14 @@ func SelfDirGraphInventoryFactsFromAdmittedFacts(
     ref authorities: SemanticAstZoneAuthorityFacts,
     topology: SelfDirDomainTopologyRows
 ) -> SelfDirGraphInventoryFacts {
-    let facts: SelfDirGraphInventoryFacts = SelfDirGraphInventoryEmpty();
+    var facts: SelfDirGraphInventoryFacts = SelfDirGraphInventoryEmpty();
     if !SelfDirGraphInventoryAppendPrimaryNodes(
         artifact, rows, intents, facts
     ) { return SelfDirGraphInventoryError(
         "self-host DIR primary node inventory is invalid"
     ); }
     let primary_count: Int = ArrayLength(facts.nodes.kinds);
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < primary_count {
         let declaration: Int = facts.nodes.declaration_indices[node_id];
         if declaration >= 0 && facts.nodes.kinds[node_id] == "role" {
@@ -567,7 +567,7 @@ func SelfDirGraphInventoryFactsFromAdmittedFacts(
                 );
             }
             if facts.nodes.kinds[node_id] == "zone" {
-                let state_i: Int = 0;
+                var state_i: Int = 0;
                 while state_i < ArrayLength(zone_states.names) {
                     if zone_states.owner_names[state_i] ==
                             facts.nodes.names[node_id] &&
@@ -610,14 +610,14 @@ func SelfDirGraphInventoryFactsReady(
         ArrayLength(facts.edges.target_names) != edge_count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < node_count {
         if facts.nodes.kinds[i] == "" || facts.nodes.names[i] == "" ||
             facts.nodes.source_syntax_ids[i] <= 0 ||
             facts.nodes.owner_source_syntax_ids[i] < 0 {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if facts.nodes.kinds[prior] == facts.nodes.kinds[i] &&
                 facts.nodes.names[prior] == facts.nodes.names[i] {

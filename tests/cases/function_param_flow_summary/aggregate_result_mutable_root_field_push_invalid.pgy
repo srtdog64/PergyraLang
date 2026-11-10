@@ -1,0 +1,21 @@
+// A mutable aggregate root cannot issue the exact result identity needed by
+// a later field move: it may have been replaced before the owned push.
+struct Rows {
+    names: Array<String>;
+}
+
+func MakeRows() -> Rows {
+    let names: Array<String> = [Concat("a", "")];
+    return Rows(names);
+}
+
+func Append() -> Void {
+    var rows: Rows = MakeRows();
+    var names: Array<String> = rows.names;
+    ArrayPush(names, Concat("b", ""));
+}
+
+func Main() -> Int {
+    Append();
+    return 0;
+}

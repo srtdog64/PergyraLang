@@ -7,23 +7,23 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
     let bad_digest: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
         plan, plan.plan_digest + 1
     );
-    let bad_target: DirectMirCfgPlan =
+    var bad_target: DirectMirCfgPlan =
         DirectMirCfgPlanWithTargetFingerprint(
             plan, plan.target_capability_fingerprint + 1
         );
     bad_target = DirectMirCfgPlanWithDigest(
         bad_target, DirectMirCfgPlanIdentityDigest(bad_target)
     );
-    let bad_phi_binding_rejected: Bool = true;
+    var bad_phi_binding_rejected: Bool = true;
     if plan.phi_count == 1 {
-        let bad_phi_digest: Int = plan.phi_digest + 1;
-        let bad_false_block: Int = plan.false_block;
+        var bad_phi_digest: Int = plan.phi_digest + 1;
+        var bad_false_block: Int = plan.false_block;
         if !DirectMirLoopCfgPlanFactReady(plan.loop_fact) &&
             plan.shape.entry_result_name == plan.shape.false_result_name {
             bad_phi_digest = plan.phi_digest;
             bad_false_block = plan.merge_block + 1;
         }
-        let bad_phi_binding: DirectMirCfgPlan = DirectMirCfgPlan(
+        var bad_phi_binding: DirectMirCfgPlan = DirectMirCfgPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
             bad_phi_digest, plan.nested_digest, plan.loop_digest,
@@ -40,22 +40,22 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
         bad_phi_binding_rejected =
             !DirectMirCfgPlanReady(bad_phi_binding);
     }
-    let bad_nested_rejected: Bool = true;
+    var bad_nested_rejected: Bool = true;
     if DirectMirNestedCfgCertificateFactReady(plan.nested) {
         let bad_nested: DirectMirNestedCfgCertificateFact =
             DirectMirNestedCfgCertificateFactInvalidMerge(plan.nested);
-        let bad_nested_plan: DirectMirCfgPlan =
+        var bad_nested_plan: DirectMirCfgPlan =
             DirectMirCfgPlanWithNested(plan, bad_nested);
         bad_nested_plan = DirectMirCfgPlanWithDigest(
             bad_nested_plan, DirectMirCfgPlanIdentityDigest(bad_nested_plan)
         );
         bad_nested_rejected = !DirectMirCfgPlanReady(bad_nested_plan);
     }
-    let bad_loop_rejected: Bool = true;
+    var bad_loop_rejected: Bool = true;
     if DirectMirLoopCfgPlanFactReady(plan.loop_fact) {
         let bad_loop: DirectMirLoopCfgPlanFact =
             DirectMirLoopCfgPlanFactInvalidBackedge(plan.loop_fact);
-        let bad_loop_plan: DirectMirCfgPlan =
+        var bad_loop_plan: DirectMirCfgPlan =
             DirectMirCfgPlanWithLoop(plan, bad_loop);
         bad_loop_plan = DirectMirCfgPlanWithDigest(
             bad_loop_plan, DirectMirCfgPlanIdentityDigest(bad_loop_plan)
@@ -64,13 +64,13 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
         bad_loop_rejected = !DirectMirCfgPlanReady(bad_loop_plan) &&
             DirectMirLoopCfgPlanFactMutationRejected(loop_fact);
     }
-    let bad_enum_rejected: Bool = true;
+    var bad_enum_rejected: Bool = true;
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {
         let bad_enum: DirectMirEnumValueMatchPlanFact =
             DirectMirEnumValueMatchPlanFactInvalidAbiSelection(
                 plan.enum_match
             );
-        let bad_enum_plan: DirectMirCfgPlan =
+        var bad_enum_plan: DirectMirCfgPlan =
             DirectMirCfgPlanWithEnumMatch(plan, bad_enum);
         bad_enum_plan = DirectMirCfgPlanWithDigest(
             bad_enum_plan, DirectMirCfgPlanIdentityDigest(bad_enum_plan)

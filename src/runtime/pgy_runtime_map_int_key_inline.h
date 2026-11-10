@@ -3,7 +3,7 @@
 
 #include "pgy_runtime_linkage.h"
 
-PGY_RT_DECL int32_t pgy_map_size_int(PgyHashMap_Int *m)
+PGY_RT_DECL int32_t pgy_map_size_int(const PgyHashMap_Int *m)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {

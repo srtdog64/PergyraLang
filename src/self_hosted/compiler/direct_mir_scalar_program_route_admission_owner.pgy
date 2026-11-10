@@ -8,9 +8,11 @@ import "direct_mir_scalar_program_builtin_route_owner.pgy";
 import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
 import "codegen_route_refusal_owner.pgy";
-
+import "direct_mir_identity_cell_type_join_owner.pgy";
+import "direct_mir_scalar_program_logical_record_validation_receipt_owner.pgy";
 struct DirectMirScalarProgramRouteAdmission {
     let valid: Bool;
     let route: DirectMirScalarProgramRouteFact;
@@ -22,20 +24,22 @@ struct DirectMirScalarProgramRouteAdmission {
     let type_name: String;
     let carriage: String;
 }
-
 func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
     owner: String, stage: String
 ) -> Bool {
     if owner == "scalar-program-route" {
         return stage == "ready" || stage == "routine-count" || stage == "routine-instance" ||
             stage == "declaration-index" ||
+            stage == "opaque-readonly-zone" ||
             stage == "logical-record" || stage == "referenced-enum" ||
             stage == "payload-free-enum" ||
             stage == "single-program-shape" || stage == "entrypoint" ||
             stage == "array-int-value-result-abi" || stage == "array-bool-abi" ||
             stage == "array-string-abi" || stage == "seal";
     }
-    if owner == "identity-cell" { return stage == "declaration-inventory"; }
+    if owner == "identity-cell" {
+        return stage == "declaration-inventory" || stage == "field-type-join";
+    }
     if owner == "callable-route-envelope" {
         return stage == "signature" || stage == "parameter-count" ||
             stage == "return-type" ||
@@ -43,7 +47,6 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
     }
     return owner == "callable-signature" && stage == "signature-family";
 }
-
 func DirectMirScalarProgramRouteAdmissionReady(
     ref admission: DirectMirScalarProgramRouteAdmission
 ) -> Bool {
@@ -156,13 +159,29 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             -1, "", -1, "", "");
     }
     let logical_record: DirectMirScalarProgramLogicalRecordFact =
-        DirectMirScalarProgramLogicalRecordFactFromAdmitted(
-            admitted, routine_instances, payload_free_enum, identity_cells);
+        DirectMirScalarProgramLogicalRecordFactForRouteDemand(
+            admitted, routine_instances, payload_free_enum,
+            identity_cells, false);
     if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) ||
         !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
             logical_record, payload_free_enum) {
         return DirectMirScalarProgramRouteAdmissionRejected(
             "scalar-program-route", "logical-record", -1, "", -1, "", "");
+    }
+    if !DirectMirIdentityCellFieldTypesReady(
+            identity_cells, referenced_enum) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "identity-cell", "field-type-join", -1, "", -1, "", "");
+    }
+    let opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact =
+            DirectMirScalarProgramOpaqueReadonlyZoneFactFromOwners(
+                admitted, routine_instances);
+    if !DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+            opaque_readonly_zones) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "opaque-readonly-zone",
+            -1, "", -1, "", "");
     }
     if routine_count == 1 {
         if !DirectMirScalarControlFlowProgramRouteClaimed(admitted) &&
@@ -205,28 +224,32 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             DirectMirScalarProgramRouteFact(
                 true, 0, rows[0], -1, rows, logical_record,
                 referenced_enum, payload_free_enum,
-                array_int_value_result, array_bool_abi, array_string_abi, routine_instances);
+                array_int_value_result, array_bool_abi, array_string_abi,
+                opaque_readonly_zones, routine_instances);
         let sealed: DirectMirScalarProgramRouteFact =
             DirectMirScalarProgramRouteFact(
                 true, DirectMirScalarProgramRouteFactDigest(source),
                 rows[0], -1, rows, logical_record, referenced_enum,
                 payload_free_enum,
-                array_int_value_result, array_bool_abi, array_string_abi, routine_instances);
+                array_int_value_result, array_bool_abi, array_string_abi,
+                opaque_readonly_zones, routine_instances);
         if !DirectMirScalarProgramRouteFactReady(sealed) {
             return DirectMirScalarProgramRouteAdmissionRejected(
                 "scalar-program-route", "seal", -1, "", -1, "", "");
         }
         return DirectMirScalarProgramRouteAdmissionAccepted(sealed);
     }
-    let entrypoint_row: Int = -1;
-    let routine_rows: Array<Int> = [];
-    let row: Int = 0;
+    var entrypoint_row: Int = -1;
+    var routine_rows: Array<Int> = [];
+    var row: Int = 0;
     while row < routine_count {
         let signature: DirectMirRoutineSignatureFact =
             DirectMirRoutineInstanceSignatureAt(routine_instances, row);
         if signature.name == "Main" {
             if !DirectMirRoutineSignatureFactReady(signature) ||
-                entrypoint_row >= 0 || signature.return_type != "Void" ||
+                entrypoint_row >= 0 ||
+                !DirectMirScalarCfgEntrypointReturnTypeSupported(
+                    signature.return_type) ||
                 signature.param_count != 0 {
                 return DirectMirScalarProgramRouteAdmissionRejected(
                     "scalar-program-route", "entrypoint", row,
@@ -238,7 +261,8 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
                 DirectMirScalarProgramCallableRouteEnvelopeAssessment =
                     DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
                         signature, logical_record,
-                        payload_free_enum, referenced_enum);
+                        payload_free_enum, referenced_enum,
+                        opaque_readonly_zones);
             if !DirectMirScalarProgramCallableRouteEnvelopeAssessmentReady(
                     assessment) || !assessment.supported {
                 return DirectMirScalarProgramRouteAdmissionRejected(
@@ -248,7 +272,7 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             }
             if !DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
                     signature, logical_record, payload_free_enum,
-                    referenced_enum) {
+                    referenced_enum, opaque_readonly_zones) {
                 return DirectMirScalarProgramRouteAdmissionRejected(
                     "callable-signature", "signature-family", row,
                     signature.name, -1, signature.return_type, "");
@@ -265,7 +289,7 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
         ArrayPush(routine_rows, routine_instances.source_rows[row]);
         row = row + 1;
     }
-    let callable_row: Int = -1;
+    var callable_row: Int = -1;
     if routine_count == 2 { callable_row = routine_rows[1]; }
     let array_int_value_result:
         DirectMirScalarProgramArrayIntValueResultFact =
@@ -300,14 +324,16 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             true, 0, entrypoint_row, callable_row, routine_rows,
             logical_record, referenced_enum, payload_free_enum,
             array_int_value_result,
-            array_bool_abi, array_string_abi, routine_instances);
+            array_bool_abi, array_string_abi, opaque_readonly_zones,
+            routine_instances);
     let sealed: DirectMirScalarProgramRouteFact =
         DirectMirScalarProgramRouteFact(
             true, DirectMirScalarProgramRouteFactDigest(source),
             entrypoint_row, callable_row, routine_rows,
             logical_record, referenced_enum, payload_free_enum,
             array_int_value_result,
-            array_bool_abi, array_string_abi, routine_instances);
+            array_bool_abi, array_string_abi, opaque_readonly_zones,
+            routine_instances);
     if !DirectMirScalarProgramRouteFactReady(sealed) {
         return DirectMirScalarProgramRouteAdmissionRejected(
             "scalar-program-route", "seal", -1, "", -1, "", "");

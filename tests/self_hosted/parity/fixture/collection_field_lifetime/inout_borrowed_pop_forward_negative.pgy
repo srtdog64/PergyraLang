@@ -1,0 +1,12 @@
+func Retire(inout values: Array<String>) -> Void {
+    ArrayPop(values);
+}
+
+func Forward(inout values: Array<String>) -> Void {
+    Retire(values);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Forward(values);
+}

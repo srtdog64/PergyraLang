@@ -20,9 +20,9 @@ func MirExpressionGraphRootNodeKind(ref graph: JsonObjectFactTable) -> Option<In
     let header: MirExpressionGraphHeaderCapture =
         MirExpressionGraphHeaderCaptureFromTable(graph);
     if !header.valid { return None; }
-    let row: Int = 0;
-    let cursor: Int = header.nodes_start + 1;
-    let scratch: Array<Int> = [0];
+    var row: Int = 0;
+    var cursor: Int = header.nodes_start + 1;
+    var scratch: Array<Int> = [0];
     while cursor < header.nodes_end {
         cursor = JsonSkipWhitespaceWithin(graph.json, graph.json_extent, cursor, header.nodes_end);
         if cursor >= header.nodes_end { return None; }
@@ -62,21 +62,21 @@ func MirDestructureTakenNamesInto(
 ) -> Bool {
     let start: Int = routines.starts[routine_row];
     let end: Int = routines.ends[routine_row];
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(routines.names) {
         ArrayPush(names, routines.names[row]);
         row = row + 1;
     }
     let fields: Array<String> = ["params", "source_locals"];
-    let field: Int = 0;
+    var field: Int = 0;
     while field < ArrayLength(fields) {
-        let bounds: Array<Int> = [0, 0];
+        var bounds: Array<Int> = [0, 0];
         if MirObjectFieldOccurrenceCountAtBounds(routines.source_json, routines.source_json_extent, start, end, fields[field]) != 1 ||
             !MirObjectArrayBoundsAtBounds(routines.source_json, routines.source_json_extent, start, end, fields[field], bounds) {
             return false;
         }
-        let cursor: Int = bounds[0] + 1;
-        let entry: Array<Int> = [0, 0];
+        var cursor: Int = bounds[0] + 1;
+        var entry: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(routines.source_json, routines.source_json_extent, cursor, bounds[1], entry) {
             ArrayPush(names, MirObjectStringFactAtBounds(routines.source_json, routines.source_json_extent, entry[0], entry[1], "name"));
             cursor = entry[1];
@@ -102,21 +102,21 @@ func MirDestructureTemporaryAt(
     if !IsSome(needs) { return None; }
     if !UnwrapOption(needs) { return Some(""); }
     let position: Int = routines.instruction_starts[global_row];
-    let routine_row: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < ArrayLength(routines.starts) &&
         !(routines.starts[routine_row] <= position &&
             position < routines.ends[routine_row]) {
         routine_row = routine_row + 1;
     }
     if routine_row >= ArrayLength(routines.starts) { return None; }
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     if first == "" || !MirDestructureTakenNamesInto(routines, routine_row, names) {
         return None;
     }
     let base: String = Concat("_pgy_destructure_", first);
-    let name: String = base;
-    let suffix: Int = 0;
-    let row: Int = 0;
+    var name: String = base;
+    var suffix: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(names) {
         if names[row] == name {
             suffix = suffix + 1;
@@ -138,7 +138,7 @@ func MirDestructureTemporaryTextAt(
 ) -> String {
     if kind != "destructure" || global_row < 0 ||
         global_row >= ArrayLength(routines.instruction_starts) { return ""; }
-    let bindings: Array<Int> = [0, 0];
+    var bindings: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(routines.source_json, routines.source_json_extent, routines.instruction_starts[global_row],
             routines.instruction_ends[global_row], "destructure_bindings", bindings) ||
         JsonArrayStringCount(routines.source_json, routines.source_json_extent, bindings[0], bindings[1]) <= 0 { return ""; }

@@ -6,8 +6,8 @@ func DirectMirScalarCfgArrayIntCollectionFromForEach(
     ref fact: DirectMirScalarCfgForEachFact
 ) -> DirectMirScalarCfgArrayIntCollectionFact {
     if !fact.valid { return DirectMirScalarCfgArrayIntCollectionFactEmpty(); }
-    let elements: Array<Int> = [];
-    let row: Int = 0;
+    var elements: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(fact.elements) {
         ArrayPush(elements, fact.elements[row]);
         row = row + 1;

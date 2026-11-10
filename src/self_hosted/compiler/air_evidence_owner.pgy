@@ -56,7 +56,7 @@ func CompilerAirEvidenceFactAt(index: Int) -> String {
 }
 
 func CompilerAirEvidenceFactKnown(fact: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerAirEvidenceFactCount() {
         if CompilerAirEvidenceFactAt(i) == fact {
             return true;

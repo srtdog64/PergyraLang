@@ -14,9 +14,14 @@
 #include <stdint.h>
 
 typedef struct {
+    ASTNode *function;
+    FuncParam *parameter;
     uint32_t function_id;
     uint32_t parameter_id;
+    size_t formal_ordinal;
+    ParamMode parameter_mode;
     unsigned requirements;
+    bool identity_present;
 } OwnedElementParameter;
 
 typedef struct {
@@ -39,27 +44,80 @@ typedef struct {
     uint32_t argument_id;
     const Type *argument_type;
     size_t target;
+    ParamMode parameter_mode;
     PgyStringArrayOwnership element_ownership;
     bool exclusive_storage;
     uint32_t pending_binding_id;
     size_t pending_sequence;
     ArrayStorageReturnElementReceipt element_use;
     bool forwarded_formal;
+    /* A local Array<String> may be the exact field carrier of a default or
+     * inout aggregate parameter. Its element premise belongs to that
+     * aggregate field path, not to an invented local ownership fact. Capture
+     * the immutable path while the field is still moved out; restoration may
+     * retire the local before the complete caller graph is sealed. */
+    ASTNode *aggregate_member_function;
+    const ASTNode *aggregate_member_source;
+    uint32_t aggregate_member_function_id;
+    uint32_t aggregate_member_formal_id;
+    uint32_t aggregate_member_source_id;
+    uint32_t aggregate_member_source_binding_id;
+    uint32_t aggregate_member_leaf_field_id;
+    uint64_t aggregate_member_source_birth_serial;
+    uint32_t aggregate_member_field_ids[PGY_COLLECTION_MEMBER_PATH_LIMIT];
+    size_t aggregate_member_formal_ordinal;
+    size_t aggregate_member_field_count;
+    size_t aggregate_member_pending_sequence;
+    ParamMode aggregate_member_formal_mode;
+    bool aggregate_member_premise;
     /* An exact field take is only provisionally exclusive during Pass 2.
      * Finalization must confirm that the selected own formal really retires
      * the detached backing, including when its body is declared later. */
     bool detached_member_requires_release;
 } OwnedElementActualSnapshot;
 
+/* A moved aggregate member can be observed before a later owned-element
+ * mutation consumes its premise.  The read itself grants nothing: only a
+ * later matching consumer marks the receipt required, and finalization then
+ * proves that the exact selected formal had a read-only sealed summary. */
+typedef struct {
+    ASTNode *call;
+    ASTNode *callee_decl;
+    ASTNode *argument;
+    ASTNode *source_function;
+    const ASTNode *member_source;
+    uint32_t call_id;
+    uint32_t callee_id;
+    uint32_t argument_id;
+    uint32_t argument_binding_id;
+    uint32_t target_formal_id;
+    uint32_t source_function_id;
+    uint32_t source_formal_id;
+    uint32_t member_source_id;
+    uint32_t root_binding_id;
+    uint32_t leaf_field_id;
+    uint64_t source_birth_serial;
+    uint32_t field_ids[PGY_COLLECTION_MEMBER_PATH_LIMIT];
+    size_t actual_ordinal;
+    size_t target_formal_ordinal;
+    size_t source_formal_ordinal;
+    size_t field_count;
+    ParamMode target_mode;
+    ParamMode source_mode;
+    bool required;
+} OwnedElementMemberRead;
+
 typedef struct {
     ASTNode *call;
     ASTNode *receiver;
     ASTNode *function;
+    const ASTNode *root_value;
     const ASTNode *member_source;
     uint32_t call_id;
     uint32_t receiver_id;
     uint32_t receiver_binding_id;
     uint32_t function_id;
+    uint32_t root_value_id;
     uint32_t formal_id;
     uint32_t member_source_id;
     uint32_t root_binding_id;
@@ -67,6 +125,8 @@ typedef struct {
     uint64_t source_birth_serial;
     size_t formal_ordinal;
     ParamMode formal_mode;
+    bool local_result_root;
+    bool direct_member_receiver;
     uint32_t field_ids[PGY_COLLECTION_MEMBER_PATH_LIMIT];
     size_t field_count;
 } OwnedElementMemberPush;
@@ -179,6 +239,9 @@ struct CollectionOwnedElementRequirementStore {
     OwnedElementActualSnapshot *actuals;
     size_t actual_count;
     size_t actual_capacity;
+    OwnedElementMemberRead *member_reads;
+    size_t member_read_count;
+    size_t member_read_capacity;
     OwnedElementMemberPush *member_pushes;
     size_t member_push_count;
     size_t member_push_capacity;
@@ -225,6 +288,20 @@ bool collection_owned_record_default_aggregate_actual(
     ParamMode parameter_mode, SemanticContext *ctx);
 bool collection_owned_validate_member_pushes(
     SemanticContext *ctx, CollectionOwnedElementRequirementStore *store);
+bool collection_owned_validate_aggregate_member_requirement(
+    SemanticContext *ctx, CollectionOwnedElementRequirementStore *store,
+    uint32_t function_id, uint32_t formal_id,
+    const uint32_t *field_ids, size_t field_count, ASTNode *site);
+bool collection_owned_validate_direct_member_actual_elements(
+    SemanticContext *ctx, CollectionOwnedElementRequirementStore *store,
+    const OwnedElementActualSnapshot *actual);
+bool collection_owned_require_prior_member_reads(
+    CollectionOwnedElementRequirementStore *store,
+    uint32_t source_function_id, uint32_t source_formal_id,
+    const ASTNode *member_source, uint32_t member_source_id,
+    uint32_t root_binding_id, uint32_t leaf_field_id,
+    uint64_t source_birth_serial, const uint32_t *field_ids,
+    size_t field_count);
 bool collection_owned_element_graph_index_build(
     SemanticContext *ctx, CollectionOwnedElementRequirementStore *store);
 const OwnedElementAggregateAssignmentIndexBucket *

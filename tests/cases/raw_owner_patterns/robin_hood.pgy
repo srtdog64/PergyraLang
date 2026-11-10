@@ -1,0 +1,153 @@
+// Fixed-size workload. Storage retirement is compiler-owned.
+extern "C"
+{
+    func PatternIterations() -> Int;
+    func PatternSeed() -> Int;
+    func PatternStart() -> Void;
+    func PatternFinish(value: Int) -> Void;
+}
+func Work(seed: Int) -> Int
+{
+    var keys: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var values: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var distances: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var i: Int = 0;
+    while i < 192
+    {
+        var key: Int = (i * 37 + seed) % 1009 + 1;
+        var value: Int = key * 3 + seed;
+        var distance: Int = 0;
+        var slot: Int = ((key * 97) % 1009) % 256;
+        while keys[slot] != 0
+        {
+            if distance > distances[slot]
+            {
+                let oldKey: Int = keys[slot];
+                let oldValue: Int = values[slot];
+                let oldDistance: Int = distances[slot];
+                keys[slot] = key;
+                values[slot] = value;
+                distances[slot] = distance;
+                key = oldKey;
+                value = oldValue;
+                distance = oldDistance;
+            }
+            slot = (slot + 1) % 256;
+            distance = distance + 1;
+        }
+        keys[slot] = key;
+        values[slot] = value;
+        distances[slot] = distance;
+        i = i + 1;
+    }
+    i = 0;
+    while i < 192
+    {
+        var key: Int = (i * 37 + seed) % 1009 + 1;
+        var slot: Int = ((key * 97) % 1009) % 256;
+        while keys[slot] != key
+        {
+            slot = (slot + 1) % 256;
+        }
+        var next: Int = (slot + 1) % 256;
+        while keys[next] != 0 && distances[next] > 0
+        {
+            keys[slot] = keys[next];
+            values[slot] = values[next];
+            distances[slot] = distances[next] - 1;
+            slot = next;
+            next = (next + 1) % 256;
+        }
+        keys[slot] = 0;
+        values[slot] = 0;
+        distances[slot] = 0;
+        i = i + 2;
+    }
+    var result: Int = 0;
+    i = 0;
+    while i < 192
+    {
+        var key: Int = (i * 37 + seed) % 1009 + 1;
+        var slot: Int = ((key * 97) % 1009) % 256;
+        var distance: Int = 0;
+        var found: Int = 0;
+        while keys[slot] != 0 && distance <= distances[slot]
+        {
+            if keys[slot] == key
+            {
+                found = values[slot];
+                break;
+            }
+            distance = distance + 1;
+            slot = (slot + 1) % 256;
+        }
+        result = (result + (i % 31 + 1) * found) % 1000003;
+        i = i + 1;
+    }
+    return result;
+}
+func Main() -> Void
+{
+    let count: Int = PatternIterations();
+    let offset: Int = PatternSeed();
+    var i: Int = 0;
+    var checksum: Int = 0;
+    PatternStart();
+    while i < count
+    {
+        checksum = (checksum + Work((i + offset) % 251)) % 1000003;
+        i = i + 1;
+    }
+    PatternFinish(checksum);
+}

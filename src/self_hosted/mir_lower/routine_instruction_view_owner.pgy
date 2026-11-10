@@ -64,7 +64,7 @@ func MirRoutineInstructionViewOfKind(
     if count < 0 {
         return MirRoutineInstructionSelection(false, false, empty);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(

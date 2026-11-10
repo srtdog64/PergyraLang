@@ -6,9 +6,11 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "type_checker_internal.h"
 #include "type_checker_ownership_let_internal.h"
+#include "diag_codes.h"
 
 static Symbol *
 ownership_slice_place_root_symbol(ASTNode *place, SemanticContext *ctx)
@@ -40,6 +42,78 @@ ownership_slice_place_shape_equal(const ASTNode *left, const ASTNode *right)
         && strcmp(left_member, right_member) == 0
         && ownership_slice_place_shape_equal(
             ast_member_object(left), ast_member_object(right));
+}
+
+static void
+slice_borrow_source_append(Symbol *sym, Symbol *root, ASTNode *place, bool readonly,
+                          SemanticContext *ctx)
+{
+    if (root != NULL) {
+        /* Initializers are checked before their binding is declared. Rebinds
+         * retain the scope of the already declared Symbol. */
+        Scope *binding_scope = sym->birth_serial == 0 ? ctx->scope : NULL;
+        Scope *source_scope = NULL;
+        for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent)
+            for (size_t i = 0; i < scope->symbol_count; i++) {
+                if (scope->symbols[i] == sym) binding_scope = scope;
+                if (scope->symbols[i] == root) source_scope = scope;
+            }
+        bool outlives = false;
+        for (Scope *scope = binding_scope; scope != NULL; scope = scope->parent)
+            if (scope == source_scope) outlives = true;
+        if (!outlives) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_REDUCE_SCOPE_OR_RETRY, place,
+                "Slice backing scope must outlive the view binding; keep the view inside its owner's scope or use SliceCopy");
+            return;
+        }
+    }
+    for (SliceBorrowSource *row = sym->slice_borrow_sources; row; row = row->next)
+        if (row->root == root && row->readonly == readonly && ((row->place == NULL && place == NULL)
+                || ownership_slice_place_shape_equal(row->place, place)))
+            return;
+    SliceBorrowSource *row = malloc(sizeof(*row));
+    if (row == NULL) {
+        semantic_error(ctx, place, "Unable to retain Slice backing permission");
+        return;
+    }
+    *row = (SliceBorrowSource){root, place, readonly, sym->slice_borrow_sources};
+    sym->slice_borrow_sources = row;
+}
+
+void
+ownership_slice_record_source(Symbol *sym, ASTNode *value, SemanticContext *ctx)
+{
+    if (sym == NULL || !type_is_constructed_named(sym->type, "Slice")) return;
+    ASTNode *source = value;
+    if (source != NULL && source->type == AST_CALL) {
+        ASTNode *callee = ast_call_callee(source);
+        if (callee != NULL && callee->type == AST_MEMBER_ACCESS
+            && strcmp(ast_member_name(callee), "Slice") == 0)
+            source = ast_member_object(callee);
+        else source = NULL;
+    }
+    Symbol *root = ownership_slice_place_root_symbol(source, ctx);
+    if (root != NULL && source->type == AST_IDENTIFIER
+            && type_is_constructed_named(root->type, "Slice")) {
+        if (root == sym) return;
+        if (root->is_parameter) {
+            slice_borrow_source_append(sym, root, source, root->param_mode == PARAM_MODE_REF, ctx);
+            return;
+        }
+        if (root->slice_borrow_sources != NULL) {
+            for (SliceBorrowSource *row = root->slice_borrow_sources; row; row = row->next)
+                slice_borrow_source_append(sym, row->root, row->place, row->readonly || !root->is_mut_binding, ctx);
+            return;
+        }
+    }
+    Type *type = root != NULL && source->type == AST_IDENTIFIER ? root->type
+        : source != NULL && source->type == AST_MEMBER_ACCESS
+            ? type_check_expression(source, ctx) : NULL;
+    if (type_is_constructed_named(type, "Array"))
+        slice_borrow_source_append(sym, root, source, false, ctx);
+    else
+        slice_borrow_source_append(sym, NULL, NULL, false, ctx);
 }
 
 /* A split boundary is stable when both slicing sites use the same immutable
@@ -74,8 +148,8 @@ ownership_let_slice_split_boundary(ASTNode *boundary_node,
     return false;
 }
 
-/* docs/178 WO-DOP-1 rung 0. Immutable Slice bindings carry the
- * construction-guaranteed split fact consumed by the parallel boundary. */
+/* docs/178 WO-DOP-1 rung 0. The initializer issues a split fact; a later
+ * descriptor replacement retires it before another parallel admission. */
 void
 ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
                                       Symbol *sym, Type *decl_type)
@@ -92,8 +166,10 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
     bool is_upper;
 
     if (sym == NULL || ctx == NULL || init == NULL
-        || !type_is_constructed_named(decl_type, "Slice")
-        || init->type != AST_CALL || ast_call_arg_count(init) != 2)
+        || !type_is_constructed_named(decl_type, "Slice"))
+        return;
+    ownership_slice_record_source(sym, init, ctx);
+    if (init->type != AST_CALL || ast_call_arg_count(init) != 2)
         return;
     callee = ast_call_callee(init);
     if (callee == NULL || callee->type != AST_MEMBER_ACCESS
@@ -113,13 +189,9 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
     if (!type_is_constructed_named(base_type, "Array"))
         return;
 
-    sym->slice_borrow_base_sym = base_sym;
-    sym->slice_borrow_base_place = object;
     /* Split/disjointness evidence remains direct-Array-only. Member-place
      * lifetime identity is a separate fact and does not imply disjointness. */
     if (object->type != AST_IDENTIFIER)
-        return;
-    if (ast_let_is_mutable(node))
         return;
 
     arg0 = ast_call_argument(init, 0);
@@ -149,11 +221,11 @@ semantic_find_active_slice_borrow_for_array(Scope *scope,
     for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
         for (size_t i = 0; i < cur->symbol_count; i++) {
             Symbol *candidate = cur->symbols[i];
-            if (candidate != NULL
-                && candidate->slice_borrow_base_sym == array_sym
-                && candidate->slice_borrow_base_place != NULL
-                && candidate->slice_borrow_base_place->type == AST_IDENTIFIER)
-                return candidate;
+            for (SliceBorrowSource *row = candidate != NULL ? candidate->slice_borrow_sources : NULL;
+                    row; row = row->next)
+                if (row->root == array_sym && row->place != NULL
+                        && row->place->type == AST_IDENTIFIER)
+                    return candidate;
         }
     }
     return NULL;
@@ -171,11 +243,10 @@ semantic_find_active_slice_borrow_for_array_place(Scope *scope,
     for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
         for (size_t i = 0; i < cur->symbol_count; i++) {
             Symbol *candidate = cur->symbols[i];
-            if (candidate != NULL
-                && candidate->slice_borrow_base_sym == root_sym
-                && ownership_slice_place_shape_equal(
-                    candidate->slice_borrow_base_place, array_place))
-                return candidate;
+            for (SliceBorrowSource *row = candidate != NULL ? candidate->slice_borrow_sources : NULL;
+                    row; row = row->next)
+                if (row->root == root_sym && ownership_slice_place_shape_equal(row->place, array_place))
+                    return candidate;
         }
     }
     return NULL;

@@ -14,10 +14,10 @@ func DirectMirScalarProgramLogicalRecordCollectionAbiReady(
         !DirectMirScalarProgramArrayBoolAbiFactReady(array_bool) {
         return false;
     }
-    let needs_int: Bool = false;
-    let needs_bool: Bool = false;
-    let needs_string: Bool = false;
-    let field: Int = 0;
+    var needs_int: Bool = false;
+    var needs_bool: Bool = false;
+    var needs_string: Bool = false;
+    var field: Int = 0;
     while field < ArrayLength(record.field_types) {
         if record.field_types[field] == CompilerAbiLayoutArrayIntTypeName() {
             needs_int = true;

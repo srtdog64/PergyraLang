@@ -101,7 +101,7 @@ func SemanticAstReadonlySequenceBoundaryVerdict(
     }
     // A field projection preserves its root's borrow; it does not grant
     // ownership. Follow only the admitted, strictly decreasing member path.
-    let node: Int = root_id;
+    var node: Int = root_id;
     while node >= 0 {
         let place: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node);
         if !IsSome(place) || UnwrapOption(place) == SemanticExpressionPlaceUnknown() {
@@ -144,7 +144,7 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             -1, -1
         );
     }
-    let statement: Int = 0;
+    var statement: Int = 0;
     while statement < ArrayLength(statements.node_ids) {
         if statements.verified[statement] == 1 &&
             statements.kind_tags[statement] == TypedAstKindValueReturnStmtTag() {
@@ -171,7 +171,7 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
                 "ast_artifact_invalid", "owner", "SemanticAstNamedValueBoundaryVerdict"),
             -1, -1);
     }
-    let call_node: Int = 0;
+    var call_node: Int = 0;
     while call_node < arena_count {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, call_node
@@ -221,7 +221,7 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             return SemanticAstNamedValueBoundaryVerdictError(
                 alias.code, alias.message, call_node, -1);
         }
-        let argument_index: Int = 0;
+        var argument_index: Int = 0;
         while argument_index < ArrayLength(call.argument_nodes) {
             let parameter_type: Option<String> =
                 SemanticAstFunctionParamTypeAt(
@@ -249,7 +249,7 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             let admitted_parameter_type: String = UnwrapOption(parameter_type);
             let argument_node_id: Int = call.argument_nodes[argument_index];
             if mode != 3 {
-                let readonly: SemanticAstNamedValueBoundaryVerdict =
+                var readonly: SemanticAstNamedValueBoundaryVerdict =
                     SemanticAstReadonlySequenceBoundaryVerdict(
                         graph, argument_node_id, admitted_parameter_type,
                         SemanticAstNamedValueBoundaryModeName(mode));

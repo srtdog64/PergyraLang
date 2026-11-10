@@ -2,17 +2,27 @@
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
 import "direct_mir_scalar_program_c_option_string_owner.pgy";
 import "direct_mir_scalar_program_c_option_bool_owner.pgy";
-import "direct_mir_scalar_program_c_result_int_owner.pgy";
+import "direct_mir_scalar_program_c_result_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_builtin_target_owner.pgy";
 
 func DirectMirScalarProgramCOptionResultExpression(
-    kind: Int, left: String, right: String
+    kind: Int, result_type: String, left_type: String,
+    left: String, right: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Option<String> {
-    let selected: Option<String> =
+    let explicit_result: Option<String> =
+        DirectMirScalarProgramCPayloadFreeEnumResultExpression(
+            kind, result_type, left_type, left, right, logical_record,
+            referenced_enum);
+    if IsSome(explicit_result) { return explicit_result; }
+    var selected: Option<String> =
         DirectMirScalarProgramCOptionIntExpression(kind, left);
     if IsSome(selected) { return selected; }
     selected = DirectMirScalarProgramCOptionStringExpression(kind, left);
     if IsSome(selected) { return selected; }
     selected = DirectMirScalarProgramCOptionBoolExpression(kind, left);
     if IsSome(selected) { return selected; }
-    return DirectMirScalarProgramCResultIntExpression(kind, left, right);
+    return DirectMirScalarProgramCScalarResultExpression(
+        kind, result_type, left_type, left, right);
 }

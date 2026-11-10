@@ -56,6 +56,282 @@ type_resolution_labels_equal(const char *lhs, const char *rhs)
     return strcmp(lhs, rhs) == 0;
 }
 
+static size_t
+type_resolution_node_identity_hash(TypeResolutionNodeKind kind,
+                                   const ASTNode *site,
+                                   const char *label)
+{
+    uint64_t hash = UINT64_C(1469598103934665603);
+    uintptr_t site_bits = (uintptr_t)site;
+
+    hash ^= (uint64_t)(unsigned)kind;
+    hash *= UINT64_C(1099511628211);
+    hash ^= (uint64_t)site_bits;
+    hash *= UINT64_C(1099511628211);
+    if (label == NULL) {
+        hash ^= UINT64_C(0xff);
+        hash *= UINT64_C(1099511628211);
+    } else {
+        const unsigned char *cursor = (const unsigned char *)label;
+        while (*cursor != '\0') {
+            hash ^= (uint64_t)*cursor++;
+            hash *= UINT64_C(1099511628211);
+        }
+    }
+    hash ^= hash >> 32;
+    return (size_t)hash;
+}
+
+static bool
+type_resolution_node_identity_insert(TypeResolutionGraph *graph,
+                                     size_t ordinal)
+{
+    size_t mask;
+    size_t slot;
+    TypeResolutionNode *node;
+
+    if (graph == NULL || ordinal >= graph->node_count ||
+        graph->node_identity_capacity == 0 ||
+        graph->node_identity_slots == NULL)
+        return false;
+
+    node = &graph->nodes[ordinal];
+    mask = graph->node_identity_capacity - 1;
+    slot = type_resolution_node_identity_hash(
+        node->kind, node->site, node->label) & mask;
+    for (size_t probe = 0; probe < graph->node_identity_capacity; probe++) {
+        if (graph->node_identity_slots[slot] == 0) {
+            graph->node_identity_slots[slot] = ordinal + 1;
+            return true;
+        }
+        slot = (slot + 1) & mask;
+    }
+    return false;
+}
+
+static bool
+type_resolution_node_identity_ensure(TypeResolutionGraph *graph,
+                                     size_t expected_count)
+{
+    size_t capacity;
+    size_t *slots;
+
+    if (graph == NULL)
+        return false;
+    capacity = graph->node_identity_capacity;
+    if (capacity != 0 && expected_count <= capacity - capacity / 4)
+        return true;
+
+    if (capacity == 0)
+        capacity = 32;
+    while (expected_count > capacity - capacity / 4) {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+    }
+    if (capacity > SIZE_MAX / sizeof(*slots))
+        return false;
+    slots = calloc(capacity, sizeof(*slots));
+    if (slots == NULL)
+        return false;
+
+    {
+        size_t *old_slots = graph->node_identity_slots;
+        size_t old_capacity = graph->node_identity_capacity;
+        graph->node_identity_slots = slots;
+        graph->node_identity_capacity = capacity;
+        for (size_t i = 0; i < graph->node_count; i++) {
+            if (!type_resolution_node_identity_insert(graph, i)) {
+                free(graph->node_identity_slots);
+                graph->node_identity_slots = old_slots;
+                graph->node_identity_capacity = old_capacity;
+                return false;
+            }
+        }
+        free(old_slots);
+    }
+    return true;
+}
+
+static size_t
+type_resolution_node_identity_lookup(const TypeResolutionGraph *graph,
+                                     TypeResolutionNodeKind kind,
+                                     const ASTNode *site,
+                                     const char *label)
+{
+    size_t mask;
+    size_t slot;
+
+    if (graph == NULL || graph->node_identity_capacity == 0 ||
+        graph->node_identity_slots == NULL)
+        return (size_t)-1;
+
+    mask = graph->node_identity_capacity - 1;
+    slot = type_resolution_node_identity_hash(kind, site, label) & mask;
+    for (size_t probe = 0; probe < graph->node_identity_capacity; probe++) {
+        size_t stored = graph->node_identity_slots[slot];
+        size_t ordinal;
+        const TypeResolutionNode *node;
+        if (stored == 0)
+            return (size_t)-1;
+        ordinal = stored - 1;
+        if (ordinal >= graph->node_count)
+            return (size_t)-1;
+        node = &graph->nodes[ordinal];
+        if (node->kind == kind && node->site == site &&
+            type_resolution_labels_equal(node->label, label))
+            return ordinal;
+        slot = (slot + 1) & mask;
+    }
+    return (size_t)-1;
+}
+
+bool
+type_resolution_node_identity_current(const TypeResolutionGraph *graph,
+                                      TypeResolutionNodeKind kind,
+                                      const ASTNode *site,
+                                      const char *label,
+                                      size_t *ordinal)
+{
+    if (ordinal == NULL)
+        return false;
+    *ordinal = (size_t)-1;
+    if (graph == NULL)
+        return false;
+    if (graph->node_identity_capacity != 0 &&
+        graph->node_identity_slots != NULL) {
+        *ordinal = type_resolution_node_identity_lookup(
+            graph, kind, site, label);
+        return true;
+    }
+    for (size_t i = 0; i < graph->node_count; i++) {
+        const TypeResolutionNode *node = &graph->nodes[i];
+        if (node->kind == kind && node->site == site &&
+            type_resolution_labels_equal(node->label, label)) {
+            *ordinal = i;
+            return true;
+        }
+    }
+    return true;
+}
+
+static size_t
+type_resolution_edge_reason_hash(size_t source_ordinal, const char *reason)
+{
+    uint64_t hash = UINT64_C(1469598103934665603);
+    hash ^= (uint64_t)source_ordinal;
+    hash *= UINT64_C(1099511628211);
+    if (reason == NULL) {
+        hash ^= UINT64_C(0xff);
+        hash *= UINT64_C(1099511628211);
+    } else {
+        const unsigned char *cursor = (const unsigned char *)reason;
+        while (*cursor != '\0') {
+            hash ^= (uint64_t)*cursor++;
+            hash *= UINT64_C(1099511628211);
+        }
+    }
+    hash ^= hash >> 32;
+    return (size_t)hash;
+}
+
+static void
+type_resolution_edge_reason_projection_clear(TypeResolutionGraph *graph)
+{
+    if (graph == NULL)
+        return;
+    free(graph->edge_reason_slots);
+    graph->edge_reason_slots = NULL;
+    graph->edge_reason_capacity = 0;
+    graph->edge_reason_edges = NULL;
+    graph->edge_reason_edge_count = 0;
+    graph->edge_reason_projection_ready = false;
+}
+
+static bool
+type_resolution_edge_reason_projection_build(TypeResolutionGraph *graph)
+{
+    size_t capacity = 8;
+
+    if (graph == NULL)
+        return false;
+    type_resolution_edge_reason_projection_clear(graph);
+    if (graph->edge_count > SIZE_MAX / 2)
+        return false;
+    while (capacity < graph->edge_count * 2) {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+    }
+    size_t *slots = calloc(capacity, sizeof(*slots));
+    if (slots == NULL)
+        return false;
+    for (size_t ordinal = 0; ordinal < graph->edge_count; ordinal++) {
+        const TypeResolutionEdge *edge = &graph->edges[ordinal];
+        size_t slot = type_resolution_edge_reason_hash(
+            edge->from, edge->reason) & (capacity - 1);
+        for (size_t probe = 0; probe < capacity; probe++) {
+            size_t stored = slots[slot];
+            if (stored == 0) {
+                slots[slot] = ordinal + 1;
+                break;
+            }
+            const TypeResolutionEdge *prior = &graph->edges[stored - 1];
+            if (prior->from == edge->from &&
+                type_resolution_labels_equal(prior->reason, edge->reason))
+                break;
+            slot = (slot + 1) & (capacity - 1);
+            if (probe + 1 == capacity) {
+                free(slots);
+                return false;
+            }
+        }
+    }
+    graph->edge_reason_slots = slots;
+    graph->edge_reason_capacity = capacity;
+    graph->edge_reason_edges = graph->edges;
+    graph->edge_reason_edge_count = graph->edge_count;
+    graph->edge_reason_projection_ready = true;
+    return true;
+}
+
+bool
+type_resolution_edge_reason_current(TypeResolutionGraph *graph,
+                                    size_t source_ordinal,
+                                    const char *reason,
+                                    bool *present)
+{
+    if (present == NULL)
+        return false;
+    *present = false;
+    if (graph == NULL || source_ordinal >= graph->node_count)
+        return false;
+    if (!graph->edge_reason_projection_ready ||
+        graph->edge_reason_edges != graph->edges ||
+        graph->edge_reason_edge_count != graph->edge_count) {
+        if (!type_resolution_edge_reason_projection_build(graph))
+            return false;
+    }
+    size_t slot = type_resolution_edge_reason_hash(
+        source_ordinal, reason) & (graph->edge_reason_capacity - 1);
+    for (size_t probe = 0; probe < graph->edge_reason_capacity; probe++) {
+        size_t stored = graph->edge_reason_slots[slot];
+        if (stored == 0)
+            return true;
+        size_t ordinal = stored - 1;
+        if (ordinal >= graph->edge_count)
+            return false;
+        const TypeResolutionEdge *edge = &graph->edges[ordinal];
+        if (edge->from == source_ordinal &&
+            type_resolution_labels_equal(edge->reason, reason)) {
+            *present = true;
+            return true;
+        }
+        slot = (slot + 1) & (graph->edge_reason_capacity - 1);
+    }
+    return false;
+}
+
 size_t
 type_resolution_intern_node(TypeResolutionGraph *graph,
                             TypeResolutionNodeKind kind,
@@ -64,16 +340,29 @@ type_resolution_intern_node(TypeResolutionGraph *graph,
 {
     TypeResolutionNode *grown;
     char *label_copy = NULL;
+    bool indexed;
+    size_t existing;
 
     if (graph == NULL)
         return (size_t)-1;
+    if (graph->node_count == SIZE_MAX)
+        return (size_t)-1;
 
-    for (size_t i = 0; i < graph->node_count; i++) {
-        TypeResolutionNode *node = &graph->nodes[i];
-        if (node->kind == kind
-            && node->site == site
-            && type_resolution_labels_equal(node->label, label)) {
-            return i;
+    indexed = type_resolution_node_identity_ensure(
+        graph, graph->node_count + 1);
+    if (indexed) {
+        existing = type_resolution_node_identity_lookup(
+            graph, kind, site, label);
+        if (existing != (size_t)-1)
+            return existing;
+    } else {
+        for (size_t i = 0; i < graph->node_count; i++) {
+            TypeResolutionNode *node = &graph->nodes[i];
+            if (node->kind == kind
+                && node->site == site
+                && type_resolution_labels_equal(node->label, label)) {
+                return i;
+            }
         }
     }
 
@@ -99,7 +388,19 @@ type_resolution_intern_node(TypeResolutionGraph *graph,
     graph->nodes[graph->node_count].kind = kind;
     graph->nodes[graph->node_count].site = site;
     graph->nodes[graph->node_count].label = label_copy;
-    return graph->node_count++;
+    existing = graph->node_count++;
+    if (indexed) {
+        if (!type_resolution_node_identity_insert(graph, existing)) {
+            free(graph->node_identity_slots);
+            graph->node_identity_slots = NULL;
+            graph->node_identity_capacity = 0;
+        }
+    } else if (graph->node_identity_slots != NULL) {
+        free(graph->node_identity_slots);
+        graph->node_identity_slots = NULL;
+        graph->node_identity_capacity = 0;
+    }
+    return existing;
 }
 
 void
@@ -146,6 +447,7 @@ type_resolution_add_edge(TypeResolutionGraph *graph,
     graph->edges[graph->edge_count].to = to;
     graph->edges[graph->edge_count].reason = reason_copy;
     graph->edge_count++;
+    type_resolution_edge_reason_projection_clear(graph);
 }
 
 static char *

@@ -462,13 +462,27 @@ hir_validate(const HIRProgram *hir, char **error_message)
         return false;
     }
 
-    HIRRoutineInventory inventory;
-    if ((hir->source_program_syntax_id != 0 || hir->execution_census != NULL) &&
-        !hir_cfg_program_execution_current(hir, NULL)) {
+    /* Validate owned storage before constructing a borrowed inventory.  The
+     * full execution witness is checked after structural validation so a
+     * malformed edge keeps its precise diagnostic instead of being hidden by
+     * the coarser stale-witness failure. */
+    if (hir->item_count > hir->item_capacity ||
+        hir->decl_count > hir->decl_capacity ||
+        hir->function_count > hir->function_capacity ||
+        hir->intent_count > hir->intent_capacity ||
+        hir->routine_count > hir->routine_capacity ||
+        (hir->item_count != 0 && hir->items == NULL) ||
+        (hir->decl_count != 0 && hir->decls == NULL) ||
+        (hir->function_count != 0 && hir->functions == NULL) ||
+        (hir->intent_count != 0 && hir->intents == NULL) ||
+        (hir->routine_count != 0 && hir->routines == NULL)) {
         if (error_message != NULL)
-            *error_message = pergyra_strdup("HIR original execution inventory is missing or stale");
+            *error_message = pergyra_strdup(
+                "HIR program storage counts exceed owned capacities");
         return false;
     }
+
+    HIRRoutineInventory inventory;
     hir_routine_inventory_from_program(hir, &inventory);
 
     if (!hir_validate_region_escape_facts(hir, &inventory, error_message))
@@ -567,6 +581,13 @@ hir_validate(const HIRProgram *hir, char **error_message)
             }
             return false;
         }
+        if (routine->cfg.block_count > routine->cfg.block_capacity) {
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR CFG block count exceeds owned capacity");
+            }
+            return false;
+        }
         if (routine->cfg.entry_block >= routine->cfg.block_count) {
             if (error_message != NULL) {
                 *error_message = pergyra_strdup(
@@ -655,6 +676,14 @@ hir_validate(const HIRProgram *hir, char **error_message)
                     "HIR declares loop-flow facts but carries no summaries");
             return false;
         }
+    }
+
+    if ((hir->source_program_syntax_id != 0 || hir->execution_census != NULL) &&
+        !hir_cfg_program_execution_current(hir, NULL)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "HIR original execution inventory is missing or stale");
+        return false;
     }
 
     return true;

@@ -8,7 +8,7 @@ func DirectMirScalarProgramArrayTransformKind(kind: Int) -> Bool {
 }
 
 func DirectMirScalarProgramArrayTransformRuntimeFact(kind: Int) -> CompilerRuntimeCallAbiFact {
-    let operation: String = ""; let symbol: String = "";
+    var operation: String = ""; var symbol: String = "";
     if kind == DirectMirScalarProgramExprArrayIntSort() {
         operation = "array-int.sort-data"; symbol = CollectionRuntimeLlvmIntSortFn();
     } else if kind == DirectMirScalarProgramExprArrayIntReverse() {

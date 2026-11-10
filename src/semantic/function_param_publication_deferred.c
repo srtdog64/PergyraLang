@@ -44,7 +44,8 @@ static bool publication_channel_shape(const PublishedNode *row)
     return ast_call_semantic_callee_builtin_kind(row->target, &kind) && kind == BUILTIN_NOT_BUILTIN &&
         arg->node != NULL && arg->node == ast_call_argument(row->target, 0) && arg->id != 0 &&
         arg->id == ast_node_stable_id(arg->node) && arg->shape == arg->node->type &&
-        arg->binding == ast_identifier_binding_syntax_id(arg->node) && arg->type == TYPE_INT;
+        arg->binding == ast_identifier_binding_syntax_id(arg->node) && arg->type == TYPE_INT &&
+        arg->formal_ordinal == SIZE_MAX && arg->formal_id == 0;
 }
 bool semantic_param_publication_record_channel_binding(SemanticContext *ctx,
     ASTNode *declaration, const Type *channel_type)
@@ -60,8 +61,15 @@ bool semantic_param_publication_record_channel_binding(SemanticContext *ctx,
     PublishedNode *value = publication_node(ctx->function_param_publications, capacity, false);
     if (value == NULL || !value->value_present || value->value_type != TYPE_INT ||
         !value->physical_scalar || value->value_shape != capacity->type) return false;
-    PublishedCallArgument argument = {capacity, ast_node_stable_id(capacity), capacity->type,
-        ast_identifier_binding_syntax_id(capacity), TYPE_INT};
+    PublishedCallArgument argument = {
+        .node = capacity,
+        .id = ast_node_stable_id(capacity),
+        .shape = capacity->type,
+        .binding = ast_identifier_binding_syntax_id(capacity),
+        .type = TYPE_INT,
+        .formal_ordinal = SIZE_MAX,
+        .formal_id = 0,
+    };
     if (!semantic_param_publication_record_value(ctx, init, channel_type, false) ||
         !semantic_param_publication_record_checked_call(ctx, init)) return false;
     PublishedNode *row = publication_node(ctx->function_param_publications, declaration, true);
@@ -270,7 +278,7 @@ bool semantic_param_publication_owned_slot_binding(const SemanticContext *ctx,
          semantic_type_resolution_lookup_metadata_type_ref((SemanticContext *)ctx, (ASTNode *)row->slot_birth_annotation) != row->slot_birth_annotation_type ||
          row->slot_birth_annotation_type != (row->slot_birth_annotation_type->kind == TYPE_KIND_SLOT ? row->slot_birth.slot_type : row->slot_birth_inner_type))) return false;
     PublishedNode *value = publication_node(ctx->function_param_publications, row->target, false);
-    if (value == NULL || !value->value_present || value->value_shape != AST_CALL || !publication_call_ready(value) ||
+    if (value == NULL || !value->value_present || value->value_shape != AST_CALL || !publication_call_ready(ctx, value) ||
         value->value_type != row->slot_birth.slot_type || value->owned_slot_declaration != declaration ||
         value->owned_slot_declaration_id != row->id) return false;
     *birth = row->slot_birth;
@@ -283,7 +291,7 @@ bool publication_record_read_payload_loan(SemanticContext *ctx, ASTNode *call)
     PublishedNode *value = publication_node(store, call, false);
     if (value == NULL || !value->value_present || value->value_type == NULL || value->physical_scalar ||
         publication_physical_scalar(value->value_type) || value->value_type == TYPE_UNKNOWN ||
-        !value->kind_present || value->builtin != BUILTIN_READ || !publication_call_ready(value)) return false;
+        !value->kind_present || value->builtin != BUILTIN_READ || !publication_call_ready(ctx, value)) return false;
     size_t at = 0;
     while (at < store->read_loan_count && store->read_loans[at].call != call) at++;
     if (at == store->read_loan_count && !semantic_param_publication_reserve_storage((void **)&store->read_loans,
@@ -390,13 +398,14 @@ bool semantic_param_publication_empty_map_binding(const SemanticContext *ctx, co
         !function_param_flow_syntax_claims_current(ctx, row->deferred_syntax) ||
         semantic_type_resolution_lookup_resolved_type((SemanticContext *)ctx, (ASTNode *)row->map_type_node) != row->value_type) return false;
     PublishedNode *init = publication_node(ctx->function_param_publications, row->target, false);
-    return init != NULL && init->value_present && init->value_shape == AST_CALL && publication_call_ready(init) &&
+    return init != NULL && init->value_present && init->value_shape == AST_CALL && publication_call_ready(ctx, init) &&
         init->value_type == row->value_type && init->empty_map_declaration == declaration &&
         init->empty_map_declaration_id == row->id;
 }
-static bool publication_slot_write_shape(const PublishedNode *row)
+static bool publication_slot_write_shape(const SemanticContext *ctx,
+    const PublishedNode *row)
 {
-    if (row == NULL || !row->slot_write || !publication_call_ready(row) || !row->kind_present ||
+    if (row == NULL || !row->slot_write || !publication_call_ready(ctx, row) || !row->kind_present ||
         row->builtin != BUILTIN_WRITE || row->stdlib || row->declaration != 0 || row->value_binding != 0 ||
         row->target->type != AST_IDENTIFIER || ast_identifier_name(row->target) == NULL ||
         strcmp(ast_identifier_name(row->target), "Write") != 0 || row->write_receiver_type == NULL ||
@@ -421,7 +430,7 @@ bool semantic_param_publication_record_slot_write(SemanticContext *ctx, ASTNode 
     row->write_receiver_type = receiver_type; row->write_payload_type = payload_type; row->slot_write = true;
     row->write_inner_type = type_slot_inner_type(receiver_type);
     row->write_access_mode = type_slot_access_mode(receiver_type); row->write_secure = type_slot_is_secure(receiver_type);
-    if (!publication_slot_write_shape(row)) { row->slot_write = false; return false; }
+    if (!publication_slot_write_shape(ctx, row)) { row->slot_write = false; return false; }
     FunctionParamFlowIndexClaims *syntax = NULL;
     if (!function_param_flow_syntax_claims_snapshot(ctx, &syntax, call)) {
         function_param_flow_claims_destroy(syntax); return false;
@@ -434,7 +443,7 @@ bool semantic_param_publication_record_slot_write(SemanticContext *ctx, ASTNode 
 bool semantic_param_publication_checked_slot_write(const SemanticContext *ctx, const ASTNode *call)
 {
     PublishedNode *row = publication_current_value(ctx, call);
-    if (!publication_slot_write_shape(row) || row->value_type != TYPE_VOID || row->deferred_syntax == NULL ||
+    if (!publication_slot_write_shape(ctx, row) || row->value_type != TYPE_VOID || row->deferred_syntax == NULL ||
         !function_param_flow_syntax_claims_current(ctx, row->deferred_syntax)) return false;
     for (size_t p = 0; p < row->argument_count; p++) {
         PublishedNode *arg = publication_current_value(ctx, row->arguments[p].node);
@@ -525,7 +534,7 @@ bool semantic_param_publication_record_checked_deferred(SemanticContext *ctx, AS
         ASTNode *call = ast_spawn_function(boundary);
         PublishedNode *checked = publication_node(ctx->function_param_publications, call, false);
         if (ast_spawn_arg_count(boundary) != 0 || call == NULL || call->type != AST_CALL ||
-            !publication_call_ready(checked) || checked->value_binding != 0) return false;
+            !publication_call_ready(ctx, checked) || checked->value_binding != 0) return false;
     }
     FunctionParamFlowIndexClaims *syntax = NULL;
     if (!function_param_flow_syntax_claims_snapshot(ctx, &syntax, boundary)) {

@@ -11,8 +11,8 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, argument_node: Int, value: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let members: Array<Int> = [];
-    let receiver: Int = argument_node;
+    var members: Array<Int> = [];
+    var receiver: Int = argument_node;
     while receiver >= 0 && receiver < ArrayLength(expressions.node_kinds) &&
             expressions.node_kinds[receiver] == DirectMirScalarProgramExprLogicalRecordMember() {
         let parent: Int = expressions.node_lefts[receiver];
@@ -32,8 +32,8 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
     let receiver_type: String =
         DirectMirScalarProgramLlvmLogicalRecordTypeName(
             logical_record, expressions.node_types[receiver]);
-    let receiver_pointer: String = "";
-    let receiver_instructions: String = "";
+    var receiver_pointer: String = "";
+    var receiver_instructions: String = "";
     if expressions.node_kinds[receiver] ==
             DirectMirScalarProgramExprLocal() {
         receiver_pointer = Concat("%pgy.local.", ToString(
@@ -69,13 +69,13 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
             true, false, "", "");
     }
     let pointer: String = Concat(value, ".address");
-    let instructions: String = Concat(receiver_instructions, Concat("  ",
+    var instructions: String = Concat(receiver_instructions, Concat("  ",
         Concat(pointer, " = getelementptr inbounds ")));
     instructions = Concat(instructions, receiver_type);
     instructions = Concat(instructions, ", ptr ");
     instructions = Concat(instructions, receiver_pointer);
     instructions = Concat(instructions, ", i32 0");
-    let index: Int = ArrayLength(members);
+    var index: Int = ArrayLength(members);
     while index > 0 {
         index = index - 1;
         instructions = Concat(instructions, Concat(", i32 ", ToString(members[index])));

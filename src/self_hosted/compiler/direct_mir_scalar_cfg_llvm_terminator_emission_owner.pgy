@@ -25,7 +25,7 @@ func DirectMirScalarCfgLlvmTerminator(
             ToString(true_target), "\n"
         ));
     }
-    let output: String = "";
+    var output: String = "";
     if condition == DirectMirScalarCfgConditionForEach() {
         output = DirectMirScalarCfgForEachLlvmCondition(plan, target, block);
     } else if DirectMirScalarCfgStringArrayLengthRowAtBlock(
@@ -37,8 +37,8 @@ func DirectMirScalarCfgLlvmTerminator(
     } else if DirectMirScalarCfgArrayIntConditionBlock(plan, block) {
         output = DirectMirScalarCfgArrayIntLlvmCondition(plan, block);
     } else {
-        let left: String = plan.block_condition_left_literals[block];
-        let right: String = plan.block_condition_right_literals[block];
+        var left: String = plan.block_condition_left_literals[block];
+        var right: String = plan.block_condition_right_literals[block];
         if plan.block_condition_left_values[block] >= 0 ||
             plan.block_condition_left_locals[block] >= 0 {
             output = Concat(output, "  %pgy.cond.");

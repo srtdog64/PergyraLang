@@ -5,8 +5,8 @@ func GenericParameterFactRowsRollbackReady() -> Bool {
         "    Constraints: where T: Sortable, T:\n" +
         "    Parameters:\n    Returns: T\n    Body:\n      Block:\n"
     );
-    let owner_node_id: Int = -1;
-    let node_id: Int = 0;
+    var owner_node_id: Int = -1;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         let name: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
         if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) &&
@@ -20,7 +20,7 @@ func GenericParameterFactRowsRollbackReady() -> Bool {
     let names: Array<String> = ["Seed"];
     let defaults: Array<String> = ["String"];
     let constraints: Array<String> = ["SeedBound"];
-    let rows: SemanticAstGenericParameterFactRows =
+    var rows: SemanticAstGenericParameterFactRows =
         SemanticAstGenericParameterFactRowsFromOwnerNode(
             artifact.arena, owner_node_id
         );
@@ -38,8 +38,8 @@ func GenericParameterFactRowsRollbackReady() -> Bool {
 func InspectGenericDefaultSelection(
     ref analysis: SemanticAstArtifactAnalysis
 ) -> Bool {
-    let signature_index: Int = -1;
-    let row: Int = 0;
+    var signature_index: Int = -1;
+    var row: Int = 0;
     while row < SemanticAstFunctionSignatureCount(analysis.signatures) {
         let name: Option<String> = SemanticAstFunctionNameAt(
             analysis.signatures, row);

@@ -6,36 +6,40 @@ func DirectMirScalarCfgProgramExtensionAbiMutationRejected(
     let runtime_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
-            empty_ints, empty_ints, empty_ints, empty_ints,
+            empty_ints, empty_ints, empty_ints,
+            empty.operation_target_paths, empty_ints,
             empty.closed_call_abi,
             DirectMirScalarProgramRuntimeAbiFact(
-                false, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+                false, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
                 DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 DirectMirScalarProgramCaseMathRuntimeIds(
                     false, 0, 1, 0, 0, 0, 0, 0)),
-            empty.option_int_abi, empty.result_int_abi,
+            empty.option_int_abi, empty.result_abi,
             empty.option_string_abi,
             empty.option_bool_abi,
 
             empty.logical_record,
             empty.referenced_enum,
             empty.payload_free_enum,
+            empty.opaque_readonly_zones,
             empty.array_int_value_result, empty.array_bool_abi,
             empty.array_string_abi, empty.array_string_boundary, empty.collection_ownership,
             empty.owned_array_string_move);
     let array_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
-            empty_ints, empty_ints, empty_ints, empty_ints,
+            empty_ints, empty_ints, empty_ints,
+            empty.operation_target_paths, empty_ints,
             empty.closed_call_abi,
             empty.runtime_abi, empty.option_int_abi,
-            empty.result_int_abi,
+            empty.result_abi,
             empty.option_string_abi, empty.option_bool_abi,
             empty.logical_record,
             empty.referenced_enum,
             empty.payload_free_enum,
+            empty.opaque_readonly_zones,
             empty.array_int_value_result,
             empty.array_bool_abi,
             DirectMirScalarProgramArrayStringAbiFact(
@@ -46,13 +50,15 @@ func DirectMirScalarCfgProgramExtensionAbiMutationRejected(
     let bool_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
-            empty_ints, empty_ints, empty_ints, empty_ints,
+            empty_ints, empty_ints, empty_ints,
+            empty.operation_target_paths, empty_ints,
             empty.closed_call_abi,
             empty.runtime_abi, empty.option_int_abi,
-            empty.result_int_abi,
+            empty.result_abi,
             empty.option_string_abi, empty.option_bool_abi,
             empty.logical_record, empty.referenced_enum,
             empty.payload_free_enum,
+            empty.opaque_readonly_zones,
             empty.array_int_value_result,
             DirectMirScalarProgramArrayBoolAbiFact(
                 false, 0, true, false, false, 1, 0, 0, 0, 0, 0, 0,

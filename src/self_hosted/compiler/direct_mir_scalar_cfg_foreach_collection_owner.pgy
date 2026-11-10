@@ -47,7 +47,7 @@ func DirectMirScalarCfgForEachCollectionFactReady(
         fact.allocator_offset != layout.allocator_offset {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.elements) {
         if fact.elements[row] < -2147483648 ||
             fact.elements[row] > 2147483647 { return false; }
@@ -96,8 +96,8 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
         if !IsSome(returned_abi_opt) { return invalid; }
         let returned_abi: MirAbiLayoutRowCapture =
             UnwrapOption(returned_abi_opt);
-        let elements: Array<Int> = [];
-        let element_row: Int = 0;
+        var elements: Array<Int> = [];
+        var element_row: Int = 0;
         while element_row < ArrayLength(producer.elements) {
             ArrayPush(elements, producer.elements[element_row]);
             element_row = element_row + 1;

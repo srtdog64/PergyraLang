@@ -1,4 +1,4 @@
-// Routine-partition identity for admitted read-only Int/String array parameters.
+// Routine-partition identity for admitted read-only scalar-array parameters.
 
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
@@ -41,7 +41,7 @@ func DirectMirScalarProgramReadonlyArrayMemberArgumentReady(
         !DirectMirScalarProgramReadonlyArrayTypeSupported(expressions.node_types[node]) {
         return false;
     }
-    let root: Int = node;
+    var root: Int = node;
     while expressions.node_kinds[root] == DirectMirScalarProgramExprLogicalRecordMember() {
         let parent: Int = expressions.node_lefts[root];
         if parent < graph_start || parent >= root { return false; }

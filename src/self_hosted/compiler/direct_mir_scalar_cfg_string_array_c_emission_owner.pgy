@@ -62,9 +62,9 @@ func DirectMirScalarCfgStringArrayCSet(
     }
     let fact: DirectMirScalarCfgStringArrayAccessFact =
         DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
-    let value: Array<String> = [];
+    var value: Array<String> = [];
     ArrayPush(value, fact.value_literal);
-    let output: String = Concat(
+    var output: String = Concat(
         "    pgy_indexed_collection_", ToString(fact.collection_row)
     );
     output = Concat(output, Concat(".data[",

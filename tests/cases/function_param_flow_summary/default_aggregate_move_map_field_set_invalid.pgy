@@ -10,7 +10,7 @@ func Put(table: Table) -> Int {
 }
 
 func Main() -> Int {
-    let counts: HashMap<String, Array<Int>> = MapNew();
+    var counts: HashMap<String, Array<Int>> = MapNew();
     MapSet(counts, "a", [1]);
     let table: Table = Table(counts);
     let done: Int = Put(table);

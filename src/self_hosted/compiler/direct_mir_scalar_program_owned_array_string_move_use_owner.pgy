@@ -10,8 +10,8 @@ func DirectMirScalarProgramExpressionGraphLocalUseCount(
     graph: Int, local_row: Int
 ) -> Int {
     if graph < 0 || graph >= ArrayLength(expressions.graph_starts) { return -1; }
-    let count: Int = 0;
-    let node: Int = expressions.graph_starts[graph];
+    var count: Int = 0;
+    var node: Int = expressions.graph_starts[graph];
     let end: Int = node + expressions.graph_counts[graph];
     while node < end {
         if expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&

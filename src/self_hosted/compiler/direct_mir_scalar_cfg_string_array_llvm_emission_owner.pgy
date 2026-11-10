@@ -28,11 +28,11 @@ func DirectMirScalarCfgStringArrayLlvmIndex(
     fact: DirectMirScalarCfgStringArrayIndexFact,
     stem: String
 ) -> Array<String> {
-    let output: Array<String> = ["", ""];
+    var output: Array<String> = ["", ""];
     if fact.kind == DirectMirScalarCfgStringArrayIndexLiteral() {
         ArraySet(output, 1, fact.literal); return output;
     }
-    let text: String = Concat("  ", Concat(stem, ".index = load i64, ptr "));
+    var text: String = Concat("  ", Concat(stem, ".index = load i64, ptr "));
     text = Concat(text, DirectMirScalarCfgLlvmOperandLocal(
         plan, fact.value_row, fact.local_row
     ));
@@ -53,7 +53,7 @@ func DirectMirScalarCfgStringArrayLlvmAddress(
     let index: Array<String> = DirectMirScalarCfgStringArrayLlvmIndex(
         plan, fact.index, stem
     );
-    let output: String = index[0];
+    var output: String = index[0];
     output = Concat(output, Concat("  ", Concat(stem, ".array.data = load ")));
     output = Concat(output, Concat(abi.llvm_element_type,
         ", ptr %pgy.array.indexed."));
@@ -86,7 +86,7 @@ func DirectMirScalarCfgStringArrayLlvmRead(
     let address: DirectMirScalarCfgStringArrayLlvmAddressFact = DirectMirScalarCfgStringArrayLlvmAddress(
         plan, target, fact, stem
     );
-    let output: String = address.instructions;
+    var output: String = address.instructions;
     output = Concat(output, Concat("  ", Concat(stem, Concat(
         Concat(".", result_name), " = load ptr, ptr "
     ))));
@@ -112,7 +112,7 @@ func DirectMirScalarCfgStringArrayLlvmSet(
     let address: DirectMirScalarCfgStringArrayLlvmAddressFact = DirectMirScalarCfgStringArrayLlvmAddress(
         plan, target, fact, stem
     );
-    let output: String = address.instructions;
+    var output: String = address.instructions;
     output = Concat(output, Concat("  store ptr @.pgy.scalar.cfg.indexed.set.",
         ToString(row)));
     return Concat(output, Concat(", ptr ", Concat(address.pointer,
@@ -135,7 +135,7 @@ func DirectMirScalarCfgStringArrayLlvmCondition(
     let index: Array<String> = DirectMirScalarCfgStringArrayLlvmIndex(
         plan, fact.index, stem
     );
-    let output: String = index[0];
+    var output: String = index[0];
     output = Concat(output, Concat("  ", Concat(stem, ".length = load ")));
     output = Concat(output, Concat(abi.llvm_length_type,
         ", ptr %pgy.array.indexed."));

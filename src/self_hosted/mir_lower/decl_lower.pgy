@@ -24,15 +24,15 @@ func EmitDeclFields(
     inout slot_rows: Array<String>,
     inout subject_slot_names: Array<String>
 ) -> Int {
-    let subject_slot_count: Int = 0;
-    let fields_bounds: Array<Int> = [0, 0];
+    var subject_slot_count: Int = 0;
+    var fields_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, decl_start, decl_end, "fields", fields_bounds
     ) {
         return 0;
     }
-    let field_bounds: Array<Int> = [0, 0];
-    let cursor: Int = fields_bounds[0] + 1;
+    var field_bounds: Array<Int> = [0, 0];
+    var cursor: Int = fields_bounds[0] + 1;
     while JsonArrayNextObjectBounds(json, json_extent, cursor, fields_bounds[1], field_bounds) {
         let fname: String = MirObjectStringFactAtBounds(json, json_extent, field_bounds[0], field_bounds[1], "name");
         if StringLength(fname) == 0 {
@@ -86,21 +86,21 @@ func EmitDeclFields(
 func EmitDeclRoleSlots(
     json: String, json_extent: Int, decl_start: Int, decl_end: Int, owner_name: String
 ) -> String {
-    let out: String = "";
-    let slots_bounds: Array<Int> = [0, 0];
+    var out: String = "";
+    var slots_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, decl_start, decl_end, "role_slots", slots_bounds
     ) { return out; }
-    let slot_bounds: Array<Int> = [0, 0];
-    let cursor: Int = slots_bounds[0] + 1;
+    var slot_bounds: Array<Int> = [0, 0];
+    var cursor: Int = slots_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
         json, json_extent, cursor, slots_bounds[1], slot_bounds
     ) {
         let slot_name: String = MirObjectStringFactAtBounds(
             json, json_extent, slot_bounds[0], slot_bounds[1], "name"
         );
-        let abilities_bounds: Array<Int> = [0, 0];
-        let ability_bounds: Array<Int> = [0, 0];
+        var abilities_bounds: Array<Int> = [0, 0];
+        var ability_bounds: Array<Int> = [0, 0];
         if slot_name == "" || !MirObjectArrayBoundsAtBounds(
             json, json_extent, slot_bounds[0], slot_bounds[1], "abilities",
             abilities_bounds
@@ -127,7 +127,7 @@ func EmitDeclRoleSlots(
             json, json_extent, slot_bounds[0], slot_bounds[1], "dynamic", false) {
             MirLowerFailClosed(Concat("party role slot is missing its dynamic fact: ", slot_name));
         }
-        let slot_head: String = "    RoleSlot: ";
+        var slot_head: String = "    RoleSlot: ";
         if dynamic { slot_head = "    RoleSlot: dyn "; }
         out = Concat(out, Concat(slot_head, Concat(
             slot_name, Concat(" requires ", Concat(ability_name, "\n")))));
@@ -138,16 +138,16 @@ func EmitDeclRoleSlots(
 func EmitDeclGenericParams(
     json: String, json_extent: Int, decl_start: Int, decl_end: Int, owner_name: String
 ) -> String {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, decl_start, decl_end, "generic_params", bounds
     ) {
         return "";
     }
-    let out: String = "    Generic params: <";
-    let row: Int = 0;
-    let row_bounds: Array<Int> = [0, 0];
-    let cursor: Int = bounds[0] + 1;
+    var out: String = "    Generic params: <";
+    var row: Int = 0;
+    var row_bounds: Array<Int> = [0, 0];
+    var cursor: Int = bounds[0] + 1;
     while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
         let name: String = MirObjectStringFactAtBounds(
             json, json_extent, row_bounds[0], row_bounds[1], "name"
@@ -173,15 +173,15 @@ func EmitDeclGenericParams(
 func EmitDeclGenericConstraints(
     json: String, json_extent: Int, decl_start: Int, decl_end: Int, owner_name: String
 ) -> String {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, decl_start, decl_end, "generic_params", bounds
     ) {
         return "";
     }
-    let out: String = "";
-    let row_bounds: Array<Int> = [0, 0];
-    let cursor: Int = bounds[0] + 1;
+    var out: String = "";
+    var row_bounds: Array<Int> = [0, 0];
+    var cursor: Int = bounds[0] + 1;
     while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
         let constraint: String = MirObjectStringFactAtBounds(
             json, json_extent, row_bounds[0], row_bounds[1], "constraint"
@@ -245,15 +245,15 @@ func EmitRoleDecl(ref routines: MirProgramRoutineIndex, decl_start: Int,
 }
 
 func EmitEnumDecl(json: String, json_extent: Int, decl_start: Int, decl_end: Int, enum_name: String) -> String {
-    let variants_bounds: Array<Int> = [0, 0];
+    var variants_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, decl_start, decl_end, "variants", variants_bounds
     ) {
         MirLowerFailClosed(Concat("enum declaration is missing variants fact: ", enum_name));
     }
-    let out: String = "";
-    let variant_bounds: Array<Int> = [0, 0];
-    let cursor: Int = variants_bounds[0] + 1;
+    var out: String = "";
+    var variant_bounds: Array<Int> = [0, 0];
+    var cursor: Int = variants_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
         json, json_extent, cursor, variants_bounds[1], variant_bounds
     ) {
@@ -282,8 +282,8 @@ func EmitEnumDecl(json: String, json_extent: Int, decl_start: Int, decl_end: Int
                 Concat(enum_name, Concat(".", vname))
             ));
         }
-        let payload_types: String = "";
-        let payload_index: Int = 0;
+        var payload_types: String = "";
+        var payload_index: Int = 0;
         while payload_index < param_count {
             let payload_type: String = param_types[payload_index];
             if payload_type == "" || payload_type == "Unknown" {
@@ -349,12 +349,12 @@ func EmitCanonicalNominalDecl(
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
-    let chunks: Array<String> = [];
+    var chunks: Array<String> = [];
     if kind == "struct" {
         ArrayPush(chunks, Concat("  Struct: ", Concat(name, "\n")));
-        let storage_rows: Array<String> = [];
-        let slot_rows: Array<String> = [];
-        let subject_slot_names: Array<String> = [];
+        var storage_rows: Array<String> = [];
+        var slot_rows: Array<String> = [];
+        var subject_slot_names: Array<String> = [];
         let subject_slot_count: Int = EmitDeclFields(
             routines.source_json, routines.source_json_extent, decl_start, decl_end, name, "struct",
             storage_rows, slot_rows, subject_slot_names
@@ -412,9 +412,9 @@ func EmitCanonicalNominalDecl(
             name
         ));
     }
-    let storage_rows: Array<String> = [];
-    let slot_rows: Array<String> = [];
-    let subject_slot_names: Array<String> = [];
+    var storage_rows: Array<String> = [];
+    var slot_rows: Array<String> = [];
+    var subject_slot_names: Array<String> = [];
     let subject_slot_count: Int = EmitDeclFields(
         routines.source_json, routines.source_json_extent, decl_start, decl_end, name, nominal_kind,
         storage_rows, slot_rows, subject_slot_names
@@ -513,13 +513,13 @@ func EmitStructDecls(
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
-    let chunks: Array<String> = [];
+    var chunks: Array<String> = [];
     if !routines.declarations.valid {
         MirLowerFailClosed("MIR declaration inventory is missing");
     }
-    let phase: Int = 0;
+    var phase: Int = 0;
     while phase < 6 {
-        let row: Int = 0;
+        var row: Int = 0;
         while row < MirProgramDeclarationIndexCount(routines.declarations) {
             let decl_start: Int = routines.declarations.starts[row];
             let decl_end: Int = routines.declarations.ends[row];
@@ -532,7 +532,7 @@ func EmitStructDecls(
                     routines.source_json, routines.source_json_extent, decl_start, decl_end, "nominal_kind"
                 );
                 let name: String = routines.declarations.names[row];
-                let display_kind: String = ast_type;
+                var display_kind: String = ast_type;
                 if ast_type == "AST_CLASS_DECL" && nominal_kind != "" {
                     display_kind = nominal_kind;
                 }
@@ -544,7 +544,7 @@ func EmitStructDecls(
             // The native wire spells every nominal as kind "class" and
             // refines it with nominal_kind; classify the phase by the
             // refined identity so both dialects project one order.
-            let phase_kind: String = kind;
+            var phase_kind: String = kind;
             let refined_kind: String =
                 routines.declarations.nominal_kinds[row];
             if StringLength(refined_kind) > 0 {

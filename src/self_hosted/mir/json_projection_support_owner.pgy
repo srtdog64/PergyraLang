@@ -13,8 +13,8 @@ func SelfMirJsonOptionalString(value: Option<String>) -> String {
 }
 
 func SelfMirJsonTextArrayWireLength(items: Array<String>) -> Int {
-    let length: Int = 2;
-    let i: Int = 0;
+    var length: Int = 2;
+    var i: Int = 0;
     while i < ArrayLength(items) {
         length = length + StringLength(items[i]);
         if i > 0 { length = length + 1; }

@@ -14,7 +14,7 @@ func DirectMirNestedIntentLlvmIndexedSymbol(
 func DirectMirNestedIntentLlvmGlobals(
     ref plan: DirectMirNestedIntentProgramPlan
 ) -> String {
-    let output: String =
+    var output: String =
         "@.pgy.nested.format.int = private unnamed_addr constant [6 x i8] c\"%s%d\\0A\\00\", align 1\n@.pgy.nested.format.string = private unnamed_addr constant [6 x i8] c\"%s%s\\0A\\00\", align 1\n";
     output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
         ".pgy.nested.bool.true", "true"));
@@ -24,7 +24,7 @@ func DirectMirNestedIntentLlvmGlobals(
         ".pgy.nested.outer.name", plan.graph.outer_name));
     output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
         ".pgy.nested.inner.name", plan.graph.inner_name));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.graph.method_log_literals) {
         output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
             DirectMirNestedIntentLlvmIndexedSymbol("method.log", row),
@@ -49,19 +49,19 @@ func DirectMirNestedIntentLlvmDeclarations(
         ArrayLength(rows) != 4 {
         Die("direct MIR nested intent runtime ABI is invalid");
     }
-    let output: String = Concat("declare i32 @", formatted_print.symbol);
+    var output: String = Concat("declare i32 @", formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n");
     output = Concat(output, Concat("declare i32 @", Concat(
         IntentRuntimeCEnterFn(), "(ptr, ptr, i32, i1, i32)\n")));
     output = Concat(output, Concat("declare void @", Concat(
         IntentRuntimeCExitFn(), "(i32)\n")));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(rows) {
         if !rows[row].valid || rows[row].runtime_name == "" ||
             rows[row].argument_count < 0 || rows[row].argument_count > 1 {
             Die("direct MIR nested intent observability ABI is invalid");
         }
-        let return_type: String = "ptr";
+        var return_type: String = "ptr";
         if rows[row].return_type == "Int" { return_type = "i32"; }
         else if rows[row].return_type == "Bool" { return_type = "i1"; }
         output = Concat(output, Concat("declare ", Concat(
@@ -79,7 +79,7 @@ func DirectMirNestedIntentLlvmZoneSync(
     let symbol: String = CompilerSymbolCIdentifier(Concat(
         plan.graph.zone_type_name, "_sync"));
     if symbol == "" { Die("direct MIR nested intent zone sync symbol is invalid"); }
-    let output: String = Concat("define internal void @", symbol);
+    var output: String = Concat("define internal void @", symbol);
     output = Concat(output, "(ptr %zone) {\nentry:\n  %generation = getelementptr inbounds %");
     output = Concat(output, zone_type);
     output = Concat(output,
@@ -92,7 +92,7 @@ func DirectMirNestedIntentLlvmMethod(
     method_symbol: String, formatted_print: CompilerRuntimeCallAbiFact,
     rows: Array<IntentObservabilityAbiRow>
 ) -> String {
-    let output: String = Concat("define internal i1 @", method_symbol);
+    var output: String = Concat("define internal i1 @", method_symbol);
     output = Concat(output, "(ptr %self) {\nentry:\n  %field = getelementptr inbounds %");
     output = Concat(output, subject_type);
     output = Concat(output, ", ptr %self, i32 0, i32 0\n  %old = load i32, ptr %field, align 4\n  %next = add i32 %old, ");
@@ -103,7 +103,7 @@ func DirectMirNestedIntentLlvmMethod(
     output = Concat(output, formatted_print.symbol);
     output = Concat(output,
         "(ptr @.pgy.nested.format.int, ptr @.pgy.nested.method.log.0, i32 %active.count)\n");
-    let active: Int = 0;
+    var active: Int = 0;
     while active < 2 {
         let base: Int = 1 + active * 3;
         output = Concat(output, Concat("  %active.name.", Concat(
@@ -158,7 +158,7 @@ func DirectMirNestedIntentLlvmInner(
 ) -> String {
     let priority: String = Concat("%pgy.param.", ToString(
         plan.inner_policy.priority_parameter_ordinal));
-    let output: String = Concat("define internal i1 @", inner_symbol);
+    var output: String = Concat("define internal i1 @", inner_symbol);
     output = Concat(output,
         "(ptr %pgy.param.0, ptr %pgy.param.1, i32 %pgy.param.2) {\nentry:\n  %subjects = alloca [1 x ptr], align 8\n  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n  store ptr %pgy.param.1, ptr %subject.slot, align 8\n  %handle = call i32 @");
     output = Concat(output, IntentRuntimeCEnterFn());
@@ -195,7 +195,7 @@ func DirectMirNestedIntentLlvmOuter(
     ref plan: DirectMirNestedIntentProgramPlan, subject_type: String,
     outer_symbol: String, inner_symbol: String
 ) -> String {
-    let output: String = Concat("define internal i1 @", outer_symbol);
+    var output: String = Concat("define internal i1 @", outer_symbol);
     output = Concat(output,
         "(ptr %pgy.param.0, ptr %pgy.param.1) {\nentry:\n  %subjects = alloca [1 x ptr], align 8\n  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n  store ptr %pgy.param.1, ptr %subject.slot, align 8\n  %handle = call i32 @");
     output = Concat(output, IntentRuntimeCEnterFn());
@@ -230,7 +230,7 @@ func DirectMirNestedIntentLlvmMain(
     zone_type: String, outer_symbol: String,
     formatted_print: CompilerRuntimeCallAbiFact
 ) -> String {
-    let output: String = "define internal void @Main() {\nentry:\n  %subject = alloca %";
+    var output: String = "define internal void @Main() {\nentry:\n  %subject = alloca %";
     output = Concat(output, subject_type);
     output = Concat(output, ", align 4\n  %subject.init = insertvalue %");
     output = Concat(output, subject_type);
@@ -295,7 +295,7 @@ func DirectMirNestedIntentProgramEmitLlvm(
         subject_type == zone_type || outer_symbol == inner_symbol {
         Die("direct MIR nested intent LLVM symbols are invalid");
     }
-    let output: String = Concat("%", Concat(
+    var output: String = Concat("%", Concat(
         subject_type, Concat(" = type { i32 }\n%", Concat(
             zone_type, Concat(" = type { %", Concat(
                 subject_type, ", i32 }\n\n"))))));

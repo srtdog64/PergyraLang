@@ -13,7 +13,7 @@ func Keep(rows: Rows) -> Rows {
 func Main() -> Int {
     let ids: Array<Int> = [1];
     let rows: Rows = Rows(ids);
-    let kept: Rows = Keep(rows);
+    var kept: Rows = Keep(rows);
     ArrayPush(kept.ids, 2);
     Print(ToString(rows.ids[0]));
     return 0;

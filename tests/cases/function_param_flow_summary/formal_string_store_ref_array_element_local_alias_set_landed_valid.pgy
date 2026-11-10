@@ -5,7 +5,7 @@ struct Carrier {
 }
 
 func Replace(ref carrier: Carrier) -> Array<String> {
-    let out: Array<String> = [StringConcat("", "")];
+    var out: Array<String> = [StringConcat("", "")];
     let phase: String = carrier.phases[0];
     ArraySet(out, 0, phase);
     return out;

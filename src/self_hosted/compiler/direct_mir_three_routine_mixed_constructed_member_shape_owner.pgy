@@ -23,7 +23,7 @@ func DirectMirThreeRoutineMixedConstructedMemberShapeDigest(
     ref fact: DirectMirThreeRoutineMixedConstructedMemberShapeFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(439L, fact.record_name);
+    var hash: Long = DirectMirCfgHashString(439L, fact.record_name);
     hash = DirectMirCfgHashString(hash, fact.class_name);
     hash = DirectMirCfgHashInt(hash, fact.method_routine_count);
     hash = DirectMirCfgHashInt(hash, fact.function_routine_count);
@@ -50,9 +50,9 @@ func DirectMirThreeRoutineMixedConstructedMemberShapeFromAdmitted(
             admitted.domain_runtime_admission.declarations) != 2 {
         return InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
     }
-    let record_name: String = "";
-    let class_name: String = "";
-    let row: Int = 0;
+    var record_name: String = "";
+    var class_name: String = "";
+    var row: Int = 0;
     while row < 2 {
         if admitted.domain_runtime_admission.declarations.kinds[row] ==
                 "struct" && admitted.domain_runtime_admission.declarations
@@ -74,9 +74,9 @@ func DirectMirThreeRoutineMixedConstructedMemberShapeFromAdmitted(
     if record_name == "" || class_name == "" || record_name == class_name {
         return InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
     }
-    let method_count: Int = 0;
-    let function_count: Int = 0;
-    let routine_row: Int = 0;
+    var method_count: Int = 0;
+    var function_count: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < 3 {
         if admitted.routines.kinds[routine_row] == "method" &&
             admitted.routines.owners[routine_row] == class_name {

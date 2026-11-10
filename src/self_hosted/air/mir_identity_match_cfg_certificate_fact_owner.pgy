@@ -37,7 +37,7 @@ func DirectMirIdentityMatchCfgCertificateFactDigest(
     ref fact: DirectMirIdentityMatchCfgCertificateFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(631L, fact.entry_block);
+    var hash: Long = DirectMirCfgHashInt(631L, fact.entry_block);
     hash = DirectMirCfgHashInt(hash, fact.true_block);
     hash = DirectMirCfgHashInt(hash, fact.false_block);
     hash = DirectMirCfgHashInt(hash, fact.merge_block);
@@ -106,9 +106,9 @@ func DirectMirIdentityMatchCfgCertificateFactFromIndex(
         index.block_succ_true[3] >= 0 || index.block_succ_false[3] >= 0 {
         return DirectMirIdentityMatchCfgCertificateFactEmpty();
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < 4 {
-        let should_branch: Int = 0;
+        var should_branch: Int = 0;
         if block == 0 { should_branch = 1; }
         if !index.block_reachable[block] || index.backedge_headers[block] != 0 ||
             index.instruction_facts.block_phi_prefix_counts[block] != 0 ||

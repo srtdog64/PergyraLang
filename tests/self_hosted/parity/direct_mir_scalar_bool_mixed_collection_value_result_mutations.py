@@ -50,7 +50,7 @@ def main():
         params[1]["type"] = "Array<Int>"
         params[1]["abi_type_name"] = "Array<Int>"
     elif kind == "bool-carriage":
-        params[9]["carriage"] = "value-result"
+        params[9]["carriage"] = "borrowed"
     elif kind == "unknown-return-type":
         routine["return"] = "MissingReturn"
     elif kind in {

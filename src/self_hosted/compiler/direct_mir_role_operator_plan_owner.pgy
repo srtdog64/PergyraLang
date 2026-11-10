@@ -43,7 +43,7 @@ func DirectMirRoleOperatorProgramCandidate(
         MirProgramRoutineIndexCount(admitted.routines) != 2 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < MirProgramDeclarationIndexCount(
         admitted.routines.declarations
     ) {
@@ -168,7 +168,7 @@ func DirectMirRoleOperatorPlanDigest(
     ref plan: DirectMirRoleOperatorPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(727L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(727L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
@@ -313,8 +313,8 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         ) || !DirectMirExactObjectArrayCount(generic_specializations, 0) {
         Die("direct MIR role operator program envelope is invalid");
     }
-    let main_row: Int = -1;
-    let row: Int = 0;
+    var main_row: Int = -1;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.kinds[row] == "function" &&
             admitted.routines.owners[row] == "" &&
@@ -352,8 +352,8 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         !MirRoutineInstructionUseFactsReady(main_uses, 4) {
         Die("direct MIR role operator entrypoint facts are invalid");
     }
-    let globals: Array<Int> = [];
-    let captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var globals: Array<Int> = [];
+    var captures: Array<MirRoutineInstructionScalarCapture> = [];
     row = 0;
     while row < 3 {
         let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
@@ -449,7 +449,7 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         Die("direct MIR role operator routine target is missing");
     }
     let method_row: Int = UnwrapOption(method_row_opt);
-    let method_match_count: Int = 0;
+    var method_match_count: Int = 0;
     row = 0;
     while row < 2 {
         if admitted.routines.kinds[row] == "method" &&
@@ -486,8 +486,8 @@ func DirectMirRoleOperatorPlanFromAdmitted(
     let method_source: Int = ToInt(
         admitted.routines.source_syntax_ids[method_row]
     );
-    let lhs_literal: Int = ToInt(first_literal);
-    let rhs_literal: Int = ToInt(second_literal);
+    var lhs_literal: Int = ToInt(first_literal);
+    var rhs_literal: Int = ToInt(second_literal);
     if lhs_local_row == 1 {
         lhs_literal = ToInt(second_literal);
     }

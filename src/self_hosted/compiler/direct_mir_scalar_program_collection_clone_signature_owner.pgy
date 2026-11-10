@@ -1,4 +1,4 @@
-// Exact specialization of Clone for storage-owning scalar Array values.
+// Exact specialization of Clone for storage-owning scalar values.
 
 import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
@@ -8,16 +8,21 @@ func DirectMirScalarProgramCollectionCloneSignature(
     name: String, actual_types: Array<String>, expected_type: String
 ) -> DirectMirScalarProgramBuiltinSignatureFact {
     if name != "Clone" || ArrayLength(actual_types) != 1 ||
-            (actual_types[0] != CompilerAbiLayoutArrayIntTypeName() &&
+            (actual_types[0] != CompilerAbiLayoutStringTypeName() &&
+             actual_types[0] != CompilerAbiLayoutArrayIntTypeName() &&
              actual_types[0] != CompilerAbiLayoutArrayStringTypeName()) ||
             (expected_type != "" && expected_type != actual_types[0]) {
         return DirectMirScalarProgramBuiltinSignatureFactInvalid();
     }
     // The fact keeps its own copies of the borrowed type names.
     let parameter_types: Array<String> = [Concat("", actual_types[0])];
+    var expression_kind: Int = DirectMirScalarProgramExprArrayClone();
+    if actual_types[0] == CompilerAbiLayoutStringTypeName() {
+        expression_kind = DirectMirScalarProgramExprStringClone();
+    }
     return DirectMirScalarProgramBuiltinSignatureFact(
         true, fact.registry_row, fact.name, Concat("", actual_types[0]),
-        parameter_types, DirectMirScalarProgramExprArrayClone(),
+        parameter_types, expression_kind,
         fact.runtime_call_abi_id
     );
 }

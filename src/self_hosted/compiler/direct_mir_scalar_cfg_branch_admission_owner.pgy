@@ -18,7 +18,7 @@ func DirectMirScalarCfgBranchConditionFromOwners(
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
-    let condition: DirectMirScalarCfgExpressionFact =
+    var condition: DirectMirScalarCfgExpressionFact =
         DirectMirScalarCfgExpressionFact(
             true, DirectMirScalarCfgConditionNone(), -1, -1, -1, -1, "", ""
         );

@@ -17,7 +17,7 @@ func Part(outer: Outer) -> Inner {
 
 func Main() -> Int {
     let outer: Outer = Outer(Inner([1, 2]), 0);
-    let part: Inner = Part(outer);
+    var part: Inner = Part(outer);
     ArrayPush(part.items, 9);
     ArrayPush(part.items, 9);
     ArrayPush(part.items, 9);

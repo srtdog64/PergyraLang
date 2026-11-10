@@ -1,0 +1,45 @@
+// C target spelling for local and value-result logical-record arrays.
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_mutation_target_fact_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordArrayValueResultMutation(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    local_row: Int, parameter: Int,
+    index: String, value_type: String, value: String,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    let mutation_target: DirectMirScalarProgramLogicalRecordArrayMutationTargetFact =
+        DirectMirScalarProgramLogicalRecordArrayMutationTargetFactAt(
+            plan, routine, local_row, parameter);
+    if !mutation_target.valid || value == "" {
+        Die("direct MIR C logical-record Array mutation identity is invalid");
+    }
+    var storage: String = "";
+    if local_row >= 0 {
+        storage = Concat("pgy_local_", ToString(local_row));
+    } else {
+        storage = DirectMirScalarProgramCParameterValueResultStorage(
+            plan, routine, parameter);
+    }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            plan.program.logical_record, mutation_target.array_type, target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuCProjection()) ||
+        mutation_target.element_type != value_type {
+        Die("direct MIR C logical-record Array mutation type is invalid");
+    }
+    var operation: String = "push_";
+    if index != "" { operation = "set_"; }
+    var output: String = "    pgy_scalar_logical_record_array_";
+    output = Concat(output, operation);
+    output = Concat(output, ToString(projected.record_row));
+    output = Concat(output, "(&");
+    output = Concat(output, storage);
+    if index != "" { output = Concat(output, Concat(", ", index)); }
+    output = Concat(output, ", ");
+    return Concat(output, Concat(value, ");\n"));
+}

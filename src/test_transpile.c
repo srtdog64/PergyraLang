@@ -22,6 +22,7 @@
 #include "codegen/transpiler_symbols.h"
 #include "codegen/transpiler_mir_phi_type_owner.h"
 #include "codegen/transpiler_mir_func_ssa_locals_emit.h"
+#include "codegen/transpiler_mir_match_payload_emit.h"
 #include "codegen/transpiler_type_declarator.h"
 #include "codegen/codegen_type_mapping.h"
 #include "codegen/transpiler_type_render.h"

@@ -11,7 +11,7 @@ func SemanticAstCancelCopyPayload(payload: String, ref enums: SemanticAstEnumFac
     if payload == "Unknown" || payload == "<unknown>" ||
         payload == "QubitSlot" || payload == "TextBuilder" { return false; }
     if SemanticNativePrimitiveTypeName(payload) { return true; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(enums.enum_names) {
         if enums.enum_names[index] == payload { return true; }
         index = index + 1;
@@ -25,7 +25,7 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
 ) -> SemanticAstBodyVerdict {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
-    let needed: Bool = false; let node: Int = 0;
+    var needed: Bool = false; var node: Int = 0;
     while node < ArrayLength(graph.arena.call_target_names) {
         if graph.arena.call_target_names[node] == "Cancel" &&
             graph.arena.identities.call_target_syntax_ids[node] == 0 { needed = true; }
@@ -34,13 +34,13 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
     if !needed { return SemanticAstBodyVerdictOk(); }
     let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
     if !roots.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Cancel requires admitted call topology", -1); }
-    let previous_root: Int = -1; let slot: Int = 0;
+    var previous_root: Int = -1; var slot: Int = 0;
     while slot < ArrayLength(graph.roots) {
         if graph.has_roots[slot] {
             let end: Int = graph.roots[slot]; let surface: Int = slot / 3;
             let syntax_id: Int = analysis.expression_surfaces.node_ids[surface];
-            let names: Array<String> = []; let types: Array<String> = []; let modes: Array<String> = [];
-            let seeded: Bool = false;
+            var names: Array<String> = []; var types: Array<String> = []; var modes: Array<String> = [];
+            var seeded: Bool = false;
             node = previous_root + 1;
             while node <= end {
                 if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
@@ -51,8 +51,16 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
                             analysis.expression_surfaces, analysis.signatures, surface);
                         let intent_id: Option<Int> = SemanticAstExpressionIntentNodeAt(
                             analysis.expression_surfaces, analysis.intent_signatures, surface);
-                        seeded = SemanticAstBodyExpressionEnvironmentSeed(artifact, analysis,
-                            initializers.inferred_type_names, iterations, tables, analysis.intent_signatures,
+                        seeded = SemanticAstBodyExpressionEnvironmentSeed(
+                            artifact, analysis.signatures, analysis.constructors,
+                            analysis.local_bindings, analysis.statements,
+                            analysis.expression_surfaces.ok,
+                            analysis.expression_surfaces.artifact_node_count,
+                            analysis.expression_surfaces.node_ids, graph,
+                            analysis.enums, analysis.function_scopes,
+                            analysis.intent_transitions,
+                            initializers.inferred_type_names, iterations, tables,
+                            analysis.intent_signatures,
                             function_id, intent_id, syntax_id, names, types, modes);
                         if !seeded { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Cancel lexical type environment is missing", syntax_id); }
                     }
@@ -63,7 +71,7 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
                     }
                     let task_type: String = SemanticExpressionGraphScalarTypeName(graph,
                         call.argument_nodes[0], analysis.constructors, names, types, tables.callables, tables.returns, no_enum_values);
-                    let payload: Option<String> = FuturePayloadTypeOpt(task_type);
+                    var payload: Option<String> = FuturePayloadTypeOpt(task_type);
                     if !IsSome(payload) { payload = RemoteFuturePayloadTypeOpt(task_type); }
                     if !IsSome(payload) {
                         return SemanticAstBodyVerdictError("cancel_argument_invalid",

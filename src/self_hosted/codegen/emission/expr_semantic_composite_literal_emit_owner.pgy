@@ -22,7 +22,7 @@ import "../runtime_abi/hashmap_runtime_owner.pgy";
 import "expr_semantic_option_value_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
-func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: Int,
+func RewriteSemanticExpectedValue(ref graph: SemanticExpressionGraphFacts, node_id: Int,
     expected_type: String, env: CodegenTypeEnv) -> String {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind) { Die("semantic expected-value kind is missing"); }
@@ -51,7 +51,7 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
     if IsResultType(expected_type) && AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
         let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(expected_type);
         let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
-        let target: Option<String> = None;
+        var target: Option<String> = None;
         if call.ok {
             target = SemanticExpressionGraphCallTargetName(graph, call.call_node);
         }
@@ -63,8 +63,8 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
             if ArrayLength(call.argument_nodes) != 1 {
                 Die("Result constructor requires one argument graph");
             }
-            let argument_type: String = result_fact.payload_type;
-            let call_symbol: String = result_fact.ok_fn;
+            var argument_type: String = result_fact.payload_type;
+            var call_symbol: String = result_fact.ok_fn;
             if UnwrapOption(target) == "Err" {
                 argument_type = result_fact.error_type;
                 call_symbol = result_fact.err_fn;
@@ -109,13 +109,13 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
     }
     if StartsWith(expected_type, "List<") && AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
         let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
-        let target: Option<String> = None;
+        var target: Option<String> = None;
         if call.ok {
             target = SemanticExpressionGraphCallTargetName(
                 graph, call.call_node
             );
         }
-        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        var protocol: SemanticExpressionGraphCollectionCallProtocolFact =
             SemanticExpressionGraphCollectionCallProtocolNotApplicable();
         if IsSome(target) {
             protocol = SemanticExpressionGraphCollectionCallProtocolFromName(
@@ -137,13 +137,13 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
         let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
             graph, node_id
         );
-        let target: Option<String> = None;
+        var target: Option<String> = None;
         if call.ok {
             target = SemanticExpressionGraphCallTargetName(
                 graph, call.call_node
             );
         }
-        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        var protocol: SemanticExpressionGraphCollectionCallProtocolFact =
             SemanticExpressionGraphCollectionCallProtocolNotApplicable();
         if IsSome(target) {
             protocol = SemanticExpressionGraphCollectionCallProtocolFromName(
@@ -165,13 +165,13 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
         let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
             graph, node_id
         );
-        let target: Option<String> = None;
+        var target: Option<String> = None;
         if call.ok {
             target = SemanticExpressionGraphCallTargetName(
                 graph, call.call_node
             );
         }
-        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        var protocol: SemanticExpressionGraphCollectionCallProtocolFact =
             SemanticExpressionGraphCollectionCallProtocolNotApplicable();
         if IsSome(target) {
             protocol = SemanticExpressionGraphCollectionCallProtocolFromName(
@@ -209,7 +209,7 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
 // One sequence-literal emission core: List/Queue/Array/Set differ only in
 // their runtime fact rows, so per-kind loops may not be copied again.
 func RewriteSemanticSequenceLiteralValue(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     element_nodes: Array<Int>,
     expected_type: String,
     element_type: String,
@@ -219,9 +219,9 @@ func RewriteSemanticSequenceLiteralValue(
     env: CodegenTypeEnv
 ) -> String {
     let c_type: String = AbiLayoutCValueType(expected_type, env);
-    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
+    var out: String = Concat("({ ", Concat(c_type, Concat(" ",
         Concat(temp, Concat(" = ", Concat(c_new_fn, "(); "))))));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(element_nodes) {
         let value: String = RewriteSemanticExpectedValue(
             graph, element_nodes[i], element_type, env
@@ -235,7 +235,7 @@ func RewriteSemanticSequenceLiteralValue(
 }
 
 func RewriteSemanticSetLiteralValue(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     expected_type: String,
     env: CodegenTypeEnv
@@ -257,7 +257,7 @@ func RewriteSemanticSetLiteralValue(
 }
 
 func RewriteSemanticArrayLiteralValue(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     expected_type: String,
     env: CodegenTypeEnv
@@ -303,7 +303,7 @@ func RewriteSemanticArrayLiteralValue(
 }
 
 func RewriteSemanticStructLiteralValue(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     expected_type: String,
     env: CodegenTypeEnv
@@ -322,9 +322,9 @@ func RewriteSemanticStructLiteralValue(
         Die("semantic struct-literal graph/type fact is invalid");
     }
     let c_type: String = AbiLayoutCStructTypeName(expected_type);
-    let values: Array<String> = [];
-    let field_name_nodes: Array<Int> = [];
-    let i: Int = 0;
+    var values: Array<String> = [];
+    var field_name_nodes: Array<Int> = [];
+    var i: Int = 0;
     while i < view.field_count {
         let field: SemanticStructLiteralFieldView =
             SemanticStructLiteralFieldAt(graph, view, i);
@@ -353,7 +353,7 @@ func RewriteSemanticStructLiteralValue(
     }
     // A designated C initializer executes in field order, not spelling order.
     // Check emitted operands so compiler-looking user names cannot be captured.
-    let temporary: String = Concat("_pgy_record_value_", ToString(root_id));
+    var temporary: String = Concat("_pgy_record_value_", ToString(root_id));
     i = 0;
     while i < ArrayLength(values) {
         if StringIndexOf(values[i], temporary) >= 0 {
@@ -361,7 +361,7 @@ func RewriteSemanticStructLiteralValue(
             i = 0;
         } else { i = i + 1; }
     }
-    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
+    var out: String = Concat("({ ", Concat(c_type, Concat(" ",
         Concat(temporary, " = {0}; "))));
     i = 0;
     while i < ArrayLength(values) {

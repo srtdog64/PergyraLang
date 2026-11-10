@@ -7,7 +7,7 @@ func DirectMirScalarCfgCollectionPlanDigest(
     ref plan: DirectMirScalarCfgCollectionPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirScalarCfgHashInts(
+    var hash: Long = DirectMirScalarCfgHashInts(
         457L, plan.values.definition_global_rows
     );
     hash = DirectMirScalarCfgHashInts(

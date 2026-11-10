@@ -12,11 +12,11 @@ func DirectMirScalarProgramLogicalRecordPhysicalTargetReady(
     if !CompilerAbiLayoutTargetPolicyReady() || fact.physical.aligns[row] != 4 {
         return false;
     }
-    let end: Int = 0;
-    let ordinal: Int = 0;
+    var end: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < fact.field_counts[row] {
         let field: Int = fact.field_starts[row] + ordinal;
-        let size: Int = 4;
+        var size: Int = 4;
         if fact.field_types[field] != CompilerAbiLayoutIntTypeName() {
             let child: Int = DirectMirScalarProgramLogicalRecordRow(
                 fact, fact.field_types[field]);

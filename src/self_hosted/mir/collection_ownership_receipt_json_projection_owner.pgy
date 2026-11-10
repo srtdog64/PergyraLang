@@ -8,6 +8,7 @@ func SelfMirCollectionOwnershipReceiptKindName(effect_kind: Int) -> String {
     if effect_kind == 2 { return "shallow-mutation"; }
     if effect_kind == 3 { return "drop"; }
     if effect_kind == 4 { return "owned-string-set"; }
+    if effect_kind == 5 { return "owned-string-pop"; }
     return "";
 }
 

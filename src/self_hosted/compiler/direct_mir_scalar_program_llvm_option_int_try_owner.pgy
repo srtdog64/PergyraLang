@@ -47,7 +47,7 @@ func DirectMirScalarProgramLlvmOptionIntTryDefinition(
     if !present.matched || !absent.matched || !payload.matched {
         Die("direct MIR scalar LLVM Option<Int> try ABI projection is missing");
     }
-    let output: String = Concat(operand.instructions, present.instructions);
+    var output: String = Concat(operand.instructions, present.instructions);
     output = Concat(output, "  br i1 ");
     output = Concat(output, present.value);
     output = Concat(output, ", label %pgy.try.some.");

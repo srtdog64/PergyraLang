@@ -14,7 +14,7 @@ struct SemanticAstCollectionMemberCaptureWitness {
 }
 
 func SemanticAstCollectionMemberReadonlyCaptureContains(ref roots: Array<Int>, binding_id: Int) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(roots) {
         if roots[row] == binding_id { return true; }
         row = row + 1;
@@ -48,7 +48,7 @@ func SemanticAstCollectionMemberCaptureObligationAt(
     if !source.ready { return SemanticAstCollectionMemberCaptureWitness(false, witness.syntax_id, witness.expression_id); }
     if source.binding_id <= 0 || (!source.readonly &&
             !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, source.binding_id)) { return witness; }
-    let destination: Int = 0;
+    var destination: Int = 0;
     if value_store && IsSome(declared) {
         let local_row: Int = UnwrapOption(declared);
         if locals.function_node_ids[local_row] == function_id && locals.binding_kinds[local_row] == SemanticAstLocalBindingKindNormal() &&

@@ -46,7 +46,7 @@ func CompilerSubprocessExitFact() -> String {
 }
 
 func CompilerSubprocessFactKnown(fact: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSubprocessFactCount() {
         if CompilerSubprocessFactAt(i) == fact {
             return true;
@@ -91,7 +91,7 @@ func CompilerSubprocessArtifactProbeUseCase() -> String {
 }
 
 func CompilerSubprocessUseCaseKnown(use_case: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSubprocessUseCaseCount() {
         if CompilerSubprocessUseCaseAt(i) == use_case {
             return true;
@@ -138,7 +138,7 @@ func CompilerSubprocessOracleCompareEnvAllowlistAt(index: Int) -> String {
 }
 
 func CompilerSubprocessOracleCompareEnvAllowlistKnown(name: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSubprocessOracleCompareEnvAllowlistCount() {
         if CompilerSubprocessOracleCompareEnvAllowlistAt(i) == name {
             return true;
@@ -149,10 +149,10 @@ func CompilerSubprocessOracleCompareEnvAllowlistKnown(name: String) -> Bool {
 }
 
 func CompilerSubprocessOracleCompareEnvAllowlist() -> String {
-    let names: Array<String> = [];
-    let i: Int = 0;
+    var names: Array<String> = [];
+    var i: Int = 0;
     while i < CompilerSubprocessOracleCompareEnvAllowlistCount() {
-        ArrayPush(names, CompilerSubprocessOracleCompareEnvAllowlistAt(i));
+        ArrayPush(names, Clone(CompilerSubprocessOracleCompareEnvAllowlistAt(i)));
         i = i + 1;
     }
     return StringJoin(names, ",");

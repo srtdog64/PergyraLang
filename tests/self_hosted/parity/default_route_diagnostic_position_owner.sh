@@ -156,8 +156,6 @@ BROKEN_CASES=(
     "unclosed_generic|2|type_name_invalid"
     "missing_return_type|1|type_name_invalid"
     "missing_let_name|2|declaration_name_missing"
-    "let_mut_local|2|binding_form_invalid"
-    "let_mut_field|2|binding_form_invalid"
     "var_destructure|2|binding_form_invalid"
     "missing_func_name|1|declaration_name_missing"
     "bad_type_name|2|let_type_mismatch"
@@ -452,6 +450,20 @@ for row in "bind_role_only|7|32|bind names only the role 'Warrior'" \
         { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
 done
 # Sibling scopes and a closed block may reuse the name on both front ends.
+# `let mut` is now the mutable declaration alias. Retain the old parser
+# fixtures as positive controls; mutable destructuring remains refused above.
+for name in let_mut_local let_mut_field; do
+    for leg in native default; do
+        flags=(--backend=c)
+        [[ "$leg" == native ]] && flags+=(--native-pipeline)
+        (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" "$PGY" \
+            "$FIXTURES/broken_$name.pgy" "${flags[@]}" \
+            -o "$WORK_REL/$name-$leg.exe") >"$WORK_DIR/$name-$leg.log" 2>&1 ||
+            { cat "$WORK_DIR/$name-$leg.log" >&2; fail "$leg refused $name alias"; }
+        [[ "$("$WORK_DIR/$name-$leg.exe" | tr -d '\r')" == "x" ]] ||
+            fail "$leg $name alias printed the wrong value"
+    done
+done
 for leg in native default; do
     flags=(--backend=c)
     [[ "$leg" == native ]] && flags+=(--native-pipeline)

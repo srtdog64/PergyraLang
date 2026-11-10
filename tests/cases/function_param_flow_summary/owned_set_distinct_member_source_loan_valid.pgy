@@ -1,0 +1,44 @@
+// Replacing an owned element in `outputs` must not invalidate `phase`, which
+// borrows from a distinct Array<String> stored in a record field.
+struct CarrierRows {
+    values: Array<String>;
+}
+
+func Project(ref carriers: CarrierRows) -> String {
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "old", 1);
+    let outputs: Array<String> = MapKeys(map);
+    let other_outputs: Array<String> = MapKeys(map);
+    let invariant_outputs: Array<String> = MapKeys(map);
+    let observed: String = "other";
+    let step_i: Int = 0;
+    while step_i < 1 {
+        let row: Int = 0;
+        while row < 1 {
+            let phase: String = carriers.values[row];
+            if phase == "on" || phase == "intent" {
+                ArraySet(other_outputs, 0, "fresh");
+                ArraySet(outputs, 0, phase);
+                if phase == "on" { observed = "on"; }
+            } else if phase == "guard" {
+                ArraySet(other_outputs, 0, "guard");
+            } else if phase == "invariant-pre" || phase == "invariant-post" {
+                ArraySet(invariant_outputs, 0, Concat("", carriers.values[row]));
+                if phase == "invariant-pre" { observed = "pre"; }
+            }
+            row = row + 1;
+        }
+        step_i = step_i + 1;
+    }
+    let result: String = Concat("", outputs[0]);
+    ArrayDropOwnedStrings(outputs);
+    ArrayDropOwnedStrings(other_outputs);
+    ArrayDropOwnedStrings(invariant_outputs);
+    return Concat(observed, result);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["on"];
+    let carriers: CarrierRows = CarrierRows(values);
+    Print(Project(carriers));
+}

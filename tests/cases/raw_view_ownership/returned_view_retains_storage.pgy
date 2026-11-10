@@ -1,0 +1,11 @@
+// An outward view has a later consumer. The local-private cleanup pass must
+// not release its backing at Escape's return. This does not close cleanup of
+// an owning returned Slice; it is a premature-retirement falsifier.
+func Escape() -> Slice<Int> {
+    let values: Array<Int> = [1, 2, 3];
+    return values.Slice(0, 2);
+}
+func Main() -> Void {
+    let view: Slice<Int> = Escape();
+    Log(view[0]);
+}

@@ -1,0 +1,22 @@
+func Work(early: Bool) -> Int
+{
+    unsafe(raw)
+    {
+        var values: Array<Int> = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110];
+        let view: Slice<Int> = values.Slice(2, 3);
+        view[0] = view[0] + 5;
+        view[2] = view[0] + view[1];
+        if early
+        {
+            return view[2];
+        }
+        view[1] = view[2] - 10;
+        return view[1] + values[2];
+    }
+}
+
+func Main() -> Void
+{
+    Log(Work(true));
+    Log(Work(false));
+}

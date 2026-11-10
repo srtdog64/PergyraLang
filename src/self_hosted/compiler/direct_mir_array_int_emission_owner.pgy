@@ -7,8 +7,8 @@ import "direct_mir_llvm_text_format_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
 func DirectMirArrayIntCElementList(ref values: Array<Int>) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(values) {
         if row > 0 { output = Concat(output, ", "); }
         output = Concat(output, ToString(values[row]));
@@ -34,7 +34,7 @@ func DirectMirArrayIntEmitC(
     }
     let initial_count: Int = ArrayLength(plan.initial_elements);
     let assigned_count: Int = ArrayLength(plan.assigned_elements);
-    let output: String = "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
+    var output: String = "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    ");
     output = Concat(output, abi.c_element_type);
     output = Concat(output, " *data;\n    ");
@@ -102,14 +102,14 @@ func DirectMirArrayIntEmitLlvmValue(
         ) {
         Die("direct MIR Array<Int> LLVM value facts are invalid");
     }
-    let output: String = "  %pgy.array.";
+    var output: String = "  %pgy.array.";
     output = Concat(output, prefix);
     output = Concat(output, ".storage = alloca [");
     output = Concat(output, ToString(count));
     output = Concat(output, " x ");
     output = Concat(output, abi.llvm_element_type);
     output = Concat(output, "], align 4\n");
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         output = Concat(output, "  %pgy.array.");
         output = Concat(output, prefix);
@@ -202,7 +202,7 @@ func DirectMirArrayIntEmitLlvm(
         DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int =
         DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    var output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output, format_payload);

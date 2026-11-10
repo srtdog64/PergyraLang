@@ -8,8 +8,8 @@ import "ssa_identity_owner.pgy";
 func MirPhiPredecessorCount(
     ref index: MirRoutineFactIndex, block_id: Int
 ) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(index.block_starts) {
         if index.block_succ_true[row] == block_id {
             count = count + 1;
@@ -107,9 +107,9 @@ func MirRoutinePhiFactAt(
     let has_backedge: Bool = MirRoutineFactIndexHasIncomingBackedge(
         index, block_id
     );
-    let incoming_results: Array<String> = [];
-    let incoming_definition_blocks: Array<Int> = [];
-    let use_i: Int = 0;
+    var incoming_results: Array<String> = [];
+    var incoming_definition_blocks: Array<Int> = [];
+    var use_i: Int = 0;
     while use_i < use_count {
         let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
             use_facts, instruction.global_row, use_i
@@ -128,7 +128,7 @@ func MirRoutinePhiFactAt(
         }
         let definition: MirRoutineResultDefinitionFact =
             MirRoutineFactIndexUniqueResultDefinition(index, use_name);
-        let definition_block: Int = 0 - 1;
+        var definition_block: Int = 0 - 1;
         if MirRoutineResultDefinitionFactReady(definition) {
             if self_backedge &&
                 (definition.global_row != instruction.global_row ||
@@ -174,7 +174,7 @@ func MirRoutinePhiFactsReady(
         ) || !MirRoutineInstructionUseFactsReady(
             use_facts, ArrayLength(index.instruction_facts.starts)
         ) { return false; }
-    let block_id: Int = 0;
+    var block_id: Int = 0;
     while block_id < block_count {
         let phi_prefix_count: Int =
             index.instruction_facts.block_phi_prefix_counts[block_id];
@@ -185,7 +185,7 @@ func MirRoutinePhiFactsReady(
         if phi_prefix_count > 0 {
             if MirPhiPredecessorCount(index, block_id) < 2 { return false; }
         }
-        let instruction_row: Int = 0;
+        var instruction_row: Int = 0;
         while instruction_row < phi_prefix_count {
             let fact: MirRoutinePhiFact = MirRoutinePhiFactAt(
                 index, routines, use_facts, routine_row,

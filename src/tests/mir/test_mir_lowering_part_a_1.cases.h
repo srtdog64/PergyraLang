@@ -458,7 +458,7 @@ test_mir_lowering_part_a(void)
 
     TEST("MIR ABI resource runtime row table exposes native resource rows");
     {
-        EXPECT(mir_abi_resource_runtime_row_count() == 150);
+        EXPECT(mir_abi_resource_runtime_row_count() == 155);
         EXPECT(strcmp(mir_abi_resource_runtime_row_domain(0), "native-resource") == 0
                && strcmp(mir_abi_resource_runtime_row_type_name(0), "Slot<Int>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(0), "Claim") == 0
@@ -486,13 +486,21 @@ test_mir_lowering_part_a(void)
                && strcmp(mir_abi_resource_runtime_row_operation(149), "SubmitRead") == 0
                && strcmp(mir_abi_resource_runtime_row_symbol(149), "pgy_submit_device_read_String") == 0
                && strcmp(mir_abi_resource_runtime_row_call_shape(149), "container_ptr_to_task_handle") == 0);
-        EXPECT(mir_abi_resource_runtime_row_domain(150) == NULL
-               && mir_abi_resource_runtime_row_type_name(150) == NULL
-               && mir_abi_resource_runtime_row_operation(150) == NULL
-               && mir_abi_resource_runtime_row_symbol(150) == NULL
-               && mir_abi_resource_runtime_row_target_kind(150) == NULL
-               && mir_abi_resource_runtime_row_materialization(150) == NULL
-               && mir_abi_resource_runtime_row_call_shape(150) == NULL);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(150), "Array<Int>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(150), "ReleaseStorage") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(150), "pgy_array_drop_Int") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(150), "container_ptr_to_void") == 0);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(154), "Array<Bool>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(154), "ReleaseStorage") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(154), "pgy_array_drop_Bool") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(154), "container_ptr_to_void") == 0);
+        EXPECT(mir_abi_resource_runtime_row_domain(155) == NULL
+               && mir_abi_resource_runtime_row_type_name(155) == NULL
+               && mir_abi_resource_runtime_row_operation(155) == NULL
+               && mir_abi_resource_runtime_row_symbol(155) == NULL
+               && mir_abi_resource_runtime_row_target_kind(155) == NULL
+               && mir_abi_resource_runtime_row_materialization(155) == NULL
+               && mir_abi_resource_runtime_row_call_shape(155) == NULL);
     }
 
     TEST("MIR ABI native resource rows match self-host runtime-call artifact");

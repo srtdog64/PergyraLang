@@ -27,7 +27,7 @@ func DirectMirScalarCfgArrayLengthLogGraphFactFrom(
     let length: DirectMirScalarCfgArrayLengthGraphFact =
         DirectMirScalarCfgArrayLengthGraphFactAt(graph, 2, 3, 4, 5);
     if !length.valid { return invalid; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < graph.ready_node_count {
         if row != 1 && row != 3 &&
             (graph.arena.call_target_kinds[row] !=

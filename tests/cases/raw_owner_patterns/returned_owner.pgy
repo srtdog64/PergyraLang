@@ -1,0 +1,19 @@
+extern "C" {
+    func PatternIterations() -> Int;
+    func PatternStart() -> Void;
+    func PatternFinish(value: Int) -> Void;
+}
+func Make() -> Array<Int> {
+    let values: Array<Int> = [1, 2, 3];
+    return values;
+}
+func Work() -> Int {
+    let values: Array<Int> = Make();
+    let view: Slice<Int> = values.Slice(0, 2);
+    return view[0];
+}
+func Main() -> Void {
+    let count: Int = PatternIterations();
+    PatternStart();
+    PatternFinish(Work());
+}

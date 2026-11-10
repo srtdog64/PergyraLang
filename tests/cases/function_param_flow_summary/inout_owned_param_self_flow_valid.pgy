@@ -17,7 +17,7 @@ func Append(inout rows: Rows, value: Int) -> Option<Int> {
 }
 
 func Build(rows: Rows, n: Int) -> Route {
-    let count: Option<Int> = None;
+    var count: Option<Int> = None;
     count = Append(rows, n);
     return Route(IsSome(count), rows);
 }

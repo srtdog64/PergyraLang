@@ -69,7 +69,7 @@ func DirectMirArrayReturnSingleIndex(
         sequence.arena.topology.right_children[5] != 4 {
         Die("direct MIR Array<Int> return index graph is invalid");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 6 {
         let direct_to_string: Bool = row == 1;
         if direct_to_string {

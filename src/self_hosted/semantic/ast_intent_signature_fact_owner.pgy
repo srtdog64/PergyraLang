@@ -32,8 +32,8 @@ func SemanticAstIntentSignatureIndexForNode(ref facts: SemanticAstIntentSignatur
 ) -> Option<Int> {
     if !facts.ok || node_id <= 0 { return None; }
     let count: Int = ArrayLength(facts.intent_node_ids);
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.intent_node_ids[middle] < node_id { low = middle + 1; }
@@ -44,8 +44,8 @@ func SemanticAstIntentSignatureIndexForNode(ref facts: SemanticAstIntentSignatur
 }
 func SemanticAstIntentParameterRowFromProvenance(provenance: String
 ) -> SemanticAstIntentParameterRow {
-    let prefix: String = "";
-    let is_value: Bool = false;
+    var prefix: String = "";
+    var is_value: Bool = false;
     if StartsWith(provenance, "IntentInvolves: ") {
         prefix = "IntentInvolves: ";
     } else if StartsWith(provenance, "IntentValue: ") {
@@ -71,24 +71,24 @@ func SemanticAstIntentParameterRowFromProvenance(provenance: String
 
 func SemanticAstIntentSignatureFactsFromArtifact(artifact: AstTreeArtifact
 ) -> SemanticAstIntentSignatureFacts {
-    let intent_node_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let result_modes: Array<String> = [];
-    let return_type_names: Array<String> = [];
-    let param_starts: Array<Int> = [];
-    let param_counts: Array<Int> = [];
-    let param_node_ids: Array<Int> = [];
-    let param_is_values: Array<Bool> = [];
-    let param_names: Array<String> = [];
-    let param_types: Array<String> = [];
-    let ok: Bool = AstTreeArtifactReady(artifact);
-    let diagnostic_code: String = "";
-    let diagnostic_message: String = "";
+    var intent_node_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var result_modes: Array<String> = [];
+    var return_type_names: Array<String> = [];
+    var param_starts: Array<Int> = [];
+    var param_counts: Array<Int> = [];
+    var param_node_ids: Array<Int> = [];
+    var param_is_values: Array<Bool> = [];
+    var param_names: Array<String> = [];
+    var param_types: Array<String> = [];
+    var ok: Bool = AstTreeArtifactReady(artifact);
+    var diagnostic_code: String = "";
+    var diagnostic_message: String = "";
     if !ok {
         diagnostic_code = "ast_artifact_invalid";
         diagnostic_message = SemanticError1("ast_artifact_invalid", "owner", "intent_signature");
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count && ok {
         if !TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindIntentDeclTag()) {
             node_id = node_id + 1;
@@ -103,7 +103,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(artifact: AstTreeArtifact
                 "missing_fact", "intent_name");
             continue;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(names) {
             if names[prior] == UnwrapOption(name) {
                 ok = false;
@@ -117,11 +117,11 @@ func SemanticAstIntentSignatureFactsFromArtifact(artifact: AstTreeArtifact
             continue;
         }
         let param_start: Int = ArrayLength(param_node_ids);
-        let result_mode: String = "legacy_bool";
-        let return_type_name: String = "Bool";
-        let return_seen: Bool = false;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(artifact.arena, node_id, child_index
+        var result_mode: String = "legacy_bool";
+        var return_type_name: String = "Bool";
+        var return_seen: Bool = false;
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(artifact.arena, node_id, child_index
         );
         while IsSome(child) && ok {
             let child_id: Int = UnwrapOption(child);
@@ -166,7 +166,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(artifact: AstTreeArtifact
                     );
                     continue;
                 }
-                let p: Int = param_start;
+                var p: Int = param_start;
                 while p < ArrayLength(param_names) {
                     if param_names[p] == row.name { ok = false; }
                     p = p + 1;
@@ -229,9 +229,9 @@ func SemanticAstIntentSignatureFactsReady(
         !SemanticAstIntentSignatureFactsAdmittedReady(artifact, facts) {
         return false;
     }
-    let expected_start: Int = 0;
-    let fact_index: Int = 0;
-    let node_id: Int = 0;
+    var expected_start: Int = 0;
+    var fact_index: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if !TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindIntentDeclTag()
@@ -256,16 +256,16 @@ func SemanticAstIntentSignatureFactsReady(
             UnwrapOption(name) != facts.names[fact_index] {
             return false;
         }
-        let prior_intent: Int = 0;
+        var prior_intent: Int = 0;
         while prior_intent < fact_index {
             if facts.names[prior_intent] == facts.names[fact_index] {
                 return false;
             }
             prior_intent = prior_intent + 1;
         }
-        let local_count: Int = 0;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var local_count: Int = 0;
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, node_id, child_index
         );
         while IsSome(child) {
@@ -289,7 +289,7 @@ func SemanticAstIntentSignatureFactsReady(
                     facts.param_types[param_index] != row.type_name {
                     return false;
                 }
-                let prior_param: Int = expected_start;
+                var prior_param: Int = expected_start;
                 while prior_param < param_index {
                     if facts.param_names[prior_param] == row.name {
                         return false;

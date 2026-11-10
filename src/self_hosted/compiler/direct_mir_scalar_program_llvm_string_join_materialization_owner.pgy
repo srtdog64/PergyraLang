@@ -11,7 +11,7 @@ func DirectMirScalarProgramLlvmStringJoinBlock(
             abi, CompilerTargetCpuLlvmProjection()) {
         Die("direct MIR LLVM StringJoin projection is invalid");
     }
-    let output: String = Concat("define internal ptr @", runtime.string_join.symbol);
+    var output: String = Concat("define internal ptr @", runtime.string_join.symbol);
     output = Concat(output, Concat("(", Concat(abi.llvm_value_type,
         " %array, ptr %separator) {\nentry:\n  %data = extractvalue ")));
     output = Concat(output, Concat(abi.llvm_value_type,

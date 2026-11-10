@@ -1,0 +1,32 @@
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+
+func Check(state: Int, mode: Int, present: Bool) -> Bool {
+    let routines: Array<Int> = [0];
+    let locals: Array<Int> = [0];
+    let bindings: Array<Int> = [17];
+    let states: Array<Int> = [state];
+    var replacements: Array<Int> = [];
+    if present { ArrayPush(replacements, mode); }
+    let operations: Array<Int> = [];
+    let effects: Array<Int> = [];
+    let fact: DirectMirScalarProgramCollectionOwnershipTransitionFact =
+        DirectMirScalarProgramCollectionOwnershipTransitionFact(
+            true, 0, routines, locals, bindings, states, replacements,
+            operations, effects);
+    let sealed: DirectMirScalarProgramCollectionOwnershipTransitionFact =
+        DirectMirScalarProgramCollectionOwnershipTransitionFactWithDigest(fact);
+    return DirectMirScalarProgramCollectionOwnershipTransitionFactReady(sealed);
+}
+
+func Main() -> Void {
+    Log(Check(DirectMirCollectionOwnershipStateBorrowed(), 1, true));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, true));
+    Log(Check(DirectMirCollectionOwnershipStateBorrowed(), 2, true));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 1, true));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, false));
+    let routines: Array<Int> = [0, 0];
+    let locals: Array<Int> = [1, 1];
+    let missing: Array<Int> = [1];
+    Log(DirectMirScalarProgramCollectionOwnershipTransitionRowIn(routines, locals, 0, 1) == -2);
+    Log(DirectMirScalarProgramCollectionOwnershipTransitionRowIn(routines, missing, 0, 1) == -2);
+}

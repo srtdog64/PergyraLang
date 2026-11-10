@@ -29,7 +29,7 @@ func EmitMirIntentTreeAtRowWithExecutionPlan(
             plan.typed_body_mirror_rows, expression_order) {
         MirLowerFailClosed("typed MIR intent legacy graph mirror multiset is inconsistent");
     }
-    let tree: String = MirIntentTreeAppendLine("", Concat("  Intent: ", plan.name));
+    var tree: String = MirIntentTreeAppendLine("", Concat("  Intent: ", plan.name));
     if plan.typed_execution {
         let return_type: String = MirIntentExecutionReturnTypeForRoutine(
             intent_execution_plan, plan.source_syntax_id);
@@ -68,7 +68,7 @@ func EmitMirIntentTreeAtRow(
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
     let plan: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(true, false);
-    let transitions: MirIntentZoneAuthorityTransitionFacts =
+    var transitions: MirIntentZoneAuthorityTransitionFacts =
         MirIntentZoneAuthorityTransitionFactsEmpty(true);
     return EmitMirIntentTreeAtRowWithExecutionPlan(
         routines, routine_row, expression_order, plan, transitions

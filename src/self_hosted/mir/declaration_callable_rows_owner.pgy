@@ -12,8 +12,8 @@ func SelfMirDeclarationSignatureIndexForNode(
 func SelfMirDeclarationRawReturnType(
     artifact: AstTreeArtifact, method_node_id: Int
 ) -> String {
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, method_node_id, child_index
     );
     while IsSome(child) {
@@ -50,11 +50,11 @@ func SelfMirDeclarationAppendMethodParams(
     if !IsSome(signature_index) { return false; }
     let row: Int = UnwrapOption(signature_index);
     let start: Int = ArrayLength(method_param_names);
-    let p: Int = 0;
+    var p: Int = 0;
     while p < signatures.param_counts[row] {
         let param_row: Int = signatures.param_starts[row] + p;
         let param_node_id: Int = signatures.param_node_ids[param_row];
-        let raw_type: String = "";
+        var raw_type: String = "";
         let raw_type_opt: Option<String> = TypedAstArenaTypeName(
             artifact.arena, param_node_id
         );
@@ -73,7 +73,7 @@ func SelfMirDeclarationCopyStringRange(
     if start < 0 || count < 0 || start + count > ArrayLength(source) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         ArrayPush(target, Concat("", source[start + i]));
         i = i + 1;
@@ -89,7 +89,7 @@ func SelfMirDeclarationRoleOverrideSuffixReady(
         method_start + method_count > ArrayLength(roles.method_ability_names) {
         return false;
     }
-    let method_index: Int = impl_method_count;
+    var method_index: Int = impl_method_count;
     while method_index < method_count {
         if roles.method_ability_names[method_start + method_index] != "" {
             return false;
@@ -146,7 +146,7 @@ func SelfMirDeclarationAppendMethodContract(
     ) {
         return false;
     }
-    let is_action: Int = 0;
+    var is_action: Int = 0;
     if facts.is_actions[signature_index] { is_action = 1; }
     ArrayPush(method_is_actions, is_action);
     ArrayPush(method_requires_starts, requires_start);
@@ -163,12 +163,12 @@ func SelfMirDeclarationAppendMethodContract(
         method_authorized_by_counts,
         ArrayLength(method_authorized_by_names) - authority_start
     );
-    let caps_present: Int = 0;
+    var caps_present: Int = 0;
     if facts.caps_node_ids[signature_index] >= 0 { caps_present = 1; }
     ArrayPush(method_caps_present, caps_present);
     ArrayPush(method_cap_starts, cap_start);
     ArrayPush(method_cap_counts, ArrayLength(method_cap_names) - cap_start);
-    let effects_present: Int = 0;
+    var effects_present: Int = 0;
     if facts.effects_node_ids[signature_index] >= 0 { effects_present = 1; }
     ArrayPush(method_effects_present, effects_present);
     ArrayPush(method_effect_starts, effect_start);

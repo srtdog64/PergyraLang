@@ -145,6 +145,9 @@ typedef enum
     TOKEN_STAR,         /* * */
     TOKEN_SLASH,        /* / */
     TOKEN_PERCENT,      /* % */
+    TOKEN_MUL_ASSIGN,   /* *= */
+    TOKEN_DIV_ASSIGN,   /* /= */
+    TOKEN_REM_ASSIGN,   /* %= */
     TOKEN_EQUAL,        /* == */
     TOKEN_NOT_EQUAL,    /* != */
     TOKEN_LESS,         /* < */

@@ -8,8 +8,8 @@ struct Rows {
 }
 
 func AddBlock(rows: Rows) -> Rows {
-    let ids: Array<Int> = rows.ids;
-    let names: Array<String> = rows.names;
+    var ids: Array<Int> = rows.ids;
+    var names: Array<String> = rows.names;
     ArraySet(ids, 0, 99);
     ArrayPush(ids, ArrayLength(ids));
     ArrayPush(names, "block");

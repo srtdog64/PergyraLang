@@ -41,9 +41,9 @@ func SemanticAstEntrypointSelectionObserve(
 func SemanticAstEntrypointSelectionFinish(
     accumulator: SemanticAstEntrypointSelectionAccumulator
 ) -> SemanticAstEntrypointSelectionFact {
-    let selected_count: Int = accumulator.lowercase_count;
-    let selected_index: Int = accumulator.lowercase_index;
-    let lowercase_spelling: Bool = selected_count == 1;
+    var selected_count: Int = accumulator.lowercase_count;
+    var selected_index: Int = accumulator.lowercase_index;
+    var lowercase_spelling: Bool = selected_count == 1;
     if accumulator.uppercase_count > 0 {
         selected_count = accumulator.uppercase_count;
         selected_index = accumulator.uppercase_index;
@@ -106,7 +106,7 @@ func SemanticAstEntrypointUsesLowercaseSpelling(
 }
 
 func SemanticEntrypointSingleRuntimeCallableSelected(name: String) -> Bool {
-    let accumulator: SemanticAstEntrypointSelectionAccumulator =
+    var accumulator: SemanticAstEntrypointSelectionAccumulator =
         SemanticAstEntrypointSelectionAccumulatorEmpty();
     SemanticAstEntrypointSelectionObserve(accumulator, "", true, name, 0);
     let selection: SemanticAstEntrypointSelectionFact =

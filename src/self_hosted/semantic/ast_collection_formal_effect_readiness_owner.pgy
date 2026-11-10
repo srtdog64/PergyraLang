@@ -44,11 +44,11 @@ func SemanticAstCollectionFormalEffectsReadyFor(
             signature_count ||
         ArrayLength(signatures.action_contracts.body_node_ids) !=
             signature_count { return false; }
-    let signature: Int = 0;
-    let flat: Int = 0;
-    let expected: Int = 0;
-    let owned_push_leaf_count: Int = 0;
-    let proved_count: Int = 0;
+    var signature: Int = 0;
+    var flat: Int = 0;
+    var expected: Int = 0;
+    var owned_push_leaf_count: Int = 0;
+    var proved_count: Int = 0;
     while signature < signature_count {
         let function: Int = signatures.function_node_ids[signature];
         let size: Int = signatures.param_counts[signature];
@@ -56,7 +56,7 @@ func SemanticAstCollectionFormalEffectsReadyFor(
             size < 0 || size > flat_count - flat ||
             signatures.action_contracts.callable_node_ids[signature] !=
                 function { return false; }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < size {
             let parameter: Int = flat + ordinal;
             let mode: Int = signatures.param_modes[parameter];
@@ -167,8 +167,8 @@ func SemanticAstCollectionFormalScalarMapReadArgumentReady(
 func SemanticAstCollectionFormalEffectProvedCount(
     facts: SemanticAstCollectionFormalEffects
 ) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.inventory.formal_nodes) {
         if SemanticAstCollectionFormalEffectForNode(
                 facts.effects, facts.inventory.formal_nodes[row]) != 0 {

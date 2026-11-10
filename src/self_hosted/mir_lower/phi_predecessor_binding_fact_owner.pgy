@@ -30,8 +30,8 @@ func MirPhiPredecessorBindingFactFromOwners(
             ArrayLength(phi.incoming_definition_blocks) {
         return MirPhiPredecessorBindingFactEmpty();
     }
-    let predecessors: Array<Int> = [];
-    let block: Int = 0;
+    var predecessors: Array<Int> = [];
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
         if index.block_succ_true[block] == phi.block_id ||
             index.block_succ_false[block] == phi.block_id {
@@ -42,18 +42,18 @@ func MirPhiPredecessorBindingFactFromOwners(
     if ArrayLength(predecessors) != phi.predecessor_count {
         return MirPhiPredecessorBindingFactEmpty();
     }
-    let incoming_rows: Array<Int> = [];
-    let selected_counts: Array<Int> = [];
-    let incoming: Int = 0;
+    var incoming_rows: Array<Int> = [];
+    var selected_counts: Array<Int> = [];
+    var incoming: Int = 0;
     while incoming < ArrayLength(phi.incoming_results) {
         ArrayPush(selected_counts, 0);
         incoming = incoming + 1;
     }
-    let predecessor_row: Int = 0;
+    var predecessor_row: Int = 0;
     while predecessor_row < ArrayLength(predecessors) {
         let predecessor: Int = predecessors[predecessor_row];
-        let selected: Int = 0 - 1;
-        let candidate: Int = 0;
+        var selected: Int = 0 - 1;
+        var candidate: Int = 0;
         while candidate < ArrayLength(phi.incoming_results) {
             if selected_counts[candidate] != 0 {
                 candidate = candidate + 1;
@@ -76,8 +76,8 @@ func MirPhiPredecessorBindingFactFromOwners(
                 candidate = candidate + 1;
                 continue;
             }
-            let shadowed: Bool = false;
-            let other: Int = 0;
+            var shadowed: Bool = false;
+            var other: Int = 0;
             while other < ArrayLength(index.instruction_facts.results) {
                 let later_name: String = index.instruction_facts.results[other];
                 if later_name != phi.incoming_results[candidate] &&
@@ -111,7 +111,7 @@ func MirPhiPredecessorBindingFactFromOwners(
         ArraySet(selected_counts, selected, selected_counts[selected] + 1);
         predecessor_row = predecessor_row + 1;
     }
-    let selected_row: Int = 0;
+    var selected_row: Int = 0;
     while selected_row < ArrayLength(selected_counts) {
         if selected_counts[selected_row] == 0 {
             return MirPhiPredecessorBindingFactEmpty();
@@ -149,11 +149,11 @@ func MirRoutinePhiPredecessorBindingsReady(
     ref use_facts: MirRoutineInstructionUseFacts,
     routine_row: Int
 ) -> Bool {
-    let block_id: Int = 0;
+    var block_id: Int = 0;
     while block_id < ArrayLength(index.block_starts) {
         let phi_prefix_count: Int =
             index.instruction_facts.block_phi_prefix_counts[block_id];
-        let instruction_row: Int = 0;
+        var instruction_row: Int = 0;
         while instruction_row < phi_prefix_count {
             let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
                 index, routines, use_facts, routine_row,

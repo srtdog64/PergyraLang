@@ -63,6 +63,16 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             projection.string_sub_index_with_len, "sub-index-of-with-len",
             StringRuntimeCSubIndexOfWithLenFn(),
             "string_int_string_int_to_int") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_sub_contains_with_len_id,
+            projection.string_sub_contains_with_len,
+            "sub-contains-with-len", StringRuntimeCSubContainsWithLenFn(),
+            "string_int_string_int_to_bool") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_sub_starts_with_len_id,
+            projection.string_sub_starts_with_len,
+            "sub-starts-with-len", StringRuntimeCSubStartsWithLenFn(),
+            "string_int_string_int_to_bool") &&
         DirectMirScalarProgramStringIndexRuntimeProjectionReady(
             projection.string_index, fact.string_index) &&
         DirectMirScalarProgramStringTrimRuntimeProjectionReady(

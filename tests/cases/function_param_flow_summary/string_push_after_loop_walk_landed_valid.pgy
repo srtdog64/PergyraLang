@@ -28,12 +28,12 @@ func Fill(arena: Arena, inout names: Array<String>) -> Bool {
 }
 
 func Build(artifact: Artifact) -> Facts {
-    let names: Array<String> = [];
-    let ok: Bool = true;
-    let node: Int = 0;
+    var names: Array<String> = [];
+    var ok: Bool = true;
+    var node: Int = 0;
     while node < artifact.count && ok {
-        let generic_names: Array<String> = [];
-        let child: Int = 0;
+        var generic_names: Array<String> = [];
+        var child: Int = 0;
         while child < 3 && ok {
             if child == 0 {
                 if !Fill(artifact.arena, generic_names) {
@@ -57,7 +57,7 @@ func Build(artifact: Artifact) -> Facts {
 }
 
 func Main() -> Int {
-    let atoms: Array<String> = [];
+    var atoms: Array<String> = [];
     ArrayPushOwnedString(atoms, Concat("a", "b"));
     ArrayPushOwnedString(atoms, Concat("c", "d"));
     let f: Facts = Build(Artifact(1, Arena(atoms)));

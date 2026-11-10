@@ -1,0 +1,21 @@
+// Diagnostic projection for one failed call-target graph node.
+import "ast_expression_graph_fact_owner.pgy";
+
+func SemanticExpressionCallTargetFailureLane(
+    ref graph: SemanticExpressionGraphFacts, node: Int, lane: String
+) -> String {
+    let callee: Int = graph.arena.topology.left_children[node];
+    var result: String = Concat(lane, Concat(
+        "|text=", graph.arena.node_texts[node]));
+    result = Concat(result, Concat(
+        "|target=", graph.arena.call_target_names[node]));
+    result = Concat(result, Concat("|target_id=", ToString(
+        graph.arena.identities.call_target_syntax_ids[node])));
+    result = Concat(result, Concat("|callee=", ToString(callee)));
+    result = Concat(result, Concat(
+        "|callee_text=", graph.arena.node_texts[callee]));
+    result = Concat(result, Concat("|callee_binding=", ToString(
+        graph.arena.identities.binding_syntax_ids[callee])));
+    return Concat(result, Concat("|callee_kind=", ToString(
+        graph.arena.identities.binding_kinds[callee])));
+}

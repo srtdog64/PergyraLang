@@ -14,7 +14,7 @@ func DirectMirScalarProgramLlvmProcessArgsBlock(
             plan.program.array_string_abi, projection, CompilerTargetCpuLlvmProjection()) {
         Die("direct MIR scalar LLVM process-args ABI is invalid");
     }
-    let output: String = "@pgy.selfhost.argc = internal global i32 0\n@pgy.selfhost.argv = internal global ptr null\n";
+    var output: String = "@pgy.selfhost.argc = internal global i32 0\n@pgy.selfhost.argv = internal global ptr null\n";
     output = Concat(output, Concat("define internal %pgy.array.string @",
         Concat(runtime.process_args.symbol, "() {\nentry:\n")));
     let storage_align: String = ToString(projection.storage.align);

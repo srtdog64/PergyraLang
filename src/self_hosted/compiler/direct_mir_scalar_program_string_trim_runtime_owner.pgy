@@ -52,10 +52,10 @@ func DirectMirScalarProgramStringTrimRuntimeDigest(
     ref fact: DirectMirScalarProgramStringTrimRuntimeFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(277L, fact.runtime_call_abi_id);
+    var hash: Long = DirectMirCfgHashInt(277L, fact.runtime_call_abi_id);
     hash = DirectMirCfgHashInt(hash, fact.contract.ascii_whitespace_mask);
-    let null_behavior: Int = 0;
-    let ownership: Int = 0;
+    var null_behavior: Int = 0;
+    var ownership: Int = 0;
     if fact.contract.null_returns_empty { null_behavior = 1; }
     if fact.contract.returns_owned_string { ownership = 1; }
     hash = DirectMirCfgHashInt(hash, null_behavior);
@@ -96,8 +96,8 @@ func DirectMirScalarProgramStringTrimRuntimeRequirement(
             abi, "trim", StringRuntimeCStringTrimFn(), "string_to_string") {
         return DirectMirScalarProgramStringTrimRuntimeFactEmpty();
     }
-    let abi_id: Int = 0;
-    let contract: DirectMirScalarProgramStringTrimContract =
+    var abi_id: Int = 0;
+    var contract: DirectMirScalarProgramStringTrimContract =
         DirectMirScalarProgramStringTrimContractEmpty();
     if required {
         abi_id = abi.runtime_call_abi_id;

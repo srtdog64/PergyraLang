@@ -11,13 +11,13 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     if !sequence.ok || source == "" || index < 0 {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let kinds: Array<Int> = sequence.arena.topology.node_kinds;
-    let texts: Array<String> = sequence.arena.node_texts;
-    let lefts: Array<Int> = sequence.arena.topology.left_children;
-    let rights: Array<Int> = sequence.arena.topology.right_children;
-    let target_kinds: Array<Int> = sequence.arena.call_target_kinds;
-    let target_names: Array<String> = sequence.arena.call_target_names;
-    let place_kinds: Array<Int> = sequence.arena.place_kinds;
+    var kinds: Array<Int> = sequence.arena.topology.node_kinds;
+    var texts: Array<String> = sequence.arena.node_texts;
+    var lefts: Array<Int> = sequence.arena.topology.left_children;
+    var rights: Array<Int> = sequence.arena.topology.right_children;
+    var target_kinds: Array<Int> = sequence.arena.call_target_kinds;
+    var target_names: Array<String> = sequence.arena.call_target_names;
+    var place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
     if ArrayLength(texts) != offset || ArrayLength(lefts) != offset ||
         ArrayLength(rights) != offset ||
@@ -45,7 +45,7 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     ArrayPush(target_kinds, SemanticCallTargetNone());
     ArrayPush(target_names, "");
     ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
-    let roots: Array<Int> = sequence.roots;
+    var roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + 2);
     let extended: MirExpressionGraphSequence =
         MirExpressionGraphSequenceFromExtendedRows(
@@ -69,7 +69,7 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
 ) -> MirExpressionGraphSequence {
     let expr0: Option<String> = JsonObjectFactStringFieldOpt(instruction, "expr0");
     let element_type: Option<String> = JsonObjectFactStringFieldOpt(instruction, "destructure_element_type");
-    let binding_bounds: Array<Int> = [0, 0];
+    var binding_bounds: Array<Int> = [0, 0];
     if ordinal < 0 || !IsSome(expr0) || UnwrapOption(expr0) == "" ||
         !IsSome(element_type) || UnwrapOption(element_type) == "" ||
         !JsonObjectFactArrayBounds(
@@ -100,8 +100,8 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
         }
         return MirExpressionGraphSequenceAppend(sequence, graph);
     }
-    let binding_index: Int = ordinal;
-    let source: String = init;
+    var binding_index: Int = ordinal;
+    var source: String = init;
     if needs_temp {
         binding_index = ordinal - 1;
         source = temporary;

@@ -1,0 +1,114 @@
+// Joins pre-ownership body facts into the base semantic verdict.
+import "ast_body_verdict_owner.pgy";
+import "ast_local_name_rule_owner.pgy";
+import "ast_bound_party_escape_owner.pgy";
+import "ast_intent_retry_admission_owner.pgy";
+import "ast_intent_step_clause_admission_owner.pgy";
+import "ast_intent_compensation_admission_owner.pgy";
+import "ast_intent_boundary_predicate_admission_owner.pgy";
+import "ast_action_contract_admission_owner.pgy";
+import "ast_match_materialization_fact_owner.pgy";
+import "ast_generic_specialization_constraint_owner.pgy";
+
+func SemanticAstBodyBaseVerdict(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    verdict: SemanticAstBodyVerdict,
+    ref statement_types: SemanticAstStatementTypeFacts,
+    ref match_materializations: SemanticAstMatchMaterializationFacts,
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref named_boundary: SemanticAstNamedValueBoundaryVerdict,
+    ref zone_carriage: SemanticAstZoneValueCarriageVerdict,
+    ref generic_specializations: SemanticAstGenericSpecializationFacts,
+    call_targets_resolved: Bool, role_operators_resolved: Bool,
+    expression_places_resolved: Bool,
+    iteration_graph_roots_attached: Bool,
+    expression_identities_resolved: Bool,
+    require_source_body_flow: Bool
+) -> SemanticAstBodyVerdict {
+    if require_source_body_flow {
+        var names: SemanticAstDeclarationContractVerdict =
+            SemanticAstLocalNameRuleVerdict(
+                artifact, analysis.signatures, analysis.local_bindings,
+                analysis.statements);
+        if names.ok {
+            names = SemanticAstBoundPartyEscapeVerdict(
+                analysis.statements, analysis.expression_surfaces);
+        }
+        if !names.ok {
+            verdict = SemanticAstBodyVerdictError(
+                names.code, names.message, names.node_id);
+        }
+    }
+    if verdict.ok {
+        verdict = SemanticAstIntentRetryAdmissionFromFacts(
+            artifact, analysis.kind_surfaces, analysis.intent_signatures);
+    }
+    if verdict.ok {
+        verdict = SemanticAstIntentStepClauseAdmissionFromFacts(
+            artifact, analysis.kind_surfaces, analysis.intent_signatures,
+            analysis.expression_surfaces);
+    }
+    if verdict.ok {
+        verdict = SemanticAstIntentCompensationAdmissionFromFacts(
+            artifact, analysis.kind_surfaces, analysis.intent_signatures,
+            analysis.expression_surfaces);
+    }
+    if verdict.ok {
+        verdict = SemanticAstIntentBoundaryPredicateAdmission(
+            artifact, analysis, function_tables);
+    }
+    if verdict.ok {
+        verdict = SemanticAstActionContractAdmissionFromFacts(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.roles, analysis.zone_authorities);
+    }
+    if verdict.ok && !call_targets_resolved {
+        verdict = SemanticAstBodyVerdictError("call_target_unresolved",
+            "semantic call target rows are incomplete after body fixpoint", -1);
+    } else if verdict.ok && !role_operators_resolved {
+        verdict = SemanticAstBodyVerdictError("role_operator_target_unresolved",
+            "semantic role-operator target rows are incomplete", -1);
+    } else if verdict.ok && !expression_places_resolved {
+        verdict = SemanticAstBodyVerdictError("expression_place_unresolved",
+            "semantic expression place rows are incomplete after body fixpoint", -1);
+    } else if verdict.ok && !iteration_graph_roots_attached {
+        verdict = SemanticAstBodyVerdictError(
+            "iteration_graph_root_unresolved",
+            "semantic foreach synthetic roots are incomplete", -1);
+    } else if verdict.ok && !expression_identities_resolved {
+        verdict = SemanticAstBodyVerdictError(
+            "expression_identity_unresolved",
+            "semantic expression identity rows are incomplete", -1);
+    } else if verdict.ok && !named_boundary.ok {
+        verdict = SemanticAstBodyVerdictError(
+            named_boundary.diagnostic_code, named_boundary.diagnostic_message,
+            SemanticAstExpressionGraphOwnerAstNode(
+                analysis.expression_surfaces, named_boundary.call_node_id));
+    } else if verdict.ok && !zone_carriage.ok {
+        verdict = SemanticAstBodyVerdictError(
+            zone_carriage.diagnostic_code, zone_carriage.diagnostic_message,
+            zone_carriage.syntax_node_id);
+    } else if verdict.ok && !generic_specializations.ok {
+        verdict = SemanticAstBodyVerdictError(
+            generic_specializations.diagnostic_code,
+            generic_specializations.diagnostic_message, -1);
+    } else if verdict.ok && !SemanticAstMatchMaterializationFactsReady(
+            artifact, analysis, statement_types, match_materializations) {
+        verdict = SemanticAstBodyVerdictError(
+            "match_materialization_unresolved",
+            "semantic match materialization facts are incomplete", -1);
+    }
+    if verdict.ok {
+        let violation: Option<String> =
+            SemanticAstGenericSpecializationConstraintViolation(
+                analysis.signatures, analysis.roles,
+                analysis.function_scopes, generic_specializations);
+        if IsSome(violation) {
+            verdict = SemanticAstBodyVerdictError(
+                "generic_constraint_unsatisfied",
+                SemanticError1("generic_constraint_unsatisfied", "constraint",
+                    UnwrapOption(violation)), -1);
+        }
+    }
+    return verdict;
+}

@@ -52,7 +52,7 @@ func DirectMirConstructedRecordArrayMemberEmitLlvm(
     let aggregate: String = abi.llvm_aggregate_type;
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "%";
+    var output: String = "%";
     output = Concat(output, record);
     output = Concat(output, " = type { i32 }\n%");
     output = Concat(output, wrapper);

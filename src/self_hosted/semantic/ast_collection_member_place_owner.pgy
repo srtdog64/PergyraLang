@@ -24,9 +24,9 @@ func SemanticAstCollectionMemberPlaceForNode(
     function_id: Int, syntax_id: Int, ref graph: SemanticExpressionGraphFacts, node: Int
 ) -> SemanticAstCollectionMemberPlace {
     let absent: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlace(false, 0, -1, 0, "");
-    let depth: Int = 0;
-    let leaf: Int = node;
-    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf);
+    var depth: Int = 0;
+    var leaf: Int = node;
+    var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf);
     while member.ok {
         depth = depth + 1;
         leaf = member.receiver_node;
@@ -37,13 +37,13 @@ func SemanticAstCollectionMemberPlaceForNode(
     if !root.ok || depth == 0 { return absent; }
     let untyped: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlace(
         false, root.source_binding_syntax_id, leaf, depth, "");
-    let type_name: String = Concat("", root.type_name);
+    var type_name: String = Concat("", root.type_name);
     // Selectors resolve from the root outward; the one `level - 1` hops from
     // the occurrence is the next field of the current type.
-    let level: Int = depth;
+    var level: Int = depth;
     while level >= 1 {
-        let at: Int = node;
-        let hops: Int = level - 1;
+        var at: Int = node;
+        var hops: Int = level - 1;
         while hops > 0 {
             at = SemanticMemberAccessViewFromGraph(graph, at).receiver_node;
             hops = hops - 1;

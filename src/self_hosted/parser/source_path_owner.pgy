@@ -33,7 +33,7 @@ func ParserImportGraphSeen(paths: HashMap<String, Int>, path: String) -> Bool {
 // An import of a file on it is a cycle. A file seen on another branch is a
 // shared import and is composed once.
 func ParserImportChainHolds(chain: Array<String>, path: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(chain) {
         if chain[i] == path { return true; }
         i = i + 1;

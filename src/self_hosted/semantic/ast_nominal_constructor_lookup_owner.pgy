@@ -36,8 +36,8 @@ func SemanticAstNominalConstructorIndexForNameAt(ref facts: SemanticAstNominalCo
 // Field identity is scoped by the owning declaration, never by field type.
 func SemanticAstNominalConstructorFieldRowForName(ref facts: SemanticAstNominalConstructorFacts, owner_index: Int, name: String) -> Option<Int> {
     if !facts.ok || owner_index < 0 || owner_index >= SemanticAstNominalConstructorCount(facts) || name == "" { return None; }
-    let found: Int = -1;
-    let row: Int = facts.param_starts[owner_index];
+    var found: Int = -1;
+    var row: Int = facts.param_starts[owner_index];
     let end: Int = row + facts.param_counts[owner_index];
     while row < end {
         if facts.field_names[row] == name {
@@ -55,13 +55,13 @@ func SemanticAstNominalFieldType(ref facts: SemanticAstNominalConstructorFacts, 
     let constructor_index: Int = SemanticCallableNameTableValue(facts.name_first_rows, nominal_name);
     if constructor_index < 0 || constructor_index >= ArrayLength(facts.names) ||
         facts.names[constructor_index] != nominal_name { return None; }
-    let field_index: Int = 0;
+    var field_index: Int = 0;
     while field_index < facts.param_counts[constructor_index] {
         let row: Int = facts.param_starts[constructor_index] + field_index;
         if facts.field_names[row] == field_name { return Some(facts.param_type_names[row]); }
         field_index = field_index + 1;
     }
-    let slot_index: Int = 0;
+    var slot_index: Int = 0;
     while slot_index < facts.role_slot_counts[constructor_index] {
         let slot_row: Int = facts.role_slot_starts[constructor_index] + slot_index;
         if facts.role_slot_names[slot_row] == field_name { return Some(facts.role_slot_type_names[slot_row]); }

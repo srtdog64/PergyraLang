@@ -7,7 +7,7 @@ import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 
 func RewriteSemanticSlotCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     source_name: String,
     env: CodegenTypeEnv

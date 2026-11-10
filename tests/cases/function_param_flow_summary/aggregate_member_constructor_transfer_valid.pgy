@@ -1,0 +1,30 @@
+// A constructor takes the moved String-array carriers after their owned-push
+// obligations are recorded; the detached locals must not be cleaned again.
+struct Rows {
+    names: Array<String>;
+    kinds: Array<String>;
+}
+
+struct Facts {
+    routines: Rows;
+}
+
+func Append(facts: Facts) -> Facts {
+    let rows: Rows = facts.routines;
+    var names: Array<String> = rows.names;
+    var kinds: Array<String> = rows.kinds;
+    ArrayPushOwnedString(names, Concat("b", ""));
+    ArrayPushOwnedString(kinds, Concat("y", ""));
+    let appended: Rows = Rows(names, kinds);
+    return Facts(appended);
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts(Rows(
+        [Concat("a", "")], [Concat("x", "")]
+    ));
+    let changed: Facts = Append(facts);
+    Print(changed.routines.names[1]);
+    Log(ArrayLength(changed.routines.kinds));
+    return 0;
+}

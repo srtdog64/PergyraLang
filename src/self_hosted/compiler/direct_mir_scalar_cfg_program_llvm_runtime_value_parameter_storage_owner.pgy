@@ -8,8 +8,8 @@ func DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(
     if routine < 0 || routine >= ArrayLength(plan.routines.roles) {
         Die("direct MIR LLVM runtime-value parameter routine is invalid");
     }
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     let start: Int = plan.routines.parameter_starts[routine];
     while ordinal < plan.routines.parameter_counts[routine] {
         let row: Int = start + ordinal;

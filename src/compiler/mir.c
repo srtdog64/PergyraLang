@@ -88,6 +88,10 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 "MIR lowering requires HIR and semantic facts");
         return NULL;
     }
+    /* HIR owns the CFG consumed below.  Revalidate that owner at the MIR
+     * boundary so a detached block store fails closed before projection. */
+    if (!hir_validate(hir, error_message))
+        return NULL;
     if (!hir_collection_effect_snapshot_current(semantic, hir, error_message))
         return NULL;
     if (!mir_validate_function_flow_hir_projection(hir, semantic, error_message))
@@ -396,6 +400,20 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 mir_destroy(mir);
                 return NULL;
             }
+            /* Source-local call receipts consume the sealed collection fact;
+             * copy that owner before deriving local initializer metadata. */
+            if (!mir_copy_collection_ownership_facts(
+                    &routine, hir_routine, error_message)) {
+                mir_routine_source_local_type_names_clear(&routine);
+                mir_routine_signature_metadata_clear(&routine);
+                mir_free_iteration_type_facts(&routine);
+                mir_free_destructure_type_facts(&routine);
+                mir_free_match_binding_type_facts(&routine);
+                mir_free_collection_ownership_facts(&routine);
+                pgy_arena_destroy(&routine.scratch);
+                mir_destroy(mir);
+                return NULL;
+            }
             double t_loc = mir_timing_now();
             bool loc_ok = mir_routine_source_local_type_names_capture(mir, &routine);
             mir_timing_add(MIR_TIMING_SOURCE_LOCAL_TYPES,
@@ -411,18 +429,6 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 if (error_message != NULL)
                     *error_message = pergyra_strdup(
                         "missing or invalid source-local type fact");
-                mir_destroy(mir);
-                return NULL;
-            }
-            if (!mir_copy_collection_ownership_facts(
-                    &routine, hir_routine, error_message)) {
-                mir_routine_source_local_type_names_clear(&routine);
-                mir_routine_signature_metadata_clear(&routine);
-                mir_free_iteration_type_facts(&routine);
-                mir_free_destructure_type_facts(&routine);
-                mir_free_match_binding_type_facts(&routine);
-                mir_free_collection_ownership_facts(&routine);
-                pgy_arena_destroy(&routine.scratch);
                 mir_destroy(mir);
                 return NULL;
             }
@@ -502,8 +508,6 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                        mir_enrich_machine_layer_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
                        mir_link_resource_runtime_facts(&routine));
-        MIR_TIMED_STEP(MIR_TIMING_SPECULATION,
-                       mir_capture_speculation_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_USE_EDGES,
                        mir_populate_use_edges(&routine, error_message));
         MIR_TIMED_STEP(MIR_TIMING_CLEANUP_EDGES,
@@ -592,6 +596,24 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
     if (!mir_generic_method_specializations_capture(mir, error_message)) {
         mir_destroy(mir);
         return NULL;
+    }
+
+    /* This is the last MIR expression-fact producer.  Inout member copyout
+     * synthesis and generic specialization can materialize instructions after
+     * ordinary routine lowering, so capturing earlier leaves those expressions
+     * without the lowering-owned speculation contract. */
+    {
+        double t0 = mir_timing_now();
+        for (size_t r = 0; r < mir->routine_count; r++) {
+            if (!mir_capture_speculation_facts(&mir->routines[r])) {
+                if (error_message != NULL && *error_message == NULL)
+                    *error_message = pergyra_strdup(
+                        "MIR speculation facts could not be captured after expression synthesis");
+                mir_destroy(mir);
+                return NULL;
+            }
+        }
+        mir_timing_add(MIR_TIMING_SPECULATION, mir_timing_now() - t0);
     }
 
     {

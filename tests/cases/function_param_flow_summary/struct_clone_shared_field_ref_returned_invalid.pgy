@@ -14,7 +14,7 @@ func Copy(ref shelf: Shelf) -> Shelf {
 }
 
 func Main() -> Int {
-    let a: Shelf = Shelf([Box([1])]);
+    var a: Shelf = Shelf([Box([1])]);
     let b: Shelf = Copy(a);
     ArrayPush(a.boxes, Box([2]));
     Print(ToString(ArrayLength(b.boxes)));

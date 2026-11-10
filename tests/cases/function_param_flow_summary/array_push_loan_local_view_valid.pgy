@@ -19,7 +19,7 @@ func LabelAt(ref facts: Facts, index: Int) -> Label {
 }
 
 func LabelsOf(ref facts: Facts) -> Shelf {
-    let labels: Array<Label> = [];
+    var labels: Array<Label> = [];
     ArrayPush(labels, LabelAt(facts, 0));
     ArrayPush(labels, LabelAt(facts, 1));
     let first: Label = labels[0];

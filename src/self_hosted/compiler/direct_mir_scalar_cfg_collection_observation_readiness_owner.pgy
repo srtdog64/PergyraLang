@@ -12,14 +12,14 @@ func DirectMirScalarCfgCollectionObservationsReady(
         count != ArrayLength(plan.observations.graph_operation_rows) {
         return false;
     }
-    let get_claims: Array<Int> = [];
-    let operation: Int = 0;
+    var get_claims: Array<Int> = [];
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operations.kinds) {
         ArrayPush(get_claims, 0);
         operation = operation + 1;
     }
-    let row: Int = 0;
-    let prior_global: Int = -1;
+    var row: Int = 0;
+    var prior_global: Int = -1;
     while row < count {
         let receiver: Int = plan.observations.receiver_value_rows[row];
         let start: Int = plan.observations.get_operation_starts[row];
@@ -39,7 +39,7 @@ func DirectMirScalarCfgCollectionObservationsReady(
              kind != DirectMirScalarCfgCollectionObservationConcatString()) {
             return false;
         }
-        let item: Int = 0;
+        var item: Int = 0;
         while item < items {
             let operation_row: Int = start + item;
             if plan.operations.kinds[operation_row] !=
@@ -59,7 +59,7 @@ func DirectMirScalarCfgCollectionObservationsReady(
     }
     operation = 0;
     while operation < ArrayLength(plan.operations.kinds) {
-        let expected: Int = 0;
+        var expected: Int = 0;
         if plan.operations.kinds[operation] ==
                 DirectMirScalarCfgCollectionOpGet() { expected = 1; }
         if get_claims[operation] != expected { return false; }

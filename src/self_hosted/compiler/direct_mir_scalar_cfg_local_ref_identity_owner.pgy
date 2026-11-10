@@ -8,8 +8,8 @@ func DirectMirScalarCfgLocalRefMatchBinding() -> Int { return 4; }
 func DirectMirScalarCfgLocalIdentityRow(
     ref identities: Array<String>, wanted: String
 ) -> Int {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(identities) {
         if identities[row] == wanted {
             if found >= 0 { return -1; }

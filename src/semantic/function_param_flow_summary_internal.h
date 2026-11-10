@@ -27,6 +27,25 @@ typedef enum {
     FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT
 } FunctionParamFlowResultArgumentKind;
 
+#define FUNCTION_PARAM_FLOW_RESULT_PATH_LIMIT 64u
+#define FUNCTION_PARAM_FLOW_RESULT_BRANCH_LIMIT 16u
+
+/* A current result projection known to contain one backing origin. `fields`
+ * is the shared prefix. With no branches it denotes that whole prefix (an
+ * empty present prefix is the whole result). With branches it denotes the
+ * union of the immediate child subtrees named in `branch_fields`. Keeping
+ * sibling children prevents an origin in fields A and C from tainting the
+ * disjoint field B; exceeding the bounded branch set collapses conservatively
+ * to the whole prefix. Field identities come from the typed nominal result
+ * publication; spelling alone is never a path fact. */
+typedef struct {
+    uint32_t fields[FUNCTION_PARAM_FLOW_RESULT_PATH_LIMIT];
+    size_t count;
+    uint32_t branch_fields[FUNCTION_PARAM_FLOW_RESULT_BRANCH_LIMIT];
+    size_t branch_count;
+    bool present;
+} FunctionParamFlowResultPath;
+
 typedef struct
 {
     uint32_t function_id;
@@ -47,6 +66,11 @@ typedef struct
     size_t output_count;
     bool output_dependencies_ready;
     FunctionParamFlowOutputProducer output_producer;
+    /* Exact projection of this formal's backing inside the returned value.
+     * This is published from the normal backing frame beside its output
+     * relation; it is not a second provenance graph. */
+    FunctionParamFlowResultPath result_path;
+    bool result_path_ready;
     FunctionParamFlowSummaryState state;
     /* Demand epoch of this completed entry's last successful output replay. */
     size_t output_current_epoch;
@@ -67,8 +91,21 @@ typedef struct {
     ASTNode *node;
     uint32_t id;
     ASTNodeType shape;
+    /* Stable append-only ordinal of this node in the routine's typed claim
+     * owner. Backing rows derive static identity/value facts from that claim;
+     * they do not re-read the publication table as a second authority. */
+    size_t claim_ordinal;
     uint64_t *origins;
     size_t origin_epoch, visit_epoch, work_epoch;
+    /* Per-frame-epoch projection of this expression's carried origin.  It is
+     * derived from the same origin bits and typed callee/constructor rows,
+     * and avoids replaying a whole callee graph for every store of the same
+     * expression. */
+    /* Most frame nodes carry no origin.  Keep the exact path as lazy
+     * frame-owned storage so adding projection evidence does not enlarge
+     * every node in the program-point index. */
+    FunctionParamFlowResultPath *origin_path;
+    size_t origin_path_epoch;
     /* An ordinal-free declared-result dependency, never an invented input. */
     uint32_t result_callee_id;
     const Type *result_type;
@@ -84,6 +121,14 @@ typedef struct {
 typedef struct {
     uint32_t binding;
     uint64_t *origins, *destinations;
+    /* When this binding carries the frame's one origin, this is the
+     * narrowest typed field path in the binding that contains it.  Empty and
+     * present means the whole value; absent is valid only while no origin is
+     * carried.  The path is part of the backing frame, not a second alias
+     * graph. */
+    /* Allocated only after this binding actually acquires the frame origin;
+     * the program-point index owns and retires it with the binding row. */
+    FunctionParamFlowResultPath *origin_path;
     size_t origin_read_epoch, destination_read_epoch;
     bool local;
 } FunctionParamFlowBackingBinding;
@@ -92,6 +137,11 @@ typedef struct {
     ASTNode *call;
     uint32_t call_id, callee_id;
     size_t ordinal;
+    /* Exact typed call claim that owns this argument relation.  Pending
+     * consumers replay the claim instead of reconstructing callee/formal
+     * selection from the publication store.  Unsupported relations that do
+     * not name an argument keep SIZE_MAX. */
+    size_t claim_ordinal;
 } FunctionParamFlowPendingRelation;
 typedef struct {
     size_t origin_count, origin_words;
@@ -100,6 +150,11 @@ typedef struct {
     uint32_t input_id;
     size_t epoch, evaluation_pass;
     unsigned *effects;
+    /* Effects that actually carry this backing beyond the callee boundary.
+     * The public effects also include a by-value carrier's move/copy CALL;
+     * keeping this positive facet separate avoids subtracting a real CALL
+     * when both causes occur on the same origin. */
+    unsigned *outward_effects;
     uint64_t *outputs;
     FunctionParamFlowBackingNode *nodes;
     size_t node_count;
@@ -112,6 +167,15 @@ typedef struct {
     FunctionParamFlowPendingRelation unsupported_relation;
     bool building, complete, pending, changed;
     bool private_stores_closed;
+    /* Monotone bounded sibling projection of this frame's origin over every
+     * reachable return. A completed frame owns this fact. */
+    FunctionParamFlowResultPath result_path;
+    bool result_path_ready;
+    /* At least one reachable return carries this input through an explicit
+     * Clone whose checked result still depends on the input. The caller may
+     * borrow an ordinary returned input, but it must not reinterpret such a
+     * non-independent Clone as an owned result. */
+    bool returned_dependent_clone;
     FunctionParamFlowIndexClaims *claims;
     const Type *declared_result_type;
 } FunctionParamFlowBackingFact;
@@ -125,19 +189,34 @@ typedef struct {
     FunctionParamFlowBackingFact *fact;
     bool private_stores_closed;
     ASTNode *loan_seed, *consumer, *escape_site;
-    /* The expression whose value carried a loan seed's first escape, where
-     * a copy can stand in for it; NULL where none can (a receiver, an
-     * inout argument). */
+    /* The expression whose value carried a loan seed's first escape, or the
+     * exact selected store that ends it. `escape_carrier` is the value a
+     * copy can replace; NULL where none can (a receiver, an inout argument). */
     ASTNode *escape_carrier;
     /* Values read as fresh copies, and the one whose own read is under way. */
     const FunctionParamFlowLoanEscapes *copied; const ASTNode *copy_source;
     uint32_t loan_owner_slot_id;
+    uint32_t loan_restore_owner_id;
+    /* Exact typed path of the place that lent the seed.  Storing the seed
+     * back to this path ends the loan; another output remains an escape. */
+    FunctionParamFlowResultPath loan_owner_path;
+    bool loan_owner_path_current;
     size_t loan_work;
     bool loan_seed_seen;
     bool checking_declared_result, result_return_seen;
 } ReturnedBacking;
 bool backing_merge(size_t words, uint64_t *into, const uint64_t *from);
+bool function_param_flow_backing_effect_facets_current(
+    const FunctionParamFlowBackingFact *fact);
+bool function_param_flow_backing_effect_projection_current(
+    const FunctionParamFlowBackingFact *fact, unsigned summary_mask);
 void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect);
+/* Records a carrier-movement CALL in the public move/copy summary without
+ * publishing it as an outward-backing effect. */
+void backing_movement_effect(ReturnedBacking *state, const uint64_t *origins,
+    unsigned effect);
+void backing_movement_effect_carried(ReturnedBacking *state,
+    const uint64_t *origins, unsigned effect, ASTNode *carrier);
 /* backing_effect for the value of `carrier`, recorded as the escape carrier
  * when it is a loan seed's first escape. */
 void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, unsigned effect,
@@ -156,6 +235,8 @@ const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node);
 size_t backing_receiver_summary(ReturnedBacking *state, ASTNode *call, ASTNode *receiver);
 FunctionParamFlowBackingBinding *backing_identifier_row(ReturnedBacking *state, ASTNode *value);
 bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue value);
+bool backing_unit_variant(ReturnedBacking *state, SemanticPublishedValue value,
+    uint32_t binding);
 /* Where a value's backing goes: its destinations, or every alias `id` of it. */
 void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations);
 /* The same, where an unpublished member access is a qualifier of a member
@@ -216,9 +297,21 @@ typedef struct {
     FunctionParamFlowLoanEscapes escapes;
 } FunctionParamFlowLoanFailure;
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
-    ASTNode *caller, ASTNode *call, uint32_t owner, FunctionParamFlowLoanFailure *failure);
+    ASTNode *caller, ASTNode *call, const ASTNode *owner_place,
+    uint32_t owner, FunctionParamFlowLoanFailure *failure);
 /* The backing `call`'s result carries never leaves `caller`. */
 bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call);
+/* The exact call result leaves `caller` only through its declared return.
+ * This is the same sparse backing proof as `call_result_stays`, replayed
+ * with RETURN_ESCAPE as its sole admitted effect; it does not infer from
+ * source nesting or from a nominal constructor spelling. */
+bool function_param_flow_call_result_returns_current(
+    SemanticContext *ctx, ASTNode *caller, ASTNode *call);
+typedef struct {
+    ASTNode *callee;
+    size_t formal;
+    bool admitted, physical;
+} FunctionParamFlowCallArgumentClaim;
 typedef struct {
     ASTNode *node;
     uint32_t id, binding;
@@ -249,6 +342,23 @@ typedef struct {
     bool private_array_push;
     bool collection_effect_present;
     uint32_t collection_effect_kind, collection_effect_receiver, collection_effect_source;
+    /* Exact checked-call projection consumed by backing rows. Publication is
+     * replayed once when this typed claim is checked, not by every frame that
+     * later reads the same call. */
+    FunctionParamFlowCallArgumentClaim *call_arguments;
+    size_t call_argument_count;
+    ASTNode *call_direct_callee, *call_declared_result;
+    const Type *call_declared_result_type;
+    /* Exact action callees reached when this call selects an intent.  The
+     * typed call claim owns the expansion so backing-row consumers do not
+     * repeatedly reconstruct it from the intent declaration. */
+    ASTNode **call_intent_action_callees;
+    uint32_t *call_intent_action_callee_ids;
+    size_t call_intent_action_count;
+    bool call_receiver_ready;
+    ASTNode *call_receiver;
+    uint32_t call_receiver_id;
+    const Type *call_receiver_type;
     bool execution_present, reachable, physical_value;
     /* Exact typed proof that this member's qualifier is a nonexecuting enum
      * namespace edge. Syntax children remain sealed independently above. */
@@ -271,6 +381,17 @@ typedef struct {
 struct FunctionParamFlowIndexClaims {
     FunctionParamFlowIndexClaim *rows;
     size_t count;
+    /* Exact derived projection of `rows` by AST identity.  Claim capture is
+     * reached once per backing-frame node and must not rescan the sealed row
+     * vector for every frame/formal.  Slots hold an ordinal plus one. */
+    size_t *node_index_slots;
+    size_t node_index_capacity;
+    /* Lazy membership projection of declaration-binding IDs for one checked
+     * claim generation. Claim rows remain the authority; backing-row currency
+     * replay verifies this view under PGY_VERIFY_FLOW_CURRENCY_MEMO. */
+    uint32_t *declaration_index_ids;
+    size_t declaration_index_capacity, declaration_index_generation;
+    bool declaration_index_ready;
     size_t readfile_first_plus_one;
     bool failed;
     /* Changes with every row added or promoted. The snapshot writes rows and
@@ -281,6 +402,11 @@ struct FunctionParamFlowIndexClaims {
      * that passed (function_param_flow_index_claims_current). */
     size_t checked_generation, checked_locals;
     bool checked;
+    /* Count of the sealed generation's ReadFile result rows.  The linked row
+     * projection is replayed when the index claims are checked; readers may
+     * reuse this receipt only while both generations still match. */
+    size_t readfile_checked_generation, readfile_checked_count;
+    bool readfile_checked;
     /* For the loan order: each row's parent row, built for one generation,
      * and the row of the last node asked about. */
     size_t *order_parent, order_generation, order_site_row;
@@ -338,10 +464,25 @@ typedef struct
     ASTNode *dependency_body;
     uint32_t dependency_body_id;
     bool dependency_roots_ready;
+    /* A successful read of roots and typed claims over this store's sealed
+     * inputs remains current; verification mode still replays it. */
+    bool sealed_read_current;
     bool mutable_output_required;
     bool private_local_stores;
+    /* This routine writes its inout Array directly or forwards it to another
+     * inout formal. It is safe only while a caller-specific private-output
+     * edge supplies the backing; it is never a global no-store fact. */
+    bool contextual_output_required;
     size_t failed_no_store_epoch;
+    /* Exact-root success for the current demand, including contextual private
+     * edges.  Unlike admitted_no_store_epoch this never grants membership to
+     * another root. */
+    size_t current_no_store_epoch;
     size_t admitted_no_store_epoch, admitted_no_store_position;
+    /* A successful capture-free no-store closure over sealed publication
+     * inputs remains current for this flow store.  Failure and callback
+     * captures are never recorded; verification mode replays the closure. */
+    bool no_store_current_at_seal;
     /* Original call identities; zero-argument edges need no invented ordinal. */
     ASTNode **no_store_calls;
     size_t no_store_call_count;
@@ -353,6 +494,10 @@ typedef struct
     FunctionParamFlowBackingFact *declared_result;
     FunctionParamFlowIndexClaims *claims;
     FunctionParamFlowControlProjection *control_projection;
+    /* The publication inputs are sealed before this store is created.  Keep
+     * the relation-header verdict with the program-point owner instead of
+     * replaying every formal's header checks on each rows-capture visit. */
+    bool relation_header_checked, relation_header_ready;
     FunctionParamFlowRowsShape rows_shape;
     FunctionParamFlowRowsMemo rows_memo;
 } FunctionParamFlowProgramPointIndex;
@@ -369,10 +514,22 @@ struct FunctionParamFlowSummaryStore
     FunctionParamFlowProgramPointIndex *program_point_indexes;
     size_t program_point_index_count;
     size_t program_point_index_capacity;
+    /* Exact function-id projection of program_point_indexes. Slots store an
+     * ordinal plus one and are rebuilt or disabled as one unit. */
+    size_t *program_point_index_hash;
+    size_t program_point_index_hash_capacity;
+    size_t program_point_index_hash_count;
     size_t active_start;
     bool solving;
     /* Context-local synchronous replay barrier, never evidence or a cache. */
     bool validating_current;
+    /* One sealed publication preparation shares currency replay across its
+     * ordered root solves. Each root still owns a separate fixed point. */
+    bool publication_demand_active;
+    /* True only while exact recursive pending edges are replayed after their
+     * SCC was validated.  It permits reads of that validated provisional
+     * output while its own frame is being rebuilt; it is never admission. */
+    bool settling_recursive_backing;
     bool changed;
     bool active_had_recursion;
     bool failed;
@@ -416,10 +573,17 @@ void function_param_flow_current_end(SemanticContext *ctx, bool previous);
  * materialize. Never call after a failed current query as a fallback. */
 bool function_param_flow_string_result_source_prepare(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source);
+/* Project only already-selected exact call-argument edges as the Clone edges
+ * that the next fixed-point parse will materialize.  True means at least one
+ * such edge participated; it is not current-source admission. */
+bool function_param_flow_string_result_source_after_selected_edges(
+    SemanticContext *ctx, const ASTNode *call, uint32_t *source);
 bool function_param_flow_private_string_receiver_replay(SemanticContext *ctx,
     ASTNode *routine, uint32_t binding);
 bool function_param_flow_string_result_independent_replay(SemanticContext *ctx,
     const ASTNode *call);
+bool function_param_flow_result_lane_string_owned_replay(
+    SemanticContext *ctx, const ASTNode *call);
 bool function_param_flow_control_append(SemanticContext *ctx,
     FunctionParamFlowControlProjection *projection, ASTNode *node, size_t claim, size_t root);
 void function_param_flow_backing_control_roots(ReturnedBacking *state,
@@ -427,16 +591,91 @@ void function_param_flow_backing_control_roots(ReturnedBacking *state,
 void function_param_flow_fail(FunctionParamFlowSummaryStore *store, ASTNode *site, const char *reason);
 size_t function_param_flow_program_point_index_find(const FunctionParamFlowSummaryStore *store,
     uint32_t function_id);
+bool function_param_flow_program_point_index_read_sealed(
+    FunctionParamFlowSummaryStore *store, ASTNode *function_decl,
+    FunctionParamFlowProgramPointIndex **index_out);
 bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);
+bool function_param_flow_unused_formal_current(
+    const FunctionParamFlowProgramPointIndex *index, size_t formal);
 bool function_param_flow_local_replacement(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *assignment);
 void function_param_flow_program_point_indexes_destroy(FunctionParamFlowSummaryStore *store);
 bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore *store,
     ASTNode *decl, size_t ordinal, unsigned *effects, bool *outputs, size_t output_count, bool *pending,
-    bool private_stores_closed);
+    FunctionParamFlowResultPath *result_path, bool private_stores_closed);
+bool function_param_flow_replay_recursive_backing_effects(
+    FunctionParamFlowSummaryStore *store, ASTNode *decl, size_t ordinal,
+    unsigned *effects, bool *outputs, size_t output_count, bool *pending,
+    FunctionParamFlowResultPath *result_path, bool private_stores_closed);
+/* Derived views of the existing backing frame. They never create a second
+ * provenance graph: current frame origins and typed constructor mappings are
+ * the only inputs. */
+bool function_param_flow_call_result_path_current(FunctionParamFlowSummaryStore *store,
+    ASTNode *call, size_t actual_ordinal, FunctionParamFlowResultPath *path);
+/* Whether this exact call is nested in a real expression consumer rather
+ * than standing directly in its routine block. The current claim-parent row
+ * owns this answer; callers must not reconstruct it from source spelling. */
+bool function_param_flow_call_result_consumed_current(
+    FunctionParamFlowSummaryStore *store, ASTNode *caller, ASTNode *call);
+/* The exact outer call that directly consumes `call` as one actual argument.
+ * Claim-parent identity owns the edge; callers must not infer it by rescanning
+ * source or by treating every nested expression as an argument boundary. */
+bool function_param_flow_call_result_argument_consumer_current(
+    FunctionParamFlowSummaryStore *store, ASTNode *caller, ASTNode *call,
+    ASTNode **consumer, size_t *actual_ordinal);
+/* The complete result of `call` is assigned directly back to the exact typed
+ * place passed as `actual_ordinal`; partial, nested and cross-owner stores do
+ * not satisfy this fact. */
+bool function_param_flow_call_result_restores_actual_current(
+    FunctionParamFlowSummaryStore *store, ASTNode *caller, ASTNode *call,
+    size_t actual_ordinal);
+/* Result-path algebra shared by the frame producer and its completed-frame
+ * projections. Join retains sibling subtrees below the common prefix;
+ * select returns the projection relative to a selected member and reports
+ * disjoint fields. */
+void function_param_flow_result_path_clear(FunctionParamFlowResultPath *path);
+bool function_param_flow_result_path_valid(
+    const FunctionParamFlowResultPath *path);
+bool function_param_flow_result_path_equal(const FunctionParamFlowResultPath *left,
+    const FunctionParamFlowResultPath *right);
+bool function_param_flow_result_path_join(FunctionParamFlowResultPath *into,
+    const FunctionParamFlowResultPath *from);
+bool function_param_flow_result_path_prepend(uint32_t field,
+    const FunctionParamFlowResultPath *inside,
+    FunctionParamFlowResultPath *result);
+bool function_param_flow_result_path_select(
+    const FunctionParamFlowResultPath *carrier,
+    const FunctionParamFlowResultPath *selected,
+    FunctionParamFlowResultPath *result, bool *carries);
+bool function_param_flow_backing_binding_path_current(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, FunctionParamFlowBackingFact *fact, uint32_t binding,
+    const ASTNode *seed, const FunctionParamFlowResultPath *seed_path,
+    FunctionParamFlowResultPath *path);
+bool function_param_flow_backing_value_origin_current(
+    FunctionParamFlowSummaryStore *store,
+    const FunctionParamFlowBackingFact *fact, const ASTNode *value,
+    bool *has_origin);
 bool function_param_flow_callee_relation_ready(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal);
+bool function_param_flow_entry_outward_effects_current(
+    FunctionParamFlowSummaryStore *store, size_t entry_index,
+    unsigned *effects);
+/* Current outward effects of one already-resolved formal.  Unlike the call
+ * query below, this does not require publication of the call argument being
+ * checked; the typed caller already owns the exact declaration and ordinal. */
+bool function_param_flow_formal_outward_effects_current(
+    FunctionParamFlowSummaryStore *store, ASTNode *decl, size_t formal,
+    unsigned *effects);
+/* Current outward effects of a callee formal. A backing-frame producer owns
+ * the exact facet; a producer that needs no backing frame owns the ordinary
+ * summary directly. There is no coarse fallback for a frame-backed row. */
+bool function_param_flow_callee_outward_effects_current(
+    const SlotFunctionLookup *lookup, ASTNode *call, size_t ordinal,
+    unsigned *effects);
+bool function_param_flow_callee_returned_dependent_clone_current(
+    const SlotFunctionLookup *lookup, ASTNode *call, size_t ordinal,
+    bool *dependent_clone);
 bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal);
 void function_param_flow_callee_unfinished(const SlotFunctionLookup *lookup,
@@ -446,6 +685,9 @@ typedef bool (*FunctionParamFlowInputCapture)(SemanticContext *ctx, ASTNode *dec
     FunctionParamFlowIndexClaims *claims, const ASTNode *call, void *user);
 bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *store,
     ASTNode *decl, FunctionParamFlowInputCapture capture, void *user);
+bool function_param_flow_declared_result_rows_capture(
+    FunctionParamFlowSummaryStore *store, ASTNode *decl,
+    FunctionParamFlowInputCapture capture, void *user);
 bool function_param_flow_no_store_graph_capture(FunctionParamFlowSummaryStore *store,
     ASTNode *decl, FunctionParamFlowInputCapture capture, void *user);
 bool function_param_flow_no_store_member_admitted(const FunctionParamFlowSummaryStore *store, size_t ordinal);
@@ -471,6 +713,10 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
 bool function_param_flow_unsupported_relation_current(FunctionParamFlowSummaryStore *store,
     const FunctionParamFlowPendingRelation *edge);
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
+bool function_param_flow_backing_frame_current(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, size_t formal);
+bool function_param_flow_declared_result_rows_current(
+    FunctionParamFlowSummaryStore *store, ASTNode *decl);
 /* Rows check memo (function_param_flow_rows_check_memo.c). `current`: the
  * last passed check of index `ordinal` still holds, its shape unchanged and
  * its repeated checks passing. `record` keeps a check in place of the last
@@ -492,13 +738,40 @@ bool function_param_flow_string_result_source_current(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source);
 bool function_param_flow_nonlocal_input_current(SemanticContext *ctx,
     ASTNode *routine, size_t formal_ordinal);
+/* The exact value read at `value` carries backing from one of `routine`'s
+ * ref formals in the current sealed flow generation. This is a consumer of
+ * the normal backing frames, not a second provenance walk. */
+bool function_param_flow_value_borrows_ref_formal_current(SemanticContext *ctx,
+    ASTNode *routine, const ASTNode *value);
+const ASTNode *function_param_flow_local_ref_carrier_copy_source_current(
+    SemanticContext *ctx, ASTNode *routine, const ASTNode *value);
+/* A complete cut of independently copyable original ref projections for an
+ * immutable local's owned handoff. No landing is published by this query. */
+bool function_param_flow_local_ref_copy_cut_current(SemanticContext *ctx,
+    ASTNode *routine, const ASTNode *value, FunctionParamFlowLoanEscapes *copies);
+bool function_param_flow_ref_call_copy_cut_current(SemanticContext *ctx,
+    ASTNode *call, size_t actual, FunctionParamFlowLoanEscapes *copies);
+/* The exact local value currently carries backing from exactly one formal.
+ * This is a derived view of that formal's backing frame, not a second
+ * provenance owner. */
+bool function_param_flow_value_backing_formal_current(SemanticContext *ctx,
+    ASTNode *routine, const ASTNode *value, size_t *formal_ordinal);
+bool function_param_flow_place_path_current(SemanticContext *ctx,
+    ASTNode *routine, const ASTNode *place, uint32_t binding,
+    FunctionParamFlowResultPath *path);
 bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
     ASTNode *routine, uint32_t binding);
 bool function_param_flow_string_result_independent_current(SemanticContext *ctx, const ASTNode *call);
+bool function_param_flow_result_lane_string_owned_current(
+    SemanticContext *ctx, const ASTNode *call);
 bool function_param_flow_claim_capture(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node, bool semantic);
+bool function_param_flow_collection_effect_projection_publish(
+    SemanticContext *ctx, ASTNode *call, uint32_t kind,
+    uint32_t receiver_binding_id, uint32_t source_binding_id);
 bool function_param_flow_readfile_claim_current(const SemanticContext *ctx,
     const FunctionParamFlowIndexClaims *claims, const FunctionParamFlowIndexClaim *row);
+bool function_param_flow_readfile_receipt_seal(FunctionParamFlowIndexClaims *claims);
 bool function_param_flow_readfile_claim_count(const FunctionParamFlowIndexClaims *claims,
     size_t *count);
 bool function_param_flow_readfile_occurrence_ordinal(const FunctionParamFlowIndexClaims *claims,
@@ -542,8 +815,17 @@ bool function_param_flow_syntax_claims_current(const SemanticContext *ctx,
 void function_param_flow_claims_destroy(FunctionParamFlowIndexClaims *claims);
 bool function_param_flow_claim_record(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node);
+bool function_param_flow_claim_record_ordinal(SemanticContext *ctx,
+    FunctionParamFlowIndexClaims *claims, ASTNode *node, size_t *ordinal);
+bool function_param_flow_claim_find_ordinal(
+    const FunctionParamFlowIndexClaims *claims, const ASTNode *node,
+    size_t *ordinal);
 bool function_param_flow_index_claims_current(SemanticContext *ctx,
     const FunctionParamFlowProgramPointIndex *index);
+bool function_param_flow_call_argument_claim_current(
+    const FunctionParamFlowIndexClaims *claims, size_t claim_ordinal,
+    ASTNode *call, size_t argument_ordinal, ASTNode **callee,
+    size_t *formal, bool *physical);
 bool function_param_flow_claims_current(const SemanticContext *ctx,
     const FunctionParamFlowIndexClaims *claims, bool semantic);
 bool function_param_flow_control_expands(ASTNodeType shape);
@@ -574,8 +856,10 @@ void function_param_flow_closure_changed(FunctionParamFlowSummaryStore *store, s
 typedef struct {
     unsigned mask;
     bool storage, elements, buffer, unproved, pending, unsupported, ready, outputs_present;
+    bool result_path_ready;
     FunctionParamFlowOutputProducer producer;
     size_t outputs;
+    FunctionParamFlowResultPath result_path;
 } FunctionParamFlowEntryFacts;
 FunctionParamFlowEntryFacts function_param_flow_entry_facts(const FunctionParamFlowSummaryEntry *entry);
 bool function_param_flow_entry_facts_equal(FunctionParamFlowEntryFacts a, FunctionParamFlowEntryFacts b);
@@ -584,6 +868,8 @@ bool function_param_flow_entry_facts_equal(FunctionParamFlowEntryFacts a, Functi
 unsigned function_param_flow_evaluate_body(FunctionParamFlowSummaryStore *store, size_t index);
 unsigned function_param_flow_evaluate(FunctionParamFlowSummaryStore *store, size_t index);
 bool function_param_flow_worklist_verified(FunctionParamFlowSummaryStore *store, ASTNode *site);
+bool function_param_flow_publication_demand_begin(SemanticContext *ctx, ASTNode *site);
+bool function_param_flow_publication_demand_end(SemanticContext *ctx);
 /* `summary` is what the formal's summary says so far; its RETURN bit lets a
  * returned value carry an alias of the formal. `*buffer_unkept` is set when
  * an Array formal's buffer may be reallocated or freed through it. */

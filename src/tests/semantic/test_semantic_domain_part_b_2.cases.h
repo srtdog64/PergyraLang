@@ -130,12 +130,12 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let items: List<Int> = ListNew();\n"
+            "    var items: List<Int> = ListNew();\n"
             "    ListPush(items, 1);\n"
             "    let first: Int = ListGet(items, 0);\n"
-            "    let seen: Set<Int> = SetNew();\n"
+            "    var seen: Set<Int> = SetNew();\n"
             "    SetAdd(seen, first);\n"
-            "    let table: HashMap<String, Int> = MapNew();\n"
+            "    var table: HashMap<String, Int> = MapNew();\n"
             "    MapSet(table, \"hp\", first);\n"
             "    let hp: Int = MapGet(table, \"hp\");\n"
             "    Log(first + hp);\n"
@@ -158,7 +158,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<Int, Int> = MapNew();\n"
+            "    var table: HashMap<Int, Int> = MapNew();\n"
             "    MapSet(table, 7, 42);\n"
             "    let hp: Int = MapGet(table, 7);\n"
             "    Log(hp);\n"
@@ -181,7 +181,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<String, Int> = MapNew();\n"
+            "    var table: HashMap<String, Int> = MapNew();\n"
             "    MapSet(table, \"hp\", 7);\n"
             "    let keys: Array<String> = MapKeys(table);\n"
             "    Log(ArrayLength(keys));\n"
@@ -204,7 +204,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<Int, Int> = MapNew();\n"
+            "    var table: HashMap<Int, Int> = MapNew();\n"
             "    MapSet(table, 7, 42);\n"
             "    let keys: Array<Int> = MapKeys(table);\n"
             "    let first: Int = keys[0];\n"
@@ -228,7 +228,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<Long, Long> = MapNew();\n"
+            "    var table: HashMap<Long, Long> = MapNew();\n"
             "    MapSet(table, 7L, 42L);\n"
             "    let hp: Long = MapGet(table, 7L);\n"
             "    let keys: Array<Long> = MapKeys(table);\n"
@@ -254,7 +254,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<Bool, Int> = MapNew();\n"
+            "    var table: HashMap<Bool, Int> = MapNew();\n"
             "    MapSet(table, true, 1);\n"
             "    MapSet(table, false, 2);\n"
             "    let hit: Int = MapGet(table, true);\n"
@@ -281,7 +281,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let items: List<Int> = ListNew();\n"
+            "    var items: List<Int> = ListNew();\n"
             "    ListPush(items, \"oops\");\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -304,7 +304,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<String, Int> = MapNew();\n"
+            "    var table: HashMap<String, Int> = MapNew();\n"
             "    MapSet(table, 1, 7);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -377,7 +377,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let items: List<Int> = ListNew();\n"
+            "    var items: List<Int> = ListNew();\n"
             "    let first: Int = ListGet(items, \"0\");\n"
             "    Log(first);\n"
             "}\n";
@@ -401,7 +401,7 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let seen: Set<Int> = SetNew();\n"
+            "    var seen: Set<Int> = SetNew();\n"
             "    SetAdd(seen, \"oops\");\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

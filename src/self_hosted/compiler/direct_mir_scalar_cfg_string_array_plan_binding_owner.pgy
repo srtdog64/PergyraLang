@@ -26,7 +26,7 @@ func DirectMirScalarCfgStringArrayBoundIndex(
         );
     }
     if fact.kind == DirectMirScalarCfgStringArrayIndexIteration() {
-        let local_row: Int = -1; let row: Int = 0;
+        var local_row: Int = -1; var row: Int = 0;
         while row < ArrayLength(local_refs.local_names) {
             if local_refs.local_ref_kinds[row] ==
                     DirectMirScalarCfgLocalRefIteration() &&
@@ -54,9 +54,9 @@ func DirectMirScalarCfgStringArrayPlanAtLocalRows(
     ref local_refs: DirectMirScalarCfgLocalRefPlan
 ) -> DirectMirScalarCfgStringArrayPlan {
     if DirectMirScalarCfgStringArrayPlanAbsent(source) { return source; }
-    let lengths: DirectMirScalarCfgStringArrayLengthSet =
+    var lengths: DirectMirScalarCfgStringArrayLengthSet =
         DirectMirScalarCfgStringArrayLengthSetEmpty(true);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayLengthCount(source) {
         let fact: DirectMirScalarCfgStringArrayLengthFact =
             DirectMirScalarCfgStringArrayLengthAt(source, row);
@@ -68,7 +68,7 @@ func DirectMirScalarCfgStringArrayPlanAtLocalRows(
         ));
         row = row + 1;
     }
-    let accesses: DirectMirScalarCfgStringArrayAccessSet =
+    var accesses: DirectMirScalarCfgStringArrayAccessSet =
         DirectMirScalarCfgStringArrayAccessSetEmpty(true);
     row = 0;
     while row < DirectMirScalarCfgStringArrayAccessCount(source) {
@@ -103,7 +103,7 @@ func DirectMirScalarCfgStringArrayPlanAtOperation(
     if access_row < 0 || source.accesses.operation_rows[access_row] >= 0 {
         return;
     }
-    let operation_rows: Array<Int> = source.accesses.operation_rows;
+    var operation_rows: Array<Int> = source.accesses.operation_rows;
     ArraySet(operation_rows, access_row, operation_row);
     let accesses: DirectMirScalarCfgStringArrayAccessSet =
         DirectMirScalarCfgStringArrayAccessSet(

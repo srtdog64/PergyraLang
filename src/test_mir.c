@@ -10,6 +10,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
+#include "semantic/semantic_landing_fixed_point_owner.h"
 #include "compiler/dir.h"
 #include "compiler/hir.h"
 #include "compiler/rir.h"
@@ -26,6 +27,7 @@
 #include "compiler/mir_fact_validate.h"
 #include "compiler/mir_branch_source_facts.h"
 #include "compiler/mir_source_local_expr_types.h"
+#include "common/string_compat.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -39,14 +41,52 @@ static int g_fail = 0;
         else      { printf("FAIL (line %d)\n", __LINE__); g_fail++; } \
     } while (0)
 
+typedef struct {
+    const char *source;
+} MIRLandingSource;
+
+static ASTNode *
+reload_mir_landing_source(void *context, char **error_message)
+{
+    const MIRLandingSource *landing = context;
+    if (landing == NULL || landing->source == NULL)
+        return NULL;
+    Lexer *lexer = lexer_create(landing->source);
+    Parser *parser = lexer == NULL ? NULL : parser_create(lexer);
+    ASTNode *ast = parser == NULL ? NULL : parser_parse_program(parser);
+    bool valid = parser != NULL && ast != NULL && !parser_has_error(parser);
+    if (!valid && error_message != NULL && *error_message == NULL)
+        *error_message = pergyra_strdup(
+            parser != NULL && parser_get_error(parser) != NULL
+                ? parser_get_error(parser)
+                : "semantic landing test source reload failed");
+    if (parser != NULL)
+        parser_destroy(parser);
+    if (lexer != NULL)
+        lexer_destroy(lexer);
+    if (!valid) {
+        ast_destroy(ast);
+        return NULL;
+    }
+    return ast;
+}
+
 static bool
-lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir_out, MIRProgram **mir_out)
+lower_mir_from_source_mode(const char *source, bool land,
+                           HIRProgram **hir_out, RIRProgram **rir_out,
+                           MIRProgram **mir_out)
 {
     bool ok = false;
     Lexer *lexer = lexer_create(source);
     Parser *parser = parser_create(lexer);
     ASTNode *ast = parser_parse_program(parser);
-    SemanticResult *sem = semantic_analyze(ast);
+    SemanticResult *sem = NULL;
+    MIRLandingSource landing = {source};
+    char *landing_error = NULL;
+    if (!parser_has_error(parser) && ast != NULL)
+        sem = land ? semantic_analyze_landing_fixed_point(&ast,
+                reload_mir_landing_source, &landing, &landing_error)
+            : semantic_analyze(ast);
     char *hir_error = NULL;
     char *dir_error = NULL;
     char *rir_error = NULL;
@@ -77,6 +117,8 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);
     if (!ok) {
+        if (landing_error != NULL)
+            fprintf(stderr, "Semantic landing error: %s\n", landing_error);
         if (hir_error != NULL)
             fprintf(stderr, "HIR lowering error: %s\n", hir_error);
         if (dir_error != NULL)
@@ -88,6 +130,7 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     }
 
     free(hir_error);
+    free(landing_error);
     free(dir_error);
     free(rir_error);
     free(mir_error);
@@ -95,6 +138,22 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     parser_destroy(parser);
     lexer_destroy(lexer);
     return ok;
+}
+
+static bool
+lower_mir_from_source(const char *source, HIRProgram **hir_out,
+                      RIRProgram **rir_out, MIRProgram **mir_out)
+{
+    return lower_mir_from_source_mode(
+        source, false, hir_out, rir_out, mir_out);
+}
+
+static bool
+lower_mir_from_landed_source(const char *source, HIRProgram **hir_out,
+                             RIRProgram **rir_out, MIRProgram **mir_out)
+{
+    return lower_mir_from_source_mode(
+        source, true, hir_out, rir_out, mir_out);
 }
 
 static void

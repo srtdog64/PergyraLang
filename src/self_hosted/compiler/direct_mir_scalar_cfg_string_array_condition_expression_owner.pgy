@@ -6,7 +6,7 @@ import "direct_mir_scalar_cfg_expression_owner.pgy";
 func DirectMirScalarCfgStringArrayLengthConditionFact(
     ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
 ) -> DirectMirScalarCfgExpressionFact {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
         let fact: DirectMirScalarCfgStringArrayLengthFact =
             DirectMirScalarCfgStringArrayLengthAt(plan, row);

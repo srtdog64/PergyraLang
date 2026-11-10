@@ -2,7 +2,7 @@
     {
         const char *src = "func DeadMerge(flag: Bool) -> Int {\n"
             "    let live = 1;\n"
-            "    let dead = 0;\n"
+            "    var dead = 0;\n"
             "    if flag {\n"
             "        dead = 2;\n"
             "    } else {\n"
@@ -39,7 +39,7 @@
     TEST("MIR DCE removes phi-only cycles but keeps observed loop values");
     {
         const char *src = "func DeadCycle(flag: Bool) -> Int {\n"
-            "    let i = 0; let result = 0;\n"
+            "    var i = 0; var result = 0;\n"
             "    while i < 2 {\n"
             "        if flag { let dead: Option<Int> = Some(3); }\n"
             "        if flag { result = result + 3; }\n"
@@ -72,7 +72,7 @@
     {
         const char *src = "struct Snapshot { count: Int; }\n"
             "func SelectSnapshot(inout snapshot: Snapshot, take_new: Bool) -> Void {\n"
-            "    let dead: Int = 0;\n"
+            "    var dead: Int = 0;\n"
             "    if take_new {\n"
             "        snapshot = Snapshot(7);\n"
             "        dead = 1;\n"
@@ -170,7 +170,7 @@
     TEST("MIR lowers for-in init as loop-init instead of fallback statement");
     {
         const char *src = "func ForInList(values: List<Int>) -> Int {\n"
-            "    let total: Int = 0;\n"
+            "    var total: Int = 0;\n"
             "    for value in values {\n"
             "        total = total + value;\n"
             "    }\n"

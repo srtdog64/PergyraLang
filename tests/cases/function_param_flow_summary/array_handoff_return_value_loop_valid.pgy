@@ -14,7 +14,7 @@ func RowsError(message: String, ids: Array<Int>) -> Facts {
 }
 
 func Contains(ref ids: Array<Int>, value: Int) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(ids) {
         if ids[i] == value { return true; }
         i = i + 1;
@@ -23,8 +23,8 @@ func Contains(ref ids: Array<Int>, value: Int) -> Bool {
 }
 
 func Build(count: Int) -> Facts {
-    let ids: Array<Int> = [];
-    let n: Int = 0;
+    var ids: Array<Int> = [];
+    var n: Int = 0;
     while n < count {
         if Contains(ids, n) {
             return RowsError("duplicate", ids);

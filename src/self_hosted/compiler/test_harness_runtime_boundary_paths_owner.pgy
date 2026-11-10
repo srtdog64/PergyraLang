@@ -42,7 +42,7 @@ func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessRuntimeBoundaryPathKnown(path: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessRuntimeBoundaryPathCount() {
         if CompilerHarnessRuntimeBoundaryPathAt(i) == path {
             return true;

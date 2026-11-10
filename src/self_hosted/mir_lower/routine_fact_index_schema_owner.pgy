@@ -8,6 +8,7 @@ import "iteration_type_fact_owner.pgy";
 import "match_binding_local_fact_owner.pgy";
 import "routine_instruction_fact_bundle_owner.pgy";
 import "collection_ownership_fact_owner.pgy";
+import "collection_cleanup_fact_owner.pgy";
 
 struct MirRoutineFactIndex {
     let valid: Bool;
@@ -33,9 +34,11 @@ struct MirRoutineFactIndex {
     let source_syntax_id: String;
     let iteration_type_facts: MirIterationTypeFacts;
     let collection_ownership_facts: MirCollectionOwnershipFacts;
+    let collection_cleanup_facts: MirCollectionCleanupFacts;
     let match_binding_origins: MirMatchBindingOrigins;
     let function_param_flow_parameter_indices: Array<Int>;
     let function_param_flow_masks: Array<Int>;
+    let function_param_flow_array_preserved: Array<Int>;
     let resource_flow_symbol_declared_count: String;
     let resource_flow_stable_indices: Array<Int>;
     let resource_flow_declaration_syntax_ids: Array<Int>;

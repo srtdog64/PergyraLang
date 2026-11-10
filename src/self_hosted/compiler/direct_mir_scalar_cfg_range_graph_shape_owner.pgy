@@ -1,0 +1,31 @@
+// Validates one range's condition representation and fixed CFG edges.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgRangeGraphShapeReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref range: DirectMirScalarCfgRangeIterationFact
+) -> Bool {
+    var condition_ready: Bool =
+        plan.block_condition_kinds[range.header_block] ==
+            DirectMirScalarCfgConditionLess() &&
+        plan.block_condition_left_locals[range.header_block] ==
+            range.local_row &&
+        plan.block_condition_right_literals[range.header_block] ==
+            range.stop_literal;
+    if range.stop_local_ref != "" {
+        condition_ready = plan.program.valid &&
+            plan.block_condition_kinds[range.header_block] ==
+                DirectMirScalarCfgConditionExpression() &&
+            plan.block_condition_left_values[range.header_block] == -1 &&
+            plan.block_condition_right_values[range.header_block] == -1 &&
+            plan.block_condition_left_locals[range.header_block] == -1 &&
+            plan.block_condition_right_locals[range.header_block] == -1 &&
+            plan.block_condition_left_literals[range.header_block] == "" &&
+            plan.block_condition_right_literals[range.header_block] == "";
+    }
+    return plan.block_succ_true[range.init_block] == range.header_block &&
+        plan.block_succ_false[range.init_block] < 0 &&
+        plan.block_succ_true[range.header_block] == range.body_block &&
+        plan.block_succ_false[range.header_block] == range.exit_block &&
+        condition_ready;
+}

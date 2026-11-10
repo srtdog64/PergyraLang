@@ -35,9 +35,9 @@ func DirectMirGenericStructValueFlowAbiFactDigest(
     ref fact: DirectMirGenericStructValueFlowAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(223L, fact.declaration_digest);
+    var hash: Long = DirectMirCfgHashInt(223L, fact.declaration_digest);
     hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.layout_ids) {
         hash = DirectMirCfgHashInt(hash, fact.layout_ids[row]);
         row = row + 1;
@@ -54,7 +54,7 @@ func DirectMirGenericStructValueFlowAbiFactReady(
         ArrayLength(fact.layout_ids) != 3 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if fact.layout_ids[row] != fact.declaration_layout_id {
             return false;

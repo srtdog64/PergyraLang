@@ -1,0 +1,70 @@
+// Issue replacement authority once from typed definitions and their lifetime
+// ownership. A terminal state alone cannot describe an earlier incarnation.
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+
+func DirectMirArrayStringReplacementModeFromOwners(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    routine: Int, local_row: Int, state: Int
+) -> Int {
+    var mode: Int = 0;
+    if state == DirectMirCollectionOwnershipStateOwned() { mode = 2; }
+    if state == DirectMirCollectionOwnershipStateBorrowed() ||
+        state == DirectMirCollectionOwnershipStateEmpty() ||
+        state == DirectMirCollectionOwnershipStateUnknown() { mode = 1; }
+    if mode == 0 { return 0; }
+    var start: Int = 0;
+    var prior: Int = 0;
+    while prior < routine {
+        start = start + storage.routines.operation_counts[prior];
+        prior = prior + 1;
+    }
+    let end: Int = start + storage.routines.operation_counts[routine];
+    var definitions: Int = 0;
+    var operation: Int = start;
+    while operation < end {
+        let value: Int = storage.operations.result_values[operation];
+        if storage.operations.kinds[operation] == DirectMirScalarCfgOpExpressionDefinition() &&
+            value >= 0 && value < ArrayLength(storage.values.value_local_rows) &&
+            storage.values.value_local_rows[value] == local_row {
+            let graph: Int = storage.operations.expression_rows[operation];
+            let root: Int = expressions.graph_roots[graph];
+            if expressions.node_kinds[root] != DirectMirScalarProgramExprArrayStringLiteral() {
+                return 0;
+            }
+            let operands: Array<Int> = DirectMirScalarProgramArrayStringLiteralOperandRows(expressions, root);
+            var owns: Bool = ArrayLength(operands) > 0;
+            var operand_row: Int = 0;
+            while operand_row < ArrayLength(operands) {
+                if !DirectMirScalarProgramFreshStringExpressionKind(
+                        expressions.node_kinds[operands[operand_row]]) {
+                    owns = false;
+                }
+                operand_row = operand_row + 1;
+            }
+            if !owns && ArrayLength(operands) == 1 && expressions.node_kinds[operands[0]] ==
+                    DirectMirScalarProgramExprParameter() {
+                let ordinal: Int = expressions.node_parameter_ordinals[operands[0]];
+                var callable: Int = 0;
+                while callable < ArrayLength(callables.routine_ordinals) {
+                    if callables.routine_ordinals[callable] == routine && ordinal >= 0 &&
+                        ordinal < callables.parameter_counts[callable] {
+                        owns = callables.parameter_carriages[
+                            callables.parameter_starts[callable] + ordinal] == "owner-handle";
+                    }
+                    callable = callable + 1;
+                }
+            }
+            if ArrayLength(operands) > 0 &&
+                ((owns && mode != 2) || (!owns && mode != 1)) { return 0; }
+            definitions = definitions + 1;
+        }
+        operation = operation + 1;
+    }
+    if definitions == 0 { return 0; }
+    return mode;
+}

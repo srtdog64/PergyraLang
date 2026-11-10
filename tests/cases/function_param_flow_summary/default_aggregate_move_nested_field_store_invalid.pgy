@@ -10,7 +10,7 @@ struct Graph {
 }
 
 func Grow(graph: Graph) -> Int {
-    let first: Block = graph.blocks[0];
+    var first: Block = graph.blocks[0];
     ArrayPush(first.ids, 7);
     return ArrayLength(first.ids);
 }

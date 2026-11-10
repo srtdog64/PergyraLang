@@ -1,0 +1,117 @@
+// Collection ownership binding-move fact construction.
+
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "program_instruction_expression_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
+
+struct MirCollectionOwnershipBindingMoveFacts {
+    valid: Bool;
+    definition_value_names: Array<String>;
+    definition_binding_syntax_ids: Array<Int>;
+    destination_binding_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+}
+
+func MirCollectionOwnershipBindingForLocalName(
+    ref local_names: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>,
+    local_name: String
+) -> Int {
+    if ArrayLength(local_names) != ArrayLength(local_binding_syntax_ids) ||
+        local_name == "" { return 0 - 1; }
+    var found: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(local_binding_syntax_ids) {
+        let binding: Int = local_binding_syntax_ids[row];
+        if binding <= 0 || local_names[row] == "" { return 0 - 1; }
+        if local_name == local_names[row] {
+            if found != 0 { return 0 - 1; }
+            found = binding;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func BuildMirCollectionOwnershipBindingMoveFacts(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    ref local_names: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>
+) -> MirCollectionOwnershipBindingMoveFacts {
+    var definition_values: Array<String> = [];
+    var definition_bindings: Array<Int> = [];
+    var destinations: Array<Int> = [];
+    var sources: Array<Int> = [];
+    var value_bindings: HashMap<String, Int> = MapNew();
+    var valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
+    var block_offset: Int = 0;
+    while valid && block_offset <
+            routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] +
+            block_offset;
+        var instruction_offset: Int = 0;
+        while instruction_offset <
+                routines.block_instruction_counts[block] {
+            let instruction: Int =
+                routines.block_instruction_starts[block] + instruction_offset;
+            let start: Int = routines.instruction_starts[instruction];
+            let end: Int = routines.instruction_ends[instruction];
+            let local_name: String = MirObjectStringFactAtBounds(
+                routines.source_json, routines.source_json_extent, start, end, "arg0");
+            let result: String = MirObjectStringFactAtBounds(
+                routines.source_json, routines.source_json_extent, start, end, "result");
+            let declaration: Bool =
+                routines.instruction_kinds[instruction] == "def" &&
+                routines.instruction_source_types[instruction] ==
+                    "AST_LET_DECL";
+            var binding: Int = 0;
+            if declaration {
+                binding = MirCollectionOwnershipBindingForLocalName(
+                    local_names, local_binding_syntax_ids, local_name);
+            }
+            let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
+                routines.source_json, routines.source_json_extent, start, end, "uses");
+            if binding > 0 && result != "" {
+                if MapHas(value_bindings, result) {
+                    valid = false;
+                } else {
+                    MapSet(value_bindings, result, binding);
+                    ArrayPush(definition_values, result);
+                    ArrayPush(definition_bindings, binding);
+                }
+            }
+            if binding > 0 && declaration && ArrayLength(uses) == 1 &&
+                    MapHas(value_bindings, uses[0]) {
+                let expression: MirProgramInstructionExpressionFact =
+                    MirProgramInstructionExpressionIndexAt(
+                        routines.instruction_expressions, instruction);
+                let graph: JsonObjectFactTable =
+                    MirProgramInstructionExpressionGraphTable(
+                        routines.source_json, routines.source_json_extent, expression, 0);
+                let sequence: MirExpressionGraphSequence =
+                    MirExpressionGraphSequenceAppend(
+                        MirExpressionGraphSequenceEmpty(), graph);
+                if sequence.ok && sequence.ready_node_count == 1 &&
+                    ArrayLength(sequence.roots) == 1 &&
+                    sequence.roots[0] == 0 &&
+                    sequence.arena.topology.node_kinds[0] ==
+                        AstExpressionNodeLeaf() {
+                    let source: Int = MapGet(value_bindings, uses[0]);
+                    if source != binding {
+                        ArrayPush(destinations, binding);
+                        ArrayPush(sources, source);
+                    }
+                }
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return MirCollectionOwnershipBindingMoveFacts(
+        valid, definition_values, definition_bindings,
+        destinations, sources);
+}
+

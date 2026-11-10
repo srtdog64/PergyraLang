@@ -1,12 +1,17 @@
 /* An exact local String's independent definitions, carried by the existing
  * indexed-source owner. The recipe never changes its raw source or cleanup. */
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_borrow_owner.h"
+#include "formal_string_store_landing_owner.h"
+#include "function_param_flow_summary_internal.h"
+#include "function_param_flow_loan_order.h"
 #include "function_param_publication_internal.h"
+#include "function_param_publication_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "diag_codes.h"
 #include "type_checker_internal.h"
@@ -88,7 +93,8 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_birth(
     if (ctx == NULL || binding == NULL || declaration == NULL || initializer == NULL ||
         binding->is_parameter || binding->is_host_field ||
         !type_equals(binding->type, TYPE_STRING) || !semantic_param_publication_pending(ctx) ||
-        ctx->has_error) return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
+        !semantic_param_publication_local_fact_after_borrow_refusals(
+            ctx, ctx->diagnostic_count)) return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
     if (declaration->type != AST_LET_DECL || ast_let_is_alias(declaration))
         return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
     if (ast_let_initializer(declaration) != initializer || ast_let_name(declaration) == NULL ||
@@ -133,7 +139,8 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_assignme
     const ASTNode *rhs)
 {
     if (ctx == NULL || binding == NULL || !semantic_param_publication_pending(ctx) ||
-        ctx->has_error || !type_equals(binding->type, TYPE_STRING))
+        !semantic_param_publication_local_fact_after_borrow_refusals(
+            ctx, ctx->diagnostic_count) || !type_equals(binding->type, TYPE_STRING))
         return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
     IndexedStringDefinitionRecipe *recipe = definition_for_binding(ctx, binding->decl_syntax_id);
     if (recipe == NULL) return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
@@ -174,16 +181,25 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_use(
     SemanticContext *ctx, const ASTNode *value, const ASTNode *sink,
     size_t actual_ordinal)
 {
-    if (ctx == NULL || ctx->has_error || !semantic_param_publication_pending(ctx) ||
-        value == NULL || value->type != AST_IDENTIFIER || sink == NULL || sink->type != AST_CALL)
+    bool call_sink = sink != NULL && sink->type == AST_CALL;
+    bool return_sink = sink != NULL && sink->type == AST_RETURN;
+    if (ctx == NULL ||
+        !semantic_param_publication_local_fact_after_borrow_refusals(
+            ctx, ctx->diagnostic_count) ||
+        !semantic_param_publication_pending(ctx) ||
+        value == NULL || value->type != AST_IDENTIFIER ||
+        (!call_sink && !return_sink))
         return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
     uint32_t binding = ast_identifier_binding_syntax_id(value);
     IndexedStringDefinitionRecipe *recipe = definition_for_binding(ctx, binding);
     if (recipe == NULL) return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
     PublishedNode *value_row = publication_node(ctx->function_param_publications,
         value, false);
-    if (!definition_birth_syntax(recipe) || actual_ordinal >= ast_call_arg_count(sink) ||
-        ast_call_argument(sink, actual_ordinal) != value ||
+    if (!definition_birth_syntax(recipe) ||
+        (call_sink && (actual_ordinal >= ast_call_arg_count(sink) ||
+            ast_call_argument(sink, actual_ordinal) != value)) ||
+        (return_sink && (actual_ordinal != SIZE_MAX ||
+            ast_return_value(sink) != value)) ||
         ast_node_stable_id(value) == 0 || ast_node_stable_id(sink) == 0 ||
         value_row == NULL || value_row->node != value ||
         value_row->id != ast_node_stable_id(value) ||
@@ -222,29 +238,81 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_use(
     return INDEXED_STRING_DEFINITION_RECORDED;
 }
 
-bool semantic_indexed_string_definition_protect_use(SemanticContext *ctx,
+IndexedStringDefinitionRecord semantic_indexed_string_definition_record_return(
+    SemanticContext *ctx, const ASTNode *value, const ASTNode *return_stmt)
+{
+    IndexedStringDefinitionRecipe *recipe = definition_for_binding(
+        ctx, ast_identifier_binding_syntax_id(value));
+    /* Immutable aliases and exact Array loans already have dedicated result
+     * lineage/owner-transfer contracts.  This recipe closes only a local
+     * replacement join; without a replacement it would add a redundant copy
+     * at ordinary last-use returns. */
+    if (recipe == NULL || recipe->assignment_count == 0)
+        return INDEXED_STRING_DEFINITION_NOT_APPLICABLE;
+    IndexedStringDefinitionRecord recorded =
+        semantic_indexed_string_definition_record_use(
+            ctx, value, return_stmt, SIZE_MAX);
+    if (recorded != INDEXED_STRING_DEFINITION_RECORDED)
+        return recorded;
+    if (recipe == NULL || recipe->prepared)
+        return INDEXED_STRING_DEFINITION_FAILED;
+    for (size_t i = 0; i < recipe->use_count; i++) {
+        IndexedStringDefinitionUse *use = &recipe->uses[i];
+        if (use->value != value || use->sink != return_stmt ||
+            use->actual_ordinal != SIZE_MAX)
+            continue;
+        if (use->value_id != ast_node_stable_id(value) ||
+            use->sink_id != ast_node_stable_id(return_stmt) ||
+            use->binding_id != recipe->binding_id)
+            return INDEXED_STRING_DEFINITION_FAILED;
+        use->protected_candidate = true;
+        return INDEXED_STRING_DEFINITION_RECORDED;
+    }
+    return INDEXED_STRING_DEFINITION_FAILED;
+}
+
+static IndexedStringDefinitionUse *definition_use_candidate(
+    SemanticContext *ctx,
     const ASTNode *value, const ASTNode *sink, size_t actual_ordinal,
     bool require_assignment)
 {
     if (ctx == NULL || !semantic_param_publication_pending(ctx) ||
         value == NULL || sink == NULL || sink->type != AST_CALL ||
         actual_ordinal >= ast_call_arg_count(sink) ||
-        ast_call_argument(sink, actual_ordinal) != value) return false;
+        ast_call_argument(sink, actual_ordinal) != value) return NULL;
     IndexedStringDefinitionRecipe *recipe = definition_for_binding(ctx,
         ast_identifier_binding_syntax_id(value));
     if (recipe == NULL || recipe->prepared ||
-        (require_assignment && recipe->assignment_count == 0)) return false;
+        (require_assignment && recipe->assignment_count == 0)) return NULL;
     for (size_t i = 0; i < recipe->use_count; i++) {
         IndexedStringDefinitionUse *use = &recipe->uses[i];
         if (use->value != value || use->sink != sink ||
             use->actual_ordinal != actual_ordinal) continue;
         if (use->value_id != ast_node_stable_id(value) ||
             use->sink_id != ast_node_stable_id(sink) ||
-            use->binding_id != recipe->binding_id) return false;
-        use->protected_candidate = true;
-        return true;
+            use->binding_id != recipe->binding_id) return NULL;
+        return use;
     }
-    return false;
+    return NULL;
+}
+
+bool semantic_indexed_string_definition_protect_use(SemanticContext *ctx,
+    const ASTNode *value, const ASTNode *sink, size_t actual_ordinal,
+    bool require_assignment)
+{
+    IndexedStringDefinitionUse *use = definition_use_candidate(
+        ctx, value, sink, actual_ordinal, require_assignment);
+    if (use == NULL) return false;
+    use->protected_candidate = true;
+    return true;
+}
+
+bool semantic_indexed_string_definition_assignment_use_candidate(
+    SemanticContext *ctx, const ASTNode *value, const ASTNode *sink,
+    size_t actual_ordinal)
+{
+    return definition_use_candidate(ctx, value, sink, actual_ordinal,
+        true) != NULL;
 }
 
 bool semantic_indexed_string_definition_protect_option_use(SemanticContext *ctx,
@@ -396,9 +464,8 @@ static bool definition_prepare(SemanticContext *ctx,
     if (store == NULL || store->failed || store->solving || store->validating_current ||
         !function_param_flow_program_point_index_build(store,
             (ASTNode *)recipe->caller, &index) || index == NULL ||
-        index->function_decl != recipe->caller || index->function_id != recipe->caller_id ||
-        !function_param_flow_index_roots_current(index) ||
-        !function_param_flow_index_claims_current(ctx, index)) return false;
+        index->function_decl != recipe->caller || index->function_id != recipe->caller_id)
+        return false;
     recipe->claims = index->claims;
     if (!indexed_string_definition_claims_roles(ctx, recipe, true) ||
         !definition_source_prepare(ctx, recipe, &recipe->birth)) return false;
@@ -454,12 +521,18 @@ static bool definition_current(SemanticContext *ctx,
                 const IndexedStringDefinitionUse *use = &recipe->uses[u];
                 PublishedNode *row = publication_node(ctx->function_param_publications,
                     use->value, false);
+                bool return_use = use->sink != NULL
+                    && use->sink->type == AST_RETURN
+                    && use->actual_ordinal == SIZE_MAX
+                    && ast_return_value(use->sink) == use->value;
                 if (row == NULL || row->node != use->value || row->id != use->value_id ||
                     row->indexed_string_definition_use != recipe ||
                     !row->indexed_string_source_present ||
                     row->indexed_string_source_id != use->issued_source ||
-                    !semantic_param_publication_checked_argument(ctx, use->sink,
-                        use->actual_ordinal)) { current = false; break; }
+                    (!return_use && !semantic_param_publication_checked_argument(
+                        ctx, use->sink, use->actual_ordinal))) {
+                    current = false; break;
+                }
             }
             break;
         }
@@ -511,14 +584,20 @@ bool semantic_indexed_string_definition_select_independent_storage(
 {
     IndexedStringDefinitionRecipe *recipe;
     bool selected = false;
-    if (ctx == NULL || ctx->has_error || binding_id == 0 ||
-        !semantic_param_publication_pending(ctx)) return false;
+    if (ctx == NULL ||
+        !semantic_param_publication_local_fact_after_borrow_refusals(
+            ctx, ctx->diagnostic_count) || binding_id == 0 ||
+        (!semantic_param_publication_pending(ctx) &&
+         !semantic_param_publication_inputs_ready(ctx)))
+        return false;
     recipe = definition_for_binding(ctx, binding_id);
     if (recipe == NULL || recipe->prepared || !definition_birth_syntax(recipe) ||
-        !definition_select_source_copy(ctx, &recipe->birth, &selected)) return false;
+        !definition_select_source_copy(ctx, &recipe->birth, &selected))
+        return false;
     for (size_t i = 0; i < recipe->assignment_count; i++)
         if (!definition_select_source_copy(ctx, &recipe->assignments[i].rhs,
-                &selected)) return false;
+                &selected))
+            return false;
     return selected;
 }
 
@@ -564,10 +643,14 @@ bool semantic_indexed_string_definition_syntax_current(
         if (!definition_id(row->value, row->value_id) ||
             !definition_id(row->sink, row->sink_id) ||
             row->value->type != AST_IDENTIFIER || row->value_shape != AST_IDENTIFIER ||
-            row->sink->type != AST_CALL || row->binding_id != recipe->binding_id ||
+            row->binding_id != recipe->binding_id ||
             ast_identifier_binding_syntax_id(row->value) != row->binding_id ||
-            row->actual_ordinal >= ast_call_arg_count(row->sink) ||
-            ast_call_argument(row->sink, row->actual_ordinal) != row->value) return false;
+            (row->sink->type == AST_CALL
+                ? row->actual_ordinal >= ast_call_arg_count(row->sink) ||
+                    ast_call_argument(row->sink, row->actual_ordinal) != row->value
+                : row->sink->type != AST_RETURN ||
+                    row->actual_ordinal != SIZE_MAX ||
+                    ast_return_value(row->sink) != row->value)) return false;
         for (size_t p = 0; p < u; p++)
             if (recipe->uses[p].sink == row->sink &&
                 recipe->uses[p].actual_ordinal == row->actual_ordinal) return false;
@@ -612,13 +695,141 @@ static ASTNode *definition_protected_use_site(const IndexedStringDefinitionRecip
     return (ASTNode *)(candidate != NULL ? candidate : recipe->declaration);
 }
 
+static bool definition_value_mentions_binding(const ASTNode *value,
+    uint32_t binding_id, bool *supported)
+{
+    if (value == NULL || binding_id == 0 || supported == NULL) {
+        if (supported != NULL) *supported = false;
+        return false;
+    }
+    if (value->type == AST_IDENTIFIER
+        && ast_identifier_binding_syntax_id(value) == binding_id)
+        return true;
+    bool children_supported = false;
+    size_t count = function_param_flow_claim_child_count(
+        value, &children_supported);
+    if (!children_supported) {
+        *supported = false;
+        return false;
+    }
+    for (size_t i = 0; i < count; i++)
+        if (definition_value_mentions_binding(
+                function_param_flow_claim_child(value, i),
+                binding_id, supported))
+            return true;
+    return false;
+}
+
+static bool definition_source_independent_after_selected_edges(
+    SemanticContext *ctx, const IndexedStringDefinitionSource *source,
+    bool *projected, const char *debug_name, uint32_t recipe_binding)
+{
+    uint32_t current = UINT32_MAX;
+    bool supported = true;
+    if (ctx == NULL || source == NULL || projected == NULL
+        || !definition_id(source->value, source->value_id))
+        return false;
+    bool self_dependent = definition_value_mentions_binding(
+        source->value, recipe_binding, &supported);
+    if (!supported || self_dependent)
+        return false;
+    bool current_known = semantic_indexed_string_borrow_source_current(
+        (ASTNode *)source->value, ctx, &current);
+    if (current_known && current == 0)
+        return true;
+    if (semantic_loan_copy_landing_selected(ctx, source->value)
+        && semantic_loan_copy_landing_carrier_copies(ctx, source->value)) {
+        *projected = true;
+        return true;
+    }
+    const ASTNode *dependency = source->shape == AST_CALL
+        ? source->value : NULL;
+    bool dependency_known = true;
+    if (source->shape == AST_IDENTIFIER)
+        dependency_known =
+            semantic_indexed_string_borrow_result_dependency_current(
+                ctx, (ASTNode *)source->value, &dependency);
+    if (!dependency_known)
+        return false;
+    uint32_t result = UINT32_MAX;
+    bool result_known = dependency != NULL
+        && function_param_flow_string_result_source_prepare(
+            ctx, dependency, &result);
+    if (result_known && result == 0) {
+        /* The call result owner is already current, while this exact local
+         * identifier still carries the previous data-flow publication.  A
+         * fresh analysis can only publish that same source zero. */
+        *projected = true;
+        return true;
+    }
+    result = UINT32_MAX;
+    result_known = dependency != NULL
+        && function_param_flow_string_result_source_after_selected_edges(
+            ctx, dependency, &result);
+    if (getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL
+        && debug_name != NULL
+        && strcmp(debug_name, "matched_target") == 0)
+        fprintf(stderr,
+            "[semantic timing] definition_source_projection name=%s value=%u shape=%u binding=%u current_known=%d current=%u dependency_known=%d dependency=%u result_known=%d result=%u selected=%d\n",
+            debug_name, source->value_id, (unsigned)source->shape,
+            source->binding_id, current_known ? 1 : 0, current,
+            dependency_known ? 1 : 0,
+            dependency != NULL ? ast_node_stable_id(dependency) : 0,
+            result_known ? 1 : 0, result,
+            semantic_loan_copy_landing_selected(ctx, source->value) ? 1 : 0);
+    if (!result_known || result != 0)
+        return false;
+    *projected = true;
+    return true;
+}
+
+static bool definition_independent_after_selected_edges(
+    SemanticContext *ctx, const IndexedStringDefinitionRecipe *recipe)
+{
+    bool projected = false;
+    if (recipe == NULL
+        || !definition_source_independent_after_selected_edges(
+            ctx, &recipe->birth, &projected, recipe->binding_name,
+            recipe->binding_id))
+        return false;
+    for (size_t i = 0; i < recipe->assignment_count; i++)
+        if (!definition_source_independent_after_selected_edges(
+                ctx, &recipe->assignments[i].rhs, &projected,
+                recipe->binding_name, recipe->binding_id))
+            return false;
+    return projected;
+}
+
 static bool definition_select_protected_copies(SemanticContext *ctx,
     const IndexedStringDefinitionRecipe *recipe)
 {
-    size_t selected = 0;
+    size_t selected = 0, projected = 0;
+    bool projected_definition =
+        definition_independent_after_selected_edges(ctx, recipe);
+    if (getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL) {
+        uint32_t result = UINT32_MAX;
+        bool birth_result = recipe->birth.shape == AST_CALL
+            && function_param_flow_string_result_source_after_selected_edges(
+                ctx, recipe->birth.value, &result);
+        fprintf(stderr,
+            "[semantic timing] definition_projection binding=%u name=%s birth=%u shape=%u assignments=%zu projected=%d birth_result=%d source=%u\n",
+            recipe->binding_id,
+            recipe->binding_name != NULL ? recipe->binding_name : "<none>",
+            recipe->birth.value_id, (unsigned)recipe->birth.shape,
+            recipe->assignment_count, projected_definition ? 1 : 0,
+            birth_result ? 1 : 0, result);
+    }
     for (size_t i = 0; i < recipe->use_count; i++) {
         const IndexedStringDefinitionUse *use = &recipe->uses[i];
         if (!use->protected_use) continue;
+        /* Only a landing that owns this exact use can replace its copy.
+         * Projecting the definition's call sources to source zero does not
+         * make a shallow local alias independent from its still-live owner. */
+        if (semantic_formal_store_landing_value_selected(
+                ctx, use->value)) {
+            projected++;
+            continue;
+        }
         PublishedNode *row = publication_node(ctx->function_param_publications,
             use->value, false);
         if (row == NULL || row->node != use->value || row->id != use->value_id ||
@@ -626,9 +837,172 @@ static bool definition_select_protected_copies(SemanticContext *ctx,
             !row->value_present || row->meta || !row->string_value ||
             !type_equals(row->value_type, TYPE_STRING) ||
             !semantic_loan_copy_landing_select_string(ctx, use->value)) return false;
+        if (getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL)
+            fprintf(stderr,
+                "[semantic timing] definition_copy binding=%u name=%s use=%u sink=%u\n",
+                recipe->binding_id,
+                recipe->binding_name != NULL ? recipe->binding_name : "<none>",
+                use->value_id, use->sink_id);
         selected++;
     }
-    return selected != 0;
+    return selected != 0 || projected != 0;
+}
+
+typedef struct {
+    const ASTNode *definition;
+    uint32_t root_binding_id;
+    const char *field_name;
+} IndexedStringMemberBorrowSource;
+
+static bool definition_member_borrow_source(
+    const IndexedStringDefinitionSource *source,
+    const ASTNode *definition, IndexedStringMemberBorrowSource *out)
+{
+    if (source == NULL || out == NULL || source->value == NULL
+        || source->value->type != AST_ARRAY_ACCESS
+        || source->value_id == 0
+        || source->value_id != ast_node_stable_id(source->value))
+        return false;
+    ASTNode *member = ast_array_access_array(source->value);
+    if (member == NULL || member->type != AST_MEMBER_ACCESS)
+        return false;
+    ASTNode *top = member;
+    while (ast_member_object(top) != NULL
+        && ast_member_object(top)->type == AST_MEMBER_ACCESS)
+        top = ast_member_object(top);
+    ASTNode *root = ast_member_object(top);
+    const char *field = ast_member_name(top);
+    uint32_t root_binding = root != NULL && root->type == AST_IDENTIFIER
+        ? ast_identifier_binding_syntax_id(root) : 0;
+    if (root_binding == 0 || field == NULL || field[0] == '\0')
+        return false;
+    *out = (IndexedStringMemberBorrowSource){
+        definition, root_binding, field};
+    return true;
+}
+
+static bool definition_member_borrow_source_at(
+    const IndexedStringDefinitionRecipe *recipe, size_t ordinal,
+    IndexedStringMemberBorrowSource *out)
+{
+    if (recipe == NULL || out == NULL)
+        return false;
+    if (ordinal == 0)
+        return definition_member_borrow_source(
+            &recipe->birth, recipe->declaration, out);
+    size_t assignment = ordinal - 1;
+    if (assignment >= recipe->assignment_count)
+        return false;
+    return definition_member_borrow_source(
+        &recipe->assignments[assignment].rhs,
+        recipe->assignments[assignment].assignment, out);
+}
+
+/* A local String can borrow an element through an aggregate member even
+ * though its ordinary Array source is not a local Array binding.  The call
+ * effect is unavailable during Pass 2, so consume the exact definition,
+ * call, field-preservation and use-order facts only after publication seals. */
+static bool definition_member_borrow_current(
+    SemanticContext *ctx, IndexedStringDefinitionRecipe *recipe,
+    bool *hazard, ASTNode **site, const char **field_name,
+    const char **callee_name)
+{
+    if (hazard == NULL || site == NULL || field_name == NULL
+        || callee_name == NULL)
+        return false;
+    *hazard = false;
+    *site = NULL;
+    *field_name = NULL;
+    *callee_name = NULL;
+
+    bool has_member_source = false;
+    IndexedStringMemberBorrowSource source = {0};
+    for (size_t s = 0; s <= recipe->assignment_count; s++)
+        if (definition_member_borrow_source_at(recipe, s, &source)) {
+            has_member_source = true;
+            break;
+        }
+    if (!has_member_source)
+        return true;
+    if (ctx == NULL || recipe == NULL || !definition_birth_current(ctx, recipe)
+        || !semantic_param_publication_routine_inputs_current(
+            ctx, recipe->caller, true))
+        return false;
+
+    SlotFunctionLookup lookup = {ctx, ctx->program_root};
+    FunctionParamFlowSummaryStore *flow = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (flow == NULL || flow->failed || flow->solving
+        || flow->validating_current
+        || !function_param_flow_program_point_index_build(
+            flow, (ASTNode *)recipe->caller, &index)
+        || index == NULL || index->function_decl != recipe->caller
+        || index->function_id != recipe->caller_id
+        || index->claims == NULL
+        || !function_param_flow_index_roots_current(index)
+        || !function_param_flow_index_claims_current(ctx, index))
+        return false;
+
+    FunctionParamFlowIndexClaims *claims = index->claims;
+    const ASTNode *body = recipe->body;
+    for (size_t c = 0; c < claims->count; c++) {
+        const FunctionParamFlowIndexClaim *claim = &claims->rows[c];
+        ASTNode *call = claim->node;
+        if (claim->shape != AST_CALL || call == NULL
+            || call->type != AST_CALL || !claim->semantic_promoted
+            || !claim->snapshot_semantic_complete
+            || !claim->execution_present || !claim->reachable)
+            continue;
+        for (size_t actual = 0; actual < ast_call_arg_count(call); actual++) {
+            ASTNode *argument = ast_call_argument(call, actual);
+            if (argument == NULL || argument->type != AST_IDENTIFIER)
+                continue;
+            uint32_t actual_root = ast_identifier_binding_syntax_id(argument);
+            if (actual_root == 0)
+                continue;
+            ASTNode *callee = semantic_param_publication_callee(
+                ctx, call, actual);
+            size_t formal = SIZE_MAX;
+            if (callee == NULL || callee->type != AST_FUNC_DECL
+                || !semantic_param_publication_checked_argument(
+                    ctx, call, actual)
+                || !semantic_param_publication_formal_for_actual(
+                    ctx, call, actual, &formal)
+                || formal >= ast_func_param_count(callee))
+                continue;
+            FuncParam *formal_param = ast_func_param(callee, formal);
+            if (formal_param == NULL
+                || formal_param->mode != PARAM_MODE_MUT_REF)
+                continue;
+
+            for (size_t s = 0; s <= recipe->assignment_count; s++) {
+                if (!definition_member_borrow_source_at(
+                        recipe, s, &source)
+                    || source.root_binding_id != actual_root
+                    || !function_param_flow_claim_completed_before(
+                        claims, source.definition, call, body))
+                    continue;
+                unsigned failures =
+                    function_param_flow_field_preservation_failures(
+                        ctx, callee, formal, source.field_name);
+                if (failures == 0)
+                    continue;
+                bool read_after = false;
+                if (!function_param_flow_binding_read_after_call_current(
+                        ctx, claims, call, recipe->binding_id, body,
+                        &read_after))
+                    return false;
+                if (!read_after)
+                    continue;
+                *hazard = true;
+                *site = call;
+                *field_name = source.field_name;
+                *callee_name = ast_declaration_name(callee);
+                return true;
+            }
+        }
+    }
+    return true;
 }
 
 bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prepare)
@@ -640,17 +1014,113 @@ bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prep
     for (size_t i = 0; i < store->node_capacity; i++) {
         IndexedStringDefinitionRecipe *recipe = store->nodes[i].indexed_string_definition;
         if (recipe == NULL) continue;
+        bool member_hazard = false;
+        ASTNode *member_site = NULL;
+        const char *member_field = NULL, *member_callee = NULL;
+        if (!definition_member_borrow_current(ctx, recipe, &member_hazard,
+                &member_site, &member_field, &member_callee)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                recipe->declaration,
+                "An aggregate-member String borrow has no current call-effect proof");
+            return false;
+        }
+        if (member_hazard) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                member_site != NULL ? member_site : recipe->declaration,
+                "String '%s' borrows aggregate field '%s', which '%s' may release or replace before a later read.\n"
+                "Reason:\n"
+                "- the sealed callee summary does not preserve that field's storage\n"
+                "- the same local String is read after the call\n"
+                "Fix:\n"
+                "- finish using the String before the call\n"
+                "- or copy it into independent storage before the field can change",
+                recipe->binding_name != NULL ? recipe->binding_name : "<string>",
+                member_field != NULL ? member_field : "<field>",
+                member_callee != NULL ? member_callee : "<callee>");
+            return false;
+        }
         if (prepare && !recipe->selected &&
             (recipe->assignment_count != 0 || recipe->option_unwrap_candidate) &&
             recipe->use_count != 0) {
             bool protected_use = false;
-            if (!indexed_string_definition_classify_uses(ctx, recipe, &protected_use) ||
-                (protected_use && !definition_select(ctx, recipe))) {
+            bool projected_source = false;
+            if (!indexed_string_definition_classify_uses(
+                    ctx, recipe, &protected_use)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                     PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                     definition_protected_use_site(recipe),
                     "A String use has no current retention classification");
                 return false;
+            }
+            bool projected_copy_candidate = false;
+            for (size_t u = 0; !protected_use &&
+                 u < recipe->use_count; u++) {
+                bool requires_copy = false;
+                IndexedStringDefinitionUse *use = &recipe->uses[u];
+                if (use->issued_source == UINT32_MAX
+                    && semantic_param_publication_nominal_result_complete(
+                        ctx, use->sink)
+                    && indexed_string_definition_zero_source_use_requires_copy(
+                        ctx, use, &requires_copy)
+                    && requires_copy)
+                    projected_copy_candidate = true;
+            }
+            if (!protected_use && projected_copy_candidate)
+                projected_source =
+                    definition_independent_after_selected_edges(ctx, recipe);
+            if (!protected_use && projected_source) {
+                for (size_t u = 0; u < recipe->use_count; u++) {
+                    IndexedStringDefinitionUse *use = &recipe->uses[u];
+                    bool requires_copy = false;
+                    if (use->issued_source != UINT32_MAX
+                        || !semantic_param_publication_nominal_result_complete(
+                            ctx, use->sink)
+                        || !indexed_string_definition_zero_source_use_requires_copy(
+                            ctx, use, &requires_copy))
+                        continue;
+                    if (!requires_copy)
+                        continue;
+                    use->protected_use = true;
+                    protected_use = true;
+                    if (getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL)
+                        fprintf(stderr,
+                            "[semantic timing] definition_projected_copy binding=%u name=%s use=%u sink=%u\n",
+                            recipe->binding_id,
+                            recipe->binding_name != NULL
+                                ? recipe->binding_name : "<none>",
+                            use->value_id, use->sink_id);
+                    if (!semantic_loan_copy_landing_select_string(
+                            ctx, use->value)) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            (ASTNode *)use->value,
+                            "A projected independent String use could not select its exact copy");
+                        return false;
+                    }
+                }
+            }
+            if (protected_use && !definition_select(ctx, recipe)) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                    definition_protected_use_site(recipe),
+                    "A String use has no current retention classification");
+                return false;
+            }
+            if (getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL
+                && recipe->binding_name != NULL
+                && strcmp(recipe->binding_name, "matched_target") == 0) {
+                bool projected = definition_independent_after_selected_edges(
+                    ctx, recipe);
+                fprintf(stderr,
+                    "[semantic timing] definition_preselect_projection binding=%u name=%s projected=%d\n",
+                    recipe->binding_id, recipe->binding_name,
+                    projected ? 1 : 0);
             }
         }
         if (!recipe->selected) continue;

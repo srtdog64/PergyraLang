@@ -9,7 +9,7 @@ func Retain(ref text: String) -> String {
 }
 
 func Build(ref text: String) -> Array<String> {
-    let rows: Array<String> = ["known"];
+    var rows: Array<String> = ["known"];
     ArrayPush(rows, Retain(text));
     return rows;
 }

@@ -1,4 +1,4 @@
-// A local Array<Int> set shares its exact predecessor and index with the RHS.
+// Local indexed sets preserve both shared and independent RHS use ordering.
 struct EffectInstances {
     used_effects: Array<Int>;
 }
@@ -12,14 +12,15 @@ func IndexedAssignmentOffsetSeed() -> Int {
 }
 
 func ApplyEffectMask() -> Int {
-    let known_effects: Array<Int> = [1, 2];
+    var known_effects: Array<Int> = [1, 2];
     let used_effects: Array<Int> = [4, 8];
-    let unknown_effects: Array<Bool> = [false, false];
+    var unknown_effects: Array<Bool> = [false, false];
     let instances: EffectInstances = EffectInstances(used_effects);
     let callable: Int = 1;
     let context: Int = 0;
     known_effects[callable] = JoinEffectMask(
         known_effects[callable], instances.used_effects[context]);
+    known_effects[context] = callable + 5;
     unknown_effects[callable] = true;
     return known_effects[callable];
 }

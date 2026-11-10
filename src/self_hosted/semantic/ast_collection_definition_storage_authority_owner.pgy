@@ -17,19 +17,19 @@ func SemanticAstCollectionStorageAuthorityFromDefinitions(
     let borrowed: Array<Bool> = [];
     let seeds: Array<Int> = [];
     let sources: Array<Int> = [];
-    let facts: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFacts(false, borrowed, seeds, sources);
-    let row_by_formal: HashMap<String, Int> = MapNew();
+    var facts: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFacts(false, borrowed, seeds, sources);
+    var row_by_formal: HashMap<String, Int> = MapNew();
     let n: Int = ArrayLength(definitions.syntax_ids);
     if !definitions.ok || definitions.local_count != ArrayLength(locals.node_ids) ||
         ArrayLength(definitions.value_nodes) != n || ArrayLength(definitions.local_sources) != n ||
         ArrayLength(definitions.binding_rows) != n || ArrayLength(definitions.fresh) != n ||
         ArrayLength(definitions.owned_result_function_syntax_ids) != n ||
         ArrayLength(definitions.shallow_alias_admitted) != n { return facts; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < n {
-        let is_borrowed: Bool = false;
-        let seed_source: Int = -1;
-        let source_id: Int = 0;
+        var is_borrowed: Bool = false;
+        var seed_source: Int = -1;
+        var source_id: Int = 0;
         let value: Int = definitions.value_nodes[row];
         if value >= 0 {
             let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, value);
@@ -60,10 +60,10 @@ func SemanticAstCollectionStorageAuthorityFromDefinitions(
         ArrayPush(facts.producer_source_ids, source_id);
         row = row + 1;
     }
-    let current: Array<Int> = [];
+    var current: Array<Int> = [];
     row = 0;
     while row < definitions.local_count { ArrayPush(current, row); row = row + 1; }
-    let slot: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, slot);
         if completed >= 0 {

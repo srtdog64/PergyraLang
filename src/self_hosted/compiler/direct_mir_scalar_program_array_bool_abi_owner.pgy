@@ -35,7 +35,7 @@ func DirectMirScalarProgramArrayBoolAbiFactDigest(
     ref fact: DirectMirScalarProgramArrayBoolAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(283L, fact.layout_id);
+    var hash: Long = DirectMirCfgHashInt(283L, fact.layout_id);
     hash = DirectMirCfgHashInt(hash, fact.size);
     hash = DirectMirCfgHashInt(hash, fact.align);
     hash = DirectMirCfgHashInt(hash, fact.data_offset);
@@ -84,12 +84,12 @@ func DirectMirScalarProgramArrayBoolAbiFactReady(
         fact.length_offset != layout.length_offset ||
         fact.capacity_offset != layout.capacity_offset ||
         fact.allocator_offset != layout.allocator_offset { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.value_result_routine_ordinals[row] <= 0 ||
             fact.value_result_parameter_ordinals[row] < 0 ||
             fact.value_result_parameter_digests[row] == 0 { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.value_result_routine_ordinals[prior] ==
                     fact.value_result_routine_ordinals[row] &&
@@ -134,7 +134,7 @@ func DirectMirScalarProgramArrayBoolValueResultAt(
 ) -> Bool {
     if !DirectMirScalarProgramArrayBoolAbiFactReady(fact) ||
         !fact.value_result_present { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.value_result_routine_ordinals) {
         if fact.value_result_routine_ordinals[row] == routine &&
             fact.value_result_parameter_ordinals[row] == parameter {

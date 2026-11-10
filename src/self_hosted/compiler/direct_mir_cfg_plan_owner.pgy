@@ -19,7 +19,7 @@ func DirectMirCfgPlanFromAdmitted(
 ) -> DirectMirCfgPlan {
     let block_count: Int = admitted.routines.routine_block_counts[0];
     let standard_envelope: Bool = DirectMirCfgProgramEnvelopeReady(admitted);
-    let enum_envelope: Bool = false;
+    var enum_envelope: Bool = false;
     if DirectMirEnumValueMatchRouteFactReady(enum_route) &&
         enum_route.claimed {
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -47,7 +47,7 @@ func DirectMirCfgPlanFromAdmitted(
         }
         Die("direct MIR CFG typed owner admission is invalid");
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_reachable) {
         if !index.block_reachable[block] {
             Die("direct MIR CFG reachability fact disagrees with graph");
@@ -85,10 +85,10 @@ func DirectMirCfgPlanFromAdmitted(
     if !DirectMirCfgCertificateMutationRejected(certificate_negative) {
         Die("direct MIR CFG AIR certificate mutation negative is invalid");
     }
-    let shape: DirectMirCfgShapeFacts = DirectMirCfgShapeFactsEmpty();
-    let loop_plan: DirectMirLoopCfgPlanFact =
+    var shape: DirectMirCfgShapeFacts = DirectMirCfgShapeFactsEmpty();
+    var loop_plan: DirectMirLoopCfgPlanFact =
         DirectMirLoopCfgPlanFactEmpty();
-    let enum_plan: DirectMirEnumValueMatchPlanFact =
+    var enum_plan: DirectMirEnumValueMatchPlanFact =
         DirectMirEnumValueMatchPlanFactEmpty();
     if DirectMirIdentityMatchCfgCertificateFactReady(
         certificate.identity_match
@@ -124,7 +124,7 @@ func DirectMirCfgPlanFromAdmitted(
             admitted, index, use_facts, certificate
         );
     }
-    let shape_ready: Bool = DirectMirCfgShapeFactsReady(
+    var shape_ready: Bool = DirectMirCfgShapeFactsReady(
         shape, certificate.phi_count
     );
     if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {

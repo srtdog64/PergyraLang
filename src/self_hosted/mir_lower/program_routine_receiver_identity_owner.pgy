@@ -16,6 +16,7 @@ struct MirProgramRoutineReceiverIdentityCapture {
     let owner_declaration_row: Int;
 }
 
+
 func MirProgramRoutineOwnerDeclarationRow(
     ref declarations: MirProgramDeclarationIndex,
     owner: String
@@ -24,8 +25,8 @@ func MirProgramRoutineOwnerDeclarationRow(
         owner == "" {
         return 0 - 1;
     }
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(declarations.names) {
         if declarations.names[row] == owner {
             if found >= 0 { return 0 - 1; }
@@ -45,7 +46,7 @@ func MirProgramRoutineOwnerNominalKindAt(
         declaration_row >= ArrayLength(declarations.names) {
         return "";
     }
-    let nominal_kind: String = declarations.nominal_kinds[declaration_row];
+    var nominal_kind: String = declarations.nominal_kinds[declaration_row];
     if nominal_kind == "" { nominal_kind = declarations.kinds[declaration_row]; }
     if !CallableReceiverNominalKindKnown(nominal_kind) { return ""; }
     return nominal_kind;
@@ -111,7 +112,7 @@ func MirProgramRoutineSourceSyntaxIdentityUniqueExcept(
     if !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(source_syntax_ids) {
         if row != except_row && source_syntax_ids[row] == source_syntax_id {
             return false;
@@ -129,8 +130,8 @@ func CaptureMirProgramRoutineReceiverIdentity(
     receiver_carriage: String,
     prior_source_syntax_ids: Array<String>
 ) -> MirProgramRoutineReceiverIdentityCapture {
-    let owner_nominal_kind: String = CallableReceiverCarriageNone();
-    let owner_declaration_row: Int = 0 - 1;
+    var owner_nominal_kind: String = CallableReceiverCarriageNone();
+    var owner_declaration_row: Int = 0 - 1;
     if routine_kind == "method" && owner != "" {
         owner_declaration_row =
             MirProgramRoutineOwnerDeclarationRow(declarations, owner);
@@ -163,14 +164,14 @@ func MirProgramRoutineMethodDeclarationIdentityReady(
         declaration_row >= MirProgramDeclarationIndexCount(declarations) {
         return false;
     }
-    let methods: Array<Int> = [0, 0];
+    var methods: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, declarations.starts[declaration_row],
         declarations.ends[declaration_row], "methods", methods
     ) { return false; }
-    let method: Array<Int> = [0, 0];
-    let cursor: Int = methods[0] + 1;
-    let matches: Int = 0;
+    var method: Array<Int> = [0, 0];
+    var cursor: Int = methods[0] + 1;
+    var matches: Int = 0;
     while JsonArrayNextObjectBounds(json, json_extent, cursor, methods[1], method) {
         let method_name: Option<String> = MirObjectUniqueStringFactAtBounds(
             json, json_extent, method[0], method[1], "name"
@@ -213,3 +214,4 @@ func MirProgramRoutineReceiverIdentityRowReady(
         owner_declaration_row, owner_nominal_kind
     );
 }
+

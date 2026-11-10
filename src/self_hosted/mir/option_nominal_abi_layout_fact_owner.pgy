@@ -32,32 +32,32 @@ func SelfMirOptionNominalAbiLayoutRowsCapture(
     names: Array<String>, nominal_kinds: Array<String>,
     ref nominal: SelfMirNominalAbiLayoutRows
 ) -> SelfMirOptionNominalAbiLayoutRows {
-    let type_names: Array<String> = [];
-    let requireds: Array<Int> = [];
-    let layout_ids: Array<Int> = [];
-    let sizes: Array<Int> = [];
-    let aligns: Array<Int> = [];
-    let value_offsets: Array<Int> = [];
-    let value_sizes: Array<Int> = [];
-    let value_aligns: Array<Int> = [];
-    let ready: Bool = true;
+    var type_names: Array<String> = [];
+    var requireds: Array<Int> = [];
+    var layout_ids: Array<Int> = [];
+    var sizes: Array<Int> = [];
+    var aligns: Array<Int> = [];
+    var value_offsets: Array<Int> = [];
+    var value_sizes: Array<Int> = [];
+    var value_aligns: Array<Int> = [];
+    var ready: Bool = true;
     if !nominal.ready || ArrayLength(names) != ArrayLength(nominal_kinds) ||
         ArrayLength(names) != ArrayLength(nominal.required) {
-        let invalid: SelfMirOptionNominalAbiLayoutRows =
+        var invalid: SelfMirOptionNominalAbiLayoutRows =
             SelfMirOptionNominalAbiLayoutRowsEmpty();
         invalid.ready = false;
         return invalid;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(names) {
-        let type_name: String = "";
-        let required: Int = 0;
-        let layout_id: Int = 0;
-        let size: Int = 0;
-        let align: Int = 0;
-        let value_offset: Int = 0;
-        let value_size: Int = 0;
-        let value_align: Int = 0;
+        var type_name: String = "";
+        var required: Int = 0;
+        var layout_id: Int = 0;
+        var size: Int = 0;
+        var align: Int = 0;
+        var value_offset: Int = 0;
+        var value_size: Int = 0;
+        var value_align: Int = 0;
         if nominal_kinds[row] == "struct" {
             type_name = Concat("Option<", Concat(names[row], ">"));
             if nominal.required[row] == 1 {
@@ -97,8 +97,8 @@ func SelfMirOptionNominalAbiLayoutRowsCapture(
 func SelfMirOptionNominalAbiLayoutUniqueRowForType(
     ref rows: SelfMirOptionNominalAbiLayoutRows, type_name: String
 ) -> Option<Int> {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(rows.type_names) {
         if rows.type_names[row] == type_name {
             if found >= 0 { return None; }

@@ -12,7 +12,7 @@ struct Source {
 }
 
 func Append(rows: Rows, source: Source) -> Rows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArrayPush(names, source.title);
     return Rows(names);
 }

@@ -333,7 +333,7 @@ test_qubit_slot_semantics_part_b(void)
     {
         const char *source =
             "func Snapshot(ref value: Int) -> Void {\n"
-            "    let items: List<Int> = ListNew();\n"
+            "    var items: List<Int> = ListNew();\n"
             "    ListPush(items, value);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

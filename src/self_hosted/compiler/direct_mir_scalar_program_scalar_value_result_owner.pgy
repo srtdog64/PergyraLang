@@ -6,8 +6,8 @@ import "direct_mir_scalar_program_llvm_type_owner.pgy";
 func DirectMirScalarProgramCScalarValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramScalarValueResultAt(plan, routine, ordinal) {
             let row: Int = plan.routines.parameter_starts[routine] + ordinal;
@@ -24,12 +24,12 @@ func DirectMirScalarProgramCScalarValueResultCopyIn(
 func DirectMirScalarProgramCScalarValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramScalarValueResultAt(plan, routine, ordinal) {
-            let local_row: Int = DirectMirScalarProgramScalarParameterLocalRow(plan, routine, ordinal);
-            let storage: String = "pgy_param_${ordinal}";
+            let local_row: Int = DirectMirScalarProgramParameterValueResultLocalRow(plan, routine, ordinal);
+            var storage: String = "pgy_param_${ordinal}";
             if local_row >= 0 { storage = "pgy_local_${local_row}"; }
             output = output + "    *pgy_param_${ordinal}_mutref = ${storage};\n";
         }
@@ -41,8 +41,8 @@ func DirectMirScalarProgramCScalarValueResultCopyOut(
 func DirectMirScalarProgramLlvmScalarParameterCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         let row: Int = plan.routines.parameter_starts[routine] + ordinal;
         let type_name: String = plan.routines.parameter_types[row];
@@ -64,14 +64,14 @@ func DirectMirScalarProgramLlvmScalarParameterCopyIn(
 func DirectMirScalarProgramLlvmScalarValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, block: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramScalarValueResultAt(plan, routine, ordinal) {
             let row: Int = plan.routines.parameter_starts[routine] + ordinal;
             let llvm_type: String = DirectMirScalarProgramLlvmType(plan.routines.parameter_types[row]);
-            let local_row: Int = DirectMirScalarProgramScalarParameterLocalRow(plan, routine, ordinal);
-            let storage: String = "%pgy.param.${ordinal}.local";
+            let local_row: Int = DirectMirScalarProgramParameterValueResultLocalRow(plan, routine, ordinal);
+            var storage: String = "%pgy.param.${ordinal}.local";
             if local_row >= 0 { storage = "%pgy.local.${local_row}"; }
             let value: String = "%pgy.param.${ordinal}.copyout.${block}";
             output = output + "  ${value} = load ${llvm_type}, ptr ${storage}\n";

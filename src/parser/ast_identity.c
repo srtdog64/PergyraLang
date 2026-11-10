@@ -398,6 +398,10 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
         ast_assign_array(node->data.map_literal.values,
                          node->data.map_literal.count, next_id);
         break;
+    case AST_SET_LITERAL:
+        ast_assign_array(node->data.set_literal.elements,
+                         node->data.set_literal.count, next_id);
+        break;
     case AST_CAST:
         ast_assign_node(node->data.cast.operand, next_id);
         break;
@@ -731,6 +735,36 @@ ast_stable_id_ceiling(ASTNode *root)
 }
 
 bool
+ast_subtree_intersects_stable_ids(const ASTNode *root, const uint32_t *ids,
+                                  size_t count, bool *intersects_out)
+{
+    if (root == NULL || intersects_out == NULL || (count != 0 && ids == NULL))
+        return false;
+    *intersects_out = false;
+    if (count == 0)
+        return true;
+    for (size_t i = 0; i < count; i++)
+        if (ids[i] == 0)
+            return false;
+
+    /* The identity walker is read-only in inspect mode. Reuse its complete
+     * child coverage instead of growing another partial AST traversal. */
+    AstIdentityState state = {
+        .next_id = 1, .preserve_existing = true, .inspect_only = true,
+        .collect_ids = ids, .collect_count = count,
+    };
+    ast_assign_node((ASTNode *)root, &state);
+    free(state.params);
+    if (state.exhausted) {
+        free(state.collected);
+        return false;
+    }
+    *intersects_out = state.collected_count != 0;
+    free(state.collected);
+    return true;
+}
+
+bool
 ast_wrap_nodes_in_builtin_call(ASTNode *root, const uint32_t *ids, size_t count,
                                const char *callee_name)
 {
@@ -738,6 +772,16 @@ ast_wrap_nodes_in_builtin_call(ASTNode *root, const uint32_t *ids, size_t count,
         return true;
     if (root == NULL || ids == NULL || callee_name == NULL)
         return false;
+    /* A landing plan is an exact rewrite receipt. Duplicate identities would
+     * make its cardinality ambiguous, and a missing identity must not turn a
+     * required ownership copy into a successful partial rewrite. */
+    for (size_t i = 0; i < count; i++) {
+        if (ids[i] == 0)
+            return false;
+        for (size_t j = 0; j < i; j++)
+            if (ids[j] == ids[i])
+                return false;
+    }
     AstIdentityState state = {
         .next_id = 1, .preserve_existing = true, .inspect_only = true,
         .collect_ids = ids, .collect_count = count,
@@ -746,30 +790,71 @@ ast_wrap_nodes_in_builtin_call(ASTNode *root, const uint32_t *ids, size_t count,
     for (size_t i = 0; i < state.param_count; i++)
         (void)ast_complete_id(&state, state.params[i]->stable_id);
     free(state.params);
-    bool ok = !state.exhausted;
+    bool ok = !state.exhausted && state.collected_count == count;
+    /* Total cardinality alone is insufficient: two nodes carrying one
+     * requested identity can mask another requested identity that is absent.
+     * Require the receipt to be a one-to-one match. */
+    for (size_t i = 0; ok && i < count; i++) {
+        size_t matches = 0;
+        for (size_t j = 0; j < state.collected_count; j++)
+            if (state.collected[j]->stable_id == ids[i])
+                matches++;
+        if (matches != 1)
+            ok = false;
+    }
     uint64_t next = state.next_id;
-    for (size_t i = 0; ok && i < state.collected_count; i++) {
-        ASTNode *node = state.collected[i];
-        ASTNode *callee = next + 2 <= UINT32_MAX ? ast_create_identifier(callee_name) : NULL;
-        ASTNode *moved = callee != NULL ? ast_create_call(callee) : NULL;
-        if (moved == NULL) {
+    uint64_t available = next <= UINT32_MAX
+        ? (uint64_t)UINT32_MAX - next + 1 : 0;
+    if ((uint64_t)count > available / 2)
+        ok = false;
+
+    /* Build every wrapper before changing the tree. Allocation or receipt
+     * failure therefore leaves the caller's AST unchanged. */
+    ASTNode **wrappers = ok ? calloc(count, sizeof(*wrappers)) : NULL;
+    if (ok && wrappers == NULL)
+        ok = false;
+    for (size_t i = 0; ok && i < count; i++) {
+        ASTNode *target = state.collected[i];
+        ASTNode *callee = ast_create_identifier(callee_name);
+        ASTNode *wrapper = callee != NULL ? ast_create_call(callee) : NULL;
+        if (wrapper == NULL) {
+            ast_destroy(callee);
             ok = false;
             break;
         }
-        /* The node keeps its place in its parent and becomes the call; the
-         * new node takes its content, identity and position. */
-        ASTNode content = *node;
-        *node = *moved;
-        *moved = content;
-        node->line = callee->line = moved->line;
-        node->column = callee->column = moved->column;
-        node->origin_path = moved->origin_path != NULL ? pergyra_strdup(moved->origin_path) : NULL;
-        node->stable_id = (uint32_t)next++;
+        ast_add_argument(wrapper, NULL);
+        wrapper->line = callee->line = target->line;
+        wrapper->column = callee->column = target->column;
+        wrapper->origin_path = target->origin_path != NULL
+            ? pergyra_strdup(target->origin_path) : NULL;
+        wrapper->stable_id = (uint32_t)next++;
         callee->stable_id = (uint32_t)next++;
-        ast_add_argument(node, moved);
-        ok = ast_call_arg_count(node) == 1 && ast_call_set_compiler_builtin(node) &&
-            (moved->origin_path == NULL || node->origin_path != NULL);
+        if (ast_identifier_name(callee) == NULL ||
+            ast_call_arg_count(wrapper) != 1 ||
+            !ast_call_set_compiler_builtin(wrapper) ||
+            (target->origin_path != NULL && wrapper->origin_path == NULL)) {
+            ast_destroy(wrapper);
+            ok = false;
+            break;
+        }
+        wrappers[i] = wrapper;
     }
+    if (ok) {
+        for (size_t i = 0; i < count; i++) {
+            ASTNode *node = state.collected[i];
+            ASTNode *moved = wrappers[i];
+            /* The node keeps its place in its parent and becomes the call;
+             * the allocated node takes its content and original identity. */
+            ASTNode content = *node;
+            *node = *moved;
+            *moved = content;
+            node->data.call.arguments[0] = moved;
+            wrappers[i] = NULL;
+        }
+    }
+    for (size_t i = 0; wrappers != NULL && i < count; i++)
+        ast_destroy(wrappers[i]);
+    free(wrappers);
     free(state.collected);
     return ok;
 }

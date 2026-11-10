@@ -59,10 +59,10 @@ func DirectMirScalarCfgArrayIntCPush(
     let value: String = DirectMirScalarCfgCOperand(
         plan, plan.array_int_program.producer.induction_value_row, -1, ""
     );
-    let operator: String = " * ";
+    var operator: String = " * ";
     if plan.array_int_program.producer.push_value_kind ==
             DirectMirScalarCfgArrayIntPushValueAdd() { operator = " + "; }
-    let output: String =
+    var output: String =
         "    pgy_array_int_collection.data[pgy_array_int_collection.length] = (int32_t)(";
     output = Concat(output, Concat(value, operator));
     output = Concat(output, Concat(value, ");\n"));
@@ -77,7 +77,7 @@ func DirectMirScalarCfgArrayIntCRead(
     if !fact.valid || operation != fact.consumer.read_operation_row {
         Die("direct MIR scalar CFG Array<Int> C read is invalid");
     }
-    let output: String = Concat("    ", DirectMirScalarCfgCLocal(
+    var output: String = Concat("    ", DirectMirScalarCfgCLocal(
         plan, fact.consumer.read_result_value_row
     ));
     output = Concat(output, " = ");
@@ -100,7 +100,7 @@ func DirectMirScalarCfgArrayIntCLengthLog(
             plan.array_int_program.consumer.length_log_operation_row {
         Die("direct MIR scalar CFG Array<Int> C length Log is invalid");
     }
-    let output: String = Concat("    ", formatted_print.symbol);
+    var output: String = Concat("    ", formatted_print.symbol);
     output = Concat(output, Concat("(\"", int_line_format));
     output = Concat(output, Concat("\", (", int_c_type));
     return Concat(output, ")pgy_array_int_collection.length);\n");

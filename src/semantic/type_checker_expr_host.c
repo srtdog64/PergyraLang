@@ -263,7 +263,8 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         return TYPE_UNKNOWN;
     }
     if (semantic_param_publication_pending(ctx) &&
-        !semantic_param_publication_record_selected_callable(ctx, expr, method)) {
+        !semantic_param_publication_record_selected_callable(
+            ctx, expr, method, receiver_type)) {
         semantic_error(ctx, expr, "Selected method formal identity could not be published");
         return TYPE_UNKNOWN;
     }

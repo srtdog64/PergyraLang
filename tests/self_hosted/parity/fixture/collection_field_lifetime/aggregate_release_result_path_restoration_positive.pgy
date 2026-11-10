@@ -1,0 +1,26 @@
+// A functional update may return a default aggregate through a result field.
+// Restoring that exact field to the originating formal preserves its release
+// authority; no manual deep drop is required at this wrapper boundary.
+struct ResultPathBox { values: Array<String>; }
+struct ResultPathUpdate { recognized: Bool; box: ResultPathBox; }
+
+func ResultPathUpdateBox(box: ResultPathBox) -> ResultPathUpdate {
+    let values: Array<String> = box.values;
+    ArrayPushOwnedString(values, "next");
+    box.values = values;
+    return ResultPathUpdate(false, box);
+}
+
+func ResultPathForward(box: ResultPathBox) -> ResultPathBox {
+    let update: ResultPathUpdate = ResultPathUpdateBox(box);
+    if update.recognized { return update.box; }
+    box = update.box;
+    return box;
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    let box: ResultPathBox = ResultPathBox(values);
+    let updated: ResultPathBox = ResultPathForward(box);
+    let count: Int = ArrayLength(updated.values);
+}

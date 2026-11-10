@@ -72,6 +72,28 @@ semantic_region_retention_summary_for_stdlib(
 }
 
 bool
+semantic_region_is_string_concat(const struct ASTNode *call)
+{
+    uint32_t builtin_kind = 0;
+    const ASTNode *callee;
+    const char *name;
+    if (call == NULL || call->type != AST_CALL || ast_call_arg_count(call) != 2 ||
+        !ast_call_semantic_callee_is_stdlib(call) ||
+        ast_call_semantic_callee_decl_id(call) != 0 ||
+        ast_call_semantic_callee_value_binding_id(call) != 0 ||
+        !ast_call_semantic_callee_builtin_kind(call, &builtin_kind))
+        return false;
+    if (builtin_kind == (uint32_t)BUILTIN_CONCAT)
+        return true;
+    if (builtin_kind != (uint32_t)BUILTIN_NOT_BUILTIN)
+        return false;
+    callee = ast_call_callee(call);
+    name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    return name != NULL && strcmp(name, "StringConcat") == 0;
+}
+
+bool
 semantic_region_is_string_clone(const struct ASTNode *call)
 {
     uint32_t builtin_kind = 0;

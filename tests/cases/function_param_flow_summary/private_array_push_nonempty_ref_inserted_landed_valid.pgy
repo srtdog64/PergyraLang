@@ -1,0 +1,19 @@
+// A non-empty local Array still gets an independent copy of the ref String
+// inserted after construction. The landing is an explicit Clone at the store.
+extern "C" { func Keep(rows: Array<String>) -> Void; }
+
+func Build(ref text: String) -> Array<String> {
+    var rows: Array<String> = ["known", "other"];
+    ArrayPush(rows, text);
+    return rows;
+}
+
+func Publish(ref text: String) -> Bool {
+    Keep(Build(text));
+    return true;
+}
+
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(Publish(text));
+}

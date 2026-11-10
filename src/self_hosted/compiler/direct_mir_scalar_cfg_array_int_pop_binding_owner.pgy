@@ -6,9 +6,9 @@ func DirectMirScalarCfgArrayIntPopAtOperation(
     fact: DirectMirScalarCfgArrayIntProgramFact,
     global_row: Int, operation_row: Int
 ) -> DirectMirScalarCfgArrayIntProgramFact {
-    let operations: Array<Int> = fact.pop.operation_rows;
-    let matched: Bool = false;
-    let row: Int = 0;
+    var operations: Array<Int> = fact.pop.operation_rows;
+    var matched: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(fact.pop.global_rows) {
         if fact.pop.global_rows[row] == global_row {
             if matched || operations[row] >= 0 { return fact; }
@@ -17,7 +17,7 @@ func DirectMirScalarCfgArrayIntPopAtOperation(
         }
         row = row + 1;
     }
-    let length_log: Int = fact.pop.length_log_operation_row;
+    var length_log: Int = fact.pop.length_log_operation_row;
     if fact.pop.length_log_global_row == global_row {
         if matched || length_log >= 0 { return fact; }
         length_log = operation_row;

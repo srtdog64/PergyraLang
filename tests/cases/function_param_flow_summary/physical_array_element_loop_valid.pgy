@@ -1,7 +1,7 @@
 func ReadCursor(ref label: String, inout cursor_out: Array<Int>) -> Option<Int> {
-    let i: Int = 0;
-    let total: Int = 0;
-    let turn: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
+    var turn: Int = 0;
     while turn < 2 {
         i = cursor_out[0];
         total = total + i;

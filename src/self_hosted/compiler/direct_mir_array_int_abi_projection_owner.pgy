@@ -111,7 +111,7 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
         capacity_offset % 8 != 0 || allocator_offset % 8 != 0 {
         Die("direct MIR Array<Int> ABI has no target projection");
     }
-    let projection: DirectMirArrayIntAbiProjection =
+    var projection: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjection(
             true, target.projection,
             target.target_capability_fingerprint, abi_layout_id,

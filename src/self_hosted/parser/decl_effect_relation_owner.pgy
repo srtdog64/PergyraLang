@@ -24,7 +24,7 @@ func DomainBodyUncoveredMemberRefusal(
     context: ParserSourceLocationContext,
     content: String, i: Int, construct: String
 ) -> Void {
-    let surface: String = "";
+    var surface: String = "";
     if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
         surface = Concat(construct, " method");
     } else if MatchLanguageWord(content, i, LanguageWordId.WordFor) {
@@ -51,9 +51,9 @@ func ParseEffectRelationProjectionDirective(
     inout cursor_out: Array<Int>
 ) -> String {
     let content_extent: Int = StringLength(content);
-    let i: Int = start;
-    let label: String = "";
-    let target_expected: String = "";
+    var i: Int = start;
+    var label: String = "";
+    var target_expected: String = "";
     if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) {
         label = "Refresh";
         target_expected = "object slot name";
@@ -96,7 +96,7 @@ func ParseEffectRelationProjectionDirective(
         i = i + 1;
     }
     ArraySet(cursor_out, 0, i);
-    let row: String = Concat(
+    var row: String = Concat(
         "    ", Concat(label, Concat(": ", Concat(
             projection_name, Concat(" from ", source_name)
         )))
@@ -114,8 +114,8 @@ func ParseEffectRelationProjectionSlot(
     inout cursor_out: Array<Int>
 ) -> String {
     let content_extent: Int = StringLength(content);
-    let i: Int = start;
-    let label: String = "";
+    var i: Int = start;
+    var label: String = "";
     if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
         label = "ObjectSlot";
         i = LanguageWordEnd(i, LanguageWordId.WordObject);
@@ -156,9 +156,9 @@ func ParseEffectRelationProjectionSlot(
 
 func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     location_context: ParserSourceLocationContext) -> String {
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
+    var out: String = "";
     i = LanguageWordEnd(i, LanguageWordId.WordEffect);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -208,7 +208,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     let open_at: Int = i;
     i = ParseExpectIn(location_context, content, i, "{", "effect");
 
-    let eff_fields: String = "";
+    var eff_fields: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -276,9 +276,9 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
 
 func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     location_context: ParserSourceLocationContext) -> String {
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
+    var out: String = "";
     i = LanguageWordEnd(i, LanguageWordId.WordRelation);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -369,7 +369,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     i = ParseExpectIn(location_context, content, i, "{", "relation");
 
     // Fields
-    let rel_fields: String = "";
+    var rel_fields: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {

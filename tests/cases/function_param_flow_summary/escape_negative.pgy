@@ -2,7 +2,8 @@ func ReturnEscape(ref slot: Slot<Int>) -> Slot<Int> {
     return slot;
 }
 
-func Publish(ch: Channel<Slot<Int>>, ref slot: Slot<Int>) -> Void {
+func Publish(ref slot: Slot<Int>) -> Void {
+    let ch: Channel<Slot<Int>> = Channel(1);
     ch <- slot;
 }
 

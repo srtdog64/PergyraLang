@@ -19,20 +19,20 @@ func MirExpressionSemanticOccurrenceIndexFromFacts(
     ref order: MirStructuredExpressionEmissionOrder,
     ref surfaces: SemanticAstExpressionSurfaceFacts
 ) -> MirExpressionSemanticOccurrenceIndex {
-    let rows: Array<Int> = [];
-    let lanes: Array<Int> = [];
-    let ordinals: Array<Int> = [];
-    let node_ids: Array<Int> = [];
-    let roots: Array<Int> = [];
-    let valid: Bool = MirStructuredExpressionEmissionOrderReady(order) &&
+    var rows: Array<Int> = [];
+    var lanes: Array<Int> = [];
+    var ordinals: Array<Int> = [];
+    var node_ids: Array<Int> = [];
+    var roots: Array<Int> = [];
+    var valid: Bool = MirStructuredExpressionEmissionOrderReady(order) &&
         surfaces.ok && surfaces.artifact_node_count == artifact.count;
-    let occurrence: Int = 0;
-    let surface: Int = 0;
+    var occurrence: Int = 0;
+    var surface: Int = 0;
     while surface < SemanticAstExpressionSurfaceCount(surfaces) {
         let node_id: Int = surfaces.node_ids[surface];
-        let lane: Int = AstExpressionLaneAtom();
+        var lane: Int = AstExpressionLaneAtom();
         while lane <= AstExpressionLaneAuxiliary() {
-            let required: Bool = false;
+            var required: Bool = false;
             if lane == AstExpressionLaneAtom() {
                 required = surfaces.has_atoms[surface] &&
                     (SemanticAstExpressionGraphAtomLaneRequired(
@@ -94,8 +94,8 @@ func MirExpressionSemanticRootForInstruction(
     ordinal: Int
 ) -> Int {
     if !index.valid { return 0 - 1; }
-    let found: Int = 0 - 1;
-    let i: Int = 0;
+    var found: Int = 0 - 1;
+    var i: Int = 0;
     while i < ArrayLength(index.global_instruction_rows) {
         if index.global_instruction_rows[i] == global_row &&
             index.lanes[i] == lane &&

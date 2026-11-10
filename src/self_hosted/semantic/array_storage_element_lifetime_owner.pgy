@@ -28,7 +28,7 @@ func SemanticArrayStoragePlainElement(type_name: String,
     if IsSome(constructor) {
         let row: Int = UnwrapOption(constructor);
         if constructors.nominal_kinds[row] != "struct" { return false; }
-        let field: Int = constructors.param_starts[row];
+        var field: Int = constructors.param_starts[row];
         let end: Int = field + constructors.param_counts[row];
         while field < end {
             if !SemanticArrayStoragePlainElement(constructors.param_type_names[field],
@@ -37,12 +37,12 @@ func SemanticArrayStoragePlainElement(type_name: String,
         }
         return true;
     }
-    let found: Bool = false;
-    let variant: Int = 0;
+    var found: Bool = false;
+    var variant: Int = 0;
     while variant < ArrayLength(enums.variant_enum_names) {
         if enums.variant_enum_names[variant] == type_name {
             found = true;
-            let payload: Int = enums.variant_param_starts[variant];
+            var payload: Int = enums.variant_param_starts[variant];
             let end: Int = payload + enums.variant_param_counts[variant];
             while payload < end {
                 if !SemanticArrayStoragePlainElement(enums.variant_param_type_names[payload],

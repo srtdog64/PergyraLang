@@ -1,0 +1,4 @@
+// Emits optional body-stage pressure markers without owning semantic decisions.
+func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void {
+    if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); }
+}

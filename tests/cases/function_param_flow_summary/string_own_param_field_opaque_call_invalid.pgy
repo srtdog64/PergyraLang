@@ -10,7 +10,7 @@ func Keep(inout out: Array<String>, text: String) -> Void {
 }
 
 func Collect(own facts: Facts) -> Array<String> {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     Keep(out, facts.names[0]);
     let names: Array<String> = facts.names;
     ArrayDropOwnedStrings(names);
@@ -18,7 +18,7 @@ func Collect(own facts: Facts) -> Array<String> {
 }
 
 func Main() -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "x");
     let facts: Facts = Facts { names: names, title: "t" };
     let kept: Array<String> = Collect(facts);

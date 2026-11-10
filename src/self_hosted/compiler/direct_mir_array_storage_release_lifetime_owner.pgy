@@ -11,7 +11,7 @@ import "direct_mir_array_storage_call_preservation_owner.pgy";
 func DirectMirArrayStorageExpressionUses(ref expressions: DirectMirScalarProgramExpressionSet,
     graph_row: Int, binding: Int, parameter: Bool) -> Bool {
     if graph_row < 0 { return false; }
-    let node: Int = expressions.graph_starts[graph_row];
+    var node: Int = expressions.graph_starts[graph_row];
     let end: Int = node + expressions.graph_counts[graph_row];
     while node < end {
         if parameter && expressions.node_kinds[node] == DirectMirScalarProgramExprParameter() &&
@@ -41,17 +41,17 @@ func DirectMirArrayStorageAfterDropReady(ref plan: DirectMirScalarCfgGraphPlan,
     let start: Int = plan.routines.block_starts[routine];
     let count: Int = plan.routines.block_counts[routine];
     if first < start || first >= start + count { return false; }
-    let seen: Array<Bool> = [];
-    let row: Int = 0;
+    var seen: Array<Bool> = [];
+    var row: Int = 0;
     while row < count { ArrayPush(seen, false); row = row + 1; }
-    let queue: Array<Int> = [first];
+    var queue: Array<Int> = [first];
     row = 0;
     while row < ArrayLength(queue) {
         let block: Int = queue[row];
-        let operation: Int = plan.block_operation_starts[block];
+        var operation: Int = plan.block_operation_starts[block];
         let end: Int = operation + plan.block_operation_counts[block];
         if row == 0 { operation = drop_operation + 1; }
-        let reset: Bool = false;
+        var reset: Bool = false;
         while operation < end {
             // A loop-local literal creates a new lifetime on re-entry. Stop
             // this retired lifetime at that exact creation, not at an alias.
@@ -64,9 +64,9 @@ func DirectMirArrayStorageAfterDropReady(ref plan: DirectMirScalarCfgGraphPlan,
             plan.program.block_condition_expression_rows[block], binding, parameter) ||
             DirectMirArrayStorageExpressionUses(plan.program.expressions,
                 plan.program.block_return_expression_rows[block], binding, parameter) { return false; }
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < 2 {
-            let next: Int = plan.block_succ_true[block];
+            var next: Int = plan.block_succ_true[block];
             if edge == 1 { next = plan.block_succ_false[block]; }
             if next >= 0 {
                 if next < start || next >= start + count { return false; }
@@ -83,14 +83,14 @@ func DirectMirArrayStorageExpressionEscapes(ref plan: DirectMirScalarCfgGraphPla
     graph_row: Int, binding: Int, parameter: Bool, releasing_node: Int,
     preserving_parameters: HashMap<String, Int>) -> Bool {
     if graph_row < 0 { return false; }
-    let node: Int = plan.program.expressions.graph_starts[graph_row];
+    var node: Int = plan.program.expressions.graph_starts[graph_row];
     let end: Int = node + plan.program.expressions.graph_counts[graph_row];
     while node < end {
         let operands: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(plan.program.expressions, node);
-        let argument: Int = 0;
+        var argument: Int = 0;
         while argument < ArrayLength(operands) {
             let source: Int = operands[argument];
-            let matches: Bool = parameter && plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprParameter() &&
+            var matches: Bool = parameter && plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprParameter() &&
                 plan.program.expressions.node_parameter_ordinals[source] == binding;
             if !parameter && plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprLocal() &&
                 plan.program.expressions.node_local_rows[source] == binding { matches = true; }
@@ -124,15 +124,15 @@ func DirectMirArrayStorageBindingReleaseReady(ref plan: DirectMirScalarCfgGraphP
     let element: Option<String> = SemanticArrayElementType(plan.program.expressions.node_types[receiver]);
     if !IsSome(element) || !DirectMirArrayStoragePlainType(plan, UnwrapOption(element), 0) { return false; }
     let parameter: Bool = plan.program.expressions.node_kinds[receiver] == DirectMirScalarProgramExprParameter();
-    let binding: Int = plan.program.expressions.node_local_rows[receiver];
+    var binding: Int = plan.program.expressions.node_local_rows[receiver];
     if parameter { binding = plan.program.expressions.node_parameter_ordinals[receiver]; }
     else if plan.program.expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() { return false; }
     if binding < 0 { return false; }
     if parameter && (binding >= plan.routines.parameter_counts[routine] ||
         plan.routines.parameter_carriages[plan.routines.parameter_starts[routine] + binding] != "owner-handle") { return false; }
-    let creation: Int = -1;
-    let definitions: Int = 0;
-    let index: Int = plan.routines.operation_starts[routine];
+    var creation: Int = -1;
+    var definitions: Int = 0;
+    var index: Int = plan.routines.operation_starts[routine];
     let end: Int = index + plan.routines.operation_counts[routine];
     while index < end {
         let result: Int = plan.operation_result_values[index];
@@ -155,7 +155,7 @@ func DirectMirArrayStorageBindingReleaseReady(ref plan: DirectMirScalarCfgGraphP
             DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_secondary_expression_rows[index], binding, parameter, releasing_node, preserving_parameters) { return false; }
         index = index + 1;
     }
-    let block: Int = plan.routines.block_starts[routine];
+    var block: Int = plan.routines.block_starts[routine];
     let block_end: Int = block + plan.routines.block_counts[routine];
     while block < block_end {
         if DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_condition_expression_rows[block], binding, parameter, releasing_node, preserving_parameters) ||
@@ -177,8 +177,8 @@ func DirectMirArrayStorageNodeRoutine(ref plan: DirectMirScalarCfgGraphPlan, nod
 }
 
 func DirectMirArrayStorageReleaseRequirements(ref plan: DirectMirScalarCfgGraphPlan) -> HashMap<String, Int> {
-    let required: HashMap<String, Int> = MapNew();
-    let node: Int = 0;
+    var required: HashMap<String, Int> = MapNew();
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprArrayDropStorage() {
             let receiver: Int = plan.program.expressions.node_lefts[node];
@@ -190,8 +190,8 @@ func DirectMirArrayStorageReleaseRequirements(ref plan: DirectMirScalarCfgGraphP
         }
         node = node + 1;
     }
-    let changed: Bool = true;
-    let remaining: Int = ArrayLength(plan.routines.parameter_types) + 1;
+    var changed: Bool = true;
+    var remaining: Int = ArrayLength(plan.routines.parameter_types) + 1;
     while changed && remaining > 0 {
         changed = false; node = 0;
         while node < ArrayLength(plan.program.expressions.node_kinds) {
@@ -200,7 +200,7 @@ func DirectMirArrayStorageReleaseRequirements(ref plan: DirectMirScalarCfgGraphP
                 if target >= 0 && target < ArrayLength(plan.routines.parameter_counts) {
                     let routine: Int = DirectMirArrayStorageNodeRoutine(plan, node);
                     let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(plan.program.expressions, node);
-                    let arg: Int = 0;
+                    var arg: Int = 0;
                     while arg < ArrayLength(arguments) && arg < plan.routines.parameter_counts[target] && routine >= 0 {
                         let source: Int = arguments[arg];
                         if plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprParameter() &&
@@ -220,8 +220,8 @@ func DirectMirArrayStorageReleaseRequirements(ref plan: DirectMirScalarCfgGraphP
 }
 
 func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
-    let found: Bool = false;
-    let node: Int = 0;
+    var found: Bool = false;
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprArrayDropStorage() { found = true; }
         node = node + 1;
@@ -244,7 +244,7 @@ func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraph
                 let target: Int = plan.program.expressions.node_callable_rows[node];
                 if target < 0 || target >= ArrayLength(plan.routines.parameter_counts) { return false; }
                 let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(plan.program.expressions, node);
-                let arg: Int = 0;
+                var arg: Int = 0;
                 while arg < ArrayLength(arguments) {
                     if MapHas(required, ToString(plan.routines.parameter_starts[target] + arg)) {
                         if operation < 0 || routine < 0 || !DirectMirArrayStorageBindingReleaseReady(plan, arguments[arg], node, operation, routine, preserving_parameters) ||
@@ -263,7 +263,7 @@ func DirectMirArrayStorageCallArgumentExclusive(ref expressions: DirectMirScalar
     ref arguments: Array<Int>, ordinal: Int) -> Bool {
     let source: Int = arguments[ordinal];
     let kind: Int = expressions.node_kinds[source];
-    let other: Int = 0;
+    var other: Int = 0;
     while other < ArrayLength(arguments) {
         let candidate: Int = arguments[other];
         if other != ordinal && expressions.node_kinds[candidate] == kind &&

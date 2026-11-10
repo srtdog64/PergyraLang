@@ -5,6 +5,7 @@
 #include "type_checker_flow_resources.h"
 #include "type_checker_flow_universe.h"
 #include "type_checker_ownership_internal.h"
+#include "array_storage_element_lifetime_owner.h"
 
 static bool
 flow_snapshot_count_fits(size_t count)
@@ -78,10 +79,35 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
 {
     ResourceConsumeSnapshot snap = {0};
     snap.valid = true;
+    snap.context = ctx;
 
     while (scope != NULL) {
+        /* ResourceFlowUniverse is function-local.  Program declarations above
+         * an ordinary function do not participate in its branch state, while
+         * lambda bodies still resolve checked captures through their enclosing
+         * function.  An implicit-Main walk has no function boundary and keeps
+         * the existing top-level behavior. */
+        bool completes_function_frame =
+            scope->kind == SCOPE_FUNCTION && !scope->is_lambda;
         for (size_t i = 0; i < scope->symbol_count; i++) {
             Symbol *sym = scope->symbols[i];
+            if (type_is_constructed_named(sym->type, "Slice")) {
+                size_t count = snap.slice_permission_count;
+                if (count == SIZE_MAX / sizeof(SlicePermissionState)) {
+                    destroy_resource_snapshot(&snap);
+                    return snap;
+                }
+                SlicePermissionState *rows = realloc(snap.slice_permissions,
+                    (count + 1) * sizeof(*rows));
+                if (rows == NULL) {
+                    destroy_resource_snapshot(&snap);
+                    return snap;
+                }
+                snap.slice_permissions = rows;
+                rows[count] = (SlicePermissionState){sym, sym->decl_syntax_id,
+                    sym->slice_borrow_sources};
+                snap.slice_permission_count++;
+            }
             if (!flow_snapshot_tracks_symbol(sym, ctx))
                 continue;
 
@@ -201,14 +227,28 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
             snap.slot_states[snap.count] = sym->slot_info.state;
             snap.sem_states[snap.count] = sym->qubit_info.semantic_state;
             snap.pool_ids[snap.count] = sym->qubit_info.entangle_pool_id;
-            snap.array_storage_states[snap.count] = (ArrayStoragePathState) {
+            ArrayStoragePathState array_state = {
                 .exclusive = sym->has_exclusive_array_storage,
                 .escaped = sym->has_escaped_array_storage,
                 .pending = sym->has_pending_inout_preservation,
                 .result_pending = sym->has_pending_array_result
             };
+            if (!semantic_array_storage_capture_return_element_path_state(
+                    sym, ctx, &array_state.return_elements_present,
+                    &array_state.return_elements_owned,
+                    &array_state.return_elements_source,
+                    &array_state.return_elements_source_id)
+                || !semantic_array_storage_capture_member_element_path_state(
+                    sym, ctx, &array_state.member_elements)) {
+                destroy_resource_snapshot(&snap);
+                snap.valid = false;
+                return snap;
+            }
+            snap.array_storage_states[snap.count] = array_state;
             snap.count++;
         }
+        if (completes_function_frame)
+            break;
         scope = scope->parent;
     }
 

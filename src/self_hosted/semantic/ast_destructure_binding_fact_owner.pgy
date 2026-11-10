@@ -26,19 +26,19 @@ struct SemanticAstDestructureBindingRange {
 func SemanticAstDestructureBindingFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstDestructureBindingFacts {
-    let node_ids: Array<Int> = [];
-    let function_node_ids: Array<Int> = [];
-    let scope_node_ids: Array<Int> = [];
-    let binding_indices: Array<Int> = [];
-    let names: Array<String> = [];
-    let initializer_texts: Array<String> = [];
+    var node_ids: Array<Int> = [];
+    var function_node_ids: Array<Int> = [];
+    var scope_node_ids: Array<Int> = [];
+    var binding_indices: Array<Int> = [];
+    var names: Array<String> = [];
+    var initializer_texts: Array<String> = [];
     let scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    let ok: Bool = AstTreeArtifactReady(artifact) && scopes.ok;
-    let diagnostic_code: String = "";
-    let diagnostic_message: String = "";
-    let ordinal: Int = 0;
-    let node_id: Int = 0;
+    var ok: Bool = AstTreeArtifactReady(artifact) && scopes.ok;
+    var diagnostic_code: String = "";
+    var diagnostic_message: String = "";
+    var ordinal: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count && ok {
         if !TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindDestructureStmtTag()
@@ -50,7 +50,7 @@ func SemanticAstDestructureBindingFactsFromArtifact(
             AstDestructureGraphViewForOrdinal(
                 artifact.expression_graphs, ordinal
             );
-        let binding_rows: AstDestructurePatternBindingNameRows =
+        var binding_rows: AstDestructurePatternBindingNameRows =
             AstDestructurePatternBindingNames(
                 artifact.expression_graphs, view.pattern_root
             );
@@ -77,9 +77,9 @@ func SemanticAstDestructureBindingFactsFromArtifact(
                 "missing_fact", "pattern_scope_or_initializer"
             );
         } else {
-            let i: Int = 0;
+            var i: Int = 0;
             while i < ArrayLength(binding_rows.names) && ok {
-                let j: Int = 0;
+                var j: Int = 0;
                 while j < i {
                     if binding_rows.names[j] == binding_rows.names[i] {
                         ok = false;
@@ -125,12 +125,12 @@ func SemanticAstDestructureBindingRangeForNode(
     facts: SemanticAstDestructureBindingFacts,
     node_id: Int
 ) -> SemanticAstDestructureBindingRange {
-    let start: Int = 0;
+    var start: Int = 0;
     while start < SemanticAstDestructureBindingCount(facts) &&
         facts.node_ids[start] < node_id {
         start = start + 1;
     }
-    let end: Int = start;
+    var end: Int = start;
     while end < SemanticAstDestructureBindingCount(facts) &&
         facts.node_ids[end] == node_id {
         end = end + 1;

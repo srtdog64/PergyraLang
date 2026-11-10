@@ -5,13 +5,13 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 func DirectMirScalarProgramArrayIndexBooleanTruths(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Array<Int> {
-    let truths: Array<Int> = [];
-    let node: Int = 0;
+    var truths: Array<Int> = [];
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[node];
         let left: Int = expressions.node_lefts[node];
         let right: Int = expressions.node_rights[node];
-        let truth: Int = 0;
+        var truth: Int = 0;
         if kind == DirectMirScalarProgramExprBoolLiteral() {
             if expressions.node_literals[node] == "true" { truth = 1; }
             else if expressions.node_literals[node] == "false" { truth = -1; }
@@ -33,13 +33,13 @@ func DirectMirScalarProgramArrayIndexBooleanTruths(
 func DirectMirScalarProgramArrayIndexExecutableBlocks(
     ref plan: DirectMirScalarCfgGraphPlan, ref truths: Array<Int>
 ) -> Array<Bool> {
-    let reachable: Array<Bool> = [];
-    let block: Int = 0;
+    var reachable: Array<Bool> = [];
+    var block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         ArrayPush(reachable, false); block = block + 1;
     }
-    let pending: Array<Int> = [];
-    let routine: Int = 0;
+    var pending: Array<Int> = [];
+    var routine: Int = 0;
     // Every admitted routine can be a call target; use the same entry rows
     // as the C/LLVM routine emitters, not only the program's Main routine.
     while routine < ArrayLength(plan.routines.block_starts) {
@@ -50,7 +50,7 @@ func DirectMirScalarProgramArrayIndexExecutableBlocks(
         block = pending[ArrayLength(pending) - 1]; ArrayPop(pending);
         if reachable[block] { continue; }
         ArraySet(reachable, block, true);
-        let truth: Int = 0;
+        var truth: Int = 0;
         let expression: Int = plan.program.block_condition_expression_rows[block];
         if expression >= 0 { truth = truths[plan.program.expressions.graph_roots[expression]]; }
         let yes: Int = plan.block_succ_true[block];

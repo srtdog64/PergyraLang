@@ -15,23 +15,25 @@ func DirectMirRoutineInstanceGraphInput(
     if !index.valid || ToInt(index.source_syntax_id) != inventory.signatures[ordinal].source_syntax_id {
         Die("direct MIR routine instance input source identity is crossed");
     }
-    let local_types: Array<String> = [];
-    let row: Int = 0;
+    var local_types: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(index.source_local_types) {
         let resolved: Option<String> = DirectMirRoutineInstanceTypeName(inventory, ordinal, index.source_local_types[row]);
         if !IsSome(resolved) || (UnwrapOption(resolved) != index.source_local_types[row] &&
             !DirectMirScalarCfgScalarTypeSupported(UnwrapOption(resolved)) &&
-            DirectMirIdentityCellRow(inventory.identity_cells, UnwrapOption(resolved)) < 0) {
+            DirectMirIdentityCellRow(inventory.identity_cells, UnwrapOption(resolved)) < 0 &&
+            !(UnwrapOption(resolved) == CompilerAbiLayoutArrayIntTypeName() &&
+              DirectMirArrayIntCapturedAbiReady(inventory.array_int_abi))) {
             Die("direct MIR routine instance local type requires a concrete ABI receipt");
         }
         ArrayPush(local_types, UnwrapOption(resolved));
         row = row + 1;
     }
     let original: MirRoutineInstructionFactBundle = index.instruction_facts;
-    let abi_types: Array<String> = [];
+    var abi_types: Array<String> = [];
     row = 0;
     while row < ArrayLength(original.starts) {
-        let capture: MirRoutineInstructionScalarCapture = MirRoutineInstructionFactBundleAtGlobal(
+        var capture: MirRoutineInstructionScalarCapture = MirRoutineInstructionFactBundleAtGlobal(
             original, original.global_start + row);
         capture = DirectMirRoutineInstanceInstructionCapture(capture, json, json_extent, inventory, ordinal);
         if !capture.valid { Die("direct MIR routine instance instruction ABI receipt is invalid"); }
@@ -55,7 +57,10 @@ func DirectMirRoutineInstanceGraphInput(
         index.source_local_binding_syntax_ids,
         index.declared_source_local_count, index.source_syntax_id,
         index.iteration_type_facts, index.collection_ownership_facts,
-        index.match_binding_origins, index.function_param_flow_parameter_indices, index.function_param_flow_masks,
+        index.collection_cleanup_facts,
+        index.match_binding_origins, index.function_param_flow_parameter_indices,
+        index.function_param_flow_masks,
+        index.function_param_flow_array_preserved,
         index.resource_flow_symbol_declared_count, index.resource_flow_stable_indices, index.resource_flow_declaration_syntax_ids,
         index.resource_flow_symbol_kinds, index.resource_flow_parameter_flags, index.resource_flow_parameter_indices,
         index.resource_flow_names, index.loop_flow_summary_declared_count, index.loop_flow_summary_loop_ids,

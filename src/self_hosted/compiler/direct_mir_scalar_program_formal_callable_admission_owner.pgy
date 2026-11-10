@@ -1,0 +1,44 @@
+// Admits a call through one callable-valued formal parameter.
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_direct_call_fact_owner.pgy";
+
+func DirectMirScalarProgramFormalCallableAdmission(
+    ref sequence: MirExpressionGraphSequence,
+    ref chain: DirectMirScalarProgramBuiltinArgumentChain,
+    ref normalized_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
+    target_syntax_id: Int, callee: Int, callee_is_leaf: Bool
+) -> DirectMirScalarProgramDirectCallFact {
+    if sequence.arena.call_target_kinds[chain.call_node] !=
+            SemanticCallTargetDirect() || !callee_is_leaf {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    let parameter_ordinal: Int =
+        DirectMirScalarProgramCallableParameterOrdinalBySyntaxId(signature, target_syntax_id);
+    if parameter_ordinal < 0 ||
+        sequence.arena.identities.binding_ordinals[callee] != parameter_ordinal ||
+        sequence.arena.identities.binding_syntax_ids[callee] != target_syntax_id ||
+        sequence.arena.node_texts[callee] != signature.parameters.names[parameter_ordinal] ||
+        sequence.arena.call_target_names[chain.call_node] !=
+            signature.parameters.names[parameter_ordinal] {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    let shape: SemanticAstCallableTypeShape = SemanticAstCallableTypeShapeFromName(
+        signature.parameters.type_names[parameter_ordinal]);
+    let count: Int = ArrayLength(chain.argument_rows);
+    if !shape.ok || count > ArrayLength(shape.parameter_types) {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    var ordinal: Int = 0;
+    while ordinal < count {
+        if normalized_types[chain.argument_rows[ordinal]] != shape.parameter_types[ordinal] {
+            return DirectMirScalarProgramDirectCallFactInvalid(true);
+        }
+        ordinal = ordinal + 1;
+    }
+    return DirectMirScalarProgramDirectCallFact(
+        true, true, count == ArrayLength(shape.parameter_types), chain.argument_rows,
+        chain.call_node, -1, parameter_ordinal, shape.return_type);
+}

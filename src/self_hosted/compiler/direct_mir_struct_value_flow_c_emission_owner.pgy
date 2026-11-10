@@ -29,7 +29,7 @@ func DirectMirStructValueFlowEmitC(
         producer == "" || parameter == "" {
         Die("direct MIR struct value-flow C symbols are invalid");
     }
-    let output: String =
+    var output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
     output = Concat(output, first);

@@ -1,0 +1,41 @@
+extern "C" {
+    func PatternIterations() -> Int;
+    func PatternStart() -> Void;
+    func PatternFinish(value: Int) -> Void;
+}
+
+func Work(seed: Int) -> Int {
+    let values: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    let i: Int = 0;
+    while i < 64 {
+        values[i] = (seed + i * 7) % 1024;
+        i = i + 1;
+    }
+    let view: Slice<Int> = values.Slice(8, 48);
+    let turn: Int = 0;
+    let result: Int = 0;
+    while turn < 96 {
+        let j: Int = (turn * 13 + seed) % 48;
+        view[j] = (view[j] + turn + seed) % 1024;
+        result = result + view[j];
+        turn = turn + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    let count: Int = PatternIterations();
+    let i: Int = 0;
+    let checksum: Int = 0;
+    PatternStart();
+    while i < count {
+        checksum = (checksum + Work(i % 251)) % 1000003;
+        i = i + 1;
+    }
+    PatternFinish(checksum);
+}

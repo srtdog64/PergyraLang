@@ -477,7 +477,7 @@ test_effect_inference(void)
             "}\n"
             "func Main() -> Void {\n"
             "    let a: Vec2 = Vec2(0);\n"
-            "    let b: Vec2 = a;\n"
+            "    var b: Vec2 = a;\n"
             "    b.x = 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

@@ -41,8 +41,8 @@ func DirectMirScalarProgramCompilerArtifactRuntimeRequirementFromExpressions(
         return DirectMirScalarProgramCompilerArtifactRuntimeRequirement(
             false, 0, 0, 0, 0);
     }
-    let write_id: Int = 0; let begin_id: Int = 0;
-    let commit_id: Int = 0; let abort_id: Int = 0;
+    var write_id: Int = 0; var begin_id: Int = 0;
+    var commit_id: Int = 0; var abort_id: Int = 0;
     if write_required { write_id = write.runtime_call_abi_id; }
     if begin_required { begin_id = begin.runtime_call_abi_id; }
     if commit_required { commit_id = commit.runtime_call_abi_id; }

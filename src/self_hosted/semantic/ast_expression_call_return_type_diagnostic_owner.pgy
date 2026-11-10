@@ -3,11 +3,11 @@ import "ast_expression_call_return_type_owner.pgy";
 
 func SemanticExpressionGraphCallReturnTypesResolutionDiagnostic(
     ref graph: SemanticExpressionGraphFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
-    function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
     ref generic_specializations: SemanticAstGenericSpecializationFacts
 ) -> String {
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[node_id] ==
                 AstExpressionNodeCall() {
@@ -20,7 +20,7 @@ func SemanticExpressionGraphCallReturnTypesResolutionDiagnostic(
             if !projection.ok || projection.carried != IsSome(carried) ||
                 (projection.carried && UnwrapOption(carried) !=
                     projection.type_name) {
-                let detail: String = "node=";
+                var detail: String = "node=";
                 detail = Concat(detail, ToString(node_id));
                 detail = Concat(detail, Concat(" target=",
                     graph.arena.call_target_names[node_id]));
@@ -32,7 +32,7 @@ func SemanticExpressionGraphCallReturnTypesResolutionDiagnostic(
                     projection.type_name));
                 detail = Concat(detail, Concat(" actual_carried=",
                     ToString(IsSome(carried))));
-                let actual_type: String = "";
+                var actual_type: String = "";
                 if IsSome(carried) { actual_type = UnwrapOption(carried); }
                 return Concat(detail, Concat(" actual_type=", actual_type));
             }

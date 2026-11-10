@@ -13,7 +13,7 @@ func MirDeclarationZoneAuthorityAbilityType(
     let base: String = MirObjectStringFactAtBounds(
         json, json_extent, start, end, "base"
     );
-    let actual_bounds: Array<Int> = [0, 0];
+    var actual_bounds: Array<Int> = [0, 0];
     if base == "" || !MirObjectArrayBoundsAtBounds(
         json, json_extent, start, end, "actuals", actual_bounds
     ) {
@@ -22,10 +22,10 @@ func MirDeclarationZoneAuthorityAbilityType(
     let actuals: Array<String> = MirObjectArrayStringFactsAtBounds(
         json, json_extent, start, end, "actuals"
     );
-    let out: String = base;
+    var out: String = base;
     if ArrayLength(actuals) == 0 { return out; }
     out = Concat(out, "<");
-    let actual_i: Int = 0;
+    var actual_i: Int = 0;
     while actual_i < ArrayLength(actuals) {
         if actuals[actual_i] == "" {
             MirLowerFailClosed(
@@ -44,7 +44,7 @@ func EmitDeclZoneAuthorities(
     owner_name: String, nominal_kind: String,
     subject_slot_names: Array<String>
 ) -> String {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     let present: Bool = MirObjectArrayBoundsAtBounds(
         json, json_extent, decl_start, decl_end, "zone_authorities", bounds
     );
@@ -63,10 +63,10 @@ func EmitDeclZoneAuthorities(
             owner_name
         ));
     }
-    let out: String = "";
-    let seen_slots: Array<String> = [];
-    let authority_bounds: Array<Int> = [0, 0];
-    let cursor: Int = bounds[0] + 1;
+    var out: String = "";
+    var seen_slots: Array<String> = [];
+    var authority_bounds: Array<Int> = [0, 0];
+    var cursor: Int = bounds[0] + 1;
     while JsonArrayNextObjectBounds(
         json, json_extent, cursor, bounds[1], authority_bounds
     ) {
@@ -78,8 +78,8 @@ func EmitDeclZoneAuthorities(
                 "zone authority subject slot is missing: ", owner_name
             ));
         }
-        let slot_matches: Int = 0;
-        let declared_slot: Int = 0;
+        var slot_matches: Int = 0;
+        var declared_slot: Int = 0;
         while declared_slot < ArrayLength(subject_slot_names) {
             if subject_slot_names[declared_slot] == slot {
                 slot_matches = slot_matches + 1;
@@ -92,7 +92,7 @@ func EmitDeclZoneAuthorities(
                 Concat(owner_name, Concat(".", slot))
             ));
         }
-        let prior_slot: Int = 0;
+        var prior_slot: Int = 0;
         while prior_slot < ArrayLength(seen_slots) {
             if seen_slots[prior_slot] == slot {
                 MirLowerFailClosed(Concat(
@@ -106,7 +106,7 @@ func EmitDeclZoneAuthorities(
         out = Concat(out, Concat(
             "    Authority: ", Concat(slot, "\n")
         ));
-        let required_bounds: Array<Int> = [0, 0];
+        var required_bounds: Array<Int> = [0, 0];
         if !MirObjectArrayBoundsAtBounds(
             json, json_extent, authority_bounds[0], authority_bounds[1],
             "requires", required_bounds
@@ -116,16 +116,16 @@ func EmitDeclZoneAuthorities(
                 Concat(owner_name, Concat(".", slot))
             ));
         }
-        let required: Array<String> = [];
-        let ability_bounds: Array<Int> = [0, 0];
-        let ability_cursor: Int = required_bounds[0] + 1;
+        var required: Array<String> = [];
+        var ability_bounds: Array<Int> = [0, 0];
+        var ability_cursor: Int = required_bounds[0] + 1;
         while JsonArrayNextObjectBounds(
             json, json_extent, ability_cursor, required_bounds[1], ability_bounds
         ) {
             let ability_type: String = MirDeclarationZoneAuthorityAbilityType(
                 json, json_extent, ability_bounds[0], ability_bounds[1]
             );
-            let prior_ability: Int = 0;
+            var prior_ability: Int = 0;
             while prior_ability < ArrayLength(required) {
                 if required[prior_ability] == ability_type {
                     MirLowerFailClosed(Concat(

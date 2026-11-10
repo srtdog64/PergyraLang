@@ -45,13 +45,13 @@ func Main() -> Void {
     }
     Log(Concat("schema=", CompilerAbiLayoutRowSchema()));
     Log(Concat("count=", ToString(CompilerAbiLayoutConcreteRowCount())));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerAbiLayoutConcreteRowCount() {
         Log(CompilerAbiLayoutManifestRowAt(i));
         i = i + 1;
     }
     Log(Concat("target_policy_count=", ToString(CompilerAbiLayoutTargetPolicyCount())));
-    let target_policy_index: Int = 0;
+    var target_policy_index: Int = 0;
     while target_policy_index < CompilerAbiLayoutTargetPolicyCount() {
         Log(CompilerAbiLayoutTargetPolicyManifestRowAt(target_policy_index));
         target_policy_index = target_policy_index + 1;

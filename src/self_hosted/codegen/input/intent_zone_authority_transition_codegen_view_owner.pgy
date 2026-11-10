@@ -62,7 +62,7 @@ func CodegenIntentZoneAuthorityTransitionFactsReady(
         ArrayLength(facts.authority_slot_source_syntax_ids) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if facts.routine_canonical_syntax_ids[row] <= 0 ||
             facts.intent_names[row] == "" || facts.step_names[row] == "" ||
@@ -93,7 +93,7 @@ func CodegenIntentZoneAuthorityTransitionFactsReady(
             facts.authority_slot_source_syntax_ids[row] != "" {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if facts.routine_canonical_syntax_ids[prior] ==
                     facts.routine_canonical_syntax_ids[row] &&
@@ -118,7 +118,7 @@ func CodegenIntentZoneAuthorityTransitionRowInReadyFacts(
     if routine_canonical_syntax_id <= 0 || step_name == "" {
         return None;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.routine_canonical_syntax_ids) {
         if facts.routine_canonical_syntax_ids[row] ==
                 routine_canonical_syntax_id &&
@@ -209,10 +209,10 @@ func CodegenIntentZoneAuthorityBindingFactForReadyFactsStep(
     let field_c: String = CompilerSymbolCFieldName(
         facts.actor_slot_names[row]
     );
-    let zone_member: String = Concat(
+    var zone_member: String = Concat(
         "(*", Concat(zone_c, Concat(").", field_c))
     );
-    let zone_pointer: String = zone_c;
+    var zone_pointer: String = zone_c;
     if facts.zone_binding_kinds[row] == "value" {
         zone_member = Concat(zone_c, Concat(".", field_c));
         zone_pointer = Concat("&", zone_c);

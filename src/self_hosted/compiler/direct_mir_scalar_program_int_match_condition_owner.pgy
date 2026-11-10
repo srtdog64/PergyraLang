@@ -17,7 +17,7 @@ func DirectMirScalarProgramIntMatchConditionFromInstruction(
         !pattern.valid || pattern.pattern_count < 1 ||
         pattern.pattern_count != ArrayLength(pattern.patterns) || pattern.variant != "" ||
         pattern.binding_count != 0 || pattern.binding_type_count != 0 { return invalid; }
-    let alternative: Int = 0;
+    var alternative: Int = 0;
     while alternative < pattern.pattern_count {
         if !DirectMirScalarCfgCanonicalInt(pattern.patterns[alternative]) { return invalid; }
         alternative = alternative + 1;
@@ -28,20 +28,20 @@ func DirectMirScalarProgramIntMatchConditionFromInstruction(
     if count < 1 || root < start || root >= start + count ||
         root >= ArrayLength(facts.node_types) ||
         facts.node_types[root] != CompilerAbiLayoutIntTypeName() { return invalid; }
-    let counts: Array<Int> = facts.graph_counts;
-    let roots: Array<Int> = facts.graph_roots;
-    let kinds: Array<Int> = facts.node_kinds;
-    let types: Array<String> = facts.node_types;
-    let lefts: Array<Int> = facts.node_lefts;
-    let rights: Array<Int> = facts.node_rights;
-    let locals: Array<Int> = facts.node_local_rows;
-    let params: Array<Int> = facts.node_parameter_ordinals;
-    let members: Array<Int> = facts.node_member_ordinals;
-    let literals: Array<String> = facts.node_literals;
-    let callables: Array<Int> = facts.node_callable_rows;
-    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    var counts: Array<Int> = facts.graph_counts;
+    var roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var locals: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callables: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
     let first_added: Int = ArrayLength(kinds);
-    let condition: Int = -1;
+    var condition: Int = -1;
     alternative = 0;
     while alternative < pattern.pattern_count {
         let literal: Int = ArrayLength(kinds);

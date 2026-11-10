@@ -8,52 +8,40 @@ enum DriverSourceCRequest {
     SourceCManifestVerified(SelfHostMachineLayerDeclaration, Bool),
 }
 
-func DriverSourceCRequestEmitsJsonDiagnostic(
-    request: DriverSourceCRequest
-) -> Bool {
-    match request {
-        case SourceCDefault(emit_json): return emit_json;
-        case SourceCManifestVerified(declaration, emit_json): return emit_json;
-    }
+struct DriverSourceCRequestIdentity {
+    let mode: String;
+    let machine_manifest_id: String;
+    let machine_manifest_fingerprint: String;
+    let emit_json_diagnostic: Bool;
 }
 
-func DriverSourceCRequestMode(request: DriverSourceCRequest) -> String {
-    let suffix: String = "";
-    if DriverSourceCRequestEmitsJsonDiagnostic(request) {
-        suffix = "-json-diagnostic";
-    }
+func DriverSourceCRequestIdentitySnapshot(
+    ref request: DriverSourceCRequest
+) -> DriverSourceCRequestIdentity {
     match request {
-        case SourceCDefault(emit_json): return Concat("default", suffix);
+        case SourceCDefault(emit_json):
+            var mode: String = "default";
+            if emit_json { mode = "default-json-diagnostic"; }
+            return DriverSourceCRequestIdentity(mode, "", "", emit_json);
         case SourceCManifestVerified(declaration, emit_json):
-            return Concat("manifest-verified", suffix);
+            var mode: String = "manifest-verified";
+            if emit_json { mode = "manifest-verified-json-diagnostic"; }
+            return DriverSourceCRequestIdentity(
+                mode,
+                Concat("", declaration.manifest_id),
+                Concat("", declaration.manifest_fingerprint),
+                emit_json
+            );
     }
 }
 
 func DriverSourceCRequestDeclaration(
-    request: DriverSourceCRequest
+    own request: DriverSourceCRequest
 ) -> SelfHostMachineLayerDeclaration {
     match request {
         case SourceCDefault(emit_json):
             return SelfHostMachineLayerDeclarationEmpty();
         case SourceCManifestVerified(declaration, emit_json):
             return declaration;
-    }
-}
-
-func DriverSourceCRequestManifestId(request: DriverSourceCRequest) -> String {
-    match request {
-        case SourceCDefault(emit_json): return "";
-        case SourceCManifestVerified(declaration, emit_json):
-            return declaration.manifest_id;
-    }
-}
-
-func DriverSourceCRequestManifestFingerprint(
-    request: DriverSourceCRequest
-) -> String {
-    match request {
-        case SourceCDefault(emit_json): return "";
-        case SourceCManifestVerified(declaration, emit_json):
-            return declaration.manifest_fingerprint;
     }
 }

@@ -3,26 +3,37 @@ import "direct_mir_routine_signature_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy";
-import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_option_result_return_type_owner.pgy";
+import "direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy";
 func DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
 ) -> Bool {
     let option_return: Bool =
         DirectMirScalarProgramOptionResultReturnTypeReady(
-            signature.return_type);
+            signature.return_type) ||
+        DirectMirScalarProgramPayloadEnumOptionTypeReady(
+            referenced_enum, signature.return_type);
     let return_ready: Bool = signature.return_type == "Void" ||
-        DirectMirScalarCfgScalarTypeSupported(signature.return_type) || signature.return_type == CompilerAbiLayoutArrayStringTypeName() || DirectMirScalarProgramPayloadFreeEnumTypeReady(payload_free_enum, signature.return_type) || DirectMirScalarProgramPayloadEnumTypeReady(referenced_enum, signature.return_type) ||
+        DirectMirScalarCfgScalarTypeSupported(signature.return_type) || DirectMirScalarProgramHashMapTypeReady(signature.return_type) || signature.return_type == CompilerAbiLayoutArrayStringTypeName() || signature.return_type == CompilerAbiLayoutArrayBoolTypeName() || DirectMirScalarProgramPayloadFreeEnumTypeReady(payload_free_enum, signature.return_type) || DirectMirScalarProgramPayloadEnumTypeReady(referenced_enum, signature.return_type) ||
+        DirectMirScalarProgramPayloadEnumOptionTypeReady(
+            referenced_enum, signature.return_type) ||
+        DirectMirScalarProgramPayloadFreeEnumResultTypeReady(
+            signature.return_type, logical_record, referenced_enum) ||
         DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.return_type) ||
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(
             logical_record, signature.return_type) ||
         (signature.param_count > 0 && option_return);
     let plan: DirectMirScalarProgramCallableParameterRolePlan = DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(
-            signature, logical_record, payload_free_enum, referenced_enum);
+            signature, logical_record, payload_free_enum, referenced_enum,
+            opaque_readonly_zones);
     return return_ready && DirectMirScalarProgramCallableParameterRolePlanReady(plan, signature.param_count);
 }
 func DirectMirScalarProgramComposableCallableSignatureReady(
@@ -32,21 +43,36 @@ func DirectMirScalarProgramComposableCallableSignatureReady(
 ) -> Bool {
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    let opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact =
+            DirectMirScalarProgramOpaqueReadonlyZoneFactEmpty();
     return DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
-        signature, logical_record, payload_free_enum, referenced_enum);
+        signature, logical_record, payload_free_enum, referenced_enum,
+        opaque_readonly_zones);
 }
 func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
 ) -> Bool {
-    // A callable signature is not an Intent placement/cleanup execution plan.
-    if !DirectMirRoutineSignatureFactReady(signature) || signature.kind == "intent" { return false; }
+    if !DirectMirRoutineSignatureFactReady(signature) { return false; }
+    if signature.kind == "intent" {
+        // MIR already owns the synthesized participant/value binder. This
+        // admits only its signature; the CFG cleanup protocol remains a
+        // separate mandatory consumer before an artifact can be published.
+        return signature.return_type == CompilerAbiLayoutBoolTypeName() &&
+            DirectMirRoutineIntentParameterSetReady(signature.parameters) &&
+            DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
+                signature, logical_record, payload_free_enum,
+                referenced_enum, opaque_readonly_zones);
+    }
     if signature.param_count == 0 {
         return DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
                 signature, logical_record, payload_free_enum,
-                referenced_enum) ||
+                referenced_enum, opaque_readonly_zones) ||
             DirectMirScalarProgramZeroParameterReturnTypeSupportedWithReferencedEnum(
                 signature.return_type, logical_record, referenced_enum) ||
             DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(
@@ -59,12 +85,16 @@ func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
     let long_return: Bool = signature.return_type == CompilerAbiLayoutLongTypeName(); let array_int_return: Bool = signature.return_type == CompilerAbiLayoutArrayIntTypeName();
     let logical_record_return: Bool = DirectMirScalarProgramLogicalRecordTypeReady(logical_record, signature.return_type);
     let logical_record_option_return: Bool = DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, signature.return_type);
+    let payload_enum_option_return: Bool =
+        DirectMirScalarProgramPayloadEnumOptionTypeReady(
+            referenced_enum, signature.return_type);
     if logical_record_return && signature.param_count == 1 &&
         signature.parameters.type_names[0] == signature.return_type &&
         signature.parameters.carriages[0] == "value-result" { return false; }
     let composable_callable: Bool =
         DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(
-            signature, logical_record, payload_free_enum, referenced_enum);
+            signature, logical_record, payload_free_enum, referenced_enum,
+            opaque_readonly_zones);
     let logical_record_value_result: Bool = DirectMirScalarProgramLogicalRecordValueResultSignatureReady(
             signature, logical_record);
     let logical_record_array_value_result: Bool =
@@ -81,16 +111,17 @@ func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
             signature);
     let owned_array_string_return: Bool =
         DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(signature);
-    let shape_ready: Bool = int_or_option || option_string || option_bool ||
+    var shape_ready: Bool = int_or_option || option_string || option_bool ||
         long_return || array_int_return ||
         logical_record_return || logical_record_option_return ||
+        payload_enum_option_return ||
         composable_callable || logical_record_value_result ||
         logical_record_array_value_result ||
         logical_record_array_value_parameter ||
         logical_record_mixed_collection_value_result ||
         DirectMirScalarProgramBoolMixedCollectionValueResultSignatureReady(signature) ||
         DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady(signature, logical_record) ||
-        DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultSignatureReady(signature) || DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady(signature, logical_record) || DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady(signature, logical_record) || DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) ||
+        DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultSignatureReady(signature) || DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady(signature, logical_record) || DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) ||
         array_string_value_result || owned_array_string_return;
     if signature.param_count == 1 {
         shape_ready = shape_ready ||
@@ -102,7 +133,7 @@ func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
                 CompilerAbiLayoutArrayStringTypeName()));
     }
     if !shape_ready { return false; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let int_or_option_parameter: Bool =
             signature.parameters.type_names[ordinal] ==
@@ -114,7 +145,8 @@ func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
              signature.parameters.carriages[ordinal] == "value");
         if !DirectMirScalarProgramCallableParameterSupportedWithReferencedEnum(
                 signature, ordinal, logical_record,
-                payload_free_enum, referenced_enum) ||
+                payload_free_enum, referenced_enum,
+                opaque_readonly_zones) ||
             (int_or_option && !composable_callable &&
              !int_or_option_parameter &&
              !array_string_value_result) ||
@@ -124,7 +156,8 @@ func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
             (logical_record_return && !
              DirectMirScalarProgramCallableParameterSupportedWithReferencedEnum(
                 signature, ordinal, logical_record,
-                payload_free_enum, referenced_enum)) ||
+                payload_free_enum, referenced_enum,
+                opaque_readonly_zones)) ||
             (logical_record_return && !composable_callable &&
              signature.parameters.type_names[ordinal] == CompilerAbiLayoutArrayStringTypeName() &&
              signature.parameters.carriages[ordinal] == "value-result" &&
@@ -143,9 +176,12 @@ func DirectMirScalarProgramCallableSignatureSupportedWithFacts(
 ) -> Bool {
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    let opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact =
+            DirectMirScalarProgramOpaqueReadonlyZoneFactEmpty();
     return DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
         signature, logical_record, payload_free_enum,
-        referenced_enum);
+        referenced_enum, opaque_readonly_zones);
 }
 func DirectMirScalarProgramCallableSignatureSupported(
     ref signature: DirectMirRoutineSignatureFact

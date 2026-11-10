@@ -21,23 +21,23 @@ func BuildMirIterationTypeFacts(
     routine_end: Int,
     routine_syntax_id: String
 ) -> MirIterationTypeFacts {
-    let function_ids: Array<Int> = [];
-    let iteration_ids: Array<Int> = [];
-    let binding_types: Array<String> = [];
-    let iterable_types: Array<String> = [];
-    let collection_hoists: Array<Int> = [];
-    let valid: Bool = StringLength(routine_syntax_id) > 0;
+    var function_ids: Array<Int> = [];
+    var iteration_ids: Array<Int> = [];
+    var binding_types: Array<String> = [];
+    var iterable_types: Array<String> = [];
+    var collection_hoists: Array<Int> = [];
+    var valid: Bool = StringLength(routine_syntax_id) > 0;
     let declared_count: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end, "iteration_type_fact_count"
     );
-    let rows: Array<Int> = [0, 0];
+    var rows: Array<Int> = [0, 0];
     if StringLength(declared_count) == 0 || !MirObjectArrayBoundsAtBounds(
         json, json_extent, routine_start, routine_end, "iteration_type_facts", rows
     ) {
         valid = false;
     } else {
-        let cursor: Int = rows[0] + 1;
-        let row: Array<Int> = [0, 0];
+        var cursor: Int = rows[0] + 1;
+        var row: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(json, json_extent, cursor, rows[1], row) {
             let function_id: String = MirObjectNumberFactAtBounds(
                 json, json_extent, row[0], row[1], "function_syntax_id"
@@ -51,7 +51,7 @@ func BuildMirIterationTypeFacts(
             let iterable_type: String = MirObjectStringFactAtBounds(
                 json, json_extent, row[0], row[1], "iterable_type"
             );
-            let hoisted: Int = 0 - 1;
+            var hoisted: Int = 0 - 1;
             if JsonObjectBoolFieldEqualsWithin(
                 json, json_extent, row[0], row[1], "collection_hoisted", true
             ) {
@@ -68,7 +68,7 @@ func BuildMirIterationTypeFacts(
                 valid = false;
             } else {
                 let numeric_iteration_id: Int = ToInt(iteration_id);
-                let prior: Int = 0;
+                var prior: Int = 0;
                 while prior < ArrayLength(iteration_ids) {
                     if iteration_ids[prior] == numeric_iteration_id {
                         valid = false;
@@ -113,7 +113,7 @@ func MirIterationTypeFactsAdmitForEach(
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(iterable_type);
     if shape.actual_type_names[0] != binding_type { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.iteration_syntax_ids) {
         if facts.binding_types[i] == binding_type &&
             facts.iterable_types[i] == iterable_type {

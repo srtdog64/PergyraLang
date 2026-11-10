@@ -9,7 +9,7 @@ func DirectMirScalarCfgArrayIntTransformRouteFact(
     let kinds: Int = ArrayLength(graph.arena.topology.node_kinds);
     let targets: Int = ArrayLength(graph.arena.call_target_names);
     if kinds != targets { return true; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < kinds {
         if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() ||
             graph.arena.call_target_names[node] != "" { return true; }

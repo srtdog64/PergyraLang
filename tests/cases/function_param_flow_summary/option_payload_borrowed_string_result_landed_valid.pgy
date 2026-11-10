@@ -1,0 +1,26 @@
+struct Facts {
+    names: Array<String>;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> Option<String> {
+    if index < 0 || index >= ArrayLength(facts.names) {
+        return None;
+    }
+    return Some(facts.names[index]);
+}
+
+func FirstName(ref facts: Facts) -> String {
+    let candidate: Option<String> = NameAt(facts, 0);
+    if IsSome(candidate) {
+        return UnwrapOption(candidate);
+    }
+    return "";
+}
+
+func Main() -> Void {
+    let facts: Facts = Facts([Concat("borrowed", " value")]);
+    var rows: Array<String> = [];
+    ArrayPush(rows, FirstName(facts));
+    ArrayDropOwnedStrings(rows);
+    Log(facts.names[0]);
+}

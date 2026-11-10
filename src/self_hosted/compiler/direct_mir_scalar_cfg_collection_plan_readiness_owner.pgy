@@ -8,8 +8,8 @@ import "direct_mir_scalar_cfg_array_int_program_absence_owner.pgy";
 func DirectMirScalarCfgCollectionPlanReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let observed: Int = 0;
-    let graph_operation: Int = 0;
+    var observed: Int = 0;
+    var graph_operation: Int = 0;
     while graph_operation < ArrayLength(plan.operation_kinds) {
         if plan.operation_kinds[graph_operation] ==
                 DirectMirScalarCfgOpLogArrayIndexSumInt() ||
@@ -33,9 +33,9 @@ func DirectMirScalarCfgCollectionPlanReady(
         !DirectMirScalarCfgCollectionPopProgramAbsent(plan.collection_pops) ||
         ArrayLength(plan.local_names) != 0 ||
         ArrayLength(plan.value_names) != 0 { return false; }
-    let expected_graph_operations: Int =
+    var expected_graph_operations: Int =
         ArrayLength(plan.collections.observations.kinds);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.collections.operations.kinds) {
         if plan.collections.operations.kinds[row] ==
             DirectMirScalarCfgCollectionOpSet() {
@@ -46,8 +46,8 @@ func DirectMirScalarCfgCollectionPlanReady(
     if expected_graph_operations != ArrayLength(plan.operation_kinds) {
         return false;
     }
-    let graph_claims: Array<Int> = [];
-    let graph_row: Int = 0;
+    var graph_claims: Array<Int> = [];
+    var graph_row: Int = 0;
     while graph_row < ArrayLength(plan.operation_kinds) {
         ArrayPush(graph_claims, 0);
         graph_row = graph_row + 1;
@@ -60,7 +60,7 @@ func DirectMirScalarCfgCollectionPlanReady(
         if kind == DirectMirScalarCfgCollectionOpSet() {
             let result: Int =
                 plan.collections.operations.result_value_rows[row];
-            let expected: Int = DirectMirScalarCfgOpArraySetInt();
+            var expected: Int = DirectMirScalarCfgOpArraySetInt();
             if plan.collections.values.element_types[result] == "String" {
                 expected = DirectMirScalarCfgOpArraySetString();
             }
@@ -75,7 +75,7 @@ func DirectMirScalarCfgCollectionPlanReady(
     while row < ArrayLength(plan.collections.observations.kinds) {
         let operation: Int =
             plan.collections.observations.graph_operation_rows[row];
-        let expected: Int = DirectMirScalarCfgOpLogArrayIndexSumInt();
+        var expected: Int = DirectMirScalarCfgOpLogArrayIndexSumInt();
         if plan.collections.observations.kinds[row] ==
                 DirectMirScalarCfgCollectionObservationConcatString() {
             expected = DirectMirScalarCfgOpLogArrayIndexConcatString();

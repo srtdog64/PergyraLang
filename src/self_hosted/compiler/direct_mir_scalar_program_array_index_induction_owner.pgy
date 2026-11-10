@@ -10,8 +10,8 @@ func DirectMirScalarProgramArrayIndexHasNegativeInduction(
     // An exposed or length-changing collection has no immutable extent proof;
     // calls can also change the index through a composed inout boundary.
     if access_operation < 0 || known_extent < 0 { return false; }
-    let phi: Int = -1; let definitions: Int = 0;
-    let operation: Int = 0;
+    var phi: Int = -1; var definitions: Int = 0;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         let result: Int = plan.operation_result_values[operation];
         if result >= 0 && plan.value_local_rows[result] == index_local {
@@ -27,22 +27,22 @@ func DirectMirScalarProgramArrayIndexHasNegativeInduction(
     let phi_value: Int = plan.operation_result_values[phi];
     let guard: Int = plan.value_definition_blocks[phi_value];
     if guard < 0 || plan.block_succ_true[guard] != access_block { return false; }
-    let expression: Int = plan.program.block_condition_expression_rows[guard];
+    var expression: Int = plan.program.block_condition_expression_rows[guard];
     if expression < 0 { return false; }
-    let root: Int = plan.program.expressions.graph_roots[expression];
+    var root: Int = plan.program.expressions.graph_roots[expression];
     if plan.program.expressions.node_kinds[root] != DirectMirScalarProgramExprLessInt() { return false; }
-    let left: Int = plan.program.expressions.node_lefts[root];
-    let right: Int = plan.program.expressions.node_rights[root];
+    var left: Int = plan.program.expressions.node_lefts[root];
+    var right: Int = plan.program.expressions.node_rights[root];
     if left < 0 || right < 0 || plan.program.expressions.node_kinds[left] != DirectMirScalarProgramExprLocal() ||
             plan.program.expressions.node_local_rows[left] != index_local ||
             plan.program.expressions.node_kinds[right] != DirectMirScalarProgramExprArrayStringLength() { return false; }
     let receiver: Int = plan.program.expressions.node_lefts[right];
     if receiver < 0 || plan.program.expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() ||
             plan.program.expressions.node_local_rows[receiver] != collection_local { return false; }
-    let negative_init: Bool = false; let zero_init: Bool = false;
-    let negative_step: Bool = false;
-    let init_count: Int = 0; let step_count: Int = 0;
-    let incoming: Int = 0;
+    var negative_init: Bool = false; var zero_init: Bool = false;
+    var negative_step: Bool = false;
+    var init_count: Int = 0; var step_count: Int = 0;
+    var incoming: Int = 0;
     while incoming < plan.operation_phi_counts[phi] {
         let incoming_row: Int = plan.operation_phi_starts[phi] + incoming;
         let value: Int = plan.phi_incoming_values[incoming_row];

@@ -83,7 +83,7 @@ func SemanticExpressionGraphArrayStorageMutationFact(
     if callee != "ArrayPush" && callee != "ArrayPop" && callee != "ArrayDrop" {
         return SemanticExpressionGraphCollectionMutationOk();
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
         // Admission already owns row shape; unrelated declarations cannot
         // borrow this receiver, so exclude them before copying type storage.
@@ -92,7 +92,7 @@ func SemanticExpressionGraphArrayStorageMutationFact(
             row = row + 1;
             continue;
         }
-        let local_type: String = "";
+        var local_type: String = "";
         if locals.has_declared_types[row] != 0 {
             local_type = Concat("", locals.declared_type_names[row]);
         } else {
@@ -107,7 +107,7 @@ func SemanticExpressionGraphArrayStorageMutationFact(
                 let call: SemanticCallSpineView =
                     SemanticCallSpineViewFromGraph(
                         surfaces.expression_graph, UnwrapOption(root));
-                let target: Option<String> = None;
+                var target: Option<String> = None;
                 if call.ok {
                     target = SemanticExpressionGraphCallTargetName(
                         surfaces.expression_graph, call.call_node);
@@ -138,9 +138,12 @@ func SemanticExpressionGraphArrayStorageMutationFact(
 }
 
 // Statement intrinsics and call expressions consume the same receiver path.
-// A member projection cannot turn a readonly root into mutable storage. A
-// plain parameter is such a root: its fields share the caller's descriptors,
-// so a field mutation would be caller-visible without an inout boundary.
+// A member projection cannot turn a ref root into mutable storage. A default
+// aggregate is different: mutating one of its collection fields makes the
+// formal a moving value, and the later formal-flow owner decides whether the
+// caller moves, rebinds, or receives an independent Clone. Keep the direct
+// collection-parameter refusal below; only aggregate member storage reaches
+// that move owner.
 func SemanticExpressionGraphCollectionReceiverMutationFact(
     callee: String, ref graph: SemanticExpressionGraphFacts,
     receiver_id: Int, names: Slice<String>, types: Slice<String>,
@@ -153,7 +156,7 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
             "ast_artifact_invalid", SemanticError1(
                 "ast_artifact_invalid", "owner", "collection_environment"));
     }
-    let node: Int = receiver_id;
+    var node: Int = receiver_id;
     while node >= 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
         let text: Option<String> = SemanticExpressionGraphNodeText(graph, node);
@@ -168,14 +171,17 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
             IsIdentText(UnwrapOption(text)) {
             let receiver: String = UnwrapOption(text);
             let root_mode: String = EnvValueSliceMode(names, modes, enum_values, receiver);
-            if node != receiver_id &&
-                (root_mode == "ref_param" || root_mode == "default_param") {
+            if node != receiver_id && root_mode == "ref_param" {
                 let mode_name: String = "ref";
-                if root_mode == "default_param" { mode_name = "default"; }
                 return SemanticExpressionGraphCollectionMutationError(
                     "value_param_collection_mutation", SemanticError3(
                         "value_param_collection_mutation", "func", callee,
                         "param", receiver, "mode", mode_name));
+            }
+            if node != receiver_id && root_mode == "default_param" {
+                // The aggregate, not its field descriptor, is the moving
+                // value. Formal-flow facts own the later move/Clone decision.
+                return SemanticExpressionGraphCollectionMutationOk();
             }
             let message: String = SemanticCollectionMutationError(
                 callee, receiver, names, types, modes, internal_caller_ready, enum_values);

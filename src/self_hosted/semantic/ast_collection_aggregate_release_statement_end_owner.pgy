@@ -1,0 +1,53 @@
+// Aggregate release statement termination.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_aggregate_value_lineage_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_release_uniqueness_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+
+func SemanticAstCollectionAggregateReleaseStatementEndsRoutine(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, syntax_id: Int
+) -> Bool {
+    if SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) {
+        return true;
+    }
+    let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, syntax_id);
+    if !IsSome(parent) { return false; }
+    var index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(parent), index);
+    while IsSome(child) && UnwrapOption(child) != syntax_id {
+        index = index + 1;
+        child = TypedAstArenaChildAt(artifact.arena, UnwrapOption(parent), index);
+    }
+    let next: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(parent), index + 1);
+    if !IsSome(child) || !IsSome(next) { return false; }
+    if SemanticAstCollectionEffectSiteTerminatesFlow(artifact, UnwrapOption(next)) { return true; }
+    var lane: Int = 0;
+    while lane < 3 {
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, UnwrapOption(next), lane);
+        if IsSome(root) {
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                surfaces.expression_graph, UnwrapOption(root));
+            if call.ok {
+                let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+                    surfaces.expression_graph, call.call_node);
+                if IsSome(target) {
+                    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                        signatures, UnwrapOption(target));
+                    if IsSome(row) && signatures.return_types[UnwrapOption(row)] == "Never" {
+                        return true;
+                    }
+                }
+            }
+        }
+        lane = lane + 1;
+    }
+    return false;
+}
+

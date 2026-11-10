@@ -1,0 +1,34 @@
+// Program-only phi extension for referenced payload-enum value families.
+
+import "direct_mir_scalar_cfg_string_expression_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
+
+func DirectMirScalarCfgProgramPhiValueTypeReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> Bool {
+    return DirectMirScalarCfgPhiValueTypeReady(
+            logical_record, payload_free_enum, type_name) ||
+        DirectMirScalarProgramPayloadEnumOptionTypeReady(
+            referenced_enum, type_name) ||
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, type_name);
+}
+
+func DirectMirScalarCfgProgramPhiOperationKind(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> Int {
+    let base: Int = DirectMirScalarCfgPhiOperationKind(
+        logical_record, payload_free_enum, type_name);
+    if base != 0 { return base; }
+    if DirectMirScalarCfgProgramPhiValueTypeReady(
+            logical_record, payload_free_enum, referenced_enum, type_name) {
+        return DirectMirScalarCfgOpPhiValue();
+    }
+    return 0;
+}

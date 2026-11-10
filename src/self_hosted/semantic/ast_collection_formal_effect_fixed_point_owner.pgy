@@ -18,7 +18,7 @@ func SemanticAstCollectionFormalEffectFixedPoint(
         ArrayLength(sources) != ArrayLength(targets) {
         status.ok = false; return;
     }
-    let edge: Int = 0;
+    var edge: Int = 0;
     while edge < ArrayLength(sources) {
         if sources[edge] < 0 || sources[edge] >= count ||
             targets[edge] < 0 || targets[edge] >= count {
@@ -26,9 +26,9 @@ func SemanticAstCollectionFormalEffectFixedPoint(
         }
         edge = edge + 1;
     }
-    let incoming_heads: Array<Int> = [];
-    let next_edges: Array<Int> = [];
-    let row: Int = 0;
+    var incoming_heads: Array<Int> = [];
+    var next_edges: Array<Int> = [];
+    var row: Int = 0;
     while row < count { ArrayPush(incoming_heads, -1); row = row + 1; }
     edge = 0;
     while edge < ArrayLength(sources) {

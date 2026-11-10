@@ -121,21 +121,21 @@ func SelfDirIntentStepProvenanceAppend(
     inout facts: SelfDirIntentStepProvenanceFacts,
     row: SelfDirIntentStepProvenanceRow
 ) -> Void {
-    let who_from_intent: Array<Bool> = facts.who_from_intent;
-    let who_from_action: Array<Bool> = facts.who_from_action;
-    let who_from_on_receiver: Array<Bool> = facts.who_from_on_receiver;
-    let who_from_single_participant: Array<Bool> =
+    var who_from_intent: Array<Bool> = facts.who_from_intent;
+    var who_from_action: Array<Bool> = facts.who_from_action;
+    var who_from_on_receiver: Array<Bool> = facts.who_from_on_receiver;
+    var who_from_single_participant: Array<Bool> =
         facts.who_from_single_participant;
-    let where_from_intent: Array<Bool> = facts.where_from_intent;
-    let where_from_action: Array<Bool> = facts.where_from_action;
-    let where_from_using: Array<Bool> = facts.where_from_using;
-    let where_from_transfer: Array<Bool> = facts.where_from_transfer;
-    let using_from_transfer: Array<Bool> = facts.using_from_transfer;
-    let using_from_where: Array<Bool> = facts.using_from_where;
-    let requires_from_action: Array<Bool> = facts.requires_from_action;
-    let causes_from_action: Array<Bool> = facts.causes_from_action;
-    let authorized_from_zone: Array<Bool> = facts.authorized_from_zone;
-    let authorized_from_action: Array<Bool> = facts.authorized_from_action;
+    var where_from_intent: Array<Bool> = facts.where_from_intent;
+    var where_from_action: Array<Bool> = facts.where_from_action;
+    var where_from_using: Array<Bool> = facts.where_from_using;
+    var where_from_transfer: Array<Bool> = facts.where_from_transfer;
+    var using_from_transfer: Array<Bool> = facts.using_from_transfer;
+    var using_from_where: Array<Bool> = facts.using_from_where;
+    var requires_from_action: Array<Bool> = facts.requires_from_action;
+    var causes_from_action: Array<Bool> = facts.causes_from_action;
+    var authorized_from_zone: Array<Bool> = facts.authorized_from_zone;
+    var authorized_from_action: Array<Bool> = facts.authorized_from_action;
     ArrayPush(who_from_intent, row.who_from_intent);
     ArrayPush(who_from_action, row.who_from_action);
     ArrayPush(who_from_on_receiver, row.who_from_on_receiver);

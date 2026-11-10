@@ -28,7 +28,7 @@ func DirectMirScalarCfgArrayIntPopLlvmObjectDeclaration(
     let prefix: String = Concat(
         "%pgy.foreach.collection.", ToString(foreach_row)
     );
-    let output: String = Concat("  ", Concat(
+    var output: String = Concat("  ", Concat(
         prefix, Concat(".object = alloca ", abi.llvm_aggregate_type)
     ));
     output = Concat(output, ", align 8\n  store ");

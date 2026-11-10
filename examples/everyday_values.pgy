@@ -1,0 +1,49 @@
+// Start with func for computation and struct for ordinary data.
+struct Point
+{
+    x: Int;
+    y: Int;
+}
+
+enum DivideError
+{
+    DivideByZero,
+}
+
+func Divide(a: Int, b: Int) -> Result<Int, DivideError>
+{
+    if b == 0
+    {
+        return Err(DivideByZero);
+    }
+    return Ok(a / b);
+}
+
+func Grade(total: Int) -> String
+{
+    if total >= 90
+    {
+        return "A";
+    }
+    return "B";
+}
+
+func Main() -> Void
+{
+    let point = Point(2, 3);
+    var total: Int = 94;
+    total = total + 1;
+    Log(f"grade={Grade(total)} point={point.x},{point.y}");
+
+    match Divide(total, 0)
+    {
+        case Ok(value):
+            Log(f"quotient={value}");
+        case Err(problem):
+            match problem
+            {
+                case DivideByZero:
+                    Log("division by zero");
+            }
+    }
+}

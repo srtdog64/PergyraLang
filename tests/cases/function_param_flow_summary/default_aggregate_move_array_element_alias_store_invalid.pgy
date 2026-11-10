@@ -6,7 +6,7 @@ struct Block {
 }
 
 func Grow(blocks: Array<Block>) -> Int {
-    let first: Block = blocks[0];
+    var first: Block = blocks[0];
     ArrayPush(first.ids, 7);
     return ArrayLength(first.ids);
 }

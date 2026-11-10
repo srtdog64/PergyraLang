@@ -27,7 +27,7 @@ func Keep(request: Request) -> Decl {
 
 func Main() -> Int {
     let request: Request = Verified(Decl(["a"]), true);
-    let decl: Decl = Keep(request);
+    var decl: Decl = Keep(request);
     ArrayPush(decl.names, "b");
     let again: Decl = Keep(request);
     Print(again.names[0]);

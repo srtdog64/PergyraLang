@@ -20,7 +20,7 @@ func DirectMirArrayArgumentProgramIdentityDigest(
     ref identity: DirectMirArrayArgumentProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(127L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(127L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.array_callee.digest);
     hash = DirectMirCfgHashInt(hash, identity.nested_callee.digest);
     hash = DirectMirCfgHashInt(hash, identity.main_graph.digest);
@@ -134,7 +134,7 @@ func DirectMirArrayArgumentProgramEnvelopeReady(
         !DirectMirArrayArgumentProgramCandidate(admitted) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if admitted.routines.kinds[row] != "function" ||
             admitted.routines.owners[row] != "" ||
@@ -158,8 +158,8 @@ func DirectMirArrayArgumentUniqueRoutineRow(
     ref routines: MirProgramRoutineIndex,
     name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < MirProgramRoutineIndexCount(routines) {
         if routines.names[row] == name {
             if found >= 0 {

@@ -6,8 +6,8 @@
 import "../codegen/text/text_owner.pgy";
 
 func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
-    let payload: String = "";
-    let i: Int = 0;
+    var payload: String = "";
+    var i: Int = 0;
     let n: Int = StringLength(line_format);
     while i < n {
         let code: Int = CharCode(line_format, n, i);
@@ -29,8 +29,8 @@ func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
 }
 
 func DirectMirScalarLlvmFormatByteCount(line_format: String) -> Int {
-    let count: Int = 1;
-    let i: Int = 0;
+    var count: Int = 1;
+    var i: Int = 0;
     let n: Int = StringLength(line_format);
     while i < n {
         if CharCode(line_format, n, i) == 92 {

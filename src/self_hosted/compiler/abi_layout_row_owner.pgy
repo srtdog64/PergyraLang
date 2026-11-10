@@ -554,7 +554,7 @@ func CompilerAbiLayoutRowMatches(index: Int, type_name: String) -> Bool {
 }
 
 func CompilerAbiLayoutRowIndex(type_name: String) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerAbiLayoutConcreteRowCount() {
         if CompilerAbiLayoutRowMatches(i, type_name) {
             return Some(i);

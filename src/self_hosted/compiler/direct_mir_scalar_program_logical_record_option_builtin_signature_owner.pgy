@@ -7,7 +7,7 @@ func DirectMirScalarProgramLogicalRecordOptionBuiltinType(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     name: String, actual_types: Array<String>, expected_type: String
 ) -> String {
-    let option_type: String = expected_type;
+    var option_type: String = expected_type;
     if name == "Some" {
         if ArrayLength(actual_types) < 1 ||
             !DirectMirScalarProgramLogicalRecordTypeReady(

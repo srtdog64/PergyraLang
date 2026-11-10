@@ -9,8 +9,8 @@ func SemanticExpressionSurfaceIdentifierByte(c: Int) -> Bool {
 func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
     let n: Int = StringLength(text);
     let m: Int = StringLength(token);
-    let i: Int = 0;
-    let in_string: Bool = false;
+    var i: Int = 0;
+    var in_string: Bool = false;
     while i < n {
         let c: Int = SourceByteAt(text, n, n, i);
         if in_string {
@@ -40,8 +40,8 @@ func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
 func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
     let n: Int = StringLength(text);
     let m: Int = StringLength(callee);
-    let i: Int = 0;
-    let in_string: Bool = false;
+    var i: Int = 0;
+    var in_string: Bool = false;
     while i < n {
         let c: Int = SourceByteAt(text, n, n, i);
         if in_string {
@@ -68,7 +68,7 @@ func SemanticAstExpressionSurfaceTokenPresent(
     facts: SemanticAstExpressionSurfaceFacts,
     token: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if (facts.has_atoms[i] &&
                 SemanticExpressionSurfaceHasToken(facts.atoms[i], token)) ||
@@ -89,7 +89,7 @@ func SemanticAstExpressionSurfaceCallPresent(
     facts: SemanticAstExpressionSurfaceFacts,
     callee: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if (facts.has_atoms[i] &&
                 SemanticExpressionSurfaceCalls(facts.atoms[i], callee)) ||

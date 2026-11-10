@@ -11,10 +11,10 @@ struct SelfMirLoopReachabilityFact {
 
 func SelfMirLoopReachabilityForBlock(arena: AstArena, block_node_id: Int
 ) -> SelfMirLoopReachabilityFact {
-    let reaches_backedge: Bool = false;
-    let falls_through: Bool = true;
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(arena, block_node_id, child_index);
+    var reaches_backedge: Bool = false;
+    var falls_through: Bool = true;
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(arena, block_node_id, child_index);
     while IsSome(child_opt) && falls_through {
         let node_id: Int = UnwrapOption(child_opt);
         let kind_opt: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
@@ -22,8 +22,8 @@ func SelfMirLoopReachabilityForBlock(arena: AstArena, block_node_id: Int
             return SelfMirLoopReachabilityFact(false, false, false);
         }
         let kind: Int = UnwrapOption(kind_opt);
-        let statement_reaches: Bool = false;
-        let statement_falls: Bool = true;
+        var statement_reaches: Bool = false;
+        var statement_falls: Bool = true;
         if kind == TypedAstKindContinueStmtTag() {
             statement_reaches = true;
             statement_falls = false;
@@ -50,7 +50,7 @@ func SelfMirLoopReachabilityForBlock(arena: AstArena, block_node_id: Int
             if !then_fact.ok {
                 return then_fact;
             }
-            let else_fact: SelfMirLoopReachabilityFact =
+            var else_fact: SelfMirLoopReachabilityFact =
                 SelfMirLoopReachabilityFact(true, false, true);
             let else_opt: Option<Int> = SelfMirIfElseLoweringRoot(arena, node_id
             );

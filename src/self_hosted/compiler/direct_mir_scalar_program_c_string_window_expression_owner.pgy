@@ -44,8 +44,8 @@ func DirectMirScalarProgramCStringWindowExpression(
                 "string_int_string_int_to_int") {
             Die("direct MIR scalar SubIndexOfWithLen ABI is invalid");
         }
-        let out: String = Concat(runtime.string_sub_index_with_len.symbol, "(");
-        let i: Int = 0;
+        var out: String = Concat(runtime.string_sub_index_with_len.symbol, "(");
+        var i: Int = 0;
         while i < 5 {
             if i > 0 { out = Concat(out, ", "); }
             out = Concat(out, arguments[i]); i = i + 1;
@@ -60,19 +60,53 @@ func DirectMirScalarProgramCStringWindowExpression(
                 "string_int_string_int_to_bool") {
             Die("direct MIR scalar SubEqualsWithLen ABI is invalid");
         }
-        let out: String = Concat(runtime.string_sub_equals_with_len.symbol, "(");
-        let i: Int = 0;
+        var out: String = Concat(runtime.string_sub_equals_with_len.symbol, "(");
+        var i: Int = 0;
         while i < 5 {
             if i > 0 { out = Concat(out, ", "); }
             out = Concat(out, arguments[i]); i = i + 1;
         }
         return Some(Concat(out, ")"));
     }
-    let fact_symbol: String = runtime.string_substring.symbol;
-    let operation: String = "substring";
-    let symbol: String = StringRuntimeCSubstringFn();
-    let shape: String = "string_int_int_to_string";
-    let expected: Int = 3;
+    if kind == DirectMirScalarProgramExprSubContainsWithLen() {
+        if ArrayLength(arguments) != 5 ||
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_sub_contains_with_len,
+                "sub-contains-with-len", StringRuntimeCSubContainsWithLenFn(),
+                "string_int_string_int_to_bool") {
+            Die("direct MIR scalar SubContainsWithLen ABI is invalid");
+        }
+        var out: String = Concat(
+            runtime.string_sub_contains_with_len.symbol, "(");
+        var i: Int = 0;
+        while i < 5 {
+            if i > 0 { out = Concat(out, ", "); }
+            out = Concat(out, arguments[i]); i = i + 1;
+        }
+        return Some(Concat(out, ")"));
+    }
+    if kind == DirectMirScalarProgramExprSubStartsWithLen() {
+        if ArrayLength(arguments) != 4 ||
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_sub_starts_with_len,
+                "sub-starts-with-len", StringRuntimeCSubStartsWithLenFn(),
+                "string_int_string_int_to_bool") {
+            Die("direct MIR scalar SubStartsWithLen ABI is invalid");
+        }
+        var out: String = Concat(
+            runtime.string_sub_starts_with_len.symbol, "(");
+        var i: Int = 0;
+        while i < 4 {
+            if i > 0 { out = Concat(out, ", "); }
+            out = Concat(out, arguments[i]); i = i + 1;
+        }
+        return Some(Concat(out, ")"));
+    }
+    var fact_symbol: String = runtime.string_substring.symbol;
+    var operation: String = "substring";
+    var symbol: String = StringRuntimeCSubstringFn();
+    var shape: String = "string_int_int_to_string";
+    var expected: Int = 3;
     if kind == DirectMirScalarProgramExprSubstringWithLen() {
         fact_symbol = runtime.string_substring_with_len.symbol;
         operation = "substring-with-len";
@@ -89,7 +123,7 @@ func DirectMirScalarProgramCStringWindowExpression(
                 operation, symbol, shape)) {
         Die("direct MIR scalar substring ABI is invalid");
     }
-    let out: String = Concat(fact_symbol, "("); let i: Int = 0;
+    var out: String = Concat(fact_symbol, "("); var i: Int = 0;
     while i < expected {
         if i > 0 { out = Concat(out, ", "); }
         out = Concat(out, arguments[i]); i = i + 1;

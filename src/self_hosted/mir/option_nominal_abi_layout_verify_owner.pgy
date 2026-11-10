@@ -18,7 +18,7 @@ func SelfMirOptionNominalAbiLayoutRowsReady(
         ArrayLength(rows.value_aligns) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if nominal_kinds[row] == "struct" {
             let expected_name: String = Concat(

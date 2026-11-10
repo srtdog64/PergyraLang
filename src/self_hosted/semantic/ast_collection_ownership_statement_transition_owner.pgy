@@ -7,14 +7,10 @@ import "ast_collection_call_effect_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
 import "ast_owned_string_call_result_admission_owner.pgy";
-
-struct SemanticAstCollectionStatementTransitionResult {
-    ok: Bool;
-    diagnostic_code: String;
-    diagnostic_message: String;
-    syntax_node_id: Int;
-    receipts: SemanticAstCollectionOwnershipReceiptRows;
-}
+import "ast_collection_statement_transition_result_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "ast_collection_formal_statement_transition_owner.pgy";
+import "ast_collection_local_statement_transition_owner.pgy";
 
 func SemanticAstCollectionStatementTransitionForSyntax(
     artifact: AstTreeArtifact,
@@ -29,12 +25,17 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
-    receipts: SemanticAstCollectionOwnershipReceiptRows
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref compiler_clone_expression_node_ids: Array<Int>,
+    ref owned_store_expression_node_ids: Array<Int>,
+    ref element_requirements: HashMap<String, Int>,
+    compiler_clone_storage_detached: Bool,
+    inout receipts: SemanticAstCollectionOwnershipReceiptRows
 ) -> SemanticAstCollectionStatementTransitionResult {
-    let carried: SemanticAstCollectionOwnershipReceiptRows = receipts;
+    // The scan owns one receipt table; a decision carries no snapshot.
     let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
-    let statement_kind: Int = TypedAstKindAssignStmtTag();
-    let function_id: Int = -1;
+    var statement_kind: Int = TypedAstKindAssignStmtTag();
+    var function_id: Int = -1;
     if IsSome(indexed) {
         let statement_row: Int = UnwrapOption(indexed);
         statement_kind = statements.kind_tags[statement_row];
@@ -42,10 +43,10 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     } else {
         // Assignments have their own admitted inventory, not statement rows.
         let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
-        if !IsSome(assigned) { return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried); }
+        if !IsSome(assigned) { return SemanticAstCollectionStatementTransitionOk(); }
         let assignment_row: Int = UnwrapOption(assigned);
         if assignments.target_is_indexed[assignment_row] == 0 || assignments.target_base_names[assignment_row] != assignments.target_root_names[assignment_row] {
-            return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
+            return SemanticAstCollectionStatementTransitionOk();
         }
         function_id = assignments.function_node_ids[assignment_row];
     }
@@ -53,20 +54,26 @@ func SemanticAstCollectionStatementTransitionForSyntax(
         statement_kind != TypedAstKindArraySetStmtTag() &&
         statement_kind != TypedAstKindArrayPopStmtTag() &&
         statement_kind != TypedAstKindAssignStmtTag() {
-        return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
+        return SemanticAstCollectionStatementTransitionOk();
     }
     if statement_kind == TypedAstKindAssignStmtTag() {
         let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
-        if !IsSome(target) { return SemanticAstCollectionStatementTransitionResult(false, "ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "indexed_collection_target"), syntax_id, carried); }
+        if !IsSome(target) { return SemanticAstCollectionStatementTransitionArtifactError("indexed_collection_target", syntax_id); }
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, UnwrapOption(target));
         if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() {
-            return SemanticAstCollectionStatementTransitionResult(false, "ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "indexed_collection_target"), syntax_id, carried);
+            return SemanticAstCollectionStatementTransitionArtifactError("indexed_collection_target", syntax_id);
         }
     }
-    let operation: String = "ArrayPop";
-    if statement_kind == TypedAstKindArrayPushStmtTag() {
+    var operation: String = "ArrayPop";
+    let array_push: Bool = statement_kind == TypedAstKindArrayPushStmtTag();
+    let parser_array_set: Bool =
+        statement_kind == TypedAstKindArraySetStmtTag();
+    let array_set: Bool = parser_array_set ||
+        statement_kind == TypedAstKindAssignStmtTag();
+    let array_pop: Bool = statement_kind == TypedAstKindArrayPopStmtTag();
+    if array_push {
         operation = "ArrayPush";
-    } else if statement_kind == TypedAstKindArraySetStmtTag() || statement_kind == TypedAstKindAssignStmtTag() {
+    } else if array_set {
         operation = "ArraySet";
     }
     let binding: SemanticAstLocalBindingIdentity =
@@ -74,76 +81,17 @@ func SemanticAstCollectionStatementTransitionForSyntax(
             artifact, locals, initializer_types.inferred_type_names,
                 surfaces, function_id, syntax_id);
     if !binding.ok {
-        return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
+        return SemanticAstCollectionFormalStatementTransition(
+            signatures, surfaces, function_id, syntax_id,
+            array_push, parser_array_set, array_set, array_pop,
+            owned_store_expression_node_ids, element_requirements, receipts);
     }
-    let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
-        artifact, call_effects, binding.row, syntax_id, ownership, dispositions, transition_states);
-    // A proved shallow call wrote the grown descriptor back to this exclusive
-    // fresh binding; only its own consumption, not sibling invalidation, ends it.
-    let definition: Int = current_definitions[binding.row];
-    let current_descriptor: Bool = origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
-        SemanticAstCollectionDefinitionStorageSource(storage, definitions, binding.row, definition) > 0 &&
-        SemanticAstCollectionCurrentDescriptorLiveAtUse(artifact, call_effects, definition, syntax_id) &&
-        !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id);
-    if unknown || SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, syntax_id) ||
-        (SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id,
-            call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]) &&
-         !current_descriptor) {
-        return SemanticAstCollectionStatementTransitionResult(false, "borrow_boundary_escape",
-            SemanticError2("borrow_boundary_escape", "boundary", operation, "type", "Array<String>"), syntax_id, carried);
-    }
-    let source_syntax_id: Int = 0;
-    if statement_kind == TypedAstKindArrayPushStmtTag() {
-        let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
-                surfaces, syntax_id,
-            AstExpressionLaneValue());
-        if IsSome(value_root) {
-            let source_surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, syntax_id);
-            if !IsSome(source_surface) {
-                return SemanticAstCollectionStatementTransitionResult(false, "ast_artifact_invalid",
-                    SemanticError1("ast_artifact_invalid", "owner", "owned_string_push_surface"), syntax_id, carried);
-            }
-            source_syntax_id = SemanticAstOwnedStringCallTarget(
-                artifact, signatures, locals, initializer_types, surfaces, owned_string_results,
-                UnwrapOption(source_surface),
-                UnwrapOption(value_root));
-        }
-    }
-    let state: Int = ownership[binding.row];
-    if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
-        let transition: Int = transition_states[binding.row];
-        let owned_push: Bool = source_syntax_id > 0;
-        let expected: Int = SemanticAstCollectionTransitionBorrowed();
-        let effect: Int =
-            SemanticAstCollectionOwnershipEffectShallowMutation();
-        if owned_push {
-            expected = SemanticAstCollectionTransitionOwned();
-            effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
-        }
-        if (owned_push && !SemanticAstCollectionTransitionAllowsOwned(transition)) ||
-            (!owned_push &&
-                transition != SemanticAstCollectionTransitionEmpty() &&
-                transition != SemanticAstCollectionTransitionBorrowed()) {
-            return SemanticAstCollectionStatementTransitionResult(
-                false, "borrow_boundary_escape",
-                SemanticError2("borrow_boundary_escape", "boundary",
-                    operation, "type", "Array<String>"),
-                syntax_id, carried);
-        }
-        transition_states[binding.row] = expected;
-        carried = SemanticAstCollectionOwnershipReceiptRowsAppend(
-            carried, function_id, syntax_id, AstExpressionLaneAtom(),
-            -1, effect, locals.node_ids[binding.row], source_syntax_id);
-    } else if state == SemanticAstCollectionOwnershipOwnedElements() ||
-        state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
-        dispositions[binding.row] ==
-            SemanticAstCollectionDispositionRetired() {
-        return SemanticAstCollectionStatementTransitionResult(
-            false, "borrow_boundary_escape",
-            SemanticError2("borrow_boundary_escape", "boundary",
-                operation, "type", "Array<String>"),
-            syntax_id, carried);
-    }
-    return SemanticAstCollectionStatementTransitionResult(
-        true, "", "", -1, carried);
+    return SemanticAstCollectionLocalStatementTransition(
+        artifact, signatures, locals, initializer_types, surfaces,
+        syntax_id, function_id, operation, array_push, parser_array_set,
+        array_set, array_pop, binding, call_effects, definitions, storage,
+        current_definitions, ownership, dispositions, origins,
+        transition_states, owned_string_results, numeric_string_allocations,
+        compiler_clone_expression_node_ids, compiler_clone_storage_detached,
+        receipts);
 }

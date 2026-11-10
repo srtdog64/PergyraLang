@@ -1,0 +1,23 @@
+struct EnumRefEscapeManifest {
+    let id: String;
+}
+
+enum EnumRefEscapeMachine {
+    EnumRefEscapeDefault,
+    EnumRefEscapeManifestMachine(EnumRefEscapeManifest),
+}
+
+func EnumRefEscape(
+    ref request: EnumRefEscapeMachine
+) -> EnumRefEscapeMachine {
+    return request;
+}
+
+func Main() -> Void {
+    let manifest: EnumRefEscapeManifest =
+        EnumRefEscapeManifest("borrowed");
+    let machine: EnumRefEscapeMachine =
+        EnumRefEscapeManifestMachine(manifest);
+    let escaped: EnumRefEscapeMachine = EnumRefEscape(machine);
+    Log(escaped);
+}

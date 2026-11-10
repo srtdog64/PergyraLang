@@ -24,7 +24,7 @@ func Wrap(box: Box) -> Held {
 
 func Main() -> Int {
     let box: Box = Box([1, 2]);
-    let held: Held = Wrap(box);
+    var held: Held = Wrap(box);
     held.box.items[0] = 9;
     Print(ToString(box.items[0]));
     Print(ToString(held.box.items[0]));

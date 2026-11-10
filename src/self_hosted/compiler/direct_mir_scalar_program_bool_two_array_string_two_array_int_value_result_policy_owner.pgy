@@ -8,11 +8,11 @@ func DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultSignatureRead
     if !DirectMirRoutineSignatureFactReady(signature) ||
         signature.return_type != CompilerAbiLayoutBoolTypeName() ||
         signature.param_count < 4 { return false; }
-    let array_string_count: Int = 0;
-    let array_int_count: Int = 0;
-    let array_string_layout: Int = 0;
-    let array_int_layout: Int = 0;
-    let ordinal: Int = 0;
+    var array_string_count: Int = 0;
+    var array_int_count: Int = 0;
+    var array_string_layout: Int = 0;
+    var array_int_layout: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let type_name: String = signature.parameters.type_names[ordinal];
         let array_string: Bool = type_name ==

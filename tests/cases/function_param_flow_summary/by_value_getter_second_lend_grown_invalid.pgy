@@ -22,7 +22,7 @@ func ShelfOf(store: Store) -> Shelf {
 func Main() -> Int {
     let store: Store = Store(Shelf([Box([1]), Box([2])]), 0);
     let first: Shelf = ShelfOf(store);
-    let second: Shelf = ShelfOf(store);
+    var second: Shelf = ShelfOf(store);
     ArrayPush(second.boxes, Box([9]));
     ArrayPush(second.boxes, Box([9]));
     ArrayPush(second.boxes, Box([9]));

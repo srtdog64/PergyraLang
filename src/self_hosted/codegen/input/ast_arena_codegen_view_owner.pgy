@@ -133,7 +133,7 @@ func CodegenAstArenaIsDescendantOf(arena: AstArena, node_id: Int, ancestor_id: I
     if node_id < 0 || ancestor_id < 0 {
         return false;
     }
-    let cur_parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    var cur_parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
     while IsSome(cur_parent) {
         let cur: Int = UnwrapOption(cur_parent);
         if cur == ancestor_id {
@@ -151,7 +151,7 @@ func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) ->
     if count <= 0 {
         return false;
     }
-    let no_expression_graph_texts: Array<String> = [""];
+    let no_expression_graph_texts: Array<String> = [Clone("")];
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(
         nodes, count, no_expression_graph_texts
     );

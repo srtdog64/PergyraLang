@@ -1,7 +1,7 @@
 // Exact scalar formatting policy shared by the source-to-DIR text owners.
 
 func CompilerDirTextPadRight(value: String, width: Int) -> String {
-    let result: String = value;
+    var result: String = value;
     while StringLength(result) < width {
         result = Concat(result, " ");
     }

@@ -26,7 +26,7 @@ func SelfDirIntentModeFactsEmpty(
 func SelfDirIntentModeFactsError(
     message: String, artifact_node_count: Int
 ) -> SelfDirIntentModeFacts {
-    let facts: SelfDirIntentModeFacts =
+    var facts: SelfDirIntentModeFacts =
         SelfDirIntentModeFactsEmpty(artifact_node_count);
     facts.ok = false;
     facts.diagnostic_message = message;
@@ -44,16 +44,16 @@ func SelfDirIntentModeFactsFromArtifact(
             "self-host DIR intent mode inputs are incomplete", artifact.count
         );
     }
-    let node_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let intent_index: Int = 0;
+    var node_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intent_signatures) {
         let intent_node_id: Int =
             intent_signatures.intent_node_ids[intent_index];
-        let mode_node_id: Int = 0 - 1;
-        let mode_count: Int = 0;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var mode_node_id: Int = 0 - 1;
+        var mode_count: Int = 0;
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, intent_node_id, child_index
         );
         while IsSome(child) {
@@ -105,7 +105,7 @@ func SelfDirIntentModeFactsReady(
         ArrayLength(facts.names) != ArrayLength(intent_node_ids) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(intent_node_ids) {
         let parent: Option<Int> = TypedAstArenaParentId(
             artifact.arena, facts.node_ids[i]

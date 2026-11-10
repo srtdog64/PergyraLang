@@ -18,7 +18,7 @@ func DirectMirScalarProgramCallCalleeNodeReady(
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
     // A normalized explicit-actual spine consists of base, actual/wrapper
     // pairs, then call. Type markers are not runtime values or callable values.
-    let generic: Int = node;
+    var generic: Int = node;
     if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] == AstExpressionNodeGenericTypeActual() {
         if node + 1 >= count || sequence.arena.topology.node_kinds[node + 1] != AstExpressionNodeGenericCallee() ||
             sequence.arena.topology.right_children[node + 1] != node { return false; }
@@ -35,7 +35,7 @@ func DirectMirScalarProgramCallCalleeNodeReady(
         sequence.arena.topology.node_kinds[generic] == AstExpressionNodeGenericCallee() &&
         generic + 1 < count && sequence.arena.topology.left_children[generic + 1] == generic &&
         DirectMirScalarProgramCallMarkerReady(sequence, generic + 1) { return true; }
-    let callee: Int = -1; let call: Int = -1;
+    var callee: Int = -1; var call: Int = -1;
     if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] ==
             AstExpressionNodeMemberAccess() {
         callee = node; call = node + 1;

@@ -1,0 +1,153 @@
+// Named vacant constructor-field detection.
+
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_constructor_storage_escape_owner.pgy";
+
+struct SemanticAstCollectionConstructorFieldInputProducer {
+    ok: Bool;
+    kind: Int;
+    definition_row: Int;
+    definition_id: Int;
+    binding_id: Int;
+}
+
+func SemanticAstCollectionConstructorNamedVacantAt(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, argument: Int,
+    binding_row: Int, ref current: Array<Int>
+) -> Bool {
+    if !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) || !definitions.ok || !surfaces.ok ||
+        locals.artifact_node_count != artifact.count || surfaces.artifact_node_count != artifact.count ||
+        binding_row < 0 || binding_row >= definitions.local_count || binding_row >= ArrayLength(current) ||
+        slot < 0 || slot >= ArrayLength(surfaces.expression_graph.roots) || !surfaces.expression_graph.has_roots[slot] ||
+        slot % 3 == AstExpressionLaneAuxiliary() || ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count || ArrayLength(inferred_types) != definitions.local_count { return false; }
+    let definition: Int = current[binding_row];
+    if definition != binding_row || definition >= ArrayLength(definitions.value_nodes) ||
+        definition >= ArrayLength(definitions.syntax_ids) || definitions.binding_rows[definition] != binding_row ||
+        definitions.syntax_ids[definition] != locals.node_ids[binding_row] ||
+        definitions.local_sources[definition] >= 0 ||
+        !SemanticAstCollectionOwnershipLiteralIsEmpty(surfaces.expression_graph, definitions.value_nodes[definition]) {
+        return false;
+    }
+    if locals.binding_kinds[binding_row] != SemanticAstLocalBindingKindNormal() ||
+        locals.binding_indices[binding_row] != 0 || locals.binding_arities[binding_row] != 1 { return false; }
+    let source: Int = definitions.syntax_ids[definition];
+    let use_id: Int = surfaces.node_ids[slot / 3];
+    let scope: Int = locals.scope_node_ids[binding_row];
+    if source <= 0 || use_id <= source || use_id >= artifact.count || scope < 0 || scope >= artifact.count ||
+        artifact.arena.kinds[scope] != TypedAstKindBlockTag() ||
+        artifact.arena.parents[source] != scope || artifact.arena.parents[use_id] != scope ||
+        locals.function_node_ids[binding_row] != surfaces.function_node_ids[slot / 3] { return false; }
+    let body: Int = artifact.arena.parents[scope];
+    if body < 0 || body >= artifact.count || artifact.arena.kinds[body] != TypedAstKindBodyTag() ||
+        artifact.arena.parents[body] != locals.function_node_ids[binding_row] { return false; }
+    // Check the complete joint argument spine before any input is certified.
+    // Repeated direct leaves of the same vacant binding are the joint capture.
+    // A composed sibling is allowed only when its subtree does not mention the
+    // binding; an unrelated nested value must not erase vacancy evidence.
+    var node: Int = surfaces.expression_graph.roots[slot];
+    var selected_call: Int = -1;
+    var found: Bool = false;
+    while node >= 0 {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+        if !IsSome(kind) { return false; }
+        if UnwrapOption(kind) != AstExpressionNodeCallArgument() {
+            if UnwrapOption(kind) != AstExpressionNodeCall() || node != selected_call { return false; }
+            break;
+        }
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+        if !edge.ok || (selected_call >= 0 && selected_call != edge.call_node) { return false; }
+        selected_call = edge.call_node;
+        let value_kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, edge.argument_node);
+        if !IsSome(value_kind) { return false; }
+        let k: Int = UnwrapOption(value_kind);
+        if k == AstExpressionNodeLeaf() {
+            let direct: SemanticAstLocalBindingIdentity =
+                SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, inferred_types,
+                    locals.function_node_ids[binding_row], use_id,
+                    surfaces.expression_graph, edge.argument_node);
+            if edge.argument_node == argument {
+                if !direct.ok || direct.row != binding_row ||
+                    direct.declaration_node_id != locals.node_ids[binding_row] {
+                    return false;
+                }
+                found = true;
+            }
+        } else {
+            let subtree_start: Option<Int> =
+                SemanticExpressionGraphSubtreeStart(
+                    surfaces.expression_graph, edge.argument_node);
+            if !IsSome(subtree_start) { return false; }
+            var nested: Int = UnwrapOption(subtree_start);
+            while nested <= edge.argument_node {
+                let nested_kind: Option<Int> =
+                    SemanticExpressionGraphNodeKind(
+                        surfaces.expression_graph, nested);
+                if !IsSome(nested_kind) { return false; }
+                if UnwrapOption(nested_kind) == AstExpressionNodeLeaf() {
+                    let nested_binding: SemanticAstLocalBindingIdentity =
+                        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, locals, inferred_types,
+                            locals.function_node_ids[binding_row], use_id,
+                            surfaces.expression_graph, nested);
+                    if nested_binding.ok && nested_binding.row == binding_row {
+                        return false;
+                    }
+                }
+                nested = nested + 1;
+            }
+        }
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+        if !IsSome(previous) || UnwrapOption(previous) < 0 || UnwrapOption(previous) >= node { return false; }
+        node = UnwrapOption(previous);
+    }
+    if !found || selected_call < 0 { return false; }
+    // These are admitted surface intervals, not a raw AST/program rescan.
+    // Reject every earlier use, including alias initialization and read calls.
+    var previous_root: Int = -1;
+    var prefix: Int = 0;
+    while prefix < slot {
+        let surface: Int = prefix / 3;
+        let syntax_id: Int = surfaces.node_ids[surface];
+        if syntax_id > source {
+            var required: Bool = false;
+            if prefix % 3 == AstExpressionLaneAtom() {
+                required = surfaces.has_atoms[surface] && SemanticAstExpressionGraphAtomLaneRequired(artifact, syntax_id);
+            } else if prefix % 3 == AstExpressionLaneValue() {
+                required = surfaces.has_values[surface] && SemanticAstExpressionGraphValueLaneRequired(artifact, syntax_id);
+            } else {
+                required = surfaces.has_auxiliary_values[surface] && SemanticAstExpressionGraphAuxiliaryLaneRequired(artifact, syntax_id);
+            }
+            if required && !surfaces.expression_graph.has_roots[prefix] { return false; }
+        }
+        if surfaces.expression_graph.has_roots[prefix] {
+            let root: Int = surfaces.expression_graph.roots[prefix];
+            if root <= previous_root { return false; }
+            let syntax: Int = surfaces.node_ids[prefix / 3];
+            if syntax > source {
+                if syntax >= artifact.count || artifact.arena.parents[syntax] != scope ||
+                    surfaces.function_node_ids[prefix / 3] != locals.function_node_ids[binding_row] { return false; }
+                var cursor: Int = previous_root + 1;
+                while cursor <= root {
+                    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, cursor);
+                    if !IsSome(kind) { return false; }
+                    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+                        let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, locals, inferred_types, locals.function_node_ids[binding_row], syntax, surfaces.expression_graph, cursor);
+                        if binding.ok && binding.row == binding_row { return false; }
+                        let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, cursor);
+                        if !identity.ok { return false; }
+                    }
+                    cursor = cursor + 1;
+                }
+            }
+            previous_root = root;
+        }
+        prefix = prefix + 1;
+    }
+    return true;
+}
+

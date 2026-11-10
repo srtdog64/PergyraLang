@@ -1,3 +1,4 @@
+import "ast_constructor_target_identity_owner.pgy";
 // Final semantic binding/call identities for persisted expression graphs.
 import "ast_artifact_verdict_owner.pgy";
 import "ast_body_expression_environment_owner.pgy";
@@ -12,8 +13,8 @@ func SemanticExpressionDirectTargetSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
     target_name: String
 ) -> Int {
-    let found: Int = 0; let matches: Int = 0;
-    let row: Int = 0;
+    var found: Int = 0; var matches: Int = 0;
+    var row: Int = 0;
     while row < SemanticAstFunctionSignatureCount(signatures) {
         let owner: Option<String> = SemanticAstFunctionOwnerNameAt(signatures, row);
         let name: Option<String> = SemanticAstFunctionNameAt(signatures, row);
@@ -44,8 +45,8 @@ func SemanticExpressionFormalParameterOrdinal(
     let count: Option<Int> = SemanticAstFunctionParamCountAt(
         signatures, UnwrapOption(signature));
     if !IsSome(count) { return 0 - 1; }
-    let found: Int = 0 - 1;
-    let ordinal: Int = 0;
+    var found: Int = 0 - 1;
+    var ordinal: Int = 0;
     while ordinal < UnwrapOption(count) {
         let name: Option<String> = SemanticAstFunctionParamNameAt(
             signatures, UnwrapOption(signature), ordinal);
@@ -70,7 +71,18 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     inout leaf_type_names: Array<String>,
     inout numeric_string_allocations: SemanticAstNumericStringAllocationCalls
 ) -> Bool {
-    let graph: SemanticExpressionGraphFacts =
+    // The graph is the one mutable fact family. Sibling semantic facts are
+    // read-only projections, so keep them outside the graph carrier rather
+    // than repeatedly borrowing the whole inout analysis value.
+    let signatures: SemanticAstFunctionSignatureFacts = analysis.signatures;
+    let intent_signatures: SemanticAstIntentSignatureFacts =
+        analysis.intent_signatures;
+    let constructors: SemanticAstNominalConstructorFacts =
+        analysis.constructors;
+    let constructor_targets: SemanticConstructorTargetIdentities =
+        SemanticConstructorTargetIdentitiesFromOwners(constructors, analysis.enums);
+    if !constructor_targets.valid { return false; }
+    var graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
     let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     numeric_string_allocations = SemanticAstNumericStringAllocationCallsEmpty();
@@ -86,7 +98,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     }
     let retention_selection: Long =
         SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
-            analysis.signatures, function_tables);
+            signatures, function_tables);
     if retention_selection < 0L {
         return false;
     }
@@ -94,11 +106,11 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     // persisted identity protocol intentionally carries no local binding ID.
     // Collection field identity and later boundary verdicts borrow this
     // same-graph transient projection; it never grants element ownership.
-    let type_row: Int = 0;
+    var type_row: Int = 0;
     while type_row < count { ArrayPush(leaf_type_names, "Unknown"); type_row = type_row + 1; }
-    let last_root: Int = -1;
-    let root_slot: Int = 0;
-    let valid: Bool = true;
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
+    var valid: Bool = true;
     while root_slot < ArrayLength(graph.roots) && valid {
         if graph.has_roots[root_slot] {
             let root_id: Int = graph.roots[root_slot];
@@ -108,9 +120,9 @@ func SemanticAstAnalysisResolveExpressionIdentities(
             ) || root_id <= last_root {
                 valid = false;
             } else {
-                let names: Array<String> = [];
-                let types: Array<String> = [];
-                let modes: Array<String> = [];
+                var names: Array<String> = [];
+                var types: Array<String> = [];
+                var modes: Array<String> = [];
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
                 let surface_carries_identity: Bool =
@@ -120,21 +132,27 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                 let function_node: Option<Int> =
                     SemanticAstExpressionFunctionNodeAt(
                         analysis.expression_surfaces,
-                        analysis.signatures, surface_index
+                        signatures, surface_index
                     );
                 let intent_node: Option<Int> =
                     SemanticAstExpressionIntentNodeAt(
-                        analysis.expression_surfaces, analysis.intent_signatures, surface_index);
+                        analysis.expression_surfaces, intent_signatures,
+                        surface_index);
                 if !SemanticAstBodyExpressionEnvironmentSeed(
-                    artifact, analysis, inferred_types, iteration_types,
-                    function_tables, analysis.intent_signatures,
+                    artifact, signatures, constructors, analysis.local_bindings,
+                    analysis.statements, analysis.expression_surfaces.ok,
+                    analysis.expression_surfaces.artifact_node_count,
+                    analysis.expression_surfaces.node_ids, graph,
+                    analysis.enums, analysis.function_scopes,
+                    analysis.intent_transitions, inferred_types, iteration_types,
+                    function_tables, intent_signatures,
                     function_node, intent_node, use_node_id,
                     names, types, modes
                 ) {
                     valid = false;
                 }
-                let node: Int = last_root + 1;
-                let local_call_ordinal: Int = 0;
+                var node: Int = last_root + 1;
+                var local_call_ordinal: Int = 0;
                 while node <= root_id && valid {
                     if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
                         ArraySet(leaf_type_names, node, EnvLookup(names, types, graph.arena.node_texts[node]));
@@ -166,29 +184,35 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                 EnvLookup(names, types, target_name)
                             );
                         if local_callable.ok {
-                            if !IsSome(function_node) { valid = false; }
-                            let parameter_ordinal: Int = -1;
+                            if !IsSome(function_node) {
+                                valid = false;
+                            }
+                            var parameter_ordinal: Int = -1;
                             if valid {
                                 parameter_ordinal =
                                     SemanticExpressionFormalParameterOrdinal(
-                                        analysis.signatures,
+                                        signatures,
                                         UnwrapOption(function_node), target_name
                                     );
-                                if parameter_ordinal < 0 { valid = false; }
+                                if parameter_ordinal < 0 {
+                                    valid = false;
+                                }
                             }
-                            let signature_index: Option<Int> = None;
+                            var signature_index: Option<Int> = None;
                             if valid {
                                 signature_index =
                                     SemanticAstFunctionSignatureIndexForNode(
-                                        analysis.signatures,
+                                        signatures,
                                         UnwrapOption(function_node)
                                     );
-                                if !IsSome(signature_index) { valid = false; }
+                                if !IsSome(signature_index) {
+                                    valid = false;
+                                }
                             }
-                            let parameter_node: Option<Int> = None;
+                            var parameter_node: Option<Int> = None;
                             if valid {
                                 parameter_node = SemanticAstFunctionParamNodeAt(
-                                    analysis.signatures,
+                                    signatures,
                                     UnwrapOption(signature_index),
                                     parameter_ordinal
                                 );
@@ -205,13 +229,15 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                         } else {
                             let target_id_fact: Result<Int> =
                                 SemanticExpressionDeclaredCallableSyntaxId(
-                                    analysis.signatures,
-                                    analysis.intent_signatures, target_name
+                                    signatures,
+                                    intent_signatures, target_name
                                 );
                             if IsErr(target_id_fact) {
                                 valid = false;
                             } else {
-                                let target_id: Int = Unwrap(target_id_fact);
+                                var target_id: Int = Unwrap(target_id_fact);
+                                if target_id == 0 { target_id = SemanticConstructorTargetSyntaxId(constructor_targets, target_name); }
+                                if target_id < 0 { valid = false; }
                                 if target_id > 0 {
                                     graph.arena.identities
                                         .call_target_syntax_ids[node] = target_id;
@@ -245,10 +271,12 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                              mode == "own_param" || mode == "ref_param") {
                             let ordinal: Int =
                                 SemanticExpressionFormalParameterOrdinal(
-                                    analysis.signatures,
+                                    signatures,
                                     UnwrapOption(function_node), binding_name
                                 );
-                            if ordinal < 0 { valid = false; }
+                            if ordinal < 0 {
+                                valid = false;
+                            }
                             if ordinal >= 0 {
                                 graph.arena.identities.binding_kinds[node] =
                                     SemanticExpressionBindingFormalParameter();
@@ -256,7 +284,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                     ordinal;
                                 let signature_index: Option<Int> =
                                     SemanticAstFunctionSignatureIndexForNode(
-                                        analysis.signatures,
+                                        signatures,
                                         UnwrapOption(function_node)
                                     );
                                 if !IsSome(signature_index) {
@@ -264,13 +292,13 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                 } else {
                                     let parameter_type: Option<String> =
                                         SemanticAstFunctionParamTypeAt(
-                                            analysis.signatures,
+                                            signatures,
                                             UnwrapOption(signature_index),
                                             ordinal
                                         );
                                     let parameter_node: Option<Int> =
                                         SemanticAstFunctionParamNodeAt(
-                                            analysis.signatures,
+                                            signatures,
                                             UnwrapOption(signature_index),
                                             ordinal
                                         );
@@ -292,11 +320,11 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                 names, graph.arena.node_texts[node]) {
                             let callable_id_fact: Result<Int> =
                                 SemanticExpressionDeclaredCallableSyntaxId(
-                                    analysis.signatures,
-                                    analysis.intent_signatures,
+                                    signatures,
+                                    intent_signatures,
                                     graph.arena.node_texts[node]
                                 );
-                            let callable_id: Int = 0;
+                            var callable_id: Int = 0;
                             if IsErr(callable_id_fact) {
                                 valid = false;
                             } else {
@@ -307,7 +335,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             // Consume that exact edge and the admitted target
                             // identity; do not join the local leaf spelling to
                             // a declaration name.
-                            let call_node: Int = -1;
+                            var call_node: Int = -1;
                             if node + 1 < count &&
                                 graph.arena.topology.node_kinds[node + 1] ==
                                     AstExpressionNodeCall() &&
@@ -322,8 +350,8 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             if valid && callable_id == 0 && call_node >= 0 {
                                 let call_target_id_fact: Result<Int> =
                                     SemanticExpressionDeclaredCallableSyntaxId(
-                                        analysis.signatures,
-                                        analysis.intent_signatures,
+                                        signatures,
+                                        intent_signatures,
                                         graph.arena.call_target_names[call_node]
                                     );
                                 if IsErr(call_target_id_fact) {
@@ -331,10 +359,14 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                 } else {
                                     let call_target_id: Int =
                                         Unwrap(call_target_id_fact);
-                                    if require_carried_identities &&
+                                    var expected_target_id: Int = call_target_id;
+                                    if expected_target_id == 0 {
+                                        expected_target_id = SemanticConstructorTargetSyntaxId(constructor_targets,
+                                            graph.arena.call_target_names[call_node]);
+                                    }
+                                    if expected_target_id < 0 || (require_carried_identities &&
                                         graph.arena.identities
-                                            .call_target_syntax_ids[call_node] !=
-                                            call_target_id {
+                                            .call_target_syntax_ids[call_node] != expected_target_id) {
                                         valid = false;
                                     } else if call_target_id > 0 {
                                         callable_id = call_target_id;
@@ -358,7 +390,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                     let resolved_binding_ordinal: Option<Int> =
                         SemanticExpressionBindingIdentityOrdinal(
                             resolved_binding);
-                    let binding_ordinal_mismatch: Bool =
+                    var binding_ordinal_mismatch: Bool =
                         IsSome(resolved_binding_ordinal) !=
                             IsSome(carried_binding_ordinal);
                     if IsSome(resolved_binding_ordinal) &&
@@ -372,7 +404,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                         resolved_binding.syntax_id != carried_binding.syntax_id ||
                         resolved_binding.kind != carried_binding.kind ||
                         binding_ordinal_mismatch;
-                    let carried_identity_mismatch: Bool = false;
+                    var carried_identity_mismatch: Bool = false;
                     if require_carried_identities && surface_carries_identity {
                         carried_identity_mismatch =
                             graph.arena.identities.call_target_syntax_ids[node] !=
@@ -391,17 +423,17 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             IsSome(carried_binding_ordinal);
                     }
                     if carried_identity_mismatch {
-                        let carried_ordinal_text: String = "none";
+                        var carried_ordinal_text: String = "none";
                         if IsSome(carried_binding_ordinal) {
                             carried_ordinal_text = ToString(
                                 UnwrapOption(carried_binding_ordinal));
                         }
-                        let resolved_ordinal_text: String = "none";
+                        var resolved_ordinal_text: String = "none";
                         if IsSome(resolved_binding_ordinal) {
                             resolved_ordinal_text = ToString(
                                 UnwrapOption(resolved_binding_ordinal));
                         }
-                        let detail: String = Concat("semantic carried expression identity mismatch: node=", Concat(ToString(node), Concat(" text=", graph.arena.node_texts[node])));
+                        var detail: String = Concat("semantic carried expression identity mismatch: node=", Concat(ToString(node), Concat(" text=", graph.arena.node_texts[node])));
                         detail = Concat(detail, Concat(
                             " call_target=", Concat(
                             ToString(carried_call_target_syntax_id), Concat(
@@ -436,9 +468,11 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             valid = false;
                         }
                         if valid && !SemanticAstNumericStringAllocationRecordResolvedCall(
-                            numeric_string_allocations, graph, analysis.constructors,
+                            numeric_string_allocations, graph, constructors,
                             function_tables, names, types, use_node_id, root_slot % 3,
-                            local_call_ordinal, node, call_roots.root_nodes[node]) { valid = false; }
+                            local_call_ordinal, node, call_roots.root_nodes[node]) {
+                            valid = false;
+                        }
                         local_call_ordinal = local_call_ordinal + 1;
                     }
                     node = node + 1;
@@ -453,10 +487,10 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     // root with synthetic binding roots that carry no call identity. Admit
     // exactly the attached synthetic ids and pin their identity rows;
     // any other uncovered node stays a hard failure.
-    let tail: Int = last_root + 1;
+    var tail: Int = last_root + 1;
     while valid && tail < count {
-        let synthetic_found: Bool = false;
-        let iteration_row: Int = 0;
+        var synthetic_found: Bool = false;
+        var iteration_row: Int = 0;
         while iteration_row < SemanticAstIterationTypeCount(iteration_types) {
             if iteration_types.synthetic_graph_root_ids[iteration_row] ==
                 tail {
@@ -464,7 +498,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
             }
             iteration_row = iteration_row + 1;
         }
-        let match_row: Int = 0;
+        var match_row: Int = 0;
         while match_row < ArrayLength(match_synthetic_graph_root_ids) {
             if match_synthetic_graph_root_ids[match_row] == tail {
                 synthetic_found = true;

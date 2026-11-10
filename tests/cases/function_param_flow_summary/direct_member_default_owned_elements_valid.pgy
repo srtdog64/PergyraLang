@@ -1,0 +1,24 @@
+// A moving default Array<String> actual may be an exact field of an immutable
+// local aggregate. The aggregate value graph, not a fabricated Array binding,
+// proves that every element at this field path is independently owned.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Changed {
+    names: Array<String>;
+}
+
+func Append(names: Array<String>) -> Changed {
+    var changed: Array<String> = names;
+    ArrayPush(changed, Concat("b", ""));
+    return Changed(changed);
+}
+
+func Main() -> Int {
+    let rows: Rows = Rows([Concat("a", "")]);
+    let result: Changed = Append(rows.names);
+    Print(result.names[1]);
+    Log(ArrayLength(result.names));
+    return 0;
+}

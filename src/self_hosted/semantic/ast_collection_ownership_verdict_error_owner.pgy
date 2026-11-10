@@ -1,0 +1,34 @@
+// Collection-ownership error verdict construction.
+
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_verdict_schema_owner.pgy";
+
+func SemanticAstCollectionOwnershipVerdictError(
+    code: String, message: String,
+    syntax_node_id: Int, expression_node_id: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    let function_syntax_ids: Array<Int> = [];
+    let binding_syntax_ids: Array<Int> = [];
+    let origin_syntax_ids: Array<Int> = [];
+    let source_binding_syntax_ids: Array<Int> = [];
+    let member_path_starts: Array<Int> = [];
+    let member_path_counts: Array<Int> = [];
+    let member_path_field_syntax_ids: Array<Int> = [];
+    let element_ownerships: Array<Int> = [];
+    let dispositions: Array<Int> = [];
+    let origins: Array<Int> = [];
+    let fresh_owned_result_function_syntax_ids: Array<Int> = [];
+    let compiler_clone_expression_node_ids: Array<Int> = [];
+    return SemanticAstCollectionOwnershipVerdict(
+        false, code, message,
+        syntax_node_id, expression_node_id,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, member_path_starts, member_path_counts,
+        member_path_field_syntax_ids,
+        element_ownerships, dispositions, origins,
+        fresh_owned_result_function_syntax_ids,
+        compiler_clone_expression_node_ids,
+        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+    );
+}
+

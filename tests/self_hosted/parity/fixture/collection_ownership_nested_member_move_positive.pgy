@@ -1,0 +1,27 @@
+// The semantic owner carries both nominal field identities to MIR. A leaf-only
+// check would wrongly search `values` directly on `Outer`.
+struct NestedCollectionLeaf {
+    values: Array<String>;
+}
+
+struct NestedCollectionOuter {
+    inner: NestedCollectionLeaf;
+}
+
+func NestedCollectionLength(value: NestedCollectionOuter) -> Int {
+    let values: Array<String> = value.inner.values;
+    return ArrayLength(values);
+}
+
+func NestedLocalCollectionLength(value: NestedCollectionOuter) -> Int {
+    let holder: NestedCollectionOuter = value;
+    let values: Array<String> = holder.inner.values;
+    var cursor: Int = 0;
+    if cursor == 0 {
+        cursor = cursor + 1;
+    }
+    return ArrayLength(values);
+}
+
+func Main() -> Void {
+}

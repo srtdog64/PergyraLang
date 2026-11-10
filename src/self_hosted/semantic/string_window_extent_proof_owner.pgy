@@ -64,7 +64,7 @@ func SemanticStringWindowBindingAt(artifact: AstTreeArtifact,
     let text: String = analysis.expression_surfaces.expression_graph.arena.node_texts[node];
     if !IsIdentifier(text) { return unbound; }
     let routine: Int = analysis.expression_surfaces.function_node_ids[surface];
-    let field_type: Option<String> = None;
+    var field_type: Option<String> = None;
     if routine > 0 {
         field_type = SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
             analysis.signatures, analysis.constructors, routine, text);
@@ -97,7 +97,7 @@ func SemanticStringWindowIntLiteral(ref graph: SemanticExpressionGraphFacts, nod
     let kind: Int = graph.arena.topology.node_kinds[node];
     let digits: String = graph.arena.node_texts[node];
     let digits_extent: Int = StringLength(digits);
-    let length: Int = digits_extent;
+    var length: Int = digits_extent;
     if kind == AstExpressionNodeLongLiteral() && length > 1 &&
         CharCode(digits, digits_extent, length - 1) == 76 {
         length = length - 1;
@@ -105,8 +105,8 @@ func SemanticStringWindowIntLiteral(ref graph: SemanticExpressionGraphFacts, nod
         return -1;
     }
     if length < 1 || length > 9 { return -1; }
-    let value: Int = 0;
-    let i: Int = 0;
+    var value: Int = 0;
+    var i: Int = 0;
     while i < length {
         let c: Int = CharCode(digits, digits_extent, i);
         if c < 48 || c > 57 { return -1; }
@@ -122,7 +122,7 @@ func SemanticStringWindowLiteralPrefix(ref graph: SemanticExpressionGraphFacts, 
     if graph.arena.topology.node_kinds[node] != AstExpressionNodeStringLiteral() { return -1; }
     let raw: String = graph.arena.node_texts[node];
     let raw_extent: Int = StringLength(raw);
-    let i: Int = 1;
+    var i: Int = 1;
     while i < raw_extent - 1 && CharCode(raw, raw_extent, i) != 92 { i = i + 1; }
     return i - 1;
 }
@@ -160,8 +160,8 @@ func SemanticStringWindowSameValue(artifact: AstTreeArtifact,
 func SemanticStringWindowSameRecordPath(artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
     ref inout_passed: HashMap<String, Int>, surface: Int, left: Int, right: Int) -> Bool {
-    let a: Int = left;
-    let b: Int = right;
+    var a: Int = left;
+    var b: Int = right;
     while a >= 0 && b >= 0 {
         let kind_a: Int = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[a];
         let kind_b: Int = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[b];
@@ -192,8 +192,8 @@ func SemanticStringWindowSameRecordPath(artifact: AstTreeArtifact,
 func SemanticStringWindowReadonlyPath(artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
     surface: Int, left: Int, right: Int) -> Bool {
-    let a: Int = left;
-    let b: Int = right;
+    var a: Int = left;
+    var b: Int = right;
     while a >= 0 && b >= 0 &&
         analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[a] == AstExpressionNodeMemberAccess() &&
         analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[b] == AstExpressionNodeMemberAccess() {
@@ -237,7 +237,7 @@ func SemanticStringWindowSameElement(artifact: AstTreeArtifact,
     if !IsSome(base_a) || !IsSome(base_b) || !IsSome(index_a) || !IsSome(index_b) { return false; }
     let value_a: Int = SemanticStringWindowIntLiteral(analysis.expression_surfaces.expression_graph, UnwrapOption(index_a));
     let value_b: Int = SemanticStringWindowIntLiteral(analysis.expression_surfaces.expression_graph, UnwrapOption(index_b));
-    let same_index: Bool = value_a >= 0 && value_a == value_b;
+    var same_index: Bool = value_a >= 0 && value_a == value_b;
     if !same_index {
         let key_a: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, UnwrapOption(index_a));
         let key_b: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, UnwrapOption(index_b));

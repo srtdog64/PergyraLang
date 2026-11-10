@@ -21,9 +21,9 @@ func SemanticExpressionGraphReceiverTypeName(
     types: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
-    let current: Int = node_id;
-    let member_depth: Int = 0;
-    let remaining: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    var current: Int = node_id;
+    var member_depth: Int = 0;
+    var remaining: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     while remaining > 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, current);
         if !IsSome(kind) { return None; }
@@ -40,12 +40,12 @@ func SemanticExpressionGraphReceiverTypeName(
     if remaining <= 0 { return None; }
     let name: Option<String> = SemanticExpressionGraphNodeText(graph, current);
     if !IsSome(name) { return None; }
-    let receiver_type: String = EnvValueLookup(names, types, enum_values, UnwrapOption(name));
+    var receiver_type: String = EnvValueLookup(names, types, enum_values, UnwrapOption(name));
     if receiver_type == "" { return None; }
-    let layer: Int = member_depth;
+    var layer: Int = member_depth;
     while layer > 0 {
-        let member_node: Int = node_id;
-        let descent: Int = layer - 1;
+        var member_node: Int = node_id;
+        var descent: Int = layer - 1;
         while descent > 0 {
             let outer: SemanticMemberAccessView =
                 SemanticMemberAccessViewFromGraph(graph, member_node);
@@ -88,9 +88,9 @@ func SemanticExpressionGraphValueReceiverSpineFromGraph(
     let missing: SemanticExpressionGraphValueReceiverSpine =
         SemanticExpressionGraphValueReceiverSpine(
             false, -1, -1, -1, false, 0);
-    let current: Int = node_id;
-    let depth: Int = 0;
-    let remaining: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    var current: Int = node_id;
+    var depth: Int = 0;
+    var remaining: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     while remaining > 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, current);
         if !IsSome(kind) { return missing; }
@@ -119,8 +119,8 @@ func SemanticExpressionGraphValueReceiverSpineFromGraph(
                 graph.arena.call_target_kinds[call.call_node];
             let carried_name: String =
                 graph.arena.call_target_names[call.call_node];
-            let target_name: String = carried_name;
-            let target_node: Int = call.call_node;
+            var target_name: String = carried_name;
+            var target_node: Int = call.call_node;
             let target_carried: Bool = carried_name != "";
             if carried_name != "" &&
                 carried_kind != SemanticCallTargetDirect() &&
@@ -163,10 +163,10 @@ func SemanticExpressionGraphValueReceiverProjectedTypeName(
     value_type: String
 ) -> Option<String> {
     if value_type == "" || value_type == "Unknown" { return None; }
-    let layer: Int = depth;
+    var layer: Int = depth;
     while layer > 0 {
-        let operation_node: Int = node_id;
-        let descent: Int = layer - 1;
+        var operation_node: Int = node_id;
+        var descent: Int = layer - 1;
         while descent > 0 {
             let kind: Option<Int> =
                 SemanticExpressionGraphNodeKind(graph, operation_node);
@@ -194,7 +194,7 @@ func SemanticExpressionGraphValueReceiverProjectedTypeName(
         let operation_kind: Option<Int> =
             SemanticExpressionGraphNodeKind(graph, operation_node);
         if !IsSome(operation_kind) { return None; }
-        let next_type: Option<String> = None;
+        var next_type: Option<String> = None;
         if UnwrapOption(operation_kind) == AstExpressionNodeMemberAccess() {
             let member: SemanticMemberAccessView =
                 SemanticMemberAccessViewFromGraph(graph, operation_node);
@@ -263,7 +263,7 @@ func SemanticExpressionGraphValueReceiverTypeName(
     let spine: SemanticExpressionGraphValueReceiverSpine =
         SemanticExpressionGraphValueReceiverSpineFromGraph(graph, node_id);
     if !spine.ok { return None; }
-    let value_type: String = "";
+    var value_type: String = "";
     if spine.leaf_node >= 0 {
         let leaf_type: Option<String> =
             SemanticExpressionGraphReceiverTypeName(
@@ -307,7 +307,7 @@ func SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
     let spine: SemanticExpressionGraphValueReceiverSpine =
         SemanticExpressionGraphValueReceiverSpineFromGraph(graph, node_id);
     if !spine.ok { return None; }
-    let value_type: String = "";
+    var value_type: String = "";
     if spine.leaf_node >= 0 {
         let leaf_type: Option<String> =
             SemanticExpressionGraphReceiverTypeName(

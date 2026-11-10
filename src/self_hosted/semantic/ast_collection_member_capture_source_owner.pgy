@@ -35,7 +35,7 @@ func SemanticAstCollectionMemberCaptureSourceForNode(
         locals, inferred_types, surfaces, constructors, syntax_id, node, spine.depth,
         Concat("", resolved_leaf_types[spine.leaf_node]));
     if !IsSome(captured_type) { return invalid; }
-    let aggregate: Bool = SemanticAstCollectionMemberTypeIsAggregate(constructors, UnwrapOption(captured_type));
+    var aggregate: Bool = SemanticAstCollectionMemberTypeIsAggregate(constructors, UnwrapOption(captured_type));
     if !aggregate && destructure {
         aggregate = IsSome(SemanticSequenceElementType(UnwrapOption(captured_type))) ||
             SemanticTupleElementTypeFactFrom(UnwrapOption(captured_type), 0).ok;

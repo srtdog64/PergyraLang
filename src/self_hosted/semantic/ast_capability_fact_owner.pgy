@@ -56,12 +56,12 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
 ) -> SemanticAstCapabilityFacts {
     let function_count: Int = SemanticAstFunctionSignatureCount(analysis.signatures);
     let callable_count: Int = function_count + SemanticAstIntentSignatureCount(analysis.intent_signatures);
-    let state: SemanticAstCapabilityCallGraph = SemanticAstCapabilityCallGraphFromSignatures(artifact, analysis);
+    var state: SemanticAstCapabilityCallGraph = SemanticAstCapabilityCallGraphFromSignatures(artifact, analysis);
     let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
     state.ok = state.ok && verdict.ok && roots.ok &&
         SemanticBuiltinCapabilityProjectionReady() && CallableContractVocabularyProjectionReady();
     // Seed direct statement effects on the same exact callable as call facts.
-    let statement: Int = 0;
+    var statement: Int = 0;
     while statement < ArrayLength(analysis.statements.node_ids) && state.ok {
         if analysis.statements.kind_tags[statement] == TypedAstKindUnsafeBlockTag() {
             let owner_node: Int = analysis.statements.function_node_ids[statement];
@@ -79,8 +79,11 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
         }
         statement = statement + 1;
     }
-    let last_root: Int = -1;
-    let root_slot: Int = 0;
+    let constructor_targets: SemanticConstructorTargetIdentities =
+        SemanticConstructorTargetIdentitiesFromOwners(analysis.constructors, analysis.enums);
+    if !constructor_targets.valid { state.ok = false; }
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
     while root_slot < ArrayLength(
         analysis.expression_surfaces.expression_graph.roots
     ) && state.ok {
@@ -93,8 +96,8 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
             ) || root <= last_root {
                 state.ok = false;
             } else {
-                let owner_index: Int = callable_count;
-                let owner_node_id: Int =
+                var owner_index: Int = callable_count;
+                var owner_node_id: Int =
                     analysis.expression_surfaces.function_node_ids[surface];
                 if owner_node_id < 0 {
                     owner_node_id = analysis.expression_surfaces.intent_node_ids[surface];
@@ -110,7 +113,7 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
                 if state.ok {
                     SemanticAstCapabilityObserveCallRange(
                         analysis.expression_surfaces.expression_graph,
-                        roots, analysis.signatures, last_root + 1, root,
+                        roots, analysis.signatures, constructor_targets, last_root + 1, root,
                         owner_index, state
                     );
                 }
@@ -121,7 +124,7 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
     }
     // The identity owner already admitted these isolated binding tails.
     // They carry no call and must cover exactly the remaining arena nodes.
-    let match_row: Int = 0;
+    var match_row: Int = 0;
     while match_row < ArrayLength(matches.synthetic_graph_root_ids) && state.ok {
         let root: Int = matches.synthetic_graph_root_ids[match_row];
         if root != last_root + 1 ||
@@ -131,7 +134,7 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
         last_root = root;
         match_row = match_row + 1;
     }
-    let iteration_row: Int = 0;
+    var iteration_row: Int = 0;
     while iteration_row < ArrayLength(
         iterations.synthetic_graph_root_ids
     ) && state.ok {
@@ -161,15 +164,15 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
         return SemanticAstCapabilityFactsError(artifact,
             "semantic capability argument substitution is incomplete");
     }
-    let callable_node_ids: Array<Int> = [];
-    let declared_masks: Array<Int> = [];
-    let used_masks: Array<Int> = [];
-    let exported_masks: Array<Int> = [];
-    let deferred_uses: Array<Bool> = [];
-    let declared_effects: Array<Int> = [];
-    let known_call_effects: Array<Int> = [];
-    let unknown_call_effects: Array<Bool> = [];
-    let callable: Int = 0;
+    var callable_node_ids: Array<Int> = [];
+    var declared_masks: Array<Int> = [];
+    var used_masks: Array<Int> = [];
+    var exported_masks: Array<Int> = [];
+    var deferred_uses: Array<Bool> = [];
+    var declared_effects: Array<Int> = [];
+    var known_call_effects: Array<Int> = [];
+    var unknown_call_effects: Array<Bool> = [];
+    var callable: Int = 0;
     while callable < callable_count {
         ArrayPush(callable_node_ids, state.callable_node_ids[callable]);
         ArrayPush(declared_masks, state.declared_masks[callable]);
@@ -181,8 +184,8 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
         ArrayPush(unknown_call_effects, false);
         callable = callable + 1;
     }
-    let program_used_mask: Int = 0;
-    let context: Int = 0;
+    var program_used_mask: Int = 0;
+    var context: Int = 0;
     while context < ArrayLength(instances.callable_rows) {
         callable = instances.callable_rows[context];
         let used: Int = instances.used_masks[context];
@@ -200,10 +203,10 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
         ArraySet(exported_masks, callable, SemanticCapabilityMaskJoin(declared_masks[callable], used_masks[callable]));
         callable = callable + 1;
     }
-    let contract_ok: Bool = true;
-    let diagnostic: String = "";
-    let diagnostic_code: String = "";
-    let first_node_id: Int = -1;
+    var contract_ok: Bool = true;
+    var diagnostic: String = "";
+    var diagnostic_code: String = "";
+    var first_node_id: Int = -1;
     callable = 0;
     while callable < function_count && contract_ok {
         if analysis.signatures.action_contracts.caps_node_ids[callable] >= 0 {
@@ -283,9 +286,9 @@ func SemanticAstCapabilityFactsReady(
         ArrayLength(facts.known_call_effects) != count ||
         ArrayLength(facts.unknown_call_effects) != count ||
         facts.instantiation_count < count + 1 || facts.instantiation_reuses < 0 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
-        let node_id: Int = -1;
+        var node_id: Int = -1;
         if row < function_count { node_id = analysis.signatures.function_node_ids[row]; }
         else {
             node_id = analysis.intent_signatures.intent_node_ids[row - function_count];
@@ -293,8 +296,8 @@ func SemanticAstCapabilityFactsReady(
         }
         if facts.deferred_uses[row] {
             if row >= function_count { return false; }
-            let has_parameter: Bool = false;
-            let parameter: Int = 0;
+            var has_parameter: Bool = false;
+            var parameter: Int = 0;
             while parameter < analysis.signatures.param_counts[row] {
                 if SemanticAstCallableTypeShapeFromName(
                     analysis.signatures.param_types[analysis.signatures.param_starts[row] + parameter]).ok {

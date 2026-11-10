@@ -18,9 +18,9 @@ func SemanticAstExpressionGraphSubtreeHolds(
 ) -> Bool {
     if root < target { return false; }
     // `pending[next..]` is the unvisited frontier; visited slots stay put.
-    let pending: Array<Int> = [root];
-    let next: Int = 0;
-    let budget: Int = SemanticExpressionGraphArenaNodeCount(graph.arena) + 1;
+    var pending: Array<Int> = [root];
+    var next: Int = 0;
+    var budget: Int = SemanticExpressionGraphArenaNodeCount(graph.arena) + 1;
     while next < ArrayLength(pending) && budget > 0 {
         let node: Int = pending[next];
         next = next + 1;
@@ -42,9 +42,9 @@ func SemanticAstExpressionGraphOwnerAstNode(
     ref facts: SemanticAstExpressionSurfaceFacts, target: Int
 ) -> Int {
     if !facts.ok || target < 0 { return 0 - 1; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.node_ids) {
-        let lane: Int = 0;
+        var lane: Int = 0;
         while lane < 3 {
             let root_index: Int = row * 3 + lane;
             if root_index < ArrayLength(facts.expression_graph.has_roots) &&

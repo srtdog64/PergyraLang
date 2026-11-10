@@ -11,7 +11,7 @@ struct Box {
 }
 
 func Grow(box: Box) -> Int {
-    let inner: Inner = UnwrapOption(box.inner);
+    var inner: Inner = UnwrapOption(box.inner);
     ArrayPush(inner.items, 9);
     ArrayPush(inner.items, 9);
     ArrayPush(inner.items, 9);

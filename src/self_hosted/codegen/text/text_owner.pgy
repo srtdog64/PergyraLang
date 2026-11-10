@@ -14,8 +14,8 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
     let n: Int = StringLength(text);
     let needle: String = Concat(callee, "(");
     let m: Int = StringLength(needle);
-    let i: Int = 0;
-    let in_str: Bool = false;
+    var i: Int = 0;
+    var in_str: Bool = false;
     while i < n {
         let c: Int = CodegenCharCodeAt(text, n, n, i);
         if in_str {
@@ -48,8 +48,8 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
 func ContainsOutsideStrings(text: String, needle: String) -> Bool {
     let n: Int = StringLength(text);
     let m: Int = StringLength(needle);
-    let i: Int = 0;
-    let in_str: Bool = false;
+    var i: Int = 0;
+    var in_str: Bool = false;
     while i < n {
         let c: Int = CodegenCharCodeAt(text, n, n, i);
         if in_str {
@@ -80,7 +80,7 @@ func ContainsOutsideStrings(text: String, needle: String) -> Bool {
 func TrySurfaceAllowedLineWithin(
     text: String, text_extent: Int, length: Int, start: Int, end: Int
 ) -> Bool {
-    let i: Int = start;
+    var i: Int = start;
     while i < end {
         let c: Int = CodegenCharCodeAt(text, text_extent, length, i);
         if c != 32 && c != 9 && c != 13 { break; }
@@ -96,9 +96,9 @@ func TrySurfaceAllowedLineWithin(
 
 func RejectUnsupportedCodegenBuiltins(tree_text: String) -> Void {
     let length: Int = StringLength(tree_text);
-    let line_start: Int = 0;
-    let i: Int = 0;
-    let in_string: Bool = false;
+    var line_start: Int = 0;
+    var i: Int = 0;
+    var in_string: Bool = false;
     while i < length {
         let c: Int = CodegenCharCodeAt(tree_text, length, length, i);
         if c == 10 {
@@ -111,7 +111,7 @@ func RejectUnsupportedCodegenBuiltins(tree_text: String) -> Void {
             in_string = true;
         } else if c == 40 && i + 1 < length &&
             CodegenCharCodeAt(tree_text, length, length, i + 1) == 63 {
-            let line_end: Int = i + 2;
+            var line_end: Int = i + 2;
             while line_end < length &&
                 CodegenCharCodeAt(tree_text, length, length, line_end) != 10 {
                 line_end = line_end + 1;
@@ -138,9 +138,9 @@ func IsIdentStart(c: String) -> Bool {
 // respecting nesting and string literals.
 func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int> {
     let n: Int = StringLength(s);
-    let i: Int = open_idx;
-    let depth: Int = 0;
-    let in_str: Bool = false;
+    var i: Int = open_idx;
+    var depth: Int = 0;
+    var in_str: Bool = false;
     while i < n {
         let c: String = CodegenCharAt(s, i);
         if in_str {
@@ -173,7 +173,7 @@ func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int> {
 // fully parenthesizes infix (`(("a" + b) + "c")`), which would hide top-level
 // operators behind depth > 0. Removes one wrapping layer at a time.
 func StripOuterParens(e: String) -> String {
-    let s: String = StringTrim(e);
+    var s: String = StringTrim(e);
     while StringLength(s) >= 2 && CodegenCharAt(s, 0) == "(" {
         let close: Option<Int> = FindMatchingParen(s, 0);
         if !IsSome(close) || UnwrapOption(close) != StringLength(s) - 1 {

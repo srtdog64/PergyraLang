@@ -10,7 +10,7 @@ func DirectMirScalarProgramCollectionExpressionKindFact(
         DirectMirScalarProgramExpressionKindFactInvalid();
     if source_kind == AstExpressionNodeIndex() && arity == 2 &&
             right_type == CompilerAbiLayoutIntTypeName() {
-        let kind: Int = 0; let type_name: String = "";
+        var kind: Int = 0; var type_name: String = "";
         if left_type == CompilerAbiLayoutArrayStringTypeName() {
             kind = DirectMirScalarProgramExprArrayStringIndex();
             type_name = CompilerAbiLayoutStringTypeName();
@@ -42,7 +42,7 @@ func DirectMirScalarProgramCollectionExpressionKindFact(
     }
     if source_kind == AstExpressionNodeEquality() ||
             source_kind == AstExpressionNodeInequality() {
-        let kind: Int = DirectMirScalarProgramExprEqualString();
+        var kind: Int = DirectMirScalarProgramExprEqualString();
         if source_kind == AstExpressionNodeInequality() {
             kind = DirectMirScalarProgramExprNotEqualString();
         }

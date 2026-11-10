@@ -1,0 +1,18 @@
+// One exact row lookup over the transition owner's parallel identity vectors.
+// Missing and conflicting identities remain distinguishable to consumers.
+func DirectMirScalarProgramCollectionOwnershipTransitionRowIn(
+    ref routine_ordinals: Array<Int>, ref local_rows: Array<Int>,
+    routine: Int, local_row: Int
+) -> Int {
+    if ArrayLength(routine_ordinals) != ArrayLength(local_rows) { return -2; }
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(routine_ordinals) {
+        if routine_ordinals[row] == routine && local_rows[row] == local_row {
+            if found >= 0 { return -2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

@@ -9,7 +9,8 @@ func EmitAbilityBind(
     statements: SemanticAstStatementFacts,
     node_id: Int,
     env: CodegenTypeEnv,
-    subject_graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    subject_root_id: Int
 ) -> String {
     let party_name: String = CodegenSemanticBindPartyOrDie(
         statements, node_id
@@ -37,9 +38,9 @@ func EmitAbilityBind(
     }
     // docs/206 section 1: the slot borrows the subject, a `let` local.
     let subject_name: Option<String> = SemanticExpressionGraphNodeText(
-        subject_graph.graph, subject_graph.root_id);
-    let subject_c: String = "";
-    if subject_graph.ok && IsSome(subject_name) {
+        graph, subject_root_id);
+    var subject_c: String = "";
+    if IsSome(subject_name) {
         subject_c = TypeEnvBindingCName(env, UnwrapOption(subject_name));
     }
     if subject_c == "" {

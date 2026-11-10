@@ -11,13 +11,13 @@ import "owned_string_join_identity_unit.pgy";
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Log("expected source path and optional diagnostic mode"); Exit(2); }
-    let diagnostic: Bool = false;
-    let reassignment_mode: String = "";
-    let numeric_mode: String = "";
-    let allocator_mode: String = "";
-    let generic_default_mode: Bool = false;
-    let execution_context_mode: Bool = false;
-    let join_identity_mode: Bool = false;
+    var diagnostic: Bool = false;
+    var reassignment_mode: String = "";
+    var numeric_mode: String = "";
+    var allocator_mode: String = "";
+    var generic_default_mode: Bool = false;
+    var execution_context_mode: Bool = false;
+    var join_identity_mode: Bool = false;
     if ArrayLength(args) == 2 {
         if args[1] == "diagnostic" { diagnostic = true; }
         else if StartsWith(args[1], "owned-string-reassignment-") { reassignment_mode = args[1]; }
@@ -30,9 +30,9 @@ func Main() -> Void with caps env, io_read {
     }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("source parser refused"); Exit(2); }
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
-    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    var bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if join_identity_mode {
         if !bundle.verdict.ok || !InspectOwnedStringJoinIdentity(analysis) {
             Log("owned String join identity guards failed"); Exit(3);
@@ -81,8 +81,8 @@ func Main() -> Void with caps env, io_read {
         let value: Option<String> = TypedAstArenaValueText(artifact.arena, bundle.verdict.first_node_id);
         if IsSome(atom) { Log(Concat("body_atom=", UnwrapOption(atom))); }
         if IsSome(value) { Log(Concat("body_value=", UnwrapOption(value))); }
-        let ancestor: Int = bundle.verdict.first_node_id;
-        let remaining: Int = artifact.count;
+        var ancestor: Int = bundle.verdict.first_node_id;
+        var remaining: Int = artifact.count;
         while ancestor >= 0 && ancestor < artifact.count && remaining > 0 {
             if TypedAstArenaNodeKindIsCallable(artifact.arena, ancestor) {
                 let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, ancestor);

@@ -51,10 +51,10 @@ func ProgramExpressionGraphAppendIsolatedNode(
         node_kind < 0 || node_text == "" {
         return ProgramExpressionGraphAppend(false, -1, arena);
     }
-    let node_kinds: Array<Int> = arena.node_kinds;
-    let node_texts: Array<String> = arena.node_texts;
-    let left_children: Array<Int> = arena.left_children;
-    let right_children: Array<Int> = arena.right_children;
+    var node_kinds: Array<Int> = arena.node_kinds;
+    var node_texts: Array<String> = arena.node_texts;
+    var left_children: Array<Int> = arena.left_children;
+    var right_children: Array<Int> = arena.right_children;
     ArrayPush(node_kinds, node_kind);
     ArrayPush(node_texts, node_text);
     ArrayPush(left_children, 0);

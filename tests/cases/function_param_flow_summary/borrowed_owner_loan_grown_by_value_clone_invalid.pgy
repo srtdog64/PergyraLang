@@ -1,6 +1,7 @@
-// As borrowed_owner_loan_grown_landed_valid, but an Env holds Groups, which
-// hold Arrays, so Clone copies it only by value. No copy can stand in where
-// Borrow makes the loan, and the loan stays refused where it leaves.
+// As borrowed_owner_loan_grown_landed_valid, but Borrow also returns the
+// borrowed groups field. Groups hold Arrays, so the compiler cannot make the
+// complete result independent by copying only env.rows. The loan stays
+// refused instead of leaving an uncopyable borrowed field in the result.
 struct Group {
     items: Array<Int>;
 }
@@ -11,8 +12,7 @@ struct Env {
 }
 
 func Borrow(ref env: Env) -> Env {
-    let groups: Array<Group> = [];
-    return Env(env.rows, groups);
+    return Env(env.rows, env.groups);
 }
 
 func Append(inout env: Env, row: String) -> Void {

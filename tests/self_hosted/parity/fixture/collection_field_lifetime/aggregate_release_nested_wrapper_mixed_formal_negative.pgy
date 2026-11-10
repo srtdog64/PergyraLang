@@ -1,0 +1,40 @@
+// Fields carried from two different formals cannot jointly restore either
+// formal, even when the reconstructed result has the expected nominal type.
+struct MixedWrapperFacts {
+    names: Array<String>;
+    tags: Array<String>;
+}
+
+struct MixedWrapperAdmission { facts: MixedWrapperFacts; }
+
+func MixedWrapperBuild(
+    primary: MixedWrapperFacts, alternate: MixedWrapperFacts
+) -> MixedWrapperAdmission {
+    let names: Array<String> = primary.names;
+    let tags: Array<String> = alternate.tags;
+    ArrayPushOwnedString(names, "next");
+    return MixedWrapperAdmission(MixedWrapperFacts(names, tags));
+}
+
+func MixedWrapperForward(
+    primary: MixedWrapperFacts, alternate: MixedWrapperFacts
+) -> MixedWrapperFacts {
+    let update: MixedWrapperAdmission =
+        MixedWrapperBuild(primary, alternate);
+    primary = update.facts;
+    return primary;
+}
+
+func Main() -> Void {
+    let primary_names: Array<String> = [];
+    let primary_tags: Array<String> = [];
+    let alternate_names: Array<String> = [];
+    let alternate_tags: Array<String> = [];
+    let primary: MixedWrapperFacts =
+        MixedWrapperFacts(primary_names, primary_tags);
+    let alternate: MixedWrapperFacts =
+        MixedWrapperFacts(alternate_names, alternate_tags);
+    let updated: MixedWrapperFacts =
+        MixedWrapperForward(primary, alternate);
+    let count: Int = ArrayLength(updated.names);
+}

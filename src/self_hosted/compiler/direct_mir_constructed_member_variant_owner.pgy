@@ -17,7 +17,7 @@ func DirectMirConstructedMemberVariantDigest(
     ref fact: DirectMirConstructedMemberVariantFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(397L, fact.kind);
+    var hash: Long = DirectMirCfgHashString(397L, fact.kind);
     hash = DirectMirCfgHashInt(hash, fact.specialization_digest);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -38,7 +38,7 @@ func DirectMirConstructedMemberVariantFromPair(
     if !DirectMirConstructedMemberSpecializationPairFactReady(specialization) {
         Die("direct MIR constructed member specialization is invalid");
     }
-    let kind: String = "";
+    var kind: String = "";
     if specialization.outer_constructor == "Option" {
         kind = DirectMirConstructedMemberOptionVariant();
     } else if specialization.outer_constructor == "Array" {

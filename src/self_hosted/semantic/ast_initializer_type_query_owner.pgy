@@ -6,7 +6,7 @@ func SemanticAstInitializerTypesAllVerified(
     facts: SemanticAstInitializerTypeFacts
 ) -> Bool {
     if !facts.ok { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstInitializerTypeCount(facts) {
         if facts.verified[i] != 1 { return false; }
         i = i + 1;
@@ -18,7 +18,7 @@ func SemanticAstInitializerFirstDiagnosticCode(
     facts: SemanticAstInitializerTypeFacts
 ) -> String {
     if !facts.ok { return facts.diagnostic_code; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstInitializerTypeCount(facts) {
         if facts.verified[i] != 1 { return facts.diagnostic_codes[i]; }
         i = i + 1;
@@ -30,7 +30,7 @@ func SemanticAstInitializerFirstDiagnosticMessage(
     facts: SemanticAstInitializerTypeFacts
 ) -> String {
     if !facts.ok { return facts.diagnostic_message; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstInitializerTypeCount(facts) {
         if facts.verified[i] != 1 { return facts.diagnostic_messages[i]; }
         i = i + 1;
@@ -63,7 +63,7 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
         ArrayLength(facts.binding_indices) != n {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
             rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||

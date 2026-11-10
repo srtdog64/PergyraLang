@@ -6,6 +6,8 @@ import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/generic_instance_plan_owner.pgy";
 import "symbol_table_owner.pgy";
 import "direct_mir_identity_cell_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_array_int_abi_fact_owner.pgy";
 
 struct DirectMirRoutineInstanceSignatureFact {
     valid: Bool;
@@ -25,13 +27,25 @@ func DirectMirRoutineInstanceParameters(
     ref source: DirectMirRoutineParameterSetFact,
     types: SemanticAstSignatureTypeExpressionFacts,
     formals: Array<String>, actuals: Array<String>,
-    ref identity_cells: DirectMirIdentityCellFacts
+    ref identity_cells: DirectMirIdentityCellFacts,
+    ref option_int_abi: DirectMirOptionMatchAbiFact,
+    ref array_int_abi: MirAbiLayoutRowCapture
 ) -> DirectMirRoutineParameterSetFact {
-    let result: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFactInvalid();
-    let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    var names: Array<String> = [];
+    var source_syntax_ids: Array<Int> = [];
+    var type_names: Array<String> = [];
+    var carriages: Array<String> = [];
+    var resources: Array<String> = [];
+    var pass_shapes: Array<String> = [];
+    var abi_type_names: Array<String> = [];
+    var abi_layout_ids: Array<Int> = [];
+    var parameter_abi_required: Array<Bool> = [];
+    var abi_row_keys: Array<String> = [];
+    var param_digests: Array<Int> = [];
+    var first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
     if !DirectMirRoutineParameterSetFactReady(source) || !types.ok ||
         ArrayLength(types.parameter_roots) != ArrayLength(source.names) { return DirectMirRoutineParameterSetFactInvalid(); }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(source.names) {
         let resolved: Option<String> = SemanticAstSignatureTypeExpressionResolveRoot(
             types, types.parameter_roots[row], 0, ArrayLength(formals),
@@ -39,60 +53,132 @@ func DirectMirRoutineInstanceParameters(
             actuals.Slice(0, ArrayLength(actuals)));
         if !IsSome(resolved) { return DirectMirRoutineParameterSetFactInvalid(); }
         let type_name: String = UnwrapOption(resolved);
+        var carriage: String = source.carriages[row];
+        var pass_shape: String = source.pass_shapes[row];
+        var abi_layout_id: Int = source.abi_layout_ids[row];
+        var abi_required: Bool = source.abi_required[row];
+        var abi_row_key: String = source.abi_row_keys[row];
+        var projected_abi: MirAbiLayoutRowCapture =
+            InvalidMirAbiLayoutRowCapture();
+        let option_int_projection: Bool = type_name !=
+                source.type_names[row] &&
+            type_name == CompilerAbiLayoutOptionIntTypeName() &&
+            DirectMirOptionMatchAbiFactReady(option_int_abi);
+        let array_int_projection: Bool = type_name !=
+                source.type_names[row] &&
+            type_name == CompilerAbiLayoutArrayIntTypeName() &&
+            DirectMirArrayIntCapturedAbiReady(array_int_abi);
+        let identity_projection: Bool = type_name != source.type_names[row] &&
+            DirectMirIdentityCellRow(identity_cells, type_name) >= 0;
         if type_name != source.type_names[row] {
-            // The current shared scalar planner owns these direct value ABIs.
-            // A composite/identity actual needs its own concrete ABI receipt;
-            // substituting its spelling cannot turn it into a scalar value.
+            // Scalar and captured aggregate ABIs retain their source transport.
+            // A generic value resolved to an identity cell instead adopts the
+            // same canonical indirect carriage as a non-generic cell parameter.
             if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
-                    DirectMirIdentityCellRow(identity_cells, type_name) < 0) || source.abi_required[row] ||
+                    DirectMirIdentityCellRow(identity_cells, type_name) < 0 &&
+                    !option_int_projection && !array_int_projection) ||
+                source.abi_required[row] ||
                 source.abi_layout_ids[row] != 0 || source.abi_row_keys[row] != "" ||
                 source.resources[row] != "none" || source.pass_shapes[row] != "direct" ||
                 (source.carriages[row] != "value" && source.carriages[row] != "value-result") ||
                 (DirectMirIdentityCellRow(identity_cells, type_name) >= 0 && source.carriages[row] != "value") {
                 return DirectMirRoutineParameterSetFactInvalid();
             }
+            if identity_projection {
+                carriage = "mutable-identity";
+                pass_shape = "indirect";
+            }
+            if option_int_projection {
+                projected_abi = DirectMirOptionMatchAbiCapture(option_int_abi);
+                abi_layout_id = option_int_abi.layout_id;
+                abi_required = true;
+                abi_row_key = DirectMirAbiRowIdentityText(projected_abi);
+                if !projected_abi.valid || abi_row_key == "" {
+                    return DirectMirRoutineParameterSetFactInvalid();
+                }
+            }
+            if array_int_projection {
+                abi_layout_id = MirAbiLayoutIdFromCapture(array_int_abi);
+                abi_required = true;
+                abi_row_key = DirectMirAbiRowIdentityText(array_int_abi);
+                // A projected first parameter would have to own a retained
+                // copy of this borrowed ABI row. The general route currently
+                // needs only method value parameters, whose receiver is row 0.
+                if row == 0 || abi_layout_id <= 0 || abi_row_key == "" {
+                    return DirectMirRoutineParameterSetFactInvalid();
+                }
+            }
         }
-        ArrayPush(result.names, source.names[row]);
-        ArrayPush(result.source_syntax_ids, source.source_syntax_ids[row]);
-        ArrayPush(result.type_names, type_name);
-        ArrayPush(result.carriages, source.carriages[row]);
-        ArrayPush(result.resources, source.resources[row]);
-        ArrayPush(result.pass_shapes, source.pass_shapes[row]);
-        ArrayPush(result.abi_type_names, type_name);
-        ArrayPush(result.abi_layout_ids, source.abi_layout_ids[row]);
-        ArrayPush(result.abi_required, source.abi_required[row]);
-        ArrayPush(result.abi_row_keys, source.abi_row_keys[row]);
+        ArrayPush(names, source.names[row]);
+        ArrayPush(source_syntax_ids, source.source_syntax_ids[row]);
+        ArrayPush(type_names, type_name);
+        ArrayPush(carriages, carriage);
+        ArrayPush(resources, source.resources[row]);
+        ArrayPush(pass_shapes, pass_shape);
+        ArrayPush(abi_type_names, type_name);
+        ArrayPush(abi_layout_ids, abi_layout_id);
+        ArrayPush(parameter_abi_required, abi_required);
+        ArrayPush(abi_row_keys, abi_row_key);
         let digest: Int = DirectMirRoutineParamFactDigestFromFields(source.names[row],
-            source.source_syntax_ids[row], type_name, source.carriages[row], source.resources[row],
-            source.pass_shapes[row], type_name, source.abi_layout_ids[row], source.abi_required[row]);
-        ArrayPush(result.param_digests, digest);
+            source.source_syntax_ids[row], type_name, carriage, source.resources[row],
+            pass_shape, type_name, abi_layout_id, abi_required);
+        ArrayPush(param_digests, digest);
         if row == 0 {
             // The retained first-parameter layout is reused only when its type
             // is unchanged; a scalar substitution has canonical empty layout.
             let original: DirectMirRoutineParamFact = DirectMirRoutineParamFactWithDigest(source.first, source.first.digest);
+            var first_abi: MirAbiLayoutRowCapture = original.abi;
+            if option_int_projection { first_abi = projected_abi; }
             first = DirectMirRoutineParamFact(true, digest, original.name, original.source_syntax_id,
-                type_name, original.carriage, original.resource, original.pass_shape,
-                type_name, original.abi_layout_id, original.abi_required, original.abi);
+                type_name, carriage, original.resource, pass_shape,
+                type_name, abi_layout_id, abi_required, first_abi);
         }
         row = row + 1;
     }
     let projected: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(true, 0,
-        result.names, result.source_syntax_ids, result.type_names, result.carriages, result.resources,
-        result.pass_shapes, result.abi_type_names, result.abi_layout_ids, result.abi_required,
-        result.abi_row_keys, result.param_digests, first);
+        names, source_syntax_ids, type_names, carriages, resources,
+        pass_shapes, abi_type_names, abi_layout_ids, parameter_abi_required,
+        abi_row_keys, param_digests, first);
     let sealed: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(true,
-        DirectMirRoutineParameterSetFactDigest(projected), result.names, result.source_syntax_ids,
-        result.type_names, result.carriages, result.resources, result.pass_shapes, result.abi_type_names,
-        result.abi_layout_ids, result.abi_required, result.abi_row_keys, result.param_digests, first);
+        DirectMirRoutineParameterSetFactDigest(projected), names, source_syntax_ids,
+        type_names, carriages, resources, pass_shapes, abi_type_names,
+        abi_layout_ids, parameter_abi_required, abi_row_keys, param_digests, first);
     if !DirectMirRoutineParameterSetFactReady(sealed) { return DirectMirRoutineParameterSetFactInvalid(); }
     return sealed;
+}
+
+func DirectMirRoutineInstanceOptionIntAbiFromProgram(
+    ref routines: MirProgramRoutineIndex
+) -> DirectMirOptionMatchAbiFact {
+    var fact: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFactEmpty();
+    var row: Int = 0;
+    while row < ArrayLength(routines.instruction_starts) {
+        if routines.instruction_abi_type_names[row] ==
+                CompilerAbiLayoutOptionIntTypeName() {
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionScalarCaptureWithin(
+                    routines.source_json, routines.source_json_extent,
+                    routines.instruction_starts[row],
+                    routines.instruction_ends[row]);
+            if !capture.valid {
+                return DirectMirOptionMatchAbiFactEmpty();
+            }
+            fact = DirectMirScalarProgramOptionIntAbiFromInstruction(
+                fact, routines.source_json, routines.source_json_extent,
+                capture);
+        }
+        row = row + 1;
+    }
+    return fact;
 }
 
 func DirectMirRoutineInstanceSignatureFromClosure(
     ref routines: MirProgramRoutineIndex,
     ref occurrences: MirGenericCallOccurrenceIndex,
     ref closure: GenericInstanceClosure, instance: Int,
-    ref identity_cells: DirectMirIdentityCellFacts
+    ref identity_cells: DirectMirIdentityCellFacts,
+    ref option_int_abi: DirectMirOptionMatchAbiFact,
+    ref array_int_abi: MirAbiLayoutRowCapture
 ) -> DirectMirRoutineInstanceSignatureFact {
     if !occurrences.valid || !closure.valid || !DirectMirIdentityCellFactsReady(identity_cells) || instance < 0 ||
         instance >= ArrayLength(closure.template_rows) {
@@ -104,8 +190,8 @@ func DirectMirRoutineInstanceSignatureFromClosure(
         occurrences.templates.syntax_ids[row] != ToInt(routines.source_syntax_ids[row]) {
         return DirectMirRoutineInstanceSignatureError("generic routine instance declaration identity is crossed");
     }
-    let formals: Array<String> = [];
-    let formal: Int = 0;
+    var formals: Array<String> = [];
+    var formal: Int = 0;
     while formal < occurrences.templates.generic_counts[row] {
         ArrayPush(formals, occurrences.templates.generic_names[
             occurrences.templates.generic_starts[row] + formal]);
@@ -128,19 +214,27 @@ func DirectMirRoutineInstanceSignatureFromClosure(
         types, 0, 0, ArrayLength(formals),
         formals.Slice(0, ArrayLength(formals)),
         actuals.Slice(0, ArrayLength(actuals)));
-    if !IsSome(return_type) || (UnwrapOption(return_type) != source.return_type &&
-            !DirectMirScalarCfgScalarTypeSupported(UnwrapOption(return_type))) {
+    let concrete_return: Bool = IsSome(return_type) &&
+        (UnwrapOption(return_type) == source.return_type ||
+         DirectMirScalarCfgScalarTypeSupported(UnwrapOption(return_type)) ||
+         (UnwrapOption(return_type) == CompilerAbiLayoutOptionIntTypeName() &&
+          DirectMirOptionMatchAbiFactReady(option_int_abi)) ||
+         (UnwrapOption(return_type) == CompilerAbiLayoutArrayIntTypeName() &&
+          DirectMirArrayIntCapturedAbiReady(array_int_abi)));
+    if !concrete_return {
         return DirectMirRoutineInstanceSignatureError("generic routine instance return ABI requires a concrete non-scalar receipt");
     }
     let parameters: DirectMirRoutineParameterSetFact = DirectMirRoutineInstanceParameters(
-        source.parameters, types, formals, actuals, identity_cells);
+        source.parameters, types, formals, actuals, identity_cells,
+        option_int_abi, array_int_abi);
     if !DirectMirRoutineParameterSetFactReady(parameters) {
         return DirectMirRoutineInstanceSignatureError("generic routine instance parameter ABI requires a concrete non-scalar receipt");
     }
     let name: String = CompilerSymbolCGenericSpecializationName(
-        CompilerSymbolCQualifiedName(routines.owners[row], source.name), actuals);
-    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(true, 0,
-        row, name, source.kind, source.source_syntax_id, source.receiver_carriage,
+        source.name, actuals);
+    var signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(true, 0,
+        row, name, source.kind, source.source_syntax_id,
+        source.source_parameter_offset, source.receiver_carriage,
         source.receiver_owner_row, source.receiver_type,
         UnwrapOption(return_type), source.param_count, parameters, parameters.first);
     signature = DirectMirRoutineSignatureFactWithDigest(signature, DirectMirRoutineSignatureFactDigest(signature));

@@ -5,7 +5,7 @@ func Copy(ref rows: HashMap<String, Array<Int>>) -> HashMap<String, Array<Int>> 
 }
 
 func Main() -> Int {
-    let a: HashMap<String, Array<Int>> = MapNew();
+    var a: HashMap<String, Array<Int>> = MapNew();
     MapSet(a, "k", [1]);
     let b: HashMap<String, Array<Int>> = Copy(a);
     Print(ToString(MapSize(b)));

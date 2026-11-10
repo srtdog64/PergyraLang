@@ -30,6 +30,24 @@ for producer in native codegen; do
     tr -d '\r' <"$B/$producer.actual" >"$B/$producer.normalized"
     cmp "$B/expected.txt" "$B/$producer.normalized" || fail "$producer value drifted"
 done
+SOURCE=tests/self_hosted/parity/fixture/nested_nominal_clone.pgy
+"$PGY" --native-pipeline --emit-c "$SOURCE" -o "$B/nested-native.c" \
+    >"$B/nested-native.out" 2>"$B/nested-native.err" ||
+    fail "native rejected the nested nominal Clone control"
+if ! "$CODEGEN" --source "$SOURCE" \
+        >"$B/nested-codegen.c" 2>"$B/nested-codegen.err"; then
+    sed -n '1,40p' "$B/nested-codegen.c" "$B/nested-codegen.err" >&2
+    fail "codegen rejected the nested nominal Clone control"
+fi
+printf '7\n' >"$B/nested-expected.txt"
+for producer in nested-native nested-codegen; do
+    compile_c_artifact_with_bounded_log "$producer" "$B/$producer.c" \
+        "$B/$producer.exe" || { sed -n '1,80p' "$B/${producer}_cc.log" >&2; fail "$producer Clone C did not compile"; }
+    "$B/$producer.exe" | tr -d '\r' >"$B/$producer.actual" ||
+        fail "$producer Clone execution failed"
+    cmp "$B/nested-expected.txt" "$B/$producer.actual" ||
+        fail "$producer Clone value drifted"
+done
 SOURCE=tests/self_hosted/parity/fixture/mir_collection_receiver_root.pgy
 if ! "$PGY" --native-pipeline --emit-c "$SOURCE" -o "$B/root-native.c" \
         >"$B/root-native.out" 2>"$B/root-native.err"; then
@@ -43,7 +61,7 @@ if ! "$CODEGEN" --source "$SOURCE" >"$B/root-codegen.c" 2>"$B/root-codegen.err";
     sed -n '1,40p' "$B/root-codegen.c" "$B/root-codegen.err" >&2
     fail "codegen rejected the MIR root control"
 fi
-printf '1\ndeclaration:200:0\n1\nfalse\nfalse\nfalse\n' >"$B/root-expected.txt"
+printf 'true\ntrue\ntrue\ntrue\n1\ndeclaration:200:0\n1\nfalse\ntrue\ntrue\n' >"$B/root-expected.txt"
 for producer in native codegen; do
     compile_c_artifact_with_bounded_log "root-$producer" "$B/root-$producer.c" \
         "$B/root-$producer.exe" || { sed -n '1,80p' "$B/root-${producer}_cc.log" >&2; fail "$producer MIR root control did not compile"; }
@@ -69,4 +87,4 @@ for fixture in cyclic_value_declarations cyclic_result_value_declaration cyclic_
     fi
     [[ ! -e "$B/$fixture.c" ]] || fail "native published invalid C"
 done
-echo "[codegen-nominal-array-declaration] 4 executions and 8 pre-emission refusals: PASS ($B)"
+echo "[codegen-nominal-array-declaration] 6 executions and 8 pre-emission refusals: PASS ($B)"

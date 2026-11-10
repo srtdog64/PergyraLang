@@ -20,7 +20,7 @@ func Capture(ref graph: Graph, i: Int, inout captured: Array<String>, capture: B
         return Fact(false, "", 0);
     }
     let nested: Fact = Capture(graph, i + 1, captured, false);
-    let actual: String = "Unknown";
+    var actual: String = "Unknown";
     if nested.applies {
         actual = nested.name;
     } else {
@@ -34,7 +34,7 @@ func Capture(ref graph: Graph, i: Int, inout captured: Array<String>, capture: B
 
 func Main() -> Int {
     let g: Graph = Graph(["a", "b"]);
-    let captured: Array<String> = [];
+    var captured: Array<String> = [];
     let f: Fact = Capture(g, 0, captured, true);
     Print(f.name);
     Print(ToString(f.start));

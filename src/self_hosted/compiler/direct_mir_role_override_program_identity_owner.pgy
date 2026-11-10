@@ -81,7 +81,7 @@ func DirectMirRoleOverrideFamilyClaimed(
         MirProgramDeclarationIndexCount(admitted.routines.declarations) != 2 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.declarations.kinds[row] == "role" ||
             admitted.routines.declarations.nominal_kinds[row] == "role" {
@@ -122,8 +122,8 @@ func DirectMirRoleOverrideDeclarationMethodName(
     );
     let params: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(method, "params");
-    let parameter_shape: Bool = !JsonObjectFactHasField(method, "params");
-    let expected_count: Int = 5;
+    var parameter_shape: Bool = !JsonObjectFactHasField(method, "params");
+    var expected_count: Int = 5;
     if role_owned {
         parameter_shape = DirectMirExactObjectArrayCount(params, 0);
         expected_count = 6;
@@ -153,9 +153,9 @@ func DirectMirRoleOverrideGraphIdentitiesMatch(
         ArrayLength(sequence.arena.identities.binding_ordinals) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
-        let expected_target_id: Int = 0;
+        var expected_target_id: Int = 0;
         if row == target_row { expected_target_id = target_syntax_id; }
         if sequence.arena.identities.call_target_syntax_ids[row] !=
                 expected_target_id ||
@@ -496,7 +496,7 @@ func DirectMirRoleOverrideProgramIdentityDigest(
     ref identity: DirectMirRoleOverrideProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(761L, identity.subject_name);
+    var hash: Long = DirectMirCfgHashString(761L, identity.subject_name);
     hash = DirectMirCfgHashInt(hash, identity.subject_row);
     hash = DirectMirCfgHashInt(hash, identity.role_row);
     hash = DirectMirCfgHashString(hash, identity.role_name);
@@ -536,9 +536,9 @@ func DirectMirRoleOverrideSourceSyntaxIdsUnique(
         identity.role_method.source_syntax_id,
         identity.entrypoint.source_syntax_id
     ];
-    let left: Int = 0;
+    var left: Int = 0;
     while left < ArrayLength(source_syntax_ids) {
-        let right: Int = left + 1;
+        var right: Int = left + 1;
         while right < ArrayLength(source_syntax_ids) {
             if source_syntax_ids[left] == source_syntax_ids[right] {
                 return false;
@@ -617,9 +617,9 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
         !MirProgramRoutineIndexStructureReady(admitted.routines) {
         Die("direct MIR role override program envelope is invalid");
     }
-    let subject_row: Int = -1;
-    let role_row: Int = -1;
-    let row: Int = 0;
+    var subject_row: Int = -1;
+    var role_row: Int = -1;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.declarations.kinds[row] == "class" &&
             admitted.routines.declarations.nominal_kinds[row] == "subject" {
@@ -711,9 +711,9 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
     if subject_method_name == "" || subject_method_name != role_method_name {
         Die("direct MIR role override method declarations disagree");
     }
-    let subject_routine_row: Int = -1;
-    let role_routine_row: Int = -1;
-    let main_row: Int = -1;
+    var subject_routine_row: Int = -1;
+    var role_routine_row: Int = -1;
+    var main_row: Int = -1;
     row = 0;
     while row < 3 {
         if admitted.routines.kinds[row] == "method" &&

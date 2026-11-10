@@ -1,0 +1,13 @@
+func Work(n: Int) -> Int {
+    if n > 0 { return StringLength(Concat("abcdef", "ghij")); }
+    return StringLength(StringConcat("abcdef", "ghij"));
+}
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 20 {
+        total = total + Work(i);
+        i = i + 1;
+    }
+    Log(total);
+}

@@ -95,7 +95,7 @@ func CompilerSandboxBoundaryRuleAt(index: Int) -> String {
 }
 
 func CompilerSandboxCapabilityKnown(capability: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSandboxCapabilityCount() {
         if CompilerSandboxCapabilityAt(i) == capability {
             return true;
@@ -106,7 +106,7 @@ func CompilerSandboxCapabilityKnown(capability: String) -> Bool {
 }
 
 func CompilerSandboxFrameBudgetKnown(budget: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSandboxFrameBudgetCount() {
         if CompilerSandboxFrameBudgetAt(i) == budget {
             return true;
@@ -117,7 +117,7 @@ func CompilerSandboxFrameBudgetKnown(budget: String) -> Bool {
 }
 
 func CompilerSandboxAmbientRuleKnown(rule: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSandboxAmbientRuleCount() {
         if CompilerSandboxAmbientRuleAt(i) == rule {
             return true;
@@ -128,7 +128,7 @@ func CompilerSandboxAmbientRuleKnown(rule: String) -> Bool {
 }
 
 func CompilerSandboxBoundaryRuleKnown(rule: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerSandboxBoundaryRuleCount() {
         if CompilerSandboxBoundaryRuleAt(i) == rule {
             return true;

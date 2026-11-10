@@ -167,7 +167,7 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
             false, NULL, NULL);
         if (!ctx->has_error && type_equals(ret_type, TYPE_STRING))
-            semantic_indexed_string_borrow_call_argument(value, NULL, NULL, 0, false, ctx);
+            semantic_indexed_string_borrow_return_value(value, node, ctx);
     }
 
     if (value != NULL

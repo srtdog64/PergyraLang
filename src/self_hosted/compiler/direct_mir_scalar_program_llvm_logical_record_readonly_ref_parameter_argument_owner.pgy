@@ -24,7 +24,7 @@ func DirectMirScalarProgramLlvmLogicalRecordParameterCallArgument(
             "%pgy.readonly.value.", ToString(argument_node));
         let type_name: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
             logical_record, expressions.node_types[argument_node]);
-        let instructions: String = Concat("  ", Concat(pointer,
+        var instructions: String = Concat("  ", Concat(pointer,
             Concat(" = alloca ", Concat(type_name, "\n"))));
         instructions = Concat(instructions, "  store ");
         instructions = Concat(instructions, type_name);

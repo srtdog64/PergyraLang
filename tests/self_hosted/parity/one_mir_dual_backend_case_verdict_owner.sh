@@ -69,4 +69,50 @@ cmp -s "$LLVM_ARTIFACT" "$WORK_DIR/$CASE.id-relabel.ll" ||
     fail "$CASE LLVM artifact changed under unreferenced ID relabel"
 MIR_ARTIFACT="$original_mir"
 
-echo "[$LABEL] hello + let_log + multilet one-MIR dual-backend gate ok"
+select_case owner_handle_array_push \
+    "$ROOT_DIR/tests/self_hosted/fixtures/direct_mir_owner_handle_array_push.pgy"
+run_positive_case '1'
+grep -Fq '"carriage":"owner-handle"' "$MIR_ARTIFACT" ||
+    fail "owner-handle array push lost its formal carriage"
+grep -Fq '"collection_mutation_target_graph":{' "$MIR_ARTIFACT" ||
+    fail "owner-handle array push lost its target identity"
+mutation="$(make_mutation owner_handle_carriage \
+    's/"carriage":"owner-handle"/"carriage":"value"/' \
+    '"carriage":"value"')"
+expect_rejected_without_artifact owner_handle_carriage "$mutation" \
+    'MIR-JSON|routine signature|owner-handle|collection mutation|stage=statement'
+mutation="$(make_mutation owner_handle_pass \
+    's/"pass":"direct"/"pass":"indirect"/' \
+    '"pass":"indirect"')"
+expect_rejected_without_artifact owner_handle_pass "$mutation" \
+    'MIR-JSON|pass shape|owner-handle|collection mutation|stage=statement'
+mutation="$(make_mutation owner_handle_abi \
+    's/"abi_layout":{"type":"Array<String>","size":32,"align":8/"abi_layout":{"type":"Array<String>","size":32,"align":16/' \
+    '"type":"Array<String>","size":32,"align":16')"
+expect_rejected_without_artifact owner_handle_abi "$mutation" \
+    'MIR-JSON|ABI|layout|owner-handle|stage=statement|routine-instance|inventory signature|scalar program route'
+mutation="$(make_mutation owner_handle_receiver \
+    's/"binding_kind":"formal_parameter","binding_ordinal":0/"binding_kind":"formal_parameter","binding_ordinal":1/' \
+    '"binding_kind":"formal_parameter","binding_ordinal":1')"
+expect_rejected_without_artifact owner_handle_receiver "$mutation" \
+    'MIR-JSON|receiver|parameter|collection mutation|stage=statement'
+
+select_case owned_string_clone_array \
+    "$ROOT_DIR/tests/self_hosted/fixtures/direct_mir_owned_string_clone_array.pgy"
+run_positive_case '2'
+grep -Fq '"element_ownership":"owned-elements","disposition":"live","origin":"owned-literal"' \
+    "$MIR_ARTIFACT" || fail "owned String clone array lost its ownership fact"
+grep -Fq '"local_ref":"declaration:6:0"' "$MIR_ARTIFACT" ||
+    fail "owned String clone array lost its LocalRef identity"
+mutation="$(make_mutation owned_string_clone_origin \
+    '0,/"element_ownership":"owned-elements","disposition":"live","origin":"owned-literal"/s//"element_ownership":"unknown","disposition":"live","origin":"unknown"/' \
+    '"element_ownership":"unknown","disposition":"live","origin":"unknown"')"
+expect_rejected_without_artifact owned_string_clone_origin "$mutation" \
+    'ownership|LocalRef|replacement|owned-literal|scalar program route'
+mutation="$(make_mutation owned_string_clone_call_identity \
+    '0,/"call_target_name":"Clone"/s//"call_target_name":"NoSuchClone"/' \
+    '"call_target_name":"NoSuchClone"')"
+expect_rejected_without_artifact owned_string_clone_call_identity "$mutation" \
+    'Clone|call target|builtin-call|expression admission|scalar program route'
+
+echo "[$LABEL] hello + let_log + multilet + owner-handle array push + owned String clone array one-MIR dual-backend gate ok"

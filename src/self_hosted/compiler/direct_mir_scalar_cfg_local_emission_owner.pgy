@@ -5,12 +5,14 @@ import "direct_mir_scalar_cfg_llvm_local_emission_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
 import "direct_mir_scalar_program_c_option_string_owner.pgy";
 import "direct_mir_scalar_program_c_option_bool_owner.pgy";
-import "direct_mir_scalar_program_c_result_int_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
@@ -23,10 +25,17 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
         count != plan.routines.local_counts[routine] {
         Die("direct MIR scalar CFG C local range is invalid");
     }
-    let output: String = "";
-    let row: Int = start;
+    var output: String = "";
+    var row: Int = start;
     while row < start + count {
         let hashmap: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName(plan.local_types[row]); let runtime_value: CompilerRuntimeValueRepresentation = CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
+        let result_type: String = Concat("", plan.local_types[row]);
+        let scalar_result_type: String =
+            DirectMirScalarResultAbiCTypeName(result_type);
+        let enum_target_type: String =
+            DirectMirScalarProgramCReferencedEnumTargetType(
+                result_type, plan.program.logical_record,
+                plan.program.referenced_enum);
         output = Concat(output, "    ");
         if hashmap.ok { output = Concat(output, hashmap.c_value_type);
         } else if runtime_value.valid {
@@ -37,6 +46,8 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output, "bool");
         } else if plan.local_types[row] == CompilerAbiLayoutLongTypeName() {
             output = Concat(output, CompilerAbiLayoutLongCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutFloatTypeName() {
+            output = Concat(output, CompilerAbiLayoutFloatCValueType());
         } else if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() { output = Concat(output, CompilerAbiLayoutArrayStringCValueType());
         } else if plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() { output = Concat(output, CompilerAbiLayoutArrayIntCValueType());
         } else if plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() { output = Concat(output, CompilerAbiLayoutArrayBoolCValueType());
@@ -50,8 +61,10 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output, DirectMirScalarProgramCOptionStringTypeName());
         } else if plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() {
             output = Concat(output, DirectMirScalarProgramCOptionBoolTypeName());
-        } else if plan.local_types[row] == CompilerAbiLayoutResultIntTypeName() {
-            output = Concat(output, DirectMirScalarProgramCResultIntTypeName());
+        } else if scalar_result_type != "" {
+            output = Concat(output, scalar_result_type);
+        } else if enum_target_type != "" {
+            output = Concat(output, enum_target_type);
         } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
             output = Concat(output, DirectMirScalarProgramCLogicalRecordArrayTypeName(
@@ -69,11 +82,6 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output,
                 DirectMirScalarProgramCLogicalRecordOptionTypeName(
                     plan.program.logical_record, plan.local_types[row]));
-        } else if DirectMirScalarProgramPayloadEnumTypeReady(
-                plan.program.referenced_enum, plan.local_types[row]) {
-            output = Concat(output,
-                DirectMirScalarProgramCPayloadEnumTypeName(
-                    plan.program.referenced_enum, plan.local_types[row]));
         } else if DirectMirScalarProgramPayloadFreeEnumTypeReady(
                 plan.program.payload_free_enum, plan.local_types[row]) {
             output = Concat(output, CompilerAbiLayoutPayloadFreeEnumCValueType());
@@ -91,15 +99,14 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutOptionStringTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() ||
-            plan.local_types[row] == CompilerAbiLayoutResultIntTypeName() ||
+            scalar_result_type != "" ||
+            enum_target_type != "" ||
             DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) ||
             DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record, plan.local_types[row]) ||
             DirectMirScalarProgramLogicalRecordOptionTypeReady(
-                plan.program.logical_record, plan.local_types[row]) ||
-            DirectMirScalarProgramPayloadEnumTypeReady(
-                plan.program.referenced_enum, plan.local_types[row]);
+                plan.program.logical_record, plan.local_types[row]);
         if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, " = \"\";\n");
         } else if zero_aggregate {
@@ -116,10 +123,13 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             let carriage: String = plan.routines.parameter_carriages[
                 plan.routines.parameter_starts[routine] + parameter_ordinal];
             let owned_parameter: Bool = carriage == "owner-handle" &&
-                DirectMirScalarProgramOwnedDirectParameterTypeReady(
-                    plan.program.logical_record, plan.local_types[row]);
+                DirectMirScalarProgramOwnedDirectParameterTypeReadyWithReferencedEnum(
+                    plan.program.logical_record, plan.program.referenced_enum,
+                    plan.local_types[row]);
+            let readonly_hashmap: Bool = carriage == "readonly-ref" &&
+                hashmap.ok;
             if carriage != "value" && carriage != "value-result" &&
-                !owned_parameter {
+                !owned_parameter && !readonly_hashmap {
                 Die("direct MIR scalar CFG C parameter local is invalid");
             }
             output = Concat(output, "    pgy_local_");

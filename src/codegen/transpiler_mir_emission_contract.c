@@ -63,10 +63,21 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
 
     {
         char *topology_error = NULL;
-        if (!mir_validate_emission_contract(routine,
-                                           require_cleanup,
-                                           !require_cleanup_blocks,
-                                           &topology_error)) {
+        bool valid = mir_collection_effect_evidence_receipt_current(
+                ctx != NULL ? ctx->collection_effect_receipt : NULL,
+                routine != NULL ? routine->program : NULL)
+            ? mir_validate_emission_contract_with_receipt(
+                routine,
+                require_cleanup,
+                !require_cleanup_blocks,
+                ctx->collection_effect_receipt,
+                &topology_error)
+            : mir_validate_emission_contract(
+                routine,
+                require_cleanup,
+                !require_cleanup_blocks,
+                &topology_error);
+        if (!valid) {
             if (reason != NULL && reason_cap > 0) {
                 if (topology_error != NULL)
                     transpiler_mir_reasonf(reason, reason_cap, "%s", topology_error);

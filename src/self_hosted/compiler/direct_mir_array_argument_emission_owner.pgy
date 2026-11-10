@@ -39,7 +39,7 @@ func DirectMirArrayArgumentEmitC(
         nested_symbol == consumer_symbol {
         Die("direct MIR Array argument C symbols are invalid");
     }
-    let output: String =
+    var output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    ");
     output = Concat(output, abi.c_element_type);
@@ -134,7 +134,7 @@ func DirectMirArrayArgumentEmitLlvm(
     );
     let format_payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    var output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output, format_payload);

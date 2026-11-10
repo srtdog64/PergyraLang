@@ -11,10 +11,10 @@ import "expression_normalization_owner.pgy";
 func SemanticExpressionArithmeticSplitIndex(expr: String) -> Int {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let split_idx: Int = -1;
-    let split_op: String = "";
+    var i: Int = 0;
+    var depth: Int = 0;
+    var split_idx: Int = -1;
+    var split_op: String = "";
     while i < n {
         let c: String = CharAt(text, i);
         if c == "\"" {
@@ -47,7 +47,7 @@ func SemanticExpressionArithmeticSplitIndex(expr: String) -> Int {
             break;
         }
         if depth == 0 && c == "-" && CharAt(text, i + 1) != ">" {
-            let j: Int = i - 1;
+            var j: Int = i - 1;
             while j >= 0 && (CharAt(text, j) == " " || CharAt(text, j) == "\t") {
                 j = j - 1;
             }

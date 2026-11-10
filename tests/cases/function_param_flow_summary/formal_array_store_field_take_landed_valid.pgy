@@ -13,7 +13,7 @@ struct Source {
 }
 
 func Append(rows: Rows, source: Source) -> Rows {
-    let lists: Array<Array<Int>> = rows.lists;
+    var lists: Array<Array<Int>> = rows.lists;
     ArrayPush(lists, source.ids);
     return Rows(lists);
 }

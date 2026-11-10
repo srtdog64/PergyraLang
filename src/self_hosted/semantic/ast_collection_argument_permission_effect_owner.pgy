@@ -23,7 +23,7 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
     ref formal_modes: Array<Int>, descriptor_effects: HashMap<String, Int>
 ) -> SemanticAstCollectionArgumentPermissionEffect {
     let absent: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorFieldIdentity(true, 0, 0, "", -1, -1);
-    let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false, absent, false);
+    var effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false, absent, false);
     let escape: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorStorageEscapeField(
         artifact, constructors, locals, inferred_types, surfaces, surface, edge);
     if !escape.ok { return effect; }
@@ -38,13 +38,16 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
     let deep_drop: Bool = SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDropOwnedStrings");
     let releasing: Bool = SemanticAstCollectionBuiltinReleaseArgument(
         surfaces.expression_graph, edge.call_node, edge.ordinal);
-    if edge.ordinal >= 0 && (UnwrapOption(target) > 0 || declared || releasing) {
+    // Constructor fields already carry their storage-escape effect; a
+    // declaration ID does not turn them into an unknown callable formal.
+    if edge.ordinal >= 0 && effect.constructor_field.constructor_syntax_id == 0 &&
+        (UnwrapOption(target) > 0 || declared || releasing) {
         let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
         let key: String = ToString(formal);
-        let consuming: Bool = releasing;
+        var consuming: Bool = releasing;
         // A ref formal is a read-only borrow: both checkers refuse growth,
         // drops and moves through it, so it retires nothing of the argument.
-        let borrowed: Bool = false;
+        var borrowed: Bool = false;
         if MapHas(formal_rows, key) {
             let row: Int = MapGet(formal_rows, key);
             if row < 0 || row >= ArrayLength(formal_modes) { return effect; }

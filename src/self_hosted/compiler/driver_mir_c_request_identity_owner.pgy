@@ -1,0 +1,130 @@
+// MIR-to-C request and payload identity protocol.
+
+import "driver_rung2_execution_protocol_owner.pgy";
+
+enum DriverRung2MirCMachineRequest {
+    MirCDefaultMachine,
+    MirCManifestVerified(SelfHostMachineLayerDeclaration),
+}
+
+struct DriverRung2MirCPayloadRequestIdentity {
+    let observation_mode: String;
+    let machine_mode: String;
+    let machine_manifest_id: String;
+    let machine_manifest_fingerprint: String;
+}
+
+tobject DriverRung2MirCPayloadReceipt {
+    schema: String;
+    observation_mode: String;
+    machine_mode: String;
+    mir_json_path: String;
+    machine_manifest_id: String;
+    machine_manifest_fingerprint: String;
+    target_projection: CompilerTargetProjectionFact;
+    artifact: CompilerEmissionArtifact;
+}
+
+tobject DriverRung2MirCPayloadRejection {
+    schema: String;
+    observation_mode: String;
+    machine_mode: String;
+    mir_json_path: String;
+    machine_manifest_id: String;
+    machine_manifest_fingerprint: String;
+    target_projection: String;
+    diagnostic: String;
+}
+
+enum DriverRung2MirCPayloadAdmission {
+    DriverRung2MirCPayloadAdmitted(DriverRung2MirCPayloadReceipt),
+    DriverRung2MirCPayloadDenied(DriverRung2MirCPayloadRejection),
+}
+
+func DriverRung2MirCObservationMode(
+    request: DriverRung2MirCRequest
+) -> String {
+    match request {
+        case MirCVerified: return "verified";
+        case MirCPressureObserved: return "pressure-observed";
+    }
+}
+
+func DriverRung2MirCMachineMode(
+    request: DriverRung2MirCMachineRequest
+) -> String {
+    match request {
+        case MirCDefaultMachine: return "default";
+        case MirCManifestVerified(declaration): return "manifest-verified";
+    }
+}
+
+func DriverRung2MirCMachineDeclaration(
+    request: DriverRung2MirCMachineRequest
+) -> SelfHostMachineLayerDeclaration {
+    match request {
+        case MirCDefaultMachine: return SelfHostMachineLayerDeclarationEmpty();
+        case MirCManifestVerified(declaration): return declaration;
+    }
+}
+
+func DriverRung2MirCManifestId(
+    request: DriverRung2MirCMachineRequest
+) -> String {
+    match request {
+        case MirCDefaultMachine: return "";
+        case MirCManifestVerified(declaration): return declaration.manifest_id;
+    }
+}
+
+func DriverRung2MirCManifestFingerprint(
+    request: DriverRung2MirCMachineRequest
+) -> String {
+    match request {
+        case MirCDefaultMachine: return "";
+        case MirCManifestVerified(declaration):
+            return declaration.manifest_fingerprint;
+    }
+}
+
+func DriverRung2MirCPayloadRequestIdentitySnapshot(
+    ref observation_request: DriverRung2MirCRequest,
+    ref machine_request: DriverRung2MirCMachineRequest
+) -> DriverRung2MirCPayloadRequestIdentity {
+    return DriverRung2MirCPayloadRequestIdentity(
+        DriverRung2MirCObservationMode(observation_request),
+        DriverRung2MirCMachineMode(machine_request),
+        Concat("", DriverRung2MirCManifestId(machine_request)),
+        Concat("", DriverRung2MirCManifestFingerprint(machine_request))
+    );
+}
+
+func DriverRung2MirCObservationModeReady(mode: String) -> Bool {
+    return mode == "verified" || mode == "pressure-observed";
+}
+
+func DriverRung2MirCMachineIdentityReady(
+    mode: String,
+    manifest_id: String,
+    manifest_fingerprint: String
+) -> Bool {
+    if mode == "default" {
+        return manifest_id == "" && manifest_fingerprint == "";
+    }
+    if mode == "manifest-verified" {
+        return manifest_id != "" && manifest_fingerprint != "";
+    }
+    return false;
+}
+
+func DriverRung2MirCPayloadRequestIdentityReady(
+    ref identity: DriverRung2MirCPayloadRequestIdentity
+) -> Bool {
+    return DriverRung2MirCObservationModeReady(identity.observation_mode) &&
+        DriverRung2MirCMachineIdentityReady(
+            identity.machine_mode,
+            identity.machine_manifest_id,
+            identity.machine_manifest_fingerprint
+        );
+}
+

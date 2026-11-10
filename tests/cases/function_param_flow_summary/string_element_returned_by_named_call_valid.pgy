@@ -2,8 +2,8 @@
 // Main's names to kept. The loan stays in Main and nothing changes names
 // while it lives, so the call is admitted.
 func Names(n: Int) -> Array<String> {
-    let out: Array<String> = [];
-    let i: Int = 0;
+    var out: Array<String> = [];
+    var i: Int = 0;
     while i < n {
         ArrayPush(out, ToString(i));
         i = i + 1;

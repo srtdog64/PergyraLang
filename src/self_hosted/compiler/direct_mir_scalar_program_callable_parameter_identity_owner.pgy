@@ -8,8 +8,8 @@ func DirectMirScalarProgramCallableParameterOrdinalBySyntaxId(
     if !DirectMirRoutineSignatureFactReady(signature) || syntax_id <= 0 {
         return -1;
     }
-    let found: Int = -1;
-    let ordinal: Int = 0;
+    var found: Int = -1;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         if signature.parameters.source_syntax_ids[ordinal] == syntax_id {
             if found >= 0 ||

@@ -1,0 +1,23 @@
+func OwnedOptional(value: String, found: Bool) -> Option<String> {
+    if found {
+        return Some(Substring(value, 0, StringLength(value)));
+    }
+    return None;
+}
+
+func OwnedText(value: String, found: Bool) -> String {
+    let candidate: Option<String> = OwnedOptional(value, found);
+    if IsSome(candidate) {
+        return UnwrapOption(candidate);
+    }
+    return Concat("fallback", " value");
+}
+
+func Main() -> Void {
+    var rows: Array<String> = [];
+    ArrayPush(rows, OwnedText("owned value", true));
+    ArrayPush(rows, OwnedText("unused", false));
+    Log(rows[0]);
+    Log(rows[1]);
+    ArrayDropOwnedStrings(rows);
+}

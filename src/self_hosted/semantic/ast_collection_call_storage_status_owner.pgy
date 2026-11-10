@@ -1,0 +1,37 @@
+// Classifies the current argument generation at one call entry.
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_owned_generation_order_owner.pgy";
+
+struct SemanticAstCollectionCallStorageStatus {
+    borrowed: Bool,
+    owned: Bool,
+    repeated_fresh_generation: Bool
+}
+
+func SemanticAstCollectionCallStorageStatusAtUse(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts, syntax_id: Int,
+    ref binding: SemanticAstLocalBindingIdentity,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    ref call_effects: SemanticAstCollectionCallEffectFacts
+) -> SemanticAstCollectionCallStorageStatus {
+    if !binding.ok {
+        return SemanticAstCollectionCallStorageStatus(false, false, false);
+    }
+    let definition: Int = current_definitions[binding.row];
+    let borrowed: Bool =
+        SemanticAstCollectionDefinitionShallowAliasAdmitted(
+            definitions, definition) &&
+        SemanticAstCollectionDefinitionStorageBorrowed(storage, definition);
+    let owned: Bool = SemanticAstCollectionDefinitionStorageSource(
+        storage, definitions, binding.row, definition) > 0;
+    var repeated: Bool = false;
+    if owned && call_effects.first_retiring_sites[binding.row] == 0 {
+        repeated = SemanticAstCollectionFreshLocalGenerationAtUse(
+            artifact, locals, definitions, binding.row, definition,
+            syntax_id, false);
+    }
+    return SemanticAstCollectionCallStorageStatus(borrowed, owned, repeated);
+}

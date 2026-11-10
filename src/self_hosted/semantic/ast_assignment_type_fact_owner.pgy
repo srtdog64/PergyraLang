@@ -7,6 +7,7 @@ import "ast_assignment_target_graph_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_expression_environment_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_expression_typed_binding_owner.pgy";
@@ -95,27 +96,27 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
     function_scopes: SemanticAstFunctionScopeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstAssignmentTypeFacts {
-    let node_ids: Array<Int> = [];
-    let target_binding_modes: Array<String> = [];
-    let target_type_names: Array<String> = [];
-    let index_type_names: Array<String> = [];
-    let expected_type_names: Array<String> = [];
-    let inferred_type_names: Array<String> = [];
-    let verified: Array<Int> = [];
-    let diagnostic_codes: Array<String> = [];
-    let diagnostic_messages: Array<String> = [];
-    let member_root_names: Array<String> = [];
+    var node_ids: Array<Int> = [];
+    var target_binding_modes: Array<String> = [];
+    var target_type_names: Array<String> = [];
+    var index_type_names: Array<String> = [];
+    var expected_type_names: Array<String> = [];
+    var inferred_type_names: Array<String> = [];
+    var verified: Array<Int> = [];
+    var diagnostic_codes: Array<String> = [];
+    var diagnostic_messages: Array<String> = [];
+    var member_root_names: Array<String> = [];
     if !SemanticAstExpressionMemberRootNames(
         constructors, enum_facts, member_root_names
     ) {
         return SemanticAstAssignmentTypeStructuralError(artifact, "MemberRootNames");
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstAssignmentCount(assignments) {
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
-        let environment_fact: String = "";
+        var names: Array<String> = [];
+        var types: Array<String> = [];
+        var modes: Array<String> = [];
+        var environment_fact: String = "";
         if !SemanticAstEnumValueRowsReady(enum_facts) { environment_fact = "SeedEnumValues"; }
         else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(signatures, constructors, assignments.function_node_ids[i], names, types, modes) { environment_fact = "SeedOwnerFields"; }
         else if !SemanticAstExpressionSeedParameters(signatures, constructors, assignments.function_node_ids[i], names, types) { environment_fact = "SeedParameters"; }
@@ -155,13 +156,13 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
         }
         let target_root: String = UnwrapOption(target_binding_name);
         let target_binding_mode: String = EnvValueMode(names, modes, enum_facts.value_scope, target_root);
-        let expected: String = "";
-        let target_type: String = "";
-        let index_type: String = "";
-        let inferred: String = "Unknown";
-        let row_verified: Int = 0;
-        let row_code: String = "";
-        let row_message: String = "";
+        var expected: String = "";
+        var target_type: String = "";
+        var index_type: String = "";
+        var inferred: String = "Unknown";
+        var row_verified: Int = 0;
+        var row_code: String = "";
+        var row_message: String = "";
         if !EnvValueContainsName(names, enum_facts.value_scope, target_root) {
             row_code = "undefined_symbol";
             row_message = SemanticError1(
@@ -183,10 +184,60 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                 );
             }
             expected = target_type;
+            let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                expression_surfaces.expression_graph, UnwrapOption(target_graph_root));
+            if row_code == "" && IsSome(target_kind) &&
+                UnwrapOption(target_kind) == AstExpressionNodeLeaf() &&
+                (target_binding_mode == "mutable_owner_field" || target_binding_mode == "immutable_owner_field") {
+                let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                    signatures, assignments.function_node_ids[i]);
+                if !IsSome(signature) {
+                    SemanticAstExpressionEnvironmentClear(names, types, modes);
+                    return SemanticAstAssignmentTypeStructuralError(artifact, "FieldOwnerSignature");
+                }
+                let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+                    signatures, UnwrapOption(signature));
+                if !IsSome(owner) {
+                    SemanticAstExpressionEnvironmentClear(names, types, modes);
+                    return SemanticAstAssignmentTypeStructuralError(artifact, "FieldOwnerName");
+                }
+                let write: SemanticDiagnosticMessageFact = SemanticAstNominalFieldWriteVerdict(
+                    constructors, UnwrapOption(owner), target_root, target_binding_mode);
+                if write.code != "" {
+                    row_code = write.code;
+                    row_message = SemanticDiagnosticMessageFactRender(write);
+                }
+            }
+            if row_code == "" && IsSome(target_kind) &&
+                UnwrapOption(target_kind) == AstExpressionNodeLeaf() &&
+                (target_binding_mode == "ref_param" || target_binding_mode == "loop_binding" ||
+                 target_binding_mode == "match_binding") {
+                row_code = "immutable_binding_write";
+                row_message = SemanticError1(row_code, "binding", target_root);
+            }
+            if row_code == "" && IsSome(target_kind) &&
+                UnwrapOption(target_kind) == AstExpressionNodeLeaf() &&
+                (target_binding_mode == "immutable_local" || target_binding_mode == "mutable_local") {
+                let identity: SemanticAstLocalBindingIdentity =
+                    SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, locals, initializer_types.inferred_type_names,
+                        assignments.function_node_ids[i], assignments.node_ids[i],
+                        expression_surfaces.expression_graph, UnwrapOption(target_graph_root));
+                let write_mode: Option<Int> = TypedAstArenaLocalWriteMode(
+                    artifact.arena, identity.declaration_node_id);
+                if !identity.ok || !IsSome(write_mode) {
+                    SemanticAstExpressionEnvironmentClear(names, types, modes);
+                    return SemanticAstAssignmentTypeStructuralError(artifact, "LocalBindingWriteMode");
+                }
+                if UnwrapOption(write_mode) == 0 {
+                    row_code = "immutable_binding_write";
+                    row_message = SemanticError1(row_code, "binding", target_root);
+                }
+            }
             if row_code == "" {
-                let write: SemanticDiagnosticMessageFact = SemanticAstMemberWriteVerdict(
+                let write: SemanticDiagnosticMessageFact = SemanticAstValueWriteVerdict(
                     expression_surfaces.expression_graph, UnwrapOption(target_graph_root),
-                    target_binding_mode, constructors, names, types,
+                    constructors, names, types, modes,
                     function_tables.callables, function_tables.returns, enum_facts.value_scope);
                 if write.code != "" {
                     row_code = write.code;
@@ -203,7 +254,10 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
             }
             if row_code == "" && assignments.target_is_indexed[i] == 1 {
                 let element_type_opt: Option<String> =
-                    SemanticArrayElementType(target_type);
+                    SemanticExpressionGraphIndexValueTypeName(
+                        expression_surfaces.expression_graph, UnwrapOption(target_graph_root),
+                        constructors, names, types, function_tables.callables,
+                        function_tables.returns, enum_facts.value_scope);
                 let index_root: Option<Int> = SemanticAstAssignmentIndexRoot(
                     expression_surfaces.expression_graph,
                     UnwrapOption(target_graph_root)
@@ -319,6 +373,11 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                             "expected", expected,
                             "actual", inferred
                         );
+                    } else if assignments.operations[i] != 0 &&
+                        ((expected != "Int" && expected != "Long" && expected != "Float" && expected != "Double" && expected != "Duration") ||
+                         expected != inferred || (assignments.operations[i] == 5 && (expected == "Float" || expected == "Double"))) {
+                        row_code = "binop_type_mismatch";
+                        row_message = SemanticError2(row_code, "left", expected, "right", inferred);
                     } else {
                         row_verified = 1;
                     }
@@ -350,7 +409,7 @@ func SemanticAstAssignmentTypesAllVerified(
     if !facts.ok {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] != 1 {
             return false;
@@ -365,7 +424,7 @@ func SemanticAstAssignmentFirstDiagnosticCode(
     if !facts.ok {
         return facts.diagnostic_code;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] != 1 {
             return facts.diagnostic_codes[i];
@@ -380,7 +439,7 @@ func SemanticAstAssignmentFirstDiagnosticMessage(
     if !facts.ok {
         return facts.diagnostic_message;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.node_ids) {
         if facts.verified[i] != 1 {
             return facts.diagnostic_messages[i];
@@ -426,7 +485,7 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
         ArrayLength(facts.diagnostic_messages) != n {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
             rebuilt.target_binding_modes[i] != facts.target_binding_modes[i] ||
@@ -453,7 +512,7 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(valid);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
-    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+    var expression_surfaces: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(valid);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(

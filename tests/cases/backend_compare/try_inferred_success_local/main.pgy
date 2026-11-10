@@ -1,0 +1,78 @@
+// Inferred locals receive the successful payload of ?, including record
+// payloads. Explicit controls use the same error paths.
+enum Fault { Missing }
+struct Pair { left: Int; right: Int; }
+
+func Typed(n: Int) -> Result<Int, Fault> {
+    if n < 0 { return Err(Missing); }
+    return Ok(n);
+}
+
+func Legacy(n: Int) -> Result<Int> {
+    if n < 0 { return Err("missing"); }
+    return Ok(n);
+}
+
+func Optional(n: Int) -> Option<Int> {
+    if n < 0 { return None; }
+    return Some(n);
+}
+
+func FetchPair(n: Int) -> Result<Pair, Fault> {
+    if n < 0 { return Err(Missing); }
+    return Ok(Pair(n, n + 1));
+}
+
+func Inferred(n: Int) -> Result<Int, Fault> {
+    let value = Typed(n)?;
+    return Ok(value + 1);
+}
+
+func Explicit(n: Int) -> Result<Int, Fault> {
+    let value: Int = Typed(n)?;
+    return Ok(value + 1);
+}
+
+func InferredLegacy(n: Int) -> Result<Int> {
+    let value = Legacy(n)?;
+    return Ok(value + 2);
+}
+
+func InferredOption(n: Int) -> Option<Int> {
+    let value = Optional(n)?;
+    return Some(value + 3);
+}
+
+func InferredRecord(n: Int) -> Result<Int, Fault> {
+    let value = FetchPair(n)?;
+    return Ok(value.left + value.right);
+}
+
+func Show(result: Result<Int, Fault>) -> Void {
+    match result {
+        case Ok(value): Log(value);
+        case Err(problem): match problem { case Missing: Log("typed error"); }
+    }
+}
+
+func Guarded(result: Result<Int>) -> Void {
+    match result {
+        case Ok(value): Log(value);
+        case Err(problem) if problem == "missing": Log("guard matched");
+        case Err(problem): Log(problem);
+    }
+}
+
+func Main() -> Void {
+    Show(Inferred(5));
+    Show(Inferred(-1));
+    Show(Explicit(5));
+    Show(Explicit(-1));
+    match InferredLegacy(5) { case Ok(value): Log(value); case Err(problem): Log(problem); }
+    match InferredLegacy(-1) { case Ok(value): Log(value); case Err(problem): Log(problem); }
+    match InferredOption(5) { case Some(value): Log(value); case None: Log("none"); }
+    match InferredOption(-1) { case Some(value): Log(value); case None: Log("none"); }
+    Show(InferredRecord(5));
+    Show(InferredRecord(-1));
+    Guarded(Legacy(-1));
+}

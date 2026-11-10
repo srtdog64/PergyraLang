@@ -31,8 +31,8 @@ func SemanticAstIntentExpressionSeedOutcome(
         TypedAstKindIntentTerminalFailureTag()
     );
     if is_terminal {
-        let terminal_index: Int = -1;
-        let t: Int = 0;
+        var terminal_index: Int = -1;
+        var t: Int = 0;
         while t < ArrayLength(transitions.terminal_expression_node_ids) {
             if transitions.terminal_expression_node_ids[t] ==
                 expression_node_id {
@@ -72,8 +72,8 @@ func SemanticAstIntentExpressionSeedOutcome(
     if TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
     ) {
-        let transition_index: Int = -1;
-        let r: Int = 0;
+        var transition_index: Int = -1;
+        var r: Int = 0;
         while r < ArrayLength(transitions.step_node_ids) {
             if transitions.step_node_ids[r] == UnwrapOption(step) {
                 if transition_index >= 0 { return false; }
@@ -85,7 +85,7 @@ func SemanticAstIntentExpressionSeedOutcome(
         let predecessor_index: Int =
             transitions.predecessor_step_indices[transition_index];
         if predecessor_index < 0 { return true; }
-        let intent_index: Int = 0;
+        var intent_index: Int = 0;
         while intent_index < ArrayLength(transitions.intent_starts) {
             let start: Int = transitions.intent_starts[intent_index];
             let count: Int = transitions.intent_counts[intent_index];
@@ -109,10 +109,10 @@ func SemanticAstIntentExpressionSeedOutcome(
         }
         return false;
     }
-    let outcome_name: String = "";
-    let on_text: String = "";
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var outcome_name: String = "";
+    var on_text: String = "";
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, UnwrapOption(step), child_index
     );
     while IsSome(child) {
@@ -144,8 +144,8 @@ func SemanticAstIntentExpressionSeedOutcome(
     }
     if outcome_name == "" { return true; }
     if on_text == "" || EnvValueContainsName(names, enum_values, outcome_name) { return false; }
-    let intent_index: Int = -1;
-    let i: Int = 0;
+    var intent_index: Int = -1;
+    var i: Int = 0;
     while i < SemanticAstIntentSignatureCount(facts) {
         if facts.intent_node_ids[i] == intent_node_id {
             if intent_index >= 0 { return false; }

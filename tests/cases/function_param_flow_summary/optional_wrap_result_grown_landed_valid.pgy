@@ -18,7 +18,7 @@ func Wrap(outer: Outer) -> Option<Inner> {
 
 func Grow(outer: Outer) -> Int {
     let wrapped: Option<Inner> = Wrap(outer);
-    let inner: Inner = UnwrapOption(wrapped);
+    var inner: Inner = UnwrapOption(wrapped);
     ArrayPush(inner.items, 9);
     ArrayPush(inner.items, 9);
     ArrayPush(inner.items, 9);

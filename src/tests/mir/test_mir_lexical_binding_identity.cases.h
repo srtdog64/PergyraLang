@@ -9,7 +9,7 @@ test_mir_lexical_binding_identity(void)
      * same-spelled bindings are legal (docs/206 section 3). */
     const char *source =
         "func Main() -> Void { unsafe {"
-        " let n: Int = 2; Log(n); unsafe { n = n + 1; Log(n); }"
+        " var n: Int = 2; Log(n); unsafe { n = n + 1; Log(n); }"
         " } let n: Int = 1; Log(n); }";
     bool ok = lower_mir_from_source(source, &hir, &rir, &mir);
     if (ok)
@@ -90,7 +90,7 @@ test_mir_lexical_binding_identity(void)
     bool field_is_not_local = lower_mir_from_source(
         "zone Gauge { shared n: Int = 1"
         " func Change(self) -> Int { n = n + 1;"
-        " unsafe { let n: Int = 7; n = n + 1; Log(n); } return n; } }"
+        " unsafe { var n: Int = 7; n = n + 1; Log(n); } return n; } }"
         " func Main() -> Void { let gauge = Gauge(); Log(gauge.Change()); }",
         &hir, &rir, &mir);
     routine = field_is_not_local
@@ -128,12 +128,12 @@ test_mir_lexical_binding_identity(void)
         for (size_t dropped = 0; dropped < 2; dropped++) {
             char owned_source[512];
             const char *initializer = origin_case == 1
-                ? "let values: Array<String> = [\"key\"]; let owned: Array<String> = Clone(values);"
+                ? "let values: Array<String> = [\"key\"]; var owned: Array<String> = Clone(values);"
                 : origin_case == 2
-                    ? "let keys: Array<String> = MapKeys(table); let owned: Array<String> = keys;"
-                    : "let owned: Array<String> = MapKeys(table);";
+                    ? "let keys: Array<String> = MapKeys(table); var owned: Array<String> = keys;"
+                    : "var owned: Array<String> = MapKeys(table);";
             snprintf(owned_source, sizeof(owned_source),
-                "func Main() -> Void { let table: HashMap<String, Int> = MapNew();"
+                "func Main() -> Void { var table: HashMap<String, Int> = MapNew();"
                 " MapSet(table, \"key\", 7); %s Log(ArrayLength(owned)); %s }",
                 initializer, dropped ? "ArrayDropOwnedStrings(owned);" : "");
             hir = NULL; rir = NULL; mir = NULL;
@@ -341,7 +341,7 @@ test_mir_io_summary_operand_identity(void)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     bool ok = lower_mir_from_source(
-        "func Main() -> Void { let i: Int = 0; while i < 1 {"
+        "func Main() -> Void { var i: Int = 0; while i < 1 {"
         " let path: String = \"fixture.txt\"; if i == 0 {"
         " let content: String = ReadFile(path); Log(content); } i = i + 1; } }",
         &hir, &rir, &mir);

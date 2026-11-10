@@ -18,9 +18,9 @@ struct SemanticAstDeclarationContractVerdict {
 
 // The first variant row whose bare name another enum already declared.
 func SemanticAstEnumVariantRedeclarationRow(enums: SemanticAstEnumFacts) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(enums.variant_names) {
-        let other: Int = 0;
+        var other: Int = 0;
         while other < row {
             if enums.variant_names[other] == enums.variant_names[row] &&
                 enums.variant_enum_names[other] != enums.variant_enum_names[row] {
@@ -34,7 +34,7 @@ func SemanticAstEnumVariantRedeclarationRow(enums: SemanticAstEnumFacts) -> Int 
 }
 
 func SemanticAstEnumVariantFirstEnum(enums: SemanticAstEnumFacts, row: Int) -> String {
-    let other: Int = 0;
+    var other: Int = 0;
     while other < row {
         if enums.variant_names[other] == enums.variant_names[row] &&
             enums.variant_enum_names[other] != enums.variant_enum_names[row] {
@@ -46,7 +46,7 @@ func SemanticAstEnumVariantFirstEnum(enums: SemanticAstEnumFacts, row: Int) -> S
 }
 
 func SemanticAstEnumDeclarationNode(enums: SemanticAstEnumFacts, enum_name: String) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(enums.enum_names) {
         if enums.enum_names[i] == enum_name { return enums.node_ids[i]; }
         i = i + 1;
@@ -59,7 +59,7 @@ func SemanticAstEnumDeclarationNode(enums: SemanticAstEnumFacts, enum_name: Stri
 func SemanticAstEnumVariantFunctionClashRow(
     signatures: SemanticAstFunctionSignatureFacts, enums: SemanticAstEnumFacts
 ) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(signatures.names) {
         if signatures.owner_names[row] == "" && signatures.function_node_ids[row] >= 0 &&
             SemanticAstEnumVariantRowForBareName(enums, signatures.names[row]) >= 0 {

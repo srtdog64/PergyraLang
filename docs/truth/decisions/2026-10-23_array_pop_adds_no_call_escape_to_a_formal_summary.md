@@ -21,7 +21,9 @@ backends only lower the length (`pgy_array_pop_*`), so no element is freed
 or kept. `ArrayPop` is reserved by the statement-form builtin family, so no
 declared routine can take its place, and it takes one argument. A callee
 that keeps the Array elsewhere before popping it still has that call
-escape (`inout_string_chain_kept_before_pop_invalid`).
+escape. `inout_string_chain_kept_before_pop_landed_valid` discharges the
+escape only by landing one independent `Clone(chain)` at that store; the
+pop itself never supplies the proof.
 
 ## Why
 

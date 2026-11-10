@@ -98,6 +98,7 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
 {
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
+    CodeBuf *body_buf;
     const char *decl_name;
     CodeBuf *name_buf;
     GenericSpecializationEntry *entry;
@@ -189,15 +190,35 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     entry->emitting = true;
     codebuf_destroy(name_buf);
 
+    /* A specialization may discover another specialization while its MIR
+     * body is being rendered.  Emitting both directly into ctx->helpers
+     * would splice the callee definition into the caller body and produce
+     * invalid nested C functions.  Finish each body in isolation; recursive
+     * discoveries append their completed bodies first, then this body is
+     * published as one indivisible definition. */
+    body_buf = codebuf_create();
+    if (body_buf == NULL) {
+        ctx->generic_specialization_count--;
+        transpiler_set_backend_error(ctx,
+            "C generic specialization body allocation failed for '%s'",
+            decl_name);
+        return NULL;
+    }
+
     generic_binding_snapshot = transpiler_generic_binding_snapshot(ctx);
     for (size_t i = 0; i < binding_count; i++) {
         ctx->generic_bindings[ctx->generic_binding_count++] = bindings[i];
     }
 
     emit_func_forward_decl_named(decl, entry->specialized_name, ctx->decls, ctx);
-    emit_func_decl_named(decl, entry->specialized_name, ctx->helpers, ctx);
+    emit_func_decl_named(decl, entry->specialized_name, body_buf, ctx);
 
     transpiler_generic_binding_restore(ctx, generic_binding_snapshot);
     entry->emitting = false;
+    if (ctx->backend_error == NULL)
+        codebuf_write_raw(ctx->helpers, body_buf->data, body_buf->len);
+    codebuf_destroy(body_buf);
+    if (ctx->backend_error != NULL)
+        return NULL;
     return entry->specialized_name;
 }

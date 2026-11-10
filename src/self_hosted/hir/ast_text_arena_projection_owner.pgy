@@ -16,9 +16,9 @@ func CodegenAstTextParentRows(
     nodes: Array<CodegenAstTextNode>,
     count: Int
 ) -> Array<Int> {
-    let parents: Array<Int> = [];
-    let active: Array<Int> = [];
-    let i: Int = 0;
+    var parents: Array<Int> = [];
+    var active: Array<Int> = [];
+    var i: Int = 0;
     while i < count {
         while ArrayLength(active) > 0 &&
             nodes[active[ArrayLength(active) - 1]].indent >= nodes[i].indent {
@@ -79,8 +79,8 @@ func CodegenAstTextChildCounts(
     parents: Array<Int>,
     count: Int
 ) -> Array<Int> {
-    let child_counts: Array<Int> = [];
-    let i: Int = 0;
+    var child_counts: Array<Int> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(child_counts, 0);
         i = i + 1;
@@ -99,9 +99,9 @@ func CodegenAstTextChildCounts(
 func CodegenAstTextFirstChildren(
     child_counts: Array<Int>
 ) -> Array<Int> {
-    let first_children: Array<Int> = [];
-    let next: Int = 0;
-    let i: Int = 0;
+    var first_children: Array<Int> = [];
+    var next: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(child_counts) {
         ArrayPush(first_children, next);
         next = next + child_counts[i];
@@ -115,10 +115,10 @@ func CodegenAstTextChildren(
     first_children: Array<Int>,
     child_counts: Array<Int>
 ) -> Array<Int> {
-    let children: Array<Int> = [];
-    let offsets: Array<Int> = [];
-    let total: Int = 0;
-    let i: Int = 0;
+    var children: Array<Int> = [];
+    var offsets: Array<Int> = [];
+    var total: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(child_counts) {
         ArrayPush(offsets, first_children[i]);
         total = total + child_counts[i];
@@ -147,30 +147,30 @@ func CodegenAstTextTypedArenaFromNodes(
     count: Int,
     own atom_table: Array<String>
 ) -> AstArena {
-    let kinds: Array<Int> = [];
-    let nominal_subkinds: Array<Int> = [];
-    let atoms: Array<Int> = [];
-    let has_atoms: Array<Int> = [];
-    let type_names: Array<Int> = [];
-    let has_type_names: Array<Int> = [];
-    let values: Array<Int> = [];
-    let has_values: Array<Int> = [];
-    let aux_values: Array<Int> = [];
-    let has_aux_values: Array<Int> = [];
-    let modes: Array<Int> = [];
+    var kinds: Array<Int> = [];
+    var nominal_subkinds: Array<Int> = [];
+    var atoms: Array<Int> = [];
+    var has_atoms: Array<Int> = [];
+    var type_names: Array<Int> = [];
+    var has_type_names: Array<Int> = [];
+    var values: Array<Int> = [];
+    var has_values: Array<Int> = [];
+    var aux_values: Array<Int> = [];
+    var has_aux_values: Array<Int> = [];
+    var modes: Array<Int> = [];
     let parents: Array<Int> = CodegenAstTextParentRows(nodes, count);
     let child_counts: Array<Int> = CodegenAstTextChildCounts(parents, count);
     let first_children: Array<Int> = CodegenAstTextFirstChildren(child_counts);
     let children: Array<Int> = CodegenAstTextChildren(
         parents, first_children, child_counts
     );
-    let indents: Array<Int> = [];
-    let provenance_texts: Array<String> = [];
+    var indents: Array<Int> = [];
+    var provenance_texts: Array<String> = [];
     // Slot zero remains the empty sentinel. Graph text slots are reserved and
     // filled before this handoff. The graph rows remain in the same artifact,
     // so these immutable String descriptors borrow from that retained owner.
     // Tree-derived atoms follow the existing shallow table contract.
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         ArrayPush(kinds, nodes[i].kind);
         ArrayPush(
@@ -222,7 +222,7 @@ func CodegenAstTextTypedArenaFromNodes(
 }
 
 func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
-    let no_expression_graph_texts: Array<String> = [""];
+    let no_expression_graph_texts: Array<String> = [Clone("")];
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(
         nodes, count, no_expression_graph_texts
     );
@@ -230,7 +230,7 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
     if !TypedAstArenaParallelRowsReady(arena) || TypedAstArenaNodeCount(arena) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let kind: Option<Int> = TypedAstArenaNodeKind(arena, i);
         if !IsSome(kind) || UnwrapOption(kind) != nodes[i].kind {
@@ -323,8 +323,8 @@ func AstTreeArtifactPayloadSchema() -> String {
 func AstTreeArtifactIdentityHashString(
     hash: Long, value: String, modulus: Long
 ) -> Long {
-    let out: Long = (hash * 131L + (StringLength(value) as Long)) % modulus;
-    let i: Int = 0;
+    var out: Long = (hash * 131L + (StringLength(value) as Long)) % modulus;
+    var i: Int = 0;
     let length: Int = StringLength(value);
     while i < length {
         out = (out * 131L +
@@ -361,17 +361,17 @@ func AstTreeArtifactIdentityDigest(
         !AstExpressionGraphRowsReady(expression_graphs) {
         return 0;
     }
-    let hash: Long = AstTreeArtifactIdentityHashInt(
+    var hash: Long = AstTreeArtifactIdentityHashInt(
         17L, node_count, modulus
     );
     hash = AstTreeArtifactIdentityHashString(hash, tree_text, modulus);
-    let source_known: Int = 0;
+    var source_known: Int = 0;
     if source_modules.known { source_known = 1; }
     hash = AstTreeArtifactIdentityHashInt(hash, source_known, modulus);
     hash = AstTreeArtifactIdentityHashInt(
         hash, ArrayLength(source_modules.declaration_node_ids), modulus
     );
-    let source_row: Int = 0;
+    var source_row: Int = 0;
     while source_row < ArrayLength(source_modules.declaration_node_ids) {
         hash = AstTreeArtifactIdentityHashInt(
             hash, source_modules.declaration_node_ids[source_row], modulus
@@ -381,13 +381,13 @@ func AstTreeArtifactIdentityDigest(
         );
         source_row = source_row + 1;
     }
-    let graph_ok: Int = 0;
+    var graph_ok: Int = 0;
     if expression_graphs.ok { graph_ok = 1; }
     hash = AstTreeArtifactIdentityHashInt(hash, graph_ok, modulus);
     hash = AstTreeArtifactIdentityHashInt(
         hash, ArrayLength(expression_graphs.roots), modulus
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(expression_graphs.roots) {
         hash = AstTreeArtifactIdentityHashInt(
             hash, expression_graphs.root_owner_kinds[i], modulus
@@ -403,7 +403,7 @@ func AstTreeArtifactIdentityDigest(
     hash = AstTreeArtifactIdentityHashInt(
         hash, AstExpressionArenaNodeCount(expression_graphs.arena), modulus
     );
-    let node: Int = 0;
+    var node: Int = 0;
     while node < AstExpressionArenaNodeCount(expression_graphs.arena) {
         hash = AstTreeArtifactIdentityHashInt(
             hash, expression_graphs.arena.node_kinds[node], modulus
@@ -426,24 +426,24 @@ func AstTreeArtifactFromTextWithExpressionGraphs(
     tree_text: String,
     own expression_graphs: AstExpressionGraphRows
 ) -> AstTreeArtifact {
-    let nodes: Array<CodegenAstTextNode> = [];
-    let count_box: Array<Int> = [0];
+    var nodes: Array<CodegenAstTextNode> = [];
+    var count_box: Array<Int> = [0];
     CodegenAstTextNodeInventory(tree_text, nodes, count_box);
     let count: Int = count_box[0];
-    // Reserve before borrowing graph elements: no later insertion of graph
-    // text can grow this table or invalidate its retained source. Both the
-    // borrowed descriptors and their graph owner leave in one artifact.
-    let graph_atom_table: Array<String> = [""];
-    let graph_node: Int = 0;
+    // The artifact retains expression_graphs beside the arena, but the arena
+    // owns its own table so its automatic cleanup never mixes borrowed and
+    // owned String elements. Reserve the final shape before filling it.
+    var graph_atom_table: Array<String> = [Clone("")];
+    var graph_node: Int = 0;
     while graph_node < ArrayLength(expression_graphs.arena.node_texts) {
-        ArrayPush(graph_atom_table, "");
+        ArrayPush(graph_atom_table, Clone(""));
         graph_node = graph_node + 1;
     }
     graph_node = 0;
     while graph_node < ArrayLength(expression_graphs.arena.node_texts) {
         ArraySet(
             graph_atom_table, graph_node + 1,
-            expression_graphs.arena.node_texts[graph_node]
+            Clone(expression_graphs.arena.node_texts[graph_node])
         );
         graph_node = graph_node + 1;
     }

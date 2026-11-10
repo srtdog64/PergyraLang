@@ -12,7 +12,7 @@ func Main() -> Void {
     let selected: Option<String> = VariantAt(arena, 0);
     if IsSome(selected) {
         let text: String = UnwrapOption(selected);
-        let no_texts: Array<String> = [];
+        var no_texts: Array<String> = [];
         var index: Int = 0;
         while index < 2 {
             Log(NonownerRead(text));

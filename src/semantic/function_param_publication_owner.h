@@ -5,6 +5,7 @@
 /* Private snapshots owned by publication.c. Escape diagnostics borrow only
  * its checked admitted view; other consumers use the checked queries. */
 typedef struct IndexedStringPermanentElementRecipe IndexedStringPermanentElementRecipe;
+typedef struct IndexedStringResultInputs IndexedStringResultInputs;
 typedef struct {
     uint32_t id;
     ParamMode mode;
@@ -30,6 +31,10 @@ typedef struct {
     const ASTNode *return_node;
     uint32_t return_node_id;
     bool async;
+    /* Set only after the publication owner has replayed this complete typed
+     * header while sealing the generation. Consumers may reuse that success;
+     * verification mode replays it instead. */
+    bool inputs_current_at_seal;
 } PendingRoutine;
 typedef struct {
     ASTNode *call, *site, *callee, *caller;
@@ -49,6 +54,10 @@ typedef struct {
     uint32_t call_receiver_id;
     const Type *call_receiver_type;
 } PendingRefCall;
+/* A borrowed aggregate passed to a default-mode formal is recorded while
+ * lexical provenance is live, then decided after the same publication owner
+ * has sealed the callee's final parameter-flow summary. */
+typedef PendingRefCall PendingBorrowedDefaultCall;
 typedef struct {
     const ASTNode *call, *caller;
     uint32_t call_id, caller_id;
@@ -84,6 +93,10 @@ bool semantic_param_publication_ref_call_current(
     uint32_t call_id, caller_id, callee_id;
     size_t caller_index, callee_index;
 } PendingBodyCall;
+bool semantic_param_publication_body_call_current(
+    const SemanticContext *ctx, const PendingBodyCall *row);
+bool semantic_param_publication_body_call_at_current(
+    const SemanticContext *ctx, size_t index, const PendingBodyCall **row);
 /* Constructor owner produces/current-checks the distinct typed field mapping.
  * Publication owns its transferred lifetime, not a second call identity. */
 typedef struct {
@@ -131,11 +144,17 @@ typedef struct IndexedStringFieldRecipe IndexedStringFieldRecipe;
 typedef struct IndexedStringNonownerRisk IndexedStringNonownerRisk;
 typedef struct IndexedStringDefinitionRecipe IndexedStringDefinitionRecipe;
 typedef struct {
+    PublishedCallArgument value;
+    IndexedStringResultInputs *inputs;
+} PublishedOwnedStringSource;
+typedef struct {
     const ASTNode *body;
     uint32_t body_id;
     FunctionParamFlowIndexClaims *syntax;
-    PublishedCallArgument *sources;
+    PublishedOwnedStringSource *sources;
     size_t source_count, sealed_source_count;
+    size_t static_return_count;
+    bool static_return_normalization, source_validation_pending;
 } PublishedOwnedStringResult;
 typedef struct {
     const ASTNode *source;
@@ -179,10 +198,15 @@ typedef struct {
     uint32_t id, target_id, caller_id, builtin, declaration, value_binding, binding_id;
     bool value_present, copy_escape, meta, execution_present, reachable;
     bool call_present, kind_present, stdlib, declared_callable, local, cast_present;
+    bool call_current_at_seal;
+    /* Ordinal plus one of this exact call's body edge in the sealed
+     * publication owner. Zero means that no body edge was published. */
+    size_t body_call_index_plus_one;
     bool assignment_replacement;
     bool channel_binding;
     bool owned_slot_binding;
     PublishedOwnedStringResult *owned_string_result;
+    bool owned_string_result_examined, owned_string_result_cycle_withdrawn;
     bool result_allocator_binding, allocator_invalidated;
     const ASTNode *allocator_initializer, *allocator_type_node;
     uint32_t allocator_initializer_id, allocator_type_node_id;
@@ -217,7 +241,8 @@ typedef struct {
     /* Owned syntax receipt for deferred nodes or checked typed storage. */
     FunctionParamFlowIndexClaims *deferred_syntax;
     /* A call-time storage premise, never a standalone non-retention grant. */
-    bool private_array_push, private_physical_mutation;
+    bool private_array_store_receiver, private_array_push;
+    bool private_physical_mutation;
     bool private_exclusive, private_escaped, private_pending;
     const ASTNode *private_binding, *private_initializer;
     const ASTNode *private_binding_type_node;
@@ -230,6 +255,18 @@ typedef struct {
     uint32_t category;
     ASTNodeType value_shape;
     bool origin_ready, string_value, physical_scalar, builtin_string_concat;
+    /* Exact typed occurrence receipt: this String identifier was an `own`
+     * formal while its live symbol existed and transferred its one payload
+     * into an Array literal. Later cleanup checks use this immutable row;
+     * they do not reopen a retired function scope. */
+    bool owned_string_formal_literal_transfer;
+    /* Exact Array binding state at this value occurrence while its lexical
+     * scope is alive. Later flow consumers replay this snapshot; they must not
+     * re-open a retired scope or mutate the identifier's resolved binding. */
+    bool array_binding_present, array_binding_parameter, array_binding_host;
+    bool array_binding_consumed;
+    bool array_binding_exclusive, array_binding_escaped;
+    bool array_binding_pending_inout, array_binding_pending_result;
     /* Indexed-String owner issues this source at the typed value's program
      * point; zero is independent, UINT32_MAX is explicitly unproved. */
     bool indexed_string_source_present;
@@ -252,6 +289,10 @@ typedef struct {
     const Type *unmodelled_constructor_type;
     const ASTNode *selected_callable;
     uint32_t selected_callable_id;
+    /* The selected call owner publishes the receiver type it resolved.
+     * Nested world/zone projections are not required to manufacture a
+     * second value row merely so later formal mapping can rediscover it. */
+    const Type *selected_receiver_type;
     /* Binary concat uses these same owned rows as typed operand snapshots. */
     PublishedCallArgument *arguments;
     ASTNodeType target_shape;
@@ -268,12 +309,15 @@ typedef struct {
     SemanticNominalResultSnapshot *nominal_result;
 } PublishedNode;
 struct FunctionParamPublicationStore {
-    bool pending, inputs_ready, finalized;
+    bool pending, inputs_ready, flow_summaries_prepared, finalized;
+    bool verify_currency_memo, program_current_at_seal;
     ASTNode *program;
     uint32_t program_id;
     size_t statement_count;
     PendingRoutine *routines; size_t routine_count, routine_capacity;
     PendingRefCall *calls; size_t call_count, call_capacity;
+    PendingBorrowedDefaultCall *default_borrow_calls;
+    size_t default_borrow_call_count, default_borrow_call_capacity;
     PendingBodyCall *body_calls; size_t body_call_count, body_call_capacity;
     PendingReadPayloadLoan *read_loans; size_t read_loan_count, read_loan_capacity;
     PublishedNode *nodes; size_t node_count, node_capacity;
@@ -291,6 +335,8 @@ typedef struct {
     size_t routine_count;
     const PendingRefCall *calls;
     size_t call_count;
+    const PendingBorrowedDefaultCall *default_borrow_calls;
+    size_t default_borrow_call_count;
     const PendingBodyCall *body_calls;
     size_t body_call_count;
     const PendingReadPayloadLoan *read_loans;
@@ -366,6 +412,11 @@ bool semantic_param_publication_return_backing_required(
  * of any input, whatever its parameter modes. */
 bool semantic_param_publication_routine_return_storage_free(
     const SemanticContext *ctx, const ASTNode *decl);
+/* This own formal has no storage-bearing result or caller-owned mutable
+ * destination. Its input crosses the call boundary exactly once and cannot
+ * be restored through another actual. */
+bool semantic_param_publication_owned_sink_formal_current(
+    const SemanticContext *ctx, const ASTNode *decl, size_t ordinal);
 bool semantic_param_publication_routine_return_dependency_is_scalar(
     const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_routine_no_output_header_ready(
@@ -373,6 +424,15 @@ bool semantic_param_publication_routine_no_output_header_ready(
 bool semantic_param_publication_routine_relation_header_ready(
     const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_value_is_physical_scalar(
+    const SemanticContext *ctx, const ASTNode *value);
+/* A typed for-in header owns whether its element binding carries the
+ * iterable element's backing.  String and copy-only elements are values;
+ * aggregate elements remain aliases of their collection storage. */
+bool semantic_param_publication_iteration_binding_shares_backing(
+    const SemanticContext *ctx, const ASTNode *loop, bool *shares);
+/* A typed Array access to an Int/Long/Float/Double/Bool/Duration element
+ * produces a value. It does not retain the Array descriptor or its backing. */
+bool semantic_param_publication_physical_array_element_value(
     const SemanticContext *ctx, const ASTNode *value);
 bool semantic_param_publication_value_has_static_string_backing(
     const SemanticContext *ctx, const ASTNode *value);
@@ -385,7 +445,19 @@ bool semantic_param_publication_record_routine(SemanticContext *ctx, ASTNode *de
 bool semantic_param_publication_record_call(SemanticContext *ctx, ASTNode *call, ASTNode *site,
     ASTNode *callee, size_t ordinal, const Type *type, const char *borrowed,
     const char *destination, const char *fix);
+bool semantic_param_publication_record_default_borrow_call(
+    SemanticContext *ctx, ASTNode *call, ASTNode *site, ASTNode *callee,
+    size_t ordinal, const Type *type, const char *borrowed,
+    const char *destination, const char *fix);
+bool semantic_param_publication_default_borrow_call_current(
+    const SemanticContext *ctx, const PendingBorrowedDefaultCall *row,
+    size_t *formal);
 bool semantic_param_publication_record_body_call(SemanticContext *ctx, ASTNode *call);
+/* Read one sealed body-call edge without rebuilding callable identity through
+ * the host index. `body_call` is false for calls outside this owner. */
+bool semantic_param_publication_body_actual_current(const SemanticContext *ctx,
+    const ASTNode *caller, const ASTNode *call, size_t actual,
+    bool *body_call, ASTNode **callee, size_t *formal);
 /* Native ownership category is not a fresh-payload/copy/cleanup certificate. */
 typedef struct {
     bool ok, copy_escape, meta;
@@ -406,6 +478,13 @@ bool semantic_param_publication_projection_root_current(const SemanticContext *c
     const ASTNode *value, ASTNode **caller_out, ASTNode **root_out);
 bool semantic_param_publication_member_projection_syntax_current(const ASTNode *value,
     const ASTNode *caller, const PublishedProjection *projection);
+/* Returns the typed field identity for one current member-projection step.
+ * The receiver may itself be a member projection; no storage or ownership
+ * right is granted by this receipt. */
+bool semantic_param_publication_member_projection_field_current(
+    const SemanticContext *ctx, const ASTNode *value, ASTNode **caller_out,
+    ASTNode **receiver_out, ASTNode **root_out,
+    SemanticPublishedSelectedField *field_out);
 bool semantic_param_publication_selected_member_field_current(const SemanticContext *ctx,
     const ASTNode *value, ASTNode **caller_out, ASTNode **root_out,
     SemanticPublishedSelectedField *field_out);
@@ -416,7 +495,7 @@ bool semantic_param_publication_record_execution(SemanticContext *ctx,
     const ASTNode *statement, bool reachable);
 bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNode *call);
 bool semantic_param_publication_record_selected_callable(SemanticContext *ctx,
-    ASTNode *call, ASTNode *decl);
+    ASTNode *call, ASTNode *decl, const Type *receiver_type);
 bool semantic_param_publication_record_deferred_capture(SemanticContext *ctx, ASTNode *lambda,
     ASTNode *source, uint32_t binding_id, const Type *type, LambdaCaptureMode mode);
 bool semantic_param_publication_record_deferred_scan(SemanticContext *ctx, ASTNode *boundary);
@@ -461,12 +540,39 @@ bool semantic_param_publication_record_assignment_replacement(SemanticContext *c
     ASTNode *assignment, uint32_t binding, const Type *target_type);
 bool semantic_param_publication_assignment_replacement(const SemanticContext *ctx, const ASTNode *assignment);
 bool semantic_param_publication_value_call_target(const SemanticContext *ctx, const ASTNode *call);
+/* A local fact may continue past earlier ownership refusals only when all
+ * preceding errors are stable borrow-escape diagnostics and this operation
+ * emitted no error of its own. Existing diagnostics remain authoritative. */
+bool semantic_param_publication_local_fact_after_borrow_refusals(
+    const SemanticContext *ctx, size_t diagnostic_start);
 /* Candidate only. A NULL owner supports claim replay, never CALL admission;
  * consumers additionally need the current routine's closed graph witness. */
 bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
     const ASTNode *call, const ASTNode *owner);
+/* Exact call-time premise only: this Array store's receiver was an
+ * unescaped, exclusive local Array literal.  The stored value and any copy
+ * or element-ownership transition remain owned by their separate facts. */
+bool semantic_param_publication_private_array_store_receiver(
+    const SemanticContext *ctx, const ASTNode *call, const ASTNode *owner);
 bool semantic_param_publication_private_physical_array_mutation(const SemanticContext *ctx,
     const ASTNode *call, const ASTNode *owner);
+/* A current identifier whose binding is an unescaped, exclusive local Array
+ * initialized from an Array literal in `owner`.  This proves private storage;
+ * it does not grant mutation or element-cleanup authority by itself. */
+bool semantic_param_publication_private_array_literal_value(
+    const SemanticContext *ctx, const ASTNode *value, const ASTNode *owner);
+/* The same local-literal fact at its exact inout call boundary. A pending
+ * inout flag is accepted only when the deferred-storage owner replays that
+ * call, argument and formal identity. */
+bool semantic_param_publication_private_array_literal_inout_actual_current(
+    const SemanticContext *ctx, const ASTNode *value, const ASTNode *owner,
+    const ASTNode *call, const ASTNode *callee_decl, size_t actual_ordinal,
+    size_t formal_ordinal);
+/* Replays the exact Array parameter binding captured while the routine scope
+ * was live. Finalizers must not reopen a retired lexical scope. */
+bool semantic_param_publication_array_parameter_value_current(
+    const SemanticContext *ctx, const ASTNode *value, const ASTNode *owner,
+    size_t formal_index, ParamMode formal_mode);
 /* A current stdlib ArrayPush or ArraySet: the Array its first argument names
  * holds the argument at *value_ordinal afterwards. */
 bool semantic_param_publication_checked_array_store(const SemanticContext *ctx,
@@ -477,6 +583,15 @@ bool semantic_param_publication_formal_for_actual(const SemanticContext *ctx,
     const ASTNode *call, size_t actual, size_t *formal);
 bool semantic_param_publication_selected_formal_for_actual(SemanticContext *ctx,
     const ASTNode *call, const ASTNode *decl, size_t actual, size_t *formal);
+/* Seal the one typed input generation before any whole-program consumer runs.
+ * Consumers share its admitted view; none may rebuild publication facts. */
+bool semantic_param_publication_seal_inputs(SemanticContext *ctx);
+/* Demand the registered ref/borrowed-result roots once, in publication
+ * order, after the typed input generation is sealed. Landing and diagnostics
+ * consume this generation; neither owns a private demand schedule. */
+bool semantic_param_publication_prepare_flow_summaries(SemanticContext *ctx);
+/* Run the escape-summary consumer and publish the generation only after all
+ * earlier landing consumers have inspected the same sealed inputs. */
 bool semantic_param_publication_finalize(SemanticContext *ctx);
 void semantic_param_publication_destroy(SemanticContext *ctx);
 #endif

@@ -9,8 +9,8 @@ func MirRoutineLatestDominatingLocalValueRow(
 ) -> Option<Int> {
     if local_row < 0 || ArrayLength(value_names) !=
             ArrayLength(value_local_rows) { return None; }
-    let latest: Int = -1;
-    let row: Int = 0;
+    var latest: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(value_names) {
         let candidate: MirRoutineResultDefinitionFact =
             MirRoutineFactIndexUniqueResultDefinition(index, value_names[row]);

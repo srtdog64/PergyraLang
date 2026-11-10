@@ -14,8 +14,8 @@ func MirIntentExecutionRoutineBlockRowById(
     if !MirProgramRoutineIndexRowReady(routines, routine_row) || block_id < 0 {
         return 0 - 1;
     }
-    let found: Int = 0 - 1;
-    let local_row: Int = 0;
+    var found: Int = 0 - 1;
+    var local_row: Int = 0;
     while local_row < routines.routine_block_counts[routine_row] {
         let block_row: Int =
             routines.routine_block_starts[routine_row] + local_row;
@@ -46,8 +46,8 @@ func MirIntentExecutionInstructionReady(
     );
     if block_row < 0 || instruction_id < 0 || expected_kind == "" ||
         expected_name == "" { return false; }
-    let matches: Int = 0;
-    let local_row: Int = 0;
+    var matches: Int = 0;
+    var local_row: Int = 0;
     while local_row < routines.block_instruction_counts[block_row] {
         let instruction_row: Int =
             routines.block_instruction_starts[block_row] + local_row;
@@ -86,7 +86,7 @@ func MirIntentExecutionInstructionReady(
                 }
             }
             if graph_required {
-                let graph_bounds: Array<Int> = [0, 0];
+                var graph_bounds: Array<Int> = [0, 0];
                 if MirIntentExecutionObjectFieldOccurrenceCount(
                     routines.source_json, routines.source_json_extent, start, end, "expr0_graph"
                 ) != 1 || !JsonObjectFieldValueBoundsWithin(
@@ -140,8 +140,8 @@ func MirIntentExecutionPayloadDefinitionReady(
     );
     if block_row < 0 || instruction_name == "" || result_name == "" ||
         variant_name == "" { return false; }
-    let matches: Int = 0;
-    let local_row: Int = 0;
+    var matches: Int = 0;
+    var local_row: Int = 0;
     while local_row < routines.block_instruction_counts[block_row] {
         let instruction_row: Int =
             routines.block_instruction_starts[block_row] + local_row;
@@ -187,7 +187,7 @@ func MirIntentExecutionPlanSemanticCrossSeal(
         !signatures.valid || !declarations.valid {
         return false;
     }
-    let step: Int = 0;
+    var step: Int = 0;
     while step < ArrayLength(plan.steps.transition_ids) {
         let routine_row: Int = MirIntentExecutionRoutineRowByIdentity(
             signatures, plan.steps.routine_syntax_ids[step], "intent"
@@ -262,7 +262,7 @@ func MirIntentExecutionPlanSemanticCrossSeal(
             ) {
             return false;
         }
-        let compensation: Int = plan.steps.compensation_starts[step];
+        var compensation: Int = plan.steps.compensation_starts[step];
         let compensation_end: Int = compensation +
             plan.steps.compensation_counts[step];
         while compensation < compensation_end {
@@ -287,7 +287,7 @@ func MirIntentExecutionPlanSemanticCrossSeal(
         }
         step = step + 1;
     }
-    let terminal: Int = 0;
+    var terminal: Int = 0;
     while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
         let routine_row: Int = MirIntentExecutionRoutineRowByIdentity(
             signatures, plan.terminals.routine_syntax_ids[terminal], "intent"
@@ -318,12 +318,12 @@ func MirIntentExecutionPlanSemanticCrossSeal(
         }
         terminal = terminal + 1;
     }
-    let routine_row: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < ArrayLength(signatures.source_syntax_ids) {
         if signatures.kinds[routine_row] == "intent" {
             let typed: Bool =
                 signatures.return_type_names[routine_row] != "Bool";
-            let routine_step_count: Int = 0;
+            var routine_step_count: Int = 0;
             step = 0;
             while step < ArrayLength(plan.steps.transition_ids) {
                 if plan.steps.routine_syntax_ids[step] ==
@@ -332,7 +332,7 @@ func MirIntentExecutionPlanSemanticCrossSeal(
                 }
                 step = step + 1;
             }
-            let routine_terminal_count: Int = 0;
+            var routine_terminal_count: Int = 0;
             terminal = 0;
             while terminal <
                 ArrayLength(plan.terminals.terminal_transition_ids) {
@@ -379,7 +379,7 @@ func MirIntentExecutionPlanFromDocument(
         return MirIntentExecutionPlanEmpty(false, false);
     }
     if !JsonObjectFactTableReady(document.intent_execution) {
-        let routine_row: Int = 0;
+        var routine_row: Int = 0;
         while routine_row < ArrayLength(signatures.source_syntax_ids) {
             if signatures.kinds[routine_row] == "intent" &&
                 signatures.return_type_names[routine_row] != "Bool" {
@@ -402,9 +402,9 @@ func MirIntentExecutionPlanFromDocument(
         MirIntentExecutionStringAt(document.intent_execution.json, document.intent_execution.json_extent, fields, 0, false);
     let wire_digest: MirIntentExecutionIntValue =
         MirIntentExecutionIntAt(json, fields, 1);
-    let steps: MirIntentStepTransitionFacts =
+    var steps: MirIntentStepTransitionFacts =
         MirIntentStepTransitionFactsEmpty();
-    let terminals: MirIntentTerminalTransitionFacts =
+    var terminals: MirIntentTerminalTransitionFacts =
         MirIntentTerminalTransitionFactsEmpty();
     if !fields.valid || !schema.valid ||
         schema.value != MirIntentExecutionPlanSchema() ||

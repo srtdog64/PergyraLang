@@ -7,7 +7,7 @@ import "direct_mir_scalar_program_llvm_bool_to_string_materialization_owner.pgy"
 func DirectMirScalarProgramLlvmAsciiCaseMaterialization(fact: CompilerRuntimeCallAbiFact,
     range_low: Int, range_high: Int, delta: Int
 ) -> String {
-    let output: String = Concat("define internal ptr @", fact.symbol);
+    var output: String = Concat("define internal ptr @", fact.symbol);
     output = Concat(output, "(ptr %source) {\nentry:\n");
     output = Concat(output, "  %length = call i64 @strlen(ptr %source)\n");
     output = Concat(output, "  %size = add i64 %length, 1\n");
@@ -53,7 +53,7 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
             CompilerRuntimeCallAbiStringCallShape("formatted-print")) {
         Die("direct MIR scalar program LLVM Print materialization ABI is invalid");
     }
-    let output: String = "";
+    var output: String = "";
     if requires_print {
         output = Concat(output,
             "@.pgy.scalar.print.format = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n");

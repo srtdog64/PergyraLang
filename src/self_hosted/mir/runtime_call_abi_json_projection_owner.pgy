@@ -86,8 +86,8 @@ func SelfMirJsonRuntimeCallAbiAuxField(
     rows: SelfMirInstructionRows,
     instruction_index: Int
 ) -> String {
-    let items: Array<String> = [];
-    let i: Int = 0;
+    var items: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(
         rows.runtime_call_abi.aux_instruction_indices
     ) {
@@ -218,8 +218,8 @@ func SelfMirJsonRuntimeCallAbiAuxWriteFile(
     instruction_index: Int,
     output: Int
 ) -> Bool {
-    let wrote: Bool = false;
-    let i: Int = 0;
+    var wrote: Bool = false;
+    var i: Int = 0;
     while i < ArrayLength(rows.runtime_call_abi.aux_instruction_indices) {
         if rows.runtime_call_abi.aux_instruction_indices[i] ==
             instruction_index {

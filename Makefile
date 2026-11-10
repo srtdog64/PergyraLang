@@ -563,6 +563,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact.c \
                    $(SEMANTIC_DIR)/collection_member_path_owner.c \
+                   $(SEMANTIC_DIR)/collection_published_member_carrier_owner.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_result.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_member_transfer.c \
                    $(SEMANTIC_DIR)/collection_moved_member_restoration_owner.c \
@@ -587,6 +588,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/collection_owned_element_aggregate_capture_owner.c \
                    $(SEMANTIC_DIR)/collection_owned_element_graph_index_owner.c \
                    $(SEMANTIC_DIR)/collection_owned_element_member_requirement_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_call_receipt_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_handoff_lifecycle_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_defer_release_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_receipts.c \
@@ -599,9 +602,14 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/formal_string_store_landing_owner.c \
                    $(SEMANTIC_DIR)/loan_copy_landing_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_named_call_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_pending_call_receipt_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_deferred_replay_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_deferred_finalization_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_preservation_owner.c \
                    $(SEMANTIC_DIR)/array_storage_result_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_string_read_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_element_receipt_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_element_path_owner.c \
                    $(SEMANTIC_DIR)/array_storage_element_lifetime_owner.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
@@ -714,9 +722,12 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_flow_closure_worklist.c \
                    $(SEMANTIC_DIR)/function_param_flow_program_point_index_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_consumer_navigation.c \
+                   $(SEMANTIC_DIR)/function_param_flow_copy_cut_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_declared_result_frame.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_dependencies.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_destinations.c \
+                   $(SEMANTIC_DIR)/function_param_array_storage_walk_identity_owner.c \
+                   $(SEMANTIC_DIR)/function_param_array_storage_program_point_owner.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_field_preservation_owner.c \
                    $(SEMANTIC_DIR)/function_param_publication_private_array_mutation.c \
@@ -745,6 +756,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/region_escape_fact.c \
                    $(SEMANTIC_DIR)/region_retention_summary.c \
                    $(SEMANTIC_DIR)/region_retention_summary_user.c \
+                   $(SEMANTIC_DIR)/semantic_landing_fixed_point_owner.c \
                    $(SEMANTIC_DIR)/semantic.c \
                    $(SEMANTIC_DIR)/semantic_diagnostic_json.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
@@ -1837,6 +1849,8 @@ define pgy_clean_build_artifacts
 $(BASH) -c "if [ -d '$(BUILD_DIR)' ]; then find '$(BUILD_DIR)' -type f \( -name '*.o' -o -name '*.d' \) -delete; fi"
 endef
 ALL_DEP_FILES = $(ALL_BUILD_OBJECTS:.o=.d) $(BUILD_DIR)/tests/readonly_map_query_fact_phase_unit.d $(BUILD_DIR)/tests/flow_rows_check_memo_unit.d $(BUILD_DIR)/tests/flow_closure_worklist_unit.d $(BUILD_DIR)/tests/collection_owned_local_transition_unit.d
+ALL_DEP_FILES += $(LANDING_ALLOC_TEST_OBJECTS:.o=.d) $(BUILD_DIR)/tests/ownership_landing_allocation_unit.d
+ALL_DEP_FILES += $(BUILD_DIR)/tests/module_source_snapshot_unit.d
 ifeq ($(LLVM_ENABLED),1)
 ALL_DEP_FILES += $(BUILD_DIR)/tests/llvm_map_receiver_metadata_unit.d
 endif
@@ -2047,8 +2061,54 @@ $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BU
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 .PHONY: readonly-map-query-fact-phase-test
-readonly-map-query-fact-phase-test: $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)
+readonly-map-query-fact-phase-test: $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT) ownership-landing-allocation-test module-source-snapshot-test
 	$(call pgy_run_native,$(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT))
+
+# Fault injection stays in test-only objects; normal semantic/parser objects
+# and the compiler's fatal AST-node allocation boundary are unchanged.
+LANDING_ALLOC_TEST_OBJECTS = $(addprefix $(BUILD_DIR)/tests/landing_alloc_,ast_identity.o ast_constructors.o ast.o formal_string_store_landing_owner.o)
+LANDING_ALLOC_REPLACED_OBJECTS = $(addprefix $(BUILD_DIR)/,parser/ast_identity.o parser/ast_constructors.o parser/ast.o semantic/formal_string_store_landing_owner.o)
+LANDING_ALLOC_TEST_DEFINES = -Dmalloc=pgy_landing_test_malloc -Drealloc=pgy_landing_test_realloc
+
+$(BUILD_DIR)/tests/landing_alloc_ast_identity.o: $(SRC_DIR)/parser/ast_identity.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) $(LANDING_ALLOC_TEST_DEFINES) -Dcalloc=pgy_landing_test_calloc -c $< -o $@
+
+$(BUILD_DIR)/tests/landing_alloc_ast_constructors.o: $(SRC_DIR)/parser/ast_constructors.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) $(LANDING_ALLOC_TEST_DEFINES) -c $< -o $@
+
+$(BUILD_DIR)/tests/landing_alloc_ast.o: $(SRC_DIR)/parser/ast.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) $(LANDING_ALLOC_TEST_DEFINES) -c $< -o $@
+
+$(BUILD_DIR)/tests/landing_alloc_formal_string_store_landing_owner.o: $(SRC_DIR)/semantic/formal_string_store_landing_owner.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) $(LANDING_ALLOC_TEST_DEFINES) -c $< -o $@
+
+$(BUILD_DIR)/tests/ownership_landing_allocation_unit.o: tests/semantic/ownership_landing_allocation_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+$(BIN_DIR)/ownership_landing_allocation_unit$(EXEEXT): $(filter-out $(LANDING_ALLOC_REPLACED_OBJECTS),$(FRONTEND_OBJECTS)) $(LANDING_ALLOC_TEST_OBJECTS) $(BUILD_DIR)/tests/ownership_landing_allocation_unit.o | $(BIN_DIR)
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: ownership-landing-allocation-test
+ownership-landing-allocation-test: $(BIN_DIR)/ownership_landing_allocation_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/ownership_landing_allocation_unit$(EXEEXT))
+
+$(BUILD_DIR)/tests/module_source_snapshot_unit.o: tests/compiler/module_source_snapshot_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/module_source_snapshot_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/module_source_snapshot_unit.o | $(BIN_DIR)
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: module-source-snapshot-test
+module-source-snapshot-test: $(BIN_DIR)/module_source_snapshot_unit$(EXEEXT)
+	PGY_MODULE_SOURCE_UNIT="$(abspath $(BIN_DIR)/module_source_snapshot_unit$(EXEEXT))" "$(BASH)" tests/module_source_snapshot_smoke.sh
 
 $(BUILD_DIR)/tests/flow_rows_check_memo_unit.o: tests/semantic/flow_rows_check_memo_unit.c
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2633,7 +2693,7 @@ ASAN_PGY       ?= $(ASAN_BIN_DIR)/pgy$(EXEEXT)
 # the use-after-free the singleton registry bug produced, and the shape pgy-lsp
 # runs in. test_mir also crosses the DIR destruction boundary before validating
 # and serializing MIR, so borrowed cross-stage identity strings are observable.
-ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser test_mir
+ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser test_mir ownership_landing_allocation_unit
 ASAN_UNIT_BINARIES  := $(addprefix $(ASAN_BIN_DIR)/,$(addsuffix $(EXEEXT),$(ASAN_UNIT_BATTERIES)))
 
 # TSan is a separate instrumentation lane. It cannot be combined with ASan,
@@ -2866,6 +2926,17 @@ self-host-mir-loop-flow-summary-test-smoke:
 
 self-host-mir-machine-layer-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_machine_layer_smoke.sh
+
+.PHONY: self-host-mir-row-mutation-cost-test-smoke
+self-host-mir-row-mutation-cost-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_row_mutation_cost_owner.sh
+
+.PHONY: self-host-mir-row-borrow-retention-c-test-smoke self-host-mir-row-borrow-retention-llvm-test-smoke
+self-host-mir-row-borrow-retention-c-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir_row_borrow_retention_owner.sh c
+
+self-host-mir-row-borrow-retention-llvm-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir_row_borrow_retention_owner.sh llvm
 
 mir-declaration-inventory-test-smoke:
 	"$(BASH)" tests/mir_declaration_inventory_smoke.sh
@@ -3664,6 +3735,8 @@ self-host-call-spine-root-projection-test-smoke: self-host-compiler
 self-host-logical-record-shape-query-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/logical_record_shape_query_owner.sh
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/logical_record_validation_receipt_owner.sh
 
 .PHONY: self-host-logical-record-constructor-query-test-smoke
 self-host-logical-record-constructor-query-test-smoke: self-host-compiler
@@ -3826,6 +3899,14 @@ self-host-direct-mir-scalar-readonly-logical-record-array-bool-return-test-smoke
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh
 
+.PHONY: self-host-direct-mir-scalar-owned-array-bool-return-lifetime-test-smoke
+self-host-direct-mir-scalar-owned-array-bool-return-lifetime-test-smoke: self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_array_bool_return_lifetime_owner.sh
+
+self-host-direct-mir-scalar-graph-plan-test-smoke: \
+	self-host-direct-mir-scalar-owned-array-bool-return-lifetime-test-smoke
+
 self-host-direct-mir-scalar-owned-logical-record-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_owner.sh
@@ -3867,6 +3948,14 @@ self-host-direct-mir-scalar-logical-record-array-value-parameter-test-smoke: sel
 self-host-direct-mir-scalar-payload-free-enum-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh
+
+.PHONY: self-host-direct-mir-scalar-enum-readonly-ref-test-smoke
+self-host-direct-mir-scalar-enum-readonly-ref-test-smoke: self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_enum_readonly_ref_owner.sh
+
+self-host-direct-mir-scalar-graph-plan-test-smoke: \
+	self-host-direct-mir-scalar-enum-readonly-ref-test-smoke
 
 .PHONY: self-host-direct-mir-scalar-payload-enum-match-binding-test-smoke
 
@@ -4595,6 +4684,41 @@ self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
 self-host-future-aggregate-storage-admission-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/future_aggregate_storage_admission_owner.sh
+
+.PHONY: aggregate-storage-transfer-test-smoke
+aggregate-storage-transfer-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/aggregate_storage_transfer_smoke.sh
+
+.PHONY: self-host-collection-descriptor-effect-test-smoke
+self-host-collection-descriptor-effect-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/collection_descriptor_effect_owner.sh
+
+.PHONY: self-host-collection-map-payload-test-smoke
+self-host-collection-map-payload-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/collection_map_payload_owner.sh
+
+.PHONY: self-host-collection-native-member-release-restore-test-smoke
+self-host-collection-native-member-release-restore-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/collection_native_member_release_restore_owner.sh
+
+.PHONY: self-host-collection-replacement-cleanup-test-smoke
+self-host-collection-replacement-cleanup-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/collection_replacement_cleanup_owner.sh
+
+.PHONY: self-host-direct-mir-scalar-result-bool-test-smoke
+self-host-direct-mir-scalar-result-bool-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_result_bool_owner.sh
+
+.PHONY: self-host-member-completed-read-test-smoke
+self-host-member-completed-read-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/member_completed_read_owner.sh
 
 .PHONY: self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke
 self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
@@ -5628,3 +5752,8 @@ ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
 $(ALL_DEP_FILES): ;
 -include $(ALL_DEP_FILES)
 endif
+
+# Physical release of checked borrowed concatenation call results.
+region-call-temporary-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" bash tests/region_call_temporary_smoke.sh
+.PHONY: region-call-temporary-test-smoke

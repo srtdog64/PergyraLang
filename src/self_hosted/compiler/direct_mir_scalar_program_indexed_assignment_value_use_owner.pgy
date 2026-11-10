@@ -10,12 +10,10 @@ func DirectMirScalarProgramIndexedAssignmentValueUseOffset(
     if !graph.ok || ArrayLength(graph.roots) != 1 { return -1; }
     let root: Int = graph.roots[0];
     if root < 0 || root >= graph.ready_node_count { return -1; }
-    let kind: Int = graph.arena.topology.node_kinds[root];
-    if graph.ready_node_count == 1 && root == 0 &&
-        (kind == AstExpressionNodeIntegerLiteral() ||
-         kind == AstExpressionNodeStringLiteral() ||
-         kind == AstExpressionNodeBoolLiteral()) {
-        return target_use_count;
-    }
-    return 0;
+    // Instruction uses are unique across the target and value lanes.  The
+    // value lane therefore starts after the target's owned prefix; its leaf
+    // resolver may reuse a unique earlier target operand without consuming a
+    // second row.  Rewinding non-literal values to zero makes an independent
+    // RHS consume the target predecessor as its first operand.
+    return target_use_count;
 }

@@ -40,9 +40,9 @@ func DirectMirInferredGenericMemberProgramEnvelopeReady(
         ) || !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return false;
     }
-    let function_count: Int = 0;
-    let method_count: Int = 0;
-    let row: Int = 0;
+    var function_count: Int = 0;
+    var method_count: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],

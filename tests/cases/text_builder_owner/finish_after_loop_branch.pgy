@@ -7,7 +7,7 @@ func Build(flag: Bool) -> String
     }
     let allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(3);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 1
     {
         TextBuilderAppend(output, "x");

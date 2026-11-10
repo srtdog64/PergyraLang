@@ -18,8 +18,8 @@ struct CodegenTypeDeclarationBlockFact {
     let type_env: CodegenTypeEnv;
 }
 func CodegenTypeDeclarationZeroMask(count: Int) -> Array<Int> {
-    let rows: Array<Int> = [];
-    let i: Int = 0;
+    var rows: Array<Int> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(rows, 0);
         i = i + 1;
@@ -27,7 +27,7 @@ func CodegenTypeDeclarationZeroMask(count: Int) -> Array<Int> {
     return rows;
 }
 func CodegenTypeDeclarationEnumIndexForName(facts: SemanticAstEnumFacts, name: String) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
         if CodegenSemanticEnumNameAtOrDie(facts, i) == name {
             return Some(i);
@@ -39,7 +39,7 @@ func CodegenTypeDeclarationEnumIndexForName(facts: SemanticAstEnumFacts, name: S
 
 func CodegenTypeDeclarationWrapperIndexForName(facts: CodegenValueWrapperUsageFacts, name: String
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.type_names) {
         if facts.type_names[i] == name { return Some(i); }
         i = i + 1;
@@ -108,7 +108,7 @@ func CodegenNominalDeclarationDependenciesReady(
     let field_count: Int = CodegenSemanticNominalFieldCountOrDie(
         nominal_facts, nominal_index
     );
-    let field_index: Int = 0;
+    var field_index: Int = 0;
     while field_index < field_count {
         let field_type: String = CodegenSemanticNominalFieldTypeOrDie(
             nominal_facts, nominal_index, field_index
@@ -139,7 +139,7 @@ func CodegenEnumDeclarationDependenciesReady(
     let variant_count: Int = CodegenSemanticEnumVariantCount(
         enum_facts, enum_name
     );
-    let variant_index: Int = 0;
+    var variant_index: Int = 0;
     while variant_index < variant_count {
         let variant_name: String = CodegenSemanticEnumVariantNameAtOrDie(
             enum_facts, enum_name, variant_index
@@ -148,7 +148,7 @@ func CodegenEnumDeclarationDependenciesReady(
             CodegenSemanticEnumVariantParamCountAtOrDie(
                 enum_facts, enum_name, variant_index
             );
-        let payload_index: Int = 0;
+        var payload_index: Int = 0;
         while payload_index < payload_count {
             let payload_type: String =
                 CodegenSemanticEnumVariantPayloadTypeAtOrDie(
@@ -229,27 +229,27 @@ func CollectTypeDeclarations(
     role_facts: SemanticAstRoleFacts,
     wrapper_facts: CodegenValueWrapperUsageFacts,
     nominal_arrays: CodegenNominalArrayUsageFacts,
-    inout env_box: Array<String>
+    inout env_rows: String
 ) -> CodegenTypeDeclarationBlockFact {
     let enum_count: Int = SemanticAstEnumCount(enum_facts);
     let nominal_count: Int = SemanticAstNominalConstructorCount(nominal_facts);
     let wrapper_count: Int = ArrayLength(wrapper_facts.type_names);
-    let enum_emitted: Array<Int> = CodegenTypeDeclarationZeroMask(enum_count);
-    let nominal_emitted: Array<Int> =
+    var enum_emitted: Array<Int> = CodegenTypeDeclarationZeroMask(enum_count);
+    var nominal_emitted: Array<Int> =
         CodegenTypeDeclarationZeroMask(nominal_count);
-    let wrapper_emitted: Array<Int> =
+    var wrapper_emitted: Array<Int> =
         CodegenTypeDeclarationZeroMask(wrapper_count);
-    let remaining: Int = enum_count + nominal_count + wrapper_count;
-    let blocks: Array<String> = [];
-    let requires_bool_header: Bool =
+    var remaining: Int = enum_count + nominal_count + wrapper_count;
+    var blocks: Array<String> = [];
+    var requires_bool_header: Bool =
         CodegenSemanticNominalsRequireProjectionReadyBool(nominal_facts);
-    let dependency_env: CodegenTypeEnv =
-        CodegenTypeEnvFromPresealRows(Concat("", env_box[0]), "");
+    var dependency_env: CodegenTypeEnv =
+        CodegenTypeEnvFromPresealRows(env_rows, "");
     if !nominal_arrays.ok { Die("nominal record array usage facts are incomplete"); }
     // Array descriptors require only an element pointer. Completeness remains
     // governed by the emitted masks for direct fields and runtime bodies.
-    let array_rows: Array<String> = [];
-    let array_index: Int = 0;
+    var array_rows: Array<String> = [];
+    var array_index: Int = 0;
     while array_index < ArrayLength(nominal_arrays.element_types) {
         let element: String = nominal_arrays.element_types[array_index];
         ArrayPushOwnedString(blocks, CollectionRuntimeNominalRecordArrayDeclaration(element));
@@ -257,14 +257,14 @@ func CollectTypeDeclarations(
         array_index = array_index + 1;
     }
     dependency_env = CodegenTypeEnvAdvancePresealRows(
-        env_box, dependency_env, StringJoin(array_rows, "")
+        env_rows, dependency_env, StringJoin(array_rows, "")
     );
     while remaining > 0 {
-        let made_progress: Bool = false;
-        let enum_selected: Array<Int> =
+        var made_progress: Bool = false;
+        var enum_selected: Array<Int> =
             CodegenTypeDeclarationZeroMask(enum_count);
-        let enum_selected_count: Int = 0;
-        let enum_index: Int = 0;
+        var enum_selected_count: Int = 0;
+        var enum_index: Int = 0;
         while enum_index < enum_count {
             if enum_emitted[enum_index] == 0 &&
                 CodegenEnumDeclarationDependenciesReady(
@@ -281,7 +281,7 @@ func CollectTypeDeclarations(
                 CollectEnumsSelected(enum_facts, enum_selected, dependency_env);
             ArrayPushOwnedString(blocks, Concat("", batch.c_block));
             dependency_env = CodegenTypeEnvAdvancePresealRows(
-                env_box, dependency_env, batch.env_rows
+                env_rows, dependency_env, batch.env_rows
             );
             enum_index = 0;
             while enum_index < enum_count {
@@ -293,10 +293,10 @@ func CollectTypeDeclarations(
             remaining = remaining - enum_selected_count;
             made_progress = true;
         }
-        let nominal_selected: Array<Int> =
+        var nominal_selected: Array<Int> =
             CodegenTypeDeclarationZeroMask(nominal_count);
-        let nominal_selected_count: Int = 0;
-        let nominal_index: Int = 0;
+        var nominal_selected_count: Int = 0;
+        var nominal_index: Int = 0;
         while nominal_index < nominal_count {
             if nominal_emitted[nominal_index] == 0 &&
                 CodegenNominalDeclarationDependenciesReady(
@@ -316,7 +316,7 @@ func CollectTypeDeclarations(
                 );
             ArrayPushOwnedString(blocks, Concat("", batch.c_block));
             dependency_env = CodegenTypeEnvAdvancePresealRows(
-                env_box, dependency_env, batch.env_rows
+                env_rows, dependency_env, batch.env_rows
             );
             nominal_index = 0;
             while nominal_index < nominal_count {
@@ -328,7 +328,7 @@ func CollectTypeDeclarations(
             remaining = remaining - nominal_selected_count;
             made_progress = true;
         }
-        let wrapper_index: Int = 0;
+        var wrapper_index: Int = 0;
         while wrapper_index < wrapper_count {
             if wrapper_emitted[wrapper_index] == 0 &&
                 CodegenWrapperDeclarationDependenciesReady(

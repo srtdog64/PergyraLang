@@ -1,13 +1,13 @@
 // C direct-call syntax from ordered GraphPlan argument values.
-
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
-import "direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_c_nominal_parameter_projection_owner.pgy";
 import "direct_mir_scalar_program_c_array_readonly_ref_owner.pgy";
-import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
+import "direct_mir_scalar_program_readonly_string_parameter_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "direct_mir_identity_cell_store_readiness_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
 
 func DirectMirScalarProgramCDirectCallArgumentValue(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -57,10 +57,42 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
             "direct MIR scalar C readonly array argument is invalid"); }
         return readonly_value;
     }
-    if DirectMirScalarProgramVoidReadonlyStringTargetAt(
+    if DirectMirScalarProgramReadonlyStringTargetAt(
             routines, callable, argument) { return value; }
-    return DirectMirScalarProgramCLogicalRecordCallArgument(
-        routines, logical_record, callable, argument, value);
+    if routines.parameter_carriages[parameter_row] == "readonly-ref" &&
+        CollectionHashMapRuntimeFactFromTypeName(
+            routines.parameter_types[parameter_row]).ok { return value; }
+    if DirectMirScalarProgramOpaqueReadonlyZoneRow(
+            plan.program.opaque_readonly_zones,
+            routines.parameter_types[parameter_row]) >= 0 {
+        let target_carriage: String =
+            routines.parameter_carriages[parameter_row];
+        if (target_carriage != "readonly-ref" &&
+                target_carriage != "participant") ||
+            expressions.node_kinds[argument_node] !=
+                DirectMirScalarProgramExprParameter() {
+            Die("direct MIR scalar C opaque Zone argument is invalid");
+        }
+        let source: Int =
+            expressions.node_parameter_ordinals[argument_node];
+        if source < 0 || source >= routines.parameter_counts[routine] {
+            Die("direct MIR scalar C opaque Zone source is invalid");
+        }
+        let source_row: Int = routines.parameter_starts[routine] + source;
+        if routines.parameter_types[source_row] !=
+                routines.parameter_types[parameter_row] ||
+            routines.parameter_carriages[source_row] != target_carriage ||
+            DirectMirScalarProgramOpaqueReadonlyZoneRow(
+                plan.program.opaque_readonly_zones,
+                routines.parameter_types[source_row]) < 0 {
+            Die("direct MIR scalar C opaque Zone forwarding is invalid");
+        }
+        return value;
+    }
+    return DirectMirScalarProgramCNominalCallArgument(
+        expressions, routines, logical_record, plan.program.payload_free_enum,
+        plan.program.referenced_enum, routine, callable, argument,
+        argument_node, value);
 }
 
 func DirectMirScalarProgramCDirectCallExpression(
@@ -69,17 +101,17 @@ func DirectMirScalarProgramCDirectCallExpression(
 ) -> Option<String> {
     if kind != DirectMirScalarProgramExprDirectCall() { return None; }
     if callable_ordinal < 0 { return None; }
-    let output: String = Concat("pgy_scalar_routine_",
+    var output: String = Concat("pgy_scalar_routine_",
         Concat(ToString(callable_ordinal), "("));
     // A call without argument rows takes its operands from `left` and
     // `right`; the borrowed rows are never grown here.
     if ArrayLength(arguments) == 0 {
-        let separator: String = "";
+        var separator: String = "";
         if left != "" { output = Concat(output, left); separator = ", "; }
         if right != "" { output = Concat(output, Concat(separator, right)); }
         return Some(Concat(output, ")"));
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         if ordinal > 0 { output = Concat(output, ", "); }
         output = Concat(output, arguments[ordinal]);

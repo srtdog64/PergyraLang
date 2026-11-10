@@ -9,7 +9,7 @@ import "direct_mir_scalar_program_payload_enum_expression_readiness_owner.pgy";
 func DirectMirScalarProgramPayloadEnumMemberGraphRow(
     ref plan: DirectMirScalarCfgGraphPlan, node: Int
 ) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.program.expressions.graph_starts) {
         let start: Int = plan.program.expressions.graph_starts[row];
         let count: Int = plan.program.expressions.graph_counts[row];
@@ -22,8 +22,8 @@ func DirectMirScalarProgramPayloadEnumMemberGraphRow(
 func DirectMirScalarProgramPayloadEnumMemberUseOperation(
     ref plan: DirectMirScalarCfgGraphPlan, graph_row: Int
 ) -> Int {
-    let found: Int = -1;
-    let operation: Int = 0;
+    var found: Int = -1;
+    var operation: Int = 0;
     while operation < ArrayLength(
             plan.program.operation_expression_rows) {
         if plan.program.operation_expression_rows[operation] == graph_row {
@@ -57,7 +57,7 @@ func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
     if local_row < 0 || enum_row < 0 || variant < 0 || block < 0 {
         return false;
     }
-    let candidate: Int = operation - 1;
+    var candidate: Int = operation - 1;
     let block_start: Int = plan.block_operation_starts[block];
     while candidate >= block_start {
         let value: Int = plan.operation_result_values[candidate];
@@ -89,7 +89,7 @@ func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
 func DirectMirScalarProgramPayloadEnumMembersReadyForPlan(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         if plan.program.expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprPayloadEnumMember() {

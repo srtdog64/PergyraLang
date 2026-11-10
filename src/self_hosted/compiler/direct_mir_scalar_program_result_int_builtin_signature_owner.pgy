@@ -1,7 +1,10 @@
 // Typed projection of generic semantic Result builtins for Result<Int>.
 
 import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "../codegen/runtime_abi/result_runtime_owner.pgy";
 
 func DirectMirScalarProgramResultIntBuiltinSignatureExpected(
     name: String
@@ -52,4 +55,107 @@ func DirectMirScalarProgramResultIntBuiltinParameterTypes(
             CompilerAbiLayoutIntTypeName()];
     }
     return fallback;
+}
+
+func DirectMirScalarProgramExplicitResultTypeForCall(
+    name: String, ref actual_types: Array<String>, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> String {
+    if name != "Ok" && name != "Err" && name != "IsOk" &&
+        name != "IsErr" && name != "Unwrap" &&
+        name != "UnwrapErr" && name != "UnwrapOr" {
+        return "";
+    }
+    var candidate: String = "";
+    if name == "Ok" || name == "Err" { candidate = expected_type; }
+    else if ArrayLength(actual_types) > 0 {
+        // The returned projection may keep this identity past the array read.
+        candidate = Concat("", actual_types[0]);
+    }
+    let runtime: ResultRuntimeFact = ResultRuntimeFactForType(candidate);
+    if runtime.ok && ResultRuntimeFactIsBuiltinScalar(runtime.type_name) {
+        return runtime.type_name;
+    }
+    let projection: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            candidate, logical_record, referenced_enum);
+    if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            projection, logical_record, referenced_enum) {
+        return "";
+    }
+    return projection.type_name;
+}
+
+func DirectMirScalarProgramExplicitResultBuiltinSignatureForCall(
+    ref fact: DirectMirScalarProgramBuiltinSignatureFact,
+    name: String, ref actual_types: Array<String>, result_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let invalid: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    if !fact.valid { return invalid; }
+    var projected_type: String = "";
+    var payload_type: String = "";
+    var error_type: String = "";
+    let runtime: ResultRuntimeFact = ResultRuntimeFactForType(result_type);
+    if runtime.ok && ResultRuntimeFactIsBuiltinScalar(runtime.type_name) {
+        projected_type = runtime.type_name;
+        payload_type = runtime.payload_type;
+        error_type = runtime.error_type;
+    } else {
+        let projection: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+            DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+                result_type, logical_record, referenced_enum);
+        if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+                projection, logical_record, referenced_enum) {
+            return invalid;
+        }
+        projected_type = projection.type_name;
+        payload_type = projection.payload_type;
+        error_type = projection.error_type;
+    }
+    var return_type: String = "";
+    var parameter_types: Array<String> = [];
+    var kind: Int = 0;
+    // Comparisons use owned snapshots; no borrowed formal element crosses the
+    // signature fact's value boundary.
+    var first_actual: String = "";
+    var second_actual: String = "";
+    if ArrayLength(actual_types) > 0 {
+        first_actual = Concat("", actual_types[0]);
+    }
+    if ArrayLength(actual_types) > 1 {
+        second_actual = Concat("", actual_types[1]);
+    }
+    if name == "Ok" && ArrayLength(actual_types) == 1 &&
+            first_actual == payload_type {
+        return_type = projected_type;
+        ArrayPush(parameter_types, payload_type);
+        kind = DirectMirScalarProgramExprOkInt();
+    } else if name == "Err" && ArrayLength(actual_types) == 1 &&
+            first_actual == error_type {
+        return_type = projected_type;
+        ArrayPush(parameter_types, error_type);
+        kind = DirectMirScalarProgramExprErrInt();
+    } else if (name == "IsOk" || name == "IsErr" || name == "Unwrap" ||
+            name == "UnwrapErr") && ArrayLength(actual_types) == 1 &&
+            first_actual == projected_type {
+        ArrayPush(parameter_types, projected_type);
+        if name == "IsOk" { return_type = CompilerAbiLayoutBoolTypeName(); kind = DirectMirScalarProgramExprIsOkInt(); }
+        else if name == "IsErr" { return_type = CompilerAbiLayoutBoolTypeName(); kind = DirectMirScalarProgramExprIsErrInt(); }
+        else if name == "Unwrap" { return_type = payload_type; kind = DirectMirScalarProgramExprUnwrapResultInt(); }
+        else { return_type = error_type; kind = DirectMirScalarProgramExprUnwrapErrInt(); }
+    } else if name == "UnwrapOr" && ArrayLength(actual_types) == 2 &&
+            first_actual == projected_type &&
+            second_actual == payload_type {
+        return_type = payload_type;
+        ArrayPush(parameter_types, projected_type);
+        ArrayPush(parameter_types, payload_type);
+        kind = DirectMirScalarProgramExprUnwrapOrInt();
+    } else { return invalid; }
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, fact.registry_row, fact.name, return_type, parameter_types,
+        kind, fact.runtime_call_abi_id);
 }

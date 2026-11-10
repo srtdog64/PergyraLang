@@ -17,12 +17,12 @@ func CodegenSemanticLocalBindingsForInstance(
     if !range.ok || !IsSome(generic_count) || UnwrapOption(generic_count) != ArrayLength(actuals) {
         Die("generic local instance requires exact owner and actual tuple");
     }
-    let nodes: Array<Int> = []; let functions: Array<Int> = []; let scopes: Array<Int> = [];
-    let names: Array<String> = []; let types: Array<String> = []; let declared: Array<Int> = [];
-    let initializers: Array<String> = []; let kinds: Array<Int> = []; let indices: Array<Int> = []; let arities: Array<Int> = [];
-    let row: Int = range.start;
+    var nodes: Array<Int> = []; var functions: Array<Int> = []; var scopes: Array<Int> = [];
+    var names: Array<String> = []; var types: Array<String> = []; var declared: Array<Int> = [];
+    var initializers: Array<String> = []; var kinds: Array<Int> = []; var indices: Array<Int> = []; var arities: Array<Int> = [];
+    var row: Int = range.start;
     while row < range.end {
-        let type_name: String = facts.declared_type_names[row];
+        var type_name: String = facts.declared_type_names[row];
         if facts.has_declared_types[row] != 0 {
             let source_types: Array<String> = [type_name]; let parameters: Array<String> = [];
             let expressions: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(source_types, parameters);

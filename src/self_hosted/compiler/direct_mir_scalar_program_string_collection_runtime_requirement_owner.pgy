@@ -46,8 +46,8 @@ func DirectMirScalarProgramStringCollectionRuntimeRequirement(
         expressions, DirectMirScalarProgramExprStringJoin());
     let to_int_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToIntString());
-    let length_required: Bool = false;
-    let node: Int = 0;
+    var length_required: Bool = false;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprArrayStringLength() {
@@ -103,9 +103,9 @@ func DirectMirScalarProgramStringCollectionRuntimeRequirement(
         return DirectMirScalarProgramStringCollectionRuntimeIds(
             false, 0, 0, 0, 0, 0, 0);
     }
-    let contains_id: Int = 0; let split_id: Int = 0;
-    let join_id: Int = 0; let to_int_id: Int = 0; let length_id: Int = 0;
-    let get_id: Int = 0;
+    var contains_id: Int = 0; var split_id: Int = 0;
+    var join_id: Int = 0; var to_int_id: Int = 0; var length_id: Int = 0;
+    var get_id: Int = 0;
     if contains_required { contains_id = contains.runtime_call_abi_id; }
     if split_required { split_id = split.runtime_call_abi_id; }
     if join_required { join_id = join.runtime_call_abi_id; }

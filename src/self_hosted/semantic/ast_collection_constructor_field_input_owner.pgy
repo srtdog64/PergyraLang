@@ -59,7 +59,7 @@ func SemanticAstCollectionConstructorFieldInputsShapeReady(ref facts: SemanticAs
         ArrayLength(facts.ordinals) != n || ArrayLength(facts.constructor_ids) != n || ArrayLength(facts.field_ids) != n ||
         ArrayLength(facts.constructor_rows) != n || ArrayLength(facts.field_rows) != n || ArrayLength(facts.producer_kinds) != n ||
         ArrayLength(facts.definition_rows) != n || ArrayLength(facts.definition_ids) != n || ArrayLength(facts.binding_ids) != n { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < n {
         let kind: Int = facts.producer_kinds[row];
         let function: Int = facts.function_ids[row];
@@ -124,15 +124,15 @@ func SemanticAstCollectionConstructorFieldInputsPendingReady(
         ArrayLength(definitions.surface_rows) != ArrayLength(surfaces.node_ids) { return false; }
     if ArrayLength(facts.edge_nodes) > 0 && (facts.artifact_node_count != artifact.count ||
         facts.artifact_identity_digest != artifact.identity_digest) { return false; }
-    let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
-    let row: Int = 0;
-    let last: Int = -1;
-    let slot: Int = 0;
+    var current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+    var row: Int = 0;
+    var last: Int = -1;
+    var slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] {
             let root: Int = surfaces.expression_graph.roots[slot];
             if root <= last || root >= ArrayLength(surfaces.expression_graph.arena.topology.node_kinds) { return false; }
-            let node: Int = last + 1;
+            var node: Int = last + 1;
             while node <= root {
                 if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
@@ -150,7 +150,7 @@ func SemanticAstCollectionConstructorFieldInputsPendingReady(
                                 facts.call_nodes[row] != edge.call_node || facts.argument_nodes[row] != edge.argument_node || facts.ordinals[row] != edge.ordinal ||
                                 facts.constructor_ids[row] != field.constructor_syntax_id || facts.field_ids[row] != field.field_syntax_id ||
                                 facts.constructor_rows[row] != field.constructor_row || facts.field_rows[row] != field.field_row { return false; }
-                            let binding_row: Int = -1;
+                            var binding_row: Int = -1;
                             if binding.ok && SemanticAstCollectionOwnershipIsStringArray(binding.type_name) { binding_row = binding.row; }
                             let producer: SemanticAstCollectionConstructorFieldInputProducer = SemanticAstCollectionConstructorFieldInputProducerAt(
                                 artifact, locals, inferred_types, definitions, surfaces, slot, edge.argument_node, binding_row, current);

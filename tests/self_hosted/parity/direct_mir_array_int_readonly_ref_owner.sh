@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Readonly Int/String array identity, projected ABI, value reborrow and no copy-out.
+# Readonly Int/Bool/String array identity, projected ABI, value reborrow and no copy-out.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -18,7 +18,7 @@ mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/readonly-array-int.XXXXXX")"
 WORK_REL="${WORK_DIR#"$ROOT_DIR/"}"
 echo "[$LABEL] evidence: $WORK_REL"
-printf '3\n7\n2147483647\n1\n4\n4\n2\n0\n2\n2\n한글🙂\n' >"$WORK_DIR/expected.run"
+printf '3\n7\n2147483647\n1\n4\n4\n2\n0\n2\n2\n한글🙂\n3\nfalse\n' >"$WORK_DIR/expected.run"
 (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$SOURCE" --backend=c --opt=dev \
     -o "$WORK_REL/native.exe") >"$WORK_DIR/native.log" 2>&1 || fail "native source compilation failed"
 "$WORK_DIR/native.exe" | tr -d '\r' >"$WORK_DIR/native.run"
@@ -36,6 +36,7 @@ for backend in c llvm; do
     }
     if [[ "$backend" == c ]]; then
         grep -Eq 'const pgy_ai \*pgy_param_[01]' "$artifact" || fail "C omitted readonly pointer"
+        grep -Fq 'const pgy_ab *pgy_param_0' "$artifact" || fail "C omitted readonly Bool pointer"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
             command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
@@ -43,6 +44,7 @@ for backend in c llvm; do
         command+=(-lm -o "$WORK_DIR/direct-$backend.exe")
     else
         grep -Fq '= load %pgy.array.int, ptr %pgy.param.1, align 8' "$artifact" || fail "LLVM omitted ordinal/ABI load"
+        grep -Fq '= load %pgy.array.bool, ptr %pgy.param.0, align 8' "$artifact" || fail "LLVM omitted Bool ABI load"
         grep -Fq 'getelementptr inbounds i32' "$artifact" || fail "LLVM widened stored Int elements"
         grep -Fq 'sext i32' "$artifact" || fail "LLVM lost signed Int reads"
         command=("$CLANG" -x ir "$artifact" -x none "$WORK_DIR/runtime.o" -pthread -lm -o "$WORK_DIR/direct-$backend.exe")
@@ -63,7 +65,8 @@ done
 python "$ROOT_DIR/tests/self_hosted/parity/direct_mir_array_int_readonly_ref_mutations.py" \
     "$WORK_DIR/program.mir.json" "$WORK_DIR"
 for mutation in missing-abi layout-id abi-required storage-align element-width cross-family \
-        pass-shape resource owner-carriage binding-ordinal writer-readonly \
+        bool-missing-abi bool-storage-align \
+        pass-shape resource unsupported-carriage binding-ordinal writer-readonly \
         negate-child negate-kind negate-binding; do
     for backend in c llvm; do
         output="$WORK_REL/$mutation.$backend"
@@ -101,4 +104,4 @@ for negative in push set return copyout; do
     done
 done
 [[ "$source_failures" == 0 ]] || fail "$source_failures source-boundary controls failed (all results collected)"
-echo "[$LABEL] native/C/LLVM/public 11 values, 28 MIR refusals and 12 source refusals: PASS"
+echo "[$LABEL] native/C/LLVM/public 13 values, 32 MIR refusals and 12 source refusals: PASS"

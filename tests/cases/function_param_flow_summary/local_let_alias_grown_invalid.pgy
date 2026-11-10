@@ -17,7 +17,7 @@ struct Store {
 
 func Main() -> Int {
     let store: Store = Store(Shelf([Box([1]), Box([2])]), 0);
-    let shelf: Shelf = store.shelf;
+    var shelf: Shelf = store.shelf;
     ArrayPush(shelf.boxes, Box([9]));
     ArrayPush(shelf.boxes, Box([9]));
     ArrayPush(shelf.boxes, Box([9]));

@@ -159,12 +159,14 @@ int main(void)
     rows->rows[0].id = first_id + 1000;
     CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
     ASTNode *added = ast_func_return_type(plain);
-    CHECK(added != NULL && function_param_flow_claim_capture(store.ctx, rows, added, false));
+    CHECK(added != NULL && function_param_flow_claim_capture(
+        store.ctx, rows, added, false));
     CHECK(!function_param_flow_index_claims_current(store.ctx, claimed));
     rows->rows[0].id = first_id;
     CHECK(function_param_flow_index_claims_current(store.ctx, claimed));
     rows->rows[0].id = first_id + 1000;
-    CHECK(function_param_flow_claim_capture(store.ctx, rows, added, true));
+    CHECK(function_param_flow_claim_capture(
+        store.ctx, rows, added, true));
     CHECK(!function_param_flow_index_claims_current(store.ctx, claimed));
     rows->rows[0].id = first_id;
     CHECK(function_param_flow_index_claims_current(store.ctx, claimed));

@@ -1,0 +1,67 @@
+// Runtime receiver target projected from one exact method declaration owner.
+
+import "program_routine_receiver_identity_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+import "../semantic/native_primitive_type_projection_owner.pgy";
+
+struct MirProgramRoutineReceiverTargetCapture {
+    let valid: Bool;
+    let type_name: String;
+    let declaration_row: Int;
+}
+
+func MirProgramRoutineReceiverTargetInvalid(
+) -> MirProgramRoutineReceiverTargetCapture {
+    return MirProgramRoutineReceiverTargetCapture(false, "", -1);
+}
+
+// A role owns method identity, but its `for_type` owns the runtime receiver
+// ABI. Other method declarations receive their own nominal value directly.
+func CaptureMirProgramRoutineReceiverTarget(
+    json: String, json_extent: Int,
+    ref declarations: MirProgramDeclarationIndex,
+    owner: String, owner_nominal_kind: String, owner_declaration_row: Int
+) -> MirProgramRoutineReceiverTargetCapture {
+    let invalid: MirProgramRoutineReceiverTargetCapture =
+        MirProgramRoutineReceiverTargetInvalid();
+    if owner == "" || owner_declaration_row < 0 ||
+        owner_declaration_row >= ArrayLength(declarations.names) ||
+        declarations.names[owner_declaration_row] != owner ||
+        MirProgramRoutineOwnerNominalKindAt(
+            declarations, owner_declaration_row) != owner_nominal_kind {
+        return invalid;
+    }
+    if owner_nominal_kind != "role" {
+        return MirProgramRoutineReceiverTargetCapture(
+            true, owner, owner_declaration_row);
+    }
+    let raw_target: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, json_extent, declarations.starts[owner_declaration_row],
+        declarations.ends[owner_declaration_row], "for_type");
+    if !IsSome(raw_target) { return invalid; }
+    let target: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(UnwrapOption(raw_target));
+    if target.canonical_name == "" || target.nominal_base_name == "" ||
+        SemanticTypeNameContainsUnresolvedUnknown(target.canonical_name) {
+        return invalid;
+    }
+    let target_row: Int = MirProgramRoutineOwnerDeclarationRow(
+        declarations, target.nominal_base_name);
+    if target_row < 0 {
+        if !SemanticNativePrimitiveTypeName(target.nominal_base_name) ||
+            target.nominal_base_name == "Void" ||
+            target.nominal_base_name == "Never" ||
+            target.nominal_base_name == "<unknown>" {
+            return invalid;
+        }
+    } else {
+        let target_kind: String = MirProgramRoutineOwnerNominalKindAt(
+            declarations, target_row);
+        if !CallableReceiverNominalKindUsesValue(target_kind) &&
+            !CallableReceiverNominalKindUsesMutableIdentity(target_kind) {
+            return invalid;
+        }
+    }
+    return MirProgramRoutineReceiverTargetCapture(
+        true, target.canonical_name, target_row);
+}

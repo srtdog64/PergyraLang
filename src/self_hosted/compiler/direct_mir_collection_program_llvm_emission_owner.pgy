@@ -32,7 +32,7 @@ func DirectMirCollectionProgramEmitLlvm(
     }
     let format_payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String =
+    var output: String =
         "@.pgy.collection.int.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");

@@ -1,0 +1,30 @@
+// A protected aggregate may be rebuilt inside a result wrapper. The exact
+// constructor-edge chain maps the formal's source fields to the wrapper's
+// caller-visible result field; no manual drop or field restoration is needed.
+struct NestedResultFacts {
+    names: Array<String>;
+    ids: Array<Int>;
+}
+
+struct NestedResultAdmission {
+    recognized: Bool;
+    facts: NestedResultFacts;
+}
+
+func NestedResultUpdate(
+    facts: NestedResultFacts
+) -> NestedResultAdmission {
+    let names: Array<String> = facts.names;
+    let ids: Array<Int> = facts.ids;
+    ArrayPushOwnedString(names, "next");
+    return NestedResultAdmission(
+        true, NestedResultFacts(names, ids));
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let ids: Array<Int> = [];
+    let facts: NestedResultFacts = NestedResultFacts(names, ids);
+    let update: NestedResultAdmission = NestedResultUpdate(facts);
+    let count: Int = ArrayLength(update.facts.names);
+}

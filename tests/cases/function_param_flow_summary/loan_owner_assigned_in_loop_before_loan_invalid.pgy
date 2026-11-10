@@ -22,12 +22,12 @@ func ViewAt(graph: Graph, i: Int) -> View {
 }
 
 func WithGraph(graph: Graph) -> Int {
-    let sealed: Graph = graph;
+    var sealed: Graph = graph;
     if !sealed.arena.ready {
         sealed.arena.ready = true;
     }
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 2 {
         sealed.arena.ready = false;
         let view: View = ViewAt(sealed, i);

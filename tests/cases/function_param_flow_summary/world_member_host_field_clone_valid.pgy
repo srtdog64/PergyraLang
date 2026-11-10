@@ -11,7 +11,7 @@ struct Taken {
 }
 
 subject Holder {
-    let outcome: Option<Taken>;
+    var outcome: Option<Taken>;
     action Take(self, request: Request) -> Void {
         outcome = Some(Taken(request.names, ArrayLength(request.names)));
     }

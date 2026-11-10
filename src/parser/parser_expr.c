@@ -144,14 +144,23 @@ ASTNode* parser_parse_assignment(Parser* parser) {
         return assign;
     }
 
-    if (parser_match(parser, TOKEN_SUBSCRIBE)) {
-        ASTNode* handler = parser_parse_assignment(parser);
-        return ast_create_event_subscribe(expr, handler);
+    AstAssignmentOperation operation = AST_ASSIGN_SET;
+    switch (parser->current_token.type) {
+    case TOKEN_SUBSCRIBE: operation = AST_ASSIGN_ADD; break;
+    case TOKEN_UNSUBSCRIBE: operation = AST_ASSIGN_SUBTRACT; break;
+    case TOKEN_MUL_ASSIGN: operation = AST_ASSIGN_MULTIPLY; break;
+    case TOKEN_DIV_ASSIGN: operation = AST_ASSIGN_DIVIDE; break;
+    case TOKEN_REM_ASSIGN: operation = AST_ASSIGN_REMAINDER; break;
+    default: break;
     }
-
-    if (parser_match(parser, TOKEN_UNSUBSCRIBE)) {
-        ASTNode* handler = parser_parse_assignment(parser);
-        return ast_create_event_unsubscribe(expr, handler);
+    if (operation != AST_ASSIGN_SET) {
+        Token token = parser->current_token;
+        parser_advance(parser);
+        ASTNode *assign = ast_create_assignment(expr, parser_parse_assignment(parser));
+        assign->data.assignment.operation = operation;
+        assign->line = token.line;
+        assign->column = token.column;
+        return assign;
     }
 
     return expr;

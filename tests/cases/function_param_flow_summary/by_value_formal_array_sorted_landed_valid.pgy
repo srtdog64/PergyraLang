@@ -8,7 +8,7 @@ struct Holder {
 }
 
 func SortedFirst(holder: Holder) -> Int {
-    let items: Array<Int> = holder.items;
+    var items: Array<Int> = holder.items;
     ArraySort(items);
     return items[0];
 }

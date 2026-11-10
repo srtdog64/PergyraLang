@@ -1,0 +1,36 @@
+// The returned loan cannot be repaired by a shallow Clone: each Array
+// element owns a String, so copying only the descriptors would leave the
+// result pointing at storage retired with Make's local owner.
+struct Item {
+    text: String;
+}
+
+struct Fact {
+    present: Bool;
+    items: Array<Item>;
+}
+
+struct Pair {
+    items: Array<Item>;
+}
+
+func Keep(ref fact: Fact) -> Option<Pair> {
+    if !fact.present {
+        return None();
+    }
+    return Some(Pair(fact.items));
+}
+
+func Make() -> Option<Pair> {
+    let fact: Fact = Fact(true, [Item(StringConcat("a", "b"))]);
+    let kept: Option<Pair> = Keep(fact);
+    return kept;
+}
+
+func Main() -> Int {
+    let made: Option<Pair> = Make();
+    if IsSome(made) {
+        Print(ToString(ArrayLength(UnwrapOption(made).items)));
+    }
+    return 0;
+}

@@ -55,6 +55,15 @@ mir_capture_speculation_facts(MIRRoutine *routine)
             if (inst->expr0 == NULL)
                 continue;
             safety = mir_expression_safety(routine, inst->expr0);
+            AstAssignmentOperation operation;
+            if (mir_instruction_source_is_assignment(inst)
+                && mir_assignment_operation(inst, &operation)
+                && operation != AST_ASSIGN_SET) {
+                /* A compound row also reads its place and applies an
+                 * operator. The RHS alone cannot prove safe speculation. */
+                safety.pure = false;
+                safety.non_trapping = false;
+            }
             inst->has_speculation_safety_fact = true;
             inst->speculation_is_pure = safety.pure;
             inst->speculation_is_non_trapping = safety.non_trapping;

@@ -129,23 +129,23 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
     function_scopes: SemanticAstFunctionScopeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstStatementTypeFacts {
-    let node_ids: Array<Int> = [];
-    let kind_tags: Array<Int> = [];
-    let expected_types: Array<String> = [];
-    let inferred_types: Array<String> = [];
-    let verified: Array<Int> = [];
-    let diagnostic_codes: Array<String> = [];
-    let diagnostic_messages: Array<String> = [];
-    let member_root_names: Array<String> = [];
+    var node_ids: Array<Int> = [];
+    var kind_tags: Array<Int> = [];
+    var expected_types: Array<String> = [];
+    var inferred_types: Array<String> = [];
+    var verified: Array<Int> = [];
+    var diagnostic_codes: Array<String> = [];
+    var diagnostic_messages: Array<String> = [];
+    var member_root_names: Array<String> = [];
     if !SemanticAstExpressionMemberRootNames(constructors, enum_facts, member_root_names) {
         return SemanticAstStatementTypeStructuralError(artifact, "member_root_environment");
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
-        let environment_fact: String = "";
+        var names: Array<String> = [];
+        var types: Array<String> = [];
+        var modes: Array<String> = [];
+        var environment_fact: String = "";
         if !SemanticAstEnumValueRowsReady(enum_facts) { environment_fact = "enum_environment"; }
         else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, statements.function_node_ids[i],
@@ -183,11 +183,11 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             );
         }
         let kind: Int = statements.kind_tags[i];
-        let expected: String = "";
-        let inferred: String = "Void";
-        let row_verified: Int = 1;
-        let row_code: String = "";
-        let row_message: String = "";
+        var expected: String = "";
+        var inferred: String = "Void";
+        var row_verified: Int = 1;
+        var row_code: String = "";
+        var row_message: String = "";
         let checks_expression: Bool =
             SemanticAstExpressionGraphAtomLaneRequired(
                 artifact, statements.node_ids[i]
@@ -204,7 +204,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     artifact, "expression_graph"
                 );
             }
-            let expression_verdict: SemanticAstExpressionVerdict =
+            var expression_verdict: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictFromGraph(
                 statements.payload_texts[i],
                 expression_surfaces.expression_graph,
@@ -251,7 +251,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             (kind == TypedAstKindArrayPopStmtTag() ||
              kind == TypedAstKindArraySetStmtTag() ||
              kind == TypedAstKindArrayPushStmtTag()) {
-            let mutator_name: String = "ArrayPop";
+            var mutator_name: String = "ArrayPop";
             if kind == TypedAstKindArraySetStmtTag() {
                 mutator_name = "ArraySet";
             } else if kind == TypedAstKindArrayPushStmtTag() {
@@ -264,13 +264,23 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 SemanticAstExpressionEnvironmentClear(names, types, modes);
                 return SemanticAstStatementTypeStructuralError(artifact, "array_target_graph");
             }
-            let mutation: SemanticExpressionGraphCollectionMutationFact =
+            var mutation: SemanticExpressionGraphCollectionMutationFact =
                 SemanticExpressionGraphCollectionReceiverMutationFact(
                     mutator_name, expression_surfaces.expression_graph,
                     UnwrapOption(target_root),
                     names.Slice(0, ArrayLength(names)),
                     types.Slice(0, ArrayLength(types)),
                     modes.Slice(0, ArrayLength(modes)), false, enum_facts.value_scope);
+            if mutation.ok {
+                let write: SemanticDiagnosticMessageFact = SemanticAstValueWriteVerdict(
+                    expression_surfaces.expression_graph, UnwrapOption(target_root),
+                    constructors, names, types, modes, function_tables.callables,
+                    function_tables.returns, enum_facts.value_scope);
+                if write.code != "" {
+                    mutation = SemanticExpressionGraphCollectionMutationError(write.code,
+                        SemanticDiagnosticMessageFactRender(write));
+                }
+            }
             if mutation.ok {
                 mutation = SemanticExpressionGraphArrayStorageMutationFact(
                     artifact, locals, initializer_types.inferred_type_names,
@@ -343,11 +353,11 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             }
             if row_verified == 1 &&
                 kind != TypedAstKindArrayPopStmtTag() {
-                let value_text: String = statements.value_texts[i];
+                var value_text: String = statements.value_texts[i];
                 if kind == TypedAstKindArraySetStmtTag() {
                     value_text = statements.auxiliary_texts[i];
                 }
-                let value_lane: Int = AstExpressionLaneValue();
+                var value_lane: Int = AstExpressionLaneValue();
                 if kind == TypedAstKindArraySetStmtTag() {
                     value_lane = AstExpressionLaneAuxiliary();
                 }

@@ -60,7 +60,7 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "action_ability_unsatisfied" || code == "zone_authority_ability_unsatisfied" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:ability_contract", "align-ability-generics-or-fields");
     }
-    if code == "intent_retry_unavailable" || code == "intent_step_clause_not_bool" || code == "intent_child_cycle" {
+    if code == "intent_retry_unavailable" || code == "intent_step_clause_not_bool" || code == "intent_child_cycle" || code == "intent_compensation_missing" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:intent_step", "check-intent-step-lowering");
     }
     if code == "enum_variant_redeclaration" || code == "local_name_rebound" {
@@ -162,6 +162,10 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "immutable_field_write" {
         return SemanticPublicDiagnosticIdentity(
             true, "semantic:immutable_field:write", "reconstruct-or-change-host-kind");
+    }
+    if code == "immutable_binding_write" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:immutable_binding:write", "use-mutable-binding");
     }
     if code == "declared_capability_missing" || code == "declared_effect_missing" ||
         code == "call_effect_fact_unavailable" {

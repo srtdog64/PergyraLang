@@ -52,8 +52,10 @@ static bool loan_copy_landing_record(SemanticContext *ctx,
         const char *routine = ctx->current_function_decl != NULL
             ? ast_declaration_name(ctx->current_function_decl) : NULL;
         fprintf(stderr,
-            "[semantic landing select] node=%u kind=%d line=%d col=%d routine=%s routine_id=%u\n",
+            "[semantic landing select] node=%u kind=%d path=%s line=%d col=%d routine=%s routine_id=%u\n",
             id, node != NULL ? (int)node->type : -1,
+            node != NULL && node->origin_path != NULL
+                ? node->origin_path : "<none>",
             node != NULL ? node->line : 0, node != NULL ? node->column : 0,
             routine != NULL ? routine : "<none>",
             ctx->current_function_decl != NULL

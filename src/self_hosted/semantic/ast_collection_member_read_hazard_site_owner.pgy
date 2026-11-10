@@ -30,7 +30,7 @@ func SemanticAstCollectionMemberReadHazardSiteMerge(
         sites.ok = false; return false;
     }
     let key: String = ToString(root);
-    let entries: HashMap<String, Int> = sites.first_sites;
+    var entries: HashMap<String, Int> = sites.first_sites;
     if !MapHas(entries, key) {
         MapSet(entries, key, site); sites.first_sites = entries; return true;
     }
@@ -72,8 +72,8 @@ func SemanticAstCollectionMemberReadHazardSiteRowsAdmit(
 ) -> Bool {
     let roots: Array<String> = MapKeys(blocked);
     let projected: Array<String> = MapKeys(entries);
-    let ready: Bool = ArrayLength(roots) == ArrayLength(projected);
-    let row: Int = 0;
+    var ready: Bool = ArrayLength(roots) == ArrayLength(projected);
+    var row: Int = 0;
     while row < ArrayLength(roots) && ready {
         let root: Int = ToInt(roots[row]);
         let site: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteRowsForRoot(artifact, entries, root);

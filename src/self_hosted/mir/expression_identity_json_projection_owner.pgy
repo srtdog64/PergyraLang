@@ -52,7 +52,7 @@ func SelfMirJsonExpressionIdentityFields(
     if !projection.ready {
         return [];
     }
-    let fields: Array<String> = [
+    var fields: Array<String> = [
         JsonEmitFieldNumber(
             "call_target_syntax_id",
             ToString(projection.call_target_syntax_id)

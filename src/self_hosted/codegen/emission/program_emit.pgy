@@ -50,7 +50,7 @@ func CheckFunction(count: Int, arena: AstArena, signatures: SemanticAstFunctionS
                    assignments: SemanticAstAssignmentFacts, statements: SemanticAstStatementFacts,
                    inout cur: Array<Int>, f_indent: Int) -> Bool {
     let signature_index: Int = CodegenSemanticSignatureIndexOrDie(signatures, cur[0]);
-    let param_index: Int = 0;
+    var param_index: Int = 0;
     let param_count: Int = CodegenSemanticFunctionParamCountOrDie(signatures, signature_index);
     ArraySet(cur, 0, cur[0] + 1);
     CodegenAstArenaConsumeAdmittedGenericHeader(arena, count, cur);
@@ -94,7 +94,7 @@ func CheckCUnitFromSemanticArtifact(
     Log("Phase: codegen-check:surface:done");
     let count: Int = artifact.count;
     let arena: AstArena = artifact.arena;
-    let main_scan: Int = 0;
+    var main_scan: Int = 0;
     Log("Phase: codegen-check:event-scan:start");
     while main_scan < count {
         if CodegenSemanticKindIs(
@@ -107,8 +107,8 @@ func CheckCUnitFromSemanticArtifact(
     }
     Log("Phase: codegen-check:event-scan:done");
     Log("Phase: codegen-check:shape:start");
-    let cur: Array<Int> = [0];
-    let saw_function: Bool = false;
+    var cur: Array<Int> = [0];
+    var saw_function: Bool = false;
     while cur[0] < count {
         let cur_node: Int = cur[0];
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
@@ -233,7 +233,7 @@ func GenerateCUnitFromReadySemanticFacts(
     let assignments: SemanticAstAssignmentFacts =
         semantic_analysis.assignments;
     let statements: SemanticAstStatementFacts = semantic_analysis.statements;
-    let main_scan: Int = 0;
+    var main_scan: Int = 0;
     while main_scan < count {
         // `event` declarations have no handler/dispatch model in this codegen.
         // Reject them with an observable CODEGEN ERROR rather than silently
@@ -254,7 +254,7 @@ func GenerateCUnitFromReadySemanticFacts(
     if require_entrypoint && !IsSome(first_fn) {
         Die("no function found in AST");
     }
-    let f_indent: Int = 2;
+    var f_indent: Int = 2;
     if IsSome(first_fn) {
         f_indent = CodegenAstArenaIndentOrDie(arena, UnwrapOption(first_fn));
     }
@@ -272,23 +272,24 @@ func GenerateCUnitFromReadySemanticFacts(
         Die("semantic intent signature facts are missing or stale");
     }
     if !CodegenIntentPolicyViewReadyForSignatures(
-        intent_policy, semantic_analysis.intent_signatures
+        intent_policy, semantic_analysis.intent_signatures,
+        semantic_analysis.expression_surfaces.expression_graph
     ) {
         Die("codegen intent policy facts are missing or stale");
     }
     if !CodegenIntentExecutionViewReadyForSemantic(
         artifact.identity_digest, semantic_analysis.intent_signatures,
-        intent_execution
+        intent_execution,
+        semantic_analysis.expression_surfaces.expression_graph
     ) {
         Die("codegen intent execution facts are missing or crossed");
     }
     if observe_pressure { Log("[codegen-pressure-stage] function-env:start"); }
-    // One fresh exclusive box carries the accumulated rows through each owner.
-    let env_acc: Array<String> = [];
-    ArrayPush(env_acc, BuildFunctionEnv(
+    // One fresh String carries the accumulated rows through each owner.
+    var env_acc: String = BuildFunctionEnv(
         signatures, specializations, receiver_facts,
         semantic_analysis.intent_signatures
-    ));
+    );
     if observe_pressure { Log("[codegen-pressure-stage] function-env:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] value-wrappers:start"); }
     let value_wrappers: CodegenValueWrapperUsageFacts =
@@ -318,26 +319,26 @@ func GenerateCUnitFromReadySemanticFacts(
     );
     let dispatch_forward_block: String =
         CodegenSemanticRoleDispatchForwardBlock(semantic_analysis.roles);
-    let runtime_row_start: Int = StringLength(env_acc[0]);
+    let runtime_row_start: Int = StringLength(env_acc);
     let dispatch_runtime_block: String =
         CodegenSemanticRoleDispatchRuntimeBlock(
             semantic_analysis.roles, signatures,
             semantic_analysis.constructors, env_acc
         );
     let runtime_rows: String = Substring(
-        env_acc[0], runtime_row_start,
-        StringLength(env_acc[0]) - runtime_row_start
+        env_acc, runtime_row_start,
+        StringLength(env_acc) - runtime_row_start
     );
     let runtime_env: CodegenTypeEnv = CodegenTypeEnvAppendPresealRows(
         declaration_env, runtime_rows
     );
-    let operator_row_start: Int = StringLength(env_acc[0]);
+    let operator_row_start: Int = StringLength(env_acc);
     let operator_adapter_block: String = CollectRoleOperators(
         semantic_analysis.roles, signatures, runtime_env, env_acc
     );
     let operator_rows: String = Substring(
-        env_acc[0], operator_row_start,
-        StringLength(env_acc[0]) - operator_row_start
+        env_acc, operator_row_start,
+        StringLength(env_acc) - operator_row_start
     );
     let type_declaration_block: String = Concat(
         dispatch_forward_block, Concat(
@@ -350,7 +351,7 @@ func GenerateCUnitFromReadySemanticFacts(
     );
     if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] base-env:start"); }
-    let base_env: CodegenTypeEnv = CodegenTypeEnvSealPresealRows(
+    var base_env: CodegenTypeEnv = CodegenTypeEnvSealPresealRows(
         CodegenTypeEnvAppendPresealRows(runtime_env, operator_rows)
     );
     if observe_pressure { Log("[codegen-pressure-stage] base-env:done"); }
@@ -370,7 +371,7 @@ func GenerateCUnitFromReadySemanticFacts(
         !SelfHostMachineLayerDeclarationReady(machine_declaration) {
         Die("self-host machine-layer startup declaration is missing");
     }
-    let machine_startup: String = "";
+    var machine_startup: String = "";
     if usage.uses_machine_layer {
         machine_startup = CompilerMachineLayerRuntimeBindingStatement(
             machine_declaration);
@@ -399,7 +400,9 @@ func GenerateCUnitFromReadySemanticFacts(
     let intent_plan_present: Bool = intent_execution.present;
     let admitted_intent_definition_block: String =
         CodegenIntentExecutionPlanDefinitionBlock(
-            intent_execution, semantic_analysis.intent_signatures, base_env,
+            intent_execution,
+            semantic_analysis.expression_surfaces.expression_graph,
+            semantic_analysis.intent_signatures, base_env,
             intent_policy, usage.uses_intent_observability);
     let intent_definition_block: String = CodegenIntentDefinitionBlock(
         semantic_analysis.intent_signatures,
@@ -511,9 +514,10 @@ func GenerateCUnitFromReadySemanticFacts(
     if usage.uses_slice { TextBuilderAppend(output, SliceRuntimeCBlock(base_env)); }
     // Usage facts carry nominal_arrays verbatim; read the rows from their owner.
     let record_array_block: String = CollectionRuntimeRecordArrayBlocks(
-        uses_ast_text_node_array, nominal_arrays.element_types);
-    let hashmap_values: Array<String> = [];
-    let hashmap_index: Int = 0;
+        uses_ast_text_node_array, nominal_arrays.element_types,
+        uses_array_reverse);
+    var hashmap_values: Array<String> = [];
+    var hashmap_index: Int = 0;
     while hashmap_index < ArrayLength(usage.hashmap_type_names) {
         let map_type: String = usage.hashmap_type_names[hashmap_index];
         TextBuilderAppend(output, CollectionHashMapRuntimeSpecializationBlock(map_type, hashmap_values, base_env));
@@ -521,7 +525,7 @@ func GenerateCUnitFromReadySemanticFacts(
         ArrayPush(hashmap_values, map_fact.value_type);
         hashmap_index = hashmap_index + 1;
     }
-    let list_type_index: Int = 0;
+    var list_type_index: Int = 0;
     while list_type_index < ArrayLength(usage.list_type_names) {
         TextBuilderAppend(
             output,
@@ -531,7 +535,7 @@ func GenerateCUnitFromReadySemanticFacts(
         );
         list_type_index = list_type_index + 1;
     }
-    let queue_type_index: Int = 0;
+    var queue_type_index: Int = 0;
     while queue_type_index < ArrayLength(usage.queue_type_names) {
         TextBuilderAppend(
             output,
@@ -541,7 +545,7 @@ func GenerateCUnitFromReadySemanticFacts(
         );
         queue_type_index = queue_type_index + 1;
     }
-    let set_type_index: Int = 0;
+    var set_type_index: Int = 0;
     while set_type_index < ArrayLength(usage.set_type_names) {
         TextBuilderAppend(
             output,

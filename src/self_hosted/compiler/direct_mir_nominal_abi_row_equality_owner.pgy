@@ -18,7 +18,7 @@ func DirectMirStructAbiRowsEqual(
         ArrayLength(left.field_names) != ArrayLength(right.field_names) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(left.field_names) {
         if left.field_names[row] != right.field_names[row] ||
             left.field_offsets[row] != right.field_offsets[row] ||

@@ -1,0 +1,23 @@
+func Main() -> Int
+{
+    var n: Int = 0;
+    while n < 2
+    {
+        var rows: Array<String> = [];
+        ArrayPushOwnedString(rows, "x");
+        var index: Int = 0;
+        var found: Bool = false;
+        while index < ArrayLength(rows)
+        {
+            if rows[index] == "x" { found = true; }
+            index = index + 1;
+        }
+        if found
+        {
+            Print(StringJoin(rows, ""));
+            Print(Join(rows, ""));
+        }
+        n = n + 1;
+    }
+    return 0;
+}

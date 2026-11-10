@@ -8,7 +8,7 @@ func DirectMirScalarCfgGraphPlanDigest(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(109L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(109L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashInt(hash, plan.mir_digest);
     hash = DirectMirCfgHashInt(hash, plan.cfg_digest);

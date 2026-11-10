@@ -14,7 +14,7 @@ import "semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy";
 
 func CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
     artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis,
+    ref analysis: SemanticAstArtifactAnalysis,
     ref declarations: SelfMirDeclarationRows
 ) -> SelfDirIntentFacts {
     let modes: SelfDirIntentModeFacts = SelfDirIntentModeFactsFromArtifact(
@@ -50,6 +50,7 @@ func CodegenIntentExecutionViewAttachSemanticOrDie(
     base: CodegenIntentExecutionView,
     artifact_identity_digest: Int,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
+    ref expression_graph: SemanticExpressionGraphFacts,
     source_facts: SelfDirIntentFacts,
     zone_authority_transitions:
         CodegenIntentZoneAuthorityTransitionFacts
@@ -59,7 +60,7 @@ func CodegenIntentExecutionViewAttachSemanticOrDie(
             base, source_facts, zone_authority_transitions
         );
     if !CodegenIntentExecutionViewReadyForSemantic(
-        artifact_identity_digest, intent_signatures, view
+        artifact_identity_digest, intent_signatures, view, expression_graph
     ) {
         Die("semantic DIR intent execution view did not cross codegen admission");
     }
@@ -69,12 +70,13 @@ func CodegenIntentExecutionViewAttachSemanticOrDie(
 func CodegenIntentExecutionViewFromSemanticOrDie(
     artifact_identity_digest: Int,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
+    ref expression_graph: SemanticExpressionGraphFacts,
     source_facts: SelfDirIntentFacts,
     ref declarations: SelfMirDeclarationRows
 ) -> CodegenIntentExecutionView {
     return CodegenIntentExecutionViewAttachSemanticOrDie(
         CodegenIntentExecutionViewEmpty(true), artifact_identity_digest,
-        intent_signatures, source_facts,
+        intent_signatures, expression_graph, source_facts,
         CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
             source_facts, declarations
         )

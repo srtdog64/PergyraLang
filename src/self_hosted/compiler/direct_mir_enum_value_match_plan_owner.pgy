@@ -45,7 +45,7 @@ func DirectMirEnumSelectionGraphFactFromInstruction(
         sequence.arena.node_texts[1] == "" {
         return DirectMirEnumSelectionGraphFact(false, "", "");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if sequence.arena.call_target_kinds[row] !=
                 SemanticCallTargetNone() ||
@@ -260,13 +260,13 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
         !JsonArrayObjectFactTableReady(methods) {
         Die("direct MIR enum declaration schema is invalid");
     }
-    let declaration_hash: Long = DirectMirCfgHashString(
+    var declaration_hash: Long = DirectMirCfgHashString(
         647L, admitted.domain_runtime_admission.declarations.names[0]
     );
     declaration_hash = DirectMirCfgHashInt(
         declaration_hash, ToInt(UnwrapOption(syntax))
     );
-    let variant_row: Int = 0;
+    var variant_row: Int = 0;
     while variant_row < variant_count {
         if admitted.domain_runtime_admission.declarations.enum_variants
                 .owners[variant_row] !=

@@ -1,0 +1,10 @@
+func Touch(view: Slice<Int>) -> Void {
+    view[0] = 7;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let view: Slice<Int> = values.Slice(0, 1);
+    Touch(view);
+    Log(values[0]);
+}

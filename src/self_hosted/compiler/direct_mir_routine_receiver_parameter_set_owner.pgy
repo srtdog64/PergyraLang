@@ -1,0 +1,87 @@
+// Normalize one method's source parameters into its runtime receiver ABI.
+// The source may spell `self` or omit it; the carried parameter set always
+// has one receiver row at ABI ordinal zero.
+
+import "direct_mir_routine_parameter_set_fact_owner.pgy";
+
+func DirectMirRoutineReceiverParamFact(
+    source_syntax_id: Int, type_name: String, carriage: String
+) -> DirectMirRoutineParamFact {
+    var pass_shape: String = "";
+    if carriage == "value" { pass_shape = "direct"; }
+    if carriage == "mutable-identity" { pass_shape = "indirect"; }
+    if source_syntax_id <= 0 || type_name == "" || pass_shape == "" {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let source: DirectMirRoutineParamFact = DirectMirRoutineParamFact(
+        true, 0, "self", source_syntax_id, type_name, carriage, "none",
+        pass_shape, type_name, 0, false, InvalidMirAbiLayoutRowCapture());
+    return DirectMirRoutineParamFactWithDigest(
+        source, DirectMirRoutineParamFactDigest(source));
+}
+
+func DirectMirRoutineReceiverParameterSetFact(
+    ref source: DirectMirRoutineParameterSetFact,
+    receiver_type: String, receiver_carriage: String,
+    receiver_source_syntax_id: Int, source_parameter_offset: Int
+) -> DirectMirRoutineParameterSetFact {
+    let invalid: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFactInvalid();
+    if !DirectMirRoutineParameterSetFactReady(source) ||
+        (source_parameter_offset != 0 && source_parameter_offset != 1) {
+        return invalid;
+    }
+    var receiver_id: Int = receiver_source_syntax_id;
+    if source_parameter_offset == 0 {
+        if ArrayLength(source.names) == 0 || source.names[0] != "self" ||
+            source.type_names[0] != receiver_type ||
+            source.carriages[0] != "value" ||
+            source.resources[0] != "none" ||
+            source.pass_shapes[0] != "direct" || source.abi_required[0] {
+            return invalid;
+        }
+        receiver_id = source.source_syntax_ids[0];
+    }
+    let receiver: DirectMirRoutineParamFact = DirectMirRoutineReceiverParamFact(
+        receiver_id, receiver_type, receiver_carriage);
+    if !DirectMirRoutineParamFactReady(receiver) { return invalid; }
+    var names: Array<String> = [receiver.name];
+    var syntax_ids: Array<Int> = [receiver.source_syntax_id];
+    var types: Array<String> = [receiver.type_name];
+    var carriages: Array<String> = [receiver.carriage];
+    var resources: Array<String> = [receiver.resource];
+    var pass_shapes: Array<String> = [receiver.pass_shape];
+    var abi_types: Array<String> = [receiver.abi_type_name];
+    var abi_ids: Array<Int> = [receiver.abi_layout_id];
+    var abi_required: Array<Bool> = [receiver.abi_required];
+    var abi_keys: Array<String> = [DirectMirAbiRowIdentityText(receiver.abi)];
+    var digests: Array<Int> = [receiver.digest];
+    var row: Int = 0;
+    if source_parameter_offset == 0 { row = 1; }
+    while row < ArrayLength(source.names) {
+        ArrayPush(names, source.names[row]);
+        ArrayPush(syntax_ids, source.source_syntax_ids[row]);
+        ArrayPush(types, source.type_names[row]);
+        ArrayPush(carriages, source.carriages[row]);
+        ArrayPush(resources, source.resources[row]);
+        ArrayPush(pass_shapes, source.pass_shapes[row]);
+        ArrayPush(abi_types, source.abi_type_names[row]);
+        ArrayPush(abi_ids, source.abi_layout_ids[row]);
+        ArrayPush(abi_required, source.abi_required[row]);
+        ArrayPush(abi_keys, source.abi_row_keys[row]);
+        ArrayPush(digests, source.param_digests[row]);
+        row = row + 1;
+    }
+    let unsealed: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFact(
+            true, 0, names, syntax_ids, types, carriages, resources,
+            pass_shapes, abi_types, abi_ids, abi_required, abi_keys, digests,
+            receiver);
+    let fact: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFact(
+            true, DirectMirRoutineParameterSetFactDigest(unsealed), names,
+            syntax_ids, types, carriages, resources, pass_shapes, abi_types,
+            abi_ids, abi_required, abi_keys, digests, receiver);
+    if !DirectMirRoutineParameterSetFactReady(fact) { return invalid; }
+    return fact;
+}

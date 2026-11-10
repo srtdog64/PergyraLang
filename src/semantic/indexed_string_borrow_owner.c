@@ -10,6 +10,7 @@
 #include "function_param_flow_summary_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_element_lifetime_owner.h"
+#include "collection_owned_element_requirement_owner.h"
 #include "collection_ownership_fact.h"
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_named_call_owner.h"
@@ -52,6 +53,36 @@ identifier_symbol(ASTNode *node, SemanticContext *ctx)
     return binding != NULL && binding->decl_syntax_id != 0
         && binding->decl_syntax_id == ast_identifier_binding_syntax_id(node)
         ? binding : NULL;
+}
+
+static bool
+indexed_string_path_rooted_in_caller_parameter(ASTNode *expression,
+    SemanticContext *ctx)
+{
+    if (expression == NULL
+        || (expression->type != AST_MEMBER_ACCESS
+            && expression->type != AST_ARRAY_ACCESS))
+        return false;
+    ASTNode *root = expression;
+    while (root != NULL
+        && (root->type == AST_MEMBER_ACCESS
+            || root->type == AST_ARRAY_ACCESS))
+        root = root->type == AST_MEMBER_ACCESS
+            ? ast_member_object(root) : ast_array_access_array(root);
+    Symbol *binding = identifier_symbol(root, ctx);
+    ASTNode *routine = ctx != NULL ? ctx->current_function_decl : NULL;
+    if (binding == NULL || !binding->is_parameter
+        || routine == NULL || routine->type != AST_FUNC_DECL)
+        return false;
+    for (size_t p = 0; p < ast_func_param_count(routine); p++) {
+        FuncParam *param = ast_func_param(routine, p);
+        if (param != NULL
+            && ast_func_param_stable_id(param) == binding->decl_syntax_id
+            && (param->mode == PARAM_MODE_DEFAULT
+                || param->mode == PARAM_MODE_REF))
+            return true;
+    }
+    return false;
 }
 
 bool semantic_indexed_string_borrow_array_binding_source(const Symbol *binding,
@@ -119,7 +150,7 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     PublishedNode *row = ctx != NULL && ctx->function_param_publications != NULL
         ? publication_node(ctx->function_param_publications, expression, false) : NULL;
     if (row == NULL || !row->value_present) return false;
-    if (row->string_value && expression->type == AST_CALL && !publication_call_ready(row))
+    if (row->string_value && expression->type == AST_CALL && !publication_call_ready(ctx, row))
         return !row->indexed_string_source_present;
     Symbol *array = identifier_symbol(expression, ctx);
     row->indexed_array_source_present = symbol_is_string_array(array);
@@ -227,6 +258,107 @@ indexed_string_borrow_argument(ASTNode *expression,
             expression, "A String use has no exact current definition receipt");
         return;
     }
+    /* A current aggregate-member carrier may deep-release all of its String
+     * elements. Before its first ordinary store withdraws that premise,
+     * record the exact call as a copy candidate. Selection is deliberately
+     * deferred until the aggregate requirement and all caller moves are
+     * sealed: an irreparably reused caller value must not trigger speculative
+     * landing rounds inside its callee. `source_id == 0` is not enough to
+     * grant transfer because it also describes scalar default parameters. */
+    if (copy != NULL && call != NULL && callee == NULL && !constructor
+        && ordinal == 1) {
+        ASTNode *receiver = ast_call_argument(call, 0);
+        uint32_t owned_producer = 0;
+        bool owned_call_result =
+            semantic_collection_owned_string_call_result(
+                expression, ctx, &owned_producer)
+            && owned_producer != 0;
+        bool independent_result =
+            semantic_indexed_string_independent_result(expression, ctx);
+        if (receiver != NULL && receiver->type == AST_IDENTIFIER
+            && !owned_call_result && !independent_result
+            && !indexed_string_path_rooted_in_caller_parameter(
+                expression, ctx)
+            && semantic_collection_owned_element_member_push_provisional(
+                receiver, ctx)
+            && !semantic_formal_string_store_landing_value_copy(
+                call, ctx)) {
+            if (!semantic_formal_string_store_landing_record_member_value_copy_candidate(
+                    ctx, call)) {
+                semantic_error(ctx, expression,
+                    "Aggregate member String copy candidate recording failed");
+            }
+            return;
+        }
+    }
+    uint32_t independent_producer = 0;
+    bool independent_push = source_id == 0 && copy != NULL && call != NULL
+        && expression != NULL && callee == NULL && !constructor && ordinal == 1
+        && semantic_collection_owned_string_call_result(
+            expression, ctx, &independent_producer)
+        && independent_producer != 0;
+    if (independent_push) {
+        /* Returned Arrays have an additional provisional all-elements-owned
+         * plan.  Record it when applicable, but the independently produced
+         * String itself already has the typed source receipt needed by the
+         * general ArrayPush route.  A borrowed-element receiver cannot adopt
+         * that owned result.  Select one value-copy landing unless this is
+         * already the compiler-inserted independent Clone from that landing;
+         * otherwise the call would pass without either an owned or a shallow
+         * effect receipt. */
+        (void)semantic_formal_string_store_landing_record_owned_array_candidate(
+            ctx, call);
+        bool value_copy_landed =
+            semantic_formal_string_store_landing_value_copy(call, ctx);
+        ASTNode *receiver = ast_call_argument(call, 0);
+        bool parameter_receiver = false;
+        bool parameter_landing = value_copy_landed
+            && semantic_collection_owned_string_parameter_push_admit(
+                call, receiver, ctx,
+                &parameter_receiver);
+        bool member_landing = value_copy_landed
+            && (semantic_collection_owned_element_member_push_provisional(
+                    receiver, ctx)
+                || semantic_formal_string_store_landing_member_value_copy_selected(
+                    call, ctx));
+        bool landed_copy_current = value_copy_landed
+            && ast_call_compiler_builtin(expression)
+            && ast_call_arg_count(expression) == 1
+            && ast_call_argument(expression, 0) != NULL
+            && ast_call_argument(expression, 0)->type == AST_IDENTIFIER
+            && receiver != NULL && receiver->type == AST_IDENTIFIER
+            && semantic_collection_owned_string_push_admissible(
+                receiver, ctx);
+        /* The compiler-inserted Clone is already the exact independent
+         * producer consumed by the general ArrayPush effect receipt.  A
+         * private-push receipt would duplicate that authority and, because
+         * it validates only the pre-copy shallow effect, would spuriously
+         * refine the same call into a second store contract on replay. */
+        if (value_copy_landed && !landed_copy_current
+            && !parameter_landing && !member_landing) {
+            if (parameter_receiver)
+                return;
+            uint32_t receiver_binding_id = receiver != NULL
+                && receiver->type == AST_IDENTIFIER
+                ? ast_identifier_binding_syntax_id(receiver) : 0;
+            IndexedStringPushRecord recorded =
+                semantic_indexed_string_record_private_push(ctx, call,
+                    expression, receiver, receiver_binding_id);
+            if (recorded != INDEXED_STRING_PUSH_RECORDED) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expression,
+                    "A landed String copy has no exact private-push receipt");
+                return;
+            }
+        }
+        if (!semantic_collection_owned_string_push_admissible(
+                ast_call_argument(call, 0), ctx)
+            && !landed_copy_current) {
+            copy->wanted = true;
+        }
+        return;
+    }
     if (source_id == 0) return;
     /* A shallow store has no callee that can prove non-retention, so a next
      * analysis copies the String; this also covers a borrowed formal whose
@@ -255,17 +387,8 @@ indexed_string_borrow_argument(ASTNode *expression,
      * retains. Builtin stores still prove their element source below. */
     if (named && source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE &&
         (expression->type == AST_MEMBER_ACCESS || expression->type == AST_ARRAY_ACCESS)) {
-        ASTNode *root = expression;
-        while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
-            root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
-        Symbol *root_binding = identifier_symbol(root, ctx);
-        ASTNode *decl = ctx->current_function_decl;
-        if (root_binding != NULL && root_binding->is_parameter && decl->type == AST_FUNC_DECL)
-            for (size_t p = 0; p < ast_func_param_count(decl); p++) {
-                FuncParam *param = ast_func_param(decl, p);
-                if (param != NULL && ast_func_param_stable_id(param) == root_binding->decl_syntax_id &&
-                    (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF)) return;
-            }
+        if (indexed_string_path_rooted_in_caller_parameter(expression, ctx))
+            return;
     }
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
@@ -288,7 +411,8 @@ indexed_string_borrow_argument(ASTNode *expression,
                 }
                 if (!reserved) continue;
             }
-            if (fact == NULL || fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS) continue;
+            if (fact == NULL || fact->element_ownership ==
+                    PGY_STRING_ARRAY_BORROWED_ELEMENTS) continue;
             if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                 && semantic_param_publication_pending(ctx) && call != NULL
                 && expression != NULL && expression->type == AST_MEMBER_ACCESS
@@ -296,13 +420,40 @@ indexed_string_borrow_argument(ASTNode *expression,
             if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                 && semantic_param_publication_pending(ctx) && expression != NULL
                 && call != NULL && callee == NULL && !constructor && ordinal == 1) {
+                ASTNode *receiver = ast_call_argument(call, 0);
                 IndexedStringPushRecord decision = semantic_indexed_string_record_private_push(
-                    ctx, call, expression, ast_call_argument(call, 0), owner->decl_syntax_id);
+                    ctx, call, expression, receiver, owner->decl_syntax_id);
                 if (decision == INDEXED_STRING_PUSH_RECORDED) return;
                 if (decision == INDEXED_STRING_PUSH_FAILED) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                         expression, "A private String push lacks an exact current source receipt");
+                    return;
+                }
+                /* A control-dependent named String with no private source
+                 * receipt is copied at this exact store.  The definition
+                 * recipe establishes the candidate identity; the owned push
+                 * keeps the copy decision at the collection boundary instead
+                 * of cloning every reaching definition. */
+                if (definition_use == INDEXED_STRING_DEFINITION_RECORDED &&
+                    semantic_indexed_string_definition_assignment_use_candidate(
+                        ctx, expression, call, ordinal)) {
+                    /* The definition recipe is only a candidate until the
+                     * publication/flow owners have finished.  Keep the
+                     * source AST unchanged in this round and let the landing
+                     * plan replay this exact store as an owned push. */
+                    if (!semantic_formal_string_store_landing_select_owned(
+                            ctx, call)) {
+                        semantic_error(ctx, expression,
+                            "Owned String push landing selection failed");
+                        return;
+                    }
+                    semantic_loan_copy_landing_error_with_hints(ctx,
+                        PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE,
+                        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                        expression,
+                        "A control-dependent String store is replayed as an owned copy");
                     return;
                 }
             }
@@ -384,6 +535,28 @@ indexed_string_borrow_argument(ASTNode *expression,
                     return;
                 }
                 if (provisional) {
+                    /* A call result whose source receipt is still unknown at
+                     * a concrete Array<String> store needs one exact value
+                     * copy, not every carrier through which the surrounding
+                     * aggregate later flows. The next fixed-point round wraps
+                     * this expression in Clone and rechecks the ordinary
+                     * owned-element transition. */
+                    bool selected = copy != NULL && call != NULL
+                        && callee == NULL && !constructor
+                        && !semantic_loan_copy_landing_satisfied(
+                            ctx, expression)
+                        && semantic_loan_copy_landing_select_string(
+                            ctx, expression);
+                    if (selected) {
+                        semantic_loan_copy_landing_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            expression,
+                            "A provisional String store result is replayed as one exact owned copy");
+                        semantic_loan_copy_landing_refusal_tail_seal(ctx);
+                        return;
+                    }
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                         expression, "A shallow String store has no current typed source receipt");
@@ -397,21 +570,12 @@ indexed_string_borrow_argument(ASTNode *expression,
                         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                         expression, "String element handoff has no current source-lifetime receipt");
                     fact->return_elements_owned = false;
+                    fact->member_move_elements_current = false;
                 }
             } else {
                 /* An Array<String> store of a String no owner proves alive
                  * lands as an owned copy of that String. */
                 if (copy != NULL && call != NULL && callee == NULL && !constructor) {
-                    if (!semantic_formal_string_store_landing_record_risk_owner(
-                            ctx, call, expression, owner->decl_syntax_id)) {
-                        semantic_error_with_hints(ctx,
-                            PGY_CODE_SEM_BORROW_ESCAPE,
-                            PGY_CAUSE_BORROW_ESCAPE,
-                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-                            expression,
-                            "String store landing risk-owner evidence could not be recorded");
-                        return;
-                    }
                     copy->wanted = true;
                     if (!copy->refuse || !refusal_tail_current) return;
                 }
@@ -429,6 +593,7 @@ indexed_string_borrow_argument(ASTNode *expression,
                  * though the Array descriptor never escaped. A builtin store's caller
                  * lands its copy; elsewhere a next analysis copies the String here. */
                 fact->return_elements_owned = false;
+                fact->member_move_elements_current = false;
                 bool selected = false;
                 if (!(copy != NULL && call != NULL && callee == NULL && !constructor)) {
                     selected = semantic_loan_copy_landing_select_string(ctx, expression);
@@ -456,6 +621,61 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
     SemanticContext *ctx)
 {
     indexed_string_borrow_argument(expression, call, callee, ordinal, constructor, ctx, NULL);
+}
+
+void
+semantic_indexed_string_borrow_return_value(ASTNode *expression,
+    ASTNode *return_stmt, SemanticContext *ctx)
+{
+    uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
+    bool current = semantic_indexed_string_borrow_source_current(
+        expression, ctx, &source_id);
+    if (current && source_id == 0)
+        return;
+    /* An exact nonzero source is still governed by the existing Array-owner
+     * transfer/copy rule. The definition recipe exists only for the UNKNOWN
+     * join produced by several local replacements; intercepting an exact loan
+     * here would duplicate the established last-use transfer decision. */
+    if (current && source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
+        indexed_string_borrow_argument(
+            expression, NULL, NULL, 0, false, ctx, NULL);
+        return;
+    }
+    IndexedStringDefinitionRecord definition_use =
+        semantic_indexed_string_definition_record_return(
+            ctx, expression, return_stmt);
+    if (definition_use == INDEXED_STRING_DEFINITION_FAILED) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            expression,
+            "A returned String has no exact current definition receipt");
+        return;
+    }
+    if (definition_use == INDEXED_STRING_DEFINITION_RECORDED
+        && semantic_param_publication_pending(ctx)) {
+        FunctionParamPublicationStore *store =
+            ctx->function_param_publications;
+        PublishedNode *row = publication_node(store, expression, false);
+        if (row == NULL || row->node != expression ||
+            row->id != ast_node_stable_id(expression) ||
+            !row->value_present || row->meta || !row->string_value ||
+            !type_equals(row->value_type, TYPE_STRING) ||
+            !row->indexed_string_source_present ||
+            store->indexed_string_shallow_retention_count == SIZE_MAX) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expression,
+                "A returned String has no current definition candidate");
+            return;
+        }
+        if (!row->indexed_string_shallow_retention) {
+            row->indexed_string_shallow_retention = true;
+            store->indexed_string_shallow_retention_count++;
+        }
+        return;
+    }
+    indexed_string_borrow_argument(
+        expression, NULL, NULL, 0, false, ctx, NULL);
 }
 
 void
@@ -500,7 +720,9 @@ semantic_indexed_string_borrow_initialize_binding(
         binding->indexed_string_borrow_invalidated = false;
         if (semantic_indexed_string_definition_record_birth(ctx, binding,
                 declaration, initializer) == INDEXED_STRING_DEFINITION_FAILED) return false;
-        if (semantic_param_publication_pending(ctx) && !ctx->has_error
+        if (semantic_param_publication_pending(ctx)
+            && semantic_param_publication_local_fact_after_borrow_refusals(
+                ctx, ctx->diagnostic_count)
             && ctx->current_function_decl != NULL
             && binding->indexed_string_borrow_source_syntax_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
             uint32_t binding_id = binding->decl_syntax_id;
@@ -638,10 +860,13 @@ semantic_indexed_string_borrow_validate_use(
         binding->indexed_string_borrow_source_syntax_id == 0 ||
         !binding->indexed_string_borrow_invalidated)
         return true;
+    bool selected_independent = false;
     if (binding->indexed_string_borrow_source_syntax_id ==
-            INDEXED_STRING_BORROW_UNKNOWN_SOURCE &&
-        semantic_indexed_string_definition_select_independent_storage(
-            ctx, binding->decl_syntax_id)) {
+            INDEXED_STRING_BORROW_UNKNOWN_SOURCE)
+        selected_independent =
+            semantic_indexed_string_definition_select_independent_storage(
+                ctx, binding->decl_syntax_id);
+    if (selected_independent) {
         semantic_loan_copy_landing_error_with_hints(ctx,
             PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
             PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, use,

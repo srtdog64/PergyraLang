@@ -160,4 +160,41 @@ valid_output="$("$valid_bin" | tr -d '\r')" ||
 [[ "$valid_output" == $'2\n5\n11' ]] ||
     fail "valid public C control changed runtime output"
 
-echo "[self-host-array-index-type] graph-owned nested index rejection, exact MIR/C/LLVM receipt, native identity, deletion minimum, and valid execution: PASS"
+# Slice reads nested in arithmetic and Slice assignment targets consume the
+# same admitted index type. Default formals still cannot grant write authority.
+slice_cases=(slice_index_default_negative slice_index_type_negative slice_index_value_negative)
+slice_codes=(value_param_collection_mutation assignment_type_unresolved assign_type_mismatch)
+for i in "${!slice_cases[@]}"; do
+    source_rel="tests/self_hosted/parity/fixture/${slice_cases[$i]}.pgy"
+    set +e
+    (cd "$ROOT_DIR" && timeout 30 "$SELF_DRIVER" --emit-mir-diagnostic-verified "$source_rel") \
+        >"$WORK_DIR/${slice_cases[$i]}.out" 2>"$WORK_DIR/${slice_cases[$i]}.err"
+    rc=$?
+    set -e
+    [[ "$rc" == 1 && ! -s "$WORK_DIR/${slice_cases[$i]}.err" ]] ||
+        fail "Slice negative did not refuse through semantic admission: ${slice_cases[$i]}"
+    require_text "$WORK_DIR/${slice_cases[$i]}.out" "Code: ${slice_codes[$i]}"
+    for backend in c llvm; do
+        artifact="$WORK_DIR/${slice_cases[$i]}-$backend.bin"
+        set +e
+        (cd "$ROOT_DIR" && timeout 30 "$PGY" --native-pipeline "--backend=$backend" \
+            "$source_rel" -o "$(pgy_path_for_compiler "$PGY" "$artifact")") \
+            >"$artifact.log" 2>&1
+        rc=$?
+        set -e
+        [[ "$rc" == 1 && ! -e "$artifact" ]] ||
+            fail "native $backend admitted Slice negative: ${slice_cases[$i]}"
+    done
+done
+for backend in c llvm; do
+    artifact="$WORK_DIR/slice-valid-$backend"
+    [[ "$PGY" == *.exe ]] && artifact="$artifact.exe"
+    (cd "$ROOT_DIR" && timeout 30 env PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
+        "$PGY" "--backend=$backend" tests/self_hosted/parity/fixture/slice_index_ref_positive.pgy \
+        -o "$(pgy_path_for_compiler "$PGY" "$artifact")") \
+        >"$artifact.log" 2>&1 || fail "$backend Slice indexed consumers did not compile"
+    output="$(timeout 10 "$artifact" | tr -d '\r')" || fail "$backend Slice indexed consumers did not run"
+    [[ "$output" == $'7\n10' ]] || fail "$backend Slice indexed write/read changed output"
+done
+
+echo "[self-host-array-index-type] graph-owned Array/Slice typing, mutation boundaries, exact diagnostics, and C/LLVM execution: PASS"

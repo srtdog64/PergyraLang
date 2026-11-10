@@ -18,14 +18,14 @@ struct CodegenOptionExpectedValueFact {
 }
 
 func CodegenOptionExpectedValueFactFromGraph(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     option_type: String,
     env: CodegenTypeEnv
 ) -> CodegenOptionExpectedValueFact {
-    let inner_type: String = "";
-    let some_fn: String = "";
-    let none_fn: String = "";
+    var inner_type: String = "";
+    var some_fn: String = "";
+    var none_fn: String = "";
     let struct_fact: Option<OptionStructRuntimeFact> =
         OptionResultRuntimeStructOptionFact(option_type, env);
     if IsSome(struct_fact) {

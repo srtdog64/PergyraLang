@@ -2,8 +2,8 @@
 // reads it: the formal keeps its storage, so Main uses rows again with no
 // copy.
 func Sum(rows: Array<Int>) -> Int {
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         total = total + rows[i];
         i = i + 1;

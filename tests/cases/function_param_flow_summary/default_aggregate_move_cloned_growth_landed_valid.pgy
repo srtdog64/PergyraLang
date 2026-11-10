@@ -7,7 +7,7 @@ struct Rows {
 }
 
 func AddBlock(rows: Rows) -> Rows {
-    let ids: Array<Int> = rows.ids;
+    var ids: Array<Int> = rows.ids;
     ArraySet(ids, 0, 99);
     ArrayPush(ids, ArrayLength(ids));
     return Rows(ids);

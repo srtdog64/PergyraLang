@@ -273,7 +273,7 @@ test_generic_direct_specialization_fact(void)
         TEST("LLVM nominal/forward generic execution consumes MIR bindings");
         LLVMGenResult *result = ready ? llvm_codegen_from_mir_with_projection_plans(
             mir, &evidence.llvm_plan, &evidence.parallel_plan, &evidence.spawn_plan,
-            NULL, "generic_direct_fact") : NULL;
+            NULL, NULL, "generic_direct_fact") : NULL;
         if (result != NULL && !result->success)
             fprintf(stderr, "[generic-direct] %s\n", result->error_message);
         EXPECT(result != NULL && result->success && result->ir_text != NULL
@@ -285,7 +285,7 @@ test_generic_direct_specialization_fact(void)
         mir->generic_method_specialization_count = 0;
         result = ready ? llvm_codegen_from_mir_with_projection_plans(
             mir, &evidence.llvm_plan, &evidence.parallel_plan, &evidence.spawn_plan,
-            NULL, "generic_direct_missing") : NULL;
+            NULL, NULL, "generic_direct_missing") : NULL;
         EXPECT(result != NULL && !result->success && result->error_message != NULL
             && strstr(result->error_message, "missing generic call specialization fact") != NULL);
         mir->generic_method_specialization_count = saved_count;

@@ -267,6 +267,13 @@ resource_flow_universe_capture_function_facts(
         for (Scope *scope = ctx->scope;
              scope != NULL;
              scope = scope->parent) {
+            /* The universe belongs to one named function analysis.  Nested
+             * block and lambda declarations have already issued stable rows
+             * before their scopes were retired; program globals must not be
+             * copied into every routine snapshot.  An implicit Main has no
+             * ordinary function frame and therefore keeps walking its root. */
+            bool completes_function_frame =
+                scope->kind == SCOPE_FUNCTION && !scope->is_lambda;
             for (size_t j = 0; j < scope->symbol_count; j++) {
                 Symbol *symbol = scope->symbols[j];
                 if (!resource_flow_universe_is_value_binding(symbol)
@@ -277,6 +284,8 @@ resource_flow_universe_capture_function_facts(
                     == RESOURCE_FLOW_INDEX_NONE)
                     return false;
             }
+            if (completes_function_frame)
+                break;
         }
     }
 

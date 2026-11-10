@@ -1,0 +1,20 @@
+// Each constructor receives an independent Array value because the same local
+// remains live for the following constructor.  All three copies must be
+// selected in one landing round; serialising them one round at a time makes
+// the canonical compiler fixed point grow with the number of constructors.
+struct Rows {
+    names: Array<String>;
+}
+
+func Main() -> Int {
+    var names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", ""));
+    let first: Rows = Rows(names);
+    let second: Rows = Rows(names);
+    let third: Rows = Rows(names);
+    Print(ToString(
+        ArrayLength(first.names) + ArrayLength(second.names) +
+        ArrayLength(third.names) + ArrayLength(names)
+    ));
+    return 0;
+}

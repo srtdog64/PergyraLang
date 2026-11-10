@@ -8,8 +8,8 @@ func DirectMirScalarCfgIterationLocalRow(
     ref local_ref_kinds: Array<Int>, ref local_ref_syntax_ids: Array<Int>,
     wanted_syntax_id: Int
 ) -> Int {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(local_ref_kinds) {
         if local_ref_kinds[row] == DirectMirScalarCfgLocalRefIteration() &&
             local_ref_syntax_ids[row] == wanted_syntax_id {
@@ -25,7 +25,7 @@ func DirectMirScalarCfgValueDefinitionConflictsWithRange(
     ref facts: DirectMirScalarCfgRangeFactSet,
     local_name: String, local_identity: String, wire_required: Bool
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);
@@ -50,7 +50,7 @@ func DirectMirScalarCfgAppendIterationLocals(
     inout local_ref_value_ids: Array<String>,
     inout local_ref_syntax_ids: Array<Int>
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);
@@ -84,9 +84,9 @@ func DirectMirScalarCfgRangeFactsAtLocalRows(
     ref facts: DirectMirScalarCfgRangeFactSet,
     local_ref_kinds: Array<Int>, local_ref_syntax_ids: Array<Int>
 ) -> DirectMirScalarCfgRangeFactSet {
-    let bound: DirectMirScalarCfgRangeFactSet =
+    var bound: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactSetEmpty();
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);
@@ -108,8 +108,8 @@ func DirectMirScalarCfgIterationLocalsReady(
     ref local_ref_value_ids: Array<String>, ref local_ref_syntax_ids: Array<Int>,
     ref facts: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(local_names) {
         if local_ref_kinds[row] == DirectMirScalarCfgLocalRefIteration() {
             let fact: DirectMirScalarCfgRangeIterationFact =

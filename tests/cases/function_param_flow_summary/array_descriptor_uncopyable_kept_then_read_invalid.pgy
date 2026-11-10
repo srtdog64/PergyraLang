@@ -1,0 +1,32 @@
+// Keep would need an independent whole-value copy, but Array<Pair> Clone is
+// shallow. The caller's later read therefore remains refused.
+struct Pair {
+    a: Int;
+    b: Int;
+}
+
+struct Holder {
+    rows: Array<Pair>;
+}
+
+func Keep(inout holder: Holder, rows: Array<Pair>) -> Int {
+    holder.rows = rows;
+    return ArrayLength(rows);
+}
+
+func Count(rows: Array<Pair>) -> Int {
+    return ArrayLength(rows);
+}
+
+func Twice() -> Int {
+    let rows: Array<Pair> = [Pair(1, 2)];
+    let empty: Array<Pair> = [];
+    var holder: Holder = Holder(empty);
+    let n: Int = Keep(holder, rows);
+    return n + Count(rows) + ArrayLength(holder.rows);
+}
+
+func Main() -> Int {
+    Log(Twice());
+    return 0;
+}

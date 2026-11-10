@@ -2,16 +2,18 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
-import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
 func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
     ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int, routine: Int,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> String {
@@ -21,13 +23,13 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         count != plan.routines.local_counts[routine] {
         Die("direct MIR scalar CFG LLVM local range is invalid");
     }
-    let output: String = "";
-    let row: Int = start;
+    var output: String = "";
+    var row: Int = start;
     while row < start + count {
-        let llvm_type: String = "i64";
-        let storage_align: String = "8";
+        var llvm_type: String = "i64";
+        var storage_align: String = "8";
         // Only Array<String> changes copy-in load alignment; other families keep their existing contract.
-        let parameter_load_align: String = "8";
+        var parameter_load_align: String = "8";
         if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
             storage_align = "1";
         } else if plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
@@ -35,6 +37,13 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(plan.local_types[row]);
         let runtime_value: CompilerRuntimeValueRepresentation =
             CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
+        let result_type: String = Concat("", plan.local_types[row]);
+        let scalar_result_type: String =
+            DirectMirScalarResultAbiLlvmTypeName(result_type);
+        let enum_target_type: String =
+            DirectMirScalarProgramLlvmReferencedEnumTargetType(
+                result_type, plan.program.logical_record,
+                plan.program.referenced_enum);
         output = Concat(output, "  %pgy.local.");
         output = Concat(output, ToString(row));
         if hashmap.ok || plan.local_types[row] == CompilerAbiLayoutArrayLongTypeName() {
@@ -53,6 +62,11 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             llvm_type = "i1";
             output = Concat(output,
                 " = alloca i1, align 1\n  store i1 false, ptr %pgy.local."
+            );
+        } else if plan.local_types[row] == CompilerAbiLayoutFloatTypeName() {
+            llvm_type = "double";
+            output = Concat(output,
+                " = alloca double, align 8\n  store double 0.0, ptr %pgy.local."
             );
         } else if plan.local_types[row] ==
                 CompilerAbiLayoutArrayStringTypeName() {
@@ -109,12 +123,17 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
                 DirectMirScalarProgramLlvmOptionBoolTypeName());
             output = Concat(output,
                 " zeroinitializer, ptr %pgy.local.");
-        } else if plan.local_types[row] ==
-                CompilerAbiLayoutResultIntTypeName() {
-            llvm_type = DirectMirScalarProgramLlvmResultIntTypeName();
+        } else if scalar_result_type != "" {
+            llvm_type = scalar_result_type;
             output = Concat(output, Concat(" = alloca ", llvm_type));
             output = Concat(output, Concat(", align 8\n  store ", llvm_type));
             output = Concat(output, " zeroinitializer, ptr %pgy.local.");
+        } else if enum_target_type != "" {
+            llvm_type = enum_target_type;
+            output = Concat(output, Concat(" = alloca ", llvm_type));
+            output = Concat(output, Concat(", align 8\n  store ", llvm_type));
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
         } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
             llvm_type = DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
@@ -151,15 +170,6 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
                 option_type));
             output = Concat(output,
                 " zeroinitializer, ptr %pgy.local.");
-        } else if DirectMirScalarProgramPayloadEnumTypeReady(
-                plan.program.referenced_enum, plan.local_types[row]) {
-            llvm_type = DirectMirScalarProgramLlvmPayloadEnumTypeName(
-                plan.program.referenced_enum, plan.local_types[row]);
-            output = Concat(output, Concat(" = alloca ", llvm_type));
-            output = Concat(output, Concat(", align 8\n  store ",
-                llvm_type));
-            output = Concat(output,
-                " zeroinitializer, ptr %pgy.local.");
         } else if plan.local_types[row] == CompilerAbiLayoutIntTypeName() ||
                 plan.local_types[row] == CompilerAbiLayoutLongTypeName() ||
                 DirectMirScalarProgramPayloadFreeEnumTypeReady(
@@ -180,12 +190,16 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             let carriage: String = plan.routines.parameter_carriages[
                 plan.routines.parameter_starts[routine] + parameter_ordinal];
             let owned_parameter: Bool = carriage == "owner-handle" &&
-                DirectMirScalarProgramOwnedDirectParameterTypeReady(plan.program.logical_record, plan.local_types[row]);
+                DirectMirScalarProgramOwnedDirectParameterTypeReadyWithReferencedEnum(
+                    plan.program.logical_record, plan.program.referenced_enum,
+                    plan.local_types[row]);
+            let readonly_hashmap: Bool = carriage == "readonly-ref" &&
+                hashmap.ok;
             if carriage != "value" && carriage != "value-result" &&
-                !owned_parameter {
+                !owned_parameter && !readonly_hashmap {
                 Die("direct MIR scalar CFG LLVM parameter local is invalid");
             }
-            let parameter_value: String = Concat(
+            var parameter_value: String = Concat(
                 "%pgy.param.", ToString(parameter_ordinal));
             if carriage == "value-result" {
                 let loaded: String = Concat(parameter_value,
@@ -205,11 +219,4 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         row = row + 1;
     }
     return output;
-}
-func DirectMirScalarCfgLlvmLocalDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan
-) -> String {
-    let array_string_projection: Option<DirectMirArrayStringAbiProjection> = None();
-    return DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-        plan, 0, ArrayLength(plan.local_names), 0, array_string_projection);
 }

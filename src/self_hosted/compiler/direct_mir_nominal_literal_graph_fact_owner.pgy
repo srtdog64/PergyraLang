@@ -15,7 +15,7 @@ func DirectMirNominalLiteralGraphFactDigest(
     ref fact: DirectMirNominalLiteralGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(557L, fact.type_name);
+    var hash: Long = DirectMirCfgHashString(557L, fact.type_name);
     hash = DirectMirCfgHashString(hash, fact.field_name);
     hash = DirectMirCfgHashString(hash, fact.local_name);
     hash = DirectMirCfgHashInt(hash, fact.literal_value);

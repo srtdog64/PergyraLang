@@ -82,6 +82,7 @@ test_semantic_enter_isolated_cwd(void)
 
 
 #include "tests/semantic/test_semantic_core_part_a.cases.h"
+#include "tests/semantic/test_semantic_binding_write.cases.h"
 #include "tests/semantic/test_semantic_core_part_b_1.cases.h"
 #include "tests/semantic/test_semantic_core_part_b_2.cases.h"
 #include "tests/semantic/test_semantic_resource_flow_lifetime.cases.h"
@@ -179,10 +180,12 @@ main(void)
 
     test_type_system();
     test_symbol_table();
+    test_binding_write_permissions();
     test_type_checker_slot_rules();
     test_resource_flow_symbol_lifetime();
     test_resource_flow_value_admission();
     test_resource_flow_generation_reentry();
+    test_resource_flow_snapshot_scope_boundary();
     test_resource_flow_source_admission();
     test_undefined_symbol();
     test_while_loop();

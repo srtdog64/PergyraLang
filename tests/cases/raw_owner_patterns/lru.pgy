@@ -1,0 +1,136 @@
+// Fixed-size workload. Storage retirement is compiler-owned.
+extern "C"
+{
+    func PatternIterations() -> Int;
+    func PatternSeed() -> Int;
+    func PatternStart() -> Void;
+    func PatternFinish(value: Int) -> Void;
+}
+func Work(seed: Int) -> Int
+{
+    var lookup: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var keys: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var values: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var previous: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var following: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var i: Int = 0;
+    while i < 128
+    {
+        lookup[i] = -1;
+        i = i + 1;
+    }
+    var head: Int = -1;
+    var tail: Int = -1;
+    var count: Int = 0;
+    var result: Int = 0;
+    i = 0;
+    while i < 512
+    {
+        let key: Int = (i * 37 + seed + i / 17) % 128;
+        var at: Int = lookup[key];
+        if at >= 0
+        {
+            result = (result + values[at]) % 1000003;
+            if at != head
+            {
+                let before: Int = previous[at];
+                let after: Int = following[at];
+                following[before] = after;
+                if after >= 0
+                {
+                    previous[after] = before;
+                }
+                if at == tail
+                {
+                    tail = before;
+                }
+                previous[head] = at;
+                following[at] = head;
+                previous[at] = -1;
+                head = at;
+            }
+        }
+        else
+        {
+            if count < 64
+            {
+                at = count;
+                count = count + 1;
+            }
+            else
+            {
+                at = tail;
+                lookup[keys[at]] = -1;
+                tail = previous[at];
+                following[tail] = -1;
+            }
+            keys[at] = key;
+            values[at] = key * 3 + seed;
+            lookup[key] = at;
+            previous[at] = -1;
+            following[at] = head;
+            if head >= 0
+            {
+                previous[head] = at;
+            }
+            head = at;
+            if tail < 0
+            {
+                tail = at;
+            }
+        }
+        i = i + 1;
+    }
+    var at: Int = head;
+    var rank: Int = 1;
+    while at >= 0
+    {
+        result = (result + rank * (keys[at] + values[at])) % 1000003;
+        at = following[at];
+        rank = rank + 1;
+    }
+    return result;
+}
+func Main() -> Void
+{
+    var count: Int = PatternIterations();
+    let offset: Int = PatternSeed();
+    var i: Int = 0;
+    var checksum: Int = 0;
+    PatternStart();
+    while i < count
+    {
+        checksum = (checksum + Work((i + offset) % 251)) % 1000003;
+        i = i + 1;
+    }
+    PatternFinish(checksum);
+}

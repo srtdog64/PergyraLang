@@ -32,8 +32,8 @@ func DirectMirScalarCfgRoutineRouteClaimed(
         DirectMirScalarCfgArrayIntReverseRouteClaimed(admitted, index);
     let pop_claimed: Bool =
         DirectMirScalarCfgArrayPopRouteClaimed(admitted, index);
-    let branch_seen: Bool = false;
-    let row: Int = 0;
+    var branch_seen: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(index.instruction_facts.starts) {
         let global_row: Int = index.instruction_facts.global_start + row;
         let kind: String = admitted.routines.instruction_kinds[global_row];

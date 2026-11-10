@@ -29,8 +29,8 @@ func BuildFunctionEnv(
     // Admission already proved identity, uniqueness, and carriage semantics.
     // Serialize that receipt once and retain each C name for the later
     // signature rows instead of rebuilding the same symbol in a second pass.
-    let c_names: Array<String> = [];
-    let i: Int = 0;
+    var c_names: Array<String> = [];
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let c_name: String = CompilerSymbolCQualifiedName(
             receiver_facts.owners[i], receiver_facts.names[i]);
@@ -45,15 +45,15 @@ func BuildFunctionEnv(
         }
         i = i + 1;
     }
-    let builtin_names: Array<String> = [];
-    let builtin_returns: Array<String> = [];
-    let builtin_params: Array<String> = [];
+    var builtin_names: Array<String> = [];
+    var builtin_returns: Array<String> = [];
+    var builtin_params: Array<String> = [];
     if !SeedSemanticOwnedBuiltinSignatures(
         builtin_names, builtin_returns, builtin_params
     ) {
         Die("semantic builtin signature facts are invalid");
     }
-    let builtin_index: Int = 0;
+    var builtin_index: Int = 0;
     while builtin_index < ArrayLength(builtin_names) {
         TextBuilderAppend(output, builtin_names[builtin_index]);
         TextBuilderAppend(output, "=f:");
@@ -108,7 +108,7 @@ func BuildFunctionEnv(
             TextBuilderAppend(output, "|");
             TextBuilderAppend(output, c_name);
             TextBuilderAppend(output, "=pm:");
-            let p: Int = 0;
+            var p: Int = 0;
             let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
                 signatures, i
             );
@@ -171,17 +171,17 @@ func BuildFunctionEnv(
             CodegenGenericSpecializationActuals(specializations, i);
         TextBuilderAppend(output, c_name);
         TextBuilderAppend(output, "=pm:");
-        let p: Int = 0;
+        var p: Int = 0;
         let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
             signatures, signature_index
         );
         while p < param_count {
             if p > 0 { TextBuilderAppend(output, ","); }
-            TextBuilderAppend(output, CodegenParamModeName(
-                CodegenSemanticFunctionParamModeOrDie(
-                    signatures, signature_index, p
-                )
-            ));
+            TextBuilderAppend(output,
+                CodegenCallableParameterModeRowForResolvedType(
+                    receiver_facts, signatures, signature_index, p,
+                    CodegenGenericResolvedParamTypeOrDie(
+                        signatures, signature_index, p, actuals)));
             p = p + 1;
         }
         TextBuilderAppend(output, "|");
@@ -245,7 +245,7 @@ func BuildFunctionEnv(
         TextBuilderAppend(output, "|");
         TextBuilderAppend(output, name);
         TextBuilderAppend(output, "=pm:");
-        let p: Int = 0;
+        var p: Int = 0;
         while p < intents.param_counts[i] {
             if p > 0 { TextBuilderAppend(output, ","); }
             let row: Int = intents.param_starts[i] + p;

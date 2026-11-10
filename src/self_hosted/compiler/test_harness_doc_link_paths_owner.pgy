@@ -47,7 +47,7 @@ func CompilerHarnessDocLinkCheckerPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessDocLinkCheckerPathKnown(path: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessDocLinkCheckerPathCount() {
         if CompilerHarnessDocLinkCheckerPathAt(i) == path {
             return true;

@@ -1,0 +1,25 @@
+// A copy of an inout place is changed before the caller's place is read
+// again. Clone cannot make a map of growable Array values independent.
+struct Box {
+    values: HashMap<String, Array<Int>>;
+}
+
+func Grow(inout box: Box) -> Int {
+    MapSet(box.values, "next", [9]);
+    return 0;
+}
+
+func Probe(inout box: Box) -> Int {
+    var alias: Box = box;
+    let changed: Int = Grow(alias);
+    let keys: Array<String> = MapKeys(box.values);
+    return ArrayLength(keys) + changed;
+}
+
+func Main() -> Int {
+    var values: HashMap<String, Array<Int>> = MapNew();
+    MapSet(values, "first", [1]);
+    var box: Box = Box(values);
+    Print(ToString(Probe(box)));
+    return 0;
+}

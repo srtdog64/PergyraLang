@@ -26,8 +26,8 @@ func SemanticIntentZoneAuthorityParticipantRow(
         start + count > ArrayLength(intents.participants.aliases) {
         return None;
     }
-    let found: Option<Int> = None;
-    let offset: Int = 0;
+    var found: Option<Int> = None;
+    var offset: Int = 0;
     while offset < count {
         let row: Int = start + offset;
         if intents.participants.aliases[row] == alias {
@@ -42,13 +42,13 @@ func SemanticIntentZoneAuthorityParticipantRow(
 func SemanticIntentZoneAuthorityFieldOwners(
     ref declarations: SelfMirDeclarationRows
 ) -> Array<Int> {
-    let owners: Array<Int> = [];
-    let row: Int = 0;
+    var owners: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(declarations.field_names) {
         ArrayPush(owners, -1);
         row = row + 1;
     }
-    let declaration: Int = 0;
+    var declaration: Int = 0;
     while declaration < ArrayLength(declarations.names) {
         let start: Int = declarations.field_starts[declaration];
         let count: Int = declarations.field_counts[declaration];
@@ -56,7 +56,7 @@ func SemanticIntentZoneAuthorityFieldOwners(
             start + count > ArrayLength(owners) {
             return [];
         }
-        let offset: Int = 0;
+        var offset: Int = 0;
         while offset < count {
             if owners[start + offset] >= 0 { return []; }
             ArraySet(owners, start + offset, declaration);
@@ -89,8 +89,8 @@ func SemanticIntentZoneAuthorityDeclaredSlot(
     let count: Int = declarations.zone_authorities.declaration_counts[
         zone_declaration
     ];
-    let matches: Int = 0;
-    let offset: Int = 0;
+    var matches: Int = 0;
+    var offset: Int = 0;
     while offset < count {
         if declarations.zone_authorities.subject_slot_names[start + offset] ==
             slot_name {
@@ -118,13 +118,13 @@ func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
     if ArrayLength(field_owners) != ArrayLength(declarations.field_names) {
         Die("semantic Intent Zone field ownership is incomplete");
     }
-    let result: CodegenIntentZoneAuthorityTransitionFacts =
+    var result: CodegenIntentZoneAuthorityTransitionFacts =
         CodegenIntentZoneAuthorityTransitionFactsEmpty(true);
-    let intent_index: Int = 0;
+    var intent_index: Int = 0;
     while intent_index < ArrayLength(intents.intent_node_ids) {
         let step_start: Int = intents.step_starts[intent_index];
         let step_count: Int = intents.step_counts[intent_index];
-        let offset: Int = 0;
+        var offset: Int = 0;
         while offset < step_count {
             let step: Int = step_start + offset;
             let zone_alias: String = intents.steps.using_aliases[step];
@@ -196,10 +196,10 @@ func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
                         ArrayLength(intents.steps.authorized_names) {
                     Die("semantic Intent authority range is invalid");
                 }
-                let authority_alias: String = "";
-                let authority_type: String = "";
-                let authority_slot_name: String = "";
-                let authority_slot_id: String = "";
+                var authority_alias: String = "";
+                var authority_type: String = "";
+                var authority_slot_name: String = "";
+                var authority_slot_id: String = "";
                 if authority_count == 1 {
                     authority_alias = intents.steps.authorized_names[
                         authority_start
@@ -270,7 +270,7 @@ func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
                     result.zone_type_names,
                     declarations.names[zone_declaration]
                 );
-                let zone_kind: String = "participant";
+                var zone_kind: String = "participant";
                 if intents.participants.is_values[zone_participant] {
                     zone_kind = "value";
                 }

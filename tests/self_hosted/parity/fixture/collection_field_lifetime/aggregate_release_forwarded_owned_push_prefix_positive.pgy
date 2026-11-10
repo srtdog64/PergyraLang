@@ -1,0 +1,40 @@
+// A caller-visible owned-push summary and its one nested leaf effect are one
+// transfer chain.  The selected branch returns immediately; the other branch
+// owns a separate leaf site, so only one path executes.
+struct ForwardedFacts {
+    types: Array<String>;
+    literals: Array<String>;
+}
+
+func ForwardedAppend(
+    inout types: Array<String>, inout literals: Array<String>, tag: String
+) -> Void {
+    ArrayPush(types, tag);
+    ArrayPush(literals, tag);
+}
+
+func ForwardedSelected(facts: ForwardedFacts) -> ForwardedFacts {
+    let types: Array<String> = facts.types;
+    let literals: Array<String> = facts.literals;
+    ForwardedAppend(types, literals, "selected");
+    return ForwardedFacts(types, literals);
+}
+
+func ForwardedRoute(
+    facts: ForwardedFacts, selected: Bool
+) -> ForwardedFacts {
+    if selected {
+        return ForwardedSelected(facts);
+    }
+    let types: Array<String> = facts.types;
+    let literals: Array<String> = facts.literals;
+    ForwardedAppend(types, literals, "general");
+    return ForwardedFacts(types, literals);
+}
+
+func Main() -> Void {
+    let facts: ForwardedFacts = ForwardedFacts([], []);
+    let updated: ForwardedFacts = ForwardedRoute(facts, true);
+    let count: Int = ArrayLength(updated.types) +
+        ArrayLength(updated.literals);
+}

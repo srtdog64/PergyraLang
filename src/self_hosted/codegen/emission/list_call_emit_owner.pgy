@@ -10,7 +10,7 @@ import "call_argument_order_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticListCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     source_name: String,
     env: CodegenTypeEnv
@@ -40,9 +40,9 @@ func RewriteSemanticListCall(
     if !fact.ok {
         Die(Concat(source_name, " List<T> runtime ABI fact is missing"));
     }
-    let receiver: String = RewriteSemanticCallArgument(
+    let receiver: String = RewriteSemanticCollectionRuntimeInoutArgument(
         graph, view.argument_nodes[protocol.receiver_argument_index],
-        receiver_type, "inout", env
+        receiver_type, env
     );
     if protocol.operation == "ListPush" {
         let value: String = RewriteSemanticCallArgument(

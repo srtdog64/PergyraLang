@@ -39,7 +39,7 @@ func LexerFixtureExpectedPath(expected: String) -> String {
 }
 
 func LexerFixtureManifestReady() -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < LexerFixtureManifestCount() {
         let source: String = LexerFixtureSourceAt(i);
         let expected: String = LexerFixtureExpectedAt(i);
@@ -59,7 +59,7 @@ func EmitLexerFixtureManifest() -> Void {
         Exit(1);
     }
 
-    let i: Int = 0;
+    var i: Int = 0;
     while i < LexerFixtureManifestCount() {
         Log(Concat(Concat(LexerFixtureSourceAt(i), ":"), LexerFixtureExpectedAt(i)));
         i = i + 1;

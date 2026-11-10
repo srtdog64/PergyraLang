@@ -93,7 +93,14 @@ static void record_call(LaneWalk *walk, ASTNode *call)
     for (size_t p = 0; p < ast_call_arg_count(call); p++) {
         uint32_t allocator = allocator_argument(ctx, call, p);
         if (allocator == 0 || semantic_param_publication_result_lane_argument(ctx, call, p)) continue;
-        if ((function_param_flow_summary_for_call(&lookup, call, p) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0)
+        (void)function_param_flow_summary_for_call(&lookup, call, p);
+        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+        if (!function_param_flow_callee_outward_effects_current(&lookup, call,
+                p, &outward_effects)) {
+            walk->failed = true;
+            return;
+        }
+        if ((outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0)
             (void)use_add(walk, &walk->loans, &walk->loan_count, &walk->loan_capacity, call, allocator);
     }
 }

@@ -19,6 +19,7 @@ OWNED_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_string_call_result_pus
 WRAPPER_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_string_wrapper_result_push.pgy"
 BORROWED_SOURCE="tests/self_hosted/fixtures/direct_mir_borrowed_string_call_result_push.pgy"
 CONDITIONAL_TRANSFER_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_array_string_conditional_return_transfer.pgy"
+FRESH_TRANSFORM_SOURCE="tests/self_hosted/fixtures/owned_string_fresh_transform_store.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/collection_ownership_receipt_mutations.py"
@@ -94,6 +95,104 @@ for backend in c llvm; do
     "$binary" | tr -d '\r' >"$WORK_DIR/$backend.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||
         fail "$backend runtime output drifted"
+done
+
+FRESH_MIR_REL="$WORK_REL/fresh-transform.mir.json"
+FRESH_MIR="$ROOT_DIR/$FRESH_MIR_REL"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$FRESH_TRANSFORM_SOURCE" -o "$FRESH_MIR_REL") \
+    >"$WORK_DIR/fresh-transform.producer.out" \
+    2>"$WORK_DIR/fresh-transform.producer.err" || {
+        cat "$WORK_DIR/fresh-transform.producer.out" \
+            "$WORK_DIR/fresh-transform.producer.err" >&2
+        fail "self-host producer rejected sealed fresh String transforms"
+    }
+[[ -s "$FRESH_MIR" ]] || fail "fresh-transform producer emitted no MIR"
+
+FRESH_FORGED="$WORK_DIR/fresh-transform-shallow.mir.json"
+python - "$FRESH_MIR" "$FRESH_FORGED" <<'PY'
+import copy
+import json
+import pathlib
+import sys
+
+source, forged = map(pathlib.Path, sys.argv[1:])
+program = json.loads(source.read_text(encoding="utf-8"))
+routine = next(r for r in program["routines"]
+               if r["name"] == "FreshTransformRows")
+pushes = [i for b in routine["blocks"] for i in b["instructions"]
+          if i.get("arg0") == "ArrayPush"]
+if len(pushes) != 2:
+    raise SystemExit("fresh-transform push count drifted")
+receipts = [i.get("collection_ownership_receipt") or {} for i in pushes]
+if ([r.get("kind") for r in receipts] !=
+        ["owned-string-push", "owned-string-push"] or
+        receipts[0].get("receiver_binding_syntax_id", 0) <= 0 or
+        receipts[0].get("receiver_binding_syntax_id") !=
+        receipts[1].get("receiver_binding_syntax_id") or
+        [r.get("source_binding_syntax_id") for r in receipts] != [0, 0]):
+    raise SystemExit("fresh-transform ownership receipts drifted")
+first_nodes = (pushes[0].get("expr0_graph") or {}).get("nodes", [])
+second_nodes = (pushes[1].get("expr0_graph") or {}).get("nodes", [])
+if not any(n.get("kind") == "member_access" for n in first_nodes):
+    raise SystemExit("borrowed member copy witness is missing")
+if not any(n.get("call_target_kind") == "direct" and
+           n.get("call_target_name") == "StringTrim" for n in second_nodes):
+    raise SystemExit("sealed fresh String transform witness is missing")
+mutation = copy.deepcopy(program)
+mutated = next(r for r in mutation["routines"]
+               if r["name"] == "FreshTransformRows")
+mutated_push = next(i for b in mutated["blocks"] for i in b["instructions"]
+                    if i.get("arg0") == "ArrayPush")
+mutated_push["collection_ownership_receipt"]["kind"] = "shallow-mutation"
+forged.write_text(json.dumps(mutation, separators=(",", ":")),
+                  encoding="utf-8")
+PY
+
+printf ' alpha | beta \nalpha\nbeta\n' >"$WORK_DIR/fresh-transform.expected.run"
+for backend in c llvm; do
+    extension="$backend"; [[ "$backend" == llvm ]] && extension="ll"
+    artifact_rel="$WORK_REL/fresh-transform.$extension"
+    artifact="$ROOT_DIR/$artifact_rel"
+    binary="$WORK_DIR/fresh-transform-$backend.exe"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$FRESH_MIR_REL" -o "$artifact_rel") \
+        >"$WORK_DIR/fresh-transform-$backend.project.out" \
+        2>"$WORK_DIR/fresh-transform-$backend.project.err" ||
+        fail "$backend rejected fresh-transform owned receipts"
+    if [[ "$backend" == c ]]; then
+        "$CC" -x c -std=c11 "$artifact" -I"$ROOT_DIR/src" \
+            -I"$ROOT_DIR/src/runtime" -pthread -lm -o "$binary" \
+            >"$WORK_DIR/fresh-transform-c.compile.out" \
+            2>"$WORK_DIR/fresh-transform-c.compile.err" ||
+            fail "fresh-transform C projection did not link"
+    else
+        runtime="$WORK_DIR/fresh-transform-runtime.o"
+        "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" \
+            -I"$ROOT_DIR/src/runtime" -c \
+            "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$runtime" \
+            >"$WORK_DIR/fresh-transform-runtime.compile.out" \
+            2>"$WORK_DIR/fresh-transform-runtime.compile.err" ||
+            fail "fresh-transform LLVM runtime ABI did not compile"
+        "$CLANG" -x ir "$artifact" -x none "$runtime" -pthread -lm \
+            -o "$binary" >"$WORK_DIR/fresh-transform-llvm.compile.out" \
+            2>"$WORK_DIR/fresh-transform-llvm.compile.err" ||
+            fail "fresh-transform LLVM projection did not link"
+    fi
+    "$binary" | tr -d '\r' >"$WORK_DIR/fresh-transform-$backend.run"
+    cmp -s "$WORK_DIR/fresh-transform.expected.run" \
+        "$WORK_DIR/fresh-transform-$backend.run" ||
+        fail "$backend fresh-transform runtime output drifted"
+
+    forged_rel="$WORK_REL/fresh-transform-shallow.$extension"
+    if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$WORK_REL/fresh-transform-shallow.mir.json" -o "$forged_rel") \
+        >"$WORK_DIR/fresh-transform-shallow-$backend.out" \
+        2>"$WORK_DIR/fresh-transform-shallow-$backend.err"; then
+        fail "$backend accepted a shallow receipt for a returned owned Array"
+    fi
+    [[ ! -e "$ROOT_DIR/$forged_rel" ]] ||
+        fail "$backend published a shallow-receipt artifact"
 done
 
 printf 'owned-string-wrapper-result-ready\n' >"$WORK_DIR/wrapper.expected.run"

@@ -1,18 +1,18 @@
 // Intent participant/value bindings admitted independently of ordinary JSON formals.
 import "direct_mir_routine_parameter_set_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_intent_value_parameter_type_owner.pgy";
 import "../mir_lower/intent_carrier_projection_owner.pgy";
 
 func DirectMirRoutineIntentParameterSetReady(ref parameters: DirectMirRoutineParameterSetFact) -> Bool {
     if !DirectMirRoutineParameterSetFactReady(parameters) || ArrayLength(parameters.names) == 0 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(parameters.names) {
         let participant: Bool = parameters.carriages[row] == "participant" &&
             parameters.pass_shapes[row] == "indirect" &&
             !DirectMirScalarCfgScalarTypeSupported(parameters.type_names[row]);
         let value: Bool = parameters.carriages[row] == "value" &&
-            parameters.pass_shapes[row] == "direct" &&
-            DirectMirScalarCfgScalarTypeSupported(parameters.type_names[row]);
+            parameters.pass_shapes[row] == "direct";
         if (!participant && !value) || parameters.resources[row] != "none" ||
             parameters.abi_required[row] || parameters.abi_layout_ids[row] != 0 ||
             parameters.abi_row_keys[row] != "" { return false; }
@@ -32,17 +32,17 @@ func DirectMirRoutineIntentParameterSetFromBindings(
         count != ArrayLength(bindings.kinds) || count != ArrayLength(bindings.source_syntax_ids) {
         return DirectMirRoutineParameterSetFactInvalid();
     }
-    let resources: Array<String> = []; let passes: Array<String> = [];
-    let names: Array<String> = []; let syntax_ids: Array<Int> = [];
-    let types: Array<String> = []; let carriages: Array<String> = [];
-    let abi_ids: Array<Int> = []; let required: Array<Bool> = [];
-    let abi_keys: Array<String> = []; let digests: Array<Int> = [];
-    let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
-    let row: Int = 0;
+    var resources: Array<String> = []; var passes: Array<String> = [];
+    var names: Array<String> = []; var syntax_ids: Array<Int> = [];
+    var types: Array<String> = []; var carriages: Array<String> = [];
+    var abi_ids: Array<Int> = []; var required: Array<Bool> = [];
+    var abi_keys: Array<String> = []; var digests: Array<Int> = [];
+    var first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    var row: Int = 0;
     while row < count {
         let type_name: String = bindings.type_names[row];
         let carriage: String = bindings.kinds[row];
-        let pass_shape: String = "direct";
+        var pass_shape: String = "direct";
         if carriage == "participant" {
             if !MirProgramDeclarationIndexContains(declarations, "subject", type_name) &&
                 !MirProgramDeclarationIndexContains(declarations, "zone", type_name) &&
@@ -50,7 +50,8 @@ func DirectMirRoutineIntentParameterSetFromBindings(
                 return DirectMirRoutineParameterSetFactInvalid();
             }
             pass_shape = "indirect";
-        } else if carriage != "value" || !DirectMirScalarCfgScalarTypeSupported(type_name) {
+        } else if carriage != "value" ||
+            !DirectMirRoutineIntentValueTypeReady(declarations, type_name) {
             // Aggregate value ABI must arrive from its owner, not a spelling guess.
             return DirectMirRoutineParameterSetFactInvalid();
         }

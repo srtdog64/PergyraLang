@@ -80,8 +80,8 @@ func SemanticExpressionGraphStructValueTypeError(
         );
     }
     let nominal: String = UnwrapOption(type_text);
-    let constructor_index: Int = 0 - 1;
-    let i: Int = 0;
+    var constructor_index: Int = 0 - 1;
+    var i: Int = 0;
     while i < ArrayLength(constructors.node_ids) {
         if constructors.names[i] == nominal { constructor_index = i; }
         i = i + 1;
@@ -117,11 +117,11 @@ func SemanticExpressionGraphStructValueTypeError(
             );
         }
         let field_name: String = UnwrapOption(field_name_opt);
-        let j: Int = 0;
+        var j: Int = 0;
         while j < i {
             let previous_field: SemanticStructLiteralFieldView =
                 SemanticStructLiteralFieldAt(graph, view, j);
-            let previous_name: Option<String> = None;
+            var previous_name: Option<String> = None;
             if previous_field.ok {
                 previous_name = SemanticExpressionGraphNodeText(
                     graph, previous_field.name_node
@@ -141,7 +141,7 @@ func SemanticExpressionGraphStructValueTypeError(
             }
             j = j + 1;
         }
-        let field_row: Int = 0 - 1;
+        var field_row: Int = 0 - 1;
         j = 0;
         while j < expected_count {
             let row: Int = constructors.param_starts[constructor_index] + j;
@@ -166,7 +166,7 @@ func SemanticExpressionGraphStructValueTypeError(
         if generic_applies && !generic_ok {
             return generic_message;
         }
-        let actual_opt: Option<String> = None;
+        var actual_opt: Option<String> = None;
         if generic_applies {
             actual_opt = Some(generic_return_type);
         } else {
@@ -175,7 +175,7 @@ func SemanticExpressionGraphStructValueTypeError(
                 function_names, function_returns, enum_values
             );
         }
-        let actual: String = "Unknown";
+        var actual: String = "Unknown";
         if IsSome(actual_opt) { actual = UnwrapOption(actual_opt); }
         let expected: String = constructors.param_type_names[field_row];
         if !IsSome(actual_opt) ||

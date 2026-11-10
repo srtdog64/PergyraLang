@@ -5,8 +5,8 @@ import "expression_graph_kind_name_owner.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func SelfMirExpressionGraphHashString(hash: Long, value: String) -> Long {
-    let out: Long = (hash * 131L + (StringLength(value) as Long)) % 268435456L;
-    let i: Int = 0;
+    var out: Long = (hash * 131L + (StringLength(value) as Long)) % 268435456L;
+    var i: Int = 0;
     while i < StringLength(value) {
         out = (out * 131L +
             (CharCode(value, StringLength(value), i) as Long)) % 268435456L;
@@ -30,9 +30,9 @@ func SelfMirExpressionGraphDigest(
     let root: Int = rows.roots[instruction] - start;
     if start < 0 || count <= 0 || root < 0 || root >= count ||
         start + count > SelfMirExpressionGraphNodeCount(graph) { return 0; }
-    let hash: Long = SelfMirExpressionGraphHashInt(71L, root);
+    var hash: Long = SelfMirExpressionGraphHashInt(71L, root);
     hash = SelfMirExpressionGraphHashInt(hash, count);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let node: Int = start + i;
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
@@ -46,8 +46,8 @@ func SelfMirExpressionGraphDigest(
         if !IsSome(kind) || !IsSome(text) || !IsSome(target_kind) ||
             !IsSome(target_name) || !IsSome(runtime_id) { return 0; }
         let arity: Int = AstExpressionNodeArity(UnwrapOption(kind));
-        let left: Int = -1;
-        let right: Int = -1;
+        var left: Int = -1;
+        var right: Int = -1;
         if arity == 1 || arity == 2 {
             let child: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
             if !IsSome(child) { return 0; }

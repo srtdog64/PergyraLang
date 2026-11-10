@@ -30,7 +30,16 @@ int main(void)
         {PGY_COLLECTION_TRANSITION_DROP, 10, 0, 31}
     };
     PgyCollectionTransitionBlock block = {true, true, 0, 0, 0, 1};
-    PgyCollectionTransitionView view = {1, facts, 1, &block, 1, NULL, 0, ops, 1, 0};
+    PgyCollectionTransitionView view = {
+        .function_syntax_id = 1,
+        .bindings = facts,
+        .binding_count = 1,
+        .blocks = &block,
+        .block_count = 1,
+        .operations = ops,
+        .operation_count = 1,
+        .entry_block = 0
+    };
     expect(&view, true, "live birth");
     facts[0].disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
     expect(&view, false, "live-to-retired flip");
@@ -59,7 +68,18 @@ int main(void)
         {true, false, 0, 2, 0, 1},
         {true, true, 2, 2, 1, 0}
     };
-    view = (PgyCollectionTransitionView){1, facts, 1, loop, 3, preds, 4, ops, 1, 0};
+    view = (PgyCollectionTransitionView){
+        .function_syntax_id = 1,
+        .bindings = facts,
+        .binding_count = 1,
+        .blocks = loop,
+        .block_count = 3,
+        .predecessors = preds,
+        .predecessor_count = 4,
+        .operations = ops,
+        .operation_count = 1,
+        .entry_block = 0
+    };
     facts[0].disposition = PGY_COLLECTION_DISPOSITION_LIVE;
     expect(&view, true, "fresh no-drop live generations");
     facts[0].disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
@@ -84,7 +104,18 @@ int main(void)
         {true, false, 1, 1, 2, 0},
         {true, true, 2, 2, 2, 0}
     };
-    view = (PgyCollectionTransitionView){1, facts, 1, branch, 4, branch_preds, 4, ops, 2, 0};
+    view = (PgyCollectionTransitionView){
+        .function_syntax_id = 1,
+        .bindings = facts,
+        .binding_count = 1,
+        .blocks = branch,
+        .block_count = 4,
+        .predecessors = branch_preds,
+        .predecessor_count = 4,
+        .operations = ops,
+        .operation_count = 2,
+        .entry_block = 0
+    };
     expect(&view, true, "branch-local unborn or retired");
     branch[1].operation_count = 1;
     branch[2].operation_start = branch[3].operation_start = view.operation_count = 1;
@@ -95,6 +126,104 @@ int main(void)
     branch[1].operation_count = 1;
     branch[2].operation_start = branch[3].operation_start = view.operation_count = 2;
     expect(&view, false, "born live and retired paths cannot join");
+
+    PgyCollectionOwnershipFact owned_fact = {
+        .function_syntax_id = 1, .binding_syntax_id = 20,
+        .origin_syntax_id = 21,
+        .element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS,
+        .disposition = PGY_COLLECTION_DISPOSITION_RETIRED,
+        .origin = PGY_COLLECTION_ORIGIN_CLONE
+    };
+    PgyCollectionTransitionOperation push_ops[] = {
+        {PGY_COLLECTION_TRANSITION_BIRTH, 20, 0, 20},
+        {PGY_COLLECTION_TRANSITION_OWNED_STRING_PUSH, 20, 0, 22},
+        {PGY_COLLECTION_TRANSITION_DROP, 20, 0, 23}
+    };
+    PgyCollectionTransitionBlock push_block = {true, true, 0, 0, 0, 3};
+    view = (PgyCollectionTransitionView){
+        .function_syntax_id = 1,
+        .bindings = &owned_fact,
+        .binding_count = 1,
+        .blocks = &push_block,
+        .block_count = 1,
+        .operations = push_ops,
+        .operation_count = 3,
+        .entry_block = 0
+    };
+    expect(&view, true, "owned push preserves live generation");
+    push_ops[0] = (PgyCollectionTransitionOperation){
+        PGY_COLLECTION_TRANSITION_OWNED_STRING_PUSH, 20, 0, 22};
+    push_ops[1] = (PgyCollectionTransitionOperation){
+        PGY_COLLECTION_TRANSITION_BIRTH, 20, 0, 20};
+    expect(&view, false, "owned push before birth");
+    push_ops[0] = (PgyCollectionTransitionOperation){
+        PGY_COLLECTION_TRANSITION_BIRTH, 20, 0, 20};
+    push_ops[1] = (PgyCollectionTransitionOperation){
+        PGY_COLLECTION_TRANSITION_DROP, 20, 0, 23};
+    push_ops[2] = (PgyCollectionTransitionOperation){
+        PGY_COLLECTION_TRANSITION_OWNED_STRING_PUSH, 20, 0, 22};
+    expect(&view, false, "owned push after drop");
+
+    owned_fact.origin = PGY_COLLECTION_ORIGIN_OWNED_LITERAL;
+    PgyCollectionTransitionOperation loop_owned_ops[] = {
+        {PGY_COLLECTION_TRANSITION_BIRTH, 20, 0, 20},
+        {PGY_COLLECTION_TRANSITION_OWNED_STRING_PUSH, 20, 0, 22}
+    };
+    size_t owned_loop_preds[] = {0, 1, 1};
+    PgyCollectionTransitionBlock owned_loop[] = {
+        {true, false, 0, 0, 0, 0},
+        {true, false, 0, 2, 0, 2},
+        {true, true, 2, 1, 2, 0}
+    };
+    PgyCollectionTransitionRetirement retirements[] = {
+        {1, 1, 20}, {1, 2, 20}
+    };
+    view = (PgyCollectionTransitionView){
+        .function_syntax_id = 1,
+        .bindings = &owned_fact,
+        .binding_count = 1,
+        .blocks = owned_loop,
+        .block_count = 3,
+        .predecessors = owned_loop_preds,
+        .predecessor_count = 3,
+        .operations = loop_owned_ops,
+        .operation_count = 2,
+        .entry_block = 0
+    };
+    expect(&view, false, "owned loop requires edge retirement");
+    uint32_t pending_retirement = 20;
+    view.pending_retirement_bindings = &pending_retirement;
+    view.pending_retirement_count = 1;
+    expect(&view, true, "HIR defers exact binding retirement to MIR");
+    pending_retirement = 21;
+    expect(&view, false, "HIR pending retirement rejects unknown binding");
+    pending_retirement = 20;
+    uint32_t duplicate_pending_retirements[] = {20, 20};
+    view.pending_retirement_bindings = duplicate_pending_retirements;
+    view.pending_retirement_count = 2;
+    expect(&view, false, "HIR pending retirement rejects duplicate binding");
+    view.pending_retirement_count = 1;
+    view.pending_retirement_bindings = NULL;
+    expect(&view, false, "HIR pending retirement requires its exact rows");
+    view.pending_retirement_bindings = &pending_retirement;
+    owned_fact.disposition = PGY_COLLECTION_DISPOSITION_LIVE;
+    expect(&view, false, "HIR cannot defer an active binding retirement");
+    owned_fact.disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
+    view.pending_retirement_bindings = NULL;
+    view.pending_retirement_count = 0;
+    view.retirements = retirements;
+    view.retirement_count = 2;
+    expect(&view, true, "MIR retires owned literal on backedge and exit");
+    view.retirement_count = 1;
+    expect(&view, false, "owned literal exit retirement cannot disappear");
+    view.retirements = &retirements[1];
+    expect(&view, false, "owned literal backedge retirement cannot disappear");
+    owned_fact.disposition = PGY_COLLECTION_DISPOSITION_LIVE;
+    view.retirements = retirements;
+    view.retirement_count = 2;
+    expect(&view, true, "MIR retirement supersedes active semantic disposition");
+    view.retirement_count = 1;
+    expect(&view, false, "active owned literal still needs every retirement edge");
 
     printf("OWNED LOCAL TRANSITION %u checks, %u failures\n", checks, failures);
     return failures != 0;

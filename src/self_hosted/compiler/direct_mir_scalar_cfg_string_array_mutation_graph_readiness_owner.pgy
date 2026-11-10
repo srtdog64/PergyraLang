@@ -19,16 +19,16 @@ func DirectMirScalarCfgStringArrayVoidOperationReady(
 func DirectMirScalarCfgStringArrayMutationGraphReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let collection: Int = 0;
+    var collection: Int = 0;
     while collection < DirectMirScalarCfgStringArrayCollectionCount(
             plan.string_arrays) {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
             DirectMirScalarCfgStringArrayCollectionAt(
                 plan.string_arrays, collection);
-        let expected: Int = ArrayLength(fact.elements);
-        let prior_operation: Int = -1;
-        let observation_seen: Bool = false;
-        let row: Int = 0;
+        var expected: Int = ArrayLength(fact.elements);
+        var prior_operation: Int = -1;
+        var observation_seen: Bool = false;
+        var row: Int = 0;
         while row < DirectMirScalarCfgStringArrayAccessCount(
                 plan.string_arrays) {
             let access: DirectMirScalarCfgStringArrayAccessFact =

@@ -17,15 +17,15 @@ func DirectMirScalarProgramCLogicalRecordExpression(
         }
         // Operand rows retain expression order; field ordinals retain layout.
         // Sort only this constructor's operands, never a program inventory.
-        let order: Array<Int> = [];
-        let temporary: String = Concat("pgy_record_value_", ToString(node));
-        let ordinal: Int = 0;
+        var order: Array<Int> = [];
+        var temporary: String = Concat("pgy_record_value_", ToString(node));
+        var ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
             if argument_rows[ordinal] < 0 || argument_rows[ordinal] >= node {
                 return None;
             }
             ArrayPush(order, ordinal);
-            let position: Int = ordinal;
+            var position: Int = ordinal;
             while position > 0 &&
                 argument_rows[order[position - 1]] > argument_rows[ordinal] {
                 order[position] = order[position - 1];
@@ -43,10 +43,10 @@ func DirectMirScalarProgramCLogicalRecordExpression(
                 ordinal = 0;
             } else { ordinal = ordinal + 1; }
         }
-        let output: String = Concat("({ ", Concat(
+        var output: String = Concat("({ ", Concat(
             DirectMirScalarProgramCLogicalRecordTypeName(fact, record_type),
             Concat(" ", Concat(temporary, " = {0}; "))));
-        let position: Int = 0;
+        var position: Int = 0;
         while position < ArrayLength(order) {
             ordinal = order[position];
             output = Concat(output, Concat(temporary,
@@ -63,7 +63,7 @@ func DirectMirScalarProgramCLogicalRecordExpression(
         ArrayLength(arguments) != 0 {
         return None;
     }
-    let member: String = Concat("(", Concat(left, Concat(").field_",
+    var member: String = Concat("(", Concat(left, Concat(").field_",
         ToString(member_ordinal))));
     if DirectMirScalarProgramLogicalRecordPhysicalIntField(
             fact, record_type, member_ordinal) {

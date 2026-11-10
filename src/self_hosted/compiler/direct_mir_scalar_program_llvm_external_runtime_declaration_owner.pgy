@@ -7,7 +7,7 @@ import "../lib/intent_observability_abi_projection_owner.pgy";
 func DirectMirScalarProgramLlvmTaskObservationDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprTaskIsCancelled() {
@@ -21,13 +21,13 @@ func DirectMirScalarProgramLlvmTaskObservationDeclarations(
 func DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let output: String = "";
-    let row_index: Int = 0;
+    var output: String = "";
+    var row_index: Int = 0;
     while row_index < IntentObservabilityAbiCount() {
         let row: IntentObservabilityAbiRow =
             IntentObservabilityAbiRowAt(row_index);
-        let present: Bool = false;
-        let node: Int = 0;
+        var present: Bool = false;
+        var node: Int = 0;
         while node < ArrayLength(expressions.node_kinds) {
             if expressions.node_kinds[node] ==
                     DirectMirScalarProgramExprIntentObservabilityCall() &&
@@ -40,7 +40,7 @@ func DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
                 DirectMirScalarProgramLlvmType(row.return_type);
             if llvm_type == "" { Die(
                 "direct MIR LLVM intent-observability return ABI is invalid"); }
-            let params: String = "";
+            var params: String = "";
             if row.argument_count == 1 { params = "i64"; }
             else if row.argument_count == 2 { params = "i64, i64"; }
             else if row.argument_count != 0 { Die(

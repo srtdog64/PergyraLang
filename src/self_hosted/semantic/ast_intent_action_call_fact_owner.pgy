@@ -26,7 +26,7 @@ func SemanticAstIntentActionSignatureIndex(
     owner_name: String,
     action_name: String
 ) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         if signatures.action_contracts.is_actions[i] &&
             signatures.owner_names[i] == owner_name &&
@@ -74,8 +74,8 @@ func SemanticAstIntentActionCallFromText(
     if !IsIdentifier(receiver) || !IsIdentifier(action) {
         return SemanticAstIntentActionCallFact(false, "", "", -1, "");
     }
-    let participant_row: Int = -1;
-    let i: Int = 0;
+    var participant_row: Int = -1;
+    var i: Int = 0;
     while i < participant_count {
         let row: Int = participant_start + i;
         if participants.param_names[row] == receiver {
@@ -113,8 +113,8 @@ func SemanticAstIntentChildCallFromText(
     let open: Int = StringIndexOf(text, "(");
     if !intents.ok || open <= 0 { return SemanticAstIntentActionCallFact(false, "", "", -1, ""); }
     let name: String = StringTrim(Substring(text, 0, open));
-    let found: Int = -1;
-    let i: Int = 0;
+    var found: Int = -1;
+    var i: Int = 0;
     while IsIdentifier(name) && i < ArrayLength(intents.names) {
         if intents.names[i] == name && intents.result_modes[i] == "typed_enum" {
             if found >= 0 { return SemanticAstIntentActionCallFact(false, "", "", -1, ""); }
@@ -152,7 +152,7 @@ func SemanticAstIntentStepActorFromFacts(
         if !IsIdentifier(explicit_actor) {
             return SemanticAstIntentStepActorFact(false, "", "explicit-who");
         }
-        let explicit_row: Int = start;
+        var explicit_row: Int = start;
         while explicit_row < start + count {
             if intents.param_names[explicit_row] == explicit_actor {
                 if intents.param_is_values[explicit_row] {
@@ -182,15 +182,15 @@ func SemanticAstIntentStepActorFromFacts(
     }
 
     let first_space: Int = StringIndexOf(step_header_text, " ");
-    let step_name: String = step_header_text;
+    var step_name: String = step_header_text;
     if first_space >= 0 {
         step_name = Substring(step_header_text, 0, first_space);
     }
     if !IsIdentifier(step_name) {
         return SemanticAstIntentStepActorFact(false, "", "step-name");
     }
-    let action_actor: String = "";
-    let row: Int = start;
+    var action_actor: String = "";
+    var row: Int = start;
     while row < start + count {
         if !intents.param_is_values[row] &&
             SemanticAstIntentActionSignatureIndex(
@@ -211,7 +211,7 @@ func SemanticAstIntentStepActorFromFacts(
         );
     }
 
-    let sole_actor: String = "";
+    var sole_actor: String = "";
     row = start;
     while row < start + count {
         if !intents.param_is_values[row] {

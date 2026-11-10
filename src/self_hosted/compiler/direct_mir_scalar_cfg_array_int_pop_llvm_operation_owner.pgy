@@ -35,7 +35,7 @@ func DirectMirScalarCfgArrayIntPopLlvmOperation(
     if DirectMirScalarCfgArrayIntPopOperationRow(
         plan.array_int_program.pop, operation
     ) >= 0 {
-        let output: String = Concat("  ", Concat(
+        var output: String = Concat("  ", Concat(
             stem, Concat(".pop.length = load i64, ptr ", field)
         ));
         output = Concat(output, Concat(", align 8\n  ", stem));
@@ -50,7 +50,7 @@ func DirectMirScalarCfgArrayIntPopLlvmOperation(
         );
     }
     if operation == plan.array_int_program.pop.length_log_operation_row {
-        let output: String = Concat("  ", Concat(
+        var output: String = Concat("  ", Concat(
             stem, Concat(".length = load i64, ptr ", field)
         ));
         output = Concat(output, Concat(", align 8\n  ", stem));

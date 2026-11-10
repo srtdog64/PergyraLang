@@ -6,7 +6,7 @@ import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
 
 func DirectMirScalarCfgInstructionBlockAt(
     ref index: MirRoutineFactIndex, instruction: Int) -> Int {
-    let found: Int = -1; let block: Int = 0;
+    var found: Int = -1; var block: Int = 0;
     while block < ArrayLength(index.block_instruction_starts) {
         let start: Int = index.block_instruction_starts[block]; let count: Int = index.block_instruction_counts[block];
         if instruction >= start && instruction < start + count {
@@ -25,7 +25,7 @@ func DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
 ) -> Int {
     let use_block: Int = DirectMirScalarCfgInstructionBlockAt(index, instruction_row);
     if use_block < 0 { return -1; }
-    let selected: Int = -1; let selected_scope: Int = -1; let row: Int = 0;
+    var selected: Int = -1; var selected_scope: Int = -1; var row: Int = 0;
     while row < ArrayLength(local_refs.local_names) {
         if local_refs.local_ref_kinds[row] ==
                 DirectMirScalarCfgLocalRefMatchBinding() &&

@@ -11,7 +11,7 @@ func DirectMirScalarCfgForEachTypedLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -63,7 +63,7 @@ func DirectMirScalarCfgForEachTypedLlvmBlockEntry(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact, block: Int
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -71,8 +71,8 @@ func DirectMirScalarCfgForEachTypedLlvmBlockEntry(
             DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
                 plan.foreach_elements, fact.loop_syntax_id
             );
-        let aggregate_type: String = ""; let element_type: String = "";
-        let data_index: Int = -1; let align: Int = 0;
+        var aggregate_type: String = ""; var element_type: String = "";
+        var data_index: Int = -1; var align: Int = 0;
         if type_name == CompilerAbiLayoutIntTypeName() {
             let abi: DirectMirArrayIntAbiProjection =
                 DirectMirArrayIntAbiProjectionFromCanonicalLayout(
@@ -140,11 +140,11 @@ func DirectMirScalarCfgForEachTypedLlvmBlockEntry(
 func DirectMirScalarCfgForEachTypedLlvmBlockExit(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(fact.backedge_blocks) {
             if fact.backedge_blocks[edge] == block {
                 let stem: String = Concat("%pgy.foreach.", Concat(ToString(row), ".backedge"));

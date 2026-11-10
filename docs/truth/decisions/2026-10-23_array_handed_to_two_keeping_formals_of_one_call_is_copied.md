@@ -6,23 +6,24 @@ inside one call. The user can overturn it.
 
 ## Rule
 
-The deferred preservation owner refuses a call that takes an Array an
-earlier handoff may keep or rebind. When every such earlier handoff is an
-argument of the same call to a by-value formal, each of those arguments is
-now selected for a copy where the call takes it
-(`array_storage_deferred_preservation_owner.c`); the next analysis passes
-`Clone` of it there when `Clone` copies the value whole, and the refusal
-stands in this analysis as before. When another call keeps the Array too,
-or an earlier result holding it has no ownership proof, nothing is
-selected and the refusal stays
-(`array_kept_by_earlier_call_and_two_formals_invalid`).
+The deferred preservation owner selects every non-final keeping handoff for
+a copy, including a handoff in an earlier call and earlier by-value arguments
+of the final call (`array_storage_deferred_preservation_owner.c`). The next
+analysis passes `Clone` at each selected handoff only when `Clone` copies the
+whole value independently; the final handoff moves the original storage.
+If any required whole-value copy is unsupported, the existing preservation
+or released-storage refusal remains. An earlier result holding the Array with
+no ownership proof also remains refused.
 
 ## Why it holds
 
-Two formals that keep one Array would leave two holders of one buffer: a
-push through one may free the storage the other names. A copy at each
-earlier argument gives every holder its own storage, and the last argument
-keeps the original, as a by-value parameter means.
+Several keeping handoffs of one Array would leave several holders of one
+buffer: a push through one may free the storage the others name. A copy at
+every non-final handoff gives each retained value its own storage, and the
+last handoff keeps the original, as a by-value parameter means. The positive
+gate `array_kept_by_earlier_call_and_two_formals_landed_valid` requires one
+Clone in the earlier callee and one in the final caller; the uncopyable
+aggregate gates keep the fail-closed boundary.
 
 ## Why
 

@@ -16,7 +16,7 @@ struct CompilerRuntimeCallAbiFact {
 func CompilerRuntimeCallAbiResourceRuntimeCPreamble(
     undef_log_macro: Bool
 ) -> String {
-    let out: String = "#include \"pgy_runtime.h\"\n";
+    var out: String = "#include \"pgy_runtime.h\"\n";
     if undef_log_macro {
         out = Concat(out, "#ifdef pgy_log\n#undef pgy_log\n#endif\n");
     }
@@ -32,7 +32,7 @@ func CompilerRuntimeCallAbiFactMissing() -> CompilerRuntimeCallAbiFact {
 // and table position are deliberately excluded from identity.
 func CompilerRuntimeCallAbiRowIdHashText(hash: Long, text: String) -> Long {
     let modulus: Long = 268435456L;
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(text);
     while i < n {
         hash = (hash * 131L + (CharCode(text, n, i) as Long)) % modulus;
@@ -45,7 +45,7 @@ func CompilerRuntimeCallAbiRowId(
     domain: String, type_name: String, operation: String
 ) -> Int {
     let modulus: Long = 268435456L;
-    let hash: Long = CompilerRuntimeCallAbiRowIdHashText(7L, domain);
+    var hash: Long = CompilerRuntimeCallAbiRowIdHashText(7L, domain);
     hash = (hash * 131L + 124L) % modulus;
     hash = CompilerRuntimeCallAbiRowIdHashText(hash, type_name);
     hash = (hash * 131L + 124L) % modulus;
@@ -417,9 +417,9 @@ func CompilerRuntimeCallAbiConstructedSuffix(
     if n == 0 || inner_type_name == "Unknown" || inner_type_name == "Void" {
         return None;
     }
-    let out: String = "";
-    let i: Int = 0;
-    let last_was_underscore: Bool = false;
+    var out: String = "";
+    var i: Int = 0;
+    var last_was_underscore: Bool = false;
     while i < n {
         let c: Int = CharCode(inner_type_name, n, i);
         let is_ascii_alpha_or_digit: Bool =
@@ -476,7 +476,7 @@ func CompilerRuntimeCallAbiConstructedKind(type_name: String) -> Option<Int> {
 func CompilerRuntimeCallAbiConstructedInner(
     type_name: String, kind: Int
 ) -> Option<String> {
-    let prefix_len: Int = 11;
+    var prefix_len: Int = 11;
     if kind == 0 {
         prefix_len = 5;
     }
@@ -500,7 +500,7 @@ func CompilerRuntimeCallAbiConstructedCValueType(
     let suffix_fact: Option<String> =
         CompilerRuntimeCallAbiConstructedSuffix(UnwrapOption(inner_fact));
     if !IsSome(suffix_fact) { return None; }
-    let prefix: String = "PgySlot_";
+    var prefix: String = "PgySlot_";
     if kind == 1 { prefix = "PgySecureSlot_"; }
     if kind == 2 { prefix = "PgyDeviceSlot_"; }
     return Some(Concat(prefix, UnwrapOption(suffix_fact)));
@@ -589,25 +589,31 @@ func CompilerRuntimeCallAbiFactForConstructedResource(
     );
 }
 
-func CompilerRuntimeCallAbiFactForNativeResource(
-    type_name: String,
-    operation: String
-) -> CompilerRuntimeCallAbiFact {
-    let kind: Int = 0;
+func CompilerRuntimeCallAbiFactForNativeResource(type_name: String, operation: String) -> CompilerRuntimeCallAbiFact {
+    if operation == "ReleaseStorage" {
+        var scalar_index: Int = 0;
+        while scalar_index < 5 {
+            let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(scalar_index);
+            if type_name == Concat(Concat("Array<", scalar), ">") {
+                return CompilerRuntimeCallAbiFact(
+                    true, "native-resource", Concat(Concat(type_name, "."), operation),
+                    Concat("pgy_array_drop_", scalar), "function",
+                    CompilerRuntimeCallAbiMaterialMirResourceRow(), "container_ptr_to_void",
+                    CompilerRuntimeCallAbiRowId("native-resource", type_name, operation));
+            }
+            scalar_index = scalar_index + 1;
+        }
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    var kind: Int = 0;
     while kind < 3 {
-        let scalar_index: Int = 0;
+        var scalar_index: Int = 0;
         while scalar_index < 6 {
-            if CompilerRuntimeCallAbiNativeResourceType(
-                kind, scalar_index
-            ) == type_name {
-                let operation_index: Int = 0;
+            if CompilerRuntimeCallAbiNativeResourceType(kind, scalar_index) == type_name {
+                var operation_index: Int = 0;
                 while operation_index < 4 {
-                    if CompilerRuntimeCallAbiNativeResourceOperationAt(
-                        operation_index
-                    ) == operation {
-                        let operation_key: String = Concat(
-                            Concat(type_name, "."), operation
-                        );
+                    if CompilerRuntimeCallAbiNativeResourceOperationAt(operation_index) == operation {
+                        let operation_key: String = Concat(Concat(type_name, "."), operation);
                         return CompilerRuntimeCallAbiFact(
                             true, "native-resource", operation_key,
                             CompilerRuntimeCallAbiNativeResourceSymbol(
@@ -627,12 +633,8 @@ func CompilerRuntimeCallAbiFactForNativeResource(
                 }
                 operation_index = 0;
                 while operation_index < 6 && kind < 2 {
-                    if CompilerRuntimeCallAbiNativePinOperationAt(
-                        operation_index
-                    ) == operation {
-                        let operation_key: String = Concat(
-                            Concat(type_name, "."), operation
-                        );
+                    if CompilerRuntimeCallAbiNativePinOperationAt(operation_index) == operation {
+                        let operation_key: String = Concat(Concat(type_name, "."), operation);
                         return CompilerRuntimeCallAbiFact(
                             true, "native-resource", operation_key,
                             CompilerRuntimeCallAbiNativePinSymbol(
@@ -651,9 +653,7 @@ func CompilerRuntimeCallAbiFactForNativeResource(
                     operation_index = operation_index + 1;
                 }
                 if kind == 2 && operation == "SubmitRead" {
-                    let submit_operation: String = Concat(
-                        Concat(type_name, "."), operation
-                    );
+                    let submit_operation: String = Concat(Concat(type_name, "."), operation);
                     return CompilerRuntimeCallAbiFact(
                         true, "native-resource", submit_operation,
                         CompilerRuntimeCallAbiNativeDeviceSubmitSymbol(
@@ -675,7 +675,5 @@ func CompilerRuntimeCallAbiFactForNativeResource(
         }
         kind = kind + 1;
     }
-    return CompilerRuntimeCallAbiFactForConstructedResource(
-        type_name, operation
-    );
+    return CompilerRuntimeCallAbiFactForConstructedResource(type_name, operation);
 }

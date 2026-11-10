@@ -6,7 +6,7 @@ import "../codegen/runtime_abi/string_runtime_owner.pgy";
 func DirectMirScalarProgramCStringWindowMaterialization(
     ref abi: DirectMirScalarProgramRuntimeAbiFact
 ) -> String {
-    let output: String = "";
+    var output: String = "";
     if abi.string_length_id != 0 {
         output = Concat(output, StringRuntimeCStringLengthBlock());
     }
@@ -22,11 +22,19 @@ func DirectMirScalarProgramCStringWindowMaterialization(
     if abi.string_substring_with_len_id != 0 {
         output = Concat(output, StringRuntimeCSubstringWithLenBlock());
     }
-    if abi.string_sub_index_with_len_id != 0 {
+    if abi.string_sub_index_with_len_id != 0 ||
+            abi.string_sub_contains_with_len_id != 0 {
         output = Concat(output, StringRuntimeCSubIndexOfWithLenBlock());
     }
-    if abi.string_sub_equals_with_len_id != 0 {
+    if abi.string_sub_equals_with_len_id != 0 ||
+            abi.string_sub_starts_with_len_id != 0 {
         output = Concat(output, StringRuntimeCSubEqualsWithLenBlock());
+    }
+    if abi.string_sub_contains_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubContainsWithLenBlock());
+    }
+    if abi.string_sub_starts_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubStartsWithLenBlock());
     }
     return output;
 }

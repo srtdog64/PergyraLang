@@ -24,8 +24,9 @@ bool semantic_default_aggregate_value(SemanticContext *ctx, const Type *type)
     return type->kind == TYPE_KIND_TUPLE || type->kind == TYPE_KIND_CONSTRUCTED;
 }
 
-/* The callee changes, keeps, returns or releases storage it receives through
- * this default-mode parameter. For an Array formal the descriptor-transfer
+/* An own formal consumes the aggregate regardless of what its body does. A
+ * default-mode formal moves only when the callee changes, keeps, returns or
+ * releases storage it receives. For an Array formal the descriptor-transfer
  * owner answers exactly: element values that escape (Strings are immutable)
  * are the String owners' concern, not a move. Any other aggregate moves
  * unless its summary only reads it and the same owner proves that no store
@@ -34,7 +35,10 @@ bool semantic_default_aggregate_value(SemanticContext *ctx, const Type *type)
 bool semantic_default_aggregate_formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal)
 {
     FuncParam *param = ast_func_param(callee, formal);
-    if (param == NULL || param->mode != PARAM_MODE_DEFAULT || ast_func_body(callee) == NULL) return false;
+    if (param == NULL) return false;
+    if (param->mode == PARAM_MODE_OWN) return true;
+    if (param->mode != PARAM_MODE_DEFAULT || ast_func_body(callee) == NULL)
+        return false;
     unsigned mask = function_param_flow_summary_for_param(ctx, callee, formal);
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     if (store == NULL || store->failed) return true;
@@ -45,6 +49,33 @@ bool semantic_default_aggregate_formal_moves(SemanticContext *ctx, ASTNode *call
     if (type_name != NULL && strcmp(type_name, "Array") == 0)
         return store->entries[index].array_storage_unproved;
     return (mask & ~SLOT_PARAM_SUMMARY_READ) != 0 || store->entries[index].array_storage_unproved;
+}
+
+bool semantic_default_aggregate_formal_borrow_handoff(
+    SemanticContext *ctx, ASTNode *callee, size_t formal)
+{
+    FuncParam *param = ast_func_param(callee, formal);
+    if (param == NULL || param->mode != PARAM_MODE_DEFAULT ||
+        ast_func_body(callee) == NULL)
+        return false;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    if (store == NULL || store->failed) return false;
+    size_t index = function_param_flow_find(store,
+        ast_node_stable_id(callee), formal);
+    if (index == SIZE_MAX ||
+        store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE)
+        return false;
+    const unsigned escape = SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+        SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+    unsigned outward = SLOT_PARAM_SUMMARY_NONE;
+    if (!function_param_flow_entry_outward_effects_current(store, index,
+            &outward))
+        return false;
+    unsigned mask = store->entries[index].mask;
+    return (outward & escape) != 0 &&
+        (outward & ~escape) == 0 &&
+        (mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+            escape)) == 0;
 }
 
 /* The callee only reads this default-mode argument and returns it or a part
@@ -62,7 +93,17 @@ bool semantic_default_aggregate_formal_lends(SemanticContext *ctx, ASTNode *call
     if (store == NULL || store->failed) return false;
     size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
     if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE) return false;
+    unsigned outward = SLOT_PARAM_SUMMARY_NONE;
+    if (!function_param_flow_entry_outward_effects_current(store, index,
+            &outward))
+        return false;
+    /* Internal carrier moves contribute CALL to the public access mask.
+     * Only the backing frame can distinguish that bookkeeping from storage
+     * really retained by a call. Keep write/release/unknown access bits fatal
+     * to lending, and use the positive outward facet for the escape choice. */
     unsigned mask = store->entries[index].mask;
-    return (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
-        (mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) == 0;
+    const unsigned escapes = SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+        SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+    return outward == SLOT_PARAM_SUMMARY_RETURN_ESCAPE &&
+        (mask & ~(SLOT_PARAM_SUMMARY_READ | escapes)) == 0;
 }

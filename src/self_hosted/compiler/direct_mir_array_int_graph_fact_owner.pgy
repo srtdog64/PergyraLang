@@ -25,14 +25,14 @@ func DirectMirArrayIntGraphFromExpressionFact(
 func DirectMirArrayIntLiteralElements(
     ref sequence: MirExpressionGraphSequence
 ) -> Array<Int> {
-    let values: Array<Int> = [];
+    var values: Array<Int> = [];
     let nodes: Array<Int> = DirectMirArrayLiteralElementNodes(
         sequence, AstExpressionNodeIntegerLiteral()
     );
     if ArrayLength(nodes) < 1 {
         Die("direct MIR Array<Int> literal graph shape is invalid");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(nodes) {
         let literal: String = sequence.arena.node_texts[nodes[row]];
         if !DirectMirScalarIntLiteralInRange(literal) ||
@@ -94,7 +94,7 @@ func DirectMirArrayIntLengthGraphReady(
 func DirectMirArrayIntIndexGraphIndices(
     ref sequence: MirExpressionGraphSequence, local_name: String
 ) -> Array<Int> {
-    let indices: Array<Int> = [];
+    var indices: Array<Int> = [];
     if !sequence.ok || sequence.ready_node_count != 10 ||
         ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 9 ||
         ArrayLength(sequence.arena.topology.node_kinds) != 10 ||

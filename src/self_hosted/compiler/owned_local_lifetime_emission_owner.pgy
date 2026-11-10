@@ -1,0 +1,311 @@
+// Target projection of retirement rights issued for this exact GraphPlan.
+import "owned_local_lifetime_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func DirectMirOwnedLocalLifetimeRequire(ref plan: DirectMirScalarCfgGraphPlan,
+    ref lifetime: DirectMirOwnedLocalLifetimeFact) -> Void {
+    if !lifetime.valid {
+        Die("owned array result has no fresh or transferred storage owner");
+    }
+    if lifetime.plan_digest != plan.digest ||
+        ArrayLength(lifetime.local_modes) != ArrayLength(plan.local_types) ||
+        ArrayLength(lifetime.local_recipes) != ArrayLength(plan.local_types) ||
+        ArrayLength(lifetime.transferred) != ArrayLength(plan.local_types) ||
+        ArrayLength(lifetime.return_clones) !=
+            ArrayLength(plan.program.expressions.graph_roots) ||
+        ArrayLength(lifetime.payload_parameter_consuming) !=
+            ArrayLength(plan.routines.parameter_types) ||
+        ArrayLength(lifetime.payload_parameter_recipes) !=
+            ArrayLength(plan.routines.parameter_types) ||
+        ArrayLength(lifetime.payload_cleanup_blocks) !=
+            ArrayLength(lifetime.payload_cleanup_parameters) {
+        Die("owned local lifetime does not belong to this admitted program");
+    }
+}
+
+func DirectMirOwnedLocalCRelease(ref plan: DirectMirScalarCfgGraphPlan,
+    ref release: DirectMirOwnedStorageReleasePlan, recipe: Int, value: String) -> String {
+    if recipe < 0 { return ""; }
+    let type_name: String = release.types[recipe];
+    let mode: Int = release.modes[recipe];
+    if mode == 1 { return "    free((void *)" + value + ");\n"; }
+    if mode == 2 || mode == 3 {
+        let layout: DirectMirArrayStorageLayoutContract = DirectMirArrayStorageLayoutContractFact();
+        if !DirectMirArrayStorageLayoutContractReady(layout) { Die("owned Array C storage layout is missing"); }
+        return "    free(" + value + "." + layout.data_field + ");\n";
+    }
+    if mode == 5 { return "    " + CollectionRuntimeCDropStorageFn(2) + "(&" + value + ");\n"; }
+    if mode == 6 { return "    " + CollectionRuntimeCOwnedStringDropFn() + "(&" + value + ");\n"; }
+    if mode == 7 {
+        let map: CollectionHashMapRuntimeFact =
+            CollectionHashMapRuntimeFactFromTypeName(type_name);
+        if !map.ok { Die("owned HashMap C cleanup ABI is missing"); }
+        return "    " + CollectionHashMapRuntimeCDropFunction(map) +
+            "(&" + value + ");\n";
+    }
+    if mode == 8 {
+        let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+            plan.program.referenced_enum, type_name);
+        if enum_row < 0 ||
+            plan.program.referenced_enum.payload_flags[enum_row] != 1 {
+            Die("owned payload-enum C cleanup type is invalid");
+        }
+        var output: String = "    switch (" + value + ".tag) {\n";
+        var child: Int = 0;
+        var ordinal: Int = 0;
+        while ordinal < plan.program.referenced_enum.variant_counts[enum_row] {
+            let variant: Int =
+                plan.program.referenced_enum.variant_starts[enum_row] + ordinal;
+            output = output + "    case " + ToString(ordinal) + ":\n";
+            var parameter: Int = 0;
+            while parameter < plan.program.referenced_enum.
+                    variant_param_counts[variant] {
+                if child >= release.child_counts[recipe] {
+                    Die("owned payload-enum C cleanup recipe is truncated");
+                }
+                let child_recipe: Int = release.children[
+                    release.child_starts[recipe] + child];
+                if child_recipe >= 0 {
+                    output = output + DirectMirOwnedLocalCRelease(
+                        plan, release, child_recipe,
+                        value + "." +
+                            DirectMirScalarProgramCPayloadEnumVariantFieldName(
+                                ordinal) + "._" + ToString(parameter));
+                }
+                child = child + 1;
+                parameter = parameter + 1;
+            }
+            output = output + "        break;\n";
+            ordinal = ordinal + 1;
+        }
+        if child != release.child_counts[recipe] {
+            Die("owned payload-enum C cleanup recipe has extra fields");
+        }
+        return output + "    default: abort();\n    }\n";
+    }
+    if mode != 4 { return ""; }
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
+    var output: String = ""; var field: Int = 0;
+    while field < plan.program.logical_record.field_counts[record] {
+        output = output + DirectMirOwnedLocalCRelease(plan, release,
+            release.children[release.child_starts[recipe] + field],
+            value + ".field_" + ToString(field));
+        field = field + 1;
+    }
+    return output;
+}
+
+func DirectMirOwnedLocalLlvmRelease(ref plan: DirectMirScalarCfgGraphPlan,
+    ref release: DirectMirOwnedStorageReleasePlan, recipe: Int, address: String, prefix: String) -> String {
+    if recipe < 0 { return ""; }
+    let type_name: String = release.types[recipe];
+    let mode: Int = release.modes[recipe];
+    if mode == 0 { return ""; }
+    if mode == 1 {
+        return "  " + prefix + " = load ptr, ptr " + address + "\n  call void @free(ptr " + prefix + ")\n";
+    }
+    if mode == 2 || mode == 3 {
+        var llvm_type: String = "%pgy.array.int";
+        if mode == 3 { llvm_type = "%pgy.array.bool"; }
+        let layout: DirectMirArrayStorageLayoutContract = DirectMirArrayStorageLayoutContractFact();
+        if !DirectMirArrayStorageLayoutContractReady(layout) { Die("owned Array LLVM storage layout is missing"); }
+        let data_index: Int = DirectMirArrayStorageLayoutIndex(layout, layout.data_offset);
+        return "  " + prefix + ".descriptor = load " + llvm_type + ", ptr " + address +
+            "\n  " + prefix + ".data = extractvalue " + llvm_type + " " + prefix +
+            ".descriptor, " + ToString(data_index) + "\n  call void @free(ptr " + prefix + ".data)\n";
+    }
+    if mode == 5 { return "  call void @" + CollectionRuntimeCDropStorageFn(2) + "(ptr " + address + ")\n"; }
+    if mode == 6 { return "  call void @" + CollectionRuntimeCOwnedStringDropFn() + "(ptr " + address + ")\n"; }
+    if mode == 7 {
+        let map: CollectionHashMapLlvmFact =
+            CollectionHashMapLlvmFactFromTypeName(type_name);
+        if !map.ok { Die("owned HashMap LLVM cleanup ABI is missing"); }
+        return "  call void @" + CollectionHashMapLlvmDropFunction(map) +
+            "(ptr " + address + ")\n";
+    }
+    if mode == 8 {
+        let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+            plan.program.referenced_enum, type_name);
+        if enum_row < 0 ||
+            plan.program.referenced_enum.payload_flags[enum_row] != 1 {
+            Die("owned payload-enum LLVM cleanup type is invalid");
+        }
+        let enum_type: String =
+            DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(enum_row);
+        let label_prefix: String =
+            Substring(prefix, 1, StringLength(prefix) - 1);
+        var output: String = "  " + prefix +
+            ".tag.address = getelementptr inbounds " + enum_type +
+            ", ptr " + address + ", i32 0, i32 0\n";
+        output = output + "  " + prefix + ".tag = load i32, ptr " +
+            prefix + ".tag.address, align 4\n";
+        output = output + "  switch i32 " + prefix + ".tag, label %" +
+            label_prefix + ".invalid [\n";
+        var ordinal: Int = 0;
+        while ordinal < plan.program.referenced_enum.variant_counts[enum_row] {
+            output = output + "    i32 " + ToString(ordinal) + ", label %" +
+                label_prefix + ".variant." + ToString(ordinal) + "\n";
+            ordinal = ordinal + 1;
+        }
+        output = output + "  ]\n";
+        var child: Int = 0;
+        ordinal = 0;
+        while ordinal < plan.program.referenced_enum.variant_counts[enum_row] {
+            let variant: Int =
+                plan.program.referenced_enum.variant_starts[enum_row] + ordinal;
+            let variant_type: String =
+                DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
+                    enum_row, ordinal);
+            let variant_prefix: String =
+                prefix + ".variant." + ToString(ordinal);
+            let variant_label: String = label_prefix +
+                ".variant." + ToString(ordinal);
+            output = output + "\n" + variant_label + ":\n";
+            var parameter: Int = 0;
+            while parameter < plan.program.referenced_enum.
+                    variant_param_counts[variant] {
+                if child >= release.child_counts[recipe] {
+                    Die("owned payload-enum LLVM cleanup recipe is truncated");
+                }
+                let child_recipe: Int = release.children[
+                    release.child_starts[recipe] + child];
+                if child_recipe >= 0 {
+                    let field_prefix: String = variant_prefix + ".field." +
+                        ToString(parameter);
+                    output = output + "  " + field_prefix +
+                        ".variant.address = getelementptr inbounds " +
+                        enum_type + ", ptr " + address + ", i32 0, i32 " +
+                        ToString(ordinal + 1) + "\n";
+                    output = output + "  " + field_prefix +
+                        ".address = getelementptr inbounds " + variant_type +
+                        ", ptr " + field_prefix +
+                        ".variant.address, i32 0, i32 " +
+                        ToString(parameter) + "\n";
+                    output = output + DirectMirOwnedLocalLlvmRelease(
+                        plan, release, child_recipe,
+                        field_prefix + ".address", field_prefix);
+                }
+                child = child + 1;
+                parameter = parameter + 1;
+            }
+            output = output + "  br label %" + label_prefix + ".done\n";
+            ordinal = ordinal + 1;
+        }
+        if child != release.child_counts[recipe] {
+            Die("owned payload-enum LLVM cleanup recipe has extra fields");
+        }
+        output = output + "\n" + label_prefix +
+            ".invalid:\n  unreachable\n\n" + label_prefix + ".done:\n";
+        return output;
+    }
+    let llvm_type: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(plan.program.logical_record, type_name);
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
+    var output: String = ""; var field: Int = 0;
+    while field < plan.program.logical_record.field_counts[record] {
+        let child_type: String = plan.program.logical_record.field_types[
+            plan.program.logical_record.field_starts[record] + field];
+        let child_recipe: Int = release.children[release.child_starts[recipe] + field];
+        if child_recipe >= 0 {
+            let child: String = prefix + ".field." + ToString(field);
+            output = output + "  " + child + ".address = getelementptr inbounds " + llvm_type +
+                ", ptr " + address + ", i32 0, i32 " + ToString(field) + "\n";
+            output = output + DirectMirOwnedLocalLlvmRelease(plan, release, child_recipe, child + ".address", child);
+        }
+        field = field + 1;
+    }
+    return output;
+}
+
+func DirectMirOwnedLocalInitialization(ref plan: DirectMirScalarCfgGraphPlan,
+    ref lifetime: DirectMirOwnedLocalLifetimeFact, routine: Int, llvm: Bool) -> String {
+    DirectMirOwnedLocalLifetimeRequire(plan, lifetime);
+    var row: Int = plan.routines.local_starts[routine];
+    let end: Int = row + plan.routines.local_counts[routine];
+    var output: String = "";
+    if llvm {
+        var parameter: Int = plan.routines.parameter_starts[routine];
+        let parameter_end: Int = parameter +
+            plan.routines.parameter_counts[routine];
+        while parameter < parameter_end {
+            if lifetime.payload_parameter_consuming[parameter] {
+                let ordinal: Int = parameter -
+                    plan.routines.parameter_starts[routine];
+                let enum_type: String =
+                    DirectMirScalarProgramLlvmPayloadEnumTypeName(
+                        plan.program.referenced_enum,
+                        plan.routines.parameter_types[parameter]);
+                if enum_type == "" {
+                    Die("owned payload-enum LLVM parameter type is missing");
+                }
+                output = output + "  %pgy.param." + ToString(ordinal) +
+                    ".owned = alloca " + enum_type + ", align 8\n";
+                output = output + "  store " + enum_type + " %pgy.param." +
+                    ToString(ordinal) + ", ptr %pgy.param." +
+                    ToString(ordinal) + ".owned, align 8\n";
+            }
+            parameter = parameter + 1;
+        }
+    }
+    while row < end {
+        // Other owned representations already use aggregate zero initialization.
+        if lifetime.local_modes[row] == 1 {
+            if llvm { output = output + "  store ptr null, ptr %pgy.local.${row}\n"; }
+            else { output = output + "    pgy_local_${row} = NULL;\n"; }
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirOwnedLocalExitCleanup(ref plan: DirectMirScalarCfgGraphPlan,
+    ref lifetime: DirectMirOwnedLocalLifetimeFact, routine: Int, block: Int, llvm: Bool) -> String {
+    DirectMirOwnedLocalLifetimeRequire(plan, lifetime);
+    var row: Int = plan.routines.local_starts[routine];
+    let end: Int = row + plan.routines.local_counts[routine];
+    var output: String = "";
+    while row < end {
+        if lifetime.local_modes[row] > 0 {
+            if llvm {
+                output = output + DirectMirOwnedLocalLlvmRelease(plan, lifetime.release, lifetime.local_recipes[row],
+                    "%pgy.local.${row}", "%pgy.cleanup.${block}.${row}");
+            } else {
+                output = output + DirectMirOwnedLocalCRelease(plan, lifetime.release, lifetime.local_recipes[row], "pgy_local_${row}");
+            }
+        }
+        row = row + 1;
+    }
+    var cleanup: Int = 0;
+    while cleanup < ArrayLength(lifetime.payload_cleanup_blocks) {
+        if lifetime.payload_cleanup_blocks[cleanup] == block {
+            let parameter: Int =
+                lifetime.payload_cleanup_parameters[cleanup];
+            if parameter < plan.routines.parameter_starts[routine] ||
+                parameter >= plan.routines.parameter_starts[routine] +
+                    plan.routines.parameter_counts[routine] {
+                Die("owned payload-enum cleanup belongs to another routine");
+            }
+            let ordinal: Int = parameter -
+                plan.routines.parameter_starts[routine];
+            let recipe: Int =
+                lifetime.payload_parameter_recipes[parameter];
+            if llvm {
+                output = output + DirectMirOwnedLocalLlvmRelease(
+                    plan, lifetime.release, recipe,
+                    "%pgy.param." + ToString(ordinal) + ".owned",
+                    "%pgy.cleanup." + ToString(block) + ".param." +
+                        ToString(ordinal));
+            } else {
+                output = output + DirectMirOwnedLocalCRelease(
+                    plan, lifetime.release, recipe,
+                    "pgy_param_" + ToString(ordinal));
+            }
+        }
+        cleanup = cleanup + 1;
+    }
+    return output;
+}

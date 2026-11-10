@@ -68,7 +68,7 @@ func SemanticExpressionGraphPlaceKindsReady(
     ) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.place_kinds[i] ==
             SemanticExpressionPlaceUnknown() {
@@ -97,9 +97,9 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
     ) {
         return false;
     }
-    let iteration_function_node_ids: Array<Int> = [];
-    let iteration_binding_names: Array<String> = [];
-    let iteration_index: Int = 0;
+    var iteration_function_node_ids: Array<Int> = [];
+    var iteration_binding_names: Array<String> = [];
+    var iteration_index: Int = 0;
     while iteration_index < SemanticAstIterationTypeCount(iteration_types) {
         let statement_index: Option<Int> =
             SemanticAstStatementIndexForNode(
@@ -117,23 +117,24 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
         iteration_index = iteration_index + 1;
     }
 
-    let graph: SemanticExpressionGraphFacts =
-        analysis.expression_surfaces.expression_graph;
-    let last_root: Int = -1;
-    let root_slot: Int = 0;
-    let valid: Bool = true;
-    while root_slot < ArrayLength(graph.roots) && valid {
-        if graph.has_roots[root_slot] {
-            let root_id: Int = graph.roots[root_slot];
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
+    var valid: Bool = true;
+    while root_slot < ArrayLength(
+        analysis.expression_surfaces.expression_graph.roots
+    ) && valid {
+        if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int =
+                analysis.expression_surfaces.expression_graph.roots[root_slot];
             let surface_index: Int = root_slot / 3;
             if surface_index < 0 || surface_index >= ArrayLength(
                 analysis.expression_surfaces.node_ids
             ) || root_id <= last_root {
                 valid = false;
             } else {
-                let names: Array<String> = [];
-                let types: Array<String> = [];
-                let modes: Array<String> = [];
+                var names: Array<String> = [];
+                var types: Array<String> = [];
+                var modes: Array<String> = [];
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
                 let function_node_id: Option<Int> =
@@ -144,7 +145,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                 let intent_node_id: Option<Int> =
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
-                let environment_ok: Bool = SemanticAstEnumValueRowsReady(analysis.enums);
+                var environment_ok: Bool = SemanticAstEnumValueRowsReady(analysis.enums);
                 if environment_ok && IsSome(function_node_id) {
                         environment_ok =
                             SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
@@ -194,17 +195,19 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                     valid = false;
                 }
                 if valid {
-                    let node_id: Int = last_root + 1;
+                    var node_id: Int = last_root + 1;
                     while node_id <= root_id && valid {
                         let place_kind: Int =
                             SemanticExpressionPlaceKindForNode(
-                                graph, node_id, analysis.constructors,
+                                analysis.expression_surfaces.expression_graph,
+                                node_id, analysis.constructors,
                                 names, types, modes, analysis.enums.value_scope
                             );
                         if place_kind == SemanticExpressionPlaceUnknown() {
                             valid = false;
                         } else {
-                            graph.arena.place_kinds[node_id] = place_kind;
+                            analysis.expression_surfaces.expression_graph.arena.place_kinds[node_id] =
+                                place_kind;
                         }
                         node_id = node_id + 1;
                     }
@@ -215,10 +218,11 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
         }
         root_slot = root_slot + 1;
     }
-    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(graph.arena) {
+    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
         valid = false;
     }
-    analysis.expression_surfaces.expression_graph = graph;
     return valid && ArrayLength(
         analysis.expression_surfaces.expression_graph.arena.place_kinds
     ) == SemanticExpressionGraphArenaNodeCount(

@@ -7,7 +7,7 @@ import "direct_mir_array_string_abi_projection_owner.pgy";
 func DirectMirScalarCfgStringArrayLlvmGlobals(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
-    let output: String = ""; let collection: Int = 0;
+    var output: String = ""; var collection: Int = 0;
     while collection < DirectMirScalarCfgStringArrayCollectionCount(
         plan.string_arrays
     ) {
@@ -15,7 +15,7 @@ func DirectMirScalarCfgStringArrayLlvmGlobals(
             DirectMirScalarCfgStringArrayCollectionAt(
                 plan.string_arrays, collection
             );
-        let item: Int = 0;
+        var item: Int = 0;
         while item < ArrayLength(fact.elements) {
             output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
                 Concat(".pgy.scalar.cfg.indexed.", Concat(
@@ -26,7 +26,7 @@ func DirectMirScalarCfgStringArrayLlvmGlobals(
         }
         collection = collection + 1;
     }
-    let access: Int = 0;
+    var access: Int = 0;
     while access < DirectMirScalarCfgStringArrayAccessCount(
         plan.string_arrays
     ) {
@@ -34,7 +34,7 @@ func DirectMirScalarCfgStringArrayLlvmGlobals(
             DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, access);
         if fact.kind == DirectMirScalarCfgStringArrayAccessSetKind() ||
                 fact.kind == DirectMirScalarCfgStringArrayAccessPushKind() {
-            let category: String = "set";
+            var category: String = "set";
             if fact.kind == DirectMirScalarCfgStringArrayAccessPushKind() {
                 category = "push";
             }
@@ -51,7 +51,7 @@ func DirectMirScalarCfgStringArrayLlvmGlobals(
 func DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
     prefix: String, aggregate: String, field: String, index: Int
 ) -> String {
-    let output: String = Concat("  %pgy.array.", prefix);
+    var output: String = Concat("  %pgy.array.", prefix);
     output = Concat(output, Concat(".", Concat(field, ".field = ")));
     output = Concat(output, Concat("getelementptr inbounds ", aggregate));
     output = Concat(output, Concat(", ptr %pgy.array.", prefix));
@@ -63,7 +63,7 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayCollectionCount(
         plan.string_arrays
     ) {
@@ -84,13 +84,13 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
         if capacity < initial {
             Die("direct MIR String array LLVM capacity is invalid");
         }
-        let data: String = "null";
+        var data: String = "null";
         if capacity > 0 {
             output = Concat(output, Concat("  %pgy.array.", prefix));
             output = Concat(output, Concat(".storage = alloca [",
                 Concat(ToString(capacity), Concat(" x ptr], align ",
                     Concat(element_align, "\n")))));
-            let item: Int = 0;
+            var item: Int = 0;
             while item < initial {
                 output = Concat(output, Concat("  %pgy.array.", prefix));
                 output = Concat(output, Concat(".slot.", ToString(item)));

@@ -1,0 +1,5 @@
+func Main() -> Void {
+    var rows: Array<String> = ["borrowed"];
+    ArrayPop(rows);
+    Log(ArrayLength(rows));
+}

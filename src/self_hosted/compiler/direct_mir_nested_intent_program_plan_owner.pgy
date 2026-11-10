@@ -27,7 +27,7 @@ func DirectMirNestedIntentRoutineHeaderFactDigest(
     ref fact: DirectMirNestedIntentRoutineHeaderFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(977L, fact.row);
+    var hash: Long = DirectMirCfgHashInt(977L, fact.row);
     hash = DirectMirCfgHashString(hash, fact.kind);
     hash = DirectMirCfgHashString(hash, fact.owner);
     hash = DirectMirCfgHashString(hash, fact.name);
@@ -132,8 +132,8 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
     let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
         admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row], "return");
-    let generic_bounds: Array<Int> = [0, 0];
-    let param_bounds: Array<Int> = [0, 0];
+    var generic_bounds: Array<Int> = [0, 0];
+    var param_bounds: Array<Int> = [0, 0];
     let indexed_owner: String = admitted.routines.owners[row];
     if !IsSome(name) {
         Die("direct MIR nested intent header name is invalid");
@@ -175,7 +175,7 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
         header.return_type != UnwrapOption(return_type) {
         Die("direct MIR nested intent generic or return header is invalid");
     }
-    let parameters: DirectMirRoutineParameterSetFact =
+    var parameters: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFactFromBounds(
             admitted.routines.source_json, admitted.routines.source_json_extent, param_bounds[0], param_bounds[1],
             header.param_names, header.param_types,
@@ -228,7 +228,7 @@ func DirectMirNestedIntentPolicyFactDigest(
     ref fact: DirectMirNestedIntentPolicyFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(983L, fact.routine_row);
+    var hash: Long = DirectMirCfgHashInt(983L, fact.routine_row);
     hash = DirectMirCfgHashString(hash, fact.name);
     if fact.concurrent { hash = DirectMirCfgHashInt(hash, 1); }
     hash = DirectMirCfgHashString(hash, fact.priority_kind);
@@ -260,7 +260,7 @@ func DirectMirNestedIntentParticipantBindingsReady(
     ref bindings: MirIntentBindingProjection,
     ref graph: DirectMirNestedIntentProgramGraphFact, outer: Bool
 ) -> Bool {
-    let expected_count: Int = 3;
+    var expected_count: Int = 3;
     if outer { expected_count = 2; }
     if !bindings.ok || ArrayLength(bindings.aliases) != expected_count {
         return false;
@@ -395,9 +395,9 @@ func DirectMirNestedIntentPolicyFactFromAdmitted(
     let priority_sequence: MirExpressionGraphSequence =
         DirectMirLegacyIntentProgramExpressionSequence(
             admitted.routines, priority.global_row, 0);
-    let priority_kind: String = "literal";
-    let priority_literal: Int = 0;
-    let priority_ordinal: Int = -1;
+    var priority_kind: String = "literal";
+    var priority_literal: Int = 0;
+    var priority_ordinal: Int = -1;
     if outer {
         if !priority_sequence.ok || priority_sequence.ready_node_count != 1 ||
             ArrayLength(priority_sequence.roots) != 1 ||
@@ -415,7 +415,7 @@ func DirectMirNestedIntentPolicyFactFromAdmitted(
                 AstExpressionNodeLeaf() {
             Die("direct MIR nested intent parameter priority graph is invalid");
         }
-        let binding_row: Int = 0;
+        var binding_row: Int = 0;
         while binding_row < ArrayLength(bindings.aliases) {
             if bindings.aliases[binding_row] ==
                     priority_sequence.arena.node_texts[0] &&
@@ -438,7 +438,7 @@ func DirectMirNestedIntentPolicyFactFromAdmitted(
     let expect_sequence: MirExpressionGraphSequence =
         DirectMirLegacyIntentProgramExpressionSequence(
             admitted.routines, phases.expect_rows[0], 0);
-    let nested_argument: Int = 0;
+    var nested_argument: Int = 0;
     if outer {
         nested_argument = DirectMirNestedIntentNestedArgument(
             on_sequence, graph);
@@ -489,7 +489,7 @@ func DirectMirNestedIntentProgramPlanDigest(
     ref plan: DirectMirNestedIntentProgramPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(991L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(991L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);

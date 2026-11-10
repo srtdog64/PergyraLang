@@ -28,7 +28,7 @@ func DirectMirScalarProgramPayloadFreeEnumVariantOrdinal(
     if enum_row < 0 || variant_name == "" { return -1; }
     let start: Int = fact.variant_starts[enum_row];
     let count: Int = fact.variant_counts[enum_row];
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < count {
         if fact.variant_names[start + ordinal] == variant_name {
             return ordinal;
@@ -108,7 +108,7 @@ func DirectMirScalarProgramPayloadFreeEnumMarkerReady(
         sequence.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() {
         return false;
     }
-    let member: Int = node + 1;
+    var member: Int = node + 1;
     while member < ArrayLength(sequence.arena.topology.node_kinds) {
         let variant: DirectMirScalarProgramPayloadFreeEnumExpressionFact =
             DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(
@@ -134,7 +134,7 @@ func DirectMirScalarProgramPayloadFreeEnumComparisonKindFact(
         !DirectMirScalarProgramPayloadFreeEnumTypeReady(fact, left_type) {
         return DirectMirScalarProgramExpressionKindFactInvalid();
     }
-    let kind: Int = DirectMirScalarProgramExprEqualPayloadFreeEnum();
+    var kind: Int = DirectMirScalarProgramExprEqualPayloadFreeEnum();
     if source_kind == AstExpressionNodeInequality() {
         kind = DirectMirScalarProgramExprNotEqualPayloadFreeEnum();
     }

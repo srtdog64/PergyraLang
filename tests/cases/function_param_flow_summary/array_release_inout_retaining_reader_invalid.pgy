@@ -15,9 +15,9 @@ func Append(inout names: Array<String>) -> Int
 
 func Main() -> Void
 {
-    let map: HashMap<String, Int> = MapNew<String, Int>();
+    var map: HashMap<String, Int> = MapNew<String, Int>();
     MapSet(map, "key", 1);
-    let names: Array<String> = MapKeys(map);
+    var names: Array<String> = MapKeys(map);
     Log(Append(names));
     ArrayDropOwnedStrings(names);
 }

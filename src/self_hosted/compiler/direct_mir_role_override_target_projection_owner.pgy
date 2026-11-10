@@ -69,11 +69,11 @@ func DirectMirRoleOverrideTargetAbiProjectionFromPlan(
     if !c_ready && !llvm_ready {
         Die("direct MIR role override target is unsupported");
     }
-    let field_value_type: String = "i32";
-    let field_alignment: Int = 4;
-    let method_return_type: String = "ptr";
-    let subject_receiver_type: String = "ptr";
-    let role_receiver_type: String = "ptr";
+    var field_value_type: String = "i32";
+    var field_alignment: Int = 4;
+    var method_return_type: String = "ptr";
+    var subject_receiver_type: String = "ptr";
+    var role_receiver_type: String = "ptr";
     if c_ready {
         field_value_type = CompilerAbiLayoutIntCValueType();
         field_alignment = 0;

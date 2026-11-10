@@ -11,27 +11,27 @@ func SemanticBuiltinCallSignatureDisplay(
     callee: String, resolved_params: String
 ) -> Option<String> {
     let rows: Array<String> = SemanticBuiltinSignatureRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let parts: Array<String> = Split(rows[i], "^");
         if ArrayLength(parts) == 3 && parts[0] == callee {
-            let params: String = parts[2];
+            var params: String = parts[2];
             if params == "none" { params = ""; }
             if params != resolved_params { return None; }
-            let shown: String = "";
+            var shown: String = "";
             if params != "" {
                 let names: Array<String> = Split(params, "|");
-                let p: Int = 0;
+                var p: Int = 0;
                 while p < ArrayLength(names) {
                     // The registry's Unknown parameter accepts any type.
-                    let param_type: String = names[p];
+                    var param_type: String = names[p];
                     if param_type == "Unknown" { param_type = "any"; }
                     if p > 0 { shown = Concat(shown, ", "); }
                     shown = Concat(shown, param_type);
                     p = p + 1;
                 }
             }
-            let result_type: String = parts[1];
+            var result_type: String = parts[1];
             if result_type == "Unknown" { result_type = "any"; }
             return Some(Concat(callee, Concat("(", Concat(shown, Concat(") -> ", result_type)))));
         }

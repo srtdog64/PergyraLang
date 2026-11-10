@@ -14,19 +14,17 @@ import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 func EmitBoxArrayLet(
     type_name: String,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
-    if !graph.ok {
-        Die("BoxArray initializer expression graph is missing");
-    }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-        graph.graph, graph.root_id
+        graph, root_id
     );
     let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
-        graph.graph, call.call_node
+        graph, call.call_node
     );
     let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-        graph.graph, call.call_node
+        graph, call.call_node
     );
     if !call.ok || !IsSome(target_kind) || !IsSome(target_name) ||
         UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
@@ -35,16 +33,16 @@ func EmitBoxArrayLet(
         Die("BoxArray initializer call fact is missing or invalid");
     }
     let capacity: String = RewriteSemanticCallArgument(
-        graph.graph, call.argument_nodes[0], "Int", "default", env
+        graph, call.argument_nodes[0], "Int", "default", env
     );
     let allocator_type: Option<String> = CodegenExpressionTypeFromGraph(
-        graph.graph, call.argument_nodes[1], env
+        graph, call.argument_nodes[1], env
     );
     if !IsSome(allocator_type) || UnwrapOption(allocator_type) != "Allocator" {
         Die("BoxArray allocator type fact is missing or invalid");
     }
     let allocator: String = RewriteSemanticCallArgument(
-        graph.graph, call.argument_nodes[1], "Allocator", "ref", env
+        graph, call.argument_nodes[1], "Allocator", "ref", env
     );
     let constructor: String = BoxArrayRuntimeCNewFnFor(type_name);
     return Concat(
@@ -59,12 +57,13 @@ func EmitBoxArrayLetDeclaration(
     c_name: String,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
     CodegenTypeEnvStateAppendTypedValueBinding(
-        env_state, env, name, type_name, type_name, c_name
+        env_state, name, type_name, type_name, c_name
     );
-    let value: String = EmitBoxArrayLet(type_name, env, graph);
+    let value: String = EmitBoxArrayLet(type_name, env, graph, root_id);
     return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
         Concat(c_name, Concat(" = ", Concat(value, ";")))));
 }

@@ -21,8 +21,8 @@ func DirectMirIdentityCellStoreFromOwners(
         signature.receiver_carriage != "mutable-identity" || capture.arg1 != "default_param" { return invalid; }
     let cell: Int = DirectMirIdentityCellRow(cells, signature.receiver_type);
     if cell < 0 || cells.declaration_rows[cell] != signature.receiver_owner_row { return invalid; }
-    let target_field: String = "expr0_graph";
-    let prefix: Int = 0;
+    var target_field: String = "expr0_graph";
+    var prefix: Int = 0;
     if wire_kind == "def" {
         if capture.name != "ssa-def" || capture.arg0 != "self" ||
             capture.abi_type_name != signature.receiver_type ||
@@ -64,9 +64,9 @@ func DirectMirIdentityCellStoreAppendOperation(
     result: Int, value_expression: Int, target_expression: Int, member: Int
 ) -> DirectMirScalarCfgProgramOperationStorage {
     let appended: DirectMirScalarCfgProgramOperationStorage = DirectMirScalarCfgProgramOperationsAppendExpression(
-        storage, DirectMirScalarCfgOpIdentityCellStore(), result, value_expression);
-    let members: Array<Int> = appended.right_locals;
-    let targets: Array<Int> = appended.secondary_expression_rows;
+        storage, DirectMirScalarCfgOpIdentityCellStore(), result, value_expression, -1);
+    var members: Array<Int> = appended.right_locals;
+    var targets: Array<Int> = appended.secondary_expression_rows;
     ArraySet(members, ArrayLength(members) - 1, member);
     ArraySet(targets, ArrayLength(targets) - 1, target_expression);
     // The written rows travel by name, not through the aliased root.
@@ -76,5 +76,5 @@ func DirectMirIdentityCellStoreAppendOperation(
         members, appended.left_literals, appended.right_literals,
         appended.phi_starts, appended.phi_counts,
         appended.phi_predecessor_blocks, appended.phi_incoming_values,
-        appended.expression_rows, targets);
+        appended.expression_rows, targets, appended.target_paths);
 }

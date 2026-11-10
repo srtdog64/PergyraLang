@@ -1,0 +1,33 @@
+struct CarrierBranchMissingFacts {
+    values: Array<String>;
+}
+
+func CarrierBranchMissingStore(
+    inout values: Array<String>, value: String
+) -> Void {
+    ArrayPushOwnedString(values, value);
+}
+
+func CarrierBranchMissingGrow(
+    facts: CarrierBranchMissingFacts, ref choices: Array<Bool>
+) -> CarrierBranchMissingFacts {
+    let values: Array<String> = facts.values;
+    let index: Int = 0;
+    while index < ArrayLength(choices) {
+        if choices[index] {
+            CarrierBranchMissingStore(values, "left");
+        } else {
+            CarrierBranchMissingStore(values, "right");
+        }
+        index = index + 1;
+    }
+    return facts;
+}
+
+func Main() -> Int {
+    let choices: Array<Bool> = [true, false];
+    let facts: CarrierBranchMissingFacts = CarrierBranchMissingFacts([]);
+    let updated: CarrierBranchMissingFacts =
+        CarrierBranchMissingGrow(facts, choices);
+    return ArrayLength(updated.values);
+}

@@ -14,9 +14,9 @@ struct SemanticAstIndexedStringBorrowState {
 func SemanticAstIndexedStringBorrowStateForLocals(
     ref locals: SemanticAstLocalBindingFacts
 ) -> SemanticAstIndexedStringBorrowState {
-    let sources: Array<Int> = [];
-    let invalidated: Array<Bool> = [];
-    let row: Int = 0;
+    var sources: Array<Int> = [];
+    var invalidated: Array<Bool> = [];
+    var row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
         ArrayPush(sources, 0);
         ArrayPush(invalidated, false);

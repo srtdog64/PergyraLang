@@ -13,7 +13,7 @@ func IsPrimitiveType(base_type: String) -> Bool {
         "Channel", "Slot", "Future", "Void"
     ];
     let n: Int = ArrayLength(prims);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if base_type == prims[i] {
             return true;
@@ -31,14 +31,14 @@ func IsPrimitiveType(base_type: String) -> Bool {
 // malformed type (cursor left where it went wrong). It never stops the
 // process; ReadType/ReadTypeIn decide that for their callers.
 func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     if ParserCharAtWithin(content, content_extent, i) == "(" && ParserCharAtWithin(content, content_extent, i + 1) == ")" {
         ArraySet(cursor_out, 0, i + 2);
         return "Void";
     }
     ArraySet(cursor_out, 0, i);
     let base_start: Int = i;
-    let base: String = ReadIdentWithin(content, content_extent, i, cursor_out);
+    var base: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(base) == 0 {
         ArraySet(cursor_out, 0, i);
@@ -52,11 +52,11 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         ArraySet(cursor_out, 0, i);
         return ReadTypeFact(content, content_extent, i, cursor_out);
     }
-    let type_text: String = base;
+    var type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFunc) && ParserCharAtWithin(content, content_extent, after_ws) == "(" {
         i = after_ws + 1;
-        let params: String = "";
+        var params: String = "";
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) != ")" {
             while true {
@@ -100,7 +100,7 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         type_text = Concat("func(", Concat(params, Concat(") -> ", ret_type)));
     } else if ParserCharAtWithin(content, content_extent, after_ws) == "<" {
         i = after_ws + 1;
-        let args: String = "";
+        var args: String = "";
         while true {
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAny) {
@@ -114,8 +114,8 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
                 ArraySet(cursor_out, 0, i);
                 return "";
             }
-            let label: String = "";
-            let label_i: Int = 0;
+            var label: String = "";
+            var label_i: Int = 0;
             while label_i < StringLength(arg) && ParserCharAt(arg, label_i) != "<" {
                 label = Concat(label, ParserCharAt(arg, label_i));
                 label_i = label_i + 1;
@@ -152,7 +152,7 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         }
         type_text = Concat("func(", Concat(type_text, Concat(") -> ", ret_type)));
     }
-    let intersection_i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+    var intersection_i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     while ParserCharAtWithin(content, content_extent, intersection_i) == "&" && ParserCharAtWithin(content, content_extent, intersection_i + 1) != "&" {
         i = intersection_i + 1;
         ArraySet(cursor_out, 0, i);

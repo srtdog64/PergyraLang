@@ -1,0 +1,31 @@
+// A ref field becomes part of an independently owned carrier that is moved
+// to an own formal. The compiler copies only the copyable constructor field;
+// the caller's source remains readable and no whole-source copy is required.
+struct Source {
+    names: Array<String>;
+}
+
+struct Carrier {
+    names: Array<String>;
+    count: Int;
+}
+
+func BorrowIntoCarrier(ref source: Source) -> Carrier {
+    return Carrier(source.names, ArrayLength(source.names));
+}
+
+func ConsumeCarrier(own carrier: Carrier) -> Int {
+    return ArrayLength(carrier.names);
+}
+
+func Route(ref source: Source) -> Int {
+    let carrier: Carrier = BorrowIntoCarrier(source);
+    return ConsumeCarrier(carrier);
+}
+
+func Main() -> Int {
+    let source: Source = Source(["alpha"]);
+    Print(ToString(Route(source)));
+    Print(ToString(ArrayLength(source.names)));
+    return 0;
+}

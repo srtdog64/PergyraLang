@@ -6,9 +6,21 @@ import "direct_mir_two_routine_nominal_classification_owner.pgy";
 func DirectMirTwoRoutineNominalProgramCandidate(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    return MirProgramRoutineIndexCount(admitted.routines) == 2 &&
-        JsonArrayObjectFactTableReady(admitted.document.declarations) &&
-        JsonArrayObjectFactCount(admitted.document.declarations) == 1;
+    if MirProgramRoutineIndexCount(admitted.routines) != 2 ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 1 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 1 {
+        return false;
+    }
+    let kind: String =
+        admitted.domain_runtime_admission.declarations.kinds[0];
+    let nominal_kind: String =
+        admitted.domain_runtime_admission.declarations.nominal_kinds[0];
+    return (kind == "struct" && nominal_kind == "struct") ||
+        (kind == "class" &&
+         (nominal_kind == "class" || nominal_kind == "vessel"));
 }
 
 func DirectMirTwoRoutineNominalProgramEnvelopeReady(
@@ -53,7 +65,7 @@ func DirectMirTwoRoutineNominalProgramEnvelopeReady(
         !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.kinds[row] != "function" ||
             admitted.routines.owners[row] != "" ||

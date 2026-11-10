@@ -44,6 +44,7 @@ for backend in c llvm; do
         inout_terminal_owned_mutation_read_positive inout_terminal_formal_mutation_chain_positive \
         inout_owned_loop_conditional_generation_positive inout_owned_loop_nested_read_positive \
         inout_owned_loop_nested_terminal_cleanup_positive inout_owned_accumulator_loop_positive \
+        own_descriptor_retention_transfer_positive \
         borrow_formal_indexed_scalar_copy_positive borrow_formal_selected_scalar_copy_positive \
         borrow_formal_mapped_owned_accumulator_positive inout_member_owned_clone_positive \
         member_scalar_owned_accumulator_positive participant_loop_scalar_copy_positive \
@@ -59,6 +60,7 @@ for backend in c llvm; do
         own_generation_double_transfer_negative own_event_read_after_negative inout_event_loop_push_drop_negative \
         inout_borrowed_push_sibling_indexed_negative inout_borrowed_push_deferred_indexed_negative \
         inout_borrowed_loop_consume_negative inout_borrowed_loop_sibling_negative \
+        own_descriptor_retention_use_after_move_negative \
         inout_terminal_hides_later_retention_negative \
         inout_repeated_descriptor_retention_negative \
         inout_terminal_compound_retention_negative \
@@ -81,6 +83,8 @@ for backend in c llvm; do
         grep -Fxq 'body_ok=false' "$WORK/$backend-$name.log" || fail "$backend accepted $name"
         grep -Eq '^body_diagnostic=(borrow_boundary_escape|move_from_released)$' "$WORK/$backend-$name.log" || fail "$name lost ownership diagnosis"
         case "$name" in
+            own_descriptor_retention_use_after_move_negative)
+                grep -Fq 'owned_argument_use_after_move' "$WORK/$backend-$name.log" || fail "$name bypassed moved descriptor use refusal" ;;
             inout_use_unique_scalar_raw_negative)
                 grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$name.log" || fail "$name lost formal mutation diagnosis"
                 # The raw insertion makes AppendUnique's text formal retaining, so
@@ -119,7 +123,7 @@ for backend in c llvm; do
         >"$WORK/$backend-runtime-abi-source.log" 2>&1 || fail "$backend runtime ABI source observer failed"
     grep -Fxq 'body_ok=true' "$WORK/$backend-runtime-abi-source.log" || fail "$backend refused imported runtime ABI owner"
 done
-echo "[collection-borrowed-descriptor-read] PASS (C/LLVM analysis: 29 fixture positives, 41 compile-only refusals and imported match/runtime ABI owners each; not installed-driver proof); evidence=$REL"
+echo "[collection-borrowed-descriptor-read] PASS (C/LLVM analysis: 30 fixture positives, 42 compile-only refusals and imported match/runtime ABI owners each; not installed-driver proof); evidence=$REL"
 
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \

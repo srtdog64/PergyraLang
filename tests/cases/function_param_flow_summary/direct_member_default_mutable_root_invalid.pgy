@@ -1,0 +1,21 @@
+// A mutable aggregate root can be rebound before the moving call. Matching a
+// field path alone must not manufacture an owned-element premise for it.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Changed {
+    names: Array<String>;
+}
+
+func Append(names: Array<String>) -> Changed {
+    var changed: Array<String> = names;
+    ArrayPush(changed, Concat("b", ""));
+    return Changed(changed);
+}
+
+func Main() -> Int {
+    var rows: Rows = Rows([Concat("a", "")]);
+    let result: Changed = Append(rows.names);
+    return ArrayLength(result.names);
+}

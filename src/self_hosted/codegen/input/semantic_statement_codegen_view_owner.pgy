@@ -19,7 +19,7 @@ func CodegenSemanticStatementTypeFactsReady(
         ArrayLength(facts.inferred_type_names) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.node_ids[i] != statements.node_ids[i] ||
             facts.kind_tags[i] != statements.kind_tags[i] {
@@ -31,7 +31,7 @@ func CodegenSemanticStatementTypeFactsReady(
 }
 
 func CodegenSemanticStatementKindForNode(
-    facts: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementFacts,
     node_id: Int
 ) -> Option<Int> {
     let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
@@ -42,7 +42,7 @@ func CodegenSemanticStatementKindForNode(
 }
 
 func CodegenSemanticStatementIs(
-    facts: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementFacts,
     node_id: Int,
     expected_kind: Int
 ) -> Bool {
@@ -53,7 +53,7 @@ func CodegenSemanticStatementIs(
 }
 
 func CodegenSemanticStatementIndexOrDie(
-    facts: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementFacts,
     node_id: Int,
     expected_kind: Int
 ) -> Int {
@@ -71,7 +71,7 @@ func CodegenSemanticStatementIndexOrDie(
 }
 
 func CodegenSemanticStatementPayloadOrDie(
-    facts: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementFacts,
     node_id: Int,
     expected_kind: Int
 ) -> String {
@@ -86,8 +86,8 @@ func CodegenSemanticStatementInferredTypeOrDie(
     node_id: Int,
     expected_kind: Int
 ) -> String {
-    let type_name: Option<String> = SemanticAstStatementInferredTypeForNode(
-        facts, node_id, expected_kind
+    let type_name: Option<String> = SemanticAstStatementTypeForNode(
+        facts, node_id, expected_kind, false
     );
     if !IsSome(type_name) {
         Die(Concat(
@@ -97,16 +97,32 @@ func CodegenSemanticStatementInferredTypeOrDie(
     return UnwrapOption(type_name);
 }
 
-func CodegenSemanticReturnValueOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+func CodegenSemanticStatementExpectedTypeOrDie(
+    ref facts: SemanticAstStatementTypeFacts,
+    node_id: Int,
+    expected_kind: Int
+) -> String {
+    let type_name: Option<String> = SemanticAstStatementTypeForNode(
+        facts, node_id, expected_kind, true
+    );
+    if !IsSome(type_name) {
+        Die(Concat(
+            "missing semantic statement expected type: ", ToString(node_id)
+        ));
+    }
+    return UnwrapOption(type_name);
+}
+
+func CodegenSemanticReturnValueOrDie(ref facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindValueReturnStmtTag());
 }
 
-func CodegenSemanticArrayPopTargetOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+func CodegenSemanticArrayPopTargetOrDie(ref facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindArrayPopStmtTag());
 }
 
 func CodegenSemanticArraySetTargetOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     return CodegenSemanticStatementPayloadOrDie(
         facts, node_id, TypedAstKindArraySetStmtTag()
@@ -114,7 +130,7 @@ func CodegenSemanticArraySetTargetOrDie(
 }
 
 func CodegenSemanticArraySetValueOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticStatementIndexOrDie(
         facts, node_id, TypedAstKindArraySetStmtTag()
@@ -123,7 +139,7 @@ func CodegenSemanticArraySetValueOrDie(
 }
 
 func CodegenSemanticArrayPushTargetOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     return CodegenSemanticStatementPayloadOrDie(
         facts, node_id, TypedAstKindArrayPushStmtTag()
@@ -131,7 +147,7 @@ func CodegenSemanticArrayPushTargetOrDie(
 }
 
 func CodegenSemanticArrayPushValueOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticStatementIndexOrDie(
         facts, node_id, TypedAstKindArrayPushStmtTag()
@@ -140,7 +156,7 @@ func CodegenSemanticArrayPushValueOrDie(
 }
 
 func CodegenSemanticBindPartyOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     return CodegenSemanticStatementPayloadOrDie(
         facts, node_id, TypedAstKindBindStmtTag()
@@ -148,7 +164,7 @@ func CodegenSemanticBindPartyOrDie(
 }
 
 func CodegenSemanticBindRoleOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticStatementIndexOrDie(
         facts, node_id, TypedAstKindBindStmtTag()
@@ -157,7 +173,7 @@ func CodegenSemanticBindRoleOrDie(
 }
 
 func CodegenSemanticBindSlotOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticStatementIndexOrDie(
         facts, node_id, TypedAstKindBindStmtTag()
@@ -165,15 +181,15 @@ func CodegenSemanticBindSlotOrDie(
     return facts.auxiliary_texts[index];
 }
 
-func CodegenSemanticWhileConditionOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+func CodegenSemanticWhileConditionOrDie(ref facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindWhileStmtTag());
 }
 
-func CodegenSemanticIfConditionOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+func CodegenSemanticIfConditionOrDie(ref facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindIfStmtTag());
 }
 
-func CodegenSemanticMatchSubjectOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+func CodegenSemanticMatchSubjectOrDie(ref facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindMatchStmtTag());
 }
 
@@ -193,7 +209,7 @@ func CodegenSemanticMatchCasePatternFactOrDie(
 }
 
 func CodegenSemanticForLoopVarOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     return CodegenSemanticStatementPayloadOrDie(
         facts, node_id, TypedAstKindForStmtTag()
@@ -201,7 +217,7 @@ func CodegenSemanticForLoopVarOrDie(
 }
 
 func CodegenSemanticForIndexOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> Int {
     return CodegenSemanticStatementIndexOrDie(
         facts, node_id, TypedAstKindForStmtTag()
@@ -209,14 +225,14 @@ func CodegenSemanticForIndexOrDie(
 }
 
 func CodegenSemanticForIsRange(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> Bool {
     let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
     return facts.auxiliary_texts[index] != "";
 }
 
 func CodegenSemanticForRangeStartOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
     if facts.auxiliary_texts[index] == "" {
@@ -226,7 +242,7 @@ func CodegenSemanticForRangeStartOrDie(
 }
 
 func CodegenSemanticForRangeEndOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
     if facts.auxiliary_texts[index] == "" {
@@ -236,7 +252,7 @@ func CodegenSemanticForRangeEndOrDie(
 }
 
 func CodegenSemanticForEachCollectionOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
+    ref facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {
     let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
     if facts.auxiliary_texts[index] != "" {

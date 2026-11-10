@@ -101,6 +101,7 @@ definitions = re.findall(
 )
 logical_names = (
     "DirectMirScalarProgramFunctionReturnsOwnedString",
+    "DirectMirScalarProgramFunctionReturnsCopyableString",
     "DirectMirScalarProgramBlockHasProcessExit",
     "DirectMirScalarProgramOwnedStringDefinitionExpression",
     "DirectMirScalarProgramOwnedStringProofStorageRetire",
@@ -147,7 +148,8 @@ void pgy_test_observed_free(void *ptr) {
 __attribute__((no_instrument_function))
 void __cyg_profile_func_enter(void *callee, void *caller) {
     (void)caller;
-    if (callee == (void *)DirectMirScalarProgramFunctionReturnsOwnedString) ++queries;
+    if (callee == (void *)DirectMirScalarProgramFunctionReturnsOwnedString ||
+        callee == (void *)DirectMirScalarProgramFunctionReturnsCopyableString) ++queries;
     if (callee == (void *)DirectMirScalarProgramBlockHasProcessExit) ++terminals;
     if (callee == (void *)DirectMirScalarProgramOwnedStringDefinitionExpression) ++definitions;
     if (callee == (void *)DirectMirScalarProgramOwnedStringProofStorageRetire) ++retirements;
@@ -214,6 +216,8 @@ PY
 for layers in 6 10 14; do check_case "$layers" dag true "$((layers * 2))"; done
 check_case 14 cross-edge true 28
 check_case 4096 chain true 4096
+check_case 4 copyable-borrowed-parameter true 8
+check_case 4 copyable-direct-cycle false -1
 for mode in direct-cycle mutual-cycle alias-cycle borrowed-branch invalid-target \
     entrypoint-target negative-target wrong-return-type no-return process-exit \
     wrong-expression-type missing-terminal-expression missing-definition \

@@ -31,14 +31,14 @@ func CompilerTargetProjectionFactFromOwner(
     if fingerprint == 0 {
         return CompilerTargetProjectionFactEmpty();
     }
-    let facts: Array<String> = [];
-    let fact_i: Int = 0;
+    var facts: Array<String> = [];
+    var fact_i: Int = 0;
     while fact_i < CompilerTargetFactCount() {
         ArrayPush(facts, CompilerTargetFactAt(fact_i));
         fact_i = fact_i + 1;
     }
-    let fallbacks: Array<String> = [];
-    let fallback_i: Int = 0;
+    var fallbacks: Array<String> = [];
+    var fallback_i: Int = 0;
     while fallback_i < CompilerTargetFallbackReasonCount() {
         ArrayPush(
             fallbacks, CompilerTargetFallbackReasonAt(fallback_i)
@@ -67,14 +67,14 @@ func CompilerTargetProjectionFactReadyFor(
             CompilerTargetFallbackReasonCount() {
         return false;
     }
-    let fact_i: Int = 0;
+    var fact_i: Int = 0;
     while fact_i < CompilerTargetFactCount() {
         if fact.required_facts[fact_i] != CompilerTargetFactAt(fact_i) {
             return false;
         }
         fact_i = fact_i + 1;
     }
-    let fallback_i: Int = 0;
+    var fallback_i: Int = 0;
     while fallback_i < CompilerTargetFallbackReasonCount() {
         if fact.fallback_reasons[fallback_i] !=
             CompilerTargetFallbackReasonAt(fallback_i) {

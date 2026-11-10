@@ -6,7 +6,7 @@ import "direct_mir_scalar_cfg_expression_owner.pgy";
 func DirectMirScalarCfgArrayIntPopExpressionFact(
     ref fact: DirectMirScalarCfgArrayIntPopFact, global_row: Int
 ) -> DirectMirScalarCfgExpressionFact {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.global_rows) {
         if fact.global_rows[row] == global_row {
             return DirectMirScalarCfgExpressionFact(

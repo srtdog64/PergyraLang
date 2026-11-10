@@ -11,13 +11,13 @@ func SemanticAstRoleOperatorDeclarationPresence(
     roles: SemanticAstRoleFacts,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> Option<Bool> {
-    let role_index: Int = 0;
+    var role_index: Int = 0;
     while role_index < SemanticAstRoleCount(roles) {
         let method_count: Option<Int> = SemanticAstRoleMethodCountAt(
             roles, role_index
         );
         if !IsSome(method_count) { return None; }
-        let method_index: Int = 0;
+        var method_index: Int = 0;
         while method_index < UnwrapOption(method_count) {
             let method_node: Option<Int> = SemanticAstRoleMethodNodeAt(
                 roles, role_index, method_index
@@ -52,7 +52,7 @@ func SemanticAstRoleOperatorDeclarationPresence(
 func SemanticExpressionGraphHasRoleOperatorTarget(
     ref graph: SemanticExpressionGraphFacts
 ) -> Bool {
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.call_target_kinds[node_id] ==
             SemanticCallTargetRoleOperator() {
@@ -80,31 +80,32 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
         ) {
         return false;
     }
-    let graph: SemanticExpressionGraphFacts =
-        analysis.expression_surfaces.expression_graph;
     let declaration_presence: Option<Bool> =
         SemanticAstRoleOperatorDeclarationPresence(
             analysis.roles, analysis.signatures
         );
     if !IsSome(declaration_presence) { return false; }
     if !UnwrapOption(declaration_presence) {
-        return !SemanticExpressionGraphHasRoleOperatorTarget(graph);
+        return !SemanticExpressionGraphHasRoleOperatorTarget(
+            analysis.expression_surfaces.expression_graph);
     }
-    let last_root: Int = -1;
-    let root_slot: Int = 0;
-    let valid: Bool = true;
-    while root_slot < ArrayLength(graph.roots) && valid {
-        if graph.has_roots[root_slot] {
-            let root_id: Int = graph.roots[root_slot];
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
+    var valid: Bool = true;
+    while root_slot < ArrayLength(
+        analysis.expression_surfaces.expression_graph.roots) && valid {
+        if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int =
+                analysis.expression_surfaces.expression_graph.roots[root_slot];
             let surface_index: Int = root_slot / 3;
             if surface_index < 0 || surface_index >= ArrayLength(
                 analysis.expression_surfaces.node_ids
             ) || root_id <= last_root {
                 valid = false;
             } else {
-                let names: Array<String> = [];
-                let types: Array<String> = [];
-                let modes: Array<String> = [];
+                var names: Array<String> = [];
+                var types: Array<String> = [];
+                var modes: Array<String> = [];
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
                 let function_node_id: Option<Int> =
@@ -116,7 +117,14 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
                 if !SemanticAstBodyExpressionEnvironmentSeed(
-                    artifact, analysis, inferred_types, iteration_types,
+                    artifact, analysis.signatures, analysis.constructors,
+                    analysis.local_bindings, analysis.statements,
+                    analysis.expression_surfaces.ok,
+                    analysis.expression_surfaces.artifact_node_count,
+                    analysis.expression_surfaces.node_ids,
+                    analysis.expression_surfaces.expression_graph,
+                    analysis.enums, analysis.function_scopes,
+                    analysis.intent_transitions, inferred_types, iteration_types,
                     function_tables, analysis.intent_signatures,
                     function_node_id, intent_node_id, use_node_id,
                     names, types, modes
@@ -124,13 +132,15 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                     valid = false;
                 }
                 if valid {
-                    let node_id: Int = last_root + 1;
+                    var node_id: Int = last_root + 1;
                     while node_id <= root_id && valid {
-                        let kind: Int = graph.arena.topology.node_kinds[node_id];
+                        let kind: Int = analysis.expression_surfaces
+                            .expression_graph.arena.topology.node_kinds[node_id];
                         if SemanticRoleOperatorKindSupported(kind) {
                             let resolved: SemanticRoleOperatorResolution =
                                 SemanticRoleOperatorResolutionForNode(
-                                    graph, node_id, analysis.constructors,
+                                    analysis.expression_surfaces.expression_graph,
+                                    node_id, analysis.constructors,
                                     analysis.roles, analysis.signatures,
                                     names, types, function_tables.callables,
                                     function_tables.returns
@@ -139,11 +149,14 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                                 valid = false;
                             } else {
                                 let carried_kind: Int =
-                                    graph.arena.call_target_kinds[node_id];
+                                    analysis.expression_surfaces.expression_graph
+                                        .arena.call_target_kinds[node_id];
                                 let carried_name: String =
-                                    graph.arena.call_target_names[node_id];
+                                    analysis.expression_surfaces.expression_graph
+                                        .arena.call_target_names[node_id];
                                 let carried_result: String =
-                                    graph.arena.call_return_type_names[node_id];
+                                    analysis.expression_surfaces.expression_graph
+                                        .arena.call_return_type_names[node_id];
                                 if resolved.applies {
                                     if carried_kind != SemanticCallTargetNone() ||
                                         carried_name != "" ||
@@ -163,15 +176,23 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                                                     resolved.result_type_name) {
                                             valid = false;
                                         } else if carried_result == "" {
-                                            graph.arena.call_return_type_names[node_id] =
+                                            analysis.expression_surfaces
+                                                .expression_graph.arena
+                                                .call_return_type_names[node_id] =
                                                 resolved.result_type_name;
                                         }
                                     } else {
-                                        graph.arena.call_target_kinds[node_id] =
+                                        analysis.expression_surfaces
+                                            .expression_graph.arena
+                                            .call_target_kinds[node_id] =
                                             SemanticCallTargetRoleOperator();
-                                        graph.arena.call_target_names[node_id] =
+                                        analysis.expression_surfaces
+                                            .expression_graph.arena
+                                            .call_target_names[node_id] =
                                             resolved.target_name;
-                                        graph.arena.call_return_type_names[node_id] =
+                                        analysis.expression_surfaces
+                                            .expression_graph.arena
+                                            .call_return_type_names[node_id] =
                                             resolved.result_type_name;
                                     }
                                 } else if carried_kind !=
@@ -190,10 +211,10 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
         }
         root_slot = root_slot + 1;
     }
-    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(graph.arena) {
+    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena) {
         valid = false;
     }
-    analysis.expression_surfaces.expression_graph = graph;
     return valid && SemanticExpressionGraphRoleOperatorTargetsReady(
         analysis.expression_surfaces.expression_graph, true
     );

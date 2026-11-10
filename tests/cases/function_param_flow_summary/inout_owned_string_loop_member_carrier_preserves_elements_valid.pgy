@@ -1,0 +1,28 @@
+// A String-array field moved from a default aggregate remains an owned local
+// carrier across every loop replay. Each inout append preserves the premise
+// needed by the following iteration, and the field is restored on return.
+struct Facts {
+    types: Array<String>;
+}
+
+func Append(inout types: Array<String>, type_name: String) -> Void {
+    ArrayPush(types, type_name);
+}
+
+func Build(facts: Facts) -> Facts {
+    var types: Array<String> = facts.types;
+    var i: Int = 0;
+    while i < 2 {
+        Append(types, Concat("t", ToString(i)));
+        i = i + 1;
+    }
+    facts.types = types;
+    return facts;
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts([Concat("seed", "")]);
+    let changed: Facts = Build(facts);
+    Log(ArrayLength(changed.types));
+    return 0;
+}

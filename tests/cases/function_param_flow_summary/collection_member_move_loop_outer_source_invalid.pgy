@@ -6,13 +6,13 @@ struct Row {
 }
 
 func MakeRow(n: Int) -> Row {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, ToString(n));
     return Row(true, values);
 }
 
 func AppendAll(inout names: Array<String>, parts: Array<String>) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(parts) {
         ArrayPush(names, Concat("", parts[i]));
         i = i + 1;
@@ -21,9 +21,9 @@ func AppendAll(inout names: Array<String>, parts: Array<String>) -> Bool {
 }
 
 func Main() -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     let row: Row = MakeRow(1);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 3 {
         let values: Array<String> = row.values;
         let added: Bool = AppendAll(names, values);

@@ -6,7 +6,7 @@ import "direct_mir_scalar_cfg_hash_owner.pgy";
 func DirectMirScalarCfgArrayIntPopDigestComponent(
     hash: Long, ref fact: DirectMirScalarCfgArrayIntPopFact
 ) -> Long {
-    let validity: Int = 0;
+    var validity: Int = 0;
     if fact.valid { validity = 1; }
     hash = DirectMirCfgHashInt(hash, validity);
     hash = DirectMirCfgHashInt(hash, fact.foreach_loop_syntax_id);

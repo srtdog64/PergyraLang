@@ -1,0 +1,327 @@
+// Grounded Array<String> result proof over the MIR facts already carried by
+// the callee.  A return type alone never authorizes owned-element cleanup.
+
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "program_instruction_expression_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
+
+struct MirCollectionOwnedResultProof {
+    valid: Bool;
+    grounded: Bool;
+}
+
+func MirCollectionOwnedResultInvalid() -> MirCollectionOwnedResultProof {
+    return MirCollectionOwnedResultProof(false, false);
+}
+
+func MirCollectionOwnedResultRoutineRow(
+    ref routines: MirProgramRoutineIndex, syntax_id: Int
+) -> Int {
+    if syntax_id <= 0 { return -1; }
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(routines.source_syntax_ids) {
+        if routines.source_syntax_ids[row] == ToString(syntax_id) {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirCollectionOwnedResultActive(
+    ref active: Array<Int>, syntax_id: Int
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(active) {
+        if active[row] == syntax_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func MirCollectionOwnedResultBindingHasPush(
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    binding_syntax_id: Int
+) -> Bool {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        binding_syntax_id <= 0 { return false; }
+    var matched: Int = 0;
+    var block_offset: Int = 0;
+    while block_offset < routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] + block_offset;
+        var instruction_offset: Int = 0;
+        while instruction_offset < routines.block_instruction_counts[block] {
+            let instruction: Int = routines.block_instruction_starts[block] + instruction_offset;
+            let start: Int = routines.instruction_starts[instruction];
+            let end: Int = routines.instruction_ends[instruction];
+            var receipt: Array<Int> = [0, 0];
+            if MirObjectFieldOccurrenceCountAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    start, end, "collection_ownership_receipt") == 1 &&
+                MirObjectFieldValueBoundsAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    start, end, "collection_ownership_receipt", receipt) &&
+                JsonCharCodeAt(routines.source_json, routines.source_json_extent,
+                    receipt[1], receipt[0]) == JsonAsciiCode("{") {
+                let kind: String = MirObjectStringFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    receipt[0], receipt[1], "kind");
+                let receiver: String = MirObjectNumberFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    receipt[0], receipt[1], "receiver_binding_syntax_id");
+                let source: String = MirObjectNumberFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    receipt[0], receipt[1], "source_binding_syntax_id");
+                if kind == "owned-string-push" && receiver != "" && source != "" &&
+                    ToString(ToInt(receiver)) == receiver &&
+                    ToString(ToInt(source)) == source &&
+                    ToInt(receiver) == binding_syntax_id && ToInt(source) >= 0 &&
+                    MirObjectFieldOccurrenceCountAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        receipt[0], receipt[1], "kind") == 1 &&
+                    MirObjectFieldOccurrenceCountAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        receipt[0], receipt[1], "receiver_binding_syntax_id") == 1 &&
+                    MirObjectFieldOccurrenceCountAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        receipt[0], receipt[1], "source_binding_syntax_id") == 1 {
+                    matched = matched + 1;
+                }
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return matched > 0;
+}
+
+func MirCollectionOwnedResultBindingProof(
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    binding_syntax_id: Int, inout active: Array<Int>
+) -> MirCollectionOwnedResultProof {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        binding_syntax_id <= 0 { return MirCollectionOwnedResultInvalid(); }
+    var facts: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.source_json_extent,
+            routines.starts[routine_row], routines.ends[routine_row],
+            "collection_ownership_facts", facts) {
+        return MirCollectionOwnedResultInvalid();
+    }
+    var current: Int = binding_syntax_id;
+    var steps: Int = 0;
+    while steps <= routines.ends[routine_row] - routines.starts[routine_row] {
+        var cursor: Int = facts[0] + 1;
+        var row_bounds: Array<Int> = [0, 0];
+        var matched: Int = 0;
+        var origin: String = "";
+        var origin_id: Int = 0;
+        var source_id: Int = 0;
+        while JsonArrayNextObjectBounds(
+            routines.source_json, routines.source_json_extent,
+            cursor, facts[1], row_bounds
+        ) {
+            let binding: String = MirObjectNumberFactAtBounds(
+                routines.source_json, routines.source_json_extent,
+                row_bounds[0], row_bounds[1], "binding_syntax_id");
+            if binding != "" && ToString(ToInt(binding)) == binding &&
+                ToInt(binding) == current {
+                matched = matched + 1;
+                origin = MirObjectStringFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    row_bounds[0], row_bounds[1], "origin");
+                origin_id = ToInt(MirObjectNumberFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    row_bounds[0], row_bounds[1], "origin_syntax_id"));
+                source_id = ToInt(MirObjectNumberFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    row_bounds[0], row_bounds[1], "source_binding_syntax_id"));
+            }
+            cursor = row_bounds[1];
+        }
+        if matched != 1 { return MirCollectionOwnedResultInvalid(); }
+        if origin == "empty-literal" {
+            return MirCollectionOwnedResultProof(
+                true, MirCollectionOwnedResultBindingHasPush(
+                    routines, routine_row, current));
+        }
+        if origin == "owned-literal" || origin == "clone" || origin == "map-keys" {
+            return MirCollectionOwnedResultProof(true, true);
+        }
+        if origin == "call-result" {
+            return MirCollectionOwnedResultRoutineProof(routines, origin_id, active);
+        }
+        if (origin != "binding" && origin != "member-move") ||
+            source_id <= 0 || source_id == current {
+            return MirCollectionOwnedResultInvalid();
+        }
+        current = source_id;
+        steps = steps + 1;
+    }
+    return MirCollectionOwnedResultInvalid();
+}
+
+func MirCollectionOwnedResultValueBinding(
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    value_name: String
+) -> Int {
+    if value_name == "" || !MirProgramRoutineIndexRowReady(routines, routine_row) {
+        return -1;
+    }
+    var facts: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.source_json_extent,
+            routines.starts[routine_row], routines.ends[routine_row],
+            "collection_ownership_facts", facts) { return -1; }
+    var found: Int = -1;
+    var block_offset: Int = 0;
+    while block_offset < routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] + block_offset;
+        var instruction_offset: Int = 0;
+        while instruction_offset < routines.block_instruction_counts[block] {
+            let instruction: Int = routines.block_instruction_starts[block] + instruction_offset;
+            let start: Int = routines.instruction_starts[instruction];
+            let end: Int = routines.instruction_ends[instruction];
+            if routines.instruction_kinds[instruction] == "def" &&
+                MirObjectStringFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    start, end, "result") == value_name {
+                let local_ref: String = MirObjectStringFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    start, end, "local_ref");
+                var cursor: Int = facts[0] + 1;
+                var row_bounds: Array<Int> = [0, 0];
+                while JsonArrayNextObjectBounds(
+                    routines.source_json, routines.source_json_extent,
+                    cursor, facts[1], row_bounds
+                ) {
+                    let binding: String = MirObjectNumberFactAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        row_bounds[0], row_bounds[1], "binding_syntax_id");
+                    if binding != "" && ToString(ToInt(binding)) == binding &&
+                        local_ref == Concat(
+                            "declaration:", Concat(binding, ":0")) {
+                        if found >= 0 { return -1; }
+                        found = ToInt(binding);
+                    }
+                    cursor = row_bounds[1];
+                }
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return found;
+}
+
+// A direct returned call carries its resolved callable identity in the typed
+// expression graph.  Follow only that admitted identity; text is never a
+// substitute for the callee whose result ownership must be proved.
+func MirCollectionOwnedResultDirectCallTarget(
+    ref sequence: MirExpressionGraphSequence
+) -> Int {
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 {
+        return 0;
+    }
+    var node: Int = sequence.roots[0];
+    while node >= 0 && node < sequence.ready_node_count &&
+        sequence.arena.topology.node_kinds[node] ==
+            AstExpressionNodeCallArgument() {
+        node = sequence.arena.topology.left_children[node];
+    }
+    if node < 0 || node >= sequence.ready_node_count ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() ||
+        sequence.arena.identities.call_target_syntax_ids[node] <= 0 {
+        return 0;
+    }
+    return sequence.arena.identities.call_target_syntax_ids[node];
+}
+
+func MirCollectionOwnedResultReturnProof(
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    instruction: Int, inout active: Array<Int>
+) -> MirCollectionOwnedResultProof {
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            routines.instruction_expressions, instruction);
+    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
+        routines.source_json, routines.source_json_extent, expression, 0);
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), graph);
+    let exact_empty: Bool = sequence.ok && sequence.ready_node_count == 1 &&
+        ArrayLength(sequence.roots) == 1 && sequence.roots[0] == 0 &&
+        ArrayLength(sequence.arena.topology.node_kinds) == 1 &&
+        sequence.arena.topology.node_kinds[0] == AstExpressionNodeArrayLiteral();
+    if exact_empty { return MirCollectionOwnedResultProof(true, false); }
+    let direct_call: Int = MirCollectionOwnedResultDirectCallTarget(sequence);
+    if direct_call > 0 {
+        return MirCollectionOwnedResultRoutineProof(
+            routines, direct_call, active);
+    }
+    let start: Int = routines.instruction_starts[instruction];
+    let end: Int = routines.instruction_ends[instruction];
+    let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
+        routines.source_json, routines.source_json_extent, start, end, "uses");
+    if ArrayLength(uses) != 1 { return MirCollectionOwnedResultInvalid(); }
+    let binding: Int = MirCollectionOwnedResultValueBinding(
+        routines, routine_row, uses[0]);
+    return MirCollectionOwnedResultBindingProof(
+        routines, routine_row, binding, active);
+}
+
+func MirCollectionOwnedResultRoutineProof(
+    ref routines: MirProgramRoutineIndex, syntax_id: Int,
+    inout active: Array<Int>
+) -> MirCollectionOwnedResultProof {
+    let routine_row: Int = MirCollectionOwnedResultRoutineRow(routines, syntax_id);
+    if routine_row < 0 || MirCollectionOwnedResultActive(active, syntax_id) ||
+        MirObjectStringFactAtBounds(
+            routines.source_json, routines.source_json_extent,
+            routines.starts[routine_row], routines.ends[routine_row],
+            "return") != "Array<String>" {
+        return MirCollectionOwnedResultInvalid();
+    }
+    ArrayPush(active, syntax_id);
+    var valid: Bool = true;
+    var grounded: Bool = false;
+    var saw_return: Bool = false;
+    var block_offset: Int = 0;
+    while valid && block_offset < routines.routine_block_counts[routine_row] {
+        let block: Int = routines.routine_block_starts[routine_row] + block_offset;
+        var instruction_offset: Int = 0;
+        while valid && instruction_offset < routines.block_instruction_counts[block] {
+            let instruction: Int = routines.block_instruction_starts[block] + instruction_offset;
+            if routines.instruction_kinds[instruction] == "return" &&
+                MirObjectStringFactAtBounds(
+                    routines.source_json, routines.source_json_extent,
+                    routines.instruction_starts[instruction],
+                    routines.instruction_ends[instruction],
+                    "abi_type_name") == "Array<String>" {
+                let proof: MirCollectionOwnedResultProof =
+                    MirCollectionOwnedResultReturnProof(
+                        routines, routine_row, instruction, active);
+                if !proof.valid { valid = false; }
+                if proof.grounded { grounded = true; }
+                saw_return = true;
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    ArrayPop(active);
+    return MirCollectionOwnedResultProof(valid && saw_return, grounded);
+}
+
+func MirCollectionOwnedResultSourceReady(
+    ref routines: MirProgramRoutineIndex, syntax_id: Int
+) -> Bool {
+    var active: Array<Int> = [];
+    let proof: MirCollectionOwnedResultProof =
+        MirCollectionOwnedResultRoutineProof(routines, syntax_id, active);
+    return proof.valid && proof.grounded;
+}

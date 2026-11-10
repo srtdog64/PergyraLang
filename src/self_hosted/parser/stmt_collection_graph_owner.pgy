@@ -3,11 +3,11 @@
 import "expr_owner.pgy";
 
 func ParserCollectionStatementGraphsAppend(
-    rows: AstExpressionGraphRows,
+    inout rows: AstExpressionGraphRows,
     owner_kind: Int,
     expression: ParserExpressionFact
-) -> AstExpressionGraphRows {
-    let callee: String = "ArrayPop";
+) -> Void {
+    var callee: String = "ArrayPop";
     if owner_kind == TypedAstKindArrayPushStmtTag() {
         callee = "ArrayPush";
     } else if owner_kind == TypedAstKindArraySetStmtTag() {
@@ -18,19 +18,20 @@ func ParserCollectionStatementGraphsAppend(
     if !target.ok {
         Exit(1);
     }
-    let with_target: AstExpressionGraphRows = ParserExpressionGraphsAppend(
+    ParserExpressionGraphsAppendInto(
         rows, owner_kind, AstExpressionLaneAtom(), target
     );
     if owner_kind == TypedAstKindArrayPopStmtTag() {
-        return with_target;
+        return;
     }
     if owner_kind == TypedAstKindArrayPushStmtTag() {
         let value: ParserExpressionFact =
             ParserExpressionNamedCallArgumentAt(expression, "ArrayPush", 1);
         if !value.ok { Exit(1); }
-        return ParserExpressionGraphsAppend(
-            with_target, owner_kind, AstExpressionLaneValue(), value
+        ParserExpressionGraphsAppendInto(
+            rows, owner_kind, AstExpressionLaneValue(), value
         );
+        return;
     }
     if owner_kind != TypedAstKindArraySetStmtTag() { Exit(1); }
     let index: ParserExpressionFact =
@@ -38,10 +39,10 @@ func ParserCollectionStatementGraphsAppend(
     let value2: ParserExpressionFact =
         ParserExpressionNamedCallArgumentAt(expression, "ArraySet", 2);
     if !index.ok || !value2.ok { Exit(1); }
-    let with_index: AstExpressionGraphRows = ParserExpressionGraphsAppend(
-        with_target, owner_kind, AstExpressionLaneValue(), index
+    ParserExpressionGraphsAppendInto(
+        rows, owner_kind, AstExpressionLaneValue(), index
     );
-    return ParserExpressionGraphsAppend(
-        with_index, owner_kind, AstExpressionLaneAuxiliary(), value2
+    ParserExpressionGraphsAppendInto(
+        rows, owner_kind, AstExpressionLaneAuxiliary(), value2
     );
 }

@@ -141,7 +141,7 @@ typedef struct
     uint32_t         collection_ownership_source_binding_id;
     /* Lowering-owned iteration retirement, separate from source-call receipts.
      * Target SIZE_MAX means the routine exit; other targets are exact CFG edges. */
-    uint32_t         collection_cleanup_kind; /* 0 none, 1 backing, 2 owned Strings */
+    uint32_t         collection_cleanup_kind; /* 0 none, 1 String backing, 2 owned Strings, 3 scalar backing */
     size_t           collection_cleanup_target;
     const char     **uses;
     size_t           use_count;
@@ -347,7 +347,8 @@ typedef struct
     /* Private lowering-owned actual initializer call receipt. Not MIR JSON
      * wire fields and never inferred from the destination annotation. */
     uint32_t initializer_call_syntax_id;
-    uint32_t initializer_collection_producer; /* 0 absent, 1 MapKeys, 2 Clone */
+    uint32_t initializer_collection_producer; /* 0 absent, 1 MapKeys, 2 Clone,
+                                               * 3 declared call result */
     char *initializer_call_value_type_name;
     bool  is_closure_local; /* captured-lambda local: declared structurally,
                              * skipped by the SSA-locals pre-declaration */

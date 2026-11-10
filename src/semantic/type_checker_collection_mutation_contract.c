@@ -1,6 +1,8 @@
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "type_checker_assignment.h"
 #include "diag_codes.h"
+#include <string.h>
 
 static bool
 type_is_mutable_collection_storage(const Type *type)
@@ -27,6 +29,14 @@ reject_non_inout_param_collection_mutator_receiver(ASTNode *receiver_expr,
         return false;
     if (!type_is_mutable_collection_storage(receiver_type))
         return false;
+
+    /* Retirement consumes ownership rather than editing a live value. The
+     * existing release owner still proves that no borrowed use survives. */
+    bool retires = mutator_name != NULL
+        && (strcmp(mutator_name, "ArrayDropOwnedStrings") == 0
+            || strcmp(mutator_name, "CompilerRetireArrayStorage") == 0);
+    if (!retires && !semantic_admit_value_mutation(receiver_expr, ctx))
+        return true;
 
     /* Field projection preserves a ref root's readonly borrow. Do not
      * re-evaluate the receiver or resolve its already checked field type. */

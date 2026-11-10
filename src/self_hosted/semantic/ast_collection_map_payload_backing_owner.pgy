@@ -2,6 +2,7 @@
 // Neither declaration spelling nor a MapNew in a different callable proves
 // runtime allocation identity. Negative formal tokens are routine-local
 // descriptor loans, not fresh allocations; unresolved sources stay unknown.
+import "ast_constructor_call_identity_owner.pgy";
 import "ast_collection_aggregate_sink_consumption_owner.pgy";
 import "ast_collection_map_payload_written_root_owner.pgy";
 
@@ -15,8 +16,8 @@ func SemanticAstMapPayloadBackingForNode(
     if depth >= 32 { return 0; }
     let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, node);
     if member.ok {
-        let extended: Array<Int> = [member.member_node];
-        let index: Int = 0;
+        var extended: Array<Int> = [member.member_node];
+        var index: Int = 0;
         while index < ArrayLength(path) { ArrayPush(extended, path[index]); index = index + 1; }
         let source: Int = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
             locals, inferred_types, surfaces, assignments, function_id, syntax_id,
@@ -54,19 +55,17 @@ func SemanticAstMapPayloadBackingForNode(
         return call.call_node + 1;
     }
     if ArrayLength(path) == 0 { return 0; }
-    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
-    let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
-    if !IsSome(target) || UnwrapOption(target) != 0 || !IsSome(name) { return 0; }
-    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, UnwrapOption(name));
+    let constructor: Option<Int> = SemanticExpressionGraphNominalConstructorRow(
+        constructors, surfaces.expression_graph, call.call_node);
     let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, path[0]);
     if !IsSome(constructor) || !IsSome(field) ||
         constructors.param_counts[UnwrapOption(constructor)] != ArrayLength(call.argument_nodes) { return 0; }
     let start: Int = constructors.param_starts[UnwrapOption(constructor)];
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(call.argument_nodes) {
         if constructors.field_names[start + ordinal] == UnwrapOption(field) {
-            let remaining: Array<Int> = [];
-            let index: Int = 1;
+            var remaining: Array<Int> = [];
+            var index: Int = 1;
             while index < ArrayLength(path) { ArrayPush(remaining, path[index]); index = index + 1; }
             let source: Int = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
                 locals, inferred_types, surfaces, assignments, function_id, syntax_id,

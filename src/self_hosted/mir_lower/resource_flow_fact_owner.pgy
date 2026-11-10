@@ -19,24 +19,24 @@ func BuildMirResourceFlowFacts(
     routine_start: Int,
     routine_end: Int
 ) -> MirResourceFlowFacts {
-    let stable_indices: Array<Int> = [];
-    let declaration_syntax_ids: Array<Int> = [];
-    let symbol_kinds: Array<Int> = [];
-    let parameter_flags: Array<Int> = [];
-    let parameter_indices: Array<Int> = [];
-    let names: Array<String> = [];
+    var stable_indices: Array<Int> = [];
+    var declaration_syntax_ids: Array<Int> = [];
+    var symbol_kinds: Array<Int> = [];
+    var parameter_flags: Array<Int> = [];
+    var parameter_indices: Array<Int> = [];
+    var names: Array<String> = [];
     let declared: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end, "resource_flow_symbol_count");
-    let valid: Bool = true;
-    let bounds: Array<Int> = [0, 0];
+    var valid: Bool = true;
+    var bounds: Array<Int> = [0, 0];
     if StringLength(declared) == 0 ||
         !MirObjectArrayBoundsAtBounds(
             json, json_extent, routine_start, routine_end,
             "resource_flow_symbols", bounds) {
         valid = false;
     } else {
-        let cursor: Int = bounds[0] + 1;
-        let row_bounds: Array<Int> = [0, 0];
+        var cursor: Int = bounds[0] + 1;
+        var row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, json_extent, cursor, bounds[1], row_bounds) {
             let stable: String = MirObjectNumberFactAtBounds(
@@ -49,7 +49,7 @@ func BuildMirResourceFlowFacts(
                 json, json_extent, row_bounds[0], row_bounds[1], "parameter_index");
             let name: String = MirObjectStringFactAtBounds(
                 json, json_extent, row_bounds[0], row_bounds[1], "name");
-            let parameter_flag: Int = 0;
+            var parameter_flag: Int = 0;
             if JsonObjectBoolFieldEqualsWithin(
                 json, json_extent, row_bounds[0], row_bounds[1], "is_parameter", true) {
                 parameter_flag = 1;

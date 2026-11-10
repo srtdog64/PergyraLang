@@ -30,8 +30,8 @@ func DirectMirInferredGenericNominalProgramEnvelopeReady(
         ) != 0 || !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return false;
     }
-    let generic_rows: Int = 0;
-    let row: Int = 0;
+    var generic_rows: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.kinds[row] != "function" ||
             admitted.routines.owners[row] != "" ||

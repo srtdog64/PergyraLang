@@ -44,7 +44,7 @@ func MachineDeclarationBoolFact(
     table: JsonObjectFactTable,
     field: String
 ) -> Option<Int> {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactValueBounds(table, field, bounds) {
         return None;
     }
@@ -111,11 +111,11 @@ func SelfHostMachineLayerDeclarationFromJson(
         JsonArrayObjectFactCount(grants) != 1 {
         return empty;
     }
-    let contacts: Array<String> = [];
-    let runtime_names: Array<String> = [];
-    let authority: Array<Int> = [];
-    let lease: Array<Int> = [];
-    let operation_i: Int = 0;
+    var contacts: Array<String> = [];
+    var runtime_names: Array<String> = [];
+    var authority: Array<Int> = [];
+    var lease: Array<Int> = [];
+    var operation_i: Int = 0;
     while operation_i < JsonArrayObjectFactCount(operations) {
         let operation: JsonObjectFactTable =
             JsonArrayObjectFactAt(operations, operation_i);
@@ -247,7 +247,7 @@ func SelfHostMachineLayerDeclarationReady(
         ArrayLength(declaration.operation_live_lease_required) != 5 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 5 {
         if declaration.operation_contacts[i] == "" ||
             declaration.operation_runtime_names[i] == "" ||

@@ -7,7 +7,7 @@ func DirectMirScalarProgramExpressionNodeReadinessFailureDetail(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> String {
     let kind: Int = facts.node_kinds[node];
-    let detail: String = Concat(
+    var detail: String = Concat(
         "direct MIR scalar program expression set is invalid: node=",
         Concat(ToString(node), Concat(" kind=", ToString(kind))));
     let left: Int = facts.node_lefts[node];
@@ -15,7 +15,7 @@ func DirectMirScalarProgramExpressionNodeReadinessFailureDetail(
     detail = Concat(detail, Concat(" type=", facts.node_types[node]));
     detail = Concat(detail, Concat(" left=", Concat(ToString(left), Concat(" right=", ToString(right)))));
     detail = Concat(detail, Concat(" local=", Concat(ToString(facts.node_local_rows[node]), Concat(" param=", Concat(ToString(facts.node_parameter_ordinals[node]), Concat(" member=", Concat(ToString(facts.node_member_ordinals[node]), Concat(" literal=", facts.node_literals[node]))))))));
-    let graph: Int = 0;
+    var graph: Int = 0;
     while graph < ArrayLength(facts.graph_starts) {
         if node >= facts.graph_starts[graph] && node < facts.graph_starts[graph] + facts.graph_counts[graph] {
             detail = Concat(detail, Concat(" graph=", Concat(ToString(graph), Concat(" global_row=", ToString(facts.graph_global_rows[graph])))));

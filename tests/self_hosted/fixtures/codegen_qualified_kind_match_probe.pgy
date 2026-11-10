@@ -38,7 +38,7 @@ func Main() -> Void {
         true, [2], [true], SemanticExpressionGraphArena(
             AstExpressionArena(kinds, texts, left, right), texts,
             zeros, empty, empty, SemanticExpressionIdentityRowsUnknown(3), zeros,
-            false, consumer_rows));
+            false, consumer_rows, []));
     let selected: Option<String> = CodegenExpressionMemberTypeFromGraph(graph, 2, env);
     if !IsSome(selected) || UnwrapOption(selected) != "Shape.Circle" { Exit(1); }
     ArraySet(texts, 1, "Other");

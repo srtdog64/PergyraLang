@@ -16,9 +16,11 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/cases/backend_compare/region_user_callee/main.pgy"
 BAD_SOURCE_REL="tests/cases/backend_compare/region_user_callee_bad/main.pgy"
 ADDRESSABLE_REL="tests/self_hosted/fixtures/readonly_string_addressable_call.pgy"
+BOOL_SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_readonly_string_bool.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
+BOOL_MIR_REL="$WORK_REL/readonly-bool.mir.json"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/region_user_callee_mutations.py"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy"
+TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_readonly_string_parameter_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -79,14 +81,55 @@ cmp -s "$WORK_DIR/source.c.norm" "$WORK_DIR/public.c.norm" || fail "public C byp
 cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/source.ll" || fail "source LLVM differs from direct MIR"
 cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/public.ll" || fail "public LLVM differs from direct MIR"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/public-c.err" "$WORK_DIR/public-llvm.err" || fail "public route retried native pipeline"
-require_text "$WORK_DIR/source.c" 'void Sink(const char* value)'
-require_text "$WORK_DIR/source.c" 'Sink(pgy_concat("left", "right"))'
-reject_text "$WORK_DIR/source.c" 'Sink(&pgy_concat('
+require_text "$WORK_DIR/source.c" 'static void pgy_scalar_routine_1(const char* pgy_param_0)'
+require_text "$WORK_DIR/source.c" 'pgy_scalar_routine_1(pgy_concat("left", "right"))'
+reject_text "$WORK_DIR/source.c" 'pgy_scalar_routine_1(&pgy_concat('
 (cd "$ROOT_DIR" && "$DRIVER" "$ADDRESSABLE_REL" --emit-c-verified) \
     >"$WORK_DIR/addressable.c" 2>"$WORK_DIR/addressable.err" || fail "addressable source C failed"
-require_text "$WORK_DIR/addressable.c" 'void SinkAddressable(const char* value)'
-require_text "$WORK_DIR/addressable.c" 'SinkAddressable(value)'
-reject_text "$WORK_DIR/addressable.c" 'SinkAddressable(&value)'
+require_text "$WORK_DIR/addressable.c" 'static void pgy_scalar_routine_1(const char* pgy_param_0)'
+require_text "$WORK_DIR/addressable.c" 'pgy_scalar_routine_1(pgy_local_0)'
+reject_text "$WORK_DIR/addressable.c" 'pgy_scalar_routine_1(&pgy_local_0)'
+
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$BOOL_SOURCE_REL" \
+    -o "$BOOL_MIR_REL") >"$WORK_DIR/readonly-bool-mir.out" \
+    2>"$WORK_DIR/readonly-bool-mir.err" ||
+    fail "Bool readonly String MIR production failed"
+for fact in '"name":"WireRequired"' '"return":"Bool"' \
+        '"type":"String"' '"carriage":"readonly-ref"' \
+        '"resource":"none"' '"pass":"direct"'; do
+    require_text "$ROOT_DIR/$BOOL_MIR_REL" "$fact"
+done
+printf 'true\ntrue\nfalse\n' >"$WORK_DIR/readonly-bool.expected"
+for backend in c llvm; do
+    suffix=c; [[ "$backend" == llvm ]] && suffix=ll
+    artifact_rel="$WORK_REL/readonly-bool.$suffix"
+    artifact="$ROOT_DIR/$artifact_rel"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$BOOL_MIR_REL" -o "$artifact_rel") \
+        >"$WORK_DIR/readonly-bool-$backend.out" \
+        2>"$WORK_DIR/readonly-bool-$backend.err" ||
+        fail "$backend Bool readonly String projection failed"
+    if [[ "$backend" == c ]]; then
+        "$CC" -x c -std=c11 -I"$ROOT_DIR/src" \
+            -I"$ROOT_DIR/src/runtime" -pthread "$artifact" \
+            -o "$WORK_DIR/readonly-bool-c.exe" \
+            >"$WORK_DIR/readonly-bool-c.compile.out" \
+            2>"$WORK_DIR/readonly-bool-c.compile.err" ||
+            fail "Bool readonly String C did not compile"
+        executable="$WORK_DIR/readonly-bool-c.exe"
+    else
+        "$CLANG" -x ir "$artifact" \
+            -o "$WORK_DIR/readonly-bool-llvm.exe" \
+            >"$WORK_DIR/readonly-bool-llvm.compile.out" \
+            2>"$WORK_DIR/readonly-bool-llvm.compile.err" ||
+            fail "Bool readonly String LLVM did not compile"
+        executable="$WORK_DIR/readonly-bool-llvm.exe"
+    fi
+    "$executable" | tr -d '\r' >"$WORK_DIR/readonly-bool-$backend.run"
+    cmp -s "$WORK_DIR/readonly-bool.expected" \
+        "$WORK_DIR/readonly-bool-$backend.run" ||
+        fail "$backend Bool readonly String execution drifted"
+done
 
 for stem in direct source public; do
     "$CC" -x c -std=c11 -fwrapv -fno-strict-aliasing -I"$ROOT_DIR/src" \
@@ -146,4 +189,4 @@ grep -Fq 'ref argument must be addressable' "$WORK_DIR/bad-source-c.out" || fail
 grep -Fq 'callable-route-envelope' "$WORK_DIR/bad-source-llvm.out" || fail "source LLVM lost route diagnostic"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/bad-public-c.err" "$WORK_DIR/bad-public-llvm.err" || fail "bad public route retried native pipeline"
 
-echo "[$LABEL] one call-duration readonly String temporary is exact across installed C/LLVM"
+echo "[$LABEL] readonly String direct carriage is exact across Void and Bool C/LLVM callables"

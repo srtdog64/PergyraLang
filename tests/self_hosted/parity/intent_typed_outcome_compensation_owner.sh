@@ -150,7 +150,23 @@ for row in plan["terminals"]:
     assert row["result_payload_decl_syntax_id"] == row["source_payload_decl_syntax_id"], row
 PY
 
-sed '/compensate: actor.UndoA();/d' "$FIXTURE" \
+# Keeping B's compensation while removing A's claims a partial rollback.
+# Both front ends must refuse that before the zero-compensation positive.
+sed '/compensate: actor.UndoA();/d' "$FIXTURE" >"$BUILD_DIR/partial-compensation.pgy"
+if (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$BUILD_DIR/partial-compensation.pgy" --backend=c) \
+    >"$BUILD_DIR/partial.native.out" 2>"$BUILD_DIR/partial.native.err"; then
+    fail "native accepted partial full rollback"
+fi
+grep -q 'has an effect but no compensation' "$BUILD_DIR/partial.native.err" \
+    || fail "native partial rollback failed for another reason"
+partial_rel="$(realpath --relative-to="$ROOT_DIR" "$BUILD_DIR/partial-compensation.pgy")"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$partial_rel") \
+    >"$BUILD_DIR/partial.self.out" 2>"$BUILD_DIR/partial.self.err"; then
+    fail "self-host accepted partial full rollback"
+fi
+grep -q 'intent_compensation_missing' "$BUILD_DIR/partial.self.out" "$BUILD_DIR/partial.self.err" \
+    || fail "self-host partial rollback failed for another reason"
+sed '/compensate: actor.UndoB();/d' "$BUILD_DIR/partial-compensation.pgy" \
     >"$BUILD_DIR/zero-compensation.pgy"
 emit_and_run_self zero-compensation "$BUILD_DIR/zero-compensation.pgy"
 

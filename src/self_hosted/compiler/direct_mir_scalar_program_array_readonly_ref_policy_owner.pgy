@@ -1,10 +1,11 @@
-// Read-only Array<Int>/Array<String> callable-parameter policy.
+// Read-only scalar-array callable-parameter policy.
 
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 
 func DirectMirScalarProgramReadonlyArrayTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName();
 }
 

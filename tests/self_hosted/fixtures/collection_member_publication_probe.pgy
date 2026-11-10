@@ -40,6 +40,8 @@ func Main() -> Void with caps env, io_read {
     let hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
     if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, hazards, 202, 0) { Exit(2); }
     let escapes: HashMap<String, Int> = MapNew(); MapSet(escapes, "302", 902);
+    let direct_escape_roots: Array<Int> = [302];
+    let direct_escape_sites: Array<Int> = [902];
     let nested_blocked: HashMap<String, Int> = MapNew(); MapSet(nested_blocked, "502", 1);
     let readonly_origins: Array<Int> = [701, 702];
     let read_sources: Array<Int> = [201];
@@ -63,7 +65,8 @@ func Main() -> Void with caps env, io_read {
     if mode == "early" || mode == "nested-invalid" { ArrayPop(nested_roots); }
     let result: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUsePublish(
         artifact, contexts, found, 71, 81, capture,
-        restored, sites, readable, blocked, hazards, escapes, nested_blocked, readonly_origins,
+        restored, sites, readable, blocked, hazards, escapes,
+        direct_escape_roots, direct_escape_sites, nested_blocked, readonly_origins,
         read_sources, read_targets, escape_sources, escape_targets, escape_sites,
         nested_nodes, nested_roots, lend_sources, lend_targets);
     Log("result=" + ToString(result.found) + ":" + ToString(result.syntax_node_id) + ":" +

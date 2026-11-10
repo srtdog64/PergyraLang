@@ -6,8 +6,8 @@ func DirectMirScalarCfgRangeCBlockEffects(
     ref facts: DirectMirScalarCfgRangeFactSet,
     block_count: Int, block: Int
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);
@@ -23,8 +23,8 @@ func DirectMirScalarCfgRangeLlvmBlockEffects(
     ref facts: DirectMirScalarCfgRangeFactSet,
     block_count: Int, block: Int
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);

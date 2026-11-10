@@ -8,6 +8,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/self_host_fixed_point_profile_negative_owner.sh"
 
 CC_BIN="${CC:-gcc}"
 command -v "$CC_BIN" >/dev/null 2>&1 || {
@@ -62,39 +63,6 @@ pgy_selfhost_fixed_point_profile_finish \
 grep -Fxq 'schema=pgy.selfhost.fixed-point-profile.v1' "$RECEIPT"
 grep -Eq '^dominant_phase=[a-z0-9_]+$' "$RECEIPT"
 grep -Eq '^artifact=mir_seed\|bytes=[0-9]+\|lines=[0-9]+\|sha256=[0-9a-f]{64}$' "$RECEIPT"
-
-cp "$RECEIPT" "$RUN_DIR/pristine.receipt"
-printf 'drift\n' >>"$RUN_DIR/gen3.c"
-if pgy_selfhost_fixed_point_profile_validate \
-    "$RECEIPT" "$FIXED" "$RUN_DIR/driver.pgy" "$RUN_DIR/driver-seed.c" \
-    "$RUN_DIR/driver-oracle.c" "$RUN_DIR/seed.mir.json" \
-    "$RUN_DIR/oracle.mir.json" "$RUN_DIR/gen2.c" "$RUN_DIR/gen3.c" \
-    "$RUN_DIR/gen2.bin" "$RUN_DIR/native-pgy" "$RUN_DIR/codegen-seed"; then
-    echo "[self-host-fixed-point-profile-smoke] changed artifact was accepted" >&2
-    exit 1
-fi
-cp "$RUN_DIR/gen2.c" "$RUN_DIR/gen3.c"
-grep -v '^phase=gen3_emit|' "$RUN_DIR/pristine.receipt" >"$RECEIPT"
-if pgy_selfhost_fixed_point_profile_validate \
-    "$RECEIPT" "$FIXED" "$RUN_DIR/driver.pgy" "$RUN_DIR/driver-seed.c" \
-    "$RUN_DIR/driver-oracle.c" "$RUN_DIR/seed.mir.json" \
-    "$RUN_DIR/oracle.mir.json" "$RUN_DIR/gen2.c" "$RUN_DIR/gen3.c" \
-    "$RUN_DIR/gen2.bin" "$RUN_DIR/native-pgy" "$RUN_DIR/codegen-seed"; then
-    echo "[self-host-fixed-point-profile-smoke] missing phase was accepted" >&2
-    exit 1
-fi
-
-awk '
-    /^phase=/ && !changed { sub(/wall_ms=[0-9]+/, "wall_ms=bad"); changed=1 }
-    { print }
-' "$RUN_DIR/pristine.receipt" >"$RECEIPT"
-if pgy_selfhost_fixed_point_profile_validate \
-    "$RECEIPT" "$FIXED" "$RUN_DIR/driver.pgy" "$RUN_DIR/driver-seed.c" \
-    "$RUN_DIR/driver-oracle.c" "$RUN_DIR/seed.mir.json" \
-    "$RUN_DIR/oracle.mir.json" "$RUN_DIR/gen2.c" "$RUN_DIR/gen3.c" \
-    "$RUN_DIR/gen2.bin" "$RUN_DIR/native-pgy" "$RUN_DIR/codegen-seed"; then
-    echo "[self-host-fixed-point-profile-smoke] malformed timing was accepted" >&2
-    exit 1
-fi
-
-echo "[self-host-fixed-point-profile-smoke] exact identity, phase census, and three negative mutations: PASS"
+pgy_selfhost_fixed_point_profile_negative_checks \
+    "$ROOT_DIR" "$RUN_DIR" "$RECEIPT" "$FIXED"
+echo "[self-host-fixed-point-profile-smoke] exact identity, phase census and negative mutations: PASS"

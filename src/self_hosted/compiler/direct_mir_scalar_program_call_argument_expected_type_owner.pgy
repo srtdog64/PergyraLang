@@ -3,14 +3,17 @@
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
 import "direct_mir_scalar_program_declared_call_callee_identity_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "../semantic/array_type_shape_owner.pgy";
 
 func DirectMirScalarProgramDirectCallArgumentExpectedType(ref sequence:
     MirExpressionGraphSequence, argument_root: Int,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
-    ref signature: DirectMirRoutineSignatureFact
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> String {
     let node_count: Int = ArrayLength(sequence.arena.topology.node_kinds);
-    let cursor: Int = argument_root + 1; let argument_ordinal: Int = 0;
+    var cursor: Int = argument_root + 1; var argument_ordinal: Int = 0;
     if argument_root < 0 || cursor >= node_count ||
         sequence.arena.topology.node_kinds[cursor] != AstExpressionNodeCallArgument() ||
         sequence.arena.topology.right_children[cursor] != argument_root { return ""; }
@@ -24,9 +27,39 @@ func DirectMirScalarProgramDirectCallArgumentExpectedType(ref sequence:
             let target_syntax_id: Int = sequence.arena.identities.call_target_syntax_ids[left];
             let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, left);
             if target_syntax_id <= 0 || callee < 0 || callee >= left { return ""; }
+            let target_name: String = sequence.arena.call_target_names[left];
+            let record_row: Int = DirectMirScalarProgramLogicalRecordRow(
+                logical_record, target_name);
+            let cell_row: Int = DirectMirIdentityCellRow(
+                logical_record.identity_cells, target_name);
+            if record_row >= 0 || cell_row >= 0 {
+                if sequence.arena.call_target_kinds[left] !=
+                        SemanticCallTargetDirect() ||
+                    (record_row >= 0 && cell_row >= 0) { return ""; }
+                var declaration_id: Int = 0;
+                var field_start: Int = 0;
+                var field_count: Int = 0;
+                if record_row >= 0 {
+                    declaration_id = logical_record.source_syntax_ids[record_row];
+                    field_start = logical_record.field_starts[record_row];
+                    field_count = logical_record.field_counts[record_row];
+                } else {
+                    declaration_id = logical_record.identity_cells.source_syntax_ids[cell_row];
+                    field_start = logical_record.identity_cells.field_starts[cell_row];
+                    field_count = logical_record.identity_cells.field_counts[cell_row];
+                }
+                if target_syntax_id != declaration_id || argument_ordinal < 0 ||
+                    argument_ordinal >= field_count { return ""; }
+                if record_row >= 0 {
+                    return logical_record.field_types[
+                        field_start + argument_ordinal];
+                }
+                return logical_record.identity_cells.field_types[
+                    field_start + argument_ordinal];
+            }
             let callee_is_leaf: Bool =
                 sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf();
-            let binding_kind: Int = SemanticExpressionBindingNone();
+            var binding_kind: Int = SemanticExpressionBindingNone();
             if callee_is_leaf { binding_kind = sequence.arena.identities.binding_kinds[callee]; }
             if binding_kind == SemanticExpressionBindingFormalParameter() {
                 if sequence.arena.call_target_kinds[left] !=
@@ -65,5 +98,37 @@ func DirectMirScalarProgramDirectCallArgumentExpectedType(ref sequence:
         if left_kind != AstExpressionNodeCallArgument() { return ""; }
         argument_ordinal = argument_ordinal + 1; cursor = left;
     }
+    return "";
+}
+
+// Expected type follows the immediate expression context after direct-call
+// parameter lookup. Array elements consume the element type, never the outer
+// Array<T> carrier type. The postorder arena places each enclosing element
+// directly after the value it wraps, so every descent remains identity-bound.
+func DirectMirScalarProgramContextualExpectedType(
+    ref sequence: MirExpressionGraphSequence, expression_root: Int,
+    expected_type: String,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> String {
+    let direct: String = DirectMirScalarProgramDirectCallArgumentExpectedType(
+        sequence, expression_root, callables, signature, logical_record);
+    if direct != "" { return direct; }
+    let node_count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    var cursor: Int = expression_root;
+    var contextual: String = expected_type;
+    var descended: Bool = false;
+    while cursor >= 0 && cursor + 1 < node_count &&
+            sequence.arena.topology.node_kinds[cursor + 1] ==
+                AstExpressionNodeArrayElement() &&
+            sequence.arena.topology.right_children[cursor + 1] == cursor {
+        let element: Option<String> = SemanticArrayElementType(contextual);
+        if !IsSome(element) { return ""; }
+        contextual = UnwrapOption(element);
+        cursor = cursor + 1;
+        descended = true;
+    }
+    if descended { return contextual; }
     return "";
 }

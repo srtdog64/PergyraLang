@@ -22,9 +22,9 @@ func DirectMirIntentCompletionFactReady(
 func DirectMirIntentCompletionFactHash(
     hash: Long, fact: DirectMirIntentCompletionFact
 ) -> Long {
-    let kind: Int = 0;
+    var kind: Int = 0;
     if fact.constant_true { kind = 1; }
-    let result: Long = DirectMirCfgHashInt(hash, kind);
+    var result: Long = DirectMirCfgHashInt(hash, kind);
     result = DirectMirCfgHashInt(result, fact.zone_ordinal);
     result = DirectMirCfgHashInt(result, fact.field_ordinal);
     return DirectMirCfgHashInt(result, fact.threshold);

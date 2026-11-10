@@ -23,8 +23,8 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
     ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstOwnedStringLocalReassignmentFacts {
-    let written: Array<Int> = [];
-    let parameters: Array<Int> = [];
+    var written: Array<Int> = [];
+    var parameters: Array<Int> = [];
     let count: Int = ArrayLength(locals.node_ids);
     if !SemanticAstLocalBindingIdentityRowsReady(
             locals, initializer_types.inferred_type_names) ||
@@ -38,7 +38,7 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
         ArrayLength(assignments.node_ids) != ArrayLength(assignment_types.target_binding_modes) {
         return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count { ArrayPush(written, 0); row = row + 1; }
     row = 0;
     while row < ArrayLength(assignments.node_ids) {
@@ -113,7 +113,7 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
             // A missing ordinary leaf cannot use this exclusion: its graph
             // must still join the exact assignment target payload above.
             if mode == "loop_binding" || mode == "match_binding" { row = row + 1; continue; }
-            if mode != "owner_field" {
+            if mode != "mutable_owner_field" && mode != "immutable_owner_field" {
                 return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
             }
             let field_type: Option<String> = SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
@@ -131,7 +131,7 @@ func SemanticAstOwnedStringParameterNotReassigned(
     ref facts: SemanticAstOwnedStringLocalReassignmentFacts, parameter_id: Int
 ) -> Bool {
     if !facts.ok || parameter_id <= 0 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.written_parameter_syntax_ids) {
         if facts.written_parameter_syntax_ids[row] == parameter_id { return false; }
         row = row + 1;

@@ -1,0 +1,34 @@
+// The same ordered handoff cannot be repaired for Array<Row>: Row owns an
+// Array, so a value-only copy would leave nested storage shared. The later
+// Grow must not make the earlier RowsError handoff appear independent.
+struct Row {
+    ids: Array<Int>;
+}
+
+struct Facts {
+    rows: Array<Row>;
+}
+
+func RowsError(rows: Array<Row>) -> Facts {
+    return Facts(rows);
+}
+
+func Grow(inout rows: Array<Row>, value: Int) -> Int {
+    ArrayPush(rows, Row([value]));
+    return ArrayLength(rows);
+}
+
+func Pick(facts: Facts, count: Int) -> Facts {
+    return facts;
+}
+
+func Build(count: Int) -> Facts {
+    var rows: Array<Row> = [];
+    return Pick(RowsError(rows), Grow(rows, count));
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(3);
+    Print(ToString(ArrayLength(facts.rows)));
+    return 0;
+}

@@ -18,6 +18,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_option_context.h"
+#include "transpiler_specialization_registry.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_result_mapping_helpers.h"
@@ -267,6 +268,15 @@ emit_call_result_option_builtin(ASTNode *call,
                     "Some requires concrete payload type during C emission");
                 return NULL;
             }
+            /* Expression-only Option<T> values do not necessarily appear in
+             * a routine signature or named local inventory.  Register the
+             * specialization at the constructor that owns the concrete T so
+             * later Some_/UnwrapOption_ emission cannot outrun its C ABI. */
+            ensure_option_specialization_to(ctx, ctx->decls, inner);
+            if (ctx->backend_error != NULL) {
+                free(arg);
+                return NULL;
+            }
             /* A subject parameter, and self in a subject body, are carried
              * by address; Option<Subject> stores the value, as a subject
              * field does. */
@@ -299,6 +309,10 @@ emit_call_result_option_builtin(ASTNode *call,
                     opt_type != NULL ? opt_type : "<unknown>");
                 return NULL;
             }
+            ensure_type_specializations_from_type_name_to(
+                ctx, ctx->decls, opt_type);
+            if (ctx->backend_error != NULL)
+                return NULL;
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)

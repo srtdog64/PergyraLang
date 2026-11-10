@@ -28,7 +28,7 @@ func SemanticAstCollectionCompleteDefinition(
     current[row] = definition;
     // One destructure Let completes every row it declares. Those rows carry
     // no tracked storage; a sibling with storage facts is a producer defect.
-    let sibling: Int = definition + 1;
+    var sibling: Int = definition + 1;
     while definition < definitions.local_count && sibling < definitions.local_count &&
         locals.node_ids[sibling] == locals.node_ids[definition] {
         if definitions.value_nodes[sibling] >= 0 || definitions.own_sources[sibling] != 0 ||

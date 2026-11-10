@@ -1,0 +1,10 @@
+// General owned ArrayBool return family; parameters remain independently admitted.
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayBoolReturnSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    return DirectMirRoutineSignatureFactReady(signature) &&
+        signature.return_type == CompilerAbiLayoutArrayBoolTypeName();
+}

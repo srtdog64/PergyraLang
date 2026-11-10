@@ -12,15 +12,15 @@ func RowsEmpty() -> Rows {
 }
 
 func AddBlock(rows: Rows) -> Rows {
-    let ids: Array<Int> = rows.ids;
-    let names: Array<String> = rows.names;
+    var ids: Array<Int> = rows.ids;
+    var names: Array<String> = rows.names;
     ArrayPush(ids, ArrayLength(ids));
     ArrayPush(names, "block");
     return Rows(ids, names);
 }
 
 func Grow(rows: Rows, count: Int) -> Rows {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         rows = AddBlock(rows);
         i = i + 1;
@@ -29,7 +29,7 @@ func Grow(rows: Rows, count: Int) -> Rows {
 }
 
 func Main() -> Int {
-    let rows: Rows = AddBlock(RowsEmpty());
+    var rows: Rows = AddBlock(RowsEmpty());
     rows = AddBlock(rows);
     if ArrayLength(rows.ids) > 1 {
         rows = Grow(rows, 2);

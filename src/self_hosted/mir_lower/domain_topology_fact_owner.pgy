@@ -64,7 +64,7 @@ func MirDomainTopologyPositiveDecimal(value: String) -> Bool {
     if n <= 0 || CharCode(value, n, 0) == CharCode("0", 1, 0) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         let code: Int = CharCode(value, n, i);
         if code < CharCode("0", 1, 0) || code > CharCode("9", 1, 0) {
@@ -119,7 +119,7 @@ func MirDomainTopologyRequiredForDocument(
     ref document: MirDocumentFactIndex
 ) -> Bool {
     let count: Int = JsonArrayObjectFactCount(document.declarations);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
             document.declarations, i
@@ -295,25 +295,25 @@ func MirDomainTopologyFactsFromDocumentWithDeclarations(
         return EmptyMirDomainTopologyFacts(true);
     }
 
-    let owner_names: Array<String> = [];
-    let owner_ids: Array<String> = [];
-    let source_ids: Array<String> = [];
-    let kinds: Array<String> = [];
-    let projection_names: Array<String> = [];
-    let projection_ids: Array<String> = [];
-    let source_names: Array<String> = [];
-    let source_slot_ids: Array<String> = [];
-    let layer_names: Array<String> = [];
-    let layer_ids: Array<String> = [];
-    let target_names: Array<String> = [];
-    let target_ids: Array<String> = [];
-    let left_names: Array<String> = [];
-    let left_ids: Array<String> = [];
-    let right_names: Array<String> = [];
-    let right_ids: Array<String> = [];
-    let participant_names: Array<String> = [];
-    let participant_ids: Array<String> = [];
-    let row_index: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_ids: Array<String> = [];
+    var source_ids: Array<String> = [];
+    var kinds: Array<String> = [];
+    var projection_names: Array<String> = [];
+    var projection_ids: Array<String> = [];
+    var source_names: Array<String> = [];
+    var source_slot_ids: Array<String> = [];
+    var layer_names: Array<String> = [];
+    var layer_ids: Array<String> = [];
+    var target_names: Array<String> = [];
+    var target_ids: Array<String> = [];
+    var left_names: Array<String> = [];
+    var left_ids: Array<String> = [];
+    var right_names: Array<String> = [];
+    var right_ids: Array<String> = [];
+    var participant_names: Array<String> = [];
+    var participant_ids: Array<String> = [];
+    var row_index: Int = 0;
     while row_index < JsonArrayObjectFactCount(rows) {
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row_index);
         let owner_opt: Option<String> = JsonObjectFactStringFieldOpt(
@@ -379,7 +379,7 @@ func MirDomainTopologyFactsFromDocumentWithDeclarations(
         ) {
             return EmptyMirDomainTopologyFacts(true);
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row_index {
             if source_ids[prior] == source_ids[row_index] ||
                 ((owner_names[prior] == owner_names[row_index]) !=
@@ -390,7 +390,7 @@ func MirDomainTopologyFactsFromDocumentWithDeclarations(
         }
         row_index = row_index + 1;
     }
-    let relation_index: Int = 0;
+    var relation_index: Int = 0;
     while relation_index < ArrayLength(
         declarations.field_identities.declaration_names
     ) {

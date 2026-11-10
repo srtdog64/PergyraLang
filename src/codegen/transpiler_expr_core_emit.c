@@ -164,11 +164,22 @@ transpiler_binary_operation(ASTNode *expr, TranspilerCtx *ctx,
         return result;
     }
 
+    return transpiler_emit_scalar_operation(op_type,
+        infer_expression_type_name(ctx, left_expr),
+        infer_expression_type_name(ctx, right_expr), left, right, right_expr);
+}
+
+char *
+transpiler_emit_scalar_operation(PgyTokenType op_type, const char *lt,
+    const char *rt, const char *left, const char *right, const ASTNode *right_expr)
+{
+    if (left == NULL || right == NULL || lt == NULL || rt == NULL)
+        return NULL;
     const char *op = binary_op_to_c(op_type);
+    if (strcmp(op, "?") == 0)
+        return NULL;
     char *result;
     if (op_type == TOKEN_SLASH || op_type == TOKEN_PERCENT) {
-        const char *lt = infer_expression_type_name(ctx, left_expr);
-        const char *rt = infer_expression_type_name(ctx, right_expr);
         bool is_float_div = (lt != NULL
                 && (strcmp(lt, "Float") == 0 || strcmp(lt, "Double") == 0))
             || (rt != NULL
@@ -203,6 +214,32 @@ transpiler_binary_literal_operand(const ASTNode *operand)
 {
     return operand != NULL && (operand->type == AST_NUMBER
         || operand->type == AST_STRING || operand->type == AST_BOOLEAN);
+}
+
+char *
+transpiler_sequence_scalar_operation(TranspilerCtx *ctx, PgyTokenType op,
+    const char *type, const char *left, const char *right, const ASTNode *right_expr)
+{
+    if (left == NULL || right == NULL || type == NULL)
+        return NULL;
+    char names[2][64];
+    do {
+        int id = ++ctx->tmp_counter;
+        snprintf(names[0], sizeof(names[0]), "__pgy_update_left_%d", id);
+        snprintf(names[1], sizeof(names[1]), "__pgy_update_right_%d", id);
+    } while (lookup_typed_entry(ctx, names[0]) != NULL
+        || lookup_typed_entry(ctx, names[1]) != NULL
+        || strstr(left, names[0]) != NULL || strstr(left, names[1]) != NULL
+        || strstr(right, names[0]) != NULL || strstr(right, names[1]) != NULL);
+    char *operation = transpiler_emit_scalar_operation(op, type, type,
+        names[0], names[1], right_expr);
+    if (operation == NULL)
+        return NULL;
+    char *result = strdup_fmt(
+        "({ __auto_type %s = (%s); __auto_type %s = (%s); %s; })",
+        names[0], left, names[1], right, operation);
+    free(operation);
+    return result;
 }
 
 char *

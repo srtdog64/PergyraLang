@@ -6,7 +6,7 @@ func DirectMirScalarProgramCBoolToStringMaterialization(
     if !CompilerRuntimeCallAbiBoolToStringFactReady(fact) {
         Die("direct MIR scalar C Bool ToString ABI is invalid");
     }
-    let output: String = "#include <stdlib.h>\n#include <string.h>\n";
+    var output: String = "#include <stdlib.h>\n#include <string.h>\n";
     output = Concat(output, Concat("static char *", fact.symbol));
     output = Concat(output,
         "(_Bool value) {\n    const char *source = value ? \"true\" : \"false\";\n");

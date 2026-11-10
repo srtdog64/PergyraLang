@@ -40,9 +40,9 @@ func SemanticStructLiteralViewFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int
 ) -> SemanticStructLiteralView {
-    let node: Int = root_id;
-    let field_count: Int = 0;
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    var node: Int = root_id;
+    var field_count: Int = 0;
+    var kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
     while IsSome(kind) &&
         UnwrapOption(kind) == AstExpressionNodeStructField() {
         let previous: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -85,8 +85,8 @@ func SemanticStructLiteralFieldAt(
     if !view.ok || index < 0 || index >= view.field_count {
         return SemanticStructLiteralFieldView(false, 0, 0);
     }
-    let node: Int = view.root_node;
-    let remaining: Int = view.field_count - index - 1;
+    var node: Int = view.root_node;
+    var remaining: Int = view.field_count - index - 1;
     while remaining > 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
         let previous: Option<Int> = SemanticExpressionGraphLeftChild(

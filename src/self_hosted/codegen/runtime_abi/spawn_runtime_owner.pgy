@@ -12,7 +12,7 @@ func SpawnRuntimeCFutureCValueType(type_name: String) -> String {
 }
 
 func SpawnRuntimeCBlock() -> String {
-    let block: String = "typedef enum { PGY_SELFHOST_SPAWN_INT1 = 1, PGY_SELFHOST_SPAWN_INT2 = 2, PGY_SELFHOST_SPAWN_STRING1 = 3 } PgySelfHostSpawnSignature;\n";
+    var block: String = "typedef enum { PGY_SELFHOST_SPAWN_INT1 = 1, PGY_SELFHOST_SPAWN_INT2 = 2, PGY_SELFHOST_SPAWN_STRING1 = 3 } PgySelfHostSpawnSignature;\n";
     block = Concat(block, "typedef union { int32_t int_value; const char *string_value; } PgySelfHostSpawnValue;\n");
     block = Concat(block, "typedef union {\n");
     block = Concat(block, "    int32_t (*int_unary)(int32_t);\n");
@@ -48,9 +48,9 @@ func SpawnRuntimeCCall(
     if function_name == "" || arity < 1 || arity > 2 {
         Die("spawn runtime call fact is missing");
     }
-    let fn_member: String = "int_unary";
-    let value_member: String = "int_value";
-    let signature: String = "PGY_SELFHOST_SPAWN_INT1";
+    var fn_member: String = "int_unary";
+    var value_member: String = "int_value";
+    var signature: String = "PGY_SELFHOST_SPAWN_INT1";
     if payload_type == "Int" && arity == 2 {
         fn_member = "int_binary";
         signature = "PGY_SELFHOST_SPAWN_INT2";
@@ -61,7 +61,7 @@ func SpawnRuntimeCCall(
     } else if payload_type != "Int" || arity > 2 {
         Die("spawn runtime scalar signature is unsupported");
     }
-    let argument1: String = "(PgySelfHostSpawnValue){0}";
+    var argument1: String = "(PgySelfHostSpawnValue){0}";
     if arity == 2 {
         argument1 = Concat("(PgySelfHostSpawnValue){ .int_value = ", Concat(arguments[1], " }"));
     }

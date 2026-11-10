@@ -19,20 +19,20 @@ func BuildMirRoutineInstructionUseFacts(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int
 ) -> MirRoutineInstructionUseFacts {
-    let instruction_starts: Array<Int> = [];
-    let instruction_counts: Array<Int> = [];
-    let values: Array<String> = [];
-    let valid: Bool = MirProgramRoutineIndexRowReady(
+    var instruction_starts: Array<Int> = [];
+    var instruction_counts: Array<Int> = [];
+    var values: Array<String> = [];
+    var valid: Bool = MirProgramRoutineIndexRowReady(
         routines, routine_row
     );
-    let global_start: Int = 0 - 1;
-    let block_start: Int = 0;
-    let block_count: Int = 0;
+    var global_start: Int = 0 - 1;
+    var block_start: Int = 0;
+    var block_count: Int = 0;
     if valid {
         block_start = routines.routine_block_starts[routine_row];
         block_count = routines.routine_block_counts[routine_row];
     }
-    let block_offset: Int = 0;
+    var block_offset: Int = 0;
     while valid && block_offset < block_count {
         let global_block: Int = block_start + block_offset;
         if global_block < 0 || global_block >= ArrayLength(
@@ -57,10 +57,10 @@ func BuildMirRoutineInstructionUseFacts(
             continue;
         }
         if global_start < 0 { global_start = instruction_start; }
-        let instruction_offset: Int = 0;
+        var instruction_offset: Int = 0;
         while instruction_offset < instruction_count {
             let global_row: Int = instruction_start + instruction_offset;
-            let array_bounds: Array<Int> = [0, 0];
+            var array_bounds: Array<Int> = [0, 0];
             ArrayPush(instruction_starts, ArrayLength(values));
             if !MirObjectArrayBoundsAtBounds(
                 routines.source_json, routines.source_json_extent,
@@ -80,7 +80,7 @@ func BuildMirRoutineInstructionUseFacts(
                     routines.instruction_ends[global_row], "uses"
                 );
             let use_count: Int = ArrayLength(instruction_uses);
-            let use_row: Int = 0;
+            var use_row: Int = 0;
             while use_row < use_count {
                 let use_name: String = instruction_uses[use_row];
                 if StringLength(use_name) == 0 {
@@ -111,8 +111,8 @@ func MirRoutineInstructionUseFactsReady(
         (count > 0 && facts.global_start < 0) {
         return false;
     }
-    let expected_start: Int = 0;
-    let row: Int = 0;
+    var expected_start: Int = 0;
+    var row: Int = 0;
     while row < count {
         let use_count: Int = facts.instruction_counts[row];
         if use_count < 0 || facts.instruction_starts[row] != expected_start ||

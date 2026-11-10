@@ -45,7 +45,7 @@ func SemanticAstIndexedStringBorrowUseAtEvent(
         (state.invalidated[binding.row] || SemanticAstMapStringPayloadInvalidated(
             artifact, surfaces, state, state.source_storage_ids[binding.row],
             surfaces.node_ids[surface_row])) {
-        let boundary: String = "indexed_string_use_after_deep_drop";
+        var boundary: String = "indexed_string_use_after_deep_drop";
         if !state.invalidated[binding.row] { boundary = "map_string_use_after_mutation"; }
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
@@ -75,7 +75,7 @@ func SemanticAstIndexedStringBorrowCompleteValue(
     }
     let surface_row: Int = root_slot / 3;
     let syntax_id: Int = surfaces.node_ids[surface_row];
-    let target_row: Int = -1;
+    var target_row: Int = -1;
     let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(
         locals, syntax_id
     );
@@ -152,14 +152,14 @@ func SemanticAstIndexedStringBorrowRecordDeepDrop(
     if !binding.ok || binding.row >= ArrayLength(current_definitions) {
         return true;
     }
-    let source_id: Int = SemanticAstCollectionDefinitionStorageSource(
+    var source_id: Int = SemanticAstCollectionDefinitionStorageSource(
         storage, definitions, binding.row,
         current_definitions[binding.row]
     );
     if source_id <= 0 {
         source_id = SemanticAstIndexedStringBorrowUnknownSource();
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(state.source_storage_ids) {
         if SemanticAstIndexedStringBorrowInvalidatedByDrop(
                 state.source_storage_ids[row], source_id) {

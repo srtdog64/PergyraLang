@@ -20,11 +20,17 @@
 #include "mir_inout_member_copyout_owner.h"
 
 bool
-mir_validate(const MIRProgram *mir, char **error_message)
+mir_validate_with_receipt(
+    const MIRProgram *mir,
+    MIRCollectionEffectEvidenceReceipt *receipt_out,
+    char **error_message)
 {
     MIRRoutineInventory inventory;
+    MIRCollectionEffectEvidenceReceipt collection_effect_receipt = {0};
     if (error_message != NULL)
         *error_message = NULL;
+    if (receipt_out != NULL)
+        memset(receipt_out, 0, sizeof(*receipt_out));
     if (mir == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("MIR program is null");
@@ -67,7 +73,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
         return false;
     if (!mir_generic_method_specializations_validate(mir, error_message))
         return false;
-    if (!mir_validate_collection_effect_evidence(mir, NULL, error_message))
+    if (!mir_validate_collection_effect_evidence_and_issue(
+            mir, &collection_effect_receipt, error_message))
         return false;
 
     {
@@ -136,8 +143,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
         if (!mir_validate_collection_ownership_facts(
                 routine, error_message))
             return false;
-        if (!mir_validate_collection_ownership_transitions(
-                routine, error_message))
+        if (!mir_validate_collection_ownership_transitions_with_receipt(
+                routine, &collection_effect_receipt, error_message))
             return false;
         if (!mir_validate_inout_member_copyouts(routine, error_message))
             return false;
@@ -287,5 +294,13 @@ mir_validate(const MIRProgram *mir, char **error_message)
     if (!mir_validate_intent_execution_program(mir, error_message))
         return false;
 
+    if (receipt_out != NULL)
+        *receipt_out = collection_effect_receipt;
     return true;
+}
+
+bool
+mir_validate(const MIRProgram *mir, char **error_message)
+{
+    return mir_validate_with_receipt(mir, NULL, error_message);
 }

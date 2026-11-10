@@ -23,7 +23,7 @@ func ParseDomainProjectionMapRows(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserDomainProjectionMapRows {
-    let i: Int = SkipWhitespaceAndComments(content, start);
+    var i: Int = SkipWhitespaceAndComments(content, start);
     if !MatchLanguageWord(content, i, LanguageWordId.WordMap) {
         ArraySet(cursor_out, 0, i);
         return ParserDomainProjectionMapRowsAbsent();
@@ -32,8 +32,8 @@ func ParseDomainProjectionMapRows(
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(context, content, i, "{", "projection_map");
 
-    let rows: String = "";
-    let count: Int = 0;
+    var rows: String = "";
+    var count: Int = 0;
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= StringLength(content) {

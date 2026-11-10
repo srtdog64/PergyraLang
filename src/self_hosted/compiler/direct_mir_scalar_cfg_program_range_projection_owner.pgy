@@ -1,0 +1,103 @@
+// Binds routine-local range receipts into the flat multi-routine plan.
+
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+func DirectMirScalarCfgProgramRangeFactAtOffsets(
+    fact: DirectMirScalarCfgRangeIterationFact,
+    local_offset: Int, block_offset: Int
+) -> DirectMirScalarCfgRangeIterationFact {
+    var backedges: Array<Int> = [];
+    var row: Int = 0;
+    while row < ArrayLength(fact.backedge_blocks) {
+        ArrayPush(backedges, fact.backedge_blocks[row] + block_offset);
+        row = row + 1;
+    }
+    let shifted: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgRangeIterationFact(
+            fact.valid, 0, fact.init_global_row, fact.branch_global_row,
+            fact.init_block + block_offset,
+            fact.header_block + block_offset,
+            fact.body_block + block_offset,
+            fact.exit_block + block_offset,
+            fact.local_row + local_offset, fact.loop_syntax_id,
+            fact.binding_name, fact.start_literal, fact.stop_literal,
+            fact.stop_value_id, fact.stop_local_ref, fact.step_literal,
+            backedges);
+    return DirectMirScalarCfgRangeIterationFactWithDigest(
+        shifted, DirectMirScalarCfgRangeIterationFactDigest(shifted));
+}
+
+func DirectMirScalarCfgProgramRangeFactsAtOffsets(
+    ref source: DirectMirScalarCfgRangeFactSet,
+    local_offset: Int, block_offset: Int, routine_block_count: Int
+) -> DirectMirScalarCfgRangeFactSet {
+    if (!DirectMirScalarCfgRangeFactSetReady(
+            source, routine_block_count)) {
+        return DirectMirScalarCfgRangeFactSetInvalid();
+    }
+    var shifted: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSetEmpty();
+    var row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(source) {
+        shifted = DirectMirScalarCfgRangeFactSetAppend(
+            shifted, DirectMirScalarCfgProgramRangeFactAtOffsets(
+                DirectMirScalarCfgRangeFactAt(source, row),
+                local_offset, block_offset));
+        if (!shifted.valid) {
+            return DirectMirScalarCfgRangeFactSetInvalid();
+        }
+        row = row + 1;
+    }
+    return shifted;
+}
+
+func DirectMirScalarCfgProgramRangeFactsMergeRoutine(
+    ref prior: DirectMirScalarCfgRangeFactSet,
+    ref routine: DirectMirScalarCfgRangeFactSet,
+    local_offset: Int, block_offset: Int, routine_block_count: Int
+) -> DirectMirScalarCfgRangeFactSet {
+    if (!DirectMirScalarCfgRangeFactSetReady(prior, block_offset)) {
+        return DirectMirScalarCfgRangeFactSetInvalid();
+    }
+    let shifted: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgProgramRangeFactsAtOffsets(
+            routine, local_offset, block_offset, routine_block_count);
+    if (!shifted.valid) {
+        return DirectMirScalarCfgRangeFactSetInvalid();
+    }
+    var merged: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSetEmpty();
+    var prior_row: Int = 0;
+    var shifted_row: Int = 0;
+    while prior_row < DirectMirScalarCfgRangeFactCount(prior) ||
+            shifted_row < DirectMirScalarCfgRangeFactCount(shifted) {
+        var take_prior: Bool = shifted_row >=
+            DirectMirScalarCfgRangeFactCount(shifted);
+        if prior_row < DirectMirScalarCfgRangeFactCount(prior) &&
+            shifted_row < DirectMirScalarCfgRangeFactCount(shifted) {
+            let prior_id: Int = prior.loop_syntax_ids[prior_row];
+            let shifted_id: Int = shifted.loop_syntax_ids[shifted_row];
+            if prior_id == shifted_id {
+                return DirectMirScalarCfgRangeFactSetInvalid();
+            }
+            take_prior = prior_id < shifted_id;
+        }
+        if take_prior {
+            merged = DirectMirScalarCfgRangeFactSetAppend(
+                merged, DirectMirScalarCfgRangeFactAt(prior, prior_row));
+            prior_row = prior_row + 1;
+        } else {
+            merged = DirectMirScalarCfgRangeFactSetAppend(
+                merged, DirectMirScalarCfgRangeFactAt(shifted, shifted_row));
+            shifted_row = shifted_row + 1;
+        }
+        if (!merged.valid) {
+            return DirectMirScalarCfgRangeFactSetInvalid();
+        }
+    }
+    if (!DirectMirScalarCfgRangeFactSetReady(
+            merged, block_offset + routine_block_count)) {
+        return DirectMirScalarCfgRangeFactSetInvalid();
+    }
+    return merged;
+}

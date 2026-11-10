@@ -20,11 +20,11 @@ func DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureR
         signature.parameters.abi_layout_ids[0] != 0 {
         return false;
     }
-    let ordinal: Int = 1;
+    var ordinal: Int = 1;
     while ordinal < signature.param_count {
         let string_value: Bool = ordinal == 1 || ordinal == 2;
         let array_copyout: Bool = ordinal == 3 || ordinal == 4;
-        let expected: String = CompilerAbiLayoutArrayStringTypeName();
+        var expected: String = CompilerAbiLayoutArrayStringTypeName();
         if string_value { expected = CompilerAbiLayoutStringTypeName(); }
         if signature.parameters.type_names[ordinal] != expected ||
             signature.parameters.resources[ordinal] != "none" ||

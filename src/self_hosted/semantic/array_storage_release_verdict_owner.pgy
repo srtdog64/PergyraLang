@@ -26,7 +26,7 @@ func SemanticArrayStorageOwnFormal(ref signatures: SemanticAstFunctionSignatureF
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
     if !IsSome(signature) { return false; }
     let row: Int = UnwrapOption(signature);
-    let param: Int = signatures.param_starts[row];
+    var param: Int = signatures.param_starts[row];
     let end: Int = param + signatures.param_counts[row];
     while param < end {
         if signatures.param_node_ids[param] == binding { return signatures.param_modes[param] == 2; }
@@ -59,8 +59,8 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
     let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
     if !roots.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop call identity is missing", -1); }
-    let required: Bool = false;
-    let probe: Int = 0;
+    var required: Bool = false;
+    var probe: Int = 0;
     while probe < ArrayLength(roots.root_nodes) {
         if SemanticAstCollectionOwnershipBuiltinCall(graph, probe, "ArrayDrop") { required = true; }
         probe = probe + 1;
@@ -69,13 +69,13 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
     let preserving_formals: HashMap<String, Int> = SemanticArrayStoragePreservingFormals(artifact, analysis, order);
     let requirements: HashMap<String, Int> = SemanticArrayStorageReleaseParameterRequirements(
         analysis.signatures, analysis.expression_surfaces, roots);
-    let retired: HashMap<String, Int> = MapNew();
-    let release_sites: HashMap<String, Int> = MapNew();
-    let escaped: HashMap<String, Int> = MapNew();
+    var retired: HashMap<String, Int> = MapNew();
+    var release_sites: HashMap<String, Int> = MapNew();
+    var escaped: HashMap<String, Int> = MapNew();
     // Leaf types cannot describe an index/member expression's result. Use the
     // already-admitted initializer/assignment value types once at this seam.
-    let plain_values: HashMap<String, Int> = MapNew();
-    let value_row: Int = 0;
+    var plain_values: HashMap<String, Int> = MapNew();
+    var value_row: Int = 0;
     while value_row < ArrayLength(initializers.node_ids) {
         if SemanticArrayStoragePlainElement(initializers.inferred_type_names[value_row],
             analysis.constructors, analysis.enums, 0) {
@@ -91,7 +91,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
         }
         value_row = value_row + 1;
     }
-    let slot: Int = 0;
+    var slot: Int = 0;
     while slot < ArrayLength(graph.roots) {
         if graph.has_roots[slot] {
             let surface: Int = slot / 3;
@@ -99,7 +99,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
             let function_id: Int = analysis.expression_surfaces.function_node_ids[surface];
             let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, graph.roots[slot]);
             if !IsSome(start) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop expression range is missing", syntax_id); }
-            let node: Int = UnwrapOption(start);
+            var node: Int = UnwrapOption(start);
             while node <= graph.roots[slot] {
                 if SemanticArrayTypeNameAt(leaf_types, node) &&
                     graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
@@ -166,7 +166,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
                             }
                             let binding_fact: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
                                 artifact, analysis.local_bindings, initializers.inferred_type_names, analysis.expression_surfaces, surface, argument);
-                            let owner_block: Int = -1;
+                            var owner_block: Int = -1;
                             if binding_fact.ok { owner_block = analysis.local_bindings.scope_node_ids[binding_fact.row]; }
                             else {
                                 let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function_id);
@@ -187,16 +187,16 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
                             MapSet(retired, key, UnwrapOption(block));
                             MapSet(release_sites, key, syntax_id);
                         } else {
-                            let constructor: Bool = IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, target)) ||
+                            var constructor: Bool = IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, target)) ||
                                 target == "Some" || target == "Ok" || target == "Err";
-                            let variant: Int = 0;
+                            var variant: Int = 0;
                             while variant < ArrayLength(analysis.enums.variant_names) {
                                 if target == analysis.enums.variant_enum_names[variant] + "." + analysis.enums.variant_names[variant] {
                                     constructor = true;
                                 }
                                 variant = variant + 1;
                             }
-                            let arg: Int = 0;
+                            var arg: Int = 0;
                             while arg < ArrayLength(call.argument_nodes) {
                                 let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names,
                                     surface, call.argument_nodes[arg]);
@@ -205,7 +205,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
                                 if binding > 0 && parameter_node > 0 {
                                     // One call may not transfer a binding while
                                     // another argument still carries its descriptor.
-                                    let other: Int = 0;
+                                    var other: Int = 0;
                                     while other < ArrayLength(call.argument_nodes) {
                                         if other != arg && SemanticArrayStorageBinding(artifact, analysis,
                                             initializers.inferred_type_names, surface, call.argument_nodes[other]) == binding {

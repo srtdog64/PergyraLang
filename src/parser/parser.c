@@ -261,18 +261,10 @@ void parser_error_at(Parser *parser, const Token *at, const char *format, ...) {
     va_end(args);
 }
 
-static const char *const kParserRetiredSpellings[PGY_RETIRED_SPELLING_COUNT] = {
-    [PGY_RETIRED_SPELLING_MUT] = "mut",
-};
-
-bool parser_current_is_retired_spelling(const Parser *parser,
-                                        PgyRetiredSpelling spelling) {
-    if (parser == NULL || (unsigned)spelling >= PGY_RETIRED_SPELLING_COUNT)
-        return false;
-    return parser->current_token.type == TOKEN_IDENTIFIER
-        && parser->current_token.text != NULL
-        && strcmp(parser->current_token.text,
-                  kParserRetiredSpellings[spelling]) == 0;
+bool parser_current_is_language_word(const Parser *parser, PgyLanguageWordId word) {
+    return parser != NULL && parser->current_token.text != NULL
+        && lexer_lookup_language_word(parser->current_token.text,
+            strlen(parser->current_token.text)) == word;
 }
 
 // 에러 복구 - 다음 문장까지 건너뛰기
@@ -479,16 +471,12 @@ static ASTNode *parse_binding_declaration(Parser *parser, bool is_mutable) {
         return node;
     }
 
-    /* `let mut` is retired: a mutable binding is spelled `var`. Report it and
-     * keep parsing the declaration as mutable so one mistake gives one error. */
+    /* Both spellings produce the same declaration fact. `mut` remains a
+     * contextual marker, so `let mut = value` still names a binding. */
     bool let_is_mutable = is_mutable;
     if (!is_mutable
-        && parser_current_is_retired_spelling(parser, PGY_RETIRED_SPELLING_MUT)
+        && parser_current_is_language_word(parser, PGY_LANGUAGE_WORD_MUT)
         && parser_peek_next(parser).type == TOKEN_IDENTIFIER) {
-        parser_error(parser,
-            "`let mut` is no longer a binding form.\n"
-            "Reason: a mutable binding is spelled `var`.\n"
-            "Fix: write `var name = ...` instead of `let mut name = ...`.");
         parser_advance(parser);  /* consume 'mut' */
         let_is_mutable = true;
     }

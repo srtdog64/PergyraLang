@@ -29,7 +29,7 @@ func CanonicalName(type_name: String) -> String {
     }
     let base: String = TrimReuse(Substring(text, 0, open));
     let inner: String = Substring(text, open + 1, n - open - 2);
-    let result: String = Concat(base, "<");
+    var result: String = Concat(base, "<");
     result = Concat(result, CanonicalArgument(inner));
     return Concat(result, ">");
 }
@@ -39,7 +39,7 @@ func Fresh(text: String) -> String {
 }
 
 func Main() -> Int {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPush(rows, CanonicalName("Array< Int>"));
     ArrayPush(rows, CanonicalArgument(" Map<String>"));
     ArrayPush(rows, Fresh("x"));

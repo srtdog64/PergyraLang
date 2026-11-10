@@ -14,8 +14,8 @@ func DirectMirScalarProgramCArrayStringLiteralExpression(
         UnwrapOption(array_string_projection);
     let type_name: String = DirectMirScalarProgramCArrayStringCarrierType(
         array_string_abi, projection);
-    let values: Array<String> = [];
-    let row: Int = 0;
+    var values: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(arguments) {
         ArrayPush(values, arguments[row]); row = row + 1;
     }
@@ -23,20 +23,18 @@ func DirectMirScalarProgramCArrayStringLiteralExpression(
         if left != "" { ArrayPush(values, left); }
         if right != "" { ArrayPush(values, right); }
     }
-    if owns_elements {
-        if ArrayLength(values) != 1 { return None; }
-        return Some(Concat(DirectMirScalarProgramCStringArrayOwnedSingleFn(),
-            Concat("(", Concat(values[0], ")"))));
-    }
     if ArrayLength(values) == 0 {
         let empty: String = DirectMirScalarCfgArrayCInitializer(
             projection.storage, "NULL", "0", "0", "NULL");
         return Some(Concat("((", Concat(type_name,
             Concat(")", Concat(empty, ")")))));
     }
-    let output: String = Concat(
-        DirectMirScalarProgramCStringArrayValuesFn(), "((const char *[]){");
-    let item: Int = 0;
+    var factory: String = DirectMirScalarProgramCStringArrayValuesFn();
+    if owns_elements {
+        factory = DirectMirScalarProgramCStringArrayOwnedValuesFn();
+    }
+    var output: String = Concat(factory, "((const char *[]){");
+    var item: Int = 0;
     while item < ArrayLength(values) {
         if item > 0 { output = Concat(output, ", "); }
         output = Concat(output, values[item]); item = item + 1;

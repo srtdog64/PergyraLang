@@ -1,0 +1,46 @@
+// The String field can be copied, but groups cannot: Array<Group> contains
+// nested owned Arrays. Replacing admission while the payload retains that
+// borrowed field must remain refused before MIR.
+struct Group {
+    items: Array<Int>;
+}
+
+struct Refusal {
+    owner: String;
+    groups: Array<Group>;
+}
+
+enum Payload {
+    Emitted(String),
+    Refused(Refusal),
+}
+
+struct Admission {
+    owner: String;
+    groups: Array<Group>;
+}
+
+func RefusalOf(ref admission: Admission) -> Refusal {
+    return Refusal(admission.owner, admission.groups);
+}
+
+func Route(ref admission: Admission, count: Int) -> Payload {
+    if count == 3 {
+        return Emitted("emitted");
+    }
+    return Refused(RefusalOf(admission));
+}
+
+func Main() -> Int {
+    var admission: Admission = Admission("owner", [Group([1])]);
+    let payload: Payload = Route(admission, 1);
+    match payload {
+        case Emitted(text): Print(text);
+        case Refused(refusal): admission = Admission("other", []);
+    }
+    match payload {
+        case Emitted(text): Print(text);
+        case Refused(refusal): Print(ToString(ArrayLength(refusal.groups)));
+    }
+    return 0;
+}

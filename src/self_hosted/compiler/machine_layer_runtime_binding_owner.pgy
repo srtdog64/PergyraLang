@@ -10,12 +10,12 @@ func CompilerMachineLayerRuntimeBindingBlock(
     if !SelfHostMachineLayerDeclarationReady(declaration) {
         return "";
     }
-    let provider_required: String = "1";
+    var provider_required: String = "1";
     if declaration.physical_manifest_id ==
         "pergyra.machine-declaration.host-sim.v1" {
         provider_required = "0";
     }
-    let out: String =
+    var out: String =
         "static void pgy_machine_layer_require_mapping(void) {\n";
     out = Concat(out,
         "    if (!pgy_machine_layer_runtime_bind_mapping_export(UINT64_C(");

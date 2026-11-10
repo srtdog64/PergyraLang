@@ -2,7 +2,7 @@
 
 func Fail(msg: String, content: String, i: Int) -> Void {
     let n: Int = StringLength(content);
-    let len: Int = 40;
+    var len: Int = 40;
     if i + len > n {
         len = n - i;
     }

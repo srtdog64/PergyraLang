@@ -23,7 +23,7 @@ func DirectMirInferredGenericMemberSpecializationFactDigest(
     ref fact: DirectMirInferredGenericMemberSpecializationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(293L, fact.owner);
+    var hash: Long = DirectMirCfgHashString(293L, fact.owner);
     hash = DirectMirCfgHashString(hash, fact.callable);
     hash = DirectMirCfgHashString(hash, fact.specialized_symbol);
     hash = DirectMirCfgHashString(hash, fact.generic_param);
@@ -57,14 +57,14 @@ func DirectMirInferredGenericMemberSpecializationFactFromDocument(
         !DirectMirExactObjectArrayCount(table, 2) {
         return InvalidDirectMirInferredGenericMemberSpecializationFact();
     }
-    let seen: Array<Bool> = [false, false];
-    let owner: String = "";
-    let callable: String = "";
-    let specialized_symbol: String = "";
-    let generic_param: String = "";
-    let generic_actual: String = "";
-    let source_owner_syntax_id: Int = 0;
-    let row_i: Int = 0;
+    var seen: Array<Bool> = [false, false];
+    var owner: String = "";
+    var callable: String = "";
+    var specialized_symbol: String = "";
+    var generic_param: String = "";
+    var generic_actual: String = "";
+    var source_owner_syntax_id: Int = 0;
+    var row_i: Int = 0;
     while row_i < 2 {
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
         let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
@@ -88,8 +88,8 @@ func DirectMirInferredGenericMemberSpecializationFactFromDocument(
         let symbol_opt: Option<String> = JsonObjectFactStringFieldOpt(
             row, "specialized_symbol"
         );
-        let param_bounds: Array<Int> = [0, 0];
-        let actual_bounds: Array<Int> = [0, 0];
+        var param_bounds: Array<Int> = [0, 0];
+        var actual_bounds: Array<Int> = [0, 0];
         let param: String = DirectMirGenericSpecializationSingleString(
             row, "generic_params"
         );

@@ -1,0 +1,40 @@
+// C materialization keeps the observer result before retiring fresh operands.
+import "owned_expression_temporary_owner.pgy";
+import "direct_mir_scalar_program_c_string_expression_owner.pgy";
+
+func DirectMirOwnedStringObserverCName(kind: Int) -> String {
+    return "pgy_retiring_string_observer_" + ToString(kind);
+}
+
+func DirectMirOwnedStringObserverCPrelude(ref expressions: DirectMirScalarProgramExpressionSet,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection) -> String {
+    var seen: Array<Int> = [];
+    var output: String = "";
+    var node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[node];
+        let result_type: String = DirectMirOwnedStringObserverResultType(kind);
+        var emitted: Bool = false; var prior: Int = 0;
+        while prior < ArrayLength(seen) {
+            if seen[prior] == kind { emitted = true; }
+            prior = prior + 1;
+        }
+        if result_type != "" && !emitted {
+            var c_type: String = "int64_t";
+            if result_type == "String" { c_type = "const char *"; }
+            else if result_type == "Bool" { c_type = "bool"; }
+            let arguments: Array<String> = [];
+            let expression: Option<String> = DirectMirScalarProgramCStringExpression(
+                kind, "left", "right", arguments, runtime);
+            if !IsSome(expression) { Die("retiring String observer has no C projection"); }
+            output = output + "static " + c_type + " " + DirectMirOwnedStringObserverCName(kind) +
+                "(const char *left, const char *right, int retire) {\n    " + c_type +
+                " result = " + UnwrapOption(expression) + ";\n" +
+                "    if (retire == 1 || retire == 3) free((void *)left);\n" +
+                "    if (retire == 2 || retire == 3) free((void *)right);\n    return result;\n}\n";
+            ArrayPush(seen, kind);
+        }
+        node = node + 1;
+    }
+    return output;
+}

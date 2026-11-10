@@ -2,12 +2,13 @@
 
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 
 func DirectMirScalarProgramCLogicalRecordValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramLogicalRecordValueResultAt(
                 plan, routine, ordinal) {
@@ -28,13 +29,13 @@ func DirectMirScalarProgramCLogicalRecordValueResultCopyIn(
 func DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramLogicalRecordValueResultAt(
                 plan, routine, ordinal) {
             let local_row: Int =
-                DirectMirScalarProgramLogicalRecordValueResultLocalRow(
+                DirectMirScalarProgramParameterValueResultLocalRow(
                     plan, routine, ordinal);
             output = Concat(output, Concat("    *pgy_param_", ToString(ordinal)));
             output = Concat(output, "_mutref = ");

@@ -6,7 +6,7 @@ import "routine_local_ref_attachment_owner.pgy";
 func SelfMirMatchArmVersionsAppend(
     inout rows: Array<Int>, ref versions: Array<Int>, entry_count: Int
 ) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < entry_count {
         ArrayPush(rows, versions[i]);
         i = i + 1;
@@ -28,7 +28,7 @@ func SelfMirMergeMatchArms(
             build, "MIR match merge version matrix is invalid"
         );
     }
-    let arm_i: Int = 0;
+    var arm_i: Int = 0;
     while arm_i < ArrayLength(arm_exits) {
         if arm_exits[arm_i] < 0 ||
             arm_exits[arm_i] >= ArrayLength(build.terminated) {
@@ -36,7 +36,7 @@ func SelfMirMergeMatchArms(
                 build, "MIR match arm exit identity is invalid"
             );
         }
-        let prior_i: Int = 0;
+        var prior_i: Int = 0;
         while prior_i < arm_i {
             if arm_exits[prior_i] == arm_exits[arm_i] {
                 return SelfMirRoutineBuildError(
@@ -53,7 +53,7 @@ func SelfMirMergeMatchArms(
             build, "MIR match unmatched block identity is invalid"
         );
     }
-    let version_i: Int = 0;
+    var version_i: Int = 0;
     while version_i < ArrayLength(arm_versions) {
         if arm_versions[version_i] < 0 {
             return SelfMirRoutineBuildError(
@@ -73,7 +73,7 @@ func SelfMirMergeMatchArms(
     }
     // A default closes the unmatched edge. If every arm also terminates,
     // there is no merge continuation to allocate or later publish as live.
-    let live_arm: Bool = false;
+    var live_arm: Bool = false;
     arm_i = 0;
     while arm_i < ArrayLength(arm_exits) {
         if build.terminated[arm_exits[arm_i]] == 0 { live_arm = true; }
@@ -101,7 +101,7 @@ func SelfMirMergeMatchArms(
             build, unmatched_block, -1, merge_block
         );
     }
-    let local_i: Int = 0;
+    var local_i: Int = 0;
     while local_i < entry_count {
         // An inactive entry name belongs to an earlier lexical block. Match
         // arms may reuse its spelling, but they cannot promote it outside.
@@ -110,10 +110,10 @@ func SelfMirMergeMatchArms(
             local_i = local_i + 1;
             continue;
         }
-        let incoming: Array<String> = [];
-        let first_version: Int = -1;
-        let all_same: Bool = true;
-        let live_count: Int = 0;
+        var incoming: Array<String> = [];
+        var first_version: Int = -1;
+        var all_same: Bool = true;
+        var live_count: Int = 0;
         arm_i = 0;
         while arm_i < ArrayLength(arm_exits) {
             if build.terminated[arm_exits[arm_i]] == 0 {

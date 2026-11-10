@@ -21,7 +21,7 @@ func DirectMirScalarCfgArrayIntReverseCDeclarations(
             plan.array_int_program.reverse.result.capacity_offset,
             plan.array_int_program.reverse.result.allocator_offset
         );
-    let output: String = Concat("    ", abi.c_element_type);
+    var output: String = Concat("    ", abi.c_element_type);
     output = Concat(output, " pgy_array_int_reverse_storage[3];\n");
     return Concat(output,
         "    PgyArray_Int pgy_array_int_reverse_collection = {pgy_array_int_reverse_storage, 0, 3, NULL};\n");

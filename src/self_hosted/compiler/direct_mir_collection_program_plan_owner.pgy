@@ -39,7 +39,7 @@ func DirectMirCollectionProgramPlanDigest(
     ref plan: DirectMirCollectionProgramPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(761L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(761L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
@@ -111,7 +111,7 @@ func DirectMirCollectionProgramPlanMutationRejected(
     own plan: DirectMirCollectionProgramPlan
 ) -> Bool {
     if !DirectMirCollectionProgramPlanReady(plan) { return false; }
-    let bad_target: DirectMirCollectionProgramPlan =
+    var bad_target: DirectMirCollectionProgramPlan =
         DirectMirCollectionProgramPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.target_capability_schema,
@@ -123,7 +123,7 @@ func DirectMirCollectionProgramPlanMutationRejected(
     bad_target = DirectMirCollectionProgramPlanWithDigest(
         bad_target, DirectMirCollectionProgramPlanDigest(bad_target)
     );
-    let bad_carriage: DirectMirCollectionProgramPlan =
+    var bad_carriage: DirectMirCollectionProgramPlan =
         DirectMirCollectionProgramPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.target_capability_schema,

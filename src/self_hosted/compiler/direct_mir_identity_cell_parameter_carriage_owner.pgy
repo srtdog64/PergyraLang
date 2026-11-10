@@ -8,9 +8,18 @@ func DirectMirScalarProgramIdentityCellParameterCarriageReady(
 ) -> Bool {
     let cell: Int = DirectMirIdentityCellRow(cells, type_name);
     if cell < 0 { return false; }
+    if carriage == "participant" {
+        return cells.nominal_kinds[cell] == "subject" ||
+            cells.nominal_kinds[cell] == "vessel" ||
+            cells.nominal_kinds[cell] == "zone";
+    }
     if cells.nominal_kinds[cell] == "zone" ||
         cells.nominal_kinds[cell] == "world" {
-        return carriage == "readonly-ref" || carriage == "mutable-identity";
+        // `inout` keeps the same noncopy identity. Its MIR spelling is
+        // value-result, but unlike a passive value there is no copyout cell:
+        // the existing identity pointer is carried through unchanged.
+        return carriage == "readonly-ref" || carriage == "mutable-identity" ||
+            carriage == "value-result";
     }
     return (cells.nominal_kinds[cell] == "subject" ||
             cells.nominal_kinds[cell] == "vessel") &&
@@ -24,27 +33,27 @@ func DirectMirScalarProgramIdentityCellParameterReady(
     if ordinal < 0 || ordinal >= signature.param_count { return false; }
     let type_name: String = signature.parameters.type_names[ordinal];
     let carriage: String = signature.parameters.carriages[ordinal];
-    let admitted_carriage: Bool =
+    var admitted_carriage: Bool =
         DirectMirScalarProgramIdentityCellParameterCarriageReady(
             cells, type_name, carriage);
-    // An Intent's admitted binder retains its own protocol mode. Recognizing
-    // its cell representation does not discharge placement or cleanup.
-    if signature.kind == "intent" {
-        admitted_carriage = DirectMirIdentityCellRow(cells, type_name) >= 0 &&
-            carriage == "participant";
-    }
+    let admitted_pass: Bool =
+        (carriage == "value-result" &&
+         signature.parameters.pass_shapes[ordinal] == "direct") ||
+        (carriage != "value-result" &&
+         signature.parameters.pass_shapes[ordinal] == "indirect");
+    // Recognizing an Intent participant's cell representation does not
+    // discharge placement or cleanup; the signature schema still owns that
+    // protocol-only carriage.
     return admitted_carriage &&
         signature.parameters.resources[ordinal] == "none" &&
-        signature.parameters.pass_shapes[ordinal] == "indirect" &&
+        admitted_pass &&
         !signature.parameters.abi_required[ordinal] &&
         signature.parameters.abi_layout_ids[ordinal] == 0 &&
         signature.parameters.abi_row_keys[ordinal] == "";
 }
 
-// A method receiver owns mutable identity in the routine header while its
-// implicit `self` parameter retains the producer's value/direct transport row.
-// This is not an ordinary value parameter and must remain tied to the exact
-// identity-cell declaration owned by the receiver header.
+// A method receiver is normalized to the same mutable-identity transport used
+// by its ABI. It remains tied to the exact identity-cell declaration.
 func DirectMirScalarProgramIdentityCellReceiverParameterReady(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
     ref cells: DirectMirIdentityCellFacts
@@ -63,9 +72,9 @@ func DirectMirScalarProgramIdentityCellReceiverParameterReady(
         cells.declaration_rows[cell] == signature.receiver_owner_row &&
         signature.parameters.names[ordinal] == "self" &&
         signature.parameters.type_names[ordinal] == signature.receiver_type &&
-        signature.parameters.carriages[ordinal] == "value" &&
+        signature.parameters.carriages[ordinal] == "mutable-identity" &&
         signature.parameters.resources[ordinal] == "none" &&
-        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        signature.parameters.pass_shapes[ordinal] == "indirect" &&
         !signature.parameters.abi_required[ordinal] &&
         signature.parameters.abi_layout_ids[ordinal] == 0 &&
         signature.parameters.abi_row_keys[ordinal] == "";

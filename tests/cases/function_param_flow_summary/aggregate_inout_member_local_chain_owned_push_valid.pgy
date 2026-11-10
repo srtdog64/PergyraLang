@@ -1,0 +1,35 @@
+// An inout aggregate may lend several disjoint String-array fields through
+// immutable local carriers. Each exact field is restored before the return.
+struct Names {
+    values: Array<String>;
+    labels: Array<String>;
+}
+
+struct Wrapper {
+    names: Names;
+}
+
+struct State {
+    wrapper: Wrapper;
+}
+
+func Append(inout state: State) -> Void {
+    var names: Names = state.wrapper.names;
+    var values: Array<String> = names.values;
+    var labels: Array<String> = names.labels;
+    ArrayPushOwnedString(values, Concat("b", ""));
+    ArrayPushOwnedString(labels, Concat("y", ""));
+    names.values = values;
+    names.labels = labels;
+    state.wrapper.names = names;
+}
+
+func Main() -> Int {
+    var state: State = State(Wrapper(
+        Names([Concat("a", "")], [Concat("x", "")])
+    ));
+    Append(state);
+    Print(state.wrapper.names.values[1]);
+    Log(ArrayLength(state.wrapper.names.labels));
+    return 0;
+}

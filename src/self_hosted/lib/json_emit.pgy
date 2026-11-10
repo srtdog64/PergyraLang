@@ -15,9 +15,9 @@ func JsonEscapeStringWithAllocator(
     result_allocator: Allocator
 ) -> String {
     let output: TextBuilder = TextBuilderNew(StringLength(value) + 1);
-    let i: Int = 0;
+    var i: Int = 0;
     let n: Int = StringLength(value);
-    let span_start: Int = 0;
+    var span_start: Int = 0;
     while i < n {
         let escaped: String = JsonEscapeTokenAt(value, n, n, i);
         if escaped != "" {
@@ -76,7 +76,7 @@ func JsonStringLiteral(value: String) -> String {
 }
 
 func JsonStringLiteralRequiresEscape(value: String, value_extent: Int, length: Int) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < length {
         if JsonEscapeTokenAt(value, value_extent, length, i) != "" { return true; }
         i = i + 1;
@@ -126,9 +126,9 @@ func JsonOwnedFragmentWriteFile(
 func JsonEmitCollection(
     items: Array<String>, open_token: String, close_token: String
 ) -> String {
-    let capacity: Int = StringLength(open_token) +
+    var capacity: Int = StringLength(open_token) +
         StringLength(close_token) + 1;
-    let size_i: Int = 0;
+    var size_i: Int = 0;
     while size_i < ArrayLength(items) {
         capacity = capacity + StringLength(items[size_i]);
         if size_i > 0 { capacity = capacity + 1; }
@@ -137,7 +137,7 @@ func JsonEmitCollection(
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(capacity);
     TextBuilderAppend(output, open_token);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(items) {
         if i > 0 { TextBuilderAppend(output, ","); }
         TextBuilderAppend(output, items[i]);
@@ -180,7 +180,7 @@ func JsonEmitFieldNumber(key: String, value: String) -> String {
 }
 
 func JsonEmitFieldBool(key: String, value: Bool) -> String {
-    let raw: String = "false";
+    var raw: String = "false";
     if value {
         raw = "true";
     }

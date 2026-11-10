@@ -1,5 +1,70 @@
 import "../../../src/self_hosted/mir/collection_ownership_fact_owner.pgy";
 
+func MirCollectionNestedMemberPathFactsPass() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Struct: Leaf\n    Fields:\n      values: Array<String>\n      count: Int\n  Struct: Outer\n    Fields:\n      inner: Leaf\n      direct: Array<String>\n  Struct: Foreign\n    Fields:\n      values: Array<String>\n");
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let leaf: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, "Leaf");
+    let outer: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, "Outer");
+    let foreign: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, "Foreign");
+    if !SemanticAstNominalConstructorRowsReady(constructors) ||
+        !IsSome(leaf) || !IsSome(outer) || !IsSome(foreign) {
+        return false;
+    }
+    let leaf_values: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(leaf), "values");
+    let leaf_count: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(leaf), "count");
+    let outer_inner: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(outer), "inner");
+    let outer_direct: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(outer), "direct");
+    let foreign_values: Option<Int> =
+        SemanticAstNominalConstructorFieldRowForName(
+            constructors, UnwrapOption(foreign), "values");
+    if !IsSome(leaf_values) || !IsSome(leaf_count) ||
+        !IsSome(outer_inner) || !IsSome(outer_direct) ||
+        !IsSome(foreign_values) {
+        return false;
+    }
+    let leaf_values_id: Int = constructors.field_source_syntax_ids[
+        UnwrapOption(leaf_values)];
+    let leaf_count_id: Int = constructors.field_source_syntax_ids[
+        UnwrapOption(leaf_count)];
+    let outer_inner_id: Int = constructors.field_source_syntax_ids[
+        UnwrapOption(outer_inner)];
+    let outer_direct_id: Int = constructors.field_source_syntax_ids[
+        UnwrapOption(outer_direct)];
+    let foreign_values_id: Int = constructors.field_source_syntax_ids[
+        UnwrapOption(foreign_values)];
+    let nested: Array<Int> = [outer_inner_id, leaf_values_id];
+    let direct: Array<Int> = [outer_direct_id];
+    let truncated: Array<Int> = [leaf_values_id];
+    let reordered: Array<Int> = [leaf_values_id, outer_inner_id];
+    let foreign_path: Array<Int> = [outer_inner_id, foreign_values_id];
+    let scalar_path: Array<Int> = [outer_inner_id, leaf_count_id];
+    return SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", nested, 0, 2, leaf_values_id) &&
+        SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", direct, 0, 1, outer_direct_id) &&
+        !SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", truncated, 0, 1, leaf_values_id) &&
+        !SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", reordered, 0, 2, outer_inner_id) &&
+        !SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", foreign_path, 0, 2, foreign_values_id) &&
+        !SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", scalar_path, 0, 2, leaf_count_id) &&
+        !SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", nested, 1, 2, leaf_values_id) &&
+        !SelfMirCollectionOwnershipMemberPathReady(
+            constructors, "Outer", nested, 0, 2, outer_direct_id);
+}
+
 func Main() -> Void {
     let local_types: Array<String> = [];
     ArrayPushOwnedString(local_types, "Box<String>");
@@ -22,6 +87,7 @@ func Main() -> Void {
     ArrayDropOwnedStrings(local_types);
     ArrayDropOwnedStrings(parameter_types);
     if local_type != "Box<String>" || parameter_type != "Array<Int>" ||
-        duplicate_type != "" || missing_type != "" { Exit(1); }
+        duplicate_type != "" || missing_type != "" ||
+        !MirCollectionNestedMemberPathFactsPass() { Exit(1); }
     Log("MIR BINDING TYPE SCALAR COPY PASS");
 }

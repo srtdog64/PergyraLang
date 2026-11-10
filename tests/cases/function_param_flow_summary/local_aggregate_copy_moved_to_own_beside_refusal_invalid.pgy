@@ -1,0 +1,36 @@
+struct Plan {
+    values: Array<Int>;
+}
+
+func ConsumePlan(own plan: Plan) -> Bool {
+    return ArrayLength(plan.values) == 1;
+}
+
+func Build() -> Plan {
+    let verified: Plan = Plan([7]);
+    let negative: Plan = verified;
+    Print(ToString(ConsumePlan(negative)));
+    return verified;
+}
+
+func ConsumeRows(own rows: Array<Int>) -> Int {
+    return ArrayLength(rows);
+}
+
+func Bad() -> Void {
+    let rows: Array<Int> = [7];
+    let first = rows;
+    let second = first;
+    Log(ConsumeRows(second));
+    Log(ArrayLength(rows));
+}
+
+func Main() -> Int {
+    let plan: Plan = Build();
+    Print(ToString(ArrayLength(plan.values)));
+    Bad();
+    return 0;
+}
+
+// Bad's escaped descriptor remains refused. An unrelated copy candidate in
+// Build does not require a landing round for a program already rejected.

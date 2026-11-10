@@ -178,7 +178,7 @@ test_semantic_ownership_boundaries_part_a(void)
     {
         const char *source =
             "func BorrowAssign(ref q: QubitSlot) -> Void {\n"
-            "    let dst: QubitSlot = ClaimQubit();\n"
+            "    var dst: QubitSlot = ClaimQubit();\n"
             "    dst = q;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -205,7 +205,7 @@ test_semantic_ownership_boundaries_part_a(void)
     {
         const char *source =
             "func BorrowList(ref q: QubitSlot) -> Void {\n"
-            "    let items: List<QubitSlot> = ListNew();\n"
+            "    var items: List<QubitSlot> = ListNew();\n"
             "    ListPush(items, q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -230,7 +230,7 @@ test_semantic_ownership_boundaries_part_a(void)
     {
         const char *source =
             "func BorrowQueue(ref q: QubitSlot) -> Void {\n"
-            "    let items: Queue<QubitSlot> = QueueNew();\n"
+            "    var items: Queue<QubitSlot> = QueueNew();\n"
             "    QueuePush(items, q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -253,7 +253,7 @@ test_semantic_ownership_boundaries_part_a(void)
     {
         const char *source =
             "func BorrowArraySet(ref q: QubitSlot) -> Void {\n"
-            "    let items: Array<QubitSlot> = [ClaimQubit()];\n"
+            "    var items: Array<QubitSlot> = [ClaimQubit()];\n"
             "    ArraySet(items, 0, q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -276,7 +276,7 @@ test_semantic_ownership_boundaries_part_a(void)
     {
         const char *source =
             "func BorrowSet(ref q: QubitSlot) -> Void {\n"
-            "    let seen: Set<QubitSlot> = SetNew();\n"
+            "    var seen: Set<QubitSlot> = SetNew();\n"
             "    SetAdd(seen, q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -299,7 +299,7 @@ test_semantic_ownership_boundaries_part_a(void)
     {
         const char *source =
             "func BorrowMap(ref q: QubitSlot) -> Void {\n"
-            "    let slots: HashMap<String, QubitSlot> = MapNew();\n"
+            "    var slots: HashMap<String, QubitSlot> = MapNew();\n"
             "    MapSet(slots, \"lead\", q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -323,7 +323,7 @@ test_semantic_ownership_boundaries_part_a(void)
         const char *source =
             "func BorrowArrayPush(ref q: QubitSlot) -> Void {\n"
             "    let seed: QubitSlot = ClaimQubit();\n"
-            "    let items: Array<QubitSlot> = [seed];\n"
+            "    var items: Array<QubitSlot> = [seed];\n"
             "    ArrayPush(items, q);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

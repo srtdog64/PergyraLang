@@ -47,7 +47,8 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle,
 
     LLVMGenResult *gen = llvm_codegen_from_mir_with_projection_plans(
         bundle->mir, &projection_plan, &parallel_capture_plan,
-        &spawn_lane_plan, bundle->region_plan, module_name);
+        &spawn_lane_plan, bundle->region_plan,
+        bundle->collection_effect_receipt, module_name);
     pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     pgy_verified_parallel_capture_plan_dispose(&parallel_capture_plan);
     if (gen == NULL)
@@ -120,7 +121,8 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
 
     LLVMGenResult *gen = llvm_codegen_from_mir_with_projection_plans(
         bundle->mir, &projection_plan, &parallel_capture_plan,
-        &spawn_lane_plan, bundle->region_plan, module_name);
+        &spawn_lane_plan, bundle->region_plan,
+        bundle->collection_effect_receipt, module_name);
     pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     pgy_verified_parallel_capture_plan_dispose(&parallel_capture_plan);
     if (gen == NULL)
@@ -211,6 +213,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         bundle->mir, &projection_plan, &parallel_capture_plan,
         &spawn_lane_plan,
         bundle->region_plan,
+        bundle->collection_effect_receipt,
         "pergyra_module",
         output_obj_path,
         opt_profile == PGY_OPT_RELEASE);

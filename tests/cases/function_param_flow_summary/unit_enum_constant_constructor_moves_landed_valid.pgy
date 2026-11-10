@@ -17,7 +17,7 @@ func Reject(names: Array<String>) -> Failure {
 }
 
 func Main() -> Int {
-    let names: Array<String> = ["a"];
+    var names: Array<String> = ["a"];
     let failure: Failure = Reject(names);
     ArrayPush(names, "b");
     Print(failure.names[0]);

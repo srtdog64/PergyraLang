@@ -14,7 +14,7 @@ func EnvValueRow(ref scope: SemanticAstEnumValueScope, name: String) -> Int {
     if ArrayLength(scope.bucket_starts) != 257 || length == 0 { return -1; }
     let first_byte: Int = CharCode(name, length, 0);
     if first_byte < 0 { return -1; }
-    let row: Int = scope.bucket_starts[first_byte];
+    var row: Int = scope.bucket_starts[first_byte];
     while row < scope.bucket_starts[first_byte + 1] {
         if scope.names[row] == name { return row; }
         row = row + 1;
@@ -71,7 +71,7 @@ func EnvValueSliceMode(
 }
 
 func EnvSliceContainsName(names: Slice<String>, name: String) -> Bool {
-    let i: Int = ArrayLength(names) - 1;
+    var i: Int = ArrayLength(names) - 1;
     while i >= 0 {
         let candidate: String = Concat("", names[i]);
         if candidate == name { return true; }

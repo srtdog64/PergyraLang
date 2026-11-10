@@ -62,12 +62,12 @@ func DirectMirScalarProgramEnumUnreachableBlocks(
     let end: Int = first + count;
     if first < 0 || count < 1 || end > ArrayLength(plan.block_succ_true) ||
         end > ArrayLength(plan.block_succ_false) { return invalid; }
-    let guards: Array<DirectMirScalarProgramEnumGuardFact> = [];
-    let incoming: Array<Int> = [];
-    let predecessor: Array<Int> = [];
-    let false_excluded: Array<Int> = [];
-    let dead: Array<Int> = [];
-    let row: Int = 0;
+    var guards: Array<DirectMirScalarProgramEnumGuardFact> = [];
+    var incoming: Array<Int> = [];
+    var predecessor: Array<Int> = [];
+    var false_excluded: Array<Int> = [];
+    var dead: Array<Int> = [];
+    var row: Int = 0;
     while row < count {
         ArrayPush(guards, DirectMirScalarProgramEnumGuardAt(plan, first + row));
         ArrayPush(incoming, 0); ArrayPush(predecessor, -1);
@@ -76,9 +76,9 @@ func DirectMirScalarProgramEnumUnreachableBlocks(
     }
     row = 0;
     while row < count {
-        let side: Int = 0;
+        var side: Int = 0;
         while side < 2 {
-            let target: Int = plan.block_succ_true[first + row];
+            var target: Int = plan.block_succ_true[first + row];
             if side == 1 { target = plan.block_succ_false[first + row]; }
             if target < -1 || target >= end || (target >= 0 && target < first) { return invalid; }
             if target >= 0 {
@@ -94,10 +94,10 @@ func DirectMirScalarProgramEnumUnreachableBlocks(
     while row < count {
         let guard_fact: DirectMirScalarProgramEnumGuardFact = guards[row];
         if guard_fact.shape != 0 && guard_fact.count > 0 {
-            let seen: HashMap<Int, Int> = MapNew();
-            let distinct: Int = 0;
-            let current: Int = first + row;
-            let hops: Int = 0;
+            var seen: HashMap<Int, Int> = MapNew();
+            var distinct: Int = 0;
+            var current: Int = first + row;
+            var hops: Int = 0;
             while hops < count {
                 let prior: DirectMirScalarProgramEnumGuardFact = guards[current - first];
                 if !DirectMirScalarProgramEnumGuardSame(plan.program.expressions, guard_fact, prior) ||
@@ -125,18 +125,18 @@ func DirectMirScalarProgramEnumUnreachableBlocks(
         }
         row = row + 1;
     }
-    let pending: Array<Int> = [];
+    var pending: Array<Int> = [];
     row = 1;
     while row < count {
         if incoming[row] == 0 { dead[row] = 1; ArrayPush(pending, first + row); }
         row = row + 1;
     }
-    let cursor: Int = 0;
+    var cursor: Int = 0;
     while cursor < ArrayLength(pending) {
         let block: Int = pending[cursor];
-        let side: Int = 0;
+        var side: Int = 0;
         while side < 2 {
-            let target: Int = plan.block_succ_true[block];
+            var target: Int = plan.block_succ_true[block];
             if side == 1 { target = plan.block_succ_false[block]; }
             if target >= 0 && (side == 0 || false_excluded[block - first] == 0) {
                 let target_row: Int = target - first;

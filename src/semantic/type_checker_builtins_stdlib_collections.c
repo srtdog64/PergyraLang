@@ -6,6 +6,7 @@
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
 #include "diag_codes.h"
+#include "collection_ownership_fact.h"
 #include "function_param_publication_owner.h"
 
 
@@ -131,30 +132,40 @@ semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
     ASTNode *callee = ast_call_callee(call);
     StdlibCollectionBuiltinKind kind = stdlib_collection_builtin_kind(ast_identifier_name(callee));
     bool length = kind == STDLIB_COLLECTION_ARRAY_LENGTH;
-    if (ast_call_arg_count(call) != (length ? 1u : 2u)) return false;
-    /* A plain push of a fresh String adds one nothing else owns, the same
-     * as an owned push: a builtin Clone (a landed copy is one) or a stdlib
-     * Concat call, which both backends emit as a new allocation. A literal,
-     * a `+` (a region may own it) or another call's result is not fresh. */
-    uint32_t builtin = 0;
-    const ASTNode *pushed = length ? NULL : ast_call_argument(call, 1);
-    const ASTNode *producer = pushed != NULL && pushed->type == AST_CALL ? ast_call_callee(pushed) : NULL;
-    const char *made_by = producer != NULL && producer->type == AST_IDENTIFIER
-        ? ast_identifier_name(producer) : NULL;
-    bool fresh = kind == STDLIB_COLLECTION_ARRAY_PUSH && made_by != NULL
-        && ((ast_call_semantic_callee_builtin_kind(pushed, &builtin) && builtin == BUILTIN_CLONE)
-            || (ast_call_semantic_callee_is_stdlib(pushed)
-                && ast_call_semantic_callee_decl_id(pushed) == 0
-                && ast_call_semantic_callee_value_binding_id(pushed) == 0
-                && (strcmp(made_by, "Concat") == 0 || strcmp(made_by, "StringConcat") == 0)));
-    if (!length && !fresh && kind != STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) return false;
+    bool owned_push = kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING ||
+        (kind == STDLIB_COLLECTION_ARRAY_PUSH &&
+         semantic_collection_owned_string_push_effect_current(
+             call, ast_call_argument(call, 0), ctx));
+    bool owned_set = kind == STDLIB_COLLECTION_ARRAY_SET_OWNED_STRING;
+    bool owned_pop = kind == STDLIB_COLLECTION_ARRAY_POP &&
+        semantic_collection_owned_string_pop_effect_current(
+            call, ast_call_argument(call, 0), ctx);
+    size_t value_ordinal = owned_set ? 2u : 1u;
+    size_t expected_arity = length || owned_pop ? 1u : owned_set ? 3u : 2u;
+    if ((!length && !owned_push && !owned_set && !owned_pop)
+        || ast_call_arg_count(call) != expected_arity) return false;
+    /* Element ownership belongs to the collection-effect owner.  Do not
+     * recreate it here from Clone/Concat spelling: the exact receipt also
+     * proves its receiver and, for a general ArrayPush, its source call.  An
+     * owned pop retires exactly the removed String, so the same receipt proves
+     * that every element still in the Array remains owned. */
+    if (!length && !owned_pop && !(owned_set
+            ? semantic_collection_owned_string_set_effect_current(
+                call, ast_call_argument(call, 0), ctx)
+            : semantic_collection_owned_string_push_effect_current(
+                call, ast_call_argument(call, 0), ctx)))
+        return false;
     SemanticPublishedValue array = semantic_param_publication_value(ctx, ast_call_argument(call, 0));
     SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
     if (!array.ok || array.meta || !type_is_constructed_named(array.type, "Array")
         || !result.ok || result.meta || !type_equals(result.type, length ? TYPE_INT : TYPE_VOID)) return false;
     if (length) return true;
-    SemanticPublishedValue item = semantic_param_publication_value(ctx, ast_call_argument(call, 1));
-    return semantic_param_publication_checked_argument(ctx, call, 1)
+    if (owned_pop)
+        return type_equals(type_get_constructed_arg(array.type, 0),
+            TYPE_STRING);
+    SemanticPublishedValue item = semantic_param_publication_value(
+        ctx, ast_call_argument(call, value_ordinal));
+    return semantic_param_publication_checked_argument(ctx, call, value_ordinal)
         && type_equals(type_get_constructed_arg(array.type, 0), TYPE_STRING)
         && item.ok && !item.meta && type_equals(item.type, TYPE_STRING);
 }

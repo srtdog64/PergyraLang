@@ -61,7 +61,7 @@ func CompilerHarnessBackendTriSmokeCasesReady() -> Bool {
     if CompilerHarnessBackendTriSmokeCaseCount() != 14 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessBackendTriSmokeCaseCount() {
         if CompilerHarnessBackendTriSmokeCaseAt(i) == "" {
             return false;
@@ -75,7 +75,7 @@ func CompilerHarnessBackendTriExtendedCasesReady() -> Bool {
     if CompilerHarnessBackendTriExtendedCaseCount() != 17 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessBackendTriExtendedCaseCount() {
         if CompilerHarnessBackendTriExtendedCaseAt(i) == "" {
             return false;

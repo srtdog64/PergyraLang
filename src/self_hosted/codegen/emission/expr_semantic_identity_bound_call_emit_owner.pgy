@@ -9,7 +9,7 @@ import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func RewriteSemanticIdentityBoundCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     binding_kind: Int,
     env: CodegenTypeEnv,
@@ -35,7 +35,7 @@ func RewriteSemanticIdentityBoundCall(
         (declared && IsSome(binding_ordinal)) {
         Die("identity-bound C call lane is invalid");
     }
-    let call_symbol: String = "";
+    var call_symbol: String = "";
     if formal {
         call_symbol = LookupKindType(
             env, CodegenCallableBindingSyntaxKey(binding.syntax_id), "call"

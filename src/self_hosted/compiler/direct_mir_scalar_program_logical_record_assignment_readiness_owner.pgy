@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
@@ -21,8 +22,8 @@ func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
         return "";
     }
     let element_type: String = plan.program.expressions.node_types[root];
-    let index_kind: Int = DirectMirScalarProgramExprArrayIntIndex();
-    let array_type: String = CompilerAbiLayoutArrayIntTypeName();
+    var index_kind: Int = DirectMirScalarProgramExprArrayIntIndex();
+    var array_type: String = CompilerAbiLayoutArrayIntTypeName();
     if element_type == CompilerAbiLayoutStringTypeName() {
         index_kind = DirectMirScalarProgramExprArrayStringIndex();
         array_type = CompilerAbiLayoutArrayStringTypeName();
@@ -43,7 +44,7 @@ func DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
     result: Int, routine: Int
 ) -> Bool {
     let local_row: Int = plan.value_local_rows[result];
-    let base: Int = target_root;
+    var base: Int = target_root;
     while base >= 0 && plan.program.expressions.node_kinds[base] == DirectMirScalarProgramExprLogicalRecordMember() {
         base = plan.program.expressions.node_lefts[base];
     }
@@ -64,7 +65,7 @@ func DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
             plan.routines.parameter_types[parameter_row] ==
                 plan.value_types[result] &&
             plan.routines.parameter_carriages[parameter_row] == "value-result" &&
-            local_row == DirectMirScalarProgramLogicalRecordValueResultLocalRow(plan, routine, parameter);
+            local_row == DirectMirScalarProgramParameterValueResultLocalRow(plan, routine, parameter);
     }
     if base_kind != DirectMirScalarProgramExprParameter() { return false; }
     let ordinal: Int = plan.program.expressions.node_parameter_ordinals[base];

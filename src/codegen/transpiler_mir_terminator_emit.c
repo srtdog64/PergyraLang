@@ -14,6 +14,7 @@
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_ssa_names.h"
 #include "../semantic/diag_codes.h"
+#include "../compiler/mir_loop_collection_cleanup.h"
 
 static bool transpiler_emit_collection_retirements(TranspilerCtx *ctx,
     const MIRBasicBlock *block, size_t target, int indent)
@@ -21,6 +22,11 @@ static bool transpiler_emit_collection_retirements(TranspilerCtx *ctx,
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->collection_cleanup_kind == 0 || inst->collection_cleanup_target != target) continue;
+        const MIRResourceRuntimeRow *runtime = mir_collection_retirement_runtime_row(inst);
+        if (inst->collection_cleanup_kind == 3 && runtime == NULL) {
+            transpiler_set_mir_topology_invalid(ctx, "MIR scalar retirement has no runtime ABI fact");
+            return false;
+        }
         char *value = transpiler_render_ssa_name(ctx, inst->arg0);
         if (value == NULL) {
             transpiler_set_mir_topology_invalid(ctx, "MIR collection retirement has no current SSA storage");
@@ -28,7 +34,8 @@ static bool transpiler_emit_collection_retirements(TranspilerCtx *ctx,
         }
         write_indent_to(ctx->out, indent);
         codebuf_write(ctx->out, "%s(&%s);\n",
-            inst->collection_cleanup_kind == 2 ? "pgy_array_drop_owned_String" : "pgy_array_drop_String", value);
+            runtime != NULL ? runtime->runtime_fn :
+                (inst->collection_cleanup_kind == 2 ? "pgy_array_drop_owned_String" : "pgy_array_drop_String"), value);
         free(value);
     }
     return true;

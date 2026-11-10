@@ -18,9 +18,9 @@ func ParseZoneDecl(
     inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
+    var out: String = "";
     i = LanguageWordEnd(i, LanguageWordId.WordZone);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -32,16 +32,16 @@ func ParseZoneDecl(
     ArrayPush(involve_types, zone_name);
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "zone");
-    let slot_accum: String = "";
+    var slot_accum: String = "";
     // Effect and relation slots, pools and groups print after every
     // subject/object/tobject/binding slot, as native keeps them apart.
-    let layer_accum: String = "";
-    let shared_accum: String = "";
-    let apply_accum: String = "";
-    let link_accum: String = "";
-    let auth_accum: String = "";
-    let state_accum: String = "";
-    let bind_accum: String = "";
+    var layer_accum: String = "";
+    var shared_accum: String = "";
+    var apply_accum: String = "";
+    var link_accum: String = "";
+    var auth_accum: String = "";
+    var state_accum: String = "";
+    var bind_accum: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -55,8 +55,8 @@ func ParseZoneDecl(
         // `binding slot NAME: TYPE`, `object slot NAME: TYPE`, or
         // `tobject slot NAME: TYPE`. Each emits the corresponding typed slot
         // with the same `NAME: TYPE` payload.
-        let slot_label: String = "";
-        let is_auth: Bool = false;
+        var slot_label: String = "";
+        var is_auth: Bool = false;
         // `forbids unsafe` sets a zone flag the native tree does not print.
         if MatchLanguageWord(content, i, LanguageWordId.WordForbids) {
             i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordForbids));
@@ -114,7 +114,7 @@ func ParseZoneDecl(
 	                    let a_dest: String = ParseNameIn(location_context, content, i,
 	                        "target slot name", "zone_apply", cursor_out);
 	                    i = SkipWhitespaceAndComments(content, cursor_out[0]);
-	                    let a_by: String = "";
+	                    var a_by: String = "";
 	                    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
 	                        a_by = ParseNameIn(location_context, content,
 	                            LanguageWordEnd(i, LanguageWordId.WordBy),
@@ -124,7 +124,7 @@ func ParseZoneDecl(
 	                    if i < n && ParserCharAt(content, i) == ";" {
 	                        i = i + 1;
 	                    }
-	                    let apply_row: String = Concat("    Apply: ", Concat(a_eff, Concat(" -> ", a_dest)));
+	                    var apply_row: String = Concat("    Apply: ", Concat(a_eff, Concat(" -> ", a_dest)));
 	                    if StringLength(a_by) > 0 {
 	                        apply_row = Concat(apply_row, Concat(" by ", a_by));
 	                    }
@@ -147,7 +147,7 @@ func ParseZoneDecl(
 	                    let l_p2: String = ParseNameIn(location_context, content, i,
 	                        "right slot name", "zone_link", cursor_out);
 	                    i = SkipWhitespaceAndComments(content, cursor_out[0]);
-	                    let l_by: String = "";
+	                    var l_by: String = "";
 	                    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
 	                        l_by = ParseNameIn(location_context, content,
 	                            LanguageWordEnd(i, LanguageWordId.WordBy),
@@ -157,7 +157,7 @@ func ParseZoneDecl(
 	                    if i < n && ParserCharAt(content, i) == ";" {
 	                        i = i + 1;
 	                    }
-	                    let link_row: String = Concat("    Link: ", Concat(l_rel, Concat(" between ", Concat(l_p1, Concat(", ", l_p2)))));
+	                    var link_row: String = Concat("    Link: ", Concat(l_rel, Concat(" between ", Concat(l_p1, Concat(", ", l_p2)))));
 	                    if StringLength(l_by) > 0 {
 	                        link_row = Concat(link_row, Concat(" by ", l_by));
 	                    }
@@ -180,7 +180,7 @@ func ParseZoneDecl(
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "zone_shared", "", "");
             }
             i = SkipWhitespaceAndComments(content, i);
-            let default_text: String = "";
+            var default_text: String = "";
             if ParserCharAt(content, i) == "=" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
@@ -188,7 +188,7 @@ func ParseZoneDecl(
                 i = cursor_out[0];
             }
             i = ParseStatementTerminatorIn(location_context, content, i, "zone_shared");
-            let shared_row: String = Concat(
+            var shared_row: String = Concat(
                 "    Shared: ", Concat(field_name, Concat(": ", field_type))
             );
             if default_text != "" {
@@ -279,7 +279,7 @@ func ParseZoneDecl(
             }
             ArraySet(cursor_out, 0, i);
 
-            let k: Int = list_start;
+            var k: Int = list_start;
             if ParserCharAt(content, k) == "[" {
                 k = k + 1;
                 while true {
@@ -304,8 +304,8 @@ func ParseZoneDecl(
             continue;
         } else if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) || MatchLanguageWord(content, i, LanguageWordId.WordPublish) {
             let is_ref: Bool = MatchLanguageWord(content, i, LanguageWordId.WordRefresh);
-            let ref_pub_label: String = "Publish";
-            let ref_pub_kw_len: Int = LanguageWordLength(LanguageWordId.WordPublish);
+            var ref_pub_label: String = "Publish";
+            var ref_pub_kw_len: Int = LanguageWordLength(LanguageWordId.WordPublish);
             if is_ref {
                 ref_pub_label = "Refresh";
                 ref_pub_kw_len = LanguageWordLength(LanguageWordId.WordRefresh);
@@ -313,8 +313,8 @@ func ParseZoneDecl(
             i = i + ref_pub_kw_len;
             i = SkipWhitespaceAndComments(content, i);
             let list_start: Int = i;
-            let target_count: Int = 0;
-            let target_expected: String = "tobject slot name";
+            var target_count: Int = 0;
+            var target_expected: String = "tobject slot name";
             if is_ref { target_expected = "object slot name"; }
             if ParserCharAt(content, i) == "[" {
                 i = i + 1;
@@ -343,7 +343,7 @@ func ParseZoneDecl(
             let from_name: String = ParseNameIn(location_context, content,
                 LanguageWordEnd(i, LanguageWordId.WordFrom), "source slot name", "zone_projection", cursor_out);
             i = SkipWhitespaceAndComments(content, cursor_out[0]);
-            let by_name: String = "";
+            var by_name: String = "";
             if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
                 by_name = ParseNameIn(location_context, content,
                     LanguageWordEnd(i, LanguageWordId.WordBy), "subject slot name", "zone_projection", cursor_out);
@@ -364,7 +364,7 @@ func ParseZoneDecl(
                 i = i + 1;
             }
 
-            let k: Int = list_start;
+            var k: Int = list_start;
             if ParserCharAt(content, k) == "[" {
                 k = k + 1;
                 while true {
@@ -372,7 +372,7 @@ func ParseZoneDecl(
                     ArraySet(cursor_out, 0, k);
                     let t_name: String = ReadIdent(content, k, cursor_out);
                     k = cursor_out[0];
-                    let projection_row: String = Concat(
+                    var projection_row: String = Concat(
                         "    ", Concat(ref_pub_label, Concat(
                             ": ", Concat(t_name, Concat(" from ", from_name))
                         ))
@@ -393,7 +393,7 @@ func ParseZoneDecl(
             } else {
                 ArraySet(cursor_out, 0, k);
                 let t_name: String = ReadIdent(content, k, cursor_out);
-                let projection_row: String = Concat(
+                var projection_row: String = Concat(
                     "    ", Concat(ref_pub_label, Concat(
                         ": ", Concat(t_name, Concat(" from ", from_name))
                     ))
@@ -434,7 +434,7 @@ func ParseZoneDecl(
             let auth_name: String = ParseNameIn(location_context, content, i,
                 "subject slot name", "zone_authority", cursor_out);
             i = SkipWhitespaceAndComments(content, cursor_out[0]);
-            let auth_req: String = "";
+            var auth_req: String = "";
             if MatchLanguageWord(content, i, LanguageWordId.WordRequires) {
                 i = LanguageWordEnd(i, LanguageWordId.WordRequires);
                 i = SkipWhitespaceAndComments(content, i);
@@ -531,7 +531,7 @@ func ParseZoneDecl(
         }
     }
     out = AppendLine(out, Concat("  Zone: ", Concat(decl_prefix, zone_name)));
-    let zone_body: String = "";
+    var zone_body: String = "";
     if StringLength(slot_accum) > 0 {
         zone_body = AppendLine(zone_body, slot_accum);
     }

@@ -85,7 +85,7 @@ func HostIORuntimeCSleepFn() -> String {
 func HostIORuntimeCClockBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
     let long_type: String = CompilerAbiLayoutLongCValueType();
-    let block: String = Concat("static ", Concat(long_type, Concat(" ", Concat(HostIORuntimeCNowFn(), "(void)\n{\n"))));
+    var block: String = Concat("static ", Concat(long_type, Concat(" ", Concat(HostIORuntimeCNowFn(), "(void)\n{\n"))));
     block = Concat(block, "    return pgy_now_ms();\n}\n\n");
     block = Concat(block, Concat("static void ", Concat(HostIORuntimeCSleepFn(), Concat("(", Concat(int_type, " ms)\n{\n")))));
     block = Concat(block, "    pgy_sleep_ms(ms <= 0 ? 0 : (ms > 2147483647LL ? 2147483647 : (int32_t)ms));\n}\n\n");
@@ -151,7 +151,7 @@ func HostIORuntimeCEntrypointArgsParamList() -> String {
 }
 
 func HostIORuntimeCEntrypointSignature(uses_args: Bool) -> String {
-    let params: String = HostIORuntimeCEntrypointNoArgsParamList();
+    var params: String = HostIORuntimeCEntrypointNoArgsParamList();
     if uses_args {
         params = HostIORuntimeCEntrypointArgsParamList();
     }
@@ -181,7 +181,7 @@ func HostIORuntimeCLowercaseEntrypointWrapper(
     machine_startup: String,
     user_body_name: String
 ) -> String {
-    let block: String = Concat(
+    var block: String = Concat(
         "\n", Concat(HostIORuntimeCEntrypointSignature(uses_args), "\n{\n")
     );
     if uses_args {
@@ -199,7 +199,7 @@ func HostIORuntimeCLowercaseEntrypointWrapper(
 }
 
 func HostIORuntimeCArgsBlock() -> String {
-    let block: String = "#include \"pgy_runtime_process_utf8_argv.h\"\n";
+    var block: String = "#include \"pgy_runtime_process_utf8_argv.h\"\n";
     block = Concat(block, Concat("static int ", Concat(HostIORuntimeCArgcGlobal(), " = 0;\n")));
     block = Concat(block, Concat("static char **", Concat(HostIORuntimeCArgvGlobal(), " = NULL;\n")));
     block = Concat(block, Concat("static int ", Concat(HostIORuntimeCArgvUtf8Global(), " = 1;\n")));
@@ -212,7 +212,7 @@ func HostIORuntimeCArgsBlock() -> String {
 }
 
 func HostIORuntimeCPathAndSecureOpenBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static int ", Concat(HostIORuntimeCPathAllowedFn(), "(const char *path)\n{\n")));
     block = Concat(block, "    if (path == NULL || path[0] == '\\0') { return 0; }\n");
     block = Concat(block, "    int drive = ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':';\n");
@@ -240,7 +240,7 @@ func HostIORuntimeCFileHandleBlock() -> String {
     let table: String = HostIORuntimeCFileHandleTableGlobal();
     let count: String = HostIORuntimeCFileHandleCountGlobal();
     let valid_fn: String = HostIORuntimeCFileHandleValidFn();
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static FILE *", Concat(table, "[256];\n")));
     block = Concat(block, Concat("static long long ", Concat(count, " = 0;\n")));
     block = Concat(block, Concat("static long long ", Concat(HostIORuntimeCFileOpenFn(), "(const char *path, const char *mode)\n{\n")));
@@ -268,7 +268,7 @@ func HostIORuntimeCFileHandleBlock() -> String {
 }
 
 func HostIORuntimeCFileIOBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static int ", Concat(HostIORuntimeCFileExistsFn(), "(const char *path)\n{\n")));
     block = Concat(block, Concat("    if (!", Concat(HostIORuntimeCPathAllowedFn(), "(path)) { return 0; }\n")));
     block = Concat(block, Concat("    FILE *f = ", Concat(HostIORuntimeCSecureFileOpenFn(), "(path, \"rb\");\n")));
@@ -308,7 +308,7 @@ func HostIORuntimeCFileIOBlock() -> String {
 // walker here opened any path, so `..` or an absolute directory listed files
 // outside the root that TryReadFile refuses. The array only changes shape.
 func HostIORuntimeCDirWalkBlock() -> String {
-    let block: String = Concat("static pgy_as ", Concat(HostIORuntimeCDirWalkFn(), "(const char *dir)\n{\n"));
+    var block: String = Concat("static pgy_as ", Concat(HostIORuntimeCDirWalkFn(), "(const char *dir)\n{\n"));
     block = Concat(block, "    PgyArray_String walked = pgy_dir_walk(dir);\n    pgy_as out;\n");
     block = Concat(block, "    out.data = (const char **)walked.data;\n    out.len = (long long)walked.length;\n");
     block = Concat(block, "    out.cap = (long long)walked.capacity;\n    return out;\n}\n\n");

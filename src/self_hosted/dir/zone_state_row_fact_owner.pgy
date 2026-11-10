@@ -45,7 +45,7 @@ func SelfDirZoneStateRowsEmpty() -> SelfDirZoneStateRows {
 }
 
 func SelfDirZoneStateRowsError(message: String) -> SelfDirZoneStateRows {
-    let rows: SelfDirZoneStateRows = SelfDirZoneStateRowsEmpty();
+    var rows: SelfDirZoneStateRows = SelfDirZoneStateRowsEmpty();
     rows.ok = false;
     rows.diagnostic_message = message;
     return rows;
@@ -55,18 +55,18 @@ func SelfDirZoneStateRowsFromArtifact(
     artifact: AstTreeArtifact,
     declarations: SelfMirDeclarationRows
 ) -> SelfDirZoneStateRows {
-    let owner_names: Array<String> = [];
-    let owner_ids: Array<Int> = [];
-    let source_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let layer_kinds: Array<String> = [];
-    let layer_names: Array<String> = [];
-    let layer_ids: Array<Int> = [];
-    let left_names: Array<String> = [];
-    let left_ids: Array<Int> = [];
-    let right_names: Array<String> = [];
-    let right_ids: Array<Int> = [];
-    let node_id: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_ids: Array<Int> = [];
+    var source_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var layer_kinds: Array<String> = [];
+    var layer_names: Array<String> = [];
+    var layer_ids: Array<Int> = [];
+    var left_names: Array<String> = [];
+    var left_ids: Array<Int> = [];
+    var right_names: Array<String> = [];
+    var right_ids: Array<Int> = [];
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if !TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindDomainStateTag()
@@ -89,7 +89,7 @@ func SelfDirZoneStateRowsFromArtifact(
         let owner: Option<String> = TypedAstArenaAtomText(
             artifact.arena, owner_id
         );
-        let owner_index: Int = -1;
+        var owner_index: Int = -1;
         if IsSome(owner) {
             owner_index = SelfDirDeclarationIndexForName(
                 declarations, UnwrapOption(owner)
@@ -113,10 +113,10 @@ func SelfDirZoneStateRowsFromArtifact(
         let definition: String = StringTrim(Substring(
             text, colon + 2, StringLength(text) - colon - 2
         ));
-        let layer_kind: String = "";
-        let layer_name: String = "";
-        let left_name: String = "";
-        let right_name: String = "";
+        var layer_kind: String = "";
+        var layer_name: String = "";
+        var left_name: String = "";
+        var right_name: String = "";
         if StartsWith(definition, "effect ") {
             layer_kind = "effect";
             let on_pos: Int = StringIndexOf(definition, " on ");
@@ -167,7 +167,7 @@ func SelfDirZoneStateRowsFromArtifact(
                 "self-host DIR zone-state identity is malformed"
             );
         }
-        let expected_layer_kind: String = NominalFieldKindEffectSlot();
+        var expected_layer_kind: String = NominalFieldKindEffectSlot();
         if layer_kind == "relation" {
             expected_layer_kind = NominalFieldKindRelationSlot();
         }
@@ -178,7 +178,7 @@ func SelfDirZoneStateRowsFromArtifact(
             declarations, owner_index, left_name,
             NominalFieldKindSubjectSlot()
         );
-        let right_id: Int = 0;
+        var right_id: Int = 0;
         if layer_kind == "relation" {
             right_id = SelfDirFieldSourceSyntaxId(
                 declarations, owner_index, right_name,
@@ -191,7 +191,7 @@ func SelfDirZoneStateRowsFromArtifact(
                 "self-host DIR zone-state fields do not join the zone"
             );
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(names) {
             if owner_names[prior] == UnwrapOption(owner) &&
                 names[prior] == state_name {
@@ -235,7 +235,7 @@ func SelfDirZoneStateRowsReady(rows: SelfDirZoneStateRows) -> Bool {
         ArrayLength(rows.right_slot_source_syntax_ids) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if rows.owner_names[row] == "" ||
             rows.owner_source_syntax_ids[row] <= 0 ||
@@ -254,7 +254,7 @@ func SelfDirZoneStateRowsReady(rows: SelfDirZoneStateRows) -> Bool {
               rows.right_slot_source_syntax_ids[row] <= 0)) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if rows.source_syntax_ids[prior] == rows.source_syntax_ids[row] ||
                 (rows.owner_names[prior] == rows.owner_names[row] &&

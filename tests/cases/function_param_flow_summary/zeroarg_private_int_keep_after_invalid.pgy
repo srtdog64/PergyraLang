@@ -10,8 +10,8 @@ struct Sequence {
 extern "C" { func Keep(ids: Array<Int>) -> Void; }
 
 func Nested(count: Int) -> Rows {
-    let ids: Array<Int> = [];
-    let row: Int = 0;
+    var ids: Array<Int> = [];
+    var row: Int = 0;
     while row < count {
         ArrayPush(ids, row);
         row = row + 1;
@@ -27,7 +27,7 @@ func OuterEmpty() -> Sequence {
 }
 
 func Error(input: Sequence) -> Sequence {
-    let failed: Sequence = OuterEmpty();
+    var failed: Sequence = OuterEmpty();
     failed.ok = false;
     return failed;
 }

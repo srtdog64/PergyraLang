@@ -46,7 +46,7 @@ func SelfMirCollectionMutationTargetLocal(
     if !target_graph.ok { return None; }
     // The primary LocalRef belongs to the lexical root. The carried target
     // graph retains each field projection; a member name is never a local.
-    let node: Int = target_graph.root_id;
+    var node: Int = target_graph.root_id;
     while node >= 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(target_graph.graph, node);
         let text: Option<String> = SemanticExpressionGraphNodeText(target_graph.graph, node);
@@ -80,7 +80,7 @@ func SelfMirLowerSimpleStatement(
             build, "MIR simple statement requires an owned lowering lane"
         );
     }
-    let subject_name: Option<String> = None;
+    var subject_name: Option<String> = None;
     if subject_graph.ok {
         subject_name = SemanticExpressionGraphNodeText(subject_graph.graph, subject_graph.root_id);
     }
@@ -114,8 +114,8 @@ func SelfMirLowerGraphOwnedSimpleStatement(
             build, "MIR graph-owned simple statement graph is missing"
         );
     }
-    let expression: String = payload;
-    let arg0: String = "";
+    var expression: String = payload;
+    var arg0: String = "";
     if kind == TypedAstKindLogStmtTag() {
         expression = Concat("Log(", Concat(payload, ")"));
         arg0 = "Log";
@@ -151,7 +151,7 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
             build, "MIR collection mutation target binding is missing"
         );
     }
-    let uses: Array<String> = [];
+    var uses: Array<String> = [];
     if !SelfMirExpressionGraphUsesAppend(build, uses, target_graph) {
         return SelfMirRoutineBuildError(
             build, "MIR collection mutation target expression graph is missing"
@@ -171,9 +171,9 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
             build, "MIR collection mutation auxiliary expression graph is missing"
         );
     }
-    let expression: String = payload;
-    let secondary_expression: String = "";
-    let arg0: String = "";
+    var expression: String = payload;
+    var secondary_expression: String = "";
+    var arg0: String = "";
     if kind == TypedAstKindArrayPopStmtTag() {
         expression = Concat("ArrayPop(", Concat(payload, ")"));
         arg0 = "ArrayPop";

@@ -14,7 +14,7 @@ func SemanticAstCollectionArgumentEventStepFromGraph(
     ref graph: SemanticExpressionGraphFacts, entry: Int
 ) -> SemanticAstCollectionArgumentEventStep {
     let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
-    let node: Int = entry;
+    var node: Int = entry;
     if entry < 0 { node = 0 - entry - 1; }
     if !graph.ok || node < 0 || node >= count ||
         ArrayLength(graph.arena.topology.left_children) != count ||
@@ -33,8 +33,8 @@ func SemanticAstCollectionArgumentEventStepFromGraph(
     }
     let arity: Int = AstExpressionNodeArity(kind);
     if arity < 0 { return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1); }
-    let left: Int = -1;
-    let right: Int = -1;
+    var left: Int = -1;
+    var right: Int = -1;
     // A field selector is spelling, not a second runtime value read.
     if arity == 2 && kind != AstExpressionNodeMemberAccess() {
         right = graph.arena.topology.right_children[node];

@@ -74,9 +74,9 @@ func SelfMirGenericSpecializationRowsReady(ref rows: SelfMirGenericSpecializatio
     }
     if ArrayLength(rows.call_node_ids) != count ||
         ArrayLength(rows.target_syntax_ids) != count { return false; }
-    let param_cursor: Int = 0;
-    let actual_cursor: Int = 0;
-    let i: Int = 0;
+    var param_cursor: Int = 0;
+    var actual_cursor: Int = 0;
+    var i: Int = 0;
     while i < count {
         let target_kind_name: String =
             SelfMirGenericSpecializationTargetKindName(rows.target_kinds[i]);
@@ -93,7 +93,7 @@ func SelfMirGenericSpecializationRowsReady(ref rows: SelfMirGenericSpecializatio
             rows.actual_counts[i] != rows.generic_param_counts[i] {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if SemanticExpressionCallIdentityEqual(
                 rows.source_owner_node_ids[prior], rows.source_lanes[prior],
@@ -119,23 +119,23 @@ func SelfMirGenericSpecializationRowsFromSemantic(ref analysis: SemanticAstArtif
     // Build each owned row family before assembling the result. Taking these
     // arrays from an already-constructed `rows` value would leave two live
     // descriptors while the local one grows and could invalidate the result.
-    let source_owner_node_ids: Array<Int> = [];
-    let source_lanes: Array<Int> = [];
-    let source_call_ordinals: Array<Int> = [];
-    let signature_indexes: Array<Int> = [];
-    let target_kinds: Array<Int> = [];
-    let owner_names: Array<String> = [];
-    let callable_names: Array<String> = [];
-    let specialized_symbols: Array<String> = [];
-    let generic_param_starts: Array<Int> = [];
-    let generic_param_counts: Array<Int> = [];
-    let generic_param_names: Array<String> = [];
-    let actual_starts: Array<Int> = [];
-    let actual_counts: Array<Int> = [];
-    let actual_type_names: Array<String> = [];
-    let target_syntax_ids: Array<Int> = [];
-    let call_node_ids: Array<Int> = [];
-    let i: Int = 0;
+    var source_owner_node_ids: Array<Int> = [];
+    var source_lanes: Array<Int> = [];
+    var source_call_ordinals: Array<Int> = [];
+    var signature_indexes: Array<Int> = [];
+    var target_kinds: Array<Int> = [];
+    var owner_names: Array<String> = [];
+    var callable_names: Array<String> = [];
+    var specialized_symbols: Array<String> = [];
+    var generic_param_starts: Array<Int> = [];
+    var generic_param_counts: Array<Int> = [];
+    var generic_param_names: Array<String> = [];
+    var actual_starts: Array<Int> = [];
+    var actual_counts: Array<Int> = [];
+    var actual_type_names: Array<String> = [];
+    var target_syntax_ids: Array<Int> = [];
+    var call_node_ids: Array<Int> = [];
+    var i: Int = 0;
     while i < SemanticAstGenericSpecializationCount(semantic_rows) {
         let signature_index: Int = semantic_rows.signature_indexes[i];
         let target_kind_opt: Option<Int> = SemanticExpressionGraphCallTargetKind(
@@ -181,7 +181,7 @@ func SelfMirGenericSpecializationRowsFromSemantic(ref analysis: SemanticAstArtif
         ArrayPush(generic_param_counts, generic_count);
         let generic_start: Int =
             analysis.signatures.generic_starts[signature_index];
-        let generic_i: Int = 0;
+        var generic_i: Int = 0;
         while generic_i < generic_count {
             ArrayPush(
                 generic_param_names,
@@ -191,7 +191,7 @@ func SelfMirGenericSpecializationRowsFromSemantic(ref analysis: SemanticAstArtif
         }
         ArrayPush(actual_starts, ArrayLength(actual_type_names));
         ArrayPush(actual_counts, ArrayLength(actuals));
-        let actual_i: Int = 0;
+        var actual_i: Int = 0;
         while actual_i < ArrayLength(actuals) {
             ArrayPush(actual_type_names, actuals[actual_i]);
             actual_i = actual_i + 1;

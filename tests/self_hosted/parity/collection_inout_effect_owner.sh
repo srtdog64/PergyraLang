@@ -195,6 +195,7 @@ INPUTS=(
     inout_event_ordered_shallow_continuation_positive.pgy
     inout_event_owned_push_after_copy_positive.pgy
     inout_event_loop_fresh_generation_positive.pgy
+    inout_event_loop_fresh_prior_shallow_positive.pgy
     inout_event_loop_fresh_defer_negative.pgy
     own_generation_cleanup_return_positive.pgy own_generation_cleanup_continue_positive.pgy
     own_generation_indexed_read_positive.pgy
@@ -303,7 +304,8 @@ INPUTS=(
     exclusive_return_loop_after_growth_negative.pgy exclusive_array_copy_negative.pgy
     exclusive_branch_return_before_growth_positive.pgy exclusive_inout_argument_exit_writeback_positive.pgy
     exclusive_inout_repeat_alias_positive.pgy exclusive_nested_path_focus_positive.pgy
-    exclusive_readonly_sibling_call_positive.pgy exclusive_holder_rebind_restore_positive.pgy
+    exclusive_readonly_sibling_call_positive.pgy exclusive_readonly_ref_sibling_call_positive.pgy
+    exclusive_holder_rebind_restore_positive.pgy
     exclusive_holder_rebind_fresh_positive.pgy exclusive_alias_inout_then_read_positive.pgy
     owned_element_text_contained_local_array_positive.pgy
     owned_element_text_contained_string_local_positive.pgy exclusive_branch_loop_return_negative.pgy
@@ -392,7 +394,8 @@ INPUTS=(
     aggregate_owned_push_leaf_adapter_conditional_restore_negative.pgy
     aggregate_owned_push_leaf_adapter_duplicate_site_negative.pgy
     aggregate_owned_push_leaf_adapter_two_push_negative.pgy
-    aggregate_owned_push_leaf_adapter_forward_negative.pgy
+    aggregate_owned_push_leaf_adapter_forward_positive.pgy
+    aggregate_owned_statement_store_adapter_positive.pgy
     aggregate_owned_push_leaf_adapter_deferred_negative.pgy
     aggregate_owned_push_leaf_adapter_alias_negative.pgy
 )
@@ -718,7 +721,6 @@ aggregate_owned_push_leaf_adapter_borrowed_input_negative.pgy|aggregate_release_
 aggregate_owned_push_leaf_adapter_conditional_restore_negative.pgy|aggregate_release_incomplete
 aggregate_owned_push_leaf_adapter_deferred_negative.pgy|unproved_formal_execution_context
 aggregate_owned_push_leaf_adapter_duplicate_site_negative.pgy|aggregate_owned_push_repeated
-aggregate_owned_push_leaf_adapter_forward_negative.pgy|unproved_inout_copy_entry
 aggregate_owned_push_leaf_adapter_missing_restore_negative.pgy|aggregate_release_incomplete
 aggregate_owned_push_leaf_adapter_two_push_negative.pgy|unproved_inout_copy_entry
 OWNED_PUSH_LEAF_DIAGNOSTICS

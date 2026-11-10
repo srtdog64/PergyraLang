@@ -5,6 +5,7 @@
 // diagnostic responsibility, and it is the part that grows with each new
 // checked fact.
 import "ast_body_analysis_admission_owner.pgy";
+import "ast_collection_compiler_clone_projection_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
 import "ast_expression_call_return_type_owner.pgy";
@@ -78,6 +79,10 @@ func SemanticAstBodyTypeBundleReadinessError(
         return "collection_owned_result_rows";
     }
     if !bundle.collection_ownership.ok ||
+        !SemanticAstCollectionCompilerCloneProjectionReady(
+            bundle.collection_focus_recovery.exclusive_copies,
+            bundle.collection_ownership.compiler_clone_expression_node_ids,
+            analysis.expression_surfaces.expression_graph) ||
         !SemanticAstCollectionFocusRecoveryCurrent(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, bundle.initializer_types.inferred_type_names,

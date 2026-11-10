@@ -134,8 +134,8 @@ func SelfMirDomainProjectionPathResolutionEmpty(
 func SelfMirDomainRuntimeDeclarationIndex(
     ref rows: SelfMirDeclarationRows, name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let i: Int = 0;
+    var found: Int = 0 - 1;
+    var i: Int = 0;
     while i < ArrayLength(rows.names) {
         if rows.names[i] == name {
             if found >= 0 { return 0 - 1; }
@@ -151,8 +151,8 @@ func SelfMirDomainRuntimeConstructorNodeId(
     name: String,
     nominal_kind: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let i: Int = 0;
+    var found: Int = 0 - 1;
+    var i: Int = 0;
     while i < ArrayLength(constructors.names) {
         if constructors.names[i] == name &&
             constructors.nominal_kinds[i] == nominal_kind {
@@ -171,8 +171,8 @@ func SelfMirDomainRuntimeFieldRow(
     source_syntax_id: Int
 ) -> Int {
     if declaration_index < 0 || source_syntax_id <= 0 { return 0 - 1; }
-    let found: Int = 0 - 1;
-    let offset: Int = 0;
+    var found: Int = 0 - 1;
+    var offset: Int = 0;
     while offset < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + offset;
         if rows.field_names[row] == name &&
@@ -191,8 +191,8 @@ func SelfMirDomainProjectionPathDirect(
     field_name: String
 ) -> SelfMirDomainProjectionPathResolution {
     if declaration_index < 0 { return SelfMirDomainProjectionPathResolutionEmpty(false, false); }
-    let found: Int = 0 - 1;
-    let offset: Int = 0;
+    var found: Int = 0 - 1;
+    var offset: Int = 0;
     while offset < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + offset;
         if rows.field_names[row] == field_name &&
@@ -224,14 +224,14 @@ func SelfMirDomainProjectionPathResolve(
     let direct: SelfMirDomainProjectionPathResolution =
         SelfMirDomainProjectionPathDirect(rows, declaration_index, field_name);
     if direct.ok || direct.ambiguous { return direct; }
-    let match_count: Int = 0;
-    let resolved_ok: Bool = false;
-    let resolved_path: String = "";
-    let resolved_leaf_type_name: String = "";
-    let resolved_segment_names: Array<String> = [];
-    let resolved_segment_source_syntax_ids: Array<Int> = [];
-    let resolved_segment_type_names: Array<String> = [];
-    let offset: Int = 0;
+    var match_count: Int = 0;
+    var resolved_ok: Bool = false;
+    var resolved_path: String = "";
+    var resolved_leaf_type_name: String = "";
+    var resolved_segment_names: Array<String> = [];
+    var resolved_segment_source_syntax_ids: Array<Int> = [];
+    var resolved_segment_type_names: Array<String> = [];
+    var offset: Int = 0;
     while offset < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + offset;
         let nested_index: Int = SelfMirDomainRuntimeDeclarationIndex(
@@ -262,7 +262,7 @@ func SelfMirDomainProjectionPathResolve(
                     rows.field_source_syntax_ids[row]
                 );
                 ArrayPush(resolved_segment_type_names, rows.field_types[row]);
-                let segment: Int = 0;
+                var segment: Int = 0;
                 while segment < ArrayLength(nested.segment_names) {
                     ArrayPush(
                         resolved_segment_names, nested.segment_names[segment]
@@ -292,13 +292,13 @@ func SelfMirDomainParticipantRolesFromDeclarations(
     ref rows: SelfMirDeclarationRows,
     ref constructors: SemanticAstNominalConstructorFacts
 ) -> SelfMirDomainParticipantRoleFacts {
-    let roles: Array<String> = [];
-    let owner_names: Array<String> = [];
-    let owner_source_syntax_ids: Array<Int> = [];
-    let field_names: Array<String> = [];
-    let field_source_syntax_ids: Array<Int> = [];
-    let field_type_names: Array<String> = [];
-    let declaration: Int = 0;
+    var roles: Array<String> = [];
+    var owner_names: Array<String> = [];
+    var owner_source_syntax_ids: Array<Int> = [];
+    var field_names: Array<String> = [];
+    var field_source_syntax_ids: Array<Int> = [];
+    var field_type_names: Array<String> = [];
+    var declaration: Int = 0;
     while declaration < ArrayLength(rows.names) {
         let nominal_kind: String = rows.nominal_kinds[declaration];
         if nominal_kind != "effect" && nominal_kind != "relation" {
@@ -308,8 +308,8 @@ func SelfMirDomainParticipantRolesFromDeclarations(
         let owner_id: Int = SelfMirDomainRuntimeConstructorNodeId(
             constructors, rows.names[declaration], nominal_kind
         );
-        let subject_rows: Array<Int> = [];
-        let offset: Int = 0;
+        var subject_rows: Array<Int> = [];
+        var offset: Int = 0;
         while offset < rows.field_counts[declaration] {
             let field: Int = rows.field_starts[declaration] + offset;
             if rows.field_kinds[field] == NominalFieldKindSubjectSlot() ||
@@ -324,9 +324,9 @@ func SelfMirDomainParticipantRolesFromDeclarations(
             return SelfMirDomainParticipantRoleFactsEmpty(false);
         }
         let role_count: Int = ArrayLength(subject_rows);
-        let role_index: Int = 0;
+        var role_index: Int = 0;
         while role_index < role_count {
-            let role_name: String = "effect-bearer";
+            var role_name: String = "effect-bearer";
             if nominal_kind == "relation" && role_index == 0 {
                 role_name = "relation-source";
             } else if nominal_kind == "relation" {
@@ -358,30 +358,30 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
     facts: SelfMirDomainTopologyFacts,
     projection_maps: SelfDirDomainProjectionMapRows
 ) -> SelfMirDomainProjectionMemberAssignmentFacts {
-    let owner_names: Array<String> = [];
-    let owner_source_syntax_ids: Array<Int> = [];
-    let directive_source_syntax_ids: Array<Int> = [];
-    let operations: Array<String> = [];
-    let projection_slot_names: Array<String> = [];
-    let projection_slot_source_syntax_ids: Array<Int> = [];
-    let source_slot_names: Array<String> = [];
-    let source_slot_source_syntax_ids: Array<Int> = [];
-    let target_declaration_names: Array<String> = [];
-    let target_declaration_source_syntax_ids: Array<Int> = [];
-    let target_field_names: Array<String> = [];
-    let target_field_source_syntax_ids: Array<Int> = [];
-    let target_field_type_names: Array<String> = [];
-    let source_declaration_names: Array<String> = [];
-    let source_declaration_source_syntax_ids: Array<Int> = [];
-    let source_paths: Array<String> = [];
-    let source_leaf_type_names: Array<String> = [];
-    let explicit_maps: Array<Int> = [];
-    let source_path_segment_starts: Array<Int> = [];
-    let source_path_segment_counts: Array<Int> = [];
-    let source_path_segment_names: Array<String> = [];
-    let source_path_segment_source_syntax_ids: Array<Int> = [];
-    let source_path_segment_type_names: Array<String> = [];
-    let topology_row: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_source_syntax_ids: Array<Int> = [];
+    var directive_source_syntax_ids: Array<Int> = [];
+    var operations: Array<String> = [];
+    var projection_slot_names: Array<String> = [];
+    var projection_slot_source_syntax_ids: Array<Int> = [];
+    var source_slot_names: Array<String> = [];
+    var source_slot_source_syntax_ids: Array<Int> = [];
+    var target_declaration_names: Array<String> = [];
+    var target_declaration_source_syntax_ids: Array<Int> = [];
+    var target_field_names: Array<String> = [];
+    var target_field_source_syntax_ids: Array<Int> = [];
+    var target_field_type_names: Array<String> = [];
+    var source_declaration_names: Array<String> = [];
+    var source_declaration_source_syntax_ids: Array<Int> = [];
+    var source_paths: Array<String> = [];
+    var source_leaf_type_names: Array<String> = [];
+    var explicit_maps: Array<Int> = [];
+    var source_path_segment_starts: Array<Int> = [];
+    var source_path_segment_counts: Array<Int> = [];
+    var source_path_segment_names: Array<String> = [];
+    var source_path_segment_source_syntax_ids: Array<Int> = [];
+    var source_path_segment_type_names: Array<String> = [];
+    var topology_row: Int = 0;
     while topology_row < facts.row_count {
         let operation: String = facts.kinds[topology_row];
         if operation != "refresh" && operation != "publish" && operation != "bind" {
@@ -424,7 +424,7 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
         if target_decl_id <= 0 || source_decl_id <= 0 {
             return SelfMirDomainProjectionMemberAssignmentFactsEmpty(false);
         }
-        let target_offset: Int = 0;
+        var target_offset: Int = 0;
         while target_offset < rows.field_counts[target_decl_index] {
             let target_field: Int =
                 rows.field_starts[target_decl_index] + target_offset;
@@ -449,7 +449,7 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
                 SelfMirDomainRuntimeDeclarationIndex(
                     rows, path.leaf_type_name
                 );
-            let source_leaf_nominal_kind: String = "";
+            var source_leaf_nominal_kind: String = "";
             if source_leaf_decl_index >= 0 {
                 source_leaf_nominal_kind =
                     rows.nominal_kinds[source_leaf_decl_index];
@@ -513,7 +513,7 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
                 source_path_segment_counts,
                 ArrayLength(path.segment_names)
             );
-            let segment: Int = 0;
+            var segment: Int = 0;
             while segment < ArrayLength(path.segment_names) {
                 ArrayPush(
                     source_path_segment_names,

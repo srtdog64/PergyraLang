@@ -34,7 +34,7 @@ func CollectionHashMapRuntimeFactFromTypeName(type_name: String) -> CollectionHa
     let c_value: String = CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(value));
     if c_value == "" { return missing; }
     let suffix: String = CompilerSymbolCMangledTypeName(shape.actual_type_names[1]);
-    let function_suffix: String = suffix;
+    var function_suffix: String = suffix;
     if shape.actual_type_names[1] == "Int" { function_suffix = "int"; }
     if shape.actual_type_names[1] == "String" { function_suffix = "string"; }
     return CollectionHashMapRuntimeFact(true, shape.canonical_name,
@@ -50,7 +50,7 @@ func CollectionHashMapRuntimeCFunction(
     if !fact.ok || !protocol.applies || protocol.family != "HashMap" {
         Die("HashMap runtime call ABI fact is missing");
     }
-    let operation: String = "";
+    var operation: String = "";
     if protocol.operation == "MapNew" { operation = "new"; }
     if protocol.operation == "MapSet" { operation = "set"; }
     if protocol.operation == "MapGet" { operation = "get"; }
@@ -59,7 +59,7 @@ func CollectionHashMapRuntimeCFunction(
     if protocol.operation == "MapSize" { operation = "size"; }
     if protocol.operation == "MapKeys" { operation = "keys"; }
     if operation == "" { Die("HashMap runtime operation is missing"); }
-    let infix: String = fact.key_infix;
+    var infix: String = fact.key_infix;
     if protocol.return_kind == "constructor" { infix = fact.key_storage_constructor_infix; }
     if protocol.operation == "MapSize" { infix = ""; }
     return "pgy_map_" + operation + infix + "_" + fact.value_suffix;
@@ -81,13 +81,36 @@ func CollectionHashMapRuntimeCDropFunction(
     return "pgy_map_drop_" + fact.value_suffix;
 }
 
+// The native Clone boundary copies only maps whose values own no nested
+// storage, except String whose bytes the runtime duplicates explicitly.
+// Keep this decision beside the HashMap ABI fact so C emission does not
+// recreate the supported value family from spelling alone.
+func CollectionHashMapRuntimeCloneCopiesDeeply(
+    fact: CollectionHashMapRuntimeFact
+) -> Bool {
+    if !fact.ok { return false; }
+    return fact.value_type == "String" || fact.value_type == "Int" ||
+        fact.value_type == "Long" || fact.value_type == "Float" ||
+        fact.value_type == "Double" || fact.value_type == "Bool" ||
+        fact.value_type == "Duration";
+}
+
+func CollectionHashMapRuntimeCCloneFunction(
+    fact: CollectionHashMapRuntimeFact
+) -> String {
+    if !CollectionHashMapRuntimeCloneCopiesDeeply(fact) {
+        Die("HashMap Clone ABI fact is missing or not independently copyable");
+    }
+    return "pgy_map_clone_" + fact.value_suffix;
+}
+
 func CollectionHashMapRuntimeValueSpecializationBlock(
     fact: CollectionHashMapRuntimeFact, emitted_values: Array<String>
 ) -> String {
     if !fact.ok { Die("unsupported HashMap runtime value specialization"); }
-    let block: String = "";
-    let known: Bool = fact.value_type == "Int" || fact.value_type == "String";
-    let index: Int = 0;
+    var block: String = "";
+    var known: Bool = fact.value_type == "Int" || fact.value_type == "String";
+    var index: Int = 0;
     while index < ArrayLength(emitted_values) {
         if emitted_values[index] == fact.value_type { known = true; }
         index = index + 1;

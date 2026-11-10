@@ -4,6 +4,7 @@ import "program_fact_owner.pgy";
 import "intent_phase_contract_owner.pgy";
 import "intent_mode_carriage_owner.pgy";
 import "intent_priority_carriage_owner.pgy";
+import "../hir/assignment_operation_owner.pgy";
 
 func SelfMirIntentSemanticInstructionName(name: String) -> Bool {
     return name == "IntentBinding" || name == "IntentParticipant" ||
@@ -195,6 +196,10 @@ func SelfMirInstructionRowsValidationErrorObserved(
         rows.expr1_graphs, expression_graph, count) {
         return "expr1 graph rows are invalid";
     }
+    if !SelfMirExpressionGraphRowsReady(
+        rows.collection_mutation_target_graphs, expression_graph, count) {
+        return "collection mutation target graph rows are invalid";
+    }
     if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:match:start"); }
     let match_error: String = SelfMirMatchFactRowsValidationError(
         rows.match_facts, count
@@ -206,14 +211,22 @@ func SelfMirInstructionRowsValidationErrorObserved(
     );
     if destructure_error != "" { return destructure_error; }
     if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:rows:start"); }
-    let use_cursor: Int = 0;
-    let i: Int = 0;
+    var use_cursor: Int = 0;
+    var i: Int = 0;
     while i < count {
         if observe_pressure && i % 8192 == 0 {
             Log(Concat("[driver-pressure-stage] mir-facts:validation:instructions:rows:", ToString(i)));
         }
         let kind: String = rows.kinds[i];
         let row_prefix: String = Concat("instruction=", ToString(i));
+        if kind == "def" && rows.source_types[i] == "AST_LET_DECL" &&
+            !IsSome(BindingDeclarationModeFromMirName(rows.names[i])) {
+            return Concat(row_prefix, " local binding write mode is missing or invalid");
+        }
+        if (kind == "def" || kind == "assign") && rows.source_types[i] == "AST_ASSIGNMENT" &&
+            !IsSome(AssignmentOperationFromMirName(rows.names[i])) {
+            return Concat(row_prefix, " assignment operation is missing or invalid");
+        }
         let binding_carrier: Bool = rows.names[i] == "IntentBinding" ||
             rows.names[i] == "IntentParticipant" || rows.names[i] == "IntentValue";
         if (binding_carrier && rows.binding_source_syntax_ids[i] <= 0) ||
@@ -227,6 +240,19 @@ func SelfMirInstructionRowsValidationErrorObserved(
             return Concat(row_prefix, " use-count is negative");
         }
         let intent_carrier: Bool = SelfMirIntentCarrierInstruction(rows, i);
+        let collection_mutation: Bool = kind == "stmt" &&
+            rows.source_types[i] == "AST_CALL" &&
+            (rows.arg0s[i] == "ArrayPush" ||
+             rows.arg0s[i] == "ArraySet" ||
+             rows.arg0s[i] == "ArrayPop");
+        if (collection_mutation &&
+                rows.collection_mutation_target_graphs.has_roots[i] != 1) ||
+            (!collection_mutation &&
+                rows.collection_mutation_target_graphs.has_roots[i] != 0) {
+            return Concat(
+                row_prefix, " collection mutation target graph is invalid"
+            );
+        }
         if kind != "def" && kind != "stmt" && kind != "return" &&
             kind != "branch" && kind != "phi" && kind != "loop-init" &&
             kind != "destructure" && !intent_carrier {

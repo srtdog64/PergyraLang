@@ -2,12 +2,18 @@
 
 import "direct_mir_scalar_program_option_int_match_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_match_target_owner.pgy";
 
 func DirectMirScalarProgramCMatchExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     node: Int, left: String, arguments: Array<String>,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Option<String> {
+    let result_match: Option<String> =
+        DirectMirScalarProgramCPayloadFreeEnumResultMatchAt(
+            expressions, node, left, logical_record, referenced_enum);
+    if IsSome(result_match) { return result_match; }
     let option_match: Option<String> =
         DirectMirScalarProgramCOptionIntMatchExpressionAt(
             expressions, node, left);

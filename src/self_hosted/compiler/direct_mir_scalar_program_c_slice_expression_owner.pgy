@@ -12,13 +12,13 @@ func DirectMirScalarProgramCSliceRuntimeFact(
     if !is_string && slice_type != CompilerAbiLayoutSliceIntTypeName() {
         return SliceRuntimeMissingFact();
     }
-    let element: String = "Int";
-    let array_type: String = CompilerAbiLayoutArrayIntTypeName();
-    let c_slice_type: String = CompilerAbiLayoutSliceIntCValueType();
-    let c_array_type: String = CompilerAbiLayoutArrayIntCValueType();
-    let c_element_type: String = "int32_t";
-    let kind_code: Int = CollectionRuntimeKindCode("ArrayInt");
-    let push: String = CollectionRuntimeCPushFn(kind_code);
+    var element: String = "Int";
+    var array_type: String = CompilerAbiLayoutArrayIntTypeName();
+    var c_slice_type: String = CompilerAbiLayoutSliceIntCValueType();
+    var c_array_type: String = CompilerAbiLayoutArrayIntCValueType();
+    var c_element_type: String = "int32_t";
+    var kind_code: Int = CollectionRuntimeKindCode("ArrayInt");
+    var push: String = CollectionRuntimeCPushFn(kind_code);
     if is_string {
         element = "String";
         array_type = CompilerAbiLayoutArrayStringTypeName();
@@ -81,9 +81,13 @@ func DirectMirScalarProgramCSliceExpression(
     if kind != DirectMirScalarProgramExprArraySlice() &&
         kind != DirectMirScalarProgramExprSliceCopy() &&
         kind != DirectMirScalarProgramExprArrayClone() &&
+        kind != DirectMirScalarProgramExprArrayStringLength() &&
         kind != DirectMirScalarProgramExprSliceIntIndex() &&
         kind != DirectMirScalarProgramExprSliceStringIndex() { return None; }
-    let slice_type: String = result_type;
+    if kind == DirectMirScalarProgramExprArrayStringLength() &&
+        left_type != CompilerAbiLayoutSliceIntTypeName() &&
+        left_type != CompilerAbiLayoutSliceStringTypeName() { return None; }
+    var slice_type: String = result_type;
     if kind != DirectMirScalarProgramExprArraySlice() { slice_type = left_type; }
     if kind == DirectMirScalarProgramExprArrayClone() {
         if left_type == CompilerAbiLayoutArrayIntTypeName() {
@@ -95,6 +99,14 @@ func DirectMirScalarProgramCSliceExpression(
     let fact: SliceRuntimeFact =
         DirectMirScalarProgramCSliceRuntimeFact(slice_type);
     if !fact.ok { Die("direct MIR C Slice expression type is invalid"); }
+    if kind == DirectMirScalarProgramExprArrayStringLength() {
+        if left == "" || right != "" || ArrayLength(arguments) != 0 ||
+            result_type != CompilerAbiLayoutIntTypeName() {
+            Die("direct MIR C Slice length operands are invalid");
+        }
+        return Some("({ ${fact.c_slice_type} __pgy_slice_length = " + left
+            + "; " + fact.c_slice_len_fn + "(&__pgy_slice_length); })");
+    }
     if kind == DirectMirScalarProgramExprArraySlice() {
         if ArrayLength(arguments) != 3 {
             Die("direct MIR C Array.Slice operands are invalid");
@@ -138,13 +150,23 @@ func DirectMirScalarProgramCSlicePreamble(
     ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
-    let int_reached: Bool = false;
-    let string_reached: Bool = false;
-    let int_clone_reached: Bool = false;
-    let string_clone_reached: Bool = false;
-    let row: Int = 0;
+    var int_reached: Bool = false;
+    var string_reached: Bool = false;
+    var int_full_reached: Bool = false;
+    var string_full_reached: Bool = false;
+    var int_clone_reached: Bool = false;
+    var string_clone_reached: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[row];
+        var slice_length_type: String = "";
+        if kind == DirectMirScalarProgramExprArrayStringLength() {
+            let left: Int = expressions.node_lefts[row];
+            if left < 0 || left >= row {
+                Die("direct MIR C Slice length source is missing");
+            }
+            slice_length_type = expressions.node_types[left];
+        }
         if kind == DirectMirScalarProgramExprArrayClone() {
             if expressions.node_lefts[row] < 0 {
                 Die("direct MIR C Array Clone source is missing");
@@ -161,53 +183,73 @@ func DirectMirScalarProgramCSlicePreamble(
         }
         if kind == DirectMirScalarProgramExprArraySlice() ||
             kind == DirectMirScalarProgramExprSliceCopy() ||
+            slice_length_type == CompilerAbiLayoutSliceIntTypeName() ||
+            slice_length_type == CompilerAbiLayoutSliceStringTypeName() ||
             kind == DirectMirScalarProgramExprSliceIntIndex() ||
             kind == DirectMirScalarProgramExprSliceStringIndex() {
-            let type_name: String = expressions.node_types[row];
-            if kind != DirectMirScalarProgramExprArraySlice() &&
+            var type_name: String = expressions.node_types[row];
+            if slice_length_type != "" {
+                type_name = slice_length_type;
+            } else if kind != DirectMirScalarProgramExprArraySlice() &&
                 expressions.node_lefts[row] >= 0 {
                 type_name = expressions.node_types[expressions.node_lefts[row]];
             }
             if type_name == CompilerAbiLayoutSliceIntTypeName() {
                 int_reached = true;
+                if kind != DirectMirScalarProgramExprArrayStringLength() {
+                    int_full_reached = true;
+                }
             } else if type_name == CompilerAbiLayoutSliceStringTypeName() {
                 string_reached = true;
+                if kind != DirectMirScalarProgramExprArrayStringLength() {
+                    string_full_reached = true;
+                }
             } else { Die("direct MIR C Slice preamble type is invalid"); }
         }
         row = row + 1;
     }
     if !int_reached && !string_reached &&
         !int_clone_reached && !string_clone_reached { return ""; }
-    let output: String = "#include \"pgy_runtime_panic_contract.h\"\n";
+    var output: String = "#include \"pgy_runtime_panic_contract.h\"\n";
     if int_reached {
         let fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
             CompilerAbiLayoutSliceIntTypeName());
-        output = output + SliceRuntimeCBlockForFact(
-            fact, "length", "(pgy_ai){NULL, 0, 0, NULL}");
+        if int_full_reached {
+            output = output + SliceRuntimeCBlockForFact(
+                fact, "length", "(pgy_ai){NULL, 0, 0, NULL}");
+        } else {
+            output = output + SliceRuntimeCLengthBlockForFact(fact);
+        }
     }
     if string_reached || string_clone_reached {
-        if !IsSome(array_string_projection) {
-            Die("direct MIR C Slice Array<String> projection is missing");
-        }
-        let projection: DirectMirArrayStringAbiProjection =
-            UnwrapOption(array_string_projection);
-        let type_name: String = DirectMirScalarProgramCArrayStringCarrierType(
-            array_string_abi, projection);
-        let fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
-            CompilerAbiLayoutSliceStringTypeName());
-        fact.c_array_type = type_name;
-        if string_reached {
-            // The borrowed Slice keeps its own layout. Only the copied Array
-            // descriptor is initialized from the admitted storage projection.
-            let empty: String = DirectMirScalarCfgArrayCInitializer(
-                projection.storage, "NULL", "0", "0", "NULL");
-            let empty_array: String = Concat("(", Concat(type_name,
-                Concat(")", empty)));
-            output = output + SliceRuntimeCBlockForFact(
-                fact, projection.storage.length_field, empty_array);
-        }
-        if string_clone_reached {
-            output = output + DirectMirScalarProgramCArrayCloneBlock(fact);
+        if string_reached && !string_full_reached && !string_clone_reached {
+            output = output + SliceRuntimeCLengthBlockForFact(
+                DirectMirScalarProgramCSliceRuntimeFact(
+                    CompilerAbiLayoutSliceStringTypeName()));
+        } else {
+            if !IsSome(array_string_projection) {
+                Die("direct MIR C Slice Array<String> projection is missing");
+            }
+            let projection: DirectMirArrayStringAbiProjection =
+                UnwrapOption(array_string_projection);
+            let type_name: String = DirectMirScalarProgramCArrayStringCarrierType(
+                array_string_abi, projection);
+            var fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
+                CompilerAbiLayoutSliceStringTypeName());
+            fact.c_array_type = type_name;
+            if string_reached {
+                // The borrowed Slice keeps its own layout. Only the copied Array
+                // descriptor is initialized from the admitted storage projection.
+                let empty: String = DirectMirScalarCfgArrayCInitializer(
+                    projection.storage, "NULL", "0", "0", "NULL");
+                let empty_array: String = Concat("(", Concat(type_name,
+                    Concat(")", empty)));
+                output = output + SliceRuntimeCBlockForFact(
+                    fact, projection.storage.length_field, empty_array);
+            }
+            if string_clone_reached {
+                output = output + DirectMirScalarProgramCArrayCloneBlock(fact);
+            }
         }
     }
     if int_clone_reached {

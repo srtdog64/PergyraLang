@@ -23,7 +23,7 @@ func DirectMirScalarProgramLlvmLogicalRecordParameterRead(
     }
     let type_name: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
         logical_record, expressions.node_types[node]);
-    let source_pointer: String = pointer;
+    var source_pointer: String = pointer;
     if carriage == "value" || carriage == "value-result" {
         source_pointer = Concat("%pgy.param.", Concat(
             ToString(ordinal), ".local"));

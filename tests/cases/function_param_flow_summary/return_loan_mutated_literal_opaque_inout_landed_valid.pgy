@@ -8,7 +8,7 @@ func Publish(inout output: String) -> Void {
     output = Echo(held);
 }
 func Main() -> Void {
-    let output = "";
+    var output = "";
     Publish(output);
     Log(output);
 }

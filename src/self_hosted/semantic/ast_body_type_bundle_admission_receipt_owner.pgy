@@ -1,5 +1,6 @@
 // Construct and validate one-time semantic body admission receipts.
 import "ast_body_type_bundle_owner.pgy";
+import "ast_collection_compiler_clone_projection_owner.pgy";
 import "ast_collection_formal_effect_readiness_owner.pgy";
 import "ast_collection_formal_effect_receipt_owner.pgy";
 import "ast_collection_focus_recovery_admission_owner.pgy";
@@ -78,6 +79,9 @@ func SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
             SemanticAstCollectionFormalEffectReceiptDigest(
                 bundle.collection_formal_effects) &&
         bundle.collection_ownership.ok &&
+        SemanticAstCollectionCompilerCloneProjectionReady(bundle.collection_focus_recovery.exclusive_copies,
+            bundle.collection_ownership.compiler_clone_expression_node_ids,
+            analysis.expression_surfaces.expression_graph) &&
         SemanticAstCollectionFocusRecoveryReceiptMatches(
             receipt, artifact, bundle.collection_focus_recovery) &&
         receipt.zone_resource_identity_count ==

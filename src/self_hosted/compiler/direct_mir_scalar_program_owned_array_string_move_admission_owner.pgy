@@ -9,8 +9,8 @@ import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 func DirectMirScalarProgramOperationForExpression(
     ref storage: DirectMirScalarCfgProgramGraphStorage, graph: Int
 ) -> Int {
-    let found: Int = -1;
-    let operation: Int = 0;
+    var found: Int = -1;
+    var operation: Int = 0;
     while operation < ArrayLength(storage.operations.expression_rows) {
         if storage.operations.expression_rows[operation] == graph ||
             storage.operations.secondary_expression_rows[operation] == graph {
@@ -33,16 +33,16 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
         !DirectMirScalarProgramExpressionSetReady(expressions) {
         return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
     }
-    let caller_routines: Array<Int> = [];
-    let call_operations: Array<Int> = [];
-    let call_expressions: Array<Int> = [];
-    let moved_locals: Array<Int> = [];
-    let callables_used: Array<Int> = [];
-    let parameter_ordinals: Array<Int> = [];
-    let abi_layout_ids: Array<Int> = [];
-    let graph: Int = 0;
+    var caller_routines: Array<Int> = [];
+    var call_operations: Array<Int> = [];
+    var call_expressions: Array<Int> = [];
+    var moved_locals: Array<Int> = [];
+    var callables_used: Array<Int> = [];
+    var parameter_ordinals: Array<Int> = [];
+    var abi_layout_ids: Array<Int> = [];
+    var graph: Int = 0;
     while graph < ArrayLength(expressions.graph_starts) {
-        let node: Int = expressions.graph_starts[graph];
+        var node: Int = expressions.graph_starts[graph];
         let end: Int = node + expressions.graph_counts[graph];
         while node < end {
             if expressions.node_kinds[node] ==
@@ -57,7 +57,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                 let arguments: Array<Int> =
                     DirectMirScalarProgramDirectCallArgumentRows(
                         expressions, node);
-                let ordinal: Int = 0;
+                var ordinal: Int = 0;
                 while ordinal < callables.parameter_counts[callable_row] {
                     let parameter: Int =
                         callables.parameter_starts[callable_row] + ordinal;
@@ -74,7 +74,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                         let operation: Int =
                             DirectMirScalarProgramOperationForExpression(
                                 storage, graph);
-                        let routine: Int =
+                        var routine: Int =
                             DirectMirScalarProgramRoutinePartitionOwner(
                                 storage.routines.operation_counts, operation);
                         if operation == -1 {

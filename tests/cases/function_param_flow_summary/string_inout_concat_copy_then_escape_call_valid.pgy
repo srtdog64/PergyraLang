@@ -9,10 +9,10 @@ func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void 
 }
 
 func Main() -> Int {
-    let src: Array<String> = [];
+    var src: Array<String> = [];
     ArrayPushOwnedString(src, Concat("a", "b"));
-    let out: Array<String> = [];
-    let shelf: Array<Array<String>> = [];
+    var out: Array<String> = [];
+    var shelf: Array<Array<String>> = [];
     Copy(out, src);
     Stash(out, shelf);
     Print(shelf[0][0]);

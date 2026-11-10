@@ -1,0 +1,36 @@
+// An early terminal constructor must not revoke the exact owned-element
+// receipt later returned by the fallthrough constructor. The read between
+// them is observational and the borrowed String push lands one owned copy.
+struct Arena {
+    atoms: Array<String>;
+}
+
+struct Facts {
+    empty_before_push: Bool;
+    names: Array<String>;
+}
+
+func CountNames(names: Array<String>) -> Int {
+    return ArrayLength(names);
+}
+
+func Build(arena: Arena) -> Facts {
+    var names: Array<String> = [];
+    if ArrayLength(arena.atoms) == 0 {
+        return Facts(true, names);
+    }
+    let empty_before_push: Bool = CountNames(names) == 0;
+    var row: Int = 0;
+    while row < ArrayLength(arena.atoms) {
+        let name: String = arena.atoms[row];
+        ArrayPush(names, name);
+        row = row + 1;
+    }
+    return Facts(empty_before_push, names);
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(Arena(["alpha"]));
+    Print(facts.names[0]);
+    return 0;
+}

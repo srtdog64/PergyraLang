@@ -117,9 +117,9 @@ for backend in c llvm; do
         grep -Fq 'call void @pgy_ab_set(ptr %pgy.param.1.local' "$artifact" ||
             fail "LLVM omitted Array<Bool> value-result set"
         for parameter in 3 7; do
-            grep -Fq "%pgy.param.${parameter}.local = alloca %pgy.array.string" "$artifact" ||
+            grep -Fq "%pgy.param.${parameter}.local = alloca { ptr, i64, i64, ptr }, align 8" "$artifact" ||
                 fail "LLVM omitted Array<String> copy-in $parameter"
-            grep -Fq ", ptr %pgy.param.${parameter}.mutref, align 8" "$artifact" ||
+            grep -Eq "store \\{ ptr, i64, i64, ptr \\} %pgy\\.param\\.${parameter}\\.copyout\\.[0-9]+, ptr %pgy\\.param\\.${parameter}\\.mutref, align 8" "$artifact" ||
                 fail "LLVM omitted Array<String> copy-out $parameter"
         done
         runtime_obj="$WORK_DIR/runtime.o"

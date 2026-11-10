@@ -47,7 +47,7 @@ func SelfMirJsonExpressionGraphWriteFile(
     CompilerArtifactWrite(output, ",\"digest\":");
     JsonOwnedFragmentWriteFile(output, ToString(digest));
     CompilerArtifactWrite(output, ",\"nodes\":[");
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let node: Int = start + i;
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
@@ -67,8 +67,8 @@ func SelfMirJsonExpressionGraphWriteFile(
 
         let kind: Int = UnwrapOption(kind_opt);
         let arity: Int = AstExpressionNodeArity(kind);
-        let left: Int = -1;
-        let right: Int = -1;
+        var left: Int = -1;
+        var right: Int = -1;
         if arity == 1 || arity == 2 {
             let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
                 graph, node
@@ -136,7 +136,7 @@ func SelfMirJsonMatchFieldsWriteFile(
     CompilerArtifactWrite(output, ",\"match_patterns\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
-        let pattern_i: Int = 0;
+        var pattern_i: Int = 0;
         while pattern_i < rows.match_facts.pattern_counts[row] {
             if pattern_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(
@@ -159,7 +159,7 @@ func SelfMirJsonMatchFieldsWriteFile(
     CompilerArtifactWrite(output, ",\"match_bindings\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
-        let binding_i: Int = 0;
+        var binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
             if binding_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(
@@ -173,7 +173,7 @@ func SelfMirJsonMatchFieldsWriteFile(
     CompilerArtifactWrite(output, "],\"match_binding_types\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
-        let binding_i: Int = 0;
+        var binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
             if binding_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(output,
@@ -217,7 +217,7 @@ func SelfMirJsonDestructureFieldsWriteFile(
     CompilerArtifactWrite(output, ",\"destructure_bindings\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
-        let binding_i: Int = 0;
+        var binding_i: Int = 0;
         while binding_i < rows.destructure_facts.binding_counts[row] {
             if binding_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(output,
@@ -341,6 +341,19 @@ func SelfMirJsonInstructionWriteFile(
     if !SelfMirJsonExpressionGraphWriteFile(
         rows.expr1_graphs, facts.expression_graph, instruction_index, output
     ) { return false; }
+    if rows.kinds[instruction_index] == "stmt" &&
+        rows.source_types[instruction_index] == "AST_CALL" &&
+        (rows.arg0s[instruction_index] == "ArrayPush" ||
+         rows.arg0s[instruction_index] == "ArraySet" ||
+         rows.arg0s[instruction_index] == "ArrayPop") {
+        CompilerArtifactWrite(
+            output, ",\"collection_mutation_target_graph\":"
+        );
+        if !SelfMirJsonExpressionGraphWriteFile(
+            rows.collection_mutation_target_graphs,
+            facts.expression_graph, instruction_index, output
+        ) { return false; }
+    }
     CompilerArtifactWrite(output, ",\"collection_ownership_receipt\":");
     if facts.collection_ownership_receipts.effect_kinds[
             instruction_index] == 0 {
@@ -369,7 +382,7 @@ func SelfMirJsonInstructionWriteFile(
         rows, instruction_index, output
     ) { return false; }
     CompilerArtifactWrite(output, ",\"uses\":[");
-    let use_i: Int = 0;
+    var use_i: Int = 0;
     while use_i < rows.use_counts[instruction_index] {
         if use_i > 0 { CompilerArtifactWrite(output, ","); }
         if !JsonStringLiteralWriteFile(output,

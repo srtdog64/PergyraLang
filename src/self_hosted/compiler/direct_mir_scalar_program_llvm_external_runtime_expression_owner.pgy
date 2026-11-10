@@ -44,7 +44,7 @@ func DirectMirScalarProgramLlvmIntentObservabilityExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let arguments: String = "";
+    var arguments: String = "";
     if row.argument_count == 1 { arguments = Concat("i64 ", left); }
     else if row.argument_count == 2 {
         arguments = Concat("i64 ", Concat(left, Concat(", i64 ", right)));

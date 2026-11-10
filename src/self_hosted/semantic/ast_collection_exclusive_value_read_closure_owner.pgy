@@ -13,7 +13,7 @@ func SemanticAstCollectionExclusiveFollowRead(
     inout reads: HashMap<String, Int>, inout added: HashMap<String, Int>
 ) -> Void {
     if !MapHas(first_edges, target) { return; }
-    let index: Int = MapGet(first_edges, target);
+    var index: Int = MapGet(first_edges, target);
     while index >= 0 {
         let copied: String = Concat(ToString(forwarding[index * 2]), Concat(":", field));
         if !MapHas(reads, copied) {
@@ -32,8 +32,8 @@ func SemanticAstCollectionExclusiveCloseReads(
 ) -> Void {
     let frontier: Array<String> = MapKeys(frontier_keys);
     if ArrayLength(frontier) == 0 { return; }
-    let added: HashMap<String, Int> = MapNew();
-    let at: Int = 0;
+    var added: HashMap<String, Int> = MapNew();
+    var at: Int = 0;
     while at < ArrayLength(frontier) {
         let separator: Int = StringIndexOf(frontier[at], ":");
         // A key without ':' cannot match any numeric formal prefix.

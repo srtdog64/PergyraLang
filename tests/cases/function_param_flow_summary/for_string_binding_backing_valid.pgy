@@ -1,0 +1,21 @@
+// A for-in String element is a value binding, not an alias of the iterable
+// descriptor. Its typed loop claim must still exist in the returned-backing
+// frame so calls in the body can read it without inventing a missing origin.
+func CollectMatching(content: String) -> String {
+    let lines: Array<String> = Split(content, "\n");
+    var found: String = "";
+    for line in lines {
+        if StringContains(line, "keep") {
+            let entry: String = Concat(line, "!");
+            if StringLength(found) > 0 {
+                found = Concat(found, ",");
+            }
+            found = Concat(found, entry);
+        }
+    }
+    return found;
+}
+
+func Main() -> Void {
+    Log(CollectMatching("keep one\nskip\nkeep two"));
+}

@@ -29,7 +29,7 @@ func DirectMirOptionStructValueFlowEmitLlvm(
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
     let some_tag: String = plan.abi.option_abi.primary_tag_text;
     let none_tag: String = plan.abi.option_abi.secondary_tag_text;
-    let output: String = "%";
+    var output: String = "%";
     output = Concat(output, inner_name);
     output = Concat(output, " = type { i32, i32 }\n%");
     output = Concat(output, option_name);

@@ -44,7 +44,7 @@ func DirectMirScalarCfgArrayIntCollectionFromOwners(
             admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
         );
     let empty_literal: Bool = DirectMirArrayLiteralEmptyReady(graph);
-    let elements: Array<Int> = [];
+    var elements: Array<Int> = [];
     if !empty_literal {
         elements = DirectMirArrayIntLiteralElements(graph);
     }

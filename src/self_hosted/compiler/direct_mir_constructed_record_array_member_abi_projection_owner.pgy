@@ -111,7 +111,7 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
     if c_record == "" {
         Die("direct MIR constructed record Array element symbol is invalid");
     }
-    let projection: DirectMirConstructedRecordArrayMemberAbiProjection =
+    var projection: DirectMirConstructedRecordArrayMemberAbiProjection =
         DirectMirConstructedRecordArrayMemberAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             storage, "", "", "", "", "", "",

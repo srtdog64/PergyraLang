@@ -10,8 +10,8 @@ import "../semantic/ast_type_name_canonical_owner.pgy";
 func SelfMirJsonDeclarationStringRange(
     values: Array<String>, start: Int, count: Int
 ) -> String {
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(rows, JsonStringLiteral(values[start + i]));
         i = i + 1;
@@ -22,19 +22,19 @@ func SelfMirJsonDeclarationStringRange(
 func SelfMirJsonDeclarationRequires(
     rows: SelfMirDeclarationRows, method_row: Int
 ) -> String {
-    let refs: Array<String> = [];
-    let i: Int = 0;
+    var refs: Array<String> = [];
+    var i: Int = 0;
     while i < rows.method_requires_counts[method_row] {
         let name: String = rows.method_requires_names[
             rows.method_requires_starts[method_row] + i
         ];
         let shape: SemanticConstructedTypeNameFact =
             SemanticConstructedTypeNameFactFrom(name);
-        let base: String = name;
-        let actuals: Array<String> = [];
+        var base: String = name;
+        var actuals: Array<String> = [];
         if shape.ok {
             base = shape.nominal_base_name;
-            let actual_i: Int = 0;
+            var actual_i: Int = 0;
             while actual_i < ArrayLength(shape.actual_type_names) {
                 ArrayPush(
                     actuals,
@@ -102,8 +102,8 @@ func SelfMirJsonDeclarationMethodParams(
     rows: SelfMirDeclarationRows,
     method_row: Int
 ) -> String {
-    let params: Array<String> = [];
-    let param_i: Int = 0;
+    var params: Array<String> = [];
+    var param_i: Int = 0;
     while param_i < rows.method_param_counts[method_row] {
         let param_row: Int = rows.method_param_starts[method_row] + param_i;
         ArrayPush(params, JsonEmitObject([
@@ -123,8 +123,8 @@ func SelfMirJsonDeclarationGenericParams(
     rows: SelfMirDeclarationRows,
     declaration_index: Int
 ) -> String {
-    let generics: Array<String> = [];
-    let generic_i: Int = 0;
+    var generics: Array<String> = [];
+    var generic_i: Int = 0;
     while generic_i < rows.generic_counts[declaration_index] {
         let generic_row: Int = rows.generic_starts[declaration_index] +
             generic_i;
@@ -154,9 +154,9 @@ func SelfMirJsonDeclarationRoleSlots(
     rows: SelfMirDeclarationRows,
     declaration_index: Int
 ) -> String {
-    let slots: Array<String> = [];
+    var slots: Array<String> = [];
     let no_ability_actuals: Array<String> = [];
-    let slot_i: Int = 0;
+    var slot_i: Int = 0;
     while slot_i < rows.role_slot_counts[declaration_index] {
         let slot_row: Int = rows.role_slot_starts[declaration_index] + slot_i;
         let ability_json: String = JsonEmitObject([
@@ -179,15 +179,15 @@ func SelfMirJsonDeclarationZoneAuthorities(
     rows: SelfMirDeclarationRows,
     declaration_index: Int
 ) -> String {
-    let authorities: Array<String> = [];
-    let authority_i: Int = 0;
+    var authorities: Array<String> = [];
+    var authority_i: Int = 0;
     while authority_i <
         rows.zone_authorities.declaration_counts[declaration_index] {
         let authority_row: Int =
             rows.zone_authorities.declaration_starts[declaration_index] +
             authority_i;
-        let required: Array<String> = [];
-        let ability_i: Int = 0;
+        var required: Array<String> = [];
+        var ability_i: Int = 0;
         while ability_i <
             rows.zone_authorities.required_ability_counts[authority_row] {
             let ability_row: Int =
@@ -219,9 +219,9 @@ func SelfMirJsonDeclarationRoleImpls(
     rows: SelfMirDeclarationRows,
     declaration_index: Int
 ) -> String {
-    let impls: Array<String> = [];
+    var impls: Array<String> = [];
     let no_impl_actuals: Array<String> = [];
-    let impl_i: Int = 0;
+    var impl_i: Int = 0;
     while impl_i < rows.role_impl_counts[declaration_index] {
         let impl_row: Int = rows.role_impl_starts[declaration_index] + impl_i;
         ArrayPush(impls, JsonEmitObject([
@@ -250,8 +250,8 @@ func SelfMirJsonDeclaration(
     declaration_index: Int
 ) -> String {
     let rows: SelfMirDeclarationRows = facts.declarations;
-    let fields_rows: Array<String> = [];
-    let field_i: Int = 0;
+    var fields_rows: Array<String> = [];
+    var field_i: Int = 0;
     while field_i < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + field_i;
         ArrayPush(fields_rows, JsonEmitObject([
@@ -264,13 +264,13 @@ func SelfMirJsonDeclaration(
         ]));
         field_i = field_i + 1;
     }
-    let methods: Array<String> = [];
-    let method_i: Int = 0;
+    var methods: Array<String> = [];
+    var method_i: Int = 0;
     while method_i < rows.method_counts[declaration_index] {
         let row: Int = rows.method_starts[declaration_index] + method_i;
-        let callable_kind: String = "function";
+        var callable_kind: String = "function";
         if rows.method_is_actions[row] == 1 { callable_kind = "action"; }
-        let method: Array<String> = [
+        var method: Array<String> = [
             JsonEmitFieldString("name", rows.method_names[row]),
             JsonEmitFieldString("return", rows.method_returns[row]),
             JsonEmitFieldString("callable_kind", callable_kind),
@@ -290,19 +290,19 @@ func SelfMirJsonDeclaration(
         ArrayPush(methods, JsonEmitObject(method));
         method_i = method_i + 1;
     }
-    let variants: Array<String> = [];
-    let variant_i: Int = 0;
+    var variants: Array<String> = [];
+    var variant_i: Int = 0;
     while variant_i < rows.variant_counts[declaration_index] {
         let variant_row: Int = rows.variant_starts[declaration_index] +
             variant_i;
-        let variant: Array<String> = [
+        var variant: Array<String> = [
             JsonEmitFieldString("name", rows.variant_names[variant_row]),
             JsonEmitFieldNumber(
                 "param_count", ToString(rows.variant_param_counts[variant_row])
             )
         ];
-        let param_types: Array<String> = [];
-        let param_index: Int = 0;
+        var param_types: Array<String> = [];
+        var param_index: Int = 0;
         while param_index < rows.variant_param_counts[variant_row] {
             ArrayPush(param_types, JsonStringLiteral(
                 rows.variant_param_type_names[
@@ -318,7 +318,7 @@ func SelfMirJsonDeclaration(
         variant_i = variant_i + 1;
     }
     let wire_kind: String = MirDeclarationWireKind(rows.nominal_kinds[declaration_index]);
-    let fields: Array<String> = [
+    var fields: Array<String> = [
         JsonEmitFieldString("kind", wire_kind),
         JsonEmitFieldString(
             "nominal_kind", rows.nominal_kinds[declaration_index]
@@ -345,7 +345,7 @@ func SelfMirJsonDeclaration(
         ArrayPush(fields, JsonEmitFieldBool(
             "abi_layout_required", StringLength(layout) > 0
         ));
-        let layout_wire: String = "null";
+        var layout_wire: String = "null";
         if StringLength(layout) > 0 { layout_wire = layout; }
         ArrayPush(fields, JsonEmitFieldRaw("abi_layout", layout_wire));
     }

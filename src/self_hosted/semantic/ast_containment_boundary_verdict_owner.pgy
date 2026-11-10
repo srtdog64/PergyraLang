@@ -50,8 +50,8 @@ func SemanticAstContainmentEmbeddingSlotRow(ref graph: SemanticExpressionGraphFa
     if graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() { return none; }
     // Compare the borrowed element in place; binding it to a named String
     // would be an element use the formal-effect owner cannot prove.
-    let call: Int = -1;
-    let row: Int = 0;
+    var call: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(owner_names) {
         if slot_types[row] == leaf_type_names[argument] {
             if call < 0 {
@@ -86,16 +86,16 @@ func SemanticAstContainmentEmbeddingVerdictFromResolvedFacts(
         return invalid;
     }
     // One row per embedding slot: a zone's subject slot or a world's zone slot.
-    let owner_names: Array<String> = [];
-    let owner_kinds: Array<String> = [];
-    let slot_names: Array<String> = [];
-    let slot_types: Array<String> = [];
-    let owner: Int = 0;
+    var owner_names: Array<String> = [];
+    var owner_kinds: Array<String> = [];
+    var slot_names: Array<String> = [];
+    var slot_types: Array<String> = [];
+    var owner: Int = 0;
     while owner < SemanticAstNominalConstructorCount(constructors) {
-        let slot_kind: String = "";
+        var slot_kind: String = "";
         if constructors.nominal_kinds[owner] == "zone" { slot_kind = NominalFieldKindSubjectSlot(); }
         if constructors.nominal_kinds[owner] == "world" { slot_kind = NominalFieldKindWorldZone(); }
-        let field: Int = constructors.param_starts[owner];
+        var field: Int = constructors.param_starts[owner];
         let end: Int = field + constructors.param_counts[owner];
         while slot_kind != "" && field < end {
             if constructors.field_kinds[field] == slot_kind {
@@ -116,20 +116,20 @@ func SemanticAstContainmentEmbeddingVerdictFromResolvedFacts(
     }
     // Roots are postorder and increasing, so nodes (last_root, root] belong to
     // the surface that owns the root; that surface names the source location.
-    let last_root: Int = -1;
-    let root_slot: Int = 0;
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
     while root_slot < root_count {
         if surfaces.expression_graph.has_roots[root_slot] {
             let root: Int = surfaces.expression_graph.roots[root_slot];
             if root <= last_root || root_slot / 3 >= ArrayLength(surfaces.node_ids) { return invalid; }
-            let node: Int = last_root + 1;
+            var node: Int = last_root + 1;
             while node <= root {
                 let lookup: SemanticAstContainmentSlotRow = SemanticAstContainmentEmbeddingSlotRow(
                     surfaces.expression_graph, node, leaf_type_names, owner_names, slot_types);
                 if lookup.malformed { return invalid; }
                 if lookup.found {
                     let row: Int = lookup.row;
-                    let code: String = "zone_subject_embedding_copy";
+                    var code: String = "zone_subject_embedding_copy";
                     if owner_kinds[row] == "world" { code = "world_zone_embedding_copy"; }
                     let argument: Int = surfaces.expression_graph.arena.topology.right_children[node];
                     return SemanticAstBodyVerdictError(code, SemanticError3(code,

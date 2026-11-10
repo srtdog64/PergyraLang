@@ -1,0 +1,42 @@
+// RefusalOf copies both borrowed String fields where it constructs Refusal.
+// The enum payload is therefore independent when the first match case
+// replaces admission, and the second match still observes "owner".
+struct Refusal {
+    owner: String;
+    stage: String;
+}
+
+enum Payload {
+    Emitted(String),
+    Refused(Refusal),
+}
+
+struct Admission {
+    owner: String;
+    stage: String;
+}
+
+func RefusalOf(ref admission: Admission) -> Refusal {
+    return Refusal(admission.owner, admission.stage);
+}
+
+func Route(ref admission: Admission, count: Int) -> Payload {
+    if count == 3 {
+        return Emitted("emitted");
+    }
+    return Refused(RefusalOf(admission));
+}
+
+func Main() -> Int {
+    var admission: Admission = Admission("owner", "stage");
+    let payload: Payload = Route(admission, 1);
+    match payload {
+        case Emitted(text): Print(text);
+        case Refused(refusal): admission = Admission("other", "x");
+    }
+    match payload {
+        case Emitted(text): Print(text);
+        case Refused(refusal): Print(refusal.owner);
+    }
+    return 0;
+}

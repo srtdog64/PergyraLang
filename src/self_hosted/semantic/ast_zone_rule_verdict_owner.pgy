@@ -15,19 +15,19 @@ func SemanticAstZoneRuleViolation(
         authorities.artifact_node_count != artifact.count {
         return Some("zone rule admission requires admitted declaration and authority facts");
     }
-    let zone_count: Int = 0;
-    let owner: Int = 0;
+    var zone_count: Int = 0;
+    var owner: Int = 0;
     while owner < SemanticAstNominalConstructorCount(constructors) {
         if constructors.nominal_kinds[owner] != "zone" {
             owner = owner + 1;
             continue;
         }
         zone_count = zone_count + 1;
-        let field: Int = constructors.param_starts[owner];
+        var field: Int = constructors.param_starts[owner];
         let end: Int = field + constructors.param_counts[owner];
         while field < end {
             let field_kind: String = constructors.field_kinds[field];
-            let expected_kind: String = "";
+            var expected_kind: String = "";
             if field_kind == NominalFieldKindEffectSlot() ||
                 field_kind == NominalFieldKindEffectPool() {
                 expected_kind = "effect";
@@ -50,7 +50,7 @@ func SemanticAstZoneRuleViolation(
         owner = owner + 1;
     }
     if zone_count == 0 { return None; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < artifact.count {
         let kind: Int = artifact.arena.kinds[node];
         if kind != TypedAstKindDomainApplyTag() &&
@@ -74,8 +74,8 @@ func SemanticAstZoneRuleViolation(
             continue;
         }
         let participant: Option<String> = TypedAstArenaAuxValueText(artifact.arena, node);
-        let participant_id: Int = -1;
-        let participant_name: String = "";
+        var participant_id: Int = -1;
+        var participant_name: String = "";
         if IsSome(participant) {
             participant_name = UnwrapOption(participant);
             let slot: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
@@ -87,9 +87,9 @@ func SemanticAstZoneRuleViolation(
             }
             participant_id = constructors.field_source_syntax_ids[UnwrapOption(slot)];
         }
-        let declared: Bool = false;
-        let authorized: Bool = false;
-        let authority: Int = 0;
+        var declared: Bool = false;
+        var authorized: Bool = false;
+        var authority: Int = 0;
         while authority < ArrayLength(authorities.authority_node_ids) {
             if authorities.owner_zone_node_ids[authority] == UnwrapOption(parent) {
                 declared = true;

@@ -1,0 +1,267 @@
+// Named input, vacant-pair, carrier, and source-use reservation facts.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_constructor_empty_capture_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_owned_argument_admission_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+
+func SemanticAstCollectionAggregateNamedInputKind(kind: Int) -> Bool {
+    return kind == 1 || kind == 3;
+}
+
+// PendingReady owns kind3 issuance/replay. This comparison is only sharing
+// among fields of that same admitted occurrence, never general source identity.
+func SemanticAstCollectionAggregateNamedVacantPairReady(
+    artifact: AstTreeArtifact, ref inputs: SemanticAstCollectionConstructorFieldInputs, prior: Int, current: Int
+) -> Bool {
+    let n: Int = ArrayLength(inputs.producer_kinds);
+    if !inputs.ok || inputs.artifact_node_count != artifact.count ||
+        inputs.artifact_identity_digest != artifact.identity_digest || artifact.count <= 0 || artifact.identity_digest <= 0 ||
+        prior < 0 || current < 0 || prior >= n || current >= n ||
+        ArrayLength(inputs.field_ids) != n || ArrayLength(inputs.constructor_ids) != n ||
+        ArrayLength(inputs.constructor_rows) != n || ArrayLength(inputs.surface_slots) != n ||
+        ArrayLength(inputs.function_ids) != n || ArrayLength(inputs.intent_ids) != n ||
+        ArrayLength(inputs.syntax_ids) != n || ArrayLength(inputs.call_nodes) != n ||
+        ArrayLength(inputs.ordinals) != n || ArrayLength(inputs.definition_rows) != n ||
+        ArrayLength(inputs.definition_ids) != n || ArrayLength(inputs.binding_ids) != n { return false; }
+    return inputs.producer_kinds[prior] == 3 && inputs.producer_kinds[current] == 3 &&
+        inputs.definition_rows[prior] >= 0 && inputs.definition_rows[current] >= 0 &&
+        inputs.definition_ids[prior] > 0 && inputs.definition_ids[current] > 0 &&
+        inputs.binding_ids[prior] > 0 && inputs.binding_ids[current] > 0 &&
+        inputs.constructor_ids[prior] > 0 && inputs.field_ids[prior] > 0 && inputs.field_ids[current] > 0 &&
+        inputs.field_ids[prior] != inputs.field_ids[current] &&
+        inputs.constructor_ids[prior] == inputs.constructor_ids[current] &&
+        inputs.constructor_rows[prior] == inputs.constructor_rows[current] &&
+        inputs.surface_slots[prior] == inputs.surface_slots[current] &&
+        inputs.function_ids[prior] == inputs.function_ids[current] &&
+        inputs.intent_ids[prior] == inputs.intent_ids[current] &&
+        inputs.syntax_ids[prior] == inputs.syntax_ids[current] &&
+        inputs.call_nodes[prior] == inputs.call_nodes[current] &&
+        inputs.ordinals[prior] != inputs.ordinals[current];
+}
+
+func SemanticAstCollectionAggregateReleaseError(
+    boundary: String, syntax_id: Int, expression_node: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    return SemanticAstCollectionOwnershipVerdictError(
+        "borrow_boundary_escape",
+        SemanticError2("borrow_boundary_escape", "boundary", boundary,
+            "type", "Array<String>"), syntax_id, expression_node);
+}
+
+func SemanticAstCollectionAggregateValidatedInputContains(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, input_row: Int
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(plan.validated_input_rows) {
+        if plan.validated_input_rows[row] == input_row { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+// A field carrier has no scalar producer-source id: its storage belongs to
+// the selected aggregate field. The release trace is the authority for that
+// handoff. Admit it only when one carrier row binds this exact input local,
+// field, function and demand edge to a positive source binding.
+func SemanticAstCollectionAggregateReleaseCarrierStorageReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    demand: Int, input: Int
+) -> Bool {
+    if demand < 0 || demand >= ArrayLength(plan.demand_edge_nodes) ||
+        input < 0 || input >= ArrayLength(inputs.binding_ids) ||
+        input >= ArrayLength(inputs.field_ids) ||
+        input >= ArrayLength(inputs.function_ids) ||
+        inputs.binding_ids[input] <= 0 || inputs.field_ids[input] <= 0 ||
+        inputs.function_ids[input] <= 0 ||
+        ArrayLength(plan.carrier_local_ids) !=
+            ArrayLength(plan.carrier_function_ids) ||
+        ArrayLength(plan.carrier_local_ids) !=
+            ArrayLength(plan.carrier_scope_ids) ||
+        ArrayLength(plan.carrier_local_ids) !=
+            ArrayLength(plan.carrier_source_binding_ids) ||
+        ArrayLength(plan.carrier_local_ids) !=
+            ArrayLength(plan.carrier_field_ids) ||
+        ArrayLength(plan.carrier_local_ids) !=
+            ArrayLength(plan.carrier_release_edge_nodes) {
+        return false;
+    }
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[row] == inputs.binding_ids[input] &&
+            plan.carrier_function_ids[row] == inputs.function_ids[input] &&
+            plan.carrier_scope_ids[row] > 0 &&
+            plan.carrier_source_binding_ids[row] > 0 &&
+            plan.carrier_field_ids[row] == inputs.field_ids[input] &&
+            plan.carrier_release_edge_nodes[row] ==
+                plan.demand_edge_nodes[demand] {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+
+// The immediate caller validates both sealed shapes once before iterating the
+// validated input rows.  Keep only row-local checks here; replaying the whole
+// input and plan shapes for every input makes one syntax event quadratic in
+// the fixed program-wide tables.
+func SemanticAstCollectionAggregateTerminalAlternativeSourceFromReadyFacts(
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    prior_input: Int, function_id: Int, syntax_id: Int,
+    expression_node: Int, binding_id: Int, definition: Int
+) -> Bool {
+    if prior_input < 0 ||
+        prior_input >= ArrayLength(inputs.binding_ids) ||
+        function_id <= 0 || syntax_id <= 0 || expression_node < 0 ||
+        binding_id <= 0 || definition < 0 {
+        return false;
+    }
+    var candidate_pairs: Int = 0;
+    var pair: Int = 0;
+    while pair < ArrayLength(
+            plan.terminal_alternative_prior_input_rows) {
+        if plan.terminal_alternative_prior_input_rows[pair] == prior_input {
+            candidate_pairs = candidate_pairs + 1;
+        }
+        pair = pair + 1;
+    }
+    if candidate_pairs == 0 { return false; }
+    var current_input: Int = -1;
+    var current_matches: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(inputs.binding_ids) {
+        if inputs.producer_kinds[row] == 1 &&
+            inputs.function_ids[row] == function_id &&
+            inputs.syntax_ids[row] == syntax_id &&
+            inputs.argument_nodes[row] == expression_node &&
+            inputs.binding_ids[row] == binding_id &&
+            inputs.definition_rows[row] == definition {
+            current_input = row;
+            current_matches = current_matches + 1;
+        }
+        row = row + 1;
+    }
+    if current_matches != 1 { return false; }
+    var pair_matches: Int = 0;
+    pair = 0;
+    while pair < ArrayLength(
+            plan.terminal_alternative_prior_input_rows) {
+        if plan.terminal_alternative_prior_input_rows[pair] == prior_input &&
+            plan.terminal_alternative_later_input_rows[pair] == current_input {
+            pair_matches = pair_matches + 1;
+        }
+        pair = pair + 1;
+    }
+    return pair_matches == 1;
+}
+
+func SemanticAstCollectionAggregateTerminalAlternativeReservationReady(
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    input: Int
+) -> Bool {
+    if !SemanticAstCollectionConstructorFieldInputsShapeReady(inputs) ||
+        !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        input < 0 || input >= ArrayLength(inputs.binding_ids) ||
+        inputs.producer_kinds[input] != 1 {
+        return false;
+    }
+    var conflicting_prior: Int = 0;
+    var validated: Int = 0;
+    while validated < ArrayLength(plan.validated_input_rows) {
+        let prior: Int = plan.validated_input_rows[validated];
+        if prior < 0 || prior >= ArrayLength(inputs.binding_ids) {
+            return false;
+        }
+        if inputs.producer_kinds[prior] == 1 &&
+            inputs.binding_ids[prior] == inputs.binding_ids[input] &&
+            inputs.definition_rows[prior] == inputs.definition_rows[input] {
+            var pair_matches: Int = 0;
+            var pair: Int = 0;
+            while pair < ArrayLength(
+                    plan.terminal_alternative_prior_input_rows) {
+                if plan.terminal_alternative_prior_input_rows[pair] == prior &&
+                    plan.terminal_alternative_later_input_rows[pair] == input {
+                    pair_matches = pair_matches + 1;
+                }
+                pair = pair + 1;
+            }
+            if pair_matches != 1 { return false; }
+            conflicting_prior = conflicting_prior + 1;
+        }
+        validated = validated + 1;
+    }
+    return conflicting_prior > 0;
+}
+
+func SemanticAstCollectionAggregateReleaseSourceUseAtEvent(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    root_slot: Int, expression_node: Int,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref current_definitions: Array<Int>,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    let write_target: Bool =
+        SemanticAstCollectionDefinitionWriteTarget(
+            definitions, root_slot, expression_node);
+    let surface: Int = root_slot / 3;
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types,
+            surfaces.function_node_ids[surface], surfaces.node_ids[surface],
+            surfaces.expression_graph, expression_node);
+    if !binding.ok || binding.row < 0 ||
+        binding.row >= ArrayLength(current_definitions) ||
+        current_definitions[binding.row] < 0 {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let definition: Int = current_definitions[binding.row];
+    if !SemanticAstCollectionConstructorFieldInputsShapeReady(inputs) ||
+        !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_release_plan_invalid",
+            surfaces.node_ids[surface], expression_node);
+    }
+    var validated: Int = 0;
+    while validated < ArrayLength(plan.validated_input_rows) {
+        let input: Int = plan.validated_input_rows[validated];
+        if input < 0 || input >= ArrayLength(inputs.definition_rows) {
+            return SemanticAstCollectionAggregateReleaseError(
+                "aggregate_release_input_missing",
+                surfaces.node_ids[surface], expression_node);
+        }
+        let terminal_alternative: Bool =
+            SemanticAstCollectionAggregateTerminalAlternativeSourceFromReadyFacts(
+                inputs, plan, input,
+                surfaces.function_node_ids[surface],
+                surfaces.node_ids[surface], expression_node,
+                locals.node_ids[binding.row], definition);
+        if (inputs.producer_kinds[input] == 3 &&
+                inputs.binding_ids[input] == locals.node_ids[binding.row]) ||
+            (!write_target && inputs.producer_kinds[input] == 1 &&
+                inputs.definition_rows[input] == definition &&
+                !terminal_alternative) {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "move_from_released",
+                SemanticError2("move_from_released", "boundary",
+                    "aggregate_release_source_use", "type",
+                    "Array<String>"), surfaces.node_ids[surface],
+                expression_node);
+        }
+        validated = validated + 1;
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+

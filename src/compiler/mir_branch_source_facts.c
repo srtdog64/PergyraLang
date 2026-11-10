@@ -178,7 +178,7 @@ mir_copy_collection_ownership_facts(MIRRoutine *routine,
                 && source->disposition
                     != PGY_COLLECTION_DISPOSITION_RETIRED)
             || (unsigned)source->origin
-                > (unsigned)PGY_COLLECTION_ORIGIN_CLONE
+                > (unsigned)PGY_COLLECTION_ORIGIN_OWNED_LITERAL
             || (source->origin == PGY_COLLECTION_ORIGIN_BINDING
                 && source->source_binding_syntax_id == 0)
             || (source->origin != PGY_COLLECTION_ORIGIN_BINDING
@@ -231,44 +231,23 @@ mir_collection_binding_type_name(const MIRRoutine *routine,
 }
 
 static bool
-mir_collection_member_source_matches(const MIRRoutine *routine,
-                                     uint32_t destination_binding_syntax_id,
-                                     uint32_t source_binding_syntax_id,
-                                     uint32_t field_syntax_id)
+mir_collection_member_path_leaf_matches(const MIRRoutine *routine,
+                                        const ASTNode *source,
+                                        uint32_t source_binding_syntax_id,
+                                        uint32_t field_syntax_id)
 {
     const char *source_type = mir_collection_binding_type_name(
         routine, source_binding_syntax_id);
     const ASTNode *members[64];
-    const ASTNode *source = NULL;
     const MIRDeclHeader *header = NULL;
     size_t member_count = 0;
-    size_t definitions = 0;
     size_t base_length;
 
     if (routine == NULL || routine->program == NULL || source_type == NULL
-        || source_type[0] == '\0' || destination_binding_syntax_id == 0
+        || source_type[0] == '\0' || source == NULL
         || source_binding_syntax_id == 0 || field_syntax_id == 0) {
         return false;
     }
-    for (size_t b = 0; b < routine->block_count; b++) {
-        const MIRBasicBlock *block = &routine->blocks[b];
-        for (size_t i = 0; i < block->instruction_count; i++) {
-            const MIRInstruction *instruction = &block->instructions[i];
-            if (instruction->binding_syntax_id
-                    != destination_binding_syntax_id)
-                continue;
-            if (instruction->kind != MIR_INST_DEF
-                || instruction->source_stable_id
-                    != destination_binding_syntax_id
-                || instruction->expr0 == NULL
-                || instruction->expr0->type != AST_MEMBER_ACCESS)
-                return false;
-            source = instruction->expr0;
-            definitions++;
-        }
-    }
-    if (definitions != 1 || source == NULL)
-        return false;
     const ASTNode *root = source;
     while (root != NULL && root->type == AST_MEMBER_ACCESS) {
         if (member_count == sizeof(members) / sizeof(members[0]))
@@ -334,6 +313,65 @@ mir_collection_member_source_matches(const MIRRoutine *routine,
         header = child;
     }
     return false;
+}
+
+bool
+mir_collection_member_receiver_path_matches(
+    const MIRRoutine *routine, const ASTNode *receiver,
+    uint32_t leaf_field_syntax_id, uint32_t *root_binding_syntax_id_out)
+{
+    const ASTNode *root = receiver;
+    uint32_t root_binding_syntax_id;
+
+    if (root_binding_syntax_id_out != NULL)
+        *root_binding_syntax_id_out = 0;
+    while (root != NULL && root->type == AST_MEMBER_ACCESS)
+        root = ast_member_object(root);
+    if (root == NULL || root->type != AST_IDENTIFIER)
+        return false;
+    root_binding_syntax_id = ast_identifier_binding_syntax_id(root);
+    if (root_binding_syntax_id == 0
+        || !mir_collection_member_path_leaf_matches(
+            routine, receiver, root_binding_syntax_id,
+            leaf_field_syntax_id))
+        return false;
+    if (root_binding_syntax_id_out != NULL)
+        *root_binding_syntax_id_out = root_binding_syntax_id;
+    return true;
+}
+
+static bool
+mir_collection_member_source_matches(const MIRRoutine *routine,
+                                     uint32_t destination_binding_syntax_id,
+                                     uint32_t source_binding_syntax_id,
+                                     uint32_t field_syntax_id)
+{
+    const ASTNode *source = NULL;
+    size_t definitions = 0;
+
+    if (routine == NULL || destination_binding_syntax_id == 0
+        || source_binding_syntax_id == 0 || field_syntax_id == 0)
+        return false;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *instruction = &block->instructions[i];
+            if (instruction->binding_syntax_id
+                    != destination_binding_syntax_id)
+                continue;
+            if (instruction->kind != MIR_INST_DEF
+                || instruction->source_stable_id
+                    != destination_binding_syntax_id
+                || instruction->expr0 == NULL
+                || instruction->expr0->type != AST_MEMBER_ACCESS)
+                return false;
+            source = instruction->expr0;
+            definitions++;
+        }
+    }
+    return definitions == 1
+        && mir_collection_member_path_leaf_matches(
+            routine, source, source_binding_syntax_id, field_syntax_id);
 }
 
 bool
@@ -457,7 +495,7 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                 && !mir_collection_retired_source_has_destination(
                     routine, fact))
             || (unsigned)fact->origin
-                > (unsigned)PGY_COLLECTION_ORIGIN_CLONE) {
+                > (unsigned)PGY_COLLECTION_ORIGIN_OWNED_LITERAL) {
             goto invalid;
         }
         for (size_t prior = 0; prior < i; prior++) {
@@ -530,6 +568,18 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                             == PGY_COLLECTION_DISPOSITION_RETIRED);
                 break;
             case PGY_COLLECTION_ORIGIN_CLONE:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_OWNED_ELEMENTS
+                    && fact->source_binding_syntax_id == 0;
+                break;
+            case PGY_COLLECTION_ORIGIN_CALL_RESULT:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_OWNED_ELEMENTS
+                    && fact->source_binding_syntax_id == 0;
+                break;
+            case PGY_COLLECTION_ORIGIN_OWNED_LITERAL:
                 origin_consistent =
                     fact->element_ownership
                         == PGY_STRING_ARRAY_OWNED_ELEMENTS

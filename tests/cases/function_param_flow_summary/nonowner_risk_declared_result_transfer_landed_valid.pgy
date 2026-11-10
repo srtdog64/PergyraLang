@@ -1,0 +1,35 @@
+// A moving default formal carries the exact Array into a declared result.
+// The typed result path, not a second backing graph or the callee spelling,
+// proves the transfer after the Array becomes an owned String container.
+struct Arena {
+    atoms: Array<String>;
+}
+
+struct Facts {
+    names: Array<String>;
+}
+
+func VariantAt(arena: Arena, index: Int) -> Option<String> {
+    if index < 0 || index >= ArrayLength(arena.atoms) { return None; }
+    return Some(arena.atoms[index]);
+}
+
+func NonownerRead(text: String) -> Int { return StringLength(text); }
+
+func Forward(names: Array<String>) -> Facts {
+    return Facts(names);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena(["alpha"]);
+    let selected: Option<String> = VariantAt(arena, 0);
+    if IsSome(selected) {
+        let text: String = UnwrapOption(selected);
+        var names: Array<String> = [];
+        Log(NonownerRead(text));
+        ArrayPush(names, text);
+        let facts: Facts = Forward(names);
+        Print(facts.names[0]);
+    }
+    return 0;
+}

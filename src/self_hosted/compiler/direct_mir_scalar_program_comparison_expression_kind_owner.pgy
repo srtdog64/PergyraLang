@@ -23,7 +23,7 @@ func DirectMirScalarProgramComparisonExpressionKindFact(
         right_type == CompilerAbiLayoutLongTypeName();
     let bools: Bool = left_type == CompilerAbiLayoutBoolTypeName() &&
         right_type == CompilerAbiLayoutBoolTypeName();
-    let kind: Int = 0;
+    var kind: Int = 0;
     if ints && source_kind == AstExpressionNodeEquality() {
         kind = DirectMirScalarProgramExprEqualInt();
     } else if ints && source_kind == AstExpressionNodeInequality() {

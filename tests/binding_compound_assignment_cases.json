@@ -1,0 +1,372 @@
+[
+  {
+    "name": "scalar",
+    "source": "func Main() -> Void { var x: Int = 10; x += 5; x -= 2; x *= 3; x /= 3; x %= 5; Log(x); }",
+    "expected": "3\n"
+  },
+  {
+    "name": "loop",
+    "source": "func Main() -> Void { let mut i: Int = 0; var total: Int = 0; while i < 5 { total += i; i += 1; } Log(total); }",
+    "expected": "10\n"
+  },
+  {
+    "name": "index",
+    "source": "func Next(inout n: Int) -> Int { n += 1; return 0; } func Main() -> Void { var n: Int = 0; var xs: Array<Int> = [10]; xs[Next(n)] += 5; Log(n); Log(xs[0]); }",
+    "expected": "1\n15\n"
+  },
+  {
+    "name": "order",
+    "source": "func Index(inout n: Int) -> Int { n = n * 10 + 1; return 0; } func Rhs(inout n: Int) -> Int { n = n * 10 + 2; return 3; } func Main() -> Void { var n: Int = 0; var xs: Array<Int> = [10]; xs[Index(n)] += Rhs(n); Log(n); Log(xs[0]); }",
+    "expected": "12\n13\n"
+  },
+  {
+    "name": "field",
+    "source": "struct Point { x: Int; } func Main() -> Void { var p: Point = Point(10); p.x += 3; Log(p.x); }",
+    "expected": "13\n"
+  },
+  {
+    "name": "nested",
+    "source": "func Main() -> Void { var x: Int = 10; var y: Int = 2; x += (y += 3); Log(x); Log(y); }",
+    "expected": "15\n5\n"
+  },
+  {
+    "name": "event",
+    "source": "event OnHit(amount: Int); func Hit(amount: Int) -> Void { Log(amount); } func Main() -> Void { OnHit += Hit; OnHit(7); OnHit -= Hit; OnHit(8); }",
+    "expected": "7\n"
+  },
+  {
+    "name": "float",
+    "source": "func Main() -> Void { var x: Float = 2.0; x += 1.0; x *= 4.0; x -= 2.0; x /= 2.0; Log(x == 5.0); }",
+    "expected": "true\n"
+  },
+  {
+    "name": "long",
+    "source": "func Main() -> Void { var x: Long = 4000000000L; x += 10L; x -= 2L; x *= 2L; x /= 4L; x %= 100L; Log(x); }",
+    "expected": "4\n"
+  },
+  {
+    "name": "slice",
+    "source": "func Main() -> Void { var xs: Array<Int> = [1, 2, 3]; var s: Slice<Int> = xs.Slice(0, 3); s[1] *= 7; Log(s[1]); }",
+    "expected": "14\n"
+  },
+  {
+    "name": "defer",
+    "source": "func Main() -> Void { var x: Int = 1; defer { x += 2; Log(x); }; Log(x); }",
+    "expected": "1\n3\n"
+  },
+  {
+    "name": "inout",
+    "source": "func Add(inout n: Int) -> Void { n += 3; } func Main() -> Void { var n: Int = 2; Add(n); Log(n); }",
+    "expected": "5\n"
+  },
+  {
+    "name": "literal_grow",
+    "source": "func Main() -> Void { var xs: Array<Int> = [1, 2, 3]; ArrayPush(xs, 4); var i: Int = 0; while i < ArrayLength(xs) { Log(xs[i]); i += 1; } }",
+    "expected": "1\n2\n3\n4\n"
+  },
+  {
+    "name": "resize_rhs",
+    "source": "func Grow(inout xs: Array<Int>) -> Int { ArrayPush(xs, 20); return 5; } func Main() -> Void { var xs: Array<Int> = [10]; xs[0] += Grow(xs); Log(xs[0]); Log(xs[1]); }",
+    "expected": "REFUSE:Cannot change"
+  },
+  {
+    "name": "immutable",
+    "source": "func Main() -> Void { let x: Int = 1; x = 2; }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "immutable_false",
+    "source": "func Main() -> Void { let x: Int = 1; if false { x += 2; } }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "immutable_loop",
+    "source": "func Main() -> Void { let x: Int = 1; while false { x += 2; } }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "immutable_for",
+    "source": "func Main() -> Void { let x: Int = 1; for i in 0..0 { x += 2; } }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "immutable_defer",
+    "source": "func Main() -> Void { let x: Int = 1; defer { x += 2; }; }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "immutable_inout",
+    "source": "func Set(inout n: Int) -> Void { n = 2; } func Main() -> Void { let x: Int = 1; Set(x); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "readonly_ref",
+    "source": "func Set(ref n: Int) -> Void { n += 2; } func Main() -> Void { let x: Int = 1; Set(x); }",
+    "expected": "REFUSE:IMMUTABLE_FIELD"
+  },
+  {
+    "name": "readonly_field",
+    "source": "struct Point { let x: Int; } func Main() -> Void { var p: Point = Point(10); p.x += 3; }",
+    "expected": "REFUSE:IMMUTABLE_FIELD"
+  },
+  {
+    "name": "float_mod",
+    "source": "func Main() -> Void { var x: Float = 2.0; x %= 1.0; }",
+    "expected": "REFUSE:"
+  },
+  {
+    "name": "bool_add",
+    "source": "func Main() -> Void { var x: Bool = true; x += false; }",
+    "expected": "REFUSE:"
+  },
+  {
+    "name": "string_sub",
+    "source": "func Main() -> Void { var x: String = \"abc\"; x -= \"a\"; }",
+    "expected": "REFUSE:"
+  },
+  {
+    "name": "mixed",
+    "source": "func Main() -> Void { var x: Int = 2; x += 1.0; }",
+    "expected": "REFUSE:"
+  },
+  {
+    "name": "zero_div",
+    "source": "func Main() -> Void { var x: Int = 3; x /= 0; Log(x); }",
+    "expected": "PANIC:"
+  },
+  {
+    "name": "zero_mod",
+    "source": "func Main() -> Void { var x: Int = 3; x %= 0; Log(x); }",
+    "expected": "PANIC:"
+  },
+  {
+    "name": "immutable_capture",
+    "source": "func Main() -> Void { let x: Int = 1; let f: func() -> Void = () => { x += 1; }; f(); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "mutable_capture",
+    "source": "func Main() -> Void { var x: Int = 1; let f: func() -> Void = () => { x += 1; Log(x); }; f(); Log(x); }",
+    "expected": "2\n1\n"
+  },
+  {
+    "name": "let_array_index",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; xs[0] += 2; }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_array_push",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; ArrayPush(xs, 2); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_list",
+    "source": "func Main() -> Void { let xs: List<Int> = ListNew(); ListPush(xs, 2); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_map",
+    "source": "func Main() -> Void { let xs: HashMap<Int,Int> = MapNew(); MapSet(xs, 1, 2); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_struct",
+    "source": "struct P { x: Int; } func Main() -> Void { let p: P = P(1); p.x += 2; }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_nested_field",
+    "source": "struct P { let xs: Array<Int>; } func Main() -> Void { var p: P = P([1]); ArrayPush(p.xs, 2); }",
+    "expected": "REFUSE:IMMUTABLE_FIELD"
+  },
+  {
+    "name": "let_slice",
+    "source": "func Main() -> Void { var xs: Array<Int> = [1]; let s: Slice<Int> = xs.Slice(0,1); s[0] += 2; }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_slice_backing",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; var s: Slice<Int> = xs.Slice(0,1); s[0] += 2; }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_nested_pop",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; Log(ArrayPop(xs)); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "let_view_inout",
+    "source": "func F(inout view: Slice<Int>) -> Void { view[0] = 2; } func Main() -> Void { let xs: Array<Int> = [1]; var s: Slice<Int> = xs.Slice(0,1); F(s); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "temporary_collision",
+    "source": "func Main() -> Void { let _pgy_assign_target_1: Int = 1; let _pgy_assign_target_2: Int = 1; let _pgy_assign_target_3: Int = 1; let _pgy_assign_target_4: Int = 1; let _pgy_assign_target_5: Int = 1; let _pgy_assign_target_6: Int = 1; let _pgy_assign_target_7: Int = 1; let _pgy_assign_target_8: Int = 1; let _pgy_assign_target_9: Int = 1; let _pgy_assign_target_10: Int = 1; let _pgy_assign_target_11: Int = 1; let _pgy_assign_target_12: Int = 1; let _pgy_assign_value_1: Int = 1; let _pgy_assign_value_2: Int = 1; let _pgy_assign_value_3: Int = 1; let _pgy_assign_value_4: Int = 1; let _pgy_assign_value_5: Int = 1; let _pgy_assign_value_6: Int = 1; let _pgy_assign_value_7: Int = 1; let _pgy_assign_value_8: Int = 1; let _pgy_assign_value_9: Int = 1; let _pgy_assign_value_10: Int = 1; let _pgy_assign_value_11: Int = 1; let _pgy_assign_value_12: Int = 1; let _pgy_update_array_1: Int = 1; let _pgy_update_array_2: Int = 1; let _pgy_update_array_3: Int = 1; let _pgy_update_array_4: Int = 1; let _pgy_update_array_5: Int = 1; let _pgy_update_array_6: Int = 1; let _pgy_update_array_7: Int = 1; let _pgy_update_array_8: Int = 1; let _pgy_update_array_9: Int = 1; let _pgy_update_array_10: Int = 1; let _pgy_update_array_11: Int = 1; let _pgy_update_array_12: Int = 1; let _pgy_update_index_1: Int = 1; let _pgy_update_index_2: Int = 1; let _pgy_update_index_3: Int = 1; let _pgy_update_index_4: Int = 1; let _pgy_update_index_5: Int = 1; let _pgy_update_index_6: Int = 1; let _pgy_update_index_7: Int = 1; let _pgy_update_index_8: Int = 1; let _pgy_update_index_9: Int = 1; let _pgy_update_index_10: Int = 1; let _pgy_update_index_11: Int = 1; let _pgy_update_index_12: Int = 1; let _pgy_update_value_1: Int = 1; let _pgy_update_value_2: Int = 1; let _pgy_update_value_3: Int = 1; let _pgy_update_value_4: Int = 1; let _pgy_update_value_5: Int = 1; let _pgy_update_value_6: Int = 1; let _pgy_update_value_7: Int = 1; let _pgy_update_value_8: Int = 1; let _pgy_update_value_9: Int = 1; let _pgy_update_value_10: Int = 1; let _pgy_update_value_11: Int = 1; let _pgy_update_value_12: Int = 1; let _pgy_slice_set_1: Int = 1; let _pgy_slice_set_2: Int = 1; let _pgy_slice_set_3: Int = 1; let _pgy_slice_set_4: Int = 1; let _pgy_slice_set_5: Int = 1; let _pgy_slice_set_6: Int = 1; let _pgy_slice_set_7: Int = 1; let _pgy_slice_set_8: Int = 1; let _pgy_slice_set_9: Int = 1; let _pgy_slice_set_10: Int = 1; let _pgy_slice_set_11: Int = 1; let _pgy_slice_set_12: Int = 1; var xs: Array<Int> = [10]; var x: Int = 0; x += _pgy_assign_target_1 + _pgy_assign_target_2 + _pgy_assign_target_3 + _pgy_assign_target_4 + _pgy_assign_target_5 + _pgy_assign_target_6 + _pgy_assign_target_7 + _pgy_assign_target_8 + _pgy_assign_target_9 + _pgy_assign_target_10 + _pgy_assign_target_11 + _pgy_assign_target_12 + _pgy_assign_value_1 + _pgy_assign_value_2 + _pgy_assign_value_3 + _pgy_assign_value_4 + _pgy_assign_value_5 + _pgy_assign_value_6 + _pgy_assign_value_7 + _pgy_assign_value_8 + _pgy_assign_value_9 + _pgy_assign_value_10 + _pgy_assign_value_11 + _pgy_assign_value_12 + _pgy_update_array_1 + _pgy_update_array_2 + _pgy_update_array_3 + _pgy_update_array_4 + _pgy_update_array_5 + _pgy_update_array_6 + _pgy_update_array_7 + _pgy_update_array_8 + _pgy_update_array_9 + _pgy_update_array_10 + _pgy_update_array_11 + _pgy_update_array_12 + _pgy_update_index_1 + _pgy_update_index_2 + _pgy_update_index_3 + _pgy_update_index_4 + _pgy_update_index_5 + _pgy_update_index_6 + _pgy_update_index_7 + _pgy_update_index_8 + _pgy_update_index_9 + _pgy_update_index_10 + _pgy_update_index_11 + _pgy_update_index_12 + _pgy_update_value_1 + _pgy_update_value_2 + _pgy_update_value_3 + _pgy_update_value_4 + _pgy_update_value_5 + _pgy_update_value_6 + _pgy_update_value_7 + _pgy_update_value_8 + _pgy_update_value_9 + _pgy_update_value_10 + _pgy_update_value_11 + _pgy_update_value_12 + _pgy_slice_set_1 + _pgy_slice_set_2 + _pgy_slice_set_3 + _pgy_slice_set_4 + _pgy_slice_set_5 + _pgy_slice_set_6 + _pgy_slice_set_7 + _pgy_slice_set_8 + _pgy_slice_set_9 + _pgy_slice_set_10 + _pgy_slice_set_11 + _pgy_slice_set_12; xs[0] += x; Log(xs[0]); }",
+    "expected": "82\n"
+  },
+  {
+    "name": "slice_alias",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; let s: Slice<Int> = xs.Slice(0,1); var alias: Slice<Int> = s; alias[0] = 2; Log(xs[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_rebind",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); s = b.Slice(0,1); s[0] = 3; Log(b[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_return",
+    "source": "func View(ref xs: Array<Int>) -> Slice<Int> { return xs.Slice(0,1); } func Main() -> Void { let xs: Array<Int> = [1]; var s: Slice<Int> = View(xs); s[0] = 2; Log(xs[0]); }",
+    "expected": "REFUSE:PGY_SEM_BORROW_ESCAPE"
+  },
+  {
+    "name": "slice_nested",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1,2]; var s: Slice<Int> = xs.Slice(0,2); var t: Slice<Int> = s.Slice(0,1); t[0] = 3; Log(xs[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "array_alias",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; var ys: Array<Int> = xs; ys[0] = 3; Log(xs[0]); Log(ys[0]); }",
+    "expected": "1\n3\n"
+  },
+  {
+    "name": "field_alias",
+    "source": "struct P { xs: Array<Int>; } func Main() -> Void { let p: P = P([1]); var ys: Array<Int> = p.xs; ys[0] = 3; Log(p.xs[0]); Log(ys[0]); }",
+    "expected": "1\n3\n"
+  },
+  {
+    "name": "collection_ref",
+    "source": "func F(ref xs: Array<Int>) -> Void { ArrayPush(xs,2); } func Main() -> Void { var xs: Array<Int> = [1]; F(xs); }",
+    "expected": "REFUSE:PGY_SEM"
+  },
+  {
+    "name": "let_inout_member",
+    "source": "struct P { x: Int; } func F(inout p: P) -> Void { p.x = 3; } func Main() -> Void { let p: P = P(1); F(p); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "immutable_update_capture",
+    "source": "func Main() -> Void { let xs: Array<Int> = [1]; let f: func() -> Void = () => { xs[0] += 1; }; f(); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_member_write",
+    "source": "struct Box { s: Slice<Int>; } func Main() -> Void { let xs: Array<Int> = [1]; var b: Box = Box(xs.Slice(0,1)); b.s[0] = 2; Log(xs[0]); }",
+    "expected": "REFUSE:PGY_SEM_BORROW_ESCAPE"
+  },
+  {
+    "name": "slice_inout_rebind",
+    "source": "func Switch(inout s: Slice<Int>, ref xs: Array<Int>) -> Void { s = xs.Slice(0,1); } func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); Switch(s,b); s[0] = 3; Log(b[0]); }",
+    "expected": "REFUSE:PGY_SEM_BORROW_ESCAPE"
+  },
+  {
+    "name": "let_mut_field_alias",
+    "source": "struct Counter { let mut count: Int; } func Main() -> Void { let mut c: Counter = Counter(1); c.count += 2; Log(c.count); }",
+    "expected": "3\n"
+  },
+  {
+    "name": "contextual_mut_name",
+    "source": "func Main() -> Void { let mut: Int = 7; Log(mut); }",
+    "expected": "7\n"
+  },
+  {
+    "name": "string_field_copy_set",
+    "source": "struct Rows { names: Array<String>; } func Main() -> Void { let r: Rows = Rows([Concat(\"old\", \"\")]); var names: Array<String> = r.names; ArraySet(names, 0, \"new\"); Log(names[0]); Log(r.names[0]); }",
+    "expected": "new\nold\n"
+  },
+  {
+    "name": "string_array_stale_read",
+    "source": "func Main() -> Void { var names: Array<String> = [Concat(\"old\", \"\")]; let text: String = names[0]; ArrayDropOwnedStrings(names); Log(text); }",
+    "expected": "REFUSE:PGY_SEM_BORROW_ESCAPE"
+  },
+  {
+    "name": "slice_while_backedge",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); var i: Int = 0; while i < 2 { s[0] += 1; s = b.Slice(0,1); i += 1; } Log(b[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_for_backedge",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); for i in 0..2 { s[0] += 1; s = b.Slice(0,1); } Log(b[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_continue_backedge",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); var i: Int = 0; while i < 2 { s[0] += 1; s = b.Slice(0,1); i += 1; continue; } Log(b[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_local_view_backedge",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); var i: Int = 0; while i < 2 { var t: Slice<Int> = s.Slice(0,1); t[0] += 1; s = b.Slice(0,1); i += 1; } Log(b[0]); }",
+    "expected": "REFUSE:IMMUTABLE_BINDING"
+  },
+  {
+    "name": "slice_writable_backedge",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; var b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); for i in 0..2 { s[0] += 1; s = b.Slice(0,1); } Log(a[0]); Log(b[0]); }",
+    "expected": "2\n3\n"
+  },
+  {
+    "name": "slice_write_before_readonly_rebind",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); s[0] += 1; s = b.Slice(0,1); Log(s[0]); }",
+    "expected": "2\n"
+  },
+  {
+    "name": "slice_single_iteration_rebind",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; let b: Array<Int> = [2]; var s: Slice<Int> = a.Slice(0,1); for i in 0..1 { s[0] += 1; s = b.Slice(0,1); } Log(b[0]); }",
+    "expected": "2\n"
+  },
+  {
+    "name": "slice_default_alias",
+    "source": "func F(s: Slice<Int>) -> Void { var t: Slice<Int> = s; t[0] = 9; } func Main() -> Void { var a: Array<Int> = [1]; var s: Slice<Int> = a.Slice(0,1); F(s); Log(a[0]); }",
+    "expected": "REFUSE:default value parameter"
+  },
+  {
+    "name": "slice_default_inout",
+    "source": "func Set(inout s: Slice<Int>) -> Void { s[0] = 9; } func F(s: Slice<Int>) -> Void { Set(s); } func Main() -> Void { var a: Array<Int> = [1]; var s: Slice<Int> = a.Slice(0,1); F(s); Log(a[0]); }",
+    "expected": "REFUSE:default value parameter"
+  },
+  {
+    "name": "slice_scope_escape",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; var s: Slice<Int> = a.Slice(0,1); if true { var b: Array<Int> = [2]; s = b.Slice(0,1); } Log(s[0]); }",
+    "expected": "REFUSE:backing scope"
+  },
+  {
+    "name": "slice_inout_write",
+    "source": "func F(inout s: Slice<Int>) -> Void { s[0] = 9; } func Main() -> Void { var a: Array<Int> = [1]; var s: Slice<Int> = a.Slice(0,1); F(s); Log(a[0]); }",
+    "expected": "9\n"
+  },
+  {
+    "name": "slice_inner_view",
+    "source": "func Main() -> Void { var a: Array<Int> = [1]; if true { var s: Slice<Int> = a.Slice(0,1); s[0] = 9; } Log(a[0]); }",
+    "expected": "9\n"
+  },
+  {
+    "name": "indexed_rhs_readonly",
+    "source": "func FirstValue(ref xs: Array<Int>) -> Int { return xs[0]; } func Main() -> Void { var xs: Array<Int> = [10]; xs[0] += FirstValue(xs); Log(xs[0]); }",
+    "expected": "20\n"
+  },
+  {
+    "name": "indexed_rhs_disjoint",
+    "source": "func Grow(inout xs: Array<Int>) -> Int { ArrayPush(xs, 20); return 5; } func Main() -> Void { var xs: Array<Int> = [10]; var ys: Array<Int> = [1]; xs[0] += Grow(ys); Log(xs[0]); Log(ArrayLength(ys)); }",
+    "expected": "15\n2\n"
+  },
+  {
+    "name": "indexed_rhs_formal",
+    "source": "func Grow(inout xs: Array<Int>) -> Int { ArrayPush(xs, 20); return 5; } func Update(inout xs: Array<Int>) -> Void { xs[0] += Grow(xs); } func Main() -> Void { var xs: Array<Int> = [10]; Update(xs); }",
+    "expected": "REFUSE:Cannot change"
+  },
+  {
+    "name": "indexed_index_growth",
+    "source": "func Grow(inout xs: Array<Int>) -> Int { ArrayPush(xs, 20); return 0; } func Main() -> Void { var xs: Array<Int> = [10]; xs[Grow(xs)] += 1; }",
+    "expected": "REFUSE:Cannot change"
+  },
+  {
+    "name": "indexed_rhs_nested_call",
+    "source": "func Grow(inout xs: Array<Int>) -> Int { ArrayPush(xs, 20); return 5; } func Add(x: Int) -> Int { return x + 1; } func Main() -> Void { var xs: Array<Int> = [10]; xs[0] += Add(Grow(xs)); }",
+    "expected": "REFUSE:Cannot change"
+  },
+  {
+    "name": "indexed_rhs_member",
+    "source": "struct State { nums: Array<Int>; } func Grow(inout state: State) -> Int { ArrayPush(state.nums, 20); return 5; } func Main() -> Void { var state: State = State([10]); state.nums[0] += Grow(state); }",
+    "expected": "REFUSE:Cannot change"
+  }
+]

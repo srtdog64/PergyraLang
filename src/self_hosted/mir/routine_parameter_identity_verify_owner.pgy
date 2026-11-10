@@ -12,7 +12,7 @@ func SelfMirRoutineParameterRowsReady(
         count != ArrayLength(rows.param_resource_kinds) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if rows.param_node_ids[row] <= 0 ||
             rows.param_abi_kinds[row] < 0 ||
@@ -23,7 +23,7 @@ func SelfMirRoutineParameterRowsReady(
                 SelfMirParamResourceKindForType(rows.param_types[row]) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if rows.param_node_ids[prior] == rows.param_node_ids[row] {
                 return false;

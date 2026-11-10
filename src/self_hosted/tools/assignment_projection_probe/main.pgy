@@ -17,7 +17,7 @@ func ProbeAssignmentFacts(
     return SemanticAstAssignmentFacts(
         true, "", "", 1,
         [0], [0], [0], [target], [base_name], [base_name], [is_indexed],
-        [index_text], [expression]
+        [index_text], [expression], [0]
     );
 }
 
@@ -118,13 +118,14 @@ func ProbeOptionAssignment(
             CodegenFunctionValueBindingFactFor(
                 name, binding_type, base_env
             );
-        CodegenTypeEnvStateAppendTypedValueBinding(env_state, base_env,
+        CodegenTypeEnvStateAppendTypedValueBinding(env_state,
             binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
     }
-    let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state, base_env);
+    let env: CodegenTypeEnv = base_env;
+    CodegenTypeEnvStateBindView(env, env_state);
     let output: String = EmitAssign(
         assignments, 0, expected_type, expected_type,
-        env_state, env, graph, target_graph
+        env_state, env, graph.graph, graph.root_id, target_graph.root_id
     );
     CodegenTypeEnvStateReleaseLocal(env_state);
     return output;
@@ -150,10 +151,12 @@ func ProbeIndexedAssignment(
     if carry_c_binding {
         CodegenTypeEnvStateAppendValueBinding(env_state, base_env, "nums", "ArrayInt", "nums");
     }
-    let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state, base_env);
+    let env: CodegenTypeEnv = base_env;
+    CodegenTypeEnvStateBindView(env, env_state);
     let output: String = EmitAssign(
         assignments, 0, "Int", target_type,
-        env_state, env, value_graph, target_graph
+        env_state, env, value_graph.graph,
+        value_graph.root_id, target_graph.root_id
     );
     CodegenTypeEnvStateReleaseLocal(env_state);
     return output;
@@ -164,7 +167,9 @@ func ProbeCollectionCrefOnly() -> String {
         "|", "|xs=v:ArrayInt|xs=type:Array<Int>|xs=cref:pgy_ref_xs|"
     );
     let target: SemanticExpressionGraphView = ProbeExpressionGraph("xs", true, "xs", true);
-    return CodegenCollectionTargetCBindingOrDie(env, "xs", target);
+    return CodegenCollectionTargetCBindingOrDie(
+        env, "xs", target.graph, target.root_id
+    );
 }
 
 func Main() -> Void {

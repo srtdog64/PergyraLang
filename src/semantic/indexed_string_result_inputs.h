@@ -6,7 +6,7 @@
 
 typedef struct IndexedStringOptionInputs IndexedStringOptionInputs;
 typedef struct IndexedStringPermanentElementRecipe IndexedStringPermanentElementRecipe;
-typedef struct {
+typedef struct IndexedStringResultInputs {
     IndexedStringFieldCall *calls;
     IndexedStringFieldDependency *dependencies;
     size_t call_count, call_capacity, sealed_calls;

@@ -31,8 +31,8 @@ func DirectMirScalarEmitC(
         StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
         Die("direct MIR scalar C runtime ABI facts are invalid");
     }
-    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
-    let row: Int = 0;
+    var output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
+    var row: Int = 0;
     while row < ArrayLength(projection.local_names) {
         output = Concat(output, "    ");
         output = Concat(output, int_c_type);
@@ -45,7 +45,7 @@ func DirectMirScalarEmitC(
     }
     row = 0;
     while row < ArrayLength(projection.log_binary_kinds) {
-        let operator_text: String = " + ";
+        var operator_text: String = " + ";
         if projection.log_binary_kinds[row] == AstExpressionNodeMultiply() {
             operator_text = " * ";
         } else if projection.log_binary_kinds[row] != AstExpressionNodeAdd() {
@@ -82,7 +82,7 @@ func DirectMirScalarEmitLlvm(
     }
     let format_payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    var output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output, format_payload);
@@ -91,7 +91,7 @@ func DirectMirScalarEmitLlvm(
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\n");
     output = Concat(output, "define i32 @main() {\nentry:\n");
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(projection.result_names) {
         output = Concat(output, "  %pgy.local.");
         output = Concat(output, ToString(row));
@@ -102,7 +102,7 @@ func DirectMirScalarEmitLlvm(
     }
     row = 0;
     while row < ArrayLength(projection.log_binary_kinds) {
-        let instruction: String = "add";
+        var instruction: String = "add";
         if projection.log_binary_kinds[row] == AstExpressionNodeMultiply() {
             instruction = "mul";
         } else if projection.log_binary_kinds[row] != AstExpressionNodeAdd() {
@@ -145,7 +145,7 @@ func DirectMirCfgEmitC(
         Die("direct MIR CFG C projection plan or runtime ABI is invalid");
     }
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {
-        let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n    ";
+        var output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n    ";
         output = Concat(output, int_c_type);
         output = Concat(output, " pgy_enum_value = ");
         output = Concat(output, ToString(plan.enum_match.selected_ordinal));
@@ -188,7 +188,7 @@ func DirectMirCfgEmitC(
             line_format, int_c_type
         );
     }
-    let output: String = "#include <stdint.h>\n#include <stdio.h>\n";
+    var output: String = "#include <stdint.h>\n#include <stdio.h>\n";
     if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
         output = Concat(output, "#include <stdbool.h>\n");
     }
@@ -239,7 +239,7 @@ func DirectMirCfgEmitC(
 }
 
 func DirectMirCfgLlvmStringConstant(name: String, content: String) -> String {
-    let output: String = "@";
+    var output: String = "@";
     output = Concat(output, name);
     output = Concat(output, " = private unnamed_addr constant [");
     output = Concat(output, ToString(StringLength(content) + 1));
@@ -274,7 +274,7 @@ func DirectMirCfgEmitLlvm(
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {
         let format_size: Int =
             DirectMirScalarLlvmFormatByteCount(line_format);
-        let output: String =
+        var output: String =
             "@.pgy.int.line.format = private unnamed_addr constant [";
         output = Concat(output, ToString(format_size));
         output = Concat(output, " x i8] c\"");
@@ -332,7 +332,7 @@ func DirectMirCfgEmitLlvm(
         );
     }
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@";
+    var output: String = "@";
     output = Concat(output, DirectMirCfgLlvmFormatName(plan.shape.kind));
     output = Concat(output, " = private unnamed_addr constant [");
     output = Concat(output, ToString(format_size));

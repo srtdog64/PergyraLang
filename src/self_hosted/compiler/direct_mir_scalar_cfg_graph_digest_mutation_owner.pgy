@@ -1,0 +1,14 @@
+// Proves that a changed graph digest invalidates the graph and its routine partition.
+import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_mutation_owner.pgy";
+
+func DirectMirScalarCfgGraphDigestMutationRejected(
+    plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let mutated: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgGraphPlanWithDigest(plan, plan.digest + 1);
+    let routine_partition: DirectMirScalarCfgRoutinePartitionFact =
+        mutated.routines;
+    return !DirectMirScalarCfgGraphPlanReady(mutated) &&
+        DirectMirScalarCfgRoutinePartitionMutationRejected(routine_partition);
+}

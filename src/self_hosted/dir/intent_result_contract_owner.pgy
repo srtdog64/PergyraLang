@@ -127,7 +127,7 @@ func SelfDirIntentResultContractReady(
             ArrayLength(facts.transitions.step_requireds) {
         return false;
     }
-    let step_i: Int = 0;
+    var step_i: Int = 0;
     while step_i < step_count {
         if facts.transitions.step_requireds[step_start + step_i] != typed {
             return false;
@@ -145,7 +145,7 @@ func SelfDirIntentResultContractReady(
         (typed && terminal_count <= 0) || (!typed && terminal_count != 0) {
         return false;
     }
-    let terminal_i: Int = 0;
+    var terminal_i: Int = 0;
     while terminal_i < terminal_count {
         let terminal_row: Int = terminal_start + terminal_i;
         if facts.transitions.terminal_result_enum_names[terminal_row] !=

@@ -30,7 +30,7 @@ func DirectMirNestedCfgCertificateFactDigest(
     ref fact: DirectMirNestedCfgCertificateFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(47L, fact.block_count);
+    var hash: Long = DirectMirCfgHashInt(47L, fact.block_count);
     hash = DirectMirCfgHashInt(hash, fact.entry_block);
     hash = DirectMirCfgHashInt(hash, fact.branch_block);
     hash = DirectMirCfgHashInt(hash, fact.true_block);
@@ -125,11 +125,11 @@ func DirectMirNestedCfgCertificateFactFromIndex(
         index.block_succ_false[outer_merge] >= 0 {
         Die("direct MIR nested CFG successor or merge topology is invalid");
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < block_count {
-        let should_branch: Int = 0;
+        var should_branch: Int = 0;
         if block == entry || block == branch_block { should_branch = 1; }
-        let expected_count: Int = 0;
+        var expected_count: Int = 0;
         if block == entry { expected_count = 2; }
         if block == branch_block || block == true_block {
             expected_count = 1;
@@ -206,7 +206,7 @@ func DirectMirNestedCfgCertificateFactMutationRejected(
 func DirectMirNestedCfgCertificateFactInvalidMerge(
     fact: DirectMirNestedCfgCertificateFact
 ) -> DirectMirNestedCfgCertificateFact {
-    let bad_merge: DirectMirNestedCfgCertificateFact =
+    var bad_merge: DirectMirNestedCfgCertificateFact =
         DirectMirNestedCfgCertificateFact(
             fact.valid, 0, fact.block_count, fact.entry_block,
             fact.branch_block, fact.true_block,

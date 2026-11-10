@@ -8,7 +8,7 @@ import "../mir_lower/ssa_identity_owner.pgy";
 func DirectMirCfgCertificateReady(
     ref certificate: DirectMirCfgCertificate
 ) -> Bool {
-    let expected_instruction_count: Int = 4;
+    var expected_instruction_count: Int = 4;
     if certificate.phi_count == 1 { expected_instruction_count = 6; }
     let loop_ready: Bool = certificate.block_count == 4 &&
         DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) &&
@@ -73,34 +73,34 @@ func DirectMirCfgCertificateReady(
             certificate.identity_match.branch_global_row &&
         certificate.phi_count == 0;
     if identity_match_ready { expected_instruction_count = 5; }
-    let nested_binding_ready: Bool = nested_ready;
+    var nested_binding_ready: Bool = nested_ready;
     if certificate.block_count != 5 {
         nested_binding_ready =
             DirectMirNestedCfgCertificateFactAbsent(certificate.nested);
     }
-    let loop_binding_ready: Bool = loop_ready;
+    var loop_binding_ready: Bool = loop_ready;
     if !loop_ready {
         loop_binding_ready =
             DirectMirLoopCfgCertificateFactAbsent(certificate.loop_fact);
     }
-    let range_binding_ready: Bool = range_ready;
+    var range_binding_ready: Bool = range_ready;
     if !range_ready {
         range_binding_ready =
             DirectMirRangeCfgCertificateFactAbsent(certificate.range_fact);
     }
-    let break_binding_ready: Bool = break_ready;
+    var break_binding_ready: Bool = break_ready;
     if !break_ready {
         break_binding_ready =
             DirectMirBreakCfgCertificateFactAbsent(certificate.break_fact);
     }
-    let identity_match_binding_ready: Bool = identity_match_ready;
+    var identity_match_binding_ready: Bool = identity_match_ready;
     if !identity_match_ready {
         identity_match_binding_ready =
             DirectMirIdentityMatchCfgCertificateFactAbsent(
                 certificate.identity_match
             );
     }
-    let direct_false_edge: Bool =
+    var direct_false_edge: Bool =
         !loop_ready && !range_ready && !break_ready &&
         (certificate.block_count == 3 || nested_ready) &&
         certificate.phi_count == 1 &&
@@ -114,7 +114,7 @@ func DirectMirCfgCertificateReady(
         certificate.phi_result_name, certificate.phi_true_incoming,
         certificate.phi_false_incoming
     );
-    let phi_fields_ready: Bool = certificate.phi_count == 0 &&
+    var phi_fields_ready: Bool = certificate.phi_count == 0 &&
         certificate.phi_digest == 0 && certificate.phi_local_name == "" &&
         certificate.phi_result_name == "" &&
         certificate.phi_true_incoming == "" &&

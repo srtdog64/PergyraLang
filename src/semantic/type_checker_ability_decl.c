@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
+#include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ability_fields_internal.h"
 #include "diag_codes.h"
 #include "../common/string_compat.h"
@@ -104,7 +105,11 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
                 FuncParam *param = ast_func_param(method, j);
                 params[j] = type_check_func_resolve_param_type(param, ctx);
             }
-            callable_capability_record_abstract_method(ctx, method, params, count, result);
+            Type *signature = callable_capability_record_abstract_method(
+                ctx, method, params, count, result);
+            if (signature != NULL)
+                semantic_check_param_summary_escapes(method, count, params,
+                    signature, ctx, false);
             free(params);
         }
     }

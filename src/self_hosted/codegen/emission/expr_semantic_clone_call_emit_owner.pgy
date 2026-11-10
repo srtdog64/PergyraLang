@@ -1,22 +1,118 @@
 // C projection for the explicit Clone ownership boundary.
 
 import "../../semantic/array_type_shape_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../../lib/nominal_field_kind_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/hashmap_runtime_owner.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
 import "function_binding_env_owner.pgy";
+
+func RewriteSemanticCloneValueAt(
+    clone_type_name: String, argument: String,
+    env: CodegenTypeEnv, depth: Int
+) -> String {
+    if depth > 16 {
+        Die("compiler Clone nests deeper than the admitted value boundary");
+    }
+    let canonical: String = SemanticCanonicalTypeName(clone_type_name);
+    if canonical == "String" {
+        return "StringConcat(${argument}, \"\")";
+    }
+    let map: CollectionHashMapRuntimeFact =
+        CollectionHashMapRuntimeFactFromTypeName(canonical);
+    if CollectionHashMapRuntimeCloneCopiesDeeply(map) {
+        let clone_fn: String = CollectionHashMapRuntimeCCloneFunction(map);
+        return "({ ${map.c_value_type} __pgy_clone_source = ${argument}; ${clone_fn}(&__pgy_clone_source); })";
+    }
+    let array_element: Option<String> =
+        SemanticArrayElementType(canonical);
+    if IsSome(array_element) {
+        let runtime: CollectionRuntimeFact =
+            CollectionRuntimeFactFromTypeName(canonical, env);
+        let clone_fn: String = CollectionRuntimeCCloneFn(
+            CollectionRuntimeKindCode(runtime.kind)
+        );
+        return "({ ${runtime.c_array_type} __pgy_clone_source = ${argument}; ${clone_fn}(&__pgy_clone_source); })";
+    }
+
+    let option_inner: Option<String> =
+        OptionResultRuntimeOptionInnerTypeName(canonical);
+    if IsSome(option_inner) {
+        let option_fact_opt: Option<OptionStructRuntimeFact> =
+            OptionResultRuntimeStructOptionFact(canonical, env);
+        if !IsSome(option_fact_opt) {
+            Die("compiler Clone Option layout fact is missing");
+        }
+        let option_fact: OptionStructRuntimeFact =
+            UnwrapOption(option_fact_opt);
+        let temporary: String = "__pgy_clone_option_value";
+        let payload_ref: String = Concat(temporary, ".value");
+        let payload: String = RewriteSemanticCloneValueAt(
+            UnwrapOption(option_inner), payload_ref, env, depth + 1
+        );
+        return "({ ${option_fact.c_type} ${temporary} = ${argument}; if (${temporary}.is_some) { ${temporary}.value = ${payload}; } ${temporary}; })";
+    }
+
+    let nominal_kind: String = LookupKindType(env, canonical, "nk");
+    let nominal_has_typedef: Bool =
+        LookupKindType(env, canonical, "s") == "struct";
+    let nominal_has_fields: Bool =
+        LookupKindTypeRowPresent(env, canonical, "fields");
+    let nominal: Bool = nominal_has_fields &&
+        (nominal_kind == "struct" || nominal_kind == "class" ||
+         (nominal_kind == "subject" && depth == 0));
+    if !nominal {
+        // Physical scalars and unsupported shared-storage values retain their
+        // established by-value projection. Semantic admission keeps the
+        // latter dependent on its source.
+        return argument;
+    }
+    // A declaration name is already in scope inside its C initializer. Give
+    // each nested nominal clone its own name so the inner initializer keeps
+    // referring to the outer field instead of shadowing it with itself.
+    let temporary: String = Concat(
+        "__pgy_clone_nominal_value_", ToString(depth)
+    );
+    var c_type: String = AbiLayoutCStructTypeName(canonical);
+    if !nominal_has_typedef {
+        c_type = Concat("struct ", c_type);
+    }
+    var body: String = "({ ${c_type} ${temporary} = ${argument}; ";
+    let fields: String = LookupKindType(env, canonical, "fields");
+    var field_index: Int = 0;
+    var field: String = CsvAt(fields, field_index);
+    while field != "" {
+        let field_type: String = LookupFieldType(env, canonical, field);
+        let field_kind: String = LookupQualifiedKindType(
+            env, canonical, field, "field_kind"
+        );
+        if field_type == "" || field_kind == "" {
+            Die("compiler Clone nominal field fact is missing");
+        }
+        if field_kind != NominalFieldKindSubjectSlot() {
+            let field_ref: String = Concat(
+                temporary, Concat(".", CompilerSymbolCFieldName(field))
+            );
+            let field_copy: String = RewriteSemanticCloneValueAt(
+                field_type, field_ref, env, depth + 1
+            );
+            body = Concat(body, Concat(
+                field_ref, Concat(" = ", Concat(field_copy, "; "))
+            ));
+        }
+        field_index = field_index + 1;
+        field = CsvAt(fields, field_index);
+    }
+    return Concat(body, Concat(temporary, "; })"));
+}
 
 func RewriteSemanticCloneCall(
     clone_type_name: String, argument: String, env: CodegenTypeEnv
 ) -> String {
-    let array_element: Option<String> =
-        SemanticArrayElementType(clone_type_name);
-    if !IsSome(array_element) {
-        // Nominal/scalar values retain their established by-value projection.
-        return argument;
-    }
-    let runtime: CollectionRuntimeFact =
-        CollectionRuntimeFactFromTypeName(clone_type_name, env);
-    let clone_fn: String = CollectionRuntimeCCloneFn(
-        CollectionRuntimeKindCode(runtime.kind)
+    return RewriteSemanticCloneValueAt(
+        clone_type_name, argument, env, 0
     );
-    return "({ ${runtime.c_array_type} __pgy_clone_source = ${argument}; ${clone_fn}(&__pgy_clone_source); })";
 }

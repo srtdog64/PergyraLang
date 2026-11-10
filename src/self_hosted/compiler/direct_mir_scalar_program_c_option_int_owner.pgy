@@ -41,7 +41,7 @@ func DirectMirScalarProgramCOptionIntPreamble(
         Die("direct MIR scalar program C Option<Int> ABI is invalid");
     }
     let type_name: String = DirectMirScalarProgramCOptionIntTypeName();
-    let output: String = "#include <stdint.h>\n#include <stdlib.h>\n";
+    var output: String = "#include <stdint.h>\n#include <stdlib.h>\n";
     output = Concat(output, "typedef struct { ");
     output = Concat(output, abi.c_tag_type);
     output = Concat(output, Concat(" ", fact.tag_name));

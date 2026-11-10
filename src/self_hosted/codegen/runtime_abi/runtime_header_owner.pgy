@@ -32,7 +32,7 @@ func RuntimeCHeaderIncludeBlock(
     uses_hashmap: Bool
 ) -> String {
     if uses_task_observation {
-        let prefix: String = "";
+        var prefix: String = "";
         if uses_intent_observability {
             prefix = "#define PGY_INTENT_OBSERVABILITY_ENABLED 1\n";
         }
@@ -47,7 +47,7 @@ func RuntimeCHeaderIncludeBlock(
     if uses_box_array || uses_list || uses_queue || uses_set || uses_hashmap {
         return "#include \"pgy_runtime.h\"\n";
     }
-    let block: String = "";
+    var block: String = "";
     if uses_spawn {
         block = "#include <stdint.h>\n#include <time.h>\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_parallel.h\"\n#include \"pgy_lane_scheduler.h\"\n";
     } else if uses_allocator || uses_text_builder {

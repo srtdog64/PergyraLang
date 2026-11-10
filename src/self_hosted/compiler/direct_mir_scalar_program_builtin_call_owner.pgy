@@ -24,7 +24,8 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     source_rows: Array<Int>, normalized_types: Array<String>,
     expected_type: String,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramBuiltinCallFact {
     let missing: DirectMirScalarProgramBuiltinCallFact =
         DirectMirScalarProgramBuiltinCallFactInvalid(false);
@@ -44,14 +45,14 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     }
     let chain: DirectMirScalarProgramBuiltinArgumentChain =
         DirectMirScalarProgramBuiltinArgumentChainFromGraph(
-            sequence, node, source_rows, normalized_types);
+            sequence, node, source_rows, ArrayLength(normalized_types));
     if !chain.valid {
         return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
     if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 {
         return missing;
     }
-    let actual_types: Array<String> = []; let i: Int = 0;
+    var actual_types: Array<String> = []; var i: Int = 0;
     while i < ArrayLength(chain.argument_rows) {
         // The signature facts keep their own copies of the borrowed types.
         ArrayPush(actual_types, Concat("", normalized_types[chain.argument_rows[i]]));
@@ -60,7 +61,7 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     let signature: DirectMirScalarProgramBuiltinSignatureFact =
         DirectMirScalarProgramBuiltinSignatureFactForCall(
             sequence.arena.call_target_names[chain.call_node],
-            actual_types, expected_type, logical_record);
+            actual_types, expected_type, logical_record, referenced_enum);
     if !signature.valid {
         return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
@@ -84,7 +85,8 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
 func DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     expected_type: String,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramBuiltinCallFact {
     let missing: DirectMirScalarProgramBuiltinCallFact =
         DirectMirScalarProgramBuiltinCallFactInvalid(false);
@@ -95,7 +97,7 @@ func DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
     let signature: DirectMirScalarProgramBuiltinSignatureFact =
         DirectMirScalarProgramBuiltinSignatureFactForCall(
             sequence.arena.call_target_names[node], actual_types,
-            expected_type, logical_record);
+            expected_type, logical_record, referenced_enum);
     if !signature.valid { return missing; }
     if ArrayLength(signature.parameter_types) != 0 {
         // A non-empty signature is incomplete until CallArgument admission.

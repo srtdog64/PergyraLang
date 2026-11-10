@@ -6,6 +6,7 @@ import "builtin_signature_owner.pgy";
 func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
     return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
         name == "StringLength" || name == "CharCode" || name == "Concat" ||
+        name == "StringConcat" ||
         name == "ToInt" || name == "StringTrim" ||
         name == "Substring" || name == "CharAtN" || name == "SubstringWithLen" ||
         name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
@@ -30,6 +31,7 @@ func SemanticBuiltinRetentionSourceSignatureMatches(name: String, return_type: S
     if name == "StringTrim" { return return_type == "String" && param_types == "String"; }
     if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
     if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
+    if name == "StringConcat" { return return_type == "String" && param_types == "String|String"; }
     if name == "Read" { return return_type == "Unknown" && param_types == "Unknown"; }
     if name == "Write" { return return_type == "Void" && param_types == "Unknown|Unknown"; }
     if name == "ArrayLength" { return return_type == "Int" && param_types == "Unknown"; }

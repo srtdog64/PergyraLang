@@ -1,6 +1,6 @@
 // The stored struct holds an Array of structs, which Clone copies by value:
 // a copy would still share the context's storage. Nothing lands, and Main's
-// later use of the context it handed on is refused.
+// later use is refused as an outward escape; a shallow Clone cannot recover authority.
 struct Part {
     name: String;
 }

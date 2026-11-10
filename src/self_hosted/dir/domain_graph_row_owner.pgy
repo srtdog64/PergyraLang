@@ -49,7 +49,7 @@ func SelfDirGraphInventoryEmpty() -> SelfDirGraphInventoryFacts {
 func SelfDirGraphInventoryError(
     message: String
 ) -> SelfDirGraphInventoryFacts {
-    let facts: SelfDirGraphInventoryFacts = SelfDirGraphInventoryEmpty();
+    var facts: SelfDirGraphInventoryFacts = SelfDirGraphInventoryEmpty();
     facts.ok = false;
     facts.diagnostic_message = message;
     return facts;
@@ -67,13 +67,13 @@ func SelfDirGraphInventoryAppendNode(
         owner_source_syntax_id < 0 {
         return 0 - 1;
     }
-    let kinds: Array<String> = facts.nodes.kinds;
-    let names: Array<String> = facts.nodes.names;
-    let source_syntax_ids: Array<Int> = facts.nodes.source_syntax_ids;
-    let owner_source_syntax_ids: Array<Int> =
+    var kinds: Array<String> = facts.nodes.kinds;
+    var names: Array<String> = facts.nodes.names;
+    var source_syntax_ids: Array<Int> = facts.nodes.source_syntax_ids;
+    var owner_source_syntax_ids: Array<Int> =
         facts.nodes.owner_source_syntax_ids;
-    let declaration_indices: Array<Int> = facts.nodes.declaration_indices;
-    let i: Int = 0;
+    var declaration_indices: Array<Int> = facts.nodes.declaration_indices;
+    var i: Int = 0;
     while i < ArrayLength(kinds) {
         if kinds[i] == kind && names[i] == name {
             return 0 - 1;
@@ -109,11 +109,11 @@ func SelfDirGraphInventoryAppendEdge(
         to_node_id >= ArrayLength(facts.nodes.kinds) {
         return false;
     }
-    let kinds: Array<String> = facts.edges.kinds;
-    let from_node_ids: Array<Int> = facts.edges.from_node_ids;
-    let to_node_ids: Array<Int> = facts.edges.to_node_ids;
-    let labels: Array<String> = facts.edges.labels;
-    let target_names: Array<String> = facts.edges.target_names;
+    var kinds: Array<String> = facts.edges.kinds;
+    var from_node_ids: Array<Int> = facts.edges.from_node_ids;
+    var to_node_ids: Array<Int> = facts.edges.to_node_ids;
+    var labels: Array<String> = facts.edges.labels;
+    var target_names: Array<String> = facts.edges.target_names;
     ArrayPush(kinds, kind);
     ArrayPush(from_node_ids, from_node_id);
     ArrayPush(to_node_ids, to_node_id);
@@ -133,7 +133,7 @@ func SelfDirGraphInventoryNodeIndex(
     kind: String,
     name: String
 ) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.nodes.kinds) {
         if facts.nodes.kinds[i] == kind && facts.nodes.names[i] == name {
             return i;
@@ -147,7 +147,7 @@ func SelfDirGraphInventoryDomainOwnerNodeIndex(
     facts: SelfDirGraphInventoryFacts,
     name: String
 ) -> Int {
-    let node_id: Int = SelfDirGraphInventoryNodeIndex(facts, "zone", name);
+    var node_id: Int = SelfDirGraphInventoryNodeIndex(facts, "zone", name);
     if node_id >= 0 { return node_id; }
     node_id = SelfDirGraphInventoryNodeIndex(facts, "relation", name);
     if node_id >= 0 { return node_id; }

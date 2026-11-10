@@ -1,0 +1,18 @@
+func Fresh(text: String) -> String {
+    return Concat(text, "!");
+}
+
+func Main() -> Void {
+    var fields: Array<String> = [Fresh("a"), Fresh("b")];
+    ArrayPush(fields, Fresh("c"));
+    let runtime_field: String = Fresh("d");
+    if runtime_field != "" {
+        ArrayPush(fields, runtime_field);
+    }
+    ArrayPush(fields, Fresh("e"));
+    let runtime_aux: String = Fresh("f");
+    if runtime_aux != "" {
+        ArrayPush(fields, runtime_aux);
+    }
+    Log(ArrayLength(fields));
+}

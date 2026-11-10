@@ -19,7 +19,6 @@ struct CodegenIntentExecutionView {
     source_facts: SelfDirIntentFacts;
     zone_authority_transitions:
         CodegenIntentZoneAuthorityTransitionFacts;
-    expression_graphs: SemanticExpressionGraphFacts;
     action_graph_roots: Array<Int>;
     compensation_graph_roots: Array<Int>;
     terminal_graph_roots: Array<Int>;
@@ -42,7 +41,6 @@ func CodegenIntentExecutionViewEmpty(
         valid, false, plan,
         SelfDirIntentFactsSealedEmpty(0, 0),
         CodegenIntentZoneAuthorityTransitionFactsEmpty(valid),
-        SemanticExpressionGraphFactsEmpty(),
         action_graph_roots, compensation_graph_roots, terminal_graph_roots,
         routine_canonical_syntax_ids,
         terminal_routine_canonical_syntax_ids
@@ -50,7 +48,8 @@ func CodegenIntentExecutionViewEmpty(
 }
 
 func CodegenIntentExecutionViewReady(
-    ref view: CodegenIntentExecutionView
+    ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts
 ) -> Bool {
     if !view.valid || view.present != view.plan.present ||
         !view.source_facts.ok ||
@@ -65,10 +64,11 @@ func CodegenIntentExecutionViewReady(
             ArrayLength(view.compensation_graph_roots) == 0 &&
             ArrayLength(view.terminal_graph_roots) == 0 &&
             ArrayLength(view.routine_canonical_syntax_ids) == 0 &&
-            ArrayLength(view.terminal_routine_canonical_syntax_ids) == 0 &&
-            SemanticExpressionGraphArenaNodeCount(
-                view.expression_graphs.arena
-            ) == 0;
+            ArrayLength(view.terminal_routine_canonical_syntax_ids) == 0;
+    }
+    if !expression_graph.ok ||
+        !SemanticExpressionGraphArenaReady(expression_graph.arena) {
+        return false;
     }
     if ArrayLength(view.action_graph_roots) !=
             ArrayLength(view.plan.steps.transition_ids) ||
@@ -85,9 +85,9 @@ func CodegenIntentExecutionViewReady(
         return false;
     }
     let node_count: Int = SemanticExpressionGraphArenaNodeCount(
-        view.expression_graphs.arena
+        expression_graph.arena
     );
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(view.action_graph_roots) {
         if view.action_graph_roots[row] < 0 ||
             view.action_graph_roots[row] >= node_count ||
@@ -121,7 +121,7 @@ func CodegenIntentExecutionViewWithSourceFactsAndZoneAuthorityTransitions(
     return CodegenIntentExecutionView(
         view.valid, view.present, view.plan, source_facts,
         zone_authority_transitions,
-        view.expression_graphs, view.action_graph_roots,
+        view.action_graph_roots,
         view.compensation_graph_roots, view.terminal_graph_roots,
         view.routine_canonical_syntax_ids,
         view.terminal_routine_canonical_syntax_ids);
@@ -140,7 +140,7 @@ func CodegenIntentExecutionViewSourceFactsRequired(
     ref view: CodegenIntentExecutionView,
     ref intents: SemanticAstIntentSignatureFacts
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < SemanticAstIntentSignatureCount(intents) {
         if !CodegenIntentExecutionViewOwnsRoutine(
             view, intents.intent_node_ids[row]) { return true; }
@@ -152,9 +152,12 @@ func CodegenIntentExecutionViewSourceFactsRequired(
 func CodegenIntentExecutionViewReadyForSemantic(
     artifact_identity_digest: Int,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
-    ref view: CodegenIntentExecutionView
+    ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts
 ) -> Bool {
-    if !CodegenIntentExecutionViewReady(view) { return false; }
+    if !CodegenIntentExecutionViewReady(view, expression_graph) {
+        return false;
+    }
     let required: Bool = CodegenIntentExecutionViewSourceFactsRequired(
         view, intent_signatures);
     if !required {

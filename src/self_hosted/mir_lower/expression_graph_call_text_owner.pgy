@@ -16,7 +16,7 @@ func MirExpressionGraphCallArgumentTextReady(
     let base: String = Concat("", texts[left]);
     let length: Int = StringLength(base);
     if length < 1 || CodegenCharAt(base, length - 1) != ")" { return false; }
-    let stem: String = Substring(base, 0, length - 1);
+    var stem: String = Substring(base, 0, length - 1);
     if kinds[left] == AstExpressionNodeCallArgument() {
         stem = Concat(stem, ", ");
     }

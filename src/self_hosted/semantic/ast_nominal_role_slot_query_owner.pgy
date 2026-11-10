@@ -1,0 +1,45 @@
+// Nominal role-slot queries.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "ast_generic_parameter_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+import "callable_resolution_owner.pgy";
+import "ast_nominal_constructor_core_fact_owner.pgy";
+
+func SemanticAstNominalRoleSlotCountAt(
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int
+) -> Option<Int> {
+    if !facts.ok || constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) {
+        return None;
+    }
+    return Some(facts.role_slot_counts[constructor_index]);
+}
+func SemanticAstNominalRoleSlotNameAt(
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    slot_index: Int
+) -> Option<String> {
+    if !facts.ok || constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        slot_index < 0 ||
+        slot_index >= facts.role_slot_counts[constructor_index] {
+        return None;
+    }
+    return Some(facts.role_slot_names[facts.role_slot_starts[constructor_index] + slot_index]);
+}
+func SemanticAstNominalRoleSlotTypeAt(
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    slot_index: Int
+) -> Option<String> {
+    if !facts.ok || constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        slot_index < 0 ||
+        slot_index >= facts.role_slot_counts[constructor_index] {
+        return None;
+    }
+    return Some(facts.role_slot_type_names[facts.role_slot_starts[constructor_index] + slot_index]);
+}
+

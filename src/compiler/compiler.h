@@ -57,6 +57,10 @@ typedef struct
     const DIRProgram *dir;
     const RIRProgram *rir;
     const MIRProgram *mir;
+    /* Receipt for the exact immutable MIR generation admitted by the
+     * driver's full validator. Backends consume it instead of replaying the
+     * same collection-effect proof once per routine. */
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt;
     /* AIR-certified region facts produced by the driver.  Backends receive
      * this immutable artifact; they do not rerun escape analysis or inspect
      * the AST to choose an allocator. */

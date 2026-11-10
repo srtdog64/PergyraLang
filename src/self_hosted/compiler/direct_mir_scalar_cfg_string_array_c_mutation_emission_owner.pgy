@@ -16,11 +16,11 @@ func DirectMirScalarCfgStringArrayCPush(
     }
     let fact: DirectMirScalarCfgStringArrayAccessFact =
         DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
-    let value: Array<String> = []; ArrayPush(value, fact.value_literal);
+    var value: Array<String> = []; ArrayPush(value, fact.value_literal);
     let prefix: String = Concat(
         "    pgy_indexed_collection_", ToString(fact.collection_row)
     );
-    let output: String = Concat(prefix, Concat(".data[",
+    var output: String = Concat(prefix, Concat(".data[",
         Concat(ToString(fact.expected_length_before), "] = ")
     ));
     output = Concat(output,
@@ -45,7 +45,7 @@ func DirectMirScalarCfgStringArrayCLengthLog(
     }
     let fact: DirectMirScalarCfgStringArrayAccessFact =
         DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
-    let output: String = Concat("    ", formatted_print.symbol);
+    var output: String = Concat("    ", formatted_print.symbol);
     output = Concat(output, Concat("(\"", int_line_format));
     output = Concat(output, Concat("\", (", int_c_type));
     output = Concat(output, Concat(")pgy_indexed_collection_",

@@ -289,6 +289,50 @@ test_type_mapping(void)
         ast_destroy(handler_type);
     }
 
+    TEST("MIR match body and guard require their admitted binding type fact");
+    {
+        for (int guard = 0; guard < 2; ++guard) {
+            for (int fault = 0; fault < 4; ++fault) {
+                MIRMatchBindingTypeFact fact = {
+                    .function_syntax_id = fault == 2 ? 9 : 1,
+                    .match_case_syntax_id = 2,
+                    .binding_syntax_id = 3,
+                    .binding_index = 0,
+                    .binding_count = 1,
+                    .binding_type_name = fault == 3 ? "Unknown" : "String",
+                };
+                MIRRoutine routine = {
+                    .source_syntax_id = 1,
+                    .match_binding_type_facts = &fact,
+                    .match_binding_type_fact_count = fault == 1 ? 0 : 1,
+                    .match_binding_type_fact_capacity = 1,
+                };
+                TranspilerCtx *ctx = transpiler_ctx_create();
+                ctx->active_mir_routine = &routine;
+                if (guard) {
+                    bool emitted = transpiler_mir_declare_guard_payload_binding(
+                        ctx->out, ctx, 2, "Err", "problem", "payload");
+                    EXPECT(emitted == (fault == 0));
+                } else {
+                    transpiler_mir_emit_match_payload_binding(
+                        ctx->out, ctx, 2, "subject", "Err", "problem", "payload");
+                }
+                if (fault == 0) {
+                    const char *type = lookup_typed_var(ctx, "payload");
+                    EXPECT(ctx->backend_error == NULL && type != NULL
+                        && strcmp(type, "String") == 0
+                        && ctx->out->data[0] != '\0');
+                } else {
+                    EXPECT(ctx->backend_error != NULL
+                        && strstr(ctx->backend_error, "admitted binding type fact") != NULL
+                        && ctx->out->data[0] == '\0'
+                        && lookup_typed_var(ctx, "payload") == NULL);
+                }
+                transpiler_ctx_destroy(ctx);
+            }
+        }
+    }
+
     TEST("MIR callable local shadows builtin without a flat type name");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();

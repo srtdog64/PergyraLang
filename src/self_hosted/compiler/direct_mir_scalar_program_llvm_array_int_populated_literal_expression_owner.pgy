@@ -5,13 +5,13 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayIntPopulatedLiteralExpressionAt(
     kind: Int, result: String, left: String, right: String,
-    arguments: Array<String>
+    ref arguments: Array<String>
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
-    let values: Array<String> = [];
-    let value_row: Int = 0;
+    var values: Array<String> = [];
+    var value_row: Int = 0;
     while value_row < ArrayLength(arguments) {
         ArrayPush(values, arguments[value_row]); value_row = value_row + 1;
     }
@@ -24,9 +24,9 @@ func DirectMirScalarProgramLlvmArrayIntPopulatedLiteralExpressionAt(
             true, false, "", "");
     }
     let bytes: Int = ArrayLength(values) * 4;
-    let output: String = Concat("  ", Concat(result, ".data = call ptr @malloc(i64 "));
+    var output: String = Concat("  ", Concat(result, ".data = call ptr @malloc(i64 "));
     output = Concat(output, Concat(ToString(bytes), ")\n"));
-    let item: Int = 0;
+    var item: Int = 0;
     while item < ArrayLength(values) {
         output = Concat(output, Concat("  ", Concat(result, ".value.")));
         output = Concat(output, ToString(item));

@@ -39,10 +39,10 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
     }
     let result: Int = plan.operation_result_values[operation];
     let local_row: Int = plan.value_local_rows[result];
-    let addresses: Array<String> = [];
-    let node: Int = start;
+    var addresses: Array<String> = [];
+    var node: Int = start;
     while node < root {
-        let address: String = "";
+        var address: String = "";
         let kind: Int = plan.program.expressions.node_kinds[node];
         if kind == DirectMirScalarProgramExprLocal() ||
                 kind == DirectMirScalarProgramExprParameter() {
@@ -72,12 +72,12 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
         plan.routines, routine, target, plan.program.array_string_abi,
         array_string_projection);
     let stem: String = Concat("pgy_nested_set_", ToString(operation));
-    let output: String = Concat("    long long ", stem);
+    var output: String = Concat("    long long ", stem);
     output = Concat(output, Concat("_index = (long long)(", index_value));
-    let value_type: String = "long long ";
-    let value_prefix: String = "(long long)(";
-    let value_suffix: String = ")";
-    let symbol: String = "pgy_ai_set";
+    var value_type: String = "long long ";
+    var value_prefix: String = "(long long)(";
+    var value_suffix: String = ")";
+    var symbol: String = "pgy_ai_set";
     if element_type == CompilerAbiLayoutStringTypeName() {
         value_type = "const char *";
         value_prefix = ""; value_suffix = ""; symbol = "pgy_as_set";

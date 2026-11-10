@@ -15,7 +15,7 @@ func DirectMirScalarCfgArrayIntOwnedOperationKind(kind: Int) -> Bool {
 func DirectMirScalarCfgArrayIntOwnedOperationsAbsent(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.operation_kinds) {
         if DirectMirScalarCfgArrayIntOwnedOperationKind(
                 plan.operation_kinds[row]

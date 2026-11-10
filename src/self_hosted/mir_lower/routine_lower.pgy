@@ -45,14 +45,14 @@ func EmitBlockStmtsWithExpressionOrder(
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
-    let chunks: Array<String> = [];
+    var chunks: Array<String> = [];
     let instruction_count: Int =
         MirProgramRoutineIndexBlockInstructionCountAt(
             routines, routine_row, block_row
         );
     if instruction_count < 0 { MirLowerFailClosed("invalid block instruction view"); }
-    let row: Int = 0;
-    let defer_part: String = "";
+    var row: Int = 0;
+    var defer_part: String = "";
     while row < instruction_count {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(
@@ -68,6 +68,12 @@ func EmitBlockStmtsWithExpressionOrder(
         let inst_end: Int = instruction.end;
         let ikind: String = instruction.kind;
         let source_type: String = instruction.source_type;
+        if ikind == "cleanup" && !MirCollectionCleanupFactReadyAtGlobal(
+                index.collection_cleanup_facts, instruction.global_row) {
+            MirLowerFailClosed(
+                "cleanup instruction is missing its validated retirement fact"
+            );
+        }
         if defer_part != "" && source_type != "AST_DEFER_STMT" { MirLowerFailClosed(Concat("defer body part is missing: ", defer_part)); }
         if !MirCapturedAbiLayoutFactReady(
             routines.source_json, routines.source_json_extent, scalar.abi_type_name, scalar.abi_type_value_ready,
@@ -85,7 +91,7 @@ func EmitBlockStmtsWithExpressionOrder(
         }
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":resource:done"))))); }
         if ikind == "destructure" {
-            ArrayPush(chunks, Concat("", RenderDestructureFromFactsWithExpressionOrder(
+            ArrayPushOwnedString(chunks, Concat("", RenderDestructureFromFactsWithExpressionOrder(
                 routines.source_json, routines.source_json_extent, kp, inst_end, indent, scalar.expr0, routines,
                 instruction.global_row, expression_order)));
         }
@@ -117,15 +123,15 @@ func EmitBlockStmtsWithExpressionOrder(
                 }
                 let bind_parts: Array<String> = [indent, "BindStmt: ", arg0, ".",
                     slot_anchor, " = ", expr0, " as ", arg1, "\n"];
-                ArrayPush(chunks, StringJoin(bind_parts, ""));
+                ArrayPushOwnedString(chunks, StringJoin(bind_parts, ""));
             } else if source_type == "AST_DEFER_STMT" {
-                ArrayPush(chunks, Concat("", RenderDeferFromFactsWithExpressionOrder(
+                ArrayPushOwnedString(chunks, Concat("", RenderDeferFromFactsWithExpressionOrder(
                     routines.source_json, routines.source_json_extent, kp, inst_end, indent, arg0, arg1, defer_part,
                     instruction.global_row, expression_order
                 )));
             } else if (ikind == "return" && StringLength(expr0) == 0) ||
                 source_type == "AST_RETURN_VOID" {
-                ArrayPush(chunks, Concat(indent, "Return\n"));
+                ArrayPushOwnedString(chunks, Concat(indent, "Return\n"));
             } else if StringLength(expr0) > 0 {
                 if !MirStructuredExpressionEmissionOrderAppendStatement(
                     instruction, scalar, expression_order
@@ -134,9 +140,10 @@ func EmitBlockStmtsWithExpressionOrder(
                         "statement expression occurrence is invalid"
                     );
                 }
-                ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
+                ArrayPushOwnedString(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, scalar.name, arg0, expr0, expr1, local_type), "\n")));
             } else if ikind != "phi" && ikind != "cleanup" {
-                // Only phi and cleanup rows carry no statement (docs/205 F4).
+                // Cleanup has already consumed its validated retirement fact;
+                // phi and cleanup are the only rows with no source statement.
                 MirLowerFailClosed(Concat("instruction has no statement text: ", Concat(ikind, Concat("/", source_type))));
             }
         }
@@ -152,7 +159,7 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
     routine_row: Int, block_row: Int, indent: String,
     observe_instruction: Bool,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
+    var ignored_order: MirStructuredExpressionEmissionOrder =
         MirStructuredExpressionEmissionOrderEmpty();
     return EmitBlockStmtsWithExpressionOrder(
         index, routines, routine_row, block_row, indent,
@@ -178,10 +185,10 @@ func LoopFlowSummaryProjectionReady(ref index: MirRoutineFactIndex,
         block_count != ArrayLength(index.block_instruction_counts) || !MirRoutineInstructionFactBundleReady(index.instruction_facts, block_count) ||
         block_count != ArrayLength(index.backedge_headers) || block_count != ArrayLength(index.instruction_facts.block_branch_global_rows) ||
         summary_count != ArrayLength(index.loop_flow_summary_kinds) { return false; }
-    let summary_row: Int = 0;
-    let block_row: Int = 0;
-    let has_backedge: Bool = false;
-    let has_loop_transfer: Bool = false;
+    var summary_row: Int = 0;
+    var block_row: Int = 0;
+    var has_backedge: Bool = false;
+    var has_loop_transfer: Bool = false;
     while block_row < block_count {
         let owner_block_row: Int = owner_block_start + block_row;
         if index.block_starts[block_row] != routines.block_starts[owner_block_row] || index.block_ends[block_row] != routines.block_ends[owner_block_row] ||
@@ -190,8 +197,8 @@ func LoopFlowSummaryProjectionReady(ref index: MirRoutineFactIndex,
         let block_is_backedge: Bool = index.backedge_headers[block_row] == 1;
         let branch_global_row: Int = index.instruction_facts.block_branch_global_rows[block_row];
         if branch_global_row < (0 - 1) { return false; }
-        let is_for: Bool = false;
-        let has_branch_condition: Bool = false;
+        var is_for: Bool = false;
+        var has_branch_condition: Bool = false;
         if branch_global_row >= 0 {
             let selection: MirRoutineInstructionSelection =
                 MirRoutineFactIndexBranchAtBlock(index, routines, routine_row, block_row);
@@ -241,7 +248,7 @@ func LoopFlowSummaryProjectionReady(ref index: MirRoutineFactIndex,
     // loop transfer; a forged `for` kind remains rejected.
     if summary_row == 0 && summary_count > 0 && !has_backedge &&
         has_loop_transfer {
-        let row: Int = 0;
+        var row: Int = 0;
         while row < summary_count {
             if index.loop_flow_summary_kinds[row] != 0 {
                 return false;
@@ -264,9 +271,9 @@ func EmitRegionWithExpressionOrder(
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
-    let chunks: Array<String> = [];
-    let cur: String = start;
-    let guard: Int = 0;
+    var chunks: Array<String> = [];
+    var cur: String = start;
+    var guard: Int = 0;
     while StringLength(cur) > 0 && cur != stop && guard < 100000 {
         guard = guard + 1;
         let block_row: Int = RoutineCfgBlockRow(index, cur);
@@ -314,12 +321,12 @@ func EmitRegionWithExpressionOrder(
             } else {
                 let structural_merge: String =
                     MirRoutineFactIndexBlockStructuralMerge(index, ToInt(cur));
-                let merge: String = structural_merge;
+                var merge: String = structural_merge;
                 // In a no-else source branch whose then arm exits the loop,
                 // the cyclic CFG can make a later iteration's then block look
                 // like the nearest common merge.  Consume the arm successor
                 // fact before projecting the fallthrough arm as continuation.
-                let then_terminates_or_flows_to_loop_exit: Bool = false;
+                var then_terminates_or_flows_to_loop_exit: Bool = false;
                 if structural_merge == t {
                     let then_row: Int = RoutineCfgBlockRow(index, t);
                     then_terminates_or_flows_to_loop_exit =
@@ -368,7 +375,7 @@ func EmitRegion(ref index: MirRoutineFactIndex,
     routine_row: Int, start: String, stop: String, indent: String,
     loop_header: String, loop_exit: String, observe_first_block: Bool,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
+    var ignored_order: MirStructuredExpressionEmissionOrder =
         MirStructuredExpressionEmissionOrderEmpty();
     return EmitRegionWithExpressionOrder(
         index, routines, routine_row, start, stop, indent,
@@ -479,20 +486,20 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
             "routine callable kind is invalid: ", routine
         ));
     }
-    let callable_label: String = "Function: ";
+    var callable_label: String = "Function: ";
     if callable_kind == "action" { callable_label = "Action: "; }
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
     // One fresh descriptor owns every rendered row through its single release.
-    let chunks: Array<String> = [];
+    var chunks: Array<String> = [];
     ArrayPushOwnedString(chunks, Concat(
         routine_indent, Concat(callable_label, Concat(routine, "\n"))
     ));
     let generic_count: Int = ArrayLength(header.generic_names);
-    let constraint_text: String = "";
+    var constraint_text: String = "";
     if generic_count > 0 {
-        let generic_text: String = "";
-        let generic_i: Int = 0;
+        var generic_text: String = "";
+        var generic_i: Int = 0;
         while generic_i < generic_count {
             let generic_name: String = header.generic_names[generic_i];
             if generic_name == "" {
@@ -524,7 +531,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     }
     ArrayPushOwnedString(chunks, Concat(ppad, "Parameters:\n"));
     let param_count: Int = ArrayLength(header.param_names);
-    let param_row: Int = 0;
+    var param_row: Int = 0;
     while param_row < param_count {
         let pname: String = header.param_names[param_row];
         if StringLength(pname) == 0 {
@@ -540,7 +547,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
                 "routine parameter ABI fact is invalid: ", pname
             ));
         }
-        let param_prefix: String = "";
+        var param_prefix: String = "";
         if carriage == "value-result" {
             param_prefix = "inout ";
         } else if carriage == "owner-handle" {

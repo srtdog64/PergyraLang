@@ -44,7 +44,7 @@ func DirectMirStructArgumentProgramIdentityDigest(
     ref identity: DirectMirStructArgumentProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(151L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(151L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.outer_callee.digest);
     hash = DirectMirCfgHashInt(hash, identity.nested_callee.digest);
     hash = DirectMirCfgHashInt(hash, identity.outer_declaration.digest);

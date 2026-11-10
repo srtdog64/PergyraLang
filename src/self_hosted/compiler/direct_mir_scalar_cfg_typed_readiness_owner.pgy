@@ -8,10 +8,12 @@ import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
-import "direct_mir_scalar_program_result_int_abi_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
 import "direct_mir_scalar_cfg_typed_foreach_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
+import "direct_mir_scalar_cfg_program_phi_type_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
 func DirectMirScalarCfgPlanOperandType(
     ref plan: DirectMirScalarCfgGraphPlan, value: Int, local_binding: Int) -> String {
     if value >= 0 && value < ArrayLength(plan.value_types) && local_binding < 0 {
@@ -24,12 +26,12 @@ func DirectMirScalarCfgPlanOperandType(
 }
 func DirectMirScalarCfgTypedOperationsReady(
     ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
-    let concat_seen: Bool = plan.program.runtime_abi.string_concat_id != 0;
-    let row: Int = 0;
+    var concat_seen: Bool = plan.program.runtime_abi.string_concat_id != 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.operation_kinds) {
         let kind: Int = plan.operation_kinds[row];
         let result: Int = plan.operation_result_values[row];
-        let result_type: String = "";
+        var result_type: String = "";
         if result >= 0 && result < ArrayLength(plan.value_types) {
             result_type = plan.value_types[result];
         }
@@ -50,12 +52,13 @@ func DirectMirScalarCfgTypedOperationsReady(
         let is_int_result: Bool = result_type == CompilerAbiLayoutIntTypeName();
         let is_string_result: Bool =
             result_type == CompilerAbiLayoutStringTypeName();
-        let is_value_result: Bool = DirectMirScalarCfgPhiValueTypeReady(
-            plan.program.logical_record, plan.program.payload_free_enum, result_type);
+        let is_value_result: Bool = DirectMirScalarCfgProgramPhiValueTypeReady(
+            plan.program.logical_record, plan.program.payload_free_enum,
+            plan.program.referenced_enum, result_type);
         let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
             plan.string_arrays, row
         );
-        let indexed_kind: Int = 0;
+        var indexed_kind: Int = 0;
         if indexed_row >= 0 {
             indexed_kind = plan.string_arrays.accesses.kinds[indexed_row];
         }
@@ -94,7 +97,7 @@ func DirectMirScalarCfgTypedOperationsReady(
                 (result >= 0 || !left_is_int || !right_is_int)) ||
             (plan.operation_left_locals[row] >= 0 &&
                 DirectMirScalarProgramLocalArrayMutationKind(kind) &&
-                !DirectMirScalarProgramLocalArrayMutationTargetTypeReady(
+                !DirectMirScalarProgramArrayMutationTargetTypeReady(
                     kind, left_type)) ||
             (kind == DirectMirScalarCfgOpAddArrayReadInt() &&
                 (!is_int_result || !left_is_int || !right_is_int)) {
@@ -122,7 +125,7 @@ func DirectMirScalarCfgTypedPlanReady(
         ArrayLength(plan.value_names) != ArrayLength(plan.value_types) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.local_types) {
         let type_name: String = plan.local_types[row];
         let program_collection_ready: Bool =
@@ -150,7 +153,7 @@ func DirectMirScalarCfgTypedPlanReady(
             type_name == CompilerAbiLayoutOptionBoolTypeName() &&
             DirectMirOptionBoolAbiFactReady(
                 plan.program.option_bool_abi);
-        let type_ready: Bool = DirectMirScalarCfgSourceLocalTypeSupported(
+        var type_ready: Bool = DirectMirScalarCfgSourceLocalTypeSupported(
             type_name) || CompilerRuntimeValueTypeReady(
                 type_name);
         if plan.program.valid {
@@ -161,7 +164,7 @@ func DirectMirScalarCfgTypedPlanReady(
                 program_array_bool_ready || program_set_string_ready ||
                 DirectMirScalarCfgSliceTypeSupported(type_name) ||
                 (type_name == CompilerAbiLayoutOptionIntTypeName() && DirectMirScalarProgramOptionIntAbiReadyForExpressions(plan.program.option_int_abi, plan.program.expressions)) ||
-                (type_name == CompilerAbiLayoutResultIntTypeName() && DirectMirScalarProgramResultIntAbiReadyForExpressions(plan.program.result_int_abi, plan.program.expressions)) ||
+                (DirectMirScalarResultAbiRuntimeForType(type_name).ok && DirectMirScalarResultAbiSetReadyForExpressions(plan.program.result_abi, plan.program.expressions)) ||
                 program_option_string_ready ||
                 program_option_bool_ready ||
                 CompilerRuntimeValueTypeReady(type_name) ||
@@ -170,8 +173,9 @@ func DirectMirScalarCfgTypedPlanReady(
                     plan.program.logical_record, type_name) ||
                 DirectMirScalarProgramLogicalRecordArrayTypeReady(plan.program.logical_record, type_name) ||
                 DirectMirScalarProgramLogicalRecordOptionTypeReady(plan.program.logical_record, type_name) ||
-                DirectMirScalarProgramReferencedEnumRow(
-                    plan.program.referenced_enum, type_name) >= 0;
+                DirectMirScalarProgramReferencedEnumValueTypeReady(
+                    type_name, plan.program.logical_record,
+                    plan.program.referenced_enum);
         }
         if !type_ready { return false; }
         row = row + 1;

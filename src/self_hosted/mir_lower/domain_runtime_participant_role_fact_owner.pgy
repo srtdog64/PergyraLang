@@ -66,7 +66,7 @@ func MirDomainParticipantOwnerIdentityReady(
     ref roles: MirDomainParticipantRoleFacts,
     row: Int
 ) -> Bool {
-    let prior: Int = 0;
+    var prior: Int = 0;
     while prior < row {
         if roles.field_syntax_ids[prior] == roles.field_syntax_ids[row] ||
             (roles.owner_names[prior] == roles.owner_names[row] &&
@@ -90,14 +90,14 @@ func MirDomainParticipantRoleFactsFromTable(
         !declarations.field_identities.valid {
         return EmptyMirDomainParticipantRoleFacts(false);
     }
-    let program_ids: Array<String> = [];
-    let owner_ids: Array<String> = [];
-    let roles: Array<String> = [];
-    let field_ids: Array<String> = [];
-    let owner_names: Array<String> = [];
-    let field_names: Array<String> = [];
-    let field_types: Array<String> = [];
-    let row_index: Int = 0;
+    var program_ids: Array<String> = [];
+    var owner_ids: Array<String> = [];
+    var roles: Array<String> = [];
+    var field_ids: Array<String> = [];
+    var owner_names: Array<String> = [];
+    var field_names: Array<String> = [];
+    var field_types: Array<String> = [];
+    var row_index: Int = 0;
     while row_index < JsonArrayObjectFactCount(rows) {
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row_index);
         if JsonObjectFactCount(row) != 7 ||
@@ -146,7 +146,7 @@ func MirDomainParticipantRoleFactsFromTable(
         }
         row_index = row_index + 1;
     }
-    let declaration_row: Int = 0;
+    var declaration_row: Int = 0;
     while declaration_row < ArrayLength(
         declarations.field_identities.declaration_names
     ) {
@@ -154,10 +154,10 @@ func MirDomainParticipantRoleFactsFromTable(
             declarations.field_identities.declaration_nominal_kinds[
                 declaration_row];
         if nominal == "effect" || nominal == "relation" {
-            let bearer_count: Int = 0;
-            let source_count: Int = 0;
-            let target_count: Int = 0;
-            let role_row: Int = 0;
+            var bearer_count: Int = 0;
+            var source_count: Int = 0;
+            var target_count: Int = 0;
+            var role_row: Int = 0;
             while role_row < ArrayLength(roles) {
                 if owner_names[role_row] ==
                     declarations.field_identities.declaration_names[
@@ -191,7 +191,7 @@ func MirDomainParticipantRoleFactsFromTable(
         true, program_ids, owner_ids, roles, field_ids,
         owner_names, field_names, field_types
     );
-    let identity_row: Int = 0;
+    var identity_row: Int = 0;
     while identity_row < row_index {
         if !MirDomainParticipantOwnerIdentityReady(facts, identity_row) {
             return EmptyMirDomainParticipantRoleFacts(false);

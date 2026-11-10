@@ -26,7 +26,7 @@ func DirectMirCollectionProgramEdgeSetDigest(
     ref edges: DirectMirCollectionProgramEdgeSet
 ) -> Int {
     if !edges.valid { return 0; }
-    let hash: Long = DirectMirScalarCfgHashInts(751L, edges.kinds);
+    var hash: Long = DirectMirScalarCfgHashInts(751L, edges.kinds);
     hash = DirectMirScalarCfgHashInts(
         hash, edges.caller_routine_syntax_ids
     );

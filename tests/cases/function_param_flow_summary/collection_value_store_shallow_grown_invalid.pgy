@@ -7,8 +7,8 @@ struct Row {
 }
 
 func Main() -> Int {
-    let held: HashMap<Int, Array<Row>> = MapNew();
-    let rows: Array<Row> = [Row([1])];
+    var held: HashMap<Int, Array<Row>> = MapNew();
+    var rows: Array<Row> = [Row([1])];
     MapSet(held, 1, rows);
     ArrayPush(rows, Row([2]));
     let back: Array<Row> = MapGet(held, 1);

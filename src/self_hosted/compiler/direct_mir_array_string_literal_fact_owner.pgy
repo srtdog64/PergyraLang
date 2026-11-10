@@ -11,7 +11,7 @@ struct DirectMirArrayStringLiteralFact {
 func DirectMirArrayStringLiteralFactFromGraph(
     ref graph: MirExpressionGraphSequence
 ) -> DirectMirArrayStringLiteralFact {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let nodes: Array<Int> = DirectMirArrayLiteralElementNodes(
         graph, AstExpressionNodeStringLiteral()
     );
@@ -20,7 +20,7 @@ func DirectMirArrayStringLiteralFactFromGraph(
             DirectMirArrayLiteralEmptyReady(graph), values
         );
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(nodes) {
         let content: Option<String> = DirectMirAsciiLiteralContent(
             graph.arena.node_texts[nodes[row]]

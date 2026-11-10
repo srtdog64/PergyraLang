@@ -33,8 +33,8 @@ func SelfMirJsonAbiLayoutRow(
     runtime_fn: String, inner_c_type: String, representation: Int,
     discriminant: String, primary_tag: Int, secondary_tag: Int
 ) -> String {
-    let discriminant_field: String = "null";
-    let runtime_fn_field: String = "null";
+    var discriminant_field: String = "null";
+    var runtime_fn_field: String = "null";
     if StringLength(discriminant) > 0 {
         discriminant_field = JsonStringLiteral(discriminant);
     }
@@ -62,8 +62,8 @@ func SelfMirJsonRuntimeValueAbiLayout(type_name: String) -> String {
     if !representation.valid || representation.type_name != type_name {
         return "";
     }
-    let fields: Array<String> = [];
-    let row: Int = 0;
+    var fields: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(representation.field_names) {
         ArrayPush(fields, SelfMirJsonAbiLayoutField(
             representation.field_names[row],
@@ -87,7 +87,7 @@ func SelfMirJsonStaticAbiLayout(type_name: String) -> String {
     let runtime_value_layout: String =
         SelfMirJsonRuntimeValueAbiLayout(type_name);
     if runtime_value_layout != "" { return runtime_value_layout; }
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     if type_name == "Slot<Int>" {
         ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
         ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 4, 1, 1));

@@ -11,9 +11,9 @@ import "intent_policy_clause_owner.pgy";
 import "source_refusal_owner.pgy";
 func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     inout expression_graphs: AstExpressionGraphRows, location_context: ParserSourceLocationContext) -> String {
-    let i: Int = start;
+    var i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
+    var out: String = "";
     i = LanguageWordEnd(i, LanguageWordId.WordIntent);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -29,7 +29,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     i = ParseExpectIn(location_context, content, i, "(", "intent");
     // Classify each parameter without changing its source order. Call sites and
     // the semantic signature owner consume this same positional contract.
-    let parameter_lines: Array<String> = [];
+    var parameter_lines: Array<String> = [];
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) != ")" {
         while true {
@@ -61,7 +61,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         }
     }
     i = ParseExpectIn(location_context, content, i, ")", "intent");
-    let intent_return_type: String = "";
+    var intent_return_type: String = "";
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) == "-" && ParserCharAt(content, i + 1) == ">" {
         i = i + 2;
@@ -73,7 +73,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             ParseRefuse(location_context, i, "type_name_invalid", "construct", "intent_return", "", "");
         }
     }
-    let intent_retry: String = "";
+    var intent_retry: String = "";
     i = SkipWhitespaceAndComments(content, i);
     if MatchLanguageWord(content, i, LanguageWordId.WordWith) {
         i = LanguageWordEnd(i, LanguageWordId.WordWith);
@@ -94,9 +94,9 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         intent_retry = retry_text;
         i = cursor_out[0];
         let retry_length: Int = StringLength(retry_text);
-        let retry_count: Int = 0;
-        let retry_index: Int = 0;
-        let retry_digits: Bool = true;
+        var retry_count: Int = 0;
+        var retry_index: Int = 0;
+        var retry_digits: Bool = true;
         while retry_index < retry_length {
             let digit: Int = SourceByteAt(retry_text, retry_length, retry_length, retry_index) - SourceByteOf("0");
             if digit < 0 || digit > 9 || retry_count > (2147483647 - digit) / 10 { retry_digits = false; break; }
@@ -112,21 +112,21 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "intent");
     // Walk the body collecting mode, steps, success, failure.
-    let intent_policy: ParserIntentPolicyClause = ParserIntentPolicyClauseDefault();
-    let step_blocks: String = "";
-    let success_text: String = "";
-    let failure_text: String = "";
-    let success_fact: ParserExpressionFact = ParserExpressionInvalid();
-    let failure_fact: ParserExpressionFact = ParserExpressionInvalid();
-    let default_who: String = "";
-    let default_where: String = "";
-    let terminal_success_steps: Array<String> = [];
-    let terminal_success_texts: Array<String> = [];
-    let terminal_success_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
-    let terminal_failure_steps: Array<String> = [];
-    let terminal_failure_texts: Array<String> = [];
-    let terminal_failure_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
-    let intent_expression_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+    var intent_policy: ParserIntentPolicyClause = ParserIntentPolicyClauseDefault();
+    var step_blocks: String = "";
+    var success_text: String = "";
+    var failure_text: String = "";
+    var success_fact: ParserExpressionFact = ParserExpressionInvalid();
+    var failure_fact: ParserExpressionFact = ParserExpressionInvalid();
+    var default_who: String = "";
+    var default_where: String = "";
+    var terminal_success_steps: Array<String> = [];
+    var terminal_success_texts: Array<String> = [];
+    var terminal_success_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+    var terminal_failure_steps: Array<String> = [];
+    var terminal_failure_texts: Array<String> = [];
+    var terminal_failure_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+    var intent_expression_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -155,7 +155,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             continue;
         }
         // Only a typed intent labels a terminal with its step; native refuses the other spelling.
-        let terminal_label: String = "terminal step name";
+        var terminal_label: String = "terminal step name";
         if intent_return_type == "" { terminal_label = ":"; }
         if MatchLanguageWord(content, i, LanguageWordId.WordSuccess) {
             i = LanguageWordEnd(i, LanguageWordId.WordSuccess);
@@ -212,7 +212,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             if StringLength(step_name) == 0 {
                 ParseRefuse(location_context, i, "declaration_name_missing", "construct", "intent_step", "", "");
             }
-            let predecessor_name: String = "";
+            var predecessor_name: String = "";
             i = SkipWhitespaceAndComments(content, i);
             if MatchLanguageWord(content, i, LanguageWordId.WordAfter) {
                 if intent_return_type == "" {
@@ -229,36 +229,36 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             }
             let step_open_at: Int = SkipWhitespaceAndComments(content, i);
             i = ParseExpectIn(location_context, content, i, "{", "intent_step");
-            let s_where: String = "";
-            let s_using: String = "";
-            let s_who: String = "";
-            let s_on: String = "";
-            let s_outcome: String = "";
-            let s_success_pattern: String = "";
-            let s_failure_pattern: String = "";
-            let s_on_seen: Bool = false;
-            let s_guard: String = "";
-            let s_guard_seen: Bool = false;
-            let s_pre: String = "";
-            let s_invariant: String = "";
-            let s_expect: String = "";
-            let s_expect_seen: Bool = false;
-            let s_requires: String = "";
-            let s_auth: String = "";
-            let s_causes: String = "";
-            let s_transfer: String = "";
-            let s_compensates: Array<String> = [];
-            let s_post: String = "";
-            let s_post_seen: Bool = false;
-            let s_intent: String = "";
-            let s_on_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_guard_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_pre_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_invariant_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_compensate_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
-            let s_post_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_intent_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_where: String = "";
+            var s_using: String = "";
+            var s_who: String = "";
+            var s_on: String = "";
+            var s_outcome: String = "";
+            var s_success_pattern: String = "";
+            var s_failure_pattern: String = "";
+            var s_on_seen: Bool = false;
+            var s_guard: String = "";
+            var s_guard_seen: Bool = false;
+            var s_pre: String = "";
+            var s_invariant: String = "";
+            var s_expect: String = "";
+            var s_expect_seen: Bool = false;
+            var s_requires: String = "";
+            var s_auth: String = "";
+            var s_causes: String = "";
+            var s_transfer: String = "";
+            var s_compensates: Array<String> = [];
+            var s_post: String = "";
+            var s_post_seen: Bool = false;
+            var s_intent: String = "";
+            var s_on_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_guard_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_pre_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_invariant_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_compensate_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+            var s_post_fact: ParserExpressionFact = ParserExpressionInvalid();
+            var s_intent_fact: ParserExpressionFact = ParserExpressionInvalid();
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if i >= n {
@@ -270,7 +270,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 }
                 ArraySet(cursor_out, 0, i);
                 let clause_start: Int = i;
-                let clause: String = ReadIdent(content, i, cursor_out);
+                var clause: String = ReadIdent(content, i, cursor_out);
                 i = cursor_out[0];
                 if StringLength(clause) == 0 {
                     ParseRefuse(location_context, i, "expected_token", "expected", "intent step clause", "construct", "intent_step");
@@ -280,7 +280,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordIrreversible) {
                     ParseRefuse(location_context, clause_start, "surface_not_covered", "surface", "intent step irreversible clause", "construct", "intent_step");
                 }
-                let is_transfer: Bool = false;
+                var is_transfer: Bool = false;
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordMove) {
                     is_transfer = true;
                 } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordTransfer) {
@@ -332,8 +332,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                         clause = "authorized by";
                     }
                 }
-                let repeated: Bool = (MatchLanguageWord(content, clause_start, LanguageWordId.WordPre) && s_pre != "") || (MatchLanguageWord(content, clause_start, LanguageWordId.WordInvariant) && s_invariant != "");
-                let on_clause: Bool = false;
+                var repeated: Bool = (MatchLanguageWord(content, clause_start, LanguageWordId.WordPre) && s_pre != "") || (MatchLanguageWord(content, clause_start, LanguageWordId.WordInvariant) && s_invariant != "");
+                var on_clause: Bool = false;
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordOn) { on_clause = true; }
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordGuard) { repeated = s_guard_seen; s_guard_seen = true; }
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordPost) { repeated = s_post_seen; s_post_seen = true; }
@@ -362,7 +362,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     }
                 }
                 i = ParseExpectIn(location_context, content, i, ":", "intent_step_clause");
-                let val: String = "";
+                var val: String = "";
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordTransfer) {
                     i = SkipWhitespaceAndComments(content, i);
                     let t_start: Int = i;
@@ -428,7 +428,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 default_who, default_where, s_who, s_where);
             s_who = defaults.who_names;
             s_where = defaults.where_type;
-            let step_header: String = Concat("    IntentStep: ", step_name);
+            var step_header: String = Concat("    IntentStep: ", step_name);
             if predecessor_name != "" {
                 step_header = Concat(step_header, Concat(" after ", predecessor_name));
             }
@@ -444,7 +444,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             if StringLength(s_transfer) > 0 {
                 step_header = Concat(step_header, Concat(" transfer ", s_transfer));
             }
-            let step_out: String = step_header;
+            var step_out: String = step_header;
             if StringLength(s_who) > 0 {
                 step_out = AppendLine(step_out, Concat("      Who: ", s_who));
             }
@@ -469,7 +469,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             if StringLength(s_failure_pattern) > 0 {
                 step_out = AppendLine(step_out, Concat("      IntentStepFailure: ", s_failure_pattern));
             }
-            let compensate_i: Int = 0;
+            var compensate_i: Int = 0;
             while compensate_i < ArrayLength(s_compensates) {
                 step_out = AppendLine(step_out, Concat("      Compensate: ", s_compensates[compensate_i]));
                 compensate_i = compensate_i + 1;
@@ -560,7 +560,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     if StringLength(intent_retry) > 0 {
         out = AppendLine(out, Concat("    IntentRetry: ", intent_retry));
     }
-    let parameter_i: Int = 0;
+    var parameter_i: Int = 0;
     while parameter_i < ArrayLength(parameter_lines) {
         out = AppendLine(out, Concat("    ", parameter_lines[parameter_i]));
         parameter_i = parameter_i + 1;
@@ -578,7 +578,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         ParserExpressionGraphsAppendInto(intent_expression_graphs,
             TypedAstKindIntentFailureTag(), AstExpressionLaneAtom(), failure_fact);
     }
-    let terminal_i: Int = 0;
+    var terminal_i: Int = 0;
     while terminal_i < ArrayLength(terminal_success_steps) {
         out = AppendLine(out, Concat("    IntentTerminalSuccess: ", Concat(terminal_success_steps[terminal_i],
                 Concat(" => ", terminal_success_texts[terminal_i]))));

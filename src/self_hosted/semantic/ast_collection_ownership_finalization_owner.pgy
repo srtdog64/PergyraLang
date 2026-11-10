@@ -1,0 +1,85 @@
+// Finalizes aggregate release and terminal effects after the ordered scan completes.
+import "ast_collection_aggregate_release_element_borrow_owner.pgy";
+import "ast_collection_aggregate_release_transition_owner.pgy";
+import "ast_collection_ownership_member_restoration_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstCollectionOwnershipFinalize(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref literal_transfers: SemanticAstOwnedStringLiteralTransferFacts,
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    inout aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    inout compiler_clone_expression_node_ids: Array<Int>,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref body_termination: SemanticAstBodyTerminationFacts,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout transition_states: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstOwnedStringLiteralTransfersConsumed(literal_transfers) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "owned_string_literal_transfer_incomplete", "type", "String"),
+            -1, -1);
+    }
+    SemanticAstCollectionApplyMemberMoveRestorations(
+        locals, moved_use, dispositions);
+    let element_borrow: Int =
+        SemanticAstCollectionAggregateReleaseElementBorrowSite(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, surfaces, assignments,
+            aggregate_release_plan, exclusive_values, field_requirements,
+            formal_effects.effects, formal_effects.borrowed_text_formals,
+            compiler_clone_expression_node_ids, moved_use);
+    if element_borrow < 0 {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "aggregate_element_escape_projection"), -1, -1);
+    }
+    if element_borrow > 0 {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "aggregate_release_element_borrow", "type", "String"),
+            element_borrow, -1);
+    }
+    var finalized_transfer_requirement_rows: Array<Int> = [];
+    if !SemanticAstCollectionAggregateReleasePlanFinalized(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, surfaces, assignments,
+            aggregate_release_plan, field_requirements,
+            call_effects.constructor_inputs, statements, moved_use,
+            formal_effects, body_termination, exclusive_values,
+            finalized_transfer_requirement_rows) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError3("borrow_boundary_escape", "boundary",
+                "aggregate_release_incomplete", "type", "Array<String>",
+                "proof", aggregate_release_plan.diagnostic_reason),
+            aggregate_release_plan.diagnostic_syntax_id, -1);
+    }
+    if !SemanticAstCollectionAggregateReleaseApplyFinalizedTransfers(
+            locals, field_requirements, aggregate_release_plan,
+            finalized_transfer_requirement_rows,
+            ownership, dispositions, transition_states) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "aggregate_release_finalized_transfer"), -1, -1);
+    }
+    SemanticAstCollectionApplyTerminalCallEffects(
+        call_effects, ownership, dispositions, transition_states);
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

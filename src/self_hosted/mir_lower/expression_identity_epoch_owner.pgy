@@ -9,92 +9,27 @@ import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
+import "../semantic/ast_signature_artifact_match_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/callable_resolution_owner.pgy";
-
-struct MirExpressionIdentityEpoch {
-    ok: Bool;
-    routine_canonical_ids: Array<Int>;
-    source_ids: Array<Int>;
-    canonical_ids: Array<Int>;
-}
-
-func MirExpressionIdentityEpochAppend(
-    source_id: Int,
-    canonical_id: Int,
-    inout source_ids: Array<Int>,
-    inout canonical_ids: Array<Int>
-) -> Bool {
-    if source_id <= 0 || canonical_id <= 0 ||
-        ArrayLength(source_ids) != ArrayLength(canonical_ids) {
-        return false;
-    }
-    let count: Int = ArrayLength(source_ids);
-    let insertion_index: Int = count;
-    let existing: Int = 0;
-    while existing < count {
-        if source_ids[existing] == source_id ||
-            canonical_ids[existing] == canonical_id {
-            return false;
-        }
-        if insertion_index == count && source_ids[existing] > source_id {
-            insertion_index = existing;
-        }
-        existing = existing + 1;
-    }
-    ArrayPush(source_ids, source_id);
-    ArrayPush(canonical_ids, canonical_id);
-    let shift: Int = count;
-    while shift > insertion_index {
-        ArraySet(source_ids, shift, source_ids[shift - 1]);
-        ArraySet(canonical_ids, shift, canonical_ids[shift - 1]);
-        shift = shift - 1;
-    }
-    ArraySet(source_ids, insertion_index, source_id);
-    ArraySet(canonical_ids, insertion_index, canonical_id);
-    return true;
-}
-
-func MirExpressionIdentityEpochLookup(
-    ref epoch: MirExpressionIdentityEpoch,
-    source_id: Int
-) -> Option<Int> {
-    if !epoch.ok || source_id <= 0 ||
-        ArrayLength(epoch.source_ids) != ArrayLength(epoch.canonical_ids) {
-        return None;
-    }
-    let low: Int = 0;
-    let high: Int = ArrayLength(epoch.source_ids);
-    while low < high {
-        let middle: Int = low + ((high - low) / 2);
-        if epoch.source_ids[middle] < source_id {
-            low = middle + 1;
-        } else {
-            high = middle;
-        }
-    }
-    if low >= ArrayLength(epoch.source_ids) ||
-        epoch.source_ids[low] != source_id {
-        return None;
-    }
-    return Some(epoch.canonical_ids[low]);
-}
+import "expression_identity_epoch_fact_owner.pgy";
+import "expression_constructor_identity_epoch_owner.pgy";
 
 func MirExpressionIdentityEpochFromArtifactWithSignatures(
     ref routines: MirProgramRoutineIndex,
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> MirExpressionIdentityEpoch {
-    let routine_canonical_ids: Array<Int> = [];
-    let source_ids: Array<Int> = [];
-    let canonical_ids: Array<Int> = [];
+    var routine_canonical_ids: Array<Int> = [];
+    var source_ids: Array<Int> = [];
+    var canonical_ids: Array<Int> = [];
     let intents: SemanticAstIntentSignatureFacts =
         SemanticAstIntentSignatureFactsFromArtifact(artifact);
-    let ok: Bool = MirProgramRoutineIndexStructureReady(routines) &&
+    var ok: Bool = MirProgramRoutineIndexStructureReady(routines) &&
         SemanticAstFunctionSignatureFactsMatchArtifact(
             artifact, signatures
         ) && SemanticAstIntentSignatureFactsReady(artifact, intents);
-    let routine: Int = 0;
+    var routine: Int = 0;
     while routine < MirProgramRoutineIndexCount(routines) && ok {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
             routines.source_json, routines.source_json_extent, routines.starts[routine],
@@ -103,12 +38,12 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
         let source_routine_id: Int = ToInt(
             routines.source_syntax_ids[routine]
         );
-        let canonical_routine_id: Int = -1;
-        let canonical_param_start: Int = -1;
-        let canonical_param_count: Int = -1;
-        let matches: Int = 0;
+        var canonical_routine_id: Int = -1;
+        var canonical_param_start: Int = -1;
+        var canonical_param_count: Int = -1;
+        var matches: Int = 0;
         if routines.kinds[routine] == "intent" {
-            let intent_index: Int = 0;
+            var intent_index: Int = 0;
             while intent_index < ArrayLength(intents.intent_node_ids) {
                 if intents.names[intent_index] == routines.names[routine] {
                     canonical_routine_id =
@@ -123,7 +58,7 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
             }
         } else if routines.kinds[routine] == "function" ||
             routines.kinds[routine] == "method" {
-            let signature: Int = 0;
+            var signature: Int = 0;
             while signature <
                 SemanticAstFunctionSignatureCount(signatures) {
                 if signatures.owner_names[signature] ==
@@ -142,7 +77,7 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
                 signature = signature + 1;
             }
         }
-        let parameter_shape_matches: Bool =
+        var parameter_shape_matches: Bool =
             canonical_param_count == ArrayLength(header.param_names);
         if routines.kinds[routine] == "intent" {
             // Intent participants are owned by the admitted intent execution
@@ -157,16 +92,17 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
                 source_routine_id, canonical_routine_id,
                 source_ids, canonical_ids
             ) {
+            Log("CODEGEN ERROR: MIR routine identity mismatch row=${routine} source=${source_routine_id} canonical=${canonical_routine_id} matches=${matches} source_params=" + ToString(ArrayLength(header.param_names)) + " canonical_params=${canonical_param_count}");
             ok = false;
         } else {
             ArrayPush(routine_canonical_ids, canonical_routine_id);
         }
-        let param: Int = 0;
+        var param: Int = 0;
         while param < ArrayLength(header.param_names) && ok {
             let canonical_param: Int = canonical_param_start + param;
-            let canonical_param_id: Int = -1;
-            let canonical_param_name: String = "";
-            let canonical_param_type: String = "";
+            var canonical_param_id: Int = -1;
+            var canonical_param_name: String = "";
+            var canonical_param_type: String = "";
             if routines.kinds[routine] == "intent" {
                 canonical_param_id = intents.param_node_ids[canonical_param];
                 canonical_param_name = intents.param_names[canonical_param];
@@ -186,6 +122,7 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
             if canonical_param_name != header.param_names[param] ||
                 (!implicit_receiver &&
                  canonical_param_type != header.param_types[param]) {
+                Log("CODEGEN ERROR: MIR parameter identity mismatch routine=${routine} ordinal=${param}");
                 ok = false;
             } else if source_param_id > 0 &&
                 !MirExpressionIdentityEpochAppend(
@@ -203,12 +140,19 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
             routines, signatures, source_ids, canonical_ids
         );
     }
+    if ok {
+        ok = MirExpressionIdentityEpochAppendEnums(routines, artifact, source_ids, canonical_ids);
+    }
+    if ok {
+        ok = MirExpressionIdentityEpochAppendNominals(routines, artifact, source_ids, canonical_ids);
+    }
     return MirExpressionIdentityEpoch(
         ok && ArrayLength(routine_canonical_ids) ==
             MirProgramRoutineIndexCount(routines),
         routine_canonical_ids, source_ids, canonical_ids
     );
 }
+
 
 // Declaration-only callables have no routine row. Runtime method declarations
 // must agree with their already admitted routine identity, not register twice.
@@ -218,21 +162,21 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
     inout source_ids: Array<Int>,
     inout canonical_ids: Array<Int>
 ) -> Bool {
-    let seen: Array<Int> = [];
-    let declaration: Int = 0;
+    var seen: Array<Int> = [];
+    var declaration: Int = 0;
     while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
-        let methods: Array<Int> = [0, 0];
+        var methods: Array<Int> = [0, 0];
         if MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.source_json_extent, routines.declarations.starts[declaration],
             routines.declarations.ends[declaration], "methods", methods
         ) {
-            let owner: String = routines.declarations.names[declaration];
+            var owner: String = routines.declarations.names[declaration];
             let declaration_only: Bool =
                 routines.declarations.kinds[declaration] == "ability" ||
                 routines.declarations.kinds[declaration] == "extern";
             if routines.declarations.kinds[declaration] == "extern" { owner = ""; }
-            let method: Array<Int> = [0, 0];
-            let cursor: Int = methods[0] + 1;
+            var method: Array<Int> = [0, 0];
+            var cursor: Int = methods[0] + 1;
             while JsonArrayNextObjectBounds(
                 routines.source_json, routines.source_json_extent, cursor, methods[1], method
             ) {
@@ -246,15 +190,15 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
                 let source_id: Int = ToInt(source_text);
                 if source_id <= 0 || ToString(source_id) != source_text ||
                     name == "" { return false; }
-                let previous: Int = 0;
+                var previous: Int = 0;
                 while previous < ArrayLength(seen) {
                     if seen[previous] == source_id { return false; }
                     previous = previous + 1;
                 }
                 ArrayPush(seen, source_id);
-                let canonical_id: Int = -1;
-                let matches: Int = 0;
-                let signature: Int = 0;
+                var canonical_id: Int = -1;
+                var matches: Int = 0;
+                var signature: Int = 0;
                 while signature < SemanticAstFunctionSignatureCount(signatures) {
                     if signatures.owner_names[signature] == owner &&
                         signatures.names[signature] == name &&
@@ -267,20 +211,16 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
                     }
                     signature = signature + 1;
                 }
-                if matches != 1 { return false; }
+                if matches != 1 { Log("CODEGEN ERROR: MIR declaration method identity mismatch owner=${owner} name=${name} matches=${matches}"); return false; }
                 if declaration_only {
                     if !MirExpressionIdentityEpochAppend(
                         source_id, canonical_id, source_ids, canonical_ids
                     ) { return false; }
                 } else {
-                    let routine_ids: Array<Int> = [];
-                    let epoch: MirExpressionIdentityEpoch =
-                        MirExpressionIdentityEpoch(
-                            true, routine_ids, source_ids, canonical_ids
-                        );
-                    let existing: Option<Int> =
-                        MirExpressionIdentityEpochLookup(epoch, source_id);
+                    let existing: Option<Int> = MirExpressionIdentityEpochLookupRows(
+                        source_ids, canonical_ids, source_id);
                     if !IsSome(existing) || UnwrapOption(existing) != canonical_id {
+                        Log("CODEGEN ERROR: MIR declaration method does not match its routine owner=${owner} name=${name} source=${source_id} canonical=${canonical_id}");
                         return false;
                     }
                 }
@@ -311,21 +251,22 @@ func MirExpressionIdentityEpochRebindGraph(
     member_source_names: Array<String>, member_canonical_names: Array<String>
 ) -> SemanticExpressionGraphFacts {
     let source: SemanticExpressionGraphArena = graph.arena;
-    let targets: Array<Int> =
+    var targets: Array<Int> =
         source.identities.call_target_syntax_ids;
-    let bindings: Array<Int> = source.identities.binding_syntax_ids;
-    let target_names: Array<String> = source.call_target_names;
+    var bindings: Array<Int> = source.identities.binding_syntax_ids;
+    var target_names: Array<String> = source.call_target_names;
     let node_count: Int = SemanticExpressionGraphArenaNodeCount(source);
-    let valid: Bool = graph.ok && epoch.ok &&
+    var valid: Bool = graph.ok && epoch.ok &&
         SemanticExpressionIdentityRowsReady(
             source.identities, node_count
         );
-    let node: Int = 0;
+    var node: Int = 0;
     while node < node_count && valid {
         if targets[node] > 0 {
             let target: Option<Int> =
                 MirExpressionIdentityEpochLookup(epoch, targets[node]);
             if !IsSome(target) {
+                Log("CODEGEN ERROR: MIR call identity has no canonical target node=${node} source=" + ToString(targets[node]));
                 valid = false;
             } else {
                 let canonical_id: Int = UnwrapOption(target);
@@ -348,6 +289,7 @@ func MirExpressionIdentityEpochRebindGraph(
             let binding: Option<Int> =
                 MirExpressionIdentityEpochLookup(epoch, bindings[node]);
             if !IsSome(binding) {
+                Log("CODEGEN ERROR: MIR binding identity has no canonical target node=${node} source=" + ToString(bindings[node]));
                 valid = false;
             } else {
                 ArraySet(bindings, node, UnwrapOption(binding));
@@ -387,9 +329,9 @@ func MirExpressionIdentityEpochDeclarationMemberNames(
     inout source_names: Array<String>,
     inout canonical_names: Array<String>
 ) -> Bool {
-    let declaration: Int = 0;
+    var declaration: Int = 0;
     while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
-        let methods: Array<Int> = [0, 0];
+        var methods: Array<Int> = [0, 0];
         if routines.declarations.kinds[declaration] == "ability" &&
             MirObjectArrayBoundsAtBounds(
                 routines.source_json, routines.source_json_extent,
@@ -397,8 +339,8 @@ func MirExpressionIdentityEpochDeclarationMemberNames(
                 routines.declarations.ends[declaration], "methods", methods
             ) {
             let owner: String = routines.declarations.names[declaration];
-            let method: Array<Int> = [0, 0];
-            let cursor: Int = methods[0] + 1;
+            var method: Array<Int> = [0, 0];
+            var cursor: Int = methods[0] + 1;
             while JsonArrayNextObjectBounds(
                 routines.source_json, routines.source_json_extent, cursor, methods[1], method
             ) {
@@ -436,18 +378,40 @@ func MirExpressionIdentityEpochRebindGraphForArtifact(
     ref routines: MirProgramRoutineIndex,
     artifact: AstTreeArtifact
 ) -> SemanticExpressionGraphFacts {
-    let epoch: MirExpressionIdentityEpoch =
+    var epoch: MirExpressionIdentityEpoch =
         MirExpressionIdentityEpochFromArtifact(routines, artifact);
+    if !MirExpressionIdentityEpochEnumTargetsReady(routines, graph) {
+        Log("CODEGEN ERROR: MIR enum constructor does not belong to its declared target");
+        epoch.ok = false;
+    }
+    if !MirExpressionIdentityEpochNominalTargetsReady(routines, graph) {
+        Log("CODEGEN ERROR: MIR nominal constructor does not belong to its declared target");
+        epoch.ok = false;
+    }
     // The existing routine epoch selects these spellings. Neither spelling
     // can select a declaration, and no source/AST name lookup is reopened.
-    let source_names: Array<String> = [];
-    let canonical_names: Array<String> = [];
-    let node: Int = 0;
+    var source_names: Array<String> = [];
+    var canonical_names: Array<String> = [];
+    // Syntax id 0 is the Program sentinel in every admitted AST artifact.
+    // Establish its owned String generation before the fill loop so later
+    // indexed replacement never depends on a loop-path inference to prove
+    // that the table already owns the element being retired.
+    if artifact.count <= 0 {
+        epoch.ok = false;
+        return MirExpressionIdentityEpochRebindGraph(
+            graph, epoch, source_names, canonical_names
+        );
+    }
+    ArrayPushOwnedString(source_names, "");
+    ArrayPushOwnedString(canonical_names, "");
+    var node: Int = 1;
     while node < artifact.count {
-        ArrayPush(source_names, ""); ArrayPush(canonical_names, "");
+        ArrayPushOwnedString(source_names, "");
+        ArrayPushOwnedString(canonical_names, "");
         node = node + 1;
     }
-    let row: Int = 0;
+    if !epoch.ok { Log("CODEGEN ERROR: MIR expression identity epoch construction failed"); }
+    var row: Int = 0;
     while row < ArrayLength(epoch.routine_canonical_ids) && epoch.ok {
         let id: Int = epoch.routine_canonical_ids[row];
         if id <= 0 || id >= artifact.count {

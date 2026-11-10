@@ -5,7 +5,7 @@
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let roster: List<Player> = ListNew();\n"
+            "    var roster: List<Player> = ListNew();\n"
             "    let recruit = Player(10);\n"
             "    ListPush(roster, recruit);\n"
             "}\n";
@@ -41,7 +41,7 @@
             "    let title: String;\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let events: List<Event> = ListNew();\n"
+            "    var events: List<Event> = ListNew();\n"
             "    ListPush(events, Event(\"Kickoff\"));\n"
             "    for event in events {\n"
             "        Print(event.title);\n"
@@ -82,7 +82,7 @@
             "}\n"
             "func Main() -> Void {\n"
             "    let bow = Weapon(\"Bow\");\n"
-            "    let satchel: Queue<Weapon> = QueueNew();\n"
+            "    var satchel: Queue<Weapon> = QueueNew();\n"
             "    QueuePush(satchel, bow);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -179,7 +179,7 @@
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let registry: HashMap<String, Player> = MapNew();\n"
+            "    var registry: HashMap<String, Player> = MapNew();\n"
             "    let hero = Player(42);\n"
             "    MapSet(registry, \"hero\", hero);\n"
             "    let loaded = MapGet(registry, \"hero\");\n"
@@ -224,7 +224,7 @@
             "}\n"
             "func Main() -> Void {\n"
             "    let id: UserId = 7;\n"
-            "    let registry: PartyIndex = MapNew();\n"
+            "    var registry: PartyIndex = MapNew();\n"
             "    MapSet(registry, \"hero\", Player(42));\n"
             "    let hero = Load(id, registry);\n"
             "    Log(ToString(hero.hp));\n"
@@ -260,9 +260,9 @@
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let events: List<String> = ListNew();\n"
+            "    var events: List<String> = ListNew();\n"
             "    ListPush(events, \"a\");\n"
-            "    let buckets: HashMap<String, List<String>> = MapNew();\n"
+            "    var buckets: HashMap<String, List<String>> = MapNew();\n"
             "    MapSet(buckets, \"today\", events);\n"
             "    let loaded = MapGet(buckets, \"today\");\n"
             "    Log(ToString(ListSize(loaded)));\n"
@@ -297,12 +297,12 @@
         const char *source =
             "func BuildBuckets() -> HashMap<String, List<String>> {\n"
             "    let events: List<String> = ListNew();\n"
-            "    let buckets: HashMap<String, List<String>> = MapNew();\n"
+            "    var buckets: HashMap<String, List<String>> = MapNew();\n"
             "    MapSet(buckets, \"today\", events);\n"
             "    return buckets;\n"
             "}\n"
             "func RenderBuckets(buckets: HashMap<String, List<String>>) -> String {\n"
-            "    let loaded = MapGet(buckets, \"today\");\n"
+            "    var loaded = MapGet(buckets, \"today\");\n"
             "    return ListGet(loaded, 0);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

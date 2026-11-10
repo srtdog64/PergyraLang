@@ -14,8 +14,8 @@ struct Rows {
 }
 
 func AddBlock(rows: Rows) -> Rows {
-    let ids: Array<Int> = rows.ids;
-    let names: Array<String> = rows.names;
+    var ids: Array<Int> = rows.ids;
+    var names: Array<String> = rows.names;
     ArrayPush(ids, ArrayLength(ids));
     ArrayPush(names, "block");
     return Rows(ids, names, rows.pairs);

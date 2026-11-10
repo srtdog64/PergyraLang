@@ -17,7 +17,7 @@ struct DirectMirScalarProgramLlvmPayloadEnumExpression {
 func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     node: Int, result: String, left: String,
-    arguments: Array<String>, argument_types: Array<String>,
+    ref arguments: Array<String>, ref argument_types: Array<String>,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
@@ -55,7 +55,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
             DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
                 enum_row, ordinal);
         let selected: String = Concat(result, ".variant");
-        let instructions: String = Concat("  ", selected);
+        var instructions: String = Concat("  ", selected);
         instructions = Concat(instructions, " = extractvalue ");
         instructions = Concat(instructions, enum_type);
         instructions = Concat(instructions, " ");
@@ -74,7 +74,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
         return DirectMirScalarProgramLlvmPayloadEnumExpression(
             true, true, instructions, result);
     }
-    let type_name: String = expressions.node_types[node];
+    var type_name: String = expressions.node_types[node];
     if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
         let left_node: Int = expressions.node_lefts[node];
         if left_node < 0 || left == "" {
@@ -97,7 +97,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
     let payload_type: String =
         DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
             enum_row, ordinal);
-    let instructions: String = "";
+    var instructions: String = "";
     if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
         if ArrayLength(arguments) !=
                 referenced_enum.variant_param_counts[variant] ||
@@ -121,8 +121,8 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
         instructions = Concat(instructions, " zeroinitializer, i32 ");
         instructions = Concat(instructions, ToString(ordinal));
         instructions = Concat(instructions, ", 0\n");
-        let payload_value: String = "undef";
-        let parameter: Int = 0;
+        var payload_value: String = "undef";
+        var parameter: Int = 0;
         while parameter < ArrayLength(arguments) {
             let llvm_type: String =
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
@@ -200,7 +200,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
         instructions = Concat(instructions, Concat(" ", selected));
         instructions = Concat(instructions, Concat(", ", ToString(ordinal + 1)));
         instructions = Concat(instructions, "\n");
-        let parameter: Int = 0;
+        var parameter: Int = 0;
         while parameter < arity {
             let field_type: String = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                 referenced_enum.variant_param_types[
@@ -229,7 +229,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
 
 func DirectMirScalarProgramCPayloadEnumExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    node: Int, left: String, arguments: Array<String>,
+    node: Int, left: String, ref arguments: Array<String>,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Option<String> {
     let kind: Int = expressions.node_kinds[node];
@@ -259,7 +259,7 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
             Concat("._", ToString(parameter)))));
         return Some(value);
     }
-    let type_name: String = expressions.node_types[node];
+    var type_name: String = expressions.node_types[node];
     if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
         let left_node: Int = expressions.node_lefts[node];
         if left_node < 0 || left == "" { return Some(""); }
@@ -282,7 +282,7 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
                 referenced_enum.variant_param_counts[variant] {
             return Some("");
         }
-        let value: String = "((";
+        var value: String = "((";
         value = Concat(value, enum_type);
         value = Concat(value, ") { .tag = (");
         value = Concat(value,
@@ -295,7 +295,7 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
         value = Concat(value, ", .");
         value = Concat(value, field);
         value = Concat(value, " = { ");
-        let parameter: Int = 0;
+        var parameter: Int = 0;
         while parameter < ArrayLength(arguments) {
             if parameter > 0 { value = Concat(value, ", "); }
             value = Concat(value, "._");
@@ -309,7 +309,7 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
     let arity: Int = referenced_enum.variant_param_counts[variant];
     if (arity == 0 && expressions.node_local_rows[node] != -1) ||
         (arity > 0 && expressions.node_local_rows[node] < 0) { return Some(""); }
-    let tag_test: String = "(";
+    var tag_test: String = "(";
     tag_test = Concat(tag_test, left);
     tag_test = Concat(tag_test, ".tag == (");
     tag_test = Concat(tag_test,
@@ -318,9 +318,9 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
     tag_test = Concat(tag_test, ToString(ordinal));
     tag_test = Concat(tag_test, ")");
     if arity == 0 { return Some(tag_test); }
-    let value: String = Concat("(", tag_test);
+    var value: String = Concat("(", tag_test);
     value = Concat(value, " ? (");
-    let parameter: Int = 0;
+    var parameter: Int = 0;
     while parameter < arity {
         value = Concat(value, "pgy_local_");
         value = Concat(value, ToString(expressions.node_local_rows[node] + parameter));

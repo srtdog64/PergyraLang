@@ -11,8 +11,8 @@ func DirectMirRoutineInstanceTypeName(
     let instance: Int = inventory.instance_rows[ordinal];
     if instance < 0 || source_type == "" { return Some(source_type); }
     let template: Int = inventory.source_rows[ordinal];
-    let formals: Array<String> = [];
-    let formal: Int = 0;
+    var formals: Array<String> = [];
+    var formal: Int = 0;
     while formal < inventory.generic_calls.templates.generic_counts[template] {
         ArrayPush(formals, inventory.generic_calls.templates.generic_names[
             inventory.generic_calls.templates.generic_starts[template] + formal]);
@@ -37,8 +37,15 @@ func DirectMirRoutineInstanceInstructionCapture(
     if !IsSome(resolved) { return InvalidMirRoutineInstructionScalarCapture(); }
     let type_name: String = UnwrapOption(resolved);
     if type_name == source.abi_type_name { return source; }
+    let option_int_projection: Bool = type_name ==
+            CompilerAbiLayoutOptionIntTypeName() &&
+        DirectMirOptionMatchAbiFactReady(inventory.option_int_abi);
+    let array_int_projection: Bool = type_name ==
+            CompilerAbiLayoutArrayIntTypeName() &&
+        DirectMirArrayIntCapturedAbiReady(inventory.array_int_abi);
     if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
-            DirectMirIdentityCellRow(inventory.identity_cells, type_name) < 0) ||
+            DirectMirIdentityCellRow(inventory.identity_cells, type_name) < 0 &&
+            !option_int_projection && !array_int_projection) ||
         !DirectMirInstructionHasNoPhysicalAbi(json, json_extent, source, source.abi_type_name) {
         return InvalidMirRoutineInstructionScalarCapture();
     }

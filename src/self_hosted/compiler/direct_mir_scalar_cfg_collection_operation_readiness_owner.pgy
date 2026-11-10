@@ -21,12 +21,12 @@ func DirectMirScalarCfgCollectionOperationsReady(
         return false;
     }
     let values: Int = ArrayLength(plan.values.value_ids);
-    let result_claims: Array<Int> = [];
-    let value: Int = 0;
+    var result_claims: Array<Int> = [];
+    var value: Int = 0;
     while value < values { ArrayPush(result_claims, 0); value = value + 1; }
-    let row: Int = 0;
-    let prior_global: Int = -1;
-    let prior_ordinal: Int = -1;
+    var row: Int = 0;
+    var prior_global: Int = -1;
+    var prior_ordinal: Int = -1;
     while row < count {
         let kind: Int = plan.operations.kinds[row];
         let receiver: Int = plan.operations.receiver_value_rows[row];

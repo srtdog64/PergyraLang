@@ -10,7 +10,7 @@ func DirectMirScalarCfgArrayIntLlvmSet(
         Die("direct MIR scalar CFG Array<Int> LLVM set is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let output: String = Concat("  ", stem);
+    var output: String = Concat("  ", stem);
     output = Concat(output,
         ".set.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
     output = Concat(output, Concat(
@@ -32,7 +32,7 @@ func DirectMirScalarCfgArrayIntLlvmIndexedLog(
         Die("direct MIR scalar CFG Array<Int> LLVM indexed Log is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let output: String = Concat("  ", stem);
+    var output: String = Concat("  ", stem);
     output = Concat(output,
         ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
     output = Concat(output, Concat(

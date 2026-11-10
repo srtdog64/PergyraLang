@@ -1,0 +1,21 @@
+// Corrupt is source-level ArraySet, but its inout callers require owned
+// String elements. The typed landing plan lowers it to ArraySetOwnedString,
+// which copies the replacement before retiring the old owned element.
+func OwnedRows() -> Array<String>
+{
+    var rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Corrupt(inout rows: Array<String>) -> Void
+{
+    ArraySet(rows, 0, "borrowed");
+}
+
+func Main() -> Void
+{
+    var rows: Array<String> = OwnedRows();
+    Corrupt(rows);
+    ArrayDropOwnedStrings(rows);
+}

@@ -1,0 +1,44 @@
+// Renders the already-admitted current mutable parameter storage per backend.
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
+
+func DirectMirScalarProgramCParameterCurrentStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> String {
+    let local_row: Int = DirectMirScalarProgramParameterCurrentStorageLocalRow(
+        plan, routine, ordinal);
+    if local_row >= 0 {
+        return Concat("pgy_local_", ToString(local_row));
+    }
+    return Concat("pgy_param_", ToString(ordinal));
+}
+
+func DirectMirScalarProgramLlvmParameterCurrentStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> String {
+    let local_row: Int = DirectMirScalarProgramParameterCurrentStorageLocalRow(
+        plan, routine, ordinal);
+    if local_row >= 0 {
+        return Concat("%pgy.local.", ToString(local_row));
+    }
+    return Concat("%pgy.param.", Concat(ToString(ordinal), ".local"));
+}
+
+func DirectMirScalarProgramCParameterValueResultStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> String {
+    if !DirectMirScalarProgramParameterValueResultAt(plan, routine, ordinal) {
+        Die("direct MIR C value-result storage requires an admitted formal");
+    }
+    return DirectMirScalarProgramCParameterCurrentStorage(
+        plan, routine, ordinal);
+}
+
+func DirectMirScalarProgramLlvmParameterValueResultStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> String {
+    if !DirectMirScalarProgramParameterValueResultAt(plan, routine, ordinal) {
+        Die("direct MIR LLVM value-result storage requires an admitted formal");
+    }
+    return DirectMirScalarProgramLlvmParameterCurrentStorage(
+        plan, routine, ordinal);
+}

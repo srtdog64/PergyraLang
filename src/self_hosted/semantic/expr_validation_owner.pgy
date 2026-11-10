@@ -20,7 +20,7 @@ import "expression_text_operand_shape_owner.pgy";
 // whitespace before deciding.
 func SemanticIdentifierFollowsDot(text: String, text_extent: Int, n: Int, start: Int) -> Bool {
     let dot: Int = SourceByteOf(".");
-    let back: Int = start;
+    var back: Int = start;
     while back > 0 && SourceByteIsWhitespace(SourceByteAt(text, text_extent, n, back - 1)) {
         back = back - 1;
     }
@@ -38,8 +38,8 @@ func CheckUndefinedIdentifiers(
     let escape: Int = SourceByteOf("\\");
     let dot: Int = SourceByteOf(".");
     let open_paren: Int = SourceByteOf("(");
-    let type_cursor: Array<Int> = [0];
-    let i: Int = 0;
+    var type_cursor: Array<Int> = [0];
+    var i: Int = 0;
     while i < n {
         let c: Int = SourceByteAt(text, n, n, i);
         if c == quote {
@@ -85,7 +85,7 @@ func CheckUndefinedIdentifiers(
                 let member_start: Int = SkipWhitespaceAndComments(
                     text, after + 1
                 );
-                let member_end: Int = member_start;
+                var member_end: Int = member_start;
                 if member_start < n && SourceByteIsAlpha(
                     SourceByteAt(text, n, n, member_start)
                 ) {
@@ -145,7 +145,7 @@ func CheckUndefinedIdentifiers(
 
 func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !TryOperandBounds(text, bounds) {
         return "";
     }
@@ -215,9 +215,9 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
     if facts.logical_index >= 0 {
         return "";
     }
-    let split_idx: Int = -1;
-    let split_len: Int = 1;
-    let kind: String = "";
+    var split_idx: Int = -1;
+    var split_len: Int = 1;
+    var kind: String = "";
     if facts.comparison_index >= 0 {
         split_idx = facts.comparison_index;
         split_len = facts.comparison_length;

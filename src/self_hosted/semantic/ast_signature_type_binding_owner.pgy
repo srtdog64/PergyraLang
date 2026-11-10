@@ -14,7 +14,7 @@ func SemanticAstSignatureTypeTextChildren(
     base: String
 ) -> Array<String> {
     let source_extent: Int = StringLength(source);
-    let shape: Array<String> = [];
+    var shape: Array<String> = [];
     if start >= 0 && end >= start && end <= source_extent &&
         canonical != "" && base != "" {
         let open_angle: Int = SourceByteOf("<");
@@ -24,15 +24,15 @@ func SemanticAstSignatureTypeTextChildren(
         let open_bracket: Int = SourceByteOf("[");
         let close_bracket: Int = SourceByteOf("]");
         let comma: Int = SourceByteOf(",");
-        let angle_depth: Int = 0;
-        let paren_depth: Int = 0;
-        let bracket_depth: Int = 0;
-        let range_start: Int = start;
-        let i: Int = start;
-        let ok: Bool = true;
+        var angle_depth: Int = 0;
+        var paren_depth: Int = 0;
+        var bracket_depth: Int = 0;
+        var range_start: Int = start;
+        var i: Int = start;
+        var ok: Bool = true;
         while start < end && i <= end && ok {
             let at_end: Bool = i == end;
-            let c: Int = -1;
+            var c: Int = -1;
             if !at_end {
                 c = SourceByteAt(source, source_extent, source_extent, i);
             }
@@ -74,7 +74,7 @@ func SemanticAstSignatureTypeTextChildren(
             i = start;
             while start < end && i <= end {
                 let at_end: Bool = i == end;
-                let c: Int = -1;
+                var c: Int = -1;
                 if !at_end {
                     c = SourceByteAt(source, source_extent, source_extent, i);
                 }
@@ -115,7 +115,7 @@ func SemanticAstSignatureTypeTextShape(
         SemanticAstSignatureFunctionTypeClose(text);
     if IsSome(function_close) {
         let close: Int = UnwrapOption(function_close);
-        let arrow: Int = close + 1;
+        var arrow: Int = close + 1;
         while arrow < n && SourceByteIsWhitespace(
             SourceByteAt(text, n, n, arrow)
         ) {
@@ -129,7 +129,7 @@ func SemanticAstSignatureTypeTextShape(
             text, arrow + 2, n
         );
         if return_type == "" { return []; }
-        let shape: Array<String> = SemanticAstSignatureTypeTextChildren(
+        var shape: Array<String> = SemanticAstSignatureTypeTextChildren(
             text, 5, close, text, "func"
         );
         if ArrayLength(shape) >= 2 {
@@ -145,7 +145,7 @@ func SemanticAstSignatureTypeTextShape(
             StringIndexOf(text, ",") >= 0 {
             return [];
         }
-        let leaf: Array<String> = [];
+        var leaf: Array<String> = [];
         ArrayPushOwnedString(leaf, text);
         ArrayPushOwnedString(leaf, text);
         return leaf;
@@ -167,11 +167,11 @@ func SemanticAstSignatureTypeTextShape(
 }
 
 func SemanticAstSignatureTypeTextValid(type_name: String) -> Bool {
-    let pending: Array<String> = [];
+    var pending: Array<String> = [];
     ArrayPushOwnedString(pending, type_name);
-    let cursor: Int = 0;
-    let remaining: Int = StringLength(type_name) + 1;
-    let ok: Bool = true;
+    var cursor: Int = 0;
+    var remaining: Int = StringLength(type_name) + 1;
+    var ok: Bool = true;
     while ok && cursor < ArrayLength(pending) && remaining > 0 {
         let current: String = Concat("", pending[cursor]);
         let shape: Array<String> =
@@ -179,7 +179,7 @@ func SemanticAstSignatureTypeTextValid(type_name: String) -> Bool {
         if ArrayLength(shape) < 2 {
             ok = false;
         } else {
-            let child: Int = 2;
+            var child: Int = 2;
             while child < ArrayLength(shape) {
                 ArrayPushOwnedString(pending, shape[child]);
                 child = child + 1;
@@ -216,10 +216,10 @@ func SemanticAstSignatureParameterTypesBind(
         ArrayDrop(parameter_indices);
         return [];
     }
-    let expected_nodes: Array<Int> = [];
-    let actual_types: Array<String> = [];
-    let input_index: Int = 0;
-    let inputs_ok: Bool = true;
+    var expected_nodes: Array<Int> = [];
+    var actual_types: Array<String> = [];
+    var input_index: Int = 0;
+    var inputs_ok: Bool = true;
     while input_index < ArrayLength(parameter_indices) && inputs_ok {
         let parameter_index: Int = parameter_indices[input_index];
         if parameter_index < 0 ||
@@ -233,12 +233,12 @@ func SemanticAstSignatureParameterTypesBind(
         }
         input_index = input_index + 1;
     }
-    let update_indices: Array<Int> = [];
-    let update_type_names: Array<String> = [];
-    let cursor: Int = 0;
-    let remaining: Int = ArrayLength(facts.node_names) *
+    var update_indices: Array<Int> = [];
+    var update_type_names: Array<String> = [];
+    var cursor: Int = 0;
+    var remaining: Int = ArrayLength(facts.node_names) *
         ArrayLength(parameter_indices) + 1;
-    let ok: Bool = inputs_ok;
+    var ok: Bool = inputs_ok;
     while ok && cursor < ArrayLength(expected_nodes) && remaining > 0 {
         if cursor >= ArrayLength(actual_types) {
             ok = false;
@@ -268,7 +268,7 @@ func SemanticAstSignatureParameterTypesBind(
                         );
                     if IsSome(formal) {
                         let binding_index: Int = UnwrapOption(formal);
-                        let existing_binding: String = "";
+                        var existing_binding: String = "";
                         if binding_index >= 0 &&
                             binding_index < generic_count {
                             existing_binding = Concat(
@@ -282,8 +282,8 @@ func SemanticAstSignatureParameterTypesBind(
                         } else if existing_binding != "" {
                             ok = existing_binding == shape[0];
                         } else {
-                            let update_row: Int = -1;
-                            let row: Int = 0;
+                            var update_row: Int = -1;
+                            var row: Int = 0;
                             while row < ArrayLength(update_indices) {
                                 if update_indices[row] == binding_index {
                                     update_row = row;
@@ -304,7 +304,7 @@ func SemanticAstSignatureParameterTypesBind(
                         expected_count != ArrayLength(shape) - 2 {
                         ok = false;
                     } else {
-                        let child: Int = 0;
+                        var child: Int = 0;
                         while child < expected_count {
                             ArrayPush(
                                 expected_nodes,
@@ -327,9 +327,9 @@ func SemanticAstSignatureParameterTypesBind(
         cursor != ArrayLength(actual_types) {
         ok = false;
     }
-    let next_bindings: Array<String> = [];
+    var next_bindings: Array<String> = [];
     if ok {
-        let binding_index: Int = 0;
+        var binding_index: Int = 0;
         while binding_index < generic_count {
             let existing_binding: String = Concat(
                 "", bindings[binding_index]
@@ -339,8 +339,8 @@ func SemanticAstSignatureParameterTypesBind(
                     next_bindings, existing_binding
                 );
             } else {
-                let update_row: Int = -1;
-                let row: Int = 0;
+                var update_row: Int = -1;
+                var row: Int = 0;
                 while row < ArrayLength(update_indices) {
                     if update_indices[row] == binding_index {
                         update_row = row;
@@ -374,7 +374,7 @@ func SemanticAstSignatureTypeBindingMissingIndex(
     if generic_count <= 0 || ArrayLength(bindings) != generic_count {
         return -2;
     }
-    let binding_index: Int = 0;
+    var binding_index: Int = 0;
     while binding_index < generic_count {
         if bindings[binding_index] == "" { return binding_index; }
         binding_index = binding_index + 1;
@@ -383,8 +383,8 @@ func SemanticAstSignatureTypeBindingMissingIndex(
 }
 
 func SemanticAstSignatureTypeBindingContractReady() -> Bool {
-    let returns: Array<String> = [];
-    let parameters: Array<String> = [];
+    var returns: Array<String> = [];
+    var parameters: Array<String> = [];
     ArrayPushOwnedString(returns, "Option<T>");
     ArrayPushOwnedString(parameters, "Array<T>");
     let facts: SemanticAstSignatureTypeExpressionFacts =
@@ -393,12 +393,12 @@ func SemanticAstSignatureTypeBindingContractReady() -> Bool {
         );
     ArrayDropOwnedStrings(returns);
     ArrayDropOwnedStrings(parameters);
-    let names: Array<String> = [];
-    let bindings: Array<String> = [];
+    var names: Array<String> = [];
+    var bindings: Array<String> = [];
     ArrayPushOwnedString(names, "T");
     ArrayPushOwnedString(bindings, "");
     let first_parameters: Array<Int> = [0];
-    let first_actuals: Array<String> = [];
+    var first_actuals: Array<String> = [];
     ArrayPushOwnedString(first_actuals, Concat("", "Array<Int>"));
     let first: Array<String> = SemanticAstSignatureParameterTypesBind(
         facts, first_parameters, 0, 1,
@@ -408,10 +408,10 @@ func SemanticAstSignatureTypeBindingContractReady() -> Bool {
     );
     ArrayDropOwnedStrings(first_actuals);
     ArrayDropOwnedStrings(bindings);
-    let same_seed: Array<String> = [];
+    var same_seed: Array<String> = [];
     ArrayPushOwnedString(same_seed, "Int");
     let same_parameters: Array<Int> = [0];
-    let same_actuals: Array<String> = [];
+    var same_actuals: Array<String> = [];
     ArrayPushOwnedString(same_actuals, Concat("", "Array<Int>"));
     let same: Array<String> = SemanticAstSignatureParameterTypesBind(
         facts, same_parameters, 0, 1,
@@ -426,10 +426,10 @@ func SemanticAstSignatureTypeBindingContractReady() -> Bool {
         names.Slice(0, ArrayLength(names)),
         same.Slice(0, ArrayLength(same))
     );
-    let conflict_seed: Array<String> = [];
+    var conflict_seed: Array<String> = [];
     ArrayPushOwnedString(conflict_seed, "Int");
     let conflict_parameters: Array<Int> = [0];
-    let conflict_actuals: Array<String> = [];
+    var conflict_actuals: Array<String> = [];
     ArrayPushOwnedString(conflict_actuals, Concat("", "Array<String>"));
     let conflict: Array<String> = SemanticAstSignatureParameterTypesBind(
         facts, conflict_parameters, 0, 1,

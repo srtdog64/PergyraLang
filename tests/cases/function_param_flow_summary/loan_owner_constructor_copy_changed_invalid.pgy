@@ -27,7 +27,7 @@ func FactsFrom(artifact: Artifact) -> Facts {
 func Check() -> Int {
     let base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
     let missing: Facts = FactsFrom(base);
-    let typed: Artifact = Artifact(base.text, base.arena, base.count);
+    var typed: Artifact = Artifact(base.text, base.arena, base.count);
     typed.arena.rows[0] = Cell(7);
     return missing.rows[0].value + base.count;
 }

@@ -50,13 +50,13 @@ func SemanticAstCollectionMemberCaptureProvenance(
 ) -> SemanticAstCollectionMemberCaptureSource {
     let invalid: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSource(false, 0, false);
     let name: String = surfaces.expression_graph.arena.node_texts[leaf];
-    let ancestor: Option<Int> = TypedAstArenaParentId(artifact.arena, syntax_id);
+    var ancestor: Option<Int> = TypedAstArenaParentId(artifact.arena, syntax_id);
     while IsSome(ancestor) {
         let case_node: Int = UnwrapOption(ancestor);
         if TypedAstArenaNodeKindIs(artifact.arena, case_node, TypedAstKindMatchCaseStmtTag()) {
             let pattern: AstMatchCasePatternFact = SemanticAstMatchCasePatternFactForNode(statements, case_node);
             if !pattern.ok { return invalid; }
-            let binding: Int = 0;
+            var binding: Int = 0;
             while binding < ArrayLength(pattern.bindings) {
                 if pattern.bindings[binding] == name {
                     return SemanticAstCollectionMemberCaptureSubject(artifact, signatures, constructors, locals,

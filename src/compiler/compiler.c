@@ -112,7 +112,8 @@ invoke_c_backend(const CompilerIRBundle *bundle,
 
     transpile_result = transpile_from_mir_with_projection_plans(
         bundle->mir, &projection_plan, &parallel_capture_plan,
-        &spawn_lane_plan, bundle->region_plan, output_c_path);
+        &spawn_lane_plan, bundle->region_plan,
+        bundle->collection_effect_receipt, output_c_path);
     pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     pgy_verified_parallel_capture_plan_dispose(&parallel_capture_plan);
     if (transpile_result == NULL) {
@@ -265,6 +266,11 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = "-std=c11";
         compile_argv[ci++] = "-Wall";
         compile_argv[ci++] = "-Wno-unused-function";
+        /* Generated assignment expressions intentionally leave their value
+         * unused when they occupy a statement position.  Windows already
+         * suppressed this diagnostic; keep the same generated-C contract on
+         * every supported C compiler. */
+        compile_argv[ci++] = "-Wno-unused-value";
 #ifdef __APPLE__
         compile_argv[ci++] = "-D_DARWIN_C_SOURCE";
         compile_argv[ci++] = "-D_XOPEN_SOURCE=700";
@@ -273,7 +279,6 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = "-D_XOPEN_SOURCE=700";
 #endif
 #ifdef _WIN32
-        compile_argv[ci++] = "-Wno-unused-value";
         compile_argv[ci++] = "-Wno-parentheses-equality";
         compile_argv[ci++] = "-Wno-c23-extensions";
         compile_argv[ci++] = "-Wno-format-truncation";

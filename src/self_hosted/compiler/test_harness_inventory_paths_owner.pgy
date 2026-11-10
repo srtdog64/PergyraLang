@@ -65,7 +65,7 @@ func CompilerHarnessModuleManifestResolverReady() -> Bool {
     if CompilerHarnessModuleManifestResolverPathCount() != 9 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessModuleManifestResolverPathCount() {
         if CompilerHarnessModuleManifestResolverPathAt(i) == "" {
             return false;
@@ -106,7 +106,7 @@ func CompilerHarnessExamplesInventoryReady() -> Bool {
     if CompilerHarnessExamplesInventoryPathCount() != 3 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessExamplesInventoryPathCount() {
         if CompilerHarnessExamplesInventoryPathAt(i) == "" {
             return false;
@@ -172,7 +172,7 @@ func CompilerHarnessStdlibDispatchInventoryReady() -> Bool {
     if CompilerHarnessStdlibDispatchInventoryPathCount() != 8 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessStdlibDispatchInventoryPathCount() {
         if CompilerHarnessStdlibDispatchInventoryPathAt(i) == "" {
             return false;

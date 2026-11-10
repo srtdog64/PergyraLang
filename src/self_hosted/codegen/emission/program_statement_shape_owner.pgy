@@ -36,7 +36,7 @@ func CheckStmtList(count: Int, arena: AstArena,
         }
         let statement_kind_opt: Option<Int> =
             CodegenSemanticStatementKindForNode(statements, idx);
-        let statement_kind: Int = 0;
+        var statement_kind: Int = 0;
         if IsSome(statement_kind_opt) {
             statement_kind = UnwrapOption(statement_kind_opt);
         }
@@ -93,7 +93,7 @@ func CheckStmtList(count: Int, arena: AstArena,
             }
         } else if statement_kind == TypedAstKindMatchStmtTag() {
             ArraySet(cur, 0, idx + 1);
-            let match_case_count: Int = 0;
+            var match_case_count: Int = 0;
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
                 if CodegenSemanticStatementIs(
                     statements, cur[0], TypedAstKindMatchCaseStmtTag()

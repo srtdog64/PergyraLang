@@ -57,8 +57,8 @@ func CodegenResultTryLetShapeOrDie(
     }
     let operand_c_type: String = AbiLayoutCLocalType(operand, env);
     let fact: ResultRuntimeFact = ResultRuntimeFactForType(operand);
-    let is_ok_fn: String = fact.is_ok_fn;
-    let unwrap_fn: String = fact.unwrap_fn;
+    var is_ok_fn: String = fact.is_ok_fn;
+    var unwrap_fn: String = fact.unwrap_fn;
     if !fact.ok {
         if operand != CompilerAbiLayoutResultIntTypeName() {
             Die(Concat(
@@ -101,7 +101,8 @@ func EmitTryLet(
     local_bindings: SemanticAstLocalBindingFacts,
     arena: AstArena,
     idx: Int,
-    graph: SemanticExpressionGraphView,
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv,
     cur_fn_ret: String,
@@ -117,14 +118,14 @@ func EmitTryLet(
     let binding: CodegenFunctionValueBindingFact =
         CodegenFunctionValueBindingFactFor(name, type_name, env);
     let c_name: String = binding.c_name;
-    let operand_node: Int = CodegenSemanticTryOperandNodeOrDie(graph);
+    let operand_node: Int = CodegenSemanticTryOperandNodeOrDie(graph, root_id);
     let rendered_inner: String = RewriteExprFromSemanticGraph(
-        graph.graph, operand_node, env
+        graph, operand_node, env
     );
     let tmp: String = CompilerSymbolCTryTempName(idx);
     if cur_fn_ret == "Int" || IsResultType(cur_fn_ret) {
         let operand_type: Option<String> = CodegenExpressionTypeFromGraph(
-            graph.graph, operand_node, env
+            graph, operand_node, env
         );
         if !IsSome(operand_type) {
             Die(Concat(
@@ -137,9 +138,9 @@ func EmitTryLet(
             CodegenAstArenaProvenanceOrDie(arena, idx)
         );
         CodegenTypeEnvStateAppendTypedValueBinding(
-            env_state, env, name, type_name, binding.value_kind, c_name
+            env_state, name, type_name, binding.value_kind, c_name
         );
-        let result_out: String = Concat(
+        var result_out: String = Concat(
             shape.operand_c_type,
             Concat(" ", Concat(tmp, Concat(" = ",
                 Concat(rendered_inner, ";\n"))))
@@ -171,7 +172,7 @@ func EmitTryLet(
             ));
         }
         let inner_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(
-            graph.graph, operand_node, env
+            graph, operand_node, env
         );
         if !IsSome(inner_kind_opt) {
             Die(Concat(
@@ -180,7 +181,7 @@ func EmitTryLet(
             ));
         }
         let inner_kind: String = UnwrapOption(inner_kind_opt);
-        let operand_payload_kind: Int =
+        var operand_payload_kind: Int =
             OptionResultRuntimeOptionPayloadKindForType(inner_kind);
         if operand_payload_kind == 0 {
             operand_payload_kind =
@@ -198,13 +199,13 @@ func EmitTryLet(
             ));
         }
         CodegenTypeEnvStateAppendTypedValueBinding(
-            env_state, env, name, type_name, binding.value_kind, c_name
+            env_state, name, type_name, binding.value_kind, c_name
         );
         let operand_option_type: String =
             OptionResultRuntimeOptionTypeNameForPayloadKind(
                 operand_payload_kind
             );
-        let option_out: String = Concat(
+        var option_out: String = Concat(
             AbiLayoutCLocalType(operand_option_type, env),
             Concat(" ", Concat(tmp, Concat(" = ", Concat(
                 rendered_inner, ";\n"

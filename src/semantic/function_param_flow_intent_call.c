@@ -94,11 +94,22 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
             FuncParam *self = ast_func_param(method, 0);
             if (entry == SIZE_MAX) (void)function_param_flow_receiver_unsupported(state, action, method);
             if (entry == SIZE_MAX || self == NULL) { fact->complete = false; return; }
-            unsigned mask = state->store->entries[entry].mask;
-            backing_effect(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE));
-            if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ||
-                self->mode == PARAM_MODE_OWN || self->mode == PARAM_MODE_MUT_REF)
+            unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+            if (!function_param_flow_entry_outward_effects_current(
+                    state->store, entry, &outward_effects)) {
+                fact->complete = false;
+                return;
+            }
+            backing_effect(state, bits, outward_effects &
+                (SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                 SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE));
+            if ((outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ||
+                self->mode == PARAM_MODE_OWN)
                 backing_effect(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
+            if (self->mode == PARAM_MODE_MUT_REF &&
+                !backing_inout_argument_leaves_input(state))
+                backing_movement_effect(state, bits,
+                    SLOT_PARAM_SUMMARY_CALL_ESCAPE);
             for (size_t p = 0; p < ast_call_arg_count(action) && fact->complete; p++) {
                 size_t formal = 0, target = intent_binding_ordinal(intent, ast_call_argument(action, p));
                 ASTNode *arg = ast_call_argument(action, p);
@@ -123,15 +134,31 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
         }
         if (!backing_any_origin(state, bits)) continue;
         FuncParam *param = ast_func_param(method, formal);
-        unsigned mask = function_param_flow_summary_for_call(&state->lookup, action, i);
-        backing_effect(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE));
+        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+        bool outward_ready =
+            function_param_flow_callee_outward_effects_current(
+                &state->lookup, action, i, &outward_effects);
+        bool relation_ready = function_param_flow_callee_relation_ready(
+            &state->lookup, action, i);
+        if (outward_ready)
+            backing_effect(state, bits, outward_effects &
+                (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE));
         /* The intent's value is only its Bool verdict, so an action result
          * carrying the argument stays inside the intent: an escape. */
-        if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 || param == NULL ||
-            param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_MUT_REF)
+        if ((outward_ready &&
+             (outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) ||
+            param == NULL || param->mode == PARAM_MODE_OWN)
             backing_effect(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
-        if (!function_param_flow_callee_relation_ready(&state->lookup, action, i))
+        if (param != NULL && param->mode == PARAM_MODE_MUT_REF &&
+            !backing_inout_argument_leaves_input(state))
+            backing_movement_effect(state, bits,
+                SLOT_PARAM_SUMMARY_CALL_ESCAPE);
+        if (!relation_ready)
             function_param_flow_callee_unfinished(&state->lookup, action, i, fact);
+        else if (!outward_ready) {
+            fact->complete = false;
+            return;
+        }
         if (keeper != NULL) backing_store(state, keeper, bits, false, NULL);
         for (size_t p = 0; p < count && fact->complete; p++) {
             size_t output_formal = 0;

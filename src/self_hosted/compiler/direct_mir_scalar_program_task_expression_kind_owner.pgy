@@ -2,7 +2,11 @@
 import "direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_array_storage_release_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_float_literal_kind_owner.pgy";
+import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprTaskIsCancelled() -> Int { return 143; }
 func DirectMirScalarProgramExpressionKindLast() -> Int {
-    return DirectMirScalarProgramExprArrayDropStorage();
+    return DirectMirScalarProgramExprStringClone();
 }

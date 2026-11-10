@@ -22,7 +22,7 @@ func SemanticAstBoundPartyNamed(
     if !IsSome(kind) || !IsSome(text) || UnwrapOption(kind) != AstExpressionNodeLeaf() {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(bind_parties) {
         if bind_functions[i] == function_node && bind_parties[i] == UnwrapOption(text) {
             return true;
@@ -37,8 +37,8 @@ func SemanticAstBoundPartyPassed(
     ref graph: SemanticExpressionGraphFacts, root: Int,
     function_node: Int, ref bind_functions: Array<Int>, ref bind_parties: Array<String>
 ) -> Bool {
-    let pending: Array<Int> = [root];
-    let steps: Int = 0;
+    var pending: Array<Int> = [root];
+    var steps: Int = 0;
     while ArrayLength(pending) > 0 && steps <= SemanticExpressionGraphArenaNodeCount(graph.arena) {
         let node: Int = pending[ArrayLength(pending) - 1];
         ArrayPop(pending);
@@ -63,9 +63,9 @@ func SemanticAstBoundPartyEscapeVerdict(
     ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstDeclarationContractVerdict {
-    let bind_functions: Array<Int> = [];
-    let bind_parties: Array<String> = [];
-    let row: Int = 0;
+    var bind_functions: Array<Int> = [];
+    var bind_parties: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(statements.node_ids) {
         if statements.kind_tags[row] == TypedAstKindBindStmtTag() {
             ArrayPush(bind_functions, statements.function_node_ids[row]);
@@ -80,7 +80,7 @@ func SemanticAstBoundPartyEscapeVerdict(
     while row < ArrayLength(statements.node_ids) {
         let kind: Int = statements.kind_tags[row];
         let function_node: Int = statements.function_node_ids[row];
-        let lane: Int = AstExpressionLaneAtom();
+        var lane: Int = AstExpressionLaneAtom();
         while lane <= AstExpressionLaneAuxiliary() {
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                 expression_surfaces, statements.node_ids[row], lane);

@@ -1,0 +1,41 @@
+// A different result field cannot stand in for restoration of the protected
+// formal, even when both fields have the same nominal type.
+struct ResultPathMismatchBox { values: Array<String>; }
+struct ResultPathMismatchUpdate {
+    recognized: Bool;
+    primary: ResultPathMismatchBox;
+    alternate: ResultPathMismatchBox;
+}
+
+func ResultPathMismatchBuild(
+    primary: ResultPathMismatchBox,
+    alternate: ResultPathMismatchBox
+) -> ResultPathMismatchUpdate {
+    let values: Array<String> = primary.values;
+    ArrayPushOwnedString(values, "next");
+    primary.values = values;
+    return ResultPathMismatchUpdate(false, primary, alternate);
+}
+
+func ResultPathMismatchForward(
+    primary: ResultPathMismatchBox,
+    alternate: ResultPathMismatchBox
+) -> ResultPathMismatchBox {
+    let update: ResultPathMismatchUpdate =
+        ResultPathMismatchBuild(primary, alternate);
+    if update.recognized { return update.primary; }
+    primary = update.alternate;
+    return primary;
+}
+
+func Main() -> Void {
+    let primary_values: Array<String> = [];
+    let alternate_values: Array<String> = [];
+    let primary: ResultPathMismatchBox =
+        ResultPathMismatchBox(primary_values);
+    let alternate: ResultPathMismatchBox =
+        ResultPathMismatchBox(alternate_values);
+    let updated: ResultPathMismatchBox =
+        ResultPathMismatchForward(primary, alternate);
+    let count: Int = ArrayLength(updated.values);
+}

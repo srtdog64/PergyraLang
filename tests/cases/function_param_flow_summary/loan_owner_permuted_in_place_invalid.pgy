@@ -25,7 +25,7 @@ func FactsFrom(artifact: Artifact) -> Facts {
 }
 
 func Check() -> Int {
-    let base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
+    var base: Artifact = Artifact("p", Arena([Cell(1), Cell(2)]), 2);
     let missing: Facts = FactsFrom(base);
     let reversed: Array<Cell> = ArrayReverse(base.arena.rows);
     return missing.rows[0].value + ArrayLength(reversed) + base.count;

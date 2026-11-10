@@ -10,9 +10,9 @@ func DirectMirScalarProgramLlvmToStringExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, "", left);
     }
-    let symbol: String = "";
-    let argument_type: String = "";
-    let ready: Bool = false;
+    var symbol: String = "";
+    var argument_type: String = "";
+    var ready: Bool = false;
     if kind == DirectMirScalarProgramExprToStringSignedInteger() {
         symbol = runtime.string_to_string.symbol; argument_type = "i64";
         ready = CompilerRuntimeCallAbiStringToStringFactReady(

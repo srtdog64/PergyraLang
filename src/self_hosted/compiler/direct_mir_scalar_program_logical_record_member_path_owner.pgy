@@ -8,12 +8,14 @@ struct DirectMirScalarProgramLogicalRecordMemberPathFact {
     let member_count: Int;
     let terminal_member_ordinal: Int;
     let final_type: String;
+    let member_ordinals: Array<Int>;
 }
 
 func DirectMirScalarProgramLogicalRecordMemberPathInvalid(
 ) -> DirectMirScalarProgramLogicalRecordMemberPathFact {
+    let ordinals: Array<Int> = [];
     return DirectMirScalarProgramLogicalRecordMemberPathFact(
-        false, 0, -1, "");
+        false, 0, -1, "", ordinals);
 }
 
 func DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
@@ -31,8 +33,8 @@ func DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
             record, target_type) {
         return invalid;
     }
-    let members: Array<Int> = [];
-    let base: Int = member_root;
+    var members: Array<Int> = [];
+    var base: Int = member_root;
     while base >= 0 && base <= member_root &&
             graph.arena.topology.node_kinds[base] ==
                 AstExpressionNodeMemberAccess() {
@@ -48,11 +50,13 @@ func DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
         return invalid;
     }
     if parameter_ordinal >= 0 {
-        let required_carriage: String = "";
+        var required_carriage: String = "";
         if target_carriage == "inout_param" {
             required_carriage = "value-result";
         } else if target_carriage == "default_param" {
             required_carriage = "value";
+        } else if target_carriage == "owner_param" {
+            required_carriage = "owner-handle";
         } else { return invalid; }
         if parameter_ordinal >= signature.param_count ||
             graph.arena.identities.binding_kinds[base] !=
@@ -73,10 +77,11 @@ func DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
         graph.arena.identities.binding_ordinals[base] != -1 {
         return invalid;
     }
-    let resolved_type: String = target_type;
-    let expected_receiver: Int = base;
-    let terminal_ordinal: Int = -1;
-    let member_index: Int = ArrayLength(members);
+    var resolved_type: String = target_type;
+    var expected_receiver: Int = base;
+    var terminal_ordinal: Int = -1;
+    var member_ordinals: Array<Int> = [];
+    var member_index: Int = ArrayLength(members);
     while member_index > 0 {
         member_index = member_index - 1;
         let member: Int = members[member_index];
@@ -109,9 +114,11 @@ func DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
         resolved_type = DirectMirScalarProgramLogicalRecordFieldType(
             record, resolved_type, terminal_ordinal);
         if terminal_ordinal < 0 || resolved_type == "" { return invalid; }
+        ArrayPush(member_ordinals, terminal_ordinal);
         expected_receiver = member;
     }
     if expected_receiver != member_root { return invalid; }
     return DirectMirScalarProgramLogicalRecordMemberPathFact(
-        true, ArrayLength(members), terminal_ordinal, resolved_type);
+        true, ArrayLength(members), terminal_ordinal, resolved_type,
+        member_ordinals);
 }

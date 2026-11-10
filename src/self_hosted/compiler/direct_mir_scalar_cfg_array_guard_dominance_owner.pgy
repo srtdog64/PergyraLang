@@ -9,8 +9,8 @@ func DirectMirScalarCfgArrayGuardEdgeReady(
         return false;
     }
     let guarded_block: Int = index.block_succ_true[guard_block];
-    let predecessor_count: Int = 0;
-    let predecessor: Int = 0;
+    var predecessor_count: Int = 0;
+    var predecessor: Int = 0;
     while predecessor < ArrayLength(index.block_succ_true) {
         if index.block_succ_true[predecessor] == guarded_block ||
             index.block_succ_false[predecessor] == guarded_block {

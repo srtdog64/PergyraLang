@@ -32,7 +32,7 @@ func CompilerHarnessLinterPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessLinterPathKnown(path: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessLinterPathCount() {
         if CompilerHarnessLinterPathAt(i) == path {
             return true;

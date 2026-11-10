@@ -17,35 +17,35 @@ func MirIntentRoutineCarrierProjectionFromRoutine(
     routine_row: Int,
     intent_name: String
 ) -> MirIntentRoutineCarrierProjection {
-    let carrier_names: Array<String> = [];
-    let carrier_arg0s: Array<String> = [];
-    let carrier_arg1s: Array<String> = [];
-    let carrier_slots: Array<String> = [];
-    let carrier_results: Array<String> = [];
-    let carrier_abi_type_names: Array<String> = [];
-    let carrier_source_types: Array<String> = [];
-    let carrier_binding_source_syntax_ids: Array<Int> = [];
-    let carrier_expr0s: Array<String> = [];
-    let carrier_rows: Array<Int> = [];
-    let resource_names: Array<String> = [];
-    let resource_arg0s: Array<String> = [];
-    let resource_arg1s: Array<String> = [];
-    let resource_slots: Array<String> = [];
-    let typed_body_mirror_rows: Array<Int> = [];
-    let valid: Bool = true;
-    let diagnostic_message: String = "";
-    let commit_count: Int = 0;
+    var carrier_names: Array<String> = [];
+    var carrier_arg0s: Array<String> = [];
+    var carrier_arg1s: Array<String> = [];
+    var carrier_slots: Array<String> = [];
+    var carrier_results: Array<String> = [];
+    var carrier_abi_type_names: Array<String> = [];
+    var carrier_source_types: Array<String> = [];
+    var carrier_binding_source_syntax_ids: Array<Int> = [];
+    var carrier_expr0s: Array<String> = [];
+    var carrier_rows: Array<Int> = [];
+    var resource_names: Array<String> = [];
+    var resource_arg0s: Array<String> = [];
+    var resource_arg1s: Array<String> = [];
+    var resource_slots: Array<String> = [];
+    var typed_body_mirror_rows: Array<Int> = [];
+    var valid: Bool = true;
+    var diagnostic_message: String = "";
+    var commit_count: Int = 0;
     let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
     if !topology.valid {
         valid = false;
         diagnostic_message = "MIR intent block roles or body path are invalid";
     }
-    let body_ordinal: Int = 0;
+    var body_ordinal: Int = 0;
     while body_ordinal < ArrayLength(topology.body_rows) && valid {
         let block_row: Int = topology.body_rows[body_ordinal];
         let block_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(routines, routine_row, block_row);
-        let cleanup_edges: Int = 0;
-        let instruction_row: Int = 0;
+        var cleanup_edges: Int = 0;
+        var instruction_row: Int = 0;
         while instruction_row < block_count && valid {
             let instruction: MirRoutineInstructionView =
                 MirRoutineInstructionViewAt(
@@ -85,7 +85,7 @@ func MirIntentRoutineCarrierProjectionFromRoutine(
                 }
             } else if instruction.kind == "stmt" &&
                 MirIntentKnownSemanticCarrier(scalar.name) {
-                let binding_source_syntax_id: Int = 0;
+                var binding_source_syntax_id: Int = 0;
                 if scalar.name == "IntentBinding" ||
                     scalar.name == "IntentParticipant" || scalar.name == "IntentValue" {
                     let identity: MirIntentExecutionIntValue =

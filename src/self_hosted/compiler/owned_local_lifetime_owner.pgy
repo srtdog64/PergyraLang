@@ -1,0 +1,449 @@
+// One target-neutral retirement decision from the admitted typed GraphPlan.
+// Missing provenance grants no new retirement permission. Parameters, aliases,
+// mutation and retained operands stay with their existing lifetime owner.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+import "owned_storage_result_recipe_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+import "direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
+import "owned_payload_enum_parameter_lifetime_owner.pgy";
+
+struct DirectMirOwnedLocalLifetimeFact {
+    let valid: Bool;
+    let plan_digest: Int;
+    let local_modes: Array<Int>;
+    let fresh_returns: Array<Bool>;
+    let transferred: Array<Bool>;
+    let local_recipes: Array<Int>;
+    let return_clones: Array<Bool>;
+    let payload_parameter_consuming: Array<Bool>;
+    let payload_parameter_recipes: Array<Int>;
+    let payload_cleanup_blocks: Array<Int>;
+    let payload_cleanup_parameters: Array<Int>;
+    let release: DirectMirOwnedStorageReleasePlan;
+}
+
+func DirectMirOwnedLocalBorrowingNode(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprStringLength() ||
+        kind == DirectMirScalarProgramExprStringContains() ||
+        DirectMirScalarProgramFreshStringExpressionKind(kind) ||
+        kind == DirectMirScalarProgramExprStringIndexOf() ||
+        kind == DirectMirScalarProgramExprArrayStringLength() ||
+        kind == DirectMirScalarProgramExprArrayIntIndex() ||
+        kind == DirectMirScalarProgramExprArrayBoolIndex() ||
+        DirectMirScalarProgramHashMapOperation(kind) != "";
+}
+
+func DirectMirOwnedLocalDirectCallCarriage(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int, child: Int,
+    routine: Int, graph_start: Int
+) -> String {
+    if plan.program.expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprDirectCall() { return ""; }
+    let target: Int = plan.program.expressions.node_callable_rows[node];
+    if target < 0 || target >= ArrayLength(plan.routines.roles) {
+        return "";
+    }
+    let arguments: DirectMirScalarProgramArgumentView =
+        DirectMirScalarProgramArgumentViewFromNode(
+            plan.program.expressions, node);
+    var argument_ordinal: Int = -1;
+    var ordinal: Int = 0;
+    while arguments.valid && ordinal < arguments.count {
+        if DirectMirScalarProgramArgumentViewAt(
+                plan.program.expressions, arguments, ordinal) == child {
+            if argument_ordinal >= 0 { return ""; }
+            argument_ordinal = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    if argument_ordinal < 0 || argument_ordinal >=
+            plan.routines.parameter_counts[target] { return ""; }
+    let parameter_row: Int = plan.routines.parameter_starts[target] +
+        argument_ordinal;
+    let carriage: String =
+        plan.routines.parameter_carriages[parameter_row];
+    if plan.program.expressions.node_types[child] !=
+            plan.routines.parameter_types[parameter_row] ||
+        !DirectMirScalarCfgProgramDirectCallCarriageReady(
+            plan, plan.program.expressions, node, routine, graph_start,
+            target, child, argument_ordinal) {
+        return "";
+    }
+    if carriage == "readonly-ref" || carriage == "value-result" ||
+        carriage == "owner-handle" { return carriage; }
+    if carriage == "value" &&
+        DirectMirScalarProgramHashMapParameterCarriageReady(
+            plan.routines.parameter_types[parameter_row], carriage) {
+        return carriage;
+    }
+    return "";
+}
+
+func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
+) -> DirectMirOwnedLocalLifetimeFact {
+    var definitions: Array<Int> = [];
+    var blocked: Array<Bool> = [];
+    var modes: Array<Int> = [];
+    var local_recipes: Array<Int> = [];
+    var release: DirectMirOwnedStorageReleasePlan = DirectMirOwnedStorageReleasePlanEmpty();
+    var local_row: Int = 0;
+    while local_row < ArrayLength(plan.local_types) {
+        ArrayPush(definitions, -1); ArrayPush(blocked, false); ArrayPush(modes, 0); ArrayPush(local_recipes, -1);
+        local_row = local_row + 1;
+    }
+    var graph_logs: Array<Bool> = [];
+    var graph_returns: Array<Bool> = [];
+    var graph_definitions: Array<Int> = [];
+    var return_clones: Array<Bool> = [];
+    var transferred: Array<Bool> = [];
+    local_row = 0;
+    while local_row < ArrayLength(blocked) { ArrayPush(transferred, false); local_row = local_row + 1; }
+    var graph: Int = 0;
+    while graph < ArrayLength(plan.program.expressions.graph_roots) {
+        ArrayPush(graph_logs, false); ArrayPush(graph_returns, false);
+        ArrayPush(graph_definitions, -1); ArrayPush(return_clones, false);
+        graph = graph + 1;
+    }
+    var operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let value: Int = plan.operation_result_values[operation];
+        if value >= 0 && value < ArrayLength(plan.value_local_rows) {
+            local_row = plan.value_local_rows[value];
+            if local_row >= 0 && local_row < ArrayLength(definitions) {
+                if definitions[local_row] != -1 ||
+                    plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() {
+                    definitions[local_row] = -2;
+                } else { definitions[local_row] = operation; }
+            }
+        }
+        graph = plan.program.operation_expression_rows[operation];
+        if graph >= 0 && plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionLog() {
+            graph_logs[graph] = true;
+        }
+        if graph >= 0 && value >= 0 && value < ArrayLength(plan.value_local_rows) {
+            graph_definitions[graph] = plan.value_local_rows[value];
+        }
+        // Array mutations retain the target descriptor. A parameter target is
+        // an ordinal, not a local row, and therefore cannot block that row.
+        if plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() &&
+            plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionLog() &&
+            plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionStatement() {
+            let kind: Int = plan.operation_kinds[operation];
+            let left: Int = plan.operation_left_locals[operation];
+            let right: Int = plan.operation_right_locals[operation];
+            if left >= 0 && left < ArrayLength(blocked) {
+                if !DirectMirScalarProgramLocalArrayMutationKind(kind) ||
+                    !DirectMirScalarProgramArrayMutationTargetTypeReady(
+                        kind, plan.local_types[left]) { blocked[left] = true; }
+            }
+            if right >= 0 && right < ArrayLength(blocked) &&
+                !DirectMirScalarProgramArrayMutationParameterTargetKind(kind) {
+                blocked[right] = true;
+            }
+        }
+        operation = operation + 1;
+    }
+    var result_parameter_ordinals: Array<Int> = [];
+    var routine: Int = 0;
+    while routine < ArrayLength(plan.routines.return_types) {
+        ArrayPush(result_parameter_ordinals,
+            DirectMirOwnedResultParameterOrdinal(plan, routine));
+        routine = routine + 1;
+    }
+    var block_row: Int = 0;
+    while block_row < ArrayLength(plan.program.block_return_expression_rows) {
+        graph = plan.program.block_return_expression_rows[block_row];
+        if graph >= 0 {
+            graph_returns[graph] = true;
+            DirectMirOwnedStorageReturnClosure(
+                plan, definitions, result_parameter_ordinals,
+                plan.program.expressions.graph_roots[graph], transferred, 0);
+        }
+        block_row = block_row + 1;
+    }
+    // A single DAG pass records every use. Member reads carry the same loan
+    // only while their result can retain storage; scalar observations end it.
+    var origins: Array<Int> = [];
+    graph = 0;
+    while graph < ArrayLength(plan.program.expressions.graph_roots) {
+        var return_carrier: Bool = graph_returns[graph];
+        let target: Int = graph_definitions[graph];
+        if target >= 0 && transferred[target] { return_carrier = true; }
+        var node: Int = plan.program.expressions.graph_starts[graph];
+        let end: Int = node + plan.program.expressions.graph_counts[graph];
+        while node < end {
+            let kind: Int = plan.program.expressions.node_kinds[node];
+            var origin: Int = -1;
+            if kind == DirectMirScalarProgramExprLocal() {
+                origin = plan.program.expressions.node_local_rows[node];
+            }
+            let args: DirectMirScalarProgramArgumentView =
+                DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, node);
+            if !args.valid { Die("owned local lifetime operand identity is invalid"); }
+            let aggregate_carrier: Bool =
+                kind == DirectMirScalarProgramExprLogicalRecordConstructor() &&
+                (return_carrier || target >= 0);
+            var result_alias: Int = -1;
+            if kind == DirectMirScalarProgramExprDirectCall() {
+                let callee: Int =
+                    plan.program.expressions.node_callable_rows[node];
+                if callee >= 0 && callee <
+                        ArrayLength(result_parameter_ordinals) {
+                    result_alias = result_parameter_ordinals[callee];
+                }
+            }
+            let alias_carrier: Bool = result_alias >= 0 &&
+                (return_carrier || target >= 0);
+            var alias_child: Int = -1;
+            if alias_carrier && result_alias < args.count {
+                alias_child = DirectMirScalarProgramArgumentViewAt(
+                    plan.program.expressions, args, result_alias);
+            }
+            var arg: Int = 0;
+            while args.nary && arg < args.count {
+                let child: Int = DirectMirScalarProgramArgumentViewAt(plan.program.expressions, args, arg);
+                if child >= 0 && child < ArrayLength(origins) && origins[child] >= 0 {
+                    let call_carriage: String =
+                        DirectMirOwnedLocalDirectCallCarriage(
+                            plan, node, child,
+                            DirectMirScalarCfgRoutinePartitionLocalOwner(
+                                plan.routines, origins[child]),
+                            plan.program.expressions.graph_starts[graph]);
+                    if return_carrier &&
+                        (aggregate_carrier || (alias_carrier && arg == result_alias)) {
+                        transferred[origins[child]] = true;
+                    } else if call_carriage == "owner-handle" {
+                        transferred[origins[child]] = true;
+                    } else if !aggregate_carrier &&
+                        !(alias_carrier && arg == result_alias) &&
+                        !DirectMirOwnedLocalBorrowingNode(kind) &&
+                        call_carriage == "" {
+                        blocked[origins[child]] = true;
+                    }
+                }
+                arg = arg + 1;
+            }
+            var edge: Int = 0;
+            while edge < 2 {
+                var child: Int = plan.program.expressions.node_lefts[node];
+                if edge == 1 { child = plan.program.expressions.node_rights[node]; }
+                if child >= 0 && child < ArrayLength(origins) && origins[child] >= 0 {
+                    let call_carriage: String =
+                        DirectMirOwnedLocalDirectCallCarriage(
+                            plan, node, child,
+                            DirectMirScalarCfgRoutinePartitionLocalOwner(
+                                plan.routines, origins[child]),
+                            plan.program.expressions.graph_starts[graph]);
+                    if (kind == DirectMirScalarProgramExprLogicalRecordMember() ||
+                        kind == DirectMirScalarProgramExprArrayStringIndex()) && edge == 0 {
+                        if DirectMirOwnedLocalStorageMode(plan, plan.program.expressions.node_types[node], 0) > 0 {
+                            origin = origins[child];
+                        }
+                    } else if return_carrier &&
+                        (aggregate_carrier ||
+                         (alias_carrier && child == alias_child)) {
+                        transferred[origins[child]] = true;
+                    } else if aggregate_carrier ||
+                        (alias_carrier && child == alias_child) {
+                        // A named aggregate may assume this retirement right
+                        // after its complete recipe is proved below.
+                    } else if call_carriage == "owner-handle" {
+                        transferred[origins[child]] = true;
+                    } else if kind == DirectMirScalarProgramExprArrayStringPushOwned() && edge == 0 &&
+                        plan.local_types[origins[child]] == CompilerAbiLayoutArrayStringTypeName() {
+                        // The sealed collection transition retains descriptor ownership.
+                    } else if !DirectMirOwnedLocalBorrowingNode(kind) &&
+                        call_carriage == "" {
+                        blocked[origins[child]] = true;
+                    }
+                }
+                edge = edge + 1;
+            }
+            ArrayPush(origins, origin);
+            node = node + 1;
+        }
+        let root: Int = plan.program.expressions.graph_roots[graph];
+        if origins[root] >= 0 {
+            if return_carrier { transferred[origins[root]] = true; }
+            else if !graph_logs[graph] { blocked[origins[root]] = true; }
+        }
+        graph = graph + 1;
+    }
+    // Fresh-result summaries grow monotonically. Cycles without a grounded
+    // allocation remain unknown; no recursion budget grants ownership.
+    var fresh_returns: Array<Bool> = [];
+    var result_recipes: Array<Int> = [];
+    routine = 0;
+    while routine < ArrayLength(plan.routines.return_types) {
+        ArrayPush(fresh_returns, false); ArrayPush(result_recipes, -1); routine = routine + 1;
+    }
+    var changed: Bool = true;
+    while changed {
+        changed = false; routine = 0;
+        while routine < ArrayLength(fresh_returns) {
+            if !fresh_returns[routine] && DirectMirOwnedLocalStorageMode(
+                    plan, plan.routines.return_types[routine], 0) > 0 {
+                var found: Bool = false; var fresh: Bool = true; var recipe: Int = -1;
+                var block: Int = plan.routines.block_starts[routine];
+                let end: Int = block + plan.routines.block_counts[routine];
+                while block < end {
+                    graph = plan.program.block_return_expression_rows[block];
+                    if graph >= 0 {
+                        var return_origins: Array<Int> = [];
+                        let candidate: Int = DirectMirOwnedStorageRecipe(
+                            plan, definitions, blocked, result_recipes,
+                            result_parameter_ordinals, routine,
+                            plan.program.expressions.graph_roots[graph], true, 0, return_origins, release);
+                        if candidate < 0 || (found && !DirectMirOwnedStorageReleaseEqual(release, recipe, candidate)) { fresh = false; }
+                        else { recipe = candidate; }
+                        found = true;
+                    }
+                    block = block + 1;
+                }
+                if found && fresh { fresh_returns[routine] = true; result_recipes[routine] = recipe; changed = true; }
+            }
+            routine = routine + 1;
+        }
+        routine = 0;
+        while routine < ArrayLength(fresh_returns) {
+            if !fresh_returns[routine] &&
+                plan.routines.return_types[routine] ==
+                    CompilerAbiLayoutStringTypeName() {
+                var eligible: Bool = true;
+                var has_owned: Bool = false;
+                var has_borrowed: Bool = false;
+                var normalized_recipe: Int = -1;
+                var borrowed_graphs: Array<Int> = [];
+                var block: Int = plan.routines.block_starts[routine];
+                let end: Int = block + plan.routines.block_counts[routine];
+                while block < end {
+                    graph = plan.program.block_return_expression_rows[block];
+                    if graph >= 0 {
+                        var return_origins: Array<Int> = [];
+                        let root: Int =
+                            plan.program.expressions.graph_roots[graph];
+                        let candidate: Int = DirectMirOwnedStorageRecipe(
+                            plan, definitions, blocked, result_recipes,
+                            result_parameter_ordinals, routine, root, true, 0,
+                            return_origins, release);
+                        if candidate >= 0 {
+                            if has_owned && !DirectMirOwnedStorageReleaseEqual(
+                                    release, normalized_recipe, candidate) {
+                                eligible = false;
+                            } else {
+                                normalized_recipe = candidate;
+                                has_owned = true;
+                            }
+                        } else if DirectMirOwnedBorrowedStringReturnNode(
+                                plan, root) {
+                            has_borrowed = true;
+                            ArrayPush(borrowed_graphs, graph);
+                        } else {
+                            eligible = false;
+                        }
+                    }
+                    block = block + 1;
+                }
+                if eligible && has_owned && has_borrowed {
+                    fresh_returns[routine] = true;
+                    result_recipes[routine] = normalized_recipe;
+                    var row: Int = 0;
+                    while row < ArrayLength(borrowed_graphs) {
+                        return_clones[borrowed_graphs[row]] = true;
+                        row = row + 1;
+                    }
+                    changed = true;
+                }
+            }
+            routine = routine + 1;
+        }
+    }
+    // Transfer field retirement to a named aggregate only after its complete
+    // recipe is known. If proof fails, the original local remains the owner.
+    graph = 0;
+    while graph < ArrayLength(plan.program.expressions.graph_roots) {
+        let target: Int = graph_definitions[graph];
+        let root: Int = plan.program.expressions.graph_roots[graph];
+        let root_kind: Int = plan.program.expressions.node_kinds[root];
+        var carrier: Bool = root_kind ==
+            DirectMirScalarProgramExprLogicalRecordConstructor();
+        if root_kind == DirectMirScalarProgramExprDirectCall() {
+            let callee: Int =
+                plan.program.expressions.node_callable_rows[root];
+            if callee >= 0 && callee <
+                    ArrayLength(result_parameter_ordinals) &&
+                result_parameter_ordinals[callee] >= 0 {
+                carrier = true;
+            }
+        }
+        if target >= 0 && target < ArrayLength(blocked) && !blocked[target] &&
+            !transferred[target] && carrier {
+            let target_routine: Int =
+                DirectMirScalarCfgRoutinePartitionLocalOwner(
+                    plan.routines, target);
+            var aggregate_origins: Array<Int> = [];
+            let aggregate_recipe: Int = DirectMirOwnedStorageRecipe(
+                plan, definitions, blocked, result_recipes,
+                result_parameter_ordinals, target_routine, root, false, 0,
+                aggregate_origins, release);
+            if aggregate_recipe >= 0 {
+                local_recipes[target] = aggregate_recipe;
+                DirectMirOwnedStorageReturnClosure(
+                    plan, definitions, result_parameter_ordinals,
+                    root, transferred, 0);
+            }
+        }
+        graph = graph + 1;
+    }
+    local_row = 0;
+    while local_row < ArrayLength(modes) {
+        operation = definitions[local_row];
+        routine = DirectMirScalarCfgRoutinePartitionLocalOwner(plan.routines, local_row);
+        if operation >= 0 && routine >= 0 && !blocked[local_row] && !transferred[local_row] &&
+            plan.local_ref_kinds[local_row] == DirectMirScalarCfgLocalRefValue() &&
+            SelfMirLocalRefParameterOrdinalForOwner(plan.local_ref_value_ids[local_row],
+                plan.routines.source_syntax_ids[routine]) < 0 {
+            graph = plan.program.operation_expression_rows[operation];
+            if graph >= 0 && plan.local_types[local_row] != CompilerAbiLayoutArrayStringTypeName() {
+                var recipe: Int = local_recipes[local_row];
+                if recipe < 0 {
+                    var local_origins: Array<Int> = [];
+                    recipe = DirectMirOwnedStorageRecipe(
+                        plan, definitions, blocked, result_recipes,
+                        result_parameter_ordinals, routine,
+                        plan.program.expressions.graph_roots[graph], false, 0, local_origins, release);
+                }
+                if recipe >= 0 { modes[local_row] = release.modes[recipe]; local_recipes[local_row] = recipe; }
+            }
+        }
+        local_row = local_row + 1;
+    }
+    var valid: Bool = true;
+    routine = 0;
+    while routine < ArrayLength(fresh_returns) {
+        let return_type: String = plan.routines.return_types[routine];
+        if (return_type == CompilerAbiLayoutArrayIntTypeName() ||
+            return_type == CompilerAbiLayoutArrayBoolTypeName()) &&
+            !fresh_returns[routine] &&
+            result_parameter_ordinals[routine] < 0 {
+            valid = false;
+        }
+        routine = routine + 1;
+    }
+    let payload_enum_parameters:
+        DirectMirOwnedPayloadEnumParameterLifetimeFact =
+        DirectMirOwnedPayloadEnumParameterLifetimeFromPlan(plan, release);
+    if !payload_enum_parameters.valid { valid = false; }
+    return DirectMirOwnedLocalLifetimeFact(
+        valid, plan.digest, modes, fresh_returns, transferred,
+        local_recipes, return_clones,
+        payload_enum_parameters.consuming,
+        payload_enum_parameters.recipes,
+        payload_enum_parameters.cleanup_blocks,
+        payload_enum_parameters.cleanup_parameters, release);
+}

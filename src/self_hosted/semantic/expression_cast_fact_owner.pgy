@@ -8,9 +8,9 @@ import "../parser/type_name_owner.pgy";
 func SemanticOuterCastTargetType(expression: String) -> Option<String> {
     let text: String = SemanticStripOuterParens(expression);
     let n: Int = StringLength(text);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let cast_index: Int = -1;
+    var i: Int = 0;
+    var depth: Int = 0;
+    var cast_index: Int = -1;
     while i < n {
         let c: Int = SourceByteAt(text, n, n, i);
         if c == SourceByteOf("\"") {
@@ -47,7 +47,7 @@ func SemanticOuterCastTargetType(expression: String) -> Option<String> {
         i = i + 1;
     }
     if cast_index < 0 { return None; }
-    let cursor: Array<Int> = [0];
+    var cursor: Array<Int> = [0];
     let target: String = ReadType(text, n, cast_index + 2, cursor);
     let end: Int = SkipWhitespaceAndComments(text, cursor[0]);
     if target == "" || end != n { return None; }

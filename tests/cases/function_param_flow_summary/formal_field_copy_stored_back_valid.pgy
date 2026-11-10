@@ -17,7 +17,7 @@ struct Arena {
 }
 
 func StoreBack(inout facts: Facts) -> Int {
-    let table: HashMap<String, Int> = facts.table;
+    var table: HashMap<String, Int> = facts.table;
     MapSet(table, "k", 1);
     facts.table = table;
     return MapSize(facts.table);
@@ -29,13 +29,13 @@ func ReadCopy(inout facts: Facts) -> Int {
 }
 
 func ByValue(facts: Facts) -> Int {
-    let table: HashMap<String, Int> = facts.table;
+    var table: HashMap<String, Int> = facts.table;
     MapSet(table, "k", 1);
     return MapSize(table);
 }
 
 func Consume(own facts: Facts) -> Int {
-    let table: HashMap<String, Int> = facts.table;
+    var table: HashMap<String, Int> = facts.table;
     MapSet(table, "k", 1);
     return MapSize(table);
 }

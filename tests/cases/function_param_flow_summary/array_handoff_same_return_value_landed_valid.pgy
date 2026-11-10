@@ -1,0 +1,32 @@
+// Both calls are made by one return value. RowsError moves an independent
+// copy of ids into its Facts, while the later Grow keeps mutating Build's
+// original ids. Evaluation order and the copy are both visible in MIR.
+struct Facts {
+    ok: Bool;
+    message: String;
+    ids: Array<Int>;
+}
+
+func RowsError(message: String, ids: Array<Int>) -> Facts {
+    return Facts(false, message, ids);
+}
+
+func Grow(inout ids: Array<Int>, value: Int) -> Int {
+    ArrayPush(ids, value);
+    return ArrayLength(ids);
+}
+
+func Pick(facts: Facts, count: Int) -> Facts {
+    return facts;
+}
+
+func Build(count: Int) -> Facts {
+    var ids: Array<Int> = [];
+    return Pick(RowsError("negative", ids), Grow(ids, count));
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(3);
+    Print(ToString(ArrayLength(facts.ids)));
+    return 0;
+}

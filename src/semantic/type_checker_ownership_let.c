@@ -103,6 +103,21 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         init_type = ownership_let_normalize_type(
             type_check_expression(init, ctx));
         ctx->expected_collection_type = saved_expected_collection;
+    } else if (init != NULL && ann != NULL
+               && semantic_expr_is_compiler_clone_of_empty_collection(init)) {
+        /* A selected copy landing is transparent to its annotated storage
+         * site. Only the compiler-owned Clone reaches this branch; a source
+         * Clone around an untyped empty literal remains unresolved. */
+        init_type = ownership_let_normalize_type(
+            type_check_expression_at_typed_site(
+                init, ownership_let_resolve_type_ref(ann, ctx), ctx));
+    } else if (init != NULL && ann != NULL) {
+        /* The annotation is the storage site's type owner. In particular it
+         * supplies the exact Result<T,E> layout for Ok/Err and lets the
+         * constructor publish its checked payload backing relation. */
+        init_type = ownership_let_normalize_type(
+            type_check_expression_at_typed_site(
+                init, ownership_let_resolve_type_ref(ann, ctx), ctx));
     } else {
         init_type = (init != NULL)
             ? ownership_let_normalize_type(type_check_expression(init, ctx))

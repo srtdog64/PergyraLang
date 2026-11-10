@@ -230,10 +230,16 @@ semantic_record_callee_body_summary(SemanticContext *ctx,
         | BODY_SUMMARY_SPAWNS_TASK
         | BODY_SUMMARY_SENDS_CHANNEL;
 
-    if (ctx == NULL || callee_type == NULL)
+    if (ctx == NULL)
         return;
+    /* The exact caller/callee edge is a semantic identity fact, independent
+     * of whether this host method also has a materialized function Type for
+     * transitive effect propagation.  World methods can be selected by their
+     * stable declaration while that optional Type lookup is absent. */
     if (!semantic_param_publication_record_body_call(ctx, call))
         semantic_error(ctx, call, "Callee body summary requires an exact pending call identity");
+    if (callee_type == NULL)
+        return;
     summary = type_function_body_summary(callee_type) & transitive_mask;
     if (summary != BODY_SUMMARY_NONE)
         semantic_record_body_summary(ctx, summary);

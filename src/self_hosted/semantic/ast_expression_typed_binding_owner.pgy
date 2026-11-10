@@ -41,20 +41,20 @@ func SemanticAstExpressionRootSlotsFromArtifact(
     artifact: AstTreeArtifact,
     facts: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstExpressionRootSlots {
-    let slots: Array<Int> = [];
+    var slots: Array<Int> = [];
     let rows: AstExpressionGraphRows = artifact.expression_graphs;
     if !AstExpressionGraphRowsReady(rows) {
         return SemanticAstExpressionRootSlots(false, slots);
     }
-    let root_index: Int = 0;
-    let surface_index: Int = 0;
+    var root_index: Int = 0;
+    var surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(facts) &&
         root_index < ArrayLength(rows.roots) {
         let node_id: Int = facts.node_ids[surface_index];
         let kind: Option<Int> = TypedAstArenaNodeKind(
             artifact.arena, node_id
         );
-        let lane: Int = AstExpressionLaneAtom();
+        var lane: Int = AstExpressionLaneAtom();
         while lane <= AstExpressionLaneAuxiliary() &&
             root_index < ArrayLength(rows.roots) {
             if IsSome(kind) && UnwrapOption(kind) ==
@@ -170,11 +170,11 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
     );
     let malformed: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(bad);
-    let let_graph_ok: Bool = false;
-    let if_graph_ok: Bool = false;
-    let assign_target_graph_ok: Bool = false;
-    let assign_value_graph_ok: Bool = false;
-    let i: Int = 0;
+    var let_graph_ok: Bool = false;
+    var if_graph_ok: Bool = false;
+    var assign_target_graph_ok: Bool = false;
+    var assign_value_graph_ok: Bool = false;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_values[i] && facts.normalized_values[i] == "1" {
             let_graph_ok = SemanticAstExpressionGraphForNode(

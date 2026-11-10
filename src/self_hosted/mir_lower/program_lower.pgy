@@ -38,15 +38,15 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
     if !routines.valid {
         MirLowerFailClosed("MIR routine inventory is missing");
     }
-    let expression_order: MirStructuredExpressionEmissionOrder =
+    var expression_order: MirStructuredExpressionEmissionOrder =
         MirStructuredExpressionEmissionOrderEmpty();
-    let zone_authority_transitions:
+    var zone_authority_transitions:
         MirIntentZoneAuthorityTransitionFacts =
             MirIntentZoneAuthorityTransitionFactsEmpty(true);
-    let abi_validation: MirAbiLayoutValidationSession =
+    var abi_validation: MirAbiLayoutValidationSession =
         NewMirAbiLayoutValidationSession();
-    let source_module_paths: Array<String> = [];
-    let chunks: Array<String> = [
+    var source_module_paths: Array<String> = [];
+    var chunks: Array<String> = [
         "Program:\n", EmitStructDecls(
             routines, observe_pressure, source_module_paths,
             expression_order, abi_validation
@@ -55,11 +55,11 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
     MirProgramLowerPressureStage(
         observe_pressure, "consumer:mir-to-ast:declarations:done"
     );
-    let total: Int = 0;
+    var total: Int = 0;
     if MirProgramRoutineIndexCount(routines) == 0 {
         MirLowerFailClosed("no routine name in MIR-JSON");
     }
-    let cursor: MirTopLevelRoutineOrderCursor =
+    var cursor: MirTopLevelRoutineOrderCursor =
         MirTopLevelRoutineOrderCursorFromIndex(routines);
     if !cursor.ok {
         MirLowerFailClosed("MIR top-level routine order is invalid");

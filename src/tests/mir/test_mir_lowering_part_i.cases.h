@@ -213,7 +213,7 @@ test_mir_lowering_part_i(void)
     {
         const char *src =
             "func AssignmentFact() -> Int {\n"
-            "    let x: Int = 1;\n"
+            "    var x: Int = 1;\n"
             "    x = x + 2;\n"
             "    return x;\n"
             "}\n";
@@ -313,7 +313,7 @@ test_mir_lowering_part_i(void)
     TEST("world embedded slot assignment retains its declaration binding");
     {
         const char *src =
-            "subject Actor { let n: Int; }\n"
+            "subject Actor { var n: Int; }\n"
             "zone Arena { subject slot actor: Actor authority actor }\n"
             "world Scene { zone arena: Arena\n"
             "  func Mutate(self) -> Void { arena.actor.n = arena.actor.n + 1; }\n"
@@ -383,13 +383,13 @@ test_mir_lowering_part_i(void)
     {
         const char *src =
             "func TypedUseFacts(flag: Bool) -> Int {\n"
-            "    let values: Array<Int> = [0];\n"
+            "    var values: Array<Int> = [0];\n"
             "    let index: Int = 0;\n"
-            "    let value: Int = 1;\n"
-            "    let finish: Int = 2;\n"
+            "    var value: Int = 1;\n"
+            "    var finish: Int = 2;\n"
             "    if flag { value = 2; finish = 3; }\n"
             "    values[index] = value;\n"
-            "    let total: Int = 0;\n"
+            "    var total: Int = 0;\n"
             "    for i in value..finish { total = total + i; }\n"
             "    for item in values { total = total + item; }\n"
             "    return total;\n"
@@ -445,7 +445,7 @@ test_mir_lowering_part_i(void)
         };
         const char *src =
             "func RequiredUseFacts() -> Int {\n"
-            "    let total: Int = 0;\n"
+            "    var total: Int = 0;\n"
             "    total = total + 1;\n"
             "    for i in 0..2 { total = total + i; }\n"
             "    return total;\n"

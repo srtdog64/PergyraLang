@@ -9,7 +9,7 @@ import "../runtime_abi/list_runtime_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func CodegenListCallApplies(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int
 ) -> Bool {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
@@ -29,7 +29,7 @@ func CodegenListCallApplies(
 }
 
 func CodegenListCallReceiverType(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     receiver_node: Int,
     env: CodegenTypeEnv
 ) -> String {
@@ -47,7 +47,7 @@ func CodegenListCallReceiverType(
 }
 
 func CodegenListCallReturnTypeFromGraph(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     env: CodegenTypeEnv
 ) -> Option<String> {

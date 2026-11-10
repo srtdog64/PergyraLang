@@ -3,6 +3,7 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_empty_owner.pgy";
+import "direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy";
 
 struct DirectMirScalarCfgProgramCallableFact {
     let valid: Bool;
@@ -22,7 +23,7 @@ func DirectMirScalarCfgProgramCallableFactDigest(
     ref fact: DirectMirScalarCfgProgramCallableFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(229L, fact.signature.digest);
+    var hash: Long = DirectMirCfgHashInt(229L, fact.signature.digest);
     hash = DirectMirCfgHashInt(hash, fact.routine_ordinal);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -42,14 +43,16 @@ func DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
     ref fact: DirectMirScalarCfgProgramCallableFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirScalarCfgProgramCallableFactDigest(fact) &&
         fact.routine_ordinal > 0 &&
         DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
             fact.signature, logical_record, payload_free_enum,
-            referenced_enum);
+            referenced_enum, opaque_readonly_zones);
 }
 
 func DirectMirScalarCfgProgramCallableFactCanonicalEmpty(

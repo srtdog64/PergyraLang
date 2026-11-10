@@ -13,8 +13,8 @@ func SemanticAstCollectionDefinitionShallowAliasAdmitted(
 func SemanticAstCollectionInitialDefinitions(
     ref facts: SemanticAstCollectionDefinitionFacts
 ) -> Array<Int> {
-    let current: Array<Int> = [];
-    let row: Int = 0;
+    var current: Array<Int> = [];
+    var row: Int = 0;
     while row < facts.local_count {
         ArrayPush(current, row); row = row + 1;
     }

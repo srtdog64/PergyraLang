@@ -93,14 +93,93 @@ func MirIntentTerminalTransitionFactsAligned(
         count == ArrayLength(rows.graph_digests);
 }
 
+// Codegen owns a final read-only projection of the admitted execution plan.
+// Keep that projection storage-independent from the machine-admitted owner so
+// retiring either aggregate cannot invalidate the other.
+func MirIntentCompensationFactsOwnedCopy(
+    ref source: MirIntentCompensationFacts
+) -> MirIntentCompensationFacts {
+    return MirIntentCompensationFacts(
+        Clone(source.transition_ids), Clone(source.expression_syntax_ids),
+        Clone(source.instruction_block_ids), Clone(source.instruction_ids),
+        Clone(source.graph_root_ids), Clone(source.graph_digests),
+        Clone(source.call_target_names), Clone(source.call_target_syntax_ids)
+    );
+}
+
+func MirIntentStepTransitionFactsOwnedCopy(
+    ref source: MirIntentStepTransitionFacts
+) -> MirIntentStepTransitionFacts {
+    return MirIntentStepTransitionFacts(
+        Clone(source.transition_ids), Clone(source.routine_syntax_ids),
+        Clone(source.step_syntax_ids), Clone(source.step_names),
+        Clone(source.predecessor_transition_ids),
+        Clone(source.predecessor_step_syntax_ids),
+        Clone(source.predecessor_step_names), Clone(source.action_syntax_ids),
+        Clone(source.outcome_instruction_block_ids),
+        Clone(source.outcome_instruction_ids),
+        Clone(source.outcome_result_names), Clone(source.outcome_type_names),
+        Clone(source.outcome_enum_names), Clone(source.outcome_enum_syntax_ids),
+        Clone(source.branch_block_ids), Clone(source.branch_instruction_ids),
+        Clone(source.success_variant_indices), Clone(source.success_variant_names),
+        Clone(source.success_payload_names),
+        Clone(source.success_payload_type_names),
+        Clone(source.success_payload_decl_syntax_ids),
+        Clone(source.success_successor_block_ids),
+        Clone(source.failure_variant_indices), Clone(source.failure_variant_names),
+        Clone(source.failure_payload_names),
+        Clone(source.failure_payload_type_names),
+        Clone(source.failure_payload_decl_syntax_ids),
+        Clone(source.failure_successor_block_ids),
+        Clone(source.completion_block_ids),
+        Clone(source.completion_instruction_ids),
+        Clone(source.compensation_starts), Clone(source.compensation_counts),
+        MirIntentCompensationFactsOwnedCopy(source.compensations),
+        Clone(source.where_zone_names), Clone(source.where_zone_syntax_ids)
+    );
+}
+
+func MirIntentTerminalTransitionFactsOwnedCopy(
+    ref source: MirIntentTerminalTransitionFacts
+) -> MirIntentTerminalTransitionFacts {
+    return MirIntentTerminalTransitionFacts(
+        Clone(source.terminal_transition_ids), Clone(source.routine_syntax_ids),
+        Clone(source.roles), Clone(source.source_transition_ids),
+        Clone(source.source_step_syntax_ids), Clone(source.source_step_names),
+        Clone(source.source_variant_indices), Clone(source.source_variant_names),
+        Clone(source.source_payload_names), Clone(source.source_payload_type_names),
+        Clone(source.source_payload_decl_syntax_ids),
+        Clone(source.result_instruction_block_ids),
+        Clone(source.result_instruction_ids), Clone(source.result_definition_names),
+        Clone(source.result_type_names), Clone(source.result_enum_names),
+        Clone(source.result_enum_syntax_ids), Clone(source.result_variant_indices),
+        Clone(source.result_variant_names), Clone(source.result_payload_names),
+        Clone(source.result_payload_type_names),
+        Clone(source.result_payload_decl_syntax_ids),
+        Clone(source.expression_syntax_ids), Clone(source.graph_root_ids),
+        Clone(source.graph_digests)
+    );
+}
+
+func MirIntentExecutionPlanOwnedCopy(
+    ref source: MirIntentExecutionPlan
+) -> MirIntentExecutionPlan {
+    return MirIntentExecutionPlan(
+        source.valid, source.present, Concat("", source.schema),
+        source.plan_digest,
+        MirIntentStepTransitionFactsOwnedCopy(source.steps),
+        MirIntentTerminalTransitionFactsOwnedCopy(source.terminals)
+    );
+}
+
 func MirIntentStepTransitionIndexByIdentity(
     ref rows: MirIntentStepTransitionFacts,
     transition_id: Int,
     step_syntax_id: Int,
     step_name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(rows.transition_ids) {
         if rows.transition_ids[row] == transition_id &&
             rows.step_syntax_ids[row] == step_syntax_id &&
@@ -117,8 +196,8 @@ func MirIntentStepTransitionIndexByHandle(
     ref rows: MirIntentStepTransitionFacts,
     transition_id: Int
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(rows.transition_ids) {
         if rows.transition_ids[row] == transition_id {
             if found >= 0 { return 0 - 1; }
@@ -133,13 +212,13 @@ func MirIntentStepTransitionCycleFreeFrom(
     ref rows: MirIntentStepTransitionFacts,
     start_row: Int
 ) -> Bool {
-    let seen: Array<Bool> = [];
-    let i: Int = 0;
+    var seen: Array<Bool> = [];
+    var i: Int = 0;
     while i < ArrayLength(rows.transition_ids) {
         ArrayPush(seen, false);
         i = i + 1;
     }
-    let row: Int = start_row;
+    var row: Int = start_row;
     while row >= 0 {
         if row >= ArrayLength(seen) || seen[row] { return false; }
         ArraySet(seen, row, true);
@@ -160,8 +239,8 @@ func MirIntentStepTransitionFactsReady(
 ) -> Bool {
     if !MirIntentStepTransitionFactsAligned(rows) { return false; }
     let count: Int = ArrayLength(rows.transition_ids);
-    let expected_compensation_start: Int = 0;
-    let row: Int = 0;
+    var expected_compensation_start: Int = 0;
+    var row: Int = 0;
     while row < count {
         if rows.transition_ids[row] <= 0 ||
             rows.transition_ids[row] != rows.step_syntax_ids[row] ||
@@ -220,7 +299,7 @@ func MirIntentStepTransitionFactsReady(
                 return false;
             }
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if rows.transition_ids[prior] == rows.transition_ids[row] ||
                 rows.step_syntax_ids[prior] == rows.step_syntax_ids[row] ||
@@ -235,7 +314,7 @@ func MirIntentStepTransitionFactsReady(
             }
             prior = prior + 1;
         }
-        let compensation_at: Int = expected_compensation_start;
+        var compensation_at: Int = expected_compensation_start;
         let compensation_end: Int = compensation_at +
             rows.compensation_counts[row];
         while compensation_at < compensation_end {
@@ -250,7 +329,7 @@ func MirIntentStepTransitionFactsReady(
                 rows.compensations.call_target_syntax_ids[compensation_at] <= 0 {
                 return false;
             }
-            let prior_compensation: Int = 0;
+            var prior_compensation: Int = 0;
             while prior_compensation < compensation_at {
                 if rows.compensations.expression_syntax_ids[
                         prior_compensation
@@ -277,8 +356,8 @@ func MirIntentStepTransitionFactsReady(
     }
     row = 0;
     while row < count {
-        let first_for_routine: Bool = true;
-        let prior: Int = 0;
+        var first_for_routine: Bool = true;
+        var prior: Int = 0;
         while prior < row {
             if rows.routine_syntax_ids[prior] ==
                 rows.routine_syntax_ids[row] {
@@ -287,8 +366,8 @@ func MirIntentStepTransitionFactsReady(
             prior = prior + 1;
         }
         if first_for_routine {
-            let root_count: Int = 0;
-            let candidate: Int = 0;
+            var root_count: Int = 0;
+            var candidate: Int = 0;
             while candidate < count {
                 if rows.routine_syntax_ids[candidate] ==
                         rows.routine_syntax_ids[row] &&
@@ -308,7 +387,7 @@ func MirIntentStepTransitionHasChild(
     ref rows: MirIntentStepTransitionFacts,
     transition_id: Int
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(rows.transition_ids) {
         if rows.predecessor_transition_ids[row] == transition_id {
             return true;
@@ -367,7 +446,7 @@ func MirIntentTerminalTransitionFactsReady(
 ) -> Bool {
     if !MirIntentTerminalTransitionFactsAligned(rows) { return false; }
     let count: Int = ArrayLength(rows.terminal_transition_ids);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let step_row: Int = MirIntentStepTransitionIndexByIdentity(
             steps, rows.source_transition_ids[row],
@@ -406,7 +485,7 @@ func MirIntentTerminalTransitionFactsReady(
             rows.graph_root_ids[row] < 0 || rows.graph_digests[row] <= 0 {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if rows.terminal_transition_ids[prior] ==
                     rows.terminal_transition_ids[row] ||
@@ -439,10 +518,10 @@ func MirIntentTerminalTransitionFactsReady(
         }
         row = row + 1;
     }
-    let step_row: Int = 0;
+    var step_row: Int = 0;
     while step_row < ArrayLength(steps.transition_ids) {
-        let failure_count: Int = 0;
-        let success_count: Int = 0;
+        var failure_count: Int = 0;
+        var success_count: Int = 0;
         row = 0;
         while row < count {
             if rows.source_transition_ids[row] ==
@@ -481,7 +560,7 @@ func MirIntentExecutionPlanFromFacts(
         (present && ArrayLength(steps.transition_ids) > 0 &&
             MirIntentStepTransitionFactsReady(steps) &&
             MirIntentTerminalTransitionFactsReady(steps, terminals));
-    let plan: MirIntentExecutionPlan = MirIntentExecutionPlan(
+    var plan: MirIntentExecutionPlan = MirIntentExecutionPlan(
         valid, present, MirIntentExecutionPlanSchema(), 0, steps, terminals
     );
     if valid { plan.plan_digest = MirIntentExecutionPlanDigest(plan); }

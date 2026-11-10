@@ -13,10 +13,10 @@ func DirectMirScalarCfgForEachTypedCPreamble(
     if DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) == 0 {
         return "#include <stdio.h>\n";
     }
-    let output: String =
+    var output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n";
-    let int_seen: Bool = false; let string_seen: Bool = false;
-    let row: Int = 0;
+    var int_seen: Bool = false; var string_seen: Bool = false;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -59,8 +59,8 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -68,10 +68,10 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
             DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
                 plan.foreach_elements, fact.loop_syntax_id
             );
-        let element_type: String = ""; let length_type: String = "";
-        let array_type: String = ""; let element_list: String = "";
+        var element_type: String = ""; var length_type: String = "";
+        var array_type: String = ""; var element_list: String = "";
         let element_count: Int = ArrayLength(fact.elements);
-        let initializer: String = "";
+        var initializer: String = "";
         let data: String = Concat("pgy_foreach_storage_", ToString(row));
         if type_name == CompilerAbiLayoutIntTypeName() {
             let abi: DirectMirArrayIntAbiProjection =
@@ -129,7 +129,7 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
 func DirectMirScalarCfgForEachTypedCBlockEntry(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
@@ -156,11 +156,11 @@ func DirectMirScalarCfgForEachTypedCBlockEntry(
 func DirectMirScalarCfgForEachTypedCBlockExit(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> String {
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(fact.backedge_blocks) {
             if fact.backedge_blocks[edge] == block {
                 output = Concat(output, "    pgy_foreach_cursor_");
@@ -179,7 +179,7 @@ func DirectMirScalarCfgForEachTypedCBlockExit(
 func DirectMirScalarCfgForEachTypedCCondition(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> String {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);

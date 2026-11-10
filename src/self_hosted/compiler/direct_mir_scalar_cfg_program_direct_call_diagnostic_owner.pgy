@@ -7,7 +7,7 @@ func DirectMirScalarCfgProgramDirectCallFailureDetail(
     node: Int, routine: Int, graph_start: Int
 ) -> String {
     let target: Int = facts.node_callable_rows[node];
-    let detail: String = Concat(" target=", ToString(target));
+    var detail: String = Concat(" target=", ToString(target));
     if target < 0 || target >= ArrayLength(plan.routines.names) {
         return Concat(detail, " target_invalid=true");
     }
@@ -15,7 +15,7 @@ func DirectMirScalarCfgProgramDirectCallFailureDetail(
     let arguments: Array<Int> =
         DirectMirScalarProgramDirectCallArgumentRows(facts, node);
     detail = Concat(detail, Concat(" arguments=", ToString(ArrayLength(arguments))));
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) &&
             ordinal < plan.routines.parameter_counts[target] {
         let argument: Int = arguments[ordinal];

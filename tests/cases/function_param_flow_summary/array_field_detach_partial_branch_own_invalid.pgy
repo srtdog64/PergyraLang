@@ -16,7 +16,7 @@ func Retire(inout state: State, clear: Bool) -> Int
 
 func Main() -> Void
 {
-    let state: State = State([7], [true]);
+    var state: State = State([7], [true]);
     Log(Retire(state, false));
     Log(ArrayLength(state.ids));
 }

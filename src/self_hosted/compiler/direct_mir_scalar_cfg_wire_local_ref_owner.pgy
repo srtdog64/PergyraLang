@@ -36,7 +36,7 @@ func DirectMirScalarCfgWireLocalRefsRouteIdentityRequired(
     }
     if SelfMirLocalRefSpellingCollision(index.source_local_names, 0, index.declared_source_local_count,
             parameter_names, 0, ArrayLength(parameter_names)) { return true; }
-    let instruction: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.arg0s) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let arg0: String = index.instruction_facts.arg0s[instruction];
@@ -55,7 +55,7 @@ func DirectMirScalarCfgWireLocalRefsRequired(
     ref index: MirRoutineFactIndex, ref parameter_names: Array<String>
 ) -> Bool {
     // The admitted fact owner classifies identity publication for both routes.
-    let ownership_row: Int = 0;
+    var ownership_row: Int = 0;
     while ownership_row < ArrayLength(
             index.collection_ownership_facts.origins) {
         let origin: String = index.collection_ownership_facts.origins[ownership_row];
@@ -86,12 +86,12 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
     let required: Bool = DirectMirScalarCfgWireLocalRefsRequired(
         admitted, index, parameter_names
     );
-    let primary: Array<String> = [];
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let nodes: Array<Int> = [];
-    let refs: Array<String> = [];
-    let instruction: Int = 0;
+    var primary: Array<String> = [];
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var nodes: Array<Int> = [];
+    var refs: Array<String> = [];
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -109,8 +109,8 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
             (required && (local_occurrences != 1 || expr_occurrences != 1)) {
             return empty;
         }
-        let primary_ref: String = "";
-        let rows: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
+        var primary_ref: String = "";
+        var rows: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
         if required {
             let primary_opt: Option<String> = JsonObjectFactStringFieldOpt(
                 object_table, "local_ref"
@@ -128,7 +128,7 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
         }
         ArrayPush(primary, primary_ref);
         ArrayPush(starts, ArrayLength(nodes));
-        let row: Int = 0;
+        var row: Int = 0;
         while required && row < JsonArrayObjectFactCount(rows) {
             let item: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row);
             let node_opt: Option<String> = JsonObjectFactNumberFieldOpt(
@@ -161,8 +161,8 @@ func DirectMirScalarCfgWireExprRefAt(
     instruction: Int,
     node: Int
 ) -> String {
-    let found: String = "";
-    let row: Int = 0;
+    var found: String = "";
+    var row: Int = 0;
     while row < wire.expr0_counts[instruction] {
         let index: Int = wire.expr0_starts[instruction] + row;
         if wire.expr0_nodes[index] == node {

@@ -11,45 +11,45 @@ import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
     if !DirectMirIdentityCellFactsReady(plan.program.logical_record.identity_cells) { return false; }
     if ArrayLength(plan.program.logical_record.identity_cells.names) == 0 { return true; }
-    let routine: Int = 0;
+    var routine: Int = 0;
     while routine < ArrayLength(plan.routines.return_types) {
         if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
                 plan.routines.return_types[routine]) >= 0 { return false; }
         routine = routine + 1;
     }
-    let parameter: Int = 0;
+    var parameter: Int = 0;
     while parameter < ArrayLength(plan.routines.parameter_types) {
         let cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
             plan.routines.parameter_types[parameter]);
         let owner: Int = DirectMirScalarCfgRoutinePartitionRangeOwner(
             plan.routines.parameter_starts,
             plan.routines.parameter_counts, parameter);
-        let ordinal: Int = -1;
+        var ordinal: Int = -1;
         if owner >= 0 {
             ordinal = parameter - plan.routines.parameter_starts[owner];
         }
-        let stored_receiver: Bool = owner >= 0 &&
-            DirectMirIdentityCellStoredReceiverParameterReady(
+        let receiver: Bool = owner >= 0 &&
+            DirectMirIdentityCellReceiverParameterReady(
                 plan, owner, ordinal);
         if cell >= 0 &&
             !DirectMirScalarProgramIdentityCellParameterCarriageReady(
                 plan.program.logical_record.identity_cells,
                 plan.routines.parameter_types[parameter],
                 plan.routines.parameter_carriages[parameter]) &&
-            !stored_receiver {
+            !receiver {
             return false;
         }
         parameter = parameter + 1;
     }
-    let contained: Array<Int> = [];
-    let uses: Array<Int> = [];
-    let node: Int = 0;
+    var contained: Array<Int> = [];
+    var uses: Array<Int> = [];
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         ArrayPush(contained, 0); ArrayPush(uses, 0);
         let kind: Int = plan.program.expressions.node_kinds[node];
         let result_cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
             plan.program.expressions.node_types[node]);
-        let nested_identity_borrow: Bool = false;
+        var nested_identity_borrow: Bool = false;
         if kind == DirectMirScalarProgramExprIdentityCellMember() && result_cell >= 0 {
             let source: Int = plan.program.expressions.node_lefts[node];
             if source < 0 || source >= node { return false; }
@@ -70,7 +70,7 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
             kind != DirectMirScalarProgramExprIdentityCellConstructor() &&
             !nested_identity_borrow { return false; }
         let operands: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(plan.program.expressions, node);
-        let operand: Int = 0;
+        var operand: Int = 0;
         while operand < ArrayLength(operands) {
             let source: Int = operands[operand];
             if source < 0 || source >= node { return false; }
@@ -105,7 +105,7 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
                                 plan.program.logical_record.identity_cells,
                                 type_name,
                                 plan.routines.parameter_carriages[callee_parameter]) &&
-                         !DirectMirIdentityCellStoredReceiverParameterReady(
+                         !DirectMirIdentityCellReceiverParameterReady(
                                 plan, callee, operand)) {
                         return false;
                     }
@@ -116,7 +116,7 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
         }
         node = node + 1;
     }
-    let operation: Int = 0;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         let result: Int = plan.operation_result_values[operation];
         if result >= 0 && result < ArrayLength(plan.value_types) &&

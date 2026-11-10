@@ -16,19 +16,19 @@ func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     let empty: DirectMirScalarCfgArrayIntProgramFact =
         DirectMirScalarCfgArrayIntProgramFactEmpty();
-    let producer_header: Int = -1; let producer_body: Int = -1;
-    let producer_exit: Int = -1; let bound: Int = 0;
-    let induction_id: String = ""; let push_global: Int = -1;
-    let push_kind: Int = 0; let push_block: Int = -1;
-    let consumer_header: Int = -1; let consumer_body: Int = -1;
-    let consumer_exit: Int = -1; let length_global: Int = -1;
-    let index_id: String = ""; let read_global: Int = -1;
-    let sum_id: String = ""; let read_result: String = "";
-    let length_log_global: Int = -1; let claimed_uses: Int = 0;
-    let collection_uses: Int = 0;
-    let block: Int = 0;
+    var producer_header: Int = -1; var producer_body: Int = -1;
+    var producer_exit: Int = -1; var bound: Int = 0;
+    var induction_id: String = ""; var push_global: Int = -1;
+    var push_kind: Int = 0; var push_block: Int = -1;
+    var consumer_header: Int = -1; var consumer_body: Int = -1;
+    var consumer_exit: Int = -1; var length_global: Int = -1;
+    var index_id: String = ""; var read_global: Int = -1;
+    var sum_id: String = ""; var read_result: String = "";
+    var length_log_global: Int = -1; var claimed_uses: Int = 0;
+    var collection_uses: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local_binding: Int = 0;
+        var local_binding: Int = 0;
         while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
                 index.block_instruction_starts[block] + local_binding;
@@ -48,7 +48,7 @@ func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
                 MirRoutineInstructionFactBundleAtGlobal(
                     index.instruction_facts, global
                 );
-            let use_row: Int = 0;
+            var use_row: Int = 0;
             while use_row < MirRoutineInstructionUseCountAtGlobal(
                     uses, global
                 ) {

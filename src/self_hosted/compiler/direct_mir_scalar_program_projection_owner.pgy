@@ -55,7 +55,7 @@ func CompileAdmittedDirectMirScalarProgramForTargetObserved(
         DirectMirScalarTargetIntLineFormat(is_llvm);
     let string_line_format: String = StringRuntimeCStringLineFormat();
     DirectMirPressureStage(observe_pressure, "emission:start");
-    let payload: String = "";
+    var payload: String = "";
     if is_llvm {
         payload = DirectMirScalarCfgEmitLlvm(
             plan, formatted_print, concat, compare, process_exit,

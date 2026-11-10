@@ -39,7 +39,7 @@ func DirectMirConstructedRecordArrayUsesReady(
         ArrayLength(expected) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(expected) {
         let value: Option<String> = MirRoutineInstructionUseAtGlobal(
             uses, global_row, row
@@ -69,11 +69,11 @@ func DirectMirConstructedRecordArrayMainLocalsReady(
         ArrayLength(index.source_local_types) != 4 {
         return false;
     }
-    let seen: Array<Bool> = [false, false, false, false];
-    let row: Int = 0;
+    var seen: Array<Bool> = [false, false, false, false];
+    var row: Int = 0;
     while row < 4 {
-        let expected_row: Int = 0;
-        let matched: Bool = false;
+        var expected_row: Int = 0;
+        var matched: Bool = false;
         while expected_row < 4 {
             if !seen[expected_row] && index.source_local_names[row] ==
                     expected_names[expected_row] &&
@@ -107,9 +107,9 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
         !MirRoutineInstructionUseFactsReady(uses, 6) {
         Die("direct MIR constructed record Array Main facts are invalid");
     }
-    let captures: Array<MirRoutineInstructionScalarCapture> = [];
-    let globals: Array<Int> = [];
-    let row: Int = 0;
+    var captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var globals: Array<Int> = [];
+    var row: Int = 0;
     while row < 5 {
         ArrayPush(captures, DirectMirInferredGenericMemberInstructionCapture(
             admitted, index, main_row, row
@@ -190,7 +190,7 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
         ) {
         Die("direct MIR constructed record Array Main SSA use is invalid");
     }
-    let definition_row: Int = 0;
+    var definition_row: Int = 0;
     while definition_row < 4 {
         let definition: MirRoutineResultDefinitionFact =
             MirRoutineFactIndexUniqueResultDefinition(

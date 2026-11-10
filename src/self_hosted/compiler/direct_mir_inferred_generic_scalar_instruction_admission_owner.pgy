@@ -174,7 +174,7 @@ func DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
         ) || initial.arg0 != identity.graph.local_name || initial.arg1 != "" ||
         initial.expr1 != CompilerAbiLayoutIntTypeName() ||
         assignment.arg0 != identity.graph.local_name ||
-        assignment.arg1 != "local" ||
+        assignment.arg1 != "mutable_local" ||
         assignment.expr1 != identity.graph.local_name ||
         !DirectMirArrayIntAssignmentTargetReady(
             assignment_target, identity.graph.local_name
@@ -196,7 +196,7 @@ func DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
         Die("direct MIR inferred scalar SSA use is invalid");
     }
     let results: Array<String> = [initial.result, assignment.result];
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         let definition: MirRoutineResultDefinitionFact =
             MirRoutineFactIndexUniqueResultDefinition(main_index, results[row]);

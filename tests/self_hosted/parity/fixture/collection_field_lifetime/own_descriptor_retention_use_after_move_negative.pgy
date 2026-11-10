@@ -1,0 +1,14 @@
+struct RetainedNames {
+    values: Array<String>;
+}
+
+func RetainNames(own values: Array<String>) -> RetainedNames {
+    return RetainedNames(values);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [Clone("owned")];
+    let retained: RetainedNames = RetainNames(values);
+    Log(ArrayLength(retained.values));
+    Log(ArrayLength(values));
+}

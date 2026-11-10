@@ -3,8 +3,8 @@ struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
 
 func Project(nodes: Array<TextNode>) -> Arena {
     let provenance_texts: Array<String> = [];
-    let atom_table: Array<String> = [""];
-    let i: Int = 0;
+    var atom_table: Array<String> = [""];
+    var i: Int = 0;
     while i < ArrayLength(nodes) {
         if nodes[i].type_name != "" {
             ArrayPush(atom_table, nodes[i].type_name);

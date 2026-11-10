@@ -81,6 +81,17 @@ pgy_array_set_owned_String(PgyArray_String *arr, size_t index, char *value)
 }
 
 static inline void
+pgy_array_pop_owned_String(PgyArray_String *arr)
+{
+    if (arr == NULL || arr->length == 0)
+        return;
+    size_t index = arr->length - 1;
+    free(arr->data[index]);
+    arr->data[index] = NULL;
+    arr->length = index;
+}
+
+static inline void
 pgy_array_drop_owned_String(PgyArray_String *arr)
 {
     if (arr == NULL)
@@ -373,7 +384,7 @@ static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t v
     if (first_deleted != UINT32_MAX) m->deleted_count--;
 }
 
-static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
+static inline int32_t pgy_map_get_int(const PgyHashMap_Int *m, const char *key)
 {
     if (!pgy_map_int_is_initialized(m) || key == NULL)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map");
@@ -389,7 +400,7 @@ static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
     return 0;
 }
 
-static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
+static inline bool pgy_map_has_int(const PgyHashMap_Int *m, const char *key)
 {
     if (!pgy_map_int_is_initialized(m) || key == NULL) return false;
     pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_STRING);

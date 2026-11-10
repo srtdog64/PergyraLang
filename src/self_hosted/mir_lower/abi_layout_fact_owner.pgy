@@ -21,9 +21,9 @@ func MirAbiLayoutFnvPrimeModulus() -> Long {
 }
 
 func MirAbiLayoutMulMod(a: Long, b: Long, modulus: Long) -> Long {
-    let left: Long = a % modulus;
-    let right: Long = b;
-    let result: Long = 0L;
+    var left: Long = a % modulus;
+    var right: Long = b;
+    var result: Long = 0L;
     while right > 0L {
         if right % 2L == 1L {
             result = (result + left) % modulus;
@@ -38,9 +38,9 @@ func MirAbiLayoutMulMod(a: Long, b: Long, modulus: Long) -> Long {
 // projection independent of a target-specific integer bitwise ABI.
 func MirAbiLayoutXorByte(value: Long, byte_value: Long) -> Long {
     let low: Long = value % 256L;
-    let result: Long = 0L;
-    let bit: Long = 1L;
-    let index: Int = 0;
+    var result: Long = 0L;
+    var bit: Long = 1L;
+    var index: Int = 0;
     while index < 8 {
         let left_bit: Long = (low / bit) % 2L;
         let right_bit: Long = (byte_value / bit) % 2L;
@@ -61,8 +61,8 @@ func MirAbiLayoutHashByte(hash: Long, byte_value: Long) -> Long {
 }
 
 func MirAbiLayoutHashString(hash: Long, value: String) -> Long {
-    let out: Long = hash;
-    let i: Int = 0;
+    var out: Long = hash;
+    var i: Int = 0;
     let n: Int = StringLength(value);
     while i < n {
         out = MirAbiLayoutHashByte(
@@ -74,13 +74,13 @@ func MirAbiLayoutHashString(hash: Long, value: String) -> Long {
 }
 
 func MirAbiLayoutHashU32(hash: Long, value: Long) -> Long {
-    let out: Long = hash;
-    let unsigned_value: Long = value;
+    var out: Long = hash;
+    var unsigned_value: Long = value;
     if unsigned_value < 0L {
         unsigned_value = unsigned_value + 4294967296L;
     }
-    let divisor: Long = 1L;
-    let i: Int = 0;
+    var divisor: Long = 1L;
+    var i: Int = 0;
     while i < 4 {
         out = MirAbiLayoutHashByte(
             out, (unsigned_value / divisor) % 256L);
@@ -131,7 +131,7 @@ func MirAbiSelectedObjectBoundsWithin(
         JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return false;
     }
-    let i: Int = start + 1;
+    var i: Int = start + 1;
     while i < end {
         i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end { return false; }
@@ -142,8 +142,8 @@ func MirAbiSelectedObjectBoundsWithin(
         let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, i, end);
         if !IsSome(key_end_opt) { return false; }
         let key_end: Int = UnwrapOption(key_end_opt);
-        let selected: Int = 0 - 1;
-        let key_row: Int = 0;
+        var selected: Int = 0 - 1;
+        var key_row: Int = 0;
         while key_row < ArrayLength(keys) {
             let expected: String = Concat("", keys[key_row]);
             if JsonObjectKeyEqualsWithin(
@@ -180,7 +180,7 @@ func MirAbiAllBoundsPresent(
         ArrayLength(starts) != ArrayLength(ends) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(starts) {
         if starts[row] < 0 || ends[row] <= starts[row] { return false; }
         row = row + 1;
@@ -222,13 +222,13 @@ func MirAbiLayoutFieldsCaptureWithin(
     if !IsSome(close_opt) || UnwrapOption(close_opt) + 1 != end {
         return false;
     }
-    let cursor: Int = start + 1;
-    let row_bounds: Array<Int> = [0, 0];
+    var cursor: Int = start + 1;
+    var row_bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(json, json_extent, cursor, end, row_bounds) {
         if ArrayLength(names) >= 8 { return false; }
         let keys: Array<String> = ["name", "offset", "size", "align"];
-        let starts: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
-        let ends: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
+        var starts: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
+        var ends: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
         if !MirAbiSelectedObjectBoundsWithin(
             json, json_extent, row_bounds[0], row_bounds[1], keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
@@ -272,11 +272,11 @@ func MirAbiLayoutRowCaptureWithin(
         "representation", "discriminant", "primary_tag", "secondary_tag",
         "niche_none_pattern"
     ];
-    let starts: Array<Int> = [
+    var starts: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    let ends: Array<Int> = [
+    var ends: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
@@ -322,10 +322,10 @@ func MirAbiLayoutRowCaptureWithin(
         !IsSome(secondary_tag) || !IsSome(niche) {
         return InvalidMirAbiLayoutRowCapture();
     }
-    let field_names: Array<String> = [];
-    let field_offsets: Array<String> = [];
-    let field_sizes: Array<String> = [];
-    let field_aligns: Array<String> = [];
+    var field_names: Array<String> = [];
+    var field_offsets: Array<String> = [];
+    var field_sizes: Array<String> = [];
+    var field_aligns: Array<String> = [];
     if !MirAbiLayoutFieldsCaptureWithin(
         json, json_extent, starts[3], ends[3], field_names, field_offsets,
         field_sizes, field_aligns
@@ -344,12 +344,12 @@ func MirAbiLayoutRowCaptureWithin(
 
 func MirAbiLayoutIdFromCapture(ref row: MirAbiLayoutRowCapture) -> Int {
     if !row.valid { return 0; }
-    let hash: Long = 60621699L;
+    var hash: Long = 60621699L;
     hash = MirAbiLayoutHashString(hash, row.type_name);
     hash = MirAbiLayoutHashU32(hash, ToInt(row.size_text) as Long);
     hash = MirAbiLayoutHashU32(hash, ToInt(row.align_text) as Long);
     hash = MirAbiLayoutHashU32(hash, ArrayLength(row.field_names) as Long);
-    let field_row: Int = 0;
+    var field_row: Int = 0;
     while field_row < ArrayLength(row.field_names) {
         hash = MirAbiLayoutHashString(hash, row.field_names[field_row]);
         hash = MirAbiLayoutHashU32(
@@ -414,7 +414,7 @@ func MirAbiRequiredTupleSeen(
     type_key: String, id: Int, layout_key: String
 ) -> Bool {
     if !MirAbiLayoutValidationSessionReady(session) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(session.required_ids) {
         if session.required_ids[row] == id &&
             session.required_type_keys[row] == type_key &&
@@ -431,9 +431,9 @@ func MirAbiRememberRequiredTuple(
     type_key: String, id: Int, layout_key: String
 ) -> Bool {
     if !MirAbiLayoutValidationSessionReady(session) { return false; }
-    let required_type_keys: Array<String> = session.required_type_keys;
-    let required_ids: Array<Int> = session.required_ids;
-    let required_layout_keys: Array<String> = session.required_layout_keys;
+    var required_type_keys: Array<String> = session.required_type_keys;
+    var required_ids: Array<Int> = session.required_ids;
+    var required_layout_keys: Array<String> = session.required_layout_keys;
     ArrayPush(required_type_keys, type_key);
     ArrayPush(required_ids, id);
     ArrayPush(required_layout_keys, layout_key);
@@ -467,7 +467,7 @@ func MirCapturedAbiLayoutFactReady(
         return false;
     }
     if !MirAbiLayoutValidationSessionReady(session) { return false; }
-    let required: Bool = false;
+    var required: Bool = false;
     if required_start + 4 == required_end && StringWindowSubEquals(
         json, json_extent, required_end, required_start, 4, "true"
     ) {

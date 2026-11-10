@@ -22,7 +22,7 @@ func DirectMirArrayReturnEmitC(
         Die("direct MIR Array<Int> return C projection facts are invalid");
     }
     let count: Int = ArrayLength(plan.returned_elements);
-    let output: String =
+    var output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    ");
     output = Concat(output, abi.c_element_type);
@@ -37,7 +37,7 @@ func DirectMirArrayReturnEmitC(
     output = Concat(output, " pgy_direct_array_return_producer(");
     output = Concat(output, abi.c_element_type);
     output = Concat(output, " *pgy_return_storage) {\n");
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         output = Concat(output, "    pgy_return_storage[");
         output = Concat(output, ToString(row));
@@ -82,13 +82,13 @@ func DirectMirArrayReturnLlvmProducer(
     ref abi: DirectMirArrayIntAbiProjection
 ) -> String {
     let count: Int = ArrayLength(plan.returned_elements);
-    let output: String = "define ";
+    var output: String = "define ";
     output = Concat(output, abi.llvm_aggregate_type);
     output = Concat(
         output,
         " @pgy.direct.array.return.producer(ptr %pgy.return.storage) {\nentry:\n"
     );
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         output = Concat(output, "  %pgy.return.slot.");
         output = Concat(output, ToString(row));
@@ -151,7 +151,7 @@ func DirectMirArrayReturnEmitLlvm(
     let format_payload: String =
         DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String =
+    var output: String =
         "@.pgy.int.line.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");

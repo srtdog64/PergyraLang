@@ -13,6 +13,7 @@ import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_cfg_match_binding_local_owner.pgy";
 
@@ -34,7 +35,7 @@ func DirectMirScalarCfgLocalRefPlanEmpty() -> DirectMirScalarCfgLocalRefPlan {
 }
 
 func DirectMirScalarCfgValueLocalRow(names: Array<String>, wanted: String) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(names) {
         if names[row] == wanted { return row; }
         row = row + 1;
@@ -50,6 +51,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
     ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
     ref collections: DirectMirScalarCfgCollectionPlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref indexed_assignments:
         DirectMirScalarProgramIndexedAssignmentFactSet,
     ref parameters: DirectMirRoutineParameterSetFact
@@ -62,14 +64,14 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
     if !indexed_assignments.valid {
         Die("direct MIR scalar CFG indexed-assignment facts are invalid");
     }
-    let local_names: Array<String> = [];
-    let local_ref_kinds: Array<Int> = [];
-    let local_ref_value_ids: Array<String> = [];
-    let local_ref_syntax_ids: Array<Int> = [];
-    let value_names: Array<String> = [];
-    let value_local_rows: Array<Int> = [];
-    let value_definition_blocks: Array<Int> = [];
-    let instruction: Int = 0;
+    var local_names: Array<String> = [];
+    var local_ref_kinds: Array<Int> = [];
+    var local_ref_value_ids: Array<String> = [];
+    var local_ref_syntax_ids: Array<Int> = [];
+    var value_names: Array<String> = [];
+    var value_local_rows: Array<Int> = [];
+    var value_definition_blocks: Array<Int> = [];
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let result: String = index.instruction_facts.results[instruction];
         let global: Int = index.instruction_facts.global_start + instruction;
@@ -98,12 +100,12 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
             collections, global
         ) {
             if kind != "def" && kind != "phi" { return empty; }
-            let local_name: String = index.instruction_facts.arg0s[instruction];
+            var local_name: String = index.instruction_facts.arg0s[instruction];
             if kind == "phi" {
                 local_name = index.instruction_facts.names[instruction];
             }
-            let local_identity: String = result;
-            let parameter_ordinal: Int =
+            var local_identity: String = result;
+            var parameter_ordinal: Int =
                 DirectMirRoutineLocalParameterOrdinalAtName(
                     parameters, local_name);
             if parameter_ordinal >= 0 {
@@ -121,7 +123,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                     Die("direct MIR scalar CFG LocalRef declaration role or owner is invalid");
                 }
             }
-            let local_row: Int = -1;
+            var local_row: Int = -1;
             if wire.required {
                 local_row = DirectMirScalarCfgLocalIdentityRow(
                     local_ref_value_ids, local_identity
@@ -145,7 +147,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 ArrayPush(local_ref_value_ids, local_identity);
                 ArrayPush(local_ref_syntax_ids, -1);
                 if parameter_ordinal >= 0 {
-                    ArrayPush(value_names, Concat(local_name, ".0"));
+                    ArrayPushOwnedString(value_names, Concat(local_name, ".0"));
                     ArrayPush(value_local_rows, local_row);
                     ArrayPush(value_definition_blocks, 0);
                 }
@@ -160,7 +162,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 DirectMirScalarCfgGraphValueRow(value_names, result) >= 0 {
                 Die("direct MIR scalar CFG result definition LocalRef is invalid");
             }
-            ArrayPush(value_names, result);
+            ArrayPushOwnedString(value_names, result);
             ArrayPush(value_local_rows, local_row);
             ArrayPush(value_definition_blocks, definition.block_id);
         }
@@ -179,8 +181,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
         Die("direct MIR scalar CFG foreach LocalRef binding is invalid");
     }
     if !DirectMirScalarCfgAppendMatchBindingLocals(
-        admitted, index, logical_record, local_names, local_ref_kinds,
-        local_ref_value_ids, local_ref_syntax_ids
+        admitted, index, logical_record, referenced_enum, local_names,
+        local_ref_kinds, local_ref_value_ids, local_ref_syntax_ids
     ) {
         Die("direct MIR scalar CFG match binding LocalRef is invalid");
     }
@@ -215,11 +217,11 @@ func DirectMirScalarCfgLocalRefsReady(
             routines.block_starts, routines.block_counts, block_count) {
         return false;
     }
-    let routine: Int = 0;
+    var routine: Int = 0;
     while routine < ArrayLength(routines.roles) {
         let local_start: Int = routines.local_starts[routine];
         let local_end: Int = local_start + routines.local_counts[routine];
-        let row: Int = local_start;
+        var row: Int = local_start;
         while row < local_end {
             let kind: Int = local_ref_kinds[row];
             if local_names[row] == "" ||
@@ -254,7 +256,7 @@ func DirectMirScalarCfgLocalRefsReady(
                  kind != DirectMirScalarCfgLocalRefMatchBinding()) {
                 return false;
             }
-            let prior: Int = local_start;
+            var prior: Int = local_start;
             while prior < row {
                 if local_ref_value_ids[row] != "" &&
                     local_ref_value_ids[prior] == local_ref_value_ids[row] {
@@ -264,7 +266,7 @@ func DirectMirScalarCfgLocalRefsReady(
             }
             row = row + 1;
         }
-        let value: Int = routines.value_starts[routine];
+        var value: Int = routines.value_starts[routine];
         let value_end: Int = value + routines.value_counts[routine];
         let block_start: Int = routines.block_starts[routine];
         let block_end: Int = block_start + routines.block_counts[routine];

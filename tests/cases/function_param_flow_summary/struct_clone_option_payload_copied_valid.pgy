@@ -7,7 +7,7 @@ struct Box {
 func Main() -> Int {
     let a: Option<Box> = Some(Box([1]));
     let c: Option<Box> = Clone(a);
-    let inner: Box = UnwrapOption(c);
+    var inner: Box = UnwrapOption(c);
     ArraySet(inner.items, 0, 9);
     let original: Box = UnwrapOption(a);
     Print(ToString(original.items[0]));

@@ -178,7 +178,7 @@ func CompilerArtifactKindAt(index: Int) -> String {
 }
 
 func CompilerArtifactKindKnown(kind: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerArtifactKindCount() {
         if CompilerArtifactKindAt(i) == kind {
             return true;

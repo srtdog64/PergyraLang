@@ -1,0 +1,23 @@
+// An inout callee replaces one owned String through the compiler-owned set
+// lowering.  Its exact collection-effect receipt preserves the caller's
+// all-elements-owned proof, so a later owned push remains valid.
+func BlankFirst(inout chunks: Array<String>) -> Void {
+    if ArrayLength(chunks) == 0 { return; }
+    var row: Int = 0;
+    while row < 1 {
+        ArraySet(chunks, row, "");
+        row = row + 1;
+    }
+}
+
+func Main() -> Void {
+    var source: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(source, "old-value", 1);
+    var chunks: Array<String> = MapKeys(source);
+    BlankFirst(chunks);
+    ArrayPush(chunks, Concat("new", "-value"));
+    Print(ToString(ArrayLength(chunks)));
+    Print(chunks[0]);
+    Print(chunks[1]);
+    ArrayDropOwnedStrings(chunks);
+}

@@ -1,0 +1,13 @@
+// Every normal exit transfers the same default Array parameter. The exact
+// call supplies exclusive ownership; the declaration alone owns nothing.
+func Relay(rows: Array<Int>) -> Array<Int> {
+    return rows;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [3];
+    let selected: Array<Int> = Relay(rows);
+    Log(selected[0]);
+    ArrayDrop(selected);
+    return 0;
+}

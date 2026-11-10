@@ -29,7 +29,7 @@ func SemanticExpressionGraphDeclaredCallableValueTypeName(
         !IsSome(text) || !binding.ok {
         return current_type;
     }
-    let syntax_id: Int = 0;
+    var syntax_id: Int = 0;
     if binding.kind == SemanticExpressionBindingDeclaredCallable() &&
         binding.syntax_id > 0 {
         syntax_id = binding.syntax_id;
@@ -69,8 +69,8 @@ func SemanticExpressionGraphDeclaredCallableValueTypeName(
         ) {
         return current_type;
     }
-    let rendered: String = "func(";
-    let parameter: Int = 0;
+    var rendered: String = "func(";
+    var parameter: Int = 0;
     while parameter < UnwrapOption(parameter_count) {
         let parameter_type: Option<String> = SemanticAstFunctionParamTypeAt(
             signatures, signature_index, parameter

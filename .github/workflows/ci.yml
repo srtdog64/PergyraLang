@@ -281,7 +281,10 @@ jobs:
         # compiler-scale text artifacts and can exceed the runner memory budget.
         env:
           PGY_SELFHOST_CODEGEN_SEED_MODE: prebuilt
+          # A producer gets 14 GiB; the 16 GiB job retains harness/OS headroom.
+          PGY_SELFHOST_FULL_MIR_BULKHEAD: '1'
         run: |
+          python3 tests/self_hosted/parity/full_mir_phase_process_smoke.py
           PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1 \
           PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt" \
           PGY_SELFHOST_FIXED_POINT_DRIVER_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.c" \
@@ -300,7 +303,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: self-host-fixed-point-profile
-          path: .tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt
+          path: |
+            .tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt
+            .tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt.full_mir_*.process.json
           if-no-files-found: error
           retention-days: 14
 

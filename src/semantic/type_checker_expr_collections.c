@@ -11,6 +11,9 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_diag_internal.h"
 #include "diag_codes.h"
+#include "../common/match_variant_policy.h"
+
+#include <string.h>
 
 static Type *
 expr_collection_normalize_type(Type *type)
@@ -89,6 +92,24 @@ semantic_expr_is_empty_collection_literal(const ASTNode *expr)
     return false;
 }
 
+bool
+semantic_expr_is_compiler_clone_of_empty_collection(const ASTNode *expr)
+{
+    const ASTNode *callee;
+    const char *name;
+
+    if (expr == NULL || expr->type != AST_CALL
+        || !ast_call_compiler_builtin(expr)
+        || ast_call_arg_count(expr) != 1
+        || !semantic_expr_is_empty_collection_literal(
+            ast_call_argument(expr, 0)))
+        return false;
+    callee = ast_call_callee(expr);
+    name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    return name != NULL && strcmp(name, "Clone") == 0;
+}
+
 /* An unresolved site type does not fix the literal's type. */
 static bool
 expr_collection_site_type_is_resolved(const Type *type)
@@ -103,6 +124,22 @@ expr_collection_site_type_is_resolved(const Type *type)
             return false;
     }
     return true;
+}
+
+static bool
+expr_is_contextual_result_constructor(const ASTNode *expr,
+                                      const Type *site_type)
+{
+    const ASTNode *callee;
+    const char *name;
+
+    if (expr == NULL || expr->type != AST_CALL
+        || !type_is_constructed_named(site_type, "Result"))
+        return false;
+    callee = ast_call_callee(expr);
+    name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    return pgy_match_variant_is_result(pgy_match_variant_lookup(name));
 }
 
 bool
@@ -136,15 +173,34 @@ type_check_expression_at_typed_site(ASTNode *expr, Type *site_type,
                                     SemanticContext *ctx)
 {
     Type *saved_expected_collection;
+    ASTNode *saved_expected_result_constructor;
+    Type *saved_expected_result_type;
     Type *result;
+    bool collection_context;
+    bool result_context;
 
-    if (ctx == NULL || !semantic_expr_is_empty_collection_literal(expr)
-        || !expr_collection_site_type_is_resolved(site_type))
+    if (ctx == NULL || !expr_collection_site_type_is_resolved(site_type))
+        return type_check_expression(expr, ctx);
+    collection_context = semantic_expr_is_empty_collection_literal(expr)
+        || semantic_expr_is_compiler_clone_of_empty_collection(expr);
+    result_context = expr_is_contextual_result_constructor(expr, site_type);
+    if (!collection_context && !result_context)
         return type_check_expression(expr, ctx);
     saved_expected_collection = ctx->expected_collection_type;
-    ctx->expected_collection_type = site_type;
+    saved_expected_result_constructor = ctx->expected_result_constructor;
+    saved_expected_result_type = ctx->expected_result_type;
+    if (collection_context)
+        ctx->expected_collection_type = site_type;
+    if (result_context) {
+        /* Bind the context to this exact expression. A nested Ok/Err must get
+         * its own typed site rather than inheriting an outer Result layout. */
+        ctx->expected_result_constructor = expr;
+        ctx->expected_result_type = site_type;
+    }
     result = type_check_expression(expr, ctx);
     ctx->expected_collection_type = saved_expected_collection;
+    ctx->expected_result_constructor = saved_expected_result_constructor;
+    ctx->expected_result_type = saved_expected_result_type;
     return result;
 }
 

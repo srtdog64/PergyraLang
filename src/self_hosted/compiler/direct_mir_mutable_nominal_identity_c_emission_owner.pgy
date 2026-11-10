@@ -26,7 +26,7 @@ func DirectMirMutableNominalIdentityEmitC(
     if type_name == "" || field_name == "" {
         Die("direct MIR mutable nominal identity C symbols are invalid");
     }
-    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
+    var output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
     output = Concat(output, field_name);
     output = Concat(output, ";\n} ");

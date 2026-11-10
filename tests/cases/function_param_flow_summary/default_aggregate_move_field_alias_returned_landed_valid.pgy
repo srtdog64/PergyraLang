@@ -19,7 +19,7 @@ func Take(arena: Arena) -> Inner {
 
 func Main() -> Int {
     let arena: Arena = Arena(Inner([1]));
-    let inner: Inner = Take(arena);
+    var inner: Inner = Take(arena);
     ArrayPush(inner.ids, 2);
     ArrayPush(inner.ids, 3);
     Print(ToString(arena.inner.ids[0] + inner.ids[2]));

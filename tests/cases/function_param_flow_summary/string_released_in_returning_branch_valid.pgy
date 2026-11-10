@@ -6,7 +6,7 @@ func Clear(own names: Array<String>) -> Void {
 }
 
 func Pick(i: Int) -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("re", "d"));
     let text: String = names[0];
     if i < 0 {
@@ -19,10 +19,10 @@ func Pick(i: Int) -> Int {
 }
 
 func Choose(i: Int) -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("bl", "ue"));
     let text: String = names[0];
-    let length: Int = 0;
+    var length: Int = 0;
     if i < 0 {
         Clear(names);
         return 0;

@@ -42,7 +42,7 @@ func CodegenDomainRuntimeHasZoneOwners(
     ref facts: CodegenDomainRuntimeFacts
 ) -> Bool {
     if !CodegenDomainRuntimeFactsAdmittedReady(facts) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.owner_is_zone) {
         if facts.owner_is_zone[row] { return true; }
         row = row + 1;
@@ -59,8 +59,8 @@ func CodegenDomainRuntimeOwnsZone(
             ArrayLength(facts.owner_is_zone) {
         return false;
     }
-    let found: Bool = false;
-    let row: Int = 0;
+    var found: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(facts.owner_names) {
         if facts.owner_names[row] == owner_name {
             if found || !facts.owner_is_zone[row] { return false; }
@@ -77,14 +77,14 @@ func CodegenDomainRuntimeFactsReady(
     if !CodegenDomainRuntimeFactsAdmittedReady(facts) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.owner_names) {
         if facts.owner_names[row] == "" ||
             facts.method_prologues[row] == "" ||
             facts.sync_blocks[row] == "" {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if facts.owner_names[prior] == facts.owner_names[row] {
                 return false;
@@ -102,8 +102,8 @@ func CodegenDomainRuntimeSyncBlock(
     if !CodegenDomainRuntimeFactsAdmittedReady(facts) {
         Die("domain runtime sync block facts are missing or stale");
     }
-    let block: String = "";
-    let row: Int = 0;
+    var block: String = "";
+    var row: Int = 0;
     while row < ArrayLength(facts.sync_blocks) {
         block = Concat(block, facts.sync_blocks[row]);
         row = row + 1;
@@ -122,7 +122,7 @@ func CodegenDomainRuntimeMethodPrologue(
             ArrayLength(facts.method_prologues) {
         return "";
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.owner_names) {
         if facts.owner_names[row] == owner_name {
             return facts.method_prologues[row];

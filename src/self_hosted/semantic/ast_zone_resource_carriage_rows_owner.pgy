@@ -28,9 +28,9 @@ func SemanticAstZoneValueCarriageVerdictRowsReady(
             ArrayLength(verdict.resource_path_counts) {
         return false;
     }
-    let row: Int = 0;
-    let path_row: Int = 0;
-    let local_index: Int = 0;
+    var row: Int = 0;
+    var path_row: Int = 0;
+    var local_index: Int = 0;
     while local_index < SemanticAstLocalBindingCount(locals) {
         if initializer_types.verified[local_index] == 1 &&
             SemanticAstZoneValueCarriageTypeOwnsResource(
@@ -62,8 +62,8 @@ func SemanticAstZoneValueCarriageVerdictRowsReady(
                     );
                 if !IsSome(constructor_opt) { return false; }
                 let constructor_index: Int = UnwrapOption(constructor_opt);
-                let expected_count: Int = 0;
-                let field_index: Int = 0;
+                var expected_count: Int = 0;
+                var field_index: Int = 0;
                 while field_index < constructors.param_counts[constructor_index] {
                     let flat_index: Int =
                         constructors.param_starts[constructor_index] +
@@ -96,10 +96,10 @@ func SemanticAstZoneValueCarriageVerdictRowsReady(
         path_row != ArrayLength(verdict.resource_field_paths) {
         return false;
     }
-    let parameter_row: Int = 0;
-    let signature_index: Int = 0;
+    var parameter_row: Int = 0;
+    var signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(signatures) {
-        let parameter_index: Int = 0;
+        var parameter_index: Int = 0;
         while parameter_index < signatures.param_counts[signature_index] {
             let flat_index: Int =
                 signatures.param_starts[signature_index] + parameter_index;

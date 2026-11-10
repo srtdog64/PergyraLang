@@ -7,7 +7,7 @@ import "mir_identity_match_cfg_certificate_mutation_owner.pgy";
 func DirectMirCfgCertificateMutationRejected(
     own certificate: DirectMirCfgCertificate
 ) -> Bool {
-    let expected_evidence_count: Int = 1;
+    var expected_evidence_count: Int = 1;
     if DirectMirNestedCfgCertificateFactReady(certificate.nested) ||
         DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) ||
         DirectMirRangeCfgCertificateFactReady(certificate.range_fact) ||
@@ -21,27 +21,27 @@ func DirectMirCfgCertificateMutationRejected(
         DirectMirCfgCertificateWithDigest(
             certificate, certificate.certificate_digest + 1
         );
-    let missing_evidence: DirectMirCfgCertificate =
+    var missing_evidence: DirectMirCfgCertificate =
         DirectMirCfgCertificateWithEvidenceCounts(certificate, 0, 0, 0);
     missing_evidence = DirectMirCfgCertificateWithDigest(
         missing_evidence,
         DirectMirCfgCertificateIdentityDigest(missing_evidence)
     );
-    let fallback: DirectMirCfgCertificate =
+    var fallback: DirectMirCfgCertificate =
         DirectMirCfgCertificateWithEvidenceCounts(
             certificate, expected_evidence_count, 1, 0
         );
     fallback = DirectMirCfgCertificateWithDigest(
         fallback, DirectMirCfgCertificateIdentityDigest(fallback)
     );
-    let drift: DirectMirCfgCertificate =
+    var drift: DirectMirCfgCertificate =
         DirectMirCfgCertificateWithEvidenceCounts(
             certificate, expected_evidence_count, 0, 1
         );
     drift = DirectMirCfgCertificateWithDigest(
         drift, DirectMirCfgCertificateIdentityDigest(drift)
     );
-    let bad_nested_rejected: Bool = true;
+    var bad_nested_rejected: Bool = true;
     if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
         let nested_for_mutation: DirectMirNestedCfgCertificateFact =
             certificate.nested;
@@ -49,7 +49,7 @@ func DirectMirCfgCertificateMutationRejected(
             DirectMirNestedCfgCertificateFactInvalidMerge(
                 nested_for_mutation
             );
-        let bad_nested_certificate: DirectMirCfgCertificate =
+        var bad_nested_certificate: DirectMirCfgCertificate =
             DirectMirCfgCertificateWithNested(certificate, bad_nested);
         bad_nested_certificate = DirectMirCfgCertificateWithDigest(
             bad_nested_certificate,
@@ -63,7 +63,7 @@ func DirectMirCfgCertificateMutationRejected(
                 nested_for_negative
             );
     }
-    let bad_loop_rejected: Bool = true;
+    var bad_loop_rejected: Bool = true;
     if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
         let loop_for_mutation: DirectMirLoopCfgCertificateFact =
             certificate.loop_fact;
@@ -71,7 +71,7 @@ func DirectMirCfgCertificateMutationRejected(
             DirectMirLoopCfgCertificateFactInvalidBackedge(
                 loop_for_mutation
             );
-        let bad_loop_certificate: DirectMirCfgCertificate =
+        var bad_loop_certificate: DirectMirCfgCertificate =
             DirectMirCfgCertificateWithLoop(certificate, bad_loop);
         bad_loop_certificate = DirectMirCfgCertificateWithDigest(
             bad_loop_certificate,
@@ -85,7 +85,7 @@ func DirectMirCfgCertificateMutationRejected(
                 loop_for_negative
             );
     }
-    let bad_range_rejected: Bool = true;
+    var bad_range_rejected: Bool = true;
     if DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
         let range_for_mutation: DirectMirRangeCfgCertificateFact =
             certificate.range_fact;
@@ -93,7 +93,7 @@ func DirectMirCfgCertificateMutationRejected(
             DirectMirRangeCfgCertificateFactInvalidIteration(
                 range_for_mutation
             );
-        let bad_range_certificate: DirectMirCfgCertificate =
+        var bad_range_certificate: DirectMirCfgCertificate =
             DirectMirCfgCertificateWithRange(certificate, bad_range);
         bad_range_certificate = DirectMirCfgCertificateWithDigest(
             bad_range_certificate,
@@ -107,7 +107,7 @@ func DirectMirCfgCertificateMutationRejected(
                 range_for_negative
             );
     }
-    let bad_break_rejected: Bool = true;
+    var bad_break_rejected: Bool = true;
     if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
         let break_for_mutation: DirectMirBreakCfgCertificateFact =
             certificate.break_fact;
@@ -115,7 +115,7 @@ func DirectMirCfgCertificateMutationRejected(
             DirectMirBreakCfgCertificateFactInvalidExitSelection(
                 break_for_mutation
             );
-        let bad_break_certificate: DirectMirCfgCertificate =
+        var bad_break_certificate: DirectMirCfgCertificate =
             DirectMirCfgCertificateWithBreak(certificate, bad_break);
         bad_break_certificate = DirectMirCfgCertificateWithDigest(
             bad_break_certificate,
@@ -129,7 +129,7 @@ func DirectMirCfgCertificateMutationRejected(
                 break_for_negative
             );
     }
-    let bad_identity_match_rejected: Bool = true;
+    var bad_identity_match_rejected: Bool = true;
     if DirectMirIdentityMatchCfgCertificateFactReady(
         certificate.identity_match
     ) {
@@ -137,7 +137,7 @@ func DirectMirCfgCertificateMutationRejected(
             DirectMirIdentityMatchCfgCertificateFactInvalidEntryLog(
                 certificate.identity_match
             );
-        let bad_identity_certificate: DirectMirCfgCertificate =
+        var bad_identity_certificate: DirectMirCfgCertificate =
             DirectMirCfgCertificateWithIdentityMatch(
                 certificate, bad_identity_match
             );

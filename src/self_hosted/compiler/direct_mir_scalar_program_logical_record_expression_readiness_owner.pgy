@@ -4,7 +4,7 @@ import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy";
 func DirectMirScalarProgramLogicalRecordArgumentRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
-    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
+    var rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
     if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
     if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }
@@ -31,7 +31,7 @@ func DirectMirScalarProgramLogicalRecordExpressionNodeReady(
             facts.node_callable_rows[node] != -1 {
             return false;
         }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
             if arguments[ordinal] < 0 || arguments[ordinal] >= node ||
                 facts.node_types[arguments[ordinal]] == "" { return false; }
@@ -55,14 +55,14 @@ func DirectMirScalarProgramLogicalRecordReadyForExpressions(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     ref expressions: DirectMirScalarProgramExpressionSet) -> Bool {
     if !DirectMirScalarProgramLogicalRecordFactReady(fact) { return false; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[node];
         if kind == DirectMirScalarProgramExprIdentityCellConstructor() {
             let cell: Int = DirectMirIdentityCellRow(fact.identity_cells, expressions.node_types[node]);
             let arguments: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
             if cell < 0 || ArrayLength(arguments) != fact.identity_cells.field_counts[cell] { return false; }
-            let ordinal: Int = 0;
+            var ordinal: Int = 0;
             while ordinal < ArrayLength(arguments) {
                 if expressions.node_types[arguments[ordinal]] != DirectMirIdentityCellFieldType(
                         fact.identity_cells, expressions.node_types[node], ordinal) { return false; }
@@ -80,7 +80,7 @@ func DirectMirScalarProgramLogicalRecordReadyForExpressions(
             if record < 0 || ArrayLength(arguments) != fact.field_counts[record] {
                 return false;
             }
-            let ordinal: Int = 0;
+            var ordinal: Int = 0;
             while ordinal < ArrayLength(arguments) {
                 if expressions.node_types[arguments[ordinal]] !=
                         DirectMirScalarProgramLogicalRecordFieldType(
@@ -111,7 +111,10 @@ func DirectMirScalarProgramLogicalRecordReadyForExpressions(
             let left_type: String = expressions.node_types[left];
             let builtin_array: Bool = left_type == CompilerAbiLayoutArrayStringTypeName() || left_type == CompilerAbiLayoutArrayIntTypeName() ||
                 left_type == CompilerAbiLayoutArrayLongTypeName() || left_type == CompilerAbiLayoutArrayBoolTypeName();
-            if !builtin_array && !DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            let builtin_slice: Bool =
+                left_type == CompilerAbiLayoutSliceIntTypeName() ||
+                left_type == CompilerAbiLayoutSliceStringTypeName();
+            if !builtin_array && !builtin_slice && !DirectMirScalarProgramLogicalRecordArrayTypeReady(
                     fact, left_type) { return false; }
         }
         node = node + 1;

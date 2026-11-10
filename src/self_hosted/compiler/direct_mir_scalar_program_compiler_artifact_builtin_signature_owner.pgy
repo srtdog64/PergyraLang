@@ -24,8 +24,8 @@ func DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(
     return [];
 }
 func DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(name: String) -> Int {
-    let row: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactMissing();
-    let ready: Bool = false;
+    var row: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactMissing();
+    var ready: Bool = false;
     if name == "CompilerArtifactWrite" {
         row = CompilerRuntimeCallAbiCompilerArtifactWriteFact();
         ready = CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(row);

@@ -1,0 +1,17 @@
+func Decide(flag: Bool) -> Result<Bool>
+{
+    if flag
+    {
+        return Ok(false);
+    }
+    return Err("not-selected");
+}
+
+func Main() -> Void
+{
+    let selected: Result<Bool> = Decide(true);
+    Log(IsOk(selected));
+    Log(Unwrap(selected));
+    let rejected: Result<Bool> = Decide(false);
+    Log(IsErr(rejected));
+}

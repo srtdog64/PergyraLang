@@ -44,9 +44,9 @@ func SelfMirRoutineLocalInventoryFromInput(
     ref input: SelfMirRoutineInput,
     function_node_id: Int
 ) -> SelfMirRoutineLocalInventory {
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let binding_syntax_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var binding_syntax_ids: Array<Int> = [];
     if function_node_id < 0 || !input.analysis.local_bindings.ok {
         return SelfMirRoutineLocalInventoryError(
             "MIR source-local inventory input is invalid", names, types,
@@ -74,9 +74,9 @@ func SelfMirRoutineLocalInventoryFromInput(
             binding_syntax_ids
         );
     }
-    let iteration_rows: Array<Int> = [];
-    let prior_iteration_node: Int = -1;
-    let statement_i: Int = statement_range.start;
+    var iteration_rows: Array<Int> = [];
+    var prior_iteration_node: Int = -1;
+    var statement_i: Int = statement_range.start;
     while statement_i < statement_range.end {
         if input.analysis.statements.kind_tags[statement_i] ==
             TypedAstKindForStmtTag() {
@@ -104,17 +104,17 @@ func SelfMirRoutineLocalInventoryFromInput(
         statement_i = statement_i + 1;
     }
 
-    let local_i: Int = local_range.start;
-    let iteration_i: Int = 0;
+    var local_i: Int = local_range.start;
+    var iteration_i: Int = 0;
     let sentinel: Int = input.artifact.count + 1;
     while local_i < local_range.end ||
         iteration_i < ArrayLength(iteration_rows) {
-        let local_node: Int = sentinel;
+        var local_node: Int = sentinel;
         if local_i < local_range.end {
             local_node = input.analysis.local_bindings.node_ids[local_i];
         }
-        let iteration_node: Int = sentinel;
-        let iteration_row: Int = -1;
+        var iteration_node: Int = sentinel;
+        var iteration_row: Int = -1;
         if iteration_i < ArrayLength(iteration_rows) {
             iteration_row = iteration_rows[iteration_i];
             iteration_node = input.iterations.node_ids[iteration_row];
@@ -180,7 +180,7 @@ func SelfMirRoutineLocalInventoryFromInput(
                     names, types, binding_syntax_ids
                 );
             }
-            let offset: Int = 0;
+            var offset: Int = 0;
             while binding_range.start + offset < binding_range.end {
                 let binding_row: Int = binding_range.start + offset;
                 if input.analysis.local_bindings.function_node_ids[
@@ -204,7 +204,7 @@ func SelfMirRoutineLocalInventoryFromInput(
             local_i = binding_range.end;
         }
     }
-    let match_row: Int = 0;
+    var match_row: Int = 0;
     while match_row < ArrayLength(input.match_materializations.node_ids) {
         if input.match_materializations.function_node_ids[match_row] ==
             function_node_id &&

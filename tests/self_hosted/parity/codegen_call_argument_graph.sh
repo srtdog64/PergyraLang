@@ -55,7 +55,8 @@ for case_name in nominal_return_valid nominal_return_bad scalar_return_bad colle
         diagnostic=call_arg_type_mismatch
         case "$case_name" in
             readonly_escape_bad) diagnostic=borrow_boundary_escape ;;
-            readonly_field_bad|readonly_call_bad) diagnostic=value_param_collection_mutation ;;
+            readonly_field_bad) diagnostic=value_param_collection_mutation ;;
+            readonly_call_bad) diagnostic=immutable_field_write ;;
         esac
         grep -Fq "Code: $diagnostic" "$B/$case_name.out" "$B/$case_name.err" ||
             fail "$case_name lost its $diagnostic diagnosis"

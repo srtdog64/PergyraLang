@@ -71,8 +71,8 @@ func SemanticAstDomainQueryFieldIndex(
         constructor_index >= SemanticAstNominalConstructorCount(constructors) {
         return None;
     }
-    let found: Int = -1;
-    let field_index: Int = 0;
+    var found: Int = -1;
+    var field_index: Int = 0;
     while field_index < constructors.param_counts[constructor_index] {
         let absolute: Int =
             constructors.param_starts[constructor_index] + field_index;
@@ -171,8 +171,8 @@ func SemanticExpressionGraphDomainQueryValidateCall(
         );
     }
     let owner: Int = UnwrapOption(owner_index);
-    let detail_owner: Int = owner;
-    let detail_argument: Int = 0;
+    var detail_owner: Int = owner;
+    var detail_argument: Int = 0;
     if protocol.family == "projection" || protocol.family == "layer" {
         if (protocol.family == "projection" &&
             constructors.nominal_kinds[owner] != "zone" &&
@@ -312,9 +312,9 @@ func SemanticExpressionGraphDomainQueryFactsFromTree(
     ref function_returns: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphDomainQueryFact {
-    let symbolic_identifier_nodes: Array<Int> = [];
-    let pending: Array<Int> = [root_id];
-    let saw_query: Bool = false;
+    var symbolic_identifier_nodes: Array<Int> = [];
+    var pending: Array<Int> = [root_id];
+    var saw_query: Bool = false;
     while ArrayLength(pending) > 0 {
         let node_id: Int = pending[ArrayLength(pending) - 1];
         ArrayPop(pending);
@@ -355,7 +355,7 @@ func SemanticExpressionGraphDomainQueryFactsFromTree(
                     );
                 if !query.ok { return query; }
             }
-            let argument_index: Int = 0;
+            var argument_index: Int = 0;
             while argument_index < ArrayLength(call.argument_nodes) {
                 ArrayPush(pending, call.argument_nodes[argument_index]);
                 argument_index = argument_index + 1;

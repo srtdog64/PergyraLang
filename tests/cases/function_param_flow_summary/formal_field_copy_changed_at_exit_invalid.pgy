@@ -9,14 +9,14 @@ struct Facts {
 }
 
 func GrowAndReturn(inout facts: Facts) -> Int {
-    let table: HashMap<String, Array<Int>> = facts.table;
+    var table: HashMap<String, Array<Int>> = facts.table;
     MapSet(table, "k", [1]);
     if MapSize(table) > 5 { return 1; }
     return 0;
 }
 
 func GrowAndFallOff(inout facts: Facts) -> Void {
-    let table: HashMap<String, Array<Int>> = facts.table;
+    var table: HashMap<String, Array<Int>> = facts.table;
     MapSet(table, "k", [1]);
 }
 

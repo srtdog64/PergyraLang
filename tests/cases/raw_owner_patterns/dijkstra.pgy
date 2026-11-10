@@ -1,0 +1,212 @@
+// Fixed-size workload. Storage retirement is compiler-owned.
+extern "C"
+{
+    func PatternIterations() -> Int;
+    func PatternSeed() -> Int;
+    func PatternStart() -> Void;
+    func PatternFinish(value: Int) -> Void;
+}
+func Work(seed: Int) -> Int
+{
+    var offsets: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0
+    ];
+    var targets: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var weights: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var distances: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var positions: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var heap: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var heuristic: Array<Int> = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    ];
+    var node: Int = 0;
+    var edge: Int = 0;
+    while node < 64
+    {
+        offsets[node] = edge;
+        var direction: Int = 0;
+        while direction < 4
+        {
+            var target: Int = -1;
+            if direction == 0 && node % 8 < 7
+            {
+                target = node + 1;
+            }
+            if direction == 1 && node / 8 < 7
+            {
+                target = node + 8;
+            }
+            if direction == 2 && node % 8 > 0
+            {
+                target = node - 1;
+            }
+            if direction == 3 && node / 8 > 0
+            {
+                target = node - 8;
+            }
+            if target >= 0
+            {
+                targets[edge] = target;
+                weights[edge] = (node * 17 + target * 13 + seed) % 9 + 1;
+                edge = edge + 1;
+            }
+            direction = direction + 1;
+        }
+        distances[node] = 1000000000;
+        positions[node] = -1;
+        heuristic[node] = 0;
+        node = node + 1;
+    }
+    offsets[64] = edge;
+    let adjacent: Slice<Int> = targets.Slice(0, 256);
+    let costs: Slice<Int> = weights.Slice(0, 256);
+    distances[0] = 0;
+    heap[0] = 0;
+    positions[0] = 0;
+    var count: Int = 1;
+    while count > 0
+    {
+        let current: Int = heap[0];
+        count = count - 1;
+        positions[current] = -2;
+        if count > 0
+        {
+            heap[0] = heap[count];
+            positions[heap[0]] = 0;
+            var at: Int = 0;
+            while at * 2 + 1 < count
+            {
+                var child: Int = at * 2 + 1;
+                if child + 1 < count
+                {
+                    let left: Int = heap[child];
+                    let right: Int = heap[child + 1];
+                    if distances[right] + heuristic[right] < distances[left] + heuristic[left]
+                    {
+                        child = child + 1;
+                    }
+                }
+                let parentNode: Int = heap[at];
+                let childNode: Int = heap[child];
+                if distances[parentNode] + heuristic[parentNode] <= distances[childNode] + heuristic[childNode]
+                {
+                    break;
+                }
+                heap[at] = childNode;
+                heap[child] = parentNode;
+                positions[childNode] = at;
+                positions[parentNode] = child;
+                at = child;
+            }
+        }
+        if current == 63
+        {
+            break;
+        }
+        edge = offsets[current];
+        while edge < offsets[current + 1]
+        {
+            var target: Int = adjacent[edge];
+            let candidate: Int = distances[current] + costs[edge];
+            if positions[target] != -2 && candidate < distances[target]
+            {
+                distances[target] = candidate;
+                var at: Int = positions[target];
+                if at < 0
+                {
+                    at = count;
+                    heap[at] = target;
+                    positions[target] = at;
+                    count = count + 1;
+                }
+                while at > 0
+                {
+                    let parent: Int = (at - 1) / 2;
+                    let parentNode: Int = heap[parent];
+                    if distances[parentNode] + heuristic[parentNode] <= candidate + heuristic[target]
+                    {
+                        break;
+                    }
+                    heap[at] = parentNode;
+                    heap[parent] = target;
+                    positions[parentNode] = at;
+                    positions[target] = parent;
+                    at = parent;
+                }
+            }
+            edge = edge + 1;
+        }
+    }
+    let result: Int = distances[63];
+    return result;
+}
+func Main() -> Void
+{
+    var count: Int = PatternIterations();
+    let offset: Int = PatternSeed();
+    var i: Int = 0;
+    var checksum: Int = 0;
+    PatternStart();
+    while i < count
+    {
+        checksum = (checksum + Work((i + offset) % 251)) % 1000003;
+        i = i + 1;
+    }
+    PatternFinish(checksum);
+}

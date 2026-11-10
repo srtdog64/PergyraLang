@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Proves the 147-row language-word registry, full self-host metadata projection,
+# Proves the language-word registry, full self-host metadata projection,
 # reserved lexer compatibility view, editor scope projection, and generated
 # implementation inventory remain one source-of-truth chain.
 # SoT fallback IDs covered here or by the companion enforcement refs in the

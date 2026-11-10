@@ -8,7 +8,7 @@ func DirectMirScalarProgramCaseMathBuiltinSignatureExpected(
     if name == "CheckedAdd" { return ["Int", "Int|Int", ToString(DirectMirScalarProgramExprCheckedAddInt())]; }
     if name == "CheckedMul" { return ["Int", "Int|Int", ToString(DirectMirScalarProgramExprCheckedMulInt())]; }
     if name == "StringReplace" {
-        return ["String", "Unknown|Unknown|Unknown", ToString(
+        return ["String", "String|String|String", ToString(
             DirectMirScalarProgramExprStringReplace())];
     }
     if name == "Abs" {

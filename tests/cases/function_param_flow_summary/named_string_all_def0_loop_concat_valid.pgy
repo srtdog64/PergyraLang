@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     var name: String = Substring("a", 0, 1);
     var index: Int = 0;
     while index < 3 {

@@ -5,7 +5,7 @@ import "direct_mir_scalar_program_task_builtin_owner.pgy";
 func DirectMirScalarProgramCIntentObservabilityPreamble(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprIntentObservabilityCall() {
@@ -19,7 +19,7 @@ func DirectMirScalarProgramCIntentObservabilityPreamble(
 func DirectMirScalarProgramCTaskObservationPreamble(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprTaskIsCancelled() {

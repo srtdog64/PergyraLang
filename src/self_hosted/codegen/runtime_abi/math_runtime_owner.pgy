@@ -73,7 +73,7 @@ func MathRuntimeCRandomFn() -> String {
 // rand() % n unchanged because rand() stays below 2^31.
 func MathRuntimeCRandomValueBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCRandomFn(), Concat("(", Concat(int_type, " n)\n{\n")))))));
     block = Concat(block, "    return (long long)Random(n <= 0 ? 0 : (n > 2147483647LL ? 2147483647 : (int32_t)n));\n}\n\n");
     return block;
@@ -81,7 +81,7 @@ func MathRuntimeCRandomValueBlock() -> String {
 
 func MathRuntimeCSeedRandomBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static void ", Concat(MathRuntimeCSeedRandomFn(), Concat("(", Concat(int_type, " seed)\n{\n")))));
     block = Concat(block, "    SeedRandom((int32_t)seed);\n}\n\n");
     return block;
@@ -93,7 +93,7 @@ func MathRuntimeCSeedRandomBlock() -> String {
 // evaluate each operand once, left to right, and keep its type, as the native
 // C emitter does.
 func MathRuntimeCIntUtilityBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("#define ", Concat(MathRuntimeCAbsFn(), "(v) (({ __auto_type pgy_abs_v_ = (v); pgy_abs_v_ < 0 ? -pgy_abs_v_ : pgy_abs_v_; }))\n")));
     block = Concat(block, Concat("#define ", Concat(MathRuntimeCMinFn(), "(a, b) (({ __auto_type pgy_min_a_ = (a); __auto_type pgy_min_b_ = (b); pgy_min_a_ < pgy_min_b_ ? pgy_min_a_ : pgy_min_b_; }))\n")));
     block = Concat(block, Concat("#define ", Concat(MathRuntimeCMaxFn(), "(a, b) (({ __auto_type pgy_max_a_ = (a); __auto_type pgy_max_b_ = (b); pgy_max_a_ > pgy_max_b_ ? pgy_max_a_ : pgy_max_b_; }))\n\n")));

@@ -39,13 +39,13 @@ func CanonicalMirRoutineIdentityEpochFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> CanonicalMirRoutineIdentityEpoch {
-    let ids: Array<String> = [];
+    var ids: Array<String> = [];
     let epoch: MirExpressionIdentityEpoch =
         MirExpressionIdentityEpochFromArtifactWithSignatures(
             routines, artifact, signatures
         );
     let ok: Bool = epoch.ok;
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(epoch.routine_canonical_ids) && ok {
         ArrayPush(ids, ToString(epoch.routine_canonical_ids[row]));
         row = row + 1;
@@ -63,7 +63,7 @@ struct CanonicalMirProgramIdentityEpoch {
 func CanonicalMirIdentityEpochTopologyOwnerHasRows(
     ref topology: MirDomainTopologyFacts, owner_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(topology.owner_names) {
         if topology.owner_names[i] == owner_name { return true; }
         i = i + 1;
@@ -77,10 +77,10 @@ func CanonicalMirIdentityEpochOwnerNameForLine(
     ref declarations: MirProgramDeclarationIndex
 ) -> String {
     let trimmed: String = StringTrim(line);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(declarations.names) {
         let nominal_kind: String = declarations.nominal_kinds[i];
-        let prefix: String = "";
+        var prefix: String = "";
         if nominal_kind == "effect" {
             prefix = "Effect: ";
         } else if nominal_kind == "relation" {
@@ -115,9 +115,9 @@ func CanonicalMirIdentityEpochDirectiveText(
     ref topology: MirDomainTopologyFacts, row: Int
 ) -> String {
     let kind: String = topology.kinds[row];
-    let text: String = "";
+    var text: String = "";
     if kind == "refresh" || kind == "publish" || kind == "bind" {
-        let label: String = "Refresh";
+        var label: String = "Refresh";
         if kind == "publish" { label = "Publish"; }
         if kind == "bind" { label = "Bind"; }
         text = Concat(
@@ -178,8 +178,8 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
     inout node_count: Int,
     inout directive_node_ids: Array<Int>
 ) -> Bool {
-    let matched: Int = 0;
-    let row: Int = 0;
+    var matched: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(topology.kinds) {
         if topology.owner_names[row] == owner_name {
             let directive: String = CanonicalMirIdentityEpochDirectiveText(
@@ -193,7 +193,7 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
             );
             ArraySet(directive_node_ids, row, node_count);
             node_count = node_count + 1;
-            let assignment_row: Int = 0;
+            var assignment_row: Int = 0;
             while assignment_row <
                 MirDomainRuntimeProjectionAssignmentCount(runtime_assignments) {
                 let topology_row: Option<Int> = MirDomainRuntimeProjectionTopologyRowAt(
@@ -264,19 +264,19 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
         !declarations.field_identities.valid {
         return CanonicalMirIdentityEpochArtifact(false, base_artifact, empty_ids);
     }
-    let directive_node_ids: Array<Int> = [];
-    let row: Int = 0;
+    var directive_node_ids: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(admitted.domain_topology.kinds) {
         ArrayPush(directive_node_ids, 0 - 1);
         row = row + 1;
     }
-    let output: String = "";
-    let node_count: Int = 0;
-    let active_owner: String = "";
-    let active_indent: Int = 0;
-    let inserted: Bool = false;
+    var output: String = "";
+    var node_count: Int = 0;
+    var active_owner: String = "";
+    var active_indent: Int = 0;
+    var inserted: Bool = false;
     let lines: Array<String> = Split(tree_text, "\n");
-    let line_index: Int = 0;
+    var line_index: Int = 0;
     while line_index < ArrayLength(lines) {
         let line: String = lines[line_index];
         let trimmed: String = StringTrim(line);
@@ -328,7 +328,7 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
             );
         }
     }
-    let id_index: Int = 0;
+    var id_index: Int = 0;
     while id_index < ArrayLength(directive_node_ids) {
         if directive_node_ids[id_index] <= 0 {
             return CanonicalMirIdentityEpochArtifact(
@@ -366,8 +366,8 @@ func CanonicalMirIdentityEpochOwnerId(
     if source_owner < 0 { return ""; }
     let nominal_kind: String =
         source_index.declaration_nominal_kinds[source_owner];
-    let found_id: Int = 0 - 1;
-    let i: Int = 0;
+    var found_id: Int = 0 - 1;
+    var i: Int = 0;
     while i < ArrayLength(constructors.names) {
         if constructors.names[i] == owner_name &&
             constructors.nominal_kinds[i] == nominal_kind {
@@ -401,25 +401,25 @@ func CanonicalMirIdentityEpochRemapTopology(
         ArrayLength(directive_node_ids) != count {
         return SelfMirDomainTopologyFactsInvalid(true);
     }
-    let owner_ids: Array<String> = [];
-    let directive_ids: Array<String> = [];
-    let owner_names: Array<String> = [];
-    let kinds: Array<String> = [];
-    let projection_names: Array<String> = [];
-    let projection_ids: Array<String> = [];
-    let source_names: Array<String> = [];
-    let source_ids: Array<String> = [];
-    let layer_names: Array<String> = [];
-    let layer_ids: Array<String> = [];
-    let target_names: Array<String> = [];
-    let target_ids: Array<String> = [];
-    let left_names: Array<String> = [];
-    let left_ids: Array<String> = [];
-    let right_names: Array<String> = [];
-    let right_ids: Array<String> = [];
-    let participant_names: Array<String> = [];
-    let participant_ids: Array<String> = [];
-    let row: Int = 0;
+    var owner_ids: Array<String> = [];
+    var directive_ids: Array<String> = [];
+    var owner_names: Array<String> = [];
+    var kinds: Array<String> = [];
+    var projection_names: Array<String> = [];
+    var projection_ids: Array<String> = [];
+    var source_names: Array<String> = [];
+    var source_ids: Array<String> = [];
+    var layer_names: Array<String> = [];
+    var layer_ids: Array<String> = [];
+    var target_names: Array<String> = [];
+    var target_ids: Array<String> = [];
+    var left_names: Array<String> = [];
+    var left_ids: Array<String> = [];
+    var right_names: Array<String> = [];
+    var right_ids: Array<String> = [];
+    var participant_names: Array<String> = [];
+    var participant_ids: Array<String> = [];
+    var row: Int = 0;
     while row < count {
         let owner_id: String = CanonicalMirIdentityEpochOwnerId(
             source_declarations.field_identities, constructors,

@@ -10,7 +10,7 @@ func DirectMirScalarProgramStringLiteralContent(
     let length: Int = StringLength(spelling);
     if length < 2 || CharCode(spelling, length, 0) != 34 ||
         CharCode(spelling, length, length - 1) != 34 { return None; }
-    let index: Int = 1;
+    var index: Int = 1;
     while index < length - 1 {
         let code: Int = CharCode(spelling, length, index);
         if code < 32 || code == 127 || code > 255 || code == 34 { return None; }

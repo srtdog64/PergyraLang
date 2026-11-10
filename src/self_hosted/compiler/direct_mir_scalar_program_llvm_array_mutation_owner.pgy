@@ -2,15 +2,22 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy";
 import "direct_mir_scalar_program_array_string_mutation_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_pop_projection_owner.pgy";
 import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 func DirectMirScalarProgramLlvmArrayIntPushMaterialization() -> String {
     return "define internal void @pgy_ai_push(ptr %array, i64 %value) {\nentry:\n  %data.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %bytes = mul i64 %next.capacity, 4\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i32, ptr %data, i64 %length\n  %element = trunc i64 %value to i32\n  store i32 %element, ptr %slot, align 4\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n";
 }
 func DirectMirScalarProgramLlvmLocalArraySetMaterialization(ref plan: DirectMirScalarCfgGraphPlan, array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> String {
-    let int_set: Bool = false; let string_set: Bool = false; let bool_set: Bool = false;
-    let row: Int = 0;
+    var int_set: Bool = false; var string_set: Bool = false; var bool_set: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(plan.operation_kinds) {
         if plan.operation_kinds[row] == DirectMirScalarCfgOpLocalArrayIntSet() ||
             plan.operation_kinds[row] == DirectMirScalarCfgOpArrayIntValueResultSet() {
@@ -25,7 +32,7 @@ func DirectMirScalarProgramLlvmLocalArraySetMaterialization(ref plan: DirectMirS
         }
         row = row + 1;
     }
-    let output: String = "";
+    var output: String = "";
     if int_set {
         output = Concat(output, "define internal void @pgy_ai_set(ptr %array, i64 %index, i64 %value) {\nentry:\n  %length.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @pgy_runtime_panic_out_of_bounds_export(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i32, ptr %data, i64 %index\n  %element = trunc i64 %value to i32\n  store i32 %element, ptr %slot, align 4\n  ret void\n}\n\n");
     }
@@ -38,14 +45,33 @@ func DirectMirScalarProgramLlvmLocalArraySetMaterialization(ref plan: DirectMirS
     return output;
 }
 func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int, index: String, value: String,
-    array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> String {
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection) -> String {
     let kind: Int = plan.operation_kinds[operation];
     let target_local: Int = plan.operation_left_locals[operation];
     let target_parameter: Int = plan.operation_right_locals[operation];
+    let member_count: Int =
+        DirectMirScalarProgramArrayMutationTargetMemberCount(
+            plan.program.operation_target_paths, operation);
     if !DirectMirScalarProgramArrayMutationKind(kind) ||
-        ((target_local < 0) == (target_parameter < 0)) { Die(
+        ((target_local < 0) == (target_parameter < 0)) ||
+        member_count < 0 { Die(
             "direct MIR LLVM array mutation target is invalid"); }
-    if target_parameter >= 0 {
+    var member_root_type: String = "";
+    if member_count > 0 {
+        member_root_type = DirectMirScalarProgramArrayMutationRootType(
+            plan, routine, target_local, target_parameter);
+        if !DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, member_root_type) ||
+            !DirectMirScalarProgramArrayMutationTargetTypeReady(
+                kind,
+                DirectMirScalarProgramArrayMutationTargetFinalType(
+                    plan.program.operation_target_paths, operation,
+                    member_root_type,
+                    plan.program.logical_record)) {
+            Die("direct MIR LLVM array member mutation target is invalid");
+        }
+    } else if target_parameter >= 0 {
         if target_local != -1 ||
             !DirectMirScalarProgramArrayMutationParameterTargetKind(kind) ||
             DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) ||
@@ -62,25 +88,55 @@ func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPl
                 plan.program.array_bool_abi, routine,
                 target_parameter)) { Die(
                     "direct MIR LLVM array copyout mutation is invalid"); }
-        if (kind == DirectMirScalarCfgOpArrayStringSet() ||
+        if (kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+            kind == DirectMirScalarCfgOpArrayStringSet() ||
             kind == DirectMirScalarCfgOpArrayStringPop()) &&
             !DirectMirScalarProgramArrayStringParameterMutationReady(
                 plan, routine, target_parameter, kind) { Die(
                 "direct MIR LLVM Array<String> copyout set is invalid"); }
     } else if target_parameter != -1 || target_local < 0 ||
         target_local >= ArrayLength(plan.local_types) ||
-        !DirectMirScalarProgramLocalArrayMutationTargetTypeReady(
+        !DirectMirScalarProgramArrayMutationTargetTypeReady(
             kind, plan.local_types[target_local]) { Die(
                 "direct MIR LLVM local array mutation target is invalid"); }
-    let target: String = "";
+    var target: String = "";
     if target_local >= 0 {
         target = DirectMirScalarCfgLlvmOperandLocal(
             plan, -1, target_local);
     } else {
-        target = Concat(
-            "%pgy.param.", Concat(ToString(target_parameter), ".local"));
+        target = DirectMirScalarProgramLlvmParameterCurrentStorage(
+            plan, routine, target_parameter);
     }
-    let symbol: String = "@pgy_as_push"; let value_type: String = "ptr";
+    var target_prefix: String = "";
+    if member_count > 0 {
+        let llvm_record: String =
+            DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                plan.program.logical_record, member_root_type);
+        if llvm_record == "" {
+            Die("direct MIR LLVM array member root type is invalid");
+        }
+        let target_pointer: String = Concat(
+            "%pgy.array.target.", ToString(operation));
+        target_prefix = Concat(
+            "  ", Concat(target_pointer, Concat(
+                " = getelementptr inbounds ", llvm_record)));
+        target_prefix = Concat(
+            target_prefix, Concat(", ptr ", target));
+        target_prefix = Concat(target_prefix, ", i32 0");
+        var member: Int = 0;
+        while member < member_count {
+            let ordinal: Int =
+                plan.program.operation_target_paths.member_ordinals[
+                    plan.program.operation_target_paths.starts[operation] +
+                    member];
+            target_prefix = Concat(
+                target_prefix, Concat(", i32 ", ToString(ordinal)));
+            member = member + 1;
+        }
+        target_prefix = Concat(target_prefix, "\n");
+        target = target_pointer;
+    }
+    var symbol: String = "@pgy_as_push"; var value_type: String = "ptr";
     if kind == DirectMirScalarCfgOpArrayIntPush() ||
         kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
         kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
@@ -102,13 +158,15 @@ func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPl
     }
     if DirectMirScalarProgramArrayPopKind(kind) {
         if kind == DirectMirScalarCfgOpArrayStringPop() {
-            return DirectMirScalarProgramLlvmArrayStringPop(
-                plan.program.array_string_abi, array_string_projection, operation, target);
+            return Concat(target_prefix,
+                DirectMirScalarProgramLlvmArrayStringPop(
+                    plan.program.array_string_abi, array_string_projection,
+                    plan.program.collection_ownership, operation, target));
         }
         let array_type: String = "%pgy.array.int";
         let stem: String = Concat("%pgy.pop.", ToString(operation));
-        let output: String = Concat("  ", Concat(stem,
-            Concat(".length.ptr = getelementptr inbounds ", array_type)));
+        var output: String = Concat(target_prefix, Concat("  ", Concat(stem,
+            Concat(".length.ptr = getelementptr inbounds ", array_type))));
         output = Concat(output, Concat(", ptr ", target));
         output = Concat(output, Concat(", i32 0, i32 1\n  ", stem));
         output = Concat(output, Concat(
@@ -125,11 +183,30 @@ func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPl
             Concat(stem, ".length.ptr, align 8\n")));
         return output;
     }
-    let output: String = Concat("  call void ", Concat(symbol, "(ptr "));
+    var stored_value: String = value;
+    var ownership_prefix: String = "";
+    if DirectMirScalarProgramCollectionOwnershipOperationRequiresValueCopy(
+            plan, operation) {
+        if !CompilerRuntimeCallAbiStringConcatFactReady(
+                runtime.string_concat) {
+            Die("direct MIR LLVM owned String push copy ABI is invalid");
+        }
+        stored_value = Concat(
+            "%pgy.owned.push.copy.", ToString(operation));
+        ownership_prefix = Concat("  ", Concat(stored_value, Concat(
+            " = call ptr @", Concat(runtime.string_concat.symbol, Concat(
+                "(ptr ", Concat(value,
+                    ", ptr @pgy.scalar.owned.push.empty)\n"))))));
+    }
+    var output: String = Concat(
+        target_prefix, ownership_prefix);
+    output = Concat(output, Concat(
+        "  call void ", Concat(symbol, "(ptr ")));
     output = Concat(output, target);
     if DirectMirScalarProgramArraySetKind(kind) {
         output = Concat(output, Concat(", i64 ", Concat(index, ", ")));
     } else { output = Concat(output, ", "); }
-    output = Concat(output, Concat(value_type, Concat(" ", value)));
+    output = Concat(output, Concat(
+        value_type, Concat(" ", stored_value)));
     return Concat(output, ")\n");
 }

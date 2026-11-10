@@ -10,7 +10,7 @@ func DirectMirScalarProgramLlvmStringTrimMaterialization(
         return "";
     }
     let symbol: String = runtime.string_trim.symbol;
-    let out: String = "";
+    var out: String = "";
     out = Concat(out, Concat("define internal ptr @", Concat(symbol,
         "(ptr %source) {\nentry:\n")));
     out = Concat(out,

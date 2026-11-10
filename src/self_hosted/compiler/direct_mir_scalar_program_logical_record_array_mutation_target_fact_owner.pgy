@@ -1,0 +1,46 @@
+// One typed logical-record Array mutation target, independent of backend spelling.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordArrayMutationTargetFact {
+    let valid: Bool;
+    let array_type: String;
+    let element_type: String;
+}
+
+func DirectMirScalarProgramLogicalRecordArrayMutationTargetFactInvalid(
+) -> DirectMirScalarProgramLogicalRecordArrayMutationTargetFact {
+    return DirectMirScalarProgramLogicalRecordArrayMutationTargetFact(
+        false, "", "");
+}
+
+func DirectMirScalarProgramLogicalRecordArrayMutationTargetFactAt(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    local_row: Int, parameter: Int
+) -> DirectMirScalarProgramLogicalRecordArrayMutationTargetFact {
+    let invalid: DirectMirScalarProgramLogicalRecordArrayMutationTargetFact =
+        DirectMirScalarProgramLogicalRecordArrayMutationTargetFactInvalid();
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        ((local_row < 0) == (parameter < 0)) { return invalid; }
+    var array_type: String = "";
+    if local_row >= 0 {
+        if local_row >= ArrayLength(plan.local_types) { return invalid; }
+        array_type = plan.local_types[local_row];
+    } else {
+        if !DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, parameter) { return invalid; }
+        let parameter_row: Int =
+            plan.routines.parameter_starts[routine] + parameter;
+        if parameter_row < 0 ||
+            parameter_row >= ArrayLength(plan.routines.parameter_types) {
+            return invalid;
+        }
+        array_type = plan.routines.parameter_types[parameter_row];
+    }
+    let element: Option<String> =
+        DirectMirScalarProgramLogicalRecordArrayElementType(
+            plan.program.logical_record, array_type);
+    if !IsSome(element) { return invalid; }
+    return DirectMirScalarProgramLogicalRecordArrayMutationTargetFact(
+        true, array_type, UnwrapOption(element));
+}

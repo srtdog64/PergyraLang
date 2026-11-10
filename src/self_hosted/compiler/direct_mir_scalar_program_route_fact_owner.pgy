@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
 import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 import "direct_mir_routine_instance_inventory_owner.pgy";
+import "direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy";
 struct DirectMirScalarProgramRouteFact {
     let claimed: Bool; let digest: Int;
     let entrypoint_row: Int; let callable_row: Int;
@@ -18,6 +19,7 @@ struct DirectMirScalarProgramRouteFact {
     let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
     let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
+    let opaque_readonly_zones: DirectMirScalarProgramOpaqueReadonlyZoneFact;
     let routine_instances: DirectMirRoutineInstanceInventory;
 }
 func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
@@ -28,7 +30,9 @@ func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
         DirectMirScalarProgramPayloadFreeEnumFactInvalid(),
         DirectMirScalarProgramArrayIntValueResultFactInvalid(),
         DirectMirScalarProgramArrayBoolAbiFactInvalid(),
-        DirectMirScalarProgramArrayStringAbiFactEmpty(), DirectMirRoutineInstanceInventoryEmpty(""));
+        DirectMirScalarProgramArrayStringAbiFactEmpty(),
+        DirectMirScalarProgramOpaqueReadonlyZoneFactInvalid(),
+        DirectMirRoutineInstanceInventoryEmpty(""));
 }
 func DirectMirScalarProgramRouteFactCanonicalEmpty(ref fact: DirectMirScalarProgramRouteFact
 ) -> Bool {
@@ -37,6 +41,7 @@ func DirectMirScalarProgramRouteFactCanonicalEmpty(ref fact: DirectMirScalarProg
         !fact.logical_record.valid && !fact.referenced_enum.valid &&
         !fact.payload_free_enum.valid &&
         !fact.array_int_value_result.valid && !fact.array_bool_abi.valid &&
+        !fact.opaque_readonly_zones.valid &&
         !fact.routine_instances.valid &&
         DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
             fact.array_string_abi);
@@ -45,7 +50,7 @@ func DirectMirScalarProgramRouteFactDigest(
     ref fact: DirectMirScalarProgramRouteFact
 ) -> Int {
     if !fact.claimed { return 0; }
-    let hash: Long = DirectMirCfgHashInt(223L, fact.entrypoint_row);
+    var hash: Long = DirectMirCfgHashInt(223L, fact.entrypoint_row);
     hash = DirectMirCfgHashInt(hash, fact.callable_row);
     hash = DirectMirScalarCfgHashInts(hash, fact.routine_rows);
     hash = DirectMirCfgHashInt(hash, fact.logical_record.digest);
@@ -54,6 +59,7 @@ func DirectMirScalarProgramRouteFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.array_int_value_result.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.opaque_readonly_zones.digest);
     hash = DirectMirCfgHashInt(hash, fact.routine_instances.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -82,6 +88,8 @@ func DirectMirScalarProgramRouteFactReady(
         !DirectMirScalarProgramArrayIntValueResultFactReady(
             fact.array_int_value_result) ||
         !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) ||
+        !DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+            fact.opaque_readonly_zones) ||
         (!DirectMirScalarProgramArrayStringAbiFactReady(
             fact.array_string_abi) &&
          !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
@@ -91,12 +99,12 @@ func DirectMirScalarProgramRouteFactReady(
             fact.array_string_abi)) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.routine_rows[row] < 0 || fact.routine_rows[row] != fact.routine_instances.source_rows[row] {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.routine_rows[prior] == fact.routine_rows[row] &&
                 fact.routine_instances.instance_rows[prior] == fact.routine_instances.instance_rows[row] {

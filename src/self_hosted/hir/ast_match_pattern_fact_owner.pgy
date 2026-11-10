@@ -19,14 +19,14 @@ func AstMatchCasePatternFactDigest(
 ) -> Int {
     if !fact.ok { return 0; }
     let modulus: Long = 268435456L;
-    let hash: Long = AstTreeArtifactIdentityHashString(
+    var hash: Long = AstTreeArtifactIdentityHashString(
         53L, fact.pattern, modulus
     );
     hash = AstTreeArtifactIdentityHashString(hash, fact.variant, modulus);
     hash = AstTreeArtifactIdentityHashInt(
         hash, ArrayLength(fact.bindings), modulus
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(fact.bindings) {
         hash = AstTreeArtifactIdentityHashString(
             hash, fact.bindings[i], modulus
@@ -45,7 +45,7 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
     let text: String = StringTrim(pattern);
     if StringIndexOf(text, " | ") >= 0 {
         let parts: Array<String> = Split(text, "|");
-        let part: Int = 0;
+        var part: Int = 0;
         while part < ArrayLength(parts) {
             let alternative: String = StringTrim(parts[part]);
             if alternative == "" || (!IsIdentifier(alternative) &&
@@ -80,14 +80,14 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
         return AstMatchCasePatternFactInvalid();
     }
     let parts: Array<String> = Split(payload, ",");
-    let bindings: Array<String> = [];
-    let i: Int = 0;
+    var bindings: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(parts) {
         let binding: String = StringTrim(parts[i]);
         if !IsIdentifier(binding) {
             return AstMatchCasePatternFactInvalid();
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(bindings) {
             if bindings[prior] == binding {
                 return AstMatchCasePatternFactInvalid();
@@ -106,14 +106,14 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
 func AstMatchCasePatternAlternatives(
     ref fact: AstMatchCasePatternFact
 ) -> Array<String> {
-    let alternatives: Array<String> = [];
+    var alternatives: Array<String> = [];
     if !fact.ok { return alternatives; }
     if fact.variant != "" || StringIndexOf(fact.pattern, " | ") < 0 {
         ArrayPush(alternatives, fact.pattern);
         return alternatives;
     }
     let parts: Array<String> = Split(fact.pattern, "|");
-    let part: Int = 0;
+    var part: Int = 0;
     while part < ArrayLength(parts) {
         ArrayPush(alternatives, StringTrim(parts[part]));
         part = part + 1;

@@ -153,8 +153,8 @@ func CompilerCompletenessIsProductionSource(path: String) -> Bool {
 
 func CompilerCompletenessSourceInventory() -> Array<String> {
     let entries: Array<String> = DirWalk(CompilerCompletenessSourceRoot());
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(entries) {
         let path: String = entries[i];
         if CompilerCompletenessIsProductionSource(path) {
@@ -167,7 +167,7 @@ func CompilerCompletenessSourceInventory() -> Array<String> {
 
 func EmitCompilerCompletenessSourceInventory() -> Void {
     let rows: Array<String> = CompilerCompletenessSourceInventory();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;
@@ -195,7 +195,7 @@ func CompilerCompletenessStageKnown(stage: String) -> Bool {
 }
 
 func EmitCompilerCompletenessStages() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompletenessStageCount() {
         Log(CompilerCompletenessStageAt(i));
         i = i + 1;
@@ -259,7 +259,7 @@ func CompilerCompletenessProgramCheckTarget(path: String) -> CompilerCompletenes
 
 func EmitCompilerCompletenessProgramTargets() -> Void {
     let rows: Array<String> = CompilerCompletenessSourceInventory();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let path: String = rows[i];
         let target: CompilerCompletenessCheckTarget = CompilerCompletenessProgramCheckTarget(path);

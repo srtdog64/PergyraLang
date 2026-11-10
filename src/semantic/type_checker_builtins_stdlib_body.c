@@ -141,21 +141,31 @@ static Type *
 type_check_builtin_clone(ASTNode *expr, SemanticContext *ctx)
 {
     Type *arg_type;
+    size_t diagnostic_start;
 
     if (!check_call_arity(expr, 1, "Clone", ctx))
         return TYPE_UNKNOWN;
 
+    diagnostic_start = ctx->diagnostic_count;
     arg_type = stdlib_body_normalize_type(
         type_check_expression(ast_call_argument(expr, 0), ctx));
+    bool current_call_has_error = false;
+    for (size_t i = diagnostic_start; i < ctx->diagnostic_count; i++) {
+        Diagnostic *diagnostic = ctx->diagnostics[i];
+        if (diagnostic != NULL && diagnostic->level == DIAG_ERROR) {
+            current_call_has_error = true;
+            break;
+        }
+    }
     /* Preserve the actual checked Clone result, never a destination annotation. */
-    if (!ctx->has_error && arg_type != TYPE_UNKNOWN && arg_type->name != NULL
+    if (!current_call_has_error && arg_type != TYPE_UNKNOWN && arg_type->name != NULL
         && arg_type->name[0] != '\0'
         && !ast_call_set_semantic_value_type_name_copy(expr, arg_type->name))
         semantic_error(ctx, expr, "Typed Clone result snapshot allocation failed");
     /* Clone takes the resolved builtin early-return route, so publish the
      * same canonical target fact as the general successful stdlib route. */
     uint32_t builtin = 0;
-    if (!ctx->has_error && arg_type != TYPE_UNKNOWN
+    if (!current_call_has_error && arg_type != TYPE_UNKNOWN
         && ast_call_semantic_callee_builtin_kind(expr, &builtin)
         && builtin == BUILTIN_CLONE
         && !ast_call_set_semantic_callee_is_stdlib(expr, true))

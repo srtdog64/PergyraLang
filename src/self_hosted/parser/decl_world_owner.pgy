@@ -23,7 +23,7 @@ func ParseWorldDecl(
     location_context: ParserSourceLocationContext
 ) -> String {
     let n: Int = StringLength(content);
-    let i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(start, LanguageWordId.WordWorld));
+    var i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(start, LanguageWordId.WordWorld));
     let world_name: String = ReadIdent(content, i, cursor_out);
     if world_name == "" || IsDigit(ParserCharAt(content, i)) ||
         ParserBindingNameReserved(world_name) {
@@ -32,14 +32,14 @@ func ParseWorldDecl(
     i = cursor_out[0];
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "World");
-    let roster_rows: String = "";
-    let zone_rows: String = "";
-    let activate_rows: String = "";
-    let deactivate_rows: String = "";
-    let maintain_rows: String = "";
-    let state_rows: String = "";
-    let shared_rows: String = "";
-    let method_blocks: String = "";
+    var roster_rows: String = "";
+    var zone_rows: String = "";
+    var activate_rows: String = "";
+    var deactivate_rows: String = "";
+    var maintain_rows: String = "";
+    var state_rows: String = "";
+    var shared_rows: String = "";
+    var method_blocks: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -97,7 +97,7 @@ func ParseWorldDecl(
             if field_type == "" {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "world_shared", "", "");
             }
-            let shared_row: String = Concat("    Shared: ", Concat(field_name, Concat(": ", field_type)));
+            var shared_row: String = Concat("    Shared: ", Concat(field_name, Concat(": ", field_type)));
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) == "=" {
                 ArraySet(cursor_out, 0, i + 1);
@@ -124,16 +124,16 @@ func ParseWorldDecl(
             i = i + 1;
         }
     }
-    let header: String = Concat("World: ", Concat(decl_prefix, world_name));
+    var header: String = Concat("World: ", Concat(decl_prefix, world_name));
     if exported {
         header = Concat("[export] ", header);
     }
-    let out: String = Concat("  ", header);
+    var out: String = Concat("  ", header);
     let groups: Array<String> = [
         roster_rows, zone_rows, activate_rows, deactivate_rows,
         maintain_rows, state_rows, shared_rows, method_blocks
     ];
-    let g: Int = 0;
+    var g: Int = 0;
     while g < ArrayLength(groups) {
         if StringLength(groups[g]) > 0 {
             out = AppendLine(out, groups[g]);
@@ -155,18 +155,18 @@ func ParseWorldStateRow(
 ) -> String {
     let state_name: String = ParseNameIn(location_context, content, start,
         "world state name", "world_state", cursor_out);
-    let i: Int = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_state");
+    var i: Int = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_state");
     i = SkipWhitespaceAndComments(content, i);
-    let row: String = Concat("    WorldState: ", Concat(state_name, ": "));
+    var row: String = Concat("    WorldState: ", Concat(state_name, ": "));
     if MatchLanguageWord(content, i, LanguageWordId.WordAll) ||
         MatchLanguageWord(content, i, LanguageWordId.WordAny) {
-        let compose_word: LanguageWordId = LanguageWordId.WordAny;
+        var compose_word: LanguageWordId = LanguageWordId.WordAny;
         if MatchLanguageWord(content, i, LanguageWordId.WordAll) {
             compose_word = LanguageWordId.WordAll;
         }
         row = Concat(row, Concat(LanguageWordSpelling(compose_word), " "));
         i = LanguageWordEnd(i, compose_word);
-        let first: Bool = true;
+        var first: Bool = true;
         while true {
             let input: String = ParseNameIn(location_context, content, i,
                 "world zone/state name", "world_state", cursor_out);
@@ -196,7 +196,7 @@ func ParseWorldStateRow(
         ArraySet(cursor_out, 0, slot_end);
         return row;
     }
-    let detail_word: LanguageWordId = LanguageWordId.WordState;
+    var detail_word: LanguageWordId = LanguageWordId.WordState;
     if MatchLanguageWord(content, i, LanguageWordId.WordProjection) {
         detail_word = LanguageWordId.WordProjection;
     } else if MatchLanguageWord(content, i, LanguageWordId.WordLayer) {

@@ -4,7 +4,7 @@ func Clear(own names: Array<String>) -> Void {
 }
 
 func Pick(i: Int) -> Int {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("re", "d"));
     let text: String = names[0];
     if i >= 0 {

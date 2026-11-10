@@ -12,7 +12,7 @@ struct Source {
 }
 
 func Rename(rows: Rows, source: Source) -> Rows {
-    let names: Array<String> = rows.names;
+    var names: Array<String> = rows.names;
     ArraySet(names, 0, source.title);
     return Rows(names);
 }

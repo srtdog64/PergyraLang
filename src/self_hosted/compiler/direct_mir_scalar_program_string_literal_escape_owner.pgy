@@ -14,7 +14,7 @@ func DirectMirScalarProgramStringLiteralJsonSpelling(
     }
     let allocator: Allocator = AllocatorResult();
     let out: TextBuilder = TextBuilderNew(256);
-    let index: Int = 0;
+    var index: Int = 0;
     while index < length {
         let code: Int = StringWindowCharCode(spelling, spelling_extent, length, index);
         if code == 92 && index + 1 < length {

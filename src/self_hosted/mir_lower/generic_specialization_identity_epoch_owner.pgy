@@ -24,7 +24,7 @@ func MirGenericSpecializationIdentityEpochInsertOwner(
     owner_id: Int
 ) -> Bool {
     if owner_id <= 0 { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(owners) {
         if owners[i] == owner_id { return true; }
         i = i + 1;
@@ -47,7 +47,7 @@ func MirGenericSpecializationIdentityEpochReady(
     if !epoch.ok || ArrayLength(epoch.canonical_owner_ids) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if epoch.producer_owner_ids[i] <= 0 ||
             epoch.canonical_owner_ids[i] <= 0 ||
@@ -66,13 +66,13 @@ func MirGenericSpecializationIdentityEpochFromFacts(
     ref table: JsonArrayObjectFactTable,
     ref semantic_rows: SemanticAstGenericSpecializationFacts
 ) -> MirGenericSpecializationIdentityEpoch {
-    let producer_owner_ids: Array<Int> = [];
-    let canonical_owner_ids: Array<Int> = [];
+    var producer_owner_ids: Array<Int> = [];
+    var canonical_owner_ids: Array<Int> = [];
     if !JsonArrayObjectFactTableReady(table) ||
         !SemanticAstGenericSpecializationFactsReady(semantic_rows) {
         return MirGenericSpecializationIdentityEpochInvalid();
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < JsonArrayObjectFactCount(table) {
         let object_table: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
         let owner: Option<String> = JsonObjectFactNumberFieldOpt(
@@ -112,7 +112,7 @@ func MirGenericSpecializationCanonicalOwnerId(
     if !MirGenericSpecializationIdentityEpochReady(epoch) {
         return 0 - 1;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(epoch.producer_owner_ids) {
         if epoch.producer_owner_ids[i] == producer_owner_id {
             return epoch.canonical_owner_ids[i];

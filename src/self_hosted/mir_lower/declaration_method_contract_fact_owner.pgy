@@ -40,7 +40,7 @@ func MirDeclarationMethodContractEmpty(
 func MirDeclarationMethodContractContains(
     names: Array<String>, name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == name { return true; }
         i = i + 1;
@@ -52,13 +52,13 @@ func MirDeclarationMethodContractReadStringArray(
     json: String, json_extent: Int, start: Int, end: Int, field: String,
     reject_duplicates: Bool, inout values: Array<String>
 ) -> Bool {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(json, json_extent, start, end, field, bounds) {
         return false;
     }
     let value_start: Int = ArrayLength(values);
-    let cursor: Int = bounds[0] + 1;
-    let need_value: Bool = true;
+    var cursor: Int = bounds[0] + 1;
+    var need_value: Bool = true;
     while cursor < bounds[1] {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, bounds[1]);
         if cursor >= bounds[1] { return false; }
@@ -85,8 +85,8 @@ func MirDeclarationMethodContractReadStringArray(
         );
         if !IsSome(read) { return false; }
         let value: String = UnwrapOption(read).value;
-        let duplicate: Bool = false;
-        let duplicate_i: Int = value_start;
+        var duplicate: Bool = false;
+        var duplicate_i: Int = value_start;
         while duplicate_i < ArrayLength(values) {
             if values[duplicate_i] == value { duplicate = true; }
             duplicate_i = duplicate_i + 1;
@@ -103,24 +103,24 @@ func MirDeclarationMethodContractReadStringArray(
 
 func MirDeclarationMethodContractRequiredOptionalString(
     json: String, json_extent: Int, start: Int, end: Int, field: String,
-    inout value_box: Array<String>
+    inout output: String
 ) -> Bool {
-    let bounds: Array<Int> = [0, 0];
-    if ArrayLength(value_box) != 1 || !MirObjectFieldValueBoundsAtBounds(
+    var bounds: Array<Int> = [0, 0];
+    if !MirObjectFieldValueBoundsAtBounds(
         json, json_extent, start, end, field, bounds
     ) {
         return false;
     }
     if bounds[0] + 4 == bounds[1] &&
         Substring(json, bounds[0], 4) == "null" {
-        ArraySet(value_box, 0, "");
+        output = "";
         return true;
     }
-    let value: String = MirObjectStringFactAtBounds(
+    let parsed: String = MirObjectStringFactAtBounds(
         json, json_extent, start, end, field
     );
-    if StringLength(value) == 0 { return false; }
-    ArraySet(value_box, 0, value);
+    if StringLength(parsed) == 0 { return false; }
+    output = parsed;
     return true;
 }
 
@@ -145,12 +145,12 @@ func MirDeclarationMethodContractReadRequires(
     inout bases: Array<String>, inout actual_starts: Array<Int>,
     inout actual_counts: Array<Int>, inout actual_names: Array<String>
 ) -> Bool {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(json, json_extent, start, end, "requires", bounds) {
         return false;
     }
-    let cursor: Int = bounds[0] + 1;
-    let first: Bool = true;
+    var cursor: Int = bounds[0] + 1;
+    var first: Bool = true;
     while cursor < bounds[1] {
         cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, bounds[1]);
         if cursor >= bounds[1] { return false; }
@@ -187,11 +187,11 @@ func MirDeclarationMethodContractReadRequires(
             return false;
         }
         let actual_count: Int = ArrayLength(actual_names) - actual_start;
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(bases) {
-            let same: Bool = bases[prior] == base &&
+            var same: Bool = bases[prior] == base &&
                 actual_counts[prior] == actual_count;
-            let actual_i: Int = 0;
+            var actual_i: Int = 0;
             while same && actual_i < actual_count {
                 same = actual_names[actual_starts[prior] + actual_i] ==
                     actual_names[actual_start + actual_i];
@@ -220,7 +220,7 @@ func MirDeclarationMethodContractFactFromBounds(
             "method callable_kind is missing or invalid"
         );
     }
-    let contract_bounds: Array<Int> = [0, 0];
+    var contract_bounds: Array<Int> = [0, 0];
     if !MirObjectFieldValueBoundsAtBounds(
         json, json_extent, method_start, method_end, "contract", contract_bounds
     ) || contract_bounds[0] >= contract_bounds[1] ||
@@ -231,25 +231,25 @@ func MirDeclarationMethodContractFactFromBounds(
         );
     }
 
-    let requires_bases: Array<String> = [];
-    let requires_actual_starts: Array<Int> = [];
-    let requires_actual_counts: Array<Int> = [];
-    let requires_actual_names: Array<String> = [];
-    let within_box: Array<String> = [""];
-    let causes_box: Array<String> = [""];
-    let authorized_by_names: Array<String> = [];
-    let caps_box: Array<Bool> = [false];
-    let cap_names: Array<String> = [];
-    let effects_box: Array<Bool> = [false];
-    let effect_names: Array<String> = [];
+    var requires_bases: Array<String> = [];
+    var requires_actual_starts: Array<Int> = [];
+    var requires_actual_counts: Array<Int> = [];
+    var requires_actual_names: Array<String> = [];
+    var within_value: String = "";
+    var causes_value: String = "";
+    var authorized_by_names: Array<String> = [];
+    var caps_box: Array<Bool> = [false];
+    var cap_names: Array<String> = [];
+    var effects_box: Array<Bool> = [false];
+    var effect_names: Array<String> = [];
     if !MirDeclarationMethodContractReadRequires(
         json, json_extent, contract_bounds[0], contract_bounds[1], requires_bases,
         requires_actual_starts, requires_actual_counts,
         requires_actual_names
     ) || !MirDeclarationMethodContractRequiredOptionalString(
-        json, json_extent, contract_bounds[0], contract_bounds[1], "within", within_box
+        json, json_extent, contract_bounds[0], contract_bounds[1], "within", within_value
     ) || !MirDeclarationMethodContractRequiredOptionalString(
-        json, json_extent, contract_bounds[0], contract_bounds[1], "causes", causes_box
+        json, json_extent, contract_bounds[0], contract_bounds[1], "causes", causes_value
     ) || !MirDeclarationMethodContractReadStringArray(
         json, json_extent, contract_bounds[0], contract_bounds[1], "authorized_by",
         true, authorized_by_names
@@ -271,8 +271,8 @@ func MirDeclarationMethodContractFactFromBounds(
         );
     }
 
-    let i: Int = 0;
-    let previous_rank: Int = -1;
+    var i: Int = 0;
+    var previous_rank: Int = -1;
     while i < ArrayLength(cap_names) {
         let vocabulary_index: Int = CallableContractVocabularyFindIndex(
             CallableContractVocabularyCapabilityAxis(), cap_names[i]
@@ -319,7 +319,7 @@ func MirDeclarationMethodContractFactFromBounds(
         );
     }
     let has_action_only: Bool = ArrayLength(requires_bases) > 0 ||
-        StringLength(within_box[0]) > 0 || StringLength(causes_box[0]) > 0 ||
+        StringLength(within_value) > 0 || StringLength(causes_value) > 0 ||
         ArrayLength(authorized_by_names) > 0;
     if callable_kind == "function" && has_action_only {
         return MirDeclarationMethodContractEmpty(
@@ -328,8 +328,8 @@ func MirDeclarationMethodContractFactFromBounds(
     }
     return MirDeclarationMethodContractFact(
         true, "", callable_kind, requires_bases, requires_actual_starts,
-        requires_actual_counts, requires_actual_names, within_box[0],
-        causes_box[0], authorized_by_names, caps_box[0], cap_names,
+        requires_actual_counts, requires_actual_names, within_value,
+        causes_value, authorized_by_names, caps_box[0], cap_names,
         effects_box[0], effect_names
     );
 }
@@ -337,11 +337,11 @@ func MirDeclarationMethodContractFactFromBounds(
 func MirDeclarationMethodContractRequiredType(
     fact: MirDeclarationMethodContractFact, row: Int
 ) -> String {
-    let out: String = fact.requires_bases[row];
+    var out: String = fact.requires_bases[row];
     let count: Int = fact.requires_actual_counts[row];
     if count == 0 { return out; }
     out = Concat(out, "<");
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if i > 0 { out = Concat(out, ", "); }
         out = Concat(
@@ -356,8 +356,8 @@ func MirDeclarationMethodContractRequiredType(
 func MirDeclarationMethodContractJoin(
     names: Array<String>
 ) -> String {
-    let out: String = "";
-    let i: Int = 0;
+    var out: String = "";
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if i > 0 { out = Concat(out, ", "); }
         out = Concat(out, names[i]);
@@ -370,10 +370,10 @@ func MirDeclarationMethodContractRows(
     fact: MirDeclarationMethodContractFact, indent: String
 ) -> String {
     if !fact.valid { MirLowerFailClosed(fact.diagnostic); }
-    let out: String = "";
+    var out: String = "";
     if ArrayLength(fact.requires_bases) > 0 {
-        let required: Array<String> = [];
-        let i: Int = 0;
+        var required: Array<String> = [];
+        var i: Int = 0;
         while i < ArrayLength(fact.requires_bases) {
             ArrayPush(
                 required, MirDeclarationMethodContractRequiredType(fact, i)

@@ -10,7 +10,9 @@ func DirectMirScalarProgramArrayStringParameterMutationReady(
 ) -> Bool {
     if DirectMirScalarProgramArrayStringValueResultAt(
             plan.program.array_string_abi, routine, parameter) { return true; }
-    return kind == DirectMirScalarCfgOpArrayStringPop() &&
+    return (kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+            kind == DirectMirScalarCfgOpArrayStringSet() ||
+            kind == DirectMirScalarCfgOpArrayStringPop()) &&
         DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
             plan.routines, routine, parameter);
 }

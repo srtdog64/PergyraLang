@@ -381,7 +381,7 @@ test_program_emit_head(void)
     {
         const char *source =
             "class Counter {\n"
-            "    let count: Int;\n"
+            "    var count: Int;\n"
             "    func Tick(self, delta: Int) -> Int {\n"
             "        count = count + delta;\n"
             "        return count;\n"
@@ -416,7 +416,7 @@ test_program_emit_head(void)
     {
         const char *source =
             "subject Counter {\n"
-            "    let count: Int;\n"
+            "    var count: Int;\n"
             "    action Tick(self, delta: Int) -> Int {\n"
             "        count = count + delta;\n"
             "        return count;\n"

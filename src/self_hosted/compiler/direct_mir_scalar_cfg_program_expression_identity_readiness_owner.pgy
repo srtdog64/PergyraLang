@@ -7,8 +7,13 @@ import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy"
 import "direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy";
 import "direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_result_expression_identity_readiness_owner.pgy";
+import "direct_mir_scalar_program_hashmap_value_result_target_owner.pgy";
 func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarCfgGraphPlan, ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int) -> Bool {
     let kind: Int = facts.node_kinds[node];
+    let result_ready: Option<Bool> = DirectMirScalarCfgProgramResultExpressionIdentityReady(
+            plan, facts, node, routine, graph_start);
+    if IsSome(result_ready) { return UnwrapOption(result_ready); }
     if kind == DirectMirScalarProgramExprArrayDropStorage() {
         let left: Int = facts.node_lefts[node];
         if left < graph_start || left >= node { return false; }
@@ -21,9 +26,11 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
     if kind == DirectMirScalarProgramExprMapSet() || kind == DirectMirScalarProgramExprMapRemove() {
         let operands: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(facts, node);
         if ArrayLength(operands) == 0 || operands[0] < graph_start || operands[0] >= node { return false; }
-        // A parameter requires an admitted value-result storage boundary.
-        // HashMap parameter carriage is not sealed by this local-storage rung.
-        return facts.node_kinds[operands[0]] == DirectMirScalarProgramExprLocal();
+        let receiver_kind: Int = facts.node_kinds[operands[0]];
+        if receiver_kind == DirectMirScalarProgramExprLocal() { return true; }
+        return receiver_kind == DirectMirScalarProgramExprParameter() &&
+            DirectMirScalarProgramHashMapValueResultAt(
+                plan, routine, facts.node_parameter_ordinals[operands[0]]);
     }
     if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
         let left: Int = facts.node_lefts[node];
@@ -40,7 +47,7 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
         let start: Int = plan.routines.local_starts[routine];
         let end: Int = start + plan.routines.local_counts[routine];
         if binding < start || arity < 0 || binding > end - arity { return false; }
-        let parameter: Int = 0;
+        var parameter: Int = 0;
         while parameter < arity {
             let local_row: Int = binding + parameter;
             if plan.local_ref_kinds[local_row] != DirectMirScalarCfgLocalRefMatchBinding() ||
@@ -106,7 +113,7 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
         facts.node_types[node] != plan.routines.return_types[target] {
         return false;
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         if !DirectMirScalarCfgProgramDirectCallCarriageReady(
             plan, facts, node, routine, graph_start, target,

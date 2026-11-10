@@ -35,9 +35,11 @@ func DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
         value_node >= ArrayLength(facts.node_types) {
         return invalid;
     }
-    let type_name: String = facts.node_types[value_node];
-    let ordinals: Array<Int> = [];
-    let alternative: Int = 0;
+    // The result outlives the source element while this routine grows the
+    // same owned String table. Keep the local and every stored row independent.
+    let type_name: String = Clone(facts.node_types[value_node]);
+    var ordinals: Array<Int> = [];
+    var alternative: Int = 0;
     while alternative < match_fact.pattern_count {
         let ordinal: Int = DirectMirScalarProgramPayloadFreeEnumVariantOrdinal(
             enum_fact, type_name, match_fact.patterns[alternative]);
@@ -46,27 +48,28 @@ func DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
         alternative = alternative + 1;
     }
 
-    let graph_counts: Array<Int> = facts.graph_counts;
-    let graph_roots: Array<Int> = facts.graph_roots;
-    let kinds: Array<Int> = facts.node_kinds;
-    let types: Array<String> = facts.node_types;
-    let lefts: Array<Int> = facts.node_lefts;
-    let rights: Array<Int> = facts.node_rights;
-    let locals: Array<Int> = facts.node_local_rows;
-    let params: Array<Int> = facts.node_parameter_ordinals;
-    let members: Array<Int> = facts.node_member_ordinals;
-    let literals: Array<String> = facts.node_literals;
-    let callables: Array<Int> = facts.node_callable_rows;
-    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    var graph_counts: Array<Int> = facts.graph_counts;
+    var graph_roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var locals: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callables: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
     let first_added: Int = ArrayLength(kinds);
-    let condition_node: Int = -1;
+    var condition_node: Int = -1;
     alternative = 0;
     while alternative < ArrayLength(ordinals) {
         let variant_node: Int = ArrayLength(kinds);
         DirectMirScalarProgramAppendExpressionNode(
             kinds, types, lefts, rights, locals, params, members,
             literals, callables, runtime_ids,
-            DirectMirScalarProgramExprPayloadFreeEnumVariant(), type_name,
+            DirectMirScalarProgramExprPayloadFreeEnumVariant(),
+            Clone(type_name),
             -1, -1, -1, -1, ordinals[alternative], "", -1, -1);
         let equality_node: Int = ArrayLength(kinds);
         DirectMirScalarProgramAppendExpressionNode(

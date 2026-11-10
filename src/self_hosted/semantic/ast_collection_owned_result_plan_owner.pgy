@@ -32,7 +32,7 @@ func SemanticAstFreshOwnedStringArrayResultPlanContains(
     function_syntax_id: Int
 ) -> Bool {
     if !plan.ok || function_syntax_id <= 0 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.function_syntax_ids) {
         if plan.function_syntax_ids[row] == function_syntax_id { return true; }
         row = row + 1;
@@ -149,7 +149,7 @@ func SemanticAstFreshOwnedStringArrayReturnSource(
 func SemanticAstFreshOwnedStringArrayReturnedLocalContains(
     ref rows: Array<Int>, local_row: Int
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(rows) {
         if rows[row] == local_row { return true; }
         row = row + 1;
@@ -169,7 +169,7 @@ func SemanticAstFreshOwnedStringArrayReturnedLocalHasOwnedPush(
     let range: SemanticAstLocalBindingFunctionRange =
         SemanticAstStatementRangeForFunction(statements, function_syntax_id);
     if !range.ok { return false; }
-    let row: Int = range.start;
+    var row: Int = range.start;
     while row < range.end {
         let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
             surfaces, statements.node_ids[row]);
@@ -220,10 +220,10 @@ func SemanticAstFunctionFreshOwnedStringArrayResultCandidate(
     let range: SemanticAstLocalBindingFunctionRange =
         SemanticAstStatementRangeForFunction(statements, function_id);
     if !range.ok { return false; }
-    let returned_locals: Array<Int> = [];
-    let saw_return: Bool = false;
-    let grounded: Bool = false;
-    let row: Int = range.start;
+    var returned_locals: Array<Int> = [];
+    var saw_return: Bool = false;
+    var grounded: Bool = false;
+    var row: Int = range.start;
     while row < range.end {
         if statements.kind_tags[row] == TypedAstKindBareReturnStmtTag() {
             return false;
@@ -268,7 +268,7 @@ func SemanticAstFreshOwnedStringArrayResultPlanFromResolvedFacts(
     ref statements: SemanticAstStatementFacts
 ) -> SemanticAstFreshOwnedStringArrayResultPlan {
     let ids: Array<Int> = [];
-    let plan: SemanticAstFreshOwnedStringArrayResultPlan =
+    var plan: SemanticAstFreshOwnedStringArrayResultPlan =
         SemanticAstFreshOwnedStringArrayResultPlan(false, ids);
     if !signatures.ok ||
         !SemanticAstLocalBindingIdentityRowsReady(
@@ -276,7 +276,7 @@ func SemanticAstFreshOwnedStringArrayResultPlanFromResolvedFacts(
         !initializer_types.ok || !surfaces.ok || !statements.ok {
         return plan;
     }
-    let signature_row: Int = 0;
+    var signature_row: Int = 0;
     while signature_row < ArrayLength(signatures.function_node_ids) {
         if !SemanticAstRuntimeCallableSignatureRowReady(
                 signatures, signature_row) {
@@ -285,8 +285,8 @@ func SemanticAstFreshOwnedStringArrayResultPlanFromResolvedFacts(
         signature_row = signature_row + 1;
     }
     plan.ok = true;
-    let remaining: Int = ArrayLength(signatures.function_node_ids);
-    let changed: Bool = true;
+    var remaining: Int = ArrayLength(signatures.function_node_ids);
+    var changed: Bool = true;
     while changed && remaining > 0 {
         changed = false;
         signature_row = 0;
@@ -312,7 +312,7 @@ func SemanticAstFreshOwnedStringArrayResultRowsReady(
     ref function_syntax_ids: Array<Int>,
     ref signatures: SemanticAstFunctionSignatureFacts
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(function_syntax_ids) {
         let id: Int = function_syntax_ids[row];
         let signature: Option<Int> =
@@ -325,7 +325,7 @@ func SemanticAstFreshOwnedStringArrayResultRowsReady(
             !signatures.runtime_callables[UnwrapOption(signature)] {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if function_syntax_ids[prior] == id { return false; }
             prior = prior + 1;

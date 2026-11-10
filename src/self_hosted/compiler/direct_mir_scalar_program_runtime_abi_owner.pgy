@@ -30,6 +30,10 @@ func DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
             fact.string_sub_equals_with_len_id &&
         expected.string_sub_index_with_len_id ==
             fact.string_sub_index_with_len_id &&
+        expected.string_sub_contains_with_len_id ==
+            fact.string_sub_contains_with_len_id &&
+        expected.string_sub_starts_with_len_id ==
+            fact.string_sub_starts_with_len_id &&
         expected.string_index.digest == fact.string_index.digest &&
         expected.string_trim.digest == fact.string_trim.digest &&
         expected.string_contains_id == fact.string_contains_id &&

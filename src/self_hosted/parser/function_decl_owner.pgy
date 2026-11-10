@@ -13,7 +13,7 @@ import "diagnostic_owner.pgy";
 // An ability signature may end at `;`, `}` or the end of its line; native
 // takes the `;` as optional. True when one of those follows `at` on this line.
 func ParserSignatureMemberBoundaryAt(content: String, at: Int) -> Bool {
-    let probe: Int = at;
+    var probe: Int = at;
     while ParserCharAt(content, probe) == " " || ParserCharAt(content, probe) == "\t" ||
         ParserCharAt(content, probe) == "\r" {
         probe = probe + 1;
@@ -53,7 +53,7 @@ func ParserReservedEffectWordAt(content: String, at: Int) -> ParserEffectWordRea
 }
 
 func ParserCallableContractContains(names: Array<String>, name: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == name { return true; }
         i = i + 1;
@@ -92,7 +92,7 @@ func ParserCallableContractAppendName(
         );
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         // The appended row is read through an owned copy, never a borrow.
         let existing_name: String = Concat("", names[i]);
@@ -116,8 +116,8 @@ func ParserCallableContractAppendName(
 func ParserCallableContractCanonicalNames(
     names: Array<String>, axis: Int
 ) -> String {
-    let out: String = "";
-    let rank: Int = 0;
+    var out: String = "";
+    var rank: Int = 0;
     while rank < 9 {
         let index: Int = CallableContractVocabularyIndexAtRank(axis, rank);
         if index >= 0 && ParserCallableContractContains(
@@ -177,7 +177,7 @@ func ParseFunctionObserved(
         ParseRefuse(location_context, start, "expected_token",
             "expected", LanguageWordSpelling(fn_word), "construct", "function");
     }
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(start, fn_word));
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(start, fn_word));
     ArraySet(cursor_out, 0, i);
     let fn_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
@@ -197,12 +197,12 @@ func ParseFunctionObserved(
     );
     i = cursor_out[0];
     i = ParseExpectIn(location_context, content, i, "(", "function");
-    let param_lines: Array<String> = [];
+    var param_lines: Array<String> = [];
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if ParserCharAtWithin(content, content_extent, i) != ")" {
         while true {
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-            let param_mode_prefix: String = "";
+            var param_mode_prefix: String = "";
             if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordInout) {
                 param_mode_prefix = "inout ";
                 i = LanguageWordEnd(i, LanguageWordId.WordInout);
@@ -258,25 +258,25 @@ func ParseFunctionObserved(
         }
     }
     i = ParseExpectIn(location_context, content, i, ")", "function");
-    let signature_done: Bool = false;
+    var signature_done: Bool = false;
     if is_signature && ParserSignatureMemberBoundaryAt(content, i) {
         i = ParseStatementTerminatorIn(location_context, content, i, "function");
         signature_done = true;
     }
-    let ret_type: String = "";
-    let req_type: String = "";
-    let within_zone: String = within_zone_arg;
-    let causes_effect: String = "";
-    let auth_by: String = "";
-    let constraint_clause: String = "";
-    let cap_names: Array<String> = [];
-    let effect_names: Array<String> = [];
-    let saw_requires: Bool = false;
-    let saw_within: Bool = StringLength(within_zone_arg) > 0;
-    let saw_causes: Bool = false;
-    let saw_authorized_by: Bool = false;
-    let saw_caps: Bool = false;
-    let saw_effects: Bool = false;
+    var ret_type: String = "";
+    var req_type: String = "";
+    var within_zone: String = within_zone_arg;
+    var causes_effect: String = "";
+    var auth_by: String = "";
+    var constraint_clause: String = "";
+    var cap_names: Array<String> = [];
+    var effect_names: Array<String> = [];
+    var saw_requires: Bool = false;
+    var saw_within: Bool = StringLength(within_zone_arg) > 0;
+    var saw_causes: Bool = false;
+    var saw_authorized_by: Bool = false;
+    var saw_caps: Bool = false;
+    var saw_effects: Bool = false;
     let is_action: Bool = fn_word == LanguageWordId.WordAction;
     if !signature_done {
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -385,7 +385,7 @@ func ParseFunctionObserved(
                     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     let effect_word: ParserEffectWordRead =
                         ParserReservedEffectWordAt(content, i);
-                    let effect_name: String = "";
+                    var effect_name: String = "";
                     if effect_word.reserved {
                         effect_name = LanguageWordSpelling(effect_word.word);
                         i = LanguageWordEnd(i, effect_word.word);
@@ -449,7 +449,7 @@ func ParseFunctionObserved(
         break;
     }
     }
-    let body_text: String = "";
+    var body_text: String = "";
     if is_signature {
         // Ability function signatures can end at `;` or a member-boundary
         // newline; both print as signature rows with no body.
@@ -466,16 +466,16 @@ func ParseFunctionObserved(
     }
 
     let header_prefix: String = IndentStr(base_indent);
-    let label_text: String = fn_label;
+    var label_text: String = fn_label;
     if StringLength(label_text) == 0 {
         label_text = "Function: ";
     }
     if is_export {
         label_text = Concat("[export] ", label_text);
     }
-    let callable_name: String = Concat(name_prefix, fn_name);
+    var callable_name: String = Concat(name_prefix, fn_name);
     if is_async { callable_name = Concat(callable_name, " [async]"); }
-    let block: String = Concat(header_prefix, Concat(label_text, callable_name));
+    var block: String = Concat(header_prefix, Concat(label_text, callable_name));
     if StringLength(generic_params) > 0 {
         block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Generic params: ", generic_params)));
     }
@@ -484,7 +484,7 @@ func ParseFunctionObserved(
     }
     block = AppendLine(block, Concat(IndentStr(base_indent + 2), "Parameters:"));
     let p_len: Int = ArrayLength(param_lines);
-    let pi: Int = 0;
+    var pi: Int = 0;
     while pi < p_len {
         block = AppendLine(block, param_lines[pi]);
         pi = pi + 1;
@@ -546,14 +546,14 @@ func ParseFunction(
     inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
-    // Member bodies keep refusal positions but record no observation rows,
-    // so the preorder join of top-level rows stays exact.
-    let context: ParserSourceLocationContext =
-        ParserSourceLocationContextWithoutObservation(location_context);
-    let locations: Array<ParserSourceLocationObservation> = [];
+    // Member observations stay local and are discarded, so they cannot shift
+    // the top-level preorder join. The location context itself remains one
+    // read-only owner instead of being copied into a second storage-bearing
+    // context.
+    var locations: Array<ParserSourceLocationObservation> = [];
     return ParseFunctionObserved(
         content, content_extent, start, cursor_out, name_prefix, is_export, false, base_indent,
         fn_word, fn_label, is_signature, within_zone_arg,
-        expression_graphs, context, locations, location_context.projection
+        expression_graphs, location_context, locations, location_context.projection
     );
 }

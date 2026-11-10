@@ -13,18 +13,18 @@ func DirectMirScalarProgramLlvmPayloadEnumPreamble(
     if !DirectMirScalarProgramReferencedEnumFactReady(fact) {
         Die("direct MIR scalar LLVM payload-enum fact is invalid");
     }
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(fact.names) {
         if fact.payload_flags[row] == 1 {
-            let ordinal: Int = 0;
+            var ordinal: Int = 0;
             while ordinal < fact.variant_counts[row] {
                 let variant: Int = fact.variant_starts[row] + ordinal;
                 output = Concat(output,
                     DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
                         row, ordinal));
                 output = Concat(output, " = type { ");
-                let parameter: Int = 0;
+                var parameter: Int = 0;
                 while parameter < fact.variant_param_counts[variant] {
                     if parameter > 0 { output = Concat(output, ", "); }
                     let type_name: String =

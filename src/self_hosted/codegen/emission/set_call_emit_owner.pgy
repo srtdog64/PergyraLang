@@ -9,7 +9,7 @@ import "expr_semantic_call_argument_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticSetCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     source_name: String,
     env: CodegenTypeEnv
@@ -38,9 +38,9 @@ func RewriteSemanticSetCall(
     if !fact.ok {
         Die(Concat(source_name, " Set<T> runtime ABI fact is missing"));
     }
-    let receiver: String = RewriteSemanticCallArgument(
+    let receiver: String = RewriteSemanticCollectionRuntimeInoutArgument(
         graph, view.argument_nodes[protocol.receiver_argument_index],
-        receiver_type, "inout", env
+        receiver_type, env
     );
     if protocol.operation == "SetSize" {
         return Concat(fact.c_size_fn, Concat("(", Concat(receiver, ")")));
@@ -49,7 +49,7 @@ func RewriteSemanticSetCall(
         graph, view.argument_nodes[protocol.value_argument_index],
         fact.element_type, "default", env
     );
-    let call_symbol: String = fact.c_add_fn;
+    var call_symbol: String = fact.c_add_fn;
     if protocol.operation == "SetHas" { call_symbol = fact.c_has_fn; }
     if protocol.operation == "SetRemove" { call_symbol = fact.c_remove_fn; }
     return Concat(call_symbol, Concat("(", Concat(

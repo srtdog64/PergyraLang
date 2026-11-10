@@ -1,0 +1,108 @@
+// Scalar-CFG C type and routine-name projection.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_option_string_owner.pgy";
+import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_value_result_union_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "direct_mir_identity_cell_projection_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
+
+func DirectMirScalarCfgProgramCType(type_name: String, int_c_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact) -> String {
+    let hashmap: CollectionHashMapRuntimeFact =
+        CollectionHashMapRuntimeFactFromTypeName(type_name);
+    if hashmap.ok { return hashmap.c_value_type; }
+    let runtime_value: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(type_name);
+    if runtime_value.valid { return runtime_value.c_type; }
+    if DirectMirIdentityCellRow(logical_record.identity_cells, type_name) >= 0 {
+        return Concat(DirectMirIdentityCellCType(logical_record.identity_cells, type_name), " *");
+    }
+    if type_name == "Void" { return "void"; }
+    if type_name == CompilerAbiLayoutIntTypeName() && int_c_type != CompilerAbiLayoutIntCValueType() { Die("direct MIR scalar C Int ABI spelling is stale"); }
+    if type_name == CompilerAbiLayoutIntTypeName() { return int_c_type; }
+    if type_name == CompilerAbiLayoutLongTypeName() { return CompilerAbiLayoutLongCValueType(); }
+    if type_name == CompilerAbiLayoutFloatTypeName() { return CompilerAbiLayoutFloatCValueType(); }
+    if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
+    if type_name == CompilerAbiLayoutStringTypeName() { return CompilerAbiLayoutStringCValueType(); }
+    if type_name == CompilerAbiLayoutSliceIntTypeName() {
+        return CompilerAbiLayoutSliceIntCValueType();
+    }
+    if type_name == CompilerAbiLayoutSliceStringTypeName() {
+        return CompilerAbiLayoutSliceStringCValueType();
+    }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return CompilerAbiLayoutArrayIntCValueType();
+    }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return CompilerAbiLayoutArrayBoolCValueType();
+    }
+    if type_name == CompilerAbiLayoutSetStringTypeName() {
+        return CompilerAbiLayoutSetStringCValueType();
+    }
+    if type_name == CompilerAbiLayoutOptionIntTypeName() {
+        return DirectMirScalarProgramCOptionIntTypeName();
+    }
+    if type_name == CompilerAbiLayoutOptionStringTypeName() {
+        return DirectMirScalarProgramCOptionStringTypeName();
+    }
+    if type_name == CompilerAbiLayoutOptionBoolTypeName() {
+        return DirectMirScalarProgramCOptionBoolTypeName();
+    }
+    let scalar_result_type: String =
+        DirectMirScalarResultAbiCTypeName(type_name);
+    if scalar_result_type != "" { return scalar_result_type; }
+    if DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramCLogicalRecordTypeName(logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramCLogicalRecordOptionTypeName(logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramCLogicalRecordArrayTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, type_name) {
+        return CompilerAbiLayoutPayloadFreeEnumCValueType();
+    }
+    return "";
+}
+func DirectMirScalarCfgProgramCRoutineName(routine: Int) -> String {
+    return Concat("pgy_scalar_routine_", ToString(routine));
+}
+func DirectMirScalarCfgProgramCTypeWithReferencedEnum(
+    type_name: String, int_c_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact, array_string_projection: Option<DirectMirArrayStringAbiProjection>
+) -> String {
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        if !IsSome(array_string_projection) { Die("direct MIR scalar C signature Array<String> projection is missing"); }
+        let projection: DirectMirArrayStringAbiProjection = UnwrapOption(array_string_projection);
+        return DirectMirScalarProgramCArrayStringCarrierType(array_string_abi, projection);
+    }
+    let projected: String = DirectMirScalarCfgProgramCType(
+        type_name, int_c_type, logical_record, payload_free_enum);
+    if projected != "" { return projected; }
+    return DirectMirScalarProgramCReferencedEnumTargetType(
+        type_name, logical_record, referenced_enum);
+}
+

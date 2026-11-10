@@ -1,0 +1,17 @@
+func Repeated(early: Bool, enabled: Bool) -> Int {
+    var iteration: Int = 0;
+    while enabled && iteration < 3 {
+        var rows: Array<String> = ["alpha"];
+        if early { return StringLength(rows[0]); }
+        Log(rows[0]);
+        iteration = iteration + 1;
+    }
+    return iteration;
+}
+
+func Main() -> Int {
+    Log(Repeated(true, true));
+    Log(Repeated(false, false));
+    Log(Repeated(false, true));
+    return 0;
+}

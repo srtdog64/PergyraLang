@@ -33,12 +33,12 @@ func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let instructions: String = "";
+    var instructions: String = "";
     let value: String = "";
     if call.llvm_shape == "allocator_out_to_void" ||
             call.llvm_shape == "allocator_out_capacity_to_void" ||
             call.llvm_shape == "builder_out_capacity_to_void" {
-        let aggregate_type: String = "%pgy.runtime.allocator";
+        var aggregate_type: String = "%pgy.runtime.allocator";
         if call.llvm_shape == "builder_out_capacity_to_void" {
             aggregate_type = "%pgy.runtime.text_builder";
         }
@@ -109,14 +109,14 @@ func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
 func DirectMirScalarProgramLlvmRuntimeValueDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let output: String = "";
-    let call_row: Int = 0;
+    var output: String = "";
+    var call_row: Int = 0;
     while call_row < 7 {
         let call: CompilerRuntimeValueCallAbiFact =
             CompilerRuntimeValueCallAbiFactForSource(
                 CompilerRuntimeValueCallSourceAt(call_row));
-        let present: Bool = false;
-        let node: Int = 0;
+        var present: Bool = false;
+        var node: Int = 0;
         while node < ArrayLength(expressions.node_runtime_call_abi_ids) {
             if call.valid && expressions.node_runtime_call_abi_ids[node] ==
                     call.registry.runtime_call_abi_id { present = true; }

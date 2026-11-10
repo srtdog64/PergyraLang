@@ -6,11 +6,11 @@ func DirectMirScalarCfgCollectionPlanAtGraphOperation(
     inout source: DirectMirScalarCfgCollectionPlan,
     global: Int, graph_operation: Int
 ) -> Void {
-    let operation_rows: Array<Int> = source.operations.graph_operation_rows;
-    let observation_rows: Array<Int> =
+    var operation_rows: Array<Int> = source.operations.graph_operation_rows;
+    var observation_rows: Array<Int> =
         source.observations.graph_operation_rows;
-    let matched: Bool = false;
-    let row: Int = 0;
+    var matched: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(source.operations.global_rows) {
         if source.operations.global_rows[row] == global &&
             source.operations.kinds[row] !=

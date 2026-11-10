@@ -11,7 +11,7 @@ struct DirectMirScalarCfgInstructionPositionFact {
 func DirectMirScalarCfgInstructionPositionAt(
     ref index: MirRoutineFactIndex, global_row: Int
 ) -> DirectMirScalarCfgInstructionPositionFact {
-    let block: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
         let start: Int = index.instruction_facts.global_start +
             index.block_instruction_starts[block];

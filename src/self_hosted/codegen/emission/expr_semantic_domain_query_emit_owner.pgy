@@ -8,7 +8,7 @@ import "expr_semantic_type_owner.pgy";
 import "function_binding_env_owner.pgy";
 
 func RewriteSemanticDomainQueryCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     protocol: SemanticAstDomainQueryProtocol,
     env: CodegenTypeEnv
@@ -21,8 +21,8 @@ func RewriteSemanticDomainQueryCall(
         protocol.family != "zone_projection" {
         Die("semantic domain layer query codegen is not substituted");
     }
-    let detail_index: Int = 0;
-    let prefix: String = "self->__projection_ready_";
+    var detail_index: Int = 0;
+    var prefix: String = "self->__projection_ready_";
     if protocol.family == "zone_projection" {
         detail_index = 1;
         let zone_name: Option<String> =

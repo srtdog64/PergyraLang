@@ -140,7 +140,7 @@ func CompilerHarnessCodegenParityReady() -> Bool {
     if CompilerHarnessCodegenPathCount() != 21 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessCodegenPathCount() {
         if CompilerHarnessCodegenPathAt(i) == "" {
             return false;

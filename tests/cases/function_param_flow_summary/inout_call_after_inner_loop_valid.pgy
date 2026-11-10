@@ -9,9 +9,9 @@ func Accept(inout ids: Array<Int>, id: Int) -> Bool {
 
 func Main() -> Int {
     var ids: Array<Int> = [];
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < 3 {
-        let actual_i: Int = 0;
+        var actual_i: Int = 0;
         while actual_i < 2 {
             actual_i = actual_i + 1;
         }

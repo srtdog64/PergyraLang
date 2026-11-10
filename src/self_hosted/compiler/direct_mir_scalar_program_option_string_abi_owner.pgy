@@ -62,7 +62,7 @@ func DirectMirScalarProgramOptionStringAbiFromRoutineParameters(
     current: DirectMirOptionMatchAbiFact, ref routines: MirProgramRoutineIndex,
     routine_row: Int, param_count: Int
 ) -> DirectMirOptionMatchAbiFact {
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < param_count {
         let parameter: DirectMirRoutineParamFact =
             DirectMirScalarProgramParamFactAtOrdinal(routines, routine_row, ordinal);
@@ -77,8 +77,8 @@ func DirectMirScalarProgramOptionStringAbiCanonicalEmpty(ref fact: DirectMirOpti
 func DirectMirScalarProgramOptionStringAbiReadyForExpressions(
     ref fact: DirectMirOptionMatchAbiFact, ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
-    let required: Bool = false;
-    let row: Int = 0;
+    var required: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(expressions.node_types) {
         if expressions.node_types[row] == CompilerAbiLayoutOptionStringTypeName() {
             required = true;

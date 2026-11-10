@@ -1,0 +1,92 @@
+// Loop reread and final consumption verdict.
+
+import "ast_collection_exclusive_value_field_read_owner.pgy";
+import "ast_collection_exclusive_value_consumption_core_owner.pgy";
+
+// No statement of a loop that repeats the use at `syntax_id` and keeps its
+// place reads an alias in `aliases` the loop does not declare: a later
+// iteration runs every statement of the loop after the use.
+func SemanticAstCollectionExclusiveLoopRereadsUnread(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref aliases: SemanticAstCollectionAggregateSinkAliases,
+    field_reads: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int,
+    ref place: SemanticAstCollectionAggregateSinkPlace, consumed_formal: Int, first_surface: Int, end: Int,
+    ref consumed_field_ids: Array<Int>, allow_storage_free_reads: Bool
+) -> Bool {
+    let no_fields: HashMap<String, Int> = MapNew();
+    let no_paths: Array<String> = [];
+    var loop_node: Int = artifact.arena.parents[syntax_id];
+    while loop_node >= 0 && loop_node < artifact.count {
+        if (TypedAstArenaNodeKindIs(artifact.arena, loop_node, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, loop_node, TypedAstKindForStmtTag())) &&
+            !SemanticAstCollectionNodeEnclosedBy(artifact, place.origin_syntax_id, loop_node) {
+            let readers: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionExclusiveAliasesOutside(
+                artifact, locals, aliases, loop_node, inferred_types);
+            var surface: Int = first_surface;
+            while surface < end && ArrayLength(readers.keys) > 0 {
+                let statement: Int = surfaces.node_ids[surface];
+                if SemanticAstCollectionNodeEnclosedBy(artifact, statement, loop_node) {
+                    let rebinds: Bool = SemanticAstCollectionExclusiveStatementBinding(artifact, signatures, locals,
+                        inferred_types, surfaces, function_id, statement) != 0;
+                    var lane: Int = 0;
+                    while lane < 3 {
+                        let slot: Int = surface * 3 + lane;
+                        if (!rebinds || lane != AstExpressionLaneAtom()) &&
+                            slot < ArrayLength(surfaces.expression_graph.has_roots) &&
+                            surfaces.expression_graph.has_roots[slot] &&
+                            !SemanticAstCollectionExclusiveTreeUnread(artifact, signatures, constructors, locals,
+                                inferred_types, surfaces, readers, field_reads, function_id, statement,
+                                surfaces.expression_graph.roots[slot], node, place.chain, consumed_field_ids,
+                                consumed_formal,
+                                no_fields, false, no_paths, 0, -1,
+                                allow_storage_free_reads) { return false; }
+                        lane = lane + 1;
+                    }
+                }
+                surface = surface + 1;
+            }
+        }
+        loop_node = artifact.arena.parents[loop_node];
+    }
+    return true;
+}
+
+func SemanticAstCollectionExclusiveConsumedAt(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
+    field_reads: HashMap<String, Int>, copies: HashMap<String, Int>,
+    inout consumed: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int
+) -> Bool {
+    // A proof reads the copy edges of its place's root only, and is redone
+    // when one of them is added.
+    let site: String = Concat(ToString(syntax_id), Concat(":", ToString(node)));
+    let root_key: String = Concat("root:", site);
+    if !MapHas(consumed, root_key) {
+        let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+            artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+        var root: Int = 0;
+        if place.ok && !place.temporary { root = SemanticAstCollectionExclusivePlaceRoot(locals, place); }
+        MapSet(consumed, root_key, root);
+    }
+    let key: String = Concat(site, Concat("@",
+        SemanticAstCollectionExclusiveCopySignature(copies, MapGet(consumed, root_key))));
+    if MapHas(consumed, key) { return MapGet(consumed, key) == 1; }
+    let no_fields: Array<String> = [];
+    let no_field_ids: Array<Int> = [];
+    let no_sources: Array<Int> = [];
+    var recovery_only: Bool = false;
+    let allow_storage_free_reads: Bool = true;
+    let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, signatures, constructors, locals,
+        inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, function_id,
+        syntax_id, node, no_fields, no_sources, no_field_ids,
+        allow_storage_free_reads, recovery_only);
+    if !result && recovery_only { MapSet(consumed, Concat("recovery:", key), 1); }
+    if result { MapSet(consumed, key, 1); } else { MapSet(consumed, key, 2); }
+    return result;
+}
+

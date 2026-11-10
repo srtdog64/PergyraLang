@@ -1,0 +1,296 @@
+// Aggregate value binding, current-field identity, and exact carrier mutation facts.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_collection_member_path_type_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "ast_collection_constructor_storage_escape_owner.pgy";
+import "ast_collection_exclusive_value_consumption_owner.pgy";
+import "ast_collection_exclusive_value_owner.pgy";
+import "ast_expression_storage_place_identity_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
+import "ast_collection_aggregate_moving_self_rebind_owner.pgy";
+
+func SemanticAstCollectionAggregateValueBindingForNode(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    function_id: Int, syntax_id: Int,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int
+) -> Int {
+    let identity: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types,
+            resolved_leaf_types, function_id, syntax_id,
+            surfaces.expression_graph, node);
+    if !identity.ok { return 0; }
+    return identity.source_binding_syntax_id;
+}
+
+func SemanticAstCollectionAggregateFieldCurrentAtUse(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, source_binding_id: Int,
+    field_id: Int, use_syntax_id: Int
+) -> Bool {
+    if function_id <= 0 || source_binding_id <= 0 || field_id <= 0 ||
+        use_syntax_id <= 0 { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        let syntax_id: Int = assignments.node_ids[row];
+        if assignments.function_node_ids[row] == function_id &&
+            syntax_id < use_syntax_id {
+            let atom: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, syntax_id, AstExpressionLaneAtom());
+            if IsSome(atom) {
+                let member: SemanticAstCollectionMemberMoveIdentity =
+                    SemanticAstCollectionMemberMoveIdentityForNode(
+                        artifact, signatures, constructors, locals,
+                        inferred_types, resolved_leaf_types, function_id,
+                        syntax_id, surfaces.expression_graph,
+                        UnwrapOption(atom));
+                if member.ok &&
+                    member.source_binding_syntax_id == source_binding_id &&
+                    member.field_syntax_id == field_id {
+                    return false;
+                }
+                let target_binding: Int =
+                    SemanticAstCollectionAggregateValueBindingForNode(
+                        artifact, signatures, locals, inferred_types,
+                        resolved_leaf_types, function_id, syntax_id,
+                        surfaces, UnwrapOption(atom));
+                if target_binding == source_binding_id { return false; }
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateProtectedBinding(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    binding_id: Int
+) -> Bool {
+    if binding_id <= 0 { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(plan.aggregate_origin_ids) {
+        if plan.aggregate_origin_ids[row] == binding_id { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[row] == binding_id ||
+            plan.carrier_source_binding_ids[row] == binding_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.protected_binding_ids) {
+        if plan.protected_binding_ids[row] == binding_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateLineageEdge(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, edge_node: Int
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(plan.demand_edge_nodes) {
+        if plan.demand_edge_nodes[row] == edge_node { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.lineage_call_edge_nodes) {
+        if plan.lineage_call_edge_nodes[row] == edge_node { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+struct SemanticAstCollectionAggregateCarrierCallIdentity {
+    ready: Bool;
+    function_id: Int;
+    source_binding_id: Int;
+    field_id: Int;
+}
+
+// Replay one carrier at an exact call edge. Multiple release demands may
+// record the same carrier, but every record must agree on its semantic
+// identity, mutation boundary, and restoration.
+func SemanticAstCollectionAggregateCarrierCallIdentityAt(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    carrier_local_id: Int, edge_node: Int
+) -> SemanticAstCollectionAggregateCarrierCallIdentity {
+    let absent: SemanticAstCollectionAggregateCarrierCallIdentity =
+        SemanticAstCollectionAggregateCarrierCallIdentity(false, 0, 0, 0);
+    if carrier_local_id <= 0 || edge_node < 0 ||
+        !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) {
+        return absent;
+    }
+    var call_function_id: Int = 0;
+    var call_matches: Int = 0;
+    var call: Int = 0;
+    while call < ArrayLength(plan.call_edge_nodes) {
+        if plan.call_edge_nodes[call] == edge_node {
+            call_matches = call_matches + 1;
+            call_function_id = plan.call_function_ids[call];
+        }
+        call = call + 1;
+    }
+    if call_matches != 1 || call_function_id <= 0 { return absent; }
+
+    var matched: Int = 0;
+    var agreed_function_id: Int = 0;
+    var agreed_scope_id: Int = 0;
+    var agreed_source_binding_id: Int = 0;
+    var agreed_field_id: Int = 0;
+    var agreed_mutation_boundary_syntax_id: Int = -1;
+    var agreed_restoration_syntax_id: Int = 0;
+    var carrier: Int = 0;
+    while carrier < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[carrier] == carrier_local_id {
+            let function_id: Int = plan.carrier_function_ids[carrier];
+            let scope_id: Int = plan.carrier_scope_ids[carrier];
+            let source_binding_id: Int =
+                plan.carrier_source_binding_ids[carrier];
+            let field_id: Int = plan.carrier_field_ids[carrier];
+            let mutation_boundary_syntax_id: Int =
+                plan.carrier_mutation_boundary_syntax_ids[carrier];
+            let restoration_syntax_id: Int =
+                plan.carrier_restoration_syntax_ids[carrier];
+            if function_id != call_function_id || scope_id <= 0 ||
+                source_binding_id <= 0 || field_id <= 0 ||
+                mutation_boundary_syntax_id <= carrier_local_id ||
+                restoration_syntax_id <= 0 {
+                return absent;
+            }
+            if matched == 0 {
+                agreed_function_id = function_id;
+                agreed_scope_id = scope_id;
+                agreed_source_binding_id = source_binding_id;
+                agreed_field_id = field_id;
+                agreed_mutation_boundary_syntax_id =
+                    mutation_boundary_syntax_id;
+                agreed_restoration_syntax_id = restoration_syntax_id;
+            } else if function_id != agreed_function_id ||
+                scope_id != agreed_scope_id ||
+                source_binding_id != agreed_source_binding_id ||
+                field_id != agreed_field_id ||
+                mutation_boundary_syntax_id !=
+                    agreed_mutation_boundary_syntax_id ||
+                restoration_syntax_id != agreed_restoration_syntax_id {
+                return absent;
+            }
+            matched = matched + 1;
+        }
+        carrier = carrier + 1;
+    }
+    if matched <= 0 { return absent; }
+    return SemanticAstCollectionAggregateCarrierCallIdentity(
+        true, agreed_function_id, agreed_source_binding_id, agreed_field_id);
+}
+
+// Authorize only the physical call-argument edge that mutates this carrier.
+// A syntax-level match or one agreeing row beside a conflicting row is not
+// sufficient.
+func SemanticAstCollectionAggregateExactCarrierMutationAt(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    carrier_local_id: Int, edge_node: Int
+) -> Bool {
+    let identity: SemanticAstCollectionAggregateCarrierCallIdentity =
+        SemanticAstCollectionAggregateCarrierCallIdentityAt(
+            plan, carrier_local_id, edge_node);
+    if !identity.ready { return false; }
+    var mutation_step_matches: Int = 0;
+    var step: Int = 0;
+    while step < ArrayLength(plan.carrier_mutation_step_local_ids) {
+        if plan.carrier_mutation_step_local_ids[step] == carrier_local_id &&
+            plan.carrier_mutation_step_edge_nodes[step] == edge_node {
+            mutation_step_matches = mutation_step_matches + 1;
+        }
+        step = step + 1;
+    }
+    return mutation_step_matches == 1;
+}
+
+// A ref call may inspect the current descriptor of one exact carrier. Reject
+// a second carrier for the same formal-relative field because growth through
+// either descriptor could stale the other one.
+func SemanticAstCollectionAggregateExactCarrierReadAt(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    carrier_local_id: Int, edge_node: Int
+) -> Bool {
+    let identity: SemanticAstCollectionAggregateCarrierCallIdentity =
+        SemanticAstCollectionAggregateCarrierCallIdentityAt(
+            plan, carrier_local_id, edge_node);
+    if !identity.ready { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_function_ids[row] == identity.function_id &&
+            plan.carrier_source_binding_ids[row] == identity.source_binding_id &&
+            plan.carrier_field_ids[row] == identity.field_id &&
+            plan.carrier_local_ids[row] != carrier_local_id {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateRestorationForValue(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    binding_id: Int, syntax_id: Int
+) -> Bool {
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[row] == binding_id &&
+            plan.carrier_restoration_syntax_ids[row] == syntax_id {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(moved_use.restored_binding_syntax_ids) {
+        if moved_use.restored_binding_syntax_ids[row] == binding_id &&
+            moved_use.restoration_syntax_ids[row] == syntax_id {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+
+
+// These scalar values carry no storage whose retirement the aggregate-release
+// owner must preserve. This is intentionally narrower than the language's
+// primitive-type registry: String, containers, handles, wrappers and unknown
+// nominal values all remain restoration obligations.
+func SemanticAstCollectionAggregateStorageFreeScalarField(
+    type_name: String
+) -> Bool {
+    return type_name == "Int" || type_name == "Long" ||
+        type_name == "Duration" || type_name == "Float" ||
+        type_name == "Double" || type_name == "Bool" ||
+        type_name == "projection" || type_name == "QubitSlot" ||
+        type_name == "Void" || type_name == "Never";
+}
+

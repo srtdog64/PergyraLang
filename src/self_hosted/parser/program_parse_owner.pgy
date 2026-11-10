@@ -36,7 +36,7 @@ func ParserProgramBuildSourceLocationRowsReady(
         ArrayLength(build.source_location_declared_names) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if !TypedAstKindKnown(build.source_location_kinds[row]) ||
             build.source_location_kinds[row] == TypedAstKindUnknownTag() ||
@@ -63,23 +63,23 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     admit_format_surfaces: Bool,
     diagnostic_projection: ParseDiagnosticProjection
 ) -> ParserProgramBuild {
-    let cursor: Array<Int> = [0];
+    var cursor: Array<Int> = [0];
     let i: Int = SkipWhitespaceAndComments(content, 0);
     ArraySet(cursor, 0, i);
 
     let src_dir: String = SelfHostPath.Dirname(source_path);
-    let involve_types: Array<String> = [];
+    var involve_types: Array<String> = [];
     // Membership only: normalized paths are never enumerated from this table.
-    let import_paths: HashMap<String, Int> = MapNew();
+    var import_paths: HashMap<String, Int> = MapNew();
     MapSet(import_paths, source_path, 1);
     // A fresh descriptor keeps its exclusive identity across both composition calls.
-    let import_chain: Array<String> = [];
+    var import_chain: Array<String> = [];
     ArrayPush(import_chain, source_path);
-    let expression_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
-    let declaration_module_paths: Array<String> = [];
-    let source_locations: Array<ParserSourceLocationObservation> = [];
+    var expression_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+    var declaration_module_paths: Array<String> = [];
+    var source_locations: Array<ParserSourceLocationObservation> = [];
     if observe_phases { Log("Phase: declaration-composition:start"); }
-    let decls: String = ParseDecls(
+    var decls: String = ParseDecls(
         content, i, cursor, "", false, src_dir, source_path, src_dir, false,
         follow_imports, admit_format_surfaces, diagnostic_projection,
         "", involve_types,
@@ -90,7 +90,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         ParserRefuseProgramIoErrorDeclaration(
             source_locations, src_dir, diagnostic_projection
         );
-        let io_error_cursor: Array<Int> = [0];
+        var io_error_cursor: Array<Int> = [0];
         let io_error_decls: String = ParseDecls(
             ParserIoErrorEnumSource(), 0, io_error_cursor, "", false,
             src_dir, source_path, src_dir, false, false, admit_format_surfaces,
@@ -120,13 +120,13 @@ func ParseProgramBuildContentWithImportPolicyObserved(
             "source-location observation rows are incomplete"
         );
     }
-    let source_location_kinds: Array<Int> = [];
-    let source_location_paths: Array<String> = [];
-    let source_location_lines: Array<Int> = [];
-    let source_location_columns: Array<Int> = [];
-    let source_location_offsets: Array<Int> = [];
-    let source_location_declared_names: Array<String> = [];
-    let source_location_row: Int = 0;
+    var source_location_kinds: Array<Int> = [];
+    var source_location_paths: Array<String> = [];
+    var source_location_lines: Array<Int> = [];
+    var source_location_columns: Array<Int> = [];
+    var source_location_offsets: Array<Int> = [];
+    var source_location_declared_names: Array<String> = [];
+    var source_location_row: Int = 0;
     while source_location_row < ArrayLength(source_locations) {
         let source_location: ParserSourceLocationObservation =
             source_locations[source_location_row];

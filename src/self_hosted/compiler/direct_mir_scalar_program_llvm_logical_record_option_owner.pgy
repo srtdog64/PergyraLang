@@ -6,24 +6,12 @@ import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "target_projection_fact_owner.pgy";
 
-func DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
-    ref fact: DirectMirScalarProgramLogicalRecordFact,
-    option_type: String
-) -> String {
-    let payload: String =
-        DirectMirScalarProgramLogicalRecordOptionPayloadType(
-            fact, option_type);
-    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, payload);
-    if row < 0 { return ""; }
-    return Concat("%pgy.scalar.option.logical.record.", ToString(row));
-}
-
 func DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     kind: Int, result: String, result_type: String,
     left_type: String, left: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let option_type: String = result_type;
+    var option_type: String = result_type;
     if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() ||
         kind == DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
         option_type = left_type;
@@ -33,8 +21,8 @@ func DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(
     if t == "" {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
-    let function_name: String = ""; let output_type: String = t;
-    let argument_type: String = "";
+    var function_name: String = ""; var output_type: String = t;
+    var argument_type: String = "";
     if kind == DirectMirScalarProgramExprSomeLogicalRecord() {
         function_name = Concat("@", Concat(
             Substring(t, 1, StringLength(t) - 1), ".some"));
@@ -57,7 +45,7 @@ func DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(
                 fact, option_type));
         argument_type = t;
     } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
-    let output: String = Concat("  ", Concat(result, Concat(" = call ",
+    var output: String = Concat("  ", Concat(result, Concat(" = call ",
         Concat(output_type, Concat(" ", function_name)))));
     if argument_type == "" { output = Concat(output, "()\n"); }
     else { output = Concat(output, Concat("(", Concat(argument_type,
@@ -75,7 +63,7 @@ func DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
             target, CompilerTargetCpuLlvmProjection()) {
         Die("direct MIR logical-record Option LLVM fact is invalid");
     }
-    let output: String = ""; let row: Int = 0;
+    var output: String = ""; var row: Int = 0;
     while row < ArrayLength(fact.names) {
         let payload: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
             fact, fact.names[row]);

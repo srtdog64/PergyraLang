@@ -38,8 +38,8 @@ func ParserFixtureBaseName(path: String, suffix: String) -> String {
         return "";
     }
 
-    let last_slash: Int = -1;
-    let i: Int = 0;
+    var last_slash: Int = -1;
+    var i: Int = 0;
     while i < StringLength(path) {
         if Substring(path, i, 1) == "/" {
             last_slash = i;
@@ -61,8 +61,8 @@ func ParserFixtureSourcePath(base: String) -> String {
 
 func ParserFixtureManifestRows() -> Array<String> {
     let entries: Array<String> = DirWalk(ParserFixtureDir());
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
 
     ArrayPush(rows, "examples/hello.pgy:hello");
     ArrayPush(
@@ -89,7 +89,7 @@ func ParserFixtureManifestRows() -> Array<String> {
 
 func ParserFixtureManifestReady() -> Bool {
     let rows: Array<String> = ParserFixtureManifestRows();
-    let i: Int = 0;
+    var i: Int = 0;
     if ArrayLength(rows) != ParserFixtureManifestCount() {
         return false;
     }
@@ -115,7 +115,7 @@ func EmitParserFixtureManifest() -> Void {
     }
 
     let rows: Array<String> = ParserFixtureManifestRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;

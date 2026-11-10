@@ -15,7 +15,7 @@ func Main() -> Void {
     while k < 8 { ArrayPush(arr, 0); k = k + 1; }
     let bag: Bag = Full(arr);
     let lo: Slice<Int> = arr.Slice(0, 4);
-    let hi: Slice<Int> = arr.Slice(4, 4);
+    var hi: Slice<Int> = arr.Slice(4, 4);
     var i: Int = 0;
     var j: Int = 0;
     parallel {

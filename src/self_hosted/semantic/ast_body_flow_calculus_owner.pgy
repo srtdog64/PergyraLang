@@ -1,0 +1,582 @@
+// Statement and block control-flow calculus.
+
+import "ast_body_verdict_owner.pgy";
+import "ast_statement_type_query_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstBodyTerminationFacts {
+    ok: Bool;
+    artifact_identity_digest: Int;
+    artifact_node_count: Int;
+    nonreturning_functions: Array<Bool>;
+    nonreturning_function_nodes: Array<Bool>;
+    reachable_statements: Array<Bool>;
+}
+
+func SemanticAstBodyTerminationFactsEmpty(
+) -> SemanticAstBodyTerminationFacts {
+    let functions: Array<Bool> = [];
+    let function_nodes: Array<Bool> = [];
+    let reachable: Array<Bool> = [];
+    return SemanticAstBodyTerminationFacts(
+        false, 0, 0, functions, function_nodes, reachable);
+}
+
+func SemanticAstBodyTerminationFactsReady(
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstBodyTerminationFacts
+) -> Bool {
+    return facts.ok && artifact.identity_digest > 0 &&
+        facts.artifact_identity_digest == artifact.identity_digest &&
+        facts.artifact_node_count == artifact.count &&
+        ArrayLength(facts.nonreturning_functions) ==
+            ArrayLength(signatures.function_node_ids) &&
+        ArrayLength(facts.nonreturning_function_nodes) == artifact.count &&
+        ArrayLength(facts.reachable_statements) == artifact.count;
+}
+
+func SemanticAstBodyFunctionNonreturning(
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstBodyTerminationFacts,
+    function_node_id: Int
+) -> Bool {
+    if !SemanticAstBodyTerminationFactsReady(
+            artifact, signatures, facts) {
+        return false;
+    }
+    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, function_node_id);
+    return IsSome(row) &&
+        facts.nonreturning_functions[UnwrapOption(row)];
+}
+
+func SemanticAstBodyFunctionNonreturningAt(
+    ref artifact: AstTreeArtifact,
+    ref facts: SemanticAstBodyTerminationFacts,
+    function_node_id: Int
+) -> Bool {
+    return facts.ok && artifact.identity_digest > 0 &&
+        facts.artifact_identity_digest == artifact.identity_digest &&
+        facts.artifact_node_count == artifact.count &&
+        function_node_id > 0 && function_node_id < artifact.count &&
+        ArrayLength(facts.nonreturning_function_nodes) == artifact.count &&
+        facts.nonreturning_function_nodes[function_node_id];
+}
+
+func SemanticAstBodyStatementReachable(
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstBodyTerminationFacts,
+    function_node_id: Int, statement_node_id: Int
+) -> Bool {
+    if !SemanticAstBodyTerminationFactsReady(
+            artifact, signatures, facts) ||
+        statement_node_id <= 0 || statement_node_id >= artifact.count ||
+        !IsSome(SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id)) {
+        return false;
+    }
+    return facts.reachable_statements[statement_node_id];
+}
+
+struct SemanticAstBodyFlowFact {
+    valid: Bool;
+    falls_through: Bool;
+    breaks: Bool;
+    continues: Bool;
+    returns: Bool;
+    first_return_node: Int;
+}
+
+func SemanticAstBodyFlowCompletes(first_return_node: Int) -> SemanticAstBodyFlowFact {
+    return SemanticAstBodyFlowFact(true, true, false, false, false, first_return_node);
+}
+
+func SemanticAstBodyFlowInvalid() -> SemanticAstBodyFlowFact {
+    return SemanticAstBodyFlowFact(false, false, false, false, false, -1);
+}
+
+func SemanticAstBodyFlowFirstReturn(earlier: Int, later: Int) -> Int {
+    if earlier >= 0 { return earlier; }
+    return later;
+}
+
+// The one Block child of a Body/Then/Else/Case/Default/loop/with node.
+func SemanticAstBodyFlowBlockChild(artifact: AstTreeArtifact, node: Int) -> Option<Int> {
+    let child: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, 0);
+    if !IsSome(child) ||
+        !TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(child), TypedAstKindBlockTag()) {
+        return None;
+    }
+    return child;
+}
+
+// Literal root of a statement's expression lane: "" when the lane is absent
+// or not a literal of the requested kind.
+func SemanticAstBodyFlowLiteralText(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int, lane: Int, literal_kind: Int
+) -> String {
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, node, lane);
+    if !IsSome(root) { return ""; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        surfaces.expression_graph, UnwrapOption(root));
+    if !IsSome(kind) || UnwrapOption(kind) != literal_kind { return ""; }
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        surfaces.expression_graph, UnwrapOption(root));
+    if !IsSome(text) { return ""; }
+    return UnwrapOption(text);
+}
+
+func SemanticAstBodyFlowOfBlockObserved(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>,
+    ref termination: SemanticAstBodyTerminationFacts,
+    inout reachable_statements: Array<Bool>,
+    block: Int, path_reachable: Bool
+) -> SemanticAstBodyFlowFact {
+    var flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowCompletes(-1);
+    var index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(artifact.arena, block, index);
+    while IsSome(child) && flow.falls_through {
+        let step: SemanticAstBodyFlowFact =
+            SemanticAstBodyFlowOfStatementObserved(
+                artifact, statements, types, surfaces,
+                exhaustive_match_nodes, termination,
+                reachable_statements, UnwrapOption(child),
+                path_reachable);
+        if !step.valid { return step; }
+        flow = SemanticAstBodyFlowFact(true, step.falls_through,
+            flow.breaks || step.breaks, flow.continues || step.continues,
+            flow.returns || step.returns,
+            SemanticAstBodyFlowFirstReturn(flow.first_return_node, step.first_return_node));
+        index = index + 1;
+        child = TypedAstArenaChildAt(artifact.arena, block, index);
+    }
+    return flow;
+}
+
+func SemanticAstBodyFlowOfBlock(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, block: Int
+) -> SemanticAstBodyFlowFact {
+    let termination: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFactsEmpty();
+    var reachable: Array<Bool> = [];
+    return SemanticAstBodyFlowOfBlockObserved(
+        artifact, statements, types, surfaces, exhaustive_match_nodes,
+        termination, reachable, block, true);
+}
+
+// Joins one branch arm into a branching statement's flow. An arm the
+// condition cannot take still counts for the return check (native checks
+// it) but not for how the statement ends.
+func SemanticAstBodyFlowJoinArm(
+    flow: SemanticAstBodyFlowFact, arm: SemanticAstBodyFlowFact, reachable: Bool
+) -> SemanticAstBodyFlowFact {
+    let first: Int = SemanticAstBodyFlowFirstReturn(flow.first_return_node, arm.first_return_node);
+    if !reachable {
+        return SemanticAstBodyFlowFact(true, flow.falls_through, flow.breaks,
+            flow.continues, flow.returns, first);
+    }
+    return SemanticAstBodyFlowFact(true, flow.falls_through || arm.falls_through,
+        flow.breaks || arm.breaks, flow.continues || arm.continues,
+        flow.returns || arm.returns, first);
+}
+
+func SemanticAstBodyFlowBareCallTerminates(
+    ref artifact: AstTreeArtifact,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref termination: SemanticAstBodyTerminationFacts,
+    node: Int
+) -> Bool {
+    let row: Option<Int> = SemanticAstStatementTypeIndexForNode(types, node);
+    if !IsSome(row) { return false; }
+    let typed_never: Bool =
+        types.inferred_type_names[UnwrapOption(row)] == "Never";
+    // The ordinary body verdict preserves native's declared Never rule. The
+    // termination producer is stricter: a source callable must itself be in
+    // the proven least fixed point before its caller can become non-returning.
+    if !termination.ok { return typed_never; }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, node, AstExpressionLaneAtom());
+    if !IsSome(root) { return false; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, UnwrapOption(root));
+    if !call.ok { return false; }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        surfaces.expression_graph, call.call_node);
+    if !IsSome(target) { return false; }
+    if UnwrapOption(target) <= 0 { return typed_never; }
+    return SemanticAstBodyFunctionNonreturningAt(
+        artifact, termination, UnwrapOption(target));
+}
+
+func SemanticAstBodyFlowOfStatementObserved(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>,
+    ref termination: SemanticAstBodyTerminationFacts,
+    inout reachable_statements: Array<Bool>,
+    node: Int, path_reachable: Bool
+) -> SemanticAstBodyFlowFact {
+    let kind_opt: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node);
+    if !IsSome(kind_opt) { return SemanticAstBodyFlowInvalid(); }
+    if path_reachable && node >= 0 && node < artifact.count &&
+        ArrayLength(reachable_statements) == artifact.count {
+        reachable_statements[node] = true;
+    }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == TypedAstKindBareReturnStmtTag() || kind == TypedAstKindValueReturnStmtTag() {
+        return SemanticAstBodyFlowFact(true, false, false, false, true, node);
+    }
+    if kind == TypedAstKindExitStmtTag() {
+        return SemanticAstBodyFlowFact(true, false, false, false, true, -1);
+    }
+    if kind == TypedAstKindBareCallStmtTag() {
+        let row: Option<Int> = SemanticAstStatementTypeIndexForNode(types, node);
+        if !IsSome(row) { return SemanticAstBodyFlowInvalid(); }
+        if SemanticAstBodyFlowBareCallTerminates(
+                artifact, types, surfaces,
+                termination, node) {
+            return SemanticAstBodyFlowFact(true, false, false, false, true, -1);
+        }
+        return SemanticAstBodyFlowCompletes(-1);
+    }
+    if kind == TypedAstKindBreakStmtTag() {
+        return SemanticAstBodyFlowFact(true, false, true, false, false, -1);
+    }
+    if kind == TypedAstKindContinueStmtTag() {
+        return SemanticAstBodyFlowFact(true, false, false, true, false, -1);
+    }
+    if kind == TypedAstKindBlockTag() {
+        return SemanticAstBodyFlowOfBlockObserved(
+            artifact, statements, types, surfaces, exhaustive_match_nodes,
+            termination, reachable_statements, node, path_reachable);
+    }
+    if kind == TypedAstKindIfStmtTag() {
+        return SemanticAstBodyFlowOfIfObserved(
+            artifact, statements, types, surfaces, exhaustive_match_nodes,
+            termination, reachable_statements, node, path_reachable);
+    }
+    if kind == TypedAstKindMatchStmtTag() {
+        return SemanticAstBodyFlowOfMatchObserved(
+            artifact, statements, types, surfaces, exhaustive_match_nodes,
+            termination, reachable_statements, node, path_reachable);
+    }
+    if kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag() {
+        return SemanticAstBodyFlowOfLoopObserved(
+            artifact, statements, types, surfaces, exhaustive_match_nodes,
+            termination, reachable_statements, node,
+            kind == TypedAstKindWhileStmtTag(), path_reachable);
+    }
+    if kind == TypedAstKindWithStmtTag() || kind == TypedAstKindUnsafeBlockTag() ||
+        kind == TypedAstKindTransactionBlockTag() {
+        let block: Option<Int> = SemanticAstBodyFlowBlockChild(artifact, node);
+        if !IsSome(block) { return SemanticAstBodyFlowInvalid(); }
+        return SemanticAstBodyFlowOfBlockObserved(
+            artifact, statements, types, surfaces, exhaustive_match_nodes,
+            termination, reachable_statements, UnwrapOption(block),
+            path_reachable);
+    }
+    return SemanticAstBodyFlowCompletes(-1);
+}
+
+func SemanticAstBodyFlowOfStatement(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, node: Int
+) -> SemanticAstBodyFlowFact {
+    let termination: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFactsEmpty();
+    var reachable: Array<Bool> = [];
+    return SemanticAstBodyFlowOfStatementObserved(
+        artifact, statements, types, surfaces, exhaustive_match_nodes,
+        termination, reachable, node, true);
+}
+
+func SemanticAstBodyFlowOfIfObserved(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>,
+    ref termination: SemanticAstBodyTerminationFacts,
+    inout reachable_statements: Array<Bool>,
+    node: Int, path_reachable: Bool
+) -> SemanticAstBodyFlowFact {
+    let condition: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+        AstExpressionLaneAtom(), AstExpressionNodeBoolLiteral());
+    let then_node: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, 0);
+    if !IsSome(then_node) ||
+        !TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(then_node), TypedAstKindThenTag()) {
+        return SemanticAstBodyFlowInvalid();
+    }
+    let then_block: Option<Int> = SemanticAstBodyFlowBlockChild(artifact, UnwrapOption(then_node));
+    if !IsSome(then_block) { return SemanticAstBodyFlowInvalid(); }
+    let then_reachable: Bool = path_reachable && condition != "false";
+    let then_flow: SemanticAstBodyFlowFact =
+        SemanticAstBodyFlowOfBlockObserved(
+            artifact, statements, types, surfaces,
+            exhaustive_match_nodes, termination,
+            reachable_statements, UnwrapOption(then_block),
+            then_reachable);
+    if !then_flow.valid { return then_flow; }
+    let flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowJoinArm(
+        SemanticAstBodyFlowFact(true, false, false, false, false, -1),
+        then_flow, condition != "false");
+    let else_node: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, 1);
+    if !IsSome(else_node) {
+        if condition == "true" { return flow; }
+        return SemanticAstBodyFlowJoinArm(flow, SemanticAstBodyFlowCompletes(-1), true);
+    }
+    if !TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(else_node), TypedAstKindElseStmtTag()) {
+        return SemanticAstBodyFlowInvalid();
+    }
+    // `else { }` holds a Block; `else if` holds the nested If directly.
+    let else_target: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(else_node), 0);
+    if !IsSome(else_target) { return SemanticAstBodyFlowInvalid(); }
+    let else_kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, UnwrapOption(else_target));
+    if !IsSome(else_kind) || (UnwrapOption(else_kind) != TypedAstKindBlockTag() &&
+        UnwrapOption(else_kind) != TypedAstKindIfStmtTag()) {
+        return SemanticAstBodyFlowInvalid();
+    }
+    let else_flow: SemanticAstBodyFlowFact =
+        SemanticAstBodyFlowOfStatementObserved(
+            artifact, statements, types, surfaces,
+            exhaustive_match_nodes, termination,
+            reachable_statements, UnwrapOption(else_target),
+            path_reachable && condition != "true");
+    if !else_flow.valid { return else_flow; }
+    return SemanticAstBodyFlowJoinArm(flow, else_flow, condition != "true");
+}
+
+func SemanticAstBodyFlowOfIf(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, node: Int
+) -> SemanticAstBodyFlowFact {
+    let termination: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFactsEmpty();
+    var reachable: Array<Bool> = [];
+    return SemanticAstBodyFlowOfIfObserved(
+        artifact, statements, types, surfaces, exhaustive_match_nodes,
+        termination, reachable, node, true);
+}
+
+// 1: the case is the literal subject's arm, 0: it cannot be, -1: unknown.
+func SemanticAstBodyFlowCaseLiteralMatch(
+    subject_int: String, subject_bool: String, pattern: String
+) -> Int {
+    if subject_int != "" && pattern != "" && !StartsWith(pattern, "-") &&
+        ToString(ToInt(pattern)) == pattern {
+        if ToInt(subject_int) == ToInt(pattern) { return 1; }
+        return 0;
+    }
+    if subject_bool != "" && (pattern == "true" || pattern == "false") {
+        if subject_bool == pattern { return 1; }
+        return 0;
+    }
+    return -1;
+}
+
+// Case coverage of a match without default, as native
+// match_stmt_has_total_case_coverage decides it.
+func SemanticAstBodyFlowMatchCasesTotal(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref exhaustive_match_nodes: Array<Int>, node: Int
+) -> Bool {
+    var proven: Int = 0;
+    while proven < ArrayLength(exhaustive_match_nodes) {
+        if exhaustive_match_nodes[proven] == node { return true; }
+        proven = proven + 1;
+    }
+    let row: Option<Int> = SemanticAstStatementTypeIndexForNode(types, node);
+    if !IsSome(row) { return false; }
+    let subject_type: String = types.inferred_type_names[UnwrapOption(row)];
+    // Some takes one binding and None none; Ok and Err take one each.
+    var first: String = "Ok";
+    var second: String = "Err";
+    var second_arity: Int = 1;
+    if StartsWith(subject_type, "Option<") {
+        first = "Some"; second = "None"; second_arity = 0;
+    } else if !StartsWith(subject_type, "Result<") {
+        return false;
+    }
+    var saw_first: Bool = false;
+    var saw_second: Bool = false;
+    var index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, index);
+    while IsSome(child) {
+        if TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(child), TypedAstKindMatchCaseStmtTag()) {
+            let pattern: AstMatchCasePatternFact =
+                SemanticAstMatchCasePatternFactForNode(statements, UnwrapOption(child));
+            let arity: Int = ArrayLength(pattern.bindings);
+            if pattern.ok && pattern.variant == first && arity == 1 { saw_first = true; }
+            if pattern.ok && pattern.variant == second && arity == second_arity { saw_second = true; }
+        }
+        index = index + 1;
+        child = TypedAstArenaChildAt(artifact.arena, node, index);
+    }
+    return saw_first && saw_second;
+}
+
+func SemanticAstBodyFlowOfMatchObserved(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>,
+    ref termination: SemanticAstBodyTerminationFacts,
+    inout reachable_statements: Array<Bool>,
+    node: Int, path_reachable: Bool
+) -> SemanticAstBodyFlowFact {
+    let subject_int: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+        AstExpressionLaneAtom(), AstExpressionNodeIntegerLiteral());
+    let subject_bool: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+        AstExpressionLaneAtom(), AstExpressionNodeBoolLiteral());
+    var flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowFact(true, false, false, false, false, -1);
+    var prior_static_match: Bool = false;
+    var default_node: Int = -1;
+    var index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, index);
+    while IsSome(child) {
+        let arm_node: Int = UnwrapOption(child);
+        let is_case: Bool = TypedAstArenaNodeKindIs(artifact.arena, arm_node,
+            TypedAstKindMatchCaseStmtTag());
+        if !is_case && !TypedAstArenaNodeKindIs(artifact.arena, arm_node,
+            TypedAstKindMatchDefaultStmtTag()) {
+            return SemanticAstBodyFlowInvalid();
+        }
+        // Native walks the default after every case.
+        if !is_case {
+            if default_node >= 0 { return SemanticAstBodyFlowInvalid(); }
+            default_node = arm_node;
+        } else {
+            let pattern: AstMatchCasePatternFact =
+                SemanticAstMatchCasePatternFactForNode(statements, arm_node);
+            // An or-pattern matches when one alternative does, and misses
+            // only when every alternative is known to miss.
+            var literal: Int = -1;
+            let alternatives: Array<String> = AstMatchCasePatternAlternatives(pattern);
+            var alternative: Int = 0;
+            if ArrayLength(alternatives) > 0 { literal = 0; }
+            while alternative < ArrayLength(alternatives) && literal != 1 {
+                let one: Int = SemanticAstBodyFlowCaseLiteralMatch(subject_int,
+                    subject_bool, alternatives[alternative]);
+                if one == 1 || (one == -1 && literal == 0) { literal = one; }
+                alternative = alternative + 1;
+            }
+            let body: Option<Int> =
+                SemanticAstBodyFlowBlockChild(artifact, arm_node);
+            if !IsSome(body) { return SemanticAstBodyFlowInvalid(); }
+            let arm: SemanticAstBodyFlowFact =
+                SemanticAstBodyFlowOfBlockObserved(
+                    artifact, statements, types, surfaces,
+                    exhaustive_match_nodes, termination,
+                    reachable_statements, UnwrapOption(body),
+                    path_reachable && !prior_static_match && literal != 0);
+            if !arm.valid { return arm; }
+            flow = SemanticAstBodyFlowJoinArm(flow, arm, !prior_static_match && literal != 0);
+            if literal == 1 { prior_static_match = true; }
+        }
+        index = index + 1;
+        child = TypedAstArenaChildAt(artifact.arena, node, index);
+    }
+    if default_node >= 0 {
+        let body: Option<Int> = SemanticAstBodyFlowBlockChild(artifact, default_node);
+        if !IsSome(body) { return SemanticAstBodyFlowInvalid(); }
+        let arm: SemanticAstBodyFlowFact =
+            SemanticAstBodyFlowOfBlockObserved(
+                artifact, statements, types, surfaces,
+                exhaustive_match_nodes, termination,
+                reachable_statements, UnwrapOption(body),
+                path_reachable && !prior_static_match);
+        if !arm.valid { return arm; }
+        return SemanticAstBodyFlowJoinArm(flow, arm, !prior_static_match);
+    }
+    if !prior_static_match && !SemanticAstBodyFlowMatchCasesTotal(
+        artifact, statements, types, exhaustive_match_nodes, node) {
+        return SemanticAstBodyFlowJoinArm(flow, SemanticAstBodyFlowCompletes(-1), true);
+    }
+    return flow;
+}
+
+func SemanticAstBodyFlowOfMatch(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, node: Int
+) -> SemanticAstBodyFlowFact {
+    let termination: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFactsEmpty();
+    var reachable: Array<Bool> = [];
+    return SemanticAstBodyFlowOfMatchObserved(
+        artifact, statements, types, surfaces, exhaustive_match_nodes,
+        termination, reachable, node, true);
+}
+
+// A loop absorbs its body's break and continue. `is_while` selects the
+// while rule; otherwise the node is a for loop.
+func SemanticAstBodyFlowOfLoopObserved(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>,
+    ref termination: SemanticAstBodyTerminationFacts,
+    inout reachable_statements: Array<Bool>,
+    node: Int, is_while: Bool, path_reachable: Bool
+) -> SemanticAstBodyFlowFact {
+    let body: Option<Int> = SemanticAstBodyFlowBlockChild(artifact, node);
+    if !IsSome(body) { return SemanticAstBodyFlowInvalid(); }
+    var static_bound: Bool = false;
+    if is_while {
+        let condition: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+            AstExpressionLaneAtom(), AstExpressionNodeBoolLiteral());
+        if condition == "false" { return SemanticAstBodyFlowCompletes(-1); }
+        static_bound = condition == "true";
+    } else {
+        let lower: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+            AstExpressionLaneValue(), AstExpressionNodeIntegerLiteral());
+        let upper: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+            AstExpressionLaneAuxiliary(), AstExpressionNodeIntegerLiteral());
+        static_bound = lower != "" && upper != "";
+        if static_bound && ToInt(upper) <= ToInt(lower) {
+            return SemanticAstBodyFlowCompletes(-1);
+        }
+    }
+    let inner: SemanticAstBodyFlowFact =
+        SemanticAstBodyFlowOfBlockObserved(
+            artifact, statements, types, surfaces,
+            exhaustive_match_nodes, termination,
+            reachable_statements, UnwrapOption(body), path_reachable);
+    if !inner.valid { return inner; }
+    let must_return: Bool = !inner.falls_through && !inner.continues && inner.returns;
+    if !static_bound || inner.breaks {
+        return SemanticAstBodyFlowCompletes(inner.first_return_node);
+    }
+    if is_while || must_return {
+        return SemanticAstBodyFlowFact(true, false, false, false, must_return,
+            inner.first_return_node);
+    }
+    return SemanticAstBodyFlowCompletes(inner.first_return_node);
+}
+
+func SemanticAstBodyFlowOfLoop(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, node: Int, is_while: Bool
+) -> SemanticAstBodyFlowFact {
+    let termination: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFactsEmpty();
+    var reachable: Array<Bool> = [];
+    return SemanticAstBodyFlowOfLoopObserved(
+        artifact, statements, types, surfaces, exhaustive_match_nodes,
+        termination, reachable, node, is_while, true);
+}
+

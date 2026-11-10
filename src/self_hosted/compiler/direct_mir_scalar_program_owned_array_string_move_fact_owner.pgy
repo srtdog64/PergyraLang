@@ -30,7 +30,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactDigest(
     ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(307L, fact.coverage.digest);
+    var hash: Long = DirectMirCfgHashInt(307L, fact.coverage.digest);
     hash = DirectMirScalarCfgHashInts(hash, fact.caller_routines);
     hash = DirectMirScalarCfgHashInts(hash, fact.call_operation_rows);
     hash = DirectMirScalarCfgHashInts(hash, fact.call_expression_rows);
@@ -60,7 +60,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
         !DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
             fact.coverage, count) ||
         fact.present != (count > 0) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.caller_routines[row] < 0 ||
             fact.call_operation_rows[row] < -1 ||
@@ -68,7 +68,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
             fact.callable_ordinals[row] <= 0 ||
             fact.parameter_ordinals[row] < 0 ||
             fact.abi_layout_ids[row] <= 0 { return false; }
-        let other: Int = 0;
+        var other: Int = 0;
         while other < count {
             if fact.caller_routines[other] == fact.caller_routines[row] &&
                 fact.local_rows[other] == fact.local_rows[row] {

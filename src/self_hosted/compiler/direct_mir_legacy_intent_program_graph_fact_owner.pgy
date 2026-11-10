@@ -29,7 +29,7 @@ func DirectMirLegacyIntentProgramGraphFactDigest(
     ref fact: DirectMirLegacyIntentProgramGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(907L, fact.subject_type_name);
+    var hash: Long = DirectMirCfgHashString(907L, fact.subject_type_name);
     hash = DirectMirCfgHashString(hash, fact.zone_type_name);
     hash = DirectMirCfgHashString(hash, fact.subject_alias);
     hash = DirectMirCfgHashString(hash, fact.zone_alias);
@@ -94,7 +94,7 @@ func DirectMirLegacyIntentProgramCanonicalInteger(
 func DirectMirLegacyIntentProgramGraphHasNoCallTargets(
     ref sequence: MirExpressionGraphSequence
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(sequence.arena.call_target_kinds) {
         if sequence.arena.call_target_kinds[row] !=
                 SemanticCallTargetNone() ||
@@ -258,9 +258,9 @@ func DirectMirLegacyIntentSubjectFieldName(
         MirProgramDeclarationFieldIdentityDeclarationIndex(
             fields, subject_type
         );
-    let subject_field: String = "";
-    let subject_field_count: Int = 0;
-    let field_row: Int = 0;
+    var subject_field: String = "";
+    var subject_field_count: Int = 0;
+    var field_row: Int = 0;
     while field_row < ArrayLength(fields.field_names) {
         if fields.field_owner_indices[field_row] == subject_owner &&
             fields.field_kinds[field_row] == "field" &&
@@ -297,7 +297,7 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
         signature.parameters.carriages[0] != "participant" || signature.parameters.carriages[1] != "participant" {
         Die("direct MIR legacy intent participant identity is invalid");
     }
-    let zone_binding: Int = 0;
+    var zone_binding: Int = 0;
     if signature.parameters.type_names[0] == subject_type && signature.parameters.type_names[1] == zone_type {
         zone_binding = 1;
     } else if signature.parameters.type_names[0] != zone_type || signature.parameters.type_names[1] != subject_type {
@@ -378,8 +378,8 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
         );
     // The ordered formal projection selects caller operands. The two scopes
     // may use unrelated, or even cross-colliding, names.
-    let first_argument: String = zone_alias;
-    let second_argument: String = subject_alias;
+    var first_argument: String = zone_alias;
+    var second_argument: String = subject_alias;
     if zone_binding == 1 {
         first_argument = subject_alias;
         second_argument = zone_alias;

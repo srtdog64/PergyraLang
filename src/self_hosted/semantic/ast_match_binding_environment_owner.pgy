@@ -14,7 +14,8 @@ import "wrapper_type_owner.pgy";
 func SemanticAstExpressionSeedMatchCaseBindings(
     ref artifact: AstTreeArtifact,
     ref statements: SemanticAstStatementFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surface_node_ids: Array<Int>,
+    ref expression_graph: SemanticExpressionGraphFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
@@ -49,8 +50,8 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     ) {
         return false;
     }
-    let subject_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
-        expression_surfaces, UnwrapOption(match_node),
+    let subject_root: Option<Int> = SemanticAstExpressionGraphRootForProjection(
+        expression_surface_node_ids, expression_graph, UnwrapOption(match_node),
         AstExpressionLaneAtom()
     );
     if !IsSome(subject_root) {
@@ -58,7 +59,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     }
     let subject_type_fact: Option<String> =
         SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
-            expression_surfaces.expression_graph,
+            expression_graph,
             UnwrapOption(subject_root), constructors, names, types,
             function_tables, enums.value_scope
         );
@@ -71,15 +72,15 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     let wrapper_subject: Bool = IsSome(OptionPayloadTypeOpt(subject_type)) ||
         IsSome(ResultPayloadTypeOpt(subject_type));
     if !wrapper_subject {
-        let variant_name: String = pattern.variant;
+        var variant_name: String = pattern.variant;
         if variant_name == "" {
             variant_name = pattern.pattern;
         }
-        let enum_variant_index: Int = -1;
+        var enum_variant_index: Int = -1;
         let variant_count: Option<Int> =
             SemanticAstEnumVariantCountForName(enums, subject_type);
         if !IsSome(variant_count) { return false; }
-        let variant_index: Int = 0;
+        var variant_index: Int = 0;
         while variant_index < UnwrapOption(variant_count) {
             let candidate: Option<String> = SemanticAstEnumVariantNameAt(
                 enums, subject_type, variant_index
@@ -97,7 +98,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
             ArrayLength(pattern.bindings) {
             return false;
         }
-        let binding_index: Int = 0;
+        var binding_index: Int = 0;
         while binding_index < ArrayLength(pattern.bindings) {
             let payload_type: Option<String> =
                 SemanticAstEnumVariantPayloadTypeAt(
@@ -117,7 +118,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     if ArrayLength(pattern.bindings) != 1 || pattern.variant == "None" {
         return false;
     }
-    let payload_type: Option<String> = None;
+    var payload_type: Option<String> = None;
     if pattern.variant == "Some" {
         payload_type = OptionPayloadTypeOpt(subject_type);
     } else if pattern.variant == "Ok" {
@@ -138,10 +139,13 @@ func SemanticAstExpressionSeedMatchCaseBindings(
 // The body-analysis owner has admitted these whole-program facts once. This
 // entrypoint may walk only the use-site ancestry and individual case pattern;
 // it must not rebuild enum or function-scope inventories per use site.
-func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+func SemanticAstExpressionSeedVisibleMatchBindingsFromProjection(
     ref artifact: AstTreeArtifact,
     ref statements: SemanticAstStatementFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    expression_surfaces_ok: Bool,
+    expression_surface_artifact_node_count: Int,
+    ref expression_surface_node_ids: Array<Int>,
+    ref expression_graph: SemanticExpressionGraphFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
@@ -155,16 +159,16 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
     if use_node_id < 0 || use_node_id >= artifact.count ||
         !statements.ok ||
         statements.artifact_node_count != artifact.count ||
-        !expression_surfaces.ok ||
-        expression_surfaces.artifact_node_count != artifact.count {
+        !expression_surfaces_ok ||
+        expression_surface_artifact_node_count != artifact.count {
         return false;
     }
     if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return false;
     }
-    let case_nodes: Array<Int> = [];
-    let cursor: Option<Int> = Some(use_node_id);
-    let traversed: Int = 0;
+    var case_nodes: Array<Int> = [];
+    var cursor: Option<Int> = Some(use_node_id);
+    var traversed: Int = 0;
     while IsSome(cursor) && traversed < artifact.count {
         let node_id: Int = UnwrapOption(cursor);
         if TypedAstArenaNodeKindIs(
@@ -181,10 +185,11 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
         ArrayLength(function_scopes.function_node_ids) != artifact.count {
         return false;
     }
-    let i: Int = ArrayLength(case_nodes) - 1;
+    var i: Int = ArrayLength(case_nodes) - 1;
     while i >= 0 {
         if !SemanticAstExpressionSeedMatchCaseBindings(
-            artifact, statements, expression_surfaces, constructors, enums,
+            artifact, statements, expression_surface_node_ids, expression_graph,
+            constructors, enums,
             function_scopes, function_tables,
             function_node_id, case_nodes[i], names, types, modes
         ) {
@@ -193,6 +198,29 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
         i = i - 1;
     }
     return true;
+}
+
+func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref enums: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    return SemanticAstExpressionSeedVisibleMatchBindingsFromProjection(
+        artifact, statements, expression_surfaces.ok,
+        expression_surfaces.artifact_node_count,
+        expression_surfaces.node_ids, expression_surfaces.expression_graph,
+        constructors, enums, function_scopes, function_node_id, use_node_id,
+        names, types, modes, function_tables
+    );
 }
 
 // Hot checked semantic passes prove artifact/surface readiness once before

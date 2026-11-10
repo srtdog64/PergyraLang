@@ -4,8 +4,183 @@
  */
 
 #include "transpiler.h"
+#include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "thread_pool_usage.h"
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct
+{
+    const MIRDeclHeader *header;
+} TranspilerDeclHeaderLookupEntry;
+
+struct TranspilerDeclHeaderLookupProjection
+{
+    const MIRProgram *mir;
+    const MIRDeclHeader *headers;
+    size_t header_count;
+    TranspilerDeclHeaderLookupEntry *entries;
+    size_t capacity;
+    bool failed;
+};
+
+static uint64_t
+transpiler_decl_header_lookup_hash(ASTNodeType ast_type, const char *name)
+{
+    uint64_t hash = UINT64_C(1469598103934665603);
+
+    hash ^= (uint64_t)(unsigned)ast_type;
+    hash *= UINT64_C(1099511628211);
+    if (name == NULL)
+        return hash;
+    for (const unsigned char *p = (const unsigned char *)name;
+         *p != '\0'; p++) {
+        hash ^= (uint64_t)*p;
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static void
+transpiler_decl_header_lookup_projection_clear(
+    TranspilerDeclHeaderLookupProjection *projection)
+{
+    if (projection == NULL)
+        return;
+    free(projection->entries);
+    memset(projection, 0, sizeof(*projection));
+}
+
+TranspilerDeclHeaderLookupProjection *
+transpiler_decl_header_lookup_projection_create(void)
+{
+    return calloc(1, sizeof(TranspilerDeclHeaderLookupProjection));
+}
+
+void
+transpiler_decl_header_lookup_projection_destroy(
+    TranspilerDeclHeaderLookupProjection *projection)
+{
+    if (projection == NULL)
+        return;
+    transpiler_decl_header_lookup_projection_clear(projection);
+    free(projection);
+}
+
+static bool
+transpiler_decl_header_lookup_projection_build(
+    TranspilerDeclHeaderLookupProjection *projection,
+    const MIRProgram *mir)
+{
+    size_t capacity = 8;
+
+    if (projection == NULL || mir == NULL)
+        return false;
+    transpiler_decl_header_lookup_projection_clear(projection);
+    projection->mir = mir;
+    projection->headers = mir->decl_headers;
+    projection->header_count = mir->decl_header_count;
+    if (mir->decl_header_count > SIZE_MAX / 2) {
+        projection->failed = true;
+        return false;
+    }
+    size_t needed = mir->decl_header_count * 2;
+    while (capacity < needed) {
+        if (capacity > SIZE_MAX / 2) {
+            projection->failed = true;
+            return false;
+        }
+        capacity *= 2;
+    }
+    projection->entries = calloc(capacity, sizeof(*projection->entries));
+    if (projection->entries == NULL) {
+        projection->failed = true;
+        return false;
+    }
+    projection->capacity = capacity;
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *header = &mir->decl_headers[i];
+        if (header->name == NULL)
+            continue;
+        size_t slot = (size_t)(transpiler_decl_header_lookup_hash(
+            header->ast_type, header->name) & (capacity - 1));
+        size_t probe = 0;
+        while (projection->entries[slot].header != NULL) {
+            const MIRDeclHeader *saved = projection->entries[slot].header;
+            if (saved->ast_type == header->ast_type
+                && strcmp(saved->name, header->name) == 0) {
+                /* The former linear lookup returned the first row. MIR
+                 * validation separately rejects a duplicate authority. */
+                break;
+            }
+            if (++probe == capacity) {
+                projection->failed = true;
+                return false;
+            }
+            slot = (slot + 1) & (capacity - 1);
+        }
+        if (projection->entries[slot].header == NULL)
+            projection->entries[slot].header = header;
+    }
+    return true;
+}
+
+static const MIRDeclHeader *
+transpiler_decl_header_lookup_projected(const TranspilerCtx *ctx,
+                                        ASTNodeType ast_type,
+                                        const char *name)
+{
+    TranspilerDeclHeaderLookupProjection *projection;
+
+    if (ctx == NULL || ctx->mir == NULL || name == NULL
+        || ctx->decl_header_lookup_projection == NULL) {
+        return NULL;
+    }
+    projection = ctx->decl_header_lookup_projection;
+    if (projection->mir != ctx->mir
+        || projection->headers != ctx->mir->decl_headers
+        || projection->header_count != ctx->mir->decl_header_count) {
+        if (!transpiler_decl_header_lookup_projection_build(
+                projection, ctx->mir)) {
+            return NULL;
+        }
+    }
+    if (projection->failed || projection->entries == NULL
+        || projection->capacity == 0) {
+        return NULL;
+    }
+    size_t slot = (size_t)(transpiler_decl_header_lookup_hash(ast_type, name)
+        & (projection->capacity - 1));
+    for (size_t probe = 0; probe < projection->capacity; probe++) {
+        const MIRDeclHeader *header = projection->entries[slot].header;
+        if (header == NULL)
+            return NULL;
+        if (header->ast_type == ast_type
+            && strcmp(header->name, name) == 0) {
+            return header;
+        }
+        slot = (slot + 1) & (projection->capacity - 1);
+    }
+    return NULL;
+}
+
+static bool
+transpiler_decl_header_lookup_projection_verify_enabled(void)
+{
+    static int initialized = 0;
+    static bool enabled = false;
+
+    if (!initialized) {
+        const char *value = getenv(
+            "PGY_VERIFY_C_DECL_HEADER_LOOKUP_PROJECTION");
+        enabled = value != NULL && strcmp(value, "1") == 0;
+        initialized = 1;
+    }
+    return enabled;
+}
 
 void
 transpiler_active_routine_inventory(const TranspilerCtx *ctx,
@@ -253,9 +428,17 @@ transpiler_active_decl_header_of_type(const TranspilerCtx *ctx,
                                       ASTNodeType decl_type,
                                       const char *name)
 {
+    const MIRDeclHeader *projected;
+
     if (ctx == NULL || ctx->mir == NULL || name == NULL)
         return NULL;
-    return mir_find_decl_header_of_type(ctx->mir, decl_type, name);
+    projected = transpiler_decl_header_lookup_projected(ctx, decl_type, name);
+    if (transpiler_decl_header_lookup_projection_verify_enabled()
+        && projected != mir_find_decl_header_of_type(
+            ctx->mir, decl_type, name)) {
+        return NULL;
+    }
+    return projected;
 }
 
 const MIRDeclHeader *

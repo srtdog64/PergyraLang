@@ -7,7 +7,7 @@ func SelfDirIntentParticipantIndex(ref aliases: Array<String>, start: Int, count
 ) -> Int {
     let size: Int = ArrayLength(aliases);
     if start < 0 || count < 0 || start > size || count > size - start { return -1; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if aliases[start + i] == alias { return start + i; }
         i = i + 1;
@@ -53,7 +53,7 @@ func SelfDirIntentStepParticipantContractReady(
     if !SelfDirIntentStepPlacementReceiverReady(
         participants, participant_start, participant_count, steps, step_index
     ) { return false; }
-    let name_i: Int = 0;
+    var name_i: Int = 0;
     while name_i < who_count {
         let participant_row: Int = SelfDirIntentParticipantIndex(
             participants.aliases, participant_start, participant_count,

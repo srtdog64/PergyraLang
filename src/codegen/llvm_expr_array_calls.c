@@ -10,6 +10,7 @@
 #include "llvm_internal_api.h"
 #include "llvm_mir_store_coercion.h"
 #include "parser/ast_api.h"
+#include "semantic/collection_ownership_fact.h"
 
 typedef enum {
     LLVM_ARRAY_BUILTIN_NONE = 0,
@@ -632,19 +633,31 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (arr_alloca == NULL)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPop requires registered Array<T> receiver", out);
+        bool owned_pop_receipt =
+            semantic_collection_owned_string_pop_receipt_ready(node, arr_arg);
         const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
         bool use_raw_nominal = llvm_array_entry_uses_raw_nominal(ctx, entry);
-        if (use_raw_nominal)
+        if (use_raw_nominal) {
+            if (owned_pop_receipt)
+                return llvm_array_error_out(node, ctx,
+                    "LLVM owned ArrayPop cannot use raw nominal storage", out);
             return llvm_array_emit_raw_nominal_pop(ctx, node, callee_name,
                 arr_alloca, entry, out);
+        }
         if (suffix == NULL || strcmp(suffix, "Unknown") == 0) {
             llvm_array_required_elem_suffix(ctx, node, entry, callee_name);
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPop requires concrete Array<T> element metadata", out);
         }
 
+        if (owned_pop_receipt && strcmp(suffix, "String") != 0)
+            return llvm_array_error_out(node, ctx,
+                "LLVM owned ArrayPop receipt requires Array<String>", out);
+        bool owned_string = owned_pop_receipt;
         LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
-            callee_name, "pgy_array_pop", suffix,
+            callee_name,
+            owned_string ? "pgy_array_pop_owned" : "pgy_array_pop",
+            suffix,
             "LLVM ArrayPop requires registered runtime function", out);
         if (fn == NULL)
             return true;

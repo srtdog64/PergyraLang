@@ -1,7 +1,7 @@
-// A String a local borrows from a ref input, pushed into an Array taken
-// from a field: the Array has no release authority for an owned push, so
-// the next analysis pushes a Clone of the String. Build returns the rows;
-// Plan writes the Array back into the field it came from.
+// A String a local borrows from a ref input is copied into the exact fresh
+// empty Array carried by a field. The carrier proof lets the store use the
+// owned-copy operation directly: Build returns that carrier, while Plan
+// restores it into the field it came from.
 struct Sig {
     owner_names: Array<String>;
 }
@@ -21,8 +21,8 @@ func RowsEmpty() -> Rows {
 
 func Build(ref analysis: Analysis) -> Rows {
     let rows: Rows = RowsEmpty();
-    let owner_names: Array<String> = rows.owner_names;
-    let i: Int = 0;
+    var owner_names: Array<String> = rows.owner_names;
+    var i: Int = 0;
     while i < ArrayLength(analysis.signatures.owner_names) {
         let owner: String = analysis.signatures.owner_names[i];
         ArrayPush(owner_names, owner);
@@ -32,8 +32,8 @@ func Build(ref analysis: Analysis) -> Rows {
 }
 
 func Plan(ref analysis: Analysis) -> Rows {
-    let rows: Rows = RowsEmpty();
-    let names: Array<String> = rows.owner_names;
+    var rows: Rows = RowsEmpty();
+    var names: Array<String> = rows.owner_names;
     let owner: String = analysis.signatures.owner_names[0];
     ArrayPush(names, owner);
     rows.owner_names = names;

@@ -117,8 +117,8 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Immutable local | `let`, `const`, `val` | `let x = ...;` | `stable` | Normal local binding. |
-| Mutable local | `var`, `let mut`, `ref` mutation | assignment / subject state updates | `partial` | No broad public `mut` baseline. |
+| Immutable local | `let`, `const`, `val` | `let x = ...;` | `partial` | Rebinding and writes through value fields/elements are refused; installed-route verification is pending. |
+| Mutable local | `var`, `let mut`, `ref` mutation | `var x = ...;` / `let mut x = ...;` | `partial` | Both declarations carry the same write permission; borrowing and ownership checks still apply. |
 | Destructuring | tuple/object destructure | `let (a, b) = ...;` | `partial` | Keep CFG/dataflow-owned. |
 | Reference / borrow | `&T`, `ref T`, pointer/ref | `ref` over supported boundaries; slot handles | `native-different` | Pergyra is not a Rust lifetime language; `ref Slot<subject>` boundary parity is gated by `slot_subject_boundary_ref`. |
 | Move/ownership transfer | move-only value, `unique_ptr` | `own`, `MoveToken<T>`, anchored slot boundaries | `partial` | Stable only for anchored subset; `own SecureSlot<subject>` and forwarding parity are gated by `secure_slot_subject_boundary_own` and `secure_slot_subject_boundary_forward_own`. |
@@ -264,7 +264,7 @@ The note does not mark any future syntax or general cleanup feature stable.
 | Spread/rest | `...xs`, `*args`, destructure rest | none | `out-of-beta` | Useful with collections/calls later; not beta core. |
 | Range | `0..n` | range in loops | `stable` | Keep simple. |
 | Arithmetic/comparison/logical operators | `+`, `<`, `&&` | same | `stable` | Arithmetic, comparison, logical, modulo, unary-minus, and baseline operator-overload parity is gated by `operators`, `operator_overload`, and `role_operator_overload`; unary-minus-specific parsing is also gated by `numeric_unary_minus`. |
-| Compound assignment / inc-dec | `+=`, `-=`, `++`, `--` | event subscribe/unsubscribe uses `+=`/`-=`; general compound assignment absent | `out-of-beta` | Do not overload event syntax into general mutation before CFG cleanup facts own it. |
+| Compound assignment / inc-dec | `+=`, `-=`, `++`, `--` | numeric `+=`, `-=`, `*=`, `/=`, `%=`; event `+=`/`-=` retain their meaning | `partial` | Target type selects the operation. Target/index and RHS execute once. Installed-route verification is pending; inc/dec remains unsupported. |
 | Operator overload | C# overload, Rust `Add` | none | `out-of-beta` | Avoid before generic/ability model is settled. |
 | Custom operator | Scala-like operator surface | none | `reject` | Surface trust risk. |
 | Null coalescing / optional chaining | `??`, `?.` | `??` lowers to Option coalescing; `?.` remains reserved/rejected | `partial` | `??` is active for `Option<T> ?? T -> T`; optional chaining remains out-of-beta. |
@@ -375,7 +375,7 @@ surface compatibility or force awkward sugar around the wrong AST shape.
 | Member/index access | `x.y`, `x.f()`, `xs[i]`, and range slicing are active expression surfaces. | Keep member/index/slice lowering ordinary and stable; add keyed indexing only after collection ABI policy is fixed. |
 | Pipeline operator | `|>` is an active parser surface. | Treat as expression composition sugar; do not use it as an implicit effect/intent boundary. |
 | Cast/type-test syntax | Broad `as`/`is` conversion and type testing are not frozen; statement-expression sites reject explicitly. | Keep explicit conversion helpers for beta; reserve syntax only after interop/generic diagnostics are designed. |
-| Compound assignment | `+=`/`-=` are event subscribe/unsubscribe tokens, not general mutation sugar. | Do not add general compound assignment until CFG cleanup/mutation facts own it. |
+| Compound assignment | Numeric `+=`, `-=`, `*=`, `/=`, `%=` use the ordinary assignment permission and checked arithmetic; event `+=`/`-=` remain type-directed. | Native C/LLVM execution is gated by `binding_compound_assignment_smoke.py`; installed-route verification remains pending. |
 | Object initializer syntax | `Type { field: value }` parses as named-argument construction sugar. | Prefer constructors/factory functions in stable examples until named-argument dispatch and partial-construction ownership are frozen. |
 | Range slicing/spread/rest | `xs[a..b]`, `xs[a..]`, and `xs[..]` are active and lower to borrowed `Slice<T>`; `...` spread/rest is reserved with explicit parser diagnostics. | Keep range slicing on the existing slice ABI; keep spread/rest out of beta until ownership and call ABI are closed. |
 | Optional chaining / coalescing | Postfix `?` propagation exists; `??` is active for `Option<T> ?? T -> T`; `?.` remains a reserved lexer/parser token with explicit parser diagnostics. | Keep optional chaining out of beta until Option/member provenance diagnostics are strong. |

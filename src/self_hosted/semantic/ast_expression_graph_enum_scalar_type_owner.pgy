@@ -88,7 +88,7 @@ func SemanticExpressionGraphEnumPayloadScalarTypeName(
             graph, UnwrapOption(left_opt), constructors, enum_facts,
             names, types, function_names, function_returns
         );
-    let left_type: String = SemanticExpressionGraphScalarTypeName(
+    var left_type: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(left_opt), constructors, names, types,
         function_names, function_returns, enum_facts.value_scope
     );
@@ -131,7 +131,7 @@ func SemanticExpressionGraphEnumPayloadScalarTypeName(
             names, types, function_names, function_returns
         );
     if !IsSome(left_payload) && !IsSome(right_payload) { return None; }
-    let right_type: String = SemanticExpressionGraphScalarTypeName(
+    var right_type: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(right_opt), constructors, names, types,
         function_names, function_returns, enum_facts.value_scope
     );

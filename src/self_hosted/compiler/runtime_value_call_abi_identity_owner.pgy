@@ -36,7 +36,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
 ) -> CompilerRuntimeValueCallAbiIdentity {
     if source_name == "AllocatorResult" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "Allocator", "Result", "allocator.result",
+            true, "AllocatorResult", "Allocator", "Result", "allocator.result",
             TextBuilderRuntimeCAllocatorResultFn(),
             TextBuilderRuntimeLlvmAllocatorResultFn(), "returns_allocator",
             "allocator_out_to_void", "Allocator", 0, "", "", false
@@ -44,7 +44,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
     }
     if source_name == "AllocatorDestroy" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "Allocator", "Destroy", "allocator.destroy",
+            true, "AllocatorDestroy", "Allocator", "Destroy", "allocator.destroy",
             TextBuilderRuntimeCAllocatorDestroyFn(),
             TextBuilderRuntimeLlvmAllocatorDestroyFn(),
             "allocator_ptr_to_void", "allocator_ptr_to_void", "Void", 1,
@@ -53,7 +53,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
     }
     if source_name == "AllocatorPool" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "Allocator", "Pool", "allocator.pool",
+            true, "AllocatorPool", "Allocator", "Pool", "allocator.pool",
             TextBuilderRuntimeCAllocatorPoolFn(),
             TextBuilderRuntimeLlvmAllocatorPoolFn(),
             "capacity_to_allocator", "allocator_out_capacity_to_void",
@@ -62,7 +62,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
     }
     if source_name == "TextBuilderNew" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "TextBuilder", "New", "new",
+            true, "TextBuilderNew", "TextBuilder", "New", "new",
             TextBuilderRuntimeCNewFn(), TextBuilderRuntimeLlvmNewFn(),
             "capacity_to_builder", "builder_out_capacity_to_void",
             "TextBuilder", 1, "Int", "", false
@@ -70,7 +70,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
     }
     if source_name == "TextBuilderAppend" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "TextBuilder", "Append", "append",
+            true, "TextBuilderAppend", "TextBuilder", "Append", "append",
             TextBuilderRuntimeCAppendFn(), TextBuilderRuntimeLlvmAppendFn(),
             "builder_ptr_string_to_void", "builder_ptr_string_to_void",
             "Void", 2, "TextBuilder", "String", false
@@ -78,7 +78,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
     }
     if source_name == "TextBuilderFinish" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "TextBuilder", "Finish", "finish",
+            true, "TextBuilderFinish", "TextBuilder", "Finish", "finish",
             TextBuilderRuntimeCFinishFn(), TextBuilderRuntimeLlvmFinishFn(),
             "builder_ptr_allocator_ptr_to_string",
             "builder_ptr_allocator_ptr_to_string", "String", 2,
@@ -87,7 +87,7 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
     }
     if source_name == "TextBuilderDrop" {
         return CompilerRuntimeValueCallAbiIdentity(
-            true, source_name, "TextBuilder", "Drop", "drop",
+            true, "TextBuilderDrop", "TextBuilder", "Drop", "drop",
             TextBuilderRuntimeCDropFn(), TextBuilderRuntimeLlvmDropFn(),
             "builder_ptr_to_void", "builder_ptr_to_void", "Void", 1,
             "TextBuilder", "", true
@@ -119,9 +119,9 @@ func CompilerRuntimeValueCallAbiIdentityId(
 func CompilerRuntimeValueCallAbiIdentityForId(
     runtime_call_abi_id: Int
 ) -> CompilerRuntimeValueCallAbiIdentity {
-    let found: CompilerRuntimeValueCallAbiIdentity =
+    var found: CompilerRuntimeValueCallAbiIdentity =
         CompilerRuntimeValueCallAbiIdentityMissing();
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 7 {
         let candidate: CompilerRuntimeValueCallAbiIdentity =
             CompilerRuntimeValueCallAbiIdentityForSource(

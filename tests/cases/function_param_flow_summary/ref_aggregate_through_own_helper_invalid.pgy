@@ -1,0 +1,18 @@
+// A borrowed aggregate still cannot cross a real ownership-transfer boundary.
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func ConsumePair(own pair: Pair) -> Int {
+    return pair.left + pair.right;
+}
+
+func ForwardBorrow(ref pair: Pair) -> Int {
+    return ConsumePair(pair);
+}
+
+func Main() -> Int {
+    let pair: Pair = Pair(3, 4);
+    return ForwardBorrow(pair);
+}

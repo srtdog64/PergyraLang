@@ -13,7 +13,7 @@ func FormatPayload(value: String) -> String {
 
 func Main() -> Void {
     let storage: Array<String> = [Concat("se", "ed")];
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     let candidate: Option<String> = MixedOptional(storage, false);
     if IsSome(candidate) {
         let value: String = UnwrapOption(candidate);

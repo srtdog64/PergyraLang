@@ -1,0 +1,16 @@
+func WireRequired(ref origin: String, ref ownership: String) -> Bool
+{
+    if origin == "empty-literal"
+    {
+        return true;
+    }
+    return ownership == "owned-elements" && origin == "binding";
+}
+
+func Main() -> Void
+{
+    let origin: String = "empty-literal";
+    Log(WireRequired(origin, "ignored"));
+    Log(WireRequired("binding", "owned-elements"));
+    Log(WireRequired("borrowed-literal", "borrowed-elements"));
+}

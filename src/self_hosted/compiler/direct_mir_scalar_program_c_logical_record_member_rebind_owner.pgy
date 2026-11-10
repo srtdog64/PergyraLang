@@ -32,14 +32,14 @@ func DirectMirScalarProgramCLogicalRecordMemberRebind(
         plan.program.expressions.node_member_ordinals[target_root] != member {
         Die("direct MIR C logical-record member rebind type is invalid");
     }
-    let output: String = Concat("    pgy_local_", ToString(local_row)); let members: Array<Int> = [];
-    let node: Int = target_root;
+    var output: String = Concat("    pgy_local_", ToString(local_row)); var members: Array<Int> = [];
+    var node: Int = target_root;
     while node >= 0 && plan.program.expressions.node_kinds[node] ==
             DirectMirScalarProgramExprLogicalRecordMember() {
         ArrayPush(members, plan.program.expressions.node_member_ordinals[node]);
         node = plan.program.expressions.node_lefts[node];
     }
-    let path: Int = ArrayLength(members);
+    var path: Int = ArrayLength(members);
     while path > 0 {
         path = path - 1; output = Concat(output, Concat(".field_", ToString(members[path])));
     }

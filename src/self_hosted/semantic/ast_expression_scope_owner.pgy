@@ -9,8 +9,8 @@ func SemanticAstExpressionScopeVisible(
     scope_node_id: Int,
     use_node_id: Int
 ) -> Bool {
-    let cursor: Option<Int> = Some(use_node_id);
-    let traversed: Int = 0;
+    var cursor: Option<Int> = Some(use_node_id);
+    var traversed: Int = 0;
     while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
         let node_id: Int = UnwrapOption(cursor);
         if node_id == scope_node_id {
@@ -28,8 +28,8 @@ func SemanticAstExpressionScopeChain(
     arena: AstArena,
     use_node_id: Int
 ) -> Array<Int> {
-    let chain: Array<Int> = [];
-    let cursor: Option<Int> = Some(use_node_id);
+    var chain: Array<Int> = [];
+    var cursor: Option<Int> = Some(use_node_id);
     let limit: Int = TypedAstArenaNodeCount(arena);
     while IsSome(cursor) && ArrayLength(chain) < limit {
         let node_id: Int = UnwrapOption(cursor);
@@ -43,7 +43,7 @@ func SemanticAstExpressionScopeChainContains(
     ref chain: Array<Int>,
     scope_node_id: Int
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(chain) {
         if chain[i] == scope_node_id {
             return true;

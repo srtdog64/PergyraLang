@@ -7,7 +7,7 @@ func Publish(inout output: String) -> Void {
     output = EchoText(record.text);
 }
 func Main() -> Void {
-    let output = "";
+    var output = "";
     Publish(output);
     Log(output);
 }

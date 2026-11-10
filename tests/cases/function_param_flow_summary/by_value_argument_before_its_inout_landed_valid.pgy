@@ -6,7 +6,7 @@ func Both(b: Array<Int>, inout a: Array<Int>) -> Int {
 }
 
 func Main() -> Int {
-    let rows: Array<Int> = [1];
+    var rows: Array<Int> = [1];
     let k: Int = Both(rows, rows);
     Print(ToString(k * 10 + rows[0]));
     return 0;

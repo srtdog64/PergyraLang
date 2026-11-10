@@ -80,9 +80,8 @@ FunctionParamFlowProgramPointIndex *indexed_string_field_flow_index(SemanticCont
         index->function_id != ast_node_stable_id(decl) ||
         index->dependency_body != ast_func_body(decl) ||
         !field_id(index->dependency_body, index->dependency_body_id) ||
-        (index->no_store_call_count != 0 && index->no_store_calls == NULL) ||
-        !function_param_flow_index_roots_current(index) ||
-        !function_param_flow_index_claims_current(ctx, index)) return NULL;
+        (index->no_store_call_count != 0 && index->no_store_calls == NULL))
+        return NULL;
     for (size_t i = 0; i < index->claims->count; i++)
         if (field_unsafe_shape(index->claims->rows[i].shape)) return NULL;
     return index;

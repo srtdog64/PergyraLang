@@ -285,7 +285,7 @@ func CompilerCompletenessImpactRowAt(index: Int) -> String {
 
 func EmitCompilerCompletenessImpactPlan() -> Void {
     Log(Concat("schema=", CompilerCompletenessImpactPlanSchema()));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompletenessImpactRowCount() {
         Log(CompilerCompletenessImpactRowAt(i));
         i = i + 1;
@@ -293,7 +293,7 @@ func EmitCompilerCompletenessImpactPlan() -> Void {
 }
 
 func EmitCompilerCompletenessImpactPlannerPaths() -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompletenessImpactPlannerPathCount() {
         Log(CompilerCompletenessImpactPlannerPathAt(i));
         i = i + 1;

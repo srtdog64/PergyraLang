@@ -8,7 +8,7 @@ func DirectMirScalarCfgStringArrayAccessesReady(
     ref plan: DirectMirScalarCfgStringArrayPlan,
     require_bound_rows: Bool, length_count: Int
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
         let fact: DirectMirScalarCfgStringArrayAccessFact =
             DirectMirScalarCfgStringArrayAccessAt(plan, row);
@@ -57,10 +57,10 @@ func DirectMirScalarCfgStringArrayAccessesReady(
             return false;
         }
         if is_push || is_pop {
-            let expected: Int = plan.collections.element_counts[
+            var expected: Int = plan.collections.element_counts[
                 fact.collection_row
             ];
-            let prior_effect: Int = 0;
+            var prior_effect: Int = 0;
             while prior_effect < row {
                 if plan.accesses.collection_rows[prior_effect] ==
                         fact.collection_row {
@@ -81,7 +81,7 @@ func DirectMirScalarCfgStringArrayAccessesReady(
                         plan, fact.collection_row
                     )) { return false; }
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if plan.accesses.global_rows[prior] == fact.global_row ||
                 (require_bound_rows && plan.accesses.operation_rows[prior] ==

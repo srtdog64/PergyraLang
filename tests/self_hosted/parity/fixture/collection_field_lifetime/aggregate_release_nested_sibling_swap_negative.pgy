@@ -1,0 +1,33 @@
+// Returning two nested sibling storages under each other's result fields must
+// not discharge either field's cleanup responsibility. Their dependency rows
+// share the outer "inner" path, so ambiguity must fail closed.
+struct NestedSiblingSwapPayload {
+    names: Array<String>;
+    aliases: Array<String>;
+}
+
+struct NestedSiblingSwapInput {
+    inner: NestedSiblingSwapPayload;
+}
+
+struct NestedSiblingSwapResult {
+    payload: NestedSiblingSwapPayload;
+}
+
+func NestedSiblingSwapUpdate(
+    value: NestedSiblingSwapInput
+) -> NestedSiblingSwapResult {
+    let names: Array<String> = value.inner.names;
+    let aliases: Array<String> = value.inner.aliases;
+    ArrayPushOwnedString(names, "next");
+    let payload: NestedSiblingSwapPayload =
+        NestedSiblingSwapPayload(aliases, names);
+    return NestedSiblingSwapResult(payload);
+}
+
+func Main() -> Void {
+    let value: NestedSiblingSwapInput = NestedSiblingSwapInput(
+        NestedSiblingSwapPayload([], []));
+    let result: NestedSiblingSwapResult = NestedSiblingSwapUpdate(value);
+    let count: Int = ArrayLength(result.payload.names);
+}

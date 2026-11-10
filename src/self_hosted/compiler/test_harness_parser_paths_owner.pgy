@@ -39,7 +39,7 @@ func CompilerHarnessParserParityReady() -> Bool {
     if CompilerHarnessParserPathCount() != 4 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessParserPathCount() {
         if CompilerHarnessParserPathAt(i) == "" {
             return false;

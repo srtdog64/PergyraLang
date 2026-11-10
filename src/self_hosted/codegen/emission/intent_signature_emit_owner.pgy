@@ -9,13 +9,13 @@ import "function_binding_env_owner.pgy";
 func CodegenIntentCallableEnvRows(
     ref intents: SemanticAstIntentSignatureFacts
 ) -> String {
-    let rows: Array<String> = [];
-    let intent_index: Int = 0;
+    var rows: Array<String> = [];
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         let name: String = intents.names[intent_index];
-        let modes: String = "";
-        let types: String = "";
-        let p: Int = 0;
+        var modes: String = "";
+        var types: String = "";
+        var p: Int = 0;
         while p < intents.param_counts[intent_index] {
             let row: Int = intents.param_starts[intent_index] + p;
             if p > 0 {
@@ -64,8 +64,8 @@ func CodegenIntentParameterList(
     intent_index: Int,
     env: CodegenTypeEnv
 ) -> String {
-    let params: String = "";
-    let p: Int = 0;
+    var params: String = "";
+    var p: Int = 0;
     while p < intents.param_counts[intent_index] {
         let row: Int = intents.param_starts[intent_index] + p;
         let c_type: String = AbiLayoutCParamType(
@@ -74,7 +74,7 @@ func CodegenIntentParameterList(
         let c_name: String = CompilerSymbolCBindingName(
             intents.param_names[row]
         );
-        let param: String = Concat(c_type, Concat(" ", c_name));
+        var param: String = Concat(c_type, Concat(" ", c_name));
         if !intents.param_is_values[row] {
             param = Concat(c_type, Concat(" *", c_name));
         }
@@ -90,8 +90,8 @@ func CodegenIntentPrototypeBlock(
     ref intents: SemanticAstIntentSignatureFacts,
     env: CodegenTypeEnv
 ) -> String {
-    let rows: Array<String> = [];
-    let intent_index: Int = 0;
+    var rows: Array<String> = [];
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         ArrayPush(rows, Concat(
             CodegenIntentCReturnType(intents, intent_index, env), Concat(
@@ -113,14 +113,14 @@ func CodegenIntentLocalEnv(
     intent_index: Int,
     base_env: CodegenTypeEnv
 ) -> CodegenTypeEnv {
-    let rows: Array<String> = [];
-    let p: Int = 0;
+    var rows: Array<String> = [];
+    var p: Int = 0;
     while p < intents.param_counts[intent_index] {
         let row: Int = intents.param_starts[intent_index] + p;
         let c_name: String = CompilerSymbolCBindingName(
             intents.param_names[row]
         );
-        let c_expression: String = c_name;
+        var c_expression: String = c_name;
         if !intents.param_is_values[row] {
             c_expression = Concat("(*", Concat(c_name, ")"));
         }

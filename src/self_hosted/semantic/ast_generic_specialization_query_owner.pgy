@@ -13,12 +13,12 @@ func SemanticAstGenericSpecializationActuals(
     ref facts: SemanticAstGenericSpecializationFacts,
     index: Int
 ) -> Array<String> {
-    let actuals: Array<String> = [];
+    var actuals: Array<String> = [];
     if !facts.ok || index < 0 ||
         index >= SemanticAstGenericSpecializationCount(facts) {
         return actuals;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < facts.actual_counts[index] {
         ArrayPush(actuals, facts.actual_type_names[facts.actual_starts[index] + i]);
         i = i + 1;
@@ -40,8 +40,8 @@ func SemanticAstGenericSpecializationFactsReady(
         ArrayLength(facts.actual_counts) != count {
         return false;
     }
-    let expected_start: Int = 0;
-    let i: Int = 0;
+    var expected_start: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.call_node_ids[i] < 0 ||
             facts.source_owner_node_ids[i] < 0 ||
@@ -53,7 +53,7 @@ func SemanticAstGenericSpecializationFactsReady(
             facts.actual_counts[i] <= 0 {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if SemanticExpressionCallIdentityEqual(
                 facts.source_owner_node_ids[prior],
@@ -77,7 +77,7 @@ func SemanticAstGenericSpecializationFactsMatchExpressionGraph(
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> Bool {
     if !SemanticAstGenericSpecializationFactsReady(facts) { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstGenericSpecializationCount(facts) {
         let node: Option<Int> = SemanticExpressionCallNodeForIdentity(
             expression_surfaces, facts.source_owner_node_ids[i],

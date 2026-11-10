@@ -12,8 +12,8 @@ struct Index {
 }
 
 func CarriersFrom(ref index: Index) -> Carriers {
-    let names: Array<String> = [];
-    let i: Int = 0;
+    var names: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(index.labels) {
         ArrayPush(names, index.labels[i]);
         i = i + 1;
@@ -22,9 +22,9 @@ func CarriersFrom(ref index: Index) -> Carriers {
 }
 
 func Plan(ref index: Index, extra: Array<String>) -> Carriers {
-    let carriers: Carriers = CarriersFrom(index);
-    let names: Array<String> = carriers.names;
-    let i: Int = 0;
+    var carriers: Carriers = CarriersFrom(index);
+    var names: Array<String> = carriers.names;
+    var i: Int = 0;
     while i < ArrayLength(extra) {
         ArrayPush(names, extra[i]);
         i = i + 1;

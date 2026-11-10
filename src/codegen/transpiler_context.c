@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "transpiler_context.h"
+#include "transpiler_inventory_view.h"
 #include "../common/string_compat.h"
 #include "../compiler/verified_projection_plan.h"
 #include "../compiler/verified_region_plan.h"
@@ -397,12 +398,17 @@ transpiler_ctx_create(void)
     ctx->decls = codebuf_create();
     ctx->helpers = codebuf_create();
     ctx->wrappers = codebuf_create();
+    ctx->decl_header_lookup_projection =
+        transpiler_decl_header_lookup_projection_create();
     if (ctx->out == NULL || ctx->decls == NULL || ctx->helpers == NULL
-        || ctx->wrappers == NULL) {
+        || ctx->wrappers == NULL
+        || ctx->decl_header_lookup_projection == NULL) {
         codebuf_destroy(ctx->out);
         codebuf_destroy(ctx->decls);
         codebuf_destroy(ctx->helpers);
         codebuf_destroy(ctx->wrappers);
+        transpiler_decl_header_lookup_projection_destroy(
+            ctx->decl_header_lookup_projection);
         pgy_arena_destroy(&ctx->arena);
         free(ctx);
         return NULL;
@@ -472,6 +478,8 @@ transpiler_ctx_destroy(TranspilerCtx *ctx)
     codebuf_destroy(ctx->decls);
     codebuf_destroy(ctx->helpers);
     codebuf_destroy(ctx->wrappers);
+    transpiler_decl_header_lookup_projection_destroy(
+        ctx->decl_header_lookup_projection);
     free(ctx->backend_error);
     pgy_arena_set_last_consumer(&ctx->arena, "c-transpiler");
     pgy_arena_set_release_point(&ctx->arena, "c-transpiler-destroy");

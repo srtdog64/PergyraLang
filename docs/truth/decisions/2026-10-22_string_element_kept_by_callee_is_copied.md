@@ -15,9 +15,13 @@ the next analysis passes a copy instead: `F(..., Clone(rows[i]), ...)`.
 The copy is the callee's to keep, and the Array's later release or
 change no longer reaches it.
 
-A call that takes the whole Array after an earlier call kept its
-descriptor is not changed: an element copy cannot stand in for the Array,
-and it stays refused.
+A call that keeps the whole Array is distinct from the element rule. When
+`Clone` owns the complete Array value, the compiler may store that whole
+Clone at the keeping boundary and the caller may continue using its
+original (`array_descriptor_kept_then_read_landed_valid`). An element copy
+does not stand in for the Array, and a shallow or unsupported whole-value
+Clone remains refused
+(`array_descriptor_uncopyable_kept_then_read_invalid`).
 
 ## Why
 

@@ -11,7 +11,7 @@ import "call_argument_order_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func RewriteSemanticDynamicAbilityCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     member: SemanticMemberAccessView,
     env: CodegenTypeEnv,
@@ -61,7 +61,7 @@ func RewriteSemanticDynamicAbilityCall(
     if LookupKindType(env, call_symbol, "f") == "" {
         Die("dynamic ability call ABI method fact is missing");
     }
-    let party_expr: String = RewriteExprFromSemanticGraphTracked(
+    var party_expr: String = RewriteExprFromSemanticGraphTracked(
         graph, slot_member.receiver_node, env, owned_fragments
     ).text;
     // The call reads the party twice, for the slot and for its vtable. A
@@ -72,9 +72,9 @@ func RewriteSemanticDynamicAbilityCall(
     if !IsSome(party_place) {
         Die("dynamic ability call party place fact is missing");
     }
-    let party_binding: String = "";
+    var party_binding: String = "";
     if !SemanticExpressionPlaceKindAddressable(UnwrapOption(party_place)) {
-        let party_name: String = Concat("__pgy_party_", ToString(view.call_node));
+        var party_name: String = Concat("__pgy_party_", ToString(view.call_node));
         // Only avoids collisions in emitted C.
         while StringIndexOf(party_expr, party_name) >= 0 {
             party_name = Concat(party_name, "_");

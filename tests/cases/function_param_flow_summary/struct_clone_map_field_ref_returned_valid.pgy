@@ -11,9 +11,9 @@ func Copy(ref tally: Tally) -> Tally {
 }
 
 func Main() -> Int {
-    let counts: HashMap<String, Int> = MapNew();
+    var counts: HashMap<String, Int> = MapNew();
     MapSet(counts, "k", 1);
-    let a: Tally = Tally(counts, StringConcat("a", ""));
+    var a: Tally = Tally(counts, StringConcat("a", ""));
     let b: Tally = Copy(a);
     MapSet(a.counts, "k", 2);
     MapSet(a.counts, "j", 3);

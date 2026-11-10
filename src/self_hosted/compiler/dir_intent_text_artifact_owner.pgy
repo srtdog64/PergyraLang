@@ -73,8 +73,8 @@ func CompilerDirIntentTextFromFacts(
     inventory: SelfDirGraphInventoryFacts,
     facts: SelfDirIntentFacts
 ) -> String {
-    let text: String = "";
-    let intent_index: Int = 0;
+    var text: String = "";
+    var intent_index: Int = 0;
     while intent_index < ArrayLength(facts.intent_node_ids) {
         let participant_start: Int = facts.participant_starts[intent_index];
         let participant_count: Int = facts.participant_counts[intent_index];
@@ -89,10 +89,10 @@ func CompilerDirIntentTextFromFacts(
         text = Concat(text, " steps=");
         text = Concat(text, ToString(step_count));
         text = Concat(text, "\n");
-        let participant_index: Int = 0;
+        var participant_index: Int = 0;
         while participant_index < participant_count {
             let row: Int = participant_start + participant_index;
-            let label: String = "participant";
+            var label: String = "participant";
             if facts.participants.is_values[row] { label = "value      "; }
             let resolved: Option<Int> = CompilerDirIntentResolvedDeclarationNode(
                 rows, inventory,
@@ -113,7 +113,7 @@ func CompilerDirIntentTextFromFacts(
             text = Concat(text, "\n");
             participant_index = participant_index + 1;
         }
-        let local_step: Int = 0;
+        var local_step: Int = 0;
         while local_step < step_count {
             let row: Int = step_start + local_step;
             let zone_node: Int = SelfDirGraphInventoryNodeIndex(
@@ -139,7 +139,7 @@ func CompilerDirIntentTextFromFacts(
             text = Concat(text, CompilerDirTextTopologyValue(
                 facts.steps.causes_names[row]
             ));
-            let predecessor: String =
+            var predecessor: String =
                 facts.transitions.predecessor_names[row];
             if predecessor == "" &&
                 facts.steps.predecessor_step_indices[row] >= 0 {
@@ -166,7 +166,7 @@ func CompilerDirIntentTextFromFacts(
                 text, facts.steps.provenance, row
             );
             text = Concat(text, "\n");
-            let i: Int = 0;
+            var i: Int = 0;
             while i < facts.steps.who_counts[row] {
                 text = Concat(text, "      who[");
                 text = Concat(text, ToString(i));

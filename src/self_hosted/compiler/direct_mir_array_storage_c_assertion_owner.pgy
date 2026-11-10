@@ -11,7 +11,7 @@ func DirectMirArrayStorageCAssertionBlock(
     ) || array_type == "" {
         Die("direct MIR Array C storage assertion facts are invalid");
     }
-    let output: String = "_Static_assert(sizeof(";
+    var output: String = "_Static_assert(sizeof(";
     output = Concat(output, array_type);
     output = Concat(output, ") == ");
     output = Concat(output, ToString(storage.size));
@@ -29,7 +29,7 @@ func DirectMirArrayStorageCAssertionBlock(
         storage.data_offset, storage.length_offset,
         storage.capacity_offset, storage.allocator_offset
     ];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 4 {
         output = Concat(output, "_Static_assert(offsetof(");
         output = Concat(output, array_type);

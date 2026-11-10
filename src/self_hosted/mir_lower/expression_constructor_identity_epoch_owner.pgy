@@ -1,0 +1,154 @@
+import "expression_identity_epoch_fact_owner.pgy";
+import "program_routine_index_owner.pgy";
+import "routine_inventory_owner.pgy";
+import "../semantic/callable_resolution_owner.pgy";
+import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_enum_fact_owner.pgy";
+import "../semantic/ast_nominal_constructor_core_fact_owner.pgy";
+
+// An enum constructor names its owning declaration, not a function routine.
+// Join the admitted declaration to the canonical enum owner in the same module.
+func MirExpressionIdentityEpochAppendEnums(ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact, inout source_ids: Array<Int>,
+    inout canonical_ids: Array<Int>) -> Bool {
+    let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    if !SemanticAstEnumRowsReady(enums) { return false; }
+    var declaration: Int = 0;
+    while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
+        if routines.declarations.kinds[declaration] == "enum" {
+            let source_text: String = MirObjectNumberFactAtBounds(routines.source_json,
+                routines.source_json_extent, routines.declarations.starts[declaration],
+                routines.declarations.ends[declaration], "source_syntax_id");
+            let source_id: Int = ToInt(source_text);
+            var canonical_id: Int = -1;
+            var row: Int = 0;
+            while row < ArrayLength(enums.node_ids) {
+                let module_path: Option<String> = AstSourceModulePathForNode(
+                    artifact.source_modules, artifact.arena, enums.node_ids[row]);
+                if enums.enum_names[row] == routines.declarations.names[declaration] &&
+                    IsSome(module_path) && UnwrapOption(module_path) ==
+                        routines.declarations.source_module_paths[declaration] {
+                    if canonical_id >= 0 { return false; }
+                    canonical_id = enums.node_ids[row];
+                }
+                row = row + 1;
+            }
+            if source_id <= 0 || ToString(source_id) != source_text || canonical_id <= 0 ||
+                !MirExpressionIdentityEpochAppend(source_id, canonical_id, source_ids, canonical_ids) {
+                return false;
+            }
+        }
+        declaration = declaration + 1;
+    }
+    return true;
+}
+
+func MirExpressionIdentityEpochEnumTargetsReady(ref routines: MirProgramRoutineIndex,
+    ref graph: SemanticExpressionGraphFacts) -> Bool {
+    var enum_ids: HashMap<String, Int> = MapNew();
+    var owner_ids: HashMap<String, Int> = MapNew();
+    var allowed: HashMap<String, Int> = MapNew();
+    var declaration: Int = 0;
+    while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
+        if routines.declarations.kinds[declaration] == "enum" {
+            let source: String = MirObjectNumberFactAtBounds(routines.source_json,
+                routines.source_json_extent, routines.declarations.starts[declaration],
+                routines.declarations.ends[declaration], "source_syntax_id");
+            if ToInt(source) <= 0 || MapHas(enum_ids, source) ||
+                MapHas(owner_ids, routines.declarations.names[declaration]) { return false; }
+            MapSet(enum_ids, source, declaration);
+            MapSet(owner_ids, routines.declarations.names[declaration], ToInt(source));
+        }
+        declaration = declaration + 1;
+    }
+    var variant: Int = 0;
+    while variant < ArrayLength(routines.declarations.enum_variants.names) {
+        let owner_name: String = routines.declarations.enum_variants.owners[variant];
+        if !MapHas(owner_ids, owner_name) { return false; }
+        let source: Int = MapGet(owner_ids, owner_name);
+        let name: String = routines.declarations.enum_variants.names[variant];
+        MapSet(allowed, ToString(source) + ":" + name, 1);
+        MapSet(allowed, ToString(source) + ":" + owner_name + "." + name, 1);
+        MapSet(allowed, ToString(source) + ":" + SemanticCallableCanonicalDeclaredName(owner_name, name), 1);
+        variant = variant + 1;
+    }
+    var node: Int = 0;
+    while node < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        let source: String = ToString(graph.arena.identities.call_target_syntax_ids[node]);
+        if MapHas(enum_ids, source) &&
+            ((graph.arena.call_target_kinds[node] != SemanticCallTargetDirect() &&
+              graph.arena.call_target_kinds[node] != SemanticCallTargetNamespace()) ||
+             !MapHas(allowed, source + ":" + graph.arena.call_target_names[node])) {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+// Nominal constructors also target declarations. Keep kind, module and name
+// in the join so a same-spelled declaration cannot change the identity epoch.
+func MirExpressionIdentityEpochAppendNominals(ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact, inout source_ids: Array<Int>,
+    inout canonical_ids: Array<Int>) -> Bool {
+    let nominals: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    if !SemanticAstNominalConstructorRowsReady(nominals) { return false; }
+    var declaration: Int = 0;
+    while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
+        if (routines.declarations.kinds[declaration] == "class" || routines.declarations.kinds[declaration] == "struct") {
+            let source_text: String = MirObjectNumberFactAtBounds(routines.source_json,
+                routines.source_json_extent, routines.declarations.starts[declaration],
+                routines.declarations.ends[declaration], "source_syntax_id");
+            let source_id: Int = ToInt(source_text);
+            var canonical_id: Int = -1;
+            var row: Int = 0;
+            while row < ArrayLength(nominals.node_ids) {
+                let module_path: Option<String> = AstSourceModulePathForNode(
+                    artifact.source_modules, artifact.arena, nominals.node_ids[row]);
+                if nominals.names[row] == routines.declarations.names[declaration] &&
+                    nominals.nominal_kinds[row] == routines.declarations.nominal_kinds[declaration] &&
+                    IsSome(module_path) && UnwrapOption(module_path) ==
+                        routines.declarations.source_module_paths[declaration] {
+                    if canonical_id >= 0 { return false; }
+                    canonical_id = nominals.node_ids[row];
+                }
+                row = row + 1;
+            }
+            if source_id <= 0 || ToString(source_id) != source_text || canonical_id <= 0 ||
+                !MirExpressionIdentityEpochAppend(source_id, canonical_id, source_ids, canonical_ids) {
+                return false;
+            }
+        }
+        declaration = declaration + 1;
+    }
+    return true;
+}
+
+func MirExpressionIdentityEpochNominalTargetsReady(ref routines: MirProgramRoutineIndex,
+    ref graph: SemanticExpressionGraphFacts) -> Bool {
+    var targets: HashMap<String, Int> = MapNew();
+    var declaration: Int = 0;
+    while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
+        if (routines.declarations.kinds[declaration] == "class" || routines.declarations.kinds[declaration] == "struct") {
+            let source: String = MirObjectNumberFactAtBounds(routines.source_json,
+                routines.source_json_extent, routines.declarations.starts[declaration],
+                routines.declarations.ends[declaration], "source_syntax_id");
+            if ToInt(source) <= 0 || MapHas(targets, source) { return false; }
+            MapSet(targets, source, declaration);
+        }
+        declaration = declaration + 1;
+    }
+    var node: Int = 0;
+    while node < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        let source: String = ToString(graph.arena.identities.call_target_syntax_ids[node]);
+        if MapHas(targets, source) {
+            let row: Int = MapGet(targets, source);
+            if graph.arena.call_target_kinds[node] != SemanticCallTargetDirect() ||
+                graph.arena.call_target_names[node] != routines.declarations.names[row] {
+                return false;
+            }
+        }
+        node = node + 1;
+    }
+    return true;
+}

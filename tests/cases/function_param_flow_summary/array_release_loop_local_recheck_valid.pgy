@@ -9,7 +9,7 @@ func Main() -> Void
     var i: Int = 0;
     while i < 2
     {
-        let names: Array<String> = [];
+        var names: Array<String> = [];
         let count: Int = Inspect(values);
         ArrayPushOwnedString(names, "entry");
         Log(ArrayLength(names));

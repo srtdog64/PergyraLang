@@ -23,7 +23,7 @@ func MirExpressionGraphSequenceEmpty() -> MirExpressionGraphSequence {
 // storage a growth already released, and every consumer checks `ok` first.
 func MirExpressionGraphSequenceError(sequence: MirExpressionGraphSequence
 ) -> MirExpressionGraphSequence {
-    let failed: MirExpressionGraphSequence = MirExpressionGraphSequenceEmpty();
+    var failed: MirExpressionGraphSequence = MirExpressionGraphSequenceEmpty();
     failed.ok = false;
     return failed;
 }
@@ -50,14 +50,14 @@ func MirExpressionGraphSequenceFromExtendedRows(ready: Bool, prefix: Int,
         ArrayLength(identities.binding_ordinals) != prefix {
         return MirExpressionGraphSequenceError(MirExpressionGraphSequenceEmpty());
     }
-    let topology_texts: Array<String> = prefix_topology_texts;
-    let return_types: Array<String> = prefix_return_types;
-    let syntax_ids: Array<Int> = identities.call_target_syntax_ids;
-    let runtime_ids: Array<Int> = identities.runtime_call_abi_ids;
-    let binding_ids: Array<Int> = identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> = identities.binding_kinds;
-    let binding_ordinals: Array<Int> = identities.binding_ordinals;
-    let i: Int = prefix;
+    var topology_texts: Array<String> = prefix_topology_texts;
+    var return_types: Array<String> = prefix_return_types;
+    var syntax_ids: Array<Int> = identities.call_target_syntax_ids;
+    var runtime_ids: Array<Int> = identities.runtime_call_abi_ids;
+    var binding_ids: Array<Int> = identities.binding_syntax_ids;
+    var binding_kinds: Array<Int> = identities.binding_kinds;
+    var binding_ordinals: Array<Int> = identities.binding_ordinals;
+    var i: Int = prefix;
     while i < count {
         ArrayPush(topology_texts, Concat("", texts[i]));
         ArrayPush(return_types, ""); ArrayPush(syntax_ids, 0);
@@ -83,14 +83,14 @@ func MirExpressionGraphRangeReachable(
     count: Int,
     root: Int
 ) -> Bool {
-    let seen: Array<Bool> = [];
-    let i: Int = 0;
+    var seen: Array<Bool> = [];
+    var i: Int = 0;
     while i < count {
         ArrayPush(seen, false);
         i = i + 1;
     }
-    let pending: Array<Int> = [root];
-    let visited: Int = 0;
+    var pending: Array<Int> = [root];
+    var visited: Int = 0;
     while ArrayLength(pending) > 0 {
         let last: Int = ArrayLength(pending) - 1;
         let node: Int = pending[last];
@@ -123,26 +123,26 @@ func MirExpressionGraphSequenceAppend(
         return MirExpressionGraphSequenceError(sequence);
     }
     let local_root: Int = header.root;
-    let kinds: Array<Int> = sequence.arena.topology.node_kinds;
-    let topology_texts: Array<String> = sequence.arena.topology.node_texts;
-    let texts: Array<String> = sequence.arena.node_texts;
-    let left_children: Array<Int> = sequence.arena.topology.left_children;
-    let right_children: Array<Int> = sequence.arena.topology.right_children;
-    let call_target_kinds: Array<Int> =
+    var kinds: Array<Int> = sequence.arena.topology.node_kinds;
+    var topology_texts: Array<String> = sequence.arena.topology.node_texts;
+    var texts: Array<String> = sequence.arena.node_texts;
+    var left_children: Array<Int> = sequence.arena.topology.left_children;
+    var right_children: Array<Int> = sequence.arena.topology.right_children;
+    var call_target_kinds: Array<Int> =
         sequence.arena.call_target_kinds;
-    let call_target_names: Array<String> = sequence.arena.call_target_names;
-    let call_return_type_names: Array<String> =
+    var call_target_names: Array<String> = sequence.arena.call_target_names;
+    var call_return_type_names: Array<String> =
         sequence.arena.call_return_type_names;
-    let call_target_syntax_ids: Array<Int> =
+    var call_target_syntax_ids: Array<Int> =
         sequence.arena.identities.call_target_syntax_ids;
-    let runtime_call_abi_ids: Array<Int> =
+    var runtime_call_abi_ids: Array<Int> =
         sequence.arena.identities.runtime_call_abi_ids;
-    let binding_syntax_ids: Array<Int> = sequence.arena.identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> =
+    var binding_syntax_ids: Array<Int> = sequence.arena.identities.binding_syntax_ids;
+    var binding_kinds: Array<Int> =
         sequence.arena.identities.binding_kinds;
-    let binding_ordinals: Array<Int> =
+    var binding_ordinals: Array<Int> =
         sequence.arena.identities.binding_ordinals;
-    let place_kinds: Array<Int> = sequence.arena.place_kinds;
+    var place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
     if sequence.ready_node_count != offset || ArrayLength(topology_texts) != offset ||
         ArrayLength(texts) != offset || ArrayLength(left_children) != offset ||
@@ -157,9 +157,9 @@ func MirExpressionGraphSequenceAppend(
         ArrayLength(place_kinds) != offset {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let i: Int = 0;
-    let cursor: Int = header.nodes_start + 1;
-    let string_end_scratch: Array<Int> = [0];
+    var i: Int = 0;
+    var cursor: Int = header.nodes_start + 1;
+    var string_end_scratch: Array<Int> = [0];
     while cursor < header.nodes_end {
         cursor = JsonSkipWhitespaceWithin(
             graph.json, graph.json_extent, cursor, header.nodes_end
@@ -209,8 +209,8 @@ func MirExpressionGraphSequenceAppend(
                 !AstExpressionStringLiteralPayloadReady(node_text)) {
             return MirExpressionGraphSequenceError(sequence);
         }
-        let left: Int = 0;
-        let right: Int = 0;
+        var left: Int = 0;
+        var right: Int = 0;
         let arity: Int = AstExpressionNodeArity(kind);
         if arity == 0 {
             if node.has_left || node.has_right {
@@ -291,7 +291,7 @@ func MirExpressionGraphSequenceAppend(
     if count == 0 || local_root >= count {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let roots: Array<Int> = sequence.roots;
+    var roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(

@@ -1,0 +1,38 @@
+// Semantic type join for structurally admitted identity-cell fields.
+
+import "direct_mir_identity_cell_fact_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
+
+func DirectMirIdentityCellValueFieldTypeReady(
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> Bool {
+    return type_name == CompilerAbiLayoutIntTypeName() ||
+        type_name == CompilerAbiLayoutBoolTypeName() ||
+        type_name == CompilerAbiLayoutStringTypeName() ||
+        DirectMirIdentityCellRow(cells, type_name) >= 0 ||
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, type_name) ||
+        DirectMirScalarProgramPayloadEnumOptionTypeReady(
+            referenced_enum, type_name);
+}
+
+func DirectMirIdentityCellFieldTypesReady(
+    ref cells: DirectMirIdentityCellFacts,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    if !DirectMirIdentityCellFactsReady(cells) ||
+        !DirectMirScalarProgramReferencedEnumFactReady(referenced_enum) {
+        return false;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(cells.field_types) {
+        if !DirectMirIdentityCellValueFieldTypeReady(
+                cells, referenced_enum, cells.field_types[row]) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

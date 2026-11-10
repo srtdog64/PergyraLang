@@ -1,0 +1,98 @@
+// Direct-MIR routine signature schema and readiness.
+
+import "direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_routine_parameter_set_admission_owner.pgy";
+import "direct_mir_intent_parameter_binding_admission_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+import "symbol_table_owner.pgy";
+import "../mir_lower/intent_routine_carrier_projection_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+
+struct DirectMirRoutineSignatureFact {
+    let valid: Bool;
+    let digest: Int;
+    let row: Int;
+    let name: String;
+    let kind: String;
+    let source_syntax_id: Int;
+    let source_parameter_offset: Int;
+    let receiver_carriage: String;
+    let receiver_owner_row: Int;
+    let receiver_type: String;
+    let return_type: String;
+    let param_count: Int;
+    let parameters: DirectMirRoutineParameterSetFact;
+    let param: DirectMirRoutineParamFact;
+}
+
+func InvalidDirectMirRoutineSignatureFact() -> DirectMirRoutineSignatureFact {
+    return DirectMirRoutineSignatureFact(false, 0, 0 - 1, "", "", 0, 0, "", -1, "", "", 0,
+        DirectMirRoutineParameterSetFactInvalid(),
+        InvalidDirectMirRoutineParamFact()
+    );
+}
+
+func DirectMirRoutineSignatureFactDigest(ref fact: DirectMirRoutineSignatureFact) -> Int {
+    if !fact.valid { return 0; }
+    var hash: Long = DirectMirCfgHashString(109L, fact.name);
+    hash = DirectMirCfgHashString(hash, fact.kind);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.source_parameter_offset);
+    hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
+    hash = DirectMirCfgHashInt(hash, fact.receiver_owner_row);
+    hash = DirectMirCfgHashString(hash, fact.receiver_type);
+    hash = DirectMirCfgHashString(hash, fact.return_type);
+    hash = DirectMirCfgHashInt(hash, fact.param_count);
+    hash = DirectMirCfgHashInt(hash, fact.parameters.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoutineSignatureFactWithDigest(
+    fact: DirectMirRoutineSignatureFact, digest: Int
+) -> DirectMirRoutineSignatureFact {
+    return DirectMirRoutineSignatureFact(
+        fact.valid, digest, fact.row, fact.name, fact.kind,
+        fact.source_syntax_id, fact.source_parameter_offset,
+        fact.receiver_carriage, fact.receiver_owner_row,
+        fact.receiver_type, fact.return_type,
+        fact.param_count, fact.parameters, fact.param
+    );
+}
+
+func DirectMirRoutineSignatureFactReady(ref fact: DirectMirRoutineSignatureFact) -> Bool {
+    var receiver_ready: Bool = (fact.kind == "function" || fact.kind == "intent") &&
+        fact.source_parameter_offset == 0 && fact.receiver_carriage == "none" &&
+        fact.receiver_owner_row == -1 && fact.receiver_type == "";
+    if fact.kind == "method" {
+        var receiver_pass: String = "direct";
+        if fact.receiver_carriage == "mutable-identity" {
+            receiver_pass = "indirect";
+        }
+        receiver_ready = (fact.receiver_carriage == "value" ||
+            fact.receiver_carriage == "mutable-identity") &&
+            fact.receiver_owner_row >= -1 && fact.receiver_type != "" &&
+            (fact.source_parameter_offset == 0 ||
+             fact.source_parameter_offset == 1) &&
+            fact.param_count > 0 && fact.param.name == "self" &&
+            fact.param.type_name == fact.receiver_type &&
+            fact.param.carriage == fact.receiver_carriage &&
+            fact.param.resource == "none" &&
+            fact.param.pass_shape == receiver_pass && !fact.param.abi_required &&
+            ((fact.source_parameter_offset == 1) ==
+             (fact.param.source_syntax_id == fact.source_syntax_id));
+    }
+    let structural_ready: Bool = fact.valid && fact.digest != 0 && receiver_ready &&
+        fact.digest == DirectMirRoutineSignatureFactDigest(fact) &&
+        fact.row >= 0 && fact.name != "" && fact.source_syntax_id > 0 &&
+        fact.return_type != "" && fact.param_count >= 0 &&
+        DirectMirRoutineParameterSetFactReady(fact.parameters) &&
+        fact.param_count == ArrayLength(fact.parameters.names) &&
+        ((fact.param_count == 0 && !fact.param.valid) ||
+         (fact.param_count > 0 &&
+          DirectMirRoutineParamFactReady(fact.param) &&
+          fact.param.digest == fact.parameters.param_digests[0]));
+    if !structural_ready { return false; }
+    return fact.kind != "intent" || DirectMirRoutineIntentParameterSetReady(fact.parameters);
+}
+

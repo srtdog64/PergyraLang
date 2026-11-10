@@ -16,6 +16,7 @@ import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
 
 func DirectMirScalarProgramLlvmInternalInvariantPanicFn() -> String {
@@ -29,6 +30,7 @@ func DirectMirScalarProgramLlvmInternalInvariantPanicFn() -> String {
 func DirectMirScalarProgramLlvmUnwrapPanicKinds() -> Array<Int> {
     return [DirectMirScalarProgramExprUnwrapOptionInt(), DirectMirScalarProgramExprUnwrapOptionBool(),
         DirectMirScalarProgramExprUnwrapOptionString(), DirectMirScalarProgramExprUnwrapOptionLogicalRecord(),
+        DirectMirScalarProgramExprUnwrapOptionPayloadEnum(),
         DirectMirScalarProgramExprUnwrapResultInt(), DirectMirScalarProgramExprUnwrapErrInt()];
 }
 
@@ -38,7 +40,7 @@ func DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
     let kinds: Array<Int> = DirectMirScalarProgramLlvmUnwrapPanicKinds();
-    let unwrap: Bool = false; let row: Int = 0;
+    var unwrap: Bool = false; var row: Int = 0;
     while row < ArrayLength(kinds) {
         if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, kinds[row]) { unwrap = true; }
         row = row + 1;

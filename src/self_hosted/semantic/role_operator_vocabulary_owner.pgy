@@ -26,7 +26,7 @@ func SemanticRoleOperatorKindAt(index: Int) -> Int {
 }
 
 func SemanticRoleOperatorKindSupported(kind: Int) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < SemanticRoleOperatorKindCount() {
         if SemanticRoleOperatorKindAt(index) == kind { return true; }
         index = index + 1;
@@ -102,7 +102,7 @@ func SemanticRoleOperatorMethodNameMatches(
 func SemanticRoleOperatorKindForMethodName(
     name: String
 ) -> Option<Int> {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < SemanticRoleOperatorKindCount() {
         let kind: Int = SemanticRoleOperatorKindAt(index);
         if SemanticRoleOperatorMethodNameMatches(kind, name) {

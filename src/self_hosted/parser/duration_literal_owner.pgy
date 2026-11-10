@@ -22,7 +22,7 @@ func ParserDurationUnitAt(content: String, at: Int) -> ParserDurationUnitRead {
     if MatchLanguageWord(content, at, LanguageWordId.WordMin) {
         return ParserDurationUnitRead(true, LanguageWordLength(LanguageWordId.WordMin), 10, true);
     }
-    let cursor: Array<Int> = [at];
+    var cursor: Array<Int> = [at];
     let unit: String = ReadIdent(content, at, cursor);
     if unit == "ns" { return ParserDurationUnitRead(true, 2, 0, false); }
     if unit == "us" { return ParserDurationUnitRead(true, 2, 3, false); }
@@ -37,17 +37,17 @@ func ParserDurationNanosOpt(
     unit: ParserDurationUnitRead
 ) -> Option<String> {
     let n: Int = StringLength(count_digits);
-    let first: Int = 0;
+    var first: Int = 0;
     while first < n - 1 && Substring(count_digits, first, 1) == "0" {
         first = first + 1;
     }
-    let digits: String = Substring(count_digits, first, n - first);
+    var digits: String = Substring(count_digits, first, n - first);
     if unit.times_six {
-        let product: String = "";
-        let carry: Int = 0;
+        var product: String = "";
+        var carry: Int = 0;
         let base_digits: String = digits;
         let base_extent: Int = StringLength(base_digits);
-        let k: Int = base_extent - 1;
+        var k: Int = base_extent - 1;
         while k >= 0 {
             let value: Int = (CharCode(base_digits, base_extent, k) - 48) * 6 + carry;
             product = Concat(ToString(value % 10), product);
@@ -60,7 +60,7 @@ func ParserDurationNanosOpt(
         digits = product;
     }
     if digits != "0" {
-        let z: Int = 0;
+        var z: Int = 0;
         while z < unit.zeros {
             digits = Concat(digits, "0");
             z = z + 1;
@@ -74,7 +74,7 @@ func ParserDurationNanosOpt(
     if StringLength(digits) == width {
         let final_digits: String = digits;
         let final_extent: Int = StringLength(final_digits);
-        let j: Int = 0;
+        var j: Int = 0;
         while j < width {
             let got: Int = CharCode(final_digits, final_extent, j);
             let most: Int = CharCode(limit, width, j);

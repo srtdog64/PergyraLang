@@ -75,7 +75,7 @@ func DirectMirStructArgumentTopologyReady(
         0, 32,
         33, 34, 35, 36, 37
     ];
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 39 {
         if sequence.arena.topology.node_kinds[row] != k[row] ||
             sequence.arena.topology.left_children[row] != l[row] ||
@@ -103,7 +103,7 @@ func DirectMirStructArgumentGraphFactDigest(
     ref fact: DirectMirStructArgumentGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(139L, fact.outer_callee_name);
+    var hash: Long = DirectMirCfgHashString(139L, fact.outer_callee_name);
     hash = DirectMirCfgHashString(hash, fact.nested_callee_name);
     hash = DirectMirCfgHashString(hash, fact.outer_type_name);
     hash = DirectMirCfgHashString(hash, fact.nested_type_name);
@@ -187,7 +187,7 @@ func DirectMirStructMemberGraphFactDigest(
     ref fact: DirectMirStructMemberGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(149L, fact.outer_second_field);
+    var hash: Long = DirectMirCfgHashString(149L, fact.outer_second_field);
     hash = DirectMirCfgHashString(hash, fact.nested_first_field);
     hash = DirectMirCfgHashString(hash, fact.outer_first_field);
     return DirectMirCfgBoundedDigest(hash);
@@ -230,7 +230,7 @@ func DirectMirStructMemberGraphFactFromSequence(
         sequence.arena.node_texts[3] != sequence.arena.node_texts[8] {
         Die("direct MIR struct member graph is invalid");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 11 {
         if sequence.arena.call_target_kinds[row] !=
                 SemanticCallTargetNone() ||

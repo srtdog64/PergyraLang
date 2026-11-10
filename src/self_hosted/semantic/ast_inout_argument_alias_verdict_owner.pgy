@@ -39,8 +39,8 @@ func SemanticAstInoutArgumentRefusalFor(
     ref call: SemanticCallSpineView,
     callee: String
 ) -> SemanticAstInoutArgumentRefusal {
-    let requires_mutable: Bool = false;
-    let parameter: Int = 0;
+    var requires_mutable: Bool = false;
+    var parameter: Int = 0;
     while parameter < ArrayLength(call.argument_nodes) {
         let selected_mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, signature_index, parameter);
         if !IsSome(selected_mode) || UnwrapOption(selected_mode) < 0 || UnwrapOption(selected_mode) > 3 { return SemanticAstInoutArgumentRefusal(true,
@@ -58,10 +58,10 @@ func SemanticAstInoutArgumentRefusalFor(
     let function_id: Int = surfaces.function_node_ids[UnwrapOption(surface)];
     let use_id: Int = identity.owner_node_id;
     let caller: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    let binding_ids: Array<Int> = [];
-    let binding_indices: Array<Int> = [];
-    let binding_modes: Array<Int> = [];
-    let argument_index: Int = 0;
+    var binding_ids: Array<Int> = [];
+    var binding_indices: Array<Int> = [];
+    var binding_modes: Array<Int> = [];
+    var argument_index: Int = 0;
     while argument_index < ArrayLength(call.argument_nodes) {
         let argument_node_id: Int = call.argument_nodes[argument_index];
         let mode: Option<Int> = SemanticAstFunctionParamModeAt(
@@ -86,9 +86,9 @@ func SemanticAstInoutArgumentRefusalFor(
         if (UnwrapOption(mode) == 1 || UnwrapOption(mode) == 3) &&
             SemanticExpressionPlaceKindDirectBinding(UnwrapOption(place)) {
             let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, argument_node_id);
-            let binding_id: Int = -1;
-            let binding_index: Int = -1;
-            let source_mode: Int = 0;
+            var binding_id: Int = -1;
+            var binding_index: Int = -1;
+            var source_mode: Int = 0;
             if carried.ok && carried.kind == SemanticExpressionBindingFormalParameter() && IsSome(caller) && carried.has_ordinal {
                 let source_id: Option<Int> = SemanticAstFunctionParamNodeAt(signatures, UnwrapOption(caller), carried.ordinal);
                 let source_mode_fact: Option<Int> = SemanticAstFunctionParamModeAt(signatures, UnwrapOption(caller), carried.ordinal);
@@ -102,6 +102,20 @@ func SemanticAstInoutArgumentRefusalFor(
                 if local_identity.ok {
                     binding_id = local_identity.declaration_node_id;
                     binding_index = local_identity.binding_index;
+                    if UnwrapOption(mode) == 1 {
+                        let write_mode: Option<Int> = TypedAstArenaLocalWriteMode(
+                            artifact.arena, binding_id);
+                        if !IsSome(write_mode) || UnwrapOption(write_mode) == 0 {
+                            ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
+                            if !IsSome(write_mode) {
+                                return SemanticAstInoutArgumentRefusal(true, "ast_artifact_invalid",
+                                    SemanticError1("ast_artifact_invalid", "owner", "LocalBindingWriteMode"));
+                            }
+                            return SemanticAstInoutArgumentRefusal(true, "immutable_binding_write",
+                                SemanticError2("immutable_binding_write", "callee", callee,
+                                    "argument_index", ToString(argument_index)));
+                        }
+                    }
                 }
             }
             let display_binding: Option<String> = SemanticExpressionGraphNodeText(graph, argument_node_id);
@@ -111,7 +125,7 @@ func SemanticAstInoutArgumentRefusalFor(
                 return SemanticAstInoutArgumentRefusal(true, "inout_argument_not_variable",
                     SemanticError2("inout_argument_not_variable", "callee", callee, "reason", "readonly_or_missing_binding_identity"));
             }
-            let seen: Int = 0;
+            var seen: Int = 0;
             while seen < ArrayLength(binding_ids) {
                 if binding_ids[seen] == binding_id && binding_indices[seen] == binding_index &&
                     (UnwrapOption(mode) == 1 || binding_modes[seen] == 1) {

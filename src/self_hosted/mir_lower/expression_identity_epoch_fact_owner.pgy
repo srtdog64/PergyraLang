@@ -1,0 +1,74 @@
+// Canonical declaration and binding identity maps, with column-owned lookup.
+struct MirExpressionIdentityEpoch {
+    ok: Bool;
+    routine_canonical_ids: Array<Int>;
+    source_ids: Array<Int>;
+    canonical_ids: Array<Int>;
+}
+
+func MirExpressionIdentityEpochAppend(
+    source_id: Int,
+    canonical_id: Int,
+    inout source_ids: Array<Int>,
+    inout canonical_ids: Array<Int>
+) -> Bool {
+    if source_id <= 0 || canonical_id <= 0 ||
+        ArrayLength(source_ids) != ArrayLength(canonical_ids) {
+        return false;
+    }
+    let count: Int = ArrayLength(source_ids);
+    var insertion_index: Int = count;
+    var existing: Int = 0;
+    while existing < count {
+        if source_ids[existing] == source_id ||
+            canonical_ids[existing] == canonical_id {
+            Log("CODEGEN ERROR: MIR identity epoch duplicate source=${source_id} canonical=${canonical_id}");
+            return false;
+        }
+        if insertion_index == count && source_ids[existing] > source_id {
+            insertion_index = existing;
+        }
+        existing = existing + 1;
+    }
+    ArrayPush(source_ids, source_id);
+    ArrayPush(canonical_ids, canonical_id);
+    var shift: Int = count;
+    while shift > insertion_index {
+        ArraySet(source_ids, shift, source_ids[shift - 1]);
+        ArraySet(canonical_ids, shift, canonical_ids[shift - 1]);
+        shift = shift - 1;
+    }
+    ArraySet(source_ids, insertion_index, source_id);
+    ArraySet(canonical_ids, insertion_index, canonical_id);
+    return true;
+}
+
+func MirExpressionIdentityEpochLookup(
+    ref epoch: MirExpressionIdentityEpoch,
+    source_id: Int
+) -> Option<Int> {
+    if !epoch.ok { return None; }
+    return MirExpressionIdentityEpochLookupRows(epoch.source_ids, epoch.canonical_ids, source_id);
+}
+
+func MirExpressionIdentityEpochLookupRows(ref source_ids: Array<Int>,
+    ref canonical_ids: Array<Int>, source_id: Int) -> Option<Int> {
+    if source_id <= 0 || ArrayLength(source_ids) != ArrayLength(canonical_ids) {
+        return None;
+    }
+    var low: Int = 0;
+    var high: Int = ArrayLength(source_ids);
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if source_ids[middle] < source_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low >= ArrayLength(source_ids) ||
+        source_ids[low] != source_id {
+        return None;
+    }
+    return Some(canonical_ids[low]);
+}

@@ -43,6 +43,15 @@ static void test_retention_summary_owner(void)
     PgyRegionRetentionKind kind = PGY_REGION_RETENTION_UNKNOWN;
 
     CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_ALLOCATOR_DESTROY, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "AllocatorDestroy retains no descriptor address after retiring it");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_ALLOCATOR_DESTROY, 1, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "AllocatorDestroy retention does not extend beyond its receiver");
+
+    CHECK(semantic_region_retention_summary_for_builtin(
               (uint32_t)BUILTIN_PRINT, 0, &kind),
           "Print argument retention summary is present");
     CHECK(kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
@@ -115,10 +124,14 @@ static void test_retention_summary_owner(void)
               (uint32_t)BUILTIN_TEXT_BUILDER_APPEND, 1, &kind)
           && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
           "TextBuilderAppend copies its String during the call");
-    CHECK(!semantic_region_retention_summary_for_builtin(
+    CHECK(semantic_region_retention_summary_for_builtin(
               (uint32_t)BUILTIN_TEXT_BUILDER_APPEND, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "TextBuilderAppend keeps no receiver address after its call");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_TEXT_BUILDER_APPEND, 2, &kind)
           && kind == PGY_REGION_RETENTION_UNKNOWN,
-          "TextBuilderAppend builder handle is not a borrowed String payload");
+          "TextBuilderAppend grants no retention fact for an absent argument");
 }
 
 static ASTNode mk_string(const char *v)
@@ -416,6 +429,48 @@ static void test_checked_string_clone(void)
     ast_call_clear_semantic_value_type_name(&outer);
 }
 
+static void test_checked_concat_call_lifetime(void)
+{
+    ASTNode left = mk_string("a"), right = mk_string("b");
+    ASTNode name = mk_ident("Concat");
+    ASTNode *arguments[] = { &left, &right };
+    ASTNode concat = mk_call(&name, arguments, 2);
+    ASTNode sink_name = mk_ident("StringLength");
+    ASTNode *sink_arguments[] = { &concat };
+    ASTNode sink = mk_call(&sink_name, sink_arguments, 1);
+    ASTNode returned = { .type = AST_RETURN };
+    returned.data.return_stmt.value = &sink;
+    ast_call_set_semantic_callee_builtin_kind(&sink, BUILTIN_STRING_LENGTH);
+    check_site_count(&returned, 0, "Concat spelling grants no region lifetime");
+    ast_call_set_semantic_callee_builtin_kind(&concat, BUILTIN_CONCAT);
+    ast_call_set_semantic_callee_is_stdlib(&concat, true);
+    check_site_count(&returned, 1, "borrowed Concat inside a return carries its allocation receipt");
+    returned.data.return_stmt.value = &concat;
+    check_site_count(&returned, 0, "returned Concat storage cannot be retired by the callee");
+    returned.data.return_stmt.value = &sink;
+    ast_call_set_semantic_callee_decl_id(&concat, 71);
+    check_site_count(&returned, 0, "a declaration cannot borrow Concat allocation authority");
+    ast_call_set_semantic_callee_decl_id(&concat, 0);
+    ast_call_set_semantic_callee_value_binding_id(&concat, 73);
+    check_site_count(&returned, 0, "a callable binding cannot borrow Concat allocation authority");
+    ast_call_set_semantic_callee_value_binding_id(&concat, 0);
+    ast_call_set_semantic_callee_is_stdlib(&concat, false);
+    check_site_count(&returned, 0, "missing selected target cannot grant allocation authority");
+    ast_call_set_semantic_callee_is_stdlib(&concat, true);
+    concat.data.call.arg_count = 1;
+    check_site_count(&returned, 0, "wrong-arity Concat stays unproved");
+    concat.data.call.arg_count = 2;
+    name.data.identifier.name = "StringConcat";
+    ast_call_set_semantic_callee_builtin_kind(&concat, BUILTIN_NOT_BUILTIN);
+    check_site_count(&returned, 1, "selected stdlib StringConcat has the same fresh storage lifetime");
+    name.data.identifier.name = "UserConcat";
+    check_site_count(&returned, 0, "an unknown selected stdlib target stays unproved");
+    name.data.identifier.name = "Concat";
+    ast_call_set_semantic_callee_builtin_kind(&concat, BUILTIN_CONCAT);
+    ast_call_set_semantic_callee_builtin_kind(&sink, BUILTIN_NOT_BUILTIN);
+    check_site_count(&returned, 0, "an unproved retaining consumer keeps Concat on the heap");
+}
+
 int main(void)
 {
     test_retention_summary_owner();
@@ -428,6 +483,7 @@ int main(void)
     test_bare_concat_not_certified();
     test_per_function_scope();
     test_checked_string_clone();
+    test_checked_concat_call_lifetime();
     if (failures) {
         fprintf(stderr, "%d region-escape checks failed\n", failures);
         return 1;

@@ -12,10 +12,10 @@ func DirectMirScalarCfgArrayStringLlvmValue(
     }
     let element_align: String = ToString(abi.element_align);
     let count: Int = ArrayLength(values);
-    let output: String = Concat("  %pgy.array.", prefix);
+    var output: String = Concat("  %pgy.array.", prefix);
     output = Concat(output, Concat(".storage = alloca [", ToString(count)));
     output = Concat(output, Concat(" x ptr], align ", Concat(element_align, "\n")));
-    let item: Int = 0;
+    var item: Int = 0;
     while item < count {
         output = Concat(output, Concat("  %pgy.array.", prefix));
         output = Concat(output, Concat(".slot.", ToString(item)));

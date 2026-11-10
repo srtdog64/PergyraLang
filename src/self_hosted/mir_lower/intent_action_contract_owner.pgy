@@ -48,7 +48,7 @@ func MirIntentActionGraphFromInstruction(
         sequence.arena.node_texts[root] != expression_text {
         return MirIntentActionGraphFact(false, "", "", "", 0);
     }
-    let call_node: Int = root;
+    var call_node: Int = root;
     while sequence.arena.topology.node_kinds[call_node] ==
         AstExpressionNodeCallArgument() {
         call_node = sequence.arena.topology.left_children[call_node];
@@ -110,9 +110,9 @@ func MirIntentDirectTargetSyntaxId(
     ref routines: MirProgramRoutineIndex,
     name: String
 ) -> String {
-    let count: Int = 0;
-    let syntax_id: String = "";
-    let row: Int = 0;
+    var count: Int = 0;
+    var syntax_id: String = "";
+    var row: Int = 0;
     while row < ArrayLength(routines.names) {
         if routines.kinds[row] == "intent" && routines.names[row] == name {
             count = count + 1;
@@ -132,11 +132,11 @@ func MirIntentActionContract(
     owner_name: String,
     action_name: String
 ) -> MirIntentActionContractFact {
-    let match_count: Int = 0;
-    let return_type_name: String = "";
-    let action_syntax_id: String = "";
-    let authority_required: Bool = false;
-    let declaration_row: Int = 0;
+    var match_count: Int = 0;
+    var return_type_name: String = "";
+    var action_syntax_id: String = "";
+    var authority_required: Bool = false;
+    var declaration_row: Int = 0;
     while declaration_row < MirProgramDeclarationIndexCount(
         routines.declarations
     ) {
@@ -150,7 +150,7 @@ func MirIntentActionContract(
                 );
             let methods: JsonArrayObjectFactTable =
                 JsonObjectFactArrayObjectTable(declaration, "methods");
-            let method_row: Int = 0;
+            var method_row: Int = 0;
             while method_row < JsonArrayObjectFactCount(methods) {
                 let method: JsonObjectFactTable = JsonArrayObjectFactAt(
                     methods, method_row

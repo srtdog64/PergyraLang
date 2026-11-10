@@ -14,7 +14,7 @@ func MirIntentExecutionPlanOwnsRoutine(
     routine_syntax_id: Int
 ) -> Bool {
     if !plan.present || routine_syntax_id <= 0 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.steps.transition_ids) {
         if plan.steps.routine_syntax_ids[row] == routine_syntax_id {
             return true;
@@ -43,7 +43,7 @@ func MirIntentExecutionBlockOwnedByRoutinePlan(
     routine_syntax_id: Int,
     block_id: Int
 ) -> Bool {
-    let step: Int = 0;
+    var step: Int = 0;
     while step < ArrayLength(plan.steps.transition_ids) {
         if plan.steps.routine_syntax_ids[step] == routine_syntax_id &&
             (plan.steps.outcome_instruction_block_ids[step] == block_id ||
@@ -53,7 +53,7 @@ func MirIntentExecutionBlockOwnedByRoutinePlan(
              plan.steps.completion_block_ids[step] == block_id) {
             return true;
         }
-        let compensation: Int = plan.steps.compensation_starts[step];
+        var compensation: Int = plan.steps.compensation_starts[step];
         let compensation_end: Int = compensation +
             plan.steps.compensation_counts[step];
         while compensation < compensation_end {
@@ -67,7 +67,7 @@ func MirIntentExecutionBlockOwnedByRoutinePlan(
         }
         step = step + 1;
     }
-    let terminal: Int = 0;
+    var terminal: Int = 0;
     while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
         if plan.terminals.routine_syntax_ids[terminal] ==
                 routine_syntax_id &&
@@ -84,8 +84,8 @@ func MirIntentExecutionZeroCompensationScaffoldCount(
     ref plan: MirIntentExecutionPlan,
     routine_syntax_id: Int
 ) -> Int {
-    let count: Int = 0;
-    let step: Int = 0;
+    var count: Int = 0;
+    var step: Int = 0;
     while step < ArrayLength(plan.steps.transition_ids) {
         if plan.steps.routine_syntax_ids[step] == routine_syntax_id &&
             plan.steps.compensation_counts[step] == 0 {
@@ -121,8 +121,8 @@ func MirIntentExecutionRoutineStructureReady(
     let topology: MirIntentRoutineBlockTopology =
         MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
     if !topology.valid || ArrayLength(topology.execution_rows) == 0 { return false; }
-    let zero_compensation_scaffolds: Int = 0;
-    let local_block: Int = 0;
+    var zero_compensation_scaffolds: Int = 0;
+    var local_block: Int = 0;
     while local_block < routines.routine_block_counts[routine_row] {
         let block_row: Int = routines.routine_block_starts[routine_row] +
             local_block;

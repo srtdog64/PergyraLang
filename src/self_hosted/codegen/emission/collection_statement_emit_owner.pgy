@@ -1,0 +1,88 @@
+// C emission for mutation statements whose ABI is selected from the semantic
+// collection target type rather than from a statement result type.
+import "../type_facts/type_env.pgy";
+import "../input/semantic_statement_codegen_view_owner.pgy";
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../input/semantic_body_type_codegen_view_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "collection_element_emit_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+import "call_argument_order_owner.pgy";
+
+func EmitSemanticArraySetStatement(
+    ref statements: SemanticAstStatementFacts,
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    idx: Int, env: CodegenTypeEnv
+) -> String {
+    let source_target: String = CodegenSemanticArraySetTargetOrDie(
+        statements, idx);
+    let target_root: Int = CodegenSemanticExpressionGraphOrDie(
+        surfaces, idx, AstExpressionLaneAtom());
+    let c_target: String = CodegenCollectionTargetCBindingOrDie(
+        env, source_target, surfaces.expression_graph, target_root);
+    let value_source: String = CodegenSemanticArraySetValueOrDie(
+        statements, idx);
+    let index_root: Int = CodegenSemanticExpressionGraphOrDie(
+        surfaces, idx, AstExpressionLaneValue());
+    let value_root: Int = CodegenSemanticExpressionGraphOrDie(
+        surfaces, idx, AstExpressionLaneAuxiliary());
+    let element_type: String = CodegenSemanticStatementExpectedTypeOrDie(
+        body_types.statement_types, idx, TypedAstKindArraySetStmtTag());
+    let runtime: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(
+        Concat("Array<", Concat(element_type, ">")), env);
+    let value: String = EmitCollectionGraphElementValue(
+        value_source, env, runtime, surfaces.expression_graph, value_root);
+    let index: String = RewriteSemanticExpectedValue(
+        surfaces.expression_graph, index_root, "Int", env);
+    return Concat(CodegenOrderedOperandCall(
+        runtime.c_set_fn, Concat("&", c_target), index,
+        SemanticExpressionGraphNodeKind(surfaces.expression_graph, index_root),
+        value,
+        SemanticExpressionGraphNodeKind(surfaces.expression_graph, value_root),
+        idx), ";");
+}
+
+func EmitSemanticArrayPushStatement(
+    ref statements: SemanticAstStatementFacts,
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    idx: Int, env: CodegenTypeEnv
+) -> String {
+    let source_target: String = CodegenSemanticArrayPushTargetOrDie(
+        statements, idx);
+    let target_root: Int = CodegenSemanticExpressionGraphOrDie(
+        surfaces, idx, AstExpressionLaneAtom());
+    let c_target: String = CodegenCollectionTargetCBindingOrDie(
+        env, source_target, surfaces.expression_graph, target_root);
+    let value_source: String = CodegenSemanticArrayPushValueOrDie(
+        statements, idx);
+    let value_root: Int = CodegenSemanticExpressionGraphOrDie(
+        surfaces, idx, AstExpressionLaneValue());
+    let element_type: String = CodegenSemanticStatementExpectedTypeOrDie(
+        body_types.statement_types, idx, TypedAstKindArrayPushStmtTag());
+    let runtime: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(
+        Concat("Array<", Concat(element_type, ">")), env);
+    let value: String = EmitCollectionGraphElementValue(
+        value_source, env, runtime, surfaces.expression_graph, value_root);
+    return Concat(runtime.c_push_fn, Concat("(&", Concat(
+        c_target, Concat(", ", Concat(value, ");")))));
+}
+
+func EmitSemanticArrayPopStatement(
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    idx: Int, env: CodegenTypeEnv
+) -> String {
+    let source_target: String = CodegenSemanticArrayPopTargetOrDie(
+        statements, idx);
+    let target_root: Int = CodegenSemanticExpressionGraphOrDie(
+        surfaces, idx, AstExpressionLaneAtom());
+    let c_target: String = CodegenCollectionTargetCBindingOrDie(
+        env, source_target, surfaces.expression_graph, target_root);
+    let target_type: String = CodegenCollectionTargetSemanticTypeOrDie(
+        env, source_target, surfaces.expression_graph, target_root);
+    let pop_fn: String =
+        CollectionRuntimeFactFromTypeName(target_type, env).c_pop_fn;
+    return Concat(pop_fn, Concat("(&", Concat(c_target, ");")));
+}

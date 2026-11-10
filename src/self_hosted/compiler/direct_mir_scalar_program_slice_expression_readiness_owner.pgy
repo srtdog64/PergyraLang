@@ -23,8 +23,8 @@ func DirectMirScalarProgramSliceExpressionNodeReady(
         kind == DirectMirScalarProgramExprSliceStringIndex() {
         let left: Int = facts.node_lefts[node];
         let right: Int = facts.node_rights[node];
-        let result_type: String = CompilerAbiLayoutIntTypeName();
-        let slice_type: String = CompilerAbiLayoutSliceIntTypeName();
+        var result_type: String = CompilerAbiLayoutIntTypeName();
+        var slice_type: String = CompilerAbiLayoutSliceIntTypeName();
         if kind == DirectMirScalarProgramExprSliceStringIndex() {
             result_type = CompilerAbiLayoutStringTypeName();
             slice_type = CompilerAbiLayoutSliceStringTypeName();

@@ -59,7 +59,7 @@ func DirectMirInferredGenericNominalGraphFactDigest(
     ref fact: DirectMirInferredGenericNominalGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(239L, fact.type_name);
+    var hash: Long = DirectMirCfgHashString(239L, fact.type_name);
     hash = DirectMirCfgHashString(hash, fact.first_field);
     hash = DirectMirCfgHashString(hash, fact.second_field);
     hash = DirectMirCfgHashString(hash, fact.generic_callable);

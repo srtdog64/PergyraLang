@@ -5,7 +5,7 @@ import "direct_mir_array_argument_program_identity_owner.pgy";
 func DirectMirGenericRoutineProgramEnvelopeReady(
     ref routine: JsonObjectFactTable
 ) -> Bool {
-    let generic_bounds: Array<Int> = [0, 0];
+    var generic_bounds: Array<Int> = [0, 0];
     if !JsonObjectFactTableReady(routine) ||
         !MirObjectArrayBoundsAtBounds(
             routine.json, routine.json_extent, routine.start, routine.end, "generics",

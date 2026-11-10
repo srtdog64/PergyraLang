@@ -26,7 +26,7 @@ func Build(flag: Bool) -> Facts {
 }
 
 func Main() -> Int {
-    let facts: Facts = Build(true);
+    var facts: Facts = Build(true);
     ArrayPush(facts.a, 7);
     Print(ToString(ArrayLength(facts.a) + ArrayLength(facts.b)));
     return 0;

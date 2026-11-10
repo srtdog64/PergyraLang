@@ -28,7 +28,7 @@ func SemanticAstCollectionReadCallReleaseFree(
             signatures, graph, edge.call_node, edge.ordinal);
     if !target.ok { return false; }
     let row: Int = target.signature_row;
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signatures.param_counts[row] {
         if ordinal != target.ordinal {
             let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, row, ordinal);
@@ -55,17 +55,17 @@ func SemanticAstCollectionReadLiteralBorrowedPlaces(
     ref literal: SemanticArrayLiteralView
 ) -> Int {
     let function_id: Int = surfaces.function_node_ids[surface_row];
-    let places: Int = 0;
-    let row: Int = 0;
+    var places: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(literal.element_nodes) {
         let element: Int = literal.element_nodes[row];
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, element);
         if !IsSome(kind) { return -1; }
         if UnwrapOption(kind) != AstExpressionNodeStringLiteral() {
-            let root: Int = element;
-            let root_kind: Int = UnwrapOption(kind);
+            var root: Int = element;
+            var root_kind: Int = UnwrapOption(kind);
             while root_kind == AstExpressionNodeMemberAccess() || root_kind == AstExpressionNodeIndex() {
-                let next: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, root);
+                var next: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, root);
                 if root_kind == AstExpressionNodeMemberAccess() {
                     let member: SemanticMemberAccessView =
                         SemanticMemberAccessViewFromGraph(surfaces.expression_graph, root);
@@ -135,7 +135,7 @@ func SemanticAstCollectionReadLiteralArgumentReady(
             artifact, signatures, locals, initializer_types, surfaces, surface_row, literal) > 0 {
         return SemanticAstCollectionReadCallReleaseFree(signatures, surfaces.expression_graph, edge);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(literal.element_nodes) {
         let element: Int = literal.element_nodes[row];
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(

@@ -38,7 +38,7 @@ func MirIntentRoutinePlanFromOwners(
     let typed_execution: Bool = MirIntentExecutionPlanOwnsRoutine(
         intent_execution_plan, routine_syntax_id
     );
-    let topology_rows: Array<Int> = [];
+    var topology_rows: Array<Int> = [];
     if typed_execution {
         topology_rows = MirIntentExecutionRoutineStepRows(
             intent_execution_plan, routine_syntax_id
@@ -48,7 +48,7 @@ func MirIntentRoutinePlanFromOwners(
         }
     }
 
-    let routine_carriers: MirIntentRoutineCarrierProjection =
+    var routine_carriers: MirIntentRoutineCarrierProjection =
         MirIntentRoutineCarrierProjectionFromRoutine(
             routines, index, routine_row, intent_name
         );
@@ -72,20 +72,20 @@ func MirIntentRoutinePlanFromOwners(
                 "typed MIR intent execution carriers are inconsistent"
             );
         }
-        let carrier_names: Array<String> = routine_carriers.carrier_names;
-        let carrier_arg0s: Array<String> = routine_carriers.carrier_arg0s;
-        let carrier_arg1s: Array<String> = routine_carriers.carrier_arg1s;
-        let carrier_slots: Array<String> = routine_carriers.carrier_slots;
-        let carrier_results: Array<String> = routine_carriers.carrier_results;
-        let carrier_abi_type_names: Array<String> =
+        var carrier_names: Array<String> = routine_carriers.carrier_names;
+        var carrier_arg0s: Array<String> = routine_carriers.carrier_arg0s;
+        var carrier_arg1s: Array<String> = routine_carriers.carrier_arg1s;
+        var carrier_slots: Array<String> = routine_carriers.carrier_slots;
+        var carrier_results: Array<String> = routine_carriers.carrier_results;
+        var carrier_abi_type_names: Array<String> =
             routine_carriers.carrier_abi_type_names;
-        let carrier_source_types: Array<String> =
+        var carrier_source_types: Array<String> =
             routine_carriers.carrier_source_types;
-        let carrier_binding_source_syntax_ids: Array<Int> =
+        var carrier_binding_source_syntax_ids: Array<Int> =
             routine_carriers.carrier_binding_source_syntax_ids;
-        let carrier_expr0s: Array<String> = routine_carriers.carrier_expr0s;
-        let carrier_rows: Array<Int> = routine_carriers.carrier_rows;
-        let typed_carrier: Int = 0;
+        var carrier_expr0s: Array<String> = routine_carriers.carrier_expr0s;
+        var carrier_rows: Array<Int> = routine_carriers.carrier_rows;
+        var typed_carrier: Int = 0;
         while typed_carrier < ArrayLength(typed_carriers.names) {
             ArrayPush(carrier_names, typed_carriers.names[typed_carrier]);
             ArrayPush(carrier_arg0s, typed_carriers.arg0s[typed_carrier]);
@@ -129,9 +129,9 @@ func MirIntentRoutinePlanFromOwners(
     if !binding_projection.ok {
         MirLowerFailClosed("MIR intent bindings or steps are missing");
     }
-    let step_names: Array<String> = [];
+    var step_names: Array<String> = [];
     if typed_execution {
-        let topology_i: Int = 0;
+        var topology_i: Int = 0;
         while topology_i < ArrayLength(topology_rows) {
             ArrayPush(
                 step_names,
@@ -142,7 +142,7 @@ func MirIntentRoutinePlanFromOwners(
             topology_i = topology_i + 1;
         }
     } else {
-        let legacy_step_i: Int = 0;
+        var legacy_step_i: Int = 0;
         while legacy_step_i < ArrayLength(binding_projection.step_names) {
             ArrayPush(
                 step_names, binding_projection.step_names[legacy_step_i]
@@ -159,7 +159,7 @@ func MirIntentRoutinePlanFromOwners(
     let block_topology: MirIntentRoutineBlockTopology =
         MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
     if !block_topology.valid { MirLowerFailClosed("MIR intent block topology is invalid"); }
-    let rollback_error: String = "";
+    var rollback_error: String = "";
     if !typed_execution {
         rollback_error = MirIntentRollbackContractError(
             routines, index, routine_row, intent_name
@@ -176,7 +176,7 @@ func MirIntentRoutinePlanFromOwners(
         routine_syntax_id, topology_rows, routine_carriers,
         binding_projection, step_names, phase_projection
     );
-    let invalidation_error: String = "";
+    var invalidation_error: String = "";
     if !typed_execution {
         invalidation_error = MirIntentInvalidationContractError(
             routines, index, routine_row

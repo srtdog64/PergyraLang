@@ -1,0 +1,33 @@
+// A fresh String transform seeds owned elements for the returned Array.
+// The earlier borrowed member store must then land as one independent copy.
+struct FreshTransformPattern {
+    pattern: String;
+}
+
+func FreshTransformRows(
+    ref fact: FreshTransformPattern,
+    direct: Bool
+) -> Array<String> {
+    var rows: Array<String> = [];
+    if direct {
+        ArrayPush(rows, fact.pattern);
+        return rows;
+    }
+    let parts: Array<String> = Split(fact.pattern, "|");
+    var part: Int = 0;
+    while part < ArrayLength(parts) {
+        ArrayPush(rows, StringTrim(parts[part]));
+        part = part + 1;
+    }
+    return rows;
+}
+
+func Main() -> Void {
+    let fact: FreshTransformPattern =
+        FreshTransformPattern(" alpha | beta ");
+    let direct: Array<String> = FreshTransformRows(fact, true);
+    let split: Array<String> = FreshTransformRows(fact, false);
+    Log(direct[0]);
+    Log(split[0]);
+    Log(split[1]);
+}

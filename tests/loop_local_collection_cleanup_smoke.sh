@@ -12,7 +12,7 @@ CASES="$ROOT_DIR/tests/self_hosted/parity/fixture/loop_local_collection_cleanup"
 fail() { echo "[loop-local-collection] $*; evidence: $WORK" >&2; exit 1; }
 for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
     [[ "$backend" == c || "$backend" == llvm ]] || fail "unknown backend $backend"
-    for name in positive explicit sanitized declared indexed; do
+    for name in positive explicit sanitized declared indexed nominal join join_shadow_restored; do
         artifact="$WORK/$name.$backend.exe"
         pgy_run_with_timeout 45 "$WORK/$name.$backend.build.out" "$WORK/$name.$backend.build.err" \
             "$PGY" --native-pipeline "--backend=$backend" \
@@ -25,11 +25,14 @@ for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
         expected=1026
         [[ "$name" != explicit ]] || expected=3
         [[ "$name" != sanitized ]] || expected=ok
-        [[ "$name" != declared ]] || expected=6
+        [[ "$name" != declared ]] || expected=9
         [[ "$name" != indexed ]] || expected=row0row1row2
+        [[ "$name" != nominal ]] || expected=3
+        [[ "$name" != join ]] || expected=xxxx
+        [[ "$name" != join_shadow_restored ]] || expected=""
         [[ "$actual" == "$expected" ]] || fail "$name/$backend output $actual"
     done
-    for invalid in escaped deferred indexed_escape; do
+    for invalid in escaped deferred indexed_escape nominal_mutation join_shadow; do
     artifact="$WORK/$invalid.$backend.exe"
     if pgy_run_with_timeout 45 "$WORK/$invalid.$backend.out" "$WORK/$invalid.$backend.err" \
         "$PGY" --native-pipeline "--backend=$backend" \
@@ -45,4 +48,4 @@ for backend in ${PGY_TEST_BACKENDS:-c llvm}; do
     [[ ! -e "$artifact" ]] || fail "$invalid storage published an artifact"
     done
 done
-echo "[loop-local-collection] PASS: builtin/declared reads, borrowed/owned, continue/break/return, nested loops and explicit drops; escape/defer refuse; evidence: $WORK"
+echo "[loop-local-collection] PASS: builtin/declared reads, restored inout shadow, borrowed/owned and read-only nominal carriers, continue/break/return, nested loops and explicit drops; escape/defer/unproved mutating carriers refuse; evidence: $WORK"

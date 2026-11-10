@@ -17,8 +17,8 @@ func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(
         signature.param_count < 1 {
         return false;
     }
-    let record_array_count: Int = 0;
-    let ordinal: Int = 0;
+    var record_array_count: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let type_name: String = signature.parameters.type_names[ordinal];
         if DirectMirScalarProgramLogicalRecordArrayTypeReady(
@@ -52,6 +52,8 @@ func DirectMirScalarProgramLogicalRecordArrayValueParameterReady(
         DirectMirScalarProgramLogicalRecordArrayTypeReady(
             logical_record, signature.parameters.type_names[ordinal]) &&
         signature.parameters.carriages[ordinal] == "value" &&
-        DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(
-            signature, logical_record);
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
 }

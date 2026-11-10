@@ -22,8 +22,8 @@ func DirectMirCompositeIntentProgramGraphFactDigest(
     ref fact: DirectMirCompositeIntentProgramGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(941L, fact.subject_type_name);
-    let row: Int = 0;
+    var hash: Long = DirectMirCfgHashString(941L, fact.subject_type_name);
+    var row: Int = 0;
     while row < ArrayLength(fact.subject_field_names) {
         hash = DirectMirCfgHashString(hash, fact.subject_field_names[row]);
         row = row + 1;
@@ -47,10 +47,10 @@ func DirectMirCompositeIntentProgramGraphFactDigest(
 func DirectMirCompositeIntentStringsDistinct(
     ref values: Array<String>
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(values) {
         if !IsIdentifier(values[row]) { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if values[prior] == values[row] { return false; }
             prior = prior + 1;
@@ -77,8 +77,8 @@ func DirectMirCompositeIntentProgramGraphFactReady(
         !DirectMirCompositeIntentStringsDistinct(fact.method_names) {
         return false;
     }
-    let field_seen: Array<Int> = [0, 0, 0];
-    let row: Int = 0;
+    var field_seen: Array<Int> = [0, 0, 0];
+    var row: Int = 0;
     while row < 3 {
         if !IsIdentifier(fact.zone_field_names[row]) ||
             fact.zone_type_names[row] == fact.subject_type_name {
@@ -98,9 +98,9 @@ func DirectMirCompositeIntentProgramGraphFactReady(
     row = 0;
     while row < 3 {
         if field_seen[row] != 2 { return false; }
-        let forward_count: Int = 0;
-        let rollback_count: Int = 0;
-        let method_row: Int = 0;
+        var forward_count: Int = 0;
+        var rollback_count: Int = 0;
+        var method_row: Int = 0;
         while method_row < 6 {
             if fact.method_field_ordinals[method_row] == row {
                 if fact.method_deltas[method_row] >= 0 {
@@ -123,8 +123,8 @@ func DirectMirCompositeIntentSubjectFields(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref route: DirectMirCompositeIntentProgramRouteFact
 ) -> Array<String> {
-    let fields: Array<String> = [];
-    let row: Int = 0;
+    var fields: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(
             admitted.domain_runtime_admission.declarations.field_identities
                 .field_names
@@ -161,9 +161,9 @@ func DirectMirCompositeIntentZoneField(
     declaration_row: Int,
     subject_type_name: String
 ) -> String {
-    let name: String = "";
-    let count: Int = 0;
-    let row: Int = 0;
+    var name: String = "";
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(
             admitted.domain_runtime_admission.declarations.field_identities
                 .field_names
@@ -197,7 +197,7 @@ func DirectMirCompositeIntentMethodDelta(
     routine_row: Int,
     subject_fields: Array<String>
 ) -> Array<Int> {
-    let result: Array<Int> = [];
+    var result: Array<Int> = [];
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, routine_row
     );
@@ -220,8 +220,8 @@ func DirectMirCompositeIntentMethodDelta(
         scalar.expr1 != scalar.arg0 {
         Die("direct MIR composite intent action assignment is invalid");
     }
-    let ordinal: Int = -1;
-    let field_row: Int = 0;
+    var ordinal: Int = -1;
+    var field_row: Int = 0;
     while field_row < ArrayLength(subject_fields) {
         if subject_fields[field_row] == scalar.arg0 {
             if ordinal >= 0 {
@@ -257,7 +257,7 @@ func DirectMirCompositeIntentMethodDelta(
         !DirectMirLegacyIntentProgramGraphHasNoCallTargets(target) {
         Die("direct MIR composite intent action expression graph is invalid");
     }
-    let delta: Int = DirectMirLegacyIntentProgramCanonicalInteger(value, 1);
+    var delta: Int = DirectMirLegacyIntentProgramCanonicalInteger(value, 1);
     if value.arena.topology.node_kinds[2] == AstExpressionNodeSubtract() {
         delta = 0 - delta;
     }
@@ -280,9 +280,9 @@ func DirectMirCompositeIntentProgramGraphFactFromAdmitted(
         ];
     let subject_fields: Array<String> =
         DirectMirCompositeIntentSubjectFields(admitted, route);
-    let zone_types: Array<String> = [];
-    let zone_fields: Array<String> = [];
-    let row: Int = 0;
+    var zone_types: Array<String> = [];
+    var zone_fields: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(route.zone_declaration_rows) {
         let declaration_row: Int = route.zone_declaration_rows[row];
         ArrayPush(
@@ -299,9 +299,9 @@ func DirectMirCompositeIntentProgramGraphFactFromAdmitted(
         );
         row = row + 1;
     }
-    let method_names: Array<String> = [];
-    let method_fields: Array<Int> = [];
-    let method_deltas: Array<Int> = [];
+    var method_names: Array<String> = [];
+    var method_fields: Array<Int> = [];
+    var method_deltas: Array<Int> = [];
     row = 0;
     while row < ArrayLength(route.method_rows) {
         let routine_row: Int = route.method_rows[row];

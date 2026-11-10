@@ -1,0 +1,124 @@
+// Retirement recipes belong to the admitted program, not to a nominal type.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+
+struct DirectMirOwnedStorageReleasePlan {
+    var modes: Array<Int>;
+    var types: Array<String>;
+    var child_starts: Array<Int>;
+    var child_counts: Array<Int>;
+    var children: Array<Int>;
+}
+
+func DirectMirOwnedStorageReleasePlanEmpty() -> DirectMirOwnedStorageReleasePlan {
+    return DirectMirOwnedStorageReleasePlan([], [], [], [], []);
+}
+
+func DirectMirOwnedStorageReleaseAppend(inout release: DirectMirOwnedStorageReleasePlan,
+    mode: Int, type_name: String, ref children: Array<Int>) -> Int {
+    let row: Int = ArrayLength(release.modes);
+    ArrayPush(release.modes, mode); ArrayPush(release.types, type_name);
+    ArrayPush(release.child_starts, ArrayLength(release.children));
+    ArrayPush(release.child_counts, ArrayLength(children));
+    var child: Int = 0;
+    while child < ArrayLength(children) {
+        ArrayPush(release.children, children[child]); child = child + 1;
+    }
+    return row;
+}
+
+func DirectMirOwnedStorageReleaseEqual(ref release: DirectMirOwnedStorageReleasePlan,
+    left: Int, right: Int) -> Bool {
+    if left == right { return true; }
+    if left < 0 || right < 0 || release.modes[left] != release.modes[right] ||
+        release.types[left] != release.types[right] ||
+        release.child_counts[left] != release.child_counts[right] { return false; }
+    var child: Int = 0;
+    while child < release.child_counts[left] {
+        if !DirectMirOwnedStorageReleaseEqual(release,
+                release.children[release.child_starts[left] + child],
+                release.children[release.child_starts[right] + child]) { return false; }
+        child = child + 1;
+    }
+    return true;
+}
+
+func DirectMirOwnedLocalStorageMode(ref plan: DirectMirScalarCfgGraphPlan,
+    type_name: String, depth: Int) -> Int {
+    if type_name == CompilerAbiLayoutStringTypeName() { return 1; }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() { return 2; }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() { return 3; }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() { return 5; }
+    if DirectMirScalarProgramHashMapTypeReady(type_name) { return 7; }
+    if depth > ArrayLength(plan.program.logical_record.names) { return 0; }
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
+    if record < 0 { return 0; }
+    var has_storage: Bool = false;
+    var field: Int = plan.program.logical_record.field_starts[record];
+    let end: Int = field + plan.program.logical_record.field_counts[record];
+    while field < end {
+        let child: String = plan.program.logical_record.field_types[field];
+        if DirectMirOwnedLocalStorageMode(plan, child, depth + 1) > 0 { has_storage = true; }
+        else if child != "Int" && child != "Bool" && child != "Long" && child != "Float" { return 0; }
+        field = field + 1;
+    }
+    if has_storage { return 4; }
+    return 0;
+}
+
+// Resolve the returned storage through exact local definitions. This grants
+// no new release right; it only prevents a callee from retiring an escape.
+func DirectMirOwnedStorageReturnClosure(ref plan: DirectMirScalarCfgGraphPlan,
+    ref definitions: Array<Int>, ref result_parameter_ordinals: Array<Int>,
+    node: Int, inout transferred: Array<Bool>, depth: Int) -> Void {
+    if node < 0 || node >= ArrayLength(plan.program.expressions.node_kinds) ||
+        depth > ArrayLength(definitions) + ArrayLength(plan.program.logical_record.names) + 1 { return; }
+    // Known scalar observations carry no backing storage. An unsupported
+    // retirement type is not evidence that an aggregate contains no storage.
+    let type_name: String = plan.program.expressions.node_types[node];
+    if type_name == "Int" || type_name == "Bool" || type_name == "Long" || type_name == "Float" { return; }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLocal() {
+        let local_row: Int = plan.program.expressions.node_local_rows[node];
+        if local_row < 0 || local_row >= ArrayLength(definitions) || transferred[local_row] { return; }
+        transferred[local_row] = true;
+        let operation: Int = definitions[local_row];
+        if operation < 0 { return; }
+        let graph: Int = plan.program.operation_expression_rows[operation];
+        if graph >= 0 { DirectMirOwnedStorageReturnClosure(
+            plan, definitions, result_parameter_ordinals,
+            plan.program.expressions.graph_roots[graph], transferred, depth + 1); }
+    } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+        let args: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, node);
+        if !args.valid { Die("returned storage operand identity is invalid"); }
+        var child: Int = 0;
+        while child < args.count {
+            DirectMirOwnedStorageReturnClosure(
+                plan, definitions, result_parameter_ordinals,
+                DirectMirScalarProgramArgumentViewAt(plan.program.expressions, args, child), transferred, depth + 1);
+            child = child + 1;
+        }
+    } else if kind == DirectMirScalarProgramExprLogicalRecordMember() ||
+        kind == DirectMirScalarProgramExprArrayStringIndex() {
+        DirectMirOwnedStorageReturnClosure(
+            plan, definitions, result_parameter_ordinals,
+            plan.program.expressions.node_lefts[node], transferred, depth + 1);
+    } else if kind == DirectMirScalarProgramExprDirectCall() {
+        let callee: Int = plan.program.expressions.node_callable_rows[node];
+        if callee < 0 || callee >= ArrayLength(result_parameter_ordinals) {
+            return;
+        }
+        let alias: Int = result_parameter_ordinals[callee];
+        let args: DirectMirScalarProgramArgumentView =
+            DirectMirScalarProgramArgumentViewFromNode(
+                plan.program.expressions, node);
+        if alias >= 0 && args.valid && alias < args.count {
+            DirectMirOwnedStorageReturnClosure(
+                plan, definitions, result_parameter_ordinals,
+                DirectMirScalarProgramArgumentViewAt(
+                    plan.program.expressions, args, alias),
+                transferred, depth + 1);
+        }
+    }
+}

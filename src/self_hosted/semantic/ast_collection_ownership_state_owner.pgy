@@ -20,6 +20,7 @@ func SemanticAstCollectionOriginClone() -> Int { return 6; }
 func SemanticAstCollectionOriginCallResult() -> Int { return 7; }
 func SemanticAstCollectionOriginFormalStringTransfer() -> Int { return 8; }
 func SemanticAstCollectionOriginLocalStringTransfer() -> Int { return 9; }
+func SemanticAstCollectionOriginOwnedLiteral() -> Int { return 10; }
 func SemanticAstCollectionTransitionUntracked() -> Int { return 0; }
 func SemanticAstCollectionTransitionEmpty() -> Int { return 1; }
 func SemanticAstCollectionTransitionBorrowed() -> Int { return 2; }

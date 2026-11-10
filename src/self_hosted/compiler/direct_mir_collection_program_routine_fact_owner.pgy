@@ -53,7 +53,7 @@ func DirectMirCollectionProducerRoutineFactDigest(
     ref fact: DirectMirCollectionProducerRoutineFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(733L, fact.cfg_digest);
+    var hash: Long = DirectMirCfgHashInt(733L, fact.cfg_digest);
     hash = DirectMirCfgHashInt(hash, fact.collection_definition_global);
     hash = DirectMirCfgHashInt(hash, fact.push_global);
     hash = DirectMirCfgHashInt(hash, fact.return_global);
@@ -72,7 +72,7 @@ func DirectMirCollectionConsumerRoutineFactDigest(
     ref fact: DirectMirCollectionConsumerRoutineFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(739L, fact.cfg_digest);
+    var hash: Long = DirectMirCfgHashInt(739L, fact.cfg_digest);
     hash = DirectMirCfgHashInt(hash, fact.length_global);
     hash = DirectMirCfgHashInt(hash, fact.get_global);
     hash = DirectMirCfgHashInt(hash, fact.return_global);
@@ -89,7 +89,7 @@ func DirectMirCollectionEntrypointRoutineFactDigest(
     ref fact: DirectMirCollectionEntrypointRoutineFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(743L, fact.cfg_digest);
+    var hash: Long = DirectMirCfgHashInt(743L, fact.cfg_digest);
     hash = DirectMirCfgHashInt(hash, fact.definition_global);
     hash = DirectMirCfgHashInt(hash, fact.consumer_call_global);
     hash = DirectMirCfgHashInt(hash, fact.length_global);

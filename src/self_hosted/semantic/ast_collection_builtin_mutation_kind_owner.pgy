@@ -1,0 +1,17 @@
+// Classifies the collection builtins that mutate or retire String elements.
+struct SemanticAstCollectionBuiltinMutationKind {
+    owned_push: Bool,
+    array_pop: Bool,
+    mutates_elements: Bool,
+    deep_drop: Bool
+}
+
+func SemanticAstCollectionBuiltinMutationKindFromName(
+    name: String
+) -> SemanticAstCollectionBuiltinMutationKind {
+    let array_pop: Bool = name == "ArrayPop";
+    return SemanticAstCollectionBuiltinMutationKind(
+        name == "ArrayPushOwnedString", array_pop,
+        name == "ArrayPush" || name == "ArraySet" || array_pop,
+        name == "ArrayDropOwnedStrings");
+}

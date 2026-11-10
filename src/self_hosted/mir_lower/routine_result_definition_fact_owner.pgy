@@ -39,9 +39,9 @@ func MirRoutineFactIndexUniqueResultDefinition(
         return MirRoutineResultDefinitionFactMissing(false, false);
     }
 
-    let result_row: Int = 0 - 1;
-    let match_count: Int = 0;
-    let row: Int = 0;
+    var result_row: Int = 0 - 1;
+    var match_count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(index.instruction_facts.results) {
         if index.instruction_facts.results[row] == wanted {
             if match_count == 0 { result_row = row; }
@@ -56,9 +56,9 @@ func MirRoutineFactIndexUniqueResultDefinition(
         return MirRoutineResultDefinitionFactMissing(true, true);
     }
 
-    let definition_block: Int = 0 - 1;
-    let block_instruction_row: Int = 0 - 1;
-    let block: Int = 0;
+    var definition_block: Int = 0 - 1;
+    var block_instruction_row: Int = 0 - 1;
+    var block: Int = 0;
     while block < block_count {
         let start: Int = index.block_instruction_starts[block];
         let count: Int = index.block_instruction_counts[block];
@@ -102,13 +102,13 @@ func MirPhiParameterEntryExists(
     wanted: String
 ) -> Bool {
     if wanted != Concat(local_name, ".0") { return false; }
-    let params_bounds: Array<Int> = [0, 0];
+    var params_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
         json, json_extent, index.routine_start, index.routine_end,
         "params", params_bounds
     ) { return false; }
-    let cursor: Int = params_bounds[0] + 1;
-    let bounds: Array<Int> = [0, 0];
+    var cursor: Int = params_bounds[0] + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
         json, json_extent, cursor, params_bounds[1], bounds
     ) {

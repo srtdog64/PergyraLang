@@ -252,12 +252,12 @@ func TypedAstKindOwnerReady() -> Bool {
     if ArrayLength(tags) != 105 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(tags) {
         if tags[i] != TypedAstKindUnknownTag() + i {
             return false;
         }
-        let j: Int = i + 1;
+        var j: Int = i + 1;
         while j < ArrayLength(tags) {
             if tags[i] == tags[j] {
                 return false;

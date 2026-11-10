@@ -6,7 +6,7 @@ func FirstName() -> String {
 }
 
 func Collect(names: Array<String>) -> Array<String> {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, Clone(names[0]));
     return out;
 }

@@ -3,10 +3,15 @@
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_expression_readiness_owner.pgy";
 
 func DirectMirScalarProgramPayloadEnumExpressionNodeReady(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Option<Bool> {
+    let option_ready: Option<Bool> =
+        DirectMirScalarProgramPayloadEnumOptionExpressionNodeReady(
+            expressions, node);
+    if IsSome(option_ready) { return option_ready; }
     let kind: Int = expressions.node_kinds[node];
     if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
         let arguments: Array<Int> =
@@ -27,7 +32,7 @@ func DirectMirScalarProgramPayloadEnumExpressionNodeReady(
             expressions.node_callable_rows[node] != -1 {
             return Some(false);
         }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
             if arguments[ordinal] < 0 || arguments[ordinal] >= node ||
                 expressions.node_types[arguments[ordinal]] == "" {
@@ -68,7 +73,7 @@ func DirectMirScalarProgramReferencedEnumReadyForExpressions(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
     if !DirectMirScalarProgramReferencedEnumFactReady(fact) { return false; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[node];
         if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
@@ -86,7 +91,7 @@ func DirectMirScalarProgramReferencedEnumReadyForExpressions(
             if ArrayLength(arguments) != fact.variant_param_counts[variant] {
                 return false;
             }
-            let argument: Int = 0;
+            var argument: Int = 0;
             while argument < ArrayLength(arguments) {
                 if expressions.node_types[arguments[argument]] !=
                     fact.variant_param_types[

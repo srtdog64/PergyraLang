@@ -11,16 +11,16 @@ func DirectMirConstructedGenericMemberCNamesReady(
     receiver_parameter: String, value_parameter: String,
     formatted_print_symbol: String
 ) -> Bool {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPush(names, type_name);
     ArrayPush(names, option_type);
     ArrayPush(names, outer_symbol);
     ArrayPush(names, inner_symbol);
     ArrayPush(names, formatted_print_symbol);
-    let left: Int = 0;
+    var left: Int = 0;
     while left < ArrayLength(names) {
         if names[left] == "" { return false; }
-        let right: Int = left + 1;
+        var right: Int = left + 1;
         while right < ArrayLength(names) {
             if names[left] == names[right] { return false; }
             right = right + 1;
@@ -81,7 +81,7 @@ func DirectMirConstructedGenericMemberEmitC(
         receiver_parameter == outer_value_parameter {
         Die("direct MIR constructed member C symbols are invalid");
     }
-    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
+    var output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
     output = Concat(output, field_name);
     output = Concat(output, ";\n} ");

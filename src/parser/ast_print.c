@@ -252,7 +252,8 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_LET_DECL:
-            printf("Let: %s", node->data.let_decl.name);
+            printf("Let: %s%s", ast_let_is_mutable(node) ? "mut " : "",
+                node->data.let_decl.name);
             if (node->data.let_decl.type) {
                 printf(" : ");
                 ast_print_inline(node->data.let_decl.type);
@@ -357,7 +358,7 @@ void ast_print(ASTNode* node, int indent) {
         case AST_ASSIGNMENT:
             printf("Assign: ");
             ast_print_inline(node->data.assignment.target);
-            printf(" = ");
+            printf(" %s ", ast_assignment_operation_text(ast_assignment_operation(node)));
             ast_print_inline(node->data.assignment.value);
             printf("\n");
             break;

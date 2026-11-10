@@ -26,9 +26,9 @@ func SemanticAstCollectionFreshLocalGenerationAtUse(
     if source < 0 || source >= use_id || use_id >= artifact.count ||
         scope < 0 || scope >= artifact.count ||
         artifact.arena.kinds[scope] != TypedAstKindBlockTag() { return false; }
-    let anchor: Int = use_id;
-    let node: Int = artifact.arena.parents[use_id];
-    let remaining: Int = artifact.count;
+    var anchor: Int = use_id;
+    var node: Int = artifact.arena.parents[use_id];
+    var remaining: Int = artifact.count;
     while node != scope && remaining > 0 {
         if node < 0 || node >= artifact.count { return false; }
         let kind: Int = artifact.arena.kinds[node];
@@ -89,7 +89,7 @@ func SemanticAstCollectionOwnRetirementVisibleAtUse(
     if scope < 0 || use_id >= artifact.count { return true; }
     // The transfer still retires every use in this scope, including the return
     // expression. Only another normal path outside its unconditional exit is live.
-    let node: Int = use_id; let remaining: Int = artifact.count;
+    var node: Int = use_id; var remaining: Int = artifact.count;
     while remaining > 0 {
         if node < 0 { return false; }
         if node >= artifact.count || node == scope { return true; }

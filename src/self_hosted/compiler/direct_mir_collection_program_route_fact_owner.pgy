@@ -18,7 +18,7 @@ func DirectMirCollectionProgramRouteFactDigest(
     ref fact: DirectMirCollectionProgramRouteFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(701L, fact.routine_count);
+    var hash: Long = DirectMirCfgHashInt(701L, fact.routine_count);
     hash = DirectMirCfgHashInt(hash, fact.entrypoint_count);
     hash = DirectMirCfgHashInt(hash, fact.collection_producer_count);
     hash = DirectMirCfgHashInt(hash, fact.collection_consumer_count);
@@ -50,10 +50,10 @@ func DirectMirCollectionProgramRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirCollectionProgramRouteFact {
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
-    let entrypoints: Int = 0;
-    let producers: Int = 0;
-    let consumers: Int = 0;
-    let row: Int = 0;
+    var entrypoints: Int = 0;
+    var producers: Int = 0;
+    var consumers: Int = 0;
+    var row: Int = 0;
     while row < routine_count {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
             admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],

@@ -9,7 +9,7 @@ import "source_refusal_owner.pgy";
 // nominal `Struct: NAME`; scalar aliases remain `TypeAlias` records.
 func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     location_context: ParserSourceLocationContext) -> String {
-    let i: Int = LanguageWordEnd(start, LanguageWordId.WordType);
+    var i: Int = LanguageWordEnd(start, LanguageWordId.WordType);
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -23,7 +23,7 @@ func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
     if ParserCharAt(content, i) == "{" {
         let open_at: Int = i;
         i = i + 1;
-        let alias_fields: String = "";
+        var alias_fields: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n {
@@ -54,7 +54,7 @@ func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 ParseRefuse(location_context, i, "expected_token", "expected", ", or }", "construct", "type");
             }
         }
-        let alias_out: String = Concat("  Struct: ", Concat(decl_prefix, alias_name));
+        var alias_out: String = Concat("  Struct: ", Concat(decl_prefix, alias_name));
         if StringLength(alias_fields) > 0 {
             alias_out = AppendLine(alias_out, "    Fields:");
             alias_out = AppendLine(alias_out, alias_fields);

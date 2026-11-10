@@ -6,8 +6,8 @@ func SemanticEffectMaskForWord(name: String) -> Int {
     let index: Int = CallableContractVocabularyFindIndex(CallableContractVocabularyEffectAxis(), name);
     if index < 0 { return -1; }
     if CallableContractVocabularyZeroPolicyAt(index) == CallableContractVocabularyZeroExclusive() { return 0; }
-    let mask: Int = 1;
-    let rank: Int = 0;
+    var mask: Int = 1;
+    var rank: Int = 0;
     while rank < CallableContractVocabularyCanonicalRankAt(index) {
         mask = mask * 2;
         rank = rank + 1;
@@ -31,8 +31,8 @@ func SemanticEffectMaskClosure(mask: Int) -> Int {
 
 func SemanticEffectMaskJoin(left: Int, right: Int) -> Int {
     if left < 0 || right < 0 || left > 255 || right > 255 { return -1; }
-    let result: Int = left;
-    let bit: Int = 1;
+    var result: Int = left;
+    var bit: Int = 1;
     while bit < 256 {
         if SemanticEffectMaskHas(right, bit) && !SemanticEffectMaskHas(result, bit) { result = result + bit; }
         bit = bit * 2;
@@ -44,8 +44,8 @@ func SemanticEffectMaskDifference(left: Int, right: Int) -> Int {
     let used: Int = SemanticEffectMaskClosure(left);
     let declared: Int = SemanticEffectMaskClosure(right);
     if used < 0 || declared < 0 { return -1; }
-    let result: Int = 0;
-    let bit: Int = 1;
+    var result: Int = 0;
+    var bit: Int = 1;
     while bit < 256 {
         if SemanticEffectMaskHas(used, bit) && !SemanticEffectMaskHas(declared, bit) { result = result + bit; }
         bit = bit * 2;
@@ -54,8 +54,8 @@ func SemanticEffectMaskDifference(left: Int, right: Int) -> Int {
 }
 
 func SemanticEffectMaskNames(mask: Int) -> String {
-    let output: String = "";
-    let rank: Int = 0;
+    var output: String = "";
+    var rank: Int = 0;
     while rank < 9 {
         let index: Int = CallableContractVocabularyIndexAtRank(CallableContractVocabularyEffectAxis(), rank);
         let name: String = CallableContractVocabularySpellingAt(index);

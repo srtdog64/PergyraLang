@@ -108,7 +108,7 @@
             "    let size: Int;\n"
             "}\n"
             "func BorrowList(ref packet: Packet) -> Void {\n"
-            "    let items: List<Packet> = ListNew();\n"
+            "    var items: List<Packet> = ListNew();\n"
             "    ListPush(items, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -134,7 +134,7 @@
             "    let size: Int;\n"
             "}\n"
             "func BorrowSet(ref packet: Packet) -> Void {\n"
-            "    let items: Set<Packet> = SetNew();\n"
+            "    var items: Set<Packet> = SetNew();\n"
             "    SetAdd(items, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -160,7 +160,7 @@
             "    let size: Int;\n"
             "}\n"
             "func BorrowQueue(ref packet: Packet) -> Void {\n"
-            "    let items: Queue<Packet> = QueueNew();\n"
+            "    var items: Queue<Packet> = QueueNew();\n"
             "    QueuePush(items, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -186,7 +186,7 @@
             "    let size: Int;\n"
             "}\n"
             "func BorrowMap(ref packet: Packet) -> Void {\n"
-            "    let items: HashMap<String, Packet> = MapNew();\n"
+            "    var items: HashMap<String, Packet> = MapNew();\n"
             "    MapSet(items, \"lead\", packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -212,7 +212,7 @@
             "    let size: Int;\n"
             "}\n"
             "func BorrowArrayPush(ref packet: Packet) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(1)];\n"
+            "    var items: Array<Packet> = [Packet(1)];\n"
             "    ArrayPush(items, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -238,7 +238,7 @@
             "    let size: Int;\n"
             "}\n"
             "func BorrowArraySet(ref packet: Packet) -> Void {\n"
-            "    let items: Array<Packet> = [Packet(1)];\n"
+            "    var items: Array<Packet> = [Packet(1)];\n"
             "    ArraySet(items, 0, packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -313,7 +313,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref class parameter cannot escape transitively through ref helper return");
+    TEST("ref class helper chain rejects the invalid inner borrowed return");
     {
         const char *source =
             "class Packet {\n"
@@ -333,7 +333,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape through helper/function call"));
+            "Borrowed ref boundary value 'packet' cannot escape through return from 'packet'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

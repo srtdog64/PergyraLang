@@ -14,7 +14,7 @@ func DirectMirGenericNominalExactTopologyReady(
         ArrayLength(targets) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if sequence.arena.topology.node_kinds[row] != kinds[row] ||
             sequence.arena.topology.left_children[row] != lefts[row] ||

@@ -14,3 +14,14 @@ func DirectMirScalarProgramExprStringSplit() -> Int { return 25; }
 func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
 func DirectMirScalarProgramExprStringJoin() -> Int { return 69; }
 func DirectMirScalarProgramExprToStringString() -> Int { return 70; }
+func DirectMirScalarProgramExprStringClone() -> Int { return 151; }
+
+// These two normalized expressions share the StringConcat runtime ABI.  The
+// complete fresh-String classification lives with the full expression-kind
+// registry because it also spans String window, host-I/O and collection kinds.
+func DirectMirScalarProgramConcatBackedFreshStringExpressionKind(
+    kind: Int
+) -> Bool {
+    return kind == DirectMirScalarProgramExprConcatString() ||
+        kind == DirectMirScalarProgramExprStringClone();
+}

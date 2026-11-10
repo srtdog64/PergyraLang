@@ -9,8 +9,10 @@
 // Beyond an origin's own ownership, the verdict reaches:
 // - "unknown" when an unknown call effect removes a live borrowed literal's
 //   permission;
-// - "owned-elements" retired, when a member move or a call result received
-//   owned strings and a deep drop then retired it;
+// - "owned-elements" live or retired, when a member move receives owned
+//   strings and either restores them to its aggregate or deep-drops them;
+// - "owned-elements" live or retired, when a call result owns an independent
+//   Array<String> generation and cleanup has not yet, or has already, retired it;
 // - "retired" ownership, only with a retired disposition, when an aggregate
 //   release, a named input reservation or an owned-result return consumed
 //   the storage.
@@ -32,11 +34,16 @@ func MirCollectionOwnershipStateAdmitted(
     }
     if origin == "map-keys" { return ownership == "map-keys-snapshot"; }
     if origin == "empty-literal" { return ownership == "unknown"; }
-    if origin == "member-move" || origin == "call-result" {
-        return ownership == "unknown" ||
-            (ownership == "owned-elements" && retired);
+    if origin == "member-move" {
+        return ownership == "unknown" || ownership == "owned-elements";
+    }
+    if origin == "call-result" {
+        return ownership == "unknown" || ownership == "owned-elements";
     }
     if origin == "clone" { return ownership == "owned-elements"; }
+    if origin == "owned-literal" {
+        return ownership == "owned-elements";
+    }
     if origin == "formal-string-transfer" || origin == "local-string-transfer" {
         return ownership == "owned-elements";
     }

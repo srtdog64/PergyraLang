@@ -6,7 +6,7 @@ func AtomFor(node: TextNode) -> String {
 }
 
 func Project(nodes: Array<TextNode>) -> Arena {
-    let atom_table: Array<String> = [];
+    var atom_table: Array<String> = [];
     let atom_text: String = AtomFor(nodes[0]);
     ArrayPush(atom_table, atom_text);
     return Arena(atom_table);

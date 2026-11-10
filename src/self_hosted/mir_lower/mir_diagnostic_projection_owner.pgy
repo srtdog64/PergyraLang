@@ -30,8 +30,8 @@ func MirDiagnosticProjectionFromAdmitted(
     }
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(1024);
-    let projection_diagnostic: String = "";
-    let projection_value: String = "";
+    var projection_diagnostic: String = "";
+    var projection_value: String = "";
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
     TextBuilderAppend(output, "Pergyra MIR diagnostic");
     TextBuilderAppend(output, "\n  schema: ");
@@ -40,7 +40,7 @@ func MirDiagnosticProjectionFromAdmitted(
     TextBuilderAppend(output, "\n  routines: ");
     TextBuilderAppend(output, ToString(routine_count));
 
-    let routine_row: Int = 0;
+    var routine_row: Int = 0;
     while routine_row < routine_count && projection_diagnostic == "" {
         if !MirProgramRoutineIndexRowReady(admitted.routines, routine_row) {
             projection_diagnostic = "MIR diagnostic routine row is invalid";
@@ -85,7 +85,7 @@ func MirDiagnosticProjectionFromAdmitted(
         TextBuilderAppend(output, ToString(block_count));
         TextBuilderAppend(output, " instructions=");
         TextBuilderAppend(output, ToString(instruction_count));
-        let block_row: Int = 0;
+        var block_row: Int = 0;
         while block_row < block_count && projection_diagnostic == "" {
             let global_block: Int =
                 admitted.routines.routine_block_starts[routine_row] +
@@ -121,7 +121,7 @@ func MirDiagnosticProjectionFromAdmitted(
                     admitted.routines.block_succ_false[global_block]));
             TextBuilderAppend(output, " instructions=");
             TextBuilderAppend(output, ToString(block_instruction_count));
-            let instruction_row: Int = 0;
+            var instruction_row: Int = 0;
             while instruction_row < block_instruction_count &&
                 projection_diagnostic == "" {
                 let global_instruction: Int =

@@ -1,0 +1,21 @@
+// Reading an owned element before replacing it inside a loop does not retain
+// or rebind the inout descriptor.  The returned record owns only its freshly
+// concatenated String, so the caller may keep mutating the same Array.
+import "support/inout_owned_set_loop_owner.pgy";
+
+func Main() -> Void {
+    var source: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(source, "old-value", 1);
+    var chunks: Array<String> = MapKeys(source);
+    var node: Int = 0;
+    while node < 1 {
+        let rewritten: RewriteResult = Rewrite(1, 2, 3, true, chunks);
+        Print(rewritten.instructions);
+        ArrayPush(chunks, Concat("new", "-value"));
+        node = node + 1;
+    }
+    Print(ToString(ArrayLength(chunks)));
+    Print(chunks[0]);
+    Print(chunks[1]);
+    ArrayDropOwnedStrings(chunks);
+}

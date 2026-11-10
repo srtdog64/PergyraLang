@@ -1,0 +1,16 @@
+func GatherBorrowed(ref source: Array<String>) -> Void {
+    let fields: Array<String> = ["seed"];
+    let row: Int = 0;
+    while row < ArrayLength(source) {
+        ArrayPush(fields, source[row]);
+        row = row + 1;
+    }
+    ArrayDropOwnedStrings(fields);
+}
+
+func Main() -> Void {
+    let source: Array<String> = [];
+    ArrayPushOwnedString(source, "borrowed");
+    GatherBorrowed(source);
+    ArrayDropOwnedStrings(source);
+}

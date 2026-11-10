@@ -1,0 +1,164 @@
+// Aggregate release plan construction from field-entry requirements.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_aggregate_value_lineage_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_release_uniqueness_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_collection_aggregate_release_statement_end_owner.pgy";
+
+func SemanticAstCollectionAggregateReleasePlanFromRequirements(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    formal_effects: HashMap<String, Int>
+) -> SemanticAstCollectionAggregateReleasePlan {
+    var plan: SemanticAstCollectionAggregateReleasePlan = SemanticAstCollectionAggregateReleasePlanEmpty();
+    if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(
+            requirements) ||
+        !SemanticAstCollectionConstructorFieldInputsShapeReady(
+            call_effects.constructor_inputs) ||
+        !SemanticAstCollectionAggregateReleasePlanCallInventory(
+            surfaces, plan) {
+        plan.ok = false;
+        plan.diagnostic_reason = "plan_input_shape";
+        return plan;
+    }
+    var call_row: Int = 0;
+    while call_row < ArrayLength(plan.call_nodes) {
+        ArrayPush(plan.call_ends_routine, SemanticAstCollectionAggregateReleaseStatementEndsRoutine(artifact, signatures, surfaces, plan.call_syntax_ids[call_row]));
+        call_row = call_row + 1;
+    }
+    var trace: SemanticAstCollectionAggregateTrace =
+        SemanticAstCollectionAggregateTraceEmpty();
+    var row: Int = 0;
+    while row < ArrayLength(requirements.local_ids) {
+        if requirements.formal_modes[row] != 0 &&
+            requirements.formal_modes[row] != 1 &&
+            requirements.formal_modes[row] != 2 {
+            plan.ok = false;
+            plan.diagnostic_reason = "requirement_mode";
+            plan.diagnostic_syntax_id = requirements.local_ids[row];
+            return plan;
+        }
+        if !SemanticAstCollectionAggregateReleaseRecordProtectedBinding(
+                requirements.formal_ids[row], plan) {
+            plan.ok = false;
+            plan.diagnostic_reason = "protected_binding";
+            plan.diagnostic_syntax_id = requirements.local_ids[row];
+            return plan;
+        }
+        ArrayPush(plan.requirement_local_ids, requirements.local_ids[row]);
+        ArrayPush(plan.requirement_effect_masks,
+            requirements.effect_masks[row]);
+        ArrayPush(plan.owned_push_syntax_ids, -1);
+        ArrayPush(plan.owned_push_expression_nodes, -1);
+        ArrayPush(plan.drop_syntax_ids, -1);
+        ArrayPush(plan.drop_expression_nodes, -1);
+        var path_row: Int = -1;
+        var path_index: Int = requirements.path_counts[row] - 1;
+        while path_index >= 0 {
+            path_row = SemanticAstCollectionAggregateTracePathAppend(
+                requirements.path_field_ids[
+                    requirements.path_starts[row] + path_index],
+                path_row, trace);
+            if path_row < 0 {
+                plan.ok = false;
+                plan.diagnostic_reason = "requirement_path";
+                plan.diagnostic_syntax_id = requirements.local_ids[row];
+                return plan;
+            }
+            path_index = path_index - 1;
+        }
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+            signatures, requirements.function_ids[row]);
+        if !IsSome(signature) {
+            plan.ok = false;
+            plan.diagnostic_reason = "requirement_signature";
+            plan.diagnostic_syntax_id = requirements.local_ids[row];
+            return plan;
+        }
+        let explicit_ordinal: Int = requirements.formal_ordinals[row] - signatures.receiver_source_param_offsets[UnwrapOption(signature)];
+        if explicit_ordinal < 0 {
+            plan.ok = false;
+            plan.diagnostic_reason = "requirement_ordinal";
+            plan.diagnostic_syntax_id = requirements.local_ids[row];
+            return plan;
+        }
+        var call: Int = 0;
+        while call < ArrayLength(plan.call_nodes) {
+            if plan.call_target_ids[call] == requirements.function_ids[row] &&
+                plan.call_ordinals[call] == explicit_ordinal &&
+                !SemanticAstCollectionAggregateTraceExpression(
+                    artifact, signatures, constructors, locals,
+                    inferred_types, resolved_leaf_types, surfaces,
+                    statements, assignments,
+                    call_effects.constructor_inputs,
+                    exclusive_values.surface_starts,
+                    exclusive_values.surface_ends,
+                    exclusive_values.field_reads,
+                    exclusive_values.copies,
+                    plan.call_function_ids[call],
+                    plan.call_syntax_ids[call],
+                    plan.call_argument_nodes[call], path_row, 0, 0,
+                    plan.call_edge_nodes[call], row, 0, trace, plan, 0) {
+                plan.ok = false;
+                plan.diagnostic_reason = "lineage_trace";
+                plan.diagnostic_syntax_id = plan.call_syntax_ids[call];
+                return plan;
+            }
+            call = call + 1;
+        }
+        row = row + 1;
+    }
+    if !SemanticAstCollectionAggregateRecordDemandInputCarriers(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, surfaces,
+            call_effects.constructor_inputs, exclusive_values,
+            formal_effects, plan) {
+        plan.ok = false;
+        if plan.diagnostic_reason == "" {
+            plan.diagnostic_reason = "carrier_lineage";
+        }
+        if plan.diagnostic_syntax_id < 0 &&
+            ArrayLength(plan.constructor_input_rows) > 0 {
+            let input: Int = plan.constructor_input_rows[0];
+            if input >= 0 && input <
+                    ArrayLength(call_effects.constructor_inputs.syntax_ids) {
+                plan.diagnostic_syntax_id =
+                    call_effects.constructor_inputs.syntax_ids[input];
+            }
+        }
+        return plan;
+    }
+    if !SemanticAstCollectionAggregateReleasePlanUnique(
+            artifact, plan, call_effects.constructor_inputs, storage,
+            definitions, signatures, constructors, locals, inferred_types,
+            surfaces, assignments, exclusive_values) {
+        plan.ok = false;
+        if plan.diagnostic_reason == "" {
+            plan.diagnostic_reason = "release_uniqueness";
+        }
+        if plan.diagnostic_syntax_id < 0 &&
+            ArrayLength(requirements.local_ids) > 0 {
+            plan.diagnostic_syntax_id = requirements.local_ids[0];
+        }
+    }
+    return plan;
+}
+

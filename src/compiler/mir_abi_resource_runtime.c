@@ -174,6 +174,14 @@ static const MIRResourceRuntimeRow k_abi_resource_runtime_fn_table[] = {
     ABI_RESOURCE_OP("DeviceSlot<String>", "SubmitRead",
                     "pgy_submit_device_read_String",
                     "container_ptr_to_task_handle"),
+
+    /* Append new logical operations so existing table projections retain
+     * their established order. Runtime-call identity is content-derived. */
+    ABI_RESOURCE_OP("Array<Int>", "ReleaseStorage", "pgy_array_drop_Int", "container_ptr_to_void"),
+    ABI_RESOURCE_OP("Array<Long>", "ReleaseStorage", "pgy_array_drop_Long", "container_ptr_to_void"),
+    ABI_RESOURCE_OP("Array<Float>", "ReleaseStorage", "pgy_array_drop_Float", "container_ptr_to_void"),
+    ABI_RESOURCE_OP("Array<Double>", "ReleaseStorage", "pgy_array_drop_Double", "container_ptr_to_void"),
+    ABI_RESOURCE_OP("Array<Bool>", "ReleaseStorage", "pgy_array_drop_Bool", "container_ptr_to_void"),
 };
 
 #define PGY_ABI_RESOURCE_RUNTIME_FN_COUNT \

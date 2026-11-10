@@ -6,7 +6,7 @@ struct Routines {
 }
 
 func Collect(ref routines: Routines, inout names: Array<String>) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(routines.names) {
         ArrayPush(names, routines.names[row]);
         row = row + 1;
@@ -20,7 +20,7 @@ func Clone(text: String) -> String {
 
 func Main() -> Int {
     let routines: Routines = Routines([StringConcat("a", ""), StringConcat("b", "")]);
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     let count: Int = Collect(routines, names);
     Print(ToString(count));
     Print(names[1]);

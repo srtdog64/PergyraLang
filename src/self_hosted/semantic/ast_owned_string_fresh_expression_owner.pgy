@@ -1,0 +1,95 @@
+// Fresh owned-String source recognition.
+
+import "ast_owned_string_domain_exposure_owner.pgy";
+import "ast_owned_string_local_reassignment_owner.pgy";
+import "ast_numeric_string_allocation_call_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
+
+func SemanticAstOwnedStringExpressionSourceStart(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, use_id: Int, lane: Int, root: Int
+) -> Int {
+    let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, use_id);
+    if !surfaces.ok || !IsSome(surface) || lane < 0 || lane > 2 ||
+        ArrayLength(surfaces.function_node_ids) != ArrayLength(surfaces.node_ids) ||
+        surfaces.function_node_ids[UnwrapOption(surface)] != function_id ||
+        ArrayLength(surfaces.expression_graph.has_roots) != ArrayLength(surfaces.expression_graph.roots) {
+        return -1;
+    }
+    let slot: Int = UnwrapOption(surface) * 3 + lane;
+    let start: Option<Int> = SemanticExpressionGraphRootStartAt(surfaces.expression_graph, slot);
+    if !IsSome(start) || root < UnwrapOption(start) || root > surfaces.expression_graph.roots[slot] {
+        return -1;
+    }
+    return UnwrapOption(start);
+}
+func SemanticAstOwnedStringCallSourceReady(ref call: SemanticCallSpineView, start: Int, root: Int) -> Bool {
+    if !call.ok || start < 0 || call.call_node < start || call.call_node > root ||
+        call.callee_node < start || call.callee_node >= call.call_node { return false; }
+    var actual: Int = 0;
+    while actual < ArrayLength(call.argument_nodes) {
+        if call.argument_nodes[actual] < start || call.argument_nodes[actual] >= root { return false; }
+        actual = actual + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringFreshConcatCallReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref call: SemanticCallSpineView,
+    start: Int, use_id: Int, lane: Int, root: Int
+) -> Bool {
+    if !SemanticAstOwnedStringCallSourceReady(call, start, root) ||
+        ArrayLength(call.argument_nodes) != 2 { return false; }
+    let identity: Option<String> =
+        SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+            surfaces, call.call_node, start, use_id, lane);
+    // The sealed Concat primitive copies into a fresh heap-or-null result;
+    // this says nothing about exclusivity of a local alias or user result.
+    return IsSome(identity) &&
+        (UnwrapOption(identity) == "CONCAT" ||
+         UnwrapOption(identity) == "STRING_CONCAT");
+}
+func SemanticAstOwnedStringFreshJoinCallReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref call: SemanticCallSpineView, start: Int, root: Int
+) -> Bool {
+    // Both runtime routes copy even an empty join into fresh heap-or-null.
+    // The sealed direct target excludes declared/foreign call identities.
+    return SemanticAstOwnedStringCallSourceReady(call, start, root) &&
+        ArrayLength(call.argument_nodes) == 2 &&
+        SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringJoin");
+}
+
+func SemanticAstOwnedStringFreshCloneCallReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref call: SemanticCallSpineView, start: Int, root: Int
+) -> Bool {
+    // The admitted caller has already typed this value as String.  Clone's
+    // String specialization copies the bytes and therefore owns an
+    // independent heap-or-null result.
+    return SemanticAstOwnedStringCallSourceReady(call, start, root) &&
+        ArrayLength(call.argument_nodes) == 1 &&
+        SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "Clone");
+}
+
+func SemanticAstOwnedStringFreshTransformCallReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref call: SemanticCallSpineView,
+    start: Int, use_id: Int, lane: Int, root: Int
+) -> Bool {
+    if !SemanticAstOwnedStringCallSourceReady(call, start, root) {
+        return false;
+    }
+    let identity: Option<String> =
+        SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+            surfaces, call.call_node, start, use_id, lane);
+    if !IsSome(identity) { return false; }
+    let name: String = UnwrapOption(identity);
+    let arity: Int = ArrayLength(call.argument_nodes);
+    return (name == "STRING_TRIM" && arity == 1) ||
+        ((name == "SUBSTRING" || name == "CHAR_AT_N") && arity == 3) ||
+        (name == "SUBSTRING_WITH_LEN" && arity == 4);
+}
+

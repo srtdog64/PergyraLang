@@ -36,8 +36,8 @@ func DirectMirScalarCfgArrayIntCollectionFactReady(
 ) -> Bool {
     let layout: DirectMirArrayStorageLayoutContract =
         DirectMirArrayStorageLayoutContractFact();
-    let elements_ready: Bool = true;
-    let element: Int = 0;
+    var elements_ready: Bool = true;
+    var element: Int = 0;
     while element < ArrayLength(fact.elements) {
         if !DirectMirScalarCfgArrayIntElementValueReady(
                 fact.elements[element]

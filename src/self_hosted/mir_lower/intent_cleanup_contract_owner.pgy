@@ -31,11 +31,11 @@ func MirIntentRoutineBlockTopologyFromIndex(
     let start: Int = routines.routine_block_starts[routine_row];
     let count: Int = routines.routine_block_counts[routine_row];
     if count != ArrayLength(index.block_instruction_counts) { return invalid; }
-    let entry: Int = -1; let cleanup: Int = -1; let rollback: Int = -1; let invalidation: Int = -1;
-    let body_count: Int = 0;
-    let body: Array<Int> = []; let execution: Array<Int> = []; let mirrors: Array<Int> = [];
-    let visited: Array<Bool> = [];
-    let row: Int = 0;
+    var entry: Int = -1; var cleanup: Int = -1; var rollback: Int = -1; var invalidation: Int = -1;
+    var body_count: Int = 0;
+    var body: Array<Int> = []; var execution: Array<Int> = []; var mirrors: Array<Int> = [];
+    var visited: Array<Bool> = [];
+    var row: Int = 0;
     while row < count {
         ArrayPush(visited, false);
         let role: String = routines.block_intent_roles[start + row];
@@ -107,10 +107,10 @@ func MirIntentRollbackContractError(
 ) -> String {
     let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
     if !topology.valid { return "MIR intent rollback block topology is invalid"; }
-    let rollback_count: Int = 0;
-    let abort_count: Int = 0;
-    let edge_count: Int = 0;
-    let instruction_row: Int = 0;
+    var rollback_count: Int = 0;
+    var abort_count: Int = 0;
+    var edge_count: Int = 0;
+    var instruction_row: Int = 0;
     while instruction_row < index.block_instruction_counts[topology.rollback] {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(
@@ -155,12 +155,12 @@ func MirIntentRollbackContractErrorAtBlockId(
         routines, routine_row, block_id
     );
     if block_row < 0 { return "MIR intent rollback block is missing"; }
-    let rollback_count: Int = 0;
-    let abort_count: Int = 0;
-    let edge_count: Int = 0;
-    let compensation_count: Int = 0;
-    let matched_compensations: Array<Bool> = [];
-    let compensation_row: Int = 0;
+    var rollback_count: Int = 0;
+    var abort_count: Int = 0;
+    var edge_count: Int = 0;
+    var compensation_count: Int = 0;
+    var matched_compensations: Array<Bool> = [];
+    var compensation_row: Int = 0;
     while compensation_row <
             ArrayLength(plan.steps.compensations.transition_ids) {
         let owner_step: Int = MirIntentStepTransitionIndexByHandle(
@@ -175,7 +175,7 @@ func MirIntentRollbackContractErrorAtBlockId(
         }
         compensation_row = compensation_row + 1;
     }
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < routines.block_instruction_counts[block_row] {
         let global_row: Int = routines.block_instruction_starts[block_row] +
             local_row;
@@ -191,7 +191,7 @@ func MirIntentRollbackContractErrorAtBlockId(
             rollback_count = rollback_count + 1;
         } else if scalar.name == "CompensateIntentStep" &&
             scalar.arg0 != "" {
-            let matched_row: Int = 0 - 1;
+            var matched_row: Int = 0 - 1;
             compensation_row = 0;
             while compensation_row <
                     ArrayLength(plan.steps.compensations.transition_ids) {
@@ -229,7 +229,7 @@ func MirIntentRollbackContractErrorAtBlockId(
         }
         local_row = local_row + 1;
     }
-    let expected_compensation_count: Int = 0;
+    var expected_compensation_count: Int = 0;
     compensation_row = 0;
     while compensation_row < ArrayLength(matched_compensations) {
         let owner_step: Int = MirIntentStepTransitionIndexByHandle(
@@ -259,9 +259,9 @@ func MirIntentInvalidationContractError(
 ) -> String {
     let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
     if !topology.valid { return "MIR intent invalidation block topology is invalid"; }
-    let edge_count: Int = 0;
-    let detach_count: Int = 0;
-    let instruction_row: Int = 0;
+    var edge_count: Int = 0;
+    var detach_count: Int = 0;
+    var instruction_row: Int = 0;
     while instruction_row < index.block_instruction_counts[topology.invalidation] {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(
@@ -299,9 +299,9 @@ func MirIntentInvalidationContractErrorAtBlockId(
         routines, routine_row, block_id
     );
     if block_row < 0 { return "MIR intent invalidation block is missing"; }
-    let edge_count: Int = 0;
-    let detach_count: Int = 0;
-    let local_row: Int = 0;
+    var edge_count: Int = 0;
+    var detach_count: Int = 0;
+    var local_row: Int = 0;
     while local_row < routines.block_instruction_counts[block_row] {
         let global_row: Int = routines.block_instruction_starts[block_row] +
             local_row;

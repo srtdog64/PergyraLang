@@ -47,6 +47,9 @@ REFUSALS=(duplicate array_reuse map_reuse)
 ORIGINALS=(
     member_indexed_read_default_positive member_indexed_read_ref_positive member_indexed_read_forwarded_positive
     member_indexed_read_nested_forwarded_positive member_composed_views_positive
+    member_indexed_read_disjoint_carrier_positive
+    member_indexed_read_disjoint_carrier_missing_restore_negative
+    member_indexed_read_unrelated_loop_positive
     member_indexed_read_root_copy_negative member_indexed_read_root_own_negative member_indexed_read_root_inout_negative
     member_indexed_read_deferred_negative member_indexed_read_forwarded_alias_negative member_indexed_read_forwarded_move_negative
     member_indexed_read_nested_alias_negative member_composed_views_alias_negative member_indexed_read_moved_negative
@@ -84,7 +87,8 @@ for backend in c llvm; do
     tr -d '\r' <"$WORK/$backend-scalar-fields.raw" >"$WORK/$backend-scalar-fields.log"
     grep -Fxq 'body_ok=true' "$WORK/$backend-scalar-fields.log" || fail "$backend refused scalar receiver fields"
     for name in member_indexed_read_default_positive member_indexed_read_ref_positive member_indexed_read_forwarded_positive \
-        member_indexed_read_nested_forwarded_positive member_composed_views_positive; do
+        member_indexed_read_nested_forwarded_positive member_composed_views_positive \
+        member_indexed_read_disjoint_carrier_positive member_indexed_read_unrelated_loop_positive; do
         observe "$name"
         grep -Fxq 'body_ok=true' "$WORK/$backend-$name.log" || fail "$backend refused $name"
     done
@@ -97,6 +101,9 @@ for backend in c llvm; do
         grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$name.log" || fail "$name lost ownership diagnosis"
         grep -Fq 'unproved_formal_indexed_read_entry' "$WORK/$backend-$name.log" || fail "$name did not reach indexed-read admission"
     done
+    observe member_indexed_read_disjoint_carrier_missing_restore_negative
+    grep -Fxq 'body_ok=false' "$WORK/$backend-member_indexed_read_disjoint_carrier_missing_restore_negative.log" || \
+        fail "$backend accepted a carrier whose moved field was not restored"
     observe member_indexed_read_moved_negative
     grep -Fxq 'body_diagnostic=move_from_released' "$WORK/$backend-member_indexed_read_moved_negative.log" || fail 'moved field lost transfer diagnosis'
     grep -Fq 'member_use_after_move' "$WORK/$backend-member_indexed_read_moved_negative.log" || fail 'moved field bypassed ordered field owner'
@@ -171,4 +178,4 @@ for manifest in native runner original-inputs capture-inputs publication-inputs 
 done
 sha256sum "$WORK"/*.log "$WORK"/*.expected >"$WORK/observations.sha256"
 date +%s >"$WORK/end.epoch"
-echo "[member-indexed-read] PASS (16 original + ${#CAPTURES[@]} capture + scalar receiver source pairs, ${#MODES[@]} full publication pairs, 3 transfer refusals, 2 selected-fact guards and source-type/provenance guards/backend; component scope, not installed-driver proof); evidence=$REL"
+echo "[member-indexed-read] PASS (19 original + ${#CAPTURES[@]} capture + scalar receiver source pairs, ${#MODES[@]} full publication pairs, 3 transfer refusals, 2 selected-fact guards and source-type/provenance guards/backend; component scope, not installed-driver proof); evidence=$REL"

@@ -4,7 +4,7 @@ import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy"
 import "direct_mir_scalar_program_array_int_index_readiness_owner.pgy";
 func DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
-    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
+    var rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
     if facts.node_lefts[node] >= 0 {
         ArrayPush(rows, facts.node_lefts[node]); }
@@ -31,66 +31,16 @@ func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
             facts.node_rights[node] != -1) { return false; }
     if !nary && (ArrayLength(operands) > 2 ||
             facts.node_lefts[node] < 0) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(operands) {
         let operand: Int = operands[row];
         if operand < 0 || operand >= node ||
             facts.node_types[operand] != CompilerAbiLayoutIntTypeName() {
             return false;
         }
-        if facts.node_kinds[operand] == DirectMirScalarProgramExprIntLiteral() {
-            if !DirectMirScalarCfgCanonicalInt(facts.node_literals[operand]) ||
-                facts.node_lefts[operand] != -1 ||
-                facts.node_rights[operand] != -1 ||
-                facts.node_local_rows[operand] != -1 ||
-                facts.node_parameter_ordinals[operand] != -1 ||
-                facts.node_member_ordinals[operand] != -1 ||
-                facts.node_callable_rows[operand] != -1 { return false; }
-        } else if facts.node_kinds[operand] ==
-                DirectMirScalarProgramExprDirectCall() {
-            if !DirectMirScalarProgramDirectCallNodeReady(facts, operand) ||
-                ArrayLength(DirectMirScalarProgramDirectCallArgumentRows(
-                    facts, operand)) != 0 { return false; }
-        } else if facts.node_kinds[operand] ==
-                DirectMirScalarProgramExprParameter() {
-            if facts.node_parameter_ordinals[operand] < 0 ||
-                facts.node_lefts[operand] != -1 ||
-                facts.node_rights[operand] != -1 ||
-                facts.node_local_rows[operand] != -1 ||
-                facts.node_literals[operand] != "" ||
-                facts.node_callable_rows[operand] != -1 { return false; }
-        } else if facts.node_kinds[operand] ==
-                DirectMirScalarProgramExprLocal() {
-            if facts.node_local_rows[operand] < 0 ||
-                facts.node_parameter_ordinals[operand] != -1 ||
-                facts.node_lefts[operand] != -1 ||
-                facts.node_rights[operand] != -1 ||
-                facts.node_member_ordinals[operand] != -1 ||
-                facts.node_literals[operand] != "" ||
-                facts.node_callable_rows[operand] != -1 { return false; }
-        } else if facts.node_kinds[operand] == DirectMirScalarProgramExprLogicalRecordMember() {
-            if !DirectMirScalarProgramLogicalRecordExpressionNodeReady(
-                    facts, operand) { return false; }
-        } else if facts.node_kinds[operand] == DirectMirScalarProgramExprArrayIntIndex() {
-            if !DirectMirScalarProgramArrayIntIndexNodeReady(facts, operand) { return false; }
-        } else if facts.node_kinds[operand] ==
-                DirectMirScalarProgramExprSubtractInt() ||
-                facts.node_kinds[operand] == DirectMirScalarProgramExprNegateInt() {
-            let left: Int = facts.node_lefts[operand];
-            let right: Int = facts.node_rights[operand];
-            let unary: Bool = facts.node_kinds[operand] == DirectMirScalarProgramExprNegateInt();
-            if left < 0 || left >= operand ||
-                (unary && right != -1) || (!unary && (right < 0 || right >= operand)) ||
-                facts.node_kinds[left] != DirectMirScalarProgramExprIntLiteral() ||
-                (!unary && facts.node_kinds[right] != DirectMirScalarProgramExprIntLiteral()) ||
-                facts.node_types[left] != CompilerAbiLayoutIntTypeName() ||
-                (!unary && facts.node_types[right] != CompilerAbiLayoutIntTypeName()) ||
-                facts.node_local_rows[operand] != -1 ||
-                facts.node_parameter_ordinals[operand] != -1 ||
-                facts.node_member_ordinals[operand] != -1 ||
-                facts.node_literals[operand] != "" ||
-                facts.node_callable_rows[operand] != -1 { return false; }
-        } else { return false; }
+        // Every operand node is independently admitted by the expression
+        // owner. This container owns order and Int element identity, not a
+        // second grammar for the expression producing each element.
         row = row + 1;
     }
     return true;
@@ -98,7 +48,7 @@ func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
 func DirectMirScalarProgramHasArrayIntPopulatedLiteral(
     ref facts: DirectMirScalarProgramExpressionSet
 ) -> Bool {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(facts.node_kinds) {
         if facts.node_kinds[node] ==
                 DirectMirScalarProgramExprArrayIntPopulatedLiteral() {

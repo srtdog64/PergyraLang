@@ -1,16 +1,17 @@
 // LLVM cleanup selected by sealed Array<String> element ownership.
 
 import "direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy";
+import "owned_local_lifetime_owner.pgy";
 
 func DirectMirScalarProgramLlvmStringArrayCleanup(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+    ref plan: DirectMirScalarCfgGraphPlan, ref lifetime: DirectMirOwnedLocalLifetimeFact, routine: Int
 ) -> String {
-    let output: String = "";
+    var output: String = "";
     let start: Int = plan.routines.local_starts[routine];
     let end: Int = start + plan.routines.local_counts[routine];
-    let row: Int = start;
+    var row: Int = start;
     while row < end {
-        if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() &&
+        if !lifetime.transferred[row] && plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() &&
             DirectMirScalarProgramArrayStringLocalCleanupRequired(
                 plan, routine, row) {
             output = Concat(output, Concat("  call void @", Concat(

@@ -8,6 +8,8 @@ func Reuse(artifact: AstTreeArtifact, ref contexts: SemanticAstCollectionFormalE
     let escapes: HashMap<String, Int> = MapNew();
     let nested_blocked: HashMap<String, Int> = MapNew();
     let readonly_origins: Array<Int> = [];
+    let direct_escape_roots: Array<Int> = [];
+    let direct_escape_sites: Array<Int> = [];
     let read_sources: Array<Int> = [];
     let read_targets: Array<Int> = [];
     let escape_sources: Array<Int> = [];
@@ -19,7 +21,8 @@ func Reuse(artifact: AstTreeArtifact, ref contexts: SemanticAstCollectionFormalE
     let lend_targets: Array<Int> = [];
     let result: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUsePublish(
         artifact, contexts, true, 1, 2, SemanticAstCollectionMemberCaptureWitness(true, -1, -1),
-        restored, sites, readable, blocked, SemanticAstCollectionMemberReadHazardSitesFrom(artifact), escapes, nested_blocked, readonly_origins,
+        restored, sites, readable, blocked, SemanticAstCollectionMemberReadHazardSitesFrom(artifact), escapes,
+        direct_escape_roots, direct_escape_sites, nested_blocked, readonly_origins,
         read_sources, read_targets, escape_sources, escape_targets, escape_sites,
         nested_nodes, nested_roots, lend_sources, lend_targets);
     Log(ToString(ArrayLength(restored)));

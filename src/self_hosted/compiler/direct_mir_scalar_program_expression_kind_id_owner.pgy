@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_array_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_array_bool_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_comparison_expression_kind_owner.pgy";
@@ -49,15 +50,12 @@ func DirectMirScalarProgramExprSetStringHas() -> Int { return 103; }
 func DirectMirScalarProgramExprArrayStringPushOwned() -> Int { return 104; }
 func DirectMirScalarProgramExprCompilerArtifactWrite() -> Int { return 105; }
 func DirectMirScalarProgramExprToStringBool() -> Int { return 113; }
-func DirectMirScalarProgramExprPayloadEnumConstructor() -> Int { return 114; }
-func DirectMirScalarProgramExprPayloadEnumMatch() -> Int { return 115; }
 func DirectMirScalarProgramExprCompilerArtifactBegin() -> Int { return 116; }
 func DirectMirScalarProgramExprCompilerArtifactCommit() -> Int { return 117; }
 func DirectMirScalarProgramExprCompilerArtifactAbort() -> Int { return 118; }
 func DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 119; }
 func DirectMirScalarProgramExprDeclaredCallable() -> Int { return 120; }
 func DirectMirScalarProgramExprCallableParameterCall() -> Int { return 121; }
-func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }
 func DirectMirScalarProgramExprMapNew() -> Int { return 124; }
 func DirectMirScalarProgramExprMapSet() -> Int { return 125; }
 func DirectMirScalarProgramExprMapGet() -> Int { return 126; }
@@ -73,3 +71,19 @@ func DirectMirScalarProgramExprArrayIntSort() -> Int { return 135; }
 func DirectMirScalarProgramExprArrayIntReverse() -> Int { return 136; }
 func DirectMirScalarProgramExprIdentityCellConstructor() -> Int { return 137; }
 func DirectMirScalarProgramExprIdentityCellMember() -> Int { return 138; }
+
+// One classification owns every normalized expression whose successful result
+// has independent String storage.  Lifetime, collection-transfer and backend
+// consumers must not rebuild this list independently.  String literals and
+// RuntimeValueCall are proved by their dedicated owners rather than by kind.
+func DirectMirScalarProgramFreshStringExpressionKind(kind: Int) -> Bool {
+    return DirectMirScalarProgramConcatBackedFreshStringExpressionKind(kind) ||
+        kind == DirectMirScalarProgramExprToStringSignedInteger() ||
+        kind == DirectMirScalarProgramExprToStringBool() ||
+        kind == DirectMirScalarProgramExprSubstring() ||
+        kind == DirectMirScalarProgramExprSubstringWithLen() ||
+        kind == DirectMirScalarProgramExprStringTrim() ||
+        kind == DirectMirScalarProgramExprCharAtN() ||
+        kind == DirectMirScalarProgramExprStringJoin() ||
+        kind == DirectMirScalarProgramExprReadFile();
+}

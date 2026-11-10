@@ -2,7 +2,7 @@ struct State { rows: Array<String>; }
 
 func Consume(own rows: Array<String>) -> Int
 {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 64 {
         ArrayPush(rows, "next");
         i = i + 1;

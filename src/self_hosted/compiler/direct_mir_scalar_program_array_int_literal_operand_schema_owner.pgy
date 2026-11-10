@@ -1,0 +1,33 @@
+// Array<Int> literal operand admission schema.
+
+import "direct_mir_scalar_program_call_expression_admission_owner.pgy";
+import "direct_mir_scalar_program_call_callee_syntax_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+struct DirectMirScalarProgramArrayIntLiteralOperandAdmission {
+    let valid: Bool;
+    let kind: Int;
+    let literal: String;
+    let parameter_ordinal: Int;
+    let local_row: Int;
+    let callable_ordinal: Int;
+    let operand_source: Int;
+    let spine_node: Int;
+    let next_source: Int;
+    let literal_arity: Int;
+    let consumed_uses: Int;
+}
+
+func DirectMirScalarProgramArrayIntLiteralOperandInvalid(
+) -> DirectMirScalarProgramArrayIntLiteralOperandAdmission {
+    return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
+        false, 0, "", -1, -1, -1, -1, -1, -1, 0, 0);
+}
+

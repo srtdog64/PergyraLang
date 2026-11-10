@@ -1,0 +1,19 @@
+// The return landing stays fail-closed when Clone cannot copy the whole
+// nested owned value independently.
+struct OwnedCell {
+    values: Array<Int>;
+}
+
+func Select(flag: Bool, fallback: Array<OwnedCell>) -> Array<OwnedCell> {
+    if flag {
+        return [OwnedCell([7])];
+    }
+    return fallback;
+}
+
+func Main() -> Int {
+    let fallback: Array<OwnedCell> = [OwnedCell([3])];
+    let selected: Array<OwnedCell> = Select(false, fallback);
+    Print(ToString(selected[0].values[0]));
+    return 0;
+}

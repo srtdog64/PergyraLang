@@ -5,7 +5,7 @@ func InspectOwnedStringLocalReassignment(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
     inout bundle: SemanticAstBodyTypeBundle, mode: String
 ) -> Bool {
-    let row: Int = 0; let selected: Int = -1;
+    var row: Int = 0; var selected: Int = -1;
     while row < ArrayLength(analysis.assignments.node_ids) {
         if analysis.assignments.target_texts[row] == "result" {
             if selected >= 0 { return false; }
@@ -52,7 +52,7 @@ func InspectOwnedStringLocalReassignment(
     if mode == "owned-string-reassignment-missing-leaf" {
         analysis.expression_surfaces.expression_graph.arena.node_texts[node] = "";
     } else if mode == "owned-string-reassignment-foreign-function" {
-        let foreign: Int = -1;
+        var foreign: Int = -1;
         row = 0;
         while row < ArrayLength(analysis.signatures.function_node_ids) {
             if analysis.signatures.names[row] == "Main" {

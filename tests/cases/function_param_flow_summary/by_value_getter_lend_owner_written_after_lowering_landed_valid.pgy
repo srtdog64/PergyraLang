@@ -7,13 +7,13 @@ struct Arena {
 }
 
 func Doubled(values: Array<Int>) -> Array<Int> {
-    let out: Array<Int> = [];
+    var out: Array<Int> = [];
     ArrayPush(out, values[0] * 2);
     return out;
 }
 
 func Count(values: Array<Int>) -> Int {
-    let total: Int = 0;
+    var total: Int = 0;
     for value in Doubled(values) {
         total = total + value;
     }

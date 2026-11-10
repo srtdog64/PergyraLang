@@ -1,0 +1,13 @@
+func Fresh(text: String) -> String {
+    return Concat(text, "!");
+}
+
+func Main() -> Void {
+    var i: Int = 0;
+    while i < 2 {
+        let borrowed: String = "a";
+        var rows: Array<String> = [borrowed, Fresh("b")];
+        ArrayPush(rows, Fresh("c"));
+        i = i + 1;
+    }
+}

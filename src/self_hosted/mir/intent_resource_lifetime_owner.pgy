@@ -15,8 +15,8 @@ func SelfMirIntentEffectSlotForType(
         rows.nominal_kinds[zone_declaration_index] != "zone" {
         return "";
     }
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < rows.field_counts[zone_declaration_index] {
         let row: Int = rows.field_starts[zone_declaration_index] + i;
         if rows.field_kinds[row] == "effect_slot" &&
@@ -61,7 +61,7 @@ func SelfMirIntentCleanupInvalidationsAppend(
         );
     }
 
-    let participant_i: Int = 0;
+    var participant_i: Int = 0;
     while participant_i < participant_count {
         let row: Int = participant_start + participant_i;
         if !intents.participants.is_values[row] {
@@ -90,7 +90,7 @@ func SelfMirIntentCleanupInvalidationsAppend(
         participant_i = participant_i + 1;
     }
 
-    let step_i: Int = 0;
+    var step_i: Int = 0;
     while step_i < step_count {
         let row: Int = step_start + step_i;
         if intents.steps.causes_names[row] != "" {

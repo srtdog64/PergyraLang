@@ -38,7 +38,7 @@ func DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
     if !DirectMirScalarProgramPayloadFreeEnumFactReady(fact) { return false; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[node];
         if kind == DirectMirScalarProgramExprPayloadFreeEnumVariant() {

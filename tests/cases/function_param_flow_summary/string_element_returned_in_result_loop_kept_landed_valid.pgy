@@ -8,7 +8,7 @@ struct Target {
 }
 
 func Rows() -> Array<String> {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, ToString(1));
     ArrayPush(out, ToString(2));
     return out;
@@ -20,8 +20,8 @@ func TargetOf(path: String) -> Target {
 
 func Collect() -> Array<Target> {
     let rows: Array<String> = Rows();
-    let targets: Array<Target> = [];
-    let i: Int = 0;
+    var targets: Array<Target> = [];
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let path: String = rows[i];
         ArrayPush(targets, TargetOf(path));

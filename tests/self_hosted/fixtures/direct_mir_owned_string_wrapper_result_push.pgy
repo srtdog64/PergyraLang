@@ -15,7 +15,7 @@ func MakeOwnedString() -> String
 
 func Main() -> Void
 {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, MakeOwnedStringWrapper());
     ArrayDropOwnedStrings(values);
     Log("owned-string-wrapper-result-ready");

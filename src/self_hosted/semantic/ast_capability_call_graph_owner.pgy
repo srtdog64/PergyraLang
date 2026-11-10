@@ -1,3 +1,4 @@
+import "ast_constructor_target_identity_owner.pgy";
 // Ephemeral capability dependency projection of one admitted expression graph.
 // Declaration/formal identities and source parameter positions are borrowed,
 // never reconstructed from call spelling or an AST ancestry walk.
@@ -40,8 +41,8 @@ func SemanticAstDeclaredEffectMaskAt(
     ref contracts: SemanticAstActionContractFacts, callable_index: Int
 ) -> Option<Int> {
     if callable_index < 0 || callable_index >= ArrayLength(contracts.callable_node_ids) { return None; }
-    let mask: Int = 0;
-    let offset: Int = 0;
+    var mask: Int = 0;
+    var offset: Int = 0;
     while offset < contracts.effect_counts[callable_index] {
         let name: String = contracts.effect_names[contracts.effect_starts[callable_index] + offset];
         let effect: Int = SemanticEffectMaskForWord(name);
@@ -58,8 +59,8 @@ func SemanticAstCapabilityDeclaredMaskAt(
     if callable_index < 0 || callable_index >= ArrayLength(contracts.callable_node_ids) {
         return None;
     }
-    let mask: Int = 0;
-    let offset: Int = 0;
+    var mask: Int = 0;
+    var offset: Int = 0;
     while offset < contracts.cap_counts[callable_index] {
         let name: String = contracts.cap_names[contracts.cap_starts[callable_index] + offset];
         let index: Int = CallableContractVocabularyFindIndex(
@@ -89,25 +90,25 @@ func SemanticAstCapabilityCallGraphFromSignatures(
 ) -> SemanticAstCapabilityCallGraph {
     let empty: Array<Int> = [];
     let bools: Array<Bool> = [];
-    let graph: SemanticAstCapabilityCallGraph = SemanticAstCapabilityCallGraph(
+    var graph: SemanticAstCapabilityCallGraph = SemanticAstCapabilityCallGraph(
         true, empty, empty, empty, empty, empty, empty, empty, empty, empty,
         empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, bools);
-    let ids: Array<Int> = [];
-    let declared: Array<Int> = [];
-    let direct: Array<Int> = [];
-    let declarations: Array<Int> = [];
-    let parameters: Array<Int> = [];
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let parameter_ids: Array<Int> = [];
-    let ordinals: Array<Int> = [];
-    let owners: Array<Int> = [];
-    let receivers: Array<Int> = [];
-    let heads: Array<Int> = [];
-    let declared_effects: Array<Int> = [];
-    let direct_effects: Array<Int> = [];
-    let unknown_effects: Array<Bool> = [];
-    let index: Int = 0;
+    var ids: Array<Int> = [];
+    var declared: Array<Int> = [];
+    var direct: Array<Int> = [];
+    var declarations: Array<Int> = [];
+    var parameters: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var parameter_ids: Array<Int> = [];
+    var ordinals: Array<Int> = [];
+    var owners: Array<Int> = [];
+    var receivers: Array<Int> = [];
+    var heads: Array<Int> = [];
+    var declared_effects: Array<Int> = [];
+    var direct_effects: Array<Int> = [];
+    var unknown_effects: Array<Bool> = [];
+    var index: Int = 0;
     while index <= artifact.count {
         ArrayPush(declarations, -1);
         ArrayPush(parameters, -1);
@@ -121,10 +122,10 @@ func SemanticAstCapabilityCallGraphFromSignatures(
     // The final row owns expressions outside a function or Intent. It is an
     // internal program root, not a manufactured declaration SyntaxNodeId.
     while index <= count && graph.ok {
-        let id: Int = -1;
-        let mask: Int = 0;
-        let effects: Int = 0;
-        let receiver: Int = 0;
+        var id: Int = -1;
+        var mask: Int = 0;
+        var effects: Int = 0;
+        var receiver: Int = 0;
         let start: Int = ArrayLength(parameter_ids);
         if index < function_count {
             id = analysis.signatures.function_node_ids[index];
@@ -137,7 +138,7 @@ func SemanticAstCapabilityCallGraphFromSignatures(
                 mask = UnwrapOption(declared_mask);
                 effects = UnwrapOption(declared_effect_mask);
                 receiver = UnwrapOption(offset);
-                let ordinal: Int = 0;
+                var ordinal: Int = 0;
                 while ordinal < UnwrapOption(param_count) && graph.ok {
                     let param_id: Option<Int> = SemanticAstFunctionParamNodeAt(analysis.signatures, index, ordinal);
                     let param_type: Option<String> = SemanticAstFunctionParamTypeAt(analysis.signatures, index, ordinal);
@@ -207,7 +208,7 @@ func SemanticAstCapabilityRoleOperatorTargetNode(
     let identity: SemanticRoleOperatorTargetIdentity =
         SemanticRoleOperatorTargetIdentityFromName(name);
     if !identity.ok { return 0; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < SemanticAstFunctionSignatureCount(signatures) {
         let owner: Option<String> =
             SemanticAstFunctionOwnerNameAt(signatures, index);
@@ -226,16 +227,11 @@ func SemanticAstCapabilityRoleOperatorTargetNode(
 func SemanticAstCapabilityObserveCallRange(
     ref graph: SemanticExpressionGraphFacts, ref roots: SemanticCallSpineRoots,
     signatures: SemanticAstFunctionSignatureFacts,
+    ref constructor_targets: SemanticConstructorTargetIdentities,
     start_node: Int, end_node: Int, callable_index: Int,
     inout state: SemanticAstCapabilityCallGraph
 ) -> Void {
-    let next: Array<Int> = state.call_next;
-    let targets: Array<Int> = state.call_target_ids;
-    let starts: Array<Int> = state.call_argument_starts;
-    let counts: Array<Int> = state.call_argument_counts;
-    let offsets: Array<Int> = state.call_source_offsets;
-    let bindings: Array<Int> = state.argument_binding_ids;
-    let node: Int = start_node;
+    var node: Int = start_node;
     while node <= end_node && state.ok {
         let role: Bool = graph.arena.call_target_kinds[node] == SemanticCallTargetRoleOperator();
         if graph.arena.topology.node_kinds[node] != AstExpressionNodeCall() && !role {
@@ -243,7 +239,7 @@ func SemanticAstCapabilityObserveCallRange(
             continue;
         }
         let name: String = graph.arena.call_target_names[node];
-        let target_id: Int = graph.arena.identities.call_target_syntax_ids[node];
+        var target_id: Int = graph.arena.identities.call_target_syntax_ids[node];
         if role {
             target_id = SemanticAstCapabilityRoleOperatorTargetNode(
                 signatures, name);
@@ -252,6 +248,18 @@ func SemanticAstCapabilityObserveCallRange(
             state.ok = false;
             continue;
         }
+        let constructor_id: Int = SemanticConstructorTargetSyntaxId(constructor_targets, name);
+        if constructor_id < 0 { state.ok = false; continue; }
+        if constructor_id > 0 && !role && state.declaration_rows[target_id] < 0 &&
+                state.parameter_rows[target_id] < 0 {
+            if target_id != constructor_id { state.ok = false; continue; }
+            // Construction is not a callable capability edge. Preserve the
+            // previous conservative effect classification for its source name.
+            let effects: Int = SemanticBuiltinFixedEffectMask(name);
+            if effects < 0 { state.unknown_effects[callable_index] = true; }
+            else { state.direct_effects[callable_index] = SemanticEffectMaskJoin(state.direct_effects[callable_index], effects); }
+            node = node + 1; continue;
+        }
         if target_id > 0 {
             let declaration: Int = state.declaration_rows[target_id];
             let parameter: Int = state.parameter_rows[target_id];
@@ -259,8 +267,8 @@ func SemanticAstCapabilityObserveCallRange(
                 state.ok = false;
                 continue;
             }
-            let start: Int = ArrayLength(bindings);
-            let source_offset: Int = 0;
+            let start: Int = ArrayLength(state.argument_binding_ids);
+            var source_offset: Int = 0;
             if declaration >= 0 && graph.arena.call_target_kinds[node] == SemanticCallTargetMember() {
                 source_offset = state.receiver_offsets[declaration];
             }
@@ -273,13 +281,13 @@ func SemanticAstCapabilityObserveCallRange(
                 }
                 let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[node]);
                 if !call.ok || call.call_node != node { state.ok = false; continue; }
-                let argument: Int = 0;
+                var argument: Int = 0;
                 while argument < ArrayLength(call.argument_nodes) && state.ok {
                     let arg_node: Int = call.argument_nodes[argument];
                     let id: Int = graph.arena.identities.binding_syntax_ids[arg_node];
                     let kind: Int = graph.arena.identities.binding_kinds[arg_node];
                     let ordinal: Int = graph.arena.identities.binding_ordinals[arg_node];
-                    let carried: Int = 0;
+                    var carried: Int = 0;
                     if id > 0 && id < ArrayLength(state.declaration_rows) {
                         if kind == SemanticExpressionBindingDeclaredCallable() &&
                             state.declaration_rows[id] >= 0 && ordinal == -1 {
@@ -294,16 +302,22 @@ func SemanticAstCapabilityObserveCallRange(
                     // Project only callable bindings here. Every callable-typed
                     // actual must resolve at substitution, including unused
                     // parameters; a zero row can never supply a pure callback.
-                    ArrayPush(bindings, carried);
+                    ArrayPush(state.argument_binding_ids, carried);
                     argument = argument + 1;
                 }
             }
-            ArrayPush(next, state.call_heads[callable_index]);
-            ArrayPush(targets, target_id);
-            ArrayPush(starts, start);
-            ArrayPush(counts, ArrayLength(bindings) - start);
-            ArrayPush(offsets, source_offset);
-            state.call_heads[callable_index] = ArrayLength(targets) - 1;
+            // These rows are one state-owned append-only table. Extracting
+            // each field into a local carrier cloned every accumulated row for
+            // every source root, turning this linear scan into quadratic
+            // allocation. Grow the owning state in place instead.
+            ArrayPush(state.call_next, state.call_heads[callable_index]);
+            ArrayPush(state.call_target_ids, target_id);
+            ArrayPush(state.call_argument_starts, start);
+            ArrayPush(state.call_argument_counts,
+                ArrayLength(state.argument_binding_ids) - start);
+            ArrayPush(state.call_source_offsets, source_offset);
+            state.call_heads[callable_index] =
+                ArrayLength(state.call_target_ids) - 1;
         } else {
             if role { state.ok = false; continue; }
             let effects: Int = SemanticBuiltinFixedEffectMask(name);
@@ -313,7 +327,7 @@ func SemanticAstCapabilityObserveCallRange(
             }
             let builtin: SemanticBuiltinCapabilityRow = SemanticBuiltinCapabilityRowForName(name);
             if builtin.valid {
-                let mask: Int = builtin.primary_mask;
+                var mask: Int = builtin.primary_mask;
                 if builtin.policy == SemanticBuiltinCapabilityFileModePolicy() {
                     if !roots.ok || roots.root_nodes[node] > end_node { state.ok = false; continue; }
                     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[node]);
@@ -330,10 +344,4 @@ func SemanticAstCapabilityObserveCallRange(
         }
         node = node + 1;
     }
-    state.call_next = next;
-    state.call_target_ids = targets;
-    state.call_argument_starts = starts;
-    state.call_argument_counts = counts;
-    state.call_source_offsets = offsets;
-    state.argument_binding_ids = bindings;
 }

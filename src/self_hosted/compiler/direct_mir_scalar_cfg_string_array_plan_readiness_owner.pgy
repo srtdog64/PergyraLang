@@ -25,8 +25,8 @@ func DirectMirScalarCfgStringArrayCollectionsReady(
         count != ArrayLength(plan.collections.allocator_offsets) {
         return false;
     }
-    let row: Int = 0;
-    let expected_element: Int = 0;
+    var row: Int = 0;
+    var expected_element: Int = 0;
     while row < count {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
             DirectMirScalarCfgStringArrayCollectionAt(plan, row);
@@ -36,7 +36,7 @@ func DirectMirScalarCfgStringArrayCollectionsReady(
         }
         expected_element = expected_element +
             plan.collections.element_counts[row];
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             let other: DirectMirScalarCfgArrayStringCollectionFact =
                 DirectMirScalarCfgStringArrayCollectionAt(plan, prior);
@@ -78,7 +78,7 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
         !DirectMirScalarCfgStringArrayIndexSetReady(
             plan.accesses.indices, access_count
         ) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
         let collection: DirectMirScalarCfgArrayStringCollectionFact =
             DirectMirScalarCfgStringArrayCollectionAt(plan, row);
@@ -105,7 +105,7 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
                     plan, fact.collection_row
                 )
             ) { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if plan.lengths.global_rows[prior] == fact.global_row ||
                 plan.lengths.blocks[prior] == fact.block { return false; }

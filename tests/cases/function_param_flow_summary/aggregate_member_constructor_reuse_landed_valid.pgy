@@ -1,0 +1,26 @@
+// A nominal constructor takes the detached owned Array.  Because the local
+// is used again, the final move owner lands one independent Clone at the
+// first constructor field instead of exposing a use-after-transfer.
+struct Rows {
+    names: Array<String>;
+}
+
+struct State {
+    rows: Rows;
+}
+
+func MoveThenReuse(state: State) -> State {
+    let rows: Rows = state.rows;
+    var names: Array<String> = rows.names;
+    ArrayPushOwnedString(names, Concat("b", ""));
+    let moved: Rows = Rows(names);
+    ArrayPushOwnedString(names, Concat("c", ""));
+    return State(moved);
+}
+
+func Main() -> Int {
+    let state: State = State(Rows([Concat("a", "")]));
+    let changed: State = MoveThenReuse(state);
+    Print(ToString(ArrayLength(changed.rows.names)));
+    return 0;
+}

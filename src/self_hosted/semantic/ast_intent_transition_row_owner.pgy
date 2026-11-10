@@ -66,24 +66,24 @@ func SemanticAstIntentStepHeaderFromText(
             false, "", "", "", "", "", "", ""
         );
     }
-    let name_end: Int = StringLength(text);
+    var name_end: Int = StringLength(text);
     if where_at >= 0 { name_end = where_at; }
     if using_at >= 0 && using_at < name_end { name_end = using_at; }
     if intent_at >= 0 && intent_at < name_end { name_end = intent_at; }
     if transfer_at >= 0 && transfer_at < name_end { name_end = transfer_at; }
     let topology: String = StringTrim(Substring(text, 0, name_end));
     let after_at: Int = StringIndexOf(topology, " after ");
-    let name: String = topology;
-    let predecessor_name: String = "";
+    var name: String = topology;
+    var predecessor_name: String = "";
     if after_at >= 0 {
         name = Substring(topology, 0, after_at);
         predecessor_name = Substring(
             topology, after_at + 7, StringLength(topology) - after_at - 7
         );
     }
-    let where_zone_name: String = "";
+    var where_zone_name: String = "";
     if where_at >= 0 {
-        let where_end: Int = StringLength(text);
+        var where_end: Int = StringLength(text);
         if using_at > where_at && using_at < where_end {
             where_end = using_at;
         }
@@ -97,10 +97,10 @@ func SemanticAstIntentStepHeaderFromText(
             text, where_at + 7, where_end - where_at - 7
         ));
     }
-    let using_alias: String = "";
+    var using_alias: String = "";
     if using_at >= 0 {
         let using_start: Int = using_at + StringLength(" using ");
-        let using_end: Int = StringLength(text);
+        var using_end: Int = StringLength(text);
         if intent_at > using_at { using_end = intent_at; }
         if transfer_at > using_at && transfer_at < using_end {
             using_end = transfer_at;
@@ -111,16 +111,16 @@ func SemanticAstIntentStepHeaderFromText(
             ));
         }
     }
-    let intent_text: String = "";
+    var intent_text: String = "";
     if intent_at >= 0 {
-        let intent_end: Int = StringLength(text);
+        var intent_end: Int = StringLength(text);
         if transfer_at > intent_at { intent_end = transfer_at; }
         intent_text = StringTrim(Substring(
             text, intent_at + 8, intent_end - intent_at - 8
         ));
     }
-    let transfer_from: String = "";
-    let transfer_to: String = "";
+    var transfer_from: String = "";
+    var transfer_to: String = "";
     if transfer_at >= 0 {
         let transfer: String = StringTrim(Substring(
             text, transfer_at + 10, StringLength(text) - transfer_at - 10
@@ -139,7 +139,7 @@ func SemanticAstIntentStepHeaderFromText(
             transfer, arrow + 4, StringLength(transfer) - arrow - 4
         ));
     }
-    let canonical: String = name;
+    var canonical: String = name;
     if predecessor_name != "" {
         canonical = Concat(canonical, Concat(" after ", predecessor_name));
     }
@@ -191,9 +191,9 @@ func SemanticAstIntentExactVariantSeal(
     enum_name: String,
     variant_name: String
 ) -> SemanticAstIntentVariantSeal {
-    let enum_node_id: Int = -1;
-    let enum_matches: Int = 0;
-    let e: Int = 0;
+    var enum_node_id: Int = -1;
+    var enum_matches: Int = 0;
+    var e: Int = 0;
     while e < ArrayLength(enums.enum_names) {
         if enums.enum_names[e] == enum_name {
             enum_matches = enum_matches + 1;
@@ -201,11 +201,11 @@ func SemanticAstIntentExactVariantSeal(
         }
         e = e + 1;
     }
-    let variant_index: Int = -1;
-    let variant_matches: Int = 0;
-    let local_index: Int = 0;
-    let row: Int = 0;
-    let payload_type_name: String = "";
+    var variant_index: Int = -1;
+    var variant_matches: Int = 0;
+    var local_index: Int = 0;
+    var row: Int = 0;
+    var payload_type_name: String = "";
     while row < ArrayLength(enums.variant_names) {
         if enums.variant_enum_names[row] == enum_name {
             if enums.variant_names[row] == variant_name {

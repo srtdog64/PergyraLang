@@ -8,8 +8,8 @@ func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     projection_opt: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
                 plan.routines, routine, parameter) {

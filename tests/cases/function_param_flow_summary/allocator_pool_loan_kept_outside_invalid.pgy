@@ -10,7 +10,7 @@ func Wrap(value: String, allocator: Allocator) -> String {
 }
 
 func Main() -> Int {
-    let kept: String = "";
+    var kept: String = "";
     let pool: Allocator = AllocatorPool(64);
     kept = Wrap(Concat("a", "b"), pool);
     AllocatorDestroy(pool);

@@ -6,7 +6,7 @@ import "direct_mir_scalar_cfg_program_direct_call_diagnostic_owner.pgy";
 func DirectMirScalarCfgProgramDefinitionReadinessFailed(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Void {
-    let operation: Int = 0;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         if plan.operation_kinds[operation] ==
                 DirectMirScalarCfgOpExpressionDefinition() {
@@ -16,13 +16,13 @@ func DirectMirScalarCfgProgramDefinitionReadinessFailed(
             let routine: Int =
                 DirectMirScalarCfgRoutinePartitionOperationOwner(
                     plan.routines, operation);
-            let expected: String = "";
+            var expected: String = "";
             if result >= 0 && result < ArrayLength(plan.value_types) {
                 expected = plan.value_types[result];
             }
             if expected == "" || !DirectMirScalarCfgProgramExpressionRowReady(
                     plan, expression, expected, routine) {
-                let detail: String =
+                var detail: String =
                     "direct MIR scalar definition readiness is invalid: operation=";
                 detail = Concat(detail, ToString(operation));
                 detail = Concat(detail, Concat(" routine=", ToString(routine)));
@@ -42,7 +42,7 @@ func DirectMirScalarCfgProgramDefinitionReadinessFailed(
                         ToString(plan.program.expressions.node_kinds[root])));
                     detail = Concat(detail, Concat(" root_type=",
                         plan.program.expressions.node_types[root]));
-                    let node: Int = start;
+                    var node: Int = start;
                     while node < end {
                         if !DirectMirScalarCfgProgramExpressionIdentityReady(
                                 plan, plan.program.expressions, node, routine,

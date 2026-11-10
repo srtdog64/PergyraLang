@@ -9,7 +9,7 @@ func DirectMirScalarCfgLlvmLoadedOperand(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     side: String, llvm_type: String, value: Int, local_binding: Int
 ) -> String {
-    let output: String = Concat("  %pgy.op.", ToString(operation));
+    var output: String = Concat("  %pgy.op.", ToString(operation));
     output = Concat(output, Concat(".", side));
     output = Concat(output, Concat(" = load ", llvm_type));
     output = Concat(output, ", ptr ");
@@ -25,7 +25,7 @@ func DirectMirScalarCfgEmitLlvmOperation(
     target: CompilerTargetProjectionFact
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
-    let output: String = "";
+    var output: String = "";
     let legalized_collection: String = DirectMirScalarCfgCollectionPlanLlvmOperation(plan, operation, formatted_print, concat);
     if legalized_collection != "" { return legalized_collection; }
     if kind == DirectMirScalarCfgOpConstInt() {
@@ -53,11 +53,11 @@ func DirectMirScalarCfgEmitLlvmOperation(
             plan.operation_left_values[operation],
             plan.operation_left_locals[operation]
         ));
-        let result_operand: String = Concat(
+        var result_operand: String = Concat(
             "%pgy.op.", Concat(ToString(operation), ".left")
         );
         if kind == DirectMirScalarCfgOpAddInt() {
-            let right_operand: String =
+            var right_operand: String =
                 plan.operation_right_literals[operation];
             if plan.operation_right_values[operation] >= 0 ||
                     plan.operation_right_locals[operation] >= 0 {
@@ -92,7 +92,7 @@ func DirectMirScalarCfgEmitLlvmOperation(
             plan.operation_left_values[operation],
             plan.operation_left_locals[operation]
         ));
-        let result_operand: String = Concat(
+        var result_operand: String = Concat(
             "%pgy.op.", Concat(ToString(operation), ".left")
         );
         if kind == DirectMirScalarCfgOpConcatString() {

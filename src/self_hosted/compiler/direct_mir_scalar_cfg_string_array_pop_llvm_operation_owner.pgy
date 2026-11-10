@@ -25,7 +25,7 @@ func DirectMirScalarCfgStringArrayLlvmPop(
             ToString(fact.collection_row), ".length.field"
         )
     );
-    let output: String = Concat("  ", Concat(
+    var output: String = Concat("  ", Concat(
         stem, Concat(".pop.length = load i64, ptr ", field)
     ));
     output = Concat(output, Concat(", align ", Concat(storage_align, Concat("\n  ", stem))));

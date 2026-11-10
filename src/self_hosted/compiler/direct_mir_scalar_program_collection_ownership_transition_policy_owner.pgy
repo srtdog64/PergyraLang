@@ -12,6 +12,7 @@ func DirectMirCollectionOwnershipExpectedOperationEffect(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     operation: Int,
+    receipt_effect: Int,
     inout local_row: Int
 ) -> Int {
     local_row = -1;
@@ -19,22 +20,24 @@ func DirectMirCollectionOwnershipExpectedOperationEffect(
         return 0;
     }
     let operation_kind: Int = storage.operations.kinds[operation];
-    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() {
+    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+        operation_kind == DirectMirScalarCfgOpArrayStringValueResultPush() {
         local_row = storage.operations.left_locals[operation];
-        let graph: Int = storage.operations.expression_rows[operation];
-        if graph >= 0 && graph < ArrayLength(expressions.graph_roots) {
-            let root: Int = expressions.graph_roots[graph];
-            if root >= 0 && root < ArrayLength(expressions.node_kinds) &&
-                expressions.node_kinds[root] ==
-                    DirectMirScalarProgramExprDirectCall() {
-                return 1;
-            }
-        }
+        // The instruction-bound semantic receipt owns the distinction between
+        // an owned String transfer and a shallow push.  Expression kind is not
+        // a second authority: both declared calls and fresh builtin results can
+        // legitimately produce the owned value.
+        if receipt_effect == 1 { return 1; }
         return 2;
     }
-    if operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
-        operation_kind == DirectMirScalarCfgOpArrayStringPop() {
+    if operation_kind == DirectMirScalarCfgOpArrayStringSet() {
         local_row = storage.operations.left_locals[operation];
+        if receipt_effect == 4 { return 4; }
+        return 2;
+    }
+    if operation_kind == DirectMirScalarCfgOpArrayStringPop() {
+        local_row = storage.operations.left_locals[operation];
+        if receipt_effect == 5 { return 5; }
         return 2;
     }
     if operation_kind != DirectMirScalarCfgOpExpressionStatement() {
@@ -48,7 +51,7 @@ func DirectMirCollectionOwnershipExpectedOperationEffect(
     if root < 0 || root >= ArrayLength(expressions.node_kinds) {
         return 0;
     }
-    let effect: Int = 0;
+    var effect: Int = 0;
     if expressions.node_kinds[root] ==
             DirectMirScalarProgramExprArrayStringPushOwned() {
         effect = 1;
@@ -86,6 +89,9 @@ func DirectMirCollectionOwnershipNextState(
         return DirectMirCollectionOwnershipStateRetired();
     }
     if effect == 4 && state == DirectMirCollectionOwnershipStateOwned() {
+        return DirectMirCollectionOwnershipStateOwned();
+    }
+    if effect == 5 && state == DirectMirCollectionOwnershipStateOwned() {
         return DirectMirCollectionOwnershipStateOwned();
     }
     // A member move owns its descriptor/storage but carries no proof that

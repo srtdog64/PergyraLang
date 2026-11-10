@@ -18,14 +18,14 @@ func DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(
         return DirectMirScalarProgramArrayIntRuntimeRequirement(
             false, false, false);
     }
-    let push: Bool = false;
-    let operation: Int = 0;
+    var push: Bool = false;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         if plan.operation_kinds[operation] ==
                 DirectMirScalarCfgOpArrayIntPush() { push = true; }
         operation = operation + 1;
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         if plan.program.expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprSliceCopy() &&

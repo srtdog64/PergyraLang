@@ -37,8 +37,8 @@ func SemanticFutureType(type_name: String) -> Bool {
 }
 
 func SemanticFutureFlowFrom(ref states: Array<Int>, continuing: Bool) -> SemanticFutureFlow {
-    let copied: Array<Int> = [];
-    let index: Int = 0;
+    var copied: Array<Int> = [];
+    var index: Int = 0;
     while index < ArrayLength(states) {
         ArrayPush(copied, states[index]); index = index + 1;
     }
@@ -55,10 +55,10 @@ func SemanticFutureReject(inout flow: SemanticFutureFlow, node_id: Int, detail: 
 }
 
 func SemanticFutureMergeStates(ref target: Array<Int>, ref source: Array<Int>) -> Array<Int> {
-    let merged: Array<Int> = [];
-    let index: Int = 0;
+    var merged: Array<Int> = [];
+    var index: Int = 0;
     while index < ArrayLength(source) {
-        let state: Int = source[index];
+        var state: Int = source[index];
         if index < ArrayLength(target) && target[index] != state { state = 3; }
         ArrayPush(merged, state);
         index = index + 1;
@@ -74,8 +74,8 @@ func SemanticFutureJoin(inout target: SemanticFutureFlow, ref branch: SemanticFu
     if branch.continuing {
         if target.continuing { target.states = SemanticFutureMergeStates(target.states, branch.states); }
         else {
-            let target_states: Array<Int> = target.states;
-            let index: Int = 0;
+            var target_states: Array<Int> = target.states;
+            var index: Int = 0;
             while index < ArrayLength(branch.states) {
                 ArraySet(target_states, index, branch.states[index]); index = index + 1;
             }
@@ -93,7 +93,7 @@ func SemanticFutureJoin(inout target: SemanticFutureFlow, ref branch: SemanticFu
 }
 
 func SemanticFutureBindingAt(ref facts: SemanticFutureBindings, syntax_id: Int, name: String) -> Option<Int> {
-    let index: Int = ArrayLength(facts.node_ids) - 1;
+    var index: Int = ArrayLength(facts.node_ids) - 1;
     while index >= 0 {
         if facts.node_ids[index] < syntax_id && facts.names[index] == name &&
             SemanticAstExpressionScopeVisible(facts.artifact.arena, facts.scope_ids[index], syntax_id) {
@@ -119,7 +119,7 @@ func SemanticFutureRetire(ref facts: SemanticFutureBindings, inout flow: Semanti
         SemanticFutureReject(flow, syntax_id, Concat("retirement requires a live handle: ", facts.names[index]));
         return;
     }
-    let states: Array<Int> = flow.states;
+    var states: Array<Int> = flow.states;
     ArraySet(states, index, 2);
 }
 
@@ -151,7 +151,7 @@ func SemanticFutureExpression(ref facts: SemanticFutureBindings, inout flow: Sem
         SemanticFutureExpression(facts, flow, syntax_id, call.callee_node, false);
         let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(facts.signatures,
             facts.surfaces.expression_graph.arena.identities.call_target_syntax_ids[call.call_node]);
-        let argument: Int = 0;
+        var argument: Int = 0;
         while argument < ArrayLength(call.argument_nodes) && flow.verdict.ok {
             let argument_id: Int = call.argument_nodes[argument];
             SemanticFutureExpression(facts, flow, syntax_id, argument_id, false);
@@ -188,7 +188,7 @@ func SemanticFutureExpression(ref facts: SemanticFutureBindings, inout flow: Sem
             }
             return;
         }
-        let taken: SemanticFutureFlow = SemanticFutureFlowFrom(flow.states, true);
+        var taken: SemanticFutureFlow = SemanticFutureFlowFrom(flow.states, true);
         SemanticFutureExpression(facts, taken, syntax_id, right, false);
         SemanticFutureJoin(flow, taken);
     } else { SemanticFutureExpression(facts, flow, syntax_id, right, false); }
@@ -196,10 +196,10 @@ func SemanticFutureExpression(ref facts: SemanticFutureBindings, inout flow: Sem
 
 func SemanticFutureRequireScope(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
     syntax_id: Int, scope_id: Int, descendants: Bool) -> Void {
-    let states: Array<Int> = flow.states;
-    let index: Int = 0;
+    var states: Array<Int> = flow.states;
+    var index: Int = 0;
     while index < ArrayLength(facts.node_ids) && flow.verdict.ok {
-        let exits: Bool = scope_id < 0 || facts.scope_ids[index] == scope_id;
+        var exits: Bool = scope_id < 0 || facts.scope_ids[index] == scope_id;
         if !exits && descendants {
             exits = SemanticAstExpressionScopeVisible(facts.artifact.arena, scope_id, facts.scope_ids[index]);
         }

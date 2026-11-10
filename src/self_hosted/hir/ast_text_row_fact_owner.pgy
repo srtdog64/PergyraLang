@@ -4,6 +4,7 @@
 
 import "ast_text_scan_owner.pgy";
 import "ast_node_kind_owner.pgy";
+import "assignment_operation_owner.pgy";
 
 struct CodegenAstTextRowFactInput {
     let kind: Int;
@@ -20,14 +21,47 @@ func CodegenAstTextPayloadHasAsyncSuffix(payload: String) -> Bool {
         Substring(payload, length - suffix_length, suffix_length) == suffix;
 }
 
+// Locate only the statement operator, skipping quoted text and target indices.
+func CodegenAstTextAssignmentSeparator(payload: String) -> Int {
+    let n: Int = StringLength(payload);
+    var depth: Int = 0; var quoted: Bool = false; var i: Int = 0;
+    while i < n {
+        let c: Int = CodegenCharCodeAt(payload, n, n, i);
+        if quoted {
+            if c == 92 { i = i + 2; continue; }
+            if c == 34 { quoted = false; }
+        } else if c == 34 { quoted = true; }
+        else if c == 40 || c == 91 || c == 123 { depth = depth + 1; }
+        else if c == 41 || c == 93 || c == 125 { depth = depth - 1; }
+        else if depth == 0 && c == 32 {
+            var width: Int = 1;
+            if i + 2 < n && CodegenCharCodeAt(payload, n, n, i + 2) == 61 { width = 2; }
+            if i + width + 1 < n && CodegenCharCodeAt(payload, n, n, i + width + 1) == 32 &&
+                IsSome(AssignmentOperationFromToken(Substring(payload, i + 1, width))) { return i; }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
 func CodegenAstTextNodeModeForPayload(kind: Int, payload: String) -> Int {
+    if kind == TypedAstKindAssignStmtTag() {
+        let separator: Int = CodegenAstTextAssignmentSeparator(payload);
+        if separator < 0 { return -1; }
+        var width: Int = 1;
+        if CodegenCharCodeAt(payload, StringLength(payload), StringLength(payload), separator + 2) == 61 { width = 2; }
+        let operation: Option<Int> = AssignmentOperationFromToken(Substring(payload, separator + 1, width));
+        if !IsSome(operation) { return -1; }
+        return UnwrapOption(operation);
+    }
     // Mode is kind-discriminated: field 0=mutable, 1=immutable;
     // local let 0=immutable, 1=mutable. Parameter modes retain their ABI.
     if kind == TypedAstKindFuncDeclTag() &&
         CodegenAstTextPayloadHasAsyncSuffix(payload) {
         return TypedAstModeCallableAsync();
     }
-    if kind == TypedAstKindLetStmtTag() && StartsWith(payload, "mut ") {
+    if kind == TypedAstKindLetStmtTag() && StartsWith(payload, "mut ") &&
+        !StartsWith(payload, "mut : ") && !StartsWith(payload, "mut = ") {
         return 1;
     }
     if kind == TypedAstKindFieldTag() && StartsWith(payload, "let ") {
@@ -56,7 +90,7 @@ func CodegenAstTextParamPayloadForMode(payload: String, mode: Int) -> String {
     if mode == 0 {
         return payload;
     }
-    let prefix_len: Int = 4;
+    var prefix_len: Int = 4;
     if mode == 1 {
         prefix_len = 6;
     }
@@ -65,7 +99,7 @@ func CodegenAstTextParamPayloadForMode(payload: String, mode: Int) -> String {
 
 func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
     let kind: Int = input.kind;
-    let payload: String = input.payload;
+    var payload: String = input.payload;
     if TypedAstKindIsCallableDecl(kind) ||
         kind == TypedAstKindNominalDeclTag() ||
         kind == TypedAstKindEnumDeclTag() ||
@@ -119,11 +153,9 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         return "";
     }
     if kind == TypedAstKindAssignStmtTag() {
-        let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
-        if IsSome(assign_sep) {
-            return Substring(payload, 0, UnwrapOption(assign_sep));
-        }
-        return "";
+        let separator: Int = CodegenAstTextAssignmentSeparator(payload);
+        if separator < 0 { return ""; }
+        return Substring(payload, 0, separator);
     }
     if kind == TypedAstKindBindStmtTag() {
         let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
@@ -168,7 +200,7 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         return "";
     }
     if kind == TypedAstKindRoleSlotTag() {
-        let slot_row: String = payload;
+        var slot_row: String = payload;
         if input.mode == 1 { slot_row = Substring(payload, 4, StringLength(payload) - 4); }
         let requires_pos: Int = StringIndexOf(slot_row, " requires ");
         if requires_pos > 0 {
@@ -221,12 +253,11 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         return "";
     }
     if kind == TypedAstKindAssignStmtTag() {
-        let pos2: Option<Int> = FindTextFrom(payload, " = ", 0);
-        if IsSome(pos2) {
-            let start2: Int = UnwrapOption(pos2) + 3;
-            return Substring(payload, start2, StringLength(payload) - start2);
-        }
-        return "";
+        let separator: Int = CodegenAstTextAssignmentSeparator(payload);
+        let token: Option<String> = AssignmentOperationToken(input.mode);
+        if separator < 0 || !IsSome(token) { return ""; }
+        let start: Int = separator + StringLength(UnwrapOption(token)) + 2;
+        return Substring(payload, start, StringLength(payload) - start);
     }
     if kind == TypedAstKindBindStmtTag() {
         // `party.slot = subject as Role`: the value is the subject the slot
@@ -279,7 +310,7 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         let comma_pos: Int = StringIndexOf(payload, ", ");
         if between_pos > 0 && comma_pos > between_pos + 9 {
             let start: Int = comma_pos + 2;
-            let end: Int = StringIndexOf(payload, " by ");
+            var end: Int = StringIndexOf(payload, " by ");
             if end < start { end = StringLength(payload); }
             return StringTrim(Substring(payload, start, end - start));
         }
@@ -417,7 +448,7 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
             let type_start: Int = colon2 + 2;
-            let type_end: Int = StringIndexOf(payload, " = ");
+            var type_end: Int = StringIndexOf(payload, " = ");
             let capacity_start: Int = StringIndexOf(payload, " capacity ");
             if capacity_start >= type_start &&
                 (type_end < type_start || capacity_start < type_end) {
@@ -448,7 +479,7 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         let from_pos: Int = StringIndexOf(payload, " from ");
         if from_pos > 0 {
             let start: Int = from_pos + 6;
-            let end: Int = StringIndexOf(payload, " by ");
+            var end: Int = StringIndexOf(payload, " by ");
             if end < start { end = StringLength(payload); }
             return StringTrim(Substring(payload, start, end - start));
         }
@@ -477,7 +508,7 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         let arrow_pos: Int = StringIndexOf(payload, " -> ");
         if arrow_pos > 0 {
             let start: Int = arrow_pos + 4;
-            let end: Int = StringIndexOf(payload, " by ");
+            var end: Int = StringIndexOf(payload, " by ");
             if end < start { end = StringLength(payload); }
             return StringTrim(Substring(payload, start, end - start));
         }

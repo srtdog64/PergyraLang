@@ -1,0 +1,37 @@
+// Rebuilding an inout aggregate transfers its detached owned String-array
+// field through nested constructors before the exact upper field is restored.
+struct Arena {
+    target_names: Array<String>;
+}
+
+struct Graph {
+    arena: Arena;
+}
+
+struct Surfaces {
+    graph: Graph;
+}
+
+struct Analysis {
+    surfaces: Surfaces;
+}
+
+func Attach(inout analysis: Analysis) -> Void {
+    let graph: Graph = analysis.surfaces.graph;
+    var target_names: Array<String> = graph.arena.target_names;
+    ArrayPushOwnedString(target_names, Concat("b", ""));
+    let arena: Arena = Arena(target_names);
+    let attached: Graph = Graph(arena);
+    let surfaces: Surfaces = Surfaces(attached);
+    analysis.surfaces = surfaces;
+}
+
+func Main() -> Int {
+    var analysis: Analysis = Analysis(Surfaces(Graph(Arena(
+        [Concat("a", "")]
+    ))));
+    Attach(analysis);
+    Print(analysis.surfaces.graph.arena.target_names[1]);
+    Log(ArrayLength(analysis.surfaces.graph.arena.target_names));
+    return 0;
+}

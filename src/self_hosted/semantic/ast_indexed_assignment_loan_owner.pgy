@@ -1,0 +1,153 @@
+// An indexed store holds its selected backing through RHS evaluation.
+// Exact declaration and member-path facts own overlap; emitters cannot repair
+// an invalidated address by changing the language's evaluation order.
+import "ast_slice_write_permission_owner.pgy";
+import "ast_expression_identity_fact_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+
+func SemanticAstAssignmentPlacesOverlap(
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, function_id: Int,
+    syntax: Int, left: Int, right: Int
+) -> Bool {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    var roots: Array<Int> = [left, right];
+    var left_path: Array<Int> = [];
+    var right_path: Array<Int> = [];
+    var side: Int = 0;
+    while side < 2 {
+        var node: Int = roots[side];
+        while node >= 0 && node < ArrayLength(graph.arena.topology.node_kinds) {
+            let kind: Int = graph.arena.topology.node_kinds[node];
+            if kind == AstExpressionNodeLeaf() { break; }
+            if kind != AstExpressionNodeMemberAccess() && kind != AstExpressionNodeIndex() {
+                // A computed value has no caller place to mutate. Any calls
+                // computing it are independently visited in the same graph.
+                return false;
+            }
+            if kind == AstExpressionNodeIndex() {
+                // Dynamic element positions cannot prove separate backing.
+                if side == 0 { ArrayPush(left_path, -1); }
+                else { ArrayPush(right_path, -1); }
+            } else {
+                let field: Int = graph.arena.topology.right_children[node];
+                if side == 0 { ArrayPush(left_path, field); }
+                else { ArrayPush(right_path, field); }
+            }
+            let parent: Int = graph.arena.topology.left_children[node];
+            if parent < 0 || parent >= node { return true; }
+            node = parent;
+        }
+        roots[side] = node;
+        side = side + 1;
+    }
+    let left_local: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, analysis.local_bindings, initializers.inferred_type_names,
+        function_id, syntax, graph, roots[0]);
+    let right_local: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, analysis.local_bindings, initializers.inferred_type_names,
+        function_id, syntax, graph, roots[1]);
+    if left_local.ok && right_local.ok {
+        if left_local.declaration_node_id != right_local.declaration_node_id { return false; }
+    } else {
+        let a: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, roots[0]);
+        let b: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, roots[1]);
+        if left_local.ok || right_local.ok { return false; }
+        if !a.ok || !b.ok || a.kind != SemanticExpressionBindingFormalParameter() ||
+            b.kind != SemanticExpressionBindingFormalParameter() { return true; }
+        if a.syntax_id != b.syntax_id { return false; }
+    }
+    var a: Int = ArrayLength(left_path) - 1;
+    var b: Int = ArrayLength(right_path) - 1;
+    while a >= 0 && b >= 0 {
+        if left_path[a] < 0 || right_path[b] < 0 { return true; }
+        if graph.arena.node_texts[left_path[a]] != graph.arena.node_texts[right_path[b]] { return false; }
+        a = a - 1;
+        b = b - 1;
+    }
+    return true;
+}
+
+func SemanticAstIndexedAssignmentLoanVerdict(
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref leaf_types: Array<String>,
+    ref call_roots: SemanticCallSpineRoots
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    var row: Int = 0;
+    while row < ArrayLength(analysis.assignments.node_ids) {
+        let syntax: Int = analysis.assignments.node_ids[row];
+        let function_id: Int = analysis.assignments.function_node_ids[row];
+        let target: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, syntax, AstExpressionLaneAtom());
+        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, syntax, AstExpressionLaneValue());
+        if !IsSome(target) || !IsSome(value) {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid", "Assignment loan roots are missing", syntax);
+        }
+        var place: Int = UnwrapOption(target);
+        var backing: Int = -1;
+        while place >= 0 {
+            let kind: Int = graph.arena.topology.node_kinds[place];
+            if kind != AstExpressionNodeIndex() && kind != AstExpressionNodeMemberAccess() { break; }
+            let receiver: Int = graph.arena.topology.left_children[place];
+            if receiver < 0 || receiver >= place {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid", "Assignment place path is invalid", syntax);
+            }
+            if kind == AstExpressionNodeIndex() { backing = receiver; }
+            place = receiver;
+        }
+        if backing >= 0 {
+            let expression_roots: Array<Int> = [UnwrapOption(target), UnwrapOption(value)];
+            var lane: Int = 0;
+            while lane < ArrayLength(expression_roots) {
+            let expression: Int = expression_roots[lane];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, expression);
+            if !IsSome(start) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Assignment value range is missing", syntax); }
+            var node: Int = UnwrapOption(start);
+            while node <= expression {
+                if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+                    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, call_roots.root_nodes[node]);
+                    if !call.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Assignment call spine is missing", syntax); }
+                    let target_id: Int = graph.arena.identities.call_target_syntax_ids[node];
+                    let name: String = graph.arena.call_target_names[node];
+                    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, target_id);
+                    var argument: Int = 0;
+                    while argument < ArrayLength(call.argument_nodes) {
+                        let actual: Int = call.argument_nodes[argument];
+                        let type_name: String = SemanticAstSliceReceiverType(graph, leaf_types, analysis.constructors, actual);
+                        let aggregate: Bool = SemanticCollectionTypeName(type_name) || IsSome(SemanticSliceElementType(type_name)) ||
+                            IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, type_name));
+                        var preserves: Bool = false;
+                        if target_id == 0 && graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() {
+                            preserves = name == "Clone" || (SemanticBuiltinArgumentBorrowedForCall(name, argument) &&
+                                !(argument == 0 && SemanticCollectionMutatorName(name)));
+                        } else if IsSome(signature) {
+                            let sig: Int = UnwrapOption(signature);
+                            let offset: Option<Int> = SemanticAstFunctionReceiverSourceParameterOffsetAt(analysis.signatures, sig);
+                            if !IsSome(offset) || argument + UnwrapOption(offset) >= analysis.signatures.param_counts[sig] {
+                                return SemanticAstBodyVerdictError("ast_artifact_invalid", "Assignment loan formal mapping is missing", syntax);
+                            }
+                            preserves = analysis.signatures.param_modes[analysis.signatures.param_starts[sig] + UnwrapOption(offset) + argument] == 3;
+                        }
+                        let overlaps: Bool = !preserves && SemanticAstAssignmentPlacesOverlap(
+                            artifact, analysis, initializers, function_id, syntax, backing, actual);
+                        if overlaps && (type_name == "" || type_name == "Unknown") {
+                            return SemanticAstBodyVerdictError("ast_artifact_invalid", "Assignment loan argument type is missing", syntax);
+                        }
+                        if aggregate && overlaps {
+                            return SemanticAstBodyVerdictError("borrow_boundary_escape",
+                                "Cannot change backing while an indexed assignment keeps its address", syntax);
+                        }
+                        argument = argument + 1;
+                    }
+                }
+                node = node + 1;
+            }
+            lane = lane + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

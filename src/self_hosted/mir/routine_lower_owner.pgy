@@ -25,8 +25,8 @@ func SelfMirLowerBlockFromArtifact(
     continue_target: Int,
     restore_local_count: Int
 ) -> SelfMirRoutineBuild {
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         input.artifact.arena, block_node_id, child_index
     );
     while IsSome(child_opt) && build.ok {

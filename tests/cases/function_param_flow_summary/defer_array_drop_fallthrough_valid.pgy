@@ -5,7 +5,7 @@ func Peek(ref rows: Array<Int>) -> Int {
 }
 
 func Run() -> Void {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, 7);
     defer { ArrayDrop(rows); };
     Print(ToString(Peek(rows) + rows[0]));

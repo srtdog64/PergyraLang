@@ -14,8 +14,8 @@ func DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(
             ArrayLength(plan.program.operation_expression_rows) {
         return false;
     }
-    let definition_count: Int = 0;
-    let operation: Int = plan.routines.operation_starts[routine];
+    var definition_count: Int = 0;
+    var operation: Int = plan.routines.operation_starts[routine];
     let end: Int = operation + plan.routines.operation_counts[routine];
     if operation < 0 || end > ArrayLength(plan.operation_result_values) {
         return false;
@@ -98,4 +98,46 @@ func DirectMirScalarProgramArrayStringLocalCleanupRequired(
     }
     return !DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
         plan.program.owned_array_string_move, routine, local_row);
+}
+
+// A declaration may execute repeatedly. Its fresh RHS is evaluated before
+// replacing the local descriptor; the prior lifetime must retire at that
+// publication boundary as well as at the final routine exit.
+func DirectMirScalarProgramArrayStringReplacementDropSymbol(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int
+) -> String {
+    if plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() {
+        return "";
+    }
+    let value: Int = plan.operation_result_values[operation];
+    if value < 0 || value >= ArrayLength(plan.value_local_rows) ||
+        plan.value_types[value] != CompilerAbiLayoutArrayStringTypeName() {
+        return "";
+    }
+    let local_row: Int = plan.value_local_rows[value];
+    if local_row < 0 || plan.local_ref_kinds[local_row] !=
+            DirectMirScalarCfgLocalRefValue() {
+        return "";
+    }
+    let graph: Int = plan.program.operation_expression_rows[operation];
+    let root: Int = plan.program.expressions.graph_roots[graph];
+    if plan.program.expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprArrayStringLiteral() {
+        return "";
+    }
+    let transition: Int = DirectMirScalarProgramCollectionOwnershipTransitionRow(
+        plan.program.collection_ownership, routine, local_row);
+    if transition < 0 {
+        Die("direct MIR Array<String> replacement requires its admitted ownership row");
+    }
+    if !DirectMirScalarProgramArrayStringLocalCleanupRequired(
+            plan, routine, local_row) {
+        return "";
+    }
+    let mode: Int = plan.program.collection_ownership.replacement_modes[transition];
+    if mode == 1 {
+        return CollectionRuntimeCDropStorageFn(2);
+    }
+    if mode == 2 { return CollectionRuntimeCOwnedStringDropFn(); }
+    return "";
 }

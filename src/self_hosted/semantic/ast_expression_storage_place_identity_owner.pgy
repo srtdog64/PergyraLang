@@ -18,8 +18,8 @@ func SemanticAstExpressionStoragePlaceEqual(
     right_node_id: Int,
     ref graph: SemanticExpressionGraphFacts
 ) -> Bool {
-    let left: Int = left_node_id;
-    let right: Int = right_node_id;
+    var left: Int = left_node_id;
+    var right: Int = right_node_id;
     while left >= 0 && right >= 0 {
         let left_kind: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, left

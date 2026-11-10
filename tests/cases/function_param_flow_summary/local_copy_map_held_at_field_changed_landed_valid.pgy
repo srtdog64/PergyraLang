@@ -17,13 +17,13 @@ struct Holder {
 }
 
 func Grow(facts: Facts) -> Facts {
-    let carry: HashMap<String, Int> = facts.carry;
+    var carry: HashMap<String, Int> = facts.carry;
     MapSet(carry, "t", 1);
     return Facts(facts.table, carry);
 }
 
 func AssignedValueChanged(inout facts: Facts) -> Int {
-    let fresh: HashMap<String, Int> = MapNew();
+    var fresh: HashMap<String, Int> = MapNew();
     facts.table = fresh;
     MapSet(fresh, "k", 1);
     return MapSize(facts.table);
@@ -32,7 +32,7 @@ func AssignedValueChanged(inout facts: Facts) -> Int {
 func FieldCopyChanged(inout facts: Facts) -> Int {
     let fresh: HashMap<String, Int> = MapNew();
     facts.table = fresh;
-    let again: HashMap<String, Int> = facts.table;
+    var again: HashMap<String, Int> = facts.table;
     MapSet(again, "k", 1);
     return MapSize(fresh);
 }

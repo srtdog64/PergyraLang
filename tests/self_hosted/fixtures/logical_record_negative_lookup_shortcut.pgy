@@ -1,0 +1,144 @@
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_logical_record_validation_receipt_owner.pgy";
+
+func LogicalRecordLookupProbe(digest_override: Int) -> DirectMirScalarProgramLogicalRecordFact {
+    let rows: Array<Int> = [7];
+    let names: Array<String> = ["Record"];
+    let syntax_ids: Array<Int> = [31];
+    let field_starts: Array<Int> = [0];
+    let field_counts: Array<Int> = [1];
+    let field_names: Array<String> = ["value"];
+    let field_types: Array<String> = ["Int"];
+    let field_dependencies: Array<String> = [""];
+    let field_ids: Array<Int> = [1001];
+    let field_enums: Array<Int> = [0];
+    let absence: DirectMirNominalDeclarationAbiFact =
+        InvalidDirectMirNominalDeclarationAbiFact();
+    let physical: DirectMirScalarProgramRecordAbiCarriage =
+        DirectMirScalarProgramRecordAbiCarriageFromDeclaration(absence, 1);
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFact(
+            true, 0, true, rows, names, syntax_ids, field_starts,
+            field_counts, field_names, field_types, field_dependencies,
+            field_ids, field_enums, physical,
+            DirectMirIdentityCellFactsEmpty(),
+            DirectMirScalarProgramLogicalRecordValidationReceiptEmpty()
+        );
+    let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
+    if digest_override > 0 {
+        return DirectMirScalarProgramLogicalRecordFact(
+            true, digest_override, true, rows, names, syntax_ids,
+            field_starts, field_counts, field_names, field_types,
+            field_dependencies, field_ids, field_enums, physical,
+            DirectMirIdentityCellFactsEmpty(),
+            DirectMirScalarProgramLogicalRecordValidationReceiptEmpty()
+        );
+    }
+    return DirectMirScalarProgramLogicalRecordFact(
+        true, digest, true, rows, names, syntax_ids, field_starts,
+        field_counts, field_names, field_types, field_dependencies,
+        field_ids, field_enums, physical,
+        DirectMirIdentityCellFactsEmpty(),
+        DirectMirScalarProgramLogicalRecordValidationReceiptEmpty()
+    );
+}
+
+func LogicalRecordLookupAdmit(
+    verification_replay: Bool
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupProbe(0);
+    let receipt: DirectMirScalarProgramLogicalRecordValidationReceipt =
+        DirectMirScalarProgramLogicalRecordValidationReceiptFromFact(
+            source, verification_replay);
+    return DirectMirScalarProgramLogicalRecordFact(
+        source.valid, source.digest, source.present, source.declaration_rows,
+        source.names, source.source_syntax_ids, source.field_starts,
+        source.field_counts, source.field_names, source.field_types,
+        source.field_dependency_types, source.field_source_syntax_ids,
+        source.field_payload_free_enums, source.physical,
+        source.identity_cells, receipt);
+}
+
+func LogicalRecordLookupWithReceipt(
+    digest_override: Int,
+    receipt: DirectMirScalarProgramLogicalRecordValidationReceipt
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupProbe(digest_override);
+    return DirectMirScalarProgramLogicalRecordFact(
+        source.valid, source.digest, source.present, source.declaration_rows,
+        source.names, source.source_syntax_ids, source.field_starts,
+        source.field_counts, source.field_names, source.field_types,
+        source.field_dependency_types, source.field_source_syntax_ids,
+        source.field_payload_free_enums, source.physical,
+        source.identity_cells, receipt);
+}
+
+func LogicalRecordLookupChangedVerification(
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupProbe(0);
+    let receipt: DirectMirScalarProgramLogicalRecordValidationReceipt =
+        DirectMirScalarProgramLogicalRecordValidationReceiptFromFact(
+            source, true);
+    let names: Array<String> = Clone(source.names);
+    ArraySet(names, 0, "Changed");
+    return DirectMirScalarProgramLogicalRecordFact(
+        source.valid, source.digest, source.present, source.declaration_rows,
+        names, source.source_syntax_ids, source.field_starts,
+        source.field_counts, source.field_names, source.field_types,
+        source.field_dependency_types, source.field_source_syntax_ids,
+        source.field_payload_free_enums, source.physical,
+        source.identity_cells, receipt);
+}
+
+func Main() -> Void {
+    let valid: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupProbe(0);
+    let bad_digest: Int = valid.digest + 1;
+    let corrupt: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupProbe(bad_digest);
+    Log(ToString(DirectMirScalarProgramLogicalRecordFactReady(valid)));
+    Log(ToString(DirectMirScalarProgramLogicalRecordTypeReady(
+        valid, "Record")));
+    Log(ToString(!DirectMirScalarProgramLogicalRecordTypeReady(
+        valid, "Missing")));
+    Log(ToString(!DirectMirScalarProgramLogicalRecordFactReady(corrupt)));
+    Log(ToString(!DirectMirScalarProgramLogicalRecordTypeReady(
+        corrupt, "Record")));
+    Log(ToString(!DirectMirScalarProgramLogicalRecordTypeReady(
+        corrupt, "Missing")));
+    let production: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupAdmit(false);
+    Log(ToString(DirectMirScalarProgramLogicalRecordFactReady(production)));
+    Log(ToString(DirectMirScalarProgramLogicalRecordTypeReady(
+        production, "Record")));
+    let verification: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupAdmit(true);
+    Log(ToString(DirectMirScalarProgramLogicalRecordFactReady(verification)));
+    Log(ToString(DirectMirScalarProgramLogicalRecordTypeReady(
+        verification, "Record")));
+    let stale: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupWithReceipt(
+            bad_digest, production.validation);
+    Log(ToString(!DirectMirScalarProgramLogicalRecordFactReady(stale)));
+    let forged: DirectMirScalarProgramLogicalRecordValidationReceipt =
+        DirectMirScalarProgramLogicalRecordValidationReceipt(
+            true, production.digest + 1, production.present,
+            ArrayLength(production.declaration_rows),
+            ArrayLength(production.field_names),
+            production.identity_cells.digest, false);
+    let forged_fact: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupWithReceipt(0, forged);
+    Log(ToString(!DirectMirScalarProgramLogicalRecordFactReady(forged_fact)));
+    let changed: DirectMirScalarProgramLogicalRecordFact =
+        LogicalRecordLookupChangedVerification();
+    Log(ToString(!DirectMirScalarProgramLogicalRecordFactReady(changed)));
+    let query: Int = 0;
+    while query < 2048 {
+        if !DirectMirScalarProgramLogicalRecordTypeReady(
+                production, "Record") { Exit(1); }
+        query = query + 1;
+    }
+    Log(ToString(query == 2048));
+}

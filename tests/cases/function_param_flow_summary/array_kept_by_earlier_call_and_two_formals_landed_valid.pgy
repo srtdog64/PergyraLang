@@ -1,0 +1,26 @@
+// An earlier call and a later two-formal call each keep the same Array.
+// Whole-value Clone makes the earlier handoff and the first argument of the
+// later call independent; the final argument moves the original storage.
+struct Facts {
+    a: Array<Int>;
+    b: Array<Int>;
+}
+
+func Keep(inout stash: Array<Array<Int>>, rows: Array<Int>) -> Int {
+    ArrayPush(stash, rows);
+    return 0;
+}
+
+func Pair(a: Array<Int>, b: Array<Int>) -> Facts {
+    return Facts(a, b);
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    var stash: Array<Array<Int>> = [];
+    let k: Int = Keep(stash, rows);
+    var facts: Facts = Pair(rows, rows);
+    ArrayPush(facts.a, 7);
+    Print(ToString(ArrayLength(facts.a) + ArrayLength(facts.b) + ArrayLength(stash) + k));
+    return 0;
+}

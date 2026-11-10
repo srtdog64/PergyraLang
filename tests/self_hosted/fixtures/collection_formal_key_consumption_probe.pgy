@@ -343,10 +343,12 @@ func Main() -> Void with caps env, io_read
         row = row + 1;
     }
     // Observed fixture coverage, not a second production effect authority.
+    let no_owned_store_landings: Array<Int> = [];
     let statements: SemanticAstCollectionFormalStatementEffects = SemanticAstCollectionFormalStatementEffectsFromFacts(
         artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
         analysis.expression_surfaces, analysis.statements, bundle.owned_string_result_domains,
-        actual.inventory, actual.inventory.row_by_formal);
+        no_owned_store_landings, actual.inventory,
+        actual.inventory.row_by_formal);
     if !statements.ok { Exit(3); }
     let targets: HashMap<String, Int> = statements.target_rows;
     let formal_targets: Int = 0;

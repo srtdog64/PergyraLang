@@ -1,7 +1,6 @@
 // Option<Int> try-let admission from semantic graph and callable facts.
 import "direct_mir_scalar_program_expression_admission_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
-
 func DirectMirScalarProgramInstructionExpressionRootKind(
     ref instruction: JsonObjectFactTable
 ) -> Int {
@@ -19,7 +18,6 @@ func DirectMirScalarProgramInstructionHasTryRoot(
     return DirectMirScalarProgramInstructionExpressionRootKind(instruction) ==
         AstExpressionNodeTry();
 }
-
 func DirectMirScalarProgramOptionIntTrySignatureReady(
     ref signature: DirectMirRoutineSignatureFact
 ) -> Bool {
@@ -27,7 +25,7 @@ func DirectMirScalarProgramOptionIntTrySignatureReady(
         signature.return_type != CompilerAbiLayoutOptionIntTypeName() {
         return false;
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         if signature.parameters.carriages[ordinal] == "value-result" {
             return false;
@@ -44,7 +42,7 @@ func DirectMirScalarProgramOptionIntTryRoutineReady(
         routines.return_types[routine] != CompilerAbiLayoutOptionIntTypeName() {
         return false;
     }
-    let parameter: Int = routines.parameter_starts[routine];
+    var parameter: Int = routines.parameter_starts[routine];
     let end: Int = parameter + routines.parameter_counts[routine];
     while parameter < end {
         if routines.parameter_carriages[parameter] == "value-result" {
@@ -67,6 +65,8 @@ func DirectMirScalarProgramAppendOptionIntTryOperand(
     ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
@@ -77,15 +77,17 @@ func DirectMirScalarProgramAppendOptionIntTryOperand(
         !DirectMirScalarProgramOptionIntTrySignatureReady(signature) {
         return None;
     }
-    let expression_row: Int = ArrayLength(expressions.graph_starts); let use_offset: Int = 0;
+    let expression_row: Int = ArrayLength(expressions.graph_starts); var use_offset: Int = 0;
     let admission: DirectMirScalarProgramExpressionAdmission =
         DirectMirScalarProgramAppendExpression(
             expressions, instruction, uses, index,
             global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
-            callables, logical_record, payload_free_enum, referenced_enum,
+            callables, routine_instances, caller_ordinal,
+            logical_record, payload_free_enum,
+            referenced_enum,
             "expr0_graph", use_offset, true,
-            CompilerAbiLayoutOptionIntTypeName(), true, -1
+            CompilerAbiLayoutOptionIntTypeName(), true, -1, false
         );
     // The admission may have grown the set before it failed: every exit
     // hands the caller the set it returned, never the stale one.

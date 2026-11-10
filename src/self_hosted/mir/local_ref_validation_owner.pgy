@@ -14,13 +14,13 @@ func SelfMirInstructionLocalRefRowsReady(
         ArrayLength(rows.expr0_nodes) != ArrayLength(rows.expr0_refs) {
         return false;
     }
-    let cursor: Int = 0;
-    let row: Int = 0;
+    var cursor: Int = 0;
+    var row: Int = 0;
     while row < instruction_count {
         if rows.expr0_starts[row] != cursor || rows.expr0_counts[row] < 0 {
             return false;
         }
-        let use_entry: Int = 0;
+        var use_entry: Int = 0;
         while use_entry < rows.expr0_counts[row] {
             let index: Int = cursor + use_entry;
             if rows.expr0_nodes[index] < 0 ||
@@ -34,7 +34,7 @@ func SelfMirInstructionLocalRefRowsReady(
         row = row + 1;
     }
     if cursor != ArrayLength(rows.expr0_nodes) { return false; }
-    let primary: Int = 0;
+    var primary: Int = 0;
     while primary < instruction_count {
         if rows.source_statement_syntax_ids[primary] < 0 { return false; }
         if rows.primary_refs[primary] != "" &&

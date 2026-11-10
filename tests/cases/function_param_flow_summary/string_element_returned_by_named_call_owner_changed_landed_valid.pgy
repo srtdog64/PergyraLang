@@ -4,8 +4,8 @@
 // the next analysis copies the element where the call takes it, and the
 // Array's later release or change no longer reaches it.
 func Names(n: Int) -> Array<String> {
-    let out: Array<String> = [];
-    let i: Int = 0;
+    var out: Array<String> = [];
+    var i: Int = 0;
     while i < n {
         ArrayPush(out, ToString(i));
         i = i + 1;
@@ -18,7 +18,7 @@ func Kept(text: String) -> String {
 }
 
 func Main() -> Int {
-    let names: Array<String> = Names(3);
+    var names: Array<String> = Names(3);
     let kept: String = Kept(names[1]);
     ArraySet(names, 1, ToString(9));
     Print(kept);

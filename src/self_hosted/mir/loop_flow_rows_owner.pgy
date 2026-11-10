@@ -53,9 +53,9 @@ func SelfMirLoopFlowRowsWithoutLoops(
     routine_count: Int
 ) -> SelfMirLoopFlowRows {
     let rows: SelfMirLoopFlowRows = SelfMirLoopFlowRowsEmpty();
-    let routine_starts: Array<Int> = rows.routine_starts;
-    let routine_counts: Array<Int> = rows.routine_counts;
-    let i: Int = 0;
+    var routine_starts: Array<Int> = rows.routine_starts;
+    var routine_counts: Array<Int> = rows.routine_counts;
+    var i: Int = 0;
     while i < routine_count {
         ArrayPush(routine_starts, 0);
         ArrayPush(routine_counts, 0);
@@ -71,26 +71,26 @@ func SelfMirLoopFlowRowsAppendRoutine(
     statements: SemanticAstStatementFacts,
     function_node_id: Int
 ) -> SelfMirLoopFlowRows {
-    let routine_starts: Array<Int> = rows.routine_starts;
-    let routine_counts: Array<Int> = rows.routine_counts;
+    var routine_starts: Array<Int> = rows.routine_starts;
+    var routine_counts: Array<Int> = rows.routine_counts;
     let summaries: SelfMirLoopFlowSummaryRows = rows.summaries;
-    let loop_node_ids: Array<Int> = summaries.loop_node_ids;
-    let kinds: Array<Int> = summaries.kinds;
-    let effect_bases: Array<Int> = summaries.effect_bases;
-    let effect_deltas: Array<Int> = summaries.effect_deltas;
-    let flags: Array<Int> = summaries.flags;
-    let entry_state_starts: Array<Int> = summaries.entry_state_starts;
-    let entry_state_counts: Array<Int> = summaries.entry_state_counts;
-    let exit_state_starts: Array<Int> = summaries.exit_state_starts;
-    let exit_state_counts: Array<Int> = summaries.exit_state_counts;
+    var loop_node_ids: Array<Int> = summaries.loop_node_ids;
+    var kinds: Array<Int> = summaries.kinds;
+    var effect_bases: Array<Int> = summaries.effect_bases;
+    var effect_deltas: Array<Int> = summaries.effect_deltas;
+    var flags: Array<Int> = summaries.flags;
+    var entry_state_starts: Array<Int> = summaries.entry_state_starts;
+    var entry_state_counts: Array<Int> = summaries.entry_state_counts;
+    var exit_state_starts: Array<Int> = summaries.exit_state_starts;
+    var exit_state_counts: Array<Int> = summaries.exit_state_counts;
     let state_count: Int = ArrayLength(rows.states.stable_indices);
     ArrayPush(routine_starts, ArrayLength(loop_node_ids));
-    let routine_count: Int = 0;
+    var routine_count: Int = 0;
     let statement_range: SemanticAstLocalBindingFunctionRange =
         SemanticAstStatementRangeForFunction(
             statements, function_node_id
         );
-    let i: Int = statement_range.start;
+    var i: Int = statement_range.start;
     while i < statement_range.end {
         let kind: Int = statements.kind_tags[i];
         if kind == TypedAstKindWhileStmtTag() ||
@@ -150,8 +150,8 @@ func SelfMirLoopFlowRowsReady(
         ArrayLength(states.pool_ids) != state_count {
         return false;
     }
-    let cursor: Int = 0;
-    let routine_i: Int = 0;
+    var cursor: Int = 0;
+    var routine_i: Int = 0;
     while routine_i < routine_count {
         if rows.routine_starts[routine_i] != cursor ||
             rows.routine_counts[routine_i] < 0 ||
@@ -161,7 +161,7 @@ func SelfMirLoopFlowRowsReady(
         cursor = cursor + rows.routine_counts[routine_i];
         routine_i = routine_i + 1;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < summary_count {
         if summaries.loop_node_ids[i] <= 0 ||
             (summaries.kinds[i] != 0 && summaries.kinds[i] != 1) ||

@@ -25,7 +25,7 @@ func SelfMirExpressionGraphContainsLeafBinding(
         view.graph, view.root_id
     );
     if !IsSome(start_opt) { return false; }
-    let node: Int = UnwrapOption(start_opt);
+    var node: Int = UnwrapOption(start_opt);
     while node <= view.root_id {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             view.graph, node
@@ -46,7 +46,7 @@ func SelfMirExpressionGraphContainsLeafBinding(
 func SelfMirUsesAppendUnique(
     inout uses: Array<String>, use_name: String
 ) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(uses) {
         if uses[i] == use_name { return; }
         i = i + 1;
@@ -59,13 +59,13 @@ func SelfMirExpressionGraphUses(
     build: SelfMirRoutineBuild,
     view: SemanticExpressionGraphView
 ) -> Array<String> {
-    let uses: Array<String> = [];
+    var uses: Array<String> = [];
     if !view.ok { return uses; }
     let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
         view.graph, view.root_id
     );
     if !IsSome(start_opt) { return uses; }
-    let node: Int = UnwrapOption(start_opt);
+    var node: Int = UnwrapOption(start_opt);
     while node <= view.root_id {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             view.graph, node
@@ -101,7 +101,7 @@ func SelfMirExpressionGraphUsesAppend(
 ) -> Bool {
     if !view.ok { return false; }
     let graph_uses: Array<String> = SelfMirExpressionGraphUses(build, view);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(graph_uses) {
         SelfMirUsesAppendUnique(uses, Concat("", graph_uses[i]));
         i = i + 1;

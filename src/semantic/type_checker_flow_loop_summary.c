@@ -294,6 +294,11 @@ loop_flow_summary_try_apply(SemanticContext *ctx,
         ctx != NULL ? ctx->loop_flow_summaries : NULL;
     if (store == NULL || entry == NULL || !entry->valid)
         return false;
+    /* Summary replay does not carry lexical Slice origins. Recheck the body
+     * under their current generation; the recorded normal flow still exports
+     * through the existing summary owner. */
+    if (entry->slice_permission_count != 0)
+        return false;
     for (size_t i = 0; i < store->summary_count; i++) {
         LoopFlowSummary *summary = &store->summaries[i];
         if (summary->node != node

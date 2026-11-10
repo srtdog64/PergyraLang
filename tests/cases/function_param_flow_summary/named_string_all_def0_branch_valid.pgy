@@ -1,3 +1,6 @@
+// The first push stores an independent compiler Clone through the general
+// ArrayPush route. The branch-dependent second value has no single owner
+// proof, so that exact push lands as ArrayPushOwnedString.
 func MakeVariant() -> String {
     return Substring("ready", 0, 5);
 }
@@ -11,8 +14,8 @@ func TrimReuse(value: String, trimmed: Bool) -> String {
 
 func Observe(flag: Bool) -> Void {
     let variant: String = MakeVariant();
-    let variant_name: String = variant;
-    let names: Array<String> = [];
+    var variant_name: String = variant;
+    var names: Array<String> = [];
     ArrayPush(names, variant_name);
     if flag {
         variant_name = TrimReuse(variant, true);

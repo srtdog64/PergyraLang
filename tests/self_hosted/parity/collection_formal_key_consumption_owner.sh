@@ -37,8 +37,10 @@ BOUNDARY_INPUTS=(
     "$FIXTURES/formal_indexed_outer_store_negative.pgy"
     "$FIXTURES/formal_indexed_owned_publication_positive.pgy"
     "$FIXTURES/inout_borrowed_push_drop_negative.pgy"
-    "$FIXTURES/exclusive_map_observed_forward_growth_negative.pgy")
-BOUNDARY_CODES=(ok borrow_boundary_escape borrow_boundary_escape ok borrow_boundary_escape borrow_boundary_escape)
+    "$FIXTURES/exclusive_map_observed_forward_growth_negative.pgy"
+    "$FIXTURES/inout_owned_pop_forward_positive.pgy"
+    "$FIXTURES/inout_borrowed_pop_forward_negative.pgy")
+BOUNDARY_CODES=(ok borrow_boundary_escape borrow_boundary_escape ok borrow_boundary_escape borrow_boundary_escape ok borrow_boundary_escape)
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$PROBE" "${BASH_SOURCE[0]}" >"$WORK/probe-source.sha256"
 for input in "${INPUTS[@]}" "${BOUNDARY_INPUTS[@]}"; do sha256sum "$input"; done >"$WORK/inputs.sha256"

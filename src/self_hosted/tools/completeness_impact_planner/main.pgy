@@ -190,7 +190,7 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
                     let gate: String = UnwrapOption(gate_opt);
                     path_matched = true;
                     if !ImpactPlannerArrayContains(matched_impacts, impact_id) {
-                        ArrayPush(matched_impacts, impact_id);
+                        ArrayPush(matched_impacts, Clone(impact_id));
                     }
                     let group_index: Int = -1;
                     let group_i: Int = 0;
@@ -204,12 +204,12 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
                         group_i = group_i + 1;
                     }
                     if group_index < 0 {
-                        ArrayPush(group_gates, gate);
-                        ArrayPush(group_source_envs, source_env);
-                        ArrayPush(group_source_values, path);
-                        ArrayPush(group_stage_envs, stage_env);
-                        ArrayPush(group_stage_values, stage_value);
-                        ArrayPush(group_impact_ids, impact_id);
+                        ArrayPush(group_gates, Clone(gate));
+                        ArrayPush(group_source_envs, Clone(source_env));
+                        ArrayPush(group_source_values, Clone(path));
+                        ArrayPush(group_stage_envs, Clone(stage_env));
+                        ArrayPush(group_stage_values, Clone(stage_value));
+                        ArrayPush(group_impact_ids, Clone(impact_id));
                     } else {
                         ArraySet(
                             group_source_values,
@@ -235,7 +235,7 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
                         )
                     );
                     if !ImpactPlannerArrayContains(proof_gates, gate) {
-                        ArrayPush(proof_gates, gate);
+                        ArrayPush(proof_gates, Clone(gate));
                     }
                 }
             }
@@ -243,7 +243,7 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
         }
         if !path_matched {
             unmatched = unmatched + 1;
-            ArrayPush(unmatched_paths, path);
+            ArrayPush(unmatched_paths, Clone(path));
             if ArrayLength(findings) < 8 {
                 ArrayPush(findings, ImpactPlannerFinding(path));
             }

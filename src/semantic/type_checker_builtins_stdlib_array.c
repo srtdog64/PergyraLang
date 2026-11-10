@@ -10,7 +10,9 @@
 #include "collection_owned_element_requirement_owner.h"
 #include "array_storage_release_owner.h"
 #include "array_storage_defer_release_owner.h"
+#include "array_storage_deferred_preservation_owner.h"
 #include "indexed_string_borrow_owner.h"
+#include "loan_copy_landing_owner.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
@@ -258,8 +260,44 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, op_name, ctx))
             return TYPE_UNKNOWN;
-        if (kind == STDLIB_COLLECTION_ARRAY_PUSH &&
-            semantic_formal_string_store_landing_owned_push(expr, ctx)) {
+        bool member_value_copy_landed =
+            kind == STDLIB_COLLECTION_ARRAY_PUSH
+            && semantic_formal_string_store_landing_member_value_copy_selected(
+                expr, ctx);
+        /* This typed plan owns both parts of one transition: first make the
+         * borrowed String independent, then store that copy in the moved
+         * member as an owned element.  Neither a value-only copy nor an
+         * owned-store-only replay is a sound substitute. */
+        if (member_value_copy_landed) {
+            /* Keep the exact planned call for post-body revalidation.  The
+             * finalizer owns the effect receipt because the current call row
+             * is not sealed until this builtin check returns. */
+            if (!semantic_formal_string_store_landing_record_member_value_copy_candidate(
+                    ctx, expr)
+                || !semantic_formal_string_store_landing(
+                    expr, 0, 1, ctx)) {
+                semantic_error(ctx, expr,
+                    "Aggregate member String copy landing could not be recorded");
+                return TYPE_UNKNOWN;
+            }
+        }
+        bool owned_push_landed = kind == STDLIB_COLLECTION_ARRAY_PUSH
+            && (semantic_formal_string_store_landing_owned_push(expr, ctx)
+                || member_value_copy_landed);
+        bool owned_push_parameter_receiver = false;
+        bool owned_push_parameter_admitted = owned_push_landed
+            && semantic_collection_owned_string_parameter_push_admit(
+                expr, arg0, ctx, &owned_push_parameter_receiver);
+        if (owned_push_landed && owned_push_parameter_receiver
+            && !owned_push_parameter_admitted) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg0,
+                "An owned String push into an Array<String> parameter has no current caller element-ownership proof");
+            return TYPE_UNKNOWN;
+        }
+        if (owned_push_landed) {
             if (!array_push_become_owned_string(expr)) {
                 semantic_error(ctx, expr, "Owned String push landing could not be recorded");
                 return TYPE_UNKNOWN;
@@ -270,64 +308,30 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH
             && !semantic_array_storage_admit_mutation(arg0, ctx))
             return TYPE_UNKNOWN;
-        if (kind == STDLIB_COLLECTION_ARRAY_PUSH
-            && semantic_collection_reject_unsafe_owned_string_mutation(
-                arg0, op_name, ctx)) {
-            /* An Array<String> that owns its elements takes a String as an
-             * owned copy, which the next analysis lands. The value is still
-             * checked, so its facts are published for later owners. */
-            if (!semantic_formal_string_store_landing_select_owned(ctx, expr))
-                semantic_error(ctx, expr,
-                    "Owned String push landing selection failed");
-            (void)type_check_expression(ast_call_argument(expr, 1), ctx);
-            return TYPE_UNKNOWN;
-        }
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
-            && !semantic_collection_admit_owned_string_push(arg0, ctx))
+            && !semantic_collection_admit_owned_string_push(arg0,
+                (owned_push_landed
+                    && semantic_formal_string_store_landing_owned_array_plan_current(
+                        ctx, expr))
+                    || owned_push_parameter_admitted, ctx))
             return TYPE_UNKNOWN;
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH &&
             !semantic_formal_string_store_landing(expr, 0, 1, ctx)) {
             semantic_error(ctx, expr, "Owned String store landing could not be recorded");
             return TYPE_UNKNOWN;
         }
+        /* Landing may replace the stored expression with a compiler-owned
+         * Clone.  Publish and validate that new call, not the retired child
+         * pointer captured before the rewrite. */
         arg1 = ast_call_argument(expr, 1);
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
+        bool value_copy_landed = false;
+        bool copy_landing = false;
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING)) {
-            bool copy_landing = false;
+            value_copy_landed =
+                semantic_formal_string_store_landing_value_copy(expr, ctx);
             semantic_indexed_string_borrow_push_argument(arg1, expr, ctx, &copy_landing);
-            if (copy_landing) {
-                /* The push stores an owned copy of a String no owner proves
-                 * alive for the receiver: the call becomes ArrayPushOwnedString.
-                 * Sealed as a plain push by a loop's earlier walk, it lands in
-                 * the next analysis from its first walk, refused in this one. */
-                if (ast_call_semantic_collection_effect(expr, NULL, NULL, NULL)) {
-                    bool selected = semantic_formal_string_store_landing_select_owned(
-                        ctx, expr);
-                    if (selected)
-                        semantic_loan_copy_landing_error_with_hints(ctx,
-                            PGY_CODE_SEM_BORROW_ESCAPE,
-                            PGY_CAUSE_BORROW_ESCAPE,
-                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg1,
-                            "A String an earlier loop walk pushed as borrowed now needs an owned copy");
-                    else
-                        semantic_error(ctx, arg1,
-                            "Owned String push landing selection failed");
-                    return TYPE_UNKNOWN;
-                }
-                if (!semantic_collection_admit_owned_string_push(arg0, ctx)) {
-                    /* With no owned push, the String lands as a Clone a plain push
-                     * keeps, in a second analysis: a copy nothing releases. */
-                    semantic_formal_string_store_landing_select_owned(ctx, expr);
-                    return TYPE_UNKNOWN;
-                }
-                if (!array_push_become_owned_string(expr)) {
-                    semantic_error(ctx, expr, "Owned String push landing could not be recorded");
-                    return TYPE_UNKNOWN;
-                }
-                kind = STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING;
-                op_name = "ArrayPushOwnedString";
-            }
         }
         reject_borrowed_boundary_container_store(
             arg1, val, "array", op_name, ctx);
@@ -349,21 +353,170 @@ type_check_stdlib_array_call(ASTNode *expr,
             } else if (inner != NULL)
                 require_assignable(val, inner, arg1, ctx);
             if (inner != NULL && type_equals(inner, TYPE_STRING)) {
-                uint32_t owned_result_source = 0;
+                uint32_t owned_source = 0;
+                bool landed_independent_copy =
+                    kind == STDLIB_COLLECTION_ARRAY_PUSH
+                    && (semantic_formal_string_store_landing_value_copy(
+                            expr, ctx)
+                        || semantic_loan_copy_landing_satisfied(ctx, arg1));
+                ASTNode *landed_copy_source = landed_independent_copy
+                    && arg1 != NULL && arg1->type == AST_CALL
+                    && ast_call_arg_count(arg1) == 1
+                    ? ast_call_argument(arg1, 0) : NULL;
+                bool landed_named_copy = landed_copy_source != NULL
+                    && landed_copy_source->type == AST_IDENTIFIER;
+                bool landed_named_receiver_admitted = landed_named_copy
+                    && arg0->type == AST_IDENTIFIER
+                    && semantic_collection_owned_string_push_admissible(
+                        arg0, ctx);
+                bool source_owned_result =
+                    kind == STDLIB_COLLECTION_ARRAY_PUSH
+                    && semantic_collection_owned_string_call_result(
+                        arg1, ctx, &owned_source)
+                    && owned_source != 0;
+                uint32_t pending_owned_source = 0;
+                bool pending_owned_result =
+                    kind == STDLIB_COLLECTION_ARRAY_PUSH
+                    && !source_owned_result
+                    && semantic_collection_owned_string_result_candidate(
+                        arg1, ctx, &pending_owned_source)
+                    && pending_owned_source != 0;
+                if (kind == STDLIB_COLLECTION_ARRAY_PUSH
+                    && (!source_owned_result
+                        || (landed_independent_copy
+                            && !landed_named_receiver_admitted))
+                    && !pending_owned_result
+                    && semantic_collection_reject_unsafe_owned_string_mutation(
+                        arg0, op_name, ctx)) {
+                    /* A fresh owned result transfers through the ordinary
+                     * push. A compiler-landed Clone of a direct named local
+                     * is the same exact owned producer, so its source receipt
+                     * remains the authority instead of refining this call
+                     * into a second store contract. A member receiver still
+                     * needs its separate exact member proof. */
+                    if (!semantic_formal_string_store_landing_select_owned(
+                            ctx, expr)) {
+                        semantic_error(ctx, expr,
+                            "Owned String push landing selection failed");
+                    }
+                    return TYPE_UNKNOWN;
+                }
+                if (kind == STDLIB_COLLECTION_ARRAY_PUSH && copy_landing
+                    && !value_copy_landed && !pending_owned_result) {
+                    /* The push stores an owned copy of a String no owner proves
+                     * alive for the receiver. A repeated walk must select the
+                     * same landing before changing the builtin effect. */
+                    if (ast_call_semantic_collection_effect(
+                            expr, NULL, NULL, NULL)) {
+                        bool selected =
+                            semantic_formal_string_store_landing_select_owned(
+                                ctx, expr);
+                        if (selected)
+                            semantic_loan_copy_landing_error_with_hints(ctx,
+                                PGY_CODE_SEM_BORROW_ESCAPE,
+                                PGY_CAUSE_BORROW_ESCAPE,
+                                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg1,
+                                "A String an earlier loop walk pushed as borrowed now needs an owned copy");
+                        else {
+                            semantic_error(ctx, arg1,
+                                "Owned String push landing selection failed");
+                        }
+                        return TYPE_UNKNOWN;
+                    }
+                    bool landing_parameter_receiver = false;
+                    bool landing_parameter_admitted =
+                        semantic_collection_owned_string_parameter_push_admit(
+                            expr, arg0, ctx, &landing_parameter_receiver);
+                    if (landing_parameter_receiver) {
+                        if (!landing_parameter_admitted) {
+                            semantic_error_with_hints(ctx,
+                                PGY_CODE_SEM_BORROW_ESCAPE,
+                                PGY_CAUSE_BORROW_ESCAPE,
+                                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg0,
+                                "An owned String push into an Array<String> parameter has no current caller element-ownership proof");
+                            return TYPE_UNKNOWN;
+                        }
+                        if (!semantic_formal_string_store_landing_select_owned(
+                                ctx, expr)) {
+                            semantic_error(ctx, expr,
+                                "Owned String push landing selection failed");
+                            return TYPE_UNKNOWN;
+                        }
+                        semantic_loan_copy_landing_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg1,
+                            "A String stored through an Array<String> parameter is replayed as one owned push");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (!semantic_collection_admit_owned_string_push(
+                            arg0, false, ctx)) {
+                        semantic_formal_string_store_landing_select_value_copy(
+                            ctx, expr);
+                        return TYPE_UNKNOWN;
+                    }
+                    if (!array_push_become_owned_string(expr)) {
+                        semantic_error(ctx, expr,
+                            "Owned String push landing could not be recorded");
+                        return TYPE_UNKNOWN;
+                    }
+                    kind = STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING;
+                    op_name = "ArrayPushOwnedString";
+                }
+                bool parameter_receiver = false;
+                bool parameter_admitted = false;
+                bool member_admitted = false;
+                if (kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
+                    || source_owned_result) {
+                    parameter_admitted =
+                        semantic_collection_owned_string_parameter_push_admit(
+                            expr, arg0, ctx, &parameter_receiver);
+                    if (parameter_receiver && !parameter_admitted) {
+                        if (!ctx->has_error) {
+                            semantic_error_with_hints(ctx,
+                                PGY_CODE_SEM_BORROW_ESCAPE,
+                                PGY_CAUSE_BORROW_ESCAPE,
+                                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg0,
+                                "An owned String push into an Array<String> "
+                                "parameter has no current caller "
+                                "element-ownership proof");
+                        }
+                        return TYPE_UNKNOWN;
+                    }
+                    member_admitted = !parameter_receiver
+                        && semantic_collection_owned_element_member_push_provisional(
+                            arg0, ctx);
+                }
+                bool general_owned_result =
+                    kind == STDLIB_COLLECTION_ARRAY_PUSH
+                    && source_owned_result
+                    && (parameter_admitted || member_admitted
+                        || (!parameter_receiver
+                            && (!landed_independent_copy
+                                || landed_named_receiver_admitted)));
+                if (pending_owned_result
+                    && !semantic_array_storage_record_pending_owned_string_result(
+                        ctx, expr, arg0, arg1, pending_owned_source)) {
+                    semantic_error(ctx, expr,
+                        "Could not defer an exact pending owned String result");
+                    return TYPE_UNKNOWN;
+                }
                 PgyCollectionOwnershipEffectKind effect =
-                    kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
+                    kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING ||
+                        general_owned_result || pending_owned_result
                         ? PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
                         : PGY_COLLECTION_EFFECT_SHALLOW_MUTATION;
-                if (kind == STDLIB_COLLECTION_ARRAY_PUSH
-                    && semantic_collection_owned_string_call_result(
-                        arg1, ctx, &owned_result_source)) {
-                    effect = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
-                }
-                if (!semantic_collection_record_call_effect_from(
-                        expr, arg0, effect, owned_result_source, ctx)) {
-                semantic_error(ctx, expr,
-                    "Could not seal Array<String> ownership transition receipt");
-                return TYPE_UNKNOWN;
+                bool effect_current = member_value_copy_landed
+                    ? true
+                    : semantic_collection_record_call_effect_from(
+                        expr, arg0, effect,
+                        general_owned_result ? owned_source
+                            : pending_owned_result ? pending_owned_source : 0,
+                        ctx);
+                if (!effect_current) {
+                    semantic_error(ctx, expr,
+                        "Could not seal Array<String> ownership transition receipt");
+                    return TYPE_UNKNOWN;
                 }
             }
         }
@@ -456,7 +609,14 @@ type_check_stdlib_array_call(ASTNode *expr,
                 type_name_or_unknown(arr));
             return TYPE_UNKNOWN;
         }
-        if (!consume_array_storage_binding(arg0, ctx))
+        /* This compiler-internal boundary retires the same exact Array
+         * storage as ArrayDrop.  Publish that release on the own formal
+         * before consuming the local symbol so detached-member handoffs can
+         * validate the callee's final responsibility from the existing
+         * owned-element requirement owner. */
+        if (!semantic_collection_owned_element_requirement_record_storage_drop(
+                expr, arg0, ctx)
+            || !consume_array_storage_binding(arg0, ctx))
             return TYPE_UNKNOWN;
         return TYPE_VOID;
     }
@@ -486,9 +646,26 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         if (!semantic_array_storage_admit_mutation(arg0, ctx))
             return TYPE_UNKNOWN;
+        bool inout_set_receiver =
+            semantic_formal_string_store_landing_inout_set_receiver_current(
+                expr, ctx);
+        bool landed_inout_owned_set = inout_set_receiver
+            && semantic_formal_string_store_landing_inout_owned_set_current(
+                expr, ctx);
+        /* Revalidate a prior local owned-set plan even when its receiver
+         * premise is temporarily absent. The landing owner can then reselect
+         * the exact definition-birth copy on which that plan depends; the
+         * fixed-point replay remains fail-closed until the premise returns. */
+        bool landed_local_owned_set = !inout_set_receiver
+            && semantic_formal_string_store_landing_owned_set(expr, ctx);
         if (!owned_set
-            && semantic_collection_owned_string_set_required(arg0, ctx)) {
-            if (!semantic_formal_string_store_landing_owned_set(expr, ctx)) {
+            && (landed_inout_owned_set
+                || (!inout_set_receiver
+                    && (landed_local_owned_set
+                        || semantic_collection_owned_string_set_required(
+                            arg0, ctx))))) {
+            if (!landed_inout_owned_set
+                && !landed_local_owned_set) {
                 if (!semantic_formal_string_store_landing_select_owned_set(
                         ctx, expr))
                     semantic_error(ctx, expr,
@@ -513,7 +690,7 @@ type_check_stdlib_array_call(ASTNode *expr,
             (void)type_check_expression(arg2, ctx);
             return TYPE_UNKNOWN;
         }
-        if (owned_set
+        if (owned_set && !landed_inout_owned_set
             && !semantic_collection_admit_owned_string_set(arg0, ctx))
             return TYPE_UNKNOWN;
         require_assignable(
@@ -532,8 +709,12 @@ type_check_stdlib_array_call(ASTNode *expr,
             semantic_indexed_string_borrow_set_argument(arg2, expr, ctx, &copy_wanted);
         /* A borrowed-element ArraySet still needs a value landing when its
          * input outlives no owner. The owned operation copies internally. */
-        if (copy_wanted)
-            semantic_formal_string_store_landing_select_checked(ctx, expr, 2);
+        if (copy_wanted &&
+            !semantic_formal_string_store_landing_select_checked(ctx, expr, 2)) {
+            semantic_error(ctx, expr,
+                "Owned String store copy landing could not be recorded");
+            return TYPE_UNKNOWN;
+        }
         if (!owned_set)
             reject_borrowed_boundary_container_store(
                 arg2, val, "array", op_name, ctx);
@@ -576,6 +757,7 @@ type_check_stdlib_array_call(ASTNode *expr,
     }
     if (kind == STDLIB_COLLECTION_ARRAY_POP) {
         Type *arr;
+        bool owned_string_pop = false;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(
@@ -588,9 +770,6 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         if (!semantic_array_storage_admit_mutation(arg0, ctx))
             return TYPE_UNKNOWN;
-        if (semantic_collection_reject_unsafe_owned_string_mutation(
-                arg0, "ArrayPop", ctx))
-            return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
@@ -599,9 +778,38 @@ type_check_stdlib_array_call(ASTNode *expr,
                 type_name_or_unknown(arr));
         else {
             Type *inner = type_get_constructed_arg(arr, 0);
+            bool string_elements = inner != NULL
+                && type_equals(inner, TYPE_STRING);
+            bool parameter_receiver = false;
+            bool parameter_admitted = string_elements
+                && semantic_collection_owned_string_parameter_pop_admit(
+                    expr, arg0, ctx, &parameter_receiver);
+            if (string_elements && parameter_receiver
+                && !parameter_admitted) {
+                if (!ctx->has_error)
+                    semantic_error_with_hints(ctx,
+                        PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE,
+                        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, arg0,
+                        "An owned String pop through an Array<String> parameter has no current caller element-ownership proof");
+                return TYPE_UNKNOWN;
+            }
+            bool local_owned_pop = string_elements
+                && semantic_collection_owned_string_pop_required(arg0, ctx);
+            owned_string_pop = parameter_admitted || local_owned_pop;
+            if (owned_string_pop) {
+                if (local_owned_pop
+                    && !semantic_collection_admit_owned_string_pop(arg0, ctx))
+                    return TYPE_UNKNOWN;
+            } else if (semantic_collection_reject_unsafe_owned_string_mutation(
+                    arg0, "ArrayPop", ctx)) {
+                return TYPE_UNKNOWN;
+            }
             if (inner != NULL && type_equals(inner, TYPE_STRING)
                 && !semantic_collection_record_call_effect(
-                    expr, arg0, PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
+                    expr, arg0, owned_string_pop
+                        ? PGY_COLLECTION_EFFECT_OWNED_STRING_POP
+                        : PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
                     ctx)) {
                 semantic_error(ctx, expr,
                     "Could not seal Array<String> ownership transition receipt");

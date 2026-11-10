@@ -2,12 +2,22 @@
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
-import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_result_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_builtin_target_owner.pgy";
 
 func DirectMirScalarProgramLlvmOptionResultExpressionAt(
-    kind: Int, result: String, left: String, right: String
+    kind: Int, result: String, result_type: String,
+    left: String, left_type: String, right: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let selected: DirectMirScalarProgramLlvmStringExpression =
+    let explicit_result: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmPayloadFreeEnumResultExpressionAt(
+            kind, result, result_type, left, left_type, right,
+            logical_record, payload_free_enum, referenced_enum);
+    if explicit_result.matched { return explicit_result; }
+    var selected: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmOptionIntExpressionAt(kind, result, left);
     if selected.matched { return selected; }
     selected = DirectMirScalarProgramLlvmOptionStringExpressionAt(
@@ -16,6 +26,6 @@ func DirectMirScalarProgramLlvmOptionResultExpressionAt(
     selected = DirectMirScalarProgramLlvmOptionBoolExpressionAt(
         kind, result, left);
     if selected.matched { return selected; }
-    return DirectMirScalarProgramLlvmResultIntExpressionAt(
-        kind, result, left, right);
+    return DirectMirScalarProgramLlvmScalarResultExpressionAt(
+        kind, result, result_type, left, left_type, right);
 }

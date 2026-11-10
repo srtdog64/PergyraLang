@@ -8,7 +8,7 @@ func DirectMirScalarProgramCOptionIntAccessorPreamble(
     ref abi: DirectMirOptionMatchAbiProjection,
     type_name: String
 ) -> String {
-    let output: String = Concat(
+    var output: String = Concat(
         "static bool pgy_scalar_option_int_is_some(",
         Concat(type_name, " value) { return value."));
     output = Concat(output, Concat(fact.tag_name, Concat(" == ",

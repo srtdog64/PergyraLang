@@ -1,0 +1,119 @@
+// C/LLVM calls for Result<P, E> builtins after the typed result projection
+// has joined payload and payload-free enum error identities.
+
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramCPayloadFreeEnumResultExpression(
+    kind: Int, result_type: String, left_type: String,
+    left: String, right: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Option<String> {
+    var projected_type: String = left_type;
+    if kind == DirectMirScalarProgramExprOkInt() ||
+            kind == DirectMirScalarProgramExprErrInt() {
+        projected_type = result_type;
+    }
+    let projection: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            projected_type, logical_record, referenced_enum);
+    if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            projection, logical_record, referenced_enum) {
+        return None;
+    }
+    var function_name: String = "";
+    if kind == DirectMirScalarProgramExprOkInt() {
+        function_name = projection.c_ok_fn;
+    } else if kind == DirectMirScalarProgramExprErrInt() {
+        function_name = projection.c_err_fn;
+    } else if kind == DirectMirScalarProgramExprIsOkInt() {
+        function_name = projection.c_is_ok_fn;
+    } else if kind == DirectMirScalarProgramExprIsErrInt() {
+        function_name = projection.c_is_err_fn;
+    } else if kind == DirectMirScalarProgramExprUnwrapResultInt() {
+        function_name = projection.c_unwrap_fn;
+    } else if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        function_name = projection.c_unwrap_err_fn;
+    } else if kind == DirectMirScalarProgramExprUnwrapOrInt() {
+        function_name = projection.c_unwrap_or_fn;
+    } else { return None; }
+    var call: String = Concat(function_name, Concat("(", left));
+    if kind == DirectMirScalarProgramExprUnwrapOrInt() {
+        call = Concat(call, Concat(", ", right));
+    }
+    return Some(Concat(call, ")"));
+}
+
+func DirectMirScalarProgramLlvmPayloadFreeEnumResultExpressionAt(
+    kind: Int, result: String, result_type: String,
+    left: String, left_type: String, right: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramLlvmStringExpression {
+    var projected_type: String = left_type;
+    if kind == DirectMirScalarProgramExprOkInt() ||
+            kind == DirectMirScalarProgramExprErrInt() {
+        projected_type = result_type;
+    }
+    let projection: DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            projected_type, logical_record, referenced_enum);
+    if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            projection, logical_record, referenced_enum) {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let payload_type: String =
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            projection.payload_type, logical_record, payload_free_enum,
+            referenced_enum);
+    let error_type: String =
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            projection.error_type, logical_record, payload_free_enum,
+            referenced_enum);
+    if payload_type == "" || error_type == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    var function_name: String = "";
+    var return_type: String = "";
+    var first_type: String = "";
+    var second_type: String = "";
+    if kind == DirectMirScalarProgramExprOkInt() {
+        function_name = Concat("@", Concat(projection.llvm_stem, ".ok"));
+        return_type = projection.llvm_type; first_type = payload_type;
+    } else if kind == DirectMirScalarProgramExprErrInt() {
+        function_name = Concat("@", Concat(projection.llvm_stem, ".err"));
+        return_type = projection.llvm_type; first_type = error_type;
+    } else if kind == DirectMirScalarProgramExprIsOkInt() ||
+            kind == DirectMirScalarProgramExprIsErrInt() {
+        var suffix: String = ".is_ok";
+        if kind == DirectMirScalarProgramExprIsErrInt() { suffix = ".is_err"; }
+        function_name = Concat("@", Concat(projection.llvm_stem, suffix));
+        return_type = "i1"; first_type = projection.llvm_type;
+    } else if kind == DirectMirScalarProgramExprUnwrapResultInt() {
+        function_name = Concat("@", Concat(projection.llvm_stem, ".unwrap"));
+        return_type = payload_type; first_type = projection.llvm_type;
+    } else if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        function_name = Concat("@", Concat(projection.llvm_stem, ".unwrap_err"));
+        return_type = error_type; first_type = projection.llvm_type;
+    } else if kind == DirectMirScalarProgramExprUnwrapOrInt() {
+        function_name = Concat("@", Concat(projection.llvm_stem, ".unwrap_or"));
+        return_type = payload_type; first_type = projection.llvm_type;
+        second_type = payload_type;
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    var output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(return_type, Concat(" ", function_name)))));
+    output = Concat(output, Concat("(", Concat(first_type,
+        Concat(" ", left))));
+    if second_type != "" {
+        output = Concat(output, Concat(", ", Concat(second_type,
+            Concat(" ", right))));
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

@@ -1,6 +1,6 @@
 // The return value copies an element before the defer releases the Strings.
 func Build() -> String {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, Concat("a", "b"));
     defer { ArrayDropOwnedStrings(names); };
     return Concat(names[0], "!");

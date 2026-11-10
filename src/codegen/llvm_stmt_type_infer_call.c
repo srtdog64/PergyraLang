@@ -374,6 +374,8 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 "declared call has conflicting target identity");
         if (selected.kind == LLVM_SELECTED_CALL_EVENT)
             return ctx->type_void;
+        if (selected.kind == LLVM_SELECTED_CALL_INTENT)
+            return ctx->type_i1;
         if (selected.kind == LLVM_SELECTED_CALL_HOST_METHOD) {
             const char *host_name = llvm_current_host_decl_name(ctx);
             LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(

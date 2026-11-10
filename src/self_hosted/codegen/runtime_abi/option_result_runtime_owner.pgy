@@ -117,7 +117,7 @@ func OptionResultRuntimeStructOptionFact(
         return None;
     }
     let inner: String = UnwrapOption(inner_opt);
-    let inner_c_type: String = "";
+    var inner_c_type: String = "";
     let enum_fact: EnumAbiValueFact =
         EnumAbiValueFactFor(inner, env);
     let is_struct: Bool = LookupKindType(env, inner, "s") == "struct";
@@ -250,7 +250,7 @@ func OptionResultRuntimeCCharFromCodeBlock(
         OptionResultRuntimeOptionPayloadKindString());
     let some_fn: String = OptionResultRuntimeCOptionSomeFnForPayloadKind(
         OptionResultRuntimeOptionPayloadKindString());
-    let block: String = Concat("static ", Concat(option_string_type, Concat(" ",
+    var block: String = Concat("static ", Concat(option_string_type, Concat(" ",
         Concat(OptionResultRuntimeCCharFromCodeFn(), Concat("(", Concat(int_type,
             " code)\n{\n"))))));
     block = Concat(block, "    unsigned char b[4];\n    int n = 0;\n");
@@ -348,7 +348,7 @@ func OptionResultRuntimeCValueOptionDefinition(
     let runtime_fact: OptionStructRuntimeFact =
         UnwrapOption(runtime_fact_opt);
     let inner_c_type: String = runtime_fact.inner_c_type;
-    let out: String = Concat(
+    var out: String = Concat(
         "typedef struct { bool is_some; ",
         Concat(inner_c_type, Concat(
             " value; } ", Concat(runtime_fact.c_type, ";\n")
@@ -391,7 +391,7 @@ func OptionResultRuntimeCBuiltinScalarResultDefinition(
     if payload_c_type == "" || error_c_type == "" {
         Die("built-in scalar Result payload ABI row is missing");
     }
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat(
         "typedef struct { bool is_ok; union { ", Concat(
             payload_c_type, Concat(" ok; ", Concat(
@@ -456,7 +456,7 @@ func OptionResultRuntimeCBuiltinScalarResultDefinition(
 }
 
 func OptionResultRuntimeCBuiltinScalarResultBlock() -> String {
-    let block: String = OptionResultRuntimeCBuiltinScalarResultDefinition(
+    var block: String = OptionResultRuntimeCBuiltinScalarResultDefinition(
         "Result<Int>"
     );
     block = Concat(block,
@@ -484,7 +484,7 @@ func OptionResultRuntimeCOptionScalarBlock() -> String {
     let float_type: String = CompilerAbiLayoutFloatCValueType();
     let double_type: String = CompilerAbiLayoutDoubleCValueType();
     let bool_type: String = CompilerAbiLayoutBoolCValueType();
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(int_type, Concat(" value; } ", Concat(option_int_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(long_type, Concat(" value; } ", Concat(option_long_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(string_type, Concat(" value; } ", Concat(option_string_type, ";\n")))));

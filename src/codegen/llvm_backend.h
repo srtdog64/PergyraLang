@@ -75,6 +75,7 @@ LLVMGenResult *llvm_codegen_from_mir_with_projection_plans(
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
     const PgyRegionPlan *region_plan,
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
     const char *module_name);
 
 LLVMGenResult *llvm_codegen_to_object_from_mir(const MIRProgram *mir,
@@ -96,6 +97,7 @@ LLVMGenResult *llvm_codegen_to_object_from_mir_with_projection_plans(
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
     const PgyRegionPlan *region_plan,
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
     const char *module_name,
     const char *output_path,
     bool release_opt);

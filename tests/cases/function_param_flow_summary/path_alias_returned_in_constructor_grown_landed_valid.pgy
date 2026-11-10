@@ -23,7 +23,7 @@ func Wrap(outer: Outer) -> Holder {
 }
 
 func Grow(outer: Outer) -> Int {
-    let held: Holder = Wrap(outer);
+    var held: Holder = Wrap(outer);
     ArrayPush(held.part.items, 9);
     ArrayPush(held.part.items, 9);
     ArrayPush(held.part.items, 9);

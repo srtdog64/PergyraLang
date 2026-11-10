@@ -1,0 +1,34 @@
+// Carrying one returned field does not retire a disjoint readonly sibling.
+struct MemberReadConfig { values: Array<Int>; }
+struct MemberReadHolder {
+    cfg: MemberReadConfig;
+    names: Array<String>;
+}
+
+func MemberReadConfigGrow(cfg: MemberReadConfig) -> MemberReadConfig {
+    let values: Array<Int> = cfg.values;
+    ArrayPush(values, 1);
+    ArrayPush(values, 2);
+    ArrayPush(values, 3);
+    ArrayPush(values, 4);
+    return MemberReadConfig(values);
+}
+
+func MemberReadNameLength(names: Array<String>) -> Int {
+    return StringLength(names[0]);
+}
+
+func MemberReadHolderGrow(holder: MemberReadHolder) -> MemberReadHolder {
+    let cfg: MemberReadConfig = MemberReadConfigGrow(holder.cfg);
+    let observed: Int = MemberReadNameLength(holder.names);
+    if observed < 0 { Log(observed); }
+    holder.cfg = cfg;
+    return holder;
+}
+
+func Main() -> Void {
+    let holder: MemberReadHolder = MemberReadHolder(
+        MemberReadConfig([]), ["name"]);
+    let updated: MemberReadHolder = MemberReadHolderGrow(holder);
+    Log(ArrayLength(updated.cfg.values));
+}

@@ -11,15 +11,15 @@ func SelfMirCfgSetInstructionUses(
     if instruction_index < 0 || instruction_index >= instruction_count {
         return cfg;
     }
-    let use_starts: Array<Int> = [];
-    let use_counts: Array<Int> = [];
-    let uses: Array<String> = [];
-    let row: Int = 0;
+    var use_starts: Array<Int> = [];
+    var use_counts: Array<Int> = [];
+    var uses: Array<String> = [];
+    var row: Int = 0;
     while row < instruction_count {
         ArrayPush(use_starts, ArrayLength(uses));
         if row == instruction_index {
             ArrayPush(use_counts, ArrayLength(replacement));
-            let replacement_i: Int = 0;
+            var replacement_i: Int = 0;
             while replacement_i < ArrayLength(replacement) {
                 ArrayPush(uses, Concat("", replacement[replacement_i]));
                 replacement_i = replacement_i + 1;
@@ -28,9 +28,13 @@ func SelfMirCfgSetInstructionUses(
             let old_start: Int = cfg.instructions.use_starts[row];
             let old_count: Int = cfg.instructions.use_counts[row];
             ArrayPush(use_counts, old_count);
-            let old_i: Int = 0;
+            var old_i: Int = 0;
             while old_i < old_count {
-                ArrayPush(uses, cfg.instructions.uses[old_start + old_i]);
+                // The rebuilt row outlives the consumed source descriptor.
+                // Preserve an independent String before the old uses storage
+                // is retired; this is the same copy boundary as replacement.
+                ArrayPush(uses, Clone(
+                    cfg.instructions.uses[old_start + old_i]));
                 old_i = old_i + 1;
             }
         }
@@ -57,7 +61,9 @@ func SelfMirCfgSetInstructionUses(
             use_starts, use_counts, uses,
             instructions.expr0_graphs, instructions.expr1_graphs,
             instructions.match_facts, instructions.destructure_facts,
-            instructions.abi_type_names, instructions.runtime_call_abi, instructions.binding_source_syntax_ids
+            instructions.abi_type_names, instructions.runtime_call_abi,
+            instructions.binding_source_syntax_ids,
+            instructions.collection_mutation_target_graphs
         ), cfg.local_refs
     );
 }
@@ -94,7 +100,8 @@ func SelfMirCfgAttachLastRuntimeCallAbiAux(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            runtime_call_abi, instructions.binding_source_syntax_ids
+            runtime_call_abi, instructions.binding_source_syntax_ids,
+            instructions.collection_mutation_target_graphs
         ), cfg.local_refs
     );
 }
@@ -131,7 +138,8 @@ func SelfMirCfgAttachLastRuntimeCallAbi(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            runtime_call_abi, instructions.binding_source_syntax_ids
+            runtime_call_abi, instructions.binding_source_syntax_ids,
+            instructions.collection_mutation_target_graphs
         ), cfg.local_refs
     );
 }
@@ -140,56 +148,8 @@ func SelfMirCfgAttachLastRuntimeValueCallAbi(
     cfg: SelfMirCfgRows,
     ref fact: CompilerRuntimeValueCallAbiFact
 ) -> SelfMirCfgRows {
-    let instructions: SelfMirInstructionRows = cfg.instructions;
-    let runtime_values: SelfMirRuntimeValueCallAbiRows =
+    cfg.instructions.runtime_call_abi.runtime_values =
         SelfMirRuntimeValueCallAbiRowsAttachLast(
-            instructions.runtime_call_abi.runtime_values, fact);
-    let runtime_call_abi: SelfMirRuntimeCallAbiRows =
-        SelfMirRuntimeCallAbiRows(
-            instructions.runtime_call_abi.present,
-            instructions.runtime_call_abi.owners,
-            instructions.runtime_call_abi.domains,
-            instructions.runtime_call_abi.type_names,
-            instructions.runtime_call_abi.operations,
-            instructions.runtime_call_abi.symbols,
-            instructions.runtime_call_abi.target_kinds,
-            instructions.runtime_call_abi.materializations,
-            instructions.runtime_call_abi.call_shapes,
-            instructions.runtime_call_abi.runtime_call_abi_ids,
-            instructions.runtime_call_abi.aux_instruction_indices,
-            instructions.runtime_call_abi.aux_owners,
-            instructions.runtime_call_abi.aux_domains,
-            instructions.runtime_call_abi.aux_type_names,
-            instructions.runtime_call_abi.aux_operations,
-            instructions.runtime_call_abi.aux_symbols,
-            instructions.runtime_call_abi.aux_target_kinds,
-            instructions.runtime_call_abi.aux_materializations,
-            instructions.runtime_call_abi.aux_call_shapes,
-            instructions.runtime_call_abi.aux_runtime_call_abi_ids,
-            runtime_values
-        );
-    return SelfMirCfgRows(
-        cfg.blocks,
-        SelfMirInstructionRows(
-            instructions.ids, instructions.kinds, instructions.names,
-            instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.slot_anchors, instructions.expr0s,
-            instructions.expr1s, instructions.source_types,
-            instructions.machine_contact_kinds,
-            instructions.machine_layer_manifest_ids,
-            instructions.machine_layer_physical_grant_ids,
-            instructions.machine_layer_physical_bases,
-            instructions.machine_layer_physical_sizes,
-            instructions.machine_layer_physical_modes,
-            instructions.machine_layer_runtime_operations,
-            instructions.machine_layer_hardware_adequate,
-            instructions.machine_layer_authority_required,
-            instructions.machine_layer_live_lease_required,
-            instructions.use_starts, instructions.use_counts,
-            instructions.uses, instructions.expr0_graphs,
-            instructions.expr1_graphs, instructions.match_facts,
-            instructions.destructure_facts, instructions.abi_type_names,
-            runtime_call_abi, instructions.binding_source_syntax_ids
-        ), cfg.local_refs
-    );
+            cfg.instructions.runtime_call_abi.runtime_values, fact);
+    return cfg;
 }

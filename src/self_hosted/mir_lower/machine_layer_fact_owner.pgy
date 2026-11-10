@@ -132,7 +132,7 @@ func MirMachineLayerPressureStage(enabled: Bool, stage: String) -> Void {
 }
 
 func MirMachineLayerContactIndex(operation: String) -> Int {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < CompilerRuntimeCallAbiMachineLayerContactCount() {
         if CompilerRuntimeCallAbiMachineLayerContactNameAt(row) == operation {
             return row;
@@ -192,7 +192,7 @@ func MirMachineLayerInstructionBoundsReady(
     value_end: Int,
     declaration: SelfHostMachineLayerDeclaration
 ) -> Bool {
-    let contact_kind: String = "";
+    var contact_kind: String = "";
     if contact_start >= 0 {
         let contact_value_kind: Int = JsonCharCodeAt(
             json, json_extent, contact_end, contact_start
@@ -239,8 +239,8 @@ func MirMachineLayerInstructionReady(
     end: Int,
     declaration: SelfHostMachineLayerDeclaration
 ) -> Bool {
-    let contact_bounds: Array<Int> = [0 - 1, 0 - 1];
-    let value_bounds: Array<Int> = [0 - 1, 0 - 1];
+    var contact_bounds: Array<Int> = [0 - 1, 0 - 1];
+    var value_bounds: Array<Int> = [0 - 1, 0 - 1];
     if !JsonObjectTwoFieldValueBoundsWithin(
         json, json_extent, start, end,
         "machine_contact_kind", "machine_layer",
@@ -269,7 +269,7 @@ func MirMachineLayerInstructionRuntimeOperationAtBounds(
 func MirMachineLayerInstructionRuntimeOperation(
     json: String, json_extent: Int, start: Int, end: Int
 ) -> String {
-    let value_bounds: Array<Int> = [0, 0];
+    var value_bounds: Array<Int> = [0, 0];
     if !MirObjectFieldValueBoundsAtBounds(
         json, json_extent, start, end, "machine_layer", value_bounds) { return ""; }
     return MirMachineLayerInstructionRuntimeOperationAtBounds(
@@ -288,7 +288,7 @@ func MirMachineLayerRoutineIndexFactsReady(
         return false;
     }
     if !MirProgramInstructionIdentitiesReady(routines) { return false; }
-    let instruction_row: Int = 0;
+    var instruction_row: Int = 0;
     while instruction_row < ArrayLength(routines.instruction_starts) {
         if !MirMachineLayerInstructionBoundsReady(
             routines.source_json, routines.source_json_extent,

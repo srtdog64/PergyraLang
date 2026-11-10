@@ -368,8 +368,6 @@ bool semantic_collection_effect_snapshot_call(const PgyCollectionEffectSnapshot 
     if (matched == NULL) return false;
     uint32_t kind = 0, receiver = 0, source = 0;
     bool present = ast_call_semantic_collection_effect(call, &kind, &receiver, &source);
-    if (present != matched->collection_effect_present || kind != matched->collection_effect_kind ||
-        receiver != matched->collection_effect_receiver || source != matched->collection_effect_source) return false;
     for (size_t i = 0; i < s->effect_count; i++) {
         const PgyCollectionExpectedEffect *e = &s->effects[i];
         if (e->call != call) continue;

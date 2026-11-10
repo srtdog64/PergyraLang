@@ -1,0 +1,46 @@
+struct EnumRefManifest {
+    let id: String;
+}
+
+enum EnumRefObservation {
+    EnumRefVerified,
+    EnumRefPressureObserved,
+}
+
+enum EnumRefMachine {
+    EnumRefDefaultMachine,
+    EnumRefManifestMachine(EnumRefManifest),
+}
+
+func EnumRefObservationReady(
+    ref request: EnumRefObservation
+) -> Bool {
+    match request {
+        case EnumRefVerified: return true;
+        case EnumRefPressureObserved: return false;
+    }
+}
+
+func EnumRefMachineReady(ref request: EnumRefMachine) -> Bool {
+    match request {
+        case EnumRefDefaultMachine: return false;
+        case EnumRefManifestMachine(manifest): return manifest.id == "ready";
+    }
+}
+
+func EnumRefSnapshotReady(
+    ref observation: EnumRefObservation,
+    ref machine: EnumRefMachine
+) -> Bool {
+    return EnumRefObservationReady(observation) &&
+        EnumRefMachineReady(machine);
+}
+
+func Main() -> Void {
+    let observation: EnumRefObservation = EnumRefObservation.EnumRefVerified;
+    let manifest: EnumRefManifest = EnumRefManifest("ready");
+    let machine: EnumRefMachine = EnumRefManifestMachine(manifest);
+    let default_machine: EnumRefMachine = EnumRefMachine.EnumRefDefaultMachine;
+    Log(EnumRefSnapshotReady(observation, machine));
+    Log(EnumRefSnapshotReady(observation, default_machine));
+}

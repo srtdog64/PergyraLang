@@ -94,9 +94,9 @@ func CodegenSemanticNominalFieldKindOrDie(
 func CodegenSemanticNominalsRequireProjectionReadyBool(
     facts: SemanticAstNominalConstructorFacts
 ) -> Bool {
-    let nominal_index: Int = 0;
+    var nominal_index: Int = 0;
     while nominal_index < SemanticAstNominalConstructorCount(facts) {
-        let field_index: Int = 0;
+        var field_index: Int = 0;
         while field_index < CodegenSemanticNominalFieldCountOrDie(
             facts, nominal_index
         ) {

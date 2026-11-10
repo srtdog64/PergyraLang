@@ -65,10 +65,20 @@ void function_param_flow_closure_changed(FunctionParamFlowSummaryStore *store, s
 
 FunctionParamFlowEntryFacts function_param_flow_entry_facts(const FunctionParamFlowSummaryEntry *entry)
 {
-    FunctionParamFlowEntryFacts facts = {entry->mask, entry->array_storage_unproved, entry->array_elements_unproved,
-        entry->array_buffer_unkept,
-        entry->returned_backing_unproved, entry->returned_backing_pending, entry->analysis_unsupported,
-        entry->output_dependencies_ready, entry->output_dependencies != NULL, entry->output_producer, 0};
+    FunctionParamFlowEntryFacts facts = {
+        .mask = entry->mask,
+        .storage = entry->array_storage_unproved,
+        .elements = entry->array_elements_unproved,
+        .buffer = entry->array_buffer_unkept,
+        .unproved = entry->returned_backing_unproved,
+        .pending = entry->returned_backing_pending,
+        .unsupported = entry->analysis_unsupported,
+        .ready = entry->output_dependencies_ready,
+        .outputs_present = entry->output_dependencies != NULL,
+        .result_path_ready = entry->result_path_ready,
+        .producer = entry->output_producer,
+        .result_path = entry->result_path,
+    };
     for (size_t p = 0; facts.outputs_present && p < entry->output_count; p++)
         facts.outputs += entry->output_dependencies[p];
     return facts;
@@ -79,7 +89,9 @@ bool function_param_flow_entry_facts_equal(FunctionParamFlowEntryFacts a, Functi
     return a.mask == b.mask && a.storage == b.storage && a.elements == b.elements && a.buffer == b.buffer &&
         a.unproved == b.unproved && a.pending == b.pending && a.unsupported == b.unsupported &&
         a.ready == b.ready && a.outputs_present == b.outputs_present && a.producer == b.producer &&
-        a.outputs == b.outputs;
+        a.outputs == b.outputs && a.result_path_ready == b.result_path_ready &&
+        (!a.result_path_ready || function_param_flow_result_path_equal(
+            &a.result_path, &b.result_path));
 }
 
 /* Evaluates an entry not yet evaluated in this pass as the reader of what it
@@ -122,7 +134,9 @@ bool function_param_flow_worklist_verified(FunctionParamFlowSummaryStore *store,
     bool same = !store->failed && store->count == end;
     for (size_t i = store->active_start; same && i < end; i++)
         same = !store->entries[i].dirty &&
-            function_param_flow_entry_facts_equal(facts[i - store->active_start], function_param_flow_entry_facts(&store->entries[i]));
+            function_param_flow_entry_facts_equal(
+                facts[i - store->active_start],
+                function_param_flow_entry_facts(&store->entries[i]));
     free(facts);
     if (!same) function_param_flow_fail(store, site, "parameter flow worklist skipped an entry whose reads changed");
     return same;

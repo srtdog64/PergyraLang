@@ -8,20 +8,20 @@ func DirectMirScalarCfgProgramAppendIntLiteralExpression(
 ) -> Option<Int> {
     if !expressions.valid ||
         !DirectMirScalarCfgCanonicalInt(literal) { return None; }
-    let graph_rows: Array<Int> = expressions.graph_global_rows;
-    let starts: Array<Int> = expressions.graph_starts;
-    let counts: Array<Int> = expressions.graph_counts;
-    let roots: Array<Int> = expressions.graph_roots;
-    let kinds: Array<Int> = expressions.node_kinds;
-    let types: Array<String> = expressions.node_types;
-    let lefts: Array<Int> = expressions.node_lefts;
-    let rights: Array<Int> = expressions.node_rights;
-    let locals: Array<Int> = expressions.node_local_rows;
-    let params: Array<Int> = expressions.node_parameter_ordinals;
-    let members: Array<Int> = expressions.node_member_ordinals;
-    let literals: Array<String> = expressions.node_literals;
-    let callables: Array<Int> = expressions.node_callable_rows;
-    let runtime_ids: Array<Int> = expressions.node_runtime_call_abi_ids;
+    var graph_rows: Array<Int> = expressions.graph_global_rows;
+    var starts: Array<Int> = expressions.graph_starts;
+    var counts: Array<Int> = expressions.graph_counts;
+    var roots: Array<Int> = expressions.graph_roots;
+    var kinds: Array<Int> = expressions.node_kinds;
+    var types: Array<String> = expressions.node_types;
+    var lefts: Array<Int> = expressions.node_lefts;
+    var rights: Array<Int> = expressions.node_rights;
+    var locals: Array<Int> = expressions.node_local_rows;
+    var params: Array<Int> = expressions.node_parameter_ordinals;
+    var members: Array<Int> = expressions.node_member_ordinals;
+    var literals: Array<String> = expressions.node_literals;
+    var callables: Array<Int> = expressions.node_callable_rows;
+    var runtime_ids: Array<Int> = expressions.node_runtime_call_abi_ids;
     let start: Int = ArrayLength(kinds);
     DirectMirScalarProgramAppendExpressionNode(
         kinds, types, lefts, rights, locals, params, members, literals,

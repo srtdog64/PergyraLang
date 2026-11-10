@@ -42,7 +42,7 @@ func SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts
 ) -> SemanticAstZoneParameterBoundaryVerdict {
-    let mutable_resource_parameter_node_ids: Array<Int> = [];
+    var mutable_resource_parameter_node_ids: Array<Int> = [];
     if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
         constructors.artifact_node_count != artifact.count ||
         !SemanticAstNominalConstructorRowsReady(constructors) {
@@ -55,7 +55,7 @@ func SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
             -1
         );
     }
-    let signature_index: Int = 0;
+    var signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(signatures) {
         let function_name: String = signatures.names[signature_index];
         let return_type: String = signatures.return_types[signature_index];
@@ -74,7 +74,7 @@ func SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
         }
         let parameter_count: Int = signatures.param_counts[signature_index];
         let parameter_start: Int = signatures.param_starts[signature_index];
-        let parameter_index: Int = 0;
+        var parameter_index: Int = 0;
         while parameter_index < parameter_count {
             let flat_index: Int = parameter_start + parameter_index;
             let parameter_node: Int = signatures.param_node_ids[flat_index];

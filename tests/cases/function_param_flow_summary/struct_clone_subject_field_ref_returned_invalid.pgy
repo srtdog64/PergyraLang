@@ -15,7 +15,7 @@ func Copy(ref holder: Holder) -> Holder {
 }
 
 func Main() -> Int {
-    let a: Holder = Holder(Session([1]), StringConcat("t", ""));
+    var a: Holder = Holder(Session([1]), StringConcat("t", ""));
     let b: Holder = Copy(a);
     ArrayPush(a.session.ids, 2);
     Print(ToString(ArrayLength(b.session.ids)));

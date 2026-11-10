@@ -1,0 +1,20 @@
+extern "C" {
+    func PatternIterations() -> Int;
+    func PatternStart() -> Void;
+    func PatternFinish(value: Int) -> Void;
+}
+func Work() -> Int {
+    var values: Array<Int> = [1, 2, 3];
+    var saved: Int = 0;
+    if ArrayLength(values) > 0 {
+        let view: Slice<Int> = values.Slice(0, 2);
+        saved = view[0];
+    }
+    ArrayPush(values, 4);
+    return saved + values[3];
+}
+func Main() -> Void {
+    let count: Int = PatternIterations();
+    PatternStart();
+    PatternFinish(Work());
+}

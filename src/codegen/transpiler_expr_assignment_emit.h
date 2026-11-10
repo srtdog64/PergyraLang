@@ -5,6 +5,7 @@
 
 char *transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
                                                   ASTNode *target_node,
-                                                  ASTNode *value_node);
+                                                  ASTNode *value_node,
+                                                  AstAssignmentOperation operation);
 
 #endif /* PGY_TRANSPILER_EXPR_ASSIGNMENT_EMIT_H */

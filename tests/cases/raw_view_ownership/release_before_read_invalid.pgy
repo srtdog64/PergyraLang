@@ -1,0 +1,6 @@
+func Main() -> Int {
+    let values: Array<Int> = [1, 2, 3];
+    let view: Slice<Int> = values.Slice(0, 2);
+    ArrayDrop(values);
+    return view[0];
+}

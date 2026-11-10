@@ -47,7 +47,7 @@ func DirectMirScalarCfgForEachFactDigest(
     ref fact: DirectMirScalarCfgForEachFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(191L, fact.definition_global_row);
+    var hash: Long = DirectMirCfgHashInt(191L, fact.definition_global_row);
     hash = DirectMirCfgHashInt(hash, fact.init_global_row);
     hash = DirectMirCfgHashInt(hash, fact.branch_global_row);
     hash = DirectMirCfgHashInt(hash, fact.init_block);
@@ -61,7 +61,7 @@ func DirectMirScalarCfgForEachFactDigest(
     hash = DirectMirCfgHashString(hash, fact.storage_identity);
     hash = DirectMirCfgHashString(hash, fact.binding_name);
     hash = DirectMirCfgHashString(hash, fact.cursor_identity);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.elements) {
         hash = DirectMirCfgHashInt(hash, fact.elements[row]);
         row = row + 1;
@@ -135,7 +135,7 @@ func DirectMirScalarCfgForEachFactShapeReady(
         fact.allocator_offset != layout.allocator_offset {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.elements) {
         if fact.elements[row] < -2147483648 ||
             fact.elements[row] > 2147483647 { return false; }
@@ -148,7 +148,7 @@ func DirectMirScalarCfgForEachFactShapeReady(
             block == fact.header_block || block == fact.exit_block {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.backedge_blocks[prior] == block { return false; }
             prior = prior + 1;

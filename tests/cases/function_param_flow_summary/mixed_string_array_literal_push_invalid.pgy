@@ -1,0 +1,10 @@
+func Fresh(text: String) -> String {
+    return Concat(text, "!");
+}
+
+func Main() -> Void {
+    let borrowed: String = "a";
+    var rows: Array<String> = [borrowed, Fresh("b")];
+    ArrayPush(rows, Fresh("c"));
+    Log(ArrayLength(rows));
+}

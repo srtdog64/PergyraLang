@@ -3,6 +3,7 @@ import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
@@ -17,7 +18,8 @@ func DirectMirScalarCfgValueTypeFamilyReady(type_name: String,
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordArrayTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name) ||
-        DirectMirScalarProgramReferencedEnumRow(referenced_enum, type_name) >= 0;
+        DirectMirScalarProgramReferencedEnumValueTypeReady(
+            type_name, logical_record, referenced_enum);
 }
 
 func DirectMirScalarCfgValueTypeProject(type_name: String,
@@ -30,19 +32,24 @@ func DirectMirScalarCfgValueTypeProject(type_name: String,
 }
 
 func DirectMirScalarCfgDeclaredValueTypeProject(ref index: MirRoutineFactIndex,
-    local_ref: String, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    local_ref: String, resolved_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact) -> String {
+    let resolved: String = DirectMirScalarCfgValueTypeProject(
+        resolved_type, logical_record, referenced_enum);
     if !index.valid || index.declared_source_local_count < 0 ||
         index.declared_source_local_count > ArrayLength(index.source_local_binding_syntax_ids) ||
-        index.declared_source_local_count > ArrayLength(index.source_local_types) { return ""; }
-    let found: String = "";
-    let row: Int = 0;
+        index.declared_source_local_count > ArrayLength(index.source_local_types) ||
+        resolved == "" { return ""; }
+    var found: String = "";
+    var row: Int = 0;
     while row < index.declared_source_local_count {
         let binding: Int = index.source_local_binding_syntax_ids[row];
         if binding > 0 && local_ref == Concat("declaration:", Concat(ToString(binding), ":0")) {
             if found != "" { return ""; }
-            found = DirectMirScalarCfgValueTypeProject(index.source_local_types[row], logical_record, referenced_enum);
-            if found == "" { return ""; }
+            if !DirectMirScalarCfgSourceLocalTypeMatchesResolved(
+                    index.source_local_types[row], resolved) { return ""; }
+            found = resolved;
         }
         row = row + 1;
     }

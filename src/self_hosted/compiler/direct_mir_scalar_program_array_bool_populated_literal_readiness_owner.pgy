@@ -5,7 +5,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 func DirectMirScalarProgramArrayBoolPopulatedLiteralOperandRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Array<Int> {
-    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+    var rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
         facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
     if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
@@ -37,7 +37,7 @@ func DirectMirScalarProgramArrayBoolPopulatedLiteralNodeReady(
             facts.node_rights[node] != -1) { return false; }
     if !nary && (ArrayLength(operands) > 2 ||
             facts.node_lefts[node] < 0) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(operands) {
         let operand: Int = operands[row];
         if operand < 0 || operand >= node ||
@@ -60,7 +60,7 @@ func DirectMirScalarProgramArrayBoolPopulatedLiteralNodeReady(
 func DirectMirScalarProgramHasArrayBoolPopulatedLiteral(
     ref facts: DirectMirScalarProgramExpressionSet
 ) -> Bool {
-    let node: Int = 0;
+    var node: Int = 0;
     while node < ArrayLength(facts.node_kinds) {
         if facts.node_kinds[node] ==
                 DirectMirScalarProgramExprArrayBoolPopulatedLiteral() {

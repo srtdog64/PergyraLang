@@ -19,9 +19,9 @@ func ParseIntentTerminalClause(
     context: ParserSourceLocationContext,
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> ParserIntentTerminalClause {
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let step_offset: Int = i;
-    let step_name: String = "";
+    var step_name: String = "";
     if ParserCharAtWithin(content, content_extent, i) != ":" {
         ArraySet(cursor_out, 0, i);
         step_name = ReadIdentWithin(content, content_extent, i, cursor_out);

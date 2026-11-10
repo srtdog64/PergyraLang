@@ -2,12 +2,13 @@
 
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 
 func DirectMirScalarProgramLlvmSetStringValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramSetStringValueResultAt(
                 plan, routine, ordinal) {
@@ -34,19 +35,27 @@ func DirectMirScalarProgramLlvmSetStringValueResultCopyIn(
 func DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramSetStringValueResultAt(
                 plan, routine, ordinal) {
             let spelling: String = ToString(ordinal);
             let type_name: String = DirectMirScalarProgramLlvmSetStringTypeName();
+            let local_row: Int =
+                DirectMirScalarProgramParameterValueResultLocalRow(
+                    plan, routine, ordinal);
+            var storage: String = Concat(
+                "%pgy.param.", Concat(spelling, ".local"));
+            if local_row >= 0 {
+                storage = Concat("%pgy.local.", ToString(local_row));
+            }
             output = Concat(output, Concat("  %pgy.param.", spelling));
             output = Concat(output, Concat(".copyout.",
                 ToString(exit_block)));
             output = Concat(output, Concat(" = load ", type_name));
-            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
-            output = Concat(output, ".local, align 8\n");
+            output = Concat(output, Concat(", ptr ", storage));
+            output = Concat(output, ", align 8\n");
             output = Concat(output, Concat("  store ", type_name));
             output = Concat(output, Concat(" %pgy.param.", spelling));
             output = Concat(output, Concat(".copyout.",

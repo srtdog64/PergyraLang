@@ -1,0 +1,30 @@
+// A world-method body edge maps actuals to exact formals; it must not permit
+// the same aggregate storage as both a moving and an observed argument.
+struct WorldRequest {
+    names: Array<String>;
+}
+
+world MoveWorld {
+    func Select(self, moving: WorldRequest,
+        observed: WorldRequest) -> WorldRequest {
+        if ArrayLength(observed.names) > 0 {
+            return moving;
+        }
+        return moving;
+    }
+}
+
+func SelectThroughWorld(
+    inout world: MoveWorld,
+    request: WorldRequest
+) -> WorldRequest {
+    return world.Select(request, request);
+}
+
+func Main() -> Int {
+    var world: MoveWorld = MoveWorld();
+    let request: WorldRequest = WorldRequest(["unsafe"]);
+    let result: WorldRequest = SelectThroughWorld(world, request);
+    Print(result.names[0]);
+    return 0;
+}

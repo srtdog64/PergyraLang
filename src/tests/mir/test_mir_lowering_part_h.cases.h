@@ -232,7 +232,7 @@ test_mir_lowering_part_h(void)
         const char *src =
             "func WithReleaseFact() -> Void {\n"
             "    with slot<Int> as s {\n"
-            "        let i: Int = 0;\n"
+            "        var i: Int = 0;\n"
             "        while i < 2 {\n"
             "            Write(s, i);\n"
             "            Log(Read(s));\n"

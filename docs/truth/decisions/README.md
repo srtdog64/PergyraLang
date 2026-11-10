@@ -51,3 +51,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-22 | [A Clone of a lent owner reads it and changes nothing](2026-10-22_clone_reads_a_lent_owner.md) | in force |
 | 2026-10-25 | [A real sharing site in the canonical source may take an explicit Clone](2026-10-25_real_sharing_site_may_take_explicit_clone.md) | in force |
 | 2026-10-25 | [The ownership direction is re-evaluated on 2026-11-08](2026-10-25_ownership_direction_reevaluated_2026-11-08.md) | in force |
+| 2026-11-05 | [v0.05 closes the SoT spine and raw-pointer ownership cleanup](2026-11-05_v0_05_sot_and_unsafe_ownership_scope.md) | future milestone |

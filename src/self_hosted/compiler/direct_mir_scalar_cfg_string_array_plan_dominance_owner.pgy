@@ -9,7 +9,7 @@ func DirectMirScalarCfgStringArrayPlanDominanceReady(
     ref plan: DirectMirScalarCfgStringArrayPlan,
     ref index: MirRoutineFactIndex
 ) -> Bool {
-    let length_row: Int = 0;
+    var length_row: Int = 0;
     while length_row < DirectMirScalarCfgStringArrayLengthCount(plan) {
         let fact: DirectMirScalarCfgStringArrayLengthFact =
             DirectMirScalarCfgStringArrayLengthAt(plan, length_row);
@@ -25,13 +25,13 @@ func DirectMirScalarCfgStringArrayPlanDominanceReady(
         ) { return false; }
         length_row = length_row + 1;
     }
-    let access_row: Int = 0;
+    var access_row: Int = 0;
     while access_row < DirectMirScalarCfgStringArrayAccessCount(plan) {
         let fact: DirectMirScalarCfgStringArrayAccessFact =
             DirectMirScalarCfgStringArrayAccessAt(plan, access_row);
-        let access_block: Int = -1;
-        let access_local: Int = -1;
-        let block: Int = 0;
+        var access_block: Int = -1;
+        var access_local: Int = -1;
+        var block: Int = 0;
         while block < ArrayLength(index.block_starts) {
             let start: Int = index.instruction_facts.global_start +
                 index.block_instruction_starts[block];

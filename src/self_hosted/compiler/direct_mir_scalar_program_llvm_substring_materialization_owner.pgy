@@ -5,7 +5,7 @@ import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 func DirectMirScalarProgramLlvmSubstringMaterialization(
     fact: CompilerRuntimeCallAbiFact
 ) -> String {
-    let out: String = Concat("define internal ptr @", fact.symbol);
+    var out: String = Concat("define internal ptr @", fact.symbol);
     out = Concat(out, "(ptr %source, i64 %start, i64 %length) {\nentry:\n");
     out = Concat(out, "  %source.null = icmp eq ptr %source, null\n");
     out = Concat(out, "  br i1 %source.null, label %empty, label %bounds\n\nbounds:\n");
@@ -34,7 +34,7 @@ func DirectMirScalarProgramLlvmSubstringMaterialization(
 func DirectMirScalarProgramLlvmBoundedSubstringMaterialization(
     fact: CompilerRuntimeCallAbiFact
 ) -> String {
-    let out: String = Concat("define internal ptr @", fact.symbol);
+    var out: String = Concat("define internal ptr @", fact.symbol);
     out = Concat(out, "(ptr %source, i64 %source.length, i64 %start, i64 %length) {\nentry:\n");
     out = Concat(out, "  %source.null = icmp eq ptr %source, null\n");
     out = Concat(out, "  %source.negative = icmp slt i64 %source.length, 0\n");

@@ -5,6 +5,11 @@ import "direct_mir_scalar_cfg_op_code_owner.pgy";
 import "direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_hashmap_owner.pgy";
 import "direct_mir_scalar_program_slice_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
 
 struct DirectMirOwnedCollectionDefinition {
     ok: Bool;
@@ -54,6 +59,27 @@ func DirectMirOwnedCollectionDefinitionFrom(
             return DirectMirOwnedCollectionDefinition(true, target, -1, 2);
         }
     }
+    if kind == DirectMirScalarProgramExprArrayStringLiteral() &&
+        DirectMirScalarProgramArrayStringLiteralNodeReady(
+            expressions, root) {
+        return DirectMirOwnedCollectionDefinition(true, target, root, 4);
+    }
+    if kind == DirectMirScalarProgramExprDirectCall() &&
+        root < ArrayLength(expressions.node_callable_rows) &&
+        expressions.node_callable_rows[root] >= 0 {
+        return DirectMirOwnedCollectionDefinition(
+            true, target, expressions.node_callable_rows[root], 5);
+    }
+    if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+        let receiver: Int = expressions.node_lefts[root];
+        if receiver >= 0 && receiver < root &&
+            receiver < ArrayLength(expressions.node_kinds) &&
+            expressions.node_member_ordinals[root] >= 0 {
+            // Readiness below joins the complete normalized member path to
+            // the semantic source binding and final field identities.
+            return DirectMirOwnedCollectionDefinition(true, target, root, 6);
+        }
+    }
     if kind == DirectMirScalarProgramExprLocal() && root < ArrayLength(expressions.node_local_rows) {
         let source: Int = expressions.node_local_rows[root];
         if source >= 0 && source < ArrayLength(storage.values.local_types) && source != target &&
@@ -62,4 +88,232 @@ func DirectMirOwnedCollectionDefinitionFrom(
         }
     }
     return invalid;
+}
+
+func DirectMirOwnedCollectionStringTransferDefinitionReady(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref definition: DirectMirOwnedCollectionDefinition,
+    row: Int, local_start: Int, local_end: Int
+) -> Bool {
+    if row < 0 ||
+        row >= ArrayLength(index.collection_ownership_facts.origins) ||
+        row >= ArrayLength(
+            index.collection_ownership_facts.element_ownerships) ||
+        row >= ArrayLength(
+            index.collection_ownership_facts.binding_syntax_ids) ||
+        row >= ArrayLength(
+            index.collection_ownership_facts.origin_syntax_ids) ||
+        row >= ArrayLength(
+            index.collection_ownership_facts.source_binding_syntax_ids) ||
+        definition.producer != 4 || definition.source < 0 ||
+        definition.source >= ArrayLength(expressions.node_kinds) ||
+        !DirectMirScalarProgramArrayStringLiteralNodeReady(
+            expressions, definition.source) ||
+        index.collection_ownership_facts.element_ownerships[row] !=
+            "owned-elements" {
+        return false;
+    }
+    let origin: String =
+        index.collection_ownership_facts.origins[row];
+    let source_binding: Int =
+        index.collection_ownership_facts.source_binding_syntax_ids[row];
+    if (origin != "formal-string-transfer" &&
+            origin != "local-string-transfer") ||
+        source_binding <= 0 || source_binding ==
+            index.collection_ownership_facts.binding_syntax_ids[row] ||
+        index.collection_ownership_facts.origin_syntax_ids[row] !=
+            source_binding {
+        return false;
+    }
+    let operands: Array<Int> =
+        DirectMirScalarProgramArrayStringLiteralOperandRows(
+            expressions, definition.source);
+    if ArrayLength(operands) != 1 { return false; }
+    let operand: Int = operands[0];
+    if operand < 0 || operand >= definition.source ||
+        operand >= ArrayLength(expressions.node_kinds) ||
+        operand >= ArrayLength(expressions.node_types) ||
+        operand >= ArrayLength(expressions.node_local_rows) ||
+        operand >= ArrayLength(expressions.node_parameter_ordinals) ||
+        expressions.node_types[operand] !=
+            CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    if origin == "formal-string-transfer" {
+        let parameter: Int =
+            expressions.node_parameter_ordinals[operand];
+        return expressions.node_kinds[operand] ==
+                DirectMirScalarProgramExprParameter() &&
+            expressions.node_local_rows[operand] == -1 &&
+            DirectMirRoutineSignatureFactReady(signature) &&
+            parameter >= 0 && parameter < signature.param_count &&
+            signature.parameters.source_syntax_ids[parameter] ==
+                source_binding &&
+            signature.parameters.type_names[parameter] ==
+                CompilerAbiLayoutStringTypeName() &&
+            signature.parameters.carriages[parameter] == "owner-handle";
+    }
+    let source_local: Int = DirectMirCollectionOwnershipBindingLocalRow(
+        index, storage, source_binding, local_start, local_end);
+    return expressions.node_kinds[operand] ==
+            DirectMirScalarProgramExprLocal() &&
+        expressions.node_parameter_ordinals[operand] == -1 &&
+        source_local >= local_start && source_local < local_end &&
+        expressions.node_local_rows[operand] == source_local &&
+        source_local < ArrayLength(storage.values.local_types) &&
+        source_local < ArrayLength(storage.values.local_ref_kinds) &&
+        source_local < ArrayLength(storage.values.local_ref_value_ids) &&
+        storage.values.local_types[source_local] ==
+            CompilerAbiLayoutStringTypeName() &&
+        storage.values.local_ref_kinds[source_local] ==
+            DirectMirScalarCfgLocalRefValue() &&
+        storage.values.local_ref_value_ids[source_local] == SelfMirLocalRef(
+            "declaration", source_binding, 0);
+}
+
+func DirectMirOwnedCollectionMaterializedValueResultParameterLocalReady(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref signature: DirectMirRoutineSignatureFact,
+    local_row: Int, source_binding_syntax_id: Int,
+    local_start: Int, local_end: Int
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        source_binding_syntax_id <= 0 || local_row < local_start ||
+        local_row >= local_end || local_start < 0 ||
+        local_end > ArrayLength(storage.values.local_types) ||
+        local_row >= ArrayLength(storage.values.local_ref_kinds) ||
+        local_row >= ArrayLength(storage.values.local_ref_value_ids) {
+        return false;
+    }
+    var parameter: Int = -1;
+    var ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if signature.parameters.source_syntax_ids[ordinal] ==
+                source_binding_syntax_id {
+            if parameter >= 0 { return false; }
+            parameter = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    if parameter < 0 ||
+        signature.parameters.carriages[parameter] != "value-result" ||
+        signature.parameters.resources[parameter] != "none" ||
+        signature.parameters.pass_shapes[parameter] != "direct" ||
+        storage.values.local_ref_kinds[local_row] !=
+            DirectMirScalarCfgLocalRefValue() ||
+        storage.values.local_ref_value_ids[local_row] != SelfMirLocalRef(
+            "parameter", signature.source_syntax_id, parameter) ||
+        storage.values.local_types[local_row] !=
+            signature.parameters.type_names[parameter] {
+        return false;
+    }
+    return true;
+}
+
+func DirectMirOwnedCollectionMemberDefinitionReady(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    root: Int, source_binding_syntax_id: Int, field_syntax_id: Int,
+    local_start: Int, local_end: Int
+) -> Bool {
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        root >= ArrayLength(expressions.node_types) ||
+        root >= ArrayLength(expressions.node_lefts) ||
+        root >= ArrayLength(expressions.node_local_rows) ||
+        root >= ArrayLength(expressions.node_parameter_ordinals) ||
+        root >= ArrayLength(expressions.node_member_ordinals) ||
+        source_binding_syntax_id <= 0 || field_syntax_id <= 0 ||
+        !DirectMirRoutineSignatureFactReady(signature) {
+        return false;
+    }
+    var members: Array<Int> = [];
+    var node: Int = root;
+    var depth: Int = 0;
+    while node >= 0 && node < ArrayLength(expressions.node_kinds) &&
+            expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprLogicalRecordMember() {
+        if depth >= 64 || node >= ArrayLength(expressions.node_lefts) ||
+            node >= ArrayLength(expressions.node_member_ordinals) ||
+            expressions.node_lefts[node] < 0 ||
+            expressions.node_lefts[node] >= node ||
+            expressions.node_member_ordinals[node] < 0 {
+            return false;
+        }
+        ArrayPush(members, node);
+        node = expressions.node_lefts[node];
+        depth = depth + 1;
+    }
+    if ArrayLength(members) == 0 || node < 0 ||
+        node >= ArrayLength(expressions.node_kinds) ||
+        node >= ArrayLength(expressions.node_types) ||
+        node >= ArrayLength(expressions.node_local_rows) ||
+        node >= ArrayLength(expressions.node_parameter_ordinals) {
+        return false;
+    }
+    var current_type: String = "";
+    if expressions.node_kinds[node] ==
+            DirectMirScalarProgramExprParameter() {
+        let parameter: Int = expressions.node_parameter_ordinals[node];
+        if parameter < 0 || parameter >= signature.param_count ||
+            parameter >= ArrayLength(signature.parameters.source_syntax_ids) ||
+            parameter >= ArrayLength(signature.parameters.type_names) ||
+            signature.parameters.source_syntax_ids[parameter] !=
+                source_binding_syntax_id {
+            return false;
+        }
+        current_type = signature.parameters.type_names[parameter];
+    } else if expressions.node_kinds[node] ==
+            DirectMirScalarProgramExprLocal() {
+        let local_row: Int = expressions.node_local_rows[node];
+        if local_row < 0 || local_row >= ArrayLength(
+                storage.values.local_types) {
+            return false;
+        }
+        let declared_local_ready: Bool =
+            DirectMirCollectionOwnershipBindingLocalRow(
+                index, storage, source_binding_syntax_id,
+                local_start, local_end) == local_row;
+        let parameter_local_ready: Bool =
+            DirectMirOwnedCollectionMaterializedValueResultParameterLocalReady(
+                storage, signature, local_row, source_binding_syntax_id,
+                local_start, local_end);
+        if declared_local_ready == parameter_local_ready { return false; }
+        current_type = storage.values.local_types[local_row];
+    } else {
+        return false;
+    }
+    if current_type == "" || current_type != expressions.node_types[node] {
+        return false;
+    }
+    var position: Int = ArrayLength(members) - 1;
+    while position >= 0 {
+        let member_node: Int = members[position];
+        let record: Int = DirectMirScalarProgramLogicalRecordRow(
+            logical_record, current_type);
+        let member: Int = expressions.node_member_ordinals[member_node];
+        if record < 0 || member < 0 ||
+            member >= logical_record.field_counts[record] {
+            return false;
+        }
+        let field: Int = logical_record.field_starts[record] + member;
+        if field < 0 || field >= ArrayLength(logical_record.field_types) ||
+            field >= ArrayLength(logical_record.field_source_syntax_ids) ||
+            member_node >= ArrayLength(expressions.node_types) ||
+            logical_record.field_types[field] !=
+                expressions.node_types[member_node] ||
+            (position == 0 &&
+             logical_record.field_source_syntax_ids[field] !=
+                field_syntax_id) {
+            return false;
+        }
+        current_type = logical_record.field_types[field];
+        position = position - 1;
+    }
+    return current_type == CompilerAbiLayoutArrayStringTypeName();
 }

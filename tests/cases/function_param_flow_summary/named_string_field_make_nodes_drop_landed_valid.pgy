@@ -1,25 +1,25 @@
-// No proof admits the callee keeping or returning the String element, so
-// the next analysis copies the element where the call takes it, and the
-// Array's later release or change no longer reaches it.
+// MakeNodes returns its private Array, so the whole TextNode is copied where
+// that Array stores it. The returned node no longer borrows rows[0], and the
+// later ArrayDropOwnedStrings cannot reach it.
 struct TextNode { type_name: String; }
 struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
 
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }
 
 func MakeNodes(text: String) -> Array<TextNode> {
-    let nodes: Array<TextNode> = [];
+    var nodes: Array<TextNode> = [];
     ArrayPush(nodes, TextNode(text));
     return nodes;
 }
 
 func Project(nodes: Array<TextNode>) -> Arena {
     let provenance_texts: Array<String> = [];
-    let atom_table: Array<String> = [""];
-    let i: Int = 0;
+    var atom_table: Array<String> = [""];
+    var i: Int = 0;
     while i < ArrayLength(nodes) {
         if nodes[i].type_name != "" {
             ArrayPush(atom_table, nodes[i].type_name);

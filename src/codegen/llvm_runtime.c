@@ -9,6 +9,7 @@
 
 #include "llvm_internal.h"
 #include "llvm_runtime_internal.h"
+#include "llvm_runtime_attrs.h"
 
 #include "../compiler/mir_abi_layout.h"
 #include "../compiler/mir_machine_layer.h"
@@ -67,8 +68,12 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
     int first_runtime_entry = ctx->func_count;
 
     llvm_declare_runtime_entrypoints(ctx);
-    for (int i = first_runtime_entry; i < ctx->func_count; i++)
+    for (int i = first_runtime_entry; i < ctx->func_count; i++) {
         ctx->functions[i].runtime_entrypoint = true;
+        llvm_runtime_c_bool_abi_attrs_apply(
+            ctx->context, ctx->functions[i].fn,
+            ctx->functions[i].fn_type);
+    }
 }
 
 static void
@@ -397,6 +402,16 @@ llvm_declare_runtime_entrypoints(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        {
+          LLVMTypeRef params[] = { arr_ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_drop", suffix)) {
+              llvm_set_error(ctx, "Array storage drop runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
+        }
         if (strcmp(suffix, "String") == 0) {
           LLVMTypeRef params[] = { arr_ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
@@ -443,6 +458,18 @@ llvm_declare_runtime_entrypoints(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        if (strcmp(suffix, "String") == 0) {
+          LLVMTypeRef params[] = { arr_ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name),
+                  "array_pop_owned", suffix)) {
+              llvm_set_error(ctx, "Owned array pop runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+              ctx->type_void);
+        }
         if (strcmp(suffix, "String") == 0) {
           LLVMTypeRef params[] = { arr_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);

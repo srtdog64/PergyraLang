@@ -1,0 +1,16 @@
+// A mutable local aggregate root has no current formal-relative field proof;
+// matching the field spelling alone must not authorize an owned String push.
+struct Rows {
+    names: Array<String>;
+}
+
+func Append(ref text: String) -> Void {
+    var rows: Rows = Rows([Concat("a", "")]);
+    ArrayPush(rows.names, text);
+}
+
+func Main() -> Int {
+    let text: String = Concat("b", "");
+    Append(text);
+    return 0;
+}

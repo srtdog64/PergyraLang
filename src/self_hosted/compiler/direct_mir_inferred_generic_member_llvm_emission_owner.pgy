@@ -39,16 +39,16 @@ func DirectMirInferredGenericMemberEmitLlvm(
             plan.identity.declaration.host,
             plan.representation.receiver_carriage, true
         );
-    let receiver_formal: String = Concat(
+    var receiver_formal: String = Concat(
         "%", Concat(type_name, Concat(" %", receiver_parameter))
     );
-    let receiver_local: String = Concat(
+    var receiver_local: String = Concat(
         "%box = insertvalue %", Concat(type_name, Concat(
             " poison, i32 ",
             Concat(ToString(plan.identity.graph.marker_value), ", 0")
         ))
     );
-    let receiver_operand: String = Concat("%", Concat(type_name, " %box"));
+    var receiver_operand: String = Concat("%", Concat(type_name, " %box"));
     if receiver_abi.formal_shape == "pointer" {
         receiver_formal = Concat("ptr %", receiver_parameter);
         receiver_local = Concat("%box = alloca %", Concat(type_name, Concat(
@@ -64,7 +64,7 @@ func DirectMirInferredGenericMemberEmitLlvm(
     }
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "%";
+    var output: String = "%";
     output = Concat(output, type_name);
     output = Concat(output, " = type { i32 }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
     output = Concat(output, ToString(format_size));

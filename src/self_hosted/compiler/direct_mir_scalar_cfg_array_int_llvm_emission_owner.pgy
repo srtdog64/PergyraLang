@@ -13,7 +13,7 @@ func DirectMirScalarCfgArrayIntLlvmCondition(
     if !DirectMirScalarCfgArrayIntLengthConditionBlock(plan, block) {
         Die("direct MIR scalar CFG Array<Int> LLVM condition is invalid");
     }
-    let output: String = Concat("  %pgy.cond.", ToString(block));
+    var output: String = Concat("  %pgy.cond.", ToString(block));
     output = Concat(output, ".left = load i64, ptr ");
     output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
         plan, plan.block_condition_left_values[block],
@@ -38,7 +38,7 @@ func DirectMirScalarCfgArrayIntLlvmPush(
         Die("direct MIR scalar CFG Array<Int> LLVM push is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let output: String = Concat("  ", stem);
+    var output: String = Concat("  ", stem);
     output = Concat(output, ".push.value = load i64, ptr ");
     output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
         plan, plan.array_int_program.producer.induction_value_row, -1
@@ -78,7 +78,7 @@ func DirectMirScalarCfgArrayIntLlvmRead(
         Die("direct MIR scalar CFG Array<Int> LLVM read is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let output: String = Concat("  ", stem);
+    var output: String = Concat("  ", stem);
     output = Concat(output, ".read.left = load i64, ptr ");
     output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
         plan, plan.array_int_program.consumer.sum_left_value_row, -1
@@ -116,7 +116,7 @@ func DirectMirScalarCfgArrayIntLlvmLengthLog(
         Die("direct MIR scalar CFG Array<Int> LLVM length Log is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let output: String = Concat("  ", stem);
+    var output: String = Concat("  ", stem);
     output = Concat(output,
         ".length = load i64, ptr %pgy.array.int.length.field, align 8\n  ");
     output = Concat(output, Concat(stem,

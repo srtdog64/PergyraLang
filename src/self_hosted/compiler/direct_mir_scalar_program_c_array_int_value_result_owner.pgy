@@ -1,10 +1,10 @@
 // C representation and value-result copy boundary for Array<Int> parameters.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy";
 import "direct_mir_array_storage_c_assertion_owner.pgy";
 import "direct_mir_scalar_program_c_array_mutation_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
@@ -21,7 +21,7 @@ func DirectMirScalarProgramCArrayIntValueResultPreamble(
         "direct MIR C Array<Int> helper requirement is invalid"); }
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirScalarProgramArrayIntValueResultTargetFromFact(fact, target);
-    let output: String = "#include <stdint.h>\n#include <stddef.h>\n";
+    var output: String = "#include <stdint.h>\n#include <stddef.h>\n";
     output = Concat(output, "typedef struct {\n    ");
     output = Concat(output, abi.c_element_type);
     output = Concat(output, " *data;\n    ");
@@ -52,8 +52,8 @@ func DirectMirScalarProgramCArrayIntValueResultPreamble(
 func DirectMirScalarProgramCArrayIntValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayIntValueResultAt(
                 plan.program.array_int_value_result, routine, parameter) {
@@ -71,15 +71,18 @@ func DirectMirScalarProgramCArrayIntValueResultCopyIn(
 func DirectMirScalarProgramCArrayIntValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayIntValueResultAt(
                 plan.program.array_int_value_result, routine, parameter) {
+            let storage: String =
+                DirectMirScalarProgramCParameterValueResultStorage(
+                    plan, routine, parameter);
             output = Concat(output, "    *pgy_param_");
             output = Concat(output, ToString(parameter));
-            output = Concat(output, "_mutref = pgy_param_");
-            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref = ");
+            output = Concat(output, storage);
             output = Concat(output, ";\n");
         }
         parameter = parameter + 1;

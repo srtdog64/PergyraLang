@@ -24,7 +24,7 @@ func SelfMirJsonBlockWriteFile(
         "reachable", blocks.reachable[block_index] == 1
     ));
     CompilerArtifactWrite(output, ",\"instructions\":[");
-    let instruction_i: Int = 0;
+    var instruction_i: Int = 0;
     while instruction_i < blocks.instruction_counts[block_index] {
         if instruction_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonInstructionWriteFile(
@@ -93,7 +93,7 @@ func SelfMirJsonRoutineWriteFile(
     }
 
     CompilerArtifactWrite(output, ",\"generics\":[");
-    let generic_i: Int = 0;
+    var generic_i: Int = 0;
     while generic_i < rows.generic_counts[routine_index] {
         if generic_i > 0 { CompilerArtifactWrite(output, ","); }
         if !JsonStringLiteralWriteFile(output, rows.generic_names[
@@ -115,7 +115,7 @@ func SelfMirJsonRoutineWriteFile(
         CompilerArtifactWrite(output, "]");
     }
     CompilerArtifactWrite(output, ",\"params\":[");
-    let param_i: Int = 0;
+    var param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
         if param_i > 0 { CompilerArtifactWrite(output, ","); }
         let param_row: Int = rows.param_starts[routine_index] + param_i;
@@ -136,12 +136,12 @@ func SelfMirJsonRoutineWriteFile(
     CompilerArtifactWrite(output, ",\"loop_flow_summary_count\":");
     JsonOwnedFragmentWriteFile(output, ToString(summary_count));
     CompilerArtifactWrite(output, ",\"loop_flow_summaries\":[");
-    let summary_i: Int = 0;
+    var summary_i: Int = 0;
     while summary_i < summary_count {
         if summary_i > 0 { CompilerArtifactWrite(output, ","); }
         let summary_row: Int =
             loop_rows.routine_starts[routine_index] + summary_i;
-        let summary_kind: String = "while";
+        var summary_kind: String = "while";
         if loop_rows.summaries.kinds[summary_row] == 1 {
             summary_kind = "for";
         }
@@ -179,7 +179,7 @@ func SelfMirJsonRoutineWriteFile(
     CompilerArtifactWrite(output, "],\"loop_flow_state_count\":");
     JsonOwnedFragmentWriteFile(output, ToString(state_count));
     CompilerArtifactWrite(output, ",\"loop_flow_states\":[");
-    let state_i: Int = 0;
+    var state_i: Int = 0;
     while state_i < state_count {
         if state_i > 0 { CompilerArtifactWrite(output, ","); }
         JsonOwnedFragmentWriteFile(output, JsonEmitObject([
@@ -212,7 +212,7 @@ func SelfMirJsonRoutineWriteFile(
     CompilerArtifactWrite(output, "],\"iteration_type_fact_count\":");
     JsonOwnedFragmentWriteFile(output, ToString(iteration_count));
     CompilerArtifactWrite(output, ",\"iteration_type_facts\":[");
-    let iteration_i: Int = 0;
+    var iteration_i: Int = 0;
     while iteration_i < iteration_count {
         if iteration_i > 0 { CompilerArtifactWrite(output, ","); }
         let iteration_row: Int =
@@ -251,7 +251,7 @@ func SelfMirJsonRoutineWriteFile(
     CompilerArtifactWrite(output, ",\"collection_ownership_fact_count\":");
     JsonOwnedFragmentWriteFile(output, ToString(collection_count));
     CompilerArtifactWrite(output, ",\"collection_ownership_facts\":[");
-    let collection_i: Int = 0;
+    var collection_i: Int = 0;
     while collection_i < collection_count {
         if collection_i > 0 { CompilerArtifactWrite(output, ","); }
         let collection_row: Int = collection_start + collection_i;
@@ -283,7 +283,7 @@ func SelfMirJsonRoutineWriteFile(
     }
     CompilerArtifactWrite(output, "]");
     CompilerArtifactWrite(output, ",\"blocks\":[");
-    let block_i: Int = 0;
+    var block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
         if block_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonBlockWriteFile(
@@ -294,7 +294,7 @@ func SelfMirJsonRoutineWriteFile(
     }
 
     CompilerArtifactWrite(output, "],\"source_locals\":[");
-    let local_i: Int = 0;
+    var local_i: Int = 0;
     while local_i < rows.local_counts[routine_index] {
         if local_i > 0 { CompilerArtifactWrite(output, ","); }
         let local_row: Int = rows.local_starts[routine_index] + local_i;
@@ -325,7 +325,7 @@ func SelfMirProgramJsonWriteArtifactVerified(
     }
 
     CompilerArtifactWrite(output, "{\"schema\":\"pgy.mir.v1\",\"decls\":[");
-    let declaration_i: Int = 0;
+    var declaration_i: Int = 0;
     while declaration_i < ArrayLength(facts.declarations.names) {
         if declaration_i > 0 { CompilerArtifactWrite(output, ","); }
         JsonOwnedFragmentWriteFile(
@@ -335,7 +335,7 @@ func SelfMirProgramJsonWriteArtifactVerified(
     }
 
     CompilerArtifactWrite(output, "],\"generic_method_specializations\":[");
-    let specialization_i: Int = 0;
+    var specialization_i: Int = 0;
     while specialization_i <
         SelfMirGenericSpecializationCount(facts.generic_specializations) {
         if specialization_i > 0 { CompilerArtifactWrite(output, ","); }
@@ -346,7 +346,7 @@ func SelfMirProgramJsonWriteArtifactVerified(
     }
 
     CompilerArtifactWrite(output, "],\"parallel_capture_boundaries\":[");
-    let parallel_i: Int = 0;
+    var parallel_i: Int = 0;
     while parallel_i <
         ArrayLength(facts.parallel_captures.source_stable_ids) {
         if parallel_i > 0 { CompilerArtifactWrite(output, ","); }
@@ -369,7 +369,7 @@ func SelfMirProgramJsonWriteArtifactVerified(
         ));
     }
     CompilerArtifactWrite(output, ",\"routines\":[");
-    let routine_i: Int = 0;
+    var routine_i: Int = 0;
     while routine_i < ArrayLength(facts.routines.names) {
         if routine_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonRoutineWriteFile(facts, routine_i, output) {

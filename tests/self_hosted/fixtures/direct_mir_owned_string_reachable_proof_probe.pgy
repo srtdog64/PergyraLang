@@ -6,38 +6,45 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
 {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
-    let roles: Array<Int> = [DirectMirScalarCfgRoutineRoleEntrypoint()];
-    let sourceRows: Array<Int> = [0];
-    let syntaxIds: Array<Int> = [1];
-    let keys: Array<String> = [""];
-    let names: Array<String> = ["Main"];
-    let returnTypes: Array<String> = ["Void"];
-    let zeros: Array<Int> = [0];
-    let localStarts: Array<Int> = [0];
-    let localCounts: Array<Int> = [0];
-    let blockStarts: Array<Int> = [0];
-    let blockCounts: Array<Int> = [0];
-    let operationStarts: Array<Int> = [0];
-    let operationCounts: Array<Int> = [0];
-    let blockSuccessors: Array<Int> = [];
-    let blockOperationStarts: Array<Int> = [];
-    let blockOperationCounts: Array<Int> = [];
-    let blockReturns: Array<Int> = [];
-    let graphStarts: Array<Int> = [];
-    let graphCounts: Array<Int> = [];
-    let graphRoots: Array<Int> = [];
-    let kinds: Array<Int> = [];
-    let nodeTypes: Array<String> = [];
-    let targets: Array<Int> = [];
-    let absent: Array<Int> = [];
-    let literalStrings: Array<String> = [];
-    let localRows: Array<Int> = [];
-    let runtimeIds: Array<Int> = [];
+    var roles: Array<Int> = [DirectMirScalarCfgRoutineRoleEntrypoint()];
+    var sourceRows: Array<Int> = [0];
+    var syntaxIds: Array<Int> = [1];
+    var keys: Array<String> = [""];
+    var names: Array<String> = ["Main"];
+    var returnTypes: Array<String> = ["Void"];
+    var zeros: Array<Int> = [0];
+    var parameterCounts: Array<Int> = [0];
+    var parameterStarts: Array<Int> = [0];
+    var parameterTypes: Array<String> = [];
+    var parameterCarriages: Array<String> = [];
+    var parameterFlowMasks: Array<Int> = [];
+    var parameterArrayPreserved: Array<Int> = [];
+    var localStarts: Array<Int> = [0];
+    var localCounts: Array<Int> = [0];
+    var blockStarts: Array<Int> = [0];
+    var blockCounts: Array<Int> = [0];
+    var operationStarts: Array<Int> = [0];
+    var operationCounts: Array<Int> = [0];
+    var blockSuccessors: Array<Int> = [];
+    var blockOperationStarts: Array<Int> = [];
+    var blockOperationCounts: Array<Int> = [];
+    var blockReturns: Array<Int> = [];
+    var graphStarts: Array<Int> = [];
+    var graphCounts: Array<Int> = [];
+    var graphRoots: Array<Int> = [];
+    var kinds: Array<Int> = [];
+    var nodeTypes: Array<String> = [];
+    var targets: Array<Int> = [];
+    var absent: Array<Int> = [];
+    var parameterOrdinals: Array<Int> = [];
+    var literalStrings: Array<String> = [];
+    var localRows: Array<Int> = [];
+    var runtimeIds: Array<Int> = [];
     let alias: Bool = mode == "alias-cycle" || mode == "missing-definition" ||
         mode == "duplicate-definition" || mode == "foreign-local";
-    let arms: Int = 2;
+    var arms: Int = 2;
     if mode == "chain" { arms = 1; }
-    let row: Int = 1;
+    var row: Int = 1;
     while row <= layers
     {
         ArrayPush(roles, DirectMirScalarCfgRoutineRoleCallable());
@@ -53,9 +60,20 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
         ArrayPush(blockCounts, arms);
         ArrayPush(operationStarts, 0);
         ArrayPush(operationCounts, 0);
+        ArrayPush(parameterStarts, ArrayLength(parameterTypes));
+        if mode == "borrowed-parameter" && row == layers
+        {
+            ArrayPush(parameterCounts, 1);
+            ArrayPush(parameterTypes, "String");
+            ArrayPush(parameterCarriages, "value");
+            ArrayPush(parameterFlowMasks, 0);
+            ArrayPush(parameterArrayPreserved, 0);
+        } else {
+            ArrayPush(parameterCounts, 0);
+        }
         let root: Int = ArrayLength(kinds);
-        let kind: Int = DirectMirScalarProgramExprDirectCall();
-        let target: Int = row + 1;
+        var kind: Int = DirectMirScalarProgramExprDirectCall();
+        var target: Int = row + 1;
         if row == layers
         {
             kind = DirectMirScalarProgramExprConcatString();
@@ -77,6 +95,16 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
             localCounts[1] = 1;
             operationCounts[1] = 1;
         }
+        if mode == "borrowed-parameter" && row == layers
+        {
+            kind = DirectMirScalarProgramExprParameter();
+            target = -1;
+        }
+        var parameterOrdinal: Int = -1;
+        if mode == "borrowed-parameter" && row == layers
+        {
+            parameterOrdinal = 0;
+        }
         ArrayPush(graphStarts, root);
         ArrayPush(graphCounts, 1);
         ArrayPush(graphRoots, root);
@@ -84,11 +112,12 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
         ArrayPush(nodeTypes, "String");
         ArrayPush(targets, target);
         ArrayPush(absent, -1);
+        ArrayPush(parameterOrdinals, parameterOrdinal);
         ArrayPush(literalStrings, "");
         ArrayPush(localRows, -1);
         ArrayPush(runtimeIds, 0);
         if alias && row == 1 { localRows[root] = 0; }
-        let arm: Int = 0;
+        var arm: Int = 0;
         while arm < arms
         {
             ArrayPush(blockSuccessors, -1);
@@ -143,15 +172,15 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
     let expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSet(true, 1, graphStarts, graphStarts,
             graphCounts, graphRoots, kinds, nodeTypes, absent, absent,
-            localRows, absent, absent, literalStrings, targets, runtimeIds,
+            localRows, parameterOrdinals, absent, literalStrings, targets, runtimeIds,
             DirectMirScalarProgramNaryOperandsEmpty());
     let empty: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactEmpty();
-    let operationExpressions: Array<Int> = [];
-    let operationKinds: Array<Int> = [];
-    let operationResults: Array<Int> = [];
-    let valueLocals: Array<Int> = [];
-    let localTypes: Array<String> = [];
+    var operationExpressions: Array<Int> = [];
+    var operationKinds: Array<Int> = [];
+    var operationResults: Array<Int> = [];
+    var valueLocals: Array<Int> = [];
+    var localTypes: Array<String> = [];
     if alias
     {
         ArrayPush(localTypes, "String");
@@ -186,16 +215,20 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
     }
     let partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgRoutinePartitionFact(true, 1, 0, roles, sourceRows,
-            syntaxIds, keys, names, returnTypes, zeros, zeros, strings, strings,
-            zeros, zeros, localStarts, localCounts, zeros, zeros, blockStarts,
-            blockCounts, operationStarts, operationCounts, zeros, zeros);
+            syntaxIds, keys, names, returnTypes, keys, zeros, parameterCounts,
+            parameterStarts, parameterTypes, parameterCarriages,
+            parameterFlowMasks, parameterArrayPreserved, zeros, zeros,
+            localStarts, localCounts, zeros, zeros, blockStarts, blockCounts,
+            operationStarts, operationCounts, zeros, zeros);
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(true, 1, empty.callable,
-            expressions, ints, operationExpressions, ints, blockReturns,
-            empty.closed_call_abi, empty.runtime_abi, empty.option_int_abi,
-            empty.result_int_abi, empty.option_string_abi, empty.option_bool_abi,
+            expressions, ints, operationExpressions, ints,
+            empty.operation_target_paths, blockReturns, empty.closed_call_abi,
+            empty.runtime_abi, empty.option_int_abi, empty.result_abi,
+            empty.option_string_abi, empty.option_bool_abi,
             empty.logical_record, empty.referenced_enum, empty.payload_free_enum,
-            empty.array_int_value_result, empty.array_bool_abi,
+            empty.opaque_readonly_zones, empty.array_int_value_result,
+            empty.array_bool_abi,
             empty.array_string_abi, empty.array_string_boundary,
             empty.collection_ownership, empty.owned_array_string_move);
     let concat: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiStringConcatFact();
@@ -217,6 +250,22 @@ func Main() -> Void
     if ArrayLength(args) != 2 { Die("expected layers and mode"); }
     let layers: Int = ToInt(args[0]);
     if layers < 2 { Die("at least two callable layers required"); }
+    if args[1] == "copyable-borrowed-parameter"
+    {
+        let plan: DirectMirScalarCfgGraphPlan =
+            OwnedResultProbePlan(layers, "borrowed-parameter");
+        Log(ToString(DirectMirScalarProgramFunctionReturnsCopyableString(
+            plan, 1)));
+        return;
+    }
+    if args[1] == "copyable-direct-cycle"
+    {
+        let plan: DirectMirScalarCfgGraphPlan =
+            OwnedResultProbePlan(layers, "direct-cycle");
+        Log(ToString(DirectMirScalarProgramFunctionReturnsCopyableString(
+            plan, 1)));
+        return;
+    }
     let plan: DirectMirScalarCfgGraphPlan = OwnedResultProbePlan(layers, args[1]);
     let ready: Bool = DirectMirScalarProgramFunctionReturnsOwnedString(plan, 1);
     Log(ToString(ready));

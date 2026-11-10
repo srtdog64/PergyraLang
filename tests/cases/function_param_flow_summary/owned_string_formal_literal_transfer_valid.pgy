@@ -1,0 +1,12 @@
+// One explicit own boundary transfers the String payload into the literal.
+// The Array owns that payload exactly once and deep-releases it.
+func ReleaseOwnedString(own value: String) -> Int {
+    let rows: Array<String> = [value];
+    let size: Int = StringLength(rows[0]);
+    ArrayDropOwnedStrings(rows);
+    return size;
+}
+
+func Main() -> Int {
+    return ReleaseOwnedString(Concat("owned", " value"));
+}

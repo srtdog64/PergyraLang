@@ -41,14 +41,14 @@ func CodegenGenericSpecializationFactsFromSemantic(
     semantic_facts: SemanticAstGenericSpecializationFacts,
     ref scopes: SemanticAstFunctionScopeFacts
 ) -> CodegenGenericSpecializationFacts {
-    let signature_indexes: Array<Int> = [];
-    let c_names: Array<String> = [];
-    let actual_starts: Array<Int> = [];
-    let actual_counts: Array<Int> = [];
-    let actual_type_names: Array<String> = [];
-    let call_node_ids: Array<Int> = [];
-    let call_c_names: Array<String> = [];
-    let call_contexts: Array<String> = [];
+    var signature_indexes: Array<Int> = [];
+    var c_names: Array<String> = [];
+    var actual_starts: Array<Int> = [];
+    var actual_counts: Array<Int> = [];
+    var actual_type_names: Array<String> = [];
+    var call_node_ids: Array<Int> = [];
+    var call_c_names: Array<String> = [];
+    var call_contexts: Array<String> = [];
     if !SemanticAstGenericSpecializationFactsReady(semantic_facts) {
         return CodegenGenericSpecializationFacts(
             false, "semantic generic specialization facts are incomplete",
@@ -56,7 +56,7 @@ func CodegenGenericSpecializationFactsFromSemantic(
             actual_type_names, call_node_ids, call_c_names, call_contexts
         );
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < SemanticAstGenericSpecializationCount(semantic_facts) {
         let signature_index: Int = semantic_facts.signature_indexes[row];
         let actuals: Array<String> =
@@ -70,8 +70,8 @@ func CodegenGenericSpecializationFactsFromSemantic(
         let c_name: String = CompilerSymbolCGenericSpecializationName(
             CompilerSymbolCQualifiedName(owner, name), actuals
         );
-        let existing: Int = -1;
-        let spec_i: Int = 0;
+        var existing: Int = -1;
+        var spec_i: Int = 0;
         while spec_i < ArrayLength(c_names) {
             if c_names[spec_i] == c_name { existing = spec_i; }
             spec_i = spec_i + 1;
@@ -81,7 +81,7 @@ func CodegenGenericSpecializationFactsFromSemantic(
             ArrayPush(c_names, c_name);
             ArrayPush(actual_starts, ArrayLength(actual_type_names));
             ArrayPush(actual_counts, ArrayLength(actuals));
-            let actual_i: Int = 0;
+            var actual_i: Int = 0;
             while actual_i < ArrayLength(actuals) {
                 ArrayPush(actual_type_names, actuals[actual_i]);
                 actual_i = actual_i + 1;
@@ -93,7 +93,7 @@ func CodegenGenericSpecializationFactsFromSemantic(
                 actual_type_names, call_node_ids, call_c_names, call_contexts
             );
         } else {
-            let actual_i: Int = 0;
+            var actual_i: Int = 0;
             if actual_counts[existing] != ArrayLength(actuals) {
                 return CodegenGenericInstantiationError("generic specialization symbol collision");
             }
@@ -121,7 +121,7 @@ func CodegenGenericCallNodeKey(call_node_id: Int) -> String {
 }
 
 func CodegenGenericInstantiationError(message: String) -> CodegenGenericSpecializationFacts {
-    let result: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsEmpty();
+    var result: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsEmpty();
     result.ok = false;
     result.diagnostic_message = message;
     return result;
@@ -140,18 +140,18 @@ func CodegenGenericSpecializationInstantiateCalls(
         ArrayLength(raw.call_node_ids) != ArrayLength(raw.call_c_names) {
         return CodegenGenericInstantiationError("generic call instantiation requires admitted facts");
     }
-    let template_syntax_ids: Array<Int> = [];
-    let template_generic_starts: Array<Int> = [];
-    let template_generic_counts: Array<Int> = [];
-    let template_generic_names: Array<String> = [];
-    let template: Int = 0;
+    var template_syntax_ids: Array<Int> = [];
+    var template_generic_starts: Array<Int> = [];
+    var template_generic_counts: Array<Int> = [];
+    var template_generic_names: Array<String> = [];
+    var template: Int = 0;
     while template < ArrayLength(signatures.function_node_ids) {
         ArrayPush(template_syntax_ids, signatures.function_node_ids[template]);
         ArrayPush(template_generic_starts, signatures.generic_starts[template]);
         ArrayPush(template_generic_counts, signatures.generic_counts[template]);
         template = template + 1;
     }
-    let formal: Int = 0;
+    var formal: Int = 0;
     while formal < ArrayLength(signatures.generic_names) {
         ArrayPush(template_generic_names, signatures.generic_names[formal]);
         formal = formal + 1;
@@ -159,12 +159,12 @@ func CodegenGenericSpecializationInstantiateCalls(
     let templates: GenericInstanceTemplates = GenericInstanceTemplates(
         true, template_syntax_ids, template_generic_starts,
         template_generic_counts, template_generic_names);
-    let callers: Array<Int> = [];
-    let targets: Array<Int> = [];
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let types: Array<String> = [];
-    let call: Int = 0;
+    var callers: Array<Int> = [];
+    var targets: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var types: Array<String> = [];
+    var call: Int = 0;
     while call < ArrayLength(raw.call_node_ids) {
         let semantic_index: Option<Int> = SemanticAstGenericSpecializationIndexForCall(
             semantic_rows.call_node_ids, raw.call_node_ids[call]);
@@ -176,15 +176,15 @@ func CodegenGenericSpecializationInstantiateCalls(
         if source_owner < 0 || source_owner >= scopes.artifact_node_count {
             return CodegenGenericInstantiationError("generic call scope identity is missing");
         }
-        let caller: Int = -1;
+        var caller: Int = -1;
         let function_node: Option<Int> = SemanticAstFunctionScopeNodeId(scopes, source_owner);
         if IsSome(function_node) {
             let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
                 signatures, UnwrapOption(function_node));
             if IsSome(signature) { caller = UnwrapOption(signature); }
         }
-        let raw_index: Int = -1;
-        let i: Int = 0;
+        var raw_index: Int = -1;
+        var i: Int = 0;
         while i < ArrayLength(raw.c_names) {
             if raw.c_names[i] == raw.call_c_names[call] { raw_index = i; }
             i = i + 1;
@@ -207,18 +207,18 @@ func CodegenGenericSpecializationInstantiateCalls(
         true, callers, targets, starts, counts, types);
     let closure: GenericInstanceClosure = GenericInstanceClosureFromRecipes(templates, recipes);
     if !closure.valid { return CodegenGenericInstantiationError(closure.diagnostic); }
-    let instance_signature_indexes: Array<Int> = [];
-    let instance_c_names: Array<String> = [];
-    let instance_actual_starts: Array<Int> = [];
-    let instance_actual_counts: Array<Int> = [];
-    let instance_actual_type_names: Array<String> = [];
-    let instance: Int = 0;
+    var instance_signature_indexes: Array<Int> = [];
+    var instance_c_names: Array<String> = [];
+    var instance_actual_starts: Array<Int> = [];
+    var instance_actual_counts: Array<Int> = [];
+    var instance_actual_type_names: Array<String> = [];
+    var instance: Int = 0;
     while instance < ArrayLength(closure.template_rows) {
         let target: Int = closure.template_rows[instance];
         let actuals: Array<String> = GenericInstanceActuals(closure, instance);
         let symbol: String = CompilerSymbolCGenericSpecializationName(
             CompilerSymbolCQualifiedName(signatures.owner_names[target], signatures.names[target]), actuals);
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < instance {
             if instance_c_names[prior] == symbol {
                 return CodegenGenericInstantiationError("generic specialization symbol collision");
@@ -229,16 +229,16 @@ func CodegenGenericSpecializationInstantiateCalls(
         ArrayPush(instance_c_names, symbol);
         ArrayPush(instance_actual_starts, ArrayLength(instance_actual_type_names));
         ArrayPush(instance_actual_counts, ArrayLength(actuals));
-        let a: Int = 0;
+        var a: Int = 0;
         while a < ArrayLength(actuals) { ArrayPush(instance_actual_type_names, actuals[a]); a = a + 1; }
         instance = instance + 1;
     }
-    let instance_call_node_ids: Array<Int> = [];
-    let instance_call_c_names: Array<String> = [];
-    let instance_call_contexts: Array<String> = [];
+    var instance_call_node_ids: Array<Int> = [];
+    var instance_call_c_names: Array<String> = [];
+    var instance_call_contexts: Array<String> = [];
     call = 0;
     while call < ArrayLength(closure.call_recipes) {
-        let context: String = "";
+        var context: String = "";
         if closure.call_contexts[call] >= 0 { context = instance_c_names[closure.call_contexts[call]]; }
         ArrayPush(instance_call_node_ids, raw.call_node_ids[closure.call_recipes[call]]);
         ArrayPush(instance_call_c_names, instance_c_names[closure.call_targets[call]]);
@@ -256,8 +256,8 @@ func CodegenGenericSpecializationCallEnvRows(
     facts: CodegenGenericSpecializationFacts,
     context: String
 ) -> String {
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(facts.call_node_ids) {
         if facts.call_contexts[i] != context { i = i + 1; continue; }
         ArrayPush(rows, Concat(
@@ -279,14 +279,14 @@ func CodegenGenericSpecializationActuals(
     facts: CodegenGenericSpecializationFacts,
     specialization_index: Int
 ) -> Array<String> {
-    let actuals: Array<String> = [];
+    var actuals: Array<String> = [];
     if !facts.ok || specialization_index < 0 ||
         specialization_index >= CodegenGenericSpecializationCount(facts) {
         return actuals;
     }
     let start: Int = facts.actual_starts[specialization_index];
     let count: Int = facts.actual_counts[specialization_index];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         ArrayPush(actuals, facts.actual_type_names[start + i]);
         i = i + 1;

@@ -6,8 +6,8 @@ func DirectMirScalarCfgStringArrayPushEntryExecutesOnceReady(
     ref plan: DirectMirScalarCfgStringArrayPlan,
     ref index: MirRoutineFactIndex
 ) -> Bool {
-    let has_push: Bool = false;
-    let row: Int = 0;
+    var has_push: Bool = false;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
         let fact: DirectMirScalarCfgStringArrayAccessFact =
             DirectMirScalarCfgStringArrayAccessAt(plan, row);
@@ -22,7 +22,7 @@ func DirectMirScalarCfgStringArrayPushEntryExecutesOnceReady(
         ArrayLength(index.block_succ_false) != block_count {
         return false;
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < block_count {
         if index.block_succ_true[block] == 0 ||
             index.block_succ_false[block] == 0 {

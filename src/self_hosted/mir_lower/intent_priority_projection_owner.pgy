@@ -34,10 +34,10 @@ func MirIntentPriorityProjectionFromCarriers(
             false, "", -1
         );
     }
-    let matches: Int = 0;
-    let text: String = "";
-    let global_row: Int = 0 - 1;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var text: String = "";
+    var global_row: Int = 0 - 1;
+    var row: Int = 0;
     while row < count {
         if carriers.carrier_names[row] == "IntentEval" &&
             carriers.carrier_arg0s[row] == "priority" {

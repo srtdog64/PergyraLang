@@ -37,8 +37,8 @@ func SemanticTrimSourceReuse(expr: String) -> String {
 }
 
 func SemanticStripOuterParens(expr: String) -> String {
-    let text: String = SemanticTrimSourceReuse(expr);
-    let keep_scanning: Bool = true;
+    var text: String = SemanticTrimSourceReuse(expr);
+    var keep_scanning: Bool = true;
     while keep_scanning {
         // One unchanged binding per round proves every window below, and
         // the text is measured once per round.
@@ -53,9 +53,9 @@ func SemanticStripOuterParens(expr: String) -> String {
         if SourceByteAt(current, current_extent, current_extent, open) != SourceByteOf("(") {
             break;
         }
-        let depth: Int = 0;
-        let close: Int = -1;
-        let i: Int = open;
+        var depth: Int = 0;
+        var close: Int = -1;
+        var i: Int = open;
         while i < current_extent && close < 0 {
             let c: Int = SourceByteAt(current, current_extent, current_extent, i);
             if c == SourceByteOf("\"") {
@@ -87,8 +87,8 @@ func SemanticStripOuterParens(expr: String) -> String {
         ) != current_extent {
             keep_scanning = false;
         } else {
-            let inner_start: Int = open + 1;
-            let inner_end: Int = close;
+            var inner_start: Int = open + 1;
+            var inner_end: Int = close;
             while inner_start < inner_end && SourceByteIsWhitespace(
                 SourceByteAt(current, current_extent, current_extent, inner_start)
             ) {

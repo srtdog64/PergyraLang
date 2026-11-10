@@ -37,11 +37,11 @@ func SelfDirIntentStepClauseFactsError(message: String) -> SelfDirIntentStepClau
 func SelfDirIntentStepClauseAppendUniqueNames(payload: String, inout names: Array<String>) -> Bool {
     let parts: Array<String> = Split(payload, ",");
     if ArrayLength(parts) == 0 { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(parts) {
         let name: String = StringTrim(parts[i]);
         if name == "" { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(names) {
             if names[prior] == name { return false; }
             prior = prior + 1;
@@ -54,27 +54,27 @@ func SelfDirIntentStepClauseAppendUniqueNames(payload: String, inout names: Arra
 
 func SelfDirIntentStepClauseFactsFromArtifact(artifact: AstTreeArtifact, step_node_id: Int
 ) -> SelfDirIntentStepClauseFacts {
-    let on_text: String = "";
-    let on_node_id: Int = -1;
-    let intent_text: String = "";
-    let intent_node_id: Int = -1;
-    let outcome_node_id: Int = -1;
-    let outcome_name: String = "";
-    let expect_node_id: Int = -1;
-    let guard_node_id: Int = -1;
-    let post_node_id: Int = -1;
-    let pre_node_id: Int = -1;
-    let invariant_node_id: Int = -1;
-    let compensate_node_ids: Array<Int> = [];
-    let explicit_using: String = "";
-    let transfer_text: String = "";
-    let explicit_causes: String = "";
-    let who_names: Array<String> = [];
-    let requires_names: Array<String> = [];
-    let authorized_names: Array<String> = [];
-    let provenance_text: String = "";
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var on_text: String = "";
+    var on_node_id: Int = -1;
+    var intent_text: String = "";
+    var intent_node_id: Int = -1;
+    var outcome_node_id: Int = -1;
+    var outcome_name: String = "";
+    var expect_node_id: Int = -1;
+    var guard_node_id: Int = -1;
+    var post_node_id: Int = -1;
+    var pre_node_id: Int = -1;
+    var invariant_node_id: Int = -1;
+    var compensate_node_ids: Array<Int> = [];
+    var explicit_using: String = "";
+    var transfer_text: String = "";
+    var explicit_causes: String = "";
+    var who_names: Array<String> = [];
+    var requires_names: Array<String> = [];
+    var authorized_names: Array<String> = [];
+    var provenance_text: String = "";
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, step_node_id, child_index
     );
     while IsSome(child) {

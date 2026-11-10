@@ -25,7 +25,7 @@ func DirectMirStructValueFlowEmitLlvm(
     }
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "%";
+    var output: String = "%";
     output = Concat(output, type_name);
     output = Concat(output, " = type { i32, i32 }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
     output = Concat(output, ToString(format_size));

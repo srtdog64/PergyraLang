@@ -25,7 +25,7 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         plan.program.runtime_abi.dir_walk_id != 0 ||
         DirectMirScalarProgramArrayStringAbiFactReady(
             plan.program.array_string_abi);
-    let any: Bool = plan.program.runtime_abi.string_contains_id != 0 ||
+    var any: Bool = plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_to_int_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 || array_required;
     if plan.program.runtime_abi.read_file_id != 0 { any = true; }
@@ -40,7 +40,7 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
     if array_required && !IsSome(projection_opt) {
         Die("direct MIR scalar program LLVM Array<String> projection is missing");
     }
-    let output: String = "";
+    var output: String = "";
     if array_required {
         let abi: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
         if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
@@ -69,6 +69,8 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         output = Concat(output,
             DirectMirScalarProgramLlvmStringArrayPushBlock(
                 "pgy_as_push", abi));
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringArrayPopBlock(abi));
         if DirectMirScalarProgramExpressionContainsKind(
                 plan.program.expressions,
                 DirectMirScalarProgramExprArrayStringPushOwned()) {

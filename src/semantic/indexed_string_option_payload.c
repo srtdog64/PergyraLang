@@ -67,6 +67,31 @@ static FunctionParamFlowIndexClaims *option_claims(SemanticContext *ctx, const A
     return found != NULL && function_param_flow_index_claims_current(ctx, found) ? found->claims : NULL;
 }
 
+static bool option_payload_member_independent_current(SemanticContext *ctx,
+    IndexedStringResultInputs *inputs, const ASTNode *caller,
+    const ASTNode *value, bool prepare)
+{
+    FunctionParamFlowSummaryStore *store = ctx == NULL
+        ? NULL : ctx->function_param_flow_summaries;
+    FunctionParamFlowIndexClaims *claims = option_claims(ctx, caller);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (store == NULL || store->failed || store->solving || claims == NULL ||
+        value == NULL || value->type != AST_MEMBER_ACCESS ||
+        !indexed_string_result_capture_dependency(ctx, (ASTNode *)caller,
+            claims, inputs, prepare) ||
+        !function_param_flow_program_point_index_build(store,
+            (ASTNode *)caller, &index) ||
+        index == NULL || index->claims != claims ||
+        index->declared_result == NULL ||
+        !function_param_flow_declared_result_rows_current(store,
+            (ASTNode *)caller))
+        return false;
+    bool has_origin = true;
+    return function_param_flow_backing_value_origin_current(store,
+            index->declared_result, value, &has_origin) &&
+        !has_origin;
+}
+
 bool indexed_string_option_relation_record(SemanticContext *ctx, IndexedStringResultInputs *inputs,
     const ASTNode *call, bool unwrap, bool prepare)
 {
@@ -174,6 +199,12 @@ static bool payload_source(SemanticContext *ctx, IndexedStringResultInputs *inpu
         if (!formal) return false;
     } else if (value->type == AST_CALL && ast_call_semantic_callee_declared_callable(value)) {
         return indexed_string_result_derive(ctx, value, &source, prepare, false, inputs) && source == 0;
+    } else if (value->type == AST_MEMBER_ACCESS) {
+        /* The declared-result frame already owns this exact projection's
+         * backing origin.  An input-free member is independent result storage;
+         * an input-derived member remains refused. */
+        return option_payload_member_independent_current(ctx, inputs, caller,
+            value, prepare);
     } else if (value->type != AST_CALL && value->type != AST_STRING) return false;
     return (value->type != AST_CALL || indexed_string_result_capture_call(ctx, value, inputs, prepare)) &&
         semantic_indexed_string_borrow_source_current((ASTNode *)value, ctx, &source) && source == 0;
@@ -191,11 +222,15 @@ static bool returns_current(SemanticContext *ctx, IndexedStringResultInputs *inp
         if (row->child_count != 1 || row->children == NULL || row->child_ids == NULL ||
             row->child_claim_ordinals == NULL || row->children[0] != value || value == NULL ||
             row->child_claim_ordinals[0] >= claims->count ||
-            claims->rows[row->child_claim_ordinals[0]].node != value) return false;
+            claims->rows[row->child_claim_ordinals[0]].node != value) {
+            return false;
+        }
         bool none = value->type == AST_IDENTIFIER &&
             pgy_match_variant_lookup(ast_identifier_name(value)) == PGY_MATCH_VARIANT_NONE_CTOR;
         SemanticPublishedValue typed = semantic_param_publication_value(ctx, value);
-        if (!typed.ok) return false;
+        if (!typed.ok) {
+            return false;
+        }
         if (none) {
             const FunctionParamFlowIndexClaim *constant = &claims->rows[row->child_claim_ordinals[0]];
             /* None is the existing meta constant issuer, not a String value
@@ -203,12 +238,19 @@ static bool returns_current(SemanticContext *ctx, IndexedStringResultInputs *inp
             if (!typed.meta || !option_type(typed.type, TYPE_UNKNOWN) ||
                 ast_identifier_binding_syntax_id(value) != 0 || constant->binding != 0 ||
                 !constant->semantic_promoted || !constant->snapshot_semantic_complete ||
-                !constant->value_ready || !constant->value_meta) return false;
+                !constant->value_ready || !constant->value_meta) {
+                return false;
+            }
         } else {
-            if (typed.meta) return false;
-            if (!indexed_string_option_relation_record(ctx, inputs, value, false, prepare)) return false;
+            if (typed.meta || !indexed_string_option_relation_record(
+                    ctx, inputs, value, false, prepare)) {
+                return false;
+            }
             payload = ast_call_argument(value, 0);
-            if (!payload_source(ctx, inputs, producer, payload, value, prepare, NULL)) return false;
+            if (!payload_source(ctx, inputs, producer, payload, value,
+                    prepare, NULL)) {
+                return false;
+            }
         }
         IndexedStringOptionReturn saved = {producer, row->node, value, payload, ast_node_stable_id(producer),
             row->id, ast_node_stable_id(value), ast_node_stable_id(payload), none};
@@ -236,7 +278,8 @@ bool indexed_string_option_source(SemanticContext *ctx, const ASTNode *call,
     uint32_t *source, IndexedStringResultInputs *inputs, bool prepare)
 {
     if (source == NULL || inputs == NULL || ctx == NULL || ctx->has_error ||
-        !semantic_param_publication_inputs_ready(ctx) || !semantic_indexed_string_option_unwrap_candidate(ctx, call)) return false;
+        !semantic_param_publication_inputs_ready(ctx) ||
+        !semantic_indexed_string_option_unwrap_candidate(ctx, call)) return false;
     if (prepare) {
         if (inputs->option != NULL) return false;
         inputs->option = calloc(1, sizeof(*inputs->option));
@@ -244,8 +287,10 @@ bool indexed_string_option_source(SemanticContext *ctx, const ASTNode *call,
         inputs->option->unwrap = call; inputs->option->unwrap_id = ast_node_stable_id(call);
     }
     IndexedStringOptionInputs *option = inputs->option;
-    if (option == NULL || option->unwrap != call || option->unwrap_id != ast_node_stable_id(call) ||
-        !indexed_string_option_relation_record(ctx, inputs, call, true, prepare)) return false;
+    if (option == NULL || option->unwrap != call ||
+        option->unwrap_id != ast_node_stable_id(call) ||
+        !indexed_string_option_relation_record(
+            ctx, inputs, call, true, prepare)) return false;
     PublishedNode *published = publication_node(ctx->function_param_publications, call, false);
     const ASTNode *value = ast_call_argument(call, 0), *caller = published->caller;
     if (value == NULL || value->type != AST_IDENTIFIER || caller == NULL ||
@@ -264,10 +309,13 @@ bool indexed_string_option_source(SemanticContext *ctx, const ASTNode *call,
     ASTNode *producer = semantic_param_publication_declared_result(ctx, producer_call, &result);
     uint32_t incoming = UINT32_MAX;
     if (producer == NULL || !option_type(result, TYPE_STRING) ||
-        !indexed_string_result_derive(ctx, producer_call, &incoming, prepare, true, inputs) || incoming != 0 ||
+        !indexed_string_result_derive(
+            ctx, producer_call, &incoming, prepare, true, inputs) ||
+        incoming != 0 ||
         !birth_record(ctx, inputs, caller, declaration, true, prepare)) return false;
     claims = option_claims(ctx, producer);
-    if (claims == NULL || !returns_current(ctx, inputs, producer, claims, prepare)) return false;
+    if (claims == NULL ||
+        !returns_current(ctx, inputs, producer, claims, prepare)) return false;
     if (prepare) {
         option->sealed_births = option->birth_count; option->sealed_returns = option->return_count;
         option->sealed_relations = option->relation_count; option->sealed_uses = option->use_count;

@@ -9,9 +9,9 @@ import "intent_result_contract_owner.pgy";
 
 func SelfDirIntentReceiptHashString(hash: Long, value: String) -> Long {
     let modulus: Long = 268435456L;
-    let out: Long =
+    var out: Long =
         (hash * 131L + (StringLength(value) as Long)) % modulus;
-    let row: Int = 0;
+    var row: Int = 0;
     while row < StringLength(value) {
         out = (out * 131L +
             (CharCode(value, StringLength(value), row) as Long)) % modulus;
@@ -29,7 +29,7 @@ func SelfDirIntentReceiptBoundedDigest(hash: Long) -> Int {
 }
 
 func SelfDirIntentReceiptHashBool(hash: Long, value: Bool) -> Long {
-    let bit: Int = 0;
+    var bit: Int = 0;
     if value { bit = 1; }
     return SelfDirIntentReceiptHashInt(hash, bit);
 }
@@ -77,14 +77,14 @@ func SelfDirIntentReceiptTransitionShapeReady(
 func SelfDirIntentReceiptRangesReady(
     ref facts: SelfDirIntentFacts
 ) -> Bool {
-    let participant_end: Int = 0;
-    let step_end: Int = 0;
-    let terminal_end: Int = 0;
-    let who_end: Int = 0;
-    let requires_end: Int = 0;
-    let authorized_end: Int = 0;
-    let compensate_end: Int = 0;
-    let intent_row: Int = 0;
+    var participant_end: Int = 0;
+    var step_end: Int = 0;
+    var terminal_end: Int = 0;
+    var who_end: Int = 0;
+    var requires_end: Int = 0;
+    var authorized_end: Int = 0;
+    var compensate_end: Int = 0;
+    var intent_row: Int = 0;
     while intent_row < ArrayLength(facts.intent_node_ids) {
         if facts.participant_starts[intent_row] != participant_end ||
             facts.participant_counts[intent_row] < 0 ||
@@ -104,7 +104,7 @@ func SelfDirIntentReceiptRangesReady(
             facts.transitions.terminal_counts[intent_row];
         intent_row = intent_row + 1;
     }
-    let step_row: Int = 0;
+    var step_row: Int = 0;
     while step_row < ArrayLength(facts.steps.node_ids) {
         if facts.steps.who_starts[step_row] != who_end ||
             facts.steps.who_counts[step_row] < 0 ||
@@ -168,7 +168,7 @@ func SelfDirIntentReceiptHashStep(
     hash = SelfDirIntentReceiptHashString(hash, facts.steps.causes_names[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.causes_declaration_indices[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.who_counts[row]);
-    let item: Int = facts.steps.who_starts[row];
+    var item: Int = facts.steps.who_starts[row];
     while item < facts.steps.who_starts[row] + facts.steps.who_counts[row] {
         hash = SelfDirIntentReceiptHashString(hash, facts.steps.who_names[item]);
         item = item + 1;
@@ -233,7 +233,7 @@ func SelfDirIntentReceiptHashStep(
 func SelfDirIntentFactsIdentityDigest(
     ref facts: SelfDirIntentFacts
 ) -> Int {
-    let hash: Long = SelfDirIntentReceiptHashString(
+    var hash: Long = SelfDirIntentReceiptHashString(
         37L, "pgy.self-dir.intent-receipt.v3"
     );
     hash = SelfDirIntentReceiptHashBool(hash, facts.required);
@@ -259,7 +259,7 @@ func SelfDirIntentFactsIdentityDigest(
     hash = SelfDirIntentReceiptHashInt(hash, step_count);
     hash = SelfDirIntentReceiptHashInt(hash, terminal_count);
     hash = SelfDirIntentReceiptHashInt(hash, facts.edge_count);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < intent_count {
         hash = SelfDirIntentReceiptHashInt(hash, facts.intent_node_ids[row]);
         hash = SelfDirIntentReceiptHashString(hash, facts.names[row]);
@@ -337,7 +337,7 @@ func SelfDirIntentFactsSeal(
 func SelfDirIntentFactsSealedEmpty(
     artifact_node_count: Int, artifact_identity_digest: Int
 ) -> SelfDirIntentFacts {
-    let facts: SelfDirIntentFacts = SelfDirIntentFactsEmpty(
+    var facts: SelfDirIntentFacts = SelfDirIntentFactsEmpty(
         false, true, "", artifact_node_count
     );
     facts.artifact_identity_digest = artifact_identity_digest;
@@ -350,8 +350,8 @@ func SelfDirIntentReceiptSignatureReady(
 ) -> Bool {
     let intent_count: Int = SemanticAstIntentSignatureCount(intents);
     if intent_count != ArrayLength(facts.intent_node_ids) { return false; }
-    let participant_row: Int = 0;
-    let intent_row: Int = 0;
+    var participant_row: Int = 0;
+    var intent_row: Int = 0;
     while intent_row < intent_count {
         if facts.intent_node_ids[intent_row] !=
                 intents.intent_node_ids[intent_row] ||
@@ -366,7 +366,7 @@ func SelfDirIntentReceiptSignatureReady(
             intents.param_starts[intent_row] != participant_row {
             return false;
         }
-        let parameter_row: Int = 0;
+        var parameter_row: Int = 0;
         while parameter_row < intents.param_counts[intent_row] {
             let row: Int = participant_row + parameter_row;
             if facts.participants.node_ids[row] != intents.param_node_ids[row] ||

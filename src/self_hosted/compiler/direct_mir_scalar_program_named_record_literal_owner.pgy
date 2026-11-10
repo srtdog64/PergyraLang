@@ -21,7 +21,7 @@ func DirectMirScalarProgramNamedRecordLiteralsFromGraph(
         DirectMirScalarProgramNamedRecordLiterals(false, empty, empty, empty, empty, empty);
     if !sequence.ok { return invalid; }
     let count: Int = sequence.ready_node_count;
-    let candidate: Bool = false; let scan: Int = 0;
+    var candidate: Bool = false; var scan: Int = 0;
     while scan < count {
         let kind: Int = sequence.arena.topology.node_kinds[scan];
         if kind == AstExpressionNodeStructLiteral() || kind == AstExpressionNodeStructField() ||
@@ -33,10 +33,10 @@ func DirectMirScalarProgramNamedRecordLiteralsFromGraph(
     if !candidate {
         return DirectMirScalarProgramNamedRecordLiterals(true, empty, empty, empty, empty, empty);
     }
-    let roles: Array<Int> = []; let seeds: Array<Int> = [];
-    let record_rows: Array<Int> = []; let starts: Array<Int> = [];
-    let values: Array<Int> = []; let consumed: Array<Bool> = [];
-    let node: Int = 0;
+    var roles: Array<Int> = []; var seeds: Array<Int> = [];
+    var record_rows: Array<Int> = []; var starts: Array<Int> = [];
+    var values: Array<Int> = []; var consumed: Array<Bool> = [];
+    var node: Int = 0;
     while node < count {
         ArrayPush(roles, 0); ArrayPush(seeds, -1);
         ArrayPush(record_rows, -1); ArrayPush(starts, -1);
@@ -57,7 +57,7 @@ func DirectMirScalarProgramNamedRecordLiteralsFromGraph(
             if record < 0 || records.field_counts[record] < 1 { return invalid; }
             roles[left] = 1; roles[node] = 2; consumed[left] = true;
             seeds[node] = node; record_rows[node] = record; starts[node] = ArrayLength(values);
-            let ordinal: Int = 0;
+            var ordinal: Int = 0;
             while ordinal < records.field_counts[record] {
                 ArrayPush(values, -1); ordinal = ordinal + 1;
             }
@@ -122,7 +122,7 @@ func DirectMirScalarProgramNamedRecordConstructorFromPlan(
         return missing;
     }
     let seed: Int = plan.seeds[node]; let record: Int = plan.records[seed];
-    let arguments: Array<Int> = []; let ordinal: Int = 0;
+    var arguments: Array<Int> = []; var ordinal: Int = 0;
     while ordinal < records.field_counts[record] {
         let source: Int = plan.value_sources[plan.starts[seed] + ordinal];
         if source < 0 || source >= ArrayLength(source_rows) || source_rows[source] < 0 {

@@ -139,8 +139,8 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
     }
     if code == "binding_form_invalid" {
         return ParseDiagnosticRow(
-            "this binding form is not part of the language: a mutable binding is `var`, and destructuring is a `let` binding",
-            "write `var name = ...` instead of `let mut name = ...`, and destructure with `let (a, b) = ...`"
+            "destructured bindings are immutable; a mutable declaration names one binding",
+            "destructure with `let (a, b) = ...`, then use `var` or `let mut` for a name that must change"
         );
     }
     if code == "binding_name_reserved" {
@@ -342,13 +342,13 @@ func ParseDiagnosticPayloadAt2(
     k2: String, v2: String
 ) -> String {
     let row: ParseDiagnosticRow = ParseDiagnosticRowForCode(code);
-    let span: String = "none";
+    var span: String = "none";
     if file != "" && line >= 1 && column >= 1 {
         span = Concat(file, Concat(":", Concat(ToString(line),
             Concat(":", ToString(column)))));
     }
     // An unused fact pair (empty key) is left out rather than printed as `- : `.
-    let facts: String = SelfHostDiagnostic.Fact2(k1, v1, k2, v2);
+    var facts: String = SelfHostDiagnostic.Fact2(k1, v1, k2, v2);
     if k2 == "" { facts = SelfHostDiagnostic.Fact1(k1, v1); }
     let text: String = SelfHostDiagnostic.RenderError(
         ParseDiagnosticSchema(), "parse", "error",

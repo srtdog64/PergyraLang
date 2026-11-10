@@ -1,6 +1,7 @@
 // Rebuilds only collection receiver roots absent from the MIR v1 graph slots.
 
 import "expression_graph_sequence_owner.pgy";
+import "expression_graph_parser_bridge_row_alignment_owner.pgy";
 
 func MirExpressionGraphSequenceAppendParserBridge(sequence: MirExpressionGraphSequence,
     expression: String
@@ -9,59 +10,58 @@ func MirExpressionGraphSequenceAppendParserBridge(sequence: MirExpressionGraphSe
         return MirExpressionGraphSequenceError(sequence);
     }
     let arena: SemanticExpressionGraphArena = sequence.arena;
-    let kinds: Array<Int> = arena.topology.node_kinds;
-    let topology_texts: Array<String> = arena.topology.node_texts;
-    let texts: Array<String> = arena.node_texts;
-    let left_children: Array<Int> = arena.topology.left_children;
-    let right_children: Array<Int> = arena.topology.right_children;
-    let call_target_kinds: Array<Int> = arena.call_target_kinds;
-    let call_target_names: Array<String> = arena.call_target_names;
-    let call_return_type_names: Array<String> =
+    var kinds: Array<Int> = arena.topology.node_kinds;
+    var topology_texts: Array<String> = arena.topology.node_texts;
+    var texts: Array<String> = arena.node_texts;
+    var left_children: Array<Int> = arena.topology.left_children;
+    var right_children: Array<Int> = arena.topology.right_children;
+    var call_target_kinds: Array<Int> = arena.call_target_kinds;
+    var call_target_names: Array<String> = arena.call_target_names;
+    var call_return_type_names: Array<String> =
         arena.call_return_type_names;
-    let call_target_syntax_ids: Array<Int> =
+    var call_target_syntax_ids: Array<Int> =
         arena.identities.call_target_syntax_ids;
-    let runtime_call_abi_ids: Array<Int> = arena.identities.runtime_call_abi_ids;
-    let binding_syntax_ids: Array<Int> = arena.identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> = arena.identities.binding_kinds;
-    let binding_ordinals: Array<Int> =
+    var runtime_call_abi_ids: Array<Int> = arena.identities.runtime_call_abi_ids;
+    var binding_syntax_ids: Array<Int> = arena.identities.binding_syntax_ids;
+    var binding_kinds: Array<Int> = arena.identities.binding_kinds;
+    var binding_ordinals: Array<Int> =
         arena.identities.binding_ordinals;
-    let place_kinds: Array<Int> = arena.place_kinds;
+    var place_kinds: Array<Int> = arena.place_kinds;
+    var roots: Array<Int> = sequence.roots;
+    let prior_program_call_ordinals: Array<Int> =
+        sequence.program_call_ordinals;
     let offset: Int = ArrayLength(kinds);
-    if ArrayLength(texts) != offset || ArrayLength(topology_texts) != offset ||
-        ArrayLength(left_children) != offset ||
-        ArrayLength(right_children) != offset ||
-        ArrayLength(call_target_kinds) != offset ||
-        ArrayLength(call_target_names) != offset ||
-        ArrayLength(call_return_type_names) != offset ||
-        ArrayLength(call_target_syntax_ids) != offset ||
-        ArrayLength(runtime_call_abi_ids) != offset || ArrayLength(binding_syntax_ids) != offset ||
-        ArrayLength(binding_kinds) != offset ||
-        ArrayLength(binding_ordinals) != offset ||
-        ArrayLength(place_kinds) != offset {
-        return MirExpressionGraphSequenceError(sequence);
-    }
-    let build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphImportSerializedParserFact(
+    var append_ok: Bool = MirExpressionGraphParserBridgeRowsAligned(
+        offset, topology_texts, texts, left_children, right_children,
+        call_target_kinds, call_target_names, call_return_type_names,
+        call_target_syntax_ids, runtime_call_abi_ids, binding_syntax_ids,
+        binding_kinds, binding_ordinals, place_kinds);
+    var build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphInvalidBuild();
+    if append_ok {
+        build = SemanticExpressionGraphImportSerializedParserFact(
             kinds, texts, left_children, right_children,
             call_target_kinds, call_target_names, expression
         );
-    if !build.ok {
-        return MirExpressionGraphSequenceError(sequence);
+        append_ok = build.ok;
     }
-    let i: Int = offset;
-    while i < ArrayLength(kinds) {
-        // The topology keeps its own text rows; an attach grows each of them.
-        ArrayPush(topology_texts, Concat("", texts[i]));
-        ArrayPush(call_return_type_names, "");
-        ArrayPush(call_target_syntax_ids, 0);
-        ArrayPush(runtime_call_abi_ids, 0); ArrayPush(binding_syntax_ids, 0);
-        ArrayPush(binding_kinds, SemanticExpressionBindingNone());
-        ArrayPush(binding_ordinals, -1);
-        ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
-        i = i + 1;
+    if append_ok {
+        var i: Int = offset;
+        while i < ArrayLength(kinds) {
+            // The topology keeps its own text rows; an attach grows each of
+            // them and owns every String row independently.
+            ArrayPushOwnedString(topology_texts, Concat("", texts[i]));
+            ArrayPushOwnedString(call_return_type_names, Concat("", ""));
+            ArrayPush(call_target_syntax_ids, 0);
+            ArrayPush(runtime_call_abi_ids, 0);
+            ArrayPush(binding_syntax_ids, 0);
+            ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+            ArrayPush(binding_ordinals, -1);
+            ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
+            i = i + 1;
+        }
+        ArrayPush(roots, build.root_id);
     }
-    let roots: Array<Int> = sequence.roots;
-    ArrayPush(roots, build.root_id);
     let extended: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             AstExpressionArena(
@@ -74,13 +74,21 @@ func MirExpressionGraphSequenceAppendParserBridge(sequence: MirExpressionGraphSe
                 binding_syntax_ids, binding_kinds, binding_ordinals, [], false, 0
             ), place_kinds
         );
-    if !MirExpressionGraphRangeReachable(
+    if append_ok {
+        append_ok = MirExpressionGraphRangeReachable(
             extended, offset, ArrayLength(kinds) - offset, build.root_id
-        ) {
-        return MirExpressionGraphSequenceError(sequence);
+        );
     }
-    let unbound_calls: Array<Int> = [];
+    // Once the arena fields move out, every path returns their current
+    // descriptors.  An invalid result remains unreadable (`ok=false`) but it
+    // still owns the one cleanup responsibility; no path reuses `sequence`'s
+    // stale pre-growth descriptors.
+    var program_call_ordinals: Array<Int> = prior_program_call_ordinals;
+    if append_ok {
+        program_call_ordinals = [];
+    }
     return MirExpressionGraphSequence(
-        true, ArrayLength(kinds), roots, extended, unbound_calls
+        append_ok, ArrayLength(kinds), roots, extended,
+        program_call_ordinals
     );
 }

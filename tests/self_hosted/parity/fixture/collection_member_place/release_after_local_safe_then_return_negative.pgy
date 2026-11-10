@@ -1,0 +1,27 @@
+struct Table { names: Array<String>; }
+
+func Leaf(ref table: Table) -> String {
+    let safe: String = table.names[0];
+    StringLength(safe);
+    let escaped: String = table.names[0];
+    return escaped;
+}
+
+func Observe(ref table: Table) -> String {
+    return Leaf(table);
+}
+
+func Update(inout table: Table) -> Void {
+    let names: Array<String> = table.names;
+    ArrayDropOwnedStrings(names);
+    table.names = names;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("o", "wned"));
+    let table: Table = Table(names);
+    let text: String = Observe(table);
+    Update(table);
+    return StringLength(text) + ArrayLength(table.names);
+}

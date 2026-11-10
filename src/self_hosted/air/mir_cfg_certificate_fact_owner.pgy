@@ -66,7 +66,7 @@ func DirectMirCfgCertificateIdentityDigest(
     ref certificate: DirectMirCfgCertificate
 ) -> Int {
     if !certificate.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(31L, certificate.schema);
+    var hash: Long = DirectMirCfgHashString(31L, certificate.schema);
     hash = DirectMirCfgHashInt(hash, certificate.revision);
     hash = DirectMirCfgHashInt(hash, certificate.mir_digest);
     hash = DirectMirCfgHashInt(hash, certificate.source_length);
@@ -103,7 +103,7 @@ func DirectMirCfgCertificateIdentityDigest(
     hash = DirectMirCfgHashInt(hash, certificate.evidence_fact_count);
     hash = DirectMirCfgHashInt(hash, certificate.fallback_count);
     hash = DirectMirCfgHashInt(hash, certificate.drift_count);
-    let flags: Int = 0;
+    var flags: Int = 0;
     if certificate.strict_evidence { flags = flags + 1; }
     if certificate.mir_evidence_bound { flags = flags + 2; }
     hash = DirectMirCfgHashInt(hash, flags);

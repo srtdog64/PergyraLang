@@ -10,7 +10,7 @@ struct Outer {
 
 func Main() -> Int {
     let a: Outer = Outer(Box([1]), StringConcat("t", ""));
-    let b: Outer = Clone(a);
+    var b: Outer = Clone(a);
     ArraySet(b.inner.items, 0, 9);
     Print(ToString(a.inner.items[0]));
     Print(b.tag);

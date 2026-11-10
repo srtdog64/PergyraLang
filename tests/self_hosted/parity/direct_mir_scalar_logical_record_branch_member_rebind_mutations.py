@@ -68,6 +68,8 @@ def main():
         member["binding_syntax_id"] = rhs["binding_syntax_id"]
         member["binding_kind"] = "formal_parameter"
         member["binding_ordinal"] = 0
+    elif mutation == "immutable-local-target":
+        built["arg1"] = "immutable_local"
     else:
         raise SystemExit(f"unknown mutation: {mutation}")
     with open(sys.argv[3], "w", encoding="utf-8", newline="\n") as output:

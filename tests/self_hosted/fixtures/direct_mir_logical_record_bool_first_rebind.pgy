@@ -22,17 +22,17 @@ func DisableStateCopy(state: RebindState) -> RebindState {
 
 func BuildStateFromFormal(last_row: Int) -> RebindState {
     let rows: Array<Int> = [];
-    let state: RebindState = RebindState(true, 0, rows);
+    var state: RebindState = RebindState(true, 0, rows);
     state.last_row = last_row;
     return state;
 }
 
 func Main() -> Void {
     let first_rows: Array<Int> = [];
-    let first: RebindState = RebindState(true, 0, first_rows);
+    var first: RebindState = RebindState(true, 0, first_rows);
     let disabled: Bool = UpdateState(first, true, 7);
     let second_rows: Array<Int> = [];
-    let second: RebindState = RebindState(true, 0, second_rows);
+    var second: RebindState = RebindState(true, 0, second_rows);
     let updated: Bool = UpdateState(second, false, 8);
     let copied: RebindState = DisableStateCopy(second);
     let built: RebindState = BuildStateFromFormal(9);

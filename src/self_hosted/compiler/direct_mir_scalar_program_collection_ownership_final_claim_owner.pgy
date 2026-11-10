@@ -10,11 +10,11 @@ func DirectMirCollectionOwnershipFinalRetiredClaimsReady(
         ArrayLength(bindings) != ArrayLength(states) ||
         ArrayLength(index.collection_ownership_facts.binding_syntax_ids) !=
             ArrayLength(index.collection_ownership_facts.dispositions) { return false; }
-    let claim: Int = 0;
+    var claim: Int = 0;
     while claim < ArrayLength(index.collection_ownership_facts.binding_syntax_ids) {
         if index.collection_ownership_facts.dispositions[claim] == "retired" {
-            let row: Int = first;
-            let matched: Bool = false;
+            var row: Int = first;
+            var matched: Bool = false;
             while row < ArrayLength(bindings) {
                 if bindings[row] == index.collection_ownership_facts.binding_syntax_ids[claim] {
                     if matched || states[row] != DirectMirCollectionOwnershipStateRetired() { return false; }

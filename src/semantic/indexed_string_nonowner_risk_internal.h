@@ -19,6 +19,16 @@ typedef struct {
     ASTNodeType shape;
 } IndexedStringNonownerUse;
 
+/* One declared read-only Array<String> actual, sealed with the typed call
+ * claim that proved it neither mutates, releases, retains nor forwards the
+ * receiver's elements. */
+typedef struct {
+    const ASTNode *call, *callee;
+    uint32_t call_id, callee_id, formal_id;
+    size_t actual_ordinal, claim_ordinal, formal_ordinal;
+    bool physical;
+} IndexedStringNonownerRead;
+
 typedef struct IndexedStringNonownerRisk {
     const ASTNode *caller, *definition, *initializer;
     uint32_t caller_id, body_id, binding_id, initializer_id;
@@ -29,6 +39,8 @@ typedef struct IndexedStringNonownerRisk {
     size_t terminal_count, terminal_capacity, sealed_terminals;
     IndexedStringNonownerUse *uses;
     size_t use_count, use_capacity, sealed_uses;
+    IndexedStringNonownerRead *reads;
+    size_t read_count, read_capacity, sealed_reads;
     bool prepared;
 } IndexedStringNonownerRisk;
 

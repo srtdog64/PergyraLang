@@ -19,8 +19,8 @@ func MirIntentTreeAppendLine(text: String, line: String) -> String {
 }
 
 func MirIntentCarrierCount(ref names: Array<String>, expected: String) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
+    var count: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == expected { count = count + 1; }
         i = i + 1;
@@ -45,8 +45,8 @@ func MirIntentBindingRowForAlias(
         MirLowerFailClosed("MIR intent binding inventory is invalid");
     }
     if alias == "" { return -1; }
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(bindings.aliases) {
         if bindings.aliases[row] == alias {
             if found >= 0 { MirLowerFailClosed("MIR intent binding alias is duplicated"); }
@@ -78,7 +78,7 @@ func MirIntentKnownSemanticCarrier(name: String) -> Bool {
 }
 
 // The carrier spine is borrowed whole; bindings keep owned copies of rows.
-func MirIntentBindingProjectionFromCarriers(
+func MirIntentParameterBindingsFromCarriers(
     ref carriers: MirIntentRoutineCarrierProjection,
     intent_name: String,
     intent_source_syntax_id: Int
@@ -89,12 +89,12 @@ func MirIntentBindingProjectionFromCarriers(
         ArrayLength(carriers.carrier_names) != ArrayLength(carriers.carrier_binding_source_syntax_ids) {
         return MirIntentBindingProjectionInvalid();
     }
-    let aliases: Array<String> = [];
-    let type_names: Array<String> = [];
-    let kinds: Array<String> = [];
-    let source_syntax_ids: Array<Int> = [];
-    let step_names: Array<String> = [];
-    let row: Int = 0;
+    var aliases: Array<String> = [];
+    var type_names: Array<String> = [];
+    var kinds: Array<String> = [];
+    var source_syntax_ids: Array<Int> = [];
+    var step_names: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(carriers.carrier_names) {
         if carriers.carrier_names[row] == "IntentBinding" {
             let binding_kind: String = Concat("", carriers.carrier_slots[row]);
@@ -103,7 +103,7 @@ func MirIntentBindingProjectionFromCarriers(
                 (binding_kind != "participant" && binding_kind != "value") {
                 return MirIntentBindingProjectionInvalid();
             }
-            let prior: Int = 0;
+            var prior: Int = 0;
             while prior < ArrayLength(aliases) {
                 if aliases[prior] == carriers.carrier_arg0s[row] ||
                     source_syntax_ids[prior] == carriers.carrier_binding_source_syntax_ids[row] {
@@ -125,21 +125,21 @@ func MirIntentBindingProjectionFromCarriers(
         }
         row = row + 1;
     }
-    if ArrayLength(aliases) == 0 || ArrayLength(step_names) == 0 ||
+    if ArrayLength(aliases) == 0 ||
         MirIntentCarrierCount(carriers.carrier_names, "IntentParticipant") +
             MirIntentCarrierCount(carriers.carrier_names, "IntentValue") != ArrayLength(aliases) {
         return MirIntentBindingProjectionInvalid();
     }
-    let tree_lines: String = "";
-    let binding_index: Int = 0;
+    var tree_lines: String = "";
+    var binding_index: Int = 0;
     while binding_index < ArrayLength(aliases) {
-        let expected_carrier: String = "IntentParticipant";
-        let row_prefix: String = "    IntentInvolves: ";
+        var expected_carrier: String = "IntentParticipant";
+        var row_prefix: String = "    IntentInvolves: ";
         if kinds[binding_index] == "value" {
             expected_carrier = "IntentValue";
             row_prefix = "    IntentValue: ";
         }
-        let match_count: Int = 0;
+        var match_count: Int = 0;
         row = 0;
         while row < ArrayLength(carriers.carrier_names) {
             if carriers.carrier_names[row] == expected_carrier &&
@@ -162,4 +162,20 @@ func MirIntentBindingProjectionFromCarriers(
     return MirIntentBindingProjection(
         true, intent_source_syntax_id, aliases, type_names, kinds, source_syntax_ids, step_names, tree_lines
     );
+}
+
+// Executable reconstruction additionally needs steps. A routine signature
+// consumes only admitted binders: typed steps live in the execution plan,
+// outside the entry carrier spine, and are checked by the step-plan owner.
+func MirIntentBindingProjectionFromCarriers(
+    ref carriers: MirIntentRoutineCarrierProjection,
+    intent_name: String,
+    intent_source_syntax_id: Int
+) -> MirIntentBindingProjection {
+    let bindings: MirIntentBindingProjection = MirIntentParameterBindingsFromCarriers(
+        carriers, intent_name, intent_source_syntax_id);
+    if !bindings.ok || ArrayLength(bindings.step_names) == 0 {
+        return MirIntentBindingProjectionInvalid();
+    }
+    return bindings;
 }

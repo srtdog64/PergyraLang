@@ -60,7 +60,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowList(ref hero: Hero) -> Void {\n"
-            "    let items: List<Hero> = ListNew();\n"
+            "    var items: List<Hero> = ListNew();\n"
             "    ListPush(items, hero);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -86,7 +86,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowSet(ref hero: Hero) -> Void {\n"
-            "    let seen: Set<Hero> = SetNew();\n"
+            "    var seen: Set<Hero> = SetNew();\n"
             "    SetAdd(seen, hero);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -112,7 +112,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowMap(ref hero: Hero) -> Void {\n"
-            "    let roster: HashMap<String, Hero> = MapNew();\n"
+            "    var roster: HashMap<String, Hero> = MapNew();\n"
             "    MapSet(roster, \"lead\", hero);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -138,7 +138,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowListSet(ref hero: Hero) -> Void {\n"
-            "    let items: List<Hero> = ListNew();\n"
+            "    var items: List<Hero> = ListNew();\n"
             "    ListPush(items, Hero());\n"
             "    ListSet(items, 0, hero);\n"
             "}\n";
@@ -165,7 +165,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowQueue(ref hero: Hero) -> Void {\n"
-            "    let q: Queue<Hero> = QueueNew();\n"
+            "    var q: Queue<Hero> = QueueNew();\n"
             "    QueuePush(q, hero);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -191,7 +191,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowArrayPush(ref hero: Hero) -> Void {\n"
-            "    let items: Array<Hero> = [Hero(1)];\n"
+            "    var items: Array<Hero> = [Hero(1)];\n"
             "    ArrayPush(items, hero);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -217,7 +217,7 @@ test_semantic_ownership_boundaries_part_b(void)
             "    let hp: Int;\n"
             "}\n"
             "func BorrowArraySet(ref hero: Hero) -> Void {\n"
-            "    let items: Array<Hero> = [Hero()];\n"
+            "    var items: Array<Hero> = [Hero()];\n"
             "    ArraySet(items, 0, hero);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -292,7 +292,7 @@ test_semantic_ownership_boundaries_part_b(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ref subject parameter cannot escape transitively through ref helper return");
+    TEST("ref subject helper chain rejects the invalid inner borrowed return");
     {
         const char *source =
             "subject Hero {\n"
@@ -312,7 +312,7 @@ test_semantic_ownership_boundaries_part_b(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape through helper/function call"));
+            "Borrowed ref subject 'hero' cannot escape through return from 'hero'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

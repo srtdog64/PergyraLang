@@ -3,11 +3,12 @@
 
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
+import "direct_mir_scalar_program_array_string_pop_abi_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
-func DirectMirScalarProgramCStringArrayOwnedSingleFn() -> String {
-    return "pgy_as_owned_single";
+func DirectMirScalarProgramCStringArrayOwnedValuesFn() -> String {
+    return "pgy_as_owned_values";
 }
 func DirectMirScalarProgramCStringArrayValuesFn() -> String { return "pgy_as_from_values"; }
 
@@ -23,7 +24,7 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
         abi, projection);
     // This private read view keeps const-qualified elements; descriptor
     // order and every physical field still come from the admitted projection.
-    let output: String = DirectMirScalarCfgArrayCStruct(
+    var output: String = DirectMirScalarCfgArrayCStruct(
         Concat("const ", projection.c_element_type), type_name, projection.storage);
     let empty: String = DirectMirScalarCfgArrayCInitializer(
         projection.storage, "NULL", "0", "0", "NULL");
@@ -35,11 +36,17 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
     output = Concat(output, Concat("static void ", Concat(CollectionRuntimeCOwnedStringPushFn(), "(pgy_as *a, const char *v) { const char *source = v != NULL ? v : \"\"; size_t n = strlen(source); char *owned = (char *)malloc(n + 1); if (owned == NULL) abort(); memcpy(owned, source, n + 1); pgy_as_push(a, owned); }\n")));
     output = Concat(output, Concat("static pgy_as ", Concat(DirectMirScalarProgramCStringArrayValuesFn(), "(const char **v, size_t n) { pgy_as a = pgy_as_new(); for (size_t i = 0; i < n; i++) pgy_as_push(&a, v[i]); return a; }\n")));
     output = Concat(output, Concat("static pgy_as ", Concat(
-        DirectMirScalarProgramCStringArrayOwnedSingleFn(), Concat(
-        "(const char *v) { pgy_as a = pgy_as_new(); ", Concat(
-        CollectionRuntimeCPushFn(2), "(&a, v); return a; }\n")))));
+        DirectMirScalarProgramCStringArrayOwnedValuesFn(), Concat(
+        "(const char **v, size_t n) { pgy_as a = pgy_as_new(); for (size_t i = 0; i < n; i++) ", Concat(
+        CollectionRuntimeCPushFn(2), "(&a, v[i]); return a; }\n")))));
     output = Concat(output,
         "static long long pgy_as_len(pgy_as a) { return (long long)a.length; }\n#include \"pgy_runtime_panic_contract.h\"\n");
+    output = Concat(output, Concat("static void ", Concat(
+        DirectMirScalarProgramArrayStringShallowPopSymbol(),
+        "(pgy_as *a) { if (a != NULL && a->length > 0) a->length--; }\n")));
+    output = Concat(output, Concat("static void ", Concat(
+        DirectMirScalarProgramArrayStringOwnedPopSymbol(),
+        "(pgy_as *a) { if (a == NULL || a->length == 0) return; a->length--; free((void *)a->data[a->length]); a->data[a->length] = NULL; }\n")));
     // General expressions do not carry the legacy induction proof; every
     // indexed read retains the canonical runtime failure boundary.
     output = Concat(output, CollectionRuntimeCGuardedGetWithLength(

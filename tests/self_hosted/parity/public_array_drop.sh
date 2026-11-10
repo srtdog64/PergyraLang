@@ -102,7 +102,9 @@ for name in inout_forward_retain_negative inout_map_retain_negative; do
     fi
     [[ "$(tr -d '\r\n' <"$ROOT_DIR/$output")" == "preserved:$name:native" ]] ||
         fail "native replaced rejected artifact $name"
-    grep -Eqi 'ArrayDrop requires one named' "$WORK_DIR/$name-native.out" "$WORK_DIR/$name-native.err" ||
+    grep -Eqi 'PGY_SEM_BORROW_ESCAPE' "$WORK_DIR/$name-native.out" "$WORK_DIR/$name-native.err" ||
+        fail "native refusal lacked borrow-escape diagnostic for $name"
+    grep -Eqi 'ArrayDrop requires preserved array storage' "$WORK_DIR/$name-native.out" "$WORK_DIR/$name-native.err" ||
         fail "native refusal lacked release diagnostic for $name"
 done
 for name in negative double_negative default_negative ref_negative inout_negative \

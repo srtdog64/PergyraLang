@@ -34,7 +34,7 @@ func DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady
         signature.parameters.abi_layout_ids[1] != 0 {
         return false;
     }
-    let ordinal: Int = 2;
+    var ordinal: Int = 2;
     while ordinal < signature.param_count {
         if signature.parameters.type_names[ordinal] !=
                 CompilerAbiLayoutStringTypeName() ||

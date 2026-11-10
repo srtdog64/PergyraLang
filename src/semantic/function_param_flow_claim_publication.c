@@ -6,13 +6,97 @@
 #include <stdlib.h>
 #include <string.h>
 
+static size_t function_param_flow_claim_node_hash(const ASTNode *node)
+{
+    uint64_t value = (uint64_t)(uintptr_t)node;
+    value ^= value >> 33;
+    value *= UINT64_C(0xff51afd7ed558ccd);
+    value ^= value >> 33;
+    return (size_t)value;
+}
+
+static bool function_param_flow_claim_node_index_rebuild(
+    FunctionParamFlowIndexClaims *claims, size_t expected_count)
+{
+    if (claims == NULL || expected_count == 0) return false;
+    size_t capacity = claims->node_index_capacity;
+    if (capacity != 0 &&
+        expected_count <= capacity - capacity / 4)
+        return true;
+    if (capacity == 0) capacity = 32;
+    while (expected_count > capacity - capacity / 4) {
+        if (capacity > SIZE_MAX / 2) return false;
+        capacity *= 2;
+    }
+    if (capacity > SIZE_MAX / sizeof(*claims->node_index_slots))
+        return false;
+    size_t *slots = calloc(capacity, sizeof(*slots));
+    if (slots == NULL) return false;
+    size_t mask = capacity - 1;
+    for (size_t ordinal = 0; ordinal < claims->count; ordinal++) {
+        const ASTNode *node = claims->rows[ordinal].node;
+        if (node == NULL) {
+            free(slots);
+            return false;
+        }
+        size_t slot = function_param_flow_claim_node_hash(node) & mask;
+        while (slots[slot] != 0) {
+            size_t prior = slots[slot] - 1;
+            if (prior >= claims->count || claims->rows[prior].node == node) {
+                free(slots);
+                return false;
+            }
+            slot = (slot + 1) & mask;
+        }
+        slots[slot] = ordinal + 1;
+    }
+    free(claims->node_index_slots);
+    claims->node_index_slots = slots;
+    claims->node_index_capacity = capacity;
+    return true;
+}
+
+bool function_param_flow_claim_find_ordinal(
+    const FunctionParamFlowIndexClaims *claims, const ASTNode *node,
+    size_t *ordinal)
+{
+    if (ordinal == NULL) return false;
+    *ordinal = SIZE_MAX;
+    if (claims == NULL || node == NULL || claims->node_index_capacity == 0 ||
+        claims->node_index_slots == NULL)
+        return false;
+    size_t mask = claims->node_index_capacity - 1;
+    size_t slot = function_param_flow_claim_node_hash(node) & mask;
+    for (size_t probe = 0; probe < claims->node_index_capacity; probe++) {
+        size_t stored = claims->node_index_slots[slot];
+        if (stored == 0) return true;
+        size_t at = stored - 1;
+        if (at >= claims->count) return false;
+        if (claims->rows[at].node == node) {
+            *ordinal = at;
+            return true;
+        }
+        slot = (slot + 1) & mask;
+    }
+    return false;
+}
+
 bool function_param_flow_claim_capture(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node, bool semantic)
 {
     if (claims == NULL || claims->failed || node == NULL) return false;
     FunctionParamFlowIndexClaim *row = NULL;
-    for (size_t i = 0; i < claims->count; i++) if (claims->rows[i].node == node) {
-        row = &claims->rows[i];
+    size_t existing = SIZE_MAX;
+    if (!function_param_flow_claim_node_index_rebuild(claims,
+            claims->count + 1) ||
+        !function_param_flow_claim_find_ordinal(claims, node, &existing)) {
+        claims->failed = true;
+        function_param_flow_fail(ctx->function_param_flow_summaries, node,
+            "index claim identity projection is unavailable or stale");
+        return false;
+    }
+    if (existing != SIZE_MAX) {
+        row = &claims->rows[existing];
         if (!semantic || row->semantic_promoted) return true;
         goto promote;
     }
@@ -30,10 +114,18 @@ bool function_param_flow_claim_capture(SemanticContext *ctx,
     FunctionParamFlowIndexClaim *rows = realloc(claims->rows, (claims->count + 1) * sizeof(*rows));
     if (rows == NULL) { claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim allocation failed"); return false; }
     claims->rows = rows;
-    row = &rows[claims->count++];
+    size_t ordinal = claims->count++;
+    row = &rows[ordinal];
     claims->generation++;
     *row = (FunctionParamFlowIndexClaim){.node = node, .id = ast_node_stable_id(node), .shape = node->type,
         .child_count = children, .control_step_ordinal = SIZE_MAX, .control_root_ordinal = SIZE_MAX};
+    {
+        size_t mask = claims->node_index_capacity - 1;
+        size_t slot = function_param_flow_claim_node_hash(node) & mask;
+        while (claims->node_index_slots[slot] != 0)
+            slot = (slot + 1) & mask;
+        claims->node_index_slots[slot] = ordinal + 1;
+    }
     row->children = children == 0 ? NULL : calloc(children, sizeof(*row->children));
     row->child_ids = children == 0 ? NULL : calloc(children, sizeof(*row->child_ids));
     row->child_claim_ordinals = children == 0 ? NULL : malloc(children * sizeof(*row->child_claim_ordinals));
@@ -99,6 +191,102 @@ promote:
         row->owned_slot_binding = semantic_param_publication_owned_slot_binding(ctx, node, &birth);
     }
     if (node->type == AST_CALL) {
+        row->call_argument_count = ast_call_arg_count(node);
+        if (row->call_argument_count > SIZE_MAX / sizeof(*row->call_arguments)) {
+            claims->failed = true;
+            function_param_flow_fail(ctx->function_param_flow_summaries, node,
+                "call argument claim size overflow");
+            return false;
+        }
+        row->call_arguments = row->call_argument_count == 0 ? NULL :
+            calloc(row->call_argument_count, sizeof(*row->call_arguments));
+        if (row->call_argument_count != 0 && row->call_arguments == NULL) {
+            claims->failed = true;
+            function_param_flow_fail(ctx->function_param_flow_summaries, node,
+                "call argument claim allocation failed");
+            return false;
+        }
+        for (size_t a = 0; a < row->call_argument_count; a++) {
+            ASTNode *actual = ast_call_argument(node, a);
+            SemanticPublishedValue actual_value =
+                semantic_param_publication_value(ctx, actual);
+            FunctionParamFlowCallArgumentClaim *argument =
+                &row->call_arguments[a];
+            argument->admitted =
+                semantic_param_publication_checked_argument(ctx, node, a) &&
+                actual_value.ok;
+            argument->callee = semantic_param_publication_callee(ctx, node, a);
+            argument->formal = SIZE_MAX;
+            argument->physical =
+                semantic_param_publication_value_is_physical_scalar(ctx, actual);
+            if (argument->callee != NULL &&
+                !semantic_param_publication_formal_for_actual(
+                    ctx, node, a, &argument->formal)) {
+                claims->failed = true;
+                function_param_flow_fail(ctx->function_param_flow_summaries,
+                    node, "call argument formal claim is missing");
+                return false;
+            }
+        }
+        row->call_direct_callee =
+            semantic_param_publication_direct_callee(ctx, node);
+        row->call_receiver_ready =
+            semantic_param_publication_instance_receiver(
+                ctx, node, &row->call_receiver);
+        if (row->call_receiver != NULL) {
+            SemanticPublishedValue receiver =
+                semantic_param_publication_value(ctx, row->call_receiver);
+            row->call_receiver_id = ast_node_stable_id(row->call_receiver);
+            row->call_receiver_type =
+                receiver.ok && !receiver.meta ? receiver.type : NULL;
+        }
+        row->call_declared_result = semantic_param_publication_declared_result(
+            ctx, node, &row->call_declared_result_type);
+        while (function_param_flow_intent_action_callee(
+                ctx, node, row->call_intent_action_count) != NULL) {
+            if (row->call_intent_action_count == SIZE_MAX) {
+                claims->failed = true;
+                function_param_flow_fail(ctx->function_param_flow_summaries,
+                    node, "intent action claim size overflow");
+                return false;
+            }
+            row->call_intent_action_count++;
+        }
+        if (row->call_intent_action_count > SIZE_MAX /
+                sizeof(*row->call_intent_action_callees)) {
+            claims->failed = true;
+            function_param_flow_fail(ctx->function_param_flow_summaries,
+                node, "intent action claim storage is not addressable");
+            return false;
+        }
+        row->call_intent_action_callees = row->call_intent_action_count == 0
+            ? NULL : calloc(row->call_intent_action_count,
+                sizeof(*row->call_intent_action_callees));
+        row->call_intent_action_callee_ids = row->call_intent_action_count == 0
+            ? NULL : calloc(row->call_intent_action_count,
+                sizeof(*row->call_intent_action_callee_ids));
+        if (row->call_intent_action_count != 0 &&
+            (row->call_intent_action_callees == NULL ||
+             row->call_intent_action_callee_ids == NULL)) {
+            claims->failed = true;
+            function_param_flow_fail(ctx->function_param_flow_summaries,
+                node, "intent action claim allocation failed");
+            return false;
+        }
+        for (size_t action = 0; action < row->call_intent_action_count;
+             action++) {
+            ASTNode *callee = function_param_flow_intent_action_callee(
+                ctx, node, action);
+            uint32_t id = ast_node_stable_id(callee);
+            if (callee == NULL || id == 0) {
+                claims->failed = true;
+                function_param_flow_fail(ctx->function_param_flow_summaries,
+                    node, "intent action callee claim is missing");
+                return false;
+            }
+            row->call_intent_action_callees[action] = callee;
+            row->call_intent_action_callee_ids[action] = id;
+        }
         row->collection_effect_present = ast_call_semantic_collection_effect(node,
             &row->collection_effect_kind, &row->collection_effect_receiver, &row->collection_effect_source);
         row->readfile_result = semantic_param_publication_checked_readfile_independent(ctx, node);
@@ -133,6 +321,52 @@ promote:
         row->assignment_replacement = semantic_param_publication_assignment_replacement(ctx, node);
     }
     return row->id != 0;
+}
+
+/* Collection effects are issued after some callers have already demanded a
+ * semantic program-point index.  Keep that index as a projection of the
+ * write-once AST receipt: publishing the receipt advances the claims
+ * generation instead of leaving a successful currency memo over an older
+ * "no effect" row. */
+bool function_param_flow_collection_effect_projection_publish(
+    SemanticContext *ctx, ASTNode *call, uint32_t kind,
+    uint32_t receiver_binding_id, uint32_t source_binding_id)
+{
+    if (ctx == NULL || call == NULL || call->type != AST_CALL || kind == 0 ||
+        receiver_binding_id == 0)
+        return false;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    if (store == NULL)
+        return true;
+    for (size_t p = 0; p < store->program_point_index_count; p++) {
+        FunctionParamFlowIndexClaims *claims =
+            store->program_point_indexes[p].claims;
+        if (claims == NULL || claims->failed)
+            continue;
+        for (size_t c = 0; c < claims->count; c++) {
+            FunctionParamFlowIndexClaim *row = &claims->rows[c];
+            if (row->node != call)
+                continue;
+            if (row->shape != AST_CALL || row->id == 0 ||
+                row->id != ast_node_stable_id(call))
+                return false;
+            if (!row->semantic_promoted)
+                continue;
+            if (row->collection_effect_present) {
+                if (row->collection_effect_kind != kind ||
+                    row->collection_effect_receiver != receiver_binding_id ||
+                    row->collection_effect_source != source_binding_id)
+                    return false;
+                continue;
+            }
+            row->collection_effect_present = true;
+            row->collection_effect_kind = kind;
+            row->collection_effect_receiver = receiver_binding_id;
+            row->collection_effect_source = source_binding_id;
+            claims->generation++;
+        }
+    }
+    return true;
 }
 
 /* Replays the original selected tuple without dereferencing the retired Type
@@ -183,7 +417,7 @@ bool function_param_flow_readfile_claim_current(const SemanticContext *ctx,
     return ctx == NULL || semantic_param_publication_checked_readfile_independent(ctx, call);
 }
 
-bool function_param_flow_readfile_claim_count(const FunctionParamFlowIndexClaims *claims,
+static bool readfile_claim_count_replay(const FunctionParamFlowIndexClaims *claims,
     size_t *count)
 {
     if (count == NULL) return false;
@@ -199,6 +433,37 @@ bool function_param_flow_readfile_claim_count(const FunctionParamFlowIndexClaims
         next = claims->rows[next - 1].readfile_next_plus_one;
     }
     if (visited != *count) return false;
+    return true;
+}
+
+bool function_param_flow_readfile_receipt_seal(FunctionParamFlowIndexClaims *claims)
+{
+    size_t count = 0;
+    if (!readfile_claim_count_replay(claims, &count)) return false;
+    claims->readfile_checked_generation = claims->generation;
+    claims->readfile_checked_count = count;
+    claims->readfile_checked = true;
+    return true;
+}
+
+bool function_param_flow_readfile_claim_count(const FunctionParamFlowIndexClaims *claims,
+    size_t *count)
+{
+    static int verify = -1;
+    if (count == NULL) return false;
+    *count = 0;
+    if (claims == NULL || claims->failed || claims->rows == NULL || claims->count == 0)
+        return false;
+    if (verify < 0) verify = getenv("PGY_VERIFY_FLOW_CURRENCY_MEMO") != NULL;
+    bool sealed = claims->checked && claims->checked_generation == claims->generation &&
+        claims->readfile_checked && claims->readfile_checked_generation == claims->generation;
+    if (!sealed) return readfile_claim_count_replay(claims, count);
+    if (verify) {
+        size_t replayed = 0;
+        if (!readfile_claim_count_replay(claims, &replayed) ||
+            replayed != claims->readfile_checked_count) return false;
+    }
+    *count = claims->readfile_checked_count;
     return true;
 }
 
@@ -364,7 +629,15 @@ bool function_param_flow_readfile_execution_counts(const FunctionParamFlowIndexC
     *required_calls = *required_writes = 0;
     size_t count = 0, unused = SIZE_MAX;
     if (!function_param_flow_readfile_claim_count(claims, &count)) return false;
-    for (size_t next = claims->readfile_first_plus_one; next != 0; next = claims->rows[next - 1].readfile_next_plus_one)
-        if (claims->rows[next - 1].readfile_execution_required) (*required_calls)++;
+    size_t visited = 0;
+    for (size_t next = claims->readfile_first_plus_one; next != 0;
+         next = claims->rows[next - 1].readfile_next_plus_one) {
+        if (next > claims->count || visited++ >= count ||
+            !function_param_flow_readfile_claim_current(
+                NULL, claims, &claims->rows[next - 1])) return false;
+        if (claims->rows[next - 1].readfile_execution_required)
+            (*required_calls)++;
+    }
+    if (visited != count) return false;
     return readfile_write_projection(claims, NULL, &count, &unused, SIZE_MAX, NULL, required_writes);
 }

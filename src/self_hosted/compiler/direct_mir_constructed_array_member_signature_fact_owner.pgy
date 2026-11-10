@@ -31,14 +31,14 @@ func DirectMirConstructedArrayMemberSignatureDigest(
     ref fact: DirectMirConstructedArrayMemberSignatureFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(431L, fact.owner);
+    var hash: Long = DirectMirCfgHashString(431L, fact.owner);
     hash = DirectMirCfgHashString(hash, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.receiver_name);
     hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
     hash = DirectMirCfgHashString(hash, fact.generic_name);
     hash = DirectMirCfgHashString(hash, fact.return_type);
-    let array_bit: Int = 0;
+    var array_bit: Int = 0;
     if fact.returns_array { array_bit = 1; }
     hash = DirectMirCfgHashInt(hash, array_bit);
     hash = DirectMirCfgHashInt(hash, fact.value_param.digest);
@@ -89,8 +89,8 @@ func DirectMirConstructedArrayMemberSignatureFactAt(
     let return_opt: Option<String> = JsonObjectFactStringFieldOpt(
         routine, "return"
     );
-    let generic_bounds: Array<Int> = [0, 0];
-    let param_bounds: Array<Int> = [0, 0];
+    var generic_bounds: Array<Int> = [0, 0];
+    var param_bounds: Array<Int> = [0, 0];
     if !IsSome(receiver_opt) || !IsSome(return_opt) ||
         UnwrapOption(receiver_opt) != "value" ||
         !MirObjectArrayBoundsAtBounds(
@@ -107,8 +107,8 @@ func DirectMirConstructedArrayMemberSignatureFactAt(
     let params: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
         routines.source_json, routines.source_json_extent, param_bounds[0], param_bounds[1]
     );
-    let first_bounds: Array<Int> = [0, 0];
-    let second_bounds: Array<Int> = [0, 0];
+    var first_bounds: Array<Int> = [0, 0];
+    var second_bounds: Array<Int> = [0, 0];
     if !DirectMirExactObjectArrayCount(params, 2) ||
         !JsonArrayNextObjectBounds(
             routines.source_json, routines.source_json_extent, param_bounds[0] + 1,

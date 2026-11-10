@@ -25,7 +25,8 @@ func Main() -> Void {
         true, [0], [true], SemanticExpressionGraphArena(
             AstExpressionArena(kinds, texts, edges, edges), texts,
             zeros, empty_text, empty_text,
-            SemanticExpressionIdentityRowsUnknown(1), zeros, false, consumer_rows));
+            SemanticExpressionIdentityRowsUnknown(1), zeros, false,
+            consumer_rows, []));
     let view: SemanticExpressionGraphView = SemanticExpressionGraphView(true, 0, graph);
     let build: SelfMirRoutineBuild = SelfMirRoutineBuild(
         true, "", SelfMirCfgRowsEmpty(), 0, 0, [0],

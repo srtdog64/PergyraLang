@@ -48,6 +48,7 @@ struct DirectMirScalarCfgProgramOperationStorage {
     let phi_incoming_values: Array<Int>;
     let expression_rows: Array<Int>;
     let secondary_expression_rows: Array<Int>;
+    let target_paths: DirectMirScalarCfgProgramOperationTargetPaths;
 }
 
 struct DirectMirScalarCfgProgramRoutineCounts {
@@ -78,7 +79,8 @@ func DirectMirScalarCfgProgramGraphStorageEmpty(
             strings, strings, ints, ints),
         DirectMirScalarCfgProgramOperationStorage(
             true, ints, ints, ints, ints, ints, ints, strings, strings,
-            ints, ints, ints, ints, ints, ints),
+            ints, ints, ints, ints, ints, ints,
+            DirectMirScalarCfgProgramOperationTargetPaths(ints, ints, ints)),
         DirectMirScalarCfgProgramRoutineCounts(ints, ints, ints, ints, ints)
     );
 }

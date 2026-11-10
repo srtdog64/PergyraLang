@@ -9,7 +9,7 @@ import "direct_mir_scalar_cfg_string_array_mutation_graph_readiness_owner.pgy";
 func DirectMirScalarCfgStringArrayOperandCount(
     value: Int, local_binding: Int, literal: String
 ) -> Int {
-    let count: Int = 0;
+    var count: Int = 0;
     if value >= 0 { count = count + 1; }
     if local_binding >= 0 { count = count + 1; }
     if literal != "" { count = count + 1; }
@@ -23,12 +23,12 @@ func DirectMirScalarCfgStringArrayGraphReady(
     if !DirectMirScalarCfgStringArrayPlanShapeReady(plan.string_arrays, true) {
         return false;
     }
-    let collection: Int = 0;
+    var collection: Int = 0;
     while collection < DirectMirScalarCfgStringArrayCollectionCount(plan.string_arrays) {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
             DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, collection);
         if fact.length_offset == fact.capacity_offset { return false; }
-        let value: Int = 0;
+        var value: Int = 0;
         while value < ArrayLength(plan.value_names) {
             if plan.value_names[value] == fact.collection_value_id {
                 return false;
@@ -37,7 +37,7 @@ func DirectMirScalarCfgStringArrayGraphReady(
         }
         collection = collection + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayLengthCount(plan.string_arrays) {
         let fact: DirectMirScalarCfgStringArrayLengthFact =
             DirectMirScalarCfgStringArrayLengthAt(plan.string_arrays, row);

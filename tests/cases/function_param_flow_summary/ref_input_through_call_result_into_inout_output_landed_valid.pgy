@@ -32,7 +32,7 @@ func JoinLanded(inout target: Flow, ref branch: Flow) -> Void {
 }
 
 func Walk(inout flow: Flow, depth: Int) -> Void {
-    let taken: Flow = Flow(Verdict(false, Concat("e", ToString(depth))), 1);
+    var taken: Flow = Flow(Verdict(false, Concat("e", ToString(depth))), 1);
     if depth > 0 { Walk(taken, depth - 1); }
     JoinCopied(flow, taken);
     let other: Flow = Flow(Verdict(false, Concat("f", ToString(depth))), 1);

@@ -11,8 +11,8 @@ func DirectMirLiteralLogEmitC(
          int_c_type == "") {
         Die("direct MIR literal Log C plan or ABI type is invalid");
     }
-    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
-    let argument: String = plan.literal;
+    var output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
+    var argument: String = plan.literal;
     if plan.literal_kind == DirectMirLiteralLogIntegerKind() {
         output = Concat(output, "    ");
         output = Concat(output, int_c_type);
@@ -43,7 +43,7 @@ func DirectMirLiteralLogEmitLlvm(
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(
         plan.line_format
     );
-    let output: String =
+    var output: String =
         "@.pgy.log.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");

@@ -33,16 +33,16 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
 ) -> DirectMirScalarCfgArrayIntReadOnlySourceFact {
     let empty: DirectMirScalarCfgArrayIntReadOnlySourceFact =
         DirectMirScalarCfgArrayIntReadOnlySourceFactEmpty();
-    let initial_global: Int = -1; let initial_result: String = "";
-    let condition_global: Int = -1; let condition_block: Int = -1;
-    let current_id: String = ""; let current_name: String = "";
-    let update_global: Int = -1;
-    let update_result: String = ""; let update_block: Int = -1;
-    let log_global: Int = -1; let logged_id: String = "";
-    let collection_uses: Int = 0; let claimed_uses: Int = 0;
-    let block: Int = 0;
+    var initial_global: Int = -1; var initial_result: String = "";
+    var condition_global: Int = -1; var condition_block: Int = -1;
+    var current_id: String = ""; var current_name: String = "";
+    var update_global: Int = -1;
+    var update_result: String = ""; var update_block: Int = -1;
+    var log_global: Int = -1; var logged_id: String = "";
+    var collection_uses: Int = 0; var claimed_uses: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local_binding: Int = 0;
+        var local_binding: Int = 0;
         while local_binding < index.block_instruction_counts[block] {
             let instruction: Int = index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start + instruction;
@@ -59,7 +59,7 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
             );
             let graph: MirExpressionGraphSequence =
                 DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
-            let use_row: Int = 0;
+            var use_row: Int = 0;
             while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
                 if DirectMirScalarCfgArrayIntUseAt(
                     uses, global, use_row, collection.collection_value_id
@@ -117,7 +117,8 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
                     if update_global >= 0 ||
                         read.index_name != range.binding_name ||
                         read.index_literal >= 0 || capture.result == "" ||
-                        capture.arg0 == "" || capture.arg1 != "local" ||
+                        capture.arg0 == "" ||
+                        capture.arg1 != "mutable_local" ||
                         MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
                         !DirectMirScalarCfgArrayIntUseAt(
                             uses, global, 0, collection.collection_value_id

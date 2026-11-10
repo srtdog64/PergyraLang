@@ -244,29 +244,36 @@ semantic_timing_now(void)
 }
 
 static SemanticResult *semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
-    const uint32_t *landings, size_t landing_count, const uint32_t *copies, size_t copy_count);
+    const uint32_t *landings, const PgyStringStoreLandingKind *landing_kinds,
+    size_t landing_count, const uint32_t *copies, size_t copy_count);
 
 SemanticResult *
 semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
 {
-    return semantic_analyze_landed(ast, emit_advisories, NULL, 0, NULL, 0);
+    return semantic_analyze_landed(ast, emit_advisories, NULL, NULL, 0,
+        NULL, 0);
 }
 
 SemanticResult *
-semantic_analyze_with_landings(ASTNode *ast, const uint32_t *landings, size_t landing_count,
+semantic_analyze_with_landings(ASTNode *ast, const uint32_t *landings,
+    const PgyStringStoreLandingKind *landing_kinds, size_t landing_count,
     const uint32_t *copies, size_t copy_count)
 {
-    return semantic_analyze_landed(ast, false, landings, landing_count, copies, copy_count);
+    return semantic_analyze_landed(ast, false, landings, landing_kinds,
+        landing_count, copies, copy_count);
 }
 
 static SemanticResult *
 semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
-    const uint32_t *landings, size_t landing_count, const uint32_t *copies, size_t copy_count)
+    const uint32_t *landings, const PgyStringStoreLandingKind *landing_kinds,
+    size_t landing_count, const uint32_t *copies, size_t copy_count)
 {
     bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
     double t_mark = 0.0;
     double t_preload = 0.0;
     double t_type_check = 0.0;
+    double t_type_check_program = 0.0;
+    double t_string_store_landing = 0.0;
     double t_legacy_slot = 0.0;
 
     SemanticResult *result = calloc(1, sizeof(SemanticResult));
@@ -294,6 +301,7 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
     }
     ctx->emit_advisories = emit_advisories;
     ctx->string_store_landing_plan = landings;
+    ctx->string_store_landing_plan_kinds = landing_kinds;
     ctx->string_store_landing_plan_count = landing_count;
 
     if (timing)
@@ -314,18 +322,28 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
 
     /* Pass 1 + 2: Symbol collection and type checking */
     type_check_program(ast, ctx);
+    if (timing) {
+        double t_phase = semantic_timing_now();
+        t_type_check_program = t_phase - t_mark;
+        t_mark = t_phase;
+    }
     /* A refused formal String store leaves an exact call/routine/formal
      * identity.  Type checking has now left the flow owner's replay barrier,
      * so its current per-routine index can select sibling stores before the
      * driver consumes this failed round's landing plan. */
-    if (ctx->string_store_landing_selected_count != 0
-        && semantic_param_publication_inputs_ready(ctx)
+    if (semantic_param_publication_inputs_ready(ctx)
         && !semantic_formal_string_store_landing_finalize(ctx))
         semantic_error(ctx, ast,
             "Formal String store landing finalization failed closed");
     if (timing) {
-        t_type_check = semantic_timing_now() - t_mark;
-        t_mark = semantic_timing_now();
+        double t_phase = semantic_timing_now();
+        t_string_store_landing = t_phase - t_mark;
+        t_type_check = t_type_check_program + t_string_store_landing;
+        t_mark = t_phase;
+        fprintf(stderr,
+            "[semantic timing] type_check_program_total=%.3f"
+            " string_store_landing_finalize=%.3f\n",
+            t_type_check_program, t_string_store_landing);
     }
 
     if (!semantic_param_publication_ready(ctx)) {
@@ -367,6 +385,14 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
             "Lifecycle state-space fact snapshot allocation failed");
     }
 
+    /* The array-storage finalizer has now sealed declared call results.  Turn
+     * only those exact current results into durable collection births before
+     * HIR drops the AST-borrowed return premise. */
+    if (!ctx->has_error
+        && !semantic_collection_ownership_finalize_call_result_births(ctx))
+        semantic_error(ctx, ast,
+            "Collection call-result birth finalization failed closed");
+
     /* Last semantic consumer: claims ownership moves without another AST walk. */
     if (!ctx->has_error && !semantic_collection_effect_snapshot_take(ctx,
             &result->collection_effect_snapshot))
@@ -376,8 +402,11 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
     result->success          = !ctx->has_error &&
         !ctx->loan_copy_landing_has_deferred_error;
     result->string_store_landings = ctx->string_store_landing_selected;
+    result->string_store_landing_kinds =
+        ctx->string_store_landing_selected_kinds;
     result->string_store_landing_count = ctx->string_store_landing_selected_count;
     ctx->string_store_landing_selected = NULL;
+    ctx->string_store_landing_selected_kinds = NULL;
     result->loan_copy_landings = ctx->loan_copy_landing_selected;
     result->loan_copy_landing_count = ctx->loan_copy_landing_selected_count;
     ctx->loan_copy_landing_selected = NULL;
@@ -508,6 +537,7 @@ semantic_result_destroy(SemanticResult *result)
     }
     free(result->diagnostics);
     free(result->string_store_landings);
+    free(result->string_store_landing_kinds);
     free(result->loan_copy_landings);
     free(result->lifecycle_state_spaces);
     semantic_parallel_capture_facts_clear(

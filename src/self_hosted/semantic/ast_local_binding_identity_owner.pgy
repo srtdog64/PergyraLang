@@ -48,8 +48,8 @@ func SemanticAstScopedLocalBindingIdentityForName(
     if !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) {
         return SemanticAstLocalBindingIdentityUnresolved();
     }
-    let low: Int = 0;
-    let high: Int = ArrayLength(locals.node_ids);
+    var low: Int = 0;
+    var high: Int = ArrayLength(locals.node_ids);
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if locals.function_node_ids[middle] < function_node_id {
@@ -79,8 +79,8 @@ func SemanticAstScopedLocalBindingIdentityForName(
     // binding index, then the lowest row. Walking down from the last row
     // before the use, the first match fixes that node id, so only rows with
     // the same node id are checked after it.
-    let selected: Int = -1;
-    let row: Int = SemanticAstLocalBindingFirstRowFrom(
+    var selected: Int = -1;
+    var row: Int = SemanticAstLocalBindingFirstRowFrom(
         locals, range.start, range.end, use_node_id
     ) - 1;
     while row >= range.start &&
@@ -99,7 +99,7 @@ func SemanticAstScopedLocalBindingIdentityForName(
     if selected < 0 {
         return SemanticAstLocalBindingIdentityUnresolved();
     }
-    let type_name: String = "";
+    var type_name: String = "";
     if locals.has_declared_types[selected] != 0 {
         type_name = Concat("", locals.declared_type_names[selected]);
     } else if selected < ArrayLength(inferred_types) {

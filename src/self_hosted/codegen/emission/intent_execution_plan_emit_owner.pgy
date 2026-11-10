@@ -20,6 +20,7 @@ import "intent_execution_plan_control_emit_owner.pgy";
 
 func CodegenIntentExecutionPlanDefinitionBlock(
     ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     ref intents: SemanticAstIntentSignatureFacts,
     base_env: CodegenTypeEnv,
     ref intent_policy: CodegenIntentPolicyView,
@@ -29,9 +30,9 @@ func CodegenIntentExecutionPlanDefinitionBlock(
         Die("typed intent codegen view is invalid");
     }
     if !view.present { return ""; }
-    let definitions: Array<String> = [];
-    let emitted_steps: Int = 0;
-    let intent_index: Int = 0;
+    var definitions: Array<String> = [];
+    var emitted_steps: Int = 0;
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         let routine_syntax_id: Int = intents.intent_node_ids[intent_index];
         if !CodegenIntentExecutionViewOwnsRoutine(
@@ -56,13 +57,13 @@ func CodegenIntentExecutionPlanDefinitionBlock(
             view, routine_syntax_id,
             CodegenIntentLocalEnv(intents, intent_index, base_env)
         );
-        let body: Array<String> = [];
+        var body: Array<String> = [];
         CodegenIntentPlanEmitLocals(
             body, view, routine_syntax_id, env
         );
         CodegenIntentObservabilityEmitPrologue(
             body, uses_intent_observability, routine_syntax_id,
-            intent_policy, intents, intent_index, env,
+            intent_policy, expression_graph, intents, intent_index, env,
             "        pgy_runtime_panic_internal_invariant_export(\"typed intent runtime admission failed\");\n"
         );
         ArrayPush(body, Concat(
@@ -70,14 +71,14 @@ func CodegenIntentExecutionPlanDefinitionBlock(
                 view.plan.steps.transition_ids[root_step]
             ), ";\n")
         ));
-        let step: Int = root_step;
-        let visited: Int = 0;
+        var step: Int = root_step;
+        var visited: Int = 0;
         while step >= 0 {
             if visited >= routine_step_count {
                 Die("typed intent transition chain is cyclic");
             }
             CodegenIntentPlanEmitTransition(
-                body, view, routine_syntax_id, step, env,
+                body, view, expression_graph, routine_syntax_id, step, env,
                 uses_intent_observability
             );
             emitted_steps = emitted_steps + 1;
@@ -95,11 +96,11 @@ func CodegenIntentExecutionPlanDefinitionBlock(
             Die("typed intent predecessor chain does not cover its steps");
         }
         CodegenIntentPlanEmitTerminals(
-            body, view, routine_syntax_id, env,
+            body, view, expression_graph, routine_syntax_id, env,
             uses_intent_observability
         );
-        let plan_result_type: String = "";
-        let terminal: Int = 0;
+        var plan_result_type: String = "";
+        var terminal: Int = 0;
         while terminal < ArrayLength(
             view.plan.terminals.terminal_transition_ids
         ) {

@@ -7,6 +7,33 @@ import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pg
 import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 
+func DirectMirScalarCfgProgramOperationTargetPathsReady(
+    ref rows: DirectMirScalarCfgProgramOperationTargetPaths,
+    operation_count: Int
+) -> Bool {
+    if operation_count < 0 || ArrayLength(rows.starts) != operation_count ||
+        ArrayLength(rows.counts) != operation_count {
+        return false;
+    }
+    var cursor: Int = 0;
+    var operation: Int = 0;
+    while operation < operation_count {
+        if rows.starts[operation] != cursor || rows.counts[operation] < 0 ||
+            cursor + rows.counts[operation] >
+                ArrayLength(rows.member_ordinals) {
+            return false;
+        }
+        var member: Int = 0;
+        while member < rows.counts[operation] {
+            if rows.member_ordinals[cursor + member] < 0 { return false; }
+            member = member + 1;
+        }
+        cursor = cursor + rows.counts[operation];
+        operation = operation + 1;
+    }
+    return cursor == ArrayLength(rows.member_ordinals);
+}
+
 func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Int {
     if !fact.valid {
         if fact.digest == 0 && !fact.callable.valid &&
@@ -15,6 +42,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             ArrayLength(fact.block_condition_expression_rows) == 0 &&
             ArrayLength(fact.operation_expression_rows) == 0 &&
             ArrayLength(fact.operation_secondary_expression_rows) == 0 &&
+            DirectMirScalarCfgProgramOperationTargetPathsReady(
+                fact.operation_target_paths, 0) &&
             ArrayLength(fact.block_return_expression_rows) == 0 &&
             DirectMirClosedModuleCallAbiFactCanonicalEmpty(
                 fact.closed_call_abi) &&
@@ -22,8 +51,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.runtime_abi) &&
             DirectMirScalarProgramOptionIntAbiReadyForExpressions(
                 fact.option_int_abi, fact.expressions) &&
-            DirectMirScalarProgramResultIntAbiReadyForExpressions(
-                fact.result_int_abi, fact.expressions) &&
+            DirectMirScalarResultAbiSetReadyForExpressions(
+                fact.result_abi, fact.expressions) &&
             DirectMirScalarProgramOptionStringAbiReadyForExpressions(
                 fact.option_string_abi, fact.expressions) &&
             DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
@@ -36,6 +65,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.referenced_enum, fact.expressions) &&
             DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
                 fact.payload_free_enum, fact.expressions) &&
+            DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+                fact.opaque_readonly_zones) &&
             DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
                 fact.referenced_enum, fact.payload_free_enum) &&
             DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
@@ -63,11 +94,12 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
     let callable_ready: Bool =
         (DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
              fact.callable, fact.logical_record,
-             fact.payload_free_enum, fact.referenced_enum) &&
+             fact.payload_free_enum, fact.referenced_enum,
+             fact.opaque_readonly_zones) &&
          DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
         (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
          DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));
-    let array_boundary_ready: Bool =
+    var array_boundary_ready: Bool =
         DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(fact.array_string_boundary);
     if fact.callable.valid &&
         DirectMirScalarProgramArrayStringBoundarySignatureReady(
@@ -83,12 +115,15 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.array_string_abi, fact.callable.signature) { return 4; }
     if !DirectMirScalarProgramExpressionSetSemanticallyReady(
             fact.expressions) { return 5; }
+    if !DirectMirScalarCfgProgramOperationTargetPathsReady(
+            fact.operation_target_paths,
+            ArrayLength(fact.operation_expression_rows)) { return 22; }
     if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
             fact.runtime_abi, fact.expressions) { return 6; }
     if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
             fact.option_int_abi, fact.expressions) { return 7; }
-    if !DirectMirScalarProgramResultIntAbiReadyForExpressions(
-            fact.result_int_abi, fact.expressions) { return 8; }
+    if !DirectMirScalarResultAbiSetReadyForExpressions(
+            fact.result_abi, fact.expressions) { return 8; }
     if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
             fact.option_string_abi, fact.expressions) { return 9; }
     if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
@@ -103,6 +138,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.referenced_enum, fact.payload_free_enum) { return 13; }
     if !DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
             fact.payload_free_enum, fact.expressions) { return 13; }
+    if !DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+            fact.opaque_readonly_zones) { return 23; }
     if !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
         fact.logical_record, fact.payload_free_enum) { return 13; }
     if !DirectMirScalarProgramArrayIntValueResultFactReady(fact.array_int_value_result) { return 14; }

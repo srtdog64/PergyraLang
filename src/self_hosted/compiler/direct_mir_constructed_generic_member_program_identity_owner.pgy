@@ -27,7 +27,7 @@ func DirectMirConstructedGenericMemberProgramIdentityDigest(
     ref identity: DirectMirConstructedGenericMemberProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(383L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(383L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.constructed_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.identity_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
@@ -47,10 +47,10 @@ func DirectMirConstructedGenericMemberSourceIdentitiesReady(
         identity.declaration.source_syntax_id,
         identity.declaration.field_source_syntax_id
     ];
-    let left: Int = 0;
+    var left: Int = 0;
     while left < ArrayLength(ids) {
         if ids[left] <= 0 { return false; }
-        let right: Int = left + 1;
+        var right: Int = left + 1;
         while right < ArrayLength(ids) {
             if ids[left] == ids[right] { return false; }
             right = right + 1;

@@ -46,12 +46,16 @@ func DriverRung2MirCProducePayloadAdmitted(
     observation_request: DriverRung2MirCRequest,
     machine_request: DriverRung2MirCMachineRequest
 ) -> DriverRung2MirCPayloadAdmission with caps io_read {
+    let request_identity: DriverRung2MirCPayloadRequestIdentity =
+        DriverRung2MirCPayloadRequestIdentitySnapshot(
+            observation_request, machine_request
+        );
     let diagnostic: String = DriverRung2MirCRequestDiagnostic(
         subject_identity, mir_json_path, machine_request
     );
     if diagnostic != "" {
         return DriverRung2MirCPayloadDeniedAdmission(
-            mir_json_path, observation_request, machine_request, diagnostic
+            request_identity, mir_json_path, diagnostic
         );
     }
     let projection_name: String = CompilerTargetCpuCProjection();
@@ -61,7 +65,7 @@ func DriverRung2MirCProducePayloadAdmitted(
         target_projection, projection_name
     ) {
         return DriverRung2MirCPayloadDeniedAdmission(
-            mir_json_path, observation_request, machine_request,
+            request_identity, mir_json_path,
             "MIR C execution target admission failed"
         );
     }
@@ -75,16 +79,16 @@ func DriverRung2MirCProducePayloadAdmitted(
         artifact, target_projection
     ) {
         return DriverRung2MirCPayloadDeniedAdmission(
-            mir_json_path, observation_request, machine_request,
+            request_identity, mir_json_path,
             "MIR C compiler artifact does not match the admitted target"
         );
     }
     return DriverRung2MirCPayloadAdmitted(DriverRung2MirCPayloadReceipt(
         DriverRung2ExecutionOutcomeSchema(),
-        DriverRung2MirCObservationMode(observation_request),
-        DriverRung2MirCMachineMode(machine_request), mir_json_path,
-        DriverRung2MirCManifestId(machine_request),
-        DriverRung2MirCManifestFingerprint(machine_request),
+        request_identity.observation_mode,
+        request_identity.machine_mode, mir_json_path,
+        request_identity.machine_manifest_id,
+        request_identity.machine_manifest_fingerprint,
         target_projection, artifact
     ));
 }

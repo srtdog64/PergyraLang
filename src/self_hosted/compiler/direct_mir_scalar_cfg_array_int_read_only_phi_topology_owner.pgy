@@ -41,10 +41,10 @@ func DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
         return invalid;
     }
     let join_block: Int = range.backedge_blocks[0];
-    let joined_id: String = ""; let header_phi_count: Int = 0;
-    let join_phi_count: Int = 0; let block: Int = 0;
+    var joined_id: String = ""; var header_phi_count: Int = 0;
+    var join_phi_count: Int = 0; var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local_binding: Int = 0;
+        var local_binding: Int = 0;
         while local_binding < index.block_instruction_counts[block] {
             let instruction: Int = index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start + instruction;

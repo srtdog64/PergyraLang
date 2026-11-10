@@ -31,15 +31,15 @@ func BuildMirProgramDeclarationIndexFromTable(
 ) -> MirProgramDeclarationIndex {
     let declaration_start: Int = declarations.start;
     let declaration_end: Int = declarations.end;
-    let starts: Array<Int> = [];
-    let ends: Array<Int> = [];
-    let kinds: Array<String> = [];
-    let nominal_kinds: Array<String> = [];
-    let names: Array<String> = [];
-    let source_module_paths: Array<String> = [];
-    let field_identities: MirProgramDeclarationFieldIdentityIndex = EmptyMirProgramDeclarationFieldIdentityIndex();
-    let enum_variants: MirProgramEnumVariantIndex = EmptyMirProgramEnumVariantIndex();
-    let valid: Bool = true;
+    var starts: Array<Int> = [];
+    var ends: Array<Int> = [];
+    var kinds: Array<String> = [];
+    var nominal_kinds: Array<String> = [];
+    var names: Array<String> = [];
+    var source_module_paths: Array<String> = [];
+    var field_identities: MirProgramDeclarationFieldIdentityIndex = EmptyMirProgramDeclarationFieldIdentityIndex();
+    var enum_variants: MirProgramEnumVariantIndex = EmptyMirProgramEnumVariantIndex();
+    var valid: Bool = true;
     if !JsonArrayObjectFactTableReady(declarations) ||
         JsonCharCodeAt(declarations.json, declarations.json_extent, declaration_end, declaration_start) !=
             JsonAsciiCode("[") {
@@ -48,8 +48,8 @@ func BuildMirProgramDeclarationIndexFromTable(
             source_module_paths, field_identities, enum_variants,
             SelfMirDeclarationZoneAuthorityRowsEmpty());
     }
-    let cursor: Int = declaration_start + 1;
-    let bounds: Array<Int> = [0, 0];
+    var cursor: Int = declaration_start + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(declarations.json, declarations.json_extent, cursor, declaration_end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
@@ -107,7 +107,7 @@ func MirProgramDeclarationIndexContains(
     if !index.valid || StringLength(kind) == 0 || StringLength(name) == 0 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(index.kinds) {
         if (index.kinds[i] == kind || index.nominal_kinds[i] == kind) &&
             index.names[i] == name {

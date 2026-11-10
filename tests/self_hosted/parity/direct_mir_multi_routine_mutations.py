@@ -3,7 +3,6 @@
 
 import json
 import sys
-
 from direct_mir_namespace_internal_call_mutation_owner import (
     mutate_namespace_internal_callee_binding,
 )
@@ -772,6 +771,10 @@ def main():
         if node is None:
             raise SystemExit("fixture has no CollectionIndex constructor")
         node["call_target_name"] = "WrongCollectionIndex"
+    elif kind == "logical-record-hashmap-field-unsupported":
+        declaration = declaration_named(document, "MapIndex"); fields = [] if declaration is None else declaration.get("fields", [])
+        if len(fields) != 1 or fields[0].get("type") != "HashMap<String, Int>": raise SystemExit("fixture MapIndex field identity drifted")
+        fields[0]["type"] = "HashMap<String, Float>"
     elif kind in {"logical-record-array-int-abi-layout",
                   "logical-record-array-string-abi-layout"}:
         type_name = ("Array<Int>" if kind.endswith("int-abi-layout")

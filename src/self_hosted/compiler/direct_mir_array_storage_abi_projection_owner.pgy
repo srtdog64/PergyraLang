@@ -94,7 +94,7 @@ func DirectMirArrayStorageAbiProjectionFromTarget(
         (!is_c && !is_llvm) {
         Die("direct MIR Array storage has no target projection");
     }
-    let projection: DirectMirArrayStorageAbiProjection =
+    var projection: DirectMirArrayStorageAbiProjection =
         DirectMirArrayStorageAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             contract.data_layout_id, contract.size, contract.align,

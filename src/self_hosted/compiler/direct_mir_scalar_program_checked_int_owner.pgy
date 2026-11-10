@@ -9,7 +9,7 @@ func DirectMirScalarProgramCheckedIntKind(kind: Int) -> Bool {
 }
 
 func DirectMirScalarProgramCheckedIntRuntimeFact(kind: Int) -> CompilerRuntimeCallAbiFact {
-    let operation: String = ""; let symbol: String = "";
+    var operation: String = ""; var symbol: String = "";
     if kind == DirectMirScalarProgramExprCheckedAddInt() {
         operation = "int-add"; symbol = CheckedBuiltinRuntimeLlvmAddFn();
     } else if kind == DirectMirScalarProgramExprCheckedMulInt() {

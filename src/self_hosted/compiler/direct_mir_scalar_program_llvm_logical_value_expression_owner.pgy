@@ -9,14 +9,14 @@ func DirectMirScalarProgramLlvmLogicalValueExpressionAt(
     ref target: CompilerTargetProjectionFact,
     kind: Int, result: String, record_type: String,
     left_type: String, node_type: String, left: String, right: String,
-    arguments: Array<String>, argument_types: Array<String>,
+    ref arguments: Array<String>, ref argument_types: Array<String>,
     member_ordinal: Int
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind == DirectMirScalarProgramExprArrayIntIndex() || kind ==
             DirectMirScalarProgramExprArrayBoolIndex() {
-        let expected_left: String = CompilerAbiLayoutArrayIntTypeName();
-        let expected_node: String = CompilerAbiLayoutIntTypeName();
-        let runtime_kind: Int = 1; let llvm_type: String = "i64";
+        var expected_left: String = CompilerAbiLayoutArrayIntTypeName();
+        var expected_node: String = CompilerAbiLayoutIntTypeName();
+        var runtime_kind: Int = 1; var llvm_type: String = "i64";
         if kind == DirectMirScalarProgramExprArrayBoolIndex() {
             expected_left = CompilerAbiLayoutArrayBoolTypeName();
             expected_node = CompilerAbiLayoutBoolTypeName();
@@ -56,7 +56,7 @@ func DirectMirScalarProgramLlvmLogicalValueExpressionAt(
     }
     let data: String = Concat(result, ".data");
     let slot: String = Concat(result, ".slot");
-    let output: String = Concat("  ", Concat(data, Concat(
+    var output: String = Concat("  ", Concat(data, Concat(
         " = extractvalue ", projected.llvm_type_name)));
     output = Concat(output, Concat(" ", Concat(left, ", 0\n")));
     output = Concat(output, Concat("  ", Concat(slot, Concat(

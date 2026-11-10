@@ -18,7 +18,7 @@ func SemanticArrayStorageBorrowedParameterTarget(
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
     if !IsSome(signature) { return 0; }
     let row: Int = UnwrapOption(signature);
-    let offset: Int = 0;
+    var offset: Int = 0;
     if UnwrapOption(kind) == SemanticCallTargetMember() {
         if ArrayLength(signatures.receiver_source_param_offsets) != ArrayLength(signatures.function_node_ids) { return 0; }
         offset = signatures.receiver_source_param_offsets[row];
@@ -48,24 +48,24 @@ func SemanticArrayStorageFormalInventory(
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref enums: SemanticAstEnumFacts
 ) -> SemanticAstCollectionFormalEffectInventory {
-    let nodes: Array<Int> = []; let functions: Array<Int> = [];
-    let ordinals: Array<Int> = []; let modes: Array<Int> = [];
-    let bodies: Array<Bool> = []; let rows: HashMap<String, Int> = MapNew();
+    var nodes: Array<Int> = []; var functions: Array<Int> = [];
+    var ordinals: Array<Int> = []; var modes: Array<Int> = [];
+    var bodies: Array<Bool> = []; var rows: HashMap<String, Int> = MapNew();
     let count: Int = ArrayLength(signatures.function_node_ids);
     let flat_count: Int = ArrayLength(signatures.param_node_ids);
-    let ok: Bool = signatures.ok && signatures.action_contracts.ok &&
+    var ok: Bool = signatures.ok && signatures.action_contracts.ok &&
         ArrayLength(signatures.param_starts) == count && ArrayLength(signatures.param_counts) == count &&
         ArrayLength(signatures.action_contracts.callable_node_ids) == count &&
         ArrayLength(signatures.action_contracts.body_node_ids) == count &&
         ArrayLength(signatures.param_types) == flat_count && ArrayLength(signatures.param_modes) == flat_count;
-    let row: Int = 0; let flat: Int = 0;
+    var row: Int = 0; var flat: Int = 0;
     while ok && row < count {
         let size: Int = signatures.param_counts[row];
         if signatures.function_node_ids[row] <= 0 || signatures.param_starts[row] != flat ||
             size < 0 || size > flat_count - flat || signatures.action_contracts.callable_node_ids[row] != signatures.function_node_ids[row] {
             ok = false; break;
         }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ok && ordinal < size {
             let node: Int = signatures.param_node_ids[flat + ordinal];
             let mode: Int = signatures.param_modes[flat + ordinal];
@@ -91,35 +91,35 @@ func SemanticArrayStoragePreservingFormals(
     artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
     ref order: SemanticExpressionGraphSurfaceOrder
 ) -> HashMap<String, Int> {
-    let proved: HashMap<String, Int> = MapNew();
+    var proved: HashMap<String, Int> = MapNew();
     let inventory: SemanticAstCollectionFormalEffectInventory = SemanticArrayStorageFormalInventory(
         analysis.signatures, analysis.constructors, analysis.enums);
     let contexts: SemanticAstCollectionFormalExecutionContexts = SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
         artifact, inventory.function_nodes, analysis.function_scopes, analysis.expression_surfaces, order);
     if !inventory.ok || !contexts.ok || !analysis.statements.ok { return proved; }
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
-    let blocked: Array<Bool> = []; let node_rows: Array<Int> = [];
-    let sources: Array<Int> = []; let targets: Array<Int> = [];
-    let row: Int = 0;
+    var blocked: Array<Bool> = []; var node_rows: Array<Int> = [];
+    var sources: Array<Int> = []; var targets: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(inventory.formal_nodes) {
         ArrayPush(blocked, !inventory.body_ready[row] ||
             !SemanticAstCollectionFormalExecutionContextCallableReady(
                 artifact, contexts, inventory.function_nodes[row]));
         row = row + 1;
     }
-    let ok: Bool = true; let last: Int = -1; let root: Int = 0;
+    var ok: Bool = true; var last: Int = -1; var root: Int = 0;
     while ok && root < ArrayLength(order.slots_by_root) {
         let slot: Int = order.slots_by_root[root];
         if slot == -2 { ArrayPush(node_rows, -1); last = root; }
         if slot >= 0 {
-            let node: Int = last + 1;
+            var node: Int = last + 1;
             let function_id: Int = analysis.expression_surfaces.function_node_ids[slot / 3];
             while ok && node <= root {
                 let binding: SemanticExpressionBindingIdentityFact =
                     SemanticExpressionGraphBindingIdentity(
                         analysis.expression_surfaces.expression_graph, node);
                 if !binding.ok { ok = false; break; }
-                let formal_row: Int = -1; let key: String = ToString(binding.syntax_id);
+                var formal_row: Int = -1; let key: String = ToString(binding.syntax_id);
                 // Indexed scalar results carry their base binding identity,
                 // but are not array descriptors. Only a formal leaf denotes
                 // the storage whose retention is being proved here.
@@ -133,9 +133,9 @@ func SemanticArrayStoragePreservingFormals(
                 ArrayPush(node_rows, formal_row);
                 let kind: Int = analysis.expression_surfaces.expression_graph
                     .arena.topology.node_kinds[node];
-                let edge: Int = 0;
+                var edge: Int = 0;
                 while ok && edge < 2 {
-                    let child: Option<Int> = SemanticExpressionGraphLeftChild(
+                    var child: Option<Int> = SemanticExpressionGraphLeftChild(
                         analysis.expression_surfaces.expression_graph, node);
                     if edge == 1 {
                         child = SemanticExpressionGraphRightChild(
@@ -192,9 +192,9 @@ func SemanticArrayStoragePreservingFormals(
             analysis.expression_surfaces.expression_graph.arena);
     // Invalidations form a finite monotone graph, including mutually recursive
     // callees. Unknown or retaining targets propagate to every caller formal.
-    let remaining: Int = ArrayLength(inventory.formal_nodes) + 1; let changed: Bool = true;
+    var remaining: Int = ArrayLength(inventory.formal_nodes) + 1; var changed: Bool = true;
     while ok && changed && remaining > 0 {
-        changed = false; let edge: Int = 0;
+        changed = false; var edge: Int = 0;
         while edge < ArrayLength(sources) {
             if blocked[targets[edge]] && !blocked[sources[edge]] {
                 blocked[sources[edge]] = true; changed = true;

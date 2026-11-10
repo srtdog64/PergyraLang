@@ -50,7 +50,7 @@ func FormatTokenKindIsCaseLabel(kind: String) -> Bool {
 func FormatSourceAppendIndent(
     inout output: Array<String>, indent: Int
 ) -> Void {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < indent {
         ArrayPush(output, "    ");
         index = index + 1;
@@ -66,12 +66,12 @@ func FormatSourceFromTokenFacts(tokens: Array<LexerTokenFact>) -> String {
         Log("FORMAT ERROR: formatter requires an admitted token stream");
         Exit(1);
     }
-    let output: Array<String> = [];
-    let indent: Int = 0;
-    let at_line_start: Bool = true;
-    let previous_kind: String = "EOF";
-    let previous_line: Int = 1;
-    let index: Int = 0;
+    var output: Array<String> = [];
+    var indent: Int = 0;
+    var at_line_start: Bool = true;
+    var previous_kind: String = "EOF";
+    var previous_line: Int = 1;
+    var index: Int = 0;
     while index < ArrayLength(tokens) {
         let token: LexerTokenFact = tokens[index];
         if !LexerTokenFactReady(token) || token.ordinal != index + 1 {

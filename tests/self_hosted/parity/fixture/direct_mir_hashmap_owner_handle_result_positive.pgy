@@ -1,0 +1,20 @@
+struct OwnedMapResult {
+    values: HashMap<String, Int>;
+}
+
+func PublishOwnedMap(
+    own values: HashMap<String, Int>
+) -> OwnedMapResult {
+    return OwnedMapResult(values);
+}
+
+func BuildOwnedMapResult() -> OwnedMapResult {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "owned", 41);
+    return PublishOwnedMap(values);
+}
+
+func Main() -> Void {
+    let result: OwnedMapResult = BuildOwnedMapResult();
+    Log(41);
+}

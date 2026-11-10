@@ -58,6 +58,13 @@ func RecordArrayText(
     return Concat(prefix, rows[0].label);
 }
 
+func RecordArrayAndOwnedLabelsReady(
+    rows: Array<IndexedRow>,
+    own labels: Array<String>
+) -> Bool {
+    return ArrayLength(rows) == ArrayLength(labels);
+}
+
 func Main() -> Void {
     Log("logical-record-array-value-parameter-ready");
 }

@@ -21,17 +21,17 @@ func DirectMirScalarCfgRangeTransfersReady(
     if !DirectMirScalarCfgRangeFactSetSourceReady(
         ranges, ArrayLength(index.block_starts)
     ) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(ranges) {
         let range: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(ranges, row);
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(range.backedge_blocks) {
             let block: Int = range.backedge_blocks[edge];
             if !DirectMirScalarCfgRangeActiveAtBlock(index, range, block) {
                 return false;
             }
-            let inner_row: Int = 0;
+            var inner_row: Int = 0;
             while inner_row < DirectMirScalarCfgRangeFactCount(ranges) {
                 let inner: DirectMirScalarCfgRangeIterationFact =
                     DirectMirScalarCfgRangeFactAt(ranges, inner_row);

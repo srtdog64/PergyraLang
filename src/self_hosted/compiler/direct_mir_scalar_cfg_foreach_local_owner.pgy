@@ -15,7 +15,7 @@ func DirectMirScalarCfgAppendForEachLocals(
     inout local_ref_value_ids: Array<String>,
     inout local_ref_syntax_ids: Array<Int>
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(facts, row);
@@ -50,14 +50,14 @@ func DirectMirScalarCfgForEachFactsAtLocalRows(
     local_names: Array<String>, local_ref_kinds: Array<Int>,
     local_ref_syntax_ids: Array<Int>
 ) -> DirectMirScalarCfgForEachFactSet {
-    let bound: DirectMirScalarCfgForEachFactSet =
+    var bound: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactSetEmpty();
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(facts, row);
-        let local_binding: Int = -1;
-        let candidate: Int = 0;
+        var local_binding: Int = -1;
+        var candidate: Int = 0;
         while candidate < ArrayLength(local_names) {
             if local_ref_kinds[candidate] ==
                     DirectMirScalarCfgLocalRefForEach() &&
@@ -83,8 +83,8 @@ func DirectMirScalarCfgForEachLocalsReady(
     ref local_ref_syntax_ids: Array<Int>,
     ref facts: DirectMirScalarCfgForEachFactSet
 ) -> Bool {
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(local_names) {
         if local_ref_kinds[row] == DirectMirScalarCfgLocalRefForEach() {
             let fact: DirectMirScalarCfgForEachFact =

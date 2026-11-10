@@ -18,7 +18,7 @@ func DirectMirScalarCfgArrayIntProducerOrderReady(
     );
     if phi < 0 || DirectMirScalarCfgOperationBlock(plan, phi) !=
             fact.producer.header_block { return false; }
-    let step: Int = -1; let incoming: Int = 0;
+    var step: Int = -1; var incoming: Int = 0;
     while incoming < plan.operation_phi_counts[phi] {
         let value: Int = plan.phi_incoming_values[
             plan.operation_phi_starts[phi] + incoming

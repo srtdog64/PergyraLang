@@ -1,0 +1,9 @@
+func Invalid() -> Result<Bool>
+{
+    return Ok(1);
+}
+
+func Main() -> Void
+{
+    Log(IsOk(Invalid()));
+}

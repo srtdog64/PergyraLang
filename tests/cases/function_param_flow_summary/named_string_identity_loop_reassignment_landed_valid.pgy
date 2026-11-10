@@ -3,14 +3,14 @@ func Identity(value: String) -> String {
 }
 
 func OwnedRows() -> Array<String> {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     return rows;
 }
 
 func Main() -> Void {
     let owned: Array<String> = OwnedRows();
-    let copies: Array<String> = [];
+    var copies: Array<String> = [];
     var text: String = Identity(Substring("fresh", 0, 5));
     var index: Int = 0;
     while index < 2 {

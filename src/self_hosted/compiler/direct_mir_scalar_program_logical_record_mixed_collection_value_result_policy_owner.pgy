@@ -16,7 +16,7 @@ func DirectMirScalarProgramLogicalRecordMixedCollectionValueResultSignatureReady
         (!append_node_shape && !compact_bridge_shape) {
         return false;
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let type_name: String = signature.parameters.type_names[ordinal];
         let array_int: Bool = ordinal == 0 || ordinal == 2 ||

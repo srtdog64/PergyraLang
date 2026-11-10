@@ -32,21 +32,21 @@ func MirProgramRoutineBlockCaptureWithin(
         JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return InvalidMirProgramRoutineBlockCapture();
     }
-    let id: String = "";
-    let reachable: Bool = false;
-    let instructions_start: Int = 0 - 1;
-    let instructions_end: Int = 0 - 1;
-    let succ_true: Int = 0 - 1;
-    let succ_false: Int = 0 - 1;
-    let intent_role: String = "";
-    let id_seen: Bool = false;
-    let reachable_seen: Bool = false;
-    let instructions_seen: Bool = false;
-    let succ_true_seen: Bool = false;
-    let succ_false_seen: Bool = false;
-    let expect_member: Bool = true;
-    let after_comma: Bool = false;
-    let i: Int = start + 1;
+    var id: String = "";
+    var reachable: Bool = false;
+    var instructions_start: Int = 0 - 1;
+    var instructions_end: Int = 0 - 1;
+    var succ_true: Int = 0 - 1;
+    var succ_false: Int = 0 - 1;
+    var intent_role: String = "";
+    var id_seen: Bool = false;
+    var reachable_seen: Bool = false;
+    var instructions_seen: Bool = false;
+    var succ_true_seen: Bool = false;
+    var succ_false_seen: Bool = false;
+    var expect_member: Bool = true;
+    var after_comma: Bool = false;
+    var i: Int = start + 1;
     while i < end {
         i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end { return InvalidMirProgramRoutineBlockCapture(); }
@@ -141,7 +141,7 @@ func MirProgramRoutineBlockCaptureWithin(
                 (is_succ_false && succ_false_seen) {
                 return InvalidMirProgramRoutineBlockCapture();
             }
-            let successor: Int = 0 - 1;
+            var successor: Int = 0 - 1;
             let value: Option<String> = JsonIntegerValueOptWithin(
                 json, json_extent, i, value_end
             );

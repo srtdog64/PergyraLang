@@ -13,7 +13,7 @@ func WithCount(arena: Arena, count: Int) -> Arena {
 }
 
 func Grow(arena: Arena) -> Int {
-    let next: Arena = WithCount(arena, 3);
+    var next: Arena = WithCount(arena, 3);
     ArrayPush(next.atoms, 9);
     ArrayPush(next.atoms, 9);
     ArrayPush(next.atoms, 9);

@@ -12,7 +12,7 @@ struct Holder {
 }
 
 func Grow(holder: Holder) -> Int {
-    let block: Block = UnwrapOption(holder.block);
+    var block: Block = UnwrapOption(holder.block);
     ArrayPush(block.ids, 7);
     return ArrayLength(block.ids);
 }

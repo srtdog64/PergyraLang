@@ -10,7 +10,7 @@ func DriverSourceCRequestDiagnostic(
     subject_identity: String,
     topology_identity: String,
     source_path: String,
-    request: DriverSourceCRequest
+    ref request: DriverSourceCRequest
 ) -> String {
     if subject_identity != DriverSourceCExecutionOwnerIdentity() {
         return "source C execution subject identity is invalid";
@@ -33,31 +33,33 @@ func DriverSourceCProducePayloadAdmitted(
     subject_identity: String,
     topology_identity: String,
     source_path: String,
-    request: DriverSourceCRequest
+    own request: DriverSourceCRequest
 ) -> DriverSourceCPayloadAdmission with caps io_read {
+    let identity: DriverSourceCRequestIdentity =
+        DriverSourceCRequestIdentitySnapshot(request);
     let diagnostic: String = DriverSourceCRequestDiagnostic(
         subject_identity, topology_identity, source_path, request
     );
     if diagnostic != "" {
         return DriverSourceCPayloadDeniedAdmission(
-            request, source_path, diagnostic
+            identity, source_path, diagnostic
         );
     }
     let artifact: CompilerEmissionArtifact = CompileSourceToCVerified(
         source_path, DriverSourceCRequestDeclaration(request),
-        DriverSourceCRequestEmitsJsonDiagnostic(request)
+        identity.emit_json_diagnostic
     );
     if !CompilerEmissionArtifactReady(artifact) {
         return DriverSourceCPayloadDeniedAdmission(
-            request, source_path,
+            identity, source_path,
             "source C compiler artifact target is invalid"
         );
     }
     return DriverSourceCPayloadAdmitted(DriverSourceCPayloadReceipt(
         DriverSourceCExecutionOutcomeSchema(),
-        DriverSourceCRequestMode(request), source_path,
-        DriverSourceCRequestManifestId(request),
-        DriverSourceCRequestManifestFingerprint(request), artifact
+        identity.mode, source_path,
+        identity.machine_manifest_id,
+        identity.machine_manifest_fingerprint, artifact
     ));
 }
 
@@ -96,6 +98,8 @@ subject DriverSourceCExecution {
             ));
             return false;
         }
+        let request_identity: DriverSourceCRequestIdentity =
+            DriverSourceCRequestIdentitySnapshot(request);
         let admission: DriverSourceCPayloadAdmission =
             DriverSourceCProducePayloadAdmitted(
                 self.identity, self.topology_identity, source_path,
@@ -106,13 +110,13 @@ subject DriverSourceCExecution {
                 self.outcome = Some(DriverSourceCRejectedOutcome(
                     source_path, output_path,
                     DriverSourceCPayloadAdmissionDiagnostic(
-                        admission, source_path, request
+                        admission, source_path, request_identity
                     )
                 ));
                 return false;
             case DriverSourceCPayloadAdmitted(receipt):
                 if !DriverSourceCPayloadReceiptReadyFor(
-                    receipt, source_path, request
+                    receipt, source_path, request_identity
                 ) {
                     self.outcome = Some(DriverSourceCRejectedOutcome(
                         source_path, output_path,

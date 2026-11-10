@@ -65,7 +65,7 @@ func DirectMirScalarProgramPayloadEnumMatchConditionAt(
     if (arity == 0 && binding != -1) || (arity > 0 && binding < 0) {
         return invalid;
     }
-    let node: Int = start;
+    var node: Int = start;
     while node < start + source_count {
         if !DirectMirScalarProgramPayloadFreeEnumStableScrutineeKind(
                 plan.program.expressions.node_kinds[node]) ||
@@ -87,7 +87,7 @@ func DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
     if !left.valid || !right.valid || left.enum_row != right.enum_row ||
         left.source_count != right.source_count ||
         left.scrutinee_offset != right.scrutinee_offset { return false; }
-    let offset: Int = 0;
+    var offset: Int = 0;
     while offset < left.source_count {
         let a: Int = left.source_start + offset;
         let b: Int = right.source_start + offset;

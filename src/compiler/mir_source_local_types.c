@@ -348,23 +348,27 @@ mir_source_local_initializer_call_capture(MIRRoutine *routine, ASTNode *declarat
     ASTNode *callee = call != NULL && call->type == AST_CALL ? ast_call_callee(call) : NULL;
     uint32_t producer = 0, builtin = 0;
     if (callee == NULL || callee->type != AST_IDENTIFIER
-        || ast_identifier_binding_syntax_id(callee) != 0
-        || ast_call_semantic_callee_decl_id(call) != 0
-        || ast_call_semantic_callee_value_binding_id(call) != 0
-        || ast_call_semantic_callee_declared_callable(call))
+        || ast_call_semantic_callee_value_binding_id(call) != 0)
         return true;
-    if (ast_call_semantic_callee_is_stdlib(call)
+    if (ast_call_semantic_callee_decl_id(call) != 0
+        && ast_call_semantic_callee_declared_callable(call)
+        && !ast_call_semantic_callee_is_stdlib(call))
+        producer = 3;
+    else if (ast_identifier_binding_syntax_id(callee) == 0
+        && ast_call_semantic_callee_decl_id(call) == 0
+        && !ast_call_semantic_callee_declared_callable(call)
+        && ast_call_semantic_callee_is_stdlib(call)
         && strcmp(ast_identifier_name(callee), "MapKeys") == 0)
         producer = 1;
-    else if (ast_call_semantic_callee_is_stdlib(call)
+    else if (ast_identifier_binding_syntax_id(callee) == 0
+        && ast_call_semantic_callee_decl_id(call) == 0
+        && !ast_call_semantic_callee_declared_callable(call)
+        && ast_call_semantic_callee_is_stdlib(call)
         && ast_call_semantic_callee_builtin_kind(call, &builtin)
         && builtin == BUILTIN_CLONE)
         producer = 2;
     if (producer == 0) return true;
-    const char *actual = ast_call_semantic_value_type_name(call);
     uint32_t call_id = ast_node_stable_id(call);
-    if (actual == NULL || actual[0] == '\0' || call_id == 0 || ast_call_arg_count(call) != 1)
-        return false;
     MIRSourceLocalType *target = NULL;
     for (size_t i = 0; i < routine->source_local_type_count; i++) {
         if (routine->source_local_types[i].binding_syntax_id == ast_node_stable_id(declaration)) {
@@ -373,6 +377,35 @@ mir_source_local_initializer_call_capture(MIRRoutine *routine, ASTNode *declarat
         }
     }
     if (target == NULL) return false;
+    const char *actual = ast_call_semantic_value_type_name(call);
+    if (producer == 3) {
+        const PgyCollectionOwnershipFact *result_fact = NULL;
+        for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+            const PgyCollectionOwnershipFact *candidate =
+                &routine->collection_ownership_facts[i];
+            if (candidate->binding_syntax_id
+                    != ast_node_stable_id(declaration))
+                continue;
+            if (result_fact != NULL)
+                return false;
+            result_fact = candidate;
+        }
+        if (result_fact == NULL
+            || result_fact->origin != PGY_COLLECTION_ORIGIN_CALL_RESULT)
+            return true;
+        if (result_fact->element_ownership
+                != PGY_STRING_ARRAY_OWNED_ELEMENTS
+            || result_fact->source_binding_syntax_id != 0
+            || result_fact->origin_syntax_id
+                != ast_call_semantic_callee_decl_id(call)
+            || target->type_name == NULL
+            || strcmp(target->type_name, "Array<String>") != 0)
+            return false;
+        actual = target->type_name;
+    }
+    if (actual == NULL || actual[0] == '\0' || call_id == 0
+        || (producer != 3 && ast_call_arg_count(call) != 1))
+        return false;
     if (target->initializer_collection_producer != 0)
         return target->initializer_collection_producer == producer
             && target->initializer_call_syntax_id == call_id

@@ -11,8 +11,8 @@ func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void 
 }
 
 func Main() -> Int {
-    let out: Array<String> = [];
-    let shelf: Array<Array<String>> = [];
+    var out: Array<String> = [];
+    var shelf: Array<Array<String>> = [];
     Mark(out);
     Stash(out, shelf);
     Print(ToString(ArrayLength(shelf)));

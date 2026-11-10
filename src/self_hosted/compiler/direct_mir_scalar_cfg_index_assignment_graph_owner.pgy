@@ -20,7 +20,7 @@ func DirectMirScalarCfgIndexAssignmentObservationGraphFactEmpty(
 func DirectMirScalarCfgIndexAssignmentCallTargetsReady(
     ref graph: MirExpressionGraphSequence
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < graph.ready_node_count {
         if row == 1 {
             if graph.arena.call_target_kinds[row] !=
@@ -59,10 +59,10 @@ func DirectMirScalarCfgIndexAssignmentIntObservationGraphFactFrom(
         !DirectMirScalarCfgIndexAssignmentCallTargetsReady(graph) {
         return invalid;
     }
-    let indices: Array<Int> = [];
+    var indices: Array<Int> = [];
     let starts: Array<Int> = [2, 5, 9];
-    let row: Int = 0;
-    let name: String = "";
+    var row: Int = 0;
+    var name: String = "";
     while row < 3 {
         let start: Int = starts[row];
         if graph.arena.topology.node_kinds[start] != AstExpressionNodeLeaf() ||
@@ -110,10 +110,10 @@ func DirectMirScalarCfgIndexAssignmentStringObservationGraphFactFrom(
         !DirectMirScalarCfgIndexAssignmentCallTargetsReady(graph) {
         return invalid;
     }
-    let indices: Array<Int> = [];
+    var indices: Array<Int> = [];
     let starts: Array<Int> = [2, 6];
-    let row: Int = 0;
-    let name: String = "";
+    var row: Int = 0;
+    var name: String = "";
     while row < 2 {
         let start: Int = starts[row];
         if graph.arena.topology.node_kinds[start] != AstExpressionNodeLeaf() ||

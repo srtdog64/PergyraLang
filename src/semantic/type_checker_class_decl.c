@@ -10,7 +10,7 @@
 static void
 class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
                            Type *field_type, uint32_t declaration_syntax_id,
-                           ASTNode *node)
+                           bool mutable, ASTNode *node)
 {
     Symbol *field_sym;
 
@@ -37,6 +37,7 @@ class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
     if (field_sym != NULL) {
         symbol_mark_declaration(field_sym, declaration_syntax_id, false);
         field_sym->is_host_field = true;
+        field_sym->is_mut_binding = mutable;
         scope_declare(ctx->scope, field_sym);
     }
 }
@@ -270,7 +271,9 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
         class_declare_field_symbol(ctx, fields[i].name, field_type,
-                                   fields[i].declaration_syntax_id, node);
+            fields[i].declaration_syntax_id, fields[i].is_mutable
+                && ast_class_nominal_kind(node) != NOMINAL_DECL_OBJECT
+                && ast_class_nominal_kind(node) != NOMINAL_DECL_TOBJECT, node);
     }
     pgy_decl_field_model_free(fields, field_count);
 

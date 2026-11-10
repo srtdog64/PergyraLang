@@ -18,7 +18,7 @@ func SemanticExpressionGraphOperandErrorFromTree(
     ref function_returns: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
 ) -> String {
-    let pending: Array<Int> = [root_id];
+    var pending: Array<Int> = [root_id];
     while ArrayLength(pending) > 0 {
         let node_id: Int = pending[ArrayLength(pending) - 1];
         ArrayPop(pending);
@@ -40,7 +40,7 @@ func SemanticExpressionGraphOperandErrorFromTree(
                 );
             }
             ArrayPush(pending, call.callee_node);
-            let argument: Int = 0;
+            var argument: Int = 0;
             while argument < ArrayLength(call.argument_nodes) {
                 ArrayPush(pending, call.argument_nodes[argument]);
                 argument = argument + 1;
@@ -98,8 +98,8 @@ func SemanticExpressionGraphOperandErrorFromTree(
 
 // Native type_check_binary: numeric operands of a comparison or arithmetic
 // operator must have one type, and `%` over Float or Double has no meaning
-// (no backend lowers it). Operands of other types are left to the root
-// operator verdict and the call owners.
+// (no backend lowers it). Arithmetic requires numeric operands, except that
+// String addition keeps its existing concatenation meaning.
 func SemanticExpressionGraphNumericOperandError(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -131,9 +131,16 @@ func SemanticExpressionGraphNumericOperandError(
         return SemanticError1("modulo_operand_not_integer", "actual", left);
     }
     let left_numeric: Bool = SemanticExpressionGraphNumericTypeName(left) ||
-        left == "Double";
+        left == "Double" || left == "Duration";
     let right_numeric: Bool = SemanticExpressionGraphNumericTypeName(right) ||
-        right == "Double";
+        right == "Double" || right == "Duration";
+    if kind >= AstExpressionNodeAdd() && kind <= AstExpressionNodeModulo() {
+        if kind == AstExpressionNodeAdd() && left == "String" && right == "String" { return ""; }
+        if left != "Unknown" && right != "Unknown" &&
+            (!left_numeric || !right_numeric || left != right) {
+            return SemanticError2("binop_type_mismatch", "left", left, "right", right);
+        }
+    }
     if left == right || !left_numeric || !right_numeric { return ""; }
     if kind <= AstExpressionNodeGreaterEqual() {
         return SemanticError2(
@@ -265,7 +272,7 @@ func SemanticExpressionGraphScalarOperatorError(
             );
         }
     }
-    if kind == AstExpressionNodeModulo() {
+    if kind >= AstExpressionNodeAdd() && kind <= AstExpressionNodeModulo() {
         return SemanticExpressionGraphNumericOperandError(
             graph, node_id, kind, constructors, names, types,
             function_names, function_returns, enum_values
@@ -284,8 +291,8 @@ func SemanticExpressionGraphScalarOperandError(
     ref function_returns: Array<String>
 ) -> String {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let start: Int = root_id;
-    let needed: Int = 1;
+    var start: Int = root_id;
+    var needed: Int = 1;
     while start >= 0 && needed > 0 {
         let scan_kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, start
@@ -307,7 +314,7 @@ func SemanticExpressionGraphScalarOperandError(
     }
     start = start + 1;
 
-    let node: Int = start;
+    var node: Int = start;
     while node <= root_id {
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, node

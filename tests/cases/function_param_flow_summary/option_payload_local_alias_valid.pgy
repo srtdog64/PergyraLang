@@ -7,7 +7,7 @@ func AliasOptional(value: String, found: Bool) -> Option<String> {
 }
 
 func Main() -> Void {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     let candidate: Option<String> = AliasOptional("ready", true);
     if IsSome(candidate) {
         let text: String = UnwrapOption(candidate);

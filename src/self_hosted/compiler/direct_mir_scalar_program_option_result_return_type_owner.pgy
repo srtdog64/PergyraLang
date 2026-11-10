@@ -1,5 +1,6 @@
 // Callable return-type membership for scalar Option and Result ABI families.
 import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_result_abi_owner.pgy";
 
 func DirectMirScalarProgramOptionResultReturnTypeReady(
     type_name: String
@@ -7,5 +8,5 @@ func DirectMirScalarProgramOptionResultReturnTypeReady(
     return type_name == CompilerAbiLayoutOptionIntTypeName() ||
         type_name == CompilerAbiLayoutOptionStringTypeName() ||
         type_name == CompilerAbiLayoutOptionBoolTypeName() ||
-        type_name == CompilerAbiLayoutResultIntTypeName();
+        DirectMirScalarResultAbiRuntimeForType(type_name).ok;
 }

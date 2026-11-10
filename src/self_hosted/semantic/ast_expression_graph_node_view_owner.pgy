@@ -12,7 +12,7 @@ import "ast_expression_identity_fact_owner.pgy";
 
 // Root-only consumers must not retain or transfer the graph storage.
 func SemanticExpressionGraphRootAt(
-    facts: SemanticExpressionGraphFacts,
+    ref facts: SemanticExpressionGraphFacts,
     surface_index: Int,
     lane: Int
 ) -> Option<Int> {

@@ -23,6 +23,13 @@ func Main() -> Void {
     Log(CollectionHashMapRuntimeCFunction(flags, SemanticExpressionGraphCollectionCallProtocolFromName("MapKeys")) == "pgy_map_keys_bool_int");
     Log(CollectionHashMapRuntimeCDropFunction(ints) == "pgy_map_drop_string");
     Log(CollectionHashMapRuntimeCDropFunction(flags) == "pgy_map_drop_int");
+    Log(CollectionHashMapRuntimeCloneCopiesDeeply(strings));
+    Log(CollectionHashMapRuntimeCloneCopiesDeeply(ints));
+    Log(CollectionHashMapRuntimeCCloneFunction(strings) == "pgy_map_clone_int");
+    Log(CollectionHashMapRuntimeCCloneFunction(ints) == "pgy_map_clone_string");
+    let nested: CollectionHashMapRuntimeFact =
+        CollectionHashMapRuntimeFactFromTypeName("HashMap<String, Array<Int>>");
+    Log(nested.ok && !CollectionHashMapRuntimeCloneCopiesDeeply(nested));
     Log(CollectionHashMapRuntimeCFunction(flags, SemanticExpressionGraphCollectionCallProtocolFromName("MapSize")) == "pgy_map_size_int");
     Log(!CollectionHashMapRuntimeFactFromTypeName("HashMap<Float, Int>").ok);
     Log(!CollectionHashMapRuntimeFactFromTypeName("HashMap<String, Unknown>").ok);

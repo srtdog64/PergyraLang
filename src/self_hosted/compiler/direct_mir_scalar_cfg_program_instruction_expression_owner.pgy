@@ -16,18 +16,24 @@ func DirectMirScalarCfgProgramAppendTypedExpression(
     local_offset: Int, parameter_types: Array<String>,
     ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
-    use_offset: Int, expected_type: String
+    use_offset: Int, expected_type: String,
+    allow_process_exit_wrapper: Bool
 ) -> Option<Int> {
-    let cursor: Int = use_offset;
-    return DirectMirScalarCfgProgramAppendTypedExpressionField(
-        expressions, failure, instruction, uses, index,
-        global_row, local_instruction,
-        locals, types, wire, local_offset, parameter_types, signature, callables,
-        logical_record, payload_free_enum, referenced_enum,
-        "expr0_graph", cursor, true, expected_type, -1);
+    var cursor: Int = use_offset;
+    let no_option_match: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactEmpty();
+    return DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
+        expressions, failure, instruction, uses, index, global_row,
+        local_instruction, locals, types, wire, local_offset,
+        parameter_types, signature, callables, routine_instances,
+        caller_ordinal, logical_record, payload_free_enum, referenced_enum,
+        no_option_match, "expr0_graph", cursor, true, expected_type, -1,
+        allow_process_exit_wrapper);
 }
 
 func DirectMirScalarCfgProgramAppendTypedExpressionField(
@@ -43,6 +49,8 @@ func DirectMirScalarCfgProgramAppendTypedExpressionField(
     local_offset: Int, parameter_types: Array<String>,
     ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
@@ -54,7 +62,10 @@ func DirectMirScalarCfgProgramAppendTypedExpressionField(
     return DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
         expressions, failure, instruction, uses, index, global_row,
         local_instruction, locals, types, wire, local_offset,
-        parameter_types, signature, callables, logical_record,
+        parameter_types, signature, callables, routine_instances,
+        caller_ordinal,
+        logical_record,
         payload_free_enum, referenced_enum, no_option_match,
-        graph_field, use_offset, require_all_uses, expected_type, source_root);
+        graph_field, use_offset, require_all_uses, expected_type, source_root,
+        false);
 }

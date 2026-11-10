@@ -40,7 +40,11 @@ import "ast_capability_fact_owner.pgy";
 import "ast_body_type_bundle_schema_owner.pgy";
 import "ast_local_name_rule_owner.pgy";
 import "ast_bound_party_escape_owner.pgy";
-func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
+import "ast_body_collection_ownership_stage_owner.pgy";
+import "ast_owned_string_store_landing_plan_owner.pgy";
+import "ast_body_type_stage_observer_owner.pgy";
+import "ast_body_base_verdict_owner.pgy";
+import "ast_body_post_ownership_verdict_owner.pgy";
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool,
     require_carried_expression_identities: Bool, require_enum_payload_variant_proof: Bool,
@@ -59,7 +63,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.enums, analysis.function_scopes, observe_pressure, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "base-initializer:done");
     SemanticAstBodyTypeStage(observe_pressure, "iteration:start");
-    let iteration_types: SemanticAstIterationTypeFacts =
+    var iteration_types: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, base_initializer_types, analysis.statements,
@@ -100,11 +104,44 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "statement:done");
     let match_materializations: SemanticAstMatchMaterializationFacts =
         SemanticAstMatchMaterializationFactsAttach(artifact, analysis, statement_types);
+    let iteration_graph_roots_attached: Bool =
+        SemanticAstIterationSyntheticGraphRootsAttach(
+            artifact, analysis, iteration_types
+        );
+    // Boundary admission consumes stable binding identity. Produce that fact
+    // before the consumer instead of making the boundary reconstruct formal
+    // parameters from their spelling. Local, formal and callable identities
+    // now have one owner and one lifetime within this body bundle.
+    SemanticAstBodyTypeStage(observe_pressure, "expression-identity:start");
+    var resolved_leaf_types: Array<String> = [];
+    var numeric_string_allocations: SemanticAstNumericStringAllocationCalls =
+        SemanticAstNumericStringAllocationCallsEmpty();
+    let call_roots: SemanticCallSpineRoots =
+        SemanticCallSpineRootsFromGraph(
+            analysis.expression_surfaces.expression_graph
+        );
+    let expression_identities_resolved: Bool =
+        iteration_graph_roots_attached && call_roots.ok &&
+        SemanticAstAnalysisResolveExpressionIdentities(
+            artifact, analysis, initializer_types.inferred_type_names,
+            iteration_types, match_materializations.synthetic_graph_root_ids,
+            function_tables, call_roots,
+            require_carried_expression_identities,
+            resolved_leaf_types, numeric_string_allocations
+        ) && numeric_string_allocations.ok;
+    SemanticAstBodyTypeStage(observe_pressure, "expression-identity:done");
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:start");
-    let named_boundary: SemanticAstNamedValueBoundaryVerdict =
-        SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(artifact, analysis.local_bindings, initializer_types.inferred_type_names, analysis.signatures,
-            analysis.expression_surfaces.expression_graph,
-            analysis.expression_surfaces, statement_types);
+    var named_boundary: SemanticAstNamedValueBoundaryVerdict =
+        SemanticAstNamedValueBoundaryVerdictOk();
+    if expression_identities_resolved {
+        named_boundary =
+            SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
+                artifact, analysis.local_bindings,
+                initializer_types.inferred_type_names, analysis.signatures,
+                analysis.expression_surfaces.expression_graph,
+                analysis.expression_surfaces, statement_types
+            );
+    }
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:done");
     SemanticAstBodyTypeStage(observe_pressure, "zone-carriage:start");
     let zone_carriage: SemanticAstZoneValueCarriageVerdict =
@@ -123,70 +160,16 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.intent_transitions, analysis.function_scopes);
     SemanticAstBodyTypeStage(observe_pressure, "generic:done");
     SemanticAstBodyTypeStage(observe_pressure, "verdict:start");
-    let verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictFromFacts(
+    var verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictFromFacts(
         initializer_types, iteration_types, assignment_types, statement_types);
-    // Source-only like body flow (a MIR-rebuilt tree regroups locals); outranks body errors.
-    if require_source_body_flow {
-        let names: SemanticAstDeclarationContractVerdict = SemanticAstLocalNameRuleVerdict(
-            artifact, analysis.signatures, analysis.local_bindings, analysis.statements);
-        if names.ok { names = SemanticAstBoundPartyEscapeVerdict(analysis.statements, analysis.expression_surfaces); }
-        if !names.ok { verdict = SemanticAstBodyVerdictError(names.code, names.message, names.node_id); }
-    }
-    if verdict.ok {
-        verdict = SemanticAstIntentRetryAdmissionFromFacts(
-            artifact, analysis.kind_surfaces, analysis.intent_signatures);
-    }
-    if verdict.ok {
-        verdict = SemanticAstIntentStepClauseAdmissionFromFacts(artifact, analysis.kind_surfaces,
-            analysis.intent_signatures, analysis.expression_surfaces);
-    }
-    if verdict.ok {
-        verdict = SemanticAstIntentBoundaryPredicateAdmission(artifact, analysis, function_tables);
-    }
-    if verdict.ok {
-        verdict = SemanticAstActionContractAdmissionFromFacts(artifact,
-            analysis.signatures, analysis.constructors, analysis.roles, analysis.zone_authorities);
-    }
-    if verdict.ok && !call_targets_resolved {
-        verdict = SemanticAstBodyVerdictError("call_target_unresolved",
-            "semantic call target rows are incomplete after body fixpoint", -1);
-    } else if verdict.ok && !role_operators_resolved {
-        verdict = SemanticAstBodyVerdictError("role_operator_target_unresolved",
-            "semantic role-operator target rows are incomplete", -1);
-    } else if verdict.ok && !expression_places_resolved {
-        verdict = SemanticAstBodyVerdictError("expression_place_unresolved",
-            "semantic expression place rows are incomplete after body fixpoint", -1);
-    } else if verdict.ok && !named_boundary.ok {
-        verdict = SemanticAstBodyVerdictError(named_boundary.diagnostic_code,
-            named_boundary.diagnostic_message, SemanticAstExpressionGraphOwnerAstNode(analysis.expression_surfaces, named_boundary.call_node_id));
-    } else if verdict.ok && !zone_carriage.ok {
-        verdict = SemanticAstBodyVerdictError(zone_carriage.diagnostic_code,
-            zone_carriage.diagnostic_message, zone_carriage.syntax_node_id);
-    } else if verdict.ok && !generic_specializations.ok {
-        verdict = SemanticAstBodyVerdictError(generic_specializations.diagnostic_code,
-            generic_specializations.diagnostic_message, -1);
-    } else if verdict.ok && !SemanticAstMatchMaterializationFactsReady(
-        artifact, analysis, statement_types, match_materializations) {
-        verdict = SemanticAstBodyVerdictError("match_materialization_unresolved", "semantic match materialization facts are incomplete", -1);
-    } else if verdict.ok && !SemanticAstIterationSyntheticGraphRootsAttach(
-            artifact, analysis, iteration_types) {
-        verdict = SemanticAstBodyVerdictError("iteration_graph_root_unresolved",
-            "semantic foreach synthetic roots are incomplete", -1);
-    }
-    if verdict.ok {
-        let generic_constraint: Option<String> = SemanticAstGenericSpecializationConstraintViolation(
-            analysis.signatures, analysis.roles, analysis.function_scopes, generic_specializations);
-        if IsSome(generic_constraint) {
-            verdict = SemanticAstBodyVerdictError("generic_constraint_unsatisfied",
-                SemanticError1("generic_constraint_unsatisfied", "constraint", UnwrapOption(generic_constraint)), -1
-            );
-        }
-    }
-    let resolved_leaf_types: Array<String> = [];
-    let numeric_string_allocations: SemanticAstNumericStringAllocationCalls =
-        SemanticAstNumericStringAllocationCallsEmpty();
-    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRoots(false, []);
-    let exhaustive_match_nodes: Array<Int> = [];
+    verdict = SemanticAstBodyBaseVerdict(
+        artifact, analysis, verdict, statement_types, match_materializations,
+        function_tables, named_boundary, zone_carriage,
+        generic_specializations, call_targets_resolved,
+        role_operators_resolved, expression_places_resolved,
+        iteration_graph_roots_attached, expression_identities_resolved,
+        require_source_body_flow);
+    var exhaustive_match_nodes: Array<Int> = [];
     if verdict.ok {
         verdict = SemanticAstNamedEnumMatchCoverageFromFacts(
             artifact, analysis.enums, analysis.statements, statement_types, exhaustive_match_nodes);
@@ -196,23 +179,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types, analysis.expression_surfaces);
     }
-    if verdict.ok {
-        call_roots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
-        if !call_roots.ok { verdict = SemanticAstBodyVerdictError(
-            "expression_identity_unresolved", "semantic call spine roots are incomplete", -1); }
-    }
-    SemanticAstBodyTypeStage(observe_pressure, "expression-identity:start");
-    if verdict.ok && (!SemanticAstAnalysisResolveExpressionIdentities(
-            artifact, analysis, initializer_types.inferred_type_names,
-            iteration_types, match_materializations.synthetic_graph_root_ids,
-            function_tables, call_roots, require_carried_expression_identities,
-            resolved_leaf_types, numeric_string_allocations) ||
-            !numeric_string_allocations.ok) {
-        verdict = SemanticAstBodyVerdictError("expression_identity_unresolved", "semantic expression identity rows are incomplete", -1);
-    }
-    SemanticAstBodyTypeStage(observe_pressure, "expression-identity:done");
     // One body-owned projection is shared by admission and downstream readers.
-    let owned_string_result_domains: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsEmpty();
+    var owned_string_result_domains: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsEmpty();
     SemanticAstBodyTypeStage(observe_pressure, "owned-string-results:start");
     if verdict.ok {
         owned_string_result_domains = SemanticAstOwnedStringResultFactsFromResolvedFacts(
@@ -225,107 +193,131 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         }
     }
     SemanticAstBodyTypeStage(observe_pressure, "owned-string-results:done");
+    var owned_literal_facts: SemanticAstOwnedStringLiteralOwnershipFacts =
+        SemanticAstOwnedStringLiteralOwnershipFactsEmpty();
+    if verdict.ok {
+        owned_literal_facts =
+            SemanticAstOwnedStringLiteralOwnershipFactsFromResolvedFacts(
+                artifact, analysis.signatures, analysis.local_bindings,
+                initializer_types, analysis.expression_surfaces,
+                owned_string_result_domains, numeric_string_allocations);
+        if !SemanticAstOwnedStringLiteralOwnershipFactsReady(
+                owned_literal_facts, analysis.local_bindings) {
+            verdict = SemanticAstBodyVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner",
+                    "owned_string_literal_ownership"), -1);
+        }
+    }
+    var owned_string_store_clone_nodes: Array<Int> = [];
+    var owned_string_store_nodes: Array<Int> = [];
+    let no_collection_formal_effects:
+        SemanticAstCollectionFormalEffects =
+        SemanticAstCollectionFormalEffectsEmpty();
+    if verdict.ok && !SemanticAstOwnedStringStoreLandingPlanSelect(
+            artifact, analysis.signatures, analysis.local_bindings,
+            initializer_types, analysis.expression_surfaces,
+            analysis.statements, analysis.assignments,
+            owned_string_result_domains, numeric_string_allocations,
+            owned_literal_facts,
+            no_collection_formal_effects,
+            owned_string_store_clone_nodes,
+            owned_string_store_nodes) {
+        verdict = SemanticAstBodyVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "owned_string_store_landing_plan"), -1);
+    }
     // Formal effects are a body-owned projection. Collection admission and
     // downstream identity checks consume this same result; neither rescans the
     // whole expression graph to reconstruct it.
-    let collection_formal_effects: SemanticAstCollectionFormalEffects =
+    var collection_formal_effects: SemanticAstCollectionFormalEffects =
         SemanticAstCollectionFormalEffectsEmpty();
     let occurrence_order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
         analysis.expression_surfaces, iteration_types.synthetic_graph_root_ids, match_materializations.synthetic_graph_root_ids);
     SemanticAstBodyTypeStage(observe_pressure, "collection-formal-effects:start");
     if verdict.ok {
         collection_formal_effects =
-            SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+            SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
                 artifact, analysis.signatures, analysis.function_scopes,
                 analysis.local_bindings, initializer_types,
                 analysis.expression_surfaces, analysis.statements,
-                owned_string_result_domains, occurrence_order);
+                owned_string_result_domains,
+                owned_string_store_nodes, occurrence_order);
+    }
+    if verdict.ok && !SemanticAstOwnedStringStoreLandingPlanSelect(
+            artifact, analysis.signatures, analysis.local_bindings,
+            initializer_types, analysis.expression_surfaces,
+            analysis.statements, analysis.assignments,
+            owned_string_result_domains, numeric_string_allocations,
+            owned_literal_facts,
+            collection_formal_effects, owned_string_store_clone_nodes,
+            owned_string_store_nodes) {
+        verdict = SemanticAstBodyVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "owned_string_store_caller_landing_plan"), -1);
     }
     SemanticAstBodyTypeStage(observe_pressure, "collection-formal-effects:done");
-    let collection_ownership: SemanticAstCollectionOwnershipVerdict =
-        SemanticAstCollectionOwnershipVerdictOk();
-    let collection_focus_recovery: SemanticAstCollectionFocusRecoveryFacts =
-        SemanticAstCollectionFocusRecoveryFactsEmpty();
-    SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:start");
+    var body_termination: SemanticAstBodyTerminationFacts =
+        SemanticAstBodyTerminationFactsEmpty();
     if verdict.ok {
-        collection_ownership =
-            SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
-            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, initializer_types,
-            analysis.expression_surfaces, analysis.function_scopes, resolved_leaf_types, numeric_string_allocations,
-            call_roots, owned_string_result_domains, analysis.statements,
-            analysis.assignments, assignment_types,
-            collection_formal_effects, collection_focus_recovery);
-        if !collection_ownership.ok {
+        body_termination = SemanticAstBodyTerminationFactsFromFacts(
+            artifact, analysis.signatures, analysis.statements,
+            statement_types, analysis.expression_surfaces,
+            exhaustive_match_nodes);
+        if !SemanticAstBodyTerminationFactsReady(
+                artifact, analysis.signatures, body_termination) {
             verdict = SemanticAstBodyVerdictError(
-                collection_ownership.diagnostic_code,
-                collection_ownership.diagnostic_message,
-                collection_ownership.syntax_node_id);
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner",
+                    "body_termination_facts"), -1);
         }
     }
+    var collection_ownership: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictOk();
+    var collection_focus_recovery: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFactsEmpty();
+    SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:start");
+    SemanticAstBodyCollectionOwnershipStage(artifact, analysis, initializer_types, resolved_leaf_types,
+        numeric_string_allocations, call_roots, owned_string_result_domains, assignment_types,
+        collection_formal_effects, owned_literal_facts,
+        owned_string_store_clone_nodes,
+        owned_string_store_nodes,
+        body_termination,
+        verdict, collection_ownership, collection_focus_recovery);
     SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:done");
-    if verdict.ok { verdict = SemanticArrayStorageReleaseVerdict(artifact, analysis, initializer_types,
-        resolved_leaf_types, assignment_types, statement_types, exhaustive_match_nodes,
-        occurrence_order); }
-    // Source-only: a tree rebuilt from MIR is admitted by the direct-MIR readiness owner.
-    if verdict.ok && require_source_body_flow {
-        verdict = SemanticStringWindowExtentVerdict(artifact, analysis, initializer_types, call_roots);
-    }
-    verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
-    if verdict.ok { verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
-        initializer_types, assignment_types, generic_specializations, resolved_leaf_types); }
-    if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
-        artifact, analysis, generic_specializations) {
-        verdict = SemanticAstBodyVerdictError("call_return_type_unresolved",
-            "semantic call return type rows are incomplete", -1);
+    verdict = SemanticAstBodyPostOwnershipPreVerdictFromFacts(
+        artifact, analysis, verdict, initializer_types, assignment_types,
+        statement_types, resolved_leaf_types, generic_specializations,
+        call_roots, exhaustive_match_nodes, occurrence_order,
+        require_source_body_flow);
+    if verdict.ok {
+        verdict = SemanticAstCancelAdmissionFromFacts(
+            artifact, analysis, initializer_types, iteration_types,
+            function_tables);
     }
     if verdict.ok {
-        verdict = SemanticAstCancelAdmissionFromFacts(artifact, analysis,
-            initializer_types, iteration_types, function_tables);
+        verdict = SemanticAstUnsafeBlockAdmissionFromStatements(
+            artifact, analysis.statements);
     }
     if verdict.ok {
-        verdict = SemanticAstUnsafeBlockAdmissionFromStatements(artifact, analysis.statements);
-    }
-    if verdict.ok {
-        verdict = SemanticAstFutureLifecycleAdmissionFromFacts(artifact, analysis.signatures,
-            analysis.constructors, analysis.local_bindings, initializer_types, analysis.expression_surfaces, analysis.enums,
+        verdict = SemanticAstFutureLifecycleAdmissionFromFacts(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types,
+            analysis.expression_surfaces, analysis.enums,
             exhaustive_match_nodes);
     }
-    if verdict.ok {
-        verdict = SemanticAstContainmentBoundaryVerdictFromResolvedFacts(
-            analysis.constructors, analysis.expression_surfaces, resolved_leaf_types);
-    }
-    if verdict.ok && require_enum_payload_variant_proof {
-        SemanticAstBodyTypeStage(observe_pressure, "enum-payload-variant:start");
-        let enum_payload_variant: SemanticAstEnumPayloadVariantProvenanceVerdict =
-                SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
-                    artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-                    initializer_types, analysis.assignments,
-                    analysis.statements, analysis.expression_surfaces, analysis.enums);
-        if !enum_payload_variant.ok {
-            verdict = SemanticAstBodyVerdictError(enum_payload_variant.diagnostic_code,
-                enum_payload_variant.diagnostic_message, enum_payload_variant.syntax_node_id);
-        }
-        SemanticAstBodyTypeStage(observe_pressure, "enum-payload-variant:done");
-    }
-    // Source-only (a tree rebuilt from MIR lost Never); after body errors, as native.
-    if verdict.ok && require_source_body_flow { verdict = SemanticAstBodyFlowVerdictFromFacts(artifact,
-        analysis.signatures, analysis.statements, statement_types, analysis.expression_surfaces, exhaustive_match_nodes); }
-    let capabilities: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsError(
-        artifact, "body admission did not reach capability inference");
-    if verdict.ok {
-        SemanticAstBodyTypeStage(observe_pressure, "capability:start");
-        capabilities = SemanticAstCapabilityFactsFromAdmittedBody(
-            artifact, analysis, verdict, iteration_types, match_materializations);
-        if !SemanticAstCapabilityFactsReady(artifact, analysis, capabilities) {
-            verdict = SemanticAstBodyVerdictError("capability_fact_invalid", SemanticError1(
-                    "capability_fact_invalid", "detail", capabilities.diagnostic_message), -1);
-        } else if !capabilities.contract_ok {
-            verdict = SemanticAstBodyVerdictError(capabilities.diagnostic_code, SemanticError1(
-                    capabilities.diagnostic_code, "detail", capabilities.diagnostic_message),
-                capabilities.first_node_id);
-        }
-        SemanticAstBodyTypeStage(observe_pressure, "capability:done");
-    }
+    verdict = SemanticAstBodySourceBoundaryVerdictFromFacts(
+        artifact, analysis, verdict, initializer_types, statement_types,
+        resolved_leaf_types, exhaustive_match_nodes,
+        require_source_body_flow, require_enum_payload_variant_proof,
+        observe_pressure);
+    let capability_verdict: SemanticAstBodyCapabilityVerdict =
+        SemanticAstBodyCapabilityVerdictFromFacts(
+            artifact, analysis, verdict, iteration_types,
+            match_materializations, observe_pressure);
+    verdict = capability_verdict.verdict;
+    let capabilities: SemanticAstCapabilityFacts =
+        capability_verdict.capabilities;
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
     return SemanticAstBodyTypeBundle(verdict,
         initializer_types, iteration_types, assignment_types, statement_types, match_materializations,

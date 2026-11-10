@@ -1,0 +1,29 @@
+// The loop borrows each String from arena. The push must land an owned copy,
+// then the constructor takes that exact Array ownership into Facts.
+struct Arena {
+    atoms: Array<String>;
+}
+
+struct Facts {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func Build(arena: Arena) -> Facts {
+    var names: Array<String> = [];
+    var row: Int = 0;
+    while row < ArrayLength(arena.atoms) {
+        let name: String = arena.atoms[row];
+        ArrayPush(names, name);
+        row = row + 1;
+    }
+    var facts: Facts = Facts(true, names);
+    facts.ok = ArrayLength(facts.names) == ArrayLength(arena.atoms);
+    return facts;
+}
+
+func Main() -> Int {
+    let facts: Facts = Build(Arena(["alpha"]));
+    Print(facts.names[0]);
+    return 0;
+}

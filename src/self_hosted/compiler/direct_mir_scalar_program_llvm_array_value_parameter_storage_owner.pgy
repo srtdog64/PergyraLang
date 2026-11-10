@@ -14,7 +14,7 @@ func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
 ) -> String {
     let allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(256);
-    let parameter: Int = 0;
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         let row: Int = plan.routines.parameter_starts[routine] + parameter;
         let type_name: String = plan.routines.parameter_types[row];
@@ -29,7 +29,7 @@ func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
         }
         if plan.routines.parameter_carriages[row] == "value" &&
             DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) {
-            let storage_align: Int = 0;
+            var storage_align: Int = 0;
             if type_name == CompilerAbiLayoutArrayIntTypeName() {
                 if !IsSome(int_projection) { Die("direct MIR LLVM value Array<Int> projection is missing"); }
                 let projection: DirectMirArrayIntAbiProjection = UnwrapOption(int_projection);

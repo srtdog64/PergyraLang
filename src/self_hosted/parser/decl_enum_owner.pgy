@@ -17,7 +17,7 @@ func ParseEnumDecl(
     inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
-    let i: Int = LanguageWordEnd(start, LanguageWordId.WordEnum);
+    var i: Int = LanguageWordEnd(start, LanguageWordId.WordEnum);
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -28,8 +28,8 @@ func ParseEnumDecl(
     }
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "enum");
-    let variants: String = "";
-    let method_blocks: String = "";
+    var variants: String = "";
+    var method_blocks: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -56,11 +56,11 @@ func ParseEnumDecl(
         if StringLength(v_name) == 0 {
             ParseRefuse(location_context, i, "declaration_name_missing", "construct", "enum_variant", "", "");
         }
-        let variant_text: String = v_name;
+        var variant_text: String = v_name;
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == "(" {
             i = i + 1;
-            let params: String = "";
+            var params: String = "";
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if ParserCharAt(content, i) == ")" {
@@ -115,7 +115,7 @@ func ParseEnumDecl(
         }
     }
     ArraySet(cursor_out, 0, i);
-    let variant_group: String = "";
+    var variant_group: String = "";
     if StringLength(variants) > 0 {
         variant_group = Concat(" { ", Concat(variants, " }"));
     }

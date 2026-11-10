@@ -6,6 +6,7 @@ import "expr_semantic_graph_emit_owner.pgy";
 
 func CodegenIntentPriorityExpression(
     ref policy: CodegenIntentPolicyView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     intent_index: Int,
     intent_node: Int,
     intent_name: String,
@@ -17,10 +18,10 @@ func CodegenIntentPriorityExpression(
     if !policy.priority_present[row] { return "0"; }
     let root: Int = policy.priority_expression_roots[row];
     let type_name: Option<String> = CodegenExpressionTypeFromGraph(
-        policy.expression_graph, root, env
+        expression_graph, root, env
     );
     if !IsSome(type_name) || UnwrapOption(type_name) != "Int" {
         Die("self-host intent observability priority is not Int");
     }
-    return RewriteExprFromSemanticGraph(policy.expression_graph, root, env);
+    return RewriteExprFromSemanticGraph(expression_graph, root, env);
 }

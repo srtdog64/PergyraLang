@@ -74,7 +74,7 @@ func SelfDirIntentStepPlacementReceiverReady(
          steps.who_names[steps.who_starts[step_index]] != receiver)) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < participant_count {
         let row: Int = participant_start + i;
         if participants.aliases[row] == receiver {

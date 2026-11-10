@@ -1,0 +1,26 @@
+// Canonical Float literal identity and payload domain for direct-MIR facts.
+
+func DirectMirScalarProgramExprFloatLiteral() -> Int { return 148; }
+
+func DirectMirScalarProgramFloatLiteralPayloadReady(value: String) -> Bool {
+    let length: Int = StringLength(value);
+    if length < 2 { return false; }
+    var row: Int = 0;
+    if CharCode(value, length, 0) == 45 { row = 1; }
+    if row >= length { return false; }
+    var seen_dot: Bool = false;
+    var seen_digit: Bool = false;
+    while row < length {
+        let code: Int = CharCode(value, length, row);
+        if code == 46 {
+            if seen_dot { return false; }
+            seen_dot = true;
+        } else {
+            if code < 48 || code > 57 { return false; }
+            seen_digit = true;
+        }
+        row = row + 1;
+    }
+    return seen_dot && seen_digit;
+}
+

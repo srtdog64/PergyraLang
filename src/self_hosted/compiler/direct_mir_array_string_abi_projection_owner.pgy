@@ -99,7 +99,7 @@ func DirectMirArrayStringAbiProjectionFromCanonicalLayout(
         allocator_offset != contract.allocator_offset {
         Die("direct MIR Array<String> ABI has no target projection");
     }
-    let projection: DirectMirArrayStringAbiProjection =
+    var projection: DirectMirArrayStringAbiProjection =
         DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             abi_layout_id, 8, 8, storage, "", "", "", "", "", "", "",

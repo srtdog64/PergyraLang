@@ -7,9 +7,9 @@ func RetainingIndex(ref label: String) -> Int {
 
 func Probe(ref label: String) -> Option<Int> {
     let rows: Array<Int> = [7];
-    let i: Int = 0;
-    let total: Int = 0;
-    let turn: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
+    var turn: Int = 0;
     while turn < 2 {
         i = rows[RetainingIndex(label)];
         total = total + i;

@@ -1,0 +1,57 @@
+import "mir_compound_assignment_readiness_owner.pgy";
+import "mir_compound_arithmetic_projection_owner.pgy";
+import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+
+func MirCompoundAssignmentC(ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, operation: Int, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
+) -> String {
+    if !MirCompoundAssignmentReady(plan, operation, routine) { Die("compound C assignment facts are invalid"); }
+    let target_row: Int = plan.program.operation_secondary_expression_rows[operation];
+    let value_row: Int = plan.program.operation_expression_rows[operation];
+    let root: Int = plan.program.expressions.graph_roots[target_row];
+    let start: Int = plan.program.expressions.graph_starts[target_row];
+    let type_name: String = plan.program.expressions.node_types[root];
+    let values: Array<String> = DirectMirScalarProgramCExpressionValues(plan, plan.program.expressions,
+        target_row, runtime, plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
+    let rhs: String = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions,
+        value_row, runtime, plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
+    let indexed: Bool = MirCompoundAssignmentIndexedKind(plan.program.expressions.node_kinds[root]);
+    let stem: String = "pgy_update_${operation}";
+    var place: String = values[root - start]; var index_value: String = "";
+    var old: String = "*${stem}_place";
+    var scalar_type: String = "long long";
+    if type_name == "Float" { scalar_type = "double"; }
+    if type_name == "Long" { scalar_type = "int64_t"; }
+    var output: String = "";
+    if indexed {
+        let receiver: Int = plan.program.expressions.node_lefts[root];
+        let index: Int = plan.program.expressions.node_rights[root];
+        place = values[receiver - start]; index_value = values[index - start];
+        output = "    __auto_type ${stem}_place = &(${place});\n    long long ${stem}_index = ${index_value};\n";
+        output = output + "    if (${stem}_index < 0 || (size_t)${stem}_index >= ${stem}_place->length) { ${CollectionRuntimeCBoundsPanic()}; }\n";
+        old = "${stem}_place->data[${stem}_index]";
+    } else {
+        output = "    __auto_type ${stem}_place = &(${place});\n";
+    }
+    output = output + "    ${scalar_type} ${stem}_old = ${old};\n    ${scalar_type} ${stem}_rhs = ${rhs};\n";
+    let next: String = MirCompoundArithmeticC(type_name,
+        MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]), "${stem}_old", "${stem}_rhs");
+    output = output + "    ${scalar_type} ${stem}_next = ${next};\n";
+    if indexed {
+        // Revalidate after the RHS: it may have grown or replaced the backing
+        // storage. Only the descriptor address and index survive that call.
+        output = output + "    if (${stem}_index < 0 || (size_t)${stem}_index >= ${stem}_place->length) { ${CollectionRuntimeCBoundsPanic()}; }\n";
+        output = output + "    ${stem}_place->data[${stem}_index] = ${stem}_next;\n";
+    } else {
+        output = output + "    *${stem}_place = ${stem}_next;\n";
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && root == MirCompoundAssignmentPlaceRoot(plan.program.expressions, target_row) {
+            output = output + "    pgy_local_${plan.value_local_rows[result]} = *${stem}_place;\n";
+        }
+    }
+    return output;
+}

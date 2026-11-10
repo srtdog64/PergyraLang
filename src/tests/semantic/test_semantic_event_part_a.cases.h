@@ -3,6 +3,31 @@ test_event_semantics(void)
 {
     printf("\n[event_semantics]\n");
 
+    TEST("numeric compound assignment is classified separately from events");
+    {
+        const char *sources[] = {
+            "func Main() -> Void { var count: Int = 1; count += 2; }\n",
+            "func Main() -> Void { var count: Int = 1; count -= 2; }\n",
+            "func Main() -> Void { var count: Int = 1; count *= 2; }\n",
+            "func Main() -> Void { var count: Int = 1; count /= 2; }\n",
+            "func Main() -> Void { var count: Int = 1; count %= 2; }\n",
+        };
+        for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); ++i) {
+            Lexer *lexer = lexer_create(sources[i]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && result->error_count == 0);
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("event subscribe/unsubscribe accepts matching handler");
     {
         const char *source =

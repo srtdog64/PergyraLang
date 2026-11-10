@@ -555,15 +555,41 @@ bool semantic_collection_effect_snapshot_source_return(const PgyCollectionEffect
         if (r == NULL || r->assignment_count == SIZE_MAX ||
             r->assignment_count != r->sealed_assignments ||
             r->assignment_count > r->assignment_capacity ||
-            (r->assignment_count != 0 && r->assignments == NULL)) return false;
+            (r->assignment_count != 0 && r->assignments == NULL) ||
+            r->use_count != r->sealed_uses ||
+            r->use_count > r->use_capacity ||
+            (r->use_count != 0 && r->uses == NULL)) return false;
         for (size_t input = 0; input <= r->assignment_count; input++) {
             const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
                 &r->assignments[input - 1].rhs.named_inputs;
             if (!semantic_indexed_string_result_inputs_source_return(inputs,
                     caller_id, statement, value)) return false;
         }
-        if (value != NULL && value->type == AST_IDENTIFIER &&
-            ast_identifier_binding_syntax_id(value) == r->binding_id) return false;
+        bool returned_binding = value != NULL && value->type == AST_IDENTIFIER &&
+            ast_identifier_binding_syntax_id(value) == r->binding_id;
+        size_t matched = 0;
+        for (size_t use_index = 0; use_index < r->use_count; use_index++) {
+            const IndexedStringDefinitionUse *use = &r->uses[use_index];
+            bool return_slot = use->sink == statement ||
+                (statement != NULL && use->sink_id == ast_node_stable_id(statement));
+            bool return_value = use->value == value ||
+                (value != NULL && use->value_id == ast_node_stable_id(value));
+            if (!return_slot && !return_value)
+                continue;
+            if (!returned_binding || caller_id != r->caller_id ||
+                use->sink != statement ||
+                use->sink_id != ast_node_stable_id(statement) ||
+                use->value != value ||
+                use->value_id != ast_node_stable_id(value) ||
+                use->binding_id != r->binding_id ||
+                use->actual_ordinal != SIZE_MAX ||
+                statement == NULL || statement->type != AST_RETURN ||
+                ast_return_value(statement) != value)
+                return false;
+            matched++;
+        }
+        if (returned_binding ? matched != 1 : matched != 0)
+            return false;
     }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *risk = s->nonowner_risks[u];

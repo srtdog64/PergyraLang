@@ -77,13 +77,13 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
     ref typed_body_mirror_rows: Array<Int>,
     inout order: MirStructuredExpressionEmissionOrder
 ) -> Bool {
-    let selected_roots: Array<Int> = [];
-    let selected_digests: Array<Int> = [];
+    var selected_roots: Array<Int> = [];
+    var selected_digests: Array<Int> = [];
     let topology: Array<Int> = MirIntentExecutionRoutineStepRows(
         plan, routine_syntax_id
     );
     if ArrayLength(topology) == 0 { return false; }
-    let topology_i: Int = 0;
+    var topology_i: Int = 0;
     while topology_i < ArrayLength(topology) {
         let step: Int = topology[topology_i];
         if !MirIntentExecutionAppendSelectedGraphIdentity(
@@ -92,7 +92,7 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
             plan.steps.outcome_instruction_ids[step],
             selected_roots, selected_digests
         ) { return false; }
-        let compensation: Int = plan.steps.compensation_starts[step];
+        var compensation: Int = plan.steps.compensation_starts[step];
         let compensation_end: Int = compensation +
             plan.steps.compensation_counts[step];
         while compensation < compensation_end {
@@ -109,10 +109,10 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
         topology_i = topology_i + 1;
     }
 
-    let mirror_rows: Array<Int> = [];
-    let mirror_roots: Array<Int> = [];
-    let mirror_digests: Array<Int> = [];
-    let body_mirror: Int = 0;
+    var mirror_rows: Array<Int> = [];
+    var mirror_roots: Array<Int> = [];
+    var mirror_digests: Array<Int> = [];
+    var body_mirror: Int = 0;
     while body_mirror < ArrayLength(typed_body_mirror_rows) {
         let row: Int = typed_body_mirror_rows[body_mirror];
         let identity: MirIntentExecutionGraphIdentity = MirIntentExecutionGraphIdentityAt(routines, row);
@@ -122,14 +122,14 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
         ArrayPush(mirror_digests, identity.digest);
         body_mirror = body_mirror + 1;
     }
-    let mirror_blocks: Int = 0;
-    let local_block: Int = 0;
+    var mirror_blocks: Int = 0;
+    var local_block: Int = 0;
     while local_block < routines.routine_block_counts[routine_row] {
         let block_row: Int = routines.routine_block_starts[routine_row] +
             local_block;
         if routines.block_intent_roles[block_row] == "mirror" {
             mirror_blocks = mirror_blocks + 1;
-            let local_instruction: Int = 0;
+            var local_instruction: Int = 0;
             while local_instruction <
                     routines.block_instruction_counts[block_row] {
                 let global_row: Int =
@@ -175,16 +175,16 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
     if ArrayLength(mirror_rows) != ArrayLength(selected_roots) {
         return false;
     }
-    let matched: Array<Bool> = [];
-    let i: Int = 0;
+    var matched: Array<Bool> = [];
+    var i: Int = 0;
     while i < ArrayLength(selected_roots) {
         ArrayPush(matched, false);
         i = i + 1;
     }
     i = 0;
     while i < ArrayLength(mirror_rows) {
-        let selected: Int = 0 - 1;
-        let candidate: Int = 0;
+        var selected: Int = 0 - 1;
+        var candidate: Int = 0;
         while candidate < ArrayLength(selected_roots) {
             if !matched[candidate] &&
                 selected_roots[candidate] == mirror_roots[i] &&

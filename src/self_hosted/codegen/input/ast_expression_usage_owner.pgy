@@ -261,9 +261,9 @@ func CodegenSemanticExpressionPartsAt(
     let aux_value_opt: Option<String> = SemanticAstExpressionSurfaceAuxiliaryAt(
         facts, index
     );
-    let atom_text: String = "";
-    let value_text: String = "";
-    let aux_value_text: String = "";
+    var atom_text: String = "";
+    var value_text: String = "";
+    var aux_value_text: String = "";
     if IsSome(atom_opt) { atom_text = UnwrapOption(atom_opt); }
     if IsSome(value_opt) { value_text = UnwrapOption(value_opt); }
     if IsSome(aux_value_opt) { aux_value_text = UnwrapOption(aux_value_opt); }
@@ -292,14 +292,14 @@ func CodegenExpressionPartsCalls(parts: CodegenExpressionParts, callee: String) 
 func CodegenExpressionSurfaceUsagePresenceFromSemantic(
     facts: SemanticAstExpressionSurfaceFacts
 ) -> CodegenExpressionSurfaceUsagePresence {
-    let groups: Array<Bool> = [];
-    let group: Int = 0;
+    var groups: Array<Bool> = [];
+    var group: Int = 0;
     while group <= CodegenUsageBuiltinGroupClock() {
         ArrayPush(groups, false);
         group = group + 1;
     }
-    let has_none: Bool = false;
-    let i: Int = 0;
+    var has_none: Bool = false;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         let parts: CodegenExpressionParts = CodegenSemanticExpressionPartsAt(facts, i);
         if !has_none && CodegenExpressionPartsHasToken(parts, "None") {
@@ -308,7 +308,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
         group = CodegenUsageBuiltinGroupArgs();
         while group <= CodegenUsageBuiltinGroupClock() {
             if !groups[group] {
-                let callee_index: Int = 0;
+                var callee_index: Int = 0;
                 while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) &&
                     !groups[group] {
                     let callee: String = CodegenUsageBuiltinGroupCalleeAt(
@@ -337,10 +337,10 @@ func CodegenExpressionGraphUsagePresenceFromSemantic(
     ) {
         Die("codegen checked-arithmetic usage requires expression graph facts");
     }
-    let has_checked_int_cast: Bool = false;
-    let has_checked_long_cast: Bool = false;
-    let has_spawn: Bool = false;
-    let node_id: Int = 0;
+    var has_checked_int_cast: Bool = false;
+    var has_checked_long_cast: Bool = false;
+    var has_spawn: Bool = false;
+    var node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCast() {
             let target: Int = graph.arena.topology.right_children[node_id];

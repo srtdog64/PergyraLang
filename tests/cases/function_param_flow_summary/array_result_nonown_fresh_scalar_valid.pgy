@@ -1,6 +1,6 @@
 func FreshFromScalar(value: Int) -> Array<Int>
 {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, value);
     return rows;
 }

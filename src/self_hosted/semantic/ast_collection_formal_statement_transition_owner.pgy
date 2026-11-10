@@ -1,0 +1,71 @@
+// Publishes exact mutation receipts for a String-array formal with no local row.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_statement_transition_result_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+
+func SemanticAstCollectionFormalStatementTransition(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, syntax_id: Int,
+    array_push: Bool, parser_array_set: Bool,
+    array_set: Bool, array_pop: Bool,
+    ref owned_store_expression_node_ids: Array<Int>,
+    ref element_requirements: HashMap<String, Int>,
+    inout receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionStatementTransitionResult {
+    if !array_push && !array_set && !array_pop {
+        return SemanticAstCollectionStatementTransitionOk();
+    }
+    var value_lane: Int = AstExpressionLaneValue();
+    if parser_array_set { value_lane = AstExpressionLaneAuxiliary(); }
+    let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(target_root) {
+        return SemanticAstCollectionStatementTransitionArtifactError(
+            "owned_string_store_surface", syntax_id);
+    }
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionStringArrayFormalIdentity(
+            signatures, function_id, surfaces.expression_graph,
+            UnwrapOption(target_root));
+    if array_pop {
+        if !formal.ok { return SemanticAstCollectionStatementTransitionOk(); }
+        if formal.mode != 1 ||
+            !MapHas(element_requirements, ToString(formal.syntax_id)) {
+            return SemanticAstCollectionStatementTransitionArtifactError(
+                "owned_string_pop_formal", syntax_id);
+        }
+        receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(
+            receipts, function_id, syntax_id, AstExpressionLaneAtom(), -1,
+            SemanticAstCollectionOwnershipEffectOwnedStringPop(),
+            formal.syntax_id, 0);
+        return SemanticAstCollectionStatementTransitionOk();
+    }
+    let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, syntax_id, value_lane);
+    if !IsSome(value_root) {
+        return SemanticAstCollectionStatementTransitionArtifactError(
+            "owned_string_store_surface", syntax_id);
+    }
+    if SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+            owned_store_expression_node_ids, UnwrapOption(value_root)) {
+        if !formal.ok || formal.mode != 1 {
+            return SemanticAstCollectionStatementTransitionArtifactError(
+                "owned_string_store_formal", syntax_id);
+        }
+        var effect: Int = SemanticAstCollectionOwnershipEffectOwnedStringSet();
+        var source_binding: Int = 0;
+        if array_push {
+            effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
+            let source: SemanticExpressionBindingIdentityFact =
+                SemanticExpressionGraphBindingIdentity(
+                    surfaces.expression_graph, UnwrapOption(value_root));
+            if source.ok { source_binding = source.syntax_id; }
+        }
+        receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(
+            receipts, function_id, syntax_id, AstExpressionLaneAtom(), -1,
+            effect, formal.syntax_id, source_binding);
+    }
+    return SemanticAstCollectionStatementTransitionOk();
+}

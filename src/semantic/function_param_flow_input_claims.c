@@ -91,10 +91,20 @@ bool function_param_flow_nonlocal_physical_input_current(SemanticContext *ctx,
             entry->output_count != ast_func_param_count(decl)) return false;
         for (size_t p = 0; p < entry->output_count; p++)
             if (entry->output_dependencies[p]) return false;
+        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+        if (!function_param_flow_entry_outward_effects_current(store, e,
+                &outward_effects))
+            return false;
         return entry->function_id == ast_node_stable_id(decl) &&
             entry->state == FUNCTION_PARAM_FLOW_COMPLETE && !entry->analysis_unsupported &&
             !entry->returned_backing_unproved && !entry->returned_backing_pending &&
-            (entry->mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) == 0 &&
+            (entry->mask & ~(SLOT_PARAM_SUMMARY_READ |
+                SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+                SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0 &&
+            (outward_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+                SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0 &&
             function_param_flow_output_current(store, e, false) &&
             function_param_flow_no_store_graph(store, decl) &&
             function_param_flow_current_claim_index(ctx, decl) != NULL;
@@ -199,41 +209,102 @@ bool function_param_flow_private_string_receiver_replay(SemanticContext *ctx,
     return true;
 }
 
-bool function_param_flow_string_result_independent_replay(SemanticContext *ctx, const ASTNode *call)
+typedef struct {
+    FunctionParamFlowSummaryStore *store;
+    ASTNode *decl;
+    FunctionParamFlowProgramPointIndex *index;
+} StringResultFlowView;
+
+static bool
+function_param_flow_string_result_formals_current(SemanticContext *ctx,
+    const ASTNode *call, bool allow_result_lane, bool require_result_lane,
+    StringResultFlowView *view)
 {
-    if (ctx == NULL || ctx->has_error || call == NULL || call->type != AST_CALL ||
-        !semantic_param_publication_inputs_ready(ctx) || ctx->function_param_flow_summaries == NULL ||
-        !ctx->function_param_flow_summaries->validating_current ||
-        ctx->function_param_flow_summaries->failed || ctx->function_param_flow_summaries->solving) return false;
+    if (view != NULL) memset(view, 0, sizeof(*view));
+    if (ctx == NULL || ctx->has_error || call == NULL || call->type != AST_CALL
+        || !semantic_param_publication_inputs_ready(ctx)
+        || ctx->function_param_flow_summaries == NULL
+        || !ctx->function_param_flow_summaries->validating_current
+        || ctx->function_param_flow_summaries->failed
+        || ctx->function_param_flow_summaries->solving)
+        return false;
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     const Type *type = NULL;
     ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &type);
-    FunctionParamFlowProgramPointIndex *index = decl == NULL ? NULL : function_param_flow_current_claim_index(ctx, decl);
-    if (type != TYPE_STRING || index == NULL || index->declared_result == NULL ||
-        index->declared_result->epoch == 0 || !index->declared_result->complete ||
-        index->declared_result->pending || index->declared_result->building ||
-        index->declared_result->analysis_unsupported || !index->declared_result->private_stores_closed ||
-        index->declared_result->claims != index->claims ||
-        index->declared_result->declared_result_type != TYPE_STRING) return false;
+    FunctionParamFlowProgramPointIndex *index = decl == NULL
+        ? NULL : function_param_flow_current_claim_index(ctx, decl);
+    if (type != TYPE_STRING || index == NULL)
+        return false;
     ASTNode *receiver = NULL;
-    if (!semantic_param_publication_instance_receiver(ctx, call, &receiver) ||
-        (receiver != NULL && function_param_flow_receiver_readonly_current(store, (ASTNode *)call, false) == NULL)) return false;
+    if (!semantic_param_publication_instance_receiver(ctx, call, &receiver)
+        || (receiver != NULL && function_param_flow_receiver_readonly_current(
+                store, (ASTNode *)call, false) == NULL))
+        return false;
+    bool saw_result_lane = false;
     for (size_t a = 0; a < ast_call_arg_count(call); a++) {
         size_t formal = SIZE_MAX, at = SIZE_MAX;
         ASTNode *argument = ast_call_argument(call, a);
-        if (!semantic_param_publication_checked_argument(ctx, call, a) ||
-            !semantic_param_publication_formal_for_actual(ctx, call, a, &formal)) return false;
+        if (!semantic_param_publication_checked_argument(ctx, call, a)
+            || !semantic_param_publication_formal_for_actual(
+                ctx, call, a, &formal))
+            return false;
         for (size_t e = 0; e < store->count; e++)
-            if (store->entries[e].function_decl == decl && store->entries[e].param_index == formal) at = e;
-        if (at == SIZE_MAX || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE ||
-            store->entries[at].analysis_unsupported || store->entries[at].returned_backing_unproved ||
-            store->entries[at].returned_backing_pending ||
-            (!semantic_param_publication_value_is_physical_scalar(ctx, argument) &&
-             (store->entries[at].mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) ||
-            !function_param_flow_output_current(store, at, false)) return false;
+            if (store->entries[e].function_decl == decl
+                && store->entries[e].param_index == formal)
+                at = e;
+        if (at == SIZE_MAX
+            || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE
+            || store->entries[at].analysis_unsupported
+            || store->entries[at].returned_backing_unproved
+            || store->entries[at].returned_backing_pending)
+            return false;
+        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+        if (!function_param_flow_entry_outward_effects_current(
+                store, at, &outward_effects)
+            || !function_param_flow_output_current(store, at, false))
+            return false;
+        bool returned_non_scalar =
+            !semantic_param_publication_value_is_physical_scalar(ctx, argument)
+            && (outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
+        if (!returned_non_scalar)
+            continue;
+        bool result_lane = semantic_param_publication_result_lane_argument(
+            ctx, call, a);
+        if (!allow_result_lane || !result_lane)
+            return false;
+        saw_result_lane = true;
     }
+    if (require_result_lane && !saw_result_lane)
+        return false;
+    if (view != NULL)
+        *view = (StringResultFlowView){store, decl, index};
+    return true;
+}
+
+bool function_param_flow_string_result_independent_replay(
+    SemanticContext *ctx, const ASTNode *call)
+{
+    StringResultFlowView view;
+    if (!function_param_flow_string_result_formals_current(
+            ctx, call, false, false, &view))
+        return false;
+    FunctionParamFlowBackingFact *result = view.index->declared_result;
+    if (result == NULL || result->epoch == 0 || !result->complete
+        || result->pending || result->building || result->analysis_unsupported
+        || !result->private_stores_closed || result->claims != view.index->claims
+        || result->declared_result_type != TYPE_STRING)
+        return false;
     uint32_t source = UINT32_MAX;
-    return function_param_flow_string_result_source_current(ctx, call, &source) && source == 0;
+    return function_param_flow_string_result_source_current(
+            ctx, call, &source)
+        && source == 0;
+}
+
+bool function_param_flow_result_lane_string_owned_replay(
+    SemanticContext *ctx, const ASTNode *call)
+{
+    return function_param_flow_string_result_formals_current(
+        ctx, call, true, true, NULL);
 }
 
 /* A field-return link is not an independent String or an element cleanup
@@ -288,10 +359,18 @@ bool function_param_flow_string_result_nonlocal_current(SemanticContext *ctx,
             entry->output_count != ast_func_param_count(decl)) return false;
         for (size_t p = 0; p < entry->output_count; p++)
             if (entry->output_dependencies[p]) return false;
-        if (entry->state != FUNCTION_PARAM_FLOW_COMPLETE || entry->analysis_unsupported ||
+        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+        if (!function_param_flow_entry_outward_effects_current(store, entry_at,
+                &outward_effects) ||
+            entry->state != FUNCTION_PARAM_FLOW_COMPLETE || entry->analysis_unsupported ||
             entry->returned_backing_unproved || entry->returned_backing_pending ||
-            (entry->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
-            (entry->mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) != 0 ||
+            (outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
+            (outward_effects & (SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) != 0 ||
+            (entry->mask & ~(SLOT_PARAM_SUMMARY_READ |
+                SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+                SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) != 0 ||
             !function_param_flow_output_current(store, entry_at, false) ||
             !function_param_flow_nonlocal_input_current(ctx, decl, formal)) return false;
         ASTNode *argument = NULL;
@@ -327,6 +406,45 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
 {
     return function_param_flow_claim_capture(ctx, claims, node, true);
 }
+bool function_param_flow_claim_record_ordinal(SemanticContext *ctx,
+    FunctionParamFlowIndexClaims *claims, ASTNode *node, size_t *ordinal)
+{
+    if (ordinal == NULL ||
+        !function_param_flow_claim_capture(ctx, claims, node, true)) return false;
+    return function_param_flow_claim_find_ordinal(claims, node, ordinal) &&
+        *ordinal != SIZE_MAX;
+}
+
+bool function_param_flow_call_argument_claim_current(
+    const FunctionParamFlowIndexClaims *claims, size_t claim_ordinal,
+    ASTNode *call, size_t argument_ordinal, ASTNode **callee,
+    size_t *formal, bool *physical)
+{
+    if (callee == NULL || formal == NULL) return false;
+    *callee = NULL;
+    *formal = SIZE_MAX;
+    if (physical != NULL) *physical = false;
+    if (claims == NULL || claims->failed || claims->rows == NULL ||
+        claim_ordinal >= claims->count || call == NULL ||
+        call->type != AST_CALL) return false;
+    const FunctionParamFlowIndexClaim *claim = &claims->rows[claim_ordinal];
+    if (claim->node != call || claim->id == 0 ||
+        claim->id != ast_node_stable_id(call) || claim->shape != AST_CALL ||
+        !claim->semantic_promoted ||
+        claim->call_argument_count != ast_call_arg_count(call) ||
+        argument_ordinal >= claim->call_argument_count ||
+        (claim->call_argument_count != 0 && claim->call_arguments == NULL))
+        return false;
+    const FunctionParamFlowCallArgumentClaim *argument =
+        &claim->call_arguments[argument_ordinal];
+    if (!argument->admitted ||
+        ((argument->callee == NULL) != (argument->formal == SIZE_MAX)))
+        return false;
+    *callee = argument->callee;
+    *formal = argument->formal;
+    if (physical != NULL) *physical = argument->physical;
+    return true;
+}
 bool function_param_flow_control_expands(ASTNodeType shape)
 {
     return shape == AST_BLOCK || shape == AST_IF_STMT || shape == AST_WHILE_LOOP ||
@@ -343,7 +461,8 @@ static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
     if (!function_param_flow_claim_capture(ctx, claims, node, eager)) return false;
     size_t at = 0;
     while (at < claims->count && claims->rows[at].node != node) at++;
-    if (at == claims->count || claims->rows[at].snapshot_active ||
+    if (at == claims->count ||
+        claims->rows[at].snapshot_active ||
         (project && claims->rows[at].control_projection_active)) {
         claims->failed = true; return false;
     }
@@ -593,10 +712,86 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
             if (row->readfile_result != semantic_param_publication_checked_readfile_independent(ctx, row->node) ||
                 (row->readfile_result && !function_param_flow_readfile_claim_current(ctx, claims, row)))
                 return function_param_flow_claim_current_failure(row, i, "ReadFile semantic receipt changed");
-            uint32_t kind = 0, receiver = 0, source = 0;
-            bool present = ast_call_semantic_collection_effect(row->node, &kind, &receiver, &source);
+            if (row->call_argument_count != ast_call_arg_count(row->node) ||
+                (row->call_argument_count != 0 && row->call_arguments == NULL))
+                return function_param_flow_claim_current_failure(row, i,
+                    "call argument claim shape changed");
+            for (size_t a = 0; a < row->call_argument_count; a++) {
+                ASTNode *actual = ast_call_argument(row->node, a);
+                SemanticPublishedValue actual_value =
+                    semantic_param_publication_value(ctx, actual);
+                bool admitted = semantic_param_publication_checked_argument(
+                    ctx, row->node, a) && actual_value.ok;
+                ASTNode *callee = semantic_param_publication_callee(
+                    ctx, row->node, a);
+                size_t formal = SIZE_MAX;
+                bool formal_ready = callee == NULL ||
+                    semantic_param_publication_formal_for_actual(
+                        ctx, row->node, a, &formal);
+                bool physical =
+                    semantic_param_publication_value_is_physical_scalar(
+                        ctx, actual);
+                const FunctionParamFlowCallArgumentClaim *saved =
+                    &row->call_arguments[a];
+                if (!formal_ready || saved->admitted != admitted ||
+                    saved->callee != callee || saved->formal != formal ||
+                    saved->physical != physical)
+                    return function_param_flow_claim_current_failure(row, i,
+                        "call argument relation changed");
+            }
+            ASTNode *direct = semantic_param_publication_direct_callee(
+                ctx, row->node);
+            ASTNode *receiver_node = NULL;
+            bool receiver_ready = semantic_param_publication_instance_receiver(
+                ctx, row->node, &receiver_node);
+            SemanticPublishedValue receiver_value =
+                semantic_param_publication_value(ctx, receiver_node);
+            uint32_t receiver_id = receiver_node == NULL ? 0 :
+                ast_node_stable_id(receiver_node);
+            const Type *receiver_type = receiver_value.ok &&
+                !receiver_value.meta ? receiver_value.type : NULL;
+            const Type *declared_type = NULL;
+            ASTNode *declared = semantic_param_publication_declared_result(
+                ctx, row->node, &declared_type);
+            if (row->call_direct_callee != direct ||
+                row->call_receiver_ready != receiver_ready ||
+                row->call_receiver != receiver_node ||
+                row->call_receiver_id != receiver_id ||
+                row->call_receiver_type != receiver_type ||
+                row->call_declared_result != declared ||
+                row->call_declared_result_type != declared_type)
+                return function_param_flow_claim_current_failure(row, i,
+                    "call owner projection changed");
+            size_t intent_actions = 0;
+            while (function_param_flow_intent_action_callee(
+                    ctx, row->node, intent_actions) != NULL) {
+                if (intent_actions == SIZE_MAX)
+                    return function_param_flow_claim_current_failure(row, i,
+                        "intent action projection overflowed");
+                intent_actions++;
+            }
+            if (row->call_intent_action_count != intent_actions ||
+                (intent_actions != 0 &&
+                 (row->call_intent_action_callees == NULL ||
+                  row->call_intent_action_callee_ids == NULL)))
+                return function_param_flow_claim_current_failure(row, i,
+                    "intent action projection shape changed");
+            for (size_t action = 0; action < intent_actions; action++) {
+                ASTNode *callee = function_param_flow_intent_action_callee(
+                    ctx, row->node, action);
+                if (row->call_intent_action_callees[action] != callee ||
+                    row->call_intent_action_callee_ids[action] == 0 ||
+                    row->call_intent_action_callee_ids[action] !=
+                        ast_node_stable_id(callee))
+                    return function_param_flow_claim_current_failure(row, i,
+                        "intent action callee projection changed");
+            }
+            uint32_t kind = 0, effect_receiver = 0, source = 0;
+            bool present = ast_call_semantic_collection_effect(
+                row->node, &kind, &effect_receiver, &source);
             if (present != row->collection_effect_present || kind != row->collection_effect_kind ||
-                receiver != row->collection_effect_receiver || source != row->collection_effect_source)
+                effect_receiver != row->collection_effect_receiver ||
+                source != row->collection_effect_source)
                 return function_param_flow_claim_current_failure(row, i, "collection effect changed");
             if (row->slot_write != semantic_param_publication_checked_slot_write(ctx, row->node))
                 return function_param_flow_claim_current_failure(row, i, "slot write classification changed");
@@ -655,6 +850,12 @@ void function_param_flow_claims_destroy(FunctionParamFlowIndexClaims *claims)
             free(claims->rows[c].generic_names[p]);
         free(claims->rows[c].generic_names);
         free(claims->rows[c].result_type_name);
+        free(claims->rows[c].call_arguments);
+        free(claims->rows[c].call_intent_action_callees);
+        free(claims->rows[c].call_intent_action_callee_ids);
     }
-    free(claims->rows); free(claims->order_parent); free(claims);
+    free(claims->rows);
+    free(claims->node_index_slots);
+    free(claims->declaration_index_ids);
+    free(claims->order_parent); free(claims);
 }

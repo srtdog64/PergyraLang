@@ -15,7 +15,7 @@ func SemanticAstIntentRetryAdmissionFromFacts(
         return SemanticAstBodyVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "IntentRetryAdmission"), -1);
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(kinds.node_ids) {
         if kinds.node_ids[row] != row {
             return SemanticAstBodyVerdictError("ast_artifact_invalid",

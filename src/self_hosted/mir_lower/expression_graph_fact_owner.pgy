@@ -27,24 +27,24 @@ func MirExpressionGraphFactsForArtifactObserved(
         SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
     MirExpressionGraphFactPressureStage(observe_pressure,
         "consumer:expression-graph:surfaces:done");
-    let sequence: MirExpressionGraphSequence =
+    var sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceEmpty();
-    let roots: Array<Int> = [];
-    let has_roots: Array<Bool> = [];
-    let valid: Bool = MirProgramRoutineIndexStructureReady(routines) &&
+    var roots: Array<Int> = [];
+    var has_roots: Array<Bool> = [];
+    var valid: Bool = MirProgramRoutineIndexStructureReady(routines) &&
         MirStructuredExpressionEmissionOrderReady(order);
-    let order_i: Int = 0;
+    var order_i: Int = 0;
     let order_count: Int = ArrayLength(order.global_instruction_rows);
     let instruction_count: Int = ArrayLength(routines.instruction_starts);
-    let expr0_seen: Array<Bool> = [];
-    let expr1_seen: Array<Bool> = [];
-    let seen_i: Int = 0;
+    var expr0_seen: Array<Bool> = [];
+    var expr1_seen: Array<Bool> = [];
+    var seen_i: Int = 0;
     while seen_i < instruction_count {
         ArrayPush(expr0_seen, false);
         ArrayPush(expr1_seen, false);
         seen_i = seen_i + 1;
     }
-    let covered_i: Int = 0;
+    var covered_i: Int = 0;
     while covered_i < ArrayLength(order.covered_producer_rows) {
         let covered_row: Int = order.covered_producer_rows[covered_i];
         if covered_row < 0 || covered_row >= instruction_count {
@@ -73,14 +73,14 @@ func MirExpressionGraphFactsForArtifactObserved(
     }
     MirExpressionGraphFactPressureStage(observe_pressure,
         "consumer:expression-graph:covered:done");
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
         let node_id: Int = surfaces.node_ids[i];
-        let lane: Int = AstExpressionLaneAtom();
+        var lane: Int = AstExpressionLaneAtom();
         while lane <= AstExpressionLaneAuxiliary() {
-            let required: Bool = false;
-            let producer_only: Bool = false;
-            let expected_text: String = "";
+            var required: Bool = false;
+            var producer_only: Bool = false;
+            var expected_text: String = "";
             if lane == AstExpressionLaneAtom() {
                 required = surfaces.has_atoms[i] &&
                     SemanticAstExpressionGraphAtomLaneRequired(
@@ -105,9 +105,9 @@ func MirExpressionGraphFactsForArtifactObserved(
                 expected_text = surfaces.normalized_auxiliary_values[i];
             }
             if required || producer_only {
-                let occurrence_valid: Bool = valid;
-                let root: Int = 0;
-                let has_root: Bool = false;
+                var occurrence_valid: Bool = valid;
+                var root: Int = 0;
+                var has_root: Bool = false;
                 if order_i >= order_count {
                     occurrence_valid = false;
                 } else {
@@ -140,7 +140,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                             SemanticExpressionGraphArenaNodeCount(
                                 sequence.arena
                             );
-                        let graph_slot: Int = MirExpressionGraphSlotNone();
+                        var graph_slot: Int = MirExpressionGraphSlotNone();
                         if producer_only {
                             if !MirExpressionGraphProducerOnlyOccurrenceAllowed(
                                     routines.source_json, routines.source_json_extent, kind, source,
@@ -164,7 +164,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                                 lane, ordinal,
                                 MirDestructureTemporaryTextAt(routines, global_row, kind)
                             );
-                            let target_projection:
+                            var target_projection:
                                 MirIntentExecutionGraphTargetProjection =
                                     MirIntentExecutionGraphTargetProjection(
                                         true, false, 0, "", ""
@@ -195,11 +195,15 @@ func MirExpressionGraphFactsForArtifactObserved(
                                 ArraySet(expr1_seen, global_row, true);
                             }
                             if sequence.arena.node_texts[root] != expected_text {
+                                Log("CODEGEN ERROR: MIR expression occurrence text mismatch row=${global_row} lane=${lane} node=${node_id} actual=" + sequence.arena.node_texts[root] + " expected=" + expected_text);
                                 occurrence_valid = false;
                             }
                         }
                     }
                     order_i = order_i + 1;
+                }
+                if valid && !occurrence_valid {
+                    Log("CODEGEN ERROR: MIR expression occurrence admission failed order=${order_i} node=${node_id} lane=${lane} sequence=" + ToString(sequence.ok));
                 }
                 if !occurrence_valid {
                     valid = false;
@@ -225,7 +229,7 @@ func MirExpressionGraphFactsForArtifactObserved(
     }
     MirExpressionGraphFactPressureStage(observe_pressure, Concat(
         "consumer:expression-graph:sequence:done:valid:", ToString(valid)));
-    let coverage_i: Int = 0;
+    var coverage_i: Int = 0;
     while coverage_i < instruction_count {
         let expression: MirProgramInstructionExpressionFact =
             MirProgramInstructionExpressionIndexAt(
@@ -239,16 +243,18 @@ func MirExpressionGraphFactsForArtifactObserved(
         let expr1_required: Bool = MirInstructionExpressionRequiresExpr1Graph(
             routines.source_json, routines.source_json_extent, kind, source, expression
         );
-        let special_expr0_required: Bool = source == "AST_MATCH_CASE";
+        var special_expr0_required: Bool = source == "AST_MATCH_CASE";
         if kind == "destructure" {
             let needs: Option<Bool> = MirDestructureNeedsTemporary(routines.source_json, routines.source_json_extent, expression);
             special_expr0_required = !IsSome(needs) || UnwrapOption(needs);
         }
         if (expr0_required || special_expr0_required) &&
             !expr0_seen[coverage_i] {
+            Log("CODEGEN ERROR: MIR expression coverage missing expr0 row=${coverage_i} kind=${kind} source=${source}");
             valid = false;
         }
         if expr1_required && !expr1_seen[coverage_i] {
+            Log("CODEGEN ERROR: MIR expression coverage missing expr1 row=${coverage_i} kind=${kind} source=${source}");
             valid = false;
         }
         coverage_i = coverage_i + 1;
@@ -261,6 +267,7 @@ func MirExpressionGraphFactsForArtifactObserved(
         MirExpressionIdentityEpochRebindGraphForArtifact(
             source_facts, routines, artifact);
     if !facts.ok || !SemanticExpressionGraphCarriedCallTargetsReady(facts) {
+        Log("CODEGEN ERROR: MIR expression identity or target admission failed source=" + ToString(source_facts.ok) + " rebound=" + ToString(facts.ok));
         return SemanticExpressionGraphFacts(
             false, roots, has_roots, facts.arena
         );

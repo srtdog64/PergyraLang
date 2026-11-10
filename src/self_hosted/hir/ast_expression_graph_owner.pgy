@@ -82,7 +82,7 @@ func AstExpressionStringLiteralPayloadReady(text: String) -> Bool {
         CodegenCharCodeAt(text, n, n, n - 1) != 34 {
         return false;
     }
-    let i: Int = 1;
+    var i: Int = 1;
     while i < n - 1 {
         let c: Int = CodegenCharCodeAt(text, n, n, i);
         if c == 34 { return false; }
@@ -123,15 +123,15 @@ func AstExpressionSignedDecimalWithin(
 ) -> Bool {
     let text_length: Int = StringLength(text);
     if digits_end < 0 || digits_end > text_length { return false; }
-    let start: Int = 0;
-    let limit: String = positive_limit;
+    var start: Int = 0;
+    var limit: String = positive_limit;
     // ASCII payload admission reads bytes without allocating character Strings.
     if digits_end > 0 && CodegenCharCodeAt(text, text_length, text_length, 0) == 45 {
         start = 1;
         limit = negative_limit;
     }
     if start >= digits_end { return false; }
-    let i: Int = start;
+    var i: Int = start;
     while i < digits_end {
         let digit: Int = CodegenCharCodeAt(text, text_length, text_length, i);
         if digit < 48 || digit > 57 { return false; }
@@ -249,7 +249,7 @@ func AstExpressionArenaRowsReady(
         start < 0 || start > count {
         return false;
     }
-    let i: Int = start;
+    var i: Int = start;
     while i < count {
         let kind: Int = arena.node_kinds[i];
         let left: Int = arena.left_children[i];
@@ -345,12 +345,12 @@ func AstExpressionGraphRowsReady(ref rows: AstExpressionGraphRows) -> Bool {
         return false;
     }
     if root_count == 0 { return node_count == 0; }
-    let seen: Array<Bool> = [];
-    let stack: Array<Int> = [];
-    let i: Int = 0;
+    var seen: Array<Bool> = [];
+    var stack: Array<Int> = [];
+    var i: Int = 0;
     while i < node_count { ArrayPush(seen, false); i = i + 1; }
     i = 0;
-    let previous_root: Int = -1;
+    var previous_root: Int = -1;
     while i < root_count {
         let root: Int = rows.roots[i];
         if root < 0 || root >= node_count { return false; }

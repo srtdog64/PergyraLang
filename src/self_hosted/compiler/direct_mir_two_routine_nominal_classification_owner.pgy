@@ -31,7 +31,7 @@ func DirectMirTwoRoutineNominalClassificationDigest(
     ref fact: DirectMirTwoRoutineNominalClassificationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(179L, fact.kind);
+    var hash: Long = DirectMirCfgHashInt(179L, fact.kind);
     hash = DirectMirCfgHashString(hash, fact.declaration_name);
     hash = DirectMirCfgHashInt(hash, fact.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, fact.producer.digest);
@@ -80,8 +80,8 @@ func DirectMirTwoRoutineNominalClassificationFromAdmitted(
         admitted.domain_runtime_admission.declarations.names[0] == "" {
         return InvalidDirectMirTwoRoutineNominalClassificationFact();
     }
-    let main_row: Int = 0 - 1;
-    let row: Int = 0;
+    var main_row: Int = 0 - 1;
+    var row: Int = 0;
     while row < 2 {
         if admitted.routines.names[row] == "Main" {
             if main_row >= 0 {
@@ -113,7 +113,7 @@ func DirectMirTwoRoutineNominalClassificationFromAdmitted(
         !DirectMirRoutineSignatureFactReady(producer) {
         return InvalidDirectMirTwoRoutineNominalClassificationFact();
     }
-    let kind: Int = DirectMirTwoRoutineNominalUnsupported();
+    var kind: Int = DirectMirTwoRoutineNominalUnsupported();
     if producer.return_type ==
             admitted.domain_runtime_admission.declarations.names[0] {
         kind = DirectMirTwoRoutineNominalPlain();

@@ -36,7 +36,7 @@ func DirectMirCollectionProgramEmitC(
         producer_symbol == consumer_symbol {
         Die("direct MIR collection program C symbols are invalid");
     }
-    let output: String =
+    var output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n";
     output = Concat(output, "typedef struct {\n    ");
     output = Concat(output, abi.c_element_type);

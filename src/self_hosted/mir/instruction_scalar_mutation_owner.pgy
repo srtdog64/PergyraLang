@@ -8,7 +8,7 @@ func SelfMirCfgAttachLastSlotAnchor(
 ) -> SelfMirCfgRows {
     let instructions: SelfMirInstructionRows = cfg.instructions;
     let instruction_index: Int = ArrayLength(instructions.ids) - 1;
-    let slot_anchors: Array<String> = instructions.slot_anchors;
+    var slot_anchors: Array<String> = instructions.slot_anchors;
     if instruction_index < 0 || slot_anchor == "" { return cfg; }
     ArraySet(slot_anchors, instruction_index, slot_anchor);
     return SelfMirCfgRows(
@@ -31,7 +31,9 @@ func SelfMirCfgAttachLastSlotAnchor(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
+            instructions.runtime_call_abi,
+            instructions.binding_source_syntax_ids,
+            instructions.collection_mutation_target_graphs
         ), cfg.local_refs
     );
 }
@@ -42,7 +44,7 @@ func SelfMirCfgAttachLastAbiTypeName(
 ) -> SelfMirCfgRows {
     let instructions: SelfMirInstructionRows = cfg.instructions;
     let instruction_index: Int = ArrayLength(instructions.ids) - 1;
-    let abi_type_names: Array<String> = instructions.abi_type_names;
+    var abi_type_names: Array<String> = instructions.abi_type_names;
     if instruction_index < 0 || abi_type_name == "" { return cfg; }
     ArraySet(abi_type_names, instruction_index, abi_type_name);
     return SelfMirCfgRows(
@@ -66,7 +68,9 @@ func SelfMirCfgAttachLastAbiTypeName(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, abi_type_names,
-            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
+            instructions.runtime_call_abi,
+            instructions.binding_source_syntax_ids,
+            instructions.collection_mutation_target_graphs
         ), cfg.local_refs
     );
 }

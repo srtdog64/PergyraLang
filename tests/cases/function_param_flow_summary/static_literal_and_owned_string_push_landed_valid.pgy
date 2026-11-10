@@ -1,0 +1,10 @@
+// One independently produced String makes this fresh local Array own every
+// element. The same landing batch must copy both static literals too, so MIR
+// never observes a borrowed-to-owned transition for this receiver.
+func Main() -> Void {
+    var chunks: Array<String> = [];
+    ArrayPush(chunks, "left");
+    ArrayPush(chunks, CharAtN("middle", 6, 0));
+    ArrayPush(chunks, "right");
+    Log(ArrayLength(chunks));
+}

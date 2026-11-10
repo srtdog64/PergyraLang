@@ -291,7 +291,7 @@ bool semantic_param_publication_record_checked_result_relation(SemanticContext *
     PublishedNode *arg = publication_node(ctx->function_param_publications, argument, false);
     if (arg == NULL || !arg->value_present || arg->value_shape != argument->type) return false;
     const char *argument_name = ast_call_semantic_value_type_name(argument);
-    if (argument->type == AST_CALL && (!publication_call_ready(arg) ||
+    if (argument->type == AST_CALL && (!publication_call_ready(ctx, arg) ||
         arg->value_type != argument_type ||
         (argument_name != NULL && strcmp(argument_name, argument_type->name) != 0))) return false;
     char *a = pergyra_strdup(argument_type->name), *r = pergyra_strdup(result_type->name);

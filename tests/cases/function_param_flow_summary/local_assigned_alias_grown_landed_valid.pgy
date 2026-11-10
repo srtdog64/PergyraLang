@@ -11,7 +11,7 @@ struct Outer {
 
 func Main() -> Int {
     let outer: Outer = Outer(Inner([1, 2]), 0);
-    let other: Inner = Inner([5]);
+    var other: Inner = Inner([5]);
     other = outer.inner;
     ArrayPush(other.items, 9);
     ArrayPush(other.items, 9);

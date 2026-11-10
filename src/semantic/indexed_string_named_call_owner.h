@@ -18,6 +18,12 @@ typedef struct IndexedStringNamedCallStore IndexedStringNamedCallStore;
 bool semantic_indexed_string_named_call_begin(SemanticContext *ctx);
 bool semantic_indexed_string_named_call_record(SemanticContext *ctx,
     ASTNode *expression, ASTNode *call, ASTNode *callee, size_t ordinal);
+/* A local String is handed to an explicit-own formal.  The sealed backing
+ * facts decide before publication whether that local still carries a ref
+ * formal's storage and therefore needs a compiler-inserted Clone. */
+bool semantic_indexed_string_named_local_own_call_record(SemanticContext *ctx,
+    ASTNode *expression, ASTNode *call, ASTNode *callee, size_t ordinal);
+bool semantic_indexed_string_named_call_prepare(SemanticContext *ctx);
 bool semantic_indexed_string_named_call_finalize(SemanticContext *ctx);
 /* The one rule both receipts and Array payload consumers use: the declared
  * callee only reads the String at `ordinal`, and no other argument can

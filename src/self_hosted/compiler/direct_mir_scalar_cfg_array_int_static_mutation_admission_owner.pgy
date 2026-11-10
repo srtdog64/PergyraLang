@@ -19,17 +19,17 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
     let initial_length: Int = ArrayLength(collection.elements);
     if !DirectMirScalarCfgArrayIntCollectionFactReady(collection) ||
         initial_length < 1 { return empty; }
-    let consumer_header: Int = -1; let consumer_body: Int = -1;
-    let consumer_exit: Int = -1; let length_global: Int = -1;
-    let index_id: String = ""; let read_global: Int = -1;
-    let sum_id: String = ""; let read_result: String = "";
-    let set_global: Int = -1; let set_index: Int = -1;
-    let set_value: Int = 0; let indexed_log_global: Int = -1;
-    let indexed_log_index: Int = -1; let length_log_global: Int = -1;
-    let collection_uses: Int = 0; let claimed_uses: Int = 0;
-    let block: Int = 0;
+    var consumer_header: Int = -1; var consumer_body: Int = -1;
+    var consumer_exit: Int = -1; var length_global: Int = -1;
+    var index_id: String = ""; var read_global: Int = -1;
+    var sum_id: String = ""; var read_result: String = "";
+    var set_global: Int = -1; var set_index: Int = -1;
+    var set_value: Int = 0; var indexed_log_global: Int = -1;
+    var indexed_log_index: Int = -1; var length_log_global: Int = -1;
+    var collection_uses: Int = 0; var claimed_uses: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local_binding: Int = 0;
+        var local_binding: Int = 0;
         while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
                 index.block_instruction_starts[block] + local_binding;
@@ -49,7 +49,7 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
                 MirRoutineInstructionFactBundleAtGlobal(
                     index.instruction_facts, global
                 );
-            let use_row: Int = 0;
+            var use_row: Int = 0;
             while use_row < MirRoutineInstructionUseCountAtGlobal(
                     uses, global
                 ) {

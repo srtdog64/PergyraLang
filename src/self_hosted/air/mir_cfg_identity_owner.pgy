@@ -8,8 +8,8 @@ func DirectMirCfgHashString(hash: Long, value: String) -> Long {
     let modulus: Long = 268435456L;
     // String is immutable; remeasuring here would rescan the full MIR per byte.
     let length: Int = StringLength(value);
-    let out: Long = (hash * 131L + (length as Long)) % modulus;
-    let row: Int = 0;
+    var out: Long = (hash * 131L + (length as Long)) % modulus;
+    var row: Int = 0;
     while row < length {
         out = (out * 131L +
             (CharCode(value, length, row) as Long)) % modulus;
@@ -47,14 +47,14 @@ func DirectMirCfgDigestFromIndex(ref index: MirRoutineFactIndex) -> Int {
         ) {
         return 0;
     }
-    let hash: Long = DirectMirCfgHashString(23L, index.source_syntax_id);
+    var hash: Long = DirectMirCfgHashString(23L, index.source_syntax_id);
     hash = DirectMirCfgHashInt(hash, block_count);
     hash = DirectMirCfgHashInt(
         hash, ArrayLength(index.instruction_facts.starts)
     );
-    let block: Int = 0;
+    var block: Int = 0;
     while block < block_count {
-        let reachable: Int = 0;
+        var reachable: Int = 0;
         if index.block_reachable[block] { reachable = 1; }
         hash = DirectMirCfgHashInt(hash, block);
         hash = DirectMirCfgHashInt(hash, reachable);
@@ -97,7 +97,7 @@ func DirectMirCfgPhiBindingDigest(
         StringLength(false_incoming) == 0 {
         return 0;
     }
-    let hash: Long = DirectMirCfgHashInt(29L, phi_count);
+    var hash: Long = DirectMirCfgHashInt(29L, phi_count);
     hash = DirectMirCfgHashString(hash, local_name);
     hash = DirectMirCfgHashString(hash, result_name);
     hash = DirectMirCfgHashString(hash, true_incoming);

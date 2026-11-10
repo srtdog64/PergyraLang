@@ -34,10 +34,10 @@ func DebugSourceLocationFactsFromParserBuild(
     }
     let node_lines: Array<Int> = locations.node_lines;
     let node_paths: Array<String> = locations.node_paths;
-    let node_id: Int = 0;
+    var node_id: Int = 0;
 
-    let main_node_id: Int = 0 - 1;
-    let main_count: Int = 0;
+    var main_node_id: Int = 0 - 1;
+    var main_count: Int = 0;
     node_id = 0;
     while node_id < artifact.count {
         if TypedAstArenaNodeKindIs(

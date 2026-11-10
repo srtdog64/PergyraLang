@@ -528,6 +528,20 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM string comparison could not lower/coerce operands");
     }
 
+    return llvm_emit_scalar_binary_values(node, op_type, left, right,
+        left_expr, right_expr, ctx);
+}
+
+LLVMValueRef
+llvm_emit_scalar_binary_values(ASTNode *node, PgyTokenType op_type,
+    LLVMValueRef left, LLVMValueRef right, ASTNode *left_expr,
+    ASTNode *right_expr, LLVMGenCtx *ctx)
+{
+    if (left == NULL || right == NULL)
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM scalar operation is missing an evaluated operand");
+    LLVMTypeRef left_type = LLVMTypeOf(left);
+    LLVMTypeRef right_type = LLVMTypeOf(right);
     bool is_float = (left_type == ctx->type_f64 || left_type == ctx->type_f32
                   || right_type == ctx->type_f64 || right_type == ctx->type_f32);
 

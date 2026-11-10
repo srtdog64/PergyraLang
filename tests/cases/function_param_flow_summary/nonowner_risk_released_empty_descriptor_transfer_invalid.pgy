@@ -1,0 +1,18 @@
+// Releasing the empty descriptor consumes its cleanup right. A later nominal
+// transfer must remain refused even though the Array has no String elements.
+struct EmptyPair {
+    first: Array<String>;
+    second: Array<String>;
+}
+
+struct TextArtifact {
+    text: String;
+    empty: EmptyPair;
+}
+
+func Rebuild(own artifact: TextArtifact) -> TextArtifact {
+    let text: String = artifact.text;
+    let empty: Array<String> = [];
+    ArrayDropOwnedStrings(empty);
+    return TextArtifact(text, EmptyPair(empty, empty));
+}

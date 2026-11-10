@@ -19,7 +19,10 @@ test_stdlib_and_enum_emit(void)
         ASTNode *node = make_let("values", make_generic_type("Array", "Int"), arr, 1);
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "PgyArray_Int values = ({");
-        EXPECT_STR_CONTAINS(out, "pgy_array_push_Int");
+        EXPECT_STR_CONTAINS(out, "pgy_array_new_Int(3)");
+        EXPECT_STR_CONTAINS(out, "{1, 2, 3}");
+        EXPECT_STR_CONTAINS(out, "memcpy(");
+        EXPECT_STR_CONTAINS(out, ".length = 3;");
         transpiler_ctx_destroy(ctx);
     }
 
@@ -88,7 +91,7 @@ test_stdlib_and_enum_emit(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let seen: Set<Int> = SetNew();\n"
+            "    var seen: Set<Int> = SetNew();\n"
             "    SetAdd(seen, 7);\n"
             "    Log(SetHas(seen, 7));\n"
             "    Log(SetSize(seen));\n"

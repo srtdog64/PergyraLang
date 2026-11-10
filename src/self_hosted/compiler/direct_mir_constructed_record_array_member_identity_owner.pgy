@@ -29,7 +29,7 @@ func DirectMirConstructedRecordArrayMemberIdentityDigest(
     ref identity: DirectMirConstructedRecordArrayMemberIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(457L, identity.entrypoint.digest);
+    var hash: Long = DirectMirCfgHashInt(457L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.constructed_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.identity_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
@@ -138,9 +138,9 @@ func DirectMirConstructedRecordArrayMemberIdentityFromAdmitted(
     let identity_row: Int = DirectMirInferredGenericMemberUniqueRoutineRow(
         admitted.routines, specialization.pair.outer_callable
     );
-    let record_row: Int = 0 - 1;
-    let wrapper_row: Int = 0 - 1;
-    let declaration_row: Int = 0;
+    var record_row: Int = 0 - 1;
+    var wrapper_row: Int = 0 - 1;
+    var declaration_row: Int = 0;
     while declaration_row < 2 {
         let name: String = admitted.domain_runtime_admission.declarations.names[
             declaration_row

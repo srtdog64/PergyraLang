@@ -7,7 +7,7 @@ import "expr_semantic_call_argument_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticHashMapCall(
-    graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
+    ref graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
     protocol: SemanticExpressionGraphCollectionCallProtocolFact, env: CodegenTypeEnv
 ) -> String {
     if !protocol.applies || protocol.family != "HashMap" ||
@@ -23,16 +23,16 @@ func RewriteSemanticHashMapCall(
     let signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
         protocol.operation, ArrayLength(view.argument_nodes), fact.type_name);
     if !signature.ok { Die("HashMap concrete argument signature is missing"); }
-    let output: String = "({ ";
-    let arguments: String = "";
-    let index: Int = 0;
+    var output: String = "({ ";
+    var arguments: String = "";
+    var index: Int = 0;
     // C leaves argument evaluation unspecified. Materialize each admitted
     // argument once, in source order, inside this expression's lexical scope.
     while index < protocol.expected_arity {
-        let temporary: String = "__pgy_map_arg_" + ToString(view.call_node) + "_" + ToString(index);
+        var temporary: String = "__pgy_map_arg_" + ToString(view.call_node) + "_" + ToString(index);
         while TypeEnvSemanticValueType(env, temporary) != "" || LookupKindType(env, temporary, "f") != "" { temporary = temporary + "_"; }
-        let mode: String = "default";
-        let c_type: String = AbiLayoutCValueType(signature.parameter_types[index], env);
+        var mode: String = "default";
+        var c_type: String = AbiLayoutCValueType(signature.parameter_types[index], env);
         if index == protocol.receiver_argument_index { mode = "ref"; c_type = c_type + " *"; }
         let argument: String = RewriteSemanticCallArgument(
             graph, view.argument_nodes[index], signature.parameter_types[index], mode, env);
@@ -41,7 +41,7 @@ func RewriteSemanticHashMapCall(
         arguments = arguments + temporary;
         index = index + 1;
     }
-    let callee_c_name: String = CollectionHashMapRuntimeCFunction(fact, protocol);
+    var callee_c_name: String = CollectionHashMapRuntimeCFunction(fact, protocol);
     if protocol.operation == "MapKeys" { callee_c_name = CollectionHashMapRuntimeCKeysBridgeName(fact); }
     return output + callee_c_name + "(" + arguments + "); })";
 }

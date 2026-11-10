@@ -36,7 +36,7 @@ func DirectMirScalarCfgCollectionPopProgramFactEmpty(
 func DirectMirScalarCfgCollectionPopStringCollectionRow(
     ref arrays: DirectMirScalarCfgStringArrayPlan
 ) -> Int {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
         let access: DirectMirScalarCfgStringArrayAccessFact =
             DirectMirScalarCfgStringArrayAccessAt(arrays, row);
@@ -94,10 +94,10 @@ func DirectMirScalarCfgCollectionPopProgramFromOwners(
             arrays, string_collection
         )
     ];
-    let effect_sources: Array<Int> = []; let effect_globals: Array<Int> = [];
-    let effect_operations: Array<Int> = []; let effect_before: Array<Int> = [];
-    let effect_after: Array<Int> = [];
-    let int_row: Int = 0; let string_row: Int = 0;
+    var effect_sources: Array<Int> = []; var effect_globals: Array<Int> = [];
+    var effect_operations: Array<Int> = []; var effect_before: Array<Int> = [];
+    var effect_after: Array<Int> = [];
+    var int_row: Int = 0; var string_row: Int = 0;
     while int_row < int_count ||
             string_row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
         while string_row < DirectMirScalarCfgStringArrayAccessCount(arrays) &&
@@ -105,8 +105,8 @@ func DirectMirScalarCfgCollectionPopProgramFromOwners(
                     DirectMirScalarCfgStringArrayAccessPopKind() {
             string_row = string_row + 1;
         }
-        let int_operation: Int = 2147483647;
-        let string_operation: Int = 2147483647;
+        var int_operation: Int = 2147483647;
+        var string_operation: Int = 2147483647;
         if int_row < int_count {
             int_operation = array_int.pop.operation_rows[int_row];
         }
@@ -154,7 +154,7 @@ func DirectMirScalarCfgCollectionPopProgramDigest(
     ref fact: DirectMirScalarCfgCollectionPopProgramFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirScalarCfgHashInts(
+    var hash: Long = DirectMirScalarCfgHashInts(
         421L, fact.source_owner_kinds
     );
     hash = DirectMirScalarCfgHashInts(hash, fact.source_owner_rows);

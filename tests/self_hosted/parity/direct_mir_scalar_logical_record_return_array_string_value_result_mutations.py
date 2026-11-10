@@ -30,6 +30,11 @@ def main():
         params[1]["type"] = "OtherTypeEnv"
         params[1]["abi_type_name"] = "OtherTypeEnv"
     elif kind == "record-carriage":
+        # Readonly record loans require an indirect pass. Owner handles are
+        # an admitted by-value record contract and are checked positively.
+        params[1]["carriage"] = "readonly-ref"
+        params[1]["pass"] = "direct"
+    elif kind == "record-owner":
         params[1]["carriage"] = "owner-handle"
         params[1]["pass"] = "direct"
     elif kind == "string-type":

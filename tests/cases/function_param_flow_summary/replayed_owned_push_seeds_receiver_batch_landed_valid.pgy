@@ -1,0 +1,10 @@
+// Models the fixed-point replay state: one store is already typed as an
+// owned push, so every remaining shallow String store on the same fresh
+// receiver must be selected before MIR ownership validation.
+func Main() -> Void {
+    var rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    let borrowed: String = "borrowed";
+    ArrayPush(rows, borrowed);
+    Log(ArrayLength(rows));
+}

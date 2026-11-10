@@ -1,0 +1,19 @@
+struct RewriteResult {
+    let matched: Bool;
+    let instructions: String;
+}
+
+func Rewrite(prefix: Int, middle: Int, suffix: Int, enabled: Bool,
+    inout chunks: Array<String>) -> RewriteResult {
+    let ignored: Int = prefix + middle + suffix;
+    if ignored < 0 { return RewriteResult(false, ""); }
+    if !enabled { return RewriteResult(false, ""); }
+    var instructions: String = "";
+    var row: Int = 0;
+    while row < ArrayLength(chunks) {
+        instructions = Concat(instructions, chunks[row]);
+        ArraySet(chunks, row, "");
+        row = row + 1;
+    }
+    return RewriteResult(true, instructions);
+}

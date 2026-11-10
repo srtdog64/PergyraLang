@@ -20,7 +20,7 @@ func DirectMirScalarProgramLlvmSetStringExpressionAt(
     let llvm_type: String = DirectMirScalarProgramLlvmSetStringTypeName();
     if kind == DirectMirScalarProgramExprSetStringNew() {
         let storage: String = Concat(result, ".set.storage");
-        let output: String = Concat("  ", Concat(storage, Concat(
+        var output: String = Concat("  ", Concat(storage, Concat(
             " = alloca ", Concat(llvm_type, ", align 8\n"))));
         output = Concat(output, Concat("  store ", Concat(llvm_type,
             Concat(" zeroinitializer, ptr ", Concat(storage, ", align 8\n")))));
@@ -37,8 +37,8 @@ func DirectMirScalarProgramLlvmSetStringExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let receiver: String = left_address;
-    let output: String = "";
+    var receiver: String = left_address;
+    var output: String = "";
     if receiver == "" && kind == DirectMirScalarProgramExprSetStringHas() {
         receiver = Concat(result, ".set.receiver");
         output = Concat("  ", Concat(receiver, Concat(" = alloca ",

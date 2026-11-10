@@ -1,7 +1,26 @@
+func ContainsOwnedKey(
+    values: HashMap<String, Int>, key: String
+) -> Bool {
+    return MapHas(values, key);
+}
+
+func ContainsBorrowedKey(
+    ref values: HashMap<String, Int>, key: String
+) -> Bool {
+    return MapHas(values, key);
+}
+
+func InsertOwnedKey(
+    inout values: HashMap<String, Int>, key: String, value: Int
+) -> Void {
+    MapSet(values, key, value);
+}
+
 func Main() -> Void {
     let values: HashMap<String, Int> = MapNew();
-    MapSet(values, "owned", 1);
-    if MapHas(values, "owned") {
+    InsertOwnedKey(values, "owned", 1);
+    if ContainsOwnedKey(values, "owned") &&
+        ContainsBorrowedKey(values, "owned") {
         Log(1);
         return;
     }

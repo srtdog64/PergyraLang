@@ -9,8 +9,8 @@ func DirectMirScalarCfgLoopFlowFactsReady(
     if !LoopFlowSummaryProjectionReady(index, routines, routine_row) ||
         !MirRoutineFactIndexLoopFlowFactsValid(index) ||
         ArrayLength(index.loop_flow_state_stable_indices) != 0 { return false; }
-    let row: Int = 0;
-    let claimed: Int = 0;
+    var row: Int = 0;
+    var claimed: Int = 0;
     while row < ArrayLength(index.loop_flow_summary_loop_ids) {
         let kind: Int = index.loop_flow_summary_kinds[row];
         if (kind != 0 && kind != 1) ||

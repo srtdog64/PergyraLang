@@ -1,0 +1,31 @@
+// Returning a loan into a sibling member does not restore the member that
+// lent it; exact typed-path equality is required.
+struct Row {
+    value: Int;
+}
+
+struct DeepRows {
+    values: Array<Row>;
+}
+
+struct PairState {
+    left: DeepRows;
+    right: DeepRows;
+}
+
+func RelayDeepRows(rows: DeepRows) -> DeepRows {
+    return rows;
+}
+
+func RestoreWrongMember(inout state: PairState) -> Void {
+    let returned: DeepRows = RelayDeepRows(state.left);
+    state.right = returned;
+}
+
+func Main() -> Int {
+    var state: PairState = PairState(
+        DeepRows([Row(1)]), DeepRows([Row(2)])
+    );
+    RestoreWrongMember(state);
+    return 0;
+}

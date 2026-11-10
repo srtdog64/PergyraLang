@@ -16,9 +16,9 @@ func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(
     let right: Int = facts.node_rights[node];
     let nary: Array<Int> = DirectMirScalarProgramNaryOperandRows(
         facts.nary_operands, node);
-    let runtime: CompilerRuntimeCallAbiFact =
+    var runtime: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFactMissing();
-    let runtime_ready: Bool = false;
+    var runtime_ready: Bool = false;
     if kind == DirectMirScalarProgramExprCompilerArtifactWrite() {
         runtime = CompilerRuntimeCallAbiCompilerArtifactWriteFact();
         runtime_ready =
@@ -36,7 +36,7 @@ func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(
         runtime_ready =
             CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(runtime);
     }
-    let expected_result: String = CompilerAbiLayoutIntTypeName();
+    var expected_result: String = CompilerAbiLayoutIntTypeName();
     if kind == DirectMirScalarProgramExprCompilerArtifactWrite() {
         expected_result = CompilerAbiLayoutBoolTypeName();
     }
@@ -53,7 +53,7 @@ func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(
             facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
             facts.node_types[right] == CompilerAbiLayoutStringTypeName());
     }
-    let expected_parameter: String = CompilerAbiLayoutIntTypeName();
+    var expected_parameter: String = CompilerAbiLayoutIntTypeName();
     if kind == DirectMirScalarProgramExprCompilerArtifactBegin() {
         expected_parameter = CompilerAbiLayoutStringTypeName();
     }

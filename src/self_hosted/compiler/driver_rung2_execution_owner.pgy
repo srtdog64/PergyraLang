@@ -134,6 +134,10 @@ subject DriverRung2Execution {
                 projection_name, "MIR artifact destination path is empty"
             );
         }
+        let expected_identity: DriverRung2MirCPayloadRequestIdentity =
+            DriverRung2MirCPayloadRequestIdentitySnapshot(
+                observation_request, machine_request
+            );
         let admission: DriverRung2MirCPayloadAdmission =
             DriverRung2MirCProducePayloadAdmitted(
                 self.identity, mir_json_path,
@@ -144,14 +148,12 @@ subject DriverRung2Execution {
                 return DriverRung2RejectedOutcome(
                     projection_name,
                     DriverRung2MirCPayloadAdmissionDiagnostic(
-                        admission, mir_json_path,
-                        observation_request, machine_request
+                        admission, mir_json_path, expected_identity
                     )
                 );
             case DriverRung2MirCPayloadAdmitted(receipt):
                 if !DriverRung2MirCPayloadReceiptReadyFor(
-                    receipt, mir_json_path,
-                    observation_request, machine_request
+                    receipt, mir_json_path, expected_identity
                 ) {
                     return DriverRung2RejectedOutcome(
                         projection_name, "MIR C payload receipt is invalid"

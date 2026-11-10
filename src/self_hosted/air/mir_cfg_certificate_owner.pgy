@@ -57,17 +57,17 @@ func DirectMirCfgCertificateFromIndex(
         return DirectMirCfgCertificateEmpty();
     }
 
-    let entry: Int = 0;
-    let true_block: Int = index.block_succ_true[entry];
-    let false_block: Int = index.block_succ_false[entry];
-    let merge_block: Int = index.block_structural_merges[entry];
-    let nested: DirectMirNestedCfgCertificateFact =
+    var entry: Int = 0;
+    var true_block: Int = index.block_succ_true[entry];
+    var false_block: Int = index.block_succ_false[entry];
+    var merge_block: Int = index.block_structural_merges[entry];
+    var nested: DirectMirNestedCfgCertificateFact =
         DirectMirNestedCfgCertificateFactEmpty();
-    let loop_fact: DirectMirLoopCfgCertificateFact =
+    var loop_fact: DirectMirLoopCfgCertificateFact =
         DirectMirLoopCfgCertificateFactEmpty();
-    let range_fact: DirectMirRangeCfgCertificateFact =
+    var range_fact: DirectMirRangeCfgCertificateFact =
         DirectMirRangeCfgCertificateFactEmpty();
-    let break_fact: DirectMirBreakCfgCertificateFact =
+    var break_fact: DirectMirBreakCfgCertificateFact =
         DirectMirBreakCfgCertificateFactEmpty();
     let identity_match: DirectMirIdentityMatchCfgCertificateFact =
         DirectMirIdentityMatchCfgCertificateFactFromIndex(
@@ -202,12 +202,12 @@ func DirectMirCfgCertificateFromIndex(
         }
     }
 
-    let phi_count: Int = 0;
-    let block: Int = 0;
+    var phi_count: Int = 0;
+    var block: Int = 0;
     while block < block_count {
         let block_phi_count: Int =
             index.instruction_facts.block_phi_prefix_counts[block];
-        let expected_backedge_header: Int = 0;
+        var expected_backedge_header: Int = 0;
         if break_ready && block == break_fact.header_block {
             expected_backedge_header = 1;
         } else if loop_ready && block == loop_fact.header_block {
@@ -231,7 +231,7 @@ func DirectMirCfgCertificateFromIndex(
         } else if block_phi_count != 0 {
             return DirectMirCfgCertificateEmpty();
         }
-        let should_branch: Int = 0;
+        var should_branch: Int = 0;
         if break_ready &&
                 (block == break_fact.header_block ||
                  block == break_fact.decision_block) {
@@ -253,7 +253,7 @@ func DirectMirCfgCertificateFromIndex(
         }
         block = block + 1;
     }
-    let expected_merge_instructions: Int = 0;
+    var expected_merge_instructions: Int = 0;
     if phi_count == 1 { expected_merge_instructions = 2; }
     if break_ready {
         if ArrayLength(index.instruction_facts.starts) != 8 ||
@@ -295,10 +295,10 @@ func DirectMirCfgCertificateFromIndex(
         }
     }
 
-    let phi_local_name: String = "";
-    let phi_result_name: String = "";
-    let phi_true_incoming: String = "";
-    let phi_false_incoming: String = "";
+    var phi_local_name: String = "";
+    var phi_result_name: String = "";
+    var phi_true_incoming: String = "";
+    var phi_false_incoming: String = "";
     if phi_count == 1 {
         let phi_fact: MirRoutinePhiFact = MirRoutinePhiFactAt(
             index, admitted.routines, use_facts, 0, merge_block, 0
@@ -313,11 +313,11 @@ func DirectMirCfgCertificateFromIndex(
         }
         phi_local_name = phi_fact.local_name;
         phi_result_name = phi_fact.result_name;
-        let false_predecessor: Int = false_block;
+        var false_predecessor: Int = false_block;
         if direct_false_edge { false_predecessor = entry; }
         if loop_ready { false_predecessor = loop_fact.preheader_block; }
         if break_ready { false_predecessor = break_fact.preheader_block; }
-        let incoming_row: Int = 0;
+        var incoming_row: Int = 0;
         while incoming_row < 2 {
             let definition_block: Int =
                 phi_fact.incoming_definition_blocks[incoming_row];
@@ -343,7 +343,7 @@ func DirectMirCfgCertificateFromIndex(
         }
     }
 
-    let branch_block: Int = entry;
+    var branch_block: Int = entry;
     if loop_ready { branch_block = loop_fact.header_block; }
     if range_ready { branch_block = range_fact.header_block; }
     if break_ready { branch_block = break_fact.header_block; }
@@ -353,7 +353,7 @@ func DirectMirCfgCertificateFromIndex(
         );
     let entry_global_block: Int =
         admitted.routines.routine_block_starts[0] + branch_block;
-    let expected_branch_source: String = "AST_BINARY";
+    var expected_branch_source: String = "AST_BINARY";
     if identity_match_ready {
         expected_branch_source = "AST_MATCH_CASE";
     }
@@ -383,7 +383,7 @@ func DirectMirCfgCertificateFromIndex(
         }
         return DirectMirCfgCertificateEmpty();
     }
-    let evidence_fact_count: Int = 1;
+    var evidence_fact_count: Int = 1;
     if nested_ready || loop_ready || range_ready || break_ready ||
         identity_match_ready {
         evidence_fact_count = 2;

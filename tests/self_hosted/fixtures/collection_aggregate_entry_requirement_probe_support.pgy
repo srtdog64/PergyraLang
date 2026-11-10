@@ -1,0 +1,117 @@
+// Probe-only projection over the persisted identity owner. Production facts
+// still come from the body bundle; this view only feeds the extracted record
+// owner with the same formal leaf types it already admitted.
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func CollectionAggregateEntryResolvedLeafTypes(
+    ref analysis: SemanticAstArtifactAnalysis
+) -> Array<String> {
+    let types: Array<String> = [];
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena);
+    let node: Int = 0;
+    while node < node_count {
+        let resolved: String = "Unknown";
+        let binding: SemanticExpressionBindingIdentityFact =
+            SemanticExpressionGraphBindingIdentity(
+                analysis.expression_surfaces.expression_graph, node);
+        if binding.ok &&
+            binding.kind == SemanticExpressionBindingFormalParameter() &&
+            binding.syntax_id > 0 {
+            let match_count: Int = 0;
+            let parameter: Int = 0;
+            while parameter < ArrayLength(analysis.signatures.param_node_ids) {
+                if analysis.signatures.param_node_ids[parameter] ==
+                        binding.syntax_id {
+                    match_count = match_count + 1;
+                    resolved = Concat("",
+                        analysis.signatures.param_types[parameter]);
+                }
+                parameter = parameter + 1;
+            }
+            if match_count != 1 { return types; }
+        }
+        ArrayPushOwnedString(types, resolved);
+        node = node + 1;
+    }
+    return types;
+}
+
+func RecordSingleAggregateFieldRequirement(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    function_id: Int, root_id: Int, field_id: Int, local_id: Int,
+    effect: Int,
+    inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    let before: Int = ArrayLength(facts.local_ids);
+    if !SemanticAstCollectionAggregateFieldEntryRequirementRecord(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, inferred_types, resolved_leaf_types,
+            analysis.expression_surfaces, analysis.assignments,
+            function_id, artifact.count, local_id, effect, facts) {
+        return false;
+    }
+    let indexed: Int = SemanticAstCollectionAggregateFieldEntryIndexRow(
+        facts.row_by_local, local_id);
+    if indexed < 0 { return ArrayLength(facts.local_ids) == before; }
+    return indexed < ArrayLength(facts.local_ids) &&
+        facts.formal_ids[indexed] == root_id &&
+        facts.field_ids[indexed] == field_id;
+}
+
+func CollectionAggregateEntryStoredRowsMutationMatches(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    function_id: Int, formal: Int,
+    ref fields: Array<Int>, ref destinations: Array<Int>,
+    mutation: Int,
+    inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    if mutation == 20 || mutation == 21 {
+        let rows: HashMap<String, Int> = facts.row_by_local;
+        if mutation == 20 {
+            MapSet(rows, ToString(
+                analysis.local_bindings.artifact_node_count + 1), 0);
+        } else { MapSet(rows, ToString(destinations[0]), 1); }
+        facts.row_by_local = rows;
+    }
+    if mutation == 22 { ArrayPop(facts.field_ids); }
+    if mutation == 23 { facts.local_ids[1] = facts.local_ids[0]; }
+    if mutation == 24 {
+        return !RecordSingleAggregateFieldRequirement(
+            artifact, analysis, inferred_types, resolved_leaf_types,
+            function_id, formal, fields[1], destinations[0],
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
+    }
+    if mutation == 25 {
+        let parameter: Int = analysis.signatures.param_starts[
+            UnwrapOption(SemanticAstFunctionSignatureIndexForNode(
+                analysis.signatures, function_id))];
+        analysis.signatures.param_modes[parameter] = 2;
+        return !RecordSingleAggregateFieldRequirement(
+            artifact, analysis, inferred_types, resolved_leaf_types,
+            function_id, formal, fields[0], destinations[0],
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
+    }
+    if mutation == 26 {
+        facts.formal_ordinals[0] = 1;
+        return !RecordSingleAggregateFieldRequirement(
+            artifact, analysis, inferred_types, resolved_leaf_types,
+            function_id, formal, fields[0], destinations[0],
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
+    }
+    if mutation == 28 { facts.field_ids[0] = 0; }
+    if mutation == 29 { facts.ok = false; }
+    if mutation == 30 {
+        let empty_rows: HashMap<String, Int> = MapNew();
+        facts.row_by_local = empty_rows;
+    }
+    if mutation == 31 { facts.formal_modes[0] = 4; }
+    if mutation == 32 { facts.formal_modes[0] = -1; }
+    return !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts);
+}

@@ -14,7 +14,7 @@ func DirectMirConstructedRecordArrayMemberSpecializationDigest(
     ref fact: DirectMirConstructedRecordArrayMemberSpecializationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(443L, fact.pair.digest);
+    var hash: Long = DirectMirCfgHashInt(443L, fact.pair.digest);
     hash = DirectMirCfgHashString(hash, fact.record_type);
     return DirectMirCfgBoundedDigest(hash);
 }

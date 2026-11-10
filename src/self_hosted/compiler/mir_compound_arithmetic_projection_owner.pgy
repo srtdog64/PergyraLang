@@ -1,0 +1,62 @@
+// Compound arithmetic shares the checked numeric runtime contract. Operands
+// have already been evaluated; no expression is interpolated more than once.
+import "direct_mir_scalar_program_checked_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func MirCompoundArithmeticRuntime(type_name: String, operation: Int) -> CompilerRuntimeCallAbiFact {
+    if operation == 4 && type_name == "Int" {
+        return DirectMirScalarProgramCheckedIntRuntimeFact(DirectMirScalarProgramExprDivideInt());
+    }
+    var op: String = ""; var symbol: String = "";
+    if operation == 4 && type_name == "Long" {
+        op = "long-division"; symbol = CheckedArithmeticRuntimeCLongDivisionFn();
+    } else if operation == 5 && (type_name == "Int" || type_name == "Long") {
+        op = "long-modulo"; symbol = CheckedArithmeticRuntimeCLongModuloFn();
+    } else { return CompilerRuntimeCallAbiFactMissing(); }
+    return CompilerRuntimeCallAbiFactFromRowInput(CompilerRuntimeCallAbiRowInput(
+        "checked-arithmetic", op, symbol, CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+
+func MirCompoundArithmeticC(type_name: String, operation: Int, left: String, right: String) -> String {
+    if type_name != "Float" && operation >= 4 {
+        let abi: CompilerRuntimeCallAbiFact = MirCompoundArithmeticRuntime(type_name, operation);
+        if !abi.ok { Die("compound arithmetic runtime ABI is missing"); }
+        return "${abi.symbol}(${left}, ${right})";
+    }
+    var op: String = "";
+    if operation == 1 { op = "+"; } else if operation == 2 { op = "-"; }
+    else if operation == 3 { op = "*"; } else if operation == 4 { op = "/"; }
+    else { Die("compound arithmetic operation is invalid"); }
+    if type_name == "Int" {
+        return "((long long)(int32_t)((uint32_t)${left} ${op} (uint32_t)${right}))";
+    }
+    if type_name == "Long" {
+        return "((int64_t)((uint64_t)${left} ${op} (uint64_t)${right}))";
+    }
+    if type_name == "Float" { return "((double)((float)${left} ${op} (float)${right}))"; }
+    Die("compound arithmetic scalar type is invalid"); return "";
+}
+
+func MirCompoundArithmeticLlvm(type_name: String, operation: Int,
+    result: String, left: String, right: String) -> String {
+    if type_name != "Float" && operation >= 4 {
+        let abi: CompilerRuntimeCallAbiFact = MirCompoundArithmeticRuntime(type_name, operation);
+        if !abi.ok { Die("compound arithmetic runtime ABI is missing"); }
+        if type_name == "Int" && operation == 4 {
+            return "  ${result}.left = trunc i64 ${left} to i32\n  ${result}.right = trunc i64 ${right} to i32\n  ${result}.value = call i32 @${abi.symbol}(i32 ${result}.left, i32 ${result}.right)\n  ${result} = sext i32 ${result}.value to i64\n";
+        }
+        return "  ${result} = call i64 @${abi.symbol}(i64 ${left}, i64 ${right})\n";
+    }
+    var opcode: String = "";
+    if operation == 1 { opcode = "add"; } else if operation == 2 { opcode = "sub"; }
+    else if operation == 3 { opcode = "mul"; } else if operation == 4 { opcode = "div"; }
+    else { Die("compound arithmetic operation is invalid"); }
+    if type_name == "Int" {
+        return "  ${result}.wide = ${opcode} i64 ${left}, ${right}\n  ${result}.narrow = trunc i64 ${result}.wide to i32\n  ${result} = sext i32 ${result}.narrow to i64\n";
+    }
+    if type_name == "Long" { return "  ${result} = ${opcode} i64 ${left}, ${right}\n"; }
+    if type_name == "Float" {
+        return "  ${result}.left = fptrunc double ${left} to float\n  ${result}.right = fptrunc double ${right} to float\n  ${result}.value = f${opcode} float ${result}.left, ${result}.right\n  ${result} = fpext float ${result}.value to double\n";
+    }
+    Die("compound arithmetic scalar type is invalid"); return "";
+}

@@ -35,7 +35,10 @@ patterns. Its loan, a `ref` input's fields returned in a payload while
 `Main` keeps the input unchanged, is admitted as a struct result and as a
 payload read without a match on the tree before the rule; it is now
 `enum_payload_constructor_ref_field_return_valid`, and
-`enum_payload_constructor_ref_field_owner_changed_invalid`, whose case body
-replaces the input while the payload lives, keeps the refusal at the call.
+`enum_payload_constructor_ref_field_owner_changed_landed_valid`, whose two
+String fields are copied where `RefusalOf` constructs its result and therefore
+remain valid when the case body replaces the input. The paired
+`enum_payload_constructor_ref_field_uncopyable_owner_changed_invalid` keeps
+the refusal when the payload also borrows nested `Array<Group>` storage.
 
 Replaces: nothing.

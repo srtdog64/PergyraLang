@@ -8,7 +8,7 @@ func DirectMirScalarCfgProgramAppendParameterTypes(
     ref signature: DirectMirRoutineSignatureFact
 ) -> Bool {
     if !DirectMirRoutineSignatureFactReady(signature) { return false; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let raw: String = signature.parameters.type_names[ordinal];
         if raw == "" || raw == "Unknown" || raw == "<unknown>" { return false; }

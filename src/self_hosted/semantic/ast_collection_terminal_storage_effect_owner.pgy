@@ -19,7 +19,7 @@ func SemanticAstCollectionTerminalOwnedMutationUnshared(
         ArrayLength(current_definitions) != definitions.local_count ||
         ArrayLength(storage.producer_source_ids) !=
             ArrayLength(definitions.syntax_ids) { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(current_definitions) {
         let other: Int = current_definitions[row];
         // The ordered definition owner uses -1 for an unreached declaration.
@@ -100,12 +100,12 @@ func SemanticAstCollectionTerminalStorageEffectEntryVerdict(
     // Short-circuit RHS and logical negation have no later operand. Earlier
     // retaining/shallow calls still cannot skip their same-expression effects.
     if IsSome(root) {
-        let tail: Int = UnwrapOption(root);
-        let remaining: Int = SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+        var tail: Int = UnwrapOption(root);
+        var remaining: Int = SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
         while remaining > 0 {
             let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, tail);
             if !IsSome(kind) { break; }
-            let next: Option<Int> = None;
+            var next: Option<Int> = None;
             if UnwrapOption(kind) == AstExpressionNodeLogicalAnd() || UnwrapOption(kind) == AstExpressionNodeLogicalOr() {
                 next = SemanticExpressionGraphRightChild(surfaces.expression_graph, tail);
             } else if UnwrapOption(kind) == AstExpressionNodeLogicalNot() {

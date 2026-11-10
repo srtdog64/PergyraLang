@@ -1,0 +1,77 @@
+// Operation-kind families shared by array-mutation admission and emission.
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+
+func DirectMirScalarProgramArrayPushKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPush() || kind == DirectMirScalarCfgOpLocalArrayStringPush() || kind == DirectMirScalarCfgOpArrayBoolPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush(); }
+func DirectMirScalarProgramArraySetKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpArrayStringSet() || kind == DirectMirScalarCfgOpArrayBoolSet() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+func DirectMirScalarProgramArrayPopKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPop() || kind == DirectMirScalarCfgOpArrayStringPop(); }
+
+func DirectMirScalarProgramArrayMutationKind(kind: Int) -> Bool {
+    return DirectMirScalarProgramArrayPushKind(kind) ||
+        DirectMirScalarProgramArraySetKind(kind) ||
+        DirectMirScalarProgramArrayPopKind(kind) ||
+        kind == DirectMirScalarCfgOpArrayStringValueResultPush();
+}
+
+func DirectMirScalarProgramArrayMutationParameterTargetKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPush() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() || kind == DirectMirScalarCfgOpArrayIntPop() || kind == DirectMirScalarCfgOpArrayBoolPush() || kind == DirectMirScalarCfgOpArrayBoolSet() || kind == DirectMirScalarCfgOpLocalArrayStringPush() || kind == DirectMirScalarCfgOpArrayStringValueResultPush() || kind == DirectMirScalarCfgOpArrayStringSet() || kind == DirectMirScalarCfgOpArrayStringPop() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+func DirectMirScalarProgramLogicalRecordArrayMutationKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+
+func DirectMirScalarProgramLogicalRecordArrayMutationRequired(
+    ref kinds: Array<Int>
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if DirectMirScalarProgramLogicalRecordArrayMutationKind(kinds[row]) {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLogicalRecordArraySetRequired(
+    ref kinds: Array<Int>
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if kinds[row] == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramArrayBoolPushRequired(ref kinds: Array<Int>) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if kinds[row] == DirectMirScalarCfgOpArrayBoolPush() { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLocalArrayMutationKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarCfgOpArrayIntPush() ||
+        kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+        kind == DirectMirScalarCfgOpArrayBoolPush() ||
+        kind == DirectMirScalarCfgOpArrayBoolSet() ||
+        kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        kind == DirectMirScalarCfgOpArrayStringSet() ||
+        DirectMirScalarProgramArrayPopKind(kind);
+}
+
+func DirectMirScalarProgramArrayMutationTargetTypeReady(
+    kind: Int, type_name: String
+) -> Bool {
+    return ((kind == DirectMirScalarCfgOpArrayIntPush() ||
+             kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+             kind == DirectMirScalarCfgOpArrayIntPop()) &&
+            type_name == CompilerAbiLayoutArrayIntTypeName()) ||
+        ((kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+          kind == DirectMirScalarCfgOpArrayStringSet() ||
+          kind == DirectMirScalarCfgOpArrayStringPop()) &&
+            type_name == CompilerAbiLayoutArrayStringTypeName()) ||
+        ((kind == DirectMirScalarCfgOpArrayBoolPush() ||
+          kind == DirectMirScalarCfgOpArrayBoolSet()) &&
+            type_name == CompilerAbiLayoutArrayBoolTypeName());
+}

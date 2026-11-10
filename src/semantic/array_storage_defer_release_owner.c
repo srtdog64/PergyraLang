@@ -68,6 +68,28 @@ semantic_array_storage_record_defer_release(ASTNode *receiver,
     return true;
 }
 
+bool
+semantic_array_storage_admit_move_before_defer_release(
+    ASTNode *source, SemanticContext *ctx)
+{
+    if (ctx == NULL || source == NULL || source->type != AST_IDENTIFIER)
+        return true;
+    Scope *owner = defer_release_routine_scope(ctx->scope);
+    Symbol *binding = lookup_identifier_symbol(source, ctx);
+    uint32_t binding_id = ast_identifier_binding_syntax_id(source);
+    if (owner == NULL || binding == NULL || binding_id == 0
+        || binding->decl_syntax_id != binding_id)
+        return true;
+    for (size_t i = 0; i < owner->deferred_array_release_count; i++) {
+        const DeferredArrayRelease *row = &owner->deferred_array_releases[i];
+        if (row->settled || row->binding_id != binding_id)
+            continue;
+        return defer_release_failure(ctx, source, binding->name,
+            "this move would transfer its storage before the cleanup runs");
+    }
+    return true;
+}
+
 /* The conditions a release written at this exit must meet. */
 static bool
 defer_release_admit(SemanticContext *ctx, ASTNode *site, const ASTNode *returned,

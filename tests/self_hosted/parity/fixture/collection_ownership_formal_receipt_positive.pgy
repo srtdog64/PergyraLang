@@ -1,0 +1,7 @@
+func AppendBorrowed(inout values: Array<String>) -> Void {
+    ArrayPush(values, "borrowed");
+}
+
+func Main() -> Void {
+    Log("formal-receipt");
+}

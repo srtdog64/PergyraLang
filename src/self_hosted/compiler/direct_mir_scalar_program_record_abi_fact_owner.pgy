@@ -24,7 +24,7 @@ func DirectMirScalarProgramRecordAbiCarriageEmpty(
 func DirectMirScalarProgramRecordAbiCarriageHash(
     hash: Long, ref fact: DirectMirScalarProgramRecordAbiCarriage
 ) -> Long {
-    let output: Long = DirectMirScalarCfgHashInts(hash, fact.layout_ids);
+    var output: Long = DirectMirScalarCfgHashInts(hash, fact.layout_ids);
     output = DirectMirScalarCfgHashStrings(output, fact.row_keys);
     output = DirectMirScalarCfgHashInts(output, fact.sizes);
     output = DirectMirScalarCfgHashInts(output, fact.aligns);
@@ -49,12 +49,12 @@ func DirectMirScalarProgramRecordAbiCarriageColumnsReady(
 func DirectMirScalarProgramRecordAbiCarriageFromDeclaration(
     ref physical: DirectMirNominalDeclarationAbiFact, fields: Int
 ) -> DirectMirScalarProgramRecordAbiCarriage {
-    let ids: Array<Int> = []; let keys: Array<String> = [];
-    let sizes: Array<Int> = []; let aligns: Array<Int> = [];
-    let offsets: Array<Int> = []; let field_sizes: Array<Int> = [];
-    let field_aligns: Array<Int> = [];
-    let id: Int = 0; let size: Int = 0; let align: Int = 0;
-    let key: String = "";
+    var ids: Array<Int> = []; var keys: Array<String> = [];
+    var sizes: Array<Int> = []; var aligns: Array<Int> = [];
+    var offsets: Array<Int> = []; var field_sizes: Array<Int> = [];
+    var field_aligns: Array<Int> = [];
+    var id: Int = 0; var size: Int = 0; var align: Int = 0;
+    var key: String = "";
     if physical.valid {
         if !DirectMirNominalDeclarationAbiFactReady(physical) ||
             ArrayLength(physical.field_names) != fields ||
@@ -73,9 +73,9 @@ func DirectMirScalarProgramRecordAbiCarriageFromDeclaration(
     }
     ArrayPush(ids, id); ArrayPush(keys, key);
     ArrayPush(sizes, size); ArrayPush(aligns, align);
-    let field: Int = 0;
+    var field: Int = 0;
     while field < fields {
-        let offset: Int = 0; let field_size: Int = 0; let field_align: Int = 0;
+        var offset: Int = 0; var field_size: Int = 0; var field_align: Int = 0;
         if physical.valid {
             offset = ToInt(physical.abi.field_offsets[field]);
             field_size = ToInt(physical.abi.field_sizes[field]);
@@ -94,14 +94,14 @@ func DirectMirScalarProgramRecordAbiCarriageAppend(
     current: DirectMirScalarProgramRecordAbiCarriage,
     ref candidate: DirectMirScalarProgramRecordAbiCarriage
 ) -> DirectMirScalarProgramRecordAbiCarriage {
-    let ids: Array<Int> = current.layout_ids; let keys: Array<String> = current.row_keys;
-    let sizes: Array<Int> = current.sizes; let aligns: Array<Int> = current.aligns;
-    let offsets: Array<Int> = current.field_offsets;
-    let field_sizes: Array<Int> = current.field_sizes;
-    let field_aligns: Array<Int> = current.field_aligns;
+    var ids: Array<Int> = current.layout_ids; var keys: Array<String> = current.row_keys;
+    var sizes: Array<Int> = current.sizes; var aligns: Array<Int> = current.aligns;
+    var offsets: Array<Int> = current.field_offsets;
+    var field_sizes: Array<Int> = current.field_sizes;
+    var field_aligns: Array<Int> = current.field_aligns;
     ArrayPush(ids, candidate.layout_ids[0]); ArrayPush(keys, candidate.row_keys[0]);
     ArrayPush(sizes, candidate.sizes[0]); ArrayPush(aligns, candidate.aligns[0]);
-    let field: Int = 0;
+    var field: Int = 0;
     while field < ArrayLength(candidate.field_offsets) {
         ArrayPush(offsets, candidate.field_offsets[field]);
         ArrayPush(field_sizes, candidate.field_sizes[field]);
@@ -126,7 +126,7 @@ func DirectMirScalarProgramRecordAbiCarriageRowReady(
             fact.aligns[row] <= 0 { return false; }
     } else if fact.layout_ids[row] != 0 || fact.row_keys[row] != "" ||
         fact.sizes[row] != 0 || fact.aligns[row] != 0 { return false; }
-    let field: Int = start;
+    var field: Int = start;
     while field < start + count {
         if required {
             if fact.field_offsets[field] < 0 || fact.field_sizes[field] <= 0 ||

@@ -1,3 +1,4 @@
+import "ast_constructor_target_identity_owner.pgy";
 // Signature-only initial capture of canonical callable target rows.
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
@@ -7,6 +8,7 @@ import "ast_expression_environment_owner.pgy";
 import "ast_expression_builtin_member_call_target_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_call_target_diagnostic_owner.pgy";
 import "ast_expression_carried_callable_identity_owner.pgy";
 struct SemanticExpressionCallTargetCapture {
     graph: SemanticExpressionGraphFacts;
@@ -28,6 +30,7 @@ func SemanticExpressionCallTargetDecisionForNode(
     ref graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
     intents: SemanticAstIntentSignatureFacts,
     ref function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref constructor_targets: SemanticConstructorTargetIdentities,
     require_carried: Bool,
     node_id: Int
 ) -> SemanticExpressionCallTargetDecision {
@@ -144,7 +147,8 @@ func SemanticExpressionCallTargetDecisionForNode(
                     SemanticExpressionCallTargetNameNone(), -1, 0);
             }
         } else if require_carried &&
-            (graph.arena.identities.call_target_syntax_ids[node_id] != 0 ||
+            (graph.arena.identities.call_target_syntax_ids[node_id] !=
+                SemanticConstructorTargetSyntaxId(constructor_targets, canonical_target_name) ||
              binding.kind != SemanticExpressionBindingNone() ||
              IsSome(binding_ordinal) || binding.syntax_id != 0) {
             return SemanticExpressionCallTargetDecision(
@@ -195,23 +199,31 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     require_carried: Bool,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticExpressionCallTargetCapture {
-    if !graph.ok || !signatures.ok || !constructors.ok ||
+    // Move the value parameter into the one local mutation owner. The
+    // functional-update boundary returns this graph; it does not expose an
+    // inout mutation to the caller or create a second storage descriptor.
+    var captured_graph: SemanticExpressionGraphFacts = graph;
+    if !captured_graph.ok || !signatures.ok || !constructors.ok ||
         !enums.ok ||
-        !SemanticExpressionGraphArenaReady(graph.arena) ||
+        !SemanticExpressionGraphArenaReady(captured_graph.arena) ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
+        captured_graph.ok = false;
         return SemanticExpressionCallTargetCapture(
-            SemanticExpressionGraphFacts(
-                false, graph.roots, graph.has_roots, graph.arena),
-            -1, "call_target_input"
+            captured_graph, -1, "call_target_input"
         );
     }
-    let target_names: Array<String> = graph.arena.call_target_names;
-    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
-    let input_shape_ready: Bool = graph.arena.shape_ready;
-    let input_rows: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
-    let valid: Bool = true;
-    let member_names: Array<String> = [];
-    let signature_index: Int = 0;
+    let constructor_targets: SemanticConstructorTargetIdentities =
+        SemanticConstructorTargetIdentitiesFromOwners(constructors, enums);
+    if !constructor_targets.valid {
+        captured_graph.ok = false;
+        return SemanticExpressionCallTargetCapture(captured_graph, -1, "constructor_target_input");
+    }
+    let input_shape_ready: Bool = captured_graph.arena.shape_ready;
+    let input_rows: Int = SemanticExpressionGraphArenaNodeCount(
+        captured_graph.arena);
+    var valid: Bool = true;
+    var member_names: Array<String> = [];
+    var signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(signatures) {
         let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
             signatures, signature_index
@@ -220,10 +232,9 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
             signatures, signature_index
         );
         if !IsSome(owner) || !IsSome(name) {
+            captured_graph.ok = false;
             return SemanticExpressionCallTargetCapture(
-                SemanticExpressionGraphFacts(
-                    false, graph.roots, graph.has_roots, graph.arena),
-                -1, "call_target_signature"
+                captured_graph, -1, "call_target_signature"
             );
         }
         if UnwrapOption(owner) != "" {
@@ -236,17 +247,20 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
         }
         signature_index = signature_index + 1;
     }
-    let node_id: Int = 0;
-    let failure_node_id: Int = -1;
-    let failure_lane: String = "";
-    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
-        if require_carried && target_kinds[node_id] ==
+    var node_id: Int = 0;
+    var failure_node_id: Int = -1;
+    var failure_lane: String = "";
+    while node_id < SemanticExpressionGraphArenaNodeCount(
+            captured_graph.arena) && valid {
+        if require_carried &&
+            captured_graph.arena.call_target_kinds[node_id] ==
                 SemanticCallTargetMember() {
             let declared_member: Bool = IsSome(SemanticCallableIndex(
-                member_names, target_names[node_id]));
+                member_names,
+                captured_graph.arena.call_target_names[node_id]));
             if !declared_member &&
                 !SemanticExpressionBuiltinMemberCallTargetReady(
-                    graph, function_tables, node_id) {
+                    captured_graph, function_tables, node_id) {
                 valid = false;
                 failure_node_id = node_id;
                 failure_lane = "call_target_carried";
@@ -254,16 +268,16 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
         } else {
             let expected: SemanticExpressionCallTargetDecision =
                 SemanticExpressionCallTargetDecisionForNode(
-                    graph, signatures, intents, function_tables,
-                    require_carried, node_id
+                    captured_graph, signatures, intents, function_tables,
+                    constructor_targets, require_carried, node_id
                 );
             if !expected.ok {
                 valid = false;
                 failure_node_id = node_id;
                 failure_lane = "call_target_expected";
             } else {
-                let expected_name: String = "";
-                let expected_name_ready: Bool = true;
+                var expected_name: String = "";
+                var expected_name_ready: Bool = true;
                 if expected.name_source ==
                         SemanticExpressionCallTargetNameCallable() {
                     if expected.name_index < 0 || expected.name_index >=
@@ -277,16 +291,18 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
                         SemanticExpressionCallTargetNameGraphNode() {
                     let graph_name: Option<String> =
                         SemanticExpressionGraphNodeText(
-                            graph, expected.name_index);
+                            captured_graph, expected.name_index);
                     if !IsSome(graph_name) { expected_name_ready = false; }
                     else { expected_name = UnwrapOption(graph_name); }
                 } else if expected.name_source ==
                         SemanticExpressionCallTargetNameCarried() {
                     if expected.name_index < 0 || expected.name_index >=
-                            ArrayLength(target_names) {
+                            ArrayLength(
+                                captured_graph.arena.call_target_names) {
                         expected_name_ready = false;
                     } else {
-                        expected_name = target_names[expected.name_index];
+                        expected_name = captured_graph.arena
+                            .call_target_names[expected.name_index];
                     }
                 } else if expected.name_source !=
                         SemanticExpressionCallTargetNameNone() {
@@ -297,46 +313,39 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
                     failure_node_id = node_id;
                     failure_lane = "call_target_name_owner";
                 } else if require_carried &&
-                    (target_kinds[node_id] != expected.kind ||
-                     target_names[node_id] != expected_name) {
+                    (captured_graph.arena.call_target_kinds[node_id] !=
+                        expected.kind ||
+                     captured_graph.arena.call_target_names[node_id] !=
+                        expected_name) {
                     valid = false;
                     failure_node_id = node_id;
                     failure_lane = "call_target_carried";
                 } else if !require_carried {
-                    ArraySet(target_kinds, node_id, expected.kind);
-                    ArraySet(target_names, node_id, expected_name);
+                    ArraySet(
+                        captured_graph.arena.call_target_kinds,
+                        node_id, expected.kind);
+                    ArraySet(
+                        captured_graph.arena.call_target_names,
+                        node_id, expected_name);
                 }
             }
         }
         node_id = node_id + 1;
     }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopologyWithIdentities(
-        graph.arena.topology, graph.arena.node_texts, target_kinds, target_names,
-        graph.arena.call_return_type_names, graph.arena.identities, graph.arena.place_kinds);
-    // Same topology and node texts as the input: only call targets changed.
-    arena.shape_ready = input_shape_ready && SemanticExpressionGraphArenaShapeReady(arena, input_rows);
+    // Diagnostics and the returned graph use the same arena owner. Keeping a
+    // second descriptor for either target row would make the result shared.
     if failure_node_id >= 0 {
-        let failure_callee_id: Int = graph.arena.topology.left_children[failure_node_id];
-        failure_lane = Concat(failure_lane, Concat(
-            "|text=", graph.arena.node_texts[failure_node_id]));
-        failure_lane = Concat(failure_lane, Concat(
-            "|target=", graph.arena.call_target_names[failure_node_id]));
-        failure_lane = Concat(failure_lane, Concat(
-            "|target_id=", ToString(graph.arena.identities
-                .call_target_syntax_ids[failure_node_id])));
-        failure_lane = Concat(failure_lane, Concat(
-            "|callee=", ToString(failure_callee_id)));
-        failure_lane = Concat(failure_lane, Concat("|callee_text=",
-            graph.arena.node_texts[failure_callee_id]));
-        failure_lane = Concat(failure_lane, Concat("|callee_binding=", ToString(graph.arena.identities.binding_syntax_ids[failure_callee_id])));
-        failure_lane = Concat(failure_lane, Concat("|callee_kind=",
-            ToString(graph.arena.identities.binding_kinds[failure_callee_id])));
+        failure_lane = SemanticExpressionCallTargetFailureLane(
+            captured_graph, failure_node_id, failure_lane);
     }
+    // Same topology and node texts as the input: only call targets changed.
+    captured_graph.arena.shape_ready = input_shape_ready &&
+        SemanticExpressionGraphArenaShapeReady(
+            captured_graph.arena, input_rows);
+    captured_graph.ok = valid &&
+        SemanticExpressionGraphArenaReady(captured_graph.arena);
     return SemanticExpressionCallTargetCapture(
-        SemanticExpressionGraphFacts(
-            valid && SemanticExpressionGraphArenaReady(arena),
-            graph.roots, graph.has_roots, arena),
-        failure_node_id, failure_lane
+        captured_graph, failure_node_id, failure_lane
     );
 }
 func SemanticExpressionGraphCallTargetsFromSignatures(

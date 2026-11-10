@@ -27,6 +27,7 @@
 #include "match_binding_type_fact.h"
 #include "domain_runtime_fact.h"
 #include "collection_ownership_fact.h"
+#include "formal_string_store_landing_owner.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -45,6 +46,11 @@ typedef struct {
     ASTNode *decl, *alias_owner;
     uint32_t id, alias_owner_id;
 } SemanticNestedCallable;
+typedef struct {
+    ASTNode *decl;
+    const char *type_name;
+    size_t source_order;
+} SemanticRoleForTypeDecl;
 typedef struct ResourceFlowUniverse ResourceFlowUniverse;
 typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
 typedef struct TransactionFlowContext TransactionFlowContext;
@@ -57,16 +63,7 @@ typedef struct CollectionOwnedElementRequirementStore CollectionOwnedElementRequ
 typedef struct ArrayStorageDeferredPreservationStore ArrayStorageDeferredPreservationStore;
 typedef struct StringWindowExtentStore StringWindowExtentStore;
 typedef struct IndexedStringNamedCallStore IndexedStringNamedCallStore;
-
-/* Transient risk-owner evidence for one formal-String landing batch.  The
- * indexed String owner records only live Array<String> bindings whose owned
- * elements made this formal-rooted value require an independent stored copy
- * in the current routine. */
-typedef struct {
-    uint32_t routine_id;
-    uint32_t formal_id;
-    uint32_t risk_owner_binding_id;
-} FormalStringStoreLandingRiskOwner;
+typedef struct OwnedStringArrayPushCandidate OwnedStringArrayPushCandidate;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -108,10 +105,21 @@ struct TypeResolutionGraph
     TypeResolutionNode *nodes;
     size_t              node_count;
     size_t              node_capacity;
+    /* Exact identity projection for (kind, site, label).  Slots hold the
+     * stable node ordinal plus one; node order remains the semantic order. */
+    size_t             *node_identity_slots;
+    size_t              node_identity_capacity;
 
     TypeResolutionEdge *edges;
     size_t              edge_count;
     size_t              edge_capacity;
+    /* Positive projection of exact (source node, reason) edge rows.  Slots
+     * hold the first matching edge ordinal plus one. */
+    size_t             *edge_reason_slots;
+    size_t              edge_reason_capacity;
+    const TypeResolutionEdge *edge_reason_edges;
+    size_t              edge_reason_edge_count;
+    bool                edge_reason_projection_ready;
 };
 
 /*
@@ -123,13 +131,17 @@ struct SemanticContext
     ASTNode*     program_root;   /* Root AST for cross-decl lookup */
     uint32_t     synthetic_stable_id_next; /* identities for checker-built nodes; 0 until first use */
     const uint32_t *string_store_landing_plan; /* store calls an earlier analysis selected */
+    const PgyStringStoreLandingKind *string_store_landing_plan_kinds;
     size_t       string_store_landing_plan_count;
     uint32_t    *string_store_landing_selected; /* store calls this analysis selects */
+    PgyStringStoreLandingKind *string_store_landing_selected_kinds;
+    const ASTNode **string_store_landing_selected_nodes; /* exact calls for current-round revalidation */
     uint32_t    *string_store_landing_selected_routines; /* exact routine owner per selected call */
     uint32_t    *string_store_landing_selected_formals; /* nonzero only for a formal String escape */
     size_t       string_store_landing_selected_count, string_store_landing_selected_capacity;
-    FormalStringStoreLandingRiskOwner *string_store_landing_risk_owners;
-    size_t       string_store_landing_risk_owner_count, string_store_landing_risk_owner_capacity;
+    OwnedStringArrayPushCandidate *owned_string_array_push_candidates;
+    size_t       owned_string_array_push_candidate_count;
+    size_t       owned_string_array_push_candidate_capacity;
     uint32_t    *loan_copy_landing_selected; /* getter calls whose result a next analysis clones */
     size_t       loan_copy_landing_selected_count, loan_copy_landing_selected_capacity;
     bool         loan_copy_landing_has_deferred_error;
@@ -169,6 +181,10 @@ struct SemanticContext
     Type*        expected_collection_type; /* Contextual collection type for a
                                             * literal initializer: drives the
                                             * sequence ctor (Array/List/Queue). */
+    ASTNode*     expected_result_constructor; /* Exact Ok/Err expression whose
+                                               * typed site owns Result<T,E>. */
+    Type*        expected_result_type; /* Contextual Result type for that one
+                                        * constructor expression only. */
     uint32_t     current_function_effects; /* Local diagnostic provenance */
     uint32_t     current_function_direct_effects; /* Call equations exclude callee summaries */
     uint32_t     current_function_capabilities; /* Inferred PGY_CAP_* mask */
@@ -319,6 +335,12 @@ struct SemanticContext
          * Their exact source IDs are indexed once, not rescanned per call. */
         SemanticNestedCallable *nested_callables;
         size_t nested_count, nested_capacity;
+        /* Role declarations sorted by their `for` type and then source order.
+         * This is a non-owning projection of the same indexed declarations,
+         * built once per semantic generation for role/operator consumers. */
+        SemanticRoleForTypeDecl *roles_by_type;
+        size_t role_count, role_capacity;
+        bool roles_by_type_ready;
     } host_decl_index;
 
     size_t type_resolution_metadata_hits;
@@ -516,6 +538,10 @@ Type* type_check_expression_at_typed_site(ASTNode* expr, Type* site_type,
                                           SemanticContext* ctx);
 bool semantic_type_mentions_generic_param(const Type* type);
 bool semantic_expr_is_empty_collection_literal(const ASTNode* expr);
+/* True only for the copy planner's transparent Clone wrapper around an empty
+ * collection literal. A source-spelled Clone is not a contextual type site. */
+bool semantic_expr_is_compiler_clone_of_empty_collection(
+    const ASTNode* expr);
 
 /* -----------------------------------------------------------------
  * Resource-handle checkers (Pergyra core rules)

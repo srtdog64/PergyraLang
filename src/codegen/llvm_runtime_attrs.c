@@ -54,28 +54,28 @@ llvm_fn_is_checked_arith(const char *fn_name)
             || strstr(fn_name, "pgy_checked_f2i_") != NULL);
 }
 
-/*
- * Bounds-checked collection accessors carry a fail-closed out-of-bounds guard
- * that ends in an inline PGY_RUNTIME_PANIC (the same stderr+abort body as the
- * panic family). When the runtime bitcode provides the function and the LLVM
- * backend re-optimizes it, that inline panic body mis-lowers and crashes with an
- * access violation instead of printing and aborting -- exactly the hazard the
- * panic and checked-arith exclusions already guard against. Strip these bodies
- * so each call resolves to the separately compiled runtime object, whose guard
- * is byte-identical to the C backend's and never mis-lowers. These are the typed
- * array get/set accessors (pgy_array_get_Int, pgy_array_set_Long, ...) plus the
- * raw guarded cores they share.
- */
+/* Typed Array/Slice access retains every guard but delegates failure to the
+ * external panic owner. Its body can now inline without folding stderr/abort
+ * into the program. Raw and other collection families still need exclusion. */
+static bool
+llvm_fn_is_inlineable_array_access(const char *fn_name)
+{
+    return fn_name != NULL && strstr(fn_name, "_raw_export") == NULL
+        && (strncmp(fn_name, "pgy_array_get_", 14) == 0
+            || strncmp(fn_name, "pgy_array_set_", 14) == 0
+            || strncmp(fn_name, "pgy_slice_get_", 14) == 0
+            || strncmp(fn_name, "pgy_slice_set_", 14) == 0);
+}
+
 bool
-llvm_fn_is_bounds_checked_accessor(const char *fn_name)
+llvm_fn_requires_external_bounds_guard(const char *fn_name)
 {
     /*
      * Only EXTERNAL (T) runtime symbols may be stripped from the inlined
      * bitcode: stripping replaces the body with an external declaration, which
      * the linker must be able to resolve against the separately compiled runtime
-     * object. The typed/raw array accessors (pgy_array_get_/set_*) are external
-     * and carry the inline out-of-bounds PGY_RUNTIME_PANIC that mis-lowers when
-     * folded, so they must be stripped. pgy_map_grow_raw_export is `static`
+     * object. The remaining raw collection accessors carry inline failure
+     * bodies, so they must be stripped. pgy_map_grow_raw_export is `static`
      * (local) and delegates its bounds panic to the already-external
      * pgy_runtime_panic_out_of_bounds_export, so it neither needs nor tolerates
      * stripping -- stripping a static symbol yields an undefined-reference link
@@ -83,14 +83,12 @@ llvm_fn_is_bounds_checked_accessor(const char *fn_name)
      */
     if (fn_name == NULL)
         return false;
+    if (llvm_fn_is_inlineable_array_access(fn_name))
+        return false;
     if (strstr(fn_name, "pgy_array_get_") != NULL
         || strstr(fn_name, "pgy_array_set_") != NULL
-        /* Slice element accessors carry the same inline out-of-bounds
-         * panic body as the array accessors, so they take the same
-         * strip treatment (external in the exports object). slice_get
-         * was a latent gap: its inlined panic body mis-lowered to an
-         * access violation once the runtime bitcode was regenerated
-         * (caught by slice_inline_index_oob/llvm). */
+        /* Typed accessors returned above; preserve exclusion for a raw
+         * export in these families until its own failure boundary is closed. */
         || strstr(fn_name, "pgy_slice_get_") != NULL
         || strstr(fn_name, "pgy_slice_set_") != NULL)
         return true;
@@ -292,6 +290,85 @@ llvm_runtime_entrypoint_attr_add(LLVMContextRef context, LLVMValueRef fn,
     if (kind != 0)
         LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
             LLVMCreateEnumAttribute(context, kind, 0));
+}
+
+void
+llvm_runtime_definition_attrs_apply(LLVMContextRef context, LLVMValueRef fn)
+{
+    const char *name = LLVMGetValueName(fn);
+
+    if (llvm_fn_is_inlineable_array_access(name))
+        llvm_runtime_entrypoint_attr_add(context, fn, "inlinehint");
+    /* Expose both layers of storage retirement so the optimizer can see the
+     * descriptor's last use and the original allocator/free call together. */
+    if (name != NULL && (strcmp(name,
+            "pgy_array_drop_storage_raw_export") == 0
+            || (strncmp(name, "pgy_array_drop_", 15) == 0
+                && strstr(name, "_export") == NULL)))
+        llvm_runtime_entrypoint_attr_add(context, fn, "alwaysinline");
+}
+
+bool
+llvm_runtime_bitcode_has_direct_abi(LLVMValueRef declaration,
+                                    LLVMValueRef definition)
+{
+    /* LLVM's machine call lowering handles a source aggregate return, while
+     * Clang bitcode already carries its C sret/byval lowering. Linking those
+     * different IR signatures and then inlining shifts the actual arguments.
+     * Keep that ABI at the existing separately compiled runtime boundary. */
+    if (declaration == NULL)
+        return true;
+    if (LLVMGlobalGetValueType(declaration) != LLVMGlobalGetValueType(definition)
+        || LLVMGetFunctionCallConv(declaration) != LLVMGetFunctionCallConv(definition))
+        return false;
+    static const char *const lowered[] = {
+        "sret", "byval", "inalloca", "preallocated", "byref"
+    };
+    for (unsigned i = 1; i <= LLVMCountParams(definition); i++) {
+        for (size_t j = 0; j < sizeof(lowered) / sizeof(lowered[0]); j++) {
+            unsigned kind = LLVMGetEnumAttributeKindForName(lowered[j],
+                strlen(lowered[j]));
+            if (kind != 0 && LLVMGetEnumAttributeAtIndex(definition, i, kind) != NULL)
+                return false;
+        }
+    }
+    return true;
+}
+
+static void
+llvm_runtime_c_bool_attr_add(LLVMContextRef context, LLVMValueRef fn,
+                             LLVMAttributeIndex index)
+{
+    unsigned kind = LLVMGetEnumAttributeKindForName("zeroext", 7);
+
+    if (kind != 0)
+        LLVMAddAttributeAtIndex(fn, index,
+            LLVMCreateEnumAttribute(context, kind, 0));
+}
+
+void
+llvm_runtime_c_bool_abi_attrs_apply(LLVMContextRef context, LLVMValueRef fn,
+                                    LLVMTypeRef fn_type)
+{
+    unsigned param_count;
+
+    if (context == NULL || fn == NULL || fn_type == NULL)
+        return;
+    if (LLVMGetTypeKind(LLVMGetReturnType(fn_type)) == LLVMIntegerTypeKind
+        && LLVMGetIntTypeWidth(LLVMGetReturnType(fn_type)) == 1)
+        llvm_runtime_c_bool_attr_add(context, fn,
+                                     LLVMAttributeReturnIndex);
+
+    param_count = LLVMCountParams(fn);
+    for (unsigned i = 0; i < param_count; i++) {
+        LLVMValueRef param = LLVMGetParam(fn, i);
+        LLVMTypeRef param_type = LLVMTypeOf(param);
+
+        if (LLVMGetTypeKind(param_type) == LLVMIntegerTypeKind
+            && LLVMGetIntTypeWidth(param_type) == 1)
+            llvm_runtime_c_bool_attr_add(context, fn,
+                                         (LLVMAttributeIndex)(i + 1));
+    }
 }
 
 /*

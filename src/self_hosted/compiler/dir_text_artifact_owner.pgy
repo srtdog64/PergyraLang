@@ -36,7 +36,7 @@ func CompilerDirTextArtifactFromProjection(
          ArrayLength(inventory.edges.kinds) != graph.edge_count) {
         Die("self-host DIR node/edge census diverged from its inventory");
     }
-    let text: String = "DIR Program\n  nodes: ";
+    var text: String = "DIR Program\n  nodes: ";
     text = Concat(text, ToString(ArrayLength(inventory.nodes.kinds)));
     text = Concat(text, "\n  edges: ");
     text = Concat(text, ToString(ArrayLength(inventory.edges.kinds)));
@@ -55,7 +55,7 @@ func CompilerDirTextArtifactFromProjection(
     text = Concat(text, "\n  domain_topology_rows: ");
     text = Concat(text, ToString(graph.topology_row_count));
     text = Concat(text, "\n");
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < ArrayLength(inventory.nodes.kinds) {
         text = Concat(text, "  node[");
         text = Concat(text, CompilerDirTextRowIndex(node_id));
@@ -76,7 +76,7 @@ func CompilerDirTextArtifactFromProjection(
         text = Concat(text, "\n");
         node_id = node_id + 1;
     }
-    let edge_id: Int = 0;
+    var edge_id: Int = 0;
     while edge_id < ArrayLength(inventory.edges.kinds) {
         text = Concat(text, "  edge[");
         text = Concat(text, CompilerDirTextRowIndex(edge_id));
@@ -103,7 +103,7 @@ func CompilerDirTextArtifactFromProjection(
         text = Concat(text, "\n");
         edge_id = edge_id + 1;
     }
-    let topology_id: Int = 0;
+    var topology_id: Int = 0;
     while topology_id < ArrayLength(graph.topology.kinds) {
         let owner_node: Int = SelfDirGraphInventoryDomainOwnerNodeIndex(
             inventory, graph.topology.owner_names[topology_id]

@@ -1,12 +1,13 @@
 // C copy-in/copy-out lifecycle for Set<String> value-result formals.
 
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 
 func DirectMirScalarProgramCSetStringValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramSetStringValueResultAt(
                 plan, routine, ordinal) {
@@ -25,15 +26,22 @@ func DirectMirScalarProgramCSetStringValueResultCopyIn(
 func DirectMirScalarProgramCSetStringValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramSetStringValueResultAt(
                 plan, routine, ordinal) {
+            let local_row: Int =
+                DirectMirScalarProgramParameterValueResultLocalRow(
+                    plan, routine, ordinal);
+            var storage: String = Concat("pgy_param_", ToString(ordinal));
+            if local_row >= 0 {
+                storage = Concat("pgy_local_", ToString(local_row));
+            }
             output = Concat(output, Concat("    *pgy_param_",
                 ToString(ordinal)));
-            output = Concat(output, Concat("_mutref = pgy_param_",
-                ToString(ordinal)));
+            output = Concat(output, "_mutref = ");
+            output = Concat(output, storage);
             output = Concat(output, ";\n");
         }
         ordinal = ordinal + 1;

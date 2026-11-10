@@ -23,7 +23,7 @@ func SemanticAstCollectionFormalEffectFacetsResolve(
     // the existing containment refusal; descriptor facts never erase it.
     SemanticAstCollectionFormalEffectFixedPoint(
         inventory, blocked, mutations, shallow, reads, sources, targets, descriptors, status);
-    let row: Int = 0;
+    var row: Int = 0;
     while status.ok && row < ArrayLength(inventory.formal_nodes) {
         if text_escapes[row] && !blocked[row] &&
             !SemanticAstFormalTextContained(artifact, signatures, locals, inferred_types,
@@ -48,12 +48,12 @@ func SemanticAstCollectionDescriptorEffectsPublish(
     ref inventory: SemanticAstCollectionFormalEffectInventory,
     payloads: HashMap<String, Int>, inout descriptors: HashMap<String, Int>
 ) -> Bool {
-    let known: Int = 0;
-    let row: Int = 0;
+    var known: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(inventory.formal_nodes) {
         let key: String = ToString(inventory.formal_nodes[row]);
-        let payload: Int = 0;
-        let descriptor: Int = 0;
+        var payload: Int = 0;
+        var descriptor: Int = 0;
         if MapHas(payloads, key) { payload = MapGet(payloads, key); }
         if MapHas(descriptors, key) { descriptor = MapGet(descriptors, key); }
         // A physical mutator plus an escaping element remains unproved,

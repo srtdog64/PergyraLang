@@ -50,6 +50,8 @@ is admitted.
 
 Fixtures: `borrowed_owner_loan_grown_landed_valid` (one landing, prints
 `31` on C and LLVM), `borrowed_owner_loan_grown_by_value_clone_invalid`
-(an Env holding Groups is copied only by value: refused at 24:5).
+(the result also borrows `env.groups`, whose nested Array storage is not made
+independent by the String-field copy: refused before MIR at the constructor
+store and retained through the routine/caller summaries).
 
 Replaces: nothing.

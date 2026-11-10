@@ -13,7 +13,7 @@ func CodegenIntentEmitControlPrologue(
     ref intent_policy: CodegenIntentPolicyView,
     ref intents: SemanticAstIntentSignatureFacts,
     intent_index: Int,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     env: CodegenTypeEnv
 ) -> Void {
     if step_count <= 0 { Die("self-host intent has no executable step"); }
@@ -26,7 +26,7 @@ func CodegenIntentEmitControlPrologue(
     ));
     CodegenIntentObservabilityEmitPrologue(
         body, uses_intent_observability, intent_node, intent_policy,
-        intents, intent_index, env,
+        expression_surfaces.expression_graph, intents, intent_index, env,
         "        __intent_failed = true;\n        goto __intent_cleanup;\n"
     );
 }
@@ -44,19 +44,19 @@ func CodegenIntentEmitStepCompleted(
 
 func CodegenIntentEmitPredicate(
     inout body: Array<String>,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     expression_node: Int,
     clause_name: String,
     step_name: String,
     uses_intent_observability: Bool,
     step_env: CodegenTypeEnv
 ) -> Void {
-    let graph: SemanticExpressionGraphView =
+    let root_id: Int =
         CodegenSemanticExpressionGraphOrDie(
             expression_surfaces, expression_node, AstExpressionLaneAtom()
         );
     let expression_type: Option<String> = CodegenExpressionTypeFromGraph(
-        graph.graph, graph.root_id, step_env
+        expression_surfaces.expression_graph, root_id, step_env
     );
     if !IsSome(expression_type) || UnwrapOption(expression_type) != "Bool" {
         Die(Concat("self-host intent ", Concat(
@@ -64,7 +64,7 @@ func CodegenIntentEmitPredicate(
         )));
     }
     let expression: String = RewriteExprFromSemanticGraph(
-        graph.graph, graph.root_id, step_env
+        expression_surfaces.expression_graph, root_id, step_env
     );
     ArrayPush(body, Concat(
         "    if (!( ", Concat(expression, Concat(
@@ -78,16 +78,16 @@ func CodegenIntentEmitPredicate(
 }
 
 func CodegenIntentCompensationExpression(
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     expression_node: Int,
     step_env: CodegenTypeEnv
 ) -> String {
-    let graph: SemanticExpressionGraphView =
+    let root_id: Int =
         CodegenSemanticExpressionGraphOrDie(
             expression_surfaces, expression_node, AstExpressionLaneAtom()
         );
     return RewriteExprFromSemanticGraph(
-        graph.graph, graph.root_id, step_env
+        expression_surfaces.expression_graph, root_id, step_env
     );
 }
 
@@ -110,7 +110,7 @@ func CodegenIntentEmitCleanup(
     ArrayPush(body, "    goto __intent_cleanup;\n");
     ArrayPush(body, "__intent_cleanup:\n");
     ArrayPush(body, "    if (__intent_failed) {\n");
-    let step: Int = step_count;
+    var step: Int = step_count;
     while step > 0 {
         step = step - 1;
         let start: Int = compensation_starts[step];
@@ -125,7 +125,7 @@ func CodegenIntentEmitCleanup(
                     ToString(step), "]) {\n"
                 )
             ));
-            let compensation_index: Int = count;
+            var compensation_index: Int = count;
             while compensation_index > 0 {
                 compensation_index = compensation_index - 1;
                 let expression_row: Int = start + compensation_index;

@@ -21,7 +21,7 @@ func CodegenExternPrototypeBlock(
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(256);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         if CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
             CodegenSemanticFunctionOwnerOrDie(signatures, i) != "" {
@@ -40,7 +40,7 @@ func CodegenExternPrototypeBlock(
         let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
             signatures, i
         );
-        let pn: Int = 0;
+        var pn: Int = 0;
         while pn < param_count {
             if CodegenSemanticFunctionParamModeOrDie(
                 signatures, i, pn

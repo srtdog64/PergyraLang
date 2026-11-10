@@ -29,17 +29,17 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
     }
     // Native admits these subjects (flow_match_subject_is_beta_supported)
     // and leaves an unknown type to the error that made it unknown.
-    let subject_row: Int = 0;
+    var subject_row: Int = 0;
     while subject_row < count {
         let subject_node: Int = statements.node_ids[subject_row];
         let subject_type: String = types.inferred_type_names[subject_row];
-        let subject_ok: Bool = statements.kind_tags[subject_row] !=
+        var subject_ok: Bool = statements.kind_tags[subject_row] !=
             TypedAstKindMatchStmtTag() || subject_type == "" ||
             subject_type == "Unknown" || subject_type == "Int" ||
             subject_type == "Long" || subject_type == "Bool" ||
             StartsWith(subject_type, "Option<") ||
             StartsWith(subject_type, "Result<");
-        let enum_row: Int = 0;
+        var enum_row: Int = 0;
         while !subject_ok && enum_row < ArrayLength(enums.enum_names) {
             subject_ok = enums.enum_names[enum_row] == subject_type;
             enum_row = enum_row + 1;
@@ -57,10 +57,10 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
     if ArrayLength(enums.enum_names) == 0 { return SemanticAstBodyVerdictOk(); }
     // Capture declaration ranges once. Variant rows are appended together by
     // the enum fact producer; every match visits only its own variant space.
-    let starts: HashMap<String, Int> = MapNew();
-    let counts: HashMap<String, Int> = MapNew();
-    let arities: HashMap<String, Int> = MapNew();
-    let row: Int = 0;
+    var starts: HashMap<String, Int> = MapNew();
+    var counts: HashMap<String, Int> = MapNew();
+    var arities: HashMap<String, Int> = MapNew();
+    var row: Int = 0;
     while row < ArrayLength(enums.enum_names) {
         let name: String = enums.enum_names[row];
         if name == "" || MapHas(starts, name) {
@@ -88,8 +88,8 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
         MapSet(counts, name, size + 1);
         row = row + 1;
     }
-    let defaults: HashMap<Int, Int> = MapNew();
-    let covered: HashMap<String, Int> = MapNew();
+    var defaults: HashMap<Int, Int> = MapNew();
+    var covered: HashMap<String, Int> = MapNew();
     row = 0;
     while row < count {
         let node: Int = statements.node_ids[row];
@@ -126,9 +126,9 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
                     // name. Each or-pattern alternative covers its variant.
                     let alternatives: Array<String> =
                         AstMatchCasePatternAlternatives(pattern);
-                    let alternative: Int = 0;
+                    var alternative: Int = 0;
                     while alternative < ArrayLength(alternatives) {
-                        let variant: String = pattern.variant;
+                        var variant: String = pattern.variant;
                         if variant == "" { variant = alternatives[alternative]; }
                         let key: String = Concat(subject_type, Concat(":", variant));
                         if !MapHas(arities, key) ||
@@ -155,7 +155,7 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
             if MapHas(starts, subject_type) && !MapHas(defaults, node) {
                 let first: Int = MapGet(starts, subject_type);
                 let size: Int = MapGet(counts, subject_type);
-                let variant: Int = 0;
+                var variant: Int = 0;
                 while variant < size {
                     let name: String = enums.variant_names[first + variant];
                     if !MapHas(covered, Concat(ToString(node), Concat(":", name))) {

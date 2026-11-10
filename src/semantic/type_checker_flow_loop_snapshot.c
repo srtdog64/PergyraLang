@@ -22,6 +22,40 @@ resource_snapshot_count_fits(size_t count)
         && count <= SIZE_MAX / sizeof(ArrayStoragePathState);
 }
 
+static bool
+member_element_states_equal(
+    const ArrayStorageMemberElementPremiseState *left,
+    const ArrayStorageMemberElementPremiseState *right)
+{
+    return left->present == right->present
+        && left->current == right->current
+        && left->source == right->source
+        && left->source_id == right->source_id
+        && left->root_binding_id == right->root_binding_id
+        && left->leaf_field_id == right->leaf_field_id
+        && left->source_birth_serial == right->source_birth_serial;
+}
+
+static bool
+slice_permission_states_equal(const ResourceConsumeSnapshot *a,
+                              const ResourceConsumeSnapshot *b)
+{
+    if (a->slice_permission_count != b->slice_permission_count)
+        return false;
+    if (a->slice_permission_count != 0
+        && (a->slice_permissions == NULL || b->slice_permissions == NULL))
+        return false;
+    for (size_t i = 0; i < a->slice_permission_count; i++) {
+        const SlicePermissionState *left = &a->slice_permissions[i];
+        const SlicePermissionState *right = &b->slice_permissions[i];
+        if (left->symbol != right->symbol
+            || left->declaration_id != right->declaration_id
+            || left->sources != right->sources)
+            return false;
+    }
+    return true;
+}
+
 bool
 resource_snapshots_equal(const ResourceConsumeSnapshot *a,
                          const ResourceConsumeSnapshot *b)
@@ -31,6 +65,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
     if (!a->valid || !b->valid)
         return false;
     if (a->count != b->count)
+        return false;
+    if (!slice_permission_states_equal(a, b))
         return false;
     if (a->count > 0 && (a->array_storage_states == NULL
                          || b->array_storage_states == NULL))
@@ -60,7 +96,18 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
         if (a->array_storage_states[i].exclusive != b->array_storage_states[i].exclusive
             || a->array_storage_states[i].escaped != b->array_storage_states[i].escaped
             || a->array_storage_states[i].pending != b->array_storage_states[i].pending
-            || a->array_storage_states[i].result_pending != b->array_storage_states[i].result_pending)
+            || a->array_storage_states[i].result_pending != b->array_storage_states[i].result_pending
+            || a->array_storage_states[i].return_elements_present
+                != b->array_storage_states[i].return_elements_present
+            || a->array_storage_states[i].return_elements_owned
+                != b->array_storage_states[i].return_elements_owned
+            || a->array_storage_states[i].return_elements_source
+                != b->array_storage_states[i].return_elements_source
+            || a->array_storage_states[i].return_elements_source_id
+                != b->array_storage_states[i].return_elements_source_id
+            || !member_element_states_equal(
+                &a->array_storage_states[i].member_elements,
+                &b->array_storage_states[i].member_elements))
             return false;
     }
     return true;
@@ -73,6 +120,8 @@ resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
     if (a == NULL || b == NULL)
         return a == b;
     if (!a->valid || !b->valid || a->count != b->count)
+        return false;
+    if (!slice_permission_states_equal(a, b))
         return false;
     if (a->count > 0 && (a->array_storage_states == NULL
                          || b->array_storage_states == NULL))
@@ -94,7 +143,18 @@ resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
             || a->array_storage_states[i].exclusive != b->array_storage_states[i].exclusive
             || a->array_storage_states[i].escaped != b->array_storage_states[i].escaped
             || a->array_storage_states[i].pending != b->array_storage_states[i].pending
-            || a->array_storage_states[i].result_pending != b->array_storage_states[i].result_pending) {
+            || a->array_storage_states[i].result_pending != b->array_storage_states[i].result_pending
+            || a->array_storage_states[i].return_elements_present
+                != b->array_storage_states[i].return_elements_present
+            || a->array_storage_states[i].return_elements_owned
+                != b->array_storage_states[i].return_elements_owned
+            || a->array_storage_states[i].return_elements_source
+                != b->array_storage_states[i].return_elements_source
+            || a->array_storage_states[i].return_elements_source_id
+                != b->array_storage_states[i].return_elements_source_id
+            || !member_element_states_equal(
+                &a->array_storage_states[i].member_elements,
+                &b->array_storage_states[i].member_elements)) {
             return false;
         }
     }
@@ -108,13 +168,30 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     if (src == NULL)
         return dst;
     dst.valid = src->valid;
+    dst.context = src->context;
     if (!src->valid)
         return dst;
+    if (src->slice_permission_count != 0) {
+        if (src->slice_permissions == NULL
+            || src->slice_permission_count > SIZE_MAX / sizeof(SlicePermissionState)) {
+            dst.valid = false;
+            return dst;
+        }
+        dst.slice_permissions = malloc(src->slice_permission_count
+            * sizeof(SlicePermissionState));
+        if (dst.slice_permissions == NULL) {
+            dst.valid = false;
+            return dst;
+        }
+        memcpy(dst.slice_permissions, src->slice_permissions,
+            src->slice_permission_count * sizeof(SlicePermissionState));
+        dst.slice_permission_count = src->slice_permission_count;
+    }
     if (src->count == 0)
         return dst;
     if (!resource_snapshot_count_fits(src->count)
         || src->array_storage_states == NULL) {
-        dst.valid = false;
+        destroy_resource_snapshot(&dst);
         return dst;
     }
 

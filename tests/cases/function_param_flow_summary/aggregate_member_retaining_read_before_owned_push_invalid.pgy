@@ -1,0 +1,22 @@
+extern "C" { func KeepRows(rows: Array<String>) -> Void; }
+
+struct State {
+    rows: Array<String>;
+}
+
+func Retain(rows: Array<String>) -> Void {
+    KeepRows(rows);
+}
+
+func Append(inout state: State) -> Void {
+    var rows: Array<String> = state.rows;
+    Retain(rows);
+    ArrayPushOwnedString(rows, Concat("b", ""));
+    state.rows = rows;
+}
+
+func Main() -> Int {
+    var state: State = State([Concat("a", "")]);
+    Append(state);
+    return 0;
+}

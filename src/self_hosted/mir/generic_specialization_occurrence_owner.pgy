@@ -14,15 +14,15 @@ func SelfMirGenericCallOccurrencesFromCfg(
         let ints: Array<Int> = [];
         return SelfMirGenericCallOccurrenceRows(true, ints, ints, ints, ints, ints, ints, ints);
     }
-    let by_node: Array<Int> = [];
-    let node: Int = 0;
+    var by_node: Array<Int> = [];
+    var node: Int = 0;
     while node < SelfMirExpressionGraphNodeCount(expression_graph) {
         ArrayPush(by_node, -1);
         node = node + 1;
     }
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let row: Int = 0;
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var row: Int = 0;
     while row < count {
         node = rows.call_node_ids[row];
         if node < 0 || node >= ArrayLength(by_node) || by_node[node] >= 0 {
@@ -39,25 +39,25 @@ func SelfMirGenericCallOccurrencesFromCfg(
         ArrayPush(counts, 0);
         row = row + 1;
     }
-    let call_rows: Array<Int> = [];
-    let occurrence_routines: Array<Int> = [];
-    let blocks: Array<Int> = [];
-    let instructions: Array<Int> = [];
-    let lanes: Array<Int> = [];
-    let nodes: Array<Int> = [];
-    let routine: Int = 0;
+    var call_rows: Array<Int> = [];
+    var occurrence_routines: Array<Int> = [];
+    var blocks: Array<Int> = [];
+    var instructions: Array<Int> = [];
+    var lanes: Array<Int> = [];
+    var nodes: Array<Int> = [];
+    var routine: Int = 0;
     while routine < ArrayLength(routines.node_ids) {
-        let block: Int = routines.block_starts[routine];
+        var block: Int = routines.block_starts[routine];
         let block_end: Int = block + routines.block_counts[routine];
         while block < block_end {
-            let instruction: Int = cfg.blocks.instruction_starts[block];
+            var instruction: Int = cfg.blocks.instruction_starts[block];
             let instruction_end: Int = instruction + cfg.blocks.instruction_counts[block];
             while instruction < instruction_end {
-                let lane: Int = 0;
+                var lane: Int = 0;
                 while lane < 2 {
-                    let present: Int = cfg.instructions.expr0_graphs.has_roots[instruction];
-                    let begin: Int = cfg.instructions.expr0_graphs.node_starts[instruction];
-                    let length: Int = cfg.instructions.expr0_graphs.node_counts[instruction];
+                    var present: Int = cfg.instructions.expr0_graphs.has_roots[instruction];
+                    var begin: Int = cfg.instructions.expr0_graphs.node_starts[instruction];
+                    var length: Int = cfg.instructions.expr0_graphs.node_counts[instruction];
                     if lane == 1 {
                         present = cfg.instructions.expr1_graphs.has_roots[instruction];
                         begin = cfg.instructions.expr1_graphs.node_starts[instruction];
@@ -88,8 +88,8 @@ func SelfMirGenericCallOccurrencesFromCfg(
         routine = routine + 1;
     }
     // Group once by semantic call, preserving occurrence order within a call.
-    let total: Int = 0;
-    let cursors: Array<Int> = [];
+    var total: Int = 0;
+    var cursors: Array<Int> = [];
     row = 0;
     while row < count {
         if counts[row] == 0 { return invalid; }
@@ -98,12 +98,12 @@ func SelfMirGenericCallOccurrencesFromCfg(
         total = total + counts[row];
         row = row + 1;
     }
-    let result_routines: Array<Int> = [];
-    let result_blocks: Array<Int> = [];
-    let result_instructions: Array<Int> = [];
-    let result_lanes: Array<Int> = [];
-    let result_nodes: Array<Int> = [];
-    let occurrence: Int = 0;
+    var result_routines: Array<Int> = [];
+    var result_blocks: Array<Int> = [];
+    var result_instructions: Array<Int> = [];
+    var result_lanes: Array<Int> = [];
+    var result_nodes: Array<Int> = [];
+    var occurrence: Int = 0;
     while occurrence < total {
         ArrayPush(result_routines, 0);
         ArrayPush(result_blocks, 0);
@@ -141,8 +141,8 @@ func SelfMirGenericCallOccurrencesReady(
         ArrayLength(rows.occurrences.lanes) != total || ArrayLength(rows.occurrences.graph_nodes) != total {
         return false;
     }
-    let cursor: Int = 0;
-    let row: Int = 0;
+    var cursor: Int = 0;
+    var row: Int = 0;
     while row < count {
         if rows.occurrences.starts[row] != cursor || rows.occurrences.counts[row] <= 0 ||
             cursor + rows.occurrences.counts[row] > total { return false; }
@@ -158,9 +158,9 @@ func SelfMirGenericCallOccurrencesReady(
                 instruction < cfg.blocks.instruction_starts[block] ||
                 instruction >= cfg.blocks.instruction_starts[block] + cfg.blocks.instruction_counts[block] ||
                 lane < 0 || lane > 1 { return false; }
-            let present: Int = cfg.instructions.expr0_graphs.has_roots[instruction];
-            let begin: Int = cfg.instructions.expr0_graphs.node_starts[instruction];
-            let length: Int = cfg.instructions.expr0_graphs.node_counts[instruction];
+            var present: Int = cfg.instructions.expr0_graphs.has_roots[instruction];
+            var begin: Int = cfg.instructions.expr0_graphs.node_starts[instruction];
+            var length: Int = cfg.instructions.expr0_graphs.node_counts[instruction];
             if lane == 1 {
                 present = cfg.instructions.expr1_graphs.has_roots[instruction];
                 begin = cfg.instructions.expr1_graphs.node_starts[instruction];

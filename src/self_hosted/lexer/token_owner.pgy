@@ -20,7 +20,7 @@ func LexerDocCommentExactLexemeReady(fact: LexerTokenFact) -> Bool {
     if source_length < 3 || Substring(fact.source_text, 0, 3) != "///" {
         return false;
     }
-    let i: Int = 3;
+    var i: Int = 3;
     while i < source_length &&
         (StringWindowCharCode(fact.source_text, fact.source_text_extent, source_length, i) == 32 ||
          StringWindowCharCode(fact.source_text, fact.source_text_extent, source_length, i) == 9) {
@@ -34,7 +34,7 @@ func LexerIdentifierExactLexemeReady(text: String) -> Bool {
     if length == 0 || !IsAlphaCode(CharCode(text, length, 0)) {
         return false;
     }
-    let index: Int = 1;
+    var index: Int = 1;
     while index < length {
         if !IsAlphaNumCode(CharCode(text, length, index)) { return false; }
         index = index + 1;
@@ -47,7 +47,7 @@ func LexerNumberExactLexemeReady(text: String) -> Bool {
     if length == 0 || !IsDigitCode(CharCode(text, length, 0)) {
         return false;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < length && IsDigitCode(CharCode(text, length, index)) {
         index = index + 1;
     }
@@ -72,7 +72,7 @@ func LexerStringExactLexemeReady(text: String) -> Bool {
         CharCode(text, length, length - 1) != Ord("\"") {
         return false;
     }
-    let index: Int = 1;
+    var index: Int = 1;
     while index < length - 1 {
         let code: Int = CharCode(text, length, index);
         if code == Ord("\"") { return false; }
@@ -161,9 +161,9 @@ func LexerTokenExactLexemeContractReady() -> Bool {
 func LexerTokenFactsReady(tokens: Array<LexerTokenFact>) -> Bool {
     let count: Int = ArrayLength(tokens);
     if count == 0 { return false; }
-    let previous_line: Int = 1;
-    let previous_column: Int = 0;
-    let index: Int = 0;
+    var previous_line: Int = 1;
+    var previous_column: Int = 0;
+    var index: Int = 0;
     while index < count {
         let fact: LexerTokenFact = tokens[index];
         if !LexerTokenFactReady(fact) || fact.ordinal != index + 1 {
@@ -191,8 +191,8 @@ func PadLeft(s: String, width: Int) -> String {
         return s;
     }
     let padding: Int = width - n;
-    let result: String = "";
-    let i: Int = 0;
+    var result: String = "";
+    var i: Int = 0;
     while i < padding {
         result = Concat(result, " ");
         i = i + 1;
@@ -234,9 +234,9 @@ func LexerTokenFactsText(
         Log("LEXER ERROR: lexer token stream is incomplete");
         Exit(1);
     }
-    let output_lines: Array<String> = [];
+    var output_lines: Array<String> = [];
     ArrayPushOwnedString(output_lines, Concat(Concat("=== tokens: ", source_path), " ==="));
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(tokens) {
         let fact: LexerTokenFact = tokens[index];
         ArrayPushOwnedString(output_lines, Concat("", LexerTokenFactLine(fact)));

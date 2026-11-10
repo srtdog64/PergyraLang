@@ -23,12 +23,12 @@ func SemanticAstIntentStepClauseAdmissionFromFacts(
         return SemanticAstBodyVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "IntentStepClauseAdmission"), -1);
     }
-    let edge_nodes: Array<Int> = [];
-    let edge_owners: Array<Int> = [];
-    let edge_children: Array<Int> = [];
-    let row: Int = 0;
+    var edge_nodes: Array<Int> = [];
+    var edge_owners: Array<Int> = [];
+    var edge_children: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(kinds.kind_tags) {
-        let child_edge: Bool = kinds.kind_tags[row] == TypedAstKindIntentStepIntentTag();
+        var child_edge: Bool = kinds.kind_tags[row] == TypedAstKindIntentStepIntentTag();
         if kinds.kind_tags[row] == TypedAstKindIntentStepIntentTag() {
             let call: SemanticAstIntentCallFact =
                 SemanticAstIntentCallFromGraph(intents, surfaces, row);
@@ -52,7 +52,7 @@ func SemanticAstIntentStepClauseAdmissionFromFacts(
         }
         row = row + 1;
     }
-    let edge: Int = 0;
+    var edge: Int = 0;
     while edge < ArrayLength(edge_nodes) {
         if SemanticAstIntentChildChainReaches(edge_owners, edge_children,
                 edge_children[edge], edge_owners[edge], ArrayLength(edge_nodes) + 1) {
@@ -72,8 +72,8 @@ func SemanticAstIntentStepHasOutcome(
 ) -> Bool {
     let step: Option<Int> = TypedAstArenaParentId(artifact.arena, on_row);
     if !IsSome(step) { return false; }
-    let index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(step), 0);
+    var index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(step), 0);
     while IsSome(child) {
         if kinds.kind_tags[UnwrapOption(child)] == TypedAstKindIntentStepOutcomeTag() { return true; }
         index = index + 1;
@@ -86,8 +86,8 @@ func SemanticAstIntentStepHasOutcome(
 func SemanticAstIntentOwnerIndex(
     artifact: AstTreeArtifact, ref intents: SemanticAstIntentSignatureFacts, row: Int
 ) -> Int {
-    let current: Option<Int> = TypedAstArenaParentId(artifact.arena, row);
-    let budget: Int = artifact.count;
+    var current: Option<Int> = TypedAstArenaParentId(artifact.arena, row);
+    var budget: Int = artifact.count;
     while IsSome(current) && budget > 0 {
         let index: Option<Int> = SemanticAstIntentSignatureIndexForNode(intents, UnwrapOption(current));
         if IsSome(index) { return UnwrapOption(index); }
@@ -103,7 +103,7 @@ func SemanticAstIntentChildChainReaches(
 ) -> Bool {
     if from == needle { return true; }
     if depth <= 0 { return false; }
-    let edge: Int = 0;
+    var edge: Int = 0;
     while edge < ArrayLength(owners) {
         if owners[edge] == from &&
             SemanticAstIntentChildChainReaches(owners, targets, targets[edge], needle, depth - 1) {

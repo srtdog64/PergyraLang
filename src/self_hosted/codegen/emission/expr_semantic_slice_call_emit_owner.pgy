@@ -8,7 +8,7 @@ import "expr_semantic_call_argument_owner.pgy";
 
 // ArrayLength accepts a borrowed Slice, but its ABI is not an Array value.
 // Snapshot the descriptor once; length reads neither retain nor retire data.
-func RewriteSemanticSliceLengthCall(graph: SemanticExpressionGraphFacts,
+func RewriteSemanticSliceLengthCall(ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView, slice_type: String, env: CodegenTypeEnv,
     inout owned_fragments: Array<String>) -> String {
     if ArrayLength(view.argument_nodes) != 1 { Die("Slice length requires exactly one argument"); }
@@ -22,7 +22,7 @@ func RewriteSemanticSliceLengthCall(graph: SemanticExpressionGraphFacts,
 }
 
 func RewriteSemanticArraySliceMemberCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     member: SemanticMemberAccessView,
     env: CodegenTypeEnv,
@@ -62,7 +62,7 @@ func RewriteSemanticArraySliceMemberCall(
 }
 
 func RewriteSemanticSliceCopyCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     env: CodegenTypeEnv,
     inout owned_fragments: Array<String>

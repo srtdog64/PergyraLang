@@ -170,7 +170,7 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
             );
         }
     }
-    let return_type: String = "Void";
+    var return_type: String = "Void";
     if protocol.return_kind == "element" { return_type = element_type; }
     if protocol.return_kind == "Int" { return_type = "Int"; }
     return SemanticExpressionGraphListCallFact(
@@ -310,7 +310,7 @@ func SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
             return None;
         }
         let clone_argument_node: Int = clone_call.argument_nodes[0];
-        let clone_argument_type: String =
+        var clone_argument_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
                 graph, clone_argument_node, names, types, enum_values
             );
@@ -336,7 +336,7 @@ func SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
             return None;
         }
         let copied_node: Int = copy_call.argument_nodes[0];
-        let copied_type: String =
+        var copied_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
                 graph, copied_node, names, types, enum_values
             );
@@ -378,11 +378,11 @@ func SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
         let polymorphic_call: SemanticCallSpineView =
             SemanticCallSpineViewFromGraph(graph, root_id);
         if !polymorphic_call.ok { return None; }
-        let argument_types: Array<String> = [];
-        let argument: Int = 0;
+        var argument_types: Array<String> = [];
+        var argument: Int = 0;
         while argument < ArrayLength(polymorphic_call.argument_nodes) {
             let argument_node: Int = polymorphic_call.argument_nodes[argument];
-            let argument_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
+            var argument_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
                 graph, argument_node, names, types, enum_values);
             // A call argument, as in Max(lo, Min(hi, v)), types through its
             // own resolved return instead of reading as Unknown.

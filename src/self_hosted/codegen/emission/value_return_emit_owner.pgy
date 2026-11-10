@@ -25,12 +25,12 @@ func EmitAdmittedFocusRecovery(
         SemanticAstCollectionFocusRecoveryExitForNode(body_types.focus_recovery, function_id, scope_id, syntax_id, kind);
     if !exit.ok { Die("codegen focus recovery exit receipt is missing or stale"); }
     if !exit.found { return ""; }
-    let output: String = "";
-    let row: Int = exit.exit_start;
+    var output: String = "";
+    var row: Int = exit.exit_start;
     while row < exit.exit_start + exit.exit_count {
         let group: Int = body_types.focus_recovery.exit_group_indices[row];
         let root: String = CompilerSymbolCBindingName(body_types.focus_root_names[group]);
-        let active: Int = body_types.focus_recovery.exit_part_starts[row];
+        var active: Int = body_types.focus_recovery.exit_part_starts[row];
         let end: Int = active + body_types.focus_recovery.exit_part_counts[row];
         while active < end {
             let part: Int = body_types.focus_recovery.active_part_indices[active];
@@ -71,22 +71,23 @@ func EmitReturnValue(
     rexpr: String,
     return_type: String,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
     if StringLength(rexpr) == 0 {
         Die("value return expression is missing");
     }
     if return_type == "String" {
-        return WrapExprWithSemanticGraph(rexpr, env, graph);
+        return WrapExprWithSemanticGraph(rexpr, env, graph, root_id);
     }
     if return_type == "Float" {
-        return WrapExprWithSemanticGraph(rexpr, env, graph);
+        return WrapExprWithSemanticGraph(rexpr, env, graph, root_id);
     }
     if return_type == "Double" {
-        return WrapExprWithSemanticGraph(rexpr, env, graph);
+        return WrapExprWithSemanticGraph(rexpr, env, graph, root_id);
     }
     if return_type == "Long" {
-        return WrapExprWithSemanticGraph(rexpr, env, graph);
+        return WrapExprWithSemanticGraph(rexpr, env, graph, root_id);
     }
     // A collection value lowers against the declared result type, as an
     // annotated let does, so a `[]` or `{}` literal takes that type.
@@ -94,12 +95,12 @@ func EmitReturnValue(
         StartsWith(return_type, "Queue<") || StartsWith(return_type, "Set<") ||
         StartsWith(return_type, "HashMap<") {
         return RewriteExpectedValueWithSemanticGraph(
-            rexpr, return_type, env, graph
+            rexpr, return_type, env, graph, root_id
         );
     }
     if StartsWith(return_type, "Result<") {
         return RewriteExpectedValueWithSemanticGraph(
-            rexpr, return_type, env, graph
+            rexpr, return_type, env, graph, root_id
         );
     }
     if StartsWith(return_type, "Option<") {
@@ -110,26 +111,27 @@ func EmitReturnValue(
             Die(Concat("unsupported option return payload type: ", return_type));
         }
         let option_expr: OptionExprEmissionFact =
-            EmitOptionExprFactForType(rexpr, return_type, env, graph);
+            EmitOptionExprFactForType(rexpr, return_type, env, graph, root_id);
         return option_expr.c_expr;
     }
     if LookupKindType(env, return_type, "s") == "struct" {
         return RewriteExpectedValueWithSemanticGraph(
-            rexpr, return_type, env, graph
+            rexpr, return_type, env, graph, root_id
         );
     }
-    return WrapExprWithSemanticGraph(rexpr, env, graph);
+    return WrapExprWithSemanticGraph(rexpr, env, graph, root_id);
 }
 
 func EmitReturn(
     rexpr: String,
     return_type: String,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
     if StringLength(rexpr) == 0 { return "return;"; }
     return Concat(
-        "return ", Concat(EmitReturnValue(rexpr, return_type, env, graph), ";")
+        "return ", Concat(EmitReturnValue(rexpr, return_type, env, graph, root_id), ";")
     );
 }
 
@@ -137,18 +139,19 @@ func EmitReturnWithCleanup(
     rexpr: String,
     return_type: String,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView,
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
     cleanup: String,
     statement_node_id: Int,
     pad: String
 ) -> String {
     if cleanup == "" {
-        return Concat(pad, Concat(EmitReturn(rexpr, return_type, env, graph), "\n"));
+        return Concat(pad, Concat(EmitReturn(rexpr, return_type, env, graph, root_id), "\n"));
     }
     let temp_name: String = Concat(
         "_pgy_return_value_", ToString(statement_node_id)
     );
-    let value: String = EmitReturnValue(rexpr, return_type, env, graph);
+    let value: String = EmitReturnValue(rexpr, return_type, env, graph, root_id);
     return Concat(
         pad, Concat(
             AbiLayoutCLocalType(return_type, env), Concat(

@@ -11,6 +11,7 @@
 #include "type_checker_ownership_diag_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_support_internal.h"
+#include "default_aggregate_move_rule.h"
 #include "function_param_publication_owner.h"
 
 #include <string.h>
@@ -588,6 +589,21 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
 
     if (pmode != PARAM_MODE_REF && track_borrow_provenance
         && borrowed_name != NULL) {
+        if (pmode == PARAM_MODE_DEFAULT && callee_decl != NULL &&
+            callee_decl->type == AST_FUNC_DECL &&
+            ast_func_body(callee_decl) != NULL &&
+            semantic_default_aggregate_value(ctx, arg_type) &&
+            semantic_param_publication_pending(ctx)) {
+            if (!semantic_param_publication_record_default_borrow_call(
+                    ctx, call_expr, arg_expr, callee_decl, arg_index,
+                    arg_type, borrowed_name, display_name,
+                    local_fix_label)) {
+                semantic_error(ctx, arg_expr,
+                    "Pending default aggregate borrow identity/allocation failed");
+                return false;
+            }
+            return true;
+        }
         semantic_validate_borrowed_escape(
             arg_expr, arg_expr, ctx, arg_type, borrowed_name,
             OWNERSHIP_CONSUMER_HELPER_CALL, NULL,

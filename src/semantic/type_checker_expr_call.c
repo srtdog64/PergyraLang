@@ -4,6 +4,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
+#include "function_param_publication_owner.h"
 #include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
@@ -192,9 +193,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
 
         if (pgy_match_variant_is_result(pgy_match_variant_lookup(name))) {
-            /* The Result constructor's enclosing type remains contextual,
-             * but its payload is an ordinary checked expression. Skipping it
-             * loses both diagnostics and the resolved local binding fact. */
+            PgyMatchVariantKind variant = pgy_match_variant_lookup(name);
+            Type *expected_result = ctx->expected_result_constructor == expr
+                ? ctx->expected_result_type : NULL;
+            Type *expected_payload = NULL;
+            Type *payload_type;
+
             if (arg_count != 1) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -203,11 +207,49 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     "%s requires exactly one payload argument", name);
                 return TYPE_UNKNOWN;
             }
+            if (expected_result != NULL) {
+                size_t expected_arg_count =
+                    type_constructed_arg_count(expected_result);
+                if (variant == PGY_MATCH_VARIANT_OK
+                    && expected_arg_count >= 1) {
+                    expected_payload = type_constructed_arg(
+                        expected_result, 0);
+                } else if (variant == PGY_MATCH_VARIANT_ERR) {
+                    expected_payload = expected_arg_count >= 2
+                        ? type_constructed_arg(expected_result, 1)
+                        : expected_arg_count == 1 ? TYPE_STRING : NULL;
+                }
+            }
             ASTNode *payload = ast_call_argument(expr, 0);
-            Type *payload_type = type_check_expression(payload, ctx);
+            payload_type = type_check_expression_at_typed_site(
+                payload, expected_payload, ctx);
             if (type_equals(payload_type, TYPE_STRING))
                 semantic_indexed_string_borrow_call_argument(payload, NULL, NULL, 0, false, ctx);
-            return TYPE_UNKNOWN;
+            if (expected_result == NULL || expected_payload == NULL)
+                return TYPE_UNKNOWN;
+            if (!require_assignable(payload_type, expected_payload,
+                                    payload, ctx))
+                return TYPE_UNKNOWN;
+            /* Ok/Err are language constructors, like Some. Publish their
+             * checked identity and payload-to-result backing relation here;
+             * downstream ownership analysis must not infer it from spelling. */
+            if (!ast_call_set_semantic_callee_is_stdlib(expr, true)
+                || expected_result->name == NULL
+                || !ast_call_set_semantic_value_type_name_copy(
+                    expr, expected_result->name)) {
+                semantic_error(ctx, expr,
+                    "Checked Result constructor identity could not be recorded");
+                return TYPE_UNKNOWN;
+            }
+            if (!ctx->has_error
+                && semantic_param_publication_pending(ctx)
+                && !semantic_param_publication_record_checked_result_relation(
+                    ctx, expr, payload_type, expected_result, 0, 0)) {
+                semantic_error(ctx, expr,
+                    "Checked Result constructor relation publication failed");
+                return TYPE_UNKNOWN;
+            }
+            return expected_result;
         }
 
         if (!user_class_overrides_builtin) {

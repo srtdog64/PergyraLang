@@ -1,0 +1,96 @@
+// Nominal constructor field queries.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "ast_generic_parameter_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+import "callable_resolution_owner.pgy";
+import "ast_nominal_constructor_core_fact_owner.pgy";
+import "ast_nominal_role_slot_query_owner.pgy";
+
+func SemanticAstNominalConstructorFieldTypeAt(
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    field_index: Int
+) -> Option<String> {
+    return SemanticAstNominalConstructorParamTypeAt(facts, constructor_index, field_index);
+}
+func SemanticAstNominalConstructorFieldNameAt(
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    field_index: Int
+) -> Option<String> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        field_index < 0 || field_index >= facts.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(facts.field_names[facts.param_starts[constructor_index] + field_index]);
+}
+func SemanticAstNominalConstructorFieldKindAt(
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    field_index: Int
+) -> Option<String> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        field_index < 0 || field_index >= facts.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(facts.field_kinds[facts.param_starts[constructor_index] + field_index]);
+}
+func SemanticAstNominalConstructorFieldSourceSyntaxIdAt(
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    field_index: Int
+) -> Option<Int> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        field_index < 0 || field_index >= facts.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(facts.field_source_syntax_ids[facts.param_starts[constructor_index] + field_index]);
+}
+
+func SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+    ref facts: SemanticAstNominalConstructorFacts, field_source_syntax_id: Int
+) -> Option<String> {
+    if !facts.ok || field_source_syntax_id <= 0 ||
+        ArrayLength(facts.field_source_syntax_ids) !=
+            ArrayLength(facts.field_names) {
+        return None;
+    }
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(facts.field_source_syntax_ids) {
+        if facts.field_source_syntax_ids[row] == field_source_syntax_id {
+            if found >= 0 || facts.field_names[row] == "" { return None; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return None; }
+    return Some(Concat("", facts.field_names[found]));
+}
+// Whether `slot_name` of `nominal_name` is a `dyn role slot`; None when the
+// nominal has no such slot.
+func SemanticAstNominalRoleSlotDynamic(
+    ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
+    slot_name: String
+) -> Option<Bool> {
+    var constructor_index: Int = 0;
+    while constructor_index < SemanticAstNominalConstructorCount(facts) {
+        if facts.names[constructor_index] == nominal_name {
+            var slot_index: Int = 0;
+            while slot_index < facts.role_slot_counts[constructor_index] {
+                let slot_row: Int = facts.role_slot_starts[constructor_index] + slot_index;
+                if facts.role_slot_names[slot_row] == slot_name {
+                    return Some(facts.role_slot_dynamic[slot_row] == 1);
+                }
+                slot_index = slot_index + 1;
+            }
+            return None;
+        }
+        constructor_index = constructor_index + 1;
+    }
+    return None;
+}
+

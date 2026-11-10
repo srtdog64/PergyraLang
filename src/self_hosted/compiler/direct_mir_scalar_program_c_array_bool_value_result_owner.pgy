@@ -1,12 +1,13 @@
 // C value-result copy boundary for admitted Array<Bool> parameters.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 
 func DirectMirScalarProgramCArrayBoolValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayBoolValueResultAt(
                 plan.program.array_bool_abi, routine, parameter) {
@@ -24,15 +25,22 @@ func DirectMirScalarProgramCArrayBoolValueResultCopyIn(
 func DirectMirScalarProgramCArrayBoolValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayBoolValueResultAt(
                 plan.program.array_bool_abi, routine, parameter) {
+            let local_row: Int =
+                DirectMirScalarProgramParameterValueResultLocalRow(
+                    plan, routine, parameter);
+            var storage: String = Concat("pgy_param_", ToString(parameter));
+            if local_row >= 0 {
+                storage = Concat("pgy_local_", ToString(local_row));
+            }
             output = Concat(output, "    *pgy_param_");
             output = Concat(output, ToString(parameter));
-            output = Concat(output, "_mutref = pgy_param_");
-            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref = ");
+            output = Concat(output, storage);
             output = Concat(output, ";\n");
         }
         parameter = parameter + 1;

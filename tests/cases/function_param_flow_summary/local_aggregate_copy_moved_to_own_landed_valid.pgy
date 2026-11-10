@@ -1,0 +1,23 @@
+// The local copy shares the Array backing of `verified`. Moving the copy to
+// an own formal while returning the original requires one independent Clone
+// at the copy site; admission without that Clone would leave two owners.
+struct Plan {
+    values: Array<Int>;
+}
+
+func Consume(own plan: Plan) -> Bool {
+    return ArrayLength(plan.values) == 1;
+}
+
+func Build() -> Plan {
+    let verified: Plan = Plan([7]);
+    let negative: Plan = verified;
+    Print(ToString(Consume(negative)));
+    return verified;
+}
+
+func Main() -> Int {
+    let plan: Plan = Build();
+    Print(ToString(ArrayLength(plan.values)));
+    return 0;
+}

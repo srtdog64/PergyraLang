@@ -1,0 +1,61 @@
+// Resolves the unique owned-push leaf through admitted single-edge forwarding.
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+
+func SemanticAstCollectionOwnedPushLeafFormals(
+    artifact: AstTreeArtifact,
+    ref contexts: SemanticAstCollectionFormalExecutionContexts,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref effects: HashMap<String, Int>,
+    own owned_mutation_site_counts: Array<Int>,
+    own owned_mutation_site_nodes: Array<Int>,
+    own forwarding_counts: Array<Int>,
+    own disqualified: Array<Bool>,
+    own sources: Array<Int>, own targets: Array<Int>, ok: Bool
+) -> HashMap<String, Int> {
+    var leaves: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(inventory.formal_nodes);
+    var row: Int = 0;
+    while ok && row < count {
+        let key: String = ToString(inventory.formal_nodes[row]);
+        if inventory.modes[row] == 1 && inventory.body_ready[row] &&
+            owned_mutation_site_counts[row] == 1 &&
+            owned_mutation_site_nodes[row] >= 0 &&
+            forwarding_counts[row] == 0 && !disqualified[row] &&
+            SemanticAstCollectionFormalExecutionContextCallableReady(
+                artifact, contexts, inventory.function_nodes[row]) &&
+            MapHas(effects, key) && MapGet(effects, key) == 2 {
+            MapSet(leaves, key, owned_mutation_site_nodes[row]);
+        }
+        row = row + 1;
+    }
+    // Only one forwarding edge may preserve an exact owned-mutation leaf.
+    var changed: Bool = true;
+    var remaining: Int = count + 1;
+    while ok && changed && remaining > 0 {
+        changed = false;
+        var edge: Int = 0;
+        while edge < ArrayLength(sources) {
+            let source: Int = sources[edge];
+            let target: Int = targets[edge];
+            let source_key: String = ToString(inventory.formal_nodes[source]);
+            let target_key: String = ToString(inventory.formal_nodes[target]);
+            if !MapHas(leaves, source_key) && MapHas(leaves, target_key) &&
+                inventory.modes[source] == 1 && inventory.body_ready[source] &&
+                owned_mutation_site_counts[source] == 0 &&
+                forwarding_counts[source] == 1 && !disqualified[source] &&
+                SemanticAstCollectionFormalExecutionContextCallableReady(
+                    artifact, contexts, inventory.function_nodes[source]) &&
+                MapHas(effects, source_key) && MapGet(effects, source_key) == 2 {
+                MapSet(leaves, source_key, MapGet(leaves, target_key));
+                changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    ArrayDrop(owned_mutation_site_counts); ArrayDrop(owned_mutation_site_nodes);
+    ArrayDrop(forwarding_counts); ArrayDrop(disqualified);
+    ArrayDrop(sources); ArrayDrop(targets);
+    return leaves;
+}

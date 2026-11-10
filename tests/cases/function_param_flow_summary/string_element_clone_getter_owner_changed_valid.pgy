@@ -10,7 +10,7 @@ func FirstCopy(arena: Arena) -> String {
 }
 
 func Main() -> Int {
-    let arena: Arena = Arena([StringConcat("ab", "")]);
+    var arena: Arena = Arena([StringConcat("ab", "")]);
     let first: String = FirstCopy(arena);
     ArrayPush(arena.names, StringConcat("cd", ""));
     Print(first);

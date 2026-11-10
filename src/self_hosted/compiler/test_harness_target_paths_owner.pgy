@@ -31,7 +31,7 @@ func CompilerHarnessTargetCapabilityEnvelopePathAt(index: Int) -> String {
 }
 
 func CompilerHarnessTargetCapabilityEnvelopePathKnown(path: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerHarnessTargetCapabilityEnvelopePathCount() {
         if CompilerHarnessTargetCapabilityEnvelopePathAt(index) == path {
             return true;
@@ -78,7 +78,7 @@ func CompilerHarnessSandboxCapabilityPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessSandboxCapabilityPathKnown(path: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerHarnessSandboxCapabilityPathCount() {
         if CompilerHarnessSandboxCapabilityPathAt(index) == path {
             return true;

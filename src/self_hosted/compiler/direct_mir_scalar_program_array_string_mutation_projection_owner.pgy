@@ -40,7 +40,7 @@ func DirectMirScalarProgramLlvmArrayStringSetMaterialization(
             fact, projection_opt);
     let aggregate: String = projection.llvm_aggregate_type;
     let align: String = ToString(projection.storage.align);
-    let output: String = "define internal void @pgy_as_set(ptr %array, i64 %index, ptr %value) {\nentry:\n  %length.ptr = getelementptr inbounds ";
+    var output: String = "define internal void @pgy_as_set(ptr %array, i64 %index, ptr %value) {\nentry:\n  %length.ptr = getelementptr inbounds ";
     output = Concat(output, Concat(aggregate, ", ptr %array, i32 0, i32 "));
     output = Concat(output, Concat(ToString(projection.length_index),
         Concat("\n  %length = load i64, ptr %length.ptr, align ", align)));
@@ -50,36 +50,4 @@ func DirectMirScalarProgramLlvmArrayStringSetMaterialization(
         Concat("\n  %data = load ptr, ptr %data.ptr, align ", align)));
     output = Concat(output, Concat("\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  store ptr %value, ptr %slot, align ", align));
     return Concat(output, "\n  ret void\n}\n\n");
-}
-
-func DirectMirScalarProgramLlvmArrayStringPop(
-    ref fact: DirectMirScalarProgramArrayStringAbiFact,
-    projection_opt: Option<DirectMirArrayStringAbiProjection>,
-    operation: Int, target: String
-) -> String {
-    if operation < 0 || target == "" { Die(
-        "direct MIR LLVM Array<String> pop target is invalid"); }
-    let projection: DirectMirArrayStringAbiProjection =
-        DirectMirScalarProgramLlvmArrayStringMutationProjection(
-            fact, projection_opt);
-    let stem: String = Concat("%pgy.pop.", ToString(operation));
-    let align: String = ToString(projection.storage.align);
-    let output: String = Concat("  ", Concat(stem,
-        Concat(".length.ptr = getelementptr inbounds ",
-            projection.llvm_aggregate_type)));
-    output = Concat(output, Concat(", ptr ", target));
-    output = Concat(output, Concat(", i32 0, i32 ",
-        Concat(ToString(projection.length_index), Concat("\n  ", stem))));
-    output = Concat(output, Concat(".length = load i64, ptr ",
-        Concat(stem, Concat(".length.ptr, align ", Concat(align, "\n  ")))));
-    output = Concat(output, Concat(stem, Concat(
-        ".nonempty = icmp ugt i64 ", Concat(stem, ".length, 0\n  "))));
-    output = Concat(output, Concat(stem, Concat(
-        ".decremented = sub i64 ", Concat(stem, ".length, 1\n  "))));
-    output = Concat(output, Concat(stem, Concat(
-        ".next = select i1 ", Concat(stem, ".nonempty, i64 "))));
-    output = Concat(output, Concat(stem,
-        Concat(".decremented, i64 0\n  store i64 ", stem)));
-    return Concat(output, Concat(".next, ptr ",
-        Concat(stem, Concat(".length.ptr, align ", Concat(align, "\n")))));
 }

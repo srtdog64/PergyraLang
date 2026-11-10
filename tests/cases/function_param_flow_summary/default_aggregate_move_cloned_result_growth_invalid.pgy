@@ -19,7 +19,7 @@ struct Block {
 }
 
 func AddBlock(rows: Rows) -> Block {
-    let ids: Array<Int> = rows.ids;
+    var ids: Array<Int> = rows.ids;
     ArrayPush(ids, ArrayLength(ids));
     return Block(ids);
 }

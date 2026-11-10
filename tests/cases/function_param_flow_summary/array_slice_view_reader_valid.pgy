@@ -10,7 +10,7 @@ func Count(names: Array<String>) -> Int {
 }
 
 func Main() -> Int {
-    let names: Array<String> = [StringConcat("ab", ""), StringConcat("cd", "")];
+    var names: Array<String> = [StringConcat("ab", ""), StringConcat("cd", "")];
     let count: Int = Count(names);
     ArrayPush(names, StringConcat("ef", ""));
     Print(ToString(count + ArrayLength(names)));

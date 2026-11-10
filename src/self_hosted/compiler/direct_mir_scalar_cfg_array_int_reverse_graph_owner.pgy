@@ -27,7 +27,7 @@ func DirectMirScalarCfgArrayIntReverseCallGraphFactFrom(
             AstExpressionNodeCallArgument() ||
         graph.arena.topology.left_children[3] != 1 ||
         graph.arena.topology.right_children[3] != 2 { return invalid; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < graph.ready_node_count {
         if row != 1 && (graph.arena.call_target_kinds[row] !=
                 SemanticCallTargetNone() ||
@@ -58,7 +58,7 @@ func DirectMirScalarCfgArrayIntReverseObservationGraphFactFrom(
         let length: DirectMirScalarCfgArrayLengthGraphFact =
             DirectMirScalarCfgArrayLengthGraphFactAt(graph, 0, 1, 2, 3);
         if length.valid {
-            let row: Int = 0;
+            var row: Int = 0;
             while row < graph.ready_node_count {
                 if row != 1 && (graph.arena.call_target_kinds[row] !=
                         SemanticCallTargetNone() ||

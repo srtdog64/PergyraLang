@@ -15,7 +15,7 @@ func DirectMirInferredGenericScalarAbiFactDigest(
     ref fact: DirectMirInferredGenericScalarAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(277L, fact.generic_type);
+    var hash: Long = DirectMirCfgHashString(277L, fact.generic_type);
     hash = DirectMirCfgHashString(hash, fact.scalar_type);
     hash = DirectMirCfgHashInt(hash, fact.typed_receipt_count);
     hash = DirectMirCfgHashInt(hash, fact.null_receipt_count);

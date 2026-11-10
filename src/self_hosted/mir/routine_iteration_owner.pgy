@@ -43,11 +43,11 @@ func SelfMirIterationLoweringFactForNode(
             "MIR for-loop statement fact is invalid"
         );
     }
-    let binding_type: String = "";
-    let iterable_type: String = "";
-    let collection_hoist: Int = 0;
-    let synthetic_name: String = "";
-    let synthetic_graph_root_id: Int = -1;
+    var binding_type: String = "";
+    var iterable_type: String = "";
+    var collection_hoist: Int = 0;
+    var synthetic_name: String = "";
+    var synthetic_graph_root_id: Int = -1;
     let iteration_row_opt: Option<Int> =
         SelfMirIterationRowForNodeFromReadyRows(
             input.iterations, node_id
@@ -79,8 +79,8 @@ func SelfMirIterationLoweringFactForNode(
         );
     }
     let is_foreach: Bool = auxiliary == "";
-    let stop: String = auxiliary;
-    let canonical_start: String = start;
+    var stop: String = auxiliary;
+    var canonical_start: String = start;
     if is_foreach {
         if collection_hoist == 1 {
             if synthetic_name == "" || synthetic_graph_root_id < 0 {

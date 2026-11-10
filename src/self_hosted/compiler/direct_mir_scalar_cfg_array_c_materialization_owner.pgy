@@ -12,8 +12,8 @@ func DirectMirScalarCfgArrayCStruct(
         Die("direct MIR Array C materialization projection is invalid");
     }
     let fields: Array<String> = Split(storage.c_field_order, ",");
-    let output: String = "typedef struct {\n";
-    let row: Int = 0;
+    var output: String = "typedef struct {\n";
+    var row: Int = 0;
     while row < ArrayLength(fields) {
         let field: String = fields[row];
         output = Concat(output, "    ");
@@ -42,7 +42,7 @@ func DirectMirScalarCfgArrayCInitializer(
         length == "" || capacity == "" || allocator == "" {
         Die("direct MIR Array C initialization projection is invalid");
     }
-    let output: String = Concat("{.", storage.data_field);
+    var output: String = Concat("{.", storage.data_field);
     output = Concat(output, Concat(" = ", data));
     output = Concat(output, Concat(", .", storage.length_field));
     output = Concat(output, Concat(" = ", length));
@@ -55,8 +55,8 @@ func DirectMirScalarCfgArrayCInitializer(
 func DirectMirScalarCfgArrayStringCElementList(
     values: Array<String>
 ) -> String {
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(values) {
         if row > 0 { output = Concat(output, ", "); }
         output = Concat(output, Concat("\"", Concat(values[row], "\"")));

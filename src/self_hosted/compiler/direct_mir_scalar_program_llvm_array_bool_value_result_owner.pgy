@@ -1,11 +1,12 @@
 // LLVM value-result copy boundary for admitted Array<Bool> parameters.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayBoolMutationTarget(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, parameter: Int
 ) -> Bool {
-    let offset: Int = 0;
+    var offset: Int = 0;
     while offset < plan.routines.operation_counts[routine] {
         let operation: Int = plan.routines.operation_starts[routine] + offset;
         let kind: Int = plan.operation_kinds[operation];
@@ -22,8 +23,8 @@ func DirectMirScalarProgramLlvmArrayBoolMutationTarget(
 func DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayBoolValueResultAt(
                 plan.program.array_bool_abi, routine, parameter) {
@@ -52,19 +53,26 @@ func DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(
 func DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
 ) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
+    var output: String = "";
+    var parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayBoolValueResultAt(
                 plan.program.array_bool_abi, routine, parameter) {
             let spelling: String = ToString(parameter);
+            let local_row: Int =
+                DirectMirScalarProgramParameterValueResultLocalRow(
+                    plan, routine, parameter);
+            var storage: String = Concat(
+                "%pgy.param.", Concat(spelling, ".local"));
+            if local_row >= 0 {
+                storage = Concat("%pgy.local.", ToString(local_row));
+            }
             let value: String = Concat(Concat(
                 "%pgy.param.", spelling), Concat(
                 ".copyout.", ToString(exit_block)));
             output = Concat(output, Concat("  ", Concat(
                 value, " = load %pgy.array.bool, ptr ")));
-            output = Concat(output, Concat(
-                Concat("%pgy.param.", spelling), ".local, align 8\n"));
+            output = Concat(output, Concat(storage, ", align 8\n"));
             output = Concat(output,
                 "  store %pgy.array.bool ");
             output = Concat(output, value);

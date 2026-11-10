@@ -33,14 +33,14 @@ func DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady(
         signature.return_type != "Void" || signature.param_count < 2 {
         return false;
     }
-    let record_array_count: Int = 0;
-    let array_int_count: Int = 0;
-    let record_value_count: Int = 0;
-    let int_value_count: Int = 0;
-    let other_scalar_value_count: Int = 0;
-    let record_array_element_type: String = "";
-    let record_value_type: String = "";
-    let ordinal: Int = 0;
+    var record_array_count: Int = 0;
+    var array_int_count: Int = 0;
+    var record_value_count: Int = 0;
+    var int_value_count: Int = 0;
+    var other_scalar_value_count: Int = 0;
+    var record_array_element_type: String = "";
+    var record_value_type: String = "";
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let type_name: String = signature.parameters.type_names[ordinal];
         let record_array_element: Option<String> =

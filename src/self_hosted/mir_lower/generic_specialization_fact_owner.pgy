@@ -40,7 +40,7 @@ func MirGenericSpecializationSemanticIndex(
     lane: Int,
     call_ordinal: Int
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstGenericSpecializationCount(semantic_rows) {
         if SemanticExpressionCallIdentityEqual(
             semantic_rows.source_owner_node_ids[i],
@@ -59,16 +59,16 @@ func MirGenericSpecializationStringArray(
     row: JsonObjectFactTable,
     field: String
 ) -> MirGenericSpecializationStringArrayResult {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     let empty: Array<String> = [];
     if !JsonObjectFactArrayBounds(row, field, bounds) {
         return MirGenericSpecializationStringArrayResult(false, empty);
     }
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let count: Int = JsonArrayStringCount(
         row.json, row.json_extent, bounds[0], bounds[1]
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let value: String = JsonArrayStringAt(
             row.json, row.json_extent, bounds[0], bounds[1], i
@@ -94,8 +94,8 @@ func MirGenericSpecializationAppendUnique(
     c_name: String,
     actuals: Array<String>
 ) -> Bool {
-    let existing: Int = -1;
-    let i: Int = 0;
+    var existing: Int = -1;
+    var i: Int = 0;
     while i < ArrayLength(c_names) {
         if c_names[i] == c_name { existing = i; }
         i = i + 1;
@@ -146,14 +146,14 @@ func MirCodegenGenericSpecializationFacts(
             "semantic generic specialization verifier facts are invalid"
         );
     }
-    let signature_indexes: Array<Int> = [];
-    let c_names: Array<String> = [];
-    let actual_starts: Array<Int> = [];
-    let actual_counts: Array<Int> = [];
-    let actual_type_names: Array<String> = [];
-    let call_node_ids: Array<Int> = [];
-    let call_c_names: Array<String> = [];
-    let call_contexts: Array<String> = [];
+    var signature_indexes: Array<Int> = [];
+    var c_names: Array<String> = [];
+    var actual_starts: Array<Int> = [];
+    var actual_counts: Array<Int> = [];
+    var actual_type_names: Array<String> = [];
+    var call_node_ids: Array<Int> = [];
+    var call_c_names: Array<String> = [];
+    var call_contexts: Array<String> = [];
 
     let table: JsonArrayObjectFactTable =
         MirGenericSpecializationTable(json);
@@ -171,14 +171,14 @@ func MirCodegenGenericSpecializationFacts(
             "MIR generic specialization identity epoch is invalid"
         );
     }
-    let matched: Array<Bool> = [];
-    let expected_i: Int = 0;
+    var matched: Array<Bool> = [];
+    var expected_i: Int = 0;
     while expected_i < SemanticAstGenericSpecializationCount(semantic_rows) {
         ArrayPush(matched, false);
         expected_i = expected_i + 1;
     }
 
-    let row_i: Int = 0;
+    var row_i: Int = 0;
     while row_i < JsonArrayObjectFactCount(table) {
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
         let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
@@ -260,7 +260,7 @@ func MirCodegenGenericSpecializationFacts(
             );
         }
         let generic_start: Int = signatures.generic_starts[signature_index];
-        let value_i: Int = 0;
+        var value_i: Int = 0;
         while value_i < ArrayLength(actuals) {
             if params[value_i] !=
                 signatures.generic_names[generic_start + value_i] ||

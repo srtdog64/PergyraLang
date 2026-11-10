@@ -10,8 +10,8 @@ func SelfMirJsonGenericSpecialization(
     ref cfg: SelfMirCfgRows,
     index: Int
 ) -> String {
-    let generic_params: Array<String> = [];
-    let param_i: Int = 0;
+    var generic_params: Array<String> = [];
+    var param_i: Int = 0;
     while param_i < rows.generic_param_counts[index] {
         ArrayPush(
             generic_params,
@@ -21,8 +21,8 @@ func SelfMirJsonGenericSpecialization(
         );
         param_i = param_i + 1;
     }
-    let generic_actuals: Array<String> = [];
-    let actual_i: Int = 0;
+    var generic_actuals: Array<String> = [];
+    var actual_i: Int = 0;
     while actual_i < rows.actual_counts[index] {
         ArrayPush(
             generic_actuals,
@@ -32,8 +32,8 @@ func SelfMirJsonGenericSpecialization(
         );
         actual_i = actual_i + 1;
     }
-    let occurrences: Array<String> = [];
-    let occurrence: Int = rows.occurrences.starts[index];
+    var occurrences: Array<String> = [];
+    var occurrence: Int = rows.occurrences.starts[index];
     let end: Int = occurrence + rows.occurrences.counts[index];
     while occurrence < end {
         ArrayPush(occurrences, JsonEmitObject([
@@ -76,8 +76,8 @@ func SelfMirJsonGenericSpecialization(
 func SelfMirJsonGenericSpecializations(
     ref facts: SelfMirProgramFacts
 ) -> Array<String> {
-    let projections: Array<String> = [];
-    let i: Int = 0;
+    var projections: Array<String> = [];
+    var i: Int = 0;
     while i < SelfMirGenericSpecializationCount(facts.generic_specializations) {
         ArrayPush(projections, SelfMirJsonGenericSpecialization(
             facts.generic_specializations, facts.routines, facts.cfg, i));

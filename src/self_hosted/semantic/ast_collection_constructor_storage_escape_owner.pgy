@@ -44,7 +44,7 @@ func SemanticAstCollectionConstructorStorageEscapeField(
     let binding: SemanticExpressionBindingIdentityFact =
         SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, UnwrapOption(callee));
     if !binding.ok { return invalid; }
-    if UnwrapOption(target) > 0 || UnwrapOption(kind) != SemanticCallTargetDirect() ||
+    if UnwrapOption(kind) != SemanticCallTargetDirect() ||
         UnwrapOption(runtime) != 0 || binding.kind != SemanticExpressionBindingNone() ||
         binding.syntax_id != 0 { return absent; }
     // Ordinary local callable identity intentionally carries no declaration ID.
@@ -59,6 +59,7 @@ func SemanticAstCollectionConstructorStorageEscapeField(
         SemanticAstNominalConstructorUniqueIndexForName(constructors, UnwrapOption(name));
     if IsErr(index) { return invalid; }
     if Unwrap(index) < 0 { return absent; }
+    if UnwrapOption(target) != constructors.node_ids[Unwrap(index)] { return invalid; }
     let field: Option<Int> =
         SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, Unwrap(index), edge.ordinal);
     if !IsSome(field) || constructors.node_ids[Unwrap(index)] <= 0 {

@@ -1,0 +1,30 @@
+import "../../../src/self_hosted/lib/json_fact_table.pgy";
+
+// A JSON table is a bounded view carrying its root String.  This local Route
+// therefore still borrows the ref input even though the descriptor itself is
+// local.  Its own handoff must receive one independent whole-value copy.
+struct Route {
+    table: JsonArrayObjectFactTable;
+}
+
+func BorrowTable(ref root: JsonObjectFactTable) -> JsonArrayObjectFactTable {
+    return JsonObjectFactArrayObjectTable(root, "rows");
+}
+
+func ConsumeRoute(own route: Route) -> Int {
+    return JsonArrayObjectFactCount(route.table);
+}
+
+func Project(ref root: JsonObjectFactTable) -> Int {
+    let table: JsonArrayObjectFactTable = BorrowTable(root);
+    let route: Route = Route(table);
+    return ConsumeRoute(route);
+}
+
+func Main() -> Int {
+    let json: String = Concat("{\"rows\":[]", "}");
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    Print(ToString(Project(root)));
+    Print(ToString(StringLength(root.json)));
+    return 0;
+}

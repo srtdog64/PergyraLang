@@ -5,7 +5,7 @@ struct Index {
 }
 
 func Sorted(ref index: Index) -> Int {
-    let ids: Array<Int> = index.counts;
+    var ids: Array<Int> = index.counts;
     ArraySort(ids);
     return ids[0];
 }

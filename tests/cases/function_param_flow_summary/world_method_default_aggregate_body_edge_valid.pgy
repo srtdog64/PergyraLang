@@ -1,0 +1,26 @@
+// A selected world method owns an exact body-call edge even when its optional
+// materialized function Type is unavailable to transitive-effect propagation.
+struct WorldRequest {
+    names: Array<String>;
+}
+
+world MoveWorld {
+    func Pass(self, request: WorldRequest) -> WorldRequest {
+        return request;
+    }
+}
+
+func PassThroughWorld(
+    inout world: MoveWorld,
+    request: WorldRequest
+) -> WorldRequest {
+    return world.Pass(request);
+}
+
+func Main() -> Int {
+    var world: MoveWorld = MoveWorld();
+    let request: WorldRequest = WorldRequest(["ok"]);
+    let result: WorldRequest = PassThroughWorld(world, request);
+    Print(result.names[0]);
+    return 0;
+}

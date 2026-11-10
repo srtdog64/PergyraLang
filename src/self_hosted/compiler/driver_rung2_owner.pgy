@@ -122,7 +122,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         Die("driver rung-2 verified body facts are missing or stale");
     }
     DriverRung2PressureStage(observe_pressure, "mir-facts:start");
-    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
+    var mir_facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
         verified.body_types.assignment_types, verified.body_types.match_materializations,
@@ -303,7 +303,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     DriverRung2PressureStage(
         observe_pressure, "consumer:verify:start"
     );
-    let verified: DriverRung2VerifiedFacts =
+    var verified: DriverRung2VerifiedFacts =
         VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, analysis, observe_pressure, true,
             variant_proof.require_reconstructed_proof, false, false

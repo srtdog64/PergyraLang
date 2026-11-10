@@ -1,10 +1,11 @@
+import "owned_expression_temporary_owner.pgy";
 // LLVM expression projection from the sealed scalar-program expression arena.
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
-import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_nominal_parameter_projection_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_short_circuit_owner.pgy";
 import "direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy";
@@ -18,6 +19,7 @@ import "direct_mir_scalar_program_llvm_match_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
 import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -40,17 +42,50 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
     ref array_int_abi: DirectMirScalarProgramArrayIntValueResultFact,
     array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramLlvmExpression {
-    let chunks: Array<String> = [];
-    let values: Array<String> = [];
+    let retire: Array<Int> = DirectMirOwnedExpressionRetiringEdges(expressions, expression_row);
+    var chunks: Array<String> = [];
+    var values: Array<String> = [];
     let start: Int = expressions.graph_starts[expression_row];
     let count: Int = expressions.graph_counts[expression_row];
-    let node: Int = start;
+    // Normalization keeps prefix/spine nodes for identity, but only root
+    // dependencies execute. Emitting every row allocates unused prefix arrays.
+    // Preserve row positions and source order for short-circuit chunk movement.
+    var live: Array<Bool> = [];
+    var offset: Int = 0;
+    while offset < count { ArrayPush(live, false); offset = offset + 1; }
+    let root_node: Int = expressions.graph_roots[expression_row];
+    if root_node < start || root_node >= start + count {
+        return DirectMirScalarProgramLlvmExpression(false, "", "", "");
+    }
+    live[root_node - start] = true;
+    var node: Int = start + count - 1;
+    while node >= start {
+        if live[node - start] {
+            let operands: DirectMirScalarProgramArgumentView =
+                DirectMirScalarProgramArgumentViewFromNode(expressions, node);
+            if !operands.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
+            var operand: Int = 0;
+            while operand < operands.count {
+                let child: Int = DirectMirScalarProgramArgumentViewAt(expressions, operands, operand);
+                if child < start || child >= node {
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
+                }
+                live[child - start] = true;
+                operand = operand + 1;
+            }
+        }
+        node = node - 1;
+    }
+    node = start;
     while node < start + count {
-        let node_instructions: String = "";
+        if !live[node - start] {
+            ArrayPush(chunks, ""); ArrayPush(values, ""); node = node + 1; continue;
+        }
+        var node_instructions: String = "";
         let kind: Int = expressions.node_kinds[node];
-        let left: String = ""; let right: String = "";
-        let left_type: String = ""; let right_type: String = "";
-        let left_address: String = "";
+        var left: String = ""; var right: String = "";
+        var left_type: String = ""; var right_type: String = "";
+        var left_address: String = "";
         if expressions.node_lefts[node] >= start {
             left = values[expressions.node_lefts[node] - start];
             let left_node: Int = expressions.node_lefts[node];
@@ -71,11 +106,11 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             right = values[expressions.node_rights[node] - start];
             right_type = expressions.node_types[expressions.node_rights[node]];
         }
-        let arguments: Array<String> = [];
-        let argument_types: Array<String> = [];
-        let argument_kinds: Array<Int> = [];
-        let argument_carriages: Array<String> = [];
-        let argument_rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        var arguments: Array<String> = [];
+        var argument_types: Array<String> = [];
+        var argument_kinds: Array<Int> = [];
+        var argument_carriages: Array<String> = [];
+        var argument_rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
                 expressions.nary_operands, node);
         if kind == DirectMirScalarProgramExprDirectCall() || kind == DirectMirScalarProgramExprCallableParameterCall() {
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
@@ -84,13 +119,13 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
                 kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
             argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
         }
-        let argument: Int = 0;
+        var argument: Int = 0;
         while argument < ArrayLength(argument_rows) {
             if argument_rows[argument] < start || argument_rows[argument] >= node {
                 return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }
-            let argument_value: String = values[argument_rows[argument] - start];
-            let argument_carriage: String = "value";
+            var argument_value: String = values[argument_rows[argument] - start];
+            var argument_carriage: String = "value";
             if kind == DirectMirScalarProgramExprDirectCall() &&
                 expressions.node_callable_rows[node] >= 0 {
                 let call_argument: DirectMirScalarProgramLlvmCallArgument = DirectMirScalarProgramLlvmCallArgumentValue(
@@ -108,7 +143,17 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             ArrayPush(argument_carriages, argument_carriage);
             argument = argument + 1;
         }
-        let value: String = "";
+        if (kind == DirectMirScalarProgramExprDirectCall() ||
+                kind == DirectMirScalarProgramExprCallableParameterCall()) &&
+                ArrayLength(arguments) == 0 {
+            if left != "" {
+                ArrayPush(arguments, left); ArrayPush(argument_types, left_type); ArrayPush(argument_kinds, 0); ArrayPush(argument_carriages, "value");
+            }
+            if right != "" {
+                ArrayPush(arguments, right); ArrayPush(argument_types, right_type); ArrayPush(argument_kinds, 0); ArrayPush(argument_carriages, "value");
+            }
+        }
+        var value: String = "";
         let result: String = DirectMirScalarProgramLlvmNodeName(expression_row, node);
         let cast: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmNumericCastExpressionAt(kind, result, left);
         let hashmap: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmHashMapExpressionAt(expressions, node, result, values, start);
@@ -123,12 +168,13 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             value = hashmap.value; node_instructions = hashmap.instructions;
         } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellMember() {
-            let type_name: String = expressions.node_types[node];
+            var type_name: String = expressions.node_types[node];
             if kind == DirectMirScalarProgramExprIdentityCellMember() {
                 type_name = expressions.node_types[expressions.node_lefts[node]];
             }
             let cell: DirectMirScalarProgramLlvmStringExpression = DirectMirIdentityCellLlvmExpression(
-                logical_record.identity_cells, kind, node, result, type_name, left, arguments,
+                logical_record.identity_cells, referenced_enum,
+                kind, node, result, type_name, left, arguments,
                 expressions.node_member_ordinals[node]);
             if !cell.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
             value = cell.value; node_instructions = cell.instructions;
@@ -148,7 +194,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             value = result; node_instructions = "  " + result + " = sub i64 0, " + left + "\n";
         } else if cast.matched { if !cast.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); } value = cast.value; node_instructions = Concat(node_instructions, cast.instructions);
         } else if kind == DirectMirScalarProgramExprLocal() {
-            let type_name: String = ""; let alignment: String = "";
+            var type_name: String = ""; var alignment: String = "";
             if expressions.node_types[node] == CompilerAbiLayoutArrayStringTypeName() {
                 let projection: DirectMirArrayStringAbiProjection = DirectMirScalarProgramLlvmArrayStringStorageProjection(
                     array_string_abi, array_string_projection, "direct MIR LLVM expression local load");
@@ -164,7 +210,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             value = Concat("%pgy.param.", ToString(ordinal));
             let parameter_row: Int = routines.parameter_starts[routine] +
                 ordinal;
-            let array_type: String = ""; let storage_align: String = "8";
+            var array_type: String = ""; var storage_align: String = "8";
             if routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayStringTypeName() {
                 let projection: DirectMirArrayStringAbiProjection = DirectMirScalarProgramLlvmArrayStringStorageProjection(
                     array_string_abi, array_string_projection, "direct MIR LLVM expression parameter load");
@@ -179,15 +225,19 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
                 value = result;
                 let scalar_type: String = DirectMirScalarProgramLlvmType(routines.parameter_types[parameter_row]);
                 node_instructions = node_instructions + "  ${result} = load ${scalar_type}, ptr %pgy.param.${ordinal}.local\n";
-            } else if routines.parameter_carriages[parameter_row] == "value-result" &&
+            } else if (routines.parameter_carriages[parameter_row] ==
+                        "value-result" ||
+                       DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
+                           routines, routine, ordinal)) &&
                     array_type != "" {
                 value = result;
                 node_instructions = node_instructions + "  " + result + " = load " + array_type +
-                    ", ptr %pgy.param." + ToString(ordinal) + ".local, align " + storage_align + "\n";
+                    ", ptr " + DirectMirScalarProgramLlvmParameterCurrentStorage(
+                        plan, routine, ordinal) + ", align " + storage_align + "\n";
             }
             let parameter_read: DirectMirScalarProgramLlvmStringExpression =
-                    DirectMirScalarProgramLlvmLogicalRecordParameterRead(
-                        expressions, routines, logical_record, routine, node, result, value);
+                DirectMirScalarProgramLlvmNominalParameterRead(
+                    expressions, routines, logical_record, payload_free_enum, referenced_enum, routine, node, result, value);
             if parameter_read.matched {
                 if !parameter_read.valid {
                     return DirectMirScalarProgramLlvmExpression(false, "", "", "");
@@ -198,7 +248,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             let array_parameter_read: DirectMirScalarProgramLlvmStringExpression =
                     DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
                         routines, array_string_abi, array_string_projection,
-                        array_int_abi, array_int_projection, routine, ordinal, result);
+                        array_int_abi, array_int_projection, plan.program.array_bool_abi, routine, ordinal, result);
             if array_parameter_read.matched {
                 if !array_parameter_read.valid {
                     return DirectMirScalarProgramLlvmExpression(false, "", "", "");
@@ -209,7 +259,9 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
         } else if kind == DirectMirScalarProgramExprDeclaredCallable() {
             value = Concat("@pgy.scalar.routine.", ToString(expressions.node_callable_rows[node]));
         } else if kind == DirectMirScalarProgramExprIntLiteral() || kind ==
-                DirectMirScalarProgramExprLongLiteral() || kind == DirectMirScalarProgramExprBoolLiteral() {
+                DirectMirScalarProgramExprLongLiteral() ||
+                kind == DirectMirScalarProgramExprFloatLiteral() ||
+                kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
         } else if kind == DirectMirScalarProgramExprPayloadFreeEnumVariant() {
             value = ToString(expressions.node_member_ordinals[node]);
@@ -253,7 +305,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
                 node_instructions = runtime_value.instructions;
                 value = runtime_value.value;
             } else {
-            let record_type: String = expressions.node_types[node];
+            var record_type: String = expressions.node_types[node];
             if kind == DirectMirScalarProgramExprLogicalRecordMember() { record_type = left_type; }
             let record_expression: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalValueExpressionAt(
                         logical_record, target, kind, result, record_type,
@@ -348,6 +400,13 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             }
         }
             }
+        }
+        let retired_edges: Int = retire[node - start];
+        if retired_edges == 1 || retired_edges == 3 {
+            node_instructions = node_instructions + "  call void @free(ptr " + left + ")\n";
+        }
+        if retired_edges == 2 || retired_edges == 3 {
+            node_instructions = node_instructions + "  call void @free(ptr " + right + ")\n";
         }
         ArrayPush(chunks, node_instructions);
         ArrayPush(values, value); node = node + 1;

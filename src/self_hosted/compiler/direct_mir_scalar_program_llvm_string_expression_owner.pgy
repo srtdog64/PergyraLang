@@ -9,7 +9,7 @@ import "direct_mir_scalar_program_llvm_to_string_expression_owner.pgy";
 func DirectMirScalarProgramLlvmStringExpressionAt(
     kind: Int, result: String, left_type: String, left: String,
     left_address: String, right: String,
-    arguments: Array<String>,
+    ref arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
@@ -43,12 +43,12 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
             return DirectMirScalarProgramLlvmStringExpression(
                 true, false, "", "");
         }
-        let output: String = Concat("  ", Concat(result,
+        var output: String = Concat("  ", Concat(result,
             Concat(" = call i32 @", Concat(
                 runtime.string_compare.symbol, Concat("(ptr ", Concat(
                     left, Concat(", ptr ", Concat(right, ")\n"))))))));
         let compared: String = Concat(result, ".bool");
-        let predicate: String = "ne";
+        var predicate: String = "ne";
         if kind == DirectMirScalarProgramExprEqualString() {
             predicate = "eq";
         }
@@ -59,16 +59,21 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, compared);
     }
-    if kind == DirectMirScalarProgramExprConcatString() {
+    if kind == DirectMirScalarProgramExprConcatString() ||
+            kind == DirectMirScalarProgramExprStringClone() {
         if !CompilerRuntimeCallAbiStringConcatFactReady(
                 runtime.string_concat) {
             return DirectMirScalarProgramLlvmStringExpression(
                 true, false, "", "");
         }
+        var tail: String = right;
+        if kind == DirectMirScalarProgramExprStringClone() {
+            tail = "@pgy.scalar.clone.empty";
+        }
         let output: String = Concat("  ", Concat(result,
             Concat(" = call ptr @", Concat(
                 runtime.string_concat.symbol, Concat("(ptr ", Concat(
-                    left, Concat(", ptr ", Concat(right, ")\n"))))))));
+                    left, Concat(", ptr ", Concat(tail, ")\n"))))))));
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, result);
     }
@@ -76,9 +81,9 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
         DirectMirScalarProgramLlvmToStringExpressionAt(
             kind, result, left, runtime);
     if to_string.matched { return to_string; }
-    let builtin_symbol: String = "";
-    let argument_type: String = "ptr";
-    let ready: Bool = false;
+    var builtin_symbol: String = "";
+    var argument_type: String = "ptr";
+    var ready: Bool = false;
     if kind == DirectMirScalarProgramExprToUpperString() {
         builtin_symbol = runtime.string_to_upper.symbol; argument_type = "ptr";
         ready = CompilerRuntimeCallAbiStringToUpperFactReady(

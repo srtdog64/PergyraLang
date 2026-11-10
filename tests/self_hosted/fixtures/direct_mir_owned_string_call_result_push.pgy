@@ -8,7 +8,7 @@ func MakeOwnedString() -> String {
 }
 
 func Main() -> Void {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPush(values, MakeOwnedString());
     ArrayDropOwnedStrings(values);
     Log("owned-string-call-result-ready");

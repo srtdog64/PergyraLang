@@ -40,7 +40,7 @@ func SelfMirRoutineExpressionResourceType(
     if !IsSome(start_opt) { return ""; }
     let start: Int = UnwrapOption(start_opt);
     let end: Int = view.root_id + 1;
-    let receiver_wrapper: Int = view.root_id;
+    var receiver_wrapper: Int = view.root_id;
     if operation == "Write" {
         let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
             view.graph, receiver_wrapper);
@@ -137,7 +137,7 @@ func SelfMirRoutineExpressionRuntimeAbiAttach(
         }
         return SelfMirRoutineExpressionRuntimeAbiResult(true, "", cfg);
     }
-    let abi_i: Int = 0;
+    var abi_i: Int = 0;
     while abi_i < ArrayLength(resource.operations) {
         let fact: CompilerRuntimeCallAbiFact =
             CompilerRuntimeCallAbiFactForNativeResource(

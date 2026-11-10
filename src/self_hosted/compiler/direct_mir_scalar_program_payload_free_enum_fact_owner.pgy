@@ -6,6 +6,7 @@
 
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 struct DirectMirScalarProgramPayloadFreeEnumFact {
@@ -34,7 +35,7 @@ func DirectMirScalarProgramPayloadFreeEnumFactDigest(
     ref fact: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
+    var hash: Long = DirectMirCfgHashInt(
         269L, ArrayLength(fact.declaration_rows));
     hash = DirectMirScalarCfgHashInts(hash, fact.declaration_rows);
     hash = DirectMirScalarCfgHashStrings(hash, fact.names);
@@ -63,8 +64,8 @@ func DirectMirScalarProgramPayloadFreeEnumFactReady(
         fact.abi_type_name != CompilerAbiLayoutIntTypeName() {
         return false;
     }
-    let expected_variant: Int = 0;
-    let row: Int = 0;
+    var expected_variant: Int = 0;
+    var row: Int = 0;
     while row < count {
         if fact.declaration_rows[row] < 0 || fact.names[row] == "" ||
             fact.source_syntax_ids[row] <= 0 ||
@@ -73,7 +74,7 @@ func DirectMirScalarProgramPayloadFreeEnumFactReady(
                 fact.variant_counts[row] > ArrayLength(fact.variant_names) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.declaration_rows[prior] == fact.declaration_rows[row] ||
                 fact.names[prior] == fact.names[row] ||
@@ -82,10 +83,10 @@ func DirectMirScalarProgramPayloadFreeEnumFactReady(
             }
             prior = prior + 1;
         }
-        let variant: Int = expected_variant;
+        var variant: Int = expected_variant;
         while variant < expected_variant + fact.variant_counts[row] {
             if fact.variant_names[variant] == "" { return false; }
-            let variant_prior: Int = expected_variant;
+            var variant_prior: Int = expected_variant;
             while variant_prior < variant {
                 if fact.variant_names[variant_prior] ==
                         fact.variant_names[variant] {
@@ -123,18 +124,18 @@ func DirectMirScalarProgramPayloadFreeEnumFactFromReferenced(
     if !DirectMirScalarProgramReferencedEnumFactReady(referenced) {
         return invalid;
     }
-    let rows: Array<Int> = [];
-    let names: Array<String> = [];
-    let syntax_ids: Array<Int> = [];
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let variants: Array<String> = [];
-    let reference: Int = 0;
+    var rows: Array<Int> = [];
+    var names: Array<String> = [];
+    var syntax_ids: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var variants: Array<String> = [];
+    var reference: Int = 0;
     while reference < ArrayLength(referenced.declaration_rows) {
         if referenced.payload_flags[reference] == 0 {
             let variant_start: Int = ArrayLength(variants);
             let source_start: Int = referenced.variant_starts[reference];
-            let ordinal: Int = 0;
+            var ordinal: Int = 0;
             while ordinal < referenced.variant_counts[reference] {
                 let source_variant: Int = source_start + ordinal;
                 if referenced.variant_param_counts[source_variant] != 0 {
@@ -184,8 +185,8 @@ func DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
         !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free) {
         return false;
     }
-    let projected_row: Int = 0;
-    let referenced_row: Int = 0;
+    var projected_row: Int = 0;
+    var referenced_row: Int = 0;
     while referenced_row < ArrayLength(referenced.declaration_rows) {
         if referenced.payload_flags[referenced_row] == 0 {
             if projected_row >= ArrayLength(payload_free.declaration_rows) ||
@@ -199,7 +200,7 @@ func DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
                     referenced.variant_counts[referenced_row] {
                 return false;
             }
-            let ordinal: Int = 0;
+            var ordinal: Int = 0;
             while ordinal < referenced.variant_counts[referenced_row] {
                 if payload_free.variant_names[
                         payload_free.variant_starts[projected_row] + ordinal] !=
@@ -221,8 +222,8 @@ func DirectMirScalarProgramPayloadFreeEnumRow(
 ) -> Int {
     if !DirectMirScalarProgramPayloadFreeEnumFactReady(fact) ||
         type_name == "" { return -1; }
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < ArrayLength(fact.names) {
         if fact.names[row] == type_name {
             if found >= 0 { return -1; }
@@ -246,9 +247,25 @@ func DirectMirScalarProgramPayloadFreeEnumParameterReady(
     return ordinal >= 0 && ordinal < signature.param_count &&
         DirectMirScalarProgramPayloadFreeEnumTypeReady(
             fact, signature.parameters.type_names[ordinal]) &&
-        signature.parameters.carriages[ordinal] == "value" &&
+        (signature.parameters.carriages[ordinal] == "value" ||
+         signature.parameters.carriages[ordinal] == "readonly-ref") &&
         signature.parameters.resources[ordinal] == "none" &&
         signature.parameters.pass_shapes[ordinal] == "direct" &&
         !signature.parameters.abi_required[ordinal] &&
         signature.parameters.abi_layout_ids[ordinal] == 0;
+}
+
+func DirectMirScalarProgramPayloadFreeEnumReadonlyRefAt(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref fact: DirectMirScalarProgramPayloadFreeEnumFact,
+    routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.roles) ||
+        ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    return routines.parameter_carriages[row] == "readonly-ref" &&
+        DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            fact, routines.parameter_types[row]);
 }

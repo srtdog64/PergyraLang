@@ -23,9 +23,9 @@ func MirIntentModeProjectionFromCarriers(
             false, "MIR intent mode carrier arrays are misaligned", ""
         );
     }
-    let matches: Int = 0;
-    let mode: String = "";
-    let row: Int = 0;
+    var matches: Int = 0;
+    var mode: String = "";
+    var row: Int = 0;
     while row < count {
         if carriers.carrier_names[row] == "IntentMode" {
             matches = matches + 1;

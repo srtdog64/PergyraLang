@@ -1,0 +1,25 @@
+import "../../../src/self_hosted/lib/json_fact_table.pgy";
+
+// A ref formal is not an owned local carrier.  Even though Route is deeply
+// copyable, the compiler must not hide a direct authority transfer by
+// inserting a copy at this explicit borrowed boundary.
+struct Route {
+    table: JsonArrayObjectFactTable;
+}
+
+func ConsumeRoute(own route: Route) -> Int {
+    return JsonArrayObjectFactCount(route.table);
+}
+
+func Bad(ref route: Route) -> Int {
+    return ConsumeRoute(route);
+}
+
+func Main() -> Int {
+    let json: String = Concat("{\"rows\":[]", "}");
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    let table: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(root, "rows");
+    let route: Route = Route(table);
+    return Bad(route);
+}

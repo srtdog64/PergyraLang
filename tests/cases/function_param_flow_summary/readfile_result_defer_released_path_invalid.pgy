@@ -3,7 +3,7 @@ func Consume(text: String) -> Int {
 }
 
 func Main() -> Void {
-    let paths: Array<String> = [];
+    var paths: Array<String> = [];
     ArrayPushOwnedString(paths, Concat("tests/cases/backend_compare/string_io/", "io.txt"));
     let risk: Array<String> = [Concat("he", "ap")];
     defer {

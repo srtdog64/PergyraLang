@@ -26,8 +26,9 @@
 #include "type_checker_call_constructor_internal.h"
 #include "type_checker_internal.h"
 
-static void copy_changed_at(MoveWalk *walk, MoveState *state, const ASTNode *path, uint32_t binding,
-    const char *fields);
+void move_walk_copy_changed_at(MoveWalk *walk, MoveState *state,
+    const ASTNode *path, uint32_t binding, const char *fields,
+    bool copy_on_reuse);
 
 void move_walk_copy_end(MoveCopyTraversal *traversal)
 {
@@ -102,7 +103,28 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
     char fields[512];
     uint32_t binding = 0;
     if (move_walk_access_path(value, &binding, fields, sizeof(fields))) {
-        (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL, value, carrier, carrier_fields, NULL);
+        MovedPath outward_cause = {0};
+        bool has_outward_cause = false;
+        for (size_t i = 0; i < state->count; i++) {
+            const MovedPath *row = &state->rows[i];
+            if (row->carrier == 0 && row->outward_borrow_escape
+                && row->binding == binding
+                && (move_walk_path_contains(row->fields, fields)
+                    || move_walk_path_contains(fields, row->fields))) {
+                outward_cause = *row;
+                has_outward_cause = true;
+                break;
+            }
+        }
+        if (has_outward_cause
+            && !move_walk_state_add(walk, state, carrier,
+                carrier_fields != NULL ? carrier_fields : "",
+                outward_cause.callee, outward_cause.callee_decl,
+                outward_cause.param, value, 0, NULL,
+                outward_cause.argument, false, true))
+            return;
+        (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL,
+            NULL, value, carrier, carrier_fields, NULL, false, false);
         return;
     }
     if (value->type == AST_ARRAY_LITERAL || value->type == AST_TUPLE_LITERAL) {
@@ -189,12 +211,14 @@ static void copy_changed_under_loan(MoveWalk *walk, const MoveState *state, cons
     }
 }
 
-void move_walk_copy_changed(MoveWalk *walk, MoveState *state, const ASTNode *path)
+void move_walk_copy_changed(MoveWalk *walk, MoveState *state,
+    const ASTNode *path, bool copy_on_reuse)
 {
     char fields[512];
     uint32_t binding = 0;
     if (walk->failed || !move_walk_access_path(path, &binding, fields, sizeof(fields))) return;
-    copy_changed_at(walk, state, path, binding, fields);
+    move_walk_copy_changed_at(walk, state, path, binding, fields,
+        copy_on_reuse);
 }
 
 /* An inout callee changes a struct argument only in the fields whose paths
@@ -209,7 +233,7 @@ void move_walk_copy_inout_changed(MoveWalk *walk, MoveState *state, const ASTNod
         semantic_host_decl_for_type(walk->ctx, value.type) : NULL;
     if (walk->failed || decl == NULL || decl->type != AST_CLASS_DECL ||
         !move_walk_access_path(arg, &binding, fields, sizeof(fields))) {
-        move_walk_copy_changed(walk, state, arg);
+        move_walk_copy_changed(walk, state, arg, false);
         return;
     }
     for (size_t i = 0; !walk->failed; i++) {
@@ -218,26 +242,49 @@ void move_walk_copy_inout_changed(MoveWalk *walk, MoveState *state, const ASTNod
         if (name == NULL) return;
         if (function_param_flow_field_preservation_failures(walk->ctx, callee, formal, name) == 0) continue;
         if ((size_t)snprintf(path, sizeof(path), "%s.%s", fields, name) >= sizeof(path)) {
-            move_walk_copy_changed(walk, state, arg);
+            move_walk_copy_changed(walk, state, arg, false);
             return;
         }
-        copy_changed_at(walk, state, arg, binding, path);
+        move_walk_copy_changed_at(walk, state, arg, binding, path, false);
     }
 }
 
-static void copy_changed_at(MoveWalk *walk, MoveState *state, const ASTNode *path, uint32_t binding,
-    const char *fields)
+void move_walk_copy_changed_at(MoveWalk *walk, MoveState *state,
+    const ASTNode *path, uint32_t binding, const char *fields,
+    bool copy_on_reuse)
 {
     MoveCopyTraversal traversal;
     MoveCopyReach reach;
+    MovedPath outward_cause = {0};
+    bool has_outward_cause = false;
+    /* The call-move owner records an opaque outward escape before it marks
+     * the connected shallow copies changed. Preserve that exact cause on
+     * every reached copy; otherwise a prior alias is mistaken for an
+     * ordinary independently repairable copy and receives an implicit
+     * Clone that invents cleanup authority. */
+    for (size_t i = 0; i < state->count; i++) {
+        const MovedPath *row = &state->rows[i];
+        if (row->carrier == 0 && row->outward_borrow_escape
+            && row->binding == binding
+            && (move_walk_path_contains(row->fields, fields)
+                || move_walk_path_contains(fields, row->fields))) {
+            outward_cause = *row;
+            has_outward_cause = true;
+            break;
+        }
+    }
     if (!move_walk_copy_begin(walk, state, binding, fields, &traversal)) return;
     while (!walk->failed && move_walk_copy_next(&traversal, &reach)) {
         if (reach.copy_row == SIZE_MAX) continue;
         MovedPath copy = state->rows[reach.copy_row];
-        if (!reach.from_source)
+        if (!walk->landing_only && !reach.from_source)
             copy_changed_under_loan(walk, state, path, &copy, reach.binding, reach.fields);
         if (!move_walk_state_add(walk, state, reach.binding, reach.fields,
-                NULL, NULL, copy.lending_call, 0, NULL, NULL)) break;
+                has_outward_cause ? outward_cause.callee : NULL,
+                has_outward_cause ? outward_cause.callee_decl : NULL,
+                has_outward_cause ? outward_cause.param : NULL,
+                copy.lending_call, 0, NULL, NULL,
+                copy_on_reuse, has_outward_cause)) break;
     }
     move_walk_copy_end(&traversal);
 }
@@ -260,7 +307,9 @@ void move_walk_copy_inout_at_exit(MoveWalk *walk, const MoveState *state, ASTNod
              * where it is made. Its only other rows are copies changed. */
             if (row->binding != ast_func_param_stable_id(param) || row->carrier != 0 || row->lending_call == NULL)
                 continue;
-            if (!semantic_loan_copy_landing_select(walk->ctx, row->lending_call)) walk->failed = true;
+            if (!semantic_loan_copy_landing_select_carrier(
+                    walk->ctx, row->lending_call))
+                walk->failed = true;
             if (!move_walk_reported_once(walk, exit)) continue;
             semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED,
                 PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, exit,
@@ -305,6 +354,10 @@ static void part_storage_collect(MoveWalk *walk, const MoveState *state, ASTNode
 {
     char path[512];
     uint32_t binding = 0;
+    /* This analysis is already unusable when a landing is selected.  For the
+     * next landed analysis, that exact part is an independent Clone and owns
+     * no storage in common with another part of the constructed value. */
+    if (semantic_loan_copy_landing_selected(walk->ctx, part)) return;
     SemanticPublishedValue value = semantic_param_publication_value(walk->ctx, part);
     if (!value.ok || value.meta || !semantic_default_aggregate_value(walk->ctx, value.type) ||
         !move_walk_access_path(part, &binding, path, sizeof(path))) return;
@@ -380,7 +433,13 @@ void move_walk_copy_rebound(MoveState *state, uint32_t binding)
     size_t kept = 0;
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *row = &state->rows[i];
-        if (row->binding == binding || row->carrier == binding) { free(row->fields); free(row->carrier_fields); continue; }
+        if (row->binding == binding || row->carrier == binding) {
+            if (!state->arena_paths) {
+                free(row->fields);
+                free(row->carrier_fields);
+            }
+            continue;
+        }
         state->rows[kept++] = *row;
     }
     state->count = kept;

@@ -1,0 +1,19 @@
+// A direct inout aggregate field uses the leaf declaration as its mutation
+// identity while the caller retains ownership of the aggregate storage.
+struct Rows {
+    names: Array<String>;
+}
+
+func Append(inout rows: Rows, ref text: String) -> Void {
+    ArrayPush(rows.names, text);
+}
+
+func Main() -> Int {
+    let text: String = Concat("b", "");
+    var rows: Rows = Rows([Concat("a", "")]);
+    Append(rows, text);
+    Print(rows.names[1]);
+    Print(text);
+    Log(ArrayLength(rows.names));
+    return 0;
+}

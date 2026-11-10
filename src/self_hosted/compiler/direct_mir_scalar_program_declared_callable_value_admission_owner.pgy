@@ -15,7 +15,8 @@ struct DirectMirScalarProgramDeclaredCallableValueFact {
 
 func DirectMirScalarProgramDeclaredCallableValueFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int, expected_type: String,
-    ref callables: DirectMirScalarCfgProgramCallableInventory
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory
 ) -> DirectMirScalarProgramDeclaredCallableValueFact {
     if sequence.arena.identities.binding_kinds[node] !=
             SemanticExpressionBindingDeclaredCallable() ||
@@ -25,7 +26,8 @@ func DirectMirScalarProgramDeclaredCallableValueFromGraph(
     }
     let callable_ordinal: Int =
         DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(
-            callables, sequence.arena.identities.binding_syntax_ids[node]);
+            callables, routine_instances,
+            sequence.arena.identities.binding_syntax_ids[node]);
     if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
             callables, callable_ordinal) ||
         !DirectMirScalarProgramFirstOrderCallableTypeSupported(expected_type) {

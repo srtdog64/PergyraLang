@@ -8,7 +8,7 @@ struct Count
 
 func Keys() -> Array<String>
 {
-    let map: HashMap<String, Int> = MapNew<String, Int>();
+    var map: HashMap<String, Int> = MapNew<String, Int>();
     MapSet(map, "key", 1);
     return MapKeys(map);
 }

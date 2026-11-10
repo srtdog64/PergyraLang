@@ -5,8 +5,8 @@ import "ast_collection_call_retirement_owner.pgy";
 func SemanticAstCollectionMemberReadHazardSiteNormalize(ref artifact: AstTreeArtifact, syntax: Int) -> Int {
     if syntax <= 0 || syntax >= artifact.count || ArrayLength(artifact.arena.parents) != artifact.count ||
         ArrayLength(artifact.arena.kinds) != artifact.count { return 0; }
-    let ancestor: Int = syntax;
-    let remaining: Int = artifact.count;
+    var ancestor: Int = syntax;
+    var remaining: Int = artifact.count;
     while ancestor >= 0 && remaining > 0 {
         if ancestor >= artifact.count { return 0; }
         let parent: Int = artifact.arena.parents[ancestor];

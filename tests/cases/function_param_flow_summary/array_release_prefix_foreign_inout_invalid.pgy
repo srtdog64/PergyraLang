@@ -13,9 +13,9 @@ func Grow(inout keys: Array<String>) -> Int
 
 func Main() -> Void
 {
-    let map: HashMap<String, Int> = MapNew<String, Int>();
+    var map: HashMap<String, Int> = MapNew<String, Int>();
     MapSet(map, "key", 1);
-    let keys: Array<String> = MapKeys(map);
+    var keys: Array<String> = MapKeys(map);
     Leak(keys);
     Log(Grow(keys));
 }

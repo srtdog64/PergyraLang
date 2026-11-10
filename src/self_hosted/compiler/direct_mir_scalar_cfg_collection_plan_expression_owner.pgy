@@ -10,7 +10,7 @@ func DirectMirScalarCfgCollectionPlanExpressionFact(
     let set_row: Int = DirectMirScalarCfgCollectionSetRowAtGlobal(
         plan, global
     );
-    let kind: Int = 0;
+    var kind: Int = 0;
     if set_row >= 0 {
         let result_row: Int = plan.operations.result_value_rows[set_row];
         if result_row >= 0 && result_row <

@@ -42,9 +42,9 @@ func SemanticArrayStorageOwnParameterTarget(ref signatures: SemanticAstFunctionS
 
 func SemanticArrayStorageReleaseParameterRequirements(ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref roots: SemanticCallSpineRoots) -> HashMap<String, Int> {
-    let required: HashMap<String, Int> = MapNew();
-    let sources: Array<Int> = []; let targets: Array<Int> = [];
-    let node: Int = 0;
+    var required: HashMap<String, Int> = MapNew();
+    var sources: Array<Int> = []; var targets: Array<Int> = [];
+    var node: Int = 0;
     while node < ArrayLength(roots.root_nodes) {
         if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
             let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, roots.root_nodes[node]);
@@ -57,7 +57,7 @@ func SemanticArrayStorageReleaseParameterRequirements(ref signatures: SemanticAs
                         MapSet(required, ToString(formal.syntax_id), 1);
                     }
                 }
-                let argument: Int = 0;
+                var argument: Int = 0;
                 while argument < ArrayLength(call.argument_nodes) {
                     let target: Int = SemanticArrayStorageOwnParameterTarget(signatures, surfaces.expression_graph, node, argument);
                     let source: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
@@ -71,11 +71,11 @@ func SemanticArrayStorageReleaseParameterRequirements(ref signatures: SemanticAs
         }
         node = node + 1;
     }
-    let remaining: Int = ArrayLength(sources) + 1;
-    let changed: Bool = true;
+    var remaining: Int = ArrayLength(sources) + 1;
+    var changed: Bool = true;
     while changed && remaining > 0 {
         changed = false;
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(sources) {
             let source: String = ToString(sources[edge]);
             if MapHas(required, ToString(targets[edge])) && !MapHas(required, source) {

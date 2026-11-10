@@ -3,6 +3,7 @@
 #include "llvm_expr_aggregate.h"
 
 #include <string.h>
+#include <limits.h>
 
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_emit_support.h"
@@ -332,6 +333,63 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     if (tmp == NULL)
         return llvm_expression_error(ctx, node,
             "LLVM array literal could not allocate array temporary");
+
+    bool constant_int = count > 0 && strcmp(inner_name, "Int") == 0;
+    for (size_t i = 0; constant_int && i < count; i++) {
+        ASTNode *element = ast_array_literal_element(node, i);
+        constant_int = element != NULL && element->type == AST_NUMBER
+            && !ast_number_is_float(element) && !ast_number_is_long(element);
+    }
+    if (constant_int) {
+        if (count > UINT_MAX || count > SIZE_MAX / sizeof(LLVMValueRef)
+            || count > SIZE_MAX / 4)
+            return llvm_expression_error(ctx, node,
+                "LLVM constant array exceeds backend size limits");
+        LLVMFuncEntry *new_fn = llvm_lookup_function(ctx,
+            "pgy_array_new_raw_export");
+        LLVMValueRef *values = pgy_arena_calloc(&ctx->scratch,
+            count * sizeof(*values));
+        if (new_fn == NULL || values == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM constant array requires its allocation runtime and values");
+        for (size_t i = 0; i < count; i++) {
+            values[i] = i == 0 ? first_value
+                : llvm_emit_expression(ast_array_literal_element(node, i), ctx);
+            if (values[i] == NULL || !LLVMIsAConstantInt(values[i])
+                || LLVMTypeOf(values[i]) != ctx->type_i32)
+                return llvm_expression_error(ctx, node,
+                    "LLVM Int array constant does not match its admitted type");
+        }
+        LLVMValueRef initial = LLVMConstArray(ctx->type_i32, values,
+            (unsigned)count);
+        LLVMValueRef source = LLVMAddGlobal(ctx->module, LLVMTypeOf(initial),
+            llvm_tmp_name(ctx));
+        LLVMSetInitializer(source, initial);
+        LLVMSetGlobalConstant(source, true);
+        LLVMSetLinkage(source, LLVMPrivateLinkage);
+        LLVMSetUnnamedAddress(source, LLVMGlobalUnnamedAddr);
+        LLVMSetAlignment(source, 4);
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            LLVMConstInt(ctx->type_i64, count, false),
+            LLVMConstInt(ctx->type_i64, 4, false)
+        };
+        /* The raw constructor uses the same Array storage allocator while
+         * avoiding a host C aggregate-return ABI at this call boundary. */
+        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 3, "");
+        LLVMValueRef data_slot = LLVMBuildStructGEP2(ctx->builder,
+            array_type, tmp, 0, llvm_tmp_name(ctx));
+        LLVMValueRef data = LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,
+            data_slot, llvm_tmp_name(ctx));
+        LLVMBuildMemCpy(ctx->builder, data, 4, source, 4,
+            LLVMConstInt(ctx->type_i64, (uint64_t)count * 4, false));
+        LLVMValueRef length_slot = LLVMBuildStructGEP2(ctx->builder,
+            array_type, tmp, 1, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMConstInt(ctx->type_i64, count, false), length_slot);
+        return LLVMBuildLoad2(ctx->builder, array_type, tmp, llvm_tmp_name(ctx));
+    }
 
     char push_fn_name[64];
     if (!llvm_expr_runtime_name(ctx, node, push_fn_name,

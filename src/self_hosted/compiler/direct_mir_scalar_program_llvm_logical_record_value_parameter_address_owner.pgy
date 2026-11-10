@@ -5,8 +5,8 @@ import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 func DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
-    let output: String = "";
-    let ordinal: Int = 0;
+    var output: String = "";
+    var ordinal: Int = 0;
     while ordinal < plan.routines.parameter_counts[routine] {
         let row: Int = plan.routines.parameter_starts[routine] + ordinal;
         let type_name: String = plan.routines.parameter_types[row];

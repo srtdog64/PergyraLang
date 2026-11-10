@@ -6,13 +6,13 @@ func DirectMirScalarCfgStringArrayAppendIndex(
     inout rows: DirectMirScalarCfgStringArrayIndexSet,
     fact: DirectMirScalarCfgStringArrayIndexFact
 ) -> Void {
-    let kinds: Array<Int> = rows.kinds;
-    let value_ids: Array<String> = rows.value_ids;
-    let source_names: Array<String> = rows.source_names;
-    let iteration_ids: Array<Int> = rows.iteration_syntax_ids;
-    let literals: Array<String> = rows.literals;
-    let value_rows: Array<Int> = rows.value_rows;
-    let local_rows: Array<Int> = rows.local_rows;
+    var kinds: Array<Int> = rows.kinds;
+    var value_ids: Array<String> = rows.value_ids;
+    var source_names: Array<String> = rows.source_names;
+    var iteration_ids: Array<Int> = rows.iteration_syntax_ids;
+    var literals: Array<String> = rows.literals;
+    var value_rows: Array<Int> = rows.value_rows;
+    var local_rows: Array<Int> = rows.local_rows;
     ArrayPush(kinds, fact.kind); ArrayPush(value_ids, fact.value_id);
     ArrayPush(source_names, fact.source_name);
     ArrayPush(iteration_ids, fact.iteration_syntax_id);
@@ -28,27 +28,27 @@ func DirectMirScalarCfgStringArrayAppendCollection(
     inout rows: DirectMirScalarCfgStringArrayCollectionSet,
     fact: DirectMirScalarCfgArrayStringCollectionFact
 ) -> Void {
-    let definitions: Array<Int> = rows.definition_global_rows;
-    let value_ids: Array<String> = rows.value_ids;
-    let names: Array<String> = rows.names;
-    let storage_ids: Array<String> = rows.storage_identities;
-    let element_starts: Array<Int> = rows.element_starts;
-    let element_counts: Array<Int> = rows.element_counts;
-    let elements: Array<String> = rows.elements;
-    let layout_ids: Array<Int> = rows.abi_layout_ids;
-    let sizes: Array<Int> = rows.abi_sizes;
-    let aligns: Array<Int> = rows.abi_aligns;
-    let data_offsets: Array<Int> = rows.data_offsets;
-    let length_offsets: Array<Int> = rows.length_offsets;
-    let capacity_offsets: Array<Int> = rows.capacity_offsets;
-    let allocator_offsets: Array<Int> = rows.allocator_offsets;
+    var definitions: Array<Int> = rows.definition_global_rows;
+    var value_ids: Array<String> = rows.value_ids;
+    var names: Array<String> = rows.names;
+    var storage_ids: Array<String> = rows.storage_identities;
+    var element_starts: Array<Int> = rows.element_starts;
+    var element_counts: Array<Int> = rows.element_counts;
+    var elements: Array<String> = rows.elements;
+    var layout_ids: Array<Int> = rows.abi_layout_ids;
+    var sizes: Array<Int> = rows.abi_sizes;
+    var aligns: Array<Int> = rows.abi_aligns;
+    var data_offsets: Array<Int> = rows.data_offsets;
+    var length_offsets: Array<Int> = rows.length_offsets;
+    var capacity_offsets: Array<Int> = rows.capacity_offsets;
+    var allocator_offsets: Array<Int> = rows.allocator_offsets;
     ArrayPush(definitions, fact.definition_global_row);
     ArrayPush(value_ids, fact.collection_value_id);
     ArrayPush(names, fact.collection_name);
     ArrayPush(storage_ids, fact.storage_identity);
     ArrayPush(element_starts, ArrayLength(elements));
     ArrayPush(element_counts, ArrayLength(fact.elements));
-    let item: Int = 0;
+    var item: Int = 0;
     while item < ArrayLength(fact.elements) {
         ArrayPush(elements, fact.elements[item]); item = item + 1;
     }
@@ -69,11 +69,11 @@ func DirectMirScalarCfgStringArrayAppendLength(
     inout rows: DirectMirScalarCfgStringArrayLengthSet,
     fact: DirectMirScalarCfgStringArrayLengthFact
 ) -> Void {
-    let global_rows: Array<Int> = rows.global_rows;
-    let blocks: Array<Int> = rows.blocks;
-    let collection_rows: Array<Int> = rows.collection_rows;
-    let control_ids: Array<Int> = rows.control_loop_syntax_ids;
-    let indices: DirectMirScalarCfgStringArrayIndexSet = rows.indices;
+    var global_rows: Array<Int> = rows.global_rows;
+    var blocks: Array<Int> = rows.blocks;
+    var collection_rows: Array<Int> = rows.collection_rows;
+    var control_ids: Array<Int> = rows.control_loop_syntax_ids;
+    var indices: DirectMirScalarCfgStringArrayIndexSet = rows.indices;
     ArrayPush(global_rows, fact.global_row); ArrayPush(blocks, fact.block);
     ArrayPush(collection_rows, fact.collection_row);
     ArrayPush(control_ids, fact.control_loop_syntax_id);
@@ -87,15 +87,15 @@ func DirectMirScalarCfgStringArrayAppendAccess(
     inout rows: DirectMirScalarCfgStringArrayAccessSet,
     fact: DirectMirScalarCfgStringArrayAccessFact
 ) -> Void {
-    let global_rows: Array<Int> = rows.global_rows;
-    let kinds: Array<Int> = rows.kinds;
-    let collection_rows: Array<Int> = rows.collection_rows;
-    let guard_rows: Array<Int> = rows.guard_length_rows;
-    let indices: DirectMirScalarCfgStringArrayIndexSet = rows.indices;
-    let value_present: Array<Bool> = rows.value_present;
-    let value_literals: Array<String> = rows.value_literals;
-    let expected_lengths: Array<Int> = rows.expected_lengths_before;
-    let operation_rows: Array<Int> = rows.operation_rows;
+    var global_rows: Array<Int> = rows.global_rows;
+    var kinds: Array<Int> = rows.kinds;
+    var collection_rows: Array<Int> = rows.collection_rows;
+    var guard_rows: Array<Int> = rows.guard_length_rows;
+    var indices: DirectMirScalarCfgStringArrayIndexSet = rows.indices;
+    var value_present: Array<Bool> = rows.value_present;
+    var value_literals: Array<String> = rows.value_literals;
+    var expected_lengths: Array<Int> = rows.expected_lengths_before;
+    var operation_rows: Array<Int> = rows.operation_rows;
     ArrayPush(global_rows, fact.global_row); ArrayPush(kinds, fact.kind);
     ArrayPush(collection_rows, fact.collection_row);
     ArrayPush(guard_rows, fact.guard_length_row);

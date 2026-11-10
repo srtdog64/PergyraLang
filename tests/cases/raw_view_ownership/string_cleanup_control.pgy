@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let rows: Array<String> = [];
+    Log(ArrayLength(rows));
+}

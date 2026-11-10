@@ -10,7 +10,7 @@ func Summarize(rows: Array<Int>) -> Count {
 }
 
 func Build() -> Int {
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, 41);
     defer { ArrayDrop(rows); };
     let count: Count = Summarize(rows);

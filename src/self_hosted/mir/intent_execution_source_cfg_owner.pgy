@@ -17,15 +17,15 @@ func SelfMirIntentExecutionRoutineAppend(
         return SelfMirRoutineBuildError(build,
             "typed Intent requires admitted transitions and its carrier spine");
     }
-    let branch_blocks: Array<Int> = [];
-    let success_blocks: Array<Int> = [];
-    let failure_blocks: Array<Int> = [];
-    let terminal_blocks: Array<Int> = [];
-    let step_i: Int = 0;
+    var branch_blocks: Array<Int> = [];
+    var success_blocks: Array<Int> = [];
+    var failure_blocks: Array<Int> = [];
+    var terminal_blocks: Array<Int> = [];
+    var step_i: Int = 0;
     while step_i < count {
         let step: Int = start + step_i;
         let name: String = intents.steps.names[step];
-        let block: Int = ArrayLength(build.cfg.blocks.ids);
+        var block: Int = ArrayLength(build.cfg.blocks.ids);
         ArrayPush(branch_blocks, block);
         build = SelfMirRoutineAddBlock(build);
         build = SelfMirRoutineAtBlock(build, block);
@@ -88,7 +88,7 @@ func SelfMirIntentExecutionRoutineAppend(
         build = SelfMirRoutineAddBlock(build);
         build = SelfMirRoutineAtBlock(build, block);
         ArraySet(build.cfg.blocks.reachable, block, 0);
-        let compensation_i: Int = 0;
+        var compensation_i: Int = 0;
         while compensation_i < intents.steps.compensate_counts[step] {
             let compensation: Int =
                 intents.steps.compensate_starts[step] + compensation_i;
@@ -100,7 +100,7 @@ func SelfMirIntentExecutionRoutineAppend(
         }
         step_i = step_i + 1;
     }
-    let terminal_i: Int = 0;
+    var terminal_i: Int = 0;
     while terminal_i < terminal_count {
         let terminal: Int = terminal_start + terminal_i;
         let block: Int = ArrayLength(build.cfg.blocks.ids);
@@ -132,7 +132,7 @@ func SelfMirIntentExecutionRoutineAppend(
         if !build.ok { return build; }
         terminal_i = terminal_i + 1;
     }
-    let root: Int = -1;
+    var root: Int = -1;
     step_i = 0;
     while step_i < count {
         let step: Int = start + step_i;
@@ -143,9 +143,9 @@ func SelfMirIntentExecutionRoutineAppend(
             }
             root = branch_blocks[step_i];
         }
-        let success_target: Int = -1;
-        let failure_target: Int = -1;
-        let child_i: Int = 0;
+        var success_target: Int = -1;
+        var failure_target: Int = -1;
+        var child_i: Int = 0;
         while child_i < count {
             if intents.transitions.predecessor_step_node_ids[start + child_i] ==
                 intents.steps.node_ids[step] {
@@ -208,10 +208,10 @@ func SelfMirIntentExecutionRollbackAppend(
     let step_count: Int = intents.step_counts[intent_index];
     // The cold execution recipe and rollback obligation refer to the same
     // admitted action identity; the backend must not invent this edge.
-    let rollback_step: Int = 0;
+    var rollback_step: Int = 0;
     while rollback_step < step_count {
         let step: Int = step_start + rollback_step;
-        let compensation: Int = intents.steps.compensate_starts[step];
+        var compensation: Int = intents.steps.compensate_starts[step];
         let compensation_end: Int = compensation + intents.steps.compensate_counts[step];
         if compensation < 0 || compensation_end > ArrayLength(intents.steps.compensate_node_ids) {
             return SelfMirRoutineBuildError(build, "typed Intent rollback range is invalid");
@@ -259,10 +259,10 @@ func SelfMirIntentRoutineFinalizeCfg(
         );
     }
     if !build.ok { return build; }
-    let roles: Array<String> = build.cfg.blocks.intent_roles;
-    let block: Int = 0;
+    var roles: Array<String> = build.cfg.blocks.intent_roles;
+    var block: Int = 0;
     while block < ArrayLength(roles) {
-        let block_role: String = "body";
+        var block_role: String = "body";
         if block == entry_block { block_role = "entry"; }
         else if block == cleanup_block { block_role = "cleanup"; }
         else if block == rollback_block { block_role = "rollback"; }
@@ -271,5 +271,15 @@ func SelfMirIntentRoutineFinalizeCfg(
         ArraySet(roles, block, block_role);
         block = block + 1;
     }
-    return build;
+    let source_blocks: SelfMirBlockRows = build.cfg.blocks;
+    let finalized_blocks: SelfMirBlockRows = SelfMirBlockRows(
+        source_blocks.ids, source_blocks.reachable,
+        source_blocks.instruction_starts, source_blocks.instruction_counts,
+        source_blocks.has_succ_true, source_blocks.succ_true,
+        source_blocks.has_succ_false, source_blocks.succ_false, roles
+    );
+    let finalized_cfg: SelfMirCfgRows = SelfMirCfgRows(
+        finalized_blocks, build.cfg.instructions, build.cfg.local_refs
+    );
+    return SelfMirRoutineWithCfg(build, finalized_cfg);
 }

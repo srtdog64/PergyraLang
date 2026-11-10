@@ -32,7 +32,7 @@ func SelfDirDomainProjectionMapRowsEmpty() -> SelfDirDomainProjectionMapRows {
 func SelfDirDomainProjectionMapRowsError(
     message: String
 ) -> SelfDirDomainProjectionMapRows {
-    let rows: SelfDirDomainProjectionMapRows =
+    var rows: SelfDirDomainProjectionMapRows =
         SelfDirDomainProjectionMapRowsEmpty();
     rows.ok = false;
     rows.diagnostic_message = message;
@@ -53,11 +53,11 @@ func SelfDirDomainProjectionMapRowsFromArtifact(
             "self-host DIR projection map requires a ready typed artifact"
         );
     }
-    let directive_ids: Array<Int> = [];
-    let entry_ids: Array<Int> = [];
-    let targets: Array<String> = [];
-    let sources: Array<String> = [];
-    let node_id: Int = 0;
+    var directive_ids: Array<Int> = [];
+    var entry_ids: Array<Int> = [];
+    var targets: Array<String> = [];
+    var sources: Array<String> = [];
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if !TypedAstArenaNodeKindIs(
             artifact.arena, node_id,
@@ -95,7 +95,7 @@ func SelfDirDomainProjectionMapRowsFromArtifact(
                 "self-host DIR projection map parent or spelling is invalid"
             );
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(targets) {
             if directive_ids[prior] == parent_id &&
                 targets[prior] == target_name {
@@ -126,14 +126,14 @@ func SelfDirDomainProjectionMapRowsReady(
         ArrayLength(rows.source_names) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if rows.directive_source_syntax_ids[i] <= 0 ||
             rows.entry_source_syntax_ids[i] <= 0 ||
             rows.target_names[i] == "" || rows.source_names[i] == "" {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if rows.entry_source_syntax_ids[prior] ==
                     rows.entry_source_syntax_ids[i] ||
@@ -158,7 +158,7 @@ func SelfDirDomainProjectionMapSourceFor(
         directive_source_syntax_id <= 0 || target_name == "" {
         return SelfDirDomainProjectionMapLookup(false, false, "");
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows.target_names) {
         if rows.directive_source_syntax_ids[i] ==
                 directive_source_syntax_id &&

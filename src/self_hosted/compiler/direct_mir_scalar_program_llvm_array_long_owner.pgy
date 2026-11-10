@@ -7,7 +7,7 @@ func DirectMirScalarProgramLlvmArrayLongPreamble(
     ref local_types: Array<String>, ref facts: DirectMirScalarProgramExpressionSet,
     ref target: CompilerTargetProjectionFact
 ) -> String {
-    let present: Bool = false; let get: Bool = false; let index: Int = 0;
+    var present: Bool = false; var get: Bool = false; var index: Int = 0;
     while index < ArrayLength(local_types) {
         if local_types[index] == CompilerAbiLayoutArrayLongTypeName() { present = true; }
         index = index + 1;

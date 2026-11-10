@@ -1,7 +1,7 @@
 // One ref formal supplies three Strings stored by one contiguous statement
-// run. The first live Array<String> is a copy-risk owner, not the identity of
-// every destination, so the landing owner records all three independent
-// copies in one analysis.
+// run. The current program-point snapshot validates each destination and
+// formal path, so the landing owner records all three independent copies in
+// one analysis.
 struct FormalStringStoreBatchRows {
     first: Array<String>;
     second: Array<String>;
@@ -18,9 +18,9 @@ func FormalStringStoreBatchApply(
     rows: FormalStringStoreBatchRows,
     ref fact: FormalStringStoreBatchFact
 ) -> FormalStringStoreBatchRows {
-    let first: Array<String> = rows.first;
-    let second: Array<String> = rows.second;
-    let third: Array<String> = rows.third;
+    var first: Array<String> = rows.first;
+    var second: Array<String> = rows.second;
+    var third: Array<String> = rows.third;
     ArraySet(first, 0, fact.first);
     ArraySet(second, 0, fact.second);
     ArraySet(third, 0, fact.third);

@@ -1,0 +1,23 @@
+// Every exact mutation edge of one field carrier is ordered before the final
+// writeback. The carrier remains one storage responsibility across both calls.
+struct CarrierMutationFacts { values: Array<String>; }
+
+func CarrierMutationAppend(inout values: Array<String>, text: String) -> Void {
+    ArrayPushOwnedString(values, text);
+}
+
+func CarrierMutationGrow(
+    facts: CarrierMutationFacts
+) -> CarrierMutationFacts {
+    let values: Array<String> = facts.values;
+    CarrierMutationAppend(values, "first");
+    CarrierMutationAppend(values, "second");
+    facts.values = values;
+    return facts;
+}
+
+func Main() -> Void {
+    let facts: CarrierMutationFacts = CarrierMutationFacts([]);
+    let updated: CarrierMutationFacts = CarrierMutationGrow(facts);
+    let count: Int = ArrayLength(updated.values);
+}

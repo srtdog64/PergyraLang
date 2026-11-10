@@ -14,7 +14,7 @@ func DirectMirScalarProgramCallCalleeBase(
 ) -> Int {
     if call < 0 || call >= sequence.ready_node_count ||
         sequence.arena.topology.node_kinds[call] != AstExpressionNodeCall() { return -1; }
-    let callee: Int = sequence.arena.topology.left_children[call];
+    var callee: Int = sequence.arena.topology.left_children[call];
     while callee >= 0 && callee < call &&
         sequence.arena.topology.node_kinds[callee] == AstExpressionNodeGenericCallee() {
         let actual: Int = sequence.arena.topology.right_children[callee];

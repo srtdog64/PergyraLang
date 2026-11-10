@@ -103,22 +103,21 @@ func SelfMirLowerTrackedStatementFromArtifact(
             target_graph, value_graph, auxiliary_graph
         );
         build = SelfMirRoutineAttachLastSourceStatement(build, node_id);
-        let graph_lane: Option<Int> =
-            SelfMirSimpleStatementExpressionGraphLane(kind);
-        if IsSome(graph_lane) {
+        build = SelfMirRoutineAttachLastCollectionMutationTargetGraph(
+            build, target_graph
+        );
+        if kind == TypedAstKindArrayPushStmtTag() {
             build = SelfMirRoutineAttachLastExpressionGraph(
-                build, SemanticAstExpressionGraphForNode(
-                    input.analysis.expression_surfaces,
-                    node_id, UnwrapOption(graph_lane)
-                ), input.machine_declaration
+                build, value_graph, input.machine_declaration
+            );
+        } else if kind == TypedAstKindArraySetStmtTag() {
+            build = SelfMirRoutineAttachLastExpressionGraph(
+                build, auxiliary_graph, input.machine_declaration
             );
         }
         if kind == TypedAstKindArraySetStmtTag() {
             build = SelfMirRoutineAttachLastSecondaryExpressionGraph(
-                build, SemanticAstExpressionGraphForNode(
-                    input.analysis.expression_surfaces,
-                    node_id, AstExpressionLaneValue()
-                )
+                build, value_graph
             );
         }
         return build;
@@ -155,8 +154,8 @@ func SelfMirLowerTrackedStatementFromArtifact(
             return_graph, payload
         );
         let return_type: Option<String> =
-            SemanticAstStatementInferredTypeForNode(
-                input.statement_types, node_id, kind
+            SemanticAstStatementTypeForNode(
+                input.statement_types, node_id, kind, false
             );
         if !IsSome(return_type) {
             return SelfMirRoutineBuildError(

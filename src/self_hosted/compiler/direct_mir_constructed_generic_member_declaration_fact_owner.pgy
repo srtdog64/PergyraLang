@@ -30,12 +30,12 @@ func DirectMirConstructedGenericMemberDeclarationDigest(
     ref fact: DirectMirConstructedGenericMemberDeclarationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(359L, fact.name);
+    var hash: Long = DirectMirCfgHashString(359L, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.field_name);
     hash = DirectMirCfgHashString(hash, fact.field_type);
     hash = DirectMirCfgHashInt(hash, fact.field_source_syntax_id);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.method_names) {
         hash = DirectMirCfgHashString(hash, fact.method_names[row]);
         hash = DirectMirCfgHashString(hash, fact.method_return_types[row]);
@@ -70,7 +70,7 @@ func DirectMirConstructedGenericMemberDeclarationHasMethod(
     if !DirectMirConstructedGenericMemberDeclarationFactReady(fact) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 2 {
         if fact.method_names[row] == name &&
             fact.method_return_types[row] == return_type {
@@ -134,9 +134,9 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
         UnwrapOption(field_kind) != "field" {
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
     }
-    let method_names: Array<String> = [];
-    let method_returns: Array<String> = [];
-    let method_row: Int = 0;
+    var method_names: Array<String> = [];
+    var method_returns: Array<String> = [];
+    var method_row: Int = 0;
     while method_row < 2 {
         let method: JsonObjectFactTable = JsonArrayObjectFactAt(
             methods, method_row

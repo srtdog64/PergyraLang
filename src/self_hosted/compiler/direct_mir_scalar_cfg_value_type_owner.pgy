@@ -21,6 +21,16 @@ func DirectMirScalarCfgValueTypePlanInvalid() -> DirectMirScalarCfgValueTypePlan
     return DirectMirScalarCfgValueTypePlan(false, strings, strings);
 }
 
+func DirectMirScalarCfgValueTypePlanRejected(
+    stage: String, local_name: String, type_name: String
+) -> DirectMirScalarCfgValueTypePlan {
+    Die(Concat(
+        "direct MIR scalar CFG value type plan rejected: stage=",
+        Concat(stage, Concat(" local=", Concat(
+            local_name, Concat(" type=", type_name))))));
+    return DirectMirScalarCfgValueTypePlanInvalid();
+}
+
 func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
@@ -31,15 +41,16 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirR
         DirectMirScalarCfgValueTypePlanInvalid();
     if !index.valid || !locals.valid ||
         !DirectMirScalarCfgForEachElementFactsReady(foreach_elements) {
-        return invalid;
+        return DirectMirScalarCfgValueTypePlanRejected(
+            "inputs", "", "");
     }
-    let local_types: Array<String> = [];
-    let local_binding: Int = 0;
+    var local_types: Array<String> = [];
+    var local_binding: Int = 0;
     while local_binding < ArrayLength(locals.local_names) {
-        let type_name: String = "";
+        var type_name: String = "";
         if locals.local_ref_kinds[local_binding] ==
                 DirectMirScalarCfgLocalRefValue() {
-            let value: Int = 0;
+            var value: Int = 0;
             while value < ArrayLength(locals.value_names) {
                 if locals.value_local_rows[value] == local_binding {
                     let parameter_type: String =
@@ -49,7 +60,9 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirR
                             Concat(locals.local_names[local_binding], ".0") {
                         let projected: String = DirectMirScalarCfgValueTypeProject(parameter_type, logical_record, referenced_enum);
                         if projected == "" || (type_name != "" && type_name != projected) {
-                            return invalid;
+                            return DirectMirScalarCfgValueTypePlanRejected(
+                                "parameter-definition", locals.local_names[local_binding],
+                                parameter_type);
                         }
                         type_name = projected;
                         value = value + 1;
@@ -60,20 +73,32 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirR
                             index, locals.value_names[value]
                         );
                     if !MirRoutineResultDefinitionFactReady(definition) {
-                        return invalid;
+                        return DirectMirScalarCfgValueTypePlanRejected(
+                            "result-definition", locals.local_names[local_binding],
+                            locals.value_names[value]);
                     }
                     let capture: MirRoutineInstructionScalarCapture =
                         MirRoutineInstructionFactBundleAtGlobal(
                             index.instruction_facts, definition.global_row
                         );
-                    if !capture.valid { return invalid; }
+                    if !capture.valid {
+                        return DirectMirScalarCfgValueTypePlanRejected(
+                            "instruction-capture", locals.local_names[local_binding],
+                            locals.value_names[value]);
+                    }
                     if capture.abi_type_name != "" {
                         let projected: String = DirectMirScalarCfgValueTypeProject(capture.abi_type_name, logical_record, referenced_enum);
                         if type_name != "" &&
                             type_name != projected {
-                            return invalid;
+                            return DirectMirScalarCfgValueTypePlanRejected(
+                                "definition-conflict", locals.local_names[local_binding],
+                                capture.abi_type_name);
                         }
-                        if projected == "" { return invalid; }
+                        if projected == "" {
+                            return DirectMirScalarCfgValueTypePlanRejected(
+                                "definition-projection", locals.local_names[local_binding],
+                                capture.abi_type_name);
+                        }
                         type_name = projected;
                     }
                 }
@@ -103,32 +128,52 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirR
         }
         type_name = DirectMirScalarCfgValueTypeProject(type_name, logical_record, referenced_enum);
         if type_name == "" {
-            return invalid;
+            return DirectMirScalarCfgValueTypePlanRejected(
+                "local-projection", locals.local_names[local_binding],
+                type_name);
         }
-        let parameter_type: String = "";
+        var parameter_type: String = "";
         let parameter_ordinal: Int = SelfMirLocalRefParameterOrdinalForOwner(
             locals.local_ref_value_ids[local_binding], ToInt(index.source_syntax_id));
         if parameter_ordinal >= 0 {
-            if parameter_ordinal >= ArrayLength(parameters.type_names) { return invalid; }
+            if parameter_ordinal >= ArrayLength(parameters.type_names) {
+                return DirectMirScalarCfgValueTypePlanRejected(
+                    "parameter-ordinal", locals.local_names[local_binding], "");
+            }
             parameter_type = DirectMirScalarCfgValueTypeProject(parameters.type_names[parameter_ordinal], logical_record, referenced_enum);
-            if parameter_type == "" { return invalid; }
+            if parameter_type == "" {
+                return DirectMirScalarCfgValueTypePlanRejected(
+                    "parameter-projection", locals.local_names[local_binding],
+                    parameters.type_names[parameter_ordinal]);
+            }
         }
         if locals.local_ref_kinds[local_binding] == DirectMirScalarCfgLocalRefValue() &&
-            parameter_type != "" && parameter_type != type_name { return invalid; }
+            parameter_type != "" && parameter_type != type_name {
+            return DirectMirScalarCfgValueTypePlanRejected(
+                "parameter-conflict", locals.local_names[local_binding],
+                parameter_type);
+        }
         if StartsWith(locals.local_ref_value_ids[local_binding], "declaration:") {
             let declared: String = DirectMirScalarCfgDeclaredValueTypeProject(index,
-                locals.local_ref_value_ids[local_binding], logical_record, referenced_enum);
-            if declared == "" || declared != type_name { return invalid; }
+                locals.local_ref_value_ids[local_binding], type_name,
+                logical_record, referenced_enum);
+            if declared == "" || declared != type_name {
+                return DirectMirScalarCfgValueTypePlanRejected(
+                    "declaration-conflict", locals.local_names[local_binding],
+                    declared);
+            }
         }
         ArrayPush(local_types, type_name);
         local_binding = local_binding + 1;
     }
-    let value_types: Array<String> = [];
-    let value: Int = 0;
+    var value_types: Array<String> = [];
+    var value: Int = 0;
     while value < ArrayLength(locals.value_names) {
         let local_row: Int = locals.value_local_rows[value];
         if local_row < 0 || local_row >= ArrayLength(local_types) {
-            return invalid;
+            return DirectMirScalarCfgValueTypePlanRejected(
+                "value-local-row", locals.value_names[value],
+                ToString(local_row));
         }
         ArrayPush(value_types, local_types[local_row]);
         value = value + 1;

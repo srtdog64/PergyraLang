@@ -9,8 +9,8 @@ func SemanticAstCollectionCallRetirementSite(ref artifact: AstTreeArtifact, synt
 func SemanticAstCollectionNodeEnclosedBy(
     ref artifact: AstTreeArtifact, node: Int, ancestor_candidate: Int
 ) -> Bool {
-    let ancestor: Int = node;
-    let remaining: Int = artifact.count;
+    var ancestor: Int = node;
+    var remaining: Int = artifact.count;
     while ancestor >= 0 && remaining > 0 {
         if ancestor == ancestor_candidate { return true; }
         let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);

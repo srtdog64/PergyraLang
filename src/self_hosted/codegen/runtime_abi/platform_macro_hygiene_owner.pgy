@@ -24,8 +24,8 @@ func PlatformMacroCIdentifierNames() -> Array<String> {
 
 func PlatformMacroCIdentifierUndefBlock() -> String {
     let names: Array<String> = PlatformMacroCIdentifierNames();
-    let block: String = "#ifdef _WIN32\n";
-    let i: Int = 0;
+    var block: String = "#ifdef _WIN32\n";
+    var i: Int = 0;
     while i < ArrayLength(names) {
         block = Concat(block, Concat("#undef ", Concat(names[i], "\n")));
         i = i + 1;

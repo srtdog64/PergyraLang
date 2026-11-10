@@ -13,10 +13,10 @@ struct SemanticAstKindSurfaceFacts {
 func SemanticAstKindSurfaceFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstKindSurfaceFacts {
-    let node_ids: Array<Int> = [];
-    let kind_tags: Array<Int> = [];
-    let ok: Bool = AstTreeArtifactReady(artifact);
-    let node_id: Int = 0;
+    var node_ids: Array<Int> = [];
+    var kind_tags: Array<Int> = [];
+    var ok: Bool = AstTreeArtifactReady(artifact);
+    var node_id: Int = 0;
     while node_id < artifact.count && ok {
         let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
         if !IsSome(kind) {
@@ -63,7 +63,7 @@ func SemanticAstKindSurfaceContains(
     kind_tag: Int
 ) -> Bool {
     if !facts.ok { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstKindSurfaceCount(facts) {
         if facts.kind_tags[i] == kind_tag { return true; }
         i = i + 1;
@@ -82,7 +82,7 @@ func SemanticAstKindSurfaceFactsMatchArtifact(
         SemanticAstKindSurfaceCount(rebuilt) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
             facts.kind_tags[i] != rebuilt.kind_tags[i] {

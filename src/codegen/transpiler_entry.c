@@ -12,6 +12,7 @@
 #include "transpiler_context.h"
 #include "transpiler_program.h"
 #include "../common/string_compat.h"
+#include "../compiler/mir_hir_fact_transfer.h"
 #include "../compiler/verified_projection_plan.h"
 
 static TranspileResult *
@@ -20,11 +21,16 @@ transpile_mir_only(const MIRProgram *mir,
                    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
                    const PgySpawnLanePlan *spawn_lane_plan,
                    const PgyRegionPlan *region_plan,
+                   const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
                    const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
     TranspilerCtx *ctx;
     PgyVerifiedProjectionPlanRow observability_plan;
+    MIRCollectionEffectEvidenceReceipt local_collection_effect_receipt = {0};
+    const MIRCollectionEffectEvidenceReceipt *active_collection_effect_receipt =
+        collection_effect_receipt;
+    char *collection_effect_error = NULL;
 
     if (result == NULL)
         return NULL;
@@ -37,11 +43,29 @@ transpile_mir_only(const MIRProgram *mir,
     }
 
     ctx->mir = mir;
+    if (active_collection_effect_receipt == NULL) {
+        if (mir_validate_collection_effect_evidence_and_issue(
+                mir,
+                &local_collection_effect_receipt,
+                &collection_effect_error)) {
+            active_collection_effect_receipt =
+                &local_collection_effect_receipt;
+        }
+    }
+    ctx->collection_effect_receipt = active_collection_effect_receipt;
     ctx->projection_plan = projection_plan;
     ctx->parallel_capture_plan = parallel_capture_plan;
     ctx->spawn_lane_plan = spawn_lane_plan;
     ctx->region_plan = region_plan;
-    if (projection_plan == NULL) {
+    if (!mir_collection_effect_evidence_receipt_current(
+            active_collection_effect_receipt, mir)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "C backend: %s",
+            collection_effect_error != NULL
+                ? collection_effect_error
+                : "current collection-effect evidence receipt required");
+    } else if (projection_plan == NULL) {
         transpiler_set_mir_inventory_missing(ctx,
             "%s", "C backend: verified projection plan required");
     } else if (!projection_plan->verified
@@ -79,6 +103,7 @@ transpile_mir_only(const MIRProgram *mir,
             observability_plan.disposition == PGY_PROJECTION_MATERIALIZE;
         emit_program(ctx);
     }
+    free(collection_effect_error);
 
     if (ctx->backend_error != NULL) {
         result->success = false;
@@ -113,7 +138,8 @@ transpile_mir_only(const MIRProgram *mir,
 TranspileResult *
 transpile_from_mir(const MIRProgram *mir, const char *output_path)
 {
-    return transpile_mir_only(mir, NULL, NULL, NULL, NULL, output_path);
+    return transpile_mir_only(
+        mir, NULL, NULL, NULL, NULL, NULL, output_path);
 }
 
 TranspileResult *
@@ -124,7 +150,7 @@ transpile_from_mir_with_projection_plan(
     const char *output_path)
 {
     return transpile_mir_only(mir, projection_plan, NULL,
-                              spawn_lane_plan, NULL, output_path);
+                              spawn_lane_plan, NULL, NULL, output_path);
 }
 
 TranspileResult *
@@ -134,10 +160,12 @@ transpile_from_mir_with_projection_plans(
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
     const PgyRegionPlan *region_plan,
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
     const char *output_path)
 {
     return transpile_mir_only(mir, projection_plan, parallel_capture_plan,
-                              spawn_lane_plan, region_plan, output_path);
+                              spawn_lane_plan, region_plan,
+                              collection_effect_receipt, output_path);
 }
 
 TranspileResult *
@@ -152,7 +180,8 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
         }
         return result;
     }
-    return transpile_mir_only(mir, NULL, NULL, NULL, NULL, output_path);
+    return transpile_mir_only(
+        mir, NULL, NULL, NULL, NULL, NULL, output_path);
 }
 
 void

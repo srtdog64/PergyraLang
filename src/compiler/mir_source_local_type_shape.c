@@ -225,6 +225,20 @@ mir_source_local_unwrap_set_element_type(const char *type_name,
 }
 
 bool
+mir_source_local_unwrap_try_success_type(const char *type_name,
+                                          char *out,
+                                          size_t out_size)
+{
+    if (type_name == NULL)
+        return false;
+    if (strncmp(type_name, "Result<", 7) == 0)
+        return mir_source_local_unwrap_first_constructed_type_arg(type_name,
+            "Result<", false, out, out_size);
+    return mir_source_local_unwrap_first_constructed_type_arg(type_name,
+        "Option<", false, out, out_size);
+}
+
+bool
 mir_source_local_unwrap_future_type(const char *type_name,
                                     char *out,
                                     size_t out_size,

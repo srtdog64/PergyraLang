@@ -27,8 +27,8 @@ func SemanticAstCapabilityInstantiationIntern(
         ArrayLength(actuals) != graph.parameter_counts[callable] {
         state.ok = false; return None;
     }
-    let closed: Bool = true;
-    let argument: Int = 0;
+    var closed: Bool = true;
+    var argument: Int = 0;
     while argument < ArrayLength(actuals) {
         let id: Int = actuals[argument];
         if id <= 0 || id >= ArrayLength(graph.declaration_rows) {
@@ -40,9 +40,9 @@ func SemanticAstCapabilityInstantiationIntern(
         }
         argument = argument + 1;
     }
-    let candidate: Int = state.heads[callable];
+    var candidate: Int = state.heads[callable];
     while candidate >= 0 {
-        let equal: Bool = true;
+        var equal: Bool = true;
         argument = 0;
         while argument < ArrayLength(actuals) && equal {
             equal = state.binding_ids[state.binding_starts[candidate] + argument] == actuals[argument];
@@ -51,39 +51,27 @@ func SemanticAstCapabilityInstantiationIntern(
         if equal { state.reuses = state.reuses + 1; return Some(candidate); }
         candidate = state.next[candidate];
     }
-    let rows: Array<Int> = state.callable_rows;
-    let starts: Array<Int> = state.binding_starts;
-    let bindings: Array<Int> = state.binding_ids;
-    let next: Array<Int> = state.next;
-    let masks: Array<Int> = state.used_masks;
-    let effects: Array<Int> = state.used_effects;
-    let unknown_effects: Array<Bool> = state.unknown_effects;
-    let deferred: Array<Bool> = state.deferred;
-    let closed_rows: Array<Bool> = state.closed;
-    let result: Int = ArrayLength(rows);
-    ArrayPush(rows, callable);
-    ArrayPush(starts, ArrayLength(bindings));
+    // These rows are one state-owned append-only table. Copying every field
+    // into a local carrier cloned the complete accumulated table for each new
+    // instantiation. Grow the owning state directly; the key and row order do
+    // not change.
+    let result: Int = ArrayLength(state.callable_rows);
+    let binding_start: Int = ArrayLength(state.binding_ids);
+    let next_head: Int = state.heads[callable];
+    ArrayPush(state.callable_rows, callable);
+    ArrayPush(state.binding_starts, binding_start);
     argument = 0;
     while argument < ArrayLength(actuals) {
-        ArrayPush(bindings, actuals[argument]);
+        ArrayPush(state.binding_ids, actuals[argument]);
         argument = argument + 1;
     }
-    ArrayPush(next, state.heads[callable]);
+    ArrayPush(state.next, next_head);
     state.heads[callable] = result;
-    ArrayPush(masks, graph.direct_masks[callable]);
-    ArrayPush(effects, graph.direct_effects[callable]);
-    ArrayPush(unknown_effects, graph.unknown_effects[callable]);
-    ArrayPush(deferred, false);
-    ArrayPush(closed_rows, closed);
-    state.callable_rows = rows;
-    state.binding_starts = starts;
-    state.binding_ids = bindings;
-    state.next = next;
-    state.used_masks = masks;
-    state.used_effects = effects;
-    state.unknown_effects = unknown_effects;
-    state.deferred = deferred;
-    state.closed = closed_rows;
+    ArrayPush(state.used_masks, graph.direct_masks[callable]);
+    ArrayPush(state.used_effects, graph.direct_effects[callable]);
+    ArrayPush(state.unknown_effects, graph.unknown_effects[callable]);
+    ArrayPush(state.deferred, false);
+    ArrayPush(state.closed, closed);
     return Some(result);
 }
 
@@ -117,8 +105,8 @@ func SemanticAstCapabilityInstantiateCall(
         state.deferred[context] = true;
         return;
     }
-    let actuals: Array<Int> = [];
-    let parameter: Int = 0;
+    var actuals: Array<Int> = [];
+    var parameter: Int = 0;
     while parameter < graph.parameter_counts[callee] {
         let ordinal: Int = graph.parameter_ordinals[graph.parameter_starts[callee] + parameter] -
             graph.call_source_offsets[call];
@@ -133,12 +121,8 @@ func SemanticAstCapabilityInstantiateCall(
     }
     let resolved: Option<Int> = SemanticAstCapabilityInstantiationIntern(graph, callee, actuals, state);
     if !IsSome(resolved) { return; }
-    let callers: Array<Int> = state.edge_callers;
-    let callees: Array<Int> = state.edge_callees;
-    ArrayPush(callers, context);
-    ArrayPush(callees, UnwrapOption(resolved));
-    state.edge_callers = callers;
-    state.edge_callees = callees;
+    ArrayPush(state.edge_callers, context);
+    ArrayPush(state.edge_callees, UnwrapOption(resolved));
 }
 
 func SemanticAstCapabilityInstantiationsFromGraph(
@@ -146,18 +130,18 @@ func SemanticAstCapabilityInstantiationsFromGraph(
 ) -> SemanticAstCapabilityInstantiations {
     let empty: Array<Int> = [];
     let bools: Array<Bool> = [];
-    let heads: Array<Int> = [];
-    let row: Int = 0;
+    var heads: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(graph.callable_node_ids) {
         ArrayPush(heads, -1);
         row = row + 1;
     }
-    let state: SemanticAstCapabilityInstantiations = SemanticAstCapabilityInstantiations(
+    var state: SemanticAstCapabilityInstantiations = SemanticAstCapabilityInstantiations(
         graph.ok, empty, empty, empty, empty, heads, empty, bools, bools, empty, empty, 0, empty, bools);
     row = 0;
     while row < ArrayLength(graph.callable_node_ids) && state.ok {
-        let actuals: Array<Int> = [];
-        let parameter: Int = 0;
+        var actuals: Array<Int> = [];
+        var parameter: Int = 0;
         while parameter < graph.parameter_counts[row] {
             ArrayPush(actuals, graph.parameter_node_ids[graph.parameter_starts[row] + parameter]);
             parameter = parameter + 1;
@@ -168,22 +152,22 @@ func SemanticAstCapabilityInstantiationsFromGraph(
     }
     // Append-only worklist. Recursive and repeated calls reuse an existing key;
     // every distinct semantic instantiation scans its own call rows once.
-    let context: Int = 0;
+    var context: Int = 0;
     while context < ArrayLength(state.callable_rows) && state.ok {
-        let call: Int = graph.call_heads[state.callable_rows[context]];
+        var call: Int = graph.call_heads[state.callable_rows[context]];
         while call >= 0 && state.ok {
             SemanticAstCapabilityInstantiateCall(graph, context, call, state);
             call = graph.call_next[call];
         }
         context = context + 1;
     }
-    let changed: Bool = true;
-    let round: Int = 0;
+    var changed: Bool = true;
+    var round: Int = 0;
     // Each node can gain nine cap bits, eight effect bits, unknown and deferred.
     let limit: Int = (ArrayLength(state.callable_rows) + 1) * 19;
     while changed && round < limit && state.ok {
         changed = false;
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(state.edge_callers) {
             let caller: Int = state.edge_callers[edge];
             let callee: Int = state.edge_callees[edge];

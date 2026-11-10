@@ -33,8 +33,8 @@ func SemanticAstMapStringPayloadInvalidated(
     // A joined map-containing loan keeps its map obligation. It is never the
     // unrelated String/Array unknown-source sentinel (-1).
     let keys: Array<String> = MapKeys(invalidations);
-    let index: Int = 0;
-    let invalid: Bool = false;
+    var index: Int = 0;
+    var invalid: Bool = false;
     while index < ArrayLength(keys) {
         if MapHas(functions, keys[index]) && MapGet(functions, keys[index]) == function_id &&
             (MapGet(invalidations, keys[index]) == 0 || !SemanticAstCollectionExclusiveBranchUnreached(artifact,
@@ -59,14 +59,10 @@ func SemanticAstMapStringPayloadAtCallCompletion(
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, terminal);
     if !call.ok || call.call_node != call_node { return SemanticAstMapStringPayloadBoundary(
         surfaces, surface, terminal, "map_string_completion_unproved"); }
-    let ordinal: Int = 0;
-    let sources: HashMap<String, Int> = loans.map_payload_sources;
-    let syntax_ids: HashMap<String, Int> = loans.map_payload_syntax_ids;
-    let invalidations: HashMap<String, Int> = loans.map_payload_invalidations;
-    let functions: HashMap<String, Int> = loans.map_payload_functions;
+    var ordinal: Int = 0;
     let none: Array<Int> = [];
-    let sources_to_invalidate: Array<Int> = [];
-    let result_type: Option<String> = None;
+    var sources_to_invalidate: Array<Int> = [];
+    var result_type: Option<String> = None;
     if ArrayLength(call.argument_nodes) > 0 &&
         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") {
         let receiver: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
@@ -97,7 +93,7 @@ func SemanticAstMapStringPayloadAtCallCompletion(
         if source < -1 {
             let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
                 surfaces.expression_graph, surfaces.expression_graph.roots[root_slot]);
-            let identity: Option<String> = None;
+            var identity: Option<String> = None;
             if IsSome(start) {
                 identity = SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
                     surfaces, call_node, UnwrapOption(start), surfaces.node_ids[surface], root_slot % 3);
@@ -116,9 +112,16 @@ func SemanticAstMapStringPayloadAtCallCompletion(
         }
         ordinal = ordinal + 1;
     }
+    // Keep the state carrier intact through its last read above. From here to
+    // the final restoration these four locals are the only owners of the map
+    // descriptors, so a growing MapSet cannot alias the carrier fields.
+    var sources: HashMap<String, Int> = loans.map_payload_sources;
+    var syntax_ids: HashMap<String, Int> = loans.map_payload_syntax_ids;
+    var invalidations: HashMap<String, Int> = loans.map_payload_invalidations;
+    var functions: HashMap<String, Int> = loans.map_payload_functions;
     if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") &&
         IsSome(result_type) && UnwrapOption(result_type) == "String" {
-        let backing: Int = 0;
+        var backing: Int = 0;
         if ArrayLength(call.argument_nodes) == 2 {
             backing = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
                 locals, inferred_types, surfaces, assignments, surfaces.function_node_ids[surface],
@@ -134,7 +137,7 @@ func SemanticAstMapStringPayloadAtCallCompletion(
     }
     if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapSet") ||
         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapRemove") {
-        let backing: Int = 0;
+        var backing: Int = 0;
         if ArrayLength(call.argument_nodes) > 0 {
             backing = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors, locals,
                 inferred_types, surfaces, assignments, surfaces.function_node_ids[surface],
@@ -143,16 +146,16 @@ func SemanticAstMapStringPayloadAtCallCompletion(
         ArrayPush(sources_to_invalidate, backing);
     }
     let keys: Array<String> = MapKeys(sources);
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(keys) {
-        let mutation: Int = 0;
+        var mutation: Int = 0;
         while mutation < ArrayLength(sources_to_invalidate) {
             if MapHas(functions, keys[index]) &&
                 MapGet(functions, keys[index]) == surfaces.function_node_ids[surface] &&
                 (sources_to_invalidate[mutation] == 0 ||
                  (sources_to_invalidate[mutation] < 0 && MapGet(sources, keys[index]) < 0) ||
                  sources_to_invalidate[mutation] == MapGet(sources, keys[index])) {
-                let site: Int = surfaces.node_ids[surface];
+                var site: Int = surfaces.node_ids[surface];
                 if MapHas(invalidations, keys[index]) && MapGet(invalidations, keys[index]) != site { site = 0; }
                 MapSet(invalidations, keys[index], site);
             }

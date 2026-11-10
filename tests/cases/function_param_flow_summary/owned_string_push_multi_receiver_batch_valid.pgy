@@ -16,10 +16,10 @@ struct OwnedStringPushBatchRows {
 func OwnedStringPushBatchApply(
     ref source: OwnedStringPushBatchSource
 ) -> OwnedStringPushBatchRows {
-    let first: Array<String> = Clone(source.first);
-    let second: Array<String> = Clone(source.second);
-    let third: Array<String> = Clone(source.third);
-    let row: Int = 0;
+    var first: Array<String> = Clone(source.first);
+    var second: Array<String> = Clone(source.second);
+    var third: Array<String> = Clone(source.third);
+    var row: Int = 0;
     while row < 1 {
         ArrayPush(first, "a1");
         ArrayPush(second, "b2");

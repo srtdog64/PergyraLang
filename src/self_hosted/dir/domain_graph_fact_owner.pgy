@@ -49,9 +49,9 @@ func SelfDirDomainGraphFactsError(message: String) -> SelfDirDomainGraphFacts {
 }
 
 func SelfDirU32Xor(left: Long, right: Long) -> Long {
-    let out: Long = 0L;
-    let bit: Long = 1L;
-    let i: Int = 0;
+    var out: Long = 0L;
+    var bit: Long = 1L;
+    var i: Int = 0;
     while i < 32 {
         if ((left / bit) % 2L) != ((right / bit) % 2L) {
             out = out + bit;
@@ -64,9 +64,9 @@ func SelfDirU32Xor(left: Long, right: Long) -> Long {
 
 func SelfDirU64Decimal(high: Long, low: Long) -> String {
     if high == 0L && low == 0L { return "0"; }
-    let upper: Long = high;
-    let lower: Long = low;
-    let digits: String = "";
+    var upper: Long = high;
+    var lower: Long = low;
+    var digits: String = "";
     while upper > 0L || lower > 0L {
         let combined: Long = (upper % 10L) * 4294967296L + lower;
         let digit: Int = (combined % 10L) as Int;
@@ -116,8 +116,8 @@ func SelfDirDomainAuthorityEdges(
     ) {
         return None;
     }
-    let edge_count: Int = 0;
-    let node_id: Int = 0;
+    var edge_count: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         let node_kind: Option<Int> = TypedAstArenaNodeKind(
             artifact.arena, node_id
@@ -151,7 +151,7 @@ func SelfDirDomainAuthorityEdges(
         }
         node_id = node_id + 1;
     }
-    let authority_i: Int = 0;
+    var authority_i: Int = 0;
     while authority_i < ArrayLength(authorities.authority_node_ids) {
         let owner_index: Int = SelfDirDeclarationIndexForName(
             rows, authorities.owner_zone_names[authority_i]
@@ -159,8 +159,8 @@ func SelfDirDomainAuthorityEdges(
         if owner_index < 0 || rows.nominal_kinds[owner_index] != "zone" {
             return None;
         }
-        let slot_matches: Int = 0;
-        let field_i: Int = 0;
+        var slot_matches: Int = 0;
+        var field_i: Int = 0;
         while field_i < rows.field_counts[owner_index] {
             let field_row: Int = rows.field_starts[owner_index] + field_i;
             if rows.field_names[field_row] ==
@@ -174,13 +174,13 @@ func SelfDirDomainAuthorityEdges(
             field_i = field_i + 1;
         }
         if slot_matches != 1 { return None; }
-        let ability_i: Int = 0;
+        var ability_i: Int = 0;
         while ability_i < authorities.required_ability_counts[authority_i] {
             let ability_row: Int =
                 authorities.required_ability_starts[authority_i] + ability_i;
-            let role_ability_index: Int = -1;
-            let role_ability_matches: Int = 0;
-            let role_ability_i: Int = 0;
+            var role_ability_index: Int = -1;
+            var role_ability_matches: Int = 0;
+            var role_ability_i: Int = 0;
             while role_ability_i < ArrayLength(roles.ability_node_ids) {
                 if roles.ability_node_ids[role_ability_i] ==
                         authorities.required_ability_node_ids[ability_row] &&
@@ -243,8 +243,8 @@ func SelfDirDomainGraphFactsFromArtifact(
     ) {
         return SelfDirDomainGraphFactsError(intents.diagnostic_message);
     }
-    let required: Bool = intents.required;
-    let i: Int = 0;
+    var required: Bool = intents.required;
+    var i: Int = 0;
     while i < ArrayLength(rows.names) {
         if rows.nominal_kinds[i] == "effect" ||
             rows.nominal_kinds[i] == "zone" ||
@@ -265,7 +265,7 @@ func SelfDirDomainGraphFactsFromArtifact(
 
     // Host-ABI prototype groups own no domain topology: an extern decl row
     // is not a DIR node, matching the native DIR inventory.
-    let node_count: Int = 0;
+    var node_count: Int = 0;
     i = 0;
     while i < ArrayLength(rows.names) {
         if rows.nominal_kinds[i] != "extern" {
@@ -273,7 +273,7 @@ func SelfDirDomainGraphFactsFromArtifact(
         }
         i = i + 1;
     }
-    let edge_count: Int = 0;
+    var edge_count: Int = 0;
     i = 0;
     while i < ArrayLength(rows.names) {
         if rows.kinds[i] == "role" {
@@ -281,7 +281,7 @@ func SelfDirDomainGraphFactsFromArtifact(
                 "self-host DIR role is missing its target type"
             ); }
             edge_count = edge_count + 1;
-            let impl_i: Int = 0;
+            var impl_i: Int = 0;
             while impl_i < rows.role_impl_counts[i] {
                 let impl_row: Int = rows.role_impl_starts[i] + impl_i;
                 let ability_methods: Int = SelfDirAbilityMethodCount(
@@ -298,7 +298,7 @@ func SelfDirDomainGraphFactsFromArtifact(
             }
         } else if rows.nominal_kinds[i] == "effect" ||
             rows.nominal_kinds[i] == "relation" {
-            let field_i: Int = 0;
+            var field_i: Int = 0;
             while field_i < rows.field_counts[i] {
                 let field_row: Int = rows.field_starts[i] + field_i;
                 if rows.field_kinds[field_row] ==
@@ -326,7 +326,7 @@ func SelfDirDomainGraphFactsFromArtifact(
                 field_i = field_i + 1;
             }
         } else if rows.nominal_kinds[i] == "zone" {
-            let field_i: Int = 0;
+            var field_i: Int = 0;
             while field_i < rows.field_counts[i] {
                 let field_row: Int = rows.field_starts[i] + field_i;
                 if rows.field_kinds[field_row] ==
@@ -357,7 +357,7 @@ func SelfDirDomainGraphFactsFromArtifact(
                 field_i = field_i + 1;
             }
         } else if rows.nominal_kinds[i] == "world" {
-            let field_i: Int = 0;
+            var field_i: Int = 0;
             while field_i < rows.field_counts[i] {
                 let field_row: Int = rows.field_starts[i] + field_i;
                 if rows.field_kinds[field_row] == NominalFieldKindWorldZone() ||
@@ -380,7 +380,7 @@ func SelfDirDomainGraphFactsFromArtifact(
             // party-to-ability plus slot-to-ability edge for the slot's
             // declared ability. Party slots ride the role_slot rows, and a
             // party that carries plain fields stays outside the bounded walk.
-            let field_i: Int = 0;
+            var field_i: Int = 0;
             while field_i < rows.field_counts[i] {
                 let field_row: Int = rows.field_starts[i] + field_i;
                 if rows.field_kinds[field_row] !=
@@ -394,7 +394,7 @@ func SelfDirDomainGraphFactsFromArtifact(
             node_count = node_count + rows.role_slot_counts[i];
             edge_count = edge_count + rows.role_slot_counts[i] * 3;
         } else if rows.nominal_kinds[i] == "roster" {
-            let field_i: Int = 0;
+            var field_i: Int = 0;
             while field_i < rows.field_counts[i] {
                 let field_row: Int = rows.field_starts[i] + field_i;
                 if rows.field_kinds[field_row] ==
@@ -433,7 +433,7 @@ func SelfDirDomainGraphFactsFromArtifact(
     if !SelfDirZoneStateRowsReady(zone_states) {
         return SelfDirDomainGraphFactsError(zone_states.diagnostic_message);
     }
-    let topology_i: Int = 0;
+    var topology_i: Int = 0;
     while topology_i < ArrayLength(topology.kinds) {
         if topology.kinds[topology_i] == "refresh" ||
             topology.kinds[topology_i] == "publish" ||

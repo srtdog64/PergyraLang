@@ -9,12 +9,12 @@ func LexerScanContentFacts(
     emit_json_receipt: Bool
 ) -> Array<LexerTokenFact> {
     let n: Int = StringLength(content);
-    let tokens: Array<LexerTokenFact> = [];
+    var tokens: Array<LexerTokenFact> = [];
 
-    let i: Int = 0;
-    let line: Int = 1;
-    let col: Int = 1;
-    let token_count: Int = 0;
+    var i: Int = 0;
+    var line: Int = 1;
+    var col: Int = 1;
+    var token_count: Int = 0;
 
     // A leading UTF-8 byte order mark (EF BB BF) is an encoding signature,
     // not source text. Mirrors the C oracle's lexer_create.
@@ -91,7 +91,7 @@ func LexerScanContentFacts(
         if c == Ord("/") && CharCode(content, n, i + 1) == Ord("*") {
             i = i + 2;
             col = col + 2;
-            let block_closed: Bool = false;
+            var block_closed: Bool = false;
             while i < n {
                 let cc: Int = CharCode(content, n, i);
                 if cc == Ord("*") && CharCode(content, n, i + 1) == Ord("/") {

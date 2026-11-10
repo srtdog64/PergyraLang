@@ -1,0 +1,208 @@
+// Owned String literal call transfer and completion consumption.
+
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+import "ast_owned_string_expression_domain_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_owned_string_actual_exclusivity_owner.pgy";
+import "ast_owned_string_literal_ownership_fact_owner.pgy";
+import "ast_owned_string_literal_definition_transfer_owner.pgy";
+
+func SemanticAstOwnedStringLiteralTransferParameterNode(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, argument_ordinal: Int
+) -> Int {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        graph, call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 ||
+        argument_ordinal < 0 { return 0; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, UnwrapOption(target));
+    if !IsSome(signature) { return 0; }
+    let row: Int = UnwrapOption(signature);
+    if row < 0 || row >= ArrayLength(signatures.receiver_source_param_offsets) {
+        return 0;
+    }
+    let offset: Int = signatures.receiver_source_param_offsets[row];
+    let source_ordinal: Int = argument_ordinal + offset;
+    let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(
+        signatures, row, source_ordinal);
+    if offset < 0 || offset > 1 || !IsSome(parameter) { return 0; }
+    let flat: Int = UnwrapOption(parameter);
+    if signatures.param_modes[flat] != 2 ||
+        signatures.param_types[flat] != "String" ||
+        signatures.param_node_ids[flat] <= 0 { return 0; }
+    return signatures.param_node_ids[flat];
+}
+
+func SemanticAstOwnedStringLiteralTransferRequiresFormal(
+    ref facts: SemanticAstOwnedStringLiteralTransferFacts,
+    formal_syntax_id: Int
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(facts.formal_syntax_ids) {
+        if facts.source_kinds[row] ==
+                SemanticAstOwnedStringTransferFormalSource() &&
+            facts.formal_syntax_ids[row] == formal_syntax_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    ref numeric: SemanticAstNumericStringAllocationCalls,
+    ref facts: SemanticAstOwnedStringLiteralTransferFacts,
+    surface_row: Int, lane: Int,
+    edge: SemanticCallArgumentEdgeView
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !edge.ok || surface_row < 0 ||
+        surface_row >= ArrayLength(surfaces.node_ids) || lane < 0 || lane > 2 {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "owned_string_literal_transfer_call_edge"), -1, -1);
+    }
+    let target: Int =
+        SemanticAstOwnedStringLiteralTransferParameterNode(
+            signatures, surfaces.expression_graph,
+            edge.call_node, edge.ordinal);
+    if target <= 0 ||
+        !SemanticAstOwnedStringLiteralTransferRequiresFormal(facts, target) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let domain: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringExpressionAllocationDomain(
+            artifact, signatures, locals, initializer_types, surfaces,
+            results.writes, results.domain_exposures, results, numeric,
+            surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], lane,
+            edge.argument_node, 0);
+    let named_actual: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], surfaces.expression_graph,
+            edge.argument_node);
+    if domain.kind != 1 ||
+        (named_actual.ok &&
+         !SemanticAstOwnedStringLiteralTransferDirectDefinition(
+            artifact, surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row])) ||
+        !SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+            artifact, signatures, locals, initializer_types,
+            surfaces, results, numeric,
+            surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], lane,
+            edge.argument_node, 0,
+            surfaces.node_ids[surface_row], edge.argument_node) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "owned_string_actual_unproved", "type", "String"),
+            surfaces.node_ids[surface_row], edge.argument_node);
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstOwnedStringLiteralTransferFactsReady(
+    ref facts: SemanticAstOwnedStringLiteralTransferFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.definition_rows);
+    return facts.ok && ArrayLength(facts.definition_slots) == count &&
+        ArrayLength(facts.formal_syntax_ids) == count &&
+        ArrayLength(facts.source_kinds) == count &&
+        ArrayLength(facts.element_leaf_nodes) == count &&
+        ArrayLength(facts.element_event_nodes) == count &&
+        ArrayLength(facts.states) == count;
+}
+
+func SemanticAstOwnedStringLiteralTransferObserveElement(
+    node: Int, inout facts: SemanticAstOwnedStringLiteralTransferFacts
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(facts.element_event_nodes) {
+        if facts.element_event_nodes[row] == node {
+            if facts.states[row] !=
+                SemanticAstOwnedStringTransferFormalReady() { return false; }
+            facts.states[row] =
+                SemanticAstOwnedStringTransferElementPending();
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringLiteralTransferCompleteDefinition(
+    slot: Int, definition: Int,
+    inout facts: SemanticAstOwnedStringLiteralTransferFacts,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout origins: Array<Int>, inout transitions: Array<Int>,
+    inout origin_syntax_ids: Array<Int>,
+    inout source_binding_syntax_ids: Array<Int>
+) -> Bool {
+    var transfer: Int = 0;
+    while transfer < ArrayLength(facts.definition_rows) {
+        if facts.definition_rows[transfer] == definition {
+            if facts.definition_slots[transfer] != slot ||
+                facts.states[transfer] !=
+                    SemanticAstOwnedStringTransferElementPending() ||
+                definition < 0 || definition >= ArrayLength(ownership) {
+                return false;
+            }
+            ownership[definition] =
+                SemanticAstCollectionOwnershipOwnedElements();
+            dispositions[definition] =
+                SemanticAstCollectionDispositionLive();
+            if facts.source_kinds[transfer] ==
+                    SemanticAstOwnedStringTransferFormalSource() {
+                origins[definition] =
+                    SemanticAstCollectionOriginFormalStringTransfer();
+            } else if facts.source_kinds[transfer] ==
+                    SemanticAstOwnedStringTransferLocalSource() {
+                origins[definition] =
+                    SemanticAstCollectionOriginLocalStringTransfer();
+            } else {
+                return false;
+            }
+            transitions[definition] =
+                SemanticAstCollectionTransitionOwned();
+            origin_syntax_ids[definition] =
+                facts.formal_syntax_ids[transfer];
+            source_binding_syntax_ids[definition] =
+                facts.formal_syntax_ids[transfer];
+            facts.states[transfer] =
+                SemanticAstOwnedStringTransferConsumed();
+        }
+        transfer = transfer + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringLiteralTransfersConsumed(
+    ref facts: SemanticAstOwnedStringLiteralTransferFacts
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(facts.states) {
+        if facts.states[row] != SemanticAstOwnedStringTransferConsumed() {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+

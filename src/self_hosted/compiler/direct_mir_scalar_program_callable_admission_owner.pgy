@@ -7,7 +7,9 @@ func DirectMirScalarProgramCallableFactFromAdmitted(ref admitted: MirMachineLaye
     callable_row: Int, routine_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
 ) -> DirectMirScalarCfgProgramCallableFact {
     if !MirProgramRoutineIndexRowReady(admitted.routines, callable_row) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
@@ -22,7 +24,8 @@ func DirectMirScalarProgramCallableFactFromAdmitted(ref admitted: MirMachineLaye
             source.valid, DirectMirScalarCfgProgramCallableFactDigest(source),
             source.signature, source.routine_ordinal);
     if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
-            fact, logical_record, payload_free_enum, referenced_enum) {
+            fact, logical_record, payload_free_enum, referenced_enum,
+            opaque_readonly_zones) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
     return fact;
@@ -32,13 +35,17 @@ func DirectMirScalarProgramCallableFactFromInstance(
     ref instances: DirectMirRoutineInstanceInventory, routine_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
 ) -> DirectMirScalarCfgProgramCallableFact {
     let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(instances, routine_ordinal);
     let source: DirectMirScalarCfgProgramCallableFact = DirectMirScalarCfgProgramCallableFact(true, 0, signature, routine_ordinal);
     let fact: DirectMirScalarCfgProgramCallableFact = DirectMirScalarCfgProgramCallableFact(true,
         DirectMirScalarCfgProgramCallableFactDigest(source), signature, routine_ordinal);
-    if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(fact, logical_record, payload_free_enum, referenced_enum) {
+    if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
+            fact, logical_record, payload_free_enum, referenced_enum,
+            opaque_readonly_zones) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
     return fact;

@@ -18,8 +18,8 @@ func ParseFormatUseDeclaration(
     content: String,
     start: Int
 ) -> ParserFormatSurfaceDecl {
-    let cursor: Array<Int> = [0];
-    let i: Int = LanguageWordEnd(start, LanguageWordId.WordUse);
+    var cursor: Array<Int> = [0];
+    var i: Int = LanguageWordEnd(start, LanguageWordId.WordUse);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor, 0, i);
     let module_name: String = ReadIdent(content, i, cursor);
@@ -36,8 +36,8 @@ func ParseFormatLifecycleDeclaration(
     content: String,
     start: Int
 ) -> ParserFormatSurfaceDecl {
-    let cursor: Array<Int> = [0];
-    let i: Int = LanguageWordEnd(start, LanguageWordId.WordLifecycle);
+    var cursor: Array<Int> = [0];
+    var i: Int = LanguageWordEnd(start, LanguageWordId.WordLifecycle);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor, 0, i);
     let subject_name: String = ReadIdent(content, i, cursor);
@@ -45,7 +45,7 @@ func ParseFormatLifecycleDeclaration(
         Fail("expected subject name after `lifecycle`", content, i);
     }
     i = Expect(content, cursor[0], "{");
-    let tree_text: String = Concat("  Lifecycle: ", subject_name);
+    var tree_text: String = Concat("  Lifecycle: ", subject_name);
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == "}" {

@@ -1,0 +1,355 @@
+// Forwarded-result and shared-demand uniqueness.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_aggregate_value_lineage_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_signature_param_node_query_owner.pgy";
+import "ast_collection_aggregate_source_path_uniqueness_owner.pgy";
+import "ast_collection_aggregate_release_call_chain_owner.pgy";
+import "ast_collection_aggregate_terminal_alternative_owner.pgy";
+
+// Two owned-push demands may name successive constructor inputs when the
+// deeper call's returned aggregate is restored to the outer default formal
+// before the outer input is built. The exclusive-value owner proves the exact
+// result path, and the exclusive-value flow owner proves that every path
+// reaching the later constructor crosses that restoration. A call prefix or matching
+// type alone is never enough.
+func SemanticAstCollectionAggregateReleaseForwardedResultReady(
+    artifact: AstTreeArtifact,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    prior: Int, current: Int
+) -> Bool {
+    let extension: SemanticAstCollectionAggregateInvocationExtension =
+        SemanticAstCollectionAggregateInvocationExtensionForDemands(
+            plan, inputs, prior, current);
+    if !extension.ok {
+        plan.diagnostic_reason = "forwarded_result_extension";
+        return false;
+    }
+    if extension.longer_input < 0 ||
+        extension.shorter_input < 0 ||
+        extension.longer_input >= ArrayLength(inputs.producer_kinds) ||
+        extension.shorter_input >= ArrayLength(inputs.producer_kinds) ||
+        inputs.producer_kinds[extension.longer_input] != 1 ||
+        inputs.producer_kinds[extension.shorter_input] != 1 {
+        plan.diagnostic_reason = "forwarded_result_kinds";
+        return false;
+    }
+    let longer_requirement: Int =
+        plan.requirement_rows[extension.longer_demand];
+    let shorter_requirement: Int =
+        plan.requirement_rows[extension.shorter_demand];
+    // Carrier bindings change as one functional update returns through
+    // records and locals. The requirement row is the stable responsibility
+    // identity; both demands must remain the same pure owned-push obligation.
+    if longer_requirement < 0 || shorter_requirement < 0 ||
+        longer_requirement != shorter_requirement ||
+        longer_requirement >= ArrayLength(plan.requirement_effect_masks) ||
+        shorter_requirement >= ArrayLength(plan.requirement_effect_masks) ||
+        longer_requirement >= ArrayLength(plan.requirement_local_ids) ||
+        shorter_requirement >= ArrayLength(plan.requirement_local_ids) ||
+        plan.requirement_effect_masks[longer_requirement] !=
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() ||
+        plan.requirement_effect_masks[shorter_requirement] !=
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() ||
+        plan.requirement_local_ids[longer_requirement] <= 0 {
+        plan.diagnostic_reason = "forwarded_result_requirements";
+        return false;
+    }
+    let shorter_function: Int = inputs.function_ids[extension.shorter_input];
+    let shorter_syntax: Int = inputs.syntax_ids[extension.shorter_input];
+    let first_extra_syntax: Int =
+        SemanticAstCollectionAggregateReleaseCallSyntaxForNode(
+            plan, extension.first_extra_call_node);
+    if shorter_function <= 0 || first_extra_syntax <= 0 ||
+        shorter_syntax <= first_extra_syntax ||
+        SemanticAstCollectionAggregateReleaseCallFunctionForNode(
+            plan, extension.first_extra_call_node) != shorter_function {
+        plan.diagnostic_reason = "forwarded_result_call";
+        return false;
+    }
+    let shorter_binding: Int = inputs.binding_ids[extension.shorter_input];
+    let shorter_local: Option<Int> =
+        SemanticAstLocalBindingIndexForNode(locals, shorter_binding);
+    if !IsSome(shorter_local) ||
+        locals.function_node_ids[UnwrapOption(shorter_local)] !=
+            shorter_function ||
+        locals.scope_node_ids[UnwrapOption(shorter_local)] <= 0 {
+        plan.diagnostic_reason = "forwarded_result_local";
+        return false;
+    }
+    let shorter_formal: Int =
+        SemanticAstCollectionAggregateResultPathFormal(
+            exclusive_values, surfaces, shorter_binding,
+            inputs.argument_nodes[extension.shorter_input]);
+    if shorter_formal <= 0 {
+        plan.diagnostic_reason = "forwarded_result_formal";
+        return false;
+    }
+
+    // A direct result carrier needs no explicit formal assignment. Its exact
+    // selected path already resolves to shorter_formal; the local definition
+    // must be the first extra call and stay unchanged until the later input.
+    let forwarded_initializer: Option<Int> =
+        SemanticAstExpressionGraphRootForNode(
+            surfaces, shorter_binding, AstExpressionLaneValue());
+    if IsSome(forwarded_initializer) {
+        let forwarded_call: SemanticCallSpineView =
+            SemanticCallSpineViewFromGraph(
+                surfaces.expression_graph,
+                UnwrapOption(forwarded_initializer));
+        let call_reaches_holder: Bool =
+            first_extra_syntax == shorter_binding ||
+            SemanticAstCollectionExclusiveRunsAfter(
+                artifact, first_extra_syntax, shorter_binding);
+        if forwarded_call.ok &&
+            forwarded_call.call_node == extension.first_extra_call_node &&
+            call_reaches_holder &&
+            SemanticAstCollectionAggregateLocalUnchangedBeforeUse(
+                artifact, locals, inferred_types, surfaces, assignments,
+                UnwrapOption(shorter_local), shorter_syntax) &&
+            SemanticAstCollectionExclusiveRunsAfter(
+                artifact, shorter_binding, shorter_syntax) {
+            return SemanticAstCollectionAggregateReleaseRecordForwardedTransfer(
+                plan, extension, shorter_binding);
+        }
+    }
+
+    // An early-return guard is permitted: paths that continue must cross one
+    // exact restoration before the later constructor input. RunsAfter owns
+    // that control fact; a merely later node number is not sufficient.
+    var restorations: Int = 0;
+    var restoration_syntax: Int = -1;
+    var assignment: Int = 0;
+    while assignment < ArrayLength(assignments.node_ids) {
+        let syntax_id: Int = assignments.node_ids[assignment];
+        if assignments.function_node_ids[assignment] == shorter_function &&
+            syntax_id > first_extra_syntax && syntax_id < shorter_syntax {
+            let atom: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, syntax_id, AstExpressionLaneAtom());
+            let value: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, syntax_id, AstExpressionLaneValue());
+            if IsSome(atom) && IsSome(value) {
+                let source_place: SemanticAstCollectionAggregateSinkPlace =
+                    SemanticAstCollectionAggregateSinkPlaceForNode(
+                        artifact, signatures, locals, inferred_types,
+                        surfaces, shorter_function, syntax_id,
+                        UnwrapOption(value));
+                let target_place: SemanticAstCollectionAggregateSinkPlace =
+                    SemanticAstCollectionAggregateSinkPlaceForNode(
+                        artifact, signatures, locals, inferred_types,
+                        surfaces, shorter_function, syntax_id,
+                        UnwrapOption(atom));
+                var source_holder: Int = 0;
+                var target_holder: Int = 0;
+                if source_place.ok && !source_place.temporary {
+                    if source_place.key >= 0 &&
+                        source_place.key < ArrayLength(locals.node_ids) {
+                        source_holder = locals.node_ids[source_place.key];
+                    } else if source_place.key < 0 {
+                        source_holder = 0 - source_place.key;
+                    }
+                }
+                if target_place.ok && !target_place.temporary {
+                    if target_place.key >= 0 &&
+                        target_place.key < ArrayLength(locals.node_ids) {
+                        target_holder = locals.node_ids[target_place.key];
+                    } else if target_place.key < 0 {
+                        target_holder = 0 - target_place.key;
+                    }
+                }
+                let source_local: Option<Int> =
+                    SemanticAstLocalBindingIndexForNode(
+                        locals, source_holder);
+                if target_holder == shorter_formal &&
+                    IsSome(source_local) &&
+                    locals.function_node_ids[UnwrapOption(source_local)] ==
+                        shorter_function &&
+                    source_holder < syntax_id &&
+                    SemanticAstCollectionAggregateLocalUnchangedBeforeUse(
+                        artifact, locals, inferred_types, surfaces,
+                        assignments, UnwrapOption(source_local), syntax_id) &&
+                    SemanticAstCollectionAggregateResultPathRestoration(
+                        exclusive_values, surfaces,
+                        source_holder, target_holder,
+                        UnwrapOption(value), UnwrapOption(atom)) {
+                    let initializer: Option<Int> =
+                        SemanticAstExpressionGraphRootForNode(
+                            surfaces, source_holder,
+                            AstExpressionLaneValue());
+                    if IsSome(initializer) {
+                        let call: SemanticCallSpineView =
+                            SemanticCallSpineViewFromGraph(
+                                surfaces.expression_graph,
+                                UnwrapOption(initializer));
+                        let continuation_ready: Bool =
+                            SemanticAstCollectionExclusiveContinuationRestoredBeforeUse(
+                                artifact, first_extra_syntax, syntax_id,
+                                shorter_syntax);
+                        if call.ok &&
+                            call.call_node ==
+                                extension.first_extra_call_node &&
+                            continuation_ready {
+                            restorations = restorations + 1;
+                            restoration_syntax = syntax_id;
+                        }
+                    }
+                }
+            }
+        }
+        assignment = assignment + 1;
+    }
+    if restorations != 1 {
+        plan.diagnostic_reason = "forwarded_result_restoration";
+        return false;
+    }
+    return SemanticAstCollectionAggregateReleaseRecordForwardedTransfer(
+        plan, extension, restoration_syntax);
+}
+
+func SemanticAstCollectionAggregateReleaseSharedDemandReady(
+    artifact: AstTreeArtifact,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current <= prior ||
+        current >= ArrayLength(plan.requirement_rows) ||
+        prior >= ArrayLength(plan.requirement_rows) ||
+        plan.aggregate_origin_ids[prior] != plan.aggregate_origin_ids[current] {
+        plan.diagnostic_reason = "shared_demand_identity";
+        return false;
+    }
+    let prior_input: Int = plan.constructor_input_rows[prior];
+    let current_input: Int = plan.constructor_input_rows[current];
+    if prior_input < 0 || current_input < 0 ||
+        prior_input >= ArrayLength(inputs.field_ids) ||
+        current_input >= ArrayLength(inputs.field_ids) ||
+        inputs.field_ids[prior_input] != inputs.field_ids[current_input] {
+        plan.diagnostic_reason = "shared_demand_field";
+        return false;
+    }
+    let prior_requirement: Int = plan.requirement_rows[prior];
+    let current_requirement: Int = plan.requirement_rows[current];
+    if prior_requirement < 0 || current_requirement < 0 ||
+        prior_requirement >= ArrayLength(plan.requirement_effect_masks) ||
+        current_requirement >= ArrayLength(plan.requirement_effect_masks) {
+        plan.diagnostic_reason = "shared_demand_requirement";
+        return false;
+    }
+    // Multiple pure pushes may update one still-owned field generation.  They
+    // do not retire storage, while the transition owner still rejects two
+    // distinct static push sites for one requirement and finalization proves
+    // every carrier restoration or result transfer.
+    if prior_input == current_input &&
+        plan.requirement_effect_masks[prior_requirement] ==
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() &&
+        plan.requirement_effect_masks[current_requirement] ==
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() {
+        return true;
+    }
+    let divergence: Int = SemanticAstCollectionAggregateReleaseChainDivergence(plan, prior, current);
+    if divergence < 0 {
+        if SemanticAstCollectionAggregateReleaseForwardedOwnedPushReady(
+                plan, prior, current) {
+            return true;
+        }
+        if SemanticAstCollectionAggregateReleaseTerminalResultAlternativeReady(
+                artifact, plan, inputs, prior, current) {
+            return SemanticAstCollectionAggregateReleaseRecordTerminalAlternative(
+                plan, inputs, prior, current);
+        }
+        if SemanticAstCollectionAggregateReleaseVacantAlternativeReady(
+                plan, inputs, prior, current) {
+            return true;
+        }
+        plan.diagnostic_reason = "";
+        if SemanticAstCollectionAggregateReleaseForwardedResultReady(
+                artifact, plan, inputs, signatures, locals,
+                inferred_types, surfaces, assignments,
+                exclusive_values, prior, current) {
+            return true;
+        }
+        plan.diagnostic_reason = "shared_demand_chain";
+        return false;
+    }
+    let prior_call: Int = SemanticAstCollectionAggregateReleasePlanCallRowForEdge(plan,
+        plan.demand_chain_edges[plan.demand_chain_starts[prior] + divergence]);
+    let current_call: Int = SemanticAstCollectionAggregateReleasePlanCallRowForEdge(plan,
+        plan.demand_chain_edges[plan.demand_chain_starts[current] + divergence]);
+    if prior_call < 0 || current_call < 0 {
+        plan.diagnostic_reason = "shared_demand_call";
+        return false;
+    }
+    if plan.call_function_ids[prior_call] !=
+            plan.call_function_ids[current_call] {
+        plan.diagnostic_reason = "shared_demand_caller";
+        return false;
+    }
+    if plan.call_syntax_ids[prior_call] == plan.call_syntax_ids[current_call] {
+        plan.diagnostic_reason = "shared_demand_site";
+        return false;
+    }
+    // Edges in the origin's own function (divergence 0) are judged against the
+    // origin's loop scope; edges deeper in a callee keep the loop-free rule.
+    let origin: Int = plan.aggregate_origin_ids[prior];
+    if divergence == 0 {
+        if SemanticAstCollectionAggregateDemandRetirementSiteForOrigin(artifact, plan.call_syntax_ids[prior_call], origin,
+                plan.call_function_ids[prior_call], plan.call_ends_routine[prior_call]) <= 0 ||
+            SemanticAstCollectionAggregateDemandRetirementSiteForOrigin(artifact, plan.call_syntax_ids[current_call], origin,
+                plan.call_function_ids[current_call], plan.call_ends_routine[current_call]) <= 0 {
+            plan.diagnostic_reason = "shared_demand_origin_retirement";
+            return false;
+        }
+    } else if SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[prior_call]) <= 0 ||
+        SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[current_call]) <= 0 {
+        plan.diagnostic_reason = "shared_demand_nested_retirement";
+        return false;
+    }
+    if !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, prior, divergence) ||
+        !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, current, divergence) {
+        plan.diagnostic_reason = "shared_demand_deep_chain";
+        return false;
+    }
+    var earlier_requirement: Int = prior_requirement;
+    var earlier_call: Int = prior_call;
+    if plan.call_syntax_ids[current_call] < plan.call_syntax_ids[prior_call] {
+        earlier_requirement = current_requirement;
+        earlier_call = current_call;
+    }
+    let earlier_mask: Int = plan.requirement_effect_masks[earlier_requirement];
+    // An earlier deep drop is ordered only when its statement is followed by
+    // one that leaves the routine, so the later call cannot run after it.
+    if earlier_mask == SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() || earlier_mask == 3 {
+        if earlier_call >= ArrayLength(plan.call_ends_routine) ||
+            !plan.call_ends_routine[earlier_call] {
+            plan.diagnostic_reason = "shared_demand_earlier_drop";
+            return false;
+        }
+    }
+    return true;
+}
+

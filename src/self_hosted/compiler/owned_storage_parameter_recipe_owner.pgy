@@ -1,0 +1,166 @@
+// Release recipe for storage received through one admitted owner-handle.
+// V.001 admits direct storage leaves and one logical-record layer. Nested
+// record/enum payloads remain fail-closed instead of crossing a recursive ref
+// boundary whose backing relation is not proved.
+
+import "owned_storage_release_plan_owner.pgy";
+
+struct DirectMirOwnedParameterStorageRecipeFact {
+    let valid: Bool;
+    let has_storage: Bool;
+    let recipe: Int;
+}
+
+func DirectMirOwnedParameterStorageRecipeInvalid(
+) -> DirectMirOwnedParameterStorageRecipeFact {
+    return DirectMirOwnedParameterStorageRecipeFact(false, false, -1);
+}
+
+func DirectMirOwnedParameterPassiveType(
+    ref plan: DirectMirScalarCfgGraphPlan, type_name: String
+) -> Bool {
+    return type_name == "Int" || type_name == "Bool" ||
+        type_name == "Long" || type_name == "Float" ||
+        DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            plan.program.payload_free_enum, type_name);
+}
+
+func DirectMirOwnedParameterStorageTypeRow(
+    ref types: Array<String>, type_name: String
+) -> Int {
+    var row: Int = 0;
+    while row < ArrayLength(types) {
+        if types[row] == type_name { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirOwnedParameterLeafRecipe(
+    ref plan: DirectMirScalarCfgGraphPlan, type_name: String,
+    inout release: DirectMirOwnedStorageReleasePlan
+) -> DirectMirOwnedParameterStorageRecipeFact {
+    let mode: Int = DirectMirOwnedLocalStorageMode(plan, type_name, 0);
+    if mode == 4 || DirectMirScalarProgramPayloadEnumTypeReady(
+            plan.program.referenced_enum, type_name) {
+        return DirectMirOwnedParameterStorageRecipeInvalid();
+    }
+    if mode > 0 {
+        var children: Array<Int> = [];
+        return DirectMirOwnedParameterStorageRecipeFact(
+            true, true, DirectMirOwnedStorageReleaseAppend(
+                release, mode, type_name, children));
+    }
+    if DirectMirOwnedParameterPassiveType(plan, type_name) {
+        return DirectMirOwnedParameterStorageRecipeFact(true, false, -1);
+    }
+    return DirectMirOwnedParameterStorageRecipeInvalid();
+}
+
+func DirectMirOwnedParameterRecordRecipe(
+    ref plan: DirectMirScalarCfgGraphPlan, record: Int, type_name: String,
+    inout release: DirectMirOwnedStorageReleasePlan
+) -> DirectMirOwnedParameterStorageRecipeFact {
+    let invalid: DirectMirOwnedParameterStorageRecipeFact =
+        DirectMirOwnedParameterStorageRecipeInvalid();
+    if record < 0 || record >= ArrayLength(
+            plan.program.logical_record.names) {
+        return invalid;
+    }
+    var children: Array<Int> = [];
+    var has_storage: Bool = false;
+    var field: Int = plan.program.logical_record.field_starts[record];
+    let field_end: Int = field +
+        plan.program.logical_record.field_counts[record];
+    while field < field_end {
+        let child: DirectMirOwnedParameterStorageRecipeFact =
+            DirectMirOwnedParameterLeafRecipe(
+                plan, plan.program.logical_record.field_types[field], release);
+        if !child.valid { return invalid; }
+        if child.has_storage {
+            has_storage = true;
+            ArrayPush(children, child.recipe);
+        } else {
+            ArrayPush(children, -1);
+        }
+        field = field + 1;
+    }
+    if !has_storage {
+        return DirectMirOwnedParameterStorageRecipeFact(true, false, -1);
+    }
+    return DirectMirOwnedParameterStorageRecipeFact(
+        true, true, DirectMirOwnedStorageReleaseAppend(
+            release, 4, type_name, children));
+}
+
+func DirectMirOwnedParameterStorageRecipeFactFromType(
+    ref plan: DirectMirScalarCfgGraphPlan, type_name: String, depth: Int,
+    inout release: DirectMirOwnedStorageReleasePlan
+) -> DirectMirOwnedParameterStorageRecipeFact {
+    let invalid: DirectMirOwnedParameterStorageRecipeFact =
+        DirectMirOwnedParameterStorageRecipeInvalid();
+    if depth < 0 || depth > 1 { return invalid; }
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(
+        plan.program.logical_record, type_name);
+    if record >= 0 {
+        return DirectMirOwnedParameterRecordRecipe(
+            plan, record, type_name, release);
+    }
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        plan.program.referenced_enum, type_name);
+    if enum_row < 0 ||
+        plan.program.referenced_enum.payload_flags[enum_row] != 1 {
+        return DirectMirOwnedParameterLeafRecipe(plan, type_name, release);
+    }
+    var children: Array<Int> = [];
+    var has_storage: Bool = false;
+    var ordinal: Int = 0;
+    while ordinal < plan.program.referenced_enum.variant_counts[enum_row] {
+        let variant: Int =
+            plan.program.referenced_enum.variant_starts[enum_row] + ordinal;
+        var parameter: Int = 0;
+        while parameter < plan.program.referenced_enum.
+                variant_param_counts[variant] {
+            let payload_type: String = plan.program.referenced_enum.
+                variant_param_types[plan.program.referenced_enum.
+                    variant_param_type_starts[variant] + parameter];
+            let payload_record: Int = DirectMirScalarProgramLogicalRecordRow(
+                plan.program.logical_record, payload_type);
+            var child: DirectMirOwnedParameterStorageRecipeFact =
+                DirectMirOwnedParameterStorageRecipeInvalid();
+            if payload_record >= 0 {
+                child = DirectMirOwnedParameterRecordRecipe(
+                    plan, payload_record, payload_type, release);
+            } else {
+                child = DirectMirOwnedParameterLeafRecipe(
+                    plan, payload_type, release);
+            }
+            if !child.valid { return invalid; }
+            if child.has_storage {
+                has_storage = true;
+                ArrayPush(children, child.recipe);
+            } else {
+                ArrayPush(children, -1);
+            }
+            parameter = parameter + 1;
+        }
+        ordinal = ordinal + 1;
+    }
+    if !has_storage {
+        return DirectMirOwnedParameterStorageRecipeFact(true, false, -1);
+    }
+    return DirectMirOwnedParameterStorageRecipeFact(
+        true, true, DirectMirOwnedStorageReleaseAppend(
+            release, 8, type_name, children));
+}
+
+func DirectMirOwnedParameterStorageRecipeFromType(
+    ref plan: DirectMirScalarCfgGraphPlan, type_name: String, depth: Int,
+    inout release: DirectMirOwnedStorageReleasePlan
+) -> Int {
+    let fact: DirectMirOwnedParameterStorageRecipeFact =
+        DirectMirOwnedParameterStorageRecipeFactFromType(
+            plan, type_name, depth, release);
+    if !fact.valid || !fact.has_storage { return -1; }
+    return fact.recipe;
+}

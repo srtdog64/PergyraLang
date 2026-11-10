@@ -17,8 +17,8 @@ struct MirIntentExecutionGraphTargetProjection {
 func MirIntentExecutionGraphTargetRoutineRow(
     ref routines: MirProgramRoutineIndex, syntax_id: Int
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(routines.names) {
         if routines.kinds[row] == "intent" &&
             routines.source_syntax_ids[row] == ToString(syntax_id) {
@@ -43,10 +43,10 @@ func MirIntentExecutionGraphTargetForInstruction(
     if !plan.present {
         return MirIntentExecutionGraphTargetProjection(true, false, 0, "", "");
     }
-    let syntax_id: Int = 0;
-    let expected_name: String = "";
-    let matches: Int = 0;
-    let step: Int = 0;
+    var syntax_id: Int = 0;
+    var expected_name: String = "";
+    var matches: Int = 0;
+    var step: Int = 0;
     while step < ArrayLength(plan.steps.transition_ids) {
         let routine_row: Int = MirIntentExecutionGraphTargetRoutineRow(
             routines, plan.steps.routine_syntax_ids[step]
@@ -60,7 +60,7 @@ func MirIntentExecutionGraphTargetForInstruction(
             syntax_id = plan.steps.action_syntax_ids[step];
             matches = matches + 1;
         }
-        let compensation: Int = plan.steps.compensation_starts[step];
+        var compensation: Int = plan.steps.compensation_starts[step];
         let compensation_end: Int = compensation +
             plan.steps.compensation_counts[step];
         while compensation < compensation_end {
@@ -94,8 +94,8 @@ func MirIntentExecutionGraphTargetForInstruction(
         MirIntentExecutionGraphTargetRoutineRow(routines, syntax_id) >= 0 {
         return MirIntentExecutionGraphTargetProjection(true, false, 0, "", "");
     }
-    let callable_row: Int = 0 - 1;
-    let row: Int = 0;
+    var callable_row: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(routines.names) {
         if routines.kinds[row] == "method" && routines.owners[row] != "" &&
             routines.source_syntax_ids[row] == ToString(syntax_id) &&
@@ -149,7 +149,7 @@ func MirIntentExecutionGraphTargetProject(
          sequence.arena.call_target_names[node] != projection.canonical_name) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let target_names: Array<String> = sequence.arena.call_target_names;
+    var target_names: Array<String> = sequence.arena.call_target_names;
     ArraySet(target_names, node, projection.canonical_name);
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(

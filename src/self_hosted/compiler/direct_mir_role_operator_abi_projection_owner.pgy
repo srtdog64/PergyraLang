@@ -77,7 +77,7 @@ func DirectMirRoleOperatorAbiProjectionFromPlan(
     if !DirectMirRoleOperatorPlanReady(plan) || (!is_c && !is_llvm) {
         Die("direct MIR role operator ABI has no target projection");
     }
-    let projection: DirectMirRoleOperatorAbiProjection =
+    var projection: DirectMirRoleOperatorAbiProjection =
         DirectMirRoleOperatorAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             DirectMirRoleOperatorReceiverPassMode(),

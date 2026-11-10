@@ -30,8 +30,8 @@ func ViewAt(graph: Graph, i: Int) -> View {
 
 func WithGraph(graph: Graph) -> Holder {
     let sealed: Graph = graph;
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 2 {
         let view: View = ViewAt(sealed, i);
         total = total + view.rows[i].value;

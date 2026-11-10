@@ -21,7 +21,7 @@ func CompilerHarnessComparableArtifactPathAt(index: Int) -> String {
 }
 
 func CompilerHarnessComparableArtifactPathKnown(path: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerHarnessComparableArtifactPathCount() {
         if CompilerHarnessComparableArtifactPathAt(index) == path {
             return true;
@@ -74,7 +74,7 @@ func CompilerHarnessBackendOutputComparatorReady() -> Bool {
     if CompilerHarnessBackendOutputComparatorPathCount() != 7 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerHarnessBackendOutputComparatorPathCount() {
         if CompilerHarnessBackendOutputComparatorPathAt(i) == "" {
             return false;

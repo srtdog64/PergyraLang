@@ -1,0 +1,21 @@
+// A fresh String returned through a user-call chain remains owned when its
+// borrowed input is an indexed value inside a loop.
+import "../../../src/self_hosted/lib/json_emit.pgy";
+
+func Owned0(values: Array<String>, index: Int) -> String
+{
+    return JsonStringLiteral(values[index]);
+}
+
+func Main() -> Void
+{
+    let values: Array<String> = ["value"];
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(values) {
+        ArrayPush(rows, Owned0(values, i));
+        i = i + 1;
+    }
+    ArrayDropOwnedStrings(rows);
+    Log("owned-string-result-composition-ready");
+}

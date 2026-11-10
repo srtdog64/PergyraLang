@@ -1,0 +1,25 @@
+// Owns the parallel-row precondition for extending a serialized expression graph.
+func MirExpressionGraphParserBridgeRowsAligned(
+    offset: Int,
+    ref topology_texts: Array<String>, ref texts: Array<String>,
+    ref left_children: Array<Int>, ref right_children: Array<Int>,
+    ref call_target_kinds: Array<Int>, ref call_target_names: Array<String>,
+    ref call_return_type_names: Array<String>, ref call_target_syntax_ids: Array<Int>,
+    ref runtime_call_abi_ids: Array<Int>, ref binding_syntax_ids: Array<Int>,
+    ref binding_kinds: Array<Int>, ref binding_ordinals: Array<Int>,
+    ref place_kinds: Array<Int>
+) -> Bool {
+    return ArrayLength(texts) == offset &&
+        ArrayLength(topology_texts) == offset &&
+        ArrayLength(left_children) == offset &&
+        ArrayLength(right_children) == offset &&
+        ArrayLength(call_target_kinds) == offset &&
+        ArrayLength(call_target_names) == offset &&
+        ArrayLength(call_return_type_names) == offset &&
+        ArrayLength(call_target_syntax_ids) == offset &&
+        ArrayLength(runtime_call_abi_ids) == offset &&
+        ArrayLength(binding_syntax_ids) == offset &&
+        ArrayLength(binding_kinds) == offset &&
+        ArrayLength(binding_ordinals) == offset &&
+        ArrayLength(place_kinds) == offset;
+}

@@ -50,7 +50,7 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
     member_root_names: Array<String>,
     symbolic_identifier_nodes: Array<Int>, ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphIdentifierFact {
-    let pending: Array<Int> = [root_id];
+    var pending: Array<Int> = [root_id];
     while ArrayLength(pending) > 0 {
         let node_id: Int = pending[ArrayLength(pending) - 1];
         ArrayPop(pending);
@@ -69,8 +69,8 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
                 return SemanticExpressionGraphIdentifierInvalid();
             }
             let text: String = UnwrapOption(text_opt);
-            let symbolic: Bool = false;
-            let symbolic_index: Int = 0;
+            var symbolic: Bool = false;
+            var symbolic_index: Int = 0;
             while symbolic_index < ArrayLength(symbolic_identifier_nodes) {
                 if symbolic_identifier_nodes[symbolic_index] == node_id {
                     symbolic = true;

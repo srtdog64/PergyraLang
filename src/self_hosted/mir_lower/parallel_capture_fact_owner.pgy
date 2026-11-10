@@ -16,7 +16,7 @@ func MirParallelCaptureBoolEquals(
     field: String,
     expected: Bool
 ) -> Bool {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactValueBounds(row, field, bounds) {
         return false;
     }
@@ -71,7 +71,7 @@ func MirParallelCaptureBoundaryReady(row: JsonObjectFactTable) -> Bool {
     }
     let task_count: Int = ToInt(task_count_text);
     let row_count: Int = JsonArrayObjectFactCount(rows);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < row_count {
         let capture: JsonObjectFactTable = JsonArrayObjectFactAt(rows, i);
         if !MirParallelCaptureRowReady(capture, task_count) {
@@ -83,7 +83,7 @@ func MirParallelCaptureBoundaryReady(row: JsonObjectFactTable) -> Bool {
             return false;
         }
         let name: String = UnwrapOption(capture_name_opt);
-        let j: Int = 0;
+        var j: Int = 0;
         while j < i {
             let prior: JsonObjectFactTable = JsonArrayObjectFactAt(rows, j);
             let prior_name: Option<String> =
@@ -105,7 +105,7 @@ func MirParallelCaptureFactsFromTableReady(
         return false;
     }
     let count: Int = JsonArrayObjectFactCount(boundaries);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let boundary: JsonObjectFactTable =
             JsonArrayObjectFactAt(boundaries, i);
@@ -119,7 +119,7 @@ func MirParallelCaptureFactsFromTableReady(
         }
         let id_text: String = UnwrapOption(id_opt);
         let id: Int = ToInt(id_text);
-        let j: Int = 0;
+        var j: Int = 0;
         while j < i {
             let prior: JsonObjectFactTable =
                 JsonArrayObjectFactAt(boundaries, j);

@@ -17,9 +17,9 @@ func SemanticAstFunctionStringResultAllocationDomain(
     let function_id: Int = signatures.function_node_ids[signature_row];
     let range: SemanticAstLocalBindingFunctionRange = SemanticAstStatementRangeForFunction(statements, function_id);
     if !range.ok { return SemanticAstOwnedStringDomainUnknown(); }
-    let saw_return: Bool = false;
-    let domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringDomainUnknown();
-    let row: Int = range.start;
+    var saw_return: Bool = false;
+    var domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringDomainUnknown();
+    var row: Int = range.start;
     while row < range.end {
         if statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() {
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
@@ -49,7 +49,7 @@ func SemanticAstOwnedStringResultFactsFromResolvedFacts(
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstOwnedStringResultFacts {
-    let signature_row: Int = 0;
+    var signature_row: Int = 0;
     while signature_row < ArrayLength(signatures.function_node_ids) {
         if !SemanticAstRuntimeCallableSignatureRowReady(signatures, signature_row) {
             return SemanticAstOwnedStringResultFactsEmpty();
@@ -66,17 +66,17 @@ func SemanticAstOwnedStringResultFactsFromResolvedFacts(
     let exposures: SemanticAstOwnedStringDomainExposureFacts =
         SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts(
             artifact, signatures, locals, initializer_types, surfaces, call_roots);
-    let facts: SemanticAstOwnedStringResultFacts =
+    var facts: SemanticAstOwnedStringResultFacts =
         SemanticAstOwnedStringResultFacts(false, ids, kinds, parameters, ordinals, writes, exposures);
     if !signatures.ok || !locals.ok || !initializer_types.ok || !surfaces.ok || !statements.ok ||
         !writes.ok || !exposures.ok || !SemanticAstNumericStringAllocationCallsReady(numeric_string_allocations) ||
         ArrayLength(initializer_types.inferred_type_names) != ArrayLength(locals.node_ids) { return facts; }
     facts.ok = true;
-    let remaining: Int = ArrayLength(signatures.function_node_ids);
-    let changed: Bool = true;
+    var remaining: Int = ArrayLength(signatures.function_node_ids);
+    var changed: Bool = true;
     while changed && remaining > 0 {
         changed = false;
-        let row: Int = 0;
+        var row: Int = 0;
         while row < ArrayLength(signatures.function_node_ids) {
             let function_id: Int = signatures.function_node_ids[row];
             if SemanticAstOwnedStringResultDomainForFunction(facts, function_id).kind == 0 {

@@ -1,0 +1,14 @@
+// The caller's shallow literal push must be selected for owned replay before
+// an inout callee replaces the current collection fact and pushes another
+// owned element. The exact empty-local birth is captured at call entry.
+func AppendLine(inout output: Array<String>) -> Void {
+    ArrayPush(output, "\n");
+}
+
+func Main() -> Int {
+    var output: Array<String> = [];
+    ArrayPush(output, "{");
+    AppendLine(output);
+    Print(ToString(ArrayLength(output)));
+    return 0;
+}

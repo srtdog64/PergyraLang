@@ -17,15 +17,15 @@ func SelfMirLoopExitMergeLocalVersions(
         );
     }
     build = SelfMirRoutineAtBlock(build, loop_exit);
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < ArrayLength(completion_versions) {
-        let incoming_versions: Array<Int> = [];
+        var incoming_versions: Array<Int> = [];
         if completion_reachable {
             ArrayPush(
                 incoming_versions, completion_versions[local_row]
             );
         }
-        let break_row: Int = 0;
+        var break_row: Int = 0;
         while break_row < ArrayLength(break_exits.blocks) {
             let version: Option<Int> = SelfMirLocalPredecessorVersionAt(
                 break_exits, break_row, local_row
@@ -43,8 +43,8 @@ func SelfMirLoopExitMergeLocalVersions(
                 build, "MIR loop exit has no local-value predecessor"
             );
         }
-        let has_distinct_version: Bool = false;
-        let incoming_row: Int = 1;
+        var has_distinct_version: Bool = false;
+        var incoming_row: Int = 1;
         while incoming_row < ArrayLength(incoming_versions) {
             if incoming_versions[incoming_row] != incoming_versions[0] {
                 has_distinct_version = true;
@@ -52,7 +52,7 @@ func SelfMirLoopExitMergeLocalVersions(
             incoming_row = incoming_row + 1;
         }
         if has_distinct_version {
-            let phi_uses: Array<String> = [];
+            var phi_uses: Array<String> = [];
             incoming_row = 0;
             while incoming_row < ArrayLength(incoming_versions) {
                 ArrayPush(

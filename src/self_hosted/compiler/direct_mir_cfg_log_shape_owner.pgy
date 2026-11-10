@@ -55,7 +55,7 @@ func DirectMirCfgLogToStringGraphReady(
         sequence.arena.topology.right_children[3] != 2 {
         return false;
     }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < 4 {
         if node != 1 &&
             (sequence.arena.call_target_kinds[node] !=

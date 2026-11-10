@@ -4,8 +4,8 @@ import "fixture_manifest_owner.pgy";
 
 // Produce a string of `n` ASCII spaces, used to indent AST output.
 func IndentStr(n: Int) -> String {
-    let s: String = "";
-    let k: Int = 0;
+    var s: String = "";
+    var k: Int = 0;
     while k < n {
         s = Concat(s, " ");
         k = k + 1;
@@ -28,7 +28,7 @@ func AppendImplicitMain(decls: String, body: String) -> String {
     if StringLength(body) == 0 {
         return decls;
     }
-    let main_block: String = "  Function: Main";
+    var main_block: String = "  Function: Main";
     main_block = AppendLine(main_block, "    Parameters:");
     main_block = AppendLine(main_block, "    Returns: Void");
     main_block = AppendLine(main_block, "    Body:");
@@ -40,10 +40,10 @@ func AppendImplicitMain(decls: String, body: String) -> String {
 // Top-level statements become the implicit Main above, so a root block
 // that already declares `func Main` leaves them no Main to join.
 func ParserBlocksDeclareExplicitMain(blocks: Array<String>) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(blocks) {
         // Only StringLength/Concat borrow a block row; the head is an owned copy.
-        let head: String = Concat("", blocks[i]);
+        var head: String = Concat("", blocks[i]);
         let newline: Int = StringIndexOf(head, "\n");
         if newline >= 0 { head = Substring(head, 0, newline); }
         let at: Int = StringIndexOf(head, "Function: Main");

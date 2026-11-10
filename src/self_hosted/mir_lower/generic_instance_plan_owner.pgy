@@ -8,12 +8,12 @@ func MirGenericInstanceClosureFromOccurrences(
     if !occurrences.valid {
         return GenericInstanceClosureError("MIR generic instance closure requires admitted call occurrences");
     }
-    let callers: Array<Int> = [];
-    let targets: Array<Int> = [];
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let types: Array<String> = [];
-    let occurrence: Int = 0;
+    var callers: Array<Int> = [];
+    var targets: Array<Int> = [];
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var types: Array<String> = [];
+    var occurrence: Int = 0;
     while occurrence < ArrayLength(occurrences.instruction_rows) {
         let row: Int = occurrences.specialization_rows[occurrence];
         if row < 0 || row >= ArrayLength(occurrences.target_routine_rows) ||
@@ -25,7 +25,7 @@ func MirGenericInstanceClosureFromOccurrences(
         ArrayPush(targets, occurrences.target_routine_rows[row]);
         ArrayPush(starts, ArrayLength(types));
         ArrayPush(counts, occurrences.actual_counts[row]);
-        let actual: Int = 0;
+        var actual: Int = 0;
         while actual < occurrences.actual_counts[row] {
             ArrayPush(types, occurrences.actual_types[occurrences.actual_starts[row] + actual]);
             actual = actual + 1;
@@ -48,8 +48,8 @@ func MirGenericInstanceCallTarget(
     if caller_instance >= 0 {
         if closure.template_rows[caller_instance] != caller_routine { return None; }
     } else if occurrences.templates.generic_counts[caller_routine] > 0 { return None; }
-    let result: Option<Int> = None;
-    let call: Int = 0;
+    var result: Option<Int> = None;
+    var call: Int = 0;
     while call < ArrayLength(closure.call_recipes) {
         let recipe: Int = closure.call_recipes[call];
         if closure.call_contexts[call] == caller_instance &&

@@ -8,13 +8,15 @@ func DirectMirScalarProgramLlvmHashMapCleanup(
     if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) {
         Die("direct MIR LLVM HashMap lifetime is unproved");
     }
-    let output: String = "";
+    var output: String = "";
     let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(rows) {
         let local_row: Int = rows[index];
         if DirectMirScalarCfgRoutinePartitionLocalOwner(
-                plan.routines, local_row) == routine {
+                plan.routines, local_row) == routine &&
+            DirectMirScalarProgramHashMapLocalRequiresCleanup(
+                plan, local_row) {
             let runtime: CollectionHashMapLlvmFact =
                 CollectionHashMapLlvmFactFromTypeName(plan.local_types[local_row]);
             if !runtime.ok { Die("direct MIR LLVM HashMap cleanup ABI is missing"); }
@@ -30,18 +32,24 @@ func DirectMirScalarProgramLlvmHashMapCleanup(
 func DirectMirScalarProgramLlvmHashMapCleanupDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
-    let output: String = "";
-    let seen: Array<String> = [];
+    var output: String = "";
+    var seen: Array<String> = [];
     let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(rows) {
+        let local_row: Int = rows[index];
+        if !DirectMirScalarProgramHashMapLocalRequiresCleanup(
+                plan, local_row) {
+            index = index + 1;
+            continue;
+        }
         let runtime: CollectionHashMapLlvmFact =
             CollectionHashMapLlvmFactFromTypeName(
-                plan.local_types[rows[index]]);
+                plan.local_types[local_row]);
         let declaration: String =
             CollectionHashMapLlvmDropDeclaration(runtime);
-        let known: Bool = false;
-        let seen_index: Int = 0;
+        var known: Bool = false;
+        var seen_index: Int = 0;
         while seen_index < ArrayLength(seen) {
             if seen[seen_index] == declaration { known = true; }
             seen_index = seen_index + 1;

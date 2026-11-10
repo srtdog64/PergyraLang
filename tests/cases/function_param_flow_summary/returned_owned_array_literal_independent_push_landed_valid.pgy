@@ -1,0 +1,14 @@
+func Fresh(text: String) -> String {
+    return Concat(text, "!");
+}
+
+func OwnedRows(ref seed: String, row: Int) -> Array<String> {
+    return [Fresh(seed), Fresh(ToString(row))];
+}
+
+func Main() -> Void {
+    let seed: String = "a";
+    var rows: Array<String> = OwnedRows(seed, 1);
+    ArrayPush(rows, Fresh("c"));
+    Log(ArrayLength(rows));
+}

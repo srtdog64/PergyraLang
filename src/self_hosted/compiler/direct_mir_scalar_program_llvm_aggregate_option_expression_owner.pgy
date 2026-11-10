@@ -1,0 +1,18 @@
+// LLVM dispatch for declaration-backed aggregate Option values.
+
+import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_llvm_payload_enum_option_owner.pgy";
+
+func DirectMirScalarProgramLlvmAggregateOptionExpressionAt(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    kind: Int, result: String, result_type: String,
+    left_type: String, left: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let enum_option: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmPayloadEnumOptionExpressionAt(
+            referenced_enum, kind, result, result_type, left_type, left);
+    if enum_option.matched { return enum_option; }
+    return DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(
+        logical_record, kind, result, result_type, left_type, left);
+}

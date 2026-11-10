@@ -6,14 +6,14 @@ func Keep(inout out: Array<String>, text: String) -> Void {
 }
 
 func Names() -> Array<String> {
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     ArrayPushOwnedString(names, "a");
     return names;
 }
 
 func Main() -> Int {
     let owned: Array<String> = Names();
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     Keep(out, ToString(owned[0]));
     ArrayDropOwnedStrings(owned);
     Print(out[0]);

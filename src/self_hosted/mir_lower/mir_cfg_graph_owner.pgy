@@ -6,8 +6,8 @@ func MirRoutineGraphDistances(
     start: Int
 ) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);
-    let distances: Array<Int> = [];
-    let row: Int = 0;
+    var distances: Array<Int> = [];
+    var row: Int = 0;
     while row < block_count {
         ArrayPush(distances, 0 - 1);
         row = row + 1;
@@ -15,9 +15,9 @@ func MirRoutineGraphDistances(
     if start < 0 || start >= block_count {
         return distances;
     }
-    let queue: Array<Int> = [start];
+    var queue: Array<Int> = [start];
     ArraySet(distances, start, 0);
-    let cursor: Int = 0;
+    var cursor: Int = 0;
     while cursor < ArrayLength(queue) {
         let block: Int = queue[cursor];
         let next_distance: Int = distances[block] + 1;
@@ -49,8 +49,8 @@ func MirRoutineGraphDistancesAvoiding(
     blocked: Int
 ) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);
-    let distances: Array<Int> = [];
-    let row: Int = 0;
+    var distances: Array<Int> = [];
+    var row: Int = 0;
     while row < block_count {
         ArrayPush(distances, 0 - 1);
         row = row + 1;
@@ -58,9 +58,9 @@ func MirRoutineGraphDistancesAvoiding(
     if start < 0 || start >= block_count || start == blocked {
         return distances;
     }
-    let queue: Array<Int> = [start];
+    var queue: Array<Int> = [start];
     ArraySet(distances, start, 0);
-    let cursor: Int = 0;
+    var cursor: Int = 0;
     while cursor < ArrayLength(queue) {
         let block: Int = queue[cursor];
         let next_distance: Int = distances[block] + 1;
@@ -105,7 +105,7 @@ func MirRoutineGraphStructuralMerge(
     branch: Int, true_start: Int, false_start: Int
 ) -> Int {
     let block_count: Int = ArrayLength(block_succ_true);
-    let merge: Int = 0 - 1;
+    var merge: Int = 0 - 1;
     if branch < 0 || branch >= block_count ||
         true_start < 0 || true_start >= block_count ||
         false_start < 0 || false_start >= block_count {
@@ -116,8 +116,8 @@ func MirRoutineGraphStructuralMerge(
     // allocating four whole-CFG distance inventories for guard/return chains.
     if block_succ_true[true_start] < 0 &&
         block_succ_false[true_start] < 0 {
-        let true_start_incoming: Int = 0;
-        let source: Int = 0;
+        var true_start_incoming: Int = 0;
+        var source: Int = 0;
         while source < block_count {
             if block_succ_true[source] == true_start {
                 true_start_incoming = true_start_incoming + 1;
@@ -141,8 +141,8 @@ func MirRoutineGraphStructuralMerge(
     let false_without_branch: Array<Int> = MirRoutineGraphDistancesAvoiding(
         block_succ_true, block_succ_false, false_start, branch
     );
-    let best_distance: Int = 2147483647;
-    let candidate: Int = 0;
+    var best_distance: Int = 2147483647;
+    var candidate: Int = 0;
     while candidate < block_count {
         if candidate != branch && true_distance[candidate] >= 0 &&
             false_distance[candidate] >= 0 &&
@@ -184,7 +184,7 @@ func MirRoutineGraphArmClosed(
 ) -> Bool {
     if reached[branch] >= 0 { return false; }
     let block_count: Int = ArrayLength(reached);
-    let source: Int = 0;
+    var source: Int = 0;
     while source < block_count {
         if reached[source] < 0 {
             let true_target: Int = block_succ_true[source];
@@ -215,8 +215,8 @@ func MirRoutineBackedgeHeaders(
 
     // Validate every owner-directed edge before indexing the target set. A
     // malformed graph fails closed instead of returning a partial loop view.
-    let strictly_forward: Bool = true;
-    let row: Int = 0;
+    var strictly_forward: Bool = true;
+    var row: Int = 0;
     while row < block_count {
         let true_target: Int = block_succ_true[row];
         let false_target: Int = block_succ_false[row];
@@ -232,7 +232,7 @@ func MirRoutineBackedgeHeaders(
         }
         row = row + 1;
     }
-    let headers: Array<Int> = [];
+    var headers: Array<Int> = [];
     row = 0;
     while row < block_count {
         ArrayPush(headers, 0);
@@ -242,7 +242,7 @@ func MirRoutineBackedgeHeaders(
     // no target can dominate a cycle-closing incoming source.
     if strictly_forward { return headers; }
 
-    let targeted: Array<Int> = [];
+    var targeted: Array<Int> = [];
     row = 0;
     while row < block_count {
         ArrayPush(targeted, 0);
@@ -263,13 +263,13 @@ func MirRoutineBackedgeHeaders(
     let reachable: Array<Int> = MirRoutineGraphDistances(
         block_succ_true, block_succ_false, 0
     );
-    let target: Int = 0;
+    var target: Int = 0;
     while target < block_count {
         if targeted[target] == 1 && reachable[target] >= 0 {
             let avoiding_target: Array<Int> = MirRoutineGraphDistancesAvoiding(
                 block_succ_true, block_succ_false, 0, target
             );
-            let source: Int = 0;
+            var source: Int = 0;
             while source < block_count && headers[target] == 0 {
                 if reachable[source] >= 0 &&
                     (block_succ_true[source] == target ||

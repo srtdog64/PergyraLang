@@ -13,7 +13,7 @@ func SelfMirInstructionAbiReceiptRowsReady(
         ArrayLength(rows.layout_ids) != count {
         return false;
     }
-    let instruction_i: Int = 0;
+    var instruction_i: Int = 0;
     while instruction_i < count {
         let row: Int = rows.nominal_declaration_rows[instruction_i];
         let layout_id: Int = rows.layout_ids[instruction_i];

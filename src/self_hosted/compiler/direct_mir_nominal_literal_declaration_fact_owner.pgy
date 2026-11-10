@@ -38,7 +38,7 @@ func DirectMirNominalLiteralDeclarationFactDigest(
     ref fact: DirectMirNominalLiteralDeclarationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(547L, fact.kind);
+    var hash: Long = DirectMirCfgHashString(547L, fact.kind);
     hash = DirectMirCfgHashString(hash, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.field_name);

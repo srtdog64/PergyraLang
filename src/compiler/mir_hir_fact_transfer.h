@@ -8,6 +8,14 @@ bool mir_capture_collection_effect_evidence(MIRProgram *mir,
 void mir_free_collection_effect_evidence(MIRProgram *mir);
 bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
     const MIRRoutine *optional_routine, char **error_message);
+bool mir_validate_collection_effect_evidence_and_issue(
+    const MIRProgram *mir,
+    MIRCollectionEffectEvidenceReceipt *receipt_out,
+    char **error_message);
+bool mir_use_collection_effect_evidence_receipt(
+    const MIRCollectionEffectEvidenceReceipt *receipt,
+    const MIRRoutine *routine,
+    char **error_message);
 
 bool mir_copy_function_param_flow_summaries(MIRRoutine *routine,
                                             const HIRRoutine *hir_routine,

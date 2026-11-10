@@ -3,7 +3,7 @@
 func DirectMirScalarCfgOperandCount(
     value: Int, local_binding: Int, literal: String
 ) -> Int {
-    let count: Int = 0;
+    var count: Int = 0;
     if value >= 0 { count = count + 1; }
     if local_binding >= 0 { count = count + 1; }
     if literal != "" { count = count + 1; }

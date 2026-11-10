@@ -1,0 +1,22 @@
+// Recursive settlement must still publish a real returned alias. The call
+// result holds cursor_out, so releasing cursor while the result survives is
+// refused after the exact outward relation becomes current.
+struct RecursiveCursorAlias {
+    values: Array<Int>;
+}
+
+func RetainRecursiveCursor(
+    inout cursor_out: Array<Int>, remaining: Int
+) -> RecursiveCursorAlias {
+    if remaining > 0 {
+        return RetainRecursiveCursor(cursor_out, remaining - 1);
+    }
+    return RecursiveCursorAlias(cursor_out);
+}
+
+func Main() -> Int {
+    var cursor: Array<Int> = [1];
+    let alias: RecursiveCursorAlias = RetainRecursiveCursor(cursor, 1);
+    ArrayDrop(cursor);
+    return ArrayLength(alias.values);
+}

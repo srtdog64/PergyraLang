@@ -1,4 +1,4 @@
-// Ordered Int literals and zero-argument Int calls share one Array<Int> owner.
+// All typed Int elements share one Array<Int> owner and source evaluation order.
 
 func FirstTag() -> Int {
     Log("first");
@@ -22,7 +22,7 @@ func WrongTag() -> String {
 struct TagPair {
     let first: Array<Int>;
     let second: Array<Int>;
-    let local: Array<Int>;
+    let local_tags: Array<Int>;
 }
 
 func BoxedTags() -> TagPair {
@@ -54,6 +54,16 @@ func LocalLiteral(seed: Int) -> Int {
     return pending[0];
 }
 
+func ReportTag(value: Int) -> Int {
+    Log(ToString(value));
+    return value;
+}
+
+func ComputedParameterElements(seed: Int) -> Int {
+    let values: Array<Int> = [seed + 1, ReportTag(seed + 2), ReportTag(seed + 3)];
+    return values[0] + values[1] + values[2];
+}
+
 func Main() -> Void {
     let tags: Array<Int> = [FirstTag(), SecondTag(), ThirdTag()];
     Log(ToString(Consume(tags)));
@@ -72,6 +82,7 @@ func Main() -> Void {
     Log(ToString(boxed.first[1]));
     Log(ToString(boxed.first[2]));
     Log(ToString(boxed.second[0]));
-    Log(ToString(boxed.local[0]));
+    Log(ToString(boxed.local_tags[0]));
     Log(ToString(LocalLiteral(7)));
+    Log(ToString(ComputedParameterElements(10)));
 }

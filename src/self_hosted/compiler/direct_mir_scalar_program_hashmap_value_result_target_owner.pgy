@@ -1,0 +1,18 @@
+// GraphPlan identity for admitted HashMap value-result parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+
+func DirectMirScalarProgramHashMapValueResultAt(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return plan.routines.parameter_carriages[row] == "value-result" &&
+        DirectMirScalarProgramHashMapParameterCarriageReady(
+            plan.routines.parameter_types[row],
+            plan.routines.parameter_carriages[row]);
+}

@@ -334,7 +334,7 @@ ast_print_compact(ASTNode* node)
 
         case AST_ASSIGNMENT:
             ast_print_compact(node->data.assignment.target);
-            inline_emitf(" = ");
+            inline_emitf(" %s ", ast_assignment_operation_text(ast_assignment_operation(node)));
             ast_print_compact(node->data.assignment.value);
             break;
 

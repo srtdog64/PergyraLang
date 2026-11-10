@@ -20,7 +20,7 @@ func DirectMirReturnedArrayProgramRouteFactDigest(
     ref fact: DirectMirReturnedArrayProgramRouteFact
 ) -> Int {
     if !fact.claimed { return 0; }
-    let hash: Long = DirectMirCfgHashInt(211L, fact.entrypoint_row);
+    var hash: Long = DirectMirCfgHashInt(211L, fact.entrypoint_row);
     hash = DirectMirCfgHashInt(hash, fact.producer_row);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -44,9 +44,9 @@ func DirectMirReturnedArrayProgramRouteFactFromAdmitted(
         JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
         return invalid;
     }
-    let entrypoint_row: Int = -1;
-    let producer_row: Int = -1;
-    let row: Int = 0;
+    var entrypoint_row: Int = -1;
+    var producer_row: Int = -1;
+    var row: Int = 0;
     while row < 2 {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
             admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],

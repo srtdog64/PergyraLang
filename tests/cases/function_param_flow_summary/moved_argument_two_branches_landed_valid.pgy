@@ -18,7 +18,7 @@ func GrowTwo(context: Context) -> Int {
 
 func Main() -> Int {
     let context: Context = Context([0]);
-    let n: Int = 0;
+    var n: Int = 0;
     if ArrayLength(context.rows) > 0 {
         n = GrowOne(context);
     } else {

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/canonical_mir_routine_phase_projection_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-parity:canonical-mir-routine-phase-identity"
@@ -43,6 +44,14 @@ main = next(i for i, row in enumerate(routines)
             if row["kind"] == "function" and row["name"] == "Main")
 intent = next(i for i, row in enumerate(routines)
               if row["kind"] == "intent" and row["name"] == "RunIntent")
+intent_roles = [block.get("intent_block_role")
+                for block in routines[intent]["blocks"]]
+if (not intent_roles or intent_roles[0] != "entry" or
+        intent_roles.count("cleanup") != 1 or
+        intent_roles.count("rollback") != 1 or
+        intent_roles.count("invalidation") != 1 or
+        any(role in (None, "") for role in intent_roles)):
+    raise SystemExit(f"RunIntent block roles: {intent_roles}")
 assert main < intent, (main, intent)
 permuted = copy.deepcopy(base)
 rows = permuted["routines"]
@@ -65,18 +74,10 @@ Path(sys.argv[3]).write_text(
 )
 PY
 
-canonicalize() {
-    local input="$1" output="$2"
-    local input_arg
-    input_arg="$(pgy_selfhost_path_relative_to_root "$input")"
-    (cd "$ROOT_DIR" && "$PGY" --self-driver --canonicalize-mir-json "$input_arg") \
-        | tr -d '\r' >"$output"
-}
-
-canonicalize "$BASE" "$BASE_CANONICAL"
-canonicalize "$PERMUTED" "$PERMUTED_CANONICAL"
-canonicalize "$BASE_CANONICAL" "$BASE_AGAIN"
-canonicalize "$PERMUTED_CANONICAL" "$PERMUTED_AGAIN"
+pgy_canonical_mir_routine_phase_project "$ROOT_DIR" "$PGY" "$BASE" "$BASE_CANONICAL"
+pgy_canonical_mir_routine_phase_project "$ROOT_DIR" "$PGY" "$PERMUTED" "$PERMUTED_CANONICAL"
+pgy_canonical_mir_routine_phase_project "$ROOT_DIR" "$PGY" "$BASE_CANONICAL" "$BASE_AGAIN"
+pgy_canonical_mir_routine_phase_project "$ROOT_DIR" "$PGY" "$PERMUTED_CANONICAL" "$PERMUTED_AGAIN"
 cmp -s "$BASE_CANONICAL" "$PERMUTED_CANONICAL" \
     || fail "cross-kind routine permutation changed canonical MIR"
 cmp -s "$BASE_CANONICAL" "$BASE_AGAIN" \

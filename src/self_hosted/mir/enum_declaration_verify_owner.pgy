@@ -10,8 +10,8 @@ func SelfMirEnumDeclarationPayloadRowsReady(
         ArrayLength(rows.variant_param_counts) != variant_count {
         return false;
     }
-    let payload_cursor: Int = 0;
-    let variant_index: Int = 0;
+    var payload_cursor: Int = 0;
+    var variant_index: Int = 0;
     while variant_index < variant_count {
         if rows.variant_names[variant_index] == "" ||
             rows.variant_param_counts[variant_index] < 0 ||
@@ -25,7 +25,7 @@ func SelfMirEnumDeclarationPayloadRowsReady(
     if payload_cursor != ArrayLength(rows.variant_param_type_names) {
         return false;
     }
-    let payload_index: Int = 0;
+    var payload_index: Int = 0;
     while payload_index < payload_cursor {
         if rows.variant_param_type_names[payload_index] == "" ||
             rows.variant_param_type_names[payload_index] == "Unknown" {

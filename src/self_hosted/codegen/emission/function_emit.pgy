@@ -27,7 +27,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    ref body_types: CodegenSemanticBodyTypeFacts,
                    expression_surfaces: SemanticAstExpressionSurfaceFacts,
                    inout cur: Array<Int>, f_indent: Int,
-                   base_env: CodegenTypeEnv, uses_args: Bool,
+                   inout base_env: CodegenTypeEnv, uses_args: Bool,
                    machine_startup: String,
                    specialized_name: String,
                    generic_actuals: Array<String>, ref domain_runtime: CodegenDomainRuntimeFacts) -> String {
@@ -41,25 +41,25 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let name: String = CodegenSemanticFunctionNameOrDie(
         signatures, signature_index
     );
-    let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
+    var c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     if specialized_name != "" { c_name = specialized_name; }
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenAstArenaConsumeAdmittedGenericHeader(arena, count, cur);
     CodegenAstArenaExpectParameters(arena, count, cur);
-    let params: String = "";
-    let param_n: Int = 0;
+    var params: String = "";
+    var param_n: Int = 0;
     let expected_param_count: Int = CodegenSemanticFunctionParamCountOrDie(
         signatures, signature_index
     );
-    let function_env_rows: Array<String> = [];
+    var function_env_rows: Array<String> = [];
     ArrayPushOwnedString(function_env_rows, Concat("", "|"));
     if specialized_name != "" {
         ArrayPushOwnedString(function_env_rows, CodegenGenericSpecializationCallEnvRows(
             body_types.generic_specializations, specialized_name));
     }
-    let prologue: String = "";
-    let copyout: String = "";
+    var prologue: String = "";
+    var copyout: String = "";
     let receiver_carriage: String =
         CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
             receiver_facts, signature_index
@@ -78,8 +78,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             receiver_facts, signature_index
         );
     let role_receiver: Bool = role_erased;
-    let role_receiver_type: String = "";
-    let role_target_carriage: String = CallableReceiverCarriageNone();
+    var role_receiver_type: String = "";
+    var role_target_carriage: String = CallableReceiverCarriageNone();
     if role_receiver {
         role_receiver_type =
             CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie(
@@ -90,7 +90,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 receiver_facts, signature_index
             );
     }
-    let role_binding: CodegenRoleReceiverBinding =
+    var role_binding: CodegenRoleReceiverBinding =
         CodegenRoleReceiverBinding(false, "", "");
     if role_receiver {
         role_binding = CodegenRoleReceiverBindingOrDie(
@@ -101,7 +101,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let mutable_identity_receiver: Bool =
         receiver_carriage == CallableReceiverCarriageMutableIdentity() &&
         !role_receiver;
-    let owner_receiver_c_expression: String =
+    var owner_receiver_c_expression: String =
         CompilerSymbolCBindingName("self");
     if mutable_identity_receiver ||
         (role_receiver && role_binding.pointer_identity) {
@@ -150,7 +150,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         let p_name: String = CodegenSemanticFunctionParamNameForNodeOrDie(
             signatures, signature_index, param_n, cur[0]
         );
-        let p_type: String = CodegenGenericResolvedParamTypeOrDie(
+        var p_type: String = CodegenGenericResolvedParamTypeOrDie(
             signatures, signature_index, param_n, generic_actuals
         );
         let source_receiver_parameter: Bool =
@@ -164,7 +164,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             CodegenFunctionValueBindingFactFor(
                 p_name, p_type, base_env
             );
-        let p_env_binding: CodegenFunctionValueBindingFact = p_binding;
+        var p_env_binding: CodegenFunctionValueBindingFact = p_binding;
         let identity_parameter: Bool = !source_receiver_parameter &&
             p_mode == 0 &&
             CodegenCallableParameterOwnsIdentity(receiver_facts, p_type);
@@ -186,8 +186,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             AbiLayoutCCallableParamDeclaration(
                 p_type, c_p_name, base_env
             );
-        let c_param_type: String = "";
-        let c_param: String = "";
+        var c_param_type: String = "";
+        var c_param: String = "";
         if IsSome(callable_declaration) {
             if p_mode != 0 {
                 Die("callable C parameters support only value carriage");
@@ -211,7 +211,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         }
         let readonly_ref_direct: Bool = p_mode == 3 &&
             AbiLayoutCReadonlyRefPassesDirect(p_type);
-        let c_ref_name: String = c_p_name;
+        var c_ref_name: String = c_p_name;
         if source_receiver_parameter &&
             (mutable_identity_receiver || role_receiver) {
         } else if p_mode == 1 {
@@ -263,7 +263,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
     }
-    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(
+    var env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(
         CodegenJoinOwnedStringFragments(function_env_rows, "")
     );
     let ret_type: String = CodegenGenericResolvedReturnTypeOrDie(
@@ -282,11 +282,12 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         signatures.entrypoint_selection,
         SemanticAstFunctionSignatureCount(signatures), signature_index
     );
-    let body_ret: String = ret_type;
+    var body_ret: String = ret_type;
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
-    let routine_defers: Array<String> = [""];
+    var routine_defers: String = "";
+    let base_local_rows: String = base_env.local_rows;
     local_bindings = CodegenSemanticLocalBindingsForInstance(
         local_bindings, signatures, signature_index, function_node_id, generic_actuals);
     let body_emission: CodegenStatementBlockEmission = EmitStmtList(
@@ -295,12 +296,13 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         env_state, body_ret, routine_defers, copyout, "", "", function_node_id, function_scope_id, base_env
     );
     let body: String = body_emission.body;
+    base_env.local_rows = base_local_rows;
 
-    let signature: String = "";
+    var signature: String = "";
     if is_main {
         signature = HostIORuntimeCEntrypointSignature(uses_args);
     } else {
-        let param_list: String = params;
+        var param_list: String = params;
         if params == "" {
             param_list = AbiLayoutCEmptyParameterList();
         }
@@ -309,7 +311,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             Concat(" ", Concat(c_name, Concat("(", Concat(param_list, ")"))))
         );
     }
-    let tail: String = "}\n";
+    var tail: String = "}\n";
     if is_main {
         tail = Concat("    return ", Concat(HostIORuntimeCEntrypointSuccessValue(), ";\n}\n"));
     }
@@ -327,7 +329,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         TextBuilderAppend(output, domain_runtime_prologue);
     }
     TextBuilderAppend(output, body);
-    TextBuilderAppend(output, routine_defers[0]);
+    TextBuilderAppend(output, routine_defers);
     TextBuilderAppend(output, body_emission.scope_cleanup);
     TextBuilderAppend(output, copyout);
     TextBuilderAppend(output, tail);
@@ -349,7 +351,7 @@ func EmitFunction(count: Int, arena: AstArena,
                    ref body_types: CodegenSemanticBodyTypeFacts,
                    expression_surfaces: SemanticAstExpressionSurfaceFacts,
                    inout cur: Array<Int>, f_indent: Int,
-                   base_env: CodegenTypeEnv, machine_startup: String, uses_args: Bool,
+                   inout base_env: CodegenTypeEnv, machine_startup: String, uses_args: Bool,
                    ref domain_runtime: CodegenDomainRuntimeFacts) -> String {
     let no_actuals: Array<String> = [];
     return EmitFunctionWithSpecialization(

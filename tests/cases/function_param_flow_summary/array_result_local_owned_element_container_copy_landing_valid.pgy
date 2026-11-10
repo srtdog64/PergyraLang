@@ -3,9 +3,9 @@
 // so copies[0] stays valid after the drop.
 func Main() -> Void
 {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
-    let copies: Array<String> = [];
+    var copies: Array<String> = [];
     ArrayPush(copies, rows[0]);
     ArrayDropOwnedStrings(rows);
     Log(copies[0]);

@@ -13,7 +13,7 @@ func Main() -> Void {
     if IsSome(selected) {
         let text: String = UnwrapOption(selected);
         let no_texts: Array<String> = [];
-        let owning_rows: Array<String> = [];
+        var owning_rows: Array<String> = [];
         ArrayPushOwnedString(owning_rows, Concat("owned", " value"));
         Log(NonownerRead(text));
         Log(ArrayLength(no_texts));

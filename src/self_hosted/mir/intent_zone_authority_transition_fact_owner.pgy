@@ -66,7 +66,7 @@ func MirIntentZoneAuthorityTransitionFactsReady(
         ArrayLength(facts.authority_slot_source_syntax_ids) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if facts.routine_rows[row] < 0 ||
             facts.routine_source_syntax_ids[row] <= 0 ||
@@ -98,7 +98,7 @@ func MirIntentZoneAuthorityTransitionFactsReady(
             facts.authority_slot_source_syntax_ids[row] != "" {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if facts.routine_source_syntax_ids[prior] ==
                     facts.routine_source_syntax_ids[row] &&

@@ -39,7 +39,7 @@ func Keep(zone: HoldZone, holder: Holder, names: Array<String>) -> Taken {
 func Main() -> Int {
     let zone: HoldZone = HoldZone(Holder(None));
     let holder: Holder = Holder(None);
-    let names: Array<String> = ["a"];
+    var names: Array<String> = ["a"];
     let taken: Taken = Keep(zone, holder, names);
     ArrayPush(names, "b");
     Print(taken.names[0]);

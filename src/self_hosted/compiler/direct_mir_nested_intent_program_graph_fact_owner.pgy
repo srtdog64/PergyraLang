@@ -40,7 +40,7 @@ func DirectMirNestedIntentProgramGraphFactDigest(
     ref fact: DirectMirNestedIntentProgramGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(971L, fact.main_row);
+    var hash: Long = DirectMirCfgHashInt(971L, fact.main_row);
     hash = DirectMirCfgHashInt(hash, fact.method_row);
     hash = DirectMirCfgHashInt(hash, fact.outer_row);
     hash = DirectMirCfgHashInt(hash, fact.inner_row);
@@ -59,7 +59,7 @@ func DirectMirNestedIntentProgramGraphFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.method_delta);
     hash = DirectMirScalarCfgHashInts(
         hash, fact.method_runtime_call_abi_ids);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.method_log_literals) {
         hash = DirectMirCfgHashString(hash, fact.method_log_literals[row]);
         row = row + 1;
@@ -95,10 +95,10 @@ func DirectMirNestedIntentProgramGraphFactReady(
         ArrayLength(fact.main_log_literals) != 2 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.routine_syntax_ids) {
         if fact.routine_syntax_ids[row] <= 0 { return false; }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if fact.routine_syntax_ids[prior] == fact.routine_syntax_ids[row] {
                 return false;
@@ -172,12 +172,12 @@ func DirectMirNestedIntentProgramFieldNames(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref route: DirectMirNestedIntentProgramRouteFact
 ) -> Array<String> {
-    let result: Array<String> = [];
-    let subject_field: String = "";
-    let zone_field: String = "";
-    let subject_count: Int = 0;
-    let zone_count: Int = 0;
-    let row: Int = 0;
+    var result: Array<String> = [];
+    var subject_field: String = "";
+    var zone_field: String = "";
+    var subject_count: Int = 0;
+    var zone_count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(admitted.domain_runtime_admission.declarations.
             field_identities.field_names) {
         if admitted.domain_runtime_admission.declarations.field_identities.
@@ -254,9 +254,9 @@ func DirectMirNestedIntentProgramMethodLogLiteral(
     inout runtime_call_abi_ids: Array<Int>
 ) -> Option<String> {
     if !sequence.ok { return None; }
-    let accessor_node: Int = -1;
-    let accessor_count: Int = 0;
-    let row: Int = 0;
+    var accessor_node: Int = -1;
+    var accessor_count: Int = 0;
+    var row: Int = 0;
     while row < sequence.ready_node_count {
         if sequence.arena.identities.runtime_call_abi_ids[row] > 0 {
             accessor_node = row;
@@ -267,9 +267,9 @@ func DirectMirNestedIntentProgramMethodLogLiteral(
     if accessor_count != 1 || accessor_node < 0 { return None; }
     let source_name: String =
         sequence.arena.call_target_names[accessor_node];
-    let node_count: Int = 6;
-    let ordinal_node: Int = 3;
-    let final_argument: Int = 4;
+    var node_count: Int = 6;
+    var ordinal_node: Int = 3;
+    var final_argument: Int = 4;
     if source_name == "IntentActiveCount" {
         node_count = 7; accessor_node = 4; ordinal_node = -1;
         final_argument = 5;
@@ -322,7 +322,7 @@ func DirectMirNestedIntentProgramMainFacts(
     subject_type: String, zone_type: String, outer_name: String,
     subject_field: String
 ) -> Array<String> {
-    let result: Array<String> = [];
+    var result: Array<String> = [];
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, route.main_row);
     if !index.valid || admitted.routines.names[route.main_row] != "Main" ||
@@ -431,7 +431,7 @@ func DirectMirNestedIntentProgramMethodFacts(
     ref route: DirectMirNestedIntentProgramRouteFact, subject_field: String,
     inout runtime_call_abi_ids: Array<Int>
 ) -> Array<String> {
-    let result: Array<String> = [];
+    var result: Array<String> = [];
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, route.method_row);
     if !index.valid || admitted.routines.routine_block_counts[
@@ -461,7 +461,7 @@ func DirectMirNestedIntentProgramMethodFacts(
     }
     ArrayPush(result, ToString(
         DirectMirLegacyIntentProgramCanonicalInteger(value, 1)));
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 7 {
         let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, route.method_row, 0, row + 1);
@@ -471,7 +471,7 @@ func DirectMirNestedIntentProgramMethodFacts(
         let sequence: MirExpressionGraphSequence =
             DirectMirLegacyIntentProgramExpressionSequence(
                 admitted.routines, global, 0);
-        let ordinal: Int = -1;
+        var ordinal: Int = -1;
         if row > 0 && row < 4 { ordinal = 0; }
         else if row >= 4 { ordinal = 1; }
         let stringify: Bool = row != 1 && row != 4;
@@ -520,7 +520,7 @@ func DirectMirNestedIntentProgramGraphFactFromAdmitted(
     let second_edge: MirIntentActionGraphFact =
         DirectMirNestedIntentProgramIntentEdge(
             admitted, route.intent_rows[1]);
-    let outer_row: Int = -1; let inner_row: Int = -1;
+    var outer_row: Int = -1; var inner_row: Int = -1;
     if first_edge.ok && first_edge.receiver_alias == "" && second_edge.ok &&
             second_edge.receiver_alias != "" {
         outer_row = route.intent_rows[0]; inner_row = route.intent_rows[1];
@@ -543,7 +543,7 @@ func DirectMirNestedIntentProgramGraphFactFromAdmitted(
     }
     let main: Array<String> = DirectMirNestedIntentProgramMainFacts(
         admitted, route, subject_type, zone_type, outer_name, fields[0]);
-    let method_runtime_call_abi_ids: Array<Int> = [];
+    var method_runtime_call_abi_ids: Array<Int> = [];
     let method: Array<String> = DirectMirNestedIntentProgramMethodFacts(
         admitted, route, fields[0], method_runtime_call_abi_ids);
     if ArrayLength(main) != 5 || ArrayLength(method) != 8 ||
@@ -561,8 +561,8 @@ func DirectMirNestedIntentProgramGraphFactFromAdmitted(
             admitted, route.subject_declaration_row),
         DirectMirNestedIntentProgramDeclarationSyntaxId(
             admitted, route.zone_declaration_row)];
-    let method_literals: Array<String> = [];
-    let row: Int = 1;
+    var method_literals: Array<String> = [];
+    var row: Int = 1;
     while row < ArrayLength(method) {
         ArrayPush(method_literals, method[row]); row = row + 1;
     }

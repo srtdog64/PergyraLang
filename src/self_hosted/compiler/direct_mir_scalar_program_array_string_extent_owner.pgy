@@ -7,14 +7,14 @@ import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 func DirectMirScalarProgramImmutableStringArrayExtents(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Array<Int> {
-    let counts: Array<Int> = [];
-    let definitions: Array<Int> = [];
-    let local_row: Int = 0;
+    var counts: Array<Int> = [];
+    var definitions: Array<Int> = [];
+    var local_row: Int = 0;
     while local_row < ArrayLength(plan.local_types) {
         ArrayPush(counts, -1); ArrayPush(definitions, 0);
         local_row = local_row + 1;
     }
-    let operation: Int = 0;
+    var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
         let result: Int = plan.operation_result_values[operation];
         if result >= 0 && plan.value_types[result] == "Array<String>" {
@@ -34,8 +34,8 @@ func DirectMirScalarProgramImmutableStringArrayExtents(
         operation = operation + 1;
     }
     // Any call can expose local storage through a composed value; no alias guess.
-    let exposed: Bool = false;
-    let node: Int = 0;
+    var exposed: Bool = false;
+    var node: Int = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
         let kind: Int = plan.program.expressions.node_kinds[node];
         if kind == DirectMirScalarProgramExprDirectCall() || kind == DirectMirScalarProgramExprDeclaredCallable() ||

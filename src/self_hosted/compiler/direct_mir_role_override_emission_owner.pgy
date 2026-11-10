@@ -53,7 +53,7 @@ func DirectMirRoleOverrideEmitC(
         subject_method == role_method {
         Die("direct MIR role override C symbols are invalid");
     }
-    let output: String =
+    var output: String =
         "#include <stdint.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    ");
     output = Concat(output, projection.field_value_type);
@@ -125,7 +125,7 @@ func DirectMirRoleOverrideEmitLlvm(
         DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int =
         DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "%";
+    var output: String = "%";
     output = Concat(output, subject_type);
     output = Concat(output, " = type { ");
     output = Concat(output, projection.field_value_type);

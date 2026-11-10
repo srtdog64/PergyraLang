@@ -21,6 +21,8 @@ func ReadMembers(ref wrapped: WrappedNumbers) -> Int {
 }
 func StringCount(ref values: Array<String>) -> Int { return ArrayLength(values); }
 func ReadStrings(offset: Int, values: Array<String>) -> Int { return offset + StringCount(values); }
+func BoolCount(ref values: Array<Bool>) -> Int { return ArrayLength(values); }
+func ReadBool(ref values: Array<Bool>, index: Int) -> Bool { return values[index]; }
 func Main() -> Void {
     var values: Array<Int> = [1, -2, 2147483647];
     Log(ToString(Count(values)));
@@ -39,4 +41,7 @@ func Main() -> Void {
     Log(ToString(ReadStrings(0, texts)));
     Log(ToString(ArrayLength(texts)));
     Log(texts[1]);
+    let flags: Array<Bool> = [true, false, true];
+    Log(ToString(BoolCount(flags)));
+    Log(ToString(ReadBool(flags, 1)));
 }

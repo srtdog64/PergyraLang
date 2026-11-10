@@ -10,7 +10,7 @@ func DirectMirOptionMatchCfgPlanMutationRejected(
         DirectMirOptionMatchCfgPlanWithDigest(
             plan, plan.plan_digest + 1
         );
-    let bad_target: DirectMirOptionMatchCfgPlan =
+    var bad_target: DirectMirOptionMatchCfgPlan =
         DirectMirOptionMatchCfgPlanWithTargetFingerprint(
             plan, plan.target_capability_fingerprint + 1
         );
@@ -18,7 +18,7 @@ func DirectMirOptionMatchCfgPlanMutationRejected(
         bad_target, DirectMirOptionMatchCfgPlanIdentityDigest(bad_target)
     );
 
-    let bad_certificate: DirectMirOptionMatchCfgCertificateFact =
+    var bad_certificate: DirectMirOptionMatchCfgCertificateFact =
         DirectMirOptionMatchCfgCertificateFactWithSomeValue(
             plan.certificate, "mutated"
         );
@@ -26,21 +26,21 @@ func DirectMirOptionMatchCfgPlanMutationRejected(
         bad_certificate,
         DirectMirOptionMatchCfgCertificateFactDigest(bad_certificate)
     );
-    let bad_certificate_plan: DirectMirOptionMatchCfgPlan =
+    var bad_certificate_plan: DirectMirOptionMatchCfgPlan =
         DirectMirOptionMatchCfgPlanWithCertificate(plan, bad_certificate);
     bad_certificate_plan = DirectMirOptionMatchCfgPlanWithDigest(
         bad_certificate_plan,
         DirectMirOptionMatchCfgPlanIdentityDigest(bad_certificate_plan)
     );
 
-    let bad_abi: DirectMirOptionMatchAbiFact =
+    var bad_abi: DirectMirOptionMatchAbiFact =
         DirectMirOptionMatchAbiFactWithLayoutId(
             plan.abi, plan.abi.layout_id + 1
         );
     bad_abi = DirectMirOptionMatchAbiFactWithDigest(
         bad_abi, DirectMirOptionMatchAbiFactDigest(bad_abi)
     );
-    let bad_abi_plan: DirectMirOptionMatchCfgPlan =
+    var bad_abi_plan: DirectMirOptionMatchCfgPlan =
         DirectMirOptionMatchCfgPlanWithAbi(plan, bad_abi);
     bad_abi_plan = DirectMirOptionMatchCfgPlanWithDigest(
         bad_abi_plan,

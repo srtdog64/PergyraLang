@@ -18,7 +18,7 @@ CLANG="${PGY_SELFHOST_CLANG:-clang}"
 STEP_TIMEOUT="${PGY_SELFHOST_PROBE_TIMEOUT:-45}s"
 FIXTURES="tests/self_hosted/fixtures"
 STEM="direct_mir_owned_string_result_composition"
-CASES=(minimal unused_tail reordered long_chain local_alias shared_callee)
+CASES=(minimal unused_tail reordered long_chain local_alias shared_callee indexed_loop)
 MUTATIONS=(wrong-source wrong-target missing-target recursive-target borrowed-branch)
 
 fail() { echo "[$LABEL] $*; evidence: ${WORK_DIR:-not-created}" >&2; exit 1; }
@@ -92,7 +92,7 @@ import pathlib
 import sys
 
 work = pathlib.Path(sys.argv[1])
-cases = ("minimal", "unused_tail", "reordered", "long_chain", "local_alias", "shared_callee")
+cases = ("minimal", "unused_tail", "reordered", "long_chain", "local_alias", "shared_callee", "indexed_loop")
 programs = {case: json.loads((work / (case + ".mir.json")).read_text(
     encoding="utf-8")) for case in cases}
 

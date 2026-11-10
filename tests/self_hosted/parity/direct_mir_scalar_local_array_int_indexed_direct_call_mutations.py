@@ -17,7 +17,9 @@ def main():
         for row in block["instructions"]
         if row.get("source_type") == "AST_ASSIGNMENT"
     ]
-    assignment, boolean = assignments
+    assignment = next(row for row in assignments if row.get("arg0") == "known_effects" and "JoinEffectMask" in row.get("expr0", ""))
+    independent = next(row for row in assignments if row.get("arg0") == "known_effects" and "callable + 5" in row.get("expr0", ""))
+    boolean = next(row for row in assignments if row.get("arg0") == "unknown_effects")
     mode = sys.argv[2]
     if mode == "missing-predecessor":
         assignment["uses"].pop(0)
@@ -38,6 +40,8 @@ def main():
     elif mode == "rhs-call-target":
         call = next(row for row in assignment["expr0_graph"]["nodes"] if row["kind"] == "call")
         call["call_target_name"] = "ForeignJoin"
+    elif mode == "independent-missing-predecessor":
+        independent["uses"].pop(0)
     elif mode == "bool-missing-predecessor":
         boolean["uses"].pop(0)
     elif mode == "bool-rhs-type":

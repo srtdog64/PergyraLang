@@ -28,7 +28,7 @@ func DirectMirConstructedGenericMemberSpecializationDigest(
     ref fact: DirectMirConstructedGenericMemberSpecializationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(367L, fact.owner);
+    var hash: Long = DirectMirCfgHashString(367L, fact.owner);
     hash = DirectMirCfgHashInt(hash, fact.source_owner_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.outer_callable);
     hash = DirectMirCfgHashString(hash, fact.outer_symbol);

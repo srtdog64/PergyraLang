@@ -31,7 +31,7 @@ rm -f "$WORK_DIR"/*
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "MIR production failed"
 mir_sha="$(sha256sum "$MIR" | awk '{print toupper($1)}')"
-[[ "$mir_sha" == "0F277B559FDE05498591D64B38B6D3046512B85D308023EB7AA479F17251AFDA" ]] ||
+[[ "$mir_sha" == "AE27759EC812F12461F31E1EEF803624CC4A9D14D92A061661E3BAC55FC13CF5" ]] ||
     fail "source MIR identity changed: $mir_sha"
 grep -Fq '"kind":"equality"' "$MIR" || fail "producer omitted Bool equality"
 grep -Fq '"abi_type_name":"Option<Bool>"' "$MIR" ||
@@ -68,7 +68,12 @@ merge = text.find(".merge:\n", equality)
 if min(unwrap, right, equality, merge) < 0 or not right < unwrap < equality < merge:
     raise SystemExit("LLVM unwrap/equality escaped the conditional right edge")
 PY
-        "$CLANG" -x ir "$artifact" -o "$bin" >/dev/null \
+        runtime_obj="$WORK_DIR/runtime.o"
+        "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+            -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$runtime_obj" \
+            >"$WORK_DIR/runtime.compile.out" 2>"$WORK_DIR/runtime.compile.err" ||
+            fail "runtime ABI object did not compile"
+        "$CLANG" -x ir "$artifact" -x none "$runtime_obj" -pthread -lm -o "$bin" >/dev/null \
             2>"$WORK_DIR/$backend.compile.err" || fail "LLVM artifact did not compile"
     fi
     "$bin" | tr -d '\r' >"$WORK_DIR/$backend.run"

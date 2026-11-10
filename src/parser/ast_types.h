@@ -20,6 +20,15 @@ typedef struct FuncParam FuncParam;
 typedef struct ClassField ClassField;
 typedef struct LifecycleTransitionDecl LifecycleTransitionDecl;
 
+typedef enum {
+    AST_ASSIGN_SET = 0,
+    AST_ASSIGN_ADD,
+    AST_ASSIGN_SUBTRACT,
+    AST_ASSIGN_MULTIPLY,
+    AST_ASSIGN_DIVIDE,
+    AST_ASSIGN_REMAINDER
+} AstAssignmentOperation;
+
 /* Access modifiers */
 typedef enum {
     ACCESS_PUBLIC,

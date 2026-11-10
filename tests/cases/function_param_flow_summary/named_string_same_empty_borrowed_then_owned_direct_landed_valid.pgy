@@ -6,7 +6,7 @@ struct TextNode { type_name: String; }
 struct Arena { atom_table: Array<String>; }
 
 func Project(nodes: Array<TextNode>) -> Arena {
-    let atom_table: Array<String> = [];
+    var atom_table: Array<String> = [];
     ArrayPush(atom_table, nodes[0].type_name);
     ArrayPushOwnedString(atom_table, Concat("owned", " value"));
     return Arena(atom_table);

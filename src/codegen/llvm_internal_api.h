@@ -452,7 +452,9 @@ LLVMGenResult *llvm_result_success(char *ir_text);
 /* =================================================================
  * Pipeline helpers (llvm_backend.c / llvm_api.c)
  * ================================================================= */
-LLVMGenResult *llvm_validate_mir_for_codegen(const MIRProgram *mir);
+LLVMGenResult *llvm_validate_mir_for_codegen(
+    const MIRProgram *mir,
+    MIRCollectionEffectEvidenceReceipt *collection_effect_receipt);
 bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
 void llvm_declare_runtime(LLVMGenCtx *ctx);
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);

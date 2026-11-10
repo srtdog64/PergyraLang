@@ -11,7 +11,7 @@ struct Rows {
 }
 
 func AddBlock(rows: Rows) -> Rows {
-    let ids: Array<Int> = rows.ids;
+    var ids: Array<Int> = rows.ids;
     ArrayPush(ids, ArrayLength(ids));
     return Rows(ids, rows.pairs);
 }
@@ -19,8 +19,8 @@ func AddBlock(rows: Rows) -> Rows {
 func Main() -> Int {
     let ids: Array<Int> = [1];
     let a: Rows = Rows(ids, []);
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
     while i < 2 {
         let b: Rows = AddBlock(a);
         total = total + ArrayLength(b.ids);

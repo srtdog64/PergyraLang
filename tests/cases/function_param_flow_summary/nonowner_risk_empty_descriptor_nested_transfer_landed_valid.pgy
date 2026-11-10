@@ -1,0 +1,18 @@
+// A fresh empty Array<String> has no element cleanup obligation yet. When one
+// nested result needs the descriptor twice, the earlier field receives an
+// independent copy and the final field receives the original descriptor.
+struct EmptyPair {
+    first: Array<String>;
+    second: Array<String>;
+}
+
+struct TextArtifact {
+    text: String;
+    empty: EmptyPair;
+}
+
+func Rebuild(own artifact: TextArtifact) -> TextArtifact {
+    let text: String = artifact.text;
+    let empty: Array<String> = [];
+    return TextArtifact(text, EmptyPair(empty, empty));
+}

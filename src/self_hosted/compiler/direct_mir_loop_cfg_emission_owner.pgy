@@ -35,7 +35,7 @@ func DirectMirLoopCfgEmitC(
     ) || StringLength(int_c_type) == 0 {
         Die("direct MIR loop CFG C facts are invalid");
     }
-    let output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
+    var output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
     output = Concat(output, int_c_type);
     output = Concat(output, " pgy_local_0 = ");
     output = Concat(output, shape.initial_literal);
@@ -65,7 +65,7 @@ func DirectMirLoopCfgEmitLlvm(
         Die("direct MIR loop CFG LLVM facts are invalid");
     }
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    var output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output, DirectMirScalarLlvmFormatPayload(line_format));

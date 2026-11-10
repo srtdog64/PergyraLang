@@ -1,0 +1,27 @@
+// Reading a sibling does not excuse returning a carrier whose moved field was
+// never restored.
+struct MemberReadMissingConfig { values: Array<Int>; }
+struct MemberReadMissingHolder {
+    cfg: MemberReadMissingConfig;
+    names: Array<String>;
+}
+
+func MemberReadMissingConfigGrow(cfg: MemberReadMissingConfig) -> MemberReadMissingConfig {
+    let values: Array<Int> = cfg.values;
+    ArrayPush(values, 1);
+    return MemberReadMissingConfig(values);
+}
+
+func MemberReadMissingNameLength(names: Array<String>) -> Int {
+    return StringLength(names[0]);
+}
+
+func MemberReadMissingGrow(holder: MemberReadMissingHolder) -> MemberReadMissingHolder {
+    let cfg: MemberReadMissingConfig = MemberReadMissingConfigGrow(holder.cfg);
+    let observed: Int = MemberReadMissingNameLength(holder.names);
+    if observed < 0 { Log(observed); }
+    if ArrayLength(cfg.values) < 0 { Log(0); }
+    return holder;
+}
+
+func Main() -> Void {}

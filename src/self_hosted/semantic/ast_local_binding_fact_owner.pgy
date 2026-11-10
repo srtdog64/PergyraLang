@@ -39,8 +39,8 @@ func SemanticAstEnclosingBlockNode(
     arena: AstArena,
     node_id: Int
 ) -> Option<Int> {
-    let cursor: Option<Int> = TypedAstArenaParentId(arena, node_id);
-    let traversed: Int = 0;
+    var cursor: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    var traversed: Int = 0;
     while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
         let parent_id: Int = UnwrapOption(cursor);
         if TypedAstArenaNodeKindIs(
@@ -58,24 +58,24 @@ func SemanticAstLocalBindingFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstLocalBindingFacts {
-    let node_ids: Array<Int> = [];
-    let function_node_ids: Array<Int> = [];
-    let scope_node_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let declared_type_names: Array<String> = [];
-    let has_declared_types: Array<Int> = [];
-    let initializer_texts: Array<String> = [];
-    let binding_kinds: Array<Int> = [];
-    let binding_indices: Array<Int> = [];
-    let binding_arities: Array<Int> = [];
+    var node_ids: Array<Int> = [];
+    var function_node_ids: Array<Int> = [];
+    var scope_node_ids: Array<Int> = [];
+    var names: Array<String> = [];
+    var declared_type_names: Array<String> = [];
+    var has_declared_types: Array<Int> = [];
+    var initializer_texts: Array<String> = [];
+    var binding_kinds: Array<Int> = [];
+    var binding_indices: Array<Int> = [];
+    var binding_arities: Array<Int> = [];
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
     let destructures: SemanticAstDestructureBindingFacts =
         SemanticAstDestructureBindingFactsFromArtifact(artifact);
     let signature_rows_match: Bool =
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
-    let ok: Bool = function_scopes.ok && destructures.ok && signature_rows_match;
-    let diagnostic_fact: SemanticDiagnosticMessageFact =
+    var ok: Bool = function_scopes.ok && destructures.ok && signature_rows_match;
+    var diagnostic_fact: SemanticDiagnosticMessageFact =
         SemanticDiagnosticMessageFactEmpty();
     if !ok {
         if !function_scopes.ok {
@@ -99,7 +99,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
         }
     }
 
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count && ok {
         let is_let: Bool = TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindLetStmtTag()
@@ -125,7 +125,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
                 );
                 continue;
             }
-            let d: Int = range.start;
+            var d: Int = range.start;
             while d < range.end {
                 ArrayPush(node_ids, node_id);
                 ArrayPush(function_node_ids, destructures.function_node_ids[d]);
@@ -199,8 +199,8 @@ func SemanticAstLocalBindingFactsFromArtifact(
         let declared_type: Option<String> = TypedAstArenaTypeName(
             artifact.arena, node_id
         );
-        let declared_type_name: String = "";
-        let has_declared_type: Int = 0;
+        var declared_type_name: String = "";
+        var has_declared_type: Int = 0;
         if IsSome(declared_type) {
             declared_type_name = SemanticCanonicalTypeName(
                 UnwrapOption(declared_type)
@@ -256,7 +256,7 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         ArrayLength(facts.binding_arities) != n {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
             facts.function_node_ids[i] != rebuilt.function_node_ids[i] ||
@@ -284,8 +284,8 @@ func SemanticAstLocalBindingRangeForFunction(
         ArrayLength(facts.function_node_ids) != count {
         return SemanticAstLocalBindingFunctionRange(false, 0, 0);
     }
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.function_node_ids[middle] < function_node_id {
@@ -312,8 +312,8 @@ func SemanticAstLocalBindingRangeForFunction(
 func SemanticAstLocalBindingFirstRowFrom(
     ref facts: SemanticAstLocalBindingFacts, start: Int, end: Int, node_id: Int
 ) -> Int {
-    let low: Int = start;
-    let high: Int = end;
+    var low: Int = start;
+    var high: Int = end;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.node_ids[middle] < node_id {
@@ -335,8 +335,8 @@ func SemanticAstLocalBindingIndexForNode(
     }
     // Producer traversal orders node IDs; lower-bound keeps the first row of
     // a multi-binding destructure node.
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.node_ids[middle] < node_id {
@@ -353,12 +353,12 @@ func SemanticAstLocalBindingRangeForNode(
     facts: SemanticAstLocalBindingFacts,
     node_id: Int
 ) -> SemanticAstLocalBindingFunctionRange {
-    let start: Int = 0;
+    var start: Int = 0;
     while start < SemanticAstLocalBindingCount(facts) &&
         facts.node_ids[start] < node_id {
         start = start + 1;
     }
-    let end: Int = start;
+    var end: Int = start;
     while end < SemanticAstLocalBindingCount(facts) &&
         facts.node_ids[end] == node_id {
         end = end + 1;
@@ -387,8 +387,8 @@ func SemanticAstLocalBindingOrdinalAt(
         ArrayLength(facts.names) != count {
         return None;
     }
-    let ordinal: Int = 0;
-    let i: Int = 0;
+    var ordinal: Int = 0;
+    var i: Int = 0;
     while i <= index {
         if facts.function_node_ids[i] == facts.function_node_ids[index] &&
             facts.names[i] == facts.names[index] {

@@ -1,0 +1,24 @@
+// A value-copy landing selected for one exact push does not temporarily
+// withdraw the moved member's owned-element premise. Later pushes in the same
+// routine still require that premise, while an unlanded shallow store remains
+// a refusal in the adjacent negative fixture.
+struct Facts {
+    types: Array<String>;
+}
+
+func Build(facts: Facts, source: String) -> Facts {
+    var types: Array<String> = facts.types;
+    let index_text: String = ToString(1);
+    ArrayPush(types, source);
+    ArrayPush(types, index_text);
+    ArrayPush(types, Concat(source, index_text));
+    facts.types = types;
+    return facts;
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts([Concat("seed", "")]);
+    let changed: Facts = Build(facts, "value");
+    Log(ArrayLength(changed.types));
+    return 0;
+}

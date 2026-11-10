@@ -29,8 +29,8 @@ func SemanticTypeNameTopLevelColon(text: String) -> Option<Int> {
     let open_bracket: Int = SourceByteOf("[");
     let close_bracket: Int = SourceByteOf("]");
     let colon: Int = SourceByteOf(":");
-    let depth: Int = 0;
-    let i: Int = 0;
+    var depth: Int = 0;
+    var i: Int = 0;
     while i < n {
         let c: Int = SourceByteAt(text, n, n, i);
         if c == open_angle || c == open_paren || c == open_bracket {
@@ -76,8 +76,8 @@ func SemanticCanonicalTypeName(type_name: String) -> String {
     );
     let arguments: SemanticDelimitedRangeFacts =
         SemanticNestedCommaRangeFactsFromSource(inner);
-    let result: String = Concat(base, "<");
-    let i: Int = 0;
+    var result: String = Concat(base, "<");
+    var i: Int = 0;
     while i < SemanticDelimitedRangeCount(arguments) {
         if i > 0 {
             result = Concat(result, ", ");
@@ -98,7 +98,7 @@ func SemanticCanonicalTypeNameFactFrom(
 ) -> SemanticCanonicalTypeNameFact {
     let canonical: String = SemanticCanonicalTypeName(type_name);
     let open: Int = StringIndexOf(canonical, "<");
-    let nominal_base: String = canonical;
+    var nominal_base: String = canonical;
     if open >= 0 {
         nominal_base = SemanticTrimSourceRangeReuse(canonical, 0, open);
     }
@@ -127,9 +127,9 @@ func SemanticConstructedTypeNameFactFrom(
             false, canonical, base, []
         );
     }
-    let actuals: Array<String> = [];
-    let i: Int = 0;
-    let actuals_ok: Bool = true;
+    var actuals: Array<String> = [];
+    var i: Int = 0;
+    var actuals_ok: Bool = true;
     while i < count && actuals_ok {
         let actual: String = SemanticCanonicalTypeName(
             SemanticDelimitedRangeText(ranges, inner, i)
@@ -152,7 +152,7 @@ func SemanticTypeNameContainsUnresolvedUnknown(type_name: String) -> Bool {
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(canonical);
     if !shape.ok { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(shape.actual_type_names) {
         if SemanticTypeNameContainsUnresolvedUnknown(
             shape.actual_type_names[i]

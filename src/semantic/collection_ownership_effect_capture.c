@@ -270,6 +270,8 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
         PublishedNode *row = publication_node(pub, e->call, false);
         if (!collection_snapshot_add_caller(s, flow, row == NULL ? NULL : row->caller,
                 NULL, caller_capacity, &e->caller)) goto fail;
+        /* The flow claim contributes exact call membership.  The collection
+         * ledger below owns the post-landing effect payload. */
         e->id = ast_node_stable_id(e->call);
         if (!ast_call_semantic_collection_effect(e->call, &e->kind, &e->receiver, &e->source)) goto fail;
     }

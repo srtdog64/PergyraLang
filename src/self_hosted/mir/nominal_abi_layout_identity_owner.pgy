@@ -5,8 +5,8 @@ import "../mir_lower/abi_layout_fact_owner.pgy";
 func SelfMirNominalHashStringAt(
     hash: Long, ref values: Array<String>, row: Int
 ) -> Long {
-    let out: Long = hash;
-    let i: Int = 0;
+    var out: Long = hash;
+    var i: Int = 0;
     let length: Int = StringLength(values[row]);
     while i < length {
         out = MirAbiLayoutHashByte(
@@ -31,12 +31,12 @@ func SelfMirNominalAbiLayoutId(
         ArrayLength(field_aligns) != field_count {
         return 0;
     }
-    let hash: Long = 60621699L;
+    var hash: Long = 60621699L;
     hash = SelfMirNominalHashStringAt(hash, type_names, type_row);
     hash = MirAbiLayoutHashU32(hash, size as Long);
     hash = MirAbiLayoutHashU32(hash, align as Long);
     hash = MirAbiLayoutHashU32(hash, field_count as Long);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < field_count {
         hash = SelfMirNominalHashStringAt(
             hash, field_names, field_start + row);

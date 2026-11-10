@@ -1,0 +1,23 @@
+func MaybeOwned(value: String, found: Bool) -> Option<String> {
+    if found {
+        return Some(Substring(value, 0, StringLength(value)));
+    }
+    return None;
+}
+
+func MixedText(value: String, found: Bool) -> String {
+    let candidate: Option<String> = MaybeOwned(value, found);
+    if !IsSome(candidate) {
+        return "";
+    }
+    return UnwrapOption(candidate);
+}
+
+func Main() -> Void {
+    var rows: Array<String> = [];
+    ArrayPush(rows, MixedText("owned", true));
+    ArrayPush(rows, MixedText("unused", false));
+    Log(rows[0]);
+    Log(rows[1]);
+    ArrayDropOwnedStrings(rows);
+}

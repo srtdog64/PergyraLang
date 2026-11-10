@@ -25,8 +25,8 @@ func ParserParallelJoinHeaderExpected(at: Int, expected: String) -> ParserParall
 
 // `open` is the offset of the header's `(`.
 func ParserParallelJoinHeaderAt(content: String, content_extent: Int, open: Int) -> ParserParallelJoinHeader {
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, open + 1);
-    let cursor: Array<Int> = [i];
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, open + 1);
+    var cursor: Array<Int> = [i];
     let binding: String = ReadIdentWithin(content, content_extent, i, cursor);
     let after_binding: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor[0]);
     // Native reads the join form only for `NAME in`; any other target is the
@@ -63,7 +63,7 @@ func ParserParallelJoinHeaderAt(content: String, content_extent: Int, open: Int)
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordWith));
         // The closed join modes: `all` (the default), `any`, and the reduce
         // combinators `sum`, `product`, `min` and `max`.
-        let mode_end: Int = i;
+        var mode_end: Int = i;
         if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAll) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAll); }
         if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAny) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAny); }
         if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordSum) { mode_end = LanguageWordEnd(i, LanguageWordId.WordSum); }

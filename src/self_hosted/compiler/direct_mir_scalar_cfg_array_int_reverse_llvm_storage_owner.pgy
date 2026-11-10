@@ -22,7 +22,7 @@ func DirectMirScalarCfgArrayIntReverseLlvmDeclarations(
             plan.array_int_program.reverse.result.capacity_offset,
             plan.array_int_program.reverse.result.allocator_offset
         );
-    let output: String =
+    var output: String =
         "  %pgy.array.int.reverse.storage = alloca [3 x i32], align 4\n";
     output = Concat(output,
         "  %pgy.array.int.reverse.data = getelementptr inbounds [3 x i32], ptr %pgy.array.int.reverse.storage, i64 0, i64 0\n");

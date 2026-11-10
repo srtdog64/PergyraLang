@@ -50,6 +50,14 @@ func DirectMirScalarCfgOpArrayBoolSet() -> Int { return 42; }
 func DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() -> Int { return 43; }
 func DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() -> Int { return 44; }
 func DirectMirScalarCfgOpIdentityCellStore() -> Int { return 45; }
+func MirCompoundAssignmentPlanKind(operation: Int) -> Int {
+    if operation < 1 || operation > 5 { return -1; }
+    return 45 + operation;
+}
+func MirCompoundAssignmentPlanOperation(kind: Int) -> Int {
+    if kind < 46 || kind > 50 { return -1; }
+    return kind - 45;
+}
 func DirectMirScalarCfgVoidReturnExpressionRow() -> Int { return -2; }
 func DirectMirScalarCfgConditionNone() -> Int { return 0; }
 func DirectMirScalarCfgConditionBool() -> Int { return 1; }

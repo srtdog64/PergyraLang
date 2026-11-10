@@ -1,0 +1,24 @@
+// A loop-local retirement may execute before the borrowed text is read.
+struct Table { names: Array<String>; }
+
+func Retire(inout table: Table) -> Void {
+    let names: Array<String> = table.names;
+    ArrayDropOwnedStrings(names);
+    table.names = names;
+}
+
+func Observe(inout table: Table, flag: Bool) -> Int {
+    let text: String = table.names[0];
+    while flag {
+        Retire(table);
+        break;
+    }
+    return StringLength(text);
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "owned");
+    let table: Table = Table(names);
+    Log(Observe(table, true));
+}

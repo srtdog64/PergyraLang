@@ -11,7 +11,7 @@ func AtomText(arena: Arena, index: Int) -> String {
 }
 
 func Label(arena: Arena) -> String {
-    let text: String = AtomText(arena, 0);
+    var text: String = AtomText(arena, 0);
     text = Concat(text, "!");
     return Concat(text, ToString(ArrayLength(arena.atoms)));
 }

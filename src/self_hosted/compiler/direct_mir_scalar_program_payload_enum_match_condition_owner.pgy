@@ -29,15 +29,15 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
         match_fact.binding_count != match_fact.binding_type_count {
         return invalid;
     }
-    let variant_name: String = match_fact.variant;
+    var variant_name: String = match_fact.variant;
     if match_fact.binding_count == 0 && variant_name == "" {
         variant_name = match_fact.pattern;
     }
     if variant_name == "" { return invalid; }
-    let expected_pattern: String = variant_name;
+    var expected_pattern: String = variant_name;
     if match_fact.binding_count > 0 {
         expected_pattern = Concat(expected_pattern, "(");
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < match_fact.binding_count {
             if ordinal > 0 { expected_pattern = Concat(expected_pattern, ", "); }
             expected_pattern = Concat(expected_pattern, match_fact.bindings[ordinal]);
@@ -64,8 +64,8 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
             match_fact.binding_count {
         return invalid;
     }
-    let binding_local: Int = -1;
-    let binding: Int = 0;
+    var binding_local: Int = -1;
+    var binding: Int = 0;
     while binding < match_fact.binding_count {
         let source_row_opt: Option<Int> = MirMatchBindingSourceRowAtOrigin(
             index.match_binding_origins, global_row, binding);
@@ -92,20 +92,20 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
         if local_row != binding_local + binding { return invalid; }
         binding = binding + 1;
     }
-    let stored_binding: Int = -1;
+    var stored_binding: Int = -1;
     if binding_local >= 0 { stored_binding = binding_local + local_offset; }
-    let graph_counts: Array<Int> = facts.graph_counts;
-    let graph_roots: Array<Int> = facts.graph_roots;
-    let kinds: Array<Int> = facts.node_kinds;
-    let types: Array<String> = facts.node_types;
-    let lefts: Array<Int> = facts.node_lefts;
-    let rights: Array<Int> = facts.node_rights;
-    let local_rows: Array<Int> = facts.node_local_rows;
-    let params: Array<Int> = facts.node_parameter_ordinals;
-    let members: Array<Int> = facts.node_member_ordinals;
-    let literals: Array<String> = facts.node_literals;
-    let callables: Array<Int> = facts.node_callable_rows;
-    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    var graph_counts: Array<Int> = facts.graph_counts;
+    var graph_roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var local_rows: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callables: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
     let condition_node: Int = ArrayLength(kinds);
     DirectMirScalarProgramAppendExpressionNode(
         kinds, types, lefts, rights, local_rows, params, members,

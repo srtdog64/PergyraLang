@@ -15,6 +15,7 @@
 #include "default_aggregate_move_owner.h"
 #include "default_aggregate_move_internal.h"
 #include "default_aggregate_move_rule.h"
+#include "formal_string_store_landing_owner.h"
 #include "loan_copy_landing_owner.h"
 
 #include <stdint.h>
@@ -33,14 +34,20 @@
 
 static void state_free(MoveState *state)
 {
-    for (size_t i = 0; i < state->count; i++) { free(state->rows[i].fields); free(state->rows[i].carrier_fields); }
+    if (!state->arena_paths) {
+        for (size_t i = 0; i < state->count; i++) {
+            free(state->rows[i].fields);
+            free(state->rows[i].carrier_fields);
+        }
+    }
     free(state->rows);
     *state = (MoveState){0};
 }
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param, ASTNode *lending_call, uint32_t carrier, const char *carrier_fields,
-    ASTNode *argument)
+    const char *callee, ASTNode *callee_decl, const char *param,
+    ASTNode *lending_call, uint32_t carrier, const char *carrier_fields,
+    ASTNode *argument, bool copy_on_reuse, bool outward_borrow_escape)
 {
     /* Each loan of a path is a row of its own, so a later use needs every
      * one admitted. A move on any path is a move, whatever lent it, and
@@ -58,7 +65,13 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
         }
         if (lending_call == NULL) {
             if (row->lending_call == NULL && row->argument != argument) continue;
-            *row = (MovedPath){binding, row->fields, callee, param, NULL, 0, NULL, argument}; moved = true;
+            bool can_copy = row->copy_on_reuse && copy_on_reuse;
+            bool borrow_escape = row->outward_borrow_escape
+                || outward_borrow_escape;
+            *row = (MovedPath){binding, row->fields, callee, callee_decl,
+                param, NULL, 0,
+                NULL, argument, can_copy, borrow_escape};
+            moved = true;
         }
         else if (row->lending_call == NULL || row->lending_call == lending_call) return true;
     }
@@ -69,22 +82,40 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
         if (grown == NULL) { walk->failed = true; return false; }
         state->rows = grown; state->capacity = capacity;
     }
-    char *copy = malloc(strlen(fields) + 1);
-    char *held = carrier != 0 ? malloc(strlen(carrier_fields) + 1) : NULL;
-    if (copy == NULL || (carrier != 0 && held == NULL)) { free(copy); free(held); walk->failed = true; return false; }
-    strcpy(copy, fields);
-    if (held != NULL) strcpy(held, carrier_fields);
-    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call, carrier, held, argument};
+    char *copy = state->arena_paths
+        ? pgy_arena_strdup(&walk->path_arena, fields)
+        : malloc(strlen(fields) + 1);
+    char *held = carrier == 0 ? NULL : state->arena_paths
+        ? pgy_arena_strdup(&walk->path_arena, carrier_fields)
+        : malloc(strlen(carrier_fields) + 1);
+    if (copy == NULL || (carrier != 0 && held == NULL)) {
+        if (!state->arena_paths) {
+            free(copy);
+            free(held);
+        }
+        walk->failed = true;
+        return false;
+    }
+    if (!state->arena_paths) {
+        strcpy(copy, fields);
+        if (held != NULL) strcpy(held, carrier_fields);
+    }
+    state->rows[state->count++] = (MovedPath){binding, copy, callee,
+        callee_decl, param, lending_call, carrier, held, argument,
+        copy_on_reuse, outward_borrow_escape};
     return true;
 }
 
 static bool state_copy(MoveWalk *walk, MoveState *out, const MoveState *in)
 {
-    *out = (MoveState){0};
+    *out = (MoveState){.arena_paths = in->arena_paths};
     for (size_t i = 0; i < in->count; i++)
         if (!move_walk_state_add(walk, out, in->rows[i].binding, in->rows[i].fields,
-                in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call, in->rows[i].carrier,
-                in->rows[i].carrier_fields, in->rows[i].argument)) return false;
+                in->rows[i].callee, in->rows[i].callee_decl,
+                in->rows[i].param, in->rows[i].lending_call, in->rows[i].carrier,
+                in->rows[i].carrier_fields, in->rows[i].argument,
+                in->rows[i].copy_on_reuse,
+                in->rows[i].outward_borrow_escape)) return false;
     return true;
 }
 
@@ -92,16 +123,21 @@ static bool state_union(MoveWalk *walk, MoveState *into, const MoveState *from)
 {
     for (size_t i = 0; i < from->count; i++)
         if (!move_walk_state_add(walk, into, from->rows[i].binding, from->rows[i].fields,
-                from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call, from->rows[i].carrier,
-                from->rows[i].carrier_fields, from->rows[i].argument)) return false;
+                from->rows[i].callee, from->rows[i].callee_decl,
+                from->rows[i].param, from->rows[i].lending_call, from->rows[i].carrier,
+                from->rows[i].carrier_fields, from->rows[i].argument,
+                from->rows[i].copy_on_reuse,
+                from->rows[i].outward_borrow_escape)) return false;
     return true;
 }
 
 static void state_remove_at(MoveState *state, size_t at)
 {
     if (state == NULL || at >= state->count) return;
-    free(state->rows[at].fields);
-    free(state->rows[at].carrier_fields);
+    if (!state->arena_paths) {
+        free(state->rows[at].fields);
+        free(state->rows[at].carrier_fields);
+    }
     if (at + 1 < state->count)
         memmove(&state->rows[at], &state->rows[at + 1],
             (state->count - at - 1) * sizeof(*state->rows));
@@ -146,6 +182,37 @@ bool move_walk_reported_once(MoveWalk *walk, const ASTNode *node)
     return true;
 }
 
+bool move_walk_note_copy_restored_argument(
+    MoveWalk *walk, const ASTNode *argument)
+{
+    if (walk == NULL || argument == NULL) return false;
+    for (size_t i = 0; i < walk->copy_restored_argument_count; i++)
+        if (walk->copy_restored_arguments[i] == argument) return true;
+    if (walk->copy_restored_argument_count ==
+        walk->copy_restored_argument_capacity) {
+        size_t capacity = walk->copy_restored_argument_capacity == 0
+            ? 8 : walk->copy_restored_argument_capacity * 2;
+        const ASTNode **grown = realloc(
+            walk->copy_restored_arguments,
+            capacity * sizeof(*grown));
+        if (grown == NULL) { walk->failed = true; return false; }
+        walk->copy_restored_arguments = grown;
+        walk->copy_restored_argument_capacity = capacity;
+    }
+    walk->copy_restored_arguments[
+        walk->copy_restored_argument_count++] = argument;
+    return true;
+}
+
+bool move_walk_copy_restored_argument(
+    const MoveWalk *walk, const ASTNode *argument)
+{
+    if (walk == NULL || argument == NULL) return false;
+    for (size_t i = 0; i < walk->copy_restored_argument_count; i++)
+        if (walk->copy_restored_arguments[i] == argument) return true;
+    return false;
+}
+
 /* A path a read-and-return call lent may be used again when that loan stays
  * in the routine, or leaves it only as the formal's own return, and nothing
  * changes its owner. */
@@ -153,11 +220,13 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
 {
     if (moved->lending_call == NULL || moved->callee == NULL) return false;
     for (size_t i = 0; i < walk->lent_count; i++)
-        if (walk->lent[i].call == moved->lending_call && walk->lent[i].owner == moved->binding)
+        if (walk->lent[i].call == moved->lending_call &&
+            walk->lent[i].owner == moved->binding &&
+            walk->lent[i].argument == moved->argument)
             return walk->lent[i].admitted;
     FunctionParamFlowLoanFailure failure = {0};
     bool admitted = function_param_flow_lent_argument_admitted(walk->ctx, walk->routine,
-        moved->lending_call, moved->binding, &failure);
+        moved->lending_call, moved->argument, moved->binding, &failure);
     if (walk->lent_count == walk->lent_capacity) {
         size_t capacity = walk->lent_capacity == 0 ? 8 : walk->lent_capacity * 2;
         void *grown = realloc(walk->lent, capacity * sizeof(*walk->lent));
@@ -166,6 +235,7 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
     }
     walk->lent[walk->lent_count].call = moved->lending_call;
     walk->lent[walk->lent_count].owner = moved->binding;
+    walk->lent[walk->lent_count].argument = moved->argument;
     walk->lent[walk->lent_count].failure = failure;
     walk->lent[walk->lent_count++].admitted = admitted;
     return admitted;
@@ -173,7 +243,21 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
 
 static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
 {
-    if (lent_use_admitted(walk, moved)) return false;
+    /* A non-copyable move remains the complete move consumer's decision.
+     * Copyable moved-then-used arguments must be selected here: downstream
+     * array-storage finalization consumes this landing plan before the
+     * complete move checker runs. */
+    if (walk->landing_only && moved->lending_call == NULL
+        && !moved->copy_on_reuse) {
+        semantic_formal_string_store_landing_block_member_value_copy_candidates(
+            walk->ctx, moved->callee_decl);
+        return false;
+    }
+    if ((walk->landing_only || walk->planning_only)
+        && moved->outward_borrow_escape)
+        return false;
+    if (!moved->outward_borrow_escape
+        && lent_use_admitted(walk, moved)) return false;
     bool argument_copy_planned = false;
     /* The refusal stands in this analysis; a next one copies each refused
      * loan as the lent proof's verdict says: at every place it leaves in
@@ -182,9 +266,12 @@ static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
      * getter's result or, where no copy can stand there, of the lent
      * argument where the call takes it, as of a moved one. Only where neither
      * can stand and the owner changed are the places it leaves copied. */
-    for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++) {
+    for (size_t i = 0; !moved->outward_borrow_escape
+            && moved->lending_call != NULL && i < walk->lent_count; i++) {
         const FunctionParamFlowLoanFailure *failure = &walk->lent[i].failure;
-        if (walk->lent[i].call != moved->lending_call || walk->lent[i].owner != moved->binding) continue;
+        if (walk->lent[i].call != moved->lending_call ||
+            walk->lent[i].owner != moved->binding ||
+            walk->lent[i].argument != moved->argument) continue;
         bool chain = failure->stop == FUNCTION_PARAM_FLOW_LOAN_STAYS_ONCE_COPIED ||
             failure->stop == FUNCTION_PARAM_FLOW_LOAN_CHAIN_CAPPED;
         bool made = !chain && semantic_loan_copy_landing_call_copies(walk->ctx, moved->lending_call);
@@ -203,14 +290,28 @@ static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
     /* A copy whose other side changed is copied where it was made. A moved
      * argument used again is copied where the call takes it
      * (2026-10-22_moved_argument_used_again_is_copied). */
-    if (moved->callee == NULL && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
-    if (moved->lending_call == NULL && moved->argument != NULL) {
+    if (moved->callee == NULL) {
+        if (!semantic_loan_copy_landing_select_carrier(
+                walk->ctx, moved->lending_call))
+            walk->failed = true;
+        argument_copy_planned = !walk->failed
+            && semantic_loan_copy_landing_selected(
+                walk->ctx, moved->lending_call);
+    }
+    if (moved->lending_call == NULL && moved->argument != NULL
+        && moved->copy_on_reuse && !moved->outward_borrow_escape) {
         if (!semantic_loan_copy_landing_select_carrier(
                 walk->ctx, moved->argument))
             walk->failed = true;
         argument_copy_planned = !walk->failed
             && semantic_loan_copy_landing_selected(
                 walk->ctx, moved->argument);
+    }
+    if (walk->landing_only || walk->planning_only) {
+        if (!argument_copy_planned)
+            semantic_formal_string_store_landing_block_member_value_copy_candidates(
+                walk->ctx, moved->callee_decl);
+        return argument_copy_planned;
     }
     if (!move_walk_reported_once(walk, node)) return argument_copy_planned;
     const ASTNode *root = node;
@@ -222,6 +323,22 @@ static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         strcpy(display, name);
         strcat(display, moved->fields);
         name = display;
+    }
+    if (moved->outward_borrow_escape) {
+        semantic_error_with_hints(walk->ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE, (ASTNode *)node,
+            "'%s' cannot be used after '%s' let its storage escape.\n"
+            "Reason:\n"
+            "- parameter '%s' of '%s' forwards or publishes the storage it receives\n"
+            "- copying the shallow descriptor cannot recover cleanup authority\n"
+            "Fix:\n"
+            "- stop the callee from retaining or forwarding this storage\n"
+            "- or transfer a fresh independently owned value",
+            name != NULL ? name : "value", moved->callee,
+            moved->param, moved->callee);
+        return false;
     }
     if (moved->callee == NULL) {
         if (argument_copy_planned) {
@@ -287,6 +404,22 @@ static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
     return argument_copy_planned;
 }
 
+void move_walk_prepare_lent_argument(MoveWalk *walk, uint32_t binding,
+    const char *fields, const char *callee, const char *param,
+    ASTNode *call, ASTNode *argument)
+{
+    MovedPath loan = {
+        .binding = binding,
+        .fields = (char *)fields,
+        .callee = callee,
+        .param = param,
+        .lending_call = call,
+        .argument = argument,
+        .copy_on_reuse = true,
+    };
+    (void)refuse_use(walk, argument, &loan);
+}
+
 static ParamMode
 routine_param_mode(const ASTNode *routine, uint32_t binding, bool *found)
 {
@@ -320,17 +453,65 @@ static void check_use(MoveWalk *walk, MoveState *state, const ASTNode *node)
              * stays the routine's own. */
             size_t length = strlen(fields);
             bool inout = false;
-            if (moved->callee == NULL && walk->argument_call != NULL &&
+            bool exact_argument = walk->argument_call != NULL
+                && node == ast_call_argument(
+                    walk->argument_call, walk->argument_ordinal);
+            bool moved_descendant = strlen(moved->fields) > length
+                && move_walk_path_contains(fields, moved->fields);
+            /* Passing a partially moved struct is safe only when the exact
+             * callee formal neither observes nor changes that descendant.
+             * The read-path and field-preservation owners are independent
+             * fail-closed proofs; a missing fact keeps the refusal. */
+            bool untouched_descendant = exact_argument && moved_descendant
+                && function_param_read_paths_miss(
+                    walk->ctx, walk->argument_call,
+                    walk->argument_ordinal, moved->fields + length);
+            if (untouched_descendant) {
+                ASTNode *callee = semantic_param_publication_callee(
+                    walk->ctx, walk->argument_call,
+                    walk->argument_ordinal);
+                size_t formal = 0;
+                const char *rest = moved->fields + length;
+                const char *end = strchr(rest + 1, '.');
+                size_t name_length = end != NULL
+                    ? (size_t)(end - (rest + 1)) : strlen(rest + 1);
+                char field[256];
+                if (callee != NULL && name_length > 0
+                    && name_length < sizeof(field)
+                    && semantic_param_publication_formal_for_actual(
+                        walk->ctx, walk->argument_call,
+                        walk->argument_ordinal, &formal)) {
+                    memcpy(field, rest + 1, name_length);
+                    field[name_length] = '\0';
+                    untouched_descendant =
+                        function_param_flow_field_preservation_failures(
+                            walk->ctx, callee, formal, field) == 0;
+                } else {
+                    untouched_descendant = false;
+                }
+            }
+            if (untouched_descendant) { i++; continue; }
+            if (moved->callee == NULL && exact_argument &&
                 routine_param_mode(walk->routine, binding, &inout) == PARAM_MODE_MUT_REF && inout &&
-                node == ast_call_argument(walk->argument_call, walk->argument_ordinal) &&
-                strlen(moved->fields) > length && move_walk_path_contains(fields, moved->fields) &&
-                function_param_read_paths_miss(walk->ctx, walk->argument_call, walk->argument_ordinal,
+                moved_descendant && function_param_read_paths_miss(
+                    walk->ctx, walk->argument_call, walk->argument_ordinal,
                     moved->fields + length)) { i++; continue; }
+            if (moved->outward_borrow_escape
+                && node == walk->outward_copy_source) {
+                i++;
+                continue;
+            }
             if (refuse_use(walk, node, moved)) {
                 /* The current analysis remains deferred, but its exact plan
                  * will wrap this moving argument in Clone before any result
                  * is consumed. Model that promised next analysis now so a
                  * later move of the same place is selected in this batch. */
+                if (walk->landing_only && exact_argument
+                    && moved->lending_call == NULL
+                    && moved->copy_on_reuse
+                    && !move_walk_note_copy_restored_argument(
+                        walk, node))
+                    return;
                 state_remove_at(state, i);
                 continue;
             }
@@ -363,7 +544,11 @@ static void reinitialize(MoveWalk *walk, MoveState *state, ASTNode *target)
     for (size_t i = 0; i < state->count; i++) {
         MovedPath *moved = &state->rows[i];
         if (moved->binding == binding && move_walk_path_contains(fields, moved->fields)) {
-            free(moved->fields); free(moved->carrier_fields); continue;
+            if (!state->arena_paths) {
+                free(moved->fields);
+                free(moved->carrier_fields);
+            }
+            continue;
         }
         state->rows[kept++] = *moved;
     }
@@ -490,11 +675,16 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
             walk->argument_call = NULL;
             if (!walked) return false;
         }
-        move_walk_check_assignment_loan_call(walk, state, node);
-        move_walk_copy_parts_distinct(walk, state, node);
-        if (walk->failed || !move_walk_reject_overlapping_moving_arguments(walk, node))
-            return false;
+        if (!walk->landing_only) {
+            move_walk_check_assignment_loan_call(walk, state, node);
+            move_walk_copy_parts_distinct(walk, state, node);
+            if (walk->failed
+                || !move_walk_reject_overlapping_moving_arguments(
+                    walk, node))
+                return false;
+        }
         move_walk_apply_call_moves(walk, state, node);
+        move_walk_apply_constructor_moves(walk, state, node);
         /* An Array push, set, sort or reverse, an owned String push, a slot
          * write and a HashMap, Set, List or Queue set, removal or push change
          * their receiver in place; a push or set copies its value into it. */
@@ -504,12 +694,22 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         ASTNode *receiver = ast_call_arg_count(node) > 0 ? ast_call_argument(node, 0) : NULL;
         bool store = receiver != NULL && (semantic_param_publication_checked_array_store(walk->ctx, node, &stored) ||
             semantic_param_publication_checked_collection_change(walk->ctx, node, &stored));
-        if (store || (receiver != NULL && (semantic_param_publication_checked_slot_write(walk->ctx, node) ||
-                semantic_param_publication_checked_array_permutation(walk->ctx, node) ||
-                (ast_call_semantic_callee_builtin_kind(node, &kind) && kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING))))
-            move_walk_copy_changed(walk, state, receiver);
-        if (store && stored != 0 && move_walk_access_path(receiver, &holder, fields, sizeof(fields)))
-            move_walk_copy_record(walk, state, ast_call_argument(node, stored), holder, fields);
+        if (!walk->landing_only) {
+            if (store || (receiver != NULL
+                    && (semantic_param_publication_checked_slot_write(
+                            walk->ctx, node)
+                        || semantic_param_publication_checked_array_permutation(
+                            walk->ctx, node)
+                        || (ast_call_semantic_callee_builtin_kind(node, &kind)
+                            && kind == (uint32_t)
+                                BUILTIN_ARRAY_PUSH_OWNED_STRING))))
+                move_walk_copy_changed(walk, state, receiver, false);
+            if (store && stored != 0
+                && move_walk_access_path(
+                    receiver, &holder, fields, sizeof(fields)))
+                move_walk_copy_record(walk, state,
+                    ast_call_argument(node, stored), holder, fields);
+        }
         /* A call that never returns ends this path, as a return does: what
          * it moved is never used after it. */
         SemanticPublishedValue result = semantic_param_publication_value(walk->ctx, node);
@@ -529,7 +729,9 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         for (ASTNode *at = target; at != NULL &&
              (at->type == AST_MEMBER_ACCESS || at->type == AST_ARRAY_ACCESS);) {
             if (depth == sizeof(stack) / sizeof(stack[0])) {
-                semantic_error(walk->ctx, at, "Indexed assignment target is too deeply nested");
+                if (!walk->landing_only && !walk->planning_only)
+                    semantic_error(walk->ctx, at,
+                        "Indexed assignment target is too deeply nested");
                 break;
             }
             stack[depth++] = at;
@@ -548,7 +750,8 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
                     loan.previous = walk->assignment_loan;
                     walk->assignment_loan = &loan;
                     loan_started = true;
-                } else if (move_walk_reported_once(walk, part)) {
+                } else if (!walk->landing_only && !walk->planning_only
+                    && move_walk_reported_once(walk, part)) {
                     semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, part,
                         "Indexed assignment requires a stable named backing path.\n"
@@ -565,19 +768,27 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
                 return false;
             }
         }
+        const ASTNode *previous_copy_source = walk->outward_copy_source;
+        walk->outward_copy_source = ast_assignment_value(node);
         if (!walk_expression(walk, state, ast_assignment_value(node))) {
+            walk->outward_copy_source = previous_copy_source;
             if (loan_started) walk->assignment_loan = loan.previous;
             return false;
         }
-        MoveAssignmentBackingLoan *prior = loan_started ? loan.previous : walk->assignment_loan;
-        MoveAssignmentBackingLoan *conflict = move_walk_assignment_loan_for_path(
-            walk, state, target, prior);
+        walk->outward_copy_source = previous_copy_source;
+        MoveAssignmentBackingLoan *prior = loan_started
+            ? loan.previous : walk->assignment_loan;
+        MoveAssignmentBackingLoan *conflict = walk->landing_only
+            ? NULL : move_walk_assignment_loan_for_path(
+                walk, state, target, prior);
         if (conflict != NULL)
-            move_walk_refuse_assignment_loan_change(walk, conflict, target);
+            move_walk_refuse_assignment_loan_change(
+                walk, conflict, target);
         if (loan_started) walk->assignment_loan = loan.previous;
         if (walk->failed) return false;
         /* An element store writes the storage its Array shares. */
-        if (element) move_walk_copy_changed(walk, state, target);
+        if (element && !walk->landing_only)
+            move_walk_copy_changed(walk, state, target, false);
         reinitialize(walk, state, target);
         char fields[512];
         uint32_t holder = 0;
@@ -585,15 +796,23 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
             move_walk_copy_record(walk, state, ast_assignment_value(node), holder, fields);
         return !walk->failed;
     }
-    case AST_LET_DECL:
-        if (!walk_expression(walk, state, ast_let_initializer(node))) return false;
+    case AST_LET_DECL: {
+        const ASTNode *previous_copy_source = walk->outward_copy_source;
+        walk->outward_copy_source = ast_let_initializer(node);
+        if (!walk_expression(walk, state, ast_let_initializer(node))) {
+            walk->outward_copy_source = previous_copy_source;
+            return false;
+        }
+        walk->outward_copy_source = previous_copy_source;
         /* Each run of a let binds a fresh value. */
         move_walk_copy_rebound(state, ast_node_stable_id(node));
         move_walk_copy_record(walk, state, ast_let_initializer(node), ast_node_stable_id(node), "");
         return !walk->failed;
+    }
     case AST_RETURN:
         if (!walk_expression(walk, state, ast_return_value(node))) return false;
-        move_walk_copy_inout_at_exit(walk, state, node);
+        if (!walk->landing_only)
+            move_walk_copy_inout_at_exit(walk, state, node);
         *terminated = true;
         return true;
     case AST_BREAK: case AST_CONTINUE: case AST_FAIL_STMT:
@@ -632,41 +851,79 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         return true;
     case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
         if (!walk_children(walk, state, node, terminated)) return false;
-        move_walk_copy_parts_distinct(walk, state, node);
+        if (!walk->landing_only)
+            move_walk_copy_parts_distinct(walk, state, node);
         return !walk->failed;
     default:
         return walk_children(walk, state, node, terminated);
     }
 }
 
-bool semantic_default_aggregate_move_finalize(SemanticContext *ctx)
+static bool semantic_default_aggregate_move_run(
+    SemanticContext *ctx, bool landing_only, bool planning_only)
 {
     SemanticParamPublicationView view;
-    if (ctx == NULL || ctx->has_error) return ctx != NULL && !ctx->has_error;
+    if (ctx == NULL) return false;
     if (!semantic_param_publication_admitted_view(ctx, &view)) {
-        semantic_error(ctx, ctx->program_root, "Default aggregate move check requires the admitted parameter view");
+        if (!ctx->has_error)
+            semantic_error(ctx, ctx->program_root,
+                "Default aggregate move check requires the admitted parameter view");
         return false;
     }
     ASTNode *previous_decl = ctx->current_function_decl;
     const char *previous_module = ctx->current_module_path;
-    MoveWalk walk = {.ctx = ctx};
+    MoveWalk walk = {
+        .ctx = ctx,
+        .landing_only = landing_only,
+        .planning_only = planning_only,
+    };
     for (size_t r = 0; r < view.routine_count && !walk.failed; r++) {
         const PendingRoutine *row = &view.routines[r];
         if (row->decl == NULL || ast_func_body(row->decl) == NULL) continue;
         ctx->current_function_decl = row->decl;
         ctx->current_module_path = row->module;
         walk.routine = row->decl;
-        MoveState state = {0};
+        pgy_arena_init_named(&walk.path_arena, 0,
+            "default-aggregate-move-paths");
+        pgy_arena_set_last_consumer(&walk.path_arena,
+            "default aggregate move branch join");
+        pgy_arena_set_release_point(&walk.path_arena,
+            "end of routine move walk");
+        MoveState state = {.arena_paths = true};
         bool terminated = false;
         (void)walk_node(&walk, &state, ast_func_body(row->decl), &terminated);
-        if (!terminated) move_walk_copy_inout_at_exit(&walk, &state, row->decl);
+        if (!landing_only && !terminated)
+            move_walk_copy_inout_at_exit(&walk, &state, row->decl);
         state_free(&state);
+        pgy_arena_destroy(&walk.path_arena);
     }
     free(walk.reported);
     free(walk.lent);
     free(walk.copied);
+    free(walk.copy_restored_arguments);
     ctx->current_function_decl = previous_decl;
     ctx->current_module_path = previous_module;
-    if (walk.failed) semantic_error(ctx, ctx->program_root, "Default aggregate move check allocation failed");
-    return !ctx->has_error;
+    if (walk.failed && !ctx->has_error)
+        semantic_error(ctx, ctx->program_root,
+            "Default aggregate move check allocation failed");
+    return !walk.failed && (landing_only || planning_only
+        || !ctx->has_error);
+}
+
+bool semantic_default_aggregate_landing_prepare(SemanticContext *ctx)
+{
+    return semantic_default_aggregate_move_run(ctx, true, false);
+}
+
+bool semantic_default_aggregate_landing_discover_finalized(
+    SemanticContext *ctx)
+{
+    return semantic_default_aggregate_move_run(ctx, false, true);
+}
+
+bool semantic_default_aggregate_move_finalize(SemanticContext *ctx)
+{
+    if (ctx == NULL || ctx->has_error)
+        return ctx != NULL && !ctx->has_error;
+    return semantic_default_aggregate_move_run(ctx, false, false);
 }

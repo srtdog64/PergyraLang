@@ -5,7 +5,7 @@ struct StringMapScope {
 extern "C" { func Keep(scope: StringMapScope) -> Void; }
 
 func Make(ref input: String) -> StringMapScope {
-    let values: HashMap<String, String> = MapNew();
+    var values: HashMap<String, String> = MapNew();
     MapSet(values, input, "owned value");
     return StringMapScope(values);
 }

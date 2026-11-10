@@ -96,7 +96,7 @@ func SemanticExpressionGraphCollectionCallProtocolFromName(
         );
     }
     if name == "SetAdd" || name == "SetHas" || name == "SetRemove" {
-        let return_kind: String = "Void";
+        var return_kind: String = "Void";
         if name == "SetHas" { return_kind = "Bool"; }
         return SemanticExpressionGraphCollectionCallProtocolFact(
             true, "Set", name, 2, 0, -1, 1, return_kind, -1
@@ -118,7 +118,7 @@ func SemanticExpressionGraphCollectionCallProtocolFromName(
         );
     }
     if name == "MapGet" || name == "MapHas" || name == "MapRemove" {
-        let return_kind: String = "Void";
+        var return_kind: String = "Void";
         if name == "MapGet" { return_kind = "element"; }
         if name == "MapHas" { return_kind = "Bool"; }
         return SemanticExpressionGraphCollectionCallProtocolFact(
@@ -126,7 +126,7 @@ func SemanticExpressionGraphCollectionCallProtocolFromName(
         );
     }
     if name == "MapSize" || name == "MapKeys" {
-        let return_kind: String = "Int";
+        var return_kind: String = "Int";
         if name == "MapKeys" { return_kind = "keys"; }
         return SemanticExpressionGraphCollectionCallProtocolFact(
             true, "HashMap", name, 1, 0, -1, -1, return_kind, -1

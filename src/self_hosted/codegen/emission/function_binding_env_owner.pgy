@@ -104,9 +104,9 @@ func CodegenFunctionOwnerFieldEnvRows(
     if !LookupKindTypeRowPresent(env, owner_name, "fields") {
         Die("method owner field inventory is missing");
     }
-    let rows: Array<String> = [];
-    let field_index: Int = 0;
-    let field_name: String = CsvAt(fields, field_index);
+    var rows: Array<String> = [];
+    var field_index: Int = 0;
+    var field_name: String = CsvAt(fields, field_index);
     while field_name != "" {
         let field_type: String = LookupFieldType(
             env, owner_name, field_name

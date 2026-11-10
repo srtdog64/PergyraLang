@@ -12,10 +12,12 @@
 #include "callable_capability_inference.h"
 #include "string_window_extent.h"
 #include "array_storage_release_owner.h"
+#include "collection_ownership_fact.h"
 #include "type_checker_visibility.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "loan_copy_landing_owner.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +56,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
             return true;
         }
         if (ctx != NULL) {
+            size_t diagnostic_start = ctx->diagnostic_count;
             ASTNode *decl = selected_decl;
             size_t field_count = 0;
             bool decl_is_generic = false;
@@ -193,6 +196,21 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         arg_type = constructor_call_normalize_type(
                             type_check_expression_at_typed_site(
                                 arg, field_type, ctx));
+                        /* This producer captures the field's element receipt
+                         * before the outer constructor expression returns to
+                         * the generic value publisher. If only an earlier
+                         * borrow refusal is pending, the clean actual still
+                         * owns a current typed fact at this exact boundary. */
+                        if (ctx->has_error
+                            && semantic_param_publication_pending(ctx)
+                            && semantic_param_publication_local_fact_after_borrow_refusals(
+                                ctx, diagnostic_start)
+                            && !semantic_param_publication_record_value(
+                                ctx, arg, arg_type, false)) {
+                            local_ok = false;
+                            semantic_error(ctx, arg,
+                                "Checked nominal constructor actual publication failed");
+                        }
                         if (type_is_constructed_named(arg_type, "Array")
                             && type_equals(type_get_constructed_arg(
                                 arg_type, 0), TYPE_STRING))
@@ -238,7 +256,21 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 field_name != NULL ? field_name : "<field>";
 
                             if (borrowed_name != NULL) {
-                                if (semantic_validate_borrowed_escape(
+                                /* A constructor is the exact point where a
+                                 * borrowed field would become part of an
+                                 * independently owned aggregate.  When the
+                                 * existing Clone ABI copies that field whole,
+                                 * select the field expression for the next
+                                 * landing round.  Unsupported field types keep
+                                 * the ordinary fail-closed diagnostic below. */
+                                (void)semantic_loan_copy_landing_select_typed_carrier(
+                                    ctx, arg, arg_type);
+                                /* The borrow refusal rejects this program, but
+                                 * it does not invalidate the constructor's
+                                 * typed shape.  Keep that shape publishable so
+                                 * the routine and caller summaries retain the
+                                 * same ownership provenance. */
+                                (void)semantic_validate_borrowed_escape(
                                     arg,
                                     arg,
                                     ctx,
@@ -250,7 +282,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                     constructor_field,
                                     false,
                                     NULL,
-                                    NULL)) local_ok = false;
+                                    NULL);
                             }
                         }
                         if (sym->kind == SYMBOL_WORLD
@@ -367,12 +399,25 @@ type_check_constructor_symbol_call(ASTNode *expr,
                     }
                 }
             }
-            if (local_ok && semantic_param_publication_pending(ctx) && !ctx->has_error) {
-                if (!metadata_ok || !ast_call_set_semantic_value_type_name_copy(expr, sym->type->name) ||
-                    !semantic_param_publication_record_nominal_result(ctx, expr, snapshot))
+            if (local_ok && semantic_param_publication_pending(ctx)
+                && semantic_param_publication_local_fact_after_borrow_refusals(
+                    ctx, ctx->diagnostic_count)) {
+                bool nominal_published = metadata_ok &&
+                    ast_call_set_semantic_value_type_name_copy(
+                        expr, sym->type->name) &&
+                    semantic_param_publication_record_nominal_result(
+                        ctx, expr, snapshot);
+                if (!nominal_published) {
                     semantic_error(ctx, expr, "Checked nominal result publication failed");
-                else
+                } else {
+                    /* record_value observes the newly owned nominal snapshot
+                     * and seals its result type name on the same row. */
                     snapshot = NULL;
+                    if (!semantic_param_publication_record_value(
+                            ctx, expr, sym->type, false))
+                        semantic_error(ctx, expr,
+                            "Checked nominal result value publication failed");
+                }
             }
             semantic_nominal_result_snapshot_destroy(snapshot);
         }

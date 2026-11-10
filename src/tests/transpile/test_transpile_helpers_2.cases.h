@@ -199,7 +199,7 @@ transpile_mir_with_test_evidence(const MIRProgram *mir,
         return result;
     }
     return transpile_from_mir_with_projection_plans(mir, c_plan,
-        parallel_plan, spawn_plan, NULL, output_path);
+        parallel_plan, spawn_plan, NULL, NULL, output_path);
 }
 
 static bool

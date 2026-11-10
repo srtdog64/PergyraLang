@@ -8,6 +8,7 @@ import "ast_collection_member_read_local_root_owner.pgy";
 import "ast_collection_member_place_use_owner.pgy";
 import "ast_collection_member_capture_obligation_owner.pgy";
 import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_collection_member_read_block_transition_owner.pgy";
 import "ast_collection_focus_recovery_admission_owner.pgy";
 import "ast_collection_member_local_transition_owner.pgy";
 func SemanticAstCollectionFirstInvalidMemberMoveUse(
@@ -19,33 +20,28 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
     ref contexts: SemanticAstCollectionFormalExecutionContexts, borrowed_text: HashMap<String, Int>,
     own move_destinations: HashMap<String, Int>, ref focus: SemanticAstCollectionFocusRecoveryFacts
 ) -> SemanticAstCollectionMemberMoveUse {
-    let active_members: HashMap<String, Int> = MapNew();
-    let retired_locals: HashMap<String, Int> = MapNew();
-    let restored: Array<Int> = [];
-    let restoration_sites: Array<Int> = [];
-    let readable_members: HashMap<String, Int> = MapNew();
-    let unproved_read_roots: HashMap<String, Int> = MapNew();
-    let read_hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
-    let read_sources: Array<Int> = [];
-    let read_targets: Array<Int> = [];
-    let element_escape_roots: HashMap<String, Int> = MapNew();
-    let escape_sources: Array<Int> = []; let escape_targets: Array<Int> = []; let escape_sites: Array<Int> = [];
-    let nested_nodes: Array<Int> = []; let nested_roots: Array<Int> = [];
-    let nested_lend_sources: Array<Int> = []; let nested_lend_targets: Array<Int> = [];
-    let nested_blocked: HashMap<String, Int> = MapNew();
-    let readonly_origins: Array<Int> = [];
-    let capture: SemanticAstCollectionMemberCaptureWitness = SemanticAstCollectionMemberCaptureWitness(true, -1, -1);
-    let root_slot: Int = 0;
+    var active_members: HashMap<String, Int> = MapNew(); var retired_locals: HashMap<String, Int> = MapNew();
+    var restored: Array<Int> = []; var restoration_sites: Array<Int> = [];
+    var readable_members: HashMap<String, Int> = MapNew(); var unproved_read_roots: HashMap<String, Int> = MapNew();
+    var read_hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    var read_sources: Array<Int> = []; var read_targets: Array<Int> = [];
+    var element_escape_roots: HashMap<String, Int> = MapNew();
+    var direct_escape_roots: Array<Int> = []; var direct_escape_sites: Array<Int> = [];
+    var escape_sources: Array<Int> = []; var escape_targets: Array<Int> = []; var escape_sites: Array<Int> = [];
+    var nested_nodes: Array<Int> = []; var nested_roots: Array<Int> = [];
+    var nested_lend_sources: Array<Int> = []; var nested_lend_targets: Array<Int> = [];
+    var nested_blocked: HashMap<String, Int> = MapNew(); var readonly_origins: Array<Int> = [];
+    var capture: SemanticAstCollectionMemberCaptureWitness = SemanticAstCollectionMemberCaptureWitness(true, -1, -1);
+    var root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[root_slot] {
             let surface: Int = root_slot / 3;
             let syntax_id: Int = surfaces.node_ids[surface];
             let root_id: Int = surfaces.expression_graph.roots[root_slot];
-            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
-                surfaces.expression_graph, root_id);
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root_id);
             if IsSome(start) {
                 let subtree_start: Int = UnwrapOption(start);
-                let node: Int = subtree_start;
+                var node: Int = subtree_start;
                 while node <= root_id {
                     capture = SemanticAstCollectionMemberCaptureObligationAt(
                         artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types, surfaces, assignments,
@@ -53,7 +49,11 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                     let read_use: SemanticAstCollectionMemberRootReadOccurrence = SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
                         artifact, signatures, constructors, resolved_leaf_types, surfaces.expression_graph, contexts,
                         surfaces.function_node_ids[surface], node, root_id);
-                    if read_use.blocked { SemanticAstCollectionMemberReadBlockTransition(artifact, unproved_read_roots, read_hazards, read_use.source, 0); }
+                    if read_use.blocked {
+                        SemanticAstCollectionMemberReadBlockTransition(
+                            artifact, unproved_read_roots, read_hazards, read_use.source,
+                            SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, syntax_id));
+                    }
                     if read_use.target > 0 {
                         ArrayPush(read_sources, read_use.source); ArrayPush(read_targets, read_use.target);
                     }
@@ -61,8 +61,12 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                         artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
                         surfaces, borrowed_text, root_slot, subtree_start, node, root_id,
                         root_slot % 3 == AstExpressionLaneAtom() && SemanticAstAssignmentContainsNode(assignments, syntax_id));
-                    if place_use.escapes && !MapHas(element_escape_roots, ToString(place_use.root)) {
-                        MapSet(element_escape_roots, ToString(place_use.root), syntax_id);
+                    if place_use.escapes {
+                        ArrayPush(direct_escape_roots, place_use.root);
+                        ArrayPush(direct_escape_sites, syntax_id);
+                        if !MapHas(element_escape_roots, ToString(place_use.root)) {
+                            MapSet(element_escape_roots, ToString(place_use.root), syntax_id);
+                        }
                     }
                     if place_use.lent_target > 0 {
                         ArrayPush(escape_sources, place_use.root); ArrayPush(escape_targets, place_use.lent_target);
@@ -86,13 +90,15 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                         let event_key: String = SemanticAstCollectionMemberMoveEventKey(
                             identity, syntax_id);
                         if MapHas(move_destinations, event_key) {
-                            SemanticAstCollectionMemberReadBlockTransition(artifact, unproved_read_roots, read_hazards, identity.source_binding_syntax_id, 0);
+                            SemanticAstCollectionMemberReadBlockTransition(
+                                artifact, unproved_read_roots, read_hazards,
+                                identity.source_binding_syntax_id, 0);
                             // A new extraction cannot overwrite an outstanding move.
                             if MapHas(active_members, identity.key) && MapGet(active_members, identity.key) > 0 {
                                 return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
-                                    restored, restoration_sites, readable_members, unproved_read_roots, read_hazards, element_escape_roots, nested_blocked,
-                                    readonly_origins,
-                                    read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+                                    restored, restoration_sites, readable_members, unproved_read_roots, read_hazards,
+                                    element_escape_roots, direct_escape_roots, direct_escape_sites, nested_blocked,
+                                    readonly_origins, read_sources, read_targets, escape_sources, escape_targets, escape_sites,
                                     nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
                             }
                             MapSet(active_members, identity.key,
@@ -103,7 +109,7 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                 MapGet(active_members, identity.key);
                             let assignment_exists: Bool =
                                 SemanticAstAssignmentContainsNode(assignments, syntax_id);
-                            let is_restore: Bool = false;
+                            var is_restore: Bool = false;
                             if root_slot % 3 == AstExpressionLaneAtom() &&
                                 assignment_exists && node == root_id {
                                 let value_root: Option<Int> =
@@ -131,13 +137,13 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             }
                             if !is_restore {
                                 return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
-                                    restored, restoration_sites, readable_members, unproved_read_roots, read_hazards, element_escape_roots, nested_blocked,
-                                    readonly_origins,
-                                    read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+                                    restored, restoration_sites, readable_members, unproved_read_roots, read_hazards,
+                                    element_escape_roots, direct_escape_roots, direct_escape_sites, nested_blocked,
+                                    readonly_origins, read_sources, read_targets, escape_sources, escape_targets, escape_sites,
                                     nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
                             }
                         }
-                        let read_root: Int = SemanticAstCollectionMemberReadFormalRoot(
+                        var read_root: Int = SemanticAstCollectionMemberReadFormalRoot(
                             artifact, signatures, surfaces.expression_graph,
                             surfaces.function_node_ids[surface], syntax_id, node, identity);
                         if read_root == 0 { read_root = SemanticAstCollectionMemberReadLocalRoot(artifact, locals,
@@ -151,9 +157,9 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             artifact, focus, retired_locals, surfaces.function_node_ids[surface],
                             syntax_id, binding_use.declaration_node_id) {
                         return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
-                            restored, restoration_sites, readable_members, unproved_read_roots, read_hazards, element_escape_roots, nested_blocked,
-                            readonly_origins,
-                            read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+                            restored, restoration_sites, readable_members, unproved_read_roots, read_hazards,
+                            element_escape_roots, direct_escape_roots, direct_escape_sites, nested_blocked,
+                            readonly_origins, read_sources, read_targets, escape_sources, escape_targets, escape_sites,
                             nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
                     }
                     node = node + 1;
@@ -163,8 +169,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
         root_slot = root_slot + 1;
     }
     return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, false, -1, -1, capture,
-        restored, restoration_sites, readable_members, unproved_read_roots, read_hazards, element_escape_roots, nested_blocked,
-        readonly_origins,
-        read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+        restored, restoration_sites, readable_members, unproved_read_roots, read_hazards,
+        element_escape_roots, direct_escape_roots, direct_escape_sites, nested_blocked,
+        readonly_origins, read_sources, read_targets, escape_sources, escape_targets, escape_sites,
         nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
 }

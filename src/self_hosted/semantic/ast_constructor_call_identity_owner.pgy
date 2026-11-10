@@ -1,0 +1,30 @@
+// The admitted nominal declaration owns constructor identity. Consumers must
+// not infer a constructor from a zero callable ID or an unbound type spelling.
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+
+func SemanticExpressionGraphNominalConstructorRow(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref graph: SemanticExpressionGraphFacts, call_node: Int
+) -> Option<Int> {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call_node);
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(graph, call_node);
+    let runtime: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(graph, call_node);
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(graph, call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 || !IsSome(kind) ||
+        UnwrapOption(kind) != SemanticCallTargetDirect() || !IsSome(name) ||
+        !IsSome(runtime) || UnwrapOption(runtime) != 0 || !IsSome(callee) {
+        return None;
+    }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, UnwrapOption(callee));
+    if !binding.ok || binding.kind != SemanticExpressionBindingNone() ||
+        binding.syntax_id != 0 { return None; }
+    let constructor: Result<Int> = SemanticAstNominalConstructorUniqueIndexForName(
+        constructors, UnwrapOption(name));
+    if IsErr(constructor) || Unwrap(constructor) < 0 ||
+        constructors.node_ids[Unwrap(constructor)] != UnwrapOption(target) { return None; }
+    return Some(Unwrap(constructor));
+}

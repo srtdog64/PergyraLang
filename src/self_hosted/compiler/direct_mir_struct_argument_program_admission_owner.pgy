@@ -34,7 +34,7 @@ func DirectMirStructArgumentProgramEnvelopeReady(
         !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 3 {
         if admitted.routines.kinds[row] != "function" ||
             admitted.routines.owners[row] != "" ||
@@ -58,8 +58,8 @@ func DirectMirStructArgumentUniqueRoutineRow(
     ref routines: MirProgramRoutineIndex,
     name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < MirProgramRoutineIndexCount(routines) {
         if routines.names[row] == name {
             if found >= 0 { Die("direct MIR struct call target is duplicated"); }
@@ -74,8 +74,8 @@ func DirectMirStructArgumentUniqueDeclarationRow(
     ref declarations: MirProgramDeclarationIndex,
     name: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < MirProgramDeclarationIndexCount(declarations) {
         if declarations.names[row] == name {
             if found >= 0 { Die("direct MIR struct declaration is duplicated"); }

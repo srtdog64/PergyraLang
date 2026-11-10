@@ -1,0 +1,45 @@
+func MakeFinding(kind: String, key: String, location: String) -> String {
+    return "${kind}|${key}|${location}";
+}
+
+func AppendFinding(facts: String, entry: String) -> String {
+    if StringLength(entry) == 0 {
+        return facts;
+    }
+    if StringLength(facts) == 0 {
+        return entry;
+    }
+    return Concat(Concat(facts, "\n"), entry);
+}
+
+func RowsA() -> Array<String> {
+    return ["a", "b"];
+}
+
+func RowsB() -> Array<String> {
+    return ["c", "d"];
+}
+
+func RowsC() -> Array<String> {
+    return ["e", "f"];
+}
+
+func BuildFindings() -> String {
+    let rows_a: Array<String> = RowsA();
+    let rows_b: Array<String> = RowsB();
+    let rows_c: Array<String> = RowsC();
+    var facts: String = AppendFinding(
+        MakeFinding("kind", "key", "location"),
+        MakeFinding("kind2", "key2", "location2"));
+    facts = AppendFinding(
+        facts, MakeFinding("kind3", "key3", "location3"));
+    if ArrayLength(rows_a) + ArrayLength(rows_b) + ArrayLength(rows_c) == 0 {
+        facts = AppendFinding(
+            facts, MakeFinding("empty", "rows", "none"));
+    }
+    return facts;
+}
+
+func Main() -> Void {
+    Log(BuildFindings());
+}

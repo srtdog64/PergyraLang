@@ -85,7 +85,7 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         facts.routines.generic_counts,
         analysis.signatures.generic_counts[signature_index]
     );
-    let generic_i: Int = 0;
+    var generic_i: Int = 0;
     let generic_start: Int = analysis.signatures.generic_starts[signature_index];
     while generic_i < analysis.signatures.generic_counts[signature_index] {
         ArrayPushOwnedString(
@@ -105,7 +105,7 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         facts.routines.param_counts,
         analysis.signatures.param_counts[signature_index]
     );
-    let param_i: Int = 0;
+    var param_i: Int = 0;
     let param_start: Int = analysis.signatures.param_starts[signature_index];
     while param_i < analysis.signatures.param_counts[signature_index] {
         let row: Int = param_start + param_i;
@@ -145,7 +145,7 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         ArrayLength(facts.routines.local_names)
     );
     ArrayPush(facts.routines.local_counts, ArrayLength(inventory.names));
-    let local_i: Int = 0;
+    var local_i: Int = 0;
     while local_i < ArrayLength(inventory.names) {
         ArrayPushOwnedString(
             facts.routines.local_names, inventory.names[local_i]
@@ -171,8 +171,8 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             "MIR iteration facts require a function-owned statement range"
         );
     }
-    let iteration_count: Int = 0;
-    let statement_i: Int = statement_range.start;
+    var iteration_count: Int = 0;
+    var statement_i: Int = statement_range.start;
     while statement_i < statement_range.end {
         if analysis.statements.kind_tags[statement_i] ==
             TypedAstKindForStmtTag() {
@@ -223,13 +223,20 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         ] < 0 {
         return SelfMirProgramFactsError(
             facts, "mir_collection_ownership_fact_invalid",
-            "MIR collection ownership rows are missing or inconsistent"
+            Concat(
+                "MIR collection ownership rows are missing or inconsistent: routine=",
+                Concat(
+                    analysis.signatures.names[signature_index],
+                    Concat(" syntax_id=", ToString(function_node_id))
+                )
+            )
         );
     }
     facts.collection_ownership_receipts =
         SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
             facts.collection_ownership_receipts,
-            collection_ownership, analysis.expression_surfaces,
+            collection_ownership, analysis.signatures,
+            analysis.expression_surfaces,
             function_node_id, build.cfg.instructions,
             build.cfg.local_refs
         );
@@ -279,9 +286,9 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
 ) -> SelfMirProgramFacts {
     // The routine appends only carry the semantic graph; it joins the facts
     // once they stop growing, so no append shares the analysis' storage.
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    var facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
     SelfMirArtifactPressureStage(observe_pressure, "iteration-validation:start");
-    let iteration_i: Int = 0;
+    var iteration_i: Int = 0;
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
         if iteration_types.verified[iteration_i] != 1 ||
             iteration_types.binding_type_names[iteration_i] == "" ||
@@ -354,7 +361,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         return error;
     }
     SelfMirArtifactPressureStage(observe_pressure, "routine-lowering:start");
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(analysis.signatures) {
         // Declaration-only signatures (for example an ability contract
         // method) have no executable body and therefore do not own a MIR
@@ -418,9 +425,9 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         return error;
     }
     SelfMirArtifactPressureStage(observe_pressure, "intent-lowering:start");
-    let intent_i: Int = 0;
+    var intent_i: Int = 0;
     while intent_i < SelfDirIntentCount(domain_graph.intents) {
-        let intent_source_module_path: String = "";
+        var intent_source_module_path: String = "";
         let intent_source_module_path_opt: Option<String> = AstSourceModulePathForNode(
             traversal_artifact.source_modules, traversal_artifact.arena,
             domain_graph.intents.intent_node_ids[intent_i]
@@ -444,7 +451,11 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
             return error;
         }
         facts = SelfMirAppendIntentRoutine(facts, domain_graph.intents, intent_i, intent_source_module_path, intent_build);
-        facts = SelfMirIntentExecutionPlanAppend(facts, domain_graph.intents, intent_i);
+        // The program-wide graph joins `facts` only after routine growth.
+        // Intent draft identities need the admitted semantic graph now; borrow
+        // it directly so their digest is not computed from the empty carrier.
+        facts = SelfMirIntentExecutionPlanAppend(facts, domain_graph.intents,
+            intent_i, analysis.expression_surfaces.expression_graph);
         SelfMirRoutineBuildStorageRetireAfterLastConsumer(intent_build);
         if !facts.ok {
             SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
@@ -477,7 +488,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> SelfMirProgramFacts {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
+    var facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
         artifact, analysis, initializer_types, iteration_types,
         assignment_types, match_materializations, statement_types,
         collection_ownership, generic_specializations,

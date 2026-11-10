@@ -136,8 +136,8 @@ func AbiLayoutCCallableParamDeclaration(
     if SemanticAstCallableTypeShapeFromName(callable.return_type).ok {
         Die("nested callable C return declarators are unsupported");
     }
-    let params: String = "";
-    let i: Int = 0;
+    var params: String = "";
+    var i: Int = 0;
     while i < ArrayLength(callable.parameter_types) {
         if SemanticAstCallableTypeShapeFromName(
             callable.parameter_types[i]

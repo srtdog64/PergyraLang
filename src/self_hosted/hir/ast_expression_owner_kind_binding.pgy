@@ -28,16 +28,16 @@ func AstTreeArtifactBindExpressionOwnerKinds(
         return AstExpressionOwnerKindBindingInvalid(artifact);
     }
     let arena: AstArena = artifact.arena;
-    let kinds: Array<Int> = arena.kinds;
-    let atoms: Array<Int> = arena.atoms;
-    let has_atoms: Array<Int> = arena.has_atoms;
+    var kinds: Array<Int> = arena.kinds;
+    var atoms: Array<Int> = arena.atoms;
+    var has_atoms: Array<Int> = arena.has_atoms;
     let atom_table: Array<String> = arena.atom_table;
     let provenance_texts: Array<String> = arena.provenance_texts;
     // The loop extends these rows: it reads them through the aliases, never
     // the arena they came from, and a failure hands back the arena they form.
-    let failed: Bool = false;
-    let node_cursor: Int = 0;
-    let root_index: Int = 0;
+    var failed: Bool = false;
+    var node_cursor: Int = 0;
+    var root_index: Int = 0;
     while root_index < ArrayLength(artifact.expression_graphs.roots) && !failed {
         if artifact.expression_graphs.root_owner_kinds[root_index] !=
                 TypedAstKindBareCallStmtTag() ||
@@ -47,7 +47,7 @@ func AstTreeArtifactBindExpressionOwnerKinds(
             continue;
         }
         let root: Int = artifact.expression_graphs.roots[root_index];
-        let found: Bool = false;
+        var found: Bool = false;
         if root < 0 || root >= AstExpressionArenaNodeCount(
             artifact.expression_graphs.arena
         ) {
@@ -56,7 +56,7 @@ func AstTreeArtifactBindExpressionOwnerKinds(
             let graph_text: String =
                 artifact.expression_graphs.arena.node_texts[root];
             while node_cursor < artifact.count && !found && !failed {
-                let provenance: Option<String> = None;
+                var provenance: Option<String> = None;
                 if node_cursor < ArrayLength(kinds) && node_cursor < ArrayLength(provenance_texts) {
                     provenance = Some(provenance_texts[node_cursor]);
                 }

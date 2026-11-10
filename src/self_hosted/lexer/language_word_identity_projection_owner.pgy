@@ -85,6 +85,7 @@ enum LanguageWordId {
     WordMax,
     WordMin,
     WordMove,
+    WordMut,
     WordNamespace,
     WordNondeterministic,
     WordNone,
@@ -153,7 +154,7 @@ enum LanguageWordId {
 }
 
 func LanguageWordRegistryCount() -> Int {
-    return 147;
+    return 148;
 }
 
 func LanguageWordSpelling(id: LanguageWordId) -> String {
@@ -239,6 +240,7 @@ func LanguageWordSpelling(id: LanguageWordId) -> String {
     if id == LanguageWordId.WordMax { return "max"; }
     if id == LanguageWordId.WordMin { return "min"; }
     if id == LanguageWordId.WordMove { return "move"; }
+    if id == LanguageWordId.WordMut { return "mut"; }
     if id == LanguageWordId.WordNamespace { return "namespace"; }
     if id == LanguageWordId.WordNondeterministic { return "nondeterministic"; }
     if id == LanguageWordId.WordNone { return "none"; }

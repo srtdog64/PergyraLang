@@ -5,7 +5,7 @@ func ConsumeFragments(own values: Array<String>) -> String {
 }
 
 func BuildFragments(early: Bool) -> String {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     ArrayPushOwnedString(values, Concat("", "left"));
     if early {
         return ConsumeFragments(values);

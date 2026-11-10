@@ -14,6 +14,7 @@ func ConstructorRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLo
     let counts: Array<Int> = [1,fields];
     let field_names: Array<String> = ["prefix"];
     let field_types: Array<String> = ["String"];
+    let field_dependencies: Array<String> = [""];
     let field_ids: Array<Int> = [201]; let field_enums: Array<Int> = [0];
     let zeros: Array<Int> = [0]; let sizes: Array<Int> = [0];
     let field: Int = 0;
@@ -23,6 +24,7 @@ func ConstructorRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLo
         if corruption == 4 && field == 0 { type_name = "Bool"; }
         if corruption == 4 && field == 1 { type_name = "Int"; }
         ArrayPush(field_types, type_name);
+        ArrayPush(field_dependencies, "");
         let id: Int = 1001 + field;
         if corruption == 2 && field == fields - 1 { id = 1001; }
         ArrayPush(field_ids, id); ArrayPush(field_enums, 0);
@@ -38,16 +40,18 @@ func ConstructorRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLo
             absent_ids, absent_ids, zeros, sizes, zeros);
     let source: DirectMirScalarProgramLogicalRecordFact = DirectMirScalarProgramLogicalRecordFact(
         true, 0, true, rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical,
-        DirectMirIdentityCellFactsEmpty());
+        field_names, field_types, field_dependencies, field_ids, field_enums,
+        physical, DirectMirIdentityCellFactsEmpty(),
+        DirectMirScalarProgramLogicalRecordValidationReceiptEmpty());
     let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
     if corruption == 1 {
         if digest == 1 { digest = 2; } else { digest = 1; }
     }
     return DirectMirScalarProgramLogicalRecordFact(true, digest, true,
         rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical,
-        DirectMirIdentityCellFactsEmpty());
+        field_names, field_types, field_dependencies, field_ids, field_enums,
+        physical, DirectMirIdentityCellFactsEmpty(),
+        DirectMirScalarProgramLogicalRecordValidationReceiptEmpty());
 }
 
 struct ConstructorQueryInput {

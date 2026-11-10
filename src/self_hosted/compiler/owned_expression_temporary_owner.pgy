@@ -1,0 +1,60 @@
+// Retirement of fresh String operands after a nonretaining expression use.
+// Local/parameter storage and calls with unknown retention grant no permission.
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+
+func DirectMirOwnedStringObserverResultType(kind: Int) -> String {
+    // This prelude emits a two-operand observer wrapper.  N-ary and host-I/O
+    // fresh String producers own their result, but are not this wrapper shape.
+    if DirectMirScalarProgramConcatBackedFreshStringExpressionKind(kind) {
+        return "String";
+    }
+    if kind == DirectMirScalarProgramExprStringLength() ||
+        kind == DirectMirScalarProgramExprStringIndexOf() { return "Int"; }
+    if kind == DirectMirScalarProgramExprStringContains() ||
+        kind == DirectMirScalarProgramExprEqualString() ||
+        kind == DirectMirScalarProgramExprNotEqualString() { return "Bool"; }
+    return "";
+}
+
+func DirectMirOwnedExpressionRetiringEdges(ref expressions: DirectMirScalarProgramExpressionSet,
+    graph: Int) -> Array<Int> {
+    let start: Int = expressions.graph_starts[graph];
+    let end: Int = start + expressions.graph_counts[graph];
+    var users: Array<Int> = [];
+    var retire: Array<Int> = [];
+    var node: Int = start;
+    while node < end { ArrayPush(users, 0); ArrayPush(retire, 0); node = node + 1; }
+    node = start;
+    while node < end {
+        let operands: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(expressions, node);
+        if !operands.valid { Die("temporary operand identity is invalid"); }
+        var operand: Int = 0;
+        while operand < operands.count {
+            let child: Int = DirectMirScalarProgramArgumentViewAt(expressions, operands, operand);
+            if child < start || child >= node { Die("temporary operand is outside its graph"); }
+            users[child - start] = users[child - start] + 1;
+            operand = operand + 1;
+        }
+        node = node + 1;
+    }
+    node = start;
+    while node < end {
+        if DirectMirOwnedStringObserverResultType(expressions.node_kinds[node]) != "" {
+            var edge: Int = 0;
+            while edge < 2 {
+                var child: Int = expressions.node_lefts[node];
+                var bit: Int = 1;
+                if edge == 1 { child = expressions.node_rights[node]; bit = 2; }
+                if child >= start && child < node && users[child - start] == 1 &&
+                    DirectMirScalarProgramFreshStringExpressionKind(
+                        expressions.node_kinds[child]) &&
+                    expressions.node_types[child] == "String" {
+                    retire[node - start] = retire[node - start] + bit;
+                }
+                edge = edge + 1;
+            }
+        }
+        node = node + 1;
+    }
+    return retire;
+}

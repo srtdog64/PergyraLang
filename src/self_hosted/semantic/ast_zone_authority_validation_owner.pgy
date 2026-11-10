@@ -20,8 +20,8 @@ func SemanticAstZoneAuthorityFactsAdmittedReady(
         ArrayLength(facts.required_ability_names) != required_count {
         return false;
     }
-    let expected_start: Int = 0;
-    let i: Int = 0;
+    var expected_start: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.authority_node_ids[i] <= 0 ||
             facts.owner_zone_node_ids[i] <= 0 ||
@@ -33,7 +33,7 @@ func SemanticAstZoneAuthorityFactsAdmittedReady(
             expected_start + facts.required_ability_counts[i] > required_count {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if facts.authority_node_ids[prior] == facts.authority_node_ids[i] ||
                 (facts.owner_zone_node_ids[prior] == facts.owner_zone_node_ids[i] &&
@@ -42,11 +42,11 @@ func SemanticAstZoneAuthorityFactsAdmittedReady(
             }
             prior = prior + 1;
         }
-        let requirement_i: Int = 0;
+        var requirement_i: Int = 0;
         while requirement_i < facts.required_ability_counts[i] {
             let requirement_row: Int = expected_start + requirement_i;
-            let ability_matches: Int = 0;
-            let ability_i: Int = 0;
+            var ability_matches: Int = 0;
+            var ability_i: Int = 0;
             while ability_i < ArrayLength(roles.ability_node_ids) {
                 if roles.ability_node_ids[ability_i] ==
                         facts.required_ability_node_ids[requirement_row] &&
@@ -57,7 +57,7 @@ func SemanticAstZoneAuthorityFactsAdmittedReady(
                 ability_i = ability_i + 1;
             }
             if ability_matches != 1 { return false; }
-            let prior_requirement: Int = expected_start;
+            var prior_requirement: Int = expected_start;
             while prior_requirement < requirement_row {
                 if facts.required_ability_node_ids[prior_requirement] ==
                     facts.required_ability_node_ids[requirement_row] {
@@ -81,7 +81,7 @@ func SemanticAstZoneAuthorityFactsReady(
     if !SemanticAstZoneAuthorityFactsAdmittedReady(artifact.count, roles, facts) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.authority_node_ids) {
         let authority_node_id: Int = facts.authority_node_ids[i];
         let owner_node_id: Int = facts.owner_zone_node_ids[i];
@@ -148,7 +148,7 @@ func SemanticAstZoneAuthorityFactsReady(
             if ArrayLength(ability_names) != carried_required_count {
                 return false;
             }
-            let ability_i: Int = 0;
+            var ability_i: Int = 0;
             while ability_i < carried_required_count {
                 let required_name_fact: SemanticCanonicalTypeNameFact =
                     SemanticCanonicalTypeNameFactFrom(
@@ -165,15 +165,15 @@ func SemanticAstZoneAuthorityFactsReady(
         }
         i = i + 1;
     }
-    let artifact_authority_count: Int = 0;
-    let node_id: Int = 0;
+    var artifact_authority_count: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
         ) {
             artifact_authority_count = artifact_authority_count + 1;
-            let matches: Int = 0;
-            let fact_i: Int = 0;
+            var matches: Int = 0;
+            var fact_i: Int = 0;
             while fact_i < ArrayLength(facts.authority_node_ids) {
                 if facts.authority_node_ids[fact_i] == node_id {
                     matches = matches + 1;

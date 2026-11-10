@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_op_code_owner.pgy";
 func DirectMirScalarProgramHasProcessExit(
     ref operation_kinds: Array<Int>
 ) -> Bool {
-    let operation: Int = 0;
+    var operation: Int = 0;
     while operation < ArrayLength(operation_kinds) {
         if operation_kinds[operation] ==
                 DirectMirScalarCfgOpProcessExit() { return true; }

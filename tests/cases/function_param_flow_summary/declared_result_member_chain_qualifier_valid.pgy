@@ -24,7 +24,7 @@ func CfgEmpty() -> Cfg {
 }
 
 func CfgAddBlock(cfg: Cfg) -> Cfg {
-    let starts: Array<Int> = cfg.starts;
+    var starts: Array<Int> = cfg.starts;
     ArrayPush(starts, ArrayLength(cfg.instructions.ids));
     return Cfg(starts, cfg.instructions);
 }
@@ -35,7 +35,7 @@ func BuildEmpty() -> Build {
 }
 
 func BuildError(build: Build, message: String) -> Build {
-    let failed: Build = BuildEmpty();
+    var failed: Build = BuildEmpty();
     failed.ok = false;
     failed.message = message;
     return failed;

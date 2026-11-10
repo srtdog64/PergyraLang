@@ -70,11 +70,11 @@ func DirectMirOptionStructValueFlowAbiFactDigest(
     ref fact: DirectMirOptionStructValueFlowAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(193L, fact.declaration_digest);
+    var hash: Long = DirectMirCfgHashInt(193L, fact.declaration_digest);
     hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashString(hash, fact.option_type_name);
     hash = DirectMirCfgHashInt(hash, fact.option_layout_id);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(fact.outer_layout_ids) {
         hash = DirectMirCfgHashInt(hash, fact.outer_layout_ids[row]);
         row = row + 1;
@@ -104,7 +104,7 @@ func DirectMirOptionStructValueFlowAbiFactReady(
         ArrayLength(fact.inner_layout_ids) != 2 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 5 {
         if fact.outer_layout_ids[row] != fact.option_layout_id {
             return false;

@@ -24,7 +24,7 @@ func DirectMirScalarCfgStringArrayLlvmPush(
     let prefix: String = Concat(
         "%pgy.array.indexed.", ToString(fact.collection_row)
     );
-    let output: String = Concat("  ", Concat(stem,
+    var output: String = Concat("  ", Concat(stem,
         Concat(".push.data = load ptr, ptr ", prefix)));
     output = Concat(output, Concat(".data.field, align ", Concat(storage_align, "\n  ")));
     output = Concat(output, Concat(stem,
@@ -58,7 +58,7 @@ func DirectMirScalarCfgStringArrayLlvmLengthLog(
     let abi: DirectMirArrayStringAbiProjection =
         DirectMirScalarCfgStringArrayLlvmProjectionAt(plan, target, fact.collection_row);
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let output: String = Concat("  ", Concat(stem, ".length = load i64, ptr "));
+    var output: String = Concat("  ", Concat(stem, ".length = load i64, ptr "));
     output = Concat(output, Concat("%pgy.array.indexed.",
         Concat(ToString(fact.collection_row), Concat(".length.field, align ",
             Concat(ToString(abi.storage.align), "\n")))));

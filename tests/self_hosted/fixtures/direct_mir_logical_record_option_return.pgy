@@ -11,11 +11,23 @@ func WrapProbe(text: String) -> Option<ProbeFact> {
     return None;
 }
 
+func ProbeOptionPairReady(
+    left: Option<ProbeFact>, right: Option<ProbeFact>
+) -> Bool {
+    if !IsSome(left) || !IsSome(right) { return false; }
+    let left_fact: ProbeFact = UnwrapOption(left);
+    let right_fact: ProbeFact = UnwrapOption(right);
+    return left_fact.label == "wrapped" && right_fact.label == "wrapped";
+}
+
 func Main() -> Void {
     let wrapped: Option<ProbeFact> = WrapProbe("record-option");
+    let second: Option<ProbeFact> = WrapProbe("second");
     if IsSome(wrapped) {
         let fact: ProbeFact = UnwrapOption(wrapped);
         Log(fact.text);
         Log(fact.label);
     }
+    Log(ProbeOptionPairReady(wrapped, second));
+    Log(ProbeOptionPairReady(wrapped, WrapProbe("")));
 }

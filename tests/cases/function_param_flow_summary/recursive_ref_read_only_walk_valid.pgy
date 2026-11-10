@@ -2,7 +2,7 @@
 // Its backing frame waits on its own recursive call, which the closure
 // proves when it converges.
 func Walk(ref a: Array<Int>, n: Int) -> Array<Int> {
-    let out: Array<Int> = [];
+    var out: Array<Int> = [];
     if n > 0 {
         let rest: Array<Int> = Walk(a, n - 1);
         ArrayPush(out, rest[0]);

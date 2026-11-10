@@ -33,6 +33,7 @@ func DirectMirScalarProgramAppendExpressionNode(
     ArrayPush(local_rows, local_row);
     ArrayPush(parameter_ordinals, parameter_ordinal);
     ArrayPush(member_ordinals, member_ordinal);
-    ArrayPush(literals, literal); ArrayPush(callable_rows, callable_row);
+    ArrayPush(literals, literal);
+    ArrayPush(callable_rows, callable_row);
     ArrayPush(runtime_call_abi_ids, runtime_call_abi_id);
 }

@@ -14,7 +14,7 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
         ) {
         return false;
     }
-    let module_path: String = "";
+    var module_path: String = "";
     let module_path_opt: Option<String> = AstSourceModulePathForNode(
         artifact.source_modules, artifact.arena, function_node_id
     );
@@ -34,8 +34,8 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             facts.runtime_callables[signature_index] {
         return false;
     }
-    let ability_generic_names: Array<String> = [];
-    let ability_generic_defaults: Array<String> = [];
+    var ability_generic_names: Array<String> = [];
+    var ability_generic_defaults: Array<String> = [];
     if !SemanticAstFunctionAbilityDefaultRows(
         artifact.arena, function_node_id,
         ability_generic_names, ability_generic_defaults
@@ -46,14 +46,14 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
         ArrayLength(ability_generic_names),
         ArrayLength(ability_generic_defaults));
 
-    let saw_generic_params: Bool = false;
-    let saw_parameters: Bool = false;
-    let saw_returns: Bool = false;
-    let generic_count: Int = 0;
-    let parameter_count: Int = 0;
-    let receiver_source_param_offset: Int = 0;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var saw_generic_params: Bool = false;
+    var saw_parameters: Bool = false;
+    var saw_returns: Bool = false;
+    var generic_count: Int = 0;
+    var parameter_count: Int = 0;
+    var receiver_source_param_offset: Int = 0;
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, function_node_id, child_index
     );
     while IsSome(child) {
@@ -72,8 +72,8 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                 return false;
             }
             saw_parameters = true;
-            let parameter_index: Int = 0;
-            let parameter: Option<Int> = TypedAstArenaChildAt(
+            var parameter_index: Int = 0;
+            var parameter: Option<Int> = TypedAstArenaChildAt(
                 artifact.arena, child_id, parameter_index
             );
             while IsSome(parameter) {
@@ -92,7 +92,7 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                 let parameter_mode: Option<Int> = TypedAstArenaMode(
                     artifact.arena, parameter_id
                 );
-                let resolved_type: String = "";
+                var resolved_type: String = "";
                 let owner_self: Bool = IsSome(parameter_name) &&
                     StringLength(UnwrapOption(owner).name) > 0 &&
                     UnwrapOption(parameter_name) == "self";
@@ -110,7 +110,7 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                 } else {
                     return false;
                 }
-                let default_row: Int = 0;
+                var default_row: Int = 0;
                 while default_row < ability_default_count {
                     if ability_generic_names[default_row] == resolved_type &&
                         ability_generic_defaults[default_row] != "" {
@@ -142,11 +142,11 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             let return_type: Option<String> = TypedAstArenaTypeName(
                 artifact.arena, child_id
             );
-            let resolved_return_type: String = "";
+            var resolved_return_type: String = "";
             if IsSome(return_type) {
                 resolved_return_type = SemanticCanonicalTypeName(
                     UnwrapOption(return_type));
-                let default_row: Int = 0;
+                var default_row: Int = 0;
                 while default_row < ability_default_count {
                     if ability_generic_names[default_row] == resolved_return_type &&
                         ability_generic_defaults[default_row] != "" {
@@ -166,13 +166,13 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             artifact.arena, function_node_id, child_index
         );
     }
-    let parsed_rows: SemanticAstGenericParameterFactRows =
+    var parsed_rows: SemanticAstGenericParameterFactRows =
         SemanticAstGenericParameterFactRowsFromOwnerNode(
             artifact.arena, function_node_id
         );
     let parsed_rows_ok: Bool = parsed_rows.ok;
-    let generic_index: Int = 0;
-    let generic_rows_match: Bool = parsed_rows_ok;
+    var generic_index: Int = 0;
+    var generic_rows_match: Bool = parsed_rows_ok;
     while parsed_rows_ok &&
         generic_index < ArrayLength(parsed_rows.names) && generic_rows_match {
         if generic_index >= facts.generic_counts[signature_index] {
@@ -230,14 +230,14 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         ) {
         return false;
     }
-    let type_rows_match: Bool = facts.type_expressions.ok &&
+    var type_rows_match: Bool = facts.type_expressions.ok &&
         ArrayLength(facts.type_expressions.return_roots) ==
             ArrayLength(facts.return_types) &&
         ArrayLength(facts.type_expressions.parameter_roots) ==
             ArrayLength(facts.param_types);
     let empty_names: Array<String> = [];
     let empty_bindings: Array<String> = [];
-    let type_row: Int = 0;
+    var type_row: Int = 0;
     while type_rows_match && type_row < ArrayLength(facts.return_types) {
         let rendered: Option<String> =
             SemanticAstSignatureReturnTypeResolveAt(
@@ -269,10 +269,10 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     if !type_rows_match {
         return false;
     }
-    let i: Int = 0;
-    let next_generic_start: Int = 0;
-    let next_param_start: Int = 0;
-    let entrypoint_accumulator: SemanticAstEntrypointSelectionAccumulator =
+    var i: Int = 0;
+    var next_generic_start: Int = 0;
+    var next_param_start: Int = 0;
+    var entrypoint_accumulator: SemanticAstEntrypointSelectionAccumulator =
         SemanticAstEntrypointSelectionAccumulatorEmpty();
     while i < n {
         SemanticAstEntrypointSelectionObserve(
@@ -303,8 +303,8 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     if !SemanticAstEntrypointSelectionMatchesAccumulator(
         facts.entrypoint_selection, entrypoint_accumulator
     ) { return false; }
-    let function_count: Int = 0;
-    let node_id: Int = 0;
+    var function_count: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
             function_count = function_count + 1;

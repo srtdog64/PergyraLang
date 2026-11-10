@@ -15,17 +15,17 @@ func MirIntentExecutionCaptureCompensations(
         JsonCharCodeAt(json, json_extent, array_end, array_start) != JsonAsciiCode("[") {
         return 0 - 1;
     }
-    let count: Int = 0;
-    let cursor: Int = array_start + 1;
-    let bounds: Array<Int> = [0, 0];
-    let transition_ids: Array<Int> = rows.transition_ids;
-    let expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
-    let instruction_block_ids: Array<Int> = rows.instruction_block_ids;
-    let instruction_ids: Array<Int> = rows.instruction_ids;
-    let graph_root_ids: Array<Int> = rows.graph_root_ids;
-    let graph_digests: Array<Int> = rows.graph_digests;
-    let call_target_names: Array<String> = rows.call_target_names;
-    let call_target_syntax_ids: Array<Int> = rows.call_target_syntax_ids;
+    var count: Int = 0;
+    var cursor: Int = array_start + 1;
+    var bounds: Array<Int> = [0, 0];
+    var transition_ids: Array<Int> = rows.transition_ids;
+    var expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
+    var instruction_block_ids: Array<Int> = rows.instruction_block_ids;
+    var instruction_ids: Array<Int> = rows.instruction_ids;
+    var graph_root_ids: Array<Int> = rows.graph_root_ids;
+    var graph_digests: Array<Int> = rows.graph_digests;
+    var call_target_names: Array<String> = rows.call_target_names;
+    var call_target_syntax_ids: Array<Int> = rows.call_target_syntax_ids;
     while JsonArrayNextObjectBounds(json, json_extent, cursor, array_end, bounds) {
         let expected: Array<String> = [
             "transition_id", "expression_syntax_id",
@@ -214,7 +214,7 @@ func MirIntentExecutionCaptureStep(
             JsonAsciiCode("[") {
         return false;
     }
-    let compensations: MirIntentCompensationFacts = rows.compensations;
+    var compensations: MirIntentCompensationFacts = rows.compensations;
     let compensation_start: Int =
         ArrayLength(compensations.transition_ids);
     let compensation_count: Int = MirIntentExecutionCaptureCompensations(
@@ -223,50 +223,50 @@ func MirIntentExecutionCaptureStep(
     );
     if compensation_count < 0 { return false; }
     rows.compensations = compensations;
-    let transition_ids: Array<Int> = rows.transition_ids;
-    let routine_syntax_ids: Array<Int> = rows.routine_syntax_ids;
-    let step_syntax_ids: Array<Int> = rows.step_syntax_ids;
-    let step_names: Array<String> = rows.step_names;
-    let predecessor_transition_ids: Array<Int> =
+    var transition_ids: Array<Int> = rows.transition_ids;
+    var routine_syntax_ids: Array<Int> = rows.routine_syntax_ids;
+    var step_syntax_ids: Array<Int> = rows.step_syntax_ids;
+    var step_names: Array<String> = rows.step_names;
+    var predecessor_transition_ids: Array<Int> =
         rows.predecessor_transition_ids;
-    let predecessor_step_syntax_ids: Array<Int> =
+    var predecessor_step_syntax_ids: Array<Int> =
         rows.predecessor_step_syntax_ids;
-    let predecessor_step_names: Array<String> = rows.predecessor_step_names;
-    let action_syntax_ids: Array<Int> = rows.action_syntax_ids;
-    let outcome_instruction_block_ids: Array<Int> =
+    var predecessor_step_names: Array<String> = rows.predecessor_step_names;
+    var action_syntax_ids: Array<Int> = rows.action_syntax_ids;
+    var outcome_instruction_block_ids: Array<Int> =
         rows.outcome_instruction_block_ids;
-    let outcome_instruction_ids: Array<Int> = rows.outcome_instruction_ids;
-    let outcome_result_names: Array<String> = rows.outcome_result_names;
-    let outcome_type_names: Array<String> = rows.outcome_type_names;
-    let outcome_enum_names: Array<String> = rows.outcome_enum_names;
-    let outcome_enum_syntax_ids: Array<Int> = rows.outcome_enum_syntax_ids;
-    let branch_block_ids: Array<Int> = rows.branch_block_ids;
-    let branch_instruction_ids: Array<Int> = rows.branch_instruction_ids;
-    let success_variant_indices: Array<Int> = rows.success_variant_indices;
-    let success_variant_names: Array<String> = rows.success_variant_names;
-    let success_payload_names: Array<String> = rows.success_payload_names;
-    let success_payload_type_names: Array<String> =
+    var outcome_instruction_ids: Array<Int> = rows.outcome_instruction_ids;
+    var outcome_result_names: Array<String> = rows.outcome_result_names;
+    var outcome_type_names: Array<String> = rows.outcome_type_names;
+    var outcome_enum_names: Array<String> = rows.outcome_enum_names;
+    var outcome_enum_syntax_ids: Array<Int> = rows.outcome_enum_syntax_ids;
+    var branch_block_ids: Array<Int> = rows.branch_block_ids;
+    var branch_instruction_ids: Array<Int> = rows.branch_instruction_ids;
+    var success_variant_indices: Array<Int> = rows.success_variant_indices;
+    var success_variant_names: Array<String> = rows.success_variant_names;
+    var success_payload_names: Array<String> = rows.success_payload_names;
+    var success_payload_type_names: Array<String> =
         rows.success_payload_type_names;
-    let success_payload_decl_syntax_ids: Array<Int> =
+    var success_payload_decl_syntax_ids: Array<Int> =
         rows.success_payload_decl_syntax_ids;
-    let success_successor_block_ids: Array<Int> =
+    var success_successor_block_ids: Array<Int> =
         rows.success_successor_block_ids;
-    let failure_variant_indices: Array<Int> = rows.failure_variant_indices;
-    let failure_variant_names: Array<String> = rows.failure_variant_names;
-    let failure_payload_names: Array<String> = rows.failure_payload_names;
-    let failure_payload_type_names: Array<String> =
+    var failure_variant_indices: Array<Int> = rows.failure_variant_indices;
+    var failure_variant_names: Array<String> = rows.failure_variant_names;
+    var failure_payload_names: Array<String> = rows.failure_payload_names;
+    var failure_payload_type_names: Array<String> =
         rows.failure_payload_type_names;
-    let failure_payload_decl_syntax_ids: Array<Int> =
+    var failure_payload_decl_syntax_ids: Array<Int> =
         rows.failure_payload_decl_syntax_ids;
-    let failure_successor_block_ids: Array<Int> =
+    var failure_successor_block_ids: Array<Int> =
         rows.failure_successor_block_ids;
-    let completion_block_ids: Array<Int> = rows.completion_block_ids;
-    let completion_instruction_ids: Array<Int> =
+    var completion_block_ids: Array<Int> = rows.completion_block_ids;
+    var completion_instruction_ids: Array<Int> =
         rows.completion_instruction_ids;
-    let compensation_starts: Array<Int> = rows.compensation_starts;
-    let compensation_counts: Array<Int> = rows.compensation_counts;
-    let where_zone_names: Array<String> = rows.where_zone_names;
-    let where_zone_syntax_ids: Array<Int> = rows.where_zone_syntax_ids;
+    var compensation_starts: Array<Int> = rows.compensation_starts;
+    var compensation_counts: Array<Int> = rows.compensation_counts;
+    var where_zone_names: Array<String> = rows.where_zone_names;
+    var where_zone_syntax_ids: Array<Int> = rows.where_zone_syntax_ids;
     ArrayPush(transition_ids, transition_id.value);
     ArrayPush(routine_syntax_ids, routine_syntax_id.value);
     ArrayPush(step_syntax_ids, step_syntax_id.value);
@@ -440,36 +440,36 @@ func MirIntentExecutionCaptureTerminal(
         !graph_root_id.valid || !graph_digest.valid || graph_digest.value <= 0 {
         return false;
     }
-    let terminal_transition_ids: Array<Int> = rows.terminal_transition_ids;
-    let routine_syntax_ids: Array<Int> = rows.routine_syntax_ids;
-    let roles: Array<String> = rows.roles;
-    let source_transition_ids: Array<Int> = rows.source_transition_ids;
-    let source_step_syntax_ids: Array<Int> = rows.source_step_syntax_ids;
-    let source_step_names: Array<String> = rows.source_step_names;
-    let source_variant_indices: Array<Int> = rows.source_variant_indices;
-    let source_variant_names: Array<String> = rows.source_variant_names;
-    let source_payload_names: Array<String> = rows.source_payload_names;
-    let source_payload_type_names: Array<String> =
+    var terminal_transition_ids: Array<Int> = rows.terminal_transition_ids;
+    var routine_syntax_ids: Array<Int> = rows.routine_syntax_ids;
+    var roles: Array<String> = rows.roles;
+    var source_transition_ids: Array<Int> = rows.source_transition_ids;
+    var source_step_syntax_ids: Array<Int> = rows.source_step_syntax_ids;
+    var source_step_names: Array<String> = rows.source_step_names;
+    var source_variant_indices: Array<Int> = rows.source_variant_indices;
+    var source_variant_names: Array<String> = rows.source_variant_names;
+    var source_payload_names: Array<String> = rows.source_payload_names;
+    var source_payload_type_names: Array<String> =
         rows.source_payload_type_names;
-    let source_payload_decl_syntax_ids: Array<Int> =
+    var source_payload_decl_syntax_ids: Array<Int> =
         rows.source_payload_decl_syntax_ids;
-    let result_instruction_block_ids: Array<Int> =
+    var result_instruction_block_ids: Array<Int> =
         rows.result_instruction_block_ids;
-    let result_instruction_ids: Array<Int> = rows.result_instruction_ids;
-    let result_definition_names: Array<String> = rows.result_definition_names;
-    let result_type_names: Array<String> = rows.result_type_names;
-    let result_enum_names: Array<String> = rows.result_enum_names;
-    let result_enum_syntax_ids: Array<Int> = rows.result_enum_syntax_ids;
-    let result_variant_indices: Array<Int> = rows.result_variant_indices;
-    let result_variant_names: Array<String> = rows.result_variant_names;
-    let result_payload_names: Array<String> = rows.result_payload_names;
-    let result_payload_type_names: Array<String> =
+    var result_instruction_ids: Array<Int> = rows.result_instruction_ids;
+    var result_definition_names: Array<String> = rows.result_definition_names;
+    var result_type_names: Array<String> = rows.result_type_names;
+    var result_enum_names: Array<String> = rows.result_enum_names;
+    var result_enum_syntax_ids: Array<Int> = rows.result_enum_syntax_ids;
+    var result_variant_indices: Array<Int> = rows.result_variant_indices;
+    var result_variant_names: Array<String> = rows.result_variant_names;
+    var result_payload_names: Array<String> = rows.result_payload_names;
+    var result_payload_type_names: Array<String> =
         rows.result_payload_type_names;
-    let result_payload_decl_syntax_ids: Array<Int> =
+    var result_payload_decl_syntax_ids: Array<Int> =
         rows.result_payload_decl_syntax_ids;
-    let expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
-    let graph_root_ids: Array<Int> = rows.graph_root_ids;
-    let graph_digests: Array<Int> = rows.graph_digests;
+    var expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
+    var graph_root_ids: Array<Int> = rows.graph_root_ids;
+    var graph_digests: Array<Int> = rows.graph_digests;
     ArrayPush(terminal_transition_ids, terminal_transition_id.value);
     ArrayPush(routine_syntax_ids, routine_syntax_id.value);
     ArrayPush(roles, role.value);
@@ -539,8 +539,8 @@ func MirIntentExecutionPlanRowsFromExactFields(
             JsonAsciiCode("[") {
         return false;
     }
-    let cursor: Int = fields.starts[2] + 1;
-    let bounds: Array<Int> = [0, 0];
+    var cursor: Int = fields.starts[2] + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
         json, json_extent, cursor, fields.ends[2], bounds
     ) {

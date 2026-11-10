@@ -64,14 +64,14 @@ func SemanticAstCollectionExclusiveFresh() -> SemanticAstCollectionExclusiveClas
 func SemanticAstCollectionExclusiveAddDep(
     inout into: SemanticAstCollectionExclusiveClass, dep: Int, field: String, source: String
 ) -> Void {
-    let seen: Int = 0;
+    var seen: Int = 0;
     while seen < ArrayLength(into.deps) {
         if into.deps[seen] == dep && into.dep_fields[seen] == field && into.dep_sources[seen] == source { return; }
         seen = seen + 1;
     }
-    let deps: Array<Int> = into.deps;
-    let dep_fields: Array<String> = into.dep_fields;
-    let dep_sources: Array<String> = into.dep_sources;
+    var deps: Array<Int> = into.deps;
+    var dep_fields: Array<String> = into.dep_fields;
+    var dep_sources: Array<String> = into.dep_sources;
     ArrayPush(deps, dep);
     ArrayPush(dep_fields, field);
     ArrayPush(dep_sources, source);
@@ -83,12 +83,12 @@ func SemanticAstCollectionExclusiveAddDep(
 func SemanticAstCollectionExclusiveAddSharedField(
     inout into: SemanticAstCollectionExclusiveClass, field: String
 ) -> Void {
-    let seen: Int = 0;
+    var seen: Int = 0;
     while seen < ArrayLength(into.shared_fields) {
         if into.shared_fields[seen] == field { return; }
         seen = seen + 1;
     }
-    let shared_fields: Array<String> = into.shared_fields;
+    var shared_fields: Array<String> = into.shared_fields;
     ArrayPush(shared_fields, field);
     into.shared_fields = shared_fields;
 }
@@ -97,7 +97,7 @@ func SemanticAstCollectionExclusiveJoin(
     inout into: SemanticAstCollectionExclusiveClass, ref part: SemanticAstCollectionExclusiveClass
 ) -> Void {
     if !part.exclusive { into.exclusive = false; return; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(part.deps) {
         SemanticAstCollectionExclusiveAddDep(into, part.deps[index], part.dep_fields[index],
             part.dep_sources[index]);
@@ -119,7 +119,7 @@ func SemanticAstCollectionExclusiveJoinField(
         SemanticAstCollectionExclusiveAddSharedField(into, field);
     }
     if !part.exclusive { return; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(part.deps) {
         SemanticAstCollectionExclusiveAddDep(into, part.deps[index], field, part.dep_sources[index]);
         index = index + 1;
@@ -131,12 +131,12 @@ func SemanticAstCollectionExclusiveFieldOf(
     ref part: SemanticAstCollectionExclusiveClass, field: String
 ) -> SemanticAstCollectionExclusiveClass {
     if !part.exclusive { return SemanticAstCollectionExclusiveShared(); }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(part.shared_fields) {
         if part.shared_fields[index] == field { return SemanticAstCollectionExclusiveShared(); }
         index = index + 1;
     }
-    let result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
+    var result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
     index = 0;
     while index < ArrayLength(part.deps) {
         if part.dep_fields[index] == field {
@@ -144,7 +144,7 @@ func SemanticAstCollectionExclusiveFieldOf(
         } else if part.dep_fields[index] == "" {
             // The whole value comes from the formal (or its field), so this
             // field does as well.
-            let source: String = part.dep_sources[index];
+            var source: String = part.dep_sources[index];
             if source == "" { source = field; }
             SemanticAstCollectionExclusiveAddDep(result, part.deps[index], "", source);
         }
@@ -158,8 +158,8 @@ func SemanticAstCollectionExclusiveLocalDeps(
     ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>,
     ref paths: Array<String>, local_id: Int
 ) -> SemanticAstCollectionExclusiveClass {
-    let result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
-    let row: Int = 0;
+    var result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
+    var row: Int = 0;
     while row < ArrayLength(dep_locals) {
         if dep_locals[row] == local_id {
             if dep_paths[row] < 0 {
@@ -181,15 +181,16 @@ func SemanticAstCollectionExclusiveRecordLocal(
     ref part: SemanticAstCollectionExclusiveClass
 ) -> Bool {
     let key: String = ToString(local_id);
-    let shared_rows: HashMap<String, Int> = facts.shared_locals;
-    if MapHas(shared_rows, key) { return false; }
+    if MapHas(facts.shared_locals, key) { return false; }
     if !part.exclusive {
+        var shared_rows: HashMap<String, Int> = facts.shared_locals;
         MapSet(shared_rows, key, 1);
         facts.shared_locals = shared_rows;
         return true;
     }
-    let changed: Bool = false;
-    let field_index: Int = 0;
+    var changed: Bool = false;
+    var shared_rows: HashMap<String, Int> = facts.shared_locals;
+    var field_index: Int = 0;
     while field_index < ArrayLength(part.shared_fields) {
         let field_key: String = Concat(key, Concat(".", part.shared_fields[field_index]));
         if !MapHas(shared_rows, field_key) {
@@ -200,11 +201,11 @@ func SemanticAstCollectionExclusiveRecordLocal(
         field_index = field_index + 1;
     }
     facts.shared_locals = shared_rows;
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(part.deps) {
         let whole: Bool = part.dep_fields[index] == "" && part.dep_sources[index] == "";
-        let known: Bool = false;
-        let row: Int = 0;
+        var known: Bool = false;
+        var row: Int = 0;
         while row < ArrayLength(facts.dep_locals) && !known {
             if facts.dep_locals[row] == local_id && facts.dep_formals[row] == part.deps[index] {
                 if facts.dep_paths[row] < 0 { known = whole; }
@@ -216,14 +217,17 @@ func SemanticAstCollectionExclusiveRecordLocal(
             row = row + 1;
         }
         if !known {
-            let locals_column: Array<Int> = facts.dep_locals;
-            let formals_column: Array<Int> = facts.dep_formals;
-            let paths_column: Array<Int> = facts.dep_paths;
+            var path: Int = -1;
+            if !whole {
+                path = SemanticAstCollectionExclusiveRecordPath(
+                    facts, part.dep_fields[index], part.dep_sources[index]);
+            }
+            var locals_column: Array<Int> = facts.dep_locals;
+            var formals_column: Array<Int> = facts.dep_formals;
+            var paths_column: Array<Int> = facts.dep_paths;
             ArrayPush(locals_column, local_id);
             ArrayPush(formals_column, part.deps[index]);
-            if whole { ArrayPush(paths_column, -1); }
-            else { ArrayPush(paths_column, SemanticAstCollectionExclusiveRecordPath(facts, part.dep_fields[index],
-                part.dep_sources[index])); }
+            ArrayPush(paths_column, path);
             facts.dep_locals = locals_column;
             facts.dep_formals = formals_column;
             facts.dep_paths = paths_column;
@@ -238,7 +242,7 @@ func SemanticAstCollectionExclusiveRecordLocal(
 func SemanticAstCollectionExclusiveRecordPath(
     inout facts: SemanticAstCollectionExclusiveValueFacts, field: String, source: String
 ) -> Int {
-    let paths: Array<String> = facts.paths;
+    var paths: Array<String> = facts.paths;
     let path: Int = ArrayLength(paths) / 2;
     ArrayPush(paths, Concat("", field));
     ArrayPush(paths, Concat("", source));
@@ -255,21 +259,21 @@ func SemanticAstCollectionExclusiveRecordReturn(
     ref part: SemanticAstCollectionExclusiveClass
 ) -> Bool {
     let key: String = ToString(function_id);
-    let shared_rows: HashMap<String, Int> = facts.shared_results;
-    if MapHas(shared_rows, key) { return false; }
+    if MapHas(facts.shared_results, key) { return false; }
     if !part.exclusive {
+        var shared_rows: HashMap<String, Int> = facts.shared_results;
         MapSet(shared_rows, key, 1);
         facts.shared_results = shared_rows;
         return true;
     }
-    let changed: Bool = false;
-    let field_index: Int = 0;
+    var changed: Bool = false;
+    var field_index: Int = 0;
     while field_index < ArrayLength(part.shared_fields) {
         let field_key: String = Concat("rf:", Concat(key, Concat(":", part.shared_fields[field_index])));
-        let results: HashMap<String, Int> = facts.shared_results;
-        if !MapHas(results, field_key) {
+        if !MapHas(facts.shared_results, field_key) {
             let path: Int = SemanticAstCollectionExclusiveRecordPath(facts, part.shared_fields[field_index], "");
-            let count: Int = SemanticAstCollectionExclusiveCopyCount(results, Concat("rfn:", key));
+            let count: Int = SemanticAstCollectionExclusiveCopyCount(facts.shared_results, Concat("rfn:", key));
+            var results: HashMap<String, Int> = facts.shared_results;
             MapSet(results, field_key, 1);
             MapSet(results, Concat("rfi:", Concat(key, Concat(":", ToString(count)))), path);
             MapSet(results, Concat("rfn:", key), count + 1);
@@ -278,16 +282,16 @@ func SemanticAstCollectionExclusiveRecordReturn(
         }
         field_index = field_index + 1;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(part.deps) {
         let formal: String = ToString(part.deps[index]);
         let pair: String = Concat("cp:", Concat(formal, Concat(":", Concat(part.dep_fields[index],
             Concat(":", part.dep_sources[index])))));
-        let carrying: HashMap<String, Int> = facts.carrying;
-        if !MapHas(carrying, pair) {
+        if !MapHas(facts.carrying, pair) {
             let path: Int = SemanticAstCollectionExclusiveRecordPath(facts, part.dep_fields[index],
                 part.dep_sources[index]);
-            let count: Int = SemanticAstCollectionExclusiveCopyCount(carrying, Concat("cn:", formal));
+            let count: Int = SemanticAstCollectionExclusiveCopyCount(facts.carrying, Concat("cn:", formal));
+            var carrying: HashMap<String, Int> = facts.carrying;
             MapSet(carrying, pair, 1);
             MapSet(carrying, formal, 1);
             MapSet(carrying, Concat("ci:", Concat(formal, Concat(":", ToString(count)))), path);

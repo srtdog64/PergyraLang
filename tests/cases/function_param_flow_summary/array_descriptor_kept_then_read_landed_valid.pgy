@@ -1,0 +1,27 @@
+// Keep stores a whole independent Clone of the Array descriptor and its
+// owned String elements, so the caller may still read its original Array.
+struct Holder {
+    rows: Array<String>;
+}
+
+func Keep(inout holder: Holder, rows: Array<String>) -> Int {
+    holder.rows = rows;
+    return ArrayLength(rows);
+}
+
+func Count(rows: Array<String>) -> Int {
+    return ArrayLength(rows);
+}
+
+func Twice() -> Int {
+    let rows: Array<String> = [Concat("a", "")];
+    let empty: Array<String> = [];
+    var holder: Holder = Holder(empty);
+    let n: Int = Keep(holder, rows);
+    return n + Count(rows) + ArrayLength(holder.rows);
+}
+
+func Main() -> Int {
+    Log(Twice());
+    return 0;
+}

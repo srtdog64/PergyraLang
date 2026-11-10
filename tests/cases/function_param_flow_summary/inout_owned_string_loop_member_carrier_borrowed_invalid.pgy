@@ -1,0 +1,31 @@
+// Replaying one exact inout call in a loop must not manufacture an owned
+// element premise. One backedge can shallow-store a borrowed String, so the
+// following owned-String mutation must fail after the loop paths are joined.
+struct Facts {
+    types: Array<String>;
+}
+
+func Append(inout types: Array<String>, type_name: String) -> Void {
+    ArrayPush(types, type_name);
+}
+
+func Build(facts: Facts) -> Facts {
+    var types: Array<String> = facts.types;
+    var i: Int = 0;
+    while i < 2 {
+        if i == 1 {
+            ArraySet(types, 0, "borrowed");
+        }
+        Append(types, Concat("t", ToString(i)));
+        i = i + 1;
+    }
+    facts.types = types;
+    return facts;
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts([Concat("seed", "")]);
+    let changed: Facts = Build(facts);
+    Log(ArrayLength(changed.types));
+    return 0;
+}

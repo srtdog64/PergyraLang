@@ -12,9 +12,9 @@ func SemanticAstIntentBoundaryPredicateAdmission(
     ref function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstBodyVerdict {
     let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
-    let member_roots: Array<String> = [];
-    let member_roots_ready: Bool = false;
-    let row: Int = 0;
+    var member_roots: Array<String> = [];
+    var member_roots_ready: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(analysis.expression_surfaces.node_ids) {
         let node_id: Int = analysis.expression_surfaces.node_ids[row];
         let is_pre: Bool = TypedAstArenaNodeKindIs(
@@ -46,9 +46,9 @@ func SemanticAstIntentBoundaryPredicateAdmission(
                 }
                 member_roots_ready = true;
             }
-            let names: Array<String> = [];
-            let types: Array<String> = [];
-            let modes: Array<String> = [];
+            var names: Array<String> = [];
+            var types: Array<String> = [];
+            var modes: Array<String> = [];
             if !SemanticAstExpressionSeedEnumValues(analysis.enums, names, types, modes) ||
                 !SemanticAstIntentExpressionSeedEnvironment(artifact,
                     analysis.signatures, analysis.intent_signatures,

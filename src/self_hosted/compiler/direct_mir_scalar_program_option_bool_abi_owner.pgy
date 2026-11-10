@@ -63,8 +63,8 @@ func DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
     ref fact: DirectMirOptionMatchAbiFact,
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
-    let required: Bool = false;
-    let row: Int = 0;
+    var required: Bool = false;
+    var row: Int = 0;
     while row < ArrayLength(expressions.node_types) {
         if expressions.node_types[row] == CompilerAbiLayoutOptionBoolTypeName() {
             required = true;

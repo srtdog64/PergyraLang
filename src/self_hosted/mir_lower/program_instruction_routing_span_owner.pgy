@@ -8,8 +8,8 @@ func MirProgramInstructionExpressionRoutingPresent(
     slot: Int
 ) -> Bool {
     if !fact.valid || (slot != 0 && slot != 1) { return false; }
-    let start: Int = fact.name_start;
-    let end: Int = fact.name_end;
+    var start: Int = fact.name_start;
+    var end: Int = fact.name_end;
     if slot == 1 { start = fact.arg0_start; end = fact.arg0_end; }
     return start >= 0 && end > start + 2;
 }
@@ -24,11 +24,11 @@ func MirProgramInstructionExpressionRoutingEquals(
     if !MirProgramInstructionExpressionRoutingPresent(fact, slot) {
         return expected == "";
     }
-    let start: Int = fact.name_start;
-    let end: Int = fact.name_end;
+    var start: Int = fact.name_start;
+    var end: Int = fact.name_end;
     if slot == 1 { start = fact.arg0_start; end = fact.arg0_end; }
-    let escaped: Bool = false;
-    let i: Int = start + 1;
+    var escaped: Bool = false;
+    var i: Int = start + 1;
     while i < end - 1 {
         if JsonCharCodeAt(json, json_extent, end, i) == JsonAsciiCode("\\") {
             escaped = true;

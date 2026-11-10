@@ -13,7 +13,7 @@ import "intent_observability_emit_owner.pgy";
 
 func CodegenIntentEmitNestedCall(
     inout body: Array<String>,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     call_node: Int,
     step_name: String,
     ref steps: SelfDirIntentStepFacts,
@@ -21,18 +21,18 @@ func CodegenIntentEmitNestedCall(
     uses_intent_observability: Bool,
     env: CodegenTypeEnv
 ) -> Void {
-    let graph: SemanticExpressionGraphView =
+    let root_id: Int =
         CodegenSemanticExpressionGraphOrDie(
             expression_surfaces, call_node, AstExpressionLaneAtom()
         );
     let call_type: Option<String> = CodegenExpressionTypeFromGraph(
-        graph.graph, graph.root_id, env
+        expression_surfaces.expression_graph, root_id, env
     );
     if !IsSome(call_type) || UnwrapOption(call_type) != "Bool" {
         Die("self-host nested intent call result is not Bool");
     }
     let call_expression: String = RewriteExprFromSemanticGraph(
-        graph.graph, graph.root_id, env
+        expression_surfaces.expression_graph, root_id, env
     );
     CodegenIntentObservabilityEmitAttributionRange(
         body, uses_intent_observability, step_name,

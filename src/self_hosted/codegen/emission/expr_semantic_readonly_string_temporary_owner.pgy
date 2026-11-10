@@ -1,0 +1,131 @@
+// Readonly String temporary admission and rewrite.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "expr_semantic_composite_literal_emit_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+
+func SemanticCallReadonlyStringTemporaryReady(
+    ref graph: SemanticExpressionGraphFacts,
+    ref view: SemanticCallSpineView,
+    modes: String,
+    param_types: String
+) -> Bool {
+    if !graph.ok || !view.ok || ArrayLength(view.argument_nodes) != 1 ||
+        ParamModeCsvCount(modes) != 1 || ParamModeCsvCount(param_types) != 1 ||
+        ParamModeCsvAt(modes, 0) != "ref" ||
+        !AbiLayoutCReadonlyRefPassesDirect(CsvAt(param_types, 0)) {
+        return false;
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, view.call_node);
+    let return_type: Option<String> = SemanticExpressionGraphCallReturnTypeName(
+        graph, view.call_node);
+    let runtime_abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(
+        graph, view.call_node);
+    return IsSome(target_kind) &&
+        UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
+        IsSome(return_type) && UnwrapOption(return_type) == "Void" &&
+        IsSome(runtime_abi) && UnwrapOption(runtime_abi) == 0;
+}
+
+func RewriteSemanticCallArgumentWithReadonlyStringTemporary(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    expected_type: String,
+    mode: String,
+    env: CodegenTypeEnv,
+    readonly_string_temporary_ready: Bool,
+    collection_runtime_member_inout_ready: Bool
+) -> String {
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
+    if !IsSome(text) {
+        Die("semantic call argument fact is missing");
+    }
+    let source: String = UnwrapOption(text);
+    let rendered: String = RewriteSemanticExpectedValue(
+        graph, node_id, expected_type, env);
+    if mode != "inout" && mode != "ref" && mode != "identity" { return rendered; }
+    let readonly_ref_direct: Bool = mode == "ref" &&
+        AbiLayoutCReadonlyRefPassesDirect(expected_type);
+    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node_id);
+    if !IsSome(place_kind) {
+        Die("semantic call argument place fact is missing");
+    }
+    let carried_place_kind: Int = UnwrapOption(place_kind);
+    let addressable: Bool = SemanticExpressionPlaceKindAddressable(
+        carried_place_kind
+    );
+    let direct_binding: Bool =
+        SemanticExpressionPlaceKindDirectBinding(carried_place_kind);
+    if mode == "inout" {
+        let runtime_member: Bool = collection_runtime_member_inout_ready &&
+            carried_place_kind == SemanticExpressionPlaceMember();
+        if !direct_binding && !runtime_member {
+            Die(Concat("inout argument must be a variable: ", source));
+        }
+        return Concat("&", rendered);
+    }
+    if mode == "identity" {
+        // A nominal constructor has no caller binding to address, but its C
+        // compound literal is an lvalue whose lifetime covers the call.  The
+        // carried target identity distinguishes that exact case from an
+        // arbitrary value-returning call.
+        let call: SemanticCallSpineView =
+            SemanticCallSpineViewFromGraph(graph, node_id);
+        var fresh_constructor: Bool = false;
+        if call.ok && carried_place_kind == SemanticExpressionPlaceValue() {
+            let target_kind: Option<Int> =
+                SemanticExpressionGraphCallTargetKind(graph, call.call_node);
+            let target_id: Option<Int> =
+                SemanticExpressionGraphCallTargetSyntaxId(
+                    graph, call.call_node);
+            let runtime_id: Option<Int> =
+                SemanticExpressionGraphRuntimeCallAbiId(
+                    graph, call.call_node);
+            if IsSome(target_kind) &&
+            UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
+            IsSome(target_id) && UnwrapOption(target_id) == 0 &&
+            IsSome(runtime_id) && UnwrapOption(runtime_id) == 0 {
+                let binding: SemanticExpressionBindingIdentityFact =
+                    SemanticExpressionGraphBindingIdentity(
+                        graph, call.callee_node);
+                fresh_constructor = binding.ok &&
+                    binding.kind == SemanticExpressionBindingNone() &&
+                    binding.syntax_id == 0;
+            }
+        }
+        if !addressable && !fresh_constructor {
+            Die(Concat("identity argument is not addressable: ", source));
+        }
+        return Concat("&", rendered);
+    }
+    if mode == "ref" {
+        let already_ref: Bool = carried_place_kind ==
+            SemanticExpressionPlaceReadonlyRefBinding();
+        if readonly_ref_direct {
+            if !addressable && !already_ref &&
+                !readonly_string_temporary_ready {
+                Die(Concat("ref argument must be addressable: ", source));
+            }
+            return rendered;
+        }
+        if already_ref {
+            let c_name: Option<String> = TypeEnvReadonlyRefCName(env, source);
+            if !IsSome(c_name) {
+                Die(Concat("readonly ref binding fact missing: ", source));
+            }
+            return UnwrapOption(c_name);
+        }
+        if !addressable {
+            Die(Concat("ref argument must be addressable: ", source));
+        }
+        return Concat("&", rendered);
+    }
+    return rendered;
+}
+

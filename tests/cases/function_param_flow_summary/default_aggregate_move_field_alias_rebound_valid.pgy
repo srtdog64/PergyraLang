@@ -6,7 +6,7 @@ struct Arena {
 }
 
 func Reset(arena: Arena) -> Int {
-    let atoms: Array<String> = arena.atoms;
+    var atoms: Array<String> = arena.atoms;
     atoms = [StringConcat("x", "y")];
     return ArrayLength(atoms);
 }

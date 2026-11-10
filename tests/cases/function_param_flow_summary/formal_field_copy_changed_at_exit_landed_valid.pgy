@@ -7,7 +7,7 @@ struct Facts {
 }
 
 func Grow(inout facts: Facts) -> Int {
-    let rows: Array<Int> = facts.rows;
+    var rows: Array<Int> = facts.rows;
     var n: Int = 0;
     while n < 40 { ArrayPush(rows, n); n = n + 1; }
     return ArrayLength(rows);

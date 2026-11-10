@@ -75,6 +75,17 @@ size_t type_resolution_intern_node(TypeResolutionGraph *graph,
                                    TypeResolutionNodeKind kind,
                                    const ASTNode *site,
                                    const char *label);
+bool type_resolution_node_identity_current(
+    const TypeResolutionGraph *graph,
+    TypeResolutionNodeKind kind,
+    const ASTNode *site,
+    const char *label,
+    size_t *ordinal);
+bool type_resolution_edge_reason_current(
+    TypeResolutionGraph *graph,
+    size_t source_ordinal,
+    const char *reason,
+    bool *present);
 void type_resolution_add_edge(TypeResolutionGraph *graph,
                               size_t from,
                               size_t to,

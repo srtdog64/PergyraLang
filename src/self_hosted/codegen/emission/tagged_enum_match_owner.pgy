@@ -25,7 +25,7 @@ func EmitTaggedEnumMatchCondition(
             "tagged enum match pattern fact is invalid: ", fact.pattern
         ));
     }
-    let variant: String = fact.variant;
+    var variant: String = fact.variant;
     if variant == "" { variant = fact.pattern; }
     let tag: String = LookupKindType(
         env, Concat(subject_type, Concat(".", variant)), "etag"
@@ -33,7 +33,7 @@ func EmitTaggedEnumMatchCondition(
     if tag == "" {
         Die(Concat("tagged enum match tag fact is missing: ", variant));
     }
-    let condition: String = "((";
+    var condition: String = "((";
     condition = Concat(condition, rendered_match_value);
     condition = Concat(condition, ").tag == ");
     return Concat(condition, Concat(tag, ")"));
@@ -52,7 +52,7 @@ func BindTaggedEnumMatchPayload(
     if LookupKindType(env, variant_key, "etype") != subject_type {
         Die(Concat("tagged enum match variant owner fact is missing: ", fact.variant));
     }
-    let binding_index: Int = 0;
+    var binding_index: Int = 0;
     while binding_index < ArrayLength(fact.bindings) {
         let field_name: String = Concat("_", ToString(binding_index));
         let payload_type: String = LookupFieldType(
@@ -64,7 +64,7 @@ func BindTaggedEnumMatchPayload(
                 Concat(fact.variant, Concat("#", ToString(binding_index)))
             ));
         }
-        let c_value: String = "(";
+        var c_value: String = "(";
         c_value = Concat(c_value, rendered_match_value);
         c_value = Concat(c_value, ").");
         c_value = Concat(
@@ -72,7 +72,7 @@ func BindTaggedEnumMatchPayload(
         );
         c_value = Concat(c_value, Concat(".", field_name));
         CodegenTypeEnvStateAppendTypedValueBinding(
-            env_state, env, fact.bindings[binding_index],
+            env_state, fact.bindings[binding_index],
             payload_type, payload_type, c_value
         );
         binding_index = binding_index + 1;
@@ -93,7 +93,7 @@ func EmitMatchCaseLine(
     rendered_match_value: String,
     env: CodegenTypeEnv
 ) -> String {
-    let prefix: String = "if (";
+    var prefix: String = "if (";
     if match_case_count != 0 { prefix = "} else if ("; }
     if tagged_match {
         let condition: String = EmitTaggedEnumMatchCondition(

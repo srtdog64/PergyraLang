@@ -15,17 +15,21 @@ func DirectMirScalarCfgProgramAppendMatchConditionExpression(
     local_offset: Int, parameter_types: Array<String>,
     ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref option_int_abi: DirectMirOptionMatchAbiFact
 ) -> Option<Int> {
-    let use_offset: Int = 0;
+    var use_offset: Int = 0;
     return DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
         expressions, failure, instruction, uses, index, global_row,
         local_instruction, locals, types, wire, local_offset,
-        parameter_types, signature, callables, logical_record,
+        parameter_types, signature, callables, routine_instances,
+        caller_ordinal,
+        logical_record,
         payload_free_enum, referenced_enum, option_int_abi,
         "expr0_graph", use_offset, true,
-        CompilerAbiLayoutBoolTypeName(), -1);
+        CompilerAbiLayoutBoolTypeName(), -1, false);
 }

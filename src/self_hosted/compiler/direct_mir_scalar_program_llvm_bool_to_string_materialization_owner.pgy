@@ -6,7 +6,7 @@ func DirectMirScalarProgramLlvmBoolToStringMaterialization(
     if !CompilerRuntimeCallAbiBoolToStringFactReady(fact) {
         Die("direct MIR scalar LLVM Bool ToString ABI is invalid");
     }
-    let output: String = Concat("define internal ptr @", fact.symbol);
+    var output: String = Concat("define internal ptr @", fact.symbol);
     output = Concat(output,
         "(i1 %value) {\nentry:\n  %result = call ptr @malloc(i64 6)\n  br i1 %value, label %true, label %false\n\ntrue:\n");
     output = Concat(output,

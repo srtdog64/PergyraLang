@@ -12,8 +12,8 @@ func CodegenIntentPlanRoutineStepCount(
     ref view: CodegenIntentExecutionView,
     routine_syntax_id: Int
 ) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(view.plan.steps.transition_ids) {
         if view.routine_canonical_syntax_ids[row] == routine_syntax_id {
             count = count + 1;
@@ -28,8 +28,8 @@ func CodegenIntentPlanStepRowByTransition(
     routine_syntax_id: Int,
     transition_id: Int
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(view.plan.steps.transition_ids) {
         if view.routine_canonical_syntax_ids[row] == routine_syntax_id &&
             view.plan.steps.transition_ids[row] == transition_id {
@@ -45,8 +45,8 @@ func CodegenIntentPlanRootStepRow(
     ref view: CodegenIntentExecutionView,
     routine_syntax_id: Int
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(view.plan.steps.transition_ids) {
         if view.routine_canonical_syntax_ids[row] == routine_syntax_id &&
             view.plan.steps.predecessor_transition_ids[row] == 0 {
@@ -63,8 +63,8 @@ func CodegenIntentPlanChildStepRow(
     routine_syntax_id: Int,
     predecessor_transition_id: Int
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(view.plan.steps.transition_ids) {
         if view.routine_canonical_syntax_ids[row] == routine_syntax_id &&
             view.plan.steps.predecessor_transition_ids[row] ==
@@ -83,8 +83,8 @@ func CodegenIntentPlanTerminalRow(
     source_transition_id: Int,
     role: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(
         view.plan.terminals.terminal_transition_ids
     ) {
@@ -103,16 +103,17 @@ func CodegenIntentPlanTerminalRow(
 
 func CodegenIntentPlanExpression(
     ref view: CodegenIntentExecutionView,
+    ref expression_graph: SemanticExpressionGraphFacts,
     root: Int,
     env: CodegenTypeEnv
 ) -> String {
     if root < 0 || root >= SemanticExpressionGraphArenaNodeCount(
-        view.expression_graphs.arena
+        expression_graph.arena
     ) {
         Die("typed intent expression graph root is invalid");
     }
     return RewriteExprFromSemanticGraph(
-        view.expression_graphs, root, env
+        expression_graph, root, env
     );
 }
 

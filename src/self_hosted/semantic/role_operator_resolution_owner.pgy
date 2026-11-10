@@ -27,7 +27,7 @@ func SemanticExpressionGraphRoleOperatorTargetsReady(
     if !graph.ok || !SemanticExpressionGraphArenaReady(graph.arena) {
         return false;
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         let target_kind: Int = graph.arena.call_target_kinds[node_id];
         if target_kind == SemanticCallTargetRoleOperator() {
@@ -61,10 +61,10 @@ func SemanticRoleOperatorSignatureShapeAt(
         UnwrapOption(return_type) == "" {
         return SemanticRoleOperatorSignatureShape(false, "", "");
     }
-    let self_count: Int = 0;
-    let rhs_count: Int = 0;
-    let rhs_type: String = "";
-    let i: Int = 0;
+    var self_count: Int = 0;
+    var rhs_count: Int = 0;
+    var rhs_type: String = "";
+    var i: Int = 0;
     while i < UnwrapOption(param_count) {
         let name: Option<String> = SemanticAstFunctionParamNameAt(
             signatures, signature_index, i
@@ -105,8 +105,8 @@ func SemanticRoleOperatorAbilitySignatureIndex(
         roles, UnwrapOption(ability_index)
     );
     if !IsSome(method_count) { return None; }
-    let found: Int = -1;
-    let i: Int = 0;
+    var found: Int = -1;
+    var i: Int = 0;
     while i < UnwrapOption(method_count) {
         let method_node: Option<Int> = SemanticAstAbilityMethodNodeAt(
             roles, UnwrapOption(ability_index), i
@@ -188,11 +188,11 @@ func SemanticRoleOperatorResolutionForNode(
         );
     }
 
-    let match_count: Int = 0;
-    let matched_target: String = "";
-    let matched_return: String = "";
-    let malformed_candidate: Bool = false;
-    let role_index: Int = 0;
+    var match_count: Int = 0;
+    var matched_target: String = "";
+    var matched_return: String = "";
+    var malformed_candidate: Bool = false;
+    var role_index: Int = 0;
     while role_index < SemanticAstRoleCount(roles) {
         let role_type: Option<String> = SemanticAstRoleTargetTypeAt(
             roles, role_index
@@ -214,7 +214,7 @@ func SemanticRoleOperatorResolutionForNode(
                     false, false, "", "", left_type, right_type
                 );
             }
-            let method_index: Int = 0;
+            var method_index: Int = 0;
             while method_index < UnwrapOption(method_count) {
                 let method_node: Option<Int> = SemanticAstRoleMethodNodeAt(
                     roles, role_index, method_index
@@ -262,7 +262,7 @@ func SemanticRoleOperatorResolutionForNode(
                             roles, signatures, UnwrapOption(ability_name),
                             UnwrapOption(method_name)
                         );
-                    let ability_shape: SemanticRoleOperatorSignatureShape =
+                    var ability_shape: SemanticRoleOperatorSignatureShape =
                         SemanticRoleOperatorSignatureShape(false, "", "");
                     if IsSome(ability_signature) {
                         ability_shape = SemanticRoleOperatorSignatureShapeAt(

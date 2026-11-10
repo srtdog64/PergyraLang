@@ -8,8 +8,16 @@ func DirectMirScalarProgramLlvmStringGlobals(
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
-    let node: Int = 0;
+    var node: Int = 0;
+    var clone_empty_emitted: Bool = false;
     while node < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprStringClone() &&
+            !clone_empty_emitted {
+            TextBuilderAppend(output,
+                "@pgy.scalar.clone.empty = private unnamed_addr constant [1 x i8] c\"\\00\"\n");
+            clone_empty_emitted = true;
+        }
         if expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprStringLiteral() {
             let literal: String = expressions.node_literals[node];

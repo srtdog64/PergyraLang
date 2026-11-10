@@ -62,7 +62,7 @@ func CompilerRuntimeValueCallAbiFactForSource(
     let identity: CompilerRuntimeValueCallAbiIdentity =
         CompilerRuntimeValueCallAbiIdentityForSource(source_name);
     if !identity.valid { return CompilerRuntimeValueCallAbiFactMissing(); }
-    let parameters: Array<String> = [];
+    var parameters: Array<String> = [];
     if identity.parameter_count >= 1 { ArrayPush(parameters, identity.parameter0); }
     if identity.parameter_count >= 2 { ArrayPush(parameters, identity.parameter1); }
     return CompilerRuntimeValueCallAbiFactFromFields(
@@ -91,8 +91,8 @@ func CompilerRuntimeValueCallParameterSchema(
     // and normalizes that spelling to the empty schema.  Consumers join the
     // admitted projection, never its serialized source spelling.
     if ArrayLength(fact.parameter_types) == 0 { return ""; }
-    let schema: String = fact.parameter_types[0];
-    let row: Int = 1;
+    var schema: String = fact.parameter_types[0];
+    var row: Int = 1;
     while row < ArrayLength(fact.parameter_types) {
         schema = Concat(schema, Concat("|", fact.parameter_types[row]));
         row = row + 1;
@@ -151,7 +151,7 @@ func CompilerRuntimeValueCallInstructionRowReady(
     let layout_kind: Option<String> = JsonObjectFactValueKind(
         instruction, "abi_layout");
     if !representation.valid {
-        let type_ready: Bool = false;
+        var type_ready: Bool = false;
         if expected.return_type == "Void" {
             let type_kind: Option<String> = JsonObjectFactValueKind(
                 instruction, "abi_type_name");
@@ -175,7 +175,7 @@ func CompilerRuntimeValueCallInstructionRowReady(
         !IsSome(layout_kind) || UnwrapOption(layout_kind) != "object" {
         return false;
     }
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactValueBounds(instruction, "abi_layout", bounds) {
         return false;
     }

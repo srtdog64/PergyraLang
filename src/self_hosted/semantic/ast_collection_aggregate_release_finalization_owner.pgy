@@ -1,0 +1,420 @@
+// Result-storage actions, plan finalization, and finalized transfers.
+
+import "ast_collection_aggregate_release_plan_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_collection_owned_argument_admission_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_compiler_clone_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
+import "ast_collection_aggregate_release_restoration_owner.pgy";
+
+struct SemanticAstCollectionAggregateResultStorageAction {
+    ready: Bool;
+    consumes_local_storage: Bool;
+    preserves_local_storage: Bool;
+}
+
+// Classify the one physical Array<String> constructor input selected by every
+// exact terminal result transfer. A direct return must name that exact input;
+// a returned holder must carry that edge through the initializer's exact
+// constructor/call-forwarding chain to the same destination path proved by the
+// result-transfer owner. A
+// compiler Clone at the selected input preserves the local owner; an un-cloned
+// input consumes it. More than one candidate remains unclassified.
+func SemanticAstCollectionAggregateResultStorageActionForRequirement(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    ref transfer: SemanticAstCollectionAggregateResultTransfer,
+    function_id: Int, local_id: Int, field_id: Int,
+    required_destination_field: String, after_syntax_id: Int
+) -> SemanticAstCollectionAggregateResultStorageAction {
+    if !SemanticAstCollectionConstructorFieldInputsShapeReady(inputs) ||
+        !transfer.ready || transfer.site_count <= 0 ||
+        ArrayLength(transfer.matched_return_syntax_ids) !=
+            transfer.site_count ||
+        ArrayLength(transfer.matched_source_holder_ids) !=
+            transfer.site_count ||
+        ArrayLength(transfer.matched_source_argument_nodes) !=
+            transfer.site_count ||
+        function_id <= 0 || local_id <= 0 || field_id <= 0 ||
+        required_destination_field == "" ||
+        after_syntax_id <= 0 {
+        return SemanticAstCollectionAggregateResultStorageAction(
+            false, false, false);
+    }
+    var matches: Int = 0;
+    var argument_node: Int = -1;
+    var input: Int = 0;
+    while input < ArrayLength(inputs.edge_nodes) {
+        if inputs.function_ids[input] == function_id &&
+            inputs.binding_ids[input] == local_id &&
+            inputs.field_ids[input] == field_id &&
+            inputs.syntax_ids[input] > after_syntax_id &&
+            inputs.syntax_ids[input] <= transfer.last_syntax_id &&
+            SemanticAstCollectionAggregateNamedInputKind(
+                inputs.producer_kinds[input]) {
+            matches = matches + 1;
+            argument_node = inputs.argument_nodes[input];
+        }
+        input = input + 1;
+    }
+    if matches != 1 || argument_node < 0 {
+        return SemanticAstCollectionAggregateResultStorageAction(
+            false, false, false);
+    }
+    var matched_input: Int = -1;
+    input = 0;
+    while input < ArrayLength(inputs.edge_nodes) {
+        if inputs.function_ids[input] == function_id &&
+            inputs.binding_ids[input] == local_id &&
+            inputs.field_ids[input] == field_id &&
+            inputs.syntax_ids[input] > after_syntax_id &&
+            inputs.syntax_ids[input] <= transfer.last_syntax_id &&
+            SemanticAstCollectionAggregateNamedInputKind(
+                inputs.producer_kinds[input]) {
+            matched_input = input;
+        }
+        input = input + 1;
+    }
+    if matched_input < 0 {
+        return SemanticAstCollectionAggregateResultStorageAction(
+            false, false, false);
+    }
+    var site: Int = 0;
+    while site < transfer.site_count {
+        let holder: Int = transfer.matched_source_holder_ids[site];
+        let direct_input: Bool = holder == local_id &&
+            inputs.syntax_ids[matched_input] ==
+                transfer.matched_return_syntax_ids[site] &&
+            inputs.argument_nodes[matched_input] ==
+                transfer.matched_source_argument_nodes[site];
+        var holder_input: Bool = false;
+        if holder > 0 && holder != local_id &&
+            inputs.syntax_ids[matched_input] == holder &&
+            inputs.surface_slots[matched_input] % 3 ==
+                AstExpressionLaneValue() {
+            let initializer_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, holder, AstExpressionLaneValue());
+            if IsSome(initializer_root) {
+                let candidate_edge: SemanticCallArgumentEdgeView =
+                    SemanticCallArgumentEdgeFromGraph(
+                        surfaces.expression_graph,
+                        inputs.edge_nodes[matched_input]);
+                if candidate_edge.ok &&
+                    candidate_edge.call_node ==
+                        inputs.call_nodes[matched_input] &&
+                    candidate_edge.argument_node ==
+                        inputs.argument_nodes[matched_input] &&
+                    candidate_edge.ordinal ==
+                        inputs.ordinals[matched_input] {
+                    let candidate_path: Option<String> =
+                        SemanticAstCollectionAggregateReturnedResultPath(
+                            artifact, signatures, constructors, locals,
+                            inferred_types, surfaces, exclusive_values,
+                            inputs.surface_slots[matched_input] / 3,
+                            UnwrapOption(initializer_root), candidate_edge,
+                            "");
+                    holder_input = IsSome(candidate_path) &&
+                        UnwrapOption(candidate_path) ==
+                            required_destination_field;
+                }
+            }
+        }
+        if !direct_input && !holder_input {
+            return SemanticAstCollectionAggregateResultStorageAction(
+                false, false, false);
+        }
+        site = site + 1;
+    }
+    let cloned: Bool = SemanticExpressionGraphCompilerCloneAt(
+        surfaces.expression_graph, argument_node);
+    return SemanticAstCollectionAggregateResultStorageAction(
+        true, !cloned, cloned);
+}
+
+func SemanticAstCollectionAggregateReleasePlanFinalized(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref statements: SemanticAstStatementFacts,
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref body_termination: SemanticAstBodyTerminationFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    inout finalized_transfer_requirement_rows: Array<Int>
+) -> Bool {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        !SemanticAstCollectionAggregateFieldEntryRequirementsReady(
+            requirements) ||
+        !SemanticAstCollectionConstructorFieldInputsShapeReady(inputs) ||
+        ArrayLength(finalized_transfer_requirement_rows) != 0 ||
+        moved_use.found ||
+        ArrayLength(moved_use.restored_binding_syntax_ids) !=
+            ArrayLength(moved_use.restoration_syntax_ids) {
+        plan.diagnostic_reason = "finalize_shape";
+        return false;
+    }
+    var proved_transfer_requirements: Array<Int> = [];
+    if !SemanticAstCollectionAggregateCarrierRestorationsReady(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, surfaces, assignments, statements,
+            body_termination, exclusive_values, plan) {
+        if plan.diagnostic_reason == "" {
+            plan.diagnostic_reason = "finalize_carrier_restoration";
+        }
+        return false;
+    }
+    if !SemanticAstCollectionAggregateReleaseAliasesReady(
+            artifact, signatures, constructors, requirements, locals, inferred_types,
+            resolved_leaf_types, surfaces, assignments, statements, plan,
+            formal_effects, body_termination, moved_use,
+            exclusive_values) {
+        if plan.diagnostic_reason == "" {
+            plan.diagnostic_reason = "finalize_aliases";
+        }
+        return false;
+    }
+    var demand: Int = 0;
+    while demand < ArrayLength(plan.reserved) {
+        if !plan.reserved[demand] {
+            plan.diagnostic_syntax_id =
+                SemanticAstCollectionAggregateReleasePlanSyntaxForEdge(
+                    plan, plan.demand_edge_nodes[demand]);
+            plan.diagnostic_reason = "finalize_unreserved_demand";
+            return false;
+        }
+        demand = demand + 1;
+    }
+    var requirement: Int = 0;
+    while requirement < ArrayLength(plan.requirement_local_ids) {
+        let effect_mask: Int =
+            plan.requirement_effect_masks[requirement];
+        let needs_drop: Bool =
+            SemanticAstCollectionAggregateRequirementHasEffect(
+                effect_mask,
+                SemanticAstCollectionAggregateFieldEntryEffectDeepDrop());
+        let needs_owned_push: Bool =
+            SemanticAstCollectionAggregateRequirementHasEffect(
+                effect_mask,
+                SemanticAstCollectionAggregateFieldEntryEffectOwnedPush());
+        if !needs_drop && !needs_owned_push {
+            plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
+            plan.diagnostic_reason = "finalize_requirement_effect";
+            return false;
+        }
+        var last_effect_site: Int = -1;
+        if needs_drop {
+            if plan.drop_syntax_ids[requirement] <= 0 ||
+                plan.drop_expression_nodes[requirement] < 0 ||
+                !SemanticAstCollectionAggregateReleaseFunctionStraightLine(
+                    statements, requirements.function_ids[requirement]) {
+                plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
+                plan.diagnostic_reason = "finalize_drop";
+                return false;
+            }
+            last_effect_site = plan.drop_syntax_ids[requirement];
+        }
+        if needs_owned_push {
+            if plan.owned_push_syntax_ids[requirement] <= 0 ||
+                plan.owned_push_expression_nodes[requirement] < 0 {
+                plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
+                plan.diagnostic_reason = "finalize_owned_push";
+                return false;
+            }
+            if plan.owned_push_syntax_ids[requirement] > last_effect_site {
+                last_effect_site =
+                    plan.owned_push_syntax_ids[requirement];
+            }
+        }
+        var restoration_count: Int = 0;
+        var restoration_site: Int = -1;
+        var restored: Int = 0;
+        while restored <
+                ArrayLength(moved_use.restored_binding_syntax_ids) {
+            if moved_use.restored_binding_syntax_ids[restored] ==
+                    plan.requirement_local_ids[requirement] {
+                restoration_count = restoration_count + 1;
+                restoration_site = moved_use.restoration_syntax_ids[restored];
+            }
+            restored = restored + 1;
+        }
+        var reconstruction_count: Int = 0;
+        var reconstruction_site: Int = -1;
+        var reconstruction: Int = 0;
+        while reconstruction <
+                ArrayLength(plan.reconstructed_binding_ids) {
+            if plan.reconstructed_binding_ids[reconstruction] ==
+                    requirements.formal_ids[requirement] &&
+                plan.reconstruction_syntax_ids[reconstruction] >
+                    last_effect_site {
+                reconstruction_count = reconstruction_count + 1;
+                reconstruction_site =
+                    plan.reconstruction_syntax_ids[reconstruction];
+            }
+            reconstruction = reconstruction + 1;
+        }
+        var direct_site: Int = restoration_site;
+        if restoration_count == 0 && reconstruction_count == 1 {
+            direct_site = reconstruction_site;
+        }
+        let direct_restoration: Bool =
+            ((restoration_count == 1 && reconstruction_count == 0) ||
+             (restoration_count == 0 && reconstruction_count == 1)) &&
+            direct_site > last_effect_site &&
+            SemanticAstCollectionAggregateDirectRestorationReady(
+                artifact, locals, requirements, requirement,
+                direct_site) &&
+            (!needs_owned_push ||
+             SemanticAstCollectionAggregateOwnedMutationControlReady(
+                artifact, statements, requirements.function_ids[requirement],
+                requirements.local_ids[requirement], direct_site));
+        var requirement_field_name: String = "";
+        let requirement_field: Option<String> =
+            SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+                constructors, requirements.field_ids[requirement]);
+        if IsSome(requirement_field) {
+            requirement_field_name = Concat(
+                "", UnwrapOption(requirement_field));
+        }
+        let result_transfer: SemanticAstCollectionAggregateResultTransfer =
+            SemanticAstCollectionAggregateOwnedLocalResultTransfer(
+                artifact, signatures, constructors, locals, inferred_types,
+                resolved_leaf_types, surfaces, statements, body_termination,
+                exclusive_values,
+                requirements.function_ids[requirement],
+                requirements.local_ids[requirement],
+                requirements.formal_ids[requirement], last_effect_site,
+                requirement_field_name);
+        let returned_restoration: Bool = restoration_count == 0 &&
+            reconstruction_count == 0 &&
+            !needs_drop && needs_owned_push && result_transfer.ready &&
+            result_transfer.site_count > 0 &&
+            result_transfer.first_syntax_id > last_effect_site &&
+            SemanticAstCollectionAggregateReturnedMutationControlReady(
+                artifact, statements, requirements.function_ids[requirement],
+                requirements.local_ids[requirement],
+                result_transfer);
+        let result_storage_action:
+            SemanticAstCollectionAggregateResultStorageAction =
+            SemanticAstCollectionAggregateResultStorageActionForRequirement(
+                artifact, signatures, constructors, locals, inferred_types,
+                inputs, surfaces, exclusive_values, result_transfer,
+                requirements.function_ids[requirement],
+                requirements.local_ids[requirement],
+                requirements.field_ids[requirement], requirement_field_name,
+                last_effect_site);
+        if !direct_restoration && !returned_restoration {
+            plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
+            plan.diagnostic_reason = "finalize_restoration";
+            return false;
+        }
+        // Only a terminal result transfer is consumed here.  A local
+        // reconstruction can be followed by more statements and therefore
+        // remains governed by the ordinary restoration/use scan.
+        if returned_restoration && result_storage_action.ready &&
+            result_storage_action.consumes_local_storage {
+            ArrayPush(proved_transfer_requirements, requirement);
+        }
+        requirement = requirement + 1;
+    }
+    var validated: Int = 0;
+    while validated < ArrayLength(plan.validated_input_rows) {
+        let input: Int = plan.validated_input_rows[validated];
+        if input < 0 || input >= ArrayLength(inputs.producer_kinds) ||
+            !SemanticAstCollectionAggregateNamedInputKind(inputs.producer_kinds[input]) {
+            plan.diagnostic_reason = "finalize_validated_input";
+            return false;
+        }
+        var prior: Int = 0;
+        while prior < validated {
+            if plan.validated_input_rows[prior] == input {
+                plan.diagnostic_reason = "finalize_duplicate_input";
+                return false;
+            }
+            prior = prior + 1;
+        }
+        validated = validated + 1;
+    }
+    var transfer: Int = 0;
+    while transfer < ArrayLength(proved_transfer_requirements) {
+        ArrayPush(finalized_transfer_requirement_rows,
+            proved_transfer_requirements[transfer]);
+        transfer = transfer + 1;
+    }
+    return true;
+}
+
+// Finalization proves that every owned-push carrier is restored into its
+// aggregate or transferred through the aggregate result.  Consume the local
+// carrier only after that whole proof succeeds; leaving it live would make the
+// MIR cleanup owner treat the transferred storage as a second local owner.
+func SemanticAstCollectionAggregateReleaseApplyFinalizedTransfers(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref finalized_transfer_requirement_rows: Array<Int>,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout transition_states: Array<Int>
+) -> Bool {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        !SemanticAstCollectionAggregateFieldEntryRequirementsReady(
+            requirements) ||
+        ArrayLength(ownership) != ArrayLength(locals.node_ids) ||
+        ArrayLength(dispositions) != ArrayLength(locals.node_ids) ||
+        ArrayLength(transition_states) != ArrayLength(locals.node_ids) {
+        return false;
+    }
+    var transfer: Int = 0;
+    while transfer < ArrayLength(finalized_transfer_requirement_rows) {
+        let requirement: Int =
+            finalized_transfer_requirement_rows[transfer];
+        if requirement < 0 ||
+            requirement >= ArrayLength(plan.requirement_local_ids) ||
+            !SemanticAstCollectionAggregateRequirementHasEffect(
+                plan.requirement_effect_masks[requirement],
+                SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
+            return false;
+        }
+        var prior: Int = 0;
+        while prior < transfer {
+            if finalized_transfer_requirement_rows[prior] == requirement {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        let local_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+            locals, plan.requirement_local_ids[requirement]);
+        if !IsSome(local_index) { return false; }
+        let row: Int = UnwrapOption(local_index);
+        if row < 0 || row >= ArrayLength(ownership) { return false; }
+        ownership[row] = SemanticAstCollectionOwnershipRetired();
+        dispositions[row] = SemanticAstCollectionDispositionRetired();
+        transition_states[row] = SemanticAstCollectionTransitionRetired();
+        transfer = transfer + 1;
+    }
+    return true;
+}
+

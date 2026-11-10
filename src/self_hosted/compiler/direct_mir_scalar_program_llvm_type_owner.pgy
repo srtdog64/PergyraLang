@@ -5,7 +5,9 @@ import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 func DirectMirScalarProgramLlvmSetStringTypeName() -> String {
@@ -22,6 +24,7 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
     if type_name == "Void" { return "void"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
     if type_name == CompilerAbiLayoutLongTypeName() { return "i64"; }
+    if type_name == CompilerAbiLayoutFloatTypeName() { return "double"; }
     if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
     if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
     if type_name == CompilerAbiLayoutArrayStringTypeName() {
@@ -81,6 +84,6 @@ func DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
     let projected: String = DirectMirScalarProgramLlvmTypeForProgram(
         type_name, logical_record, payload_free_enum);
     if projected != "" { return projected; }
-    return DirectMirScalarProgramLlvmPayloadEnumTypeName(
-        referenced_enum, type_name);
+    return DirectMirScalarProgramLlvmReferencedEnumTargetType(
+        type_name, logical_record, referenced_enum);
 }

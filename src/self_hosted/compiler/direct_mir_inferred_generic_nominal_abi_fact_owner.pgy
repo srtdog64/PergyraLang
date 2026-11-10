@@ -16,7 +16,7 @@ func DirectMirInferredGenericNominalAbiFactDigest(
     ref fact: DirectMirInferredGenericNominalAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(251L, fact.declaration_digest);
+    var hash: Long = DirectMirCfgHashInt(251L, fact.declaration_digest);
     hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.initial_layout_id);
     return DirectMirCfgBoundedDigest(hash);

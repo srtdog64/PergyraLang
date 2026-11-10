@@ -89,6 +89,7 @@
 ```pergyra
 let x = 42;                        // 타입 추론
 var count: Int = 0;                // 가변 바인딩
+let mut score: Int = 0;            // var와 같은 가변 바인딩
 let name: String = "Pergyra";      // 타입 명시
 ```
 
@@ -97,8 +98,8 @@ let name: String = "Pergyra";      // 타입 명시
 - `let name: Type = expr;` / `var name: Type = expr;` — 타입 명시
 - 추론은 타입 생략, 명시는 `: Type`.
   과거의 `:=` 단축 선언은 `let x = expr`와 중복이라 제거됐다(A안, 2026-06).
-- `let mut`은 2026-10-13에 `var`로 바뀌었다. `let mut`을 쓰면 "`var`를 쓰라"는 파스 오류가 난다.
-  두 철자를 함께 받는 기간은 없다.
+- `let mut name = expr;`는 `var name = expr;`와 같은 가변 선언이다.
+  두 철자는 같은 변경 가능 정보로 검사한다(2026-11-08 사용자 결정).
 - `let`/`var`가 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)
 - 구조 분해는 `let` 바인딩이다(`let (a, b) = ...`). `var (a, b)`는 받지 않는다.
 - nominal field:
@@ -107,12 +108,15 @@ let name: String = "Pergyra";      // 타입 명시
   - `var name: Type;` field는 대입 가능한 가변 필드다. bare field가 없는 subject/class에서 가변 필드를 쓰는 방법이다
   - 읽기 전용/불변 계약은 `object` / `tobject` projection surface에 별도로 적용된다
 
-> **아직 구현되지 않은 부분 (2026-10-13 결정의 2단계):** 로컬 `let`은 아직 불변으로 검사되지 않는다.
-> 지금은 로컬 `let`을 다시 대입하거나, `let`으로 받은 구조체의 가변 필드에 쓰거나, `let` 배열에
-> `ArrayPush`해도 오류 없이 통과한다. 거부되는 것은 `let` 필드 쓰기뿐이다. 2단계에서 `let`은 다시 대입과
-> 값 변경(필드·원소 쓰기, 변경 빌트인, `inout` 전달)을 모두 거부하고, 한 번도 바뀌지 않는 `var`에는 경고한다.
-> 값 의미론이라 `let`으로 받은 구조체는 가변 필드여도 쓸 수 없게 된다(Swift와 같다). 근거와 순서는
-> [`let_var_binding_mutability_2026-10-13.md`](../agent_work_directives/let_var_binding_mutability_2026-10-13.md).
+`let`은 재대입과 값 변경을 금지한다. `let` 배열의 원소 쓰기·`ArrayPush`,
+`let` 구조체의 가변 필드 쓰기, `inout` 전달도 금지한다. 변경할 값은 `var`
+또는 `let mut`로 선언한다. 읽기 전용 대여나 불변 필드를 가변 선언으로
+우회할 수는 없다. identity host의 상태 및 자원 handle 조작은 각각의
+필드·action·자원 권한 계약을 따른다. 소유권 이전과 자동 해제는 값 변경과 별개다.
+
+이 계약과 기존 코드 이행은 현재 검증 중이다. 설치본 반영 완료를 뜻하지 않는다.
+현재 작업 경계는 [변경 가능 선언과 복합 대입](../agent_work_directives/mutable_bindings_and_compound_assignment_2026-11-08.md)을 따른다.
+변경되지 않는 `var`의 경고는 아직 구현 범위에 포함하지 않는다.
 
 구조 분해(destructuring):
 
@@ -597,8 +601,14 @@ await pending
 - `await`
 - 채널 송수신 연산자
 - `|>` 파이프 연산자: `data |> Transform |> Validate`
-- `?` postfix try: `let val = riskyFunc()?;` (Result<T> unwrap + early return)
+- `?` postfix try: `let val = riskyFunc()?;` (`Result<T, E>`의 성공값을 꺼내고 오류는 조기 반환)
 - `${}` 문자열 보간: `"hello ${name}"`
+- f-string 문자열 보간: `f"hello {name}"`
+
+숫자의 `+=`, `-=`, `*=`, `/=`, `%=`는 대입 대상과 이전 값을 먼저 읽고,
+오른쪽 값을 한 번 평가한 뒤 연산 결과를 저장한다. 인덱스·수신자도 한 번만
+평가한다. 일반 산술의 타입 및 나눗셈 오류 규칙을 그대로 적용한다. `%=`는
+정수에만 적용한다. 이벤트 대상의 `+=`·`-=`는 기존 구독·해제 의미를 유지한다.
 
 연산자 우선순위는 대체로 다음과 같다.
 1. 호출 / 멤버 접근 / 인덱싱
@@ -610,7 +620,7 @@ await pending
 7. 논리 `&&`
 8. 논리 `||`
 9. 파이프 `|>`
-10. 할당 `=`
+10. 할당 `=`, `+=`, `-=`, `*=`, `/=`, `%=`
 
 ### 4.1 문자열 literal / interpolation stable subset
 

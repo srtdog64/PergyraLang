@@ -6,8 +6,8 @@ import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy"
 func DirectMirScalarProgramOwnedArrayStringMoveReturnBlock(
     ref storage: DirectMirScalarCfgProgramGraphStorage, graph: Int
 ) -> Int {
-    let found: Int = -1;
-    let block: Int = 0;
+    var found: Int = -1;
+    var block: Int = 0;
     while block < ArrayLength(storage.blocks.return_expression_rows) {
         if storage.blocks.condition_expression_rows[block] == graph { return -2; }
         if storage.blocks.return_expression_rows[block] == graph {
@@ -26,7 +26,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
     let start: Int = DirectMirScalarProgramRoutinePartitionStart(
         storage.routines.block_counts, routine);
     if start < 0 { return -1; }
-    let block: Int = start;
+    var block: Int = start;
     let end: Int = start + storage.routines.block_counts[routine];
     while block < end {
         let first: Int = storage.blocks.operation_starts[block];
@@ -67,19 +67,19 @@ func DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
     if call < start || call >= end || expressions.graph_roots[graph] != end - 1 {
         return false;
     }
-    let occurrences: Array<Int> = [];
-    let node: Int = start;
+    var occurrences: Array<Int> = [];
+    var node: Int = start;
     while node < end {
-        let count: Int = 0;
+        var count: Int = 0;
         if node == call { count = 1; }
         else {
-            let operands: Array<Int> = [];
+            var operands: Array<Int> = [];
             if expressions.node_kinds[node] == DirectMirScalarProgramExprLogicalRecordConstructor() {
                 operands = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
             } else {
                 operands = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
             }
-            let index: Int = 0;
+            var index: Int = 0;
             while index < ArrayLength(operands) {
                 let operand: Int = operands[index];
                 if operand < start || operand >= node { return false; }
@@ -88,8 +88,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
             }
             if count > 0 && expressions.node_kinds[node] !=
                 DirectMirScalarProgramExprDirectCall() &&
-                expressions.node_kinds[node] !=
-                    DirectMirScalarProgramExprConcatString() &&
+                !DirectMirScalarProgramFreshStringExpressionKind(
+                    expressions.node_kinds[node]) &&
                 expressions.node_kinds[node] !=
                     DirectMirScalarProgramExprLogicalRecordConstructor() { return false; }
         }
@@ -104,8 +104,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveDefinitionOperation(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     routine: Int, local_row: Int
 ) -> Int {
-    let found: Int = -1;
-    let operation: Int = DirectMirScalarProgramRoutinePartitionStart(
+    var found: Int = -1;
+    var operation: Int = DirectMirScalarProgramRoutinePartitionStart(
         storage.routines.operation_counts, routine);
     if operation < 0 { return -1; }
     let end: Int = operation + storage.routines.operation_counts[routine];
@@ -132,22 +132,22 @@ func DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered(
     let end: Int = start + count;
     if start < 0 || definition_block < start || definition_block >= end ||
         ArrayLength(consuming_blocks) == 0 { return false; }
-    let phase: Int = 0;
+    var phase: Int = 0;
     while phase < 2 {
-        let seen: Array<Bool> = [];
-        let index: Int = 0;
+        var seen: Array<Bool> = [];
+        var index: Int = 0;
         while index < count { ArrayPush(seen, false); index = index + 1; }
-        let queue: Array<Int> = [];
-        let first: Int = start;
+        var queue: Array<Int> = [];
+        var first: Int = start;
         if phase == 1 { first = definition_block; }
         ArrayPush(queue, first); ArraySet(seen, first - start, true);
-        let reached: Int = 0;
+        var reached: Int = 0;
         index = 0;
         while index < ArrayLength(queue) {
             let block: Int = queue[index];
-            let cut: Bool = phase == 0 && block == definition_block;
-            let consumes: Bool = false;
-            let member: Int = 0;
+            var cut: Bool = phase == 0 && block == definition_block;
+            var consumes: Bool = false;
+            var member: Int = 0;
             while member < ArrayLength(consuming_blocks) {
                 if consuming_blocks[member] == block { consumes = true; }
                 member = member + 1;
@@ -161,9 +161,9 @@ func DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered(
                 let right: Int = storage.blocks.succ_false[block];
                 if left < -1 || right < -1 ||
                     (phase == 1 && left == -1 && right == -1) { return false; }
-                let edge: Int = 0;
+                var edge: Int = 0;
                 while edge < 2 {
-                    let next: Int = left;
+                    var next: Int = left;
                     if edge == 1 { next = right; }
                     if next >= 0 {
                         if next < start || next >= end ||
@@ -188,7 +188,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveBlockUsesLocal(
     ref expressions: DirectMirScalarProgramExpressionSet,
     block: Int, local_row: Int
 ) -> Bool {
-    let operation: Int = storage.blocks.operation_starts[block];
+    var operation: Int = storage.blocks.operation_starts[block];
     let end: Int = operation + storage.blocks.operation_counts[block];
     while operation < end {
         if DirectMirScalarProgramOperationUsesLocal(
@@ -211,19 +211,19 @@ func DirectMirScalarProgramOwnedArrayStringMoveSuccessorUseAbsent(
     let start: Int = DirectMirScalarProgramRoutinePartitionStart(
         storage.routines.block_counts, routine);
     let count: Int = storage.routines.block_counts[routine];
-    let seen: Array<Bool> = [];
-    let index: Int = 0;
+    var seen: Array<Bool> = [];
+    var index: Int = 0;
     while index < count { ArrayPush(seen, false); index = index + 1; }
-    let queue: Array<Int> = [call_block];
+    var queue: Array<Int> = [call_block];
     ArraySet(seen, call_block - start, true);
     index = 0;
     while index < ArrayLength(queue) {
         let block: Int = queue[index];
         if block != call_block && DirectMirScalarProgramOwnedArrayStringMoveBlockUsesLocal(
             storage, expressions, block, local_row) { return false; }
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < 2 {
-            let next: Int = storage.blocks.succ_true[block];
+            var next: Int = storage.blocks.succ_true[block];
             if edge == 1 { next = storage.blocks.succ_false[block]; }
             if next < -1 || next == call_block { return false; }
             if next >= 0 {
@@ -256,7 +256,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveCallLastUseReady(
             expressions, storage.blocks.return_expression_rows[call_block], local_row) {
             return false;
         }
-        let later: Int = operation + 1;
+        var later: Int = operation + 1;
         let end: Int = storage.blocks.operation_starts[call_block] +
             storage.blocks.operation_counts[call_block];
         while later < end {
@@ -273,6 +273,104 @@ func DirectMirScalarProgramOwnedArrayStringMoveCallLastUseReady(
     }
     return DirectMirScalarProgramOwnedArrayStringMoveSuccessorUseAbsent(
         storage, expressions, routine, call_block, local_row);
+}
+
+func DirectMirScalarProgramOwnedArrayStringAggregateReturnTransferReady(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine: Int, local_row: Int, return_type: String
+) -> Bool {
+    let block_start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine);
+    if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) ||
+        routine < 0 || routine >= ArrayLength(storage.routines.block_counts) ||
+        block_start < 0 || local_row < 0 ||
+        local_row >= ArrayLength(storage.values.local_types) ||
+        storage.values.local_types[local_row] !=
+            CompilerAbiLayoutArrayStringTypeName() ||
+        DirectMirScalarProgramLogicalRecordRow(
+            logical_record, return_type) < 0 {
+        return false;
+    }
+    var return_graph: Int = -1;
+    var return_block: Int = -1;
+    var returned_local_node: Int = -1;
+    var block: Int = block_start;
+    let block_end: Int = block_start +
+        storage.routines.block_counts[routine];
+    while block < block_end {
+        let graph: Int = storage.blocks.return_expression_rows[block];
+        if graph >= 0 && DirectMirScalarProgramExpressionGraphLocalUseCount(
+                expressions, graph, local_row) > 0 {
+            if return_graph >= 0 || graph >= ArrayLength(
+                    expressions.graph_roots) {
+                return false;
+            }
+            let root: Int = expressions.graph_roots[graph];
+            if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+                root >= ArrayLength(expressions.node_types) ||
+                expressions.node_kinds[root] !=
+                    DirectMirScalarProgramExprLogicalRecordConstructor() ||
+                expressions.node_types[root] != return_type {
+                return false;
+            }
+            let record: Int = DirectMirScalarProgramLogicalRecordRow(
+                logical_record, return_type);
+            let arguments: Array<Int> =
+                DirectMirScalarProgramLogicalRecordArgumentRows(
+                    expressions, root);
+            if ArrayLength(arguments) !=
+                    logical_record.field_counts[record] {
+                return false;
+            }
+            var argument: Int = 0;
+            while argument < ArrayLength(arguments) {
+                let node: Int = arguments[argument];
+                if node >= 0 && node < root &&
+                    expressions.node_kinds[node] ==
+                        DirectMirScalarProgramExprLocal() &&
+                    expressions.node_local_rows[node] == local_row {
+                    let field: Int =
+                        logical_record.field_starts[record] + argument;
+                    if returned_local_node >= 0 || field < 0 ||
+                        field >= ArrayLength(logical_record.field_types) ||
+                        logical_record.field_types[field] !=
+                            CompilerAbiLayoutArrayStringTypeName() ||
+                        expressions.node_types[node] !=
+                            CompilerAbiLayoutArrayStringTypeName() {
+                        return false;
+                    }
+                    returned_local_node = node;
+                }
+                argument = argument + 1;
+            }
+            if returned_local_node < 0 ||
+                !DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
+                    expressions, graph, returned_local_node) {
+                return false;
+            }
+            return_graph = graph;
+            return_block = block;
+        }
+        block = block + 1;
+    }
+    let definition: Int =
+        DirectMirScalarProgramOwnedArrayStringMoveDefinitionOperation(
+            storage, routine, local_row);
+    let definition_block: Int =
+        DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+            storage, routine, definition);
+    if return_graph < 0 || return_block < 0 || definition < 0 ||
+        definition_block < 0 ||
+        !DirectMirScalarProgramOwnedArrayStringMoveCallLastUseReady(
+            storage, expressions, routine, -1, return_graph, local_row,
+            return_block, definition, definition_block) {
+        return false;
+    }
+    let consuming_blocks: Array<Int> = [return_block];
+    return DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered(
+        storage, routine, definition_block, consuming_blocks);
 }
 
 func DirectMirScalarProgramOwnedArrayStringMoveCoverageInputDigest(
@@ -292,7 +390,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveCoverageInputDigest(
     ref layouts: Array<Int>, ref call_blocks: Array<Int>
 ) -> Int {
     if !valid || !expressions.valid || expressions.digest == 0 { return 0; }
-    let hash: Long = DirectMirCfgHashInt(337L, expressions.digest);
+    var hash: Long = DirectMirCfgHashInt(337L, expressions.digest);
     hash = DirectMirScalarCfgHashInts(hash, block_counts);
     hash = DirectMirScalarCfgHashInts(hash, operation_counts);
     hash = DirectMirScalarCfgHashInts(hash, local_counts);

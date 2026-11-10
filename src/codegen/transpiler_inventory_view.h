@@ -7,6 +7,11 @@ typedef struct
     size_t            count;
 } TranspilerMIRRoutineInventory;
 
+TranspilerDeclHeaderLookupProjection *
+transpiler_decl_header_lookup_projection_create(void);
+void transpiler_decl_header_lookup_projection_destroy(
+    TranspilerDeclHeaderLookupProjection *projection);
+
 void
 transpiler_active_routine_inventory(const TranspilerCtx *ctx,
                                     TranspilerMIRRoutineInventory *inventory);

@@ -24,7 +24,9 @@
 #include "llvm_mir_resource_view.h"
 #include "llvm_expr_assignment_member_projection.h"
 #include "llvm_expr_member_lvalue.h"
+#include "llvm_expr_scalar_core.h"
 #include "../compiler/mir_cfg_contract_cleanup_root_membership.h"
+#include "../compiler/mir_loop_collection_cleanup.h"
 #include "../parser/ast_api.h"
 
 /* A conditional retirement selects a null receiver on the other edge. The
@@ -37,8 +39,14 @@ static bool llvm_mir_collection_retirements(LLVMGenCtx *ctx, const MIRBasicBlock
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->collection_cleanup_kind == 0 || inst->collection_cleanup_target != target) continue;
         LLVMValueRef storage = llvm_mir_get_var(vars, count, inst->arg0);
-        const char *name = inst->collection_cleanup_kind == 2 ?
-            "pgy_array_drop_owned_String" : "pgy_array_drop_storage_raw_export";
+        const MIRResourceRuntimeRow *runtime = mir_collection_retirement_runtime_row(inst);
+        if (inst->collection_cleanup_kind == 3 && runtime == NULL) {
+            llvm_set_mir_topology_invalid(ctx, "MIR scalar retirement has no runtime ABI fact");
+            return false;
+        }
+        const char *name = runtime != NULL ? runtime->runtime_fn :
+            (inst->collection_cleanup_kind == 2 ?
+                "pgy_array_drop_owned_String" : "pgy_array_drop_storage_raw_export");
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, name);
         if (storage == NULL || fn == NULL || fn->fn == NULL) {
             llvm_set_mir_topology_invalid(ctx, "MIR collection retirement is missing SSA storage or runtime ABI");
@@ -52,7 +60,7 @@ static bool llvm_mir_collection_retirements(LLVMGenCtx *ctx, const MIRBasicBlock
         LLVMValueRef args[] = {storage,
             LLVMBuildIntCast2(ctx->builder, LLVMSizeOf(ctx->type_i8ptr), ctx->type_i64, false, "retire.element.size")};
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
-            inst->collection_cleanup_kind == 2 ? 1 : 2, "");
+            runtime != NULL || inst->collection_cleanup_kind == 2 ? 1 : 2, "");
     }
     return true;
 }
@@ -321,7 +329,22 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                              * different lexical binding on a branch edge.
                              * The exact result alloca is stored below; residual
                              * memory assignments remain MIR_INST_ASSIGN. */
+                            AstAssignmentOperation operation;
+                            if (!mir_assignment_operation(inst, &operation)) {
+                                llvm_set_mir_topology_invalid(ctx,
+                                    "LLVM MIR assignment DEF opcode is missing or invalid");
+                                ctx->current_ret_type = saved_current_ret_type;
+                                ctx->expected_callable_type = saved_expected_callable_type;
+                                ctx->expected_type_name = saved_expected_type_name;
+                                return;
+                            }
+                            LLVMValueRef old = operation == AST_ASSIGN_SET ? NULL
+                                : llvm_emit_expression(inst->expr1, ctx);
                             val = llvm_emit_expression(inst->expr0, ctx);
+                            if (operation != AST_ASSIGN_SET)
+                                val = llvm_emit_scalar_binary_values(inst->expr1,
+                                    ast_assignment_binary_operator(operation), old, val,
+                                    inst->expr1, inst->expr0, ctx);
                         } else {
                             if (!llvm_stmt_require_non_void_value(ctx,
                                     emit_expr,

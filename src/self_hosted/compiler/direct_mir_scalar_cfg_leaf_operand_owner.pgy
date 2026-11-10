@@ -22,7 +22,7 @@ func DirectMirScalarCfgLeafOperandFromOwners(
     let value_row: Int = DirectMirScalarCfgUseValueRow(
         use_facts, global_row, use_row, node_text, value_names
     );
-    let direct_ref: String = "";
+    var direct_ref: String = "";
     if wire_expr0_carriage {
         direct_ref = DirectMirScalarCfgWireExprRefAt(
             wire, instruction_row, node
@@ -37,9 +37,9 @@ func DirectMirScalarCfgLeafOperandFromOwners(
     // MIR instruction uses are unique across receiver and expression lanes.
     // A later lane may therefore reuse one already-consumed ValueId without
     // receiving a duplicate use row. Multiple prior matches fail closed.
-    let consumed_value_row: Int = -1;
-    let consumed_match_count: Int = 0;
-    let consumed_use: Int = 0;
+    var consumed_value_row: Int = -1;
+    var consumed_match_count: Int = 0;
+    var consumed_use: Int = 0;
     while consumed_use < use_row {
         let candidate: Int = DirectMirScalarCfgUseValueRow(
             use_facts, global_row, consumed_use, node_text, value_names);

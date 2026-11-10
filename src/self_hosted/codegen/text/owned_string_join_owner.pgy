@@ -13,7 +13,7 @@ func CodegenPrefixOwnedStatementLine(own fragment: String, prefix: String, leade
     let statement: String = Concat(leader, terminated);
     let output: String = Concat(prefix, statement);
     // The singleton transfer follows the final borrowed read of fragment.
-    let fragments: Array<String> = [fragment];
+    var fragments: Array<String> = [fragment];
     ArrayPushOwnedString(fragments, terminated);
     ArrayPushOwnedString(fragments, statement);
     ArrayDropOwnedStrings(fragments);

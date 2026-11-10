@@ -14,8 +14,8 @@ struct Facts {
 }
 
 func FactsFromRows(rows: Rows, expected: Int) -> Facts {
-    let roots: Array<Int> = [];
-    let i: Int = 0;
+    var roots: Array<Int> = [];
+    var i: Int = 0;
     while i < expected && i < ArrayLength(rows.roots) {
         ArrayPush(roots, rows.roots[i]);
         i = i + 1;
@@ -25,7 +25,7 @@ func FactsFromRows(rows: Rows, expected: Int) -> Facts {
 
 func Main() -> Int {
     let rows: Rows = Rows(true, [0, 1], [5, 6]);
-    let facts: Facts = FactsFromRows(rows, 1);
+    var facts: Facts = FactsFromRows(rows, 1);
     ArrayPush(facts.kinds, 7);
     facts.roots[0] = 9;
     Print(ToString(ArrayLength(facts.kinds) + facts.roots[0]));

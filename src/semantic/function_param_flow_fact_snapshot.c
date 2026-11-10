@@ -4,6 +4,7 @@
 #include "indexed_string_nonowner_risk_internal.h"
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_permanent_element.h"
+#include "indexed_string_result_inputs.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -171,12 +172,61 @@ bool backing_merge(size_t words, uint64_t *into, const uint64_t *from)
     }
     return grew;
 }
-void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect)
+bool function_param_flow_backing_effect_facets_current(
+    const FunctionParamFlowBackingFact *fact)
+{
+    if (fact == NULL || fact->origin_count == 0 || fact->effects == NULL ||
+        fact->outward_effects == NULL) return false;
+    for (size_t p = 0; p < fact->origin_count; p++)
+        if ((fact->outward_effects[p] & ~fact->effects[p]) != 0)
+            return false;
+    return true;
+}
+
+bool function_param_flow_backing_effect_projection_current(
+    const FunctionParamFlowBackingFact *fact, unsigned summary_mask)
+{
+    if (!function_param_flow_backing_effect_facets_current(fact) ||
+        (summary_mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0)
+        return false;
+    const unsigned exact_only = SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+        SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+    const unsigned exact = fact->outward_effects[0] &
+        (exact_only | SLOT_PARAM_SUMMARY_CALL_ESCAPE);
+    return (summary_mask & exact_only) == (exact & exact_only) &&
+        (summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) ==
+            (fact->effects[0] & SLOT_PARAM_SUMMARY_CALL_ESCAPE) &&
+        (exact & ~summary_mask) == 0;
+}
+static void backing_effect_record(ReturnedBacking *state,
+    const uint64_t *origins, unsigned effect, bool outward)
 {
     if (state->loan_seed != NULL && origins[0] != 0 && effect != 0 && state->escape_site == NULL)
         state->escape_site = state->consumer;
-    for (size_t p = 0; p < state->fact->origin_count; p++)
-        if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0) state->fact->effects[p] |= effect;
+    for (size_t p = 0; p < state->fact->origin_count; p++) {
+        if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) == 0) continue;
+        state->fact->effects[p] |= effect;
+        if (outward && state->fact->outward_effects != NULL)
+            state->fact->outward_effects[p] |= effect;
+    }
+}
+void backing_effect(ReturnedBacking *state, const uint64_t *origins,
+    unsigned effect)
+{
+    backing_effect_record(state, origins, effect, true);
+}
+
+void backing_movement_effect(ReturnedBacking *state, const uint64_t *origins,
+    unsigned effect)
+{
+    backing_effect_record(state, origins, effect, false);
+}
+void backing_movement_effect_carried(ReturnedBacking *state,
+    const uint64_t *origins, unsigned effect, ASTNode *carrier)
+{
+    bool first = state->escape_site == NULL;
+    backing_movement_effect(state, origins, effect);
+    if (first && state->escape_site != NULL) state->escape_carrier = carrier;
 }
 void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, unsigned effect,
     ASTNode *carrier)
@@ -195,6 +245,7 @@ bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins)
     for (size_t w = 0; w < state->fact->origin_words; w++) if (origins[w] != 0) return true;
     return false;
 }
+
 bool backing_work(ReturnedBacking *state, size_t at)
 {
     FunctionParamFlowBackingNode *row = &state->fact->nodes[at];
@@ -203,18 +254,19 @@ bool backing_work(ReturnedBacking *state, size_t at)
      * once and its rounds are bounded by the frame's growth, so the demand
      * closure is charged for its entry evaluations, not for frame nodes. */
     if (state->loan_seed != NULL) {
-        if (state->loan_work >= state->store->work_budget) { function_param_flow_fail(state->store, state->decl, "recursive summary work budget exceeded"); state->fact->complete = false; return false; }
+        if (state->loan_work >= state->store->work_budget) { function_param_flow_fail(state->store, state->decl, "sparse loan proof work budget exceeded"); state->fact->complete = false; return false; }
         state->loan_work++;
     } else state->store->closure_frame_node_visits++;
     row->work_epoch = state->fact->epoch; return true;
 }
 
-
 FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert)
 {
     FunctionParamFlowBackingFact *fact = state->fact;
     if (id == 0) { fact->complete = false; return NULL; }
-    for (size_t i = 0; i < fact->binding_count; i++) if (fact->bindings[i].binding == id) return &fact->bindings[i];
+    for (size_t i = 0; i < fact->binding_count; i++) {
+        if (fact->bindings[i].binding == id) return &fact->bindings[i];
+    }
     if (!insert) return NULL;
     if (fact->binding_count == SIZE_MAX / sizeof(*fact->bindings)) { function_param_flow_fail(state->store, state->decl, "backing binding size overflow"); fact->complete = false; return NULL; }
     FunctionParamFlowBackingBinding *rows = realloc(fact->bindings, (fact->binding_count + 1) * sizeof(*rows));
@@ -228,18 +280,27 @@ FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_
     if (row->origins == NULL || row->destinations == NULL) { function_param_flow_fail(state->store, state->decl, "backing binding bitset allocation failed"); fact->complete = false; return NULL; }
     return row;
 }
+
 size_t backing_node(ReturnedBacking *state, ASTNode *node)
 {
     FunctionParamFlowBackingFact *fact = state->fact;
     if (node == NULL || ast_node_stable_id(node) == 0) { fact->complete = false; return SIZE_MAX; }
-    if (!function_param_flow_claim_record(state->store->ctx, fact->claims, node)) { fact->complete = false; return SIZE_MAX; }
-    for (size_t i = 0; i < fact->node_count; i++) if (fact->nodes[i].node == node) return i;
+    size_t claim_ordinal = SIZE_MAX;
+    if (!function_param_flow_claim_record_ordinal(state->store->ctx,
+            fact->claims, node, &claim_ordinal)) {
+        fact->complete = false; return SIZE_MAX;
+    }
+    for (size_t i = 0; i < fact->node_count; i++) {
+        if (fact->nodes[i].node == node) return i;
+    }
     if (fact->node_count == SIZE_MAX / sizeof(*fact->nodes)) { function_param_flow_fail(state->store, state->decl, "backing node size overflow"); fact->complete = false; return SIZE_MAX; }
     FunctionParamFlowBackingNode *rows = realloc(fact->nodes, (fact->node_count + 1) * sizeof(*rows));
     if (rows == NULL) { function_param_flow_fail(state->store, state->decl, "backing node allocation failed"); fact->complete = false; return SIZE_MAX; }
     fact->nodes = rows;
     size_t at = fact->node_count++;
-    rows[at] = (FunctionParamFlowBackingNode){.node = node, .id = ast_node_stable_id(node), .shape = node->type};
+    rows[at] = (FunctionParamFlowBackingNode){.node = node,
+        .id = ast_node_stable_id(node), .shape = node->type,
+        .claim_ordinal = claim_ordinal};
     rows[at].origins = calloc(fact->origin_words, sizeof(uint64_t));
     if (rows[at].origins == NULL) { function_param_flow_fail(state->store, state->decl, "backing origin allocation failed"); fact->complete = false; return SIZE_MAX; }
     return at;
@@ -323,6 +384,13 @@ void semantic_param_publication_retire_value(PublishedNode *row)
 {
     semantic_param_publication_projection_destroy(row);
     if (row->owned_string_result != NULL) {
+        for (size_t i = 0; i < row->owned_string_result->source_count; i++) {
+            IndexedStringResultInputs *inputs =
+                row->owned_string_result->sources[i].inputs;
+            if (inputs == NULL) continue;
+            semantic_indexed_string_result_inputs_destroy(inputs);
+            free(inputs);
+        }
         free(row->owned_string_result->sources);
         function_param_flow_claims_destroy(row->owned_string_result->syntax);
         free(row->owned_string_result);
@@ -355,6 +423,13 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
         free(store->calls[i].borrowed); free(store->calls[i].destination); free(store->calls[i].fix); free(store->calls[i].module);
         free(store->calls[i].target_name);
     }
+    for (size_t i = 0; i < store->default_borrow_call_count; i++) {
+        free(store->default_borrow_calls[i].borrowed);
+        free(store->default_borrow_calls[i].destination);
+        free(store->default_borrow_calls[i].fix);
+        free(store->default_borrow_calls[i].module);
+        free(store->default_borrow_calls[i].target_name);
+    }
     for (size_t n = 0; n < store->node_capacity; n++) {
         semantic_indexed_string_private_push_destroy(store->nodes[n].private_string_push);
         store->nodes[n].private_string_push = NULL;
@@ -370,7 +445,8 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
     }
     for (size_t i = 0; i < store->read_loan_count; i++) free(store->read_loans[i].module);
     free(store->read_loans);
-    free(store->nodes); free(store->routines); free(store->calls); free(store->body_calls);
+    free(store->nodes); free(store->routines); free(store->calls);
+    free(store->default_borrow_calls); free(store->body_calls);
     free(store); ctx->function_param_publications = NULL;
     semantic_typed_map_query_destroy(ctx);
 }
@@ -381,8 +457,12 @@ void function_param_flow_program_point_indexes_destroy(FunctionParamFlowSummaryS
     for (size_t i = 0; i < store->program_point_index_count; i++)
         function_param_flow_program_point_index_destroy(&store->program_point_indexes[i]);
     free(store->program_point_indexes);
+    free(store->program_point_index_hash);
     store->program_point_indexes = NULL;
+    store->program_point_index_hash = NULL;
     store->program_point_index_count = store->program_point_index_capacity = 0;
+    store->program_point_index_hash_capacity = 0;
+    store->program_point_index_hash_count = 0;
 }
 
 bool
@@ -460,12 +540,18 @@ function_param_flow_program_point_index_destroy(
         if (fact == NULL) continue;
         for (size_t n = 0; fact->nodes != NULL && n < fact->node_count; n++) {
             free(fact->nodes[n].origins);
+            free(fact->nodes[n].origin_path);
             free(fact->nodes[n].result_argument_kinds);
         }
         for (size_t b = 0; fact->bindings != NULL && b < fact->binding_count; b++) {
             free(fact->bindings[b].origins); free(fact->bindings[b].destinations);
+            free(fact->bindings[b].origin_path);
         }
-        free(fact->nodes); free(fact->bindings); free(fact->outputs); free(fact->effects); free(fact->pending_relations); free(fact);
+        free(fact->nodes);
+        free(fact->bindings);
+        free(fact->outputs);
+        free(fact->outward_effects); free(fact->effects);
+        free(fact->pending_relations); free(fact);
     }
     free(index->backing_frames);
     function_param_flow_claims_destroy(index->claims);
@@ -503,7 +589,8 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
             store->program_point_index_count,
             store->indexed_statement_visits,
             store->indexed_program_points);
-        fprintf(stderr, "pgy: function-param-flow-rows-memo records=%zu reuses=%zu\n",
+        fprintf(stderr,
+            "pgy: function-param-flow-rows-memo records=%zu reuses=%zu\n",
             store->rows_memo_records, store->rows_memo_reuses);
     }
     function_param_flow_program_point_indexes_destroy(store);

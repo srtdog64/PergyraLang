@@ -6,7 +6,7 @@
             "}\n"
             "func Main() -> Void {\n"
             "    let a: Vec2 = Vec2();\n"
-            "    let b: Vec2 = a;\n"
+            "    var b: Vec2 = a;\n"
             "    b.x = 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -170,7 +170,7 @@
     {
         const char *source =
             "class Counter {\n"
-            "    let count: Int;\n"
+            "    var count: Int;\n"
             "    func Tick(self, delta: Int) -> Int {\n"
             "        count = count + delta;\n"
             "        return count;\n"

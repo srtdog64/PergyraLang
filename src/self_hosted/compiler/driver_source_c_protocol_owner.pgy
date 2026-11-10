@@ -64,15 +64,15 @@ func DriverSourceCExecutionOutcomeSchema() -> String {
 }
 
 func DriverSourceCPayloadDeniedAdmission(
-    request: DriverSourceCRequest,
+    own identity: DriverSourceCRequestIdentity,
     source_path: String,
     diagnostic: String
 ) -> DriverSourceCPayloadAdmission {
     return DriverSourceCPayloadDenied(DriverSourceCPayloadRejection(
         DriverSourceCExecutionOutcomeSchema(),
-        DriverSourceCRequestMode(request), source_path,
-        DriverSourceCRequestManifestId(request),
-        DriverSourceCRequestManifestFingerprint(request), diagnostic
+        identity.mode, source_path,
+        identity.machine_manifest_id,
+        identity.machine_manifest_fingerprint, diagnostic
     ));
 }
 
@@ -91,54 +91,53 @@ func DriverSourceCExecutedOutcome(receipt: DriverSourceCExecutionReceipt) -> Dri
 func DriverSourceCArtifactRejectedOutcome(failure: SelfMirArtifactFailure) -> DriverSourceCExecutionOutcome { return DriverSourceCArtifactRejected(failure); }
 
 func DriverSourceCPayloadReceiptReadyFor(
-    receipt: DriverSourceCPayloadReceipt,
+    ref receipt: DriverSourceCPayloadReceipt,
     expected_source_path: String,
-    expected_request: DriverSourceCRequest
+    ref expected_identity: DriverSourceCRequestIdentity
 ) -> Bool {
     return receipt.schema == DriverSourceCExecutionOutcomeSchema() &&
-        receipt.request_mode == DriverSourceCRequestMode(expected_request) &&
+        receipt.request_mode == expected_identity.mode &&
         receipt.source_path == expected_source_path &&
-        receipt.machine_manifest_id ==
-            DriverSourceCRequestManifestId(expected_request) &&
+        receipt.machine_manifest_id == expected_identity.machine_manifest_id &&
         receipt.machine_manifest_fingerprint ==
-            DriverSourceCRequestManifestFingerprint(expected_request) &&
+            expected_identity.machine_manifest_fingerprint &&
         CompilerEmissionArtifactReady(receipt.artifact);
 }
 
 func DriverSourceCPayloadAdmissionReadyFor(
-    admission: DriverSourceCPayloadAdmission,
+    ref admission: DriverSourceCPayloadAdmission,
     expected_source_path: String,
-    expected_request: DriverSourceCRequest
+    ref expected_identity: DriverSourceCRequestIdentity
 ) -> Bool {
     match admission {
         case DriverSourceCPayloadAdmitted(receipt):
             return DriverSourceCPayloadReceiptReadyFor(
-                receipt, expected_source_path, expected_request
+                receipt, expected_source_path, expected_identity
             );
         case DriverSourceCPayloadDenied(rejection): return false;
     }
 }
 
 func DriverSourceCPayloadAdmissionDiagnostic(
-    admission: DriverSourceCPayloadAdmission,
+    ref admission: DriverSourceCPayloadAdmission,
     expected_source_path: String,
-    expected_request: DriverSourceCRequest
+    ref expected_identity: DriverSourceCRequestIdentity
 ) -> String {
     match admission {
         case DriverSourceCPayloadAdmitted(receipt):
             if DriverSourceCPayloadReceiptReadyFor(
-                receipt, expected_source_path, expected_request
+                receipt, expected_source_path, expected_identity
             ) { return ""; }
             return "source C payload receipt is invalid";
         case DriverSourceCPayloadDenied(rejection):
             if rejection.schema != DriverSourceCExecutionOutcomeSchema() ||
                 rejection.request_mode !=
-                    DriverSourceCRequestMode(expected_request) ||
+                    expected_identity.mode ||
                 rejection.source_path != expected_source_path ||
                 rejection.machine_manifest_id !=
-                    DriverSourceCRequestManifestId(expected_request) ||
+                    expected_identity.machine_manifest_id ||
                 rejection.machine_manifest_fingerprint !=
-                    DriverSourceCRequestManifestFingerprint(expected_request) ||
+                    expected_identity.machine_manifest_fingerprint ||
                 rejection.diagnostic == "" {
                 return "source C payload rejection is invalid";
             }

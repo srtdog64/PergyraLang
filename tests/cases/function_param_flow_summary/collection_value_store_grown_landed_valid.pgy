@@ -3,8 +3,8 @@
 // value grows after each store, so the next analysis copies it where it is
 // stored (Clone copies an Array<Int> whole), one Clone per routine.
 func MapStore() -> Int {
-    let held: HashMap<Int, Array<Int>> = MapNew();
-    let row: Array<Int> = [1];
+    var held: HashMap<Int, Array<Int>> = MapNew();
+    var row: Array<Int> = [1];
     MapSet(held, 1, row);
     ArrayPush(row, 2);
     let back: Array<Int> = MapGet(held, 1);
@@ -12,16 +12,16 @@ func MapStore() -> Int {
 }
 
 func SetStore() -> Int {
-    let held: Set<Array<Int>> = SetNew();
-    let row: Array<Int> = [1];
+    var held: Set<Array<Int>> = SetNew();
+    var row: Array<Int> = [1];
     SetAdd(held, row);
     ArrayPush(row, 2);
     return SetSize(held) * 10 + ArrayLength(row);
 }
 
 func ListPushStore() -> Int {
-    let held: List<Array<Int>> = ListNew();
-    let row: Array<Int> = [1];
+    var held: List<Array<Int>> = ListNew();
+    var row: Array<Int> = [1];
     ListPush(held, row);
     ArrayPush(row, 2);
     let back: Array<Int> = ListGet(held, 0);
@@ -29,9 +29,9 @@ func ListPushStore() -> Int {
 }
 
 func ListSetStore() -> Int {
-    let held: List<Array<Int>> = ListNew();
+    var held: List<Array<Int>> = ListNew();
     ListPush(held, [0]);
-    let row: Array<Int> = [1];
+    var row: Array<Int> = [1];
     ListSet(held, 0, row);
     ArrayPush(row, 2);
     let back: Array<Int> = ListGet(held, 0);
@@ -39,8 +39,8 @@ func ListSetStore() -> Int {
 }
 
 func QueueStore() -> Int {
-    let held: Queue<Array<Int>> = QueueNew();
-    let row: Array<Int> = [1];
+    var held: Queue<Array<Int>> = QueueNew();
+    var row: Array<Int> = [1];
     QueuePush(held, row);
     ArrayPush(row, 2);
     let back: Array<Int> = QueuePop(held);

@@ -1,6 +1,6 @@
 func Main()->Void{
-let names:Array<String> = [];
-let text:String="seed";
+var names:Array<String> = [];
+var text:String="seed";
 ArrayPush(names,text);
 text=Substring("next",0,4);
 ArrayPush(names,text);

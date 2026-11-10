@@ -30,7 +30,7 @@ func MirResourceRuntimeRowRequired(operation: String) -> Bool {
         operation == "PinRead" || operation == "PinWrite" ||
         operation == "PinReadInit" || operation == "PinWriteInit" ||
         operation == "Unpin" || operation == "UnpinCleanup" ||
-        operation == "SubmitRead";
+        operation == "SubmitRead" || operation == "ReleaseStorage";
 }
 
 // Auxiliary rows are still MIR-owned facts.  A slot definition may carry a
@@ -84,7 +84,7 @@ func MirResourceRuntimeRowFactReady(
     if !instruction_view.valid { return false; }
     let inst_start: Int = instruction_view.start;
     let inst_end: Int = instruction_view.end;
-    let required_bounds: Array<Int> = [0, 0];
+    var required_bounds: Array<Int> = [0, 0];
     let required: Bool = MirObjectFieldValueBoundsAtBounds(
         routines.source_json, routines.source_json_extent, inst_start, inst_end,
         "runtime_call_abi_required", required_bounds);
@@ -100,11 +100,11 @@ func MirResourceRuntimeRowFactReady(
         MirMachineLayerInstructionRuntimeOperationAtBounds(
             routines.source_json, routines.source_json_extent, instruction_view.machine_layer_start,
             instruction_view.machine_layer_end);
-    let expected_operation: String = operation;
+    var expected_operation: String = operation;
     if !MirResourceRuntimeRowRequired(expected_operation) {
         expected_operation = machine_operation;
     }
-    let row_bounds: Array<Int> = [0, 0];
+    var row_bounds: Array<Int> = [0, 0];
     let has_row: Bool = MirObjectFieldValueBoundsAtBounds(
         routines.source_json, routines.source_json_extent, inst_start, inst_end, "runtime_call_abi", row_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
@@ -115,7 +115,7 @@ func MirResourceRuntimeRowFactReady(
                 routines.source_json, routines.source_json_extent, row_bounds[0], row_bounds[1], "operation");
         }
     }
-    let aux_bounds: Array<Int> = [0, 0];
+    var aux_bounds: Array<Int> = [0, 0];
     let has_aux: Bool = MirObjectFieldValueBoundsAtBounds(
         routines.source_json, routines.source_json_extent, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
     if has_row && row_bounds[0] < row_bounds[1] &&
@@ -209,7 +209,7 @@ func MirResourceRuntimeRowFactReady(
         if !JsonArrayObjectFactTableReady(aux_rows) {
             return false;
         }
-        let aux_index: Int = 0;
+        var aux_index: Int = 0;
         while aux_index < JsonArrayObjectFactCount(aux_rows) {
             let aux_row: JsonObjectFactTable =
                 JsonArrayObjectFactAt(aux_rows, aux_index);
@@ -220,7 +220,7 @@ func MirResourceRuntimeRowFactReady(
                 !MirResourceRuntimeAuxRowFactReady(aux_row, type_name) {
                 return false;
             }
-            let prior_index: Int = 0;
+            var prior_index: Int = 0;
             while prior_index < aux_index {
                 let prior_row: JsonObjectFactTable =
                     JsonArrayObjectFactAt(aux_rows, prior_index);

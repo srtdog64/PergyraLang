@@ -11,7 +11,7 @@ func Touch(inout state: State, key: String) -> Void {
 }
 
 func TouchAlias(inout state: State, key: String) -> Void {
-    let paths: Array<String> = state.paths;
+    var paths: Array<String> = state.paths;
     ArrayPush(paths, key);
     state.paths = paths;
 }

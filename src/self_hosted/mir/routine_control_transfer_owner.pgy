@@ -15,8 +15,8 @@ func SelfMirLowerControlTransferFromArtifact(
     inout backedge_snapshots: SelfMirLocalPredecessorSnapshots,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
-    let control_name: String = "break";
-    let source_type: String = "AST_BREAK";
+    var control_name: String = "break";
+    var source_type: String = "AST_BREAK";
     if kind == TypedAstKindContinueStmtTag() {
         control_name = "continue";
         source_type = "AST_CONTINUE";

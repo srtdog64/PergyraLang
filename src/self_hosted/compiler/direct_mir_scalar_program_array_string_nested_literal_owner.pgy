@@ -8,9 +8,9 @@ func DirectMirScalarProgramNestedArrayStringLiteralCandidateReady(
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
     if !sequence.ok || node < 0 || node >= count ||
         ArrayLength(sequence.roots) != 1 { return false; }
-    let cursor: Int = node;
-    let elements: Int = 0;
-    let dynamic: Bool = false;
+    var cursor: Int = node;
+    var elements: Int = 0;
+    var dynamic: Bool = false;
     while cursor >= 0 && cursor < count &&
             sequence.arena.topology.node_kinds[cursor] ==
                 AstExpressionNodeArrayElement() {
@@ -38,10 +38,10 @@ func DirectMirScalarProgramNestedArrayStringLiteralOperandRows(
     ref source_rows: Array<Int>,
     ref normalized_types: Array<String>
 ) -> Array<Int> {
-    let reverse_rows: Array<Int> = [];
+    var reverse_rows: Array<Int> = [];
     if !DirectMirScalarProgramNestedArrayStringLiteralCandidateReady(
             sequence, node) { return reverse_rows; }
-    let cursor: Int = node;
+    var cursor: Int = node;
     while sequence.arena.topology.node_kinds[cursor] ==
             AstExpressionNodeArrayElement() {
         let source_right: Int =
@@ -57,8 +57,8 @@ func DirectMirScalarProgramNestedArrayStringLiteralOperandRows(
         ArrayPush(reverse_rows, operand);
         cursor = sequence.arena.topology.left_children[cursor];
     }
-    let rows: Array<Int> = [];
-    let row: Int = ArrayLength(reverse_rows);
+    var rows: Array<Int> = [];
+    var row: Int = ArrayLength(reverse_rows);
     while row > 0 {
         row = row - 1;
         ArrayPush(rows, reverse_rows[row]);

@@ -10,11 +10,11 @@ func DirectMirScalarCfgStringArrayCollectionCount(
 func DirectMirScalarCfgStringArrayCollectionAt(
     ref plan: DirectMirScalarCfgStringArrayPlan, row: Int
 ) -> DirectMirScalarCfgArrayStringCollectionFact {
-    let elements: Array<String> = [];
+    var elements: Array<String> = [];
     if row < 0 || row >= DirectMirScalarCfgStringArrayCollectionCount(plan) {
         return DirectMirScalarCfgArrayStringCollectionFactEmpty();
     }
-    let item: Int = 0;
+    var item: Int = 0;
     while item < plan.collections.element_counts[row] {
         ArrayPush(elements, plan.collections.elements[
             plan.collections.element_starts[row] + item
@@ -93,7 +93,7 @@ func DirectMirScalarCfgStringArrayAccessAt(
 func DirectMirScalarCfgStringArrayCollectionRowAtValue(
     ref plan: DirectMirScalarCfgStringArrayPlan, value_id: String
 ) -> Int {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
         if plan.collections.value_ids[row] == value_id {
             if found >= 0 { return -1; } found = row;
@@ -106,7 +106,7 @@ func DirectMirScalarCfgStringArrayCollectionRowAtValue(
 func DirectMirScalarCfgStringArrayOwnsDefinition(
     ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
 ) -> Bool {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
         if plan.collections.definition_global_rows[row] == global_row {
             return true;
@@ -119,7 +119,7 @@ func DirectMirScalarCfgStringArrayOwnsDefinition(
 func DirectMirScalarCfgStringArrayLengthRowAtBlock(
     ref plan: DirectMirScalarCfgStringArrayPlan, block: Int
 ) -> Int {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
         if plan.lengths.blocks[row] == block {
             if found >= 0 { return -1; } found = row;
@@ -132,7 +132,7 @@ func DirectMirScalarCfgStringArrayLengthRowAtBlock(
 func DirectMirScalarCfgStringArrayAccessRowAtGlobal(
     ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
 ) -> Int {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
         if plan.accesses.global_rows[row] == global_row {
             if found >= 0 { return -1; } found = row;
@@ -145,7 +145,7 @@ func DirectMirScalarCfgStringArrayAccessRowAtGlobal(
 func DirectMirScalarCfgStringArrayAccessRowAtOperation(
     ref plan: DirectMirScalarCfgStringArrayPlan, operation: Int
 ) -> Int {
-    let found: Int = -1; let row: Int = 0;
+    var found: Int = -1; var row: Int = 0;
     while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
         if plan.accesses.operation_rows[row] == operation {
             if found >= 0 { return -1; } found = row;

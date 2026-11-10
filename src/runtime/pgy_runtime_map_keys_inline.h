@@ -3,7 +3,7 @@
 
 /* Typed deterministic key projections for the string-key map storage owner. */
 #define PGY_DEFINE_MAP_KEYS_EXPORTS(TypeSuffix, FuncSuffix) \
-static inline PgyArray_String pgy_map_keys_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \
+static inline PgyArray_String pgy_map_keys_##FuncSuffix(const PgyHashMap_##TypeSuffix *m) \
 { \
     PgyArray_String out = {0}; \
     if (m == NULL) { \
@@ -32,7 +32,7 @@ static inline PgyArray_String pgy_map_keys_##FuncSuffix(PgyHashMap_##TypeSuffix 
     return out; \
 } \
 \
-static inline PgyArray_Int pgy_map_keys_i32_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \
+static inline PgyArray_Int pgy_map_keys_i32_##FuncSuffix(const PgyHashMap_##TypeSuffix *m) \
 { \
     PgyArray_Int out = {0}; \
     if (m == NULL) { \
@@ -56,7 +56,7 @@ static inline PgyArray_Int pgy_map_keys_i32_##FuncSuffix(PgyHashMap_##TypeSuffix
     return out; \
 } \
 \
-static inline PgyArray_Long pgy_map_keys_i64_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \
+static inline PgyArray_Long pgy_map_keys_i64_##FuncSuffix(const PgyHashMap_##TypeSuffix *m) \
 { \
     PgyArray_Long out = {0}; \
     if (m == NULL) { \
@@ -80,7 +80,7 @@ static inline PgyArray_Long pgy_map_keys_i64_##FuncSuffix(PgyHashMap_##TypeSuffi
     return out; \
 } \
 \
-static inline PgyArray_Bool pgy_map_keys_bool_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \
+static inline PgyArray_Bool pgy_map_keys_bool_##FuncSuffix(const PgyHashMap_##TypeSuffix *m) \
 { \
     PgyArray_Bool out = {0}; \
     if (m == NULL) { \

@@ -10,7 +10,7 @@ func Rewrite(inout items: Array<Int>) -> Void {
 }
 
 func Touch(box: Box) -> Int {
-    let items: Array<Int> = box.items;
+    var items: Array<Int> = box.items;
     Rewrite(items);
     return 0;
 }

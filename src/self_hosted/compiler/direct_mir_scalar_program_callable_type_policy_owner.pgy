@@ -12,7 +12,7 @@ func DirectMirScalarProgramFirstOrderCallableTypeSupported(
     if !shape.ok || !DirectMirScalarCfgScalarTypeSupported(shape.return_type) {
         return false;
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < ArrayLength(shape.parameter_types) {
         if !DirectMirScalarCfgScalarTypeSupported(shape.parameter_types[ordinal]) {
             return false;
@@ -34,7 +34,7 @@ func DirectMirScalarProgramCallableTypeMatchesRows(
         count != ArrayLength(shape.parameter_types) ||
         start + count > ArrayLength(parameter_types) ||
         start + count > ArrayLength(parameter_carriages) { return false; }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < count {
         if shape.parameter_types[ordinal] != parameter_types[start + ordinal] ||
             parameter_carriages[start + ordinal] != "value" { return false; }

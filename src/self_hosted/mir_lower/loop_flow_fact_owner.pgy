@@ -34,35 +34,35 @@ func BuildMirLoopFlowFacts(
 ) -> MirLoopFlowFacts {
     let summary_declared_count: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end, "loop_flow_summary_count");
-    let summary_loop_ids: Array<Int> = [];
-    let summary_kinds: Array<Int> = [];
-    let summary_effect_bases: Array<Int> = [];
-    let summary_effect_deltas: Array<Int> = [];
-    let summary_flags: Array<Int> = [];
-    let summary_entry_starts: Array<Int> = [];
-    let summary_entry_counts: Array<Int> = [];
-    let summary_exit_starts: Array<Int> = [];
-    let summary_exit_counts: Array<Int> = [];
+    var summary_loop_ids: Array<Int> = [];
+    var summary_kinds: Array<Int> = [];
+    var summary_effect_bases: Array<Int> = [];
+    var summary_effect_deltas: Array<Int> = [];
+    var summary_flags: Array<Int> = [];
+    var summary_entry_starts: Array<Int> = [];
+    var summary_entry_counts: Array<Int> = [];
+    var summary_exit_starts: Array<Int> = [];
+    var summary_exit_counts: Array<Int> = [];
     let state_declared_count: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end, "loop_flow_state_count");
-    let state_stable_indices: Array<Int> = [];
-    let state_consumed_flags: Array<Int> = [];
-    let state_used_flags: Array<Int> = [];
-    let state_access_masks: Array<Int> = [];
-    let state_slot_states: Array<Int> = [];
-    let state_semantic_states: Array<Int> = [];
-    let state_pool_ids: Array<Int> = [];
-    let valid: Bool = true;
+    var state_stable_indices: Array<Int> = [];
+    var state_consumed_flags: Array<Int> = [];
+    var state_used_flags: Array<Int> = [];
+    var state_access_masks: Array<Int> = [];
+    var state_slot_states: Array<Int> = [];
+    var state_semantic_states: Array<Int> = [];
+    var state_pool_ids: Array<Int> = [];
+    var valid: Bool = true;
 
-    let summary_bounds: Array<Int> = [0, 0];
+    var summary_bounds: Array<Int> = [0, 0];
     if StringLength(summary_declared_count) == 0 ||
         !MirObjectArrayBoundsAtBounds(
             json, json_extent, routine_start, routine_end,
             "loop_flow_summaries", summary_bounds) {
         valid = false;
     } else {
-        let cursor: Int = summary_bounds[0] + 1;
-        let row_bounds: Array<Int> = [0, 0];
+        var cursor: Int = summary_bounds[0] + 1;
+        var row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, json_extent, cursor, summary_bounds[1], row_bounds) {
             let loop_id: String = MirObjectNumberFactAtBounds(
@@ -83,7 +83,7 @@ func BuildMirLoopFlowFacts(
                 json, json_extent, row_bounds[0], row_bounds[1], "exit_state_start");
             let exit_count: String = MirObjectNumberFactAtBounds(
                 json, json_extent, row_bounds[0], row_bounds[1], "exit_state_count");
-            let kind: Int = 0 - 1;
+            var kind: Int = 0 - 1;
             if kind_name == "while" {
                 kind = 0;
             } else if kind_name == "for" {
@@ -116,15 +116,15 @@ func BuildMirLoopFlowFacts(
         valid = false;
     }
 
-    let state_bounds: Array<Int> = [0, 0];
+    var state_bounds: Array<Int> = [0, 0];
     if StringLength(state_declared_count) == 0 ||
         !MirObjectArrayBoundsAtBounds(
             json, json_extent, routine_start, routine_end,
             "loop_flow_states", state_bounds) {
         valid = false;
     } else {
-        let cursor2: Int = state_bounds[0] + 1;
-        let row_bounds2: Array<Int> = [0, 0];
+        var cursor2: Int = state_bounds[0] + 1;
+        var row_bounds2: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, json_extent, cursor2, state_bounds[1], row_bounds2) {
             let stable_index: String = MirObjectNumberFactAtBounds(
@@ -137,8 +137,8 @@ func BuildMirLoopFlowFacts(
                 json, json_extent, row_bounds2[0], row_bounds2[1], "semantic_state");
             let pool_id: String = MirObjectNumberFactAtBounds(
                 json, json_extent, row_bounds2[0], row_bounds2[1], "pool_id");
-            let consumed: Int = 0;
-            let used: Int = 0;
+            var consumed: Int = 0;
+            var used: Int = 0;
             if JsonObjectBoolFieldEqualsWithin(
                 json, json_extent, row_bounds2[0], row_bounds2[1], "is_consumed", true) {
                 consumed = 1;

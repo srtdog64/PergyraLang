@@ -1,0 +1,26 @@
+// BorrowText lends the caller's field to a local String carrier. The own
+// handoff must receive one independent compiler-inserted copy so Project
+// keeps only a read of its ref boundary.
+struct TextRecord {
+    text: String;
+}
+
+func BorrowText(ref source: TextRecord) -> String {
+    return source.text;
+}
+
+func Consume(own text: String) -> Int {
+    return StringLength(text);
+}
+
+func Project(ref source: TextRecord) -> Int {
+    let text: String = BorrowText(source);
+    return Consume(text);
+}
+
+func Main() -> Int {
+    let source: TextRecord = TextRecord(Concat("alpha", ""));
+    Print(ToString(Project(source)));
+    Print(source.text);
+    return 0;
+}

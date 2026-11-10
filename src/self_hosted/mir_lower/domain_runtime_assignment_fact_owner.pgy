@@ -211,8 +211,8 @@ func MirDomainRuntimeExactTopologyRow(
     source_name: String,
     source_id: String
 ) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(topology.kinds) {
         if topology.owner_names[row] == owner_name &&
             topology.owner_source_syntax_ids[row] == owner_id &&
@@ -234,7 +234,7 @@ func MirDomainRuntimeProjectionIdentityReady(
     ref facts: MirDomainProjectionAssignmentFacts,
     row: Int
 ) -> Bool {
-    let prior: Int = 0;
+    var prior: Int = 0;
     while prior < row {
         if (facts.owner_names[prior] == facts.owner_names[row] &&
              facts.owner_syntax_ids[prior] != facts.owner_syntax_ids[row]) ||
@@ -267,11 +267,11 @@ func MirDomainRuntimePathJoinReady(
     row: Int,
     ref facts: MirDomainProjectionAssignmentFacts
 ) -> Bool {
-    let owner_name: String = facts.source_declaration_names[row];
-    let built_path: String = "";
+    var owner_name: String = facts.source_declaration_names[row];
+    var built_path: String = "";
     let start: Int = facts.source_path_segment_starts[row];
     let count: Int = facts.source_path_segment_counts[row];
-    let segment: Int = 0;
+    var segment: Int = 0;
     while segment < count {
         let at: Int = start + segment;
         let field_index: Int = MirProgramDeclarationFieldIdentityFieldIndex(
@@ -311,32 +311,32 @@ func MirDomainProjectionAssignmentFactsFromTable(
         !declarations.field_identities.valid || !topology.valid {
         return EmptyMirDomainProjectionAssignmentFacts(false);
     }
-    let program_ids: Array<String> = [];
-    let owner_ids: Array<String> = [];
-    let directive_ids: Array<String> = [];
-    let operations: Array<String> = [];
-    let projection_slot_ids: Array<String> = [];
-    let source_slot_ids: Array<String> = [];
-    let target_decl_ids: Array<String> = [];
-    let target_decl_names: Array<String> = [];
-    let target_field_ids: Array<String> = [];
-    let source_decl_ids: Array<String> = [];
-    let source_decl_names: Array<String> = [];
-    let explicit_maps: Array<Bool> = [];
-    let owner_names: Array<String> = [];
-    let projection_slot_names: Array<String> = [];
-    let source_slot_names: Array<String> = [];
-    let target_field_names: Array<String> = [];
-    let target_field_types: Array<String> = [];
-    let source_paths: Array<String> = [];
-    let source_leaf_types: Array<String> = [];
-    let path_starts: Array<Int> = [];
-    let path_counts: Array<Int> = [];
-    let path_field_ids: Array<String> = [];
-    let path_field_names: Array<String> = [];
-    let path_field_types: Array<String> = [];
-    let topology_rows: Array<Int> = [];
-    let row_index: Int = 0;
+    var program_ids: Array<String> = [];
+    var owner_ids: Array<String> = [];
+    var directive_ids: Array<String> = [];
+    var operations: Array<String> = [];
+    var projection_slot_ids: Array<String> = [];
+    var source_slot_ids: Array<String> = [];
+    var target_decl_ids: Array<String> = [];
+    var target_decl_names: Array<String> = [];
+    var target_field_ids: Array<String> = [];
+    var source_decl_ids: Array<String> = [];
+    var source_decl_names: Array<String> = [];
+    var explicit_maps: Array<Bool> = [];
+    var owner_names: Array<String> = [];
+    var projection_slot_names: Array<String> = [];
+    var source_slot_names: Array<String> = [];
+    var target_field_names: Array<String> = [];
+    var target_field_types: Array<String> = [];
+    var source_paths: Array<String> = [];
+    var source_leaf_types: Array<String> = [];
+    var path_starts: Array<Int> = [];
+    var path_counts: Array<Int> = [];
+    var path_field_ids: Array<String> = [];
+    var path_field_names: Array<String> = [];
+    var path_field_types: Array<String> = [];
+    var topology_rows: Array<Int> = [];
+    var row_index: Int = 0;
     while row_index < JsonArrayObjectFactCount(rows) {
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row_index);
         if JsonObjectFactCount(row) != 18 ||
@@ -443,7 +443,7 @@ func MirDomainProjectionAssignmentFactsFromTable(
         }
         ArrayPush(path_starts, ArrayLength(path_field_ids));
         ArrayPush(path_counts, JsonArrayObjectFactCount(path_rows));
-        let path_row: Int = 0;
+        var path_row: Int = 0;
         while path_row < JsonArrayObjectFactCount(path_rows) {
             let segment: JsonObjectFactTable = JsonArrayObjectFactAt(
                 path_rows, path_row
@@ -462,11 +462,11 @@ func MirDomainProjectionAssignmentFactsFromTable(
         }
         row_index = row_index + 1;
     }
-    let topology_row: Int = 0;
+    var topology_row: Int = 0;
     while topology_row < ArrayLength(topology.kinds) {
         if MirDomainRuntimeProjectionOperation(topology.kinds[topology_row]) {
-            let matches: Int = 0;
-            let fact_row: Int = 0;
+            var matches: Int = 0;
+            var fact_row: Int = 0;
             while fact_row < ArrayLength(topology_rows) {
                 if topology_rows[fact_row] == topology_row {
                     matches = matches + 1;
@@ -492,7 +492,7 @@ func MirDomainProjectionAssignmentFactsFromTable(
             path_starts, path_counts, path_field_ids, path_field_names,
             path_field_types, topology_rows
         );
-    let joined_row: Int = 0;
+    var joined_row: Int = 0;
     while joined_row < row_index {
         if !MirDomainRuntimePathJoinReady(declarations, joined_row, facts) ||
             !MirDomainRuntimeProjectionIdentityReady(facts, joined_row) {

@@ -7,6 +7,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "array_storage_element_lifetime_owner.h"
 #include "array_storage_release_owner.h"
 #include "indexed_string_borrow_owner.h"
 
@@ -27,9 +28,13 @@ reject_borrowed_array_literal_store(ASTNode *value_expr,
             value_expr, ctx, "array literal", "array literal storage")) {
         return;
     }
-    semantic_validate_borrowed_escape(
+    if (semantic_validate_borrowed_escape(
         value_expr, value_expr, ctx, stored_value_type, NULL,
         OWNERSHIP_CONSUMER_CONTAINER_STORE, NULL,
         "array literal", "array literal storage",
-        false, NULL, NULL);
+        false, NULL, NULL))
+        return;
+    if (type_equals(stored_value_type, TYPE_STRING))
+        (void)semantic_array_storage_transfer_owned_string_literal_element(
+            value_expr, ctx);
 }

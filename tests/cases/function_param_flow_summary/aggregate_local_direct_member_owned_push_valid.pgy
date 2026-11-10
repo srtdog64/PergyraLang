@@ -1,0 +1,24 @@
+// A landed String copy may enter the exact Array field of an immutable local
+// aggregate. The field path, not its spelling, carries ownership to return.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Source {
+    names: Array<String>;
+}
+
+func Build(ref source: Source) -> Rows {
+    var result: Rows = Rows([]);
+    ArrayPush(result.names, source.names[0]);
+    return result;
+}
+
+func Main() -> Int {
+    let source: Source = Source([Concat("owned", "")]);
+    let result: Rows = Build(source);
+    Print(result.names[0]);
+    Print(source.names[0]);
+    Log(ArrayLength(result.names));
+    return 0;
+}

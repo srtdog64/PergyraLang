@@ -1,8 +1,7 @@
 // Match-payload locals admitted from MIR-carried binding/type facts.
 
 import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
-import "direct_mir_scalar_cfg_type_family_owner.pgy";
-import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_projection_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 import "../mir_lower/match_json_fact_owner.pgy";
 
@@ -10,6 +9,7 @@ func DirectMirScalarCfgAppendMatchBindingLocals(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     inout local_names: Array<String>,
     inout local_ref_kinds: Array<Int>,
     inout local_ref_value_ids: Array<String>,
@@ -27,7 +27,7 @@ func DirectMirScalarCfgAppendMatchBindingLocals(
             ArrayLength(index.match_binding_origins.instruction_global_rows) ||
         ArrayLength(index.source_local_names) !=
             ArrayLength(index.match_binding_origins.binding_ordinals) { return false; }
-    let row: Int = index.declared_source_local_count;
+    var row: Int = index.declared_source_local_count;
     while row < ArrayLength(index.source_local_names) {
         let global: Int = index.match_binding_origins.instruction_global_rows[row];
         if global < 0 || global >= ArrayLength(
@@ -44,10 +44,10 @@ func DirectMirScalarCfgAppendMatchBindingLocals(
         }
         let name: String = index.source_local_names[row];
         let type_name: String = index.source_local_types[row];
-        if name == "" || type_name == "" ||
-            (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
-             !DirectMirScalarProgramLogicalRecordTypeReady(
-                logical_record, type_name)) { return false; }
+        if name == "" || DirectMirScalarCfgValueTypeProject(
+                type_name, logical_record, referenced_enum) == "" {
+            return false;
+        }
         let identity: String = SelfMirLocalRef(
             "destructure", ToInt(index.source_syntax_id), row);
         if identity == "" || DirectMirScalarCfgLocalIdentityRow(

@@ -15,7 +15,7 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
         CompilerCompatibilityExecutionViewFromReceipt(compatibility_receipt);
     // This test-only DRV-2 binary is a separate process from the installed
     // compiler root. It still owns exactly one fresh world for its request.
-    let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
+    var compiler_world: PgyCompilerWorld = PgyCompilerWorld(
         DriverRung2DirectMirZone(
             DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
         ),

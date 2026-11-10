@@ -163,6 +163,24 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
 
+    if (level == DIAG_ERROR && !ctx->loan_copy_landing_emitting_deferred
+        && getenv("PGY_DEBUG_SEMANTIC_ERRORS") != NULL) {
+        fprintf(stderr,
+            "[semantic error trace] code=%s node=%u routine=%s routine_id=%u path=%s line=%u col=%u message=%s\n",
+            code != NULL ? code : "<none>",
+            node != NULL ? ast_node_stable_id(node) : 0,
+            ctx->current_function_decl != NULL
+                && ast_declaration_name(ctx->current_function_decl) != NULL
+                ? ast_declaration_name(ctx->current_function_decl) : "<none>",
+            ctx->current_function_decl != NULL
+                ? ast_node_stable_id(ctx->current_function_decl) : 0,
+            node != NULL && node->origin_path != NULL
+                ? node->origin_path : "<none>",
+            node != NULL ? node->line : 0,
+            node != NULL ? node->column : 0,
+            message != NULL ? message : "<none>");
+    }
+
     if (level == DIAG_ERROR)
         ctx->has_error = true;
 }

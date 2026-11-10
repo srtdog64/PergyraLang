@@ -1,0 +1,264 @@
+// Grounded result/storage proofs consume sealed use and collection facts.
+import "owned_storage_release_plan_owner.pgy";
+import "owned_storage_parameter_recipe_owner.pgy";
+import "direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
+import "owned_payload_enum_match_binding_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+func DirectMirOwnedLocalFreshOrigin(inout origins: Array<Int>, node: Int) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(origins) {
+        if origins[row] == node { return false; }
+        row = row + 1;
+    }
+    ArrayPush(origins, node); return true;
+}
+
+// A repeated origin inside one aggregate is an alias already covered by the
+// first field's retirement recipe. It is distinct from an unproved recipe.
+func DirectMirOwnedStorageRecipeAliasCovered() -> Int { return -2; }
+
+// A callable result aliases one formal only when every value return names the
+// same exact parameter. Missing or mixed return sources remain unproved.
+func DirectMirOwnedResultParameterOrdinal(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> Int {
+    if routine < 0 || routine >= ArrayLength(plan.routines.return_types) {
+        return -1;
+    }
+    var found: Bool = false;
+    var ordinal: Int = -1;
+    var block: Int = plan.routines.block_starts[routine];
+    let end: Int = block + plan.routines.block_counts[routine];
+    while block < end {
+        let graph: Int = plan.program.block_return_expression_rows[block];
+        if graph >= 0 {
+            let root: Int = plan.program.expressions.graph_roots[graph];
+            if plan.program.expressions.node_kinds[root] !=
+                    DirectMirScalarProgramExprParameter() {
+                return -1;
+            }
+            let candidate: Int =
+                plan.program.expressions.node_parameter_ordinals[root];
+            if candidate < 0 || candidate >=
+                    plan.routines.parameter_counts[routine] ||
+                plan.routines.parameter_types[
+                    plan.routines.parameter_starts[routine] + candidate] !=
+                    plan.routines.return_types[routine] ||
+                (plan.routines.parameter_carriages[
+                    plan.routines.parameter_starts[routine] + candidate] !=
+                        "value" &&
+                 plan.routines.parameter_carriages[
+                    plan.routines.parameter_starts[routine] + candidate] !=
+                        "owner-handle") ||
+                (found && candidate != ordinal) {
+                return -1;
+            }
+            ordinal = candidate;
+            found = true;
+        }
+        block = block + 1;
+    }
+    if found { return ordinal; }
+    return -1;
+}
+
+func DirectMirOwnedBorrowedStringReturnNode(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int
+) -> Bool {
+    if node < 0 || node >=
+            ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_types[node] !=
+            CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    return kind == DirectMirScalarProgramExprStringLiteral() ||
+        kind == DirectMirScalarProgramExprParameter();
+}
+
+func DirectMirOwnedParameterOccursOnceInGraph(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int, routine: Int,
+    ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    var graph: Int = 0;
+    while graph < ArrayLength(plan.program.expressions.graph_starts) {
+        let start: Int = plan.program.expressions.graph_starts[graph];
+        let end: Int = start + plan.program.expressions.graph_counts[graph];
+        if node >= start && node < end {
+            var count: Int = 0;
+            var row: Int = start;
+            while row < end {
+                if plan.program.expressions.node_kinds[row] ==
+                        DirectMirScalarProgramExprParameter() &&
+                    plan.program.expressions.node_parameter_ordinals[row] ==
+                        ordinal { count = count + 1; }
+                row = row + 1;
+            }
+            return count == 1;
+        }
+        graph = graph + 1;
+    }
+    return false;
+}
+
+func DirectMirOwnedStorageRecipe(ref plan: DirectMirScalarCfgGraphPlan,
+    ref definitions: Array<Int>, ref blocked: Array<Bool>,
+    ref result_recipes: Array<Int>, ref result_parameter_ordinals: Array<Int>,
+    routine: Int, node: Int, follow_locals: Bool, depth: Int,
+    inout origins: Array<Int>,
+    inout release: DirectMirOwnedStorageReleasePlan) -> Int {
+    if node < 0 || node >= ArrayLength(plan.program.expressions.node_kinds) ||
+        depth > ArrayLength(definitions) + ArrayLength(plan.program.logical_record.names) + 1 { return -1; }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    let type_name: String = plan.program.expressions.node_types[node];
+    var mode: Int = DirectMirOwnedLocalStorageMode(plan, type_name, 0);
+    if mode == 0 { return -1; }
+    var children: Array<Int> = [];
+    if kind == DirectMirScalarProgramExprLocal() && follow_locals {
+        let local_row: Int = plan.program.expressions.node_local_rows[node];
+        if local_row < 0 || local_row >= ArrayLength(definitions) || blocked[local_row] { return -1; }
+        let local_routine: Int = DirectMirScalarCfgRoutinePartitionLocalOwner(
+            plan.routines, local_row);
+        if local_routine < 0 || local_routine != routine {
+            return -1;
+        }
+        if plan.local_ref_kinds[local_row] ==
+                DirectMirScalarCfgLocalRefMatchBinding() {
+            let source: Int =
+                DirectMirOwnedPayloadEnumMatchBindingSourceParameter(
+                    plan, routine, local_row);
+            if source < 0 || !DirectMirOwnedLocalFreshOrigin(
+                    origins, node) {
+                return -1;
+            }
+            return DirectMirOwnedParameterStorageRecipeFromType(
+                plan, type_name, depth + 1, release);
+        }
+        if SelfMirLocalRefParameterOrdinalForOwner(
+                plan.local_ref_value_ids[local_row],
+                plan.routines.source_syntax_ids[local_routine]) >= 0 {
+            return -1;
+        }
+        let operation: Int = definitions[local_row];
+        if operation < 0 { return -1; }
+        let graph: Int = plan.program.operation_expression_rows[operation];
+        if graph < 0 { return -1; }
+        let recipe: Int = DirectMirOwnedStorageRecipe(plan, definitions, blocked,
+            result_recipes, result_parameter_ordinals,
+            routine, plan.program.expressions.graph_roots[graph], true,
+            depth + 1, origins, release);
+        if recipe < 0 || mode != 5 { return recipe; }
+        // Mutation can change element ownership after allocation. Only the
+        // admitted terminal transition can select the corresponding drop.
+        let transition: Int = DirectMirScalarProgramCollectionOwnershipTransitionRow(
+            plan.program.collection_ownership, local_routine, local_row);
+        if transition < 0 { return -1; }
+        let state: Int = plan.program.collection_ownership.terminal_states[transition];
+        if state == DirectMirCollectionOwnershipStateOwned() { mode = 6; }
+        else if state != DirectMirCollectionOwnershipStateEmpty() &&
+            state != DirectMirCollectionOwnershipStateBorrowed() &&
+            state != DirectMirCollectionOwnershipStateUnknown() { return -1; }
+        return DirectMirOwnedStorageReleaseAppend(release, mode, type_name, children);
+    }
+    if kind == DirectMirScalarProgramExprDirectCall() {
+        let callee: Int = plan.program.expressions.node_callable_rows[node];
+        if callee < 0 || callee >= ArrayLength(result_recipes) { return -1; }
+        if result_recipes[callee] >= 0 {
+            if !DirectMirOwnedLocalFreshOrigin(origins, node) {
+                return DirectMirOwnedStorageRecipeAliasCovered();
+            }
+            return result_recipes[callee];
+        }
+        let alias: Int = result_parameter_ordinals[callee];
+        let arguments: DirectMirScalarProgramArgumentView =
+            DirectMirScalarProgramArgumentViewFromNode(
+                plan.program.expressions, node);
+        if alias < 0 || !arguments.valid || alias >= arguments.count {
+            return -1;
+        }
+        return DirectMirOwnedStorageRecipe(
+            plan, definitions, blocked, result_recipes,
+            result_parameter_ordinals, routine,
+            DirectMirScalarProgramArgumentViewAt(
+                plan.program.expressions, arguments, alias),
+            true, depth + 1, origins, release);
+    }
+    if kind == DirectMirScalarProgramExprParameter() {
+        let ordinal: Int =
+            plan.program.expressions.node_parameter_ordinals[node];
+        if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+            ordinal < 0 || ordinal >=
+                plan.routines.parameter_counts[routine] { return -1; }
+        let parameter_row: Int = plan.routines.parameter_starts[routine] +
+            ordinal;
+        if !DirectMirOwnedParameterOccursOnceInGraph(
+                plan, node, routine, ordinal) ||
+            plan.routines.parameter_types[parameter_row] != type_name ||
+            plan.routines.parameter_carriages[parameter_row] !=
+                "owner-handle" ||
+            !DirectMirScalarProgramOwnedDirectParameterTypeReadyWithReferencedEnum(
+                plan.program.logical_record, plan.program.referenced_enum,
+                type_name) ||
+            !DirectMirOwnedLocalFreshOrigin(origins, node) {
+            return -1;
+        }
+        return DirectMirOwnedParameterStorageRecipeFromType(
+            plan, type_name, depth, release);
+    }
+    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() && mode == 4 {
+        let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
+        let arguments: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, node);
+        if record < 0 || !arguments.valid || arguments.count != plan.program.logical_record.field_counts[record] { return -1; }
+        var field: Int = 0;
+        while field < arguments.count {
+            let field_type: String = plan.program.logical_record.field_types[plan.program.logical_record.field_starts[record] + field];
+            var child: Int = -1;
+            if DirectMirOwnedLocalStorageMode(plan, field_type, 0) > 0 {
+                child = DirectMirOwnedStorageRecipe(plan, definitions, blocked,
+                    result_recipes, result_parameter_ordinals,
+                    routine,
+                    DirectMirScalarProgramArgumentViewAt(plan.program.expressions, arguments, field),
+                    true, depth + 1, origins, release);
+                if child == DirectMirOwnedStorageRecipeAliasCovered() { child = -1; }
+                else if child < 0 { return -1; }
+            }
+            ArrayPush(children, child); field = field + 1;
+        }
+        return DirectMirOwnedStorageReleaseAppend(release, mode, type_name, children);
+    }
+    var fresh: Bool = DirectMirScalarProgramFreshStringExpressionKind(kind) &&
+        mode == 1;
+    if mode == 2 { fresh = kind == DirectMirScalarProgramExprArrayIntPopulatedLiteral() || kind == DirectMirScalarProgramExprArrayIntEmptyLiteral(); }
+    if mode == 3 { fresh = kind == DirectMirScalarProgramExprArrayBoolPopulatedLiteral() || kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral(); }
+    if mode == 5 && kind == DirectMirScalarProgramExprArrayStringLiteral() {
+        fresh = true;
+        let owns_elements: Bool =
+            DirectMirScalarProgramArrayStringLiteralOwnsElements(
+                plan.program.expressions, node, plan.routines, routine);
+        if owns_elements { mode = 6; }
+        // A borrowed literal may contain only constants. An owned literal's
+        // exact operands were proved by ArrayStringLiteralOwnsElements and are
+        // retired by the deep Array<String> recipe.
+        let args: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, node);
+        if !args.valid { return -1; }
+        var child: Int = 0;
+        while child < args.count && !owns_elements {
+            if plan.program.expressions.node_kinds[DirectMirScalarProgramArgumentViewAt(
+                    plan.program.expressions, args, child)] != DirectMirScalarProgramExprStringLiteral() { return -1; }
+            child = child + 1;
+        }
+    }
+    if mode == 7 { fresh = kind == DirectMirScalarProgramExprMapNew(); }
+    if !fresh { return -1; }
+    if !DirectMirOwnedLocalFreshOrigin(origins, node) {
+        return DirectMirOwnedStorageRecipeAliasCovered();
+    }
+    return DirectMirOwnedStorageReleaseAppend(release, mode, type_name, children);
+}

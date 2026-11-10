@@ -49,10 +49,10 @@ func DirectMirScalarCfgForEachFactSetDigest(
     ref facts: DirectMirScalarCfgForEachFactSet
 ) -> Int {
     if !facts.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
+    var hash: Long = DirectMirCfgHashInt(
         197L, ArrayLength(facts.loop_syntax_ids)
     );
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.loop_syntax_ids) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(facts, row);
@@ -123,13 +123,13 @@ func DirectMirScalarCfgForEachFactAt(
     if !facts.valid || row < 0 || row >= ArrayLength(facts.loop_syntax_ids) {
         return DirectMirScalarCfgForEachFactEmpty();
     }
-    let elements: Array<Int> = [];
-    let item: Int = 0;
+    var elements: Array<Int> = [];
+    var item: Int = 0;
     while item < facts.element_counts[row] {
         ArrayPush(elements, facts.elements[facts.element_starts[row] + item]);
         item = item + 1;
     }
-    let backedges: Array<Int> = [];
+    var backedges: Array<Int> = [];
     item = 0;
     while item < facts.backedge_counts[row] {
         ArrayPush(
@@ -159,8 +159,8 @@ func DirectMirScalarCfgForEachFactAt(
 func DirectMirScalarCfgForEachFactAtLoopSyntaxId(
     ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
 ) -> DirectMirScalarCfgForEachFact {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         if facts.loop_syntax_ids[row] == wanted {
             if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
@@ -174,8 +174,8 @@ func DirectMirScalarCfgForEachFactAtLoopSyntaxId(
 func DirectMirScalarCfgForEachFactAtInitGlobalRow(
     ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
 ) -> DirectMirScalarCfgForEachFact {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         if facts.init_global_rows[row] == wanted {
             if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
@@ -189,8 +189,8 @@ func DirectMirScalarCfgForEachFactAtInitGlobalRow(
 func DirectMirScalarCfgForEachFactAtBranchGlobalRow(
     ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
 ) -> DirectMirScalarCfgForEachFact {
-    let found: Int = -1;
-    let row: Int = 0;
+    var found: Int = -1;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         if facts.branch_global_rows[row] == wanted {
             if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
@@ -204,8 +204,8 @@ func DirectMirScalarCfgForEachFactAtBranchGlobalRow(
 func DirectMirScalarCfgForEachOwnsDefinition(
     ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
 ) -> Bool {
-    let matches: Int = 0;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         if facts.definition_global_rows[row] == wanted { matches = matches + 1; }
         row = row + 1;
@@ -219,7 +219,7 @@ func DirectMirScalarCfgForEachStorageRow(
     if wanted < 0 || wanted >= DirectMirScalarCfgForEachFactCount(facts) {
         return -1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < wanted {
         if facts.storage_identities[row] ==
             facts.storage_identities[wanted] { return row; }
@@ -247,7 +247,7 @@ func DirectMirScalarCfgForEachStorageFactsReady(
         ArrayLength(fact.elements) != ArrayLength(storage.elements) {
         return false;
     }
-    let item: Int = 0;
+    var item: Int = 0;
     while item < ArrayLength(fact.elements) {
         if fact.elements[item] != storage.elements[item] { return false; }
         item = item + 1;
@@ -286,9 +286,9 @@ func DirectMirScalarCfgForEachFactSetShapeReady(
         count != ArrayLength(facts.length_offsets) ||
         count != ArrayLength(facts.capacity_offsets) ||
         count != ArrayLength(facts.allocator_offsets) { return false; }
-    let element_cursor: Int = 0;
-    let edge_cursor: Int = 0;
-    let row: Int = 0;
+    var element_cursor: Int = 0;
+    var edge_cursor: Int = 0;
+    var row: Int = 0;
     while row < count {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(facts, row);

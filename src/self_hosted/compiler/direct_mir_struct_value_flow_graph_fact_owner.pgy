@@ -47,7 +47,7 @@ func DirectMirStructValueFlowTopologyReady(
         ArrayLength(lefts) != count || ArrayLength(rights) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if sequence.arena.topology.node_kinds[row] != kinds[row] ||
             sequence.arena.topology.left_children[row] != lefts[row] ||
@@ -94,7 +94,7 @@ func DirectMirStructValueFlowGraphFactDigest(
     ref fact: DirectMirStructValueFlowGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(157L, fact.type_name);
+    var hash: Long = DirectMirCfgHashString(157L, fact.type_name);
     hash = DirectMirCfgHashString(hash, fact.first_field);
     hash = DirectMirCfgHashString(hash, fact.second_field);
     hash = DirectMirCfgHashString(hash, fact.parameter_name);

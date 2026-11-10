@@ -1,6 +1,7 @@
 // As ref_loan_field_written_back_valid, but the names are stored into the
-// caller's inout output, which did not hold them: the ref index's storage
-// reaches an output, and the next analysis copies it where it is stored.
+// caller's inout output, which did not hold them. The returned private Array
+// first owns copies of the ref index's Strings at its ArrayPush boundary;
+// Fill then transfers that independent Array into the caller's output.
 struct Carriers {
     names: Array<String>;
     count: Int;
@@ -11,8 +12,8 @@ struct Index {
 }
 
 func CarriersFrom(ref index: Index) -> Carriers {
-    let names: Array<String> = [];
-    let i: Int = 0;
+    var names: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(index.labels) {
         ArrayPush(names, index.labels[i]);
         i = i + 1;

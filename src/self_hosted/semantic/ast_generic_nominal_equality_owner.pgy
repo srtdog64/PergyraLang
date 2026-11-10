@@ -42,21 +42,21 @@ func SemanticAstGenericNominalEqualityActualAt(
         return "";
     }
     let row: Int = start + ordinal;
-    let nominal: String = "";
+    var nominal: String = "";
     let constraints: String = signatures.generic_constraint_type_names[row];
-    let cursor: Int = 0;
-    let valid: Bool = true;
+    var cursor: Int = 0;
+    var valid: Bool = true;
     while valid && cursor <= StringLength(constraints) {
         let tail: String = Substring(
             constraints, cursor, StringLength(constraints) - cursor
         );
         let separator: Int = StringIndexOf(tail, "+");
-        let segment_length: Int = StringLength(constraints) - cursor;
+        var segment_length: Int = StringLength(constraints) - cursor;
         if separator >= 0 { segment_length = separator; }
         let type_name: String = SemanticCanonicalTypeName(
             Substring(constraints, cursor, segment_length)
         );
-        let declaration: Int = 0;
+        var declaration: Int = 0;
         while declaration < ArrayLength(constructors.names) {
             if type_name != "" &&
                 constructors.return_type_names[declaration] == type_name {
@@ -93,7 +93,7 @@ func SemanticAstGenericNominalEqualityActualsReady(
     ) {
         return false;
     }
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signatures.generic_counts[signature] {
         if SemanticAstGenericNominalEqualityActualAt(
             signatures, constructors, signature, ordinal

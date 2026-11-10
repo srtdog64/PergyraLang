@@ -141,12 +141,18 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
                 ctx, expr, sym->decl_syntax_id);
         if (!semantic_future_validate_use(sym, expr, ctx))
             return TYPE_UNKNOWN;
-        if (!semantic_indexed_string_borrow_validate_use(sym, expr, ctx))
-            return TYPE_UNKNOWN;
+        bool transferred_owned_string = type_equals(sym->type, TYPE_STRING)
+            && sym->is_parameter && sym->param_mode == PARAM_MODE_OWN;
         if ((type_is_general_boundary_type(sym->type, ctx)
              || type_is_constructed_named(sym->type, "Array")
-             || type_is_move_token(sym->type))
+             || type_is_move_token(sym->type)
+             || transferred_owned_string)
             && sym->is_consumed) {
+            const char *moved_type = transferred_owned_string
+                ? "String"
+                : (type_is_subject_type(sym->type, ctx)
+                    ? type_name_or_unknown(sym->type)
+                    : resource_handle_display_name(sym->type));
             semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED,
                 PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE,
                 expr,
@@ -157,16 +163,14 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
                 "Fix:\n"
                 "- create/acquire a fresh %s value\n"
                 "- or keep ownership in one binding and avoid the earlier move",
-                type_is_subject_type(sym->type, ctx)
-                    ? type_name_or_unknown(sym->type)
-                    : resource_handle_display_name(sym->type),
+                moved_type,
                 expr_name,
                 expr_name != NULL ? expr_name : "<value>",
-                type_is_subject_type(sym->type, ctx)
-                    ? type_name_or_unknown(sym->type)
-                    : resource_handle_display_name(sym->type));
+                moved_type);
             return TYPE_UNKNOWN;
         }
+        if (!semantic_indexed_string_borrow_validate_use(sym, expr, ctx))
+            return TYPE_UNKNOWN;
         if (sym->kind == SYMBOL_SLOT && sym->type != NULL
             && type_is_owned_slot_handle(sym->type)) {
             const char *active_view_name = NULL;
@@ -416,6 +420,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 {
     double t0;
     Type *result;
+    size_t diagnostic_start;
 
     if (expr == NULL)
         return TYPE_VOID;
@@ -426,6 +431,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         semantic_error(ctx, expr, "Checked value entry publication failed");
         return TYPE_UNKNOWN;
     }
+    diagnostic_start = ctx->diagnostic_count;
     if (!expr_visit_census_enabled()) {
         result = type_check_expression_dispatch(expr, ctx);
     } else {
@@ -438,13 +444,19 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         if ((size_t)expr->type < 512)
             census->seconds_by_kind[(size_t)expr->type] += expr_census_now() - t0;
     }
-    if (semantic_param_publication_pending(ctx) && !ctx->has_error) {
+    bool publish_checked_value = !ctx->has_error;
+    if (!publish_checked_value && result != NULL && result != TYPE_UNKNOWN)
+        publish_checked_value =
+            semantic_param_publication_local_fact_after_borrow_refusals(
+                ctx, diagnostic_start);
+    if (semantic_param_publication_pending(ctx) && publish_checked_value) {
         if (result != NULL && result != TYPE_UNKNOWN &&
             !semantic_param_publication_record_value(ctx, expr, result, false))
             semantic_error(ctx, expr, "Checked value publication failed");
         if (expr->type == AST_CALL &&
-            !semantic_param_publication_record_checked_call(ctx, expr))
+            !semantic_param_publication_record_checked_call(ctx, expr)) {
             semantic_error(ctx, expr, "Checked call publication failed");
+        }
     }
     return result;
 }

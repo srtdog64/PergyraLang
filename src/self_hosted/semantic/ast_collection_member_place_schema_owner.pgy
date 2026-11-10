@@ -1,0 +1,57 @@
+// Member-place consumer and lending schema.
+
+import "ast_collection_member_place_owner.pgy";
+import "ast_collection_member_read_call_target_owner.pgy";
+import "ast_collection_execution_context_fact_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+import "ast_string_formal_borrow_owner.pgy";
+
+struct SemanticAstCollectionMemberPlaceUse {
+    root: Int;
+    escapes: Bool;
+    lent_target: Int;
+    lent_function: Int;
+    nested_read: Bool;
+    nested_hazard: Bool;
+}
+
+func SemanticAstCollectionMemberPlaceConsumer(
+    ref graph: SemanticExpressionGraphFacts, node: Int, root: Int
+) -> Int {
+    var consumer: Int = node + 1;
+    while consumer <= root {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);
+        if (IsSome(left) && UnwrapOption(left) == node) ||
+            (IsSome(right) && UnwrapOption(right) == node) { return consumer; }
+        consumer = consumer + 1;
+    }
+    return -1;
+}
+
+// A user formal receiving the place: always an escape edge; a readonly formal
+// is a lending whose callee context the caller must still observe.
+func SemanticAstCollectionMemberPlaceLending(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, consumer: Int, node: Int, root: Int
+) -> SemanticAstCollectionMemberPlaceUse {
+    let hazard: SemanticAstCollectionMemberPlaceUse =
+        SemanticAstCollectionMemberPlaceUse(
+            root, false, 0, 0, false, true);
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    if !edge.ok || edge.argument_node != node { return hazard; }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, graph, edge.call_node, edge.ordinal);
+    if !target.ok || target.syntax_id <= 0 { return hazard; }
+    let readonly: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionMemberReadCallTarget(
+        artifact, signatures, graph, edge.call_node, edge.ordinal);
+    if !readonly.ok {
+        return SemanticAstCollectionMemberPlaceUse(
+            root, false, target.syntax_id, 0, false, true);
+    }
+    return SemanticAstCollectionMemberPlaceUse(root, false, target.syntax_id,
+        signatures.function_node_ids[readonly.signature_row], false, false);
+}
+

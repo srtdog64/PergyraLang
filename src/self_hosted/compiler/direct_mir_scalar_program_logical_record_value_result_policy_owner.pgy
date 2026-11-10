@@ -12,8 +12,8 @@ func DirectMirScalarProgramLogicalRecordValueResultSignatureReady(
     if !DirectMirRoutineSignatureFactReady(signature) ||
         !DirectMirScalarCfgScalarTypeSupported(signature.return_type) ||
         signature.param_count < 1 { return false; }
-    let copyout_count: Int = 0;
-    let ordinal: Int = 0;
+    var copyout_count: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < signature.param_count {
         let type_name: String = signature.parameters.type_names[ordinal];
         if DirectMirScalarProgramLogicalRecordTypeReady(

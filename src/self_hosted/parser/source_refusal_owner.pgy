@@ -19,8 +19,8 @@ func ParseRefusalReport(
     k2: String, v2: String
 ) -> Void {
     let point: ParserSourcePoint = ParserSourcePointForOffset(context, offset);
-    let line: Int = 0;
-    let column: Int = 0;
+    var line: Int = 0;
+    var column: Int = 0;
     if point.known {
         line = point.line;
         column = point.column;
@@ -96,9 +96,9 @@ func ParseExpressionRefuse(
     expression_start: Int,
     construct: String
 ) -> Never {
-    let offset: Int = fact.failure_offset;
+    var offset: Int = fact.failure_offset;
     if offset < 0 { offset = expression_start; }
-    let code: String = fact.failure_code;
+    var code: String = fact.failure_code;
     if code == "" { code = "expression_invalid"; }
     ParseRefuse(context, offset, code,
         "construct", construct, "source_offset", ToString(offset));

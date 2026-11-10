@@ -59,9 +59,9 @@ func ParserSourceLocationContextFromSource(
     content: String,
     projection: ParseDiagnosticProjection
 ) -> ParserSourceLocationContext {
-    let starts: Array<Int> = [0];
+    var starts: Array<Int> = [0];
     let length: Int = StringLength(content);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < length {
         if CharCode(content, length, i) == 10 {
             ArrayPush(starts, i + 1);
@@ -74,17 +74,6 @@ func ParserSourceLocationContextFromSource(
     );
 }
 
-// Positions stay known for refusals; only the observation rows stop. Method
-// bodies parse under this view so their rows cannot shift the preorder join.
-func ParserSourceLocationContextWithoutObservation(
-    context: ParserSourceLocationContext
-) -> ParserSourceLocationContext {
-    return ParserSourceLocationContext(
-        context.known, false, context.source_path, context.display_path,
-        context.source_length, context.line_starts, context.projection
-    );
-}
-
 func ParserSourcePointForOffset(
     context: ParserSourceLocationContext,
     offset: Int
@@ -93,8 +82,8 @@ func ParserSourcePointForOffset(
         ArrayLength(context.line_starts) == 0 {
         return ParserSourcePoint(false, 0, 0);
     }
-    let low: Int = 0;
-    let high: Int = ArrayLength(context.line_starts);
+    var low: Int = 0;
+    var high: Int = ArrayLength(context.line_starts);
     while low + 1 < high {
         let middle: Int = low + ((high - low) / 2);
         if context.line_starts[middle] <= offset {
@@ -161,7 +150,7 @@ func ParserStatementTreeKind(tree_text: String, owner_kind: Int) -> Int {
         return owner_kind;
     }
     let newline: Int = StringIndexOf(tree_text, "\n");
-    let first_line: String = tree_text;
+    var first_line: String = tree_text;
     if newline >= 0 {
         first_line = Substring(tree_text, 0, newline);
     }
@@ -195,7 +184,7 @@ func ParserObservedDeclarationRow(
     inout observations: Array<ParserSourceLocationObservation>
 ) -> String {
     let newline: Int = StringIndexOf(block_text, "\n");
-    let first_line: String = block_text;
+    var first_line: String = block_text;
     if newline >= 0 { first_line = Substring(block_text, 0, newline); }
     let header: String = StringTrim(first_line);
     let kind: Int = TypedAstTextKindOf(header);
@@ -236,7 +225,7 @@ func ParserSourceLocationAppendSynthetic(
 func ParserSourceLocationObservationsReady(
     observations: Array<ParserSourceLocationObservation>
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(observations) {
         let row: ParserSourceLocationObservation = observations[i];
         if !TypedAstKindKnown(row.kind) ||

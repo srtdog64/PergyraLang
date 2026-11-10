@@ -68,7 +68,7 @@ func SelfMirMatchMaterializationRowsReady(
         ArrayLength(rows.synthetic_graph_root_ids) != count {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         if rows.node_ids[row] < 0 || rows.function_node_ids[row] < 0 ||
             rows.type_names[row] == "" || rows.type_names[row] == "Unknown" ||
@@ -98,8 +98,8 @@ func SelfMirMatchMaterializationRowForNode(
 func SelfMirSortedNodeRowLowerBound(
     node_ids: Array<Int>, node_id: Int
 ) -> Int {
-    let low: Int = 0;
-    let high: Int = ArrayLength(node_ids);
+    var low: Int = 0;
+    var high: Int = ArrayLength(node_ids);
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if node_ids[middle] < node_id {
@@ -125,7 +125,7 @@ func SelfMirAssignmentRowsReady(rows: SelfMirAssignmentRows) -> Bool {
     if ArrayLength(rows.target_type_names) != n ||
         ArrayLength(rows.target_binding_modes) != n ||
         ArrayLength(rows.verified) != n { return false; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if rows.node_ids[i] < 0 || rows.target_type_names[i] == "" ||
             rows.target_type_names[i] == "Unknown" ||
@@ -173,7 +173,7 @@ func SelfMirInitializerRowsReady(rows: SelfMirInitializerRows) -> Bool {
         ArrayLength(rows.binding_indices) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if rows.node_ids[i] < 0 || rows.inferred_type_names[i] == "" ||
             rows.inferred_type_names[i] == "Unknown" {
@@ -211,7 +211,7 @@ func SelfMirInitializerRangeForNodeFromReadyRows(
     node_id: Int
 ) -> SemanticAstLocalBindingFunctionRange {
     let start: Int = SelfMirSortedNodeRowLowerBound(rows.node_ids, node_id);
-    let end: Int = start;
+    var end: Int = start;
     while end < ArrayLength(rows.node_ids) && rows.node_ids[end] == node_id {
         end = end + 1;
     }
@@ -267,7 +267,7 @@ func SelfMirIterationRowsReady(rows: SelfMirIterationRows) -> Bool {
         ArrayLength(rows.synthetic_graph_root_ids) != n {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if rows.node_ids[i] < 0 || rows.binding_type_names[i] == "" ||
             rows.binding_type_names[i] == "Unknown" ||
@@ -311,8 +311,8 @@ func SelfMirRoutineInputRowsReady(ref input: SelfMirRoutineInput) -> Bool {
 func SelfMirNodeDescendsFrom(
     arena: AstArena, node_id: Int, ancestor_id: Int
 ) -> Bool {
-    let cursor: Option<Int> = Some(node_id);
-    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    var cursor: Option<Int> = Some(node_id);
+    var remaining: Int = TypedAstArenaNodeCount(arena) + 1;
     while IsSome(cursor) && remaining > 0 {
         let current: Int = UnwrapOption(cursor);
         if current == ancestor_id { return true; }
@@ -323,8 +323,8 @@ func SelfMirNodeDescendsFrom(
 }
 
 func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         arena, node_id, child_index
     );
     while IsSome(child_opt) {
@@ -332,8 +332,8 @@ func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {
         if TypedAstArenaNodeKindIs(arena, child_id, TypedAstKindBlockTag()) {
             return Some(child_id);
         }
-        let nested_index: Int = 0;
-        let nested_opt: Option<Int> = TypedAstArenaChildAt(
+        var nested_index: Int = 0;
+        var nested_opt: Option<Int> = TypedAstArenaChildAt(
             arena, child_id, nested_index
         );
         while IsSome(nested_opt) {
@@ -355,8 +355,8 @@ func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {
 }
 
 func SelfMirIfElseLoweringRoot(arena: AstArena, if_node_id: Int) -> Option<Int> {
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         arena, if_node_id, child_index
     );
     while IsSome(child_opt) {
@@ -375,8 +375,8 @@ func SelfMirIfElseLoweringRoot(arena: AstArena, if_node_id: Int) -> Option<Int> 
 func SelfMirIfElseNestedIfRoot(
     arena: AstArena, if_node_id: Int
 ) -> Option<Int> {
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         arena, if_node_id, child_index
     );
     while IsSome(child_opt) {
@@ -402,8 +402,8 @@ func SelfMirIfElseNestedIfRoot(
 func SelfMirFunctionBodyBlock(
     arena: AstArena, function_node_id: Int
 ) -> Option<Int> {
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = TypedAstArenaChildAt(
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = TypedAstArenaChildAt(
         arena, function_node_id, child_index
     );
     while IsSome(child_opt) {
@@ -422,7 +422,7 @@ func SelfMirFunctionBodyBlock(
 func SelfMirTypeIsNominal(
     ref input: SelfMirRoutineInput, type_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstNominalConstructorCount(input.analysis.constructors) {
         if input.analysis.constructors.names[i] == type_name { return true; }
         i = i + 1;
@@ -433,7 +433,7 @@ func SelfMirTypeIsNominal(
 func SelfMirLoopAssignedLocal(
     ref input: SelfMirRoutineInput, body_node_id: Int, local_name: String
 ) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstAssignmentCount(input.analysis.assignments) {
         if input.analysis.assignments.target_root_names[i] == local_name &&
             SelfMirNodeDescendsFrom(

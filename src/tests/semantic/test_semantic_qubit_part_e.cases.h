@@ -11,7 +11,7 @@ test_qubit_slot_semantics_part_e(void)
             "    let packet: Packet;\n"
             "}\n"
             "func Store(ref holder: Holder) -> Void {\n"
-            "    let dst = Packet(0);\n"
+            "    var dst = Packet(0);\n"
             "    dst = holder.packet;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -39,7 +39,7 @@ test_qubit_slot_semantics_part_e(void)
             "    let hp: Int;\n"
             "}\n"
             "func Store(ref items: Array<Packet>) -> Void {\n"
-            "    let dst = Packet(0);\n"
+            "    var dst = Packet(0);\n"
             "    dst = items[0];\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -142,7 +142,7 @@ test_qubit_slot_semantics_part_e(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ref boundary value parameter reports member source path on transitive helper forwarding");
+    TEST("ref boundary helper chain rejects the invalid inner return before member forwarding");
     {
         const char *source =
             "object Packet {\n"
@@ -168,9 +168,9 @@ test_qubit_slot_semantics_part_e(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'holder' cannot escape through helper/function call to 'Proxy' from 'holder.packet'"));
+            "Borrowed ref boundary value 'packet' cannot escape through return from 'packet'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'holder.packet' is derived from that borrowed boundary provenance"));
+            "'packet' is derived from that borrowed boundary provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

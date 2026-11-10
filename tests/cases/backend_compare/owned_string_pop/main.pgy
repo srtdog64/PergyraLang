@@ -1,0 +1,12 @@
+func OwnedPopArray() -> Array<String> {
+    var rows: Array<String> = [];
+    ArrayPush(rows, Concat("", "owned"));
+    ArrayPop(rows);
+    return rows;
+}
+
+func Main() -> Void {
+    let owned: Array<String> = OwnedPopArray();
+    Log(ArrayLength(owned));
+    ArrayDropOwnedStrings(owned);
+}

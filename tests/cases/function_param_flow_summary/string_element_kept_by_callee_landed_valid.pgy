@@ -8,11 +8,11 @@ func Join(acc: String, line: String) -> String {
 }
 
 func Lines() -> String {
-    let parts: Array<String> = [];
+    var parts: Array<String> = [];
     ArrayPush(parts, Concat("a", "1"));
     ArrayPush(parts, Concat("b", "2"));
-    let block: String = "";
-    let i: Int = 0;
+    var block: String = "";
+    var i: Int = 0;
     while i < ArrayLength(parts) {
         block = Join(block, parts[i]);
         i = i + 1;

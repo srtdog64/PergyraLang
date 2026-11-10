@@ -1,0 +1,84 @@
+import "mir_compound_assignment_readiness_owner.pgy";
+import "mir_compound_arithmetic_projection_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy";
+
+func MirCompoundAssignmentLlvm(ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, operation: Int, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact
+) -> String {
+    if !MirCompoundAssignmentReady(plan, operation, routine) { Die("compound LLVM assignment facts are invalid"); }
+    let target_row: Int = plan.program.operation_secondary_expression_rows[operation];
+    let value_row: Int = plan.program.operation_expression_rows[operation];
+    let root: Int = plan.program.expressions.graph_roots[target_row];
+    let start: Int = plan.program.expressions.graph_starts[target_row];
+    let type_name: String = plan.program.expressions.node_types[root];
+    let old: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
+        plan, plan.program.expressions, target_row, runtime, plan.program.logical_record,
+        plan.program.payload_free_enum, plan.program.referenced_enum, plan.routines, routine,
+        plan.program.array_string_abi, array_string_projection, plan.program.array_int_value_result,
+        array_int_projection, target);
+    let rhs: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
+        plan, plan.program.expressions, value_row, runtime, plan.program.logical_record,
+        plan.program.payload_free_enum, plan.program.referenced_enum, plan.routines, routine,
+        plan.program.array_string_abi, array_string_projection, plan.program.array_int_value_result,
+        array_int_projection, target);
+    if !old.valid || !rhs.valid || old.type_name != rhs.type_name { Die("compound LLVM operand type is invalid"); }
+    let stem: String = "pgy.update.${operation}";
+    let indexed: Bool = MirCompoundAssignmentIndexedKind(plan.program.expressions.node_kinds[root]);
+    var place_node: Int = root;
+    if indexed { place_node = plan.program.expressions.node_lefts[root]; }
+    let base: Int = MirCompoundAssignmentPlaceRoot(plan.program.expressions, target_row);
+    var address: String = "";
+    if plan.program.expressions.node_kinds[base] == DirectMirScalarProgramExprLocal() {
+        address = "%pgy.local.${plan.program.expressions.node_local_rows[base]}";
+    } else {
+        let ordinal: Int = plan.program.expressions.node_parameter_ordinals[base];
+        address = "%pgy.param.${ordinal}.local";
+        if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+            plan.program.expressions.node_types[base]) >= 0 { address = "%pgy.param.${ordinal}"; }
+    }
+    var members: Array<Int> = []; var node: Int = place_node;
+    while node > base {
+        ArrayPush(members, node); node = plan.program.expressions.node_lefts[node];
+    }
+    var output: String = old.instructions; var member_index: Int = ArrayLength(members);
+    while member_index > 0 {
+        member_index = member_index - 1; node = members[member_index];
+        let parent: Int = plan.program.expressions.node_lefts[node];
+        let owner_type: String = plan.program.expressions.node_types[parent];
+        var record_type: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(plan.program.logical_record, owner_type);
+        if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprIdentityCellMember() {
+            record_type = DirectMirIdentityCellLlvmType(plan.program.logical_record.identity_cells, owner_type);
+            if parent == base && plan.program.expressions.node_kinds[base] == DirectMirScalarProgramExprLocal() {
+                address = DirectMirScalarProgramLlvmNodeName(target_row, base);
+            }
+        }
+        if record_type == "" { Die("compound LLVM place layout is missing"); }
+        let next_address: String = "%${stem}.member.${node}";
+        output = output + "  ${next_address} = getelementptr ${record_type}, ptr ${address}, i32 0, i32 ${plan.program.expressions.node_member_ordinals[node]}\n";
+        address = next_address;
+    }
+    output = output + rhs.instructions + MirCompoundArithmeticLlvm(type_name,
+        MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]), "%${stem}.next", old.value, rhs.value);
+    if indexed {
+        let index_node: Int = plan.program.expressions.node_rights[root];
+        let index_value: String = DirectMirScalarProgramLlvmExpressionNodeValue(plan, target_row, index_node, routine);
+        let descriptor_type: String = DirectMirScalarProgramLlvmType(plan.program.expressions.node_types[place_node]);
+        var element_type: String = "i32";
+        if type_name == "Long" { element_type = "i64"; }
+        output = output + "  %${stem}.len.ptr = getelementptr ${descriptor_type}, ptr ${address}, i32 0, i32 1\n  %${stem}.len = load i64, ptr %${stem}.len.ptr\n  %${stem}.negative = icmp slt i64 ${index_value}, 0\n  %${stem}.past = icmp sge i64 ${index_value}, %${stem}.len\n  %${stem}.invalid = or i1 %${stem}.negative, %${stem}.past\n  br i1 %${stem}.invalid, label %${stem}.panic, label %${stem}.write\n${stem}.panic:\n  call void @${CollectionRuntimeLlvmBoundsPanicFn()}(ptr null)\n  unreachable\n${stem}.write:\n  %${stem}.data.ptr = getelementptr ${descriptor_type}, ptr ${address}, i32 0, i32 0\n  %${stem}.data = load ptr, ptr %${stem}.data.ptr\n  %${stem}.slot = getelementptr ${element_type}, ptr %${stem}.data, i64 ${index_value}\n";
+        var next: String = "%${stem}.next";
+        if type_name == "Int" {
+            output = output + "  %${stem}.element = trunc i64 ${next} to i32\n"; next = "%${stem}.element";
+        }
+        return output + "  store ${element_type} ${next}, ptr %${stem}.slot\n";
+    }
+    let llvm_type: String = DirectMirScalarProgramLlvmType(type_name);
+    output = output + "  store ${llvm_type} %${stem}.next, ptr ${address}\n";
+    let result: Int = plan.operation_result_values[operation];
+    if result >= 0 && root == base {
+        output = output + "  store ${llvm_type} %${stem}.next, ptr %pgy.local.${plan.value_local_rows[result]}\n";
+    }
+    return output;
+}

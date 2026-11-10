@@ -1,0 +1,17 @@
+// A returned loan of a local owner has no caller-formal diagnostic owner.
+// Sending that loan through a channel must stay refused at the getter call.
+struct Graph {
+    names: Array<String>;
+}
+
+func NameAt(ref graph: Graph, i: Int) -> String {
+    return graph.names[i];
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(["a"]);
+    let actual: String = NameAt(graph, 0);
+    let output: Channel<String> = Channel(1);
+    output <- actual;
+    return 0;
+}

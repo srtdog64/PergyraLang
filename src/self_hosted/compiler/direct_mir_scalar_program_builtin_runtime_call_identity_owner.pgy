@@ -8,7 +8,7 @@ func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
     if DirectMirScalarProgramTaskExpressionKind(signature.expression_kind) { return DirectMirScalarProgramTaskRuntimeCallIdentityReady(signature, carried); }
     if DirectMirScalarProgramCheckedIntKind(signature.expression_kind) ||
             DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
-        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(signature.expression_kind);
+        var abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(signature.expression_kind);
         if DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
             abi = DirectMirScalarProgramArrayTransformRuntimeFact(signature.expression_kind);
         }

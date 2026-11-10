@@ -1,0 +1,71 @@
+// Records aggregate entry and formal-forwarding obligations for one call spine.
+import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_record_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+
+func SemanticAstCollectionOwnedElementCallRequirements(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref owned_push_leaf_formals: HashMap<String, Int>,
+    root_slot: Int, node: Int, ref call: SemanticCallSpineView,
+    inout field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    inout forwarding_sources: Array<Int>,
+    inout forwarding_targets: Array<Int>
+) -> Bool {
+    var argument: Int = 0;
+    while argument < ArrayLength(call.argument_nodes) {
+        let owned_push_target: Int =
+            SemanticAstCollectionSourceArrayFormalForArgument(
+                signatures, surfaces.expression_graph, node, argument);
+        if owned_push_target > 0 &&
+            MapHas(owned_push_leaf_formals, ToString(owned_push_target)) {
+            let member_binding: SemanticAstLocalBindingIdentity =
+                SemanticAstCollectionOwnershipLocalForArgument(
+                    artifact, locals, inferred_types, surfaces,
+                    root_slot / 3, call.argument_nodes[argument]);
+            if member_binding.ok &&
+                !SemanticAstCollectionAggregateFieldEntryRequirementRecord(
+                    artifact, signatures, constructors, locals,
+                    inferred_types, resolved_leaf_types, surfaces, assignments,
+                    locals.function_node_ids[member_binding.row],
+                    surfaces.node_ids[root_slot / 3],
+                    locals.node_ids[member_binding.row],
+                    SemanticAstCollectionAggregateFieldEntryEffectOwnedPush(),
+                    field_requirements) {
+                return false;
+            }
+        }
+        let target: SemanticAstCollectionArgumentFormalTarget =
+            SemanticAstCollectionArgumentFormalTargetForArgument(
+                signatures, surfaces.expression_graph, node, argument);
+        var target_type: Option<String> = None;
+        var target_mode: Option<Int> = None;
+        if target.ok {
+            target_type = SemanticAstFunctionParamTypeAt(
+                signatures, target.signature_row, target.ordinal);
+            target_mode = SemanticAstFunctionParamModeAt(
+                signatures, target.signature_row, target.ordinal);
+        }
+        if target.ok && IsSome(target_type) && IsSome(target_mode) &&
+            UnwrapOption(target_mode) == 1 &&
+            SemanticAstCollectionOwnershipIsStringArray(
+                UnwrapOption(target_type)) {
+            let source: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionStringArrayFormalIdentity(
+                    signatures, surfaces.function_node_ids[root_slot / 3],
+                    surfaces.expression_graph, call.argument_nodes[argument]);
+            if source.ok && source.mode == 1 {
+                ArrayPush(forwarding_sources, source.syntax_id);
+                ArrayPush(forwarding_targets, target.syntax_id);
+            }
+        }
+        argument = argument + 1;
+    }
+    return true;
+}

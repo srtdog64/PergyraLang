@@ -44,7 +44,7 @@ func DirectMirScalarCfgEmitC(
             string_line_format, int_c_type, target
         );
     }
-    let output: String = DirectMirScalarCfgForEachCPreamble(plan, target);
+    var output: String = DirectMirScalarCfgForEachCPreamble(plan, target);
     output = Concat(output, DirectMirScalarCfgStringArrayCPreamble(
         plan, target
     ));
@@ -67,7 +67,7 @@ func DirectMirScalarCfgEmitC(
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanCDeclarations(plan, target));
     output = Concat(output, "    goto pgy_block_0;\n");
-    let block: Int = 0;
+    var block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         output = Concat(output, "pgy_block_");
         output = Concat(output, ToString(block));
@@ -75,7 +75,7 @@ func DirectMirScalarCfgEmitC(
         output = Concat(
             output, DirectMirScalarCfgForEachCBlockEntry(plan, block)
         );
-        let operation: Int = plan.block_operation_starts[block];
+        var operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {

@@ -19,7 +19,7 @@ func SemanticArrayTypeNameAt(ref type_names: Array<String>, row: Int) -> Bool {
     if length < 8 || CharCode(type_names[row], length, length - 1) != 62 { return false; }
     let prefix: String = "Array<";
     let prefix_extent: Int = StringLength(prefix);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 6 {
         if CharCode(type_names[row], length, i) != StringWindowCharCode(prefix, prefix_extent, 6, i) { return false; }
         i = i + 1;
@@ -32,7 +32,7 @@ func SemanticOwnedSequenceElementType(type_name: String) -> Option<String> {
         return SemanticArrayElementType(type_name);
     }
     let prefixes: Array<String> = ["List<", "Queue<"];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(prefixes) {
         let prefix: String = prefixes[i];
         if StringLength(type_name) > StringLength(prefix) &&

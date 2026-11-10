@@ -24,7 +24,7 @@ func DirectMirLegacyIntentProgramRouteFactDigest(
     ref fact: DirectMirLegacyIntentProgramRouteFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(887L, fact.main_row);
+    var hash: Long = DirectMirCfgHashInt(887L, fact.main_row);
     hash = DirectMirCfgHashInt(hash, fact.method_row);
     hash = DirectMirCfgHashInt(hash, fact.intent_row);
     hash = DirectMirCfgHashInt(hash, fact.subject_declaration_row);
@@ -57,13 +57,13 @@ func DirectMirLegacyIntentProgramRouteFactReady(
 func DirectMirLegacyIntentProgramRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirLegacyIntentProgramRouteFact {
-    let function_count: Int = 0;
-    let method_count: Int = 0;
-    let intent_count: Int = 0;
-    let main_row: Int = -1;
-    let method_row: Int = -1;
-    let intent_row: Int = -1;
-    let routine_row: Int = 0;
+    var function_count: Int = 0;
+    var method_count: Int = 0;
+    var intent_count: Int = 0;
+    var main_row: Int = -1;
+    var method_row: Int = -1;
+    var intent_row: Int = -1;
+    var routine_row: Int = 0;
     while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
         if admitted.routines.kinds[routine_row] == "function" &&
             admitted.routines.owners[routine_row] == "" {
@@ -79,11 +79,11 @@ func DirectMirLegacyIntentProgramRouteFactFromAdmitted(
         }
         routine_row = routine_row + 1;
     }
-    let subject_count: Int = 0;
-    let zone_count: Int = 0;
-    let subject_row: Int = -1;
-    let zone_row: Int = -1;
-    let declaration_row: Int = 0;
+    var subject_count: Int = 0;
+    var zone_count: Int = 0;
+    var subject_row: Int = -1;
+    var zone_row: Int = -1;
+    var declaration_row: Int = 0;
     while declaration_row < MirProgramDeclarationIndexCount(
         admitted.domain_runtime_admission.declarations
     ) {

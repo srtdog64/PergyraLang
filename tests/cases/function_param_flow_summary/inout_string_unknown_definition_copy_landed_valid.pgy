@@ -1,0 +1,43 @@
+// Split owns its String rows. AppendLine can return one row directly while
+// the accumulator is empty, so output has an UNKNOWN reaching source inside
+// the loop. Before output is passed inout, the compiler must copy the exact
+// reaching definitions in Main and in UnknownDefinitionAppend itself;
+// Clone(output) at the call would lose inout writeback.
+func UnknownDefinitionAppendLine(acc: String, line: String) -> String {
+    if StringLength(acc) == 0 {
+        return line;
+    }
+    return Concat(acc, Concat("\n", line));
+}
+
+func UnknownDefinitionAppend(
+    owner: String,
+    inout output: String,
+    inout count: Int,
+    inout ids: Array<Int>
+) -> Bool {
+    output = UnknownDefinitionAppendLine(output, owner);
+    count = count + 1;
+    ArraySet(ids, 0, count);
+    return true;
+}
+
+func Main() -> Int {
+    var output: String = "";
+    var count: Int = 0;
+    var ids: Array<Int> = [0];
+    let owner: String = "owner";
+    let lines: Array<String> = Split("a\nb", "\n");
+    var index: Int = 0;
+    while index < ArrayLength(lines) {
+        output = UnknownDefinitionAppendLine(output, lines[index]);
+        if index == 1 &&
+            !UnknownDefinitionAppend(owner, output, count, ids) {
+            return 1;
+        }
+        index = index + 1;
+    }
+    Print(output);
+    Print(lines[0]);
+    return 0;
+}

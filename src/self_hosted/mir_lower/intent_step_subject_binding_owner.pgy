@@ -86,8 +86,8 @@ func MirIntentStepSubjectBindingFromOwners(
     let slot_name: String =
         declarations.field_identities.field_names[field];
     if require_zone_authority {
-        let matches: Int = 0;
-        let offset: Int = 0;
+        var matches: Int = 0;
+        var offset: Int = 0;
         while offset < declarations.zone_authorities.declaration_counts[
             zone_declaration
         ] {

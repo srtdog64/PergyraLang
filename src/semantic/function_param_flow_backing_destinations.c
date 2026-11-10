@@ -31,8 +31,11 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
         if (!published.ok) { state->fact->complete = false; return; }
         if ((state->checking_declared_result &&
             semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) || published.meta) return;
+        uint32_t binding = semantic_param_publication_binding(
+            state->store->ctx, value);
         FunctionParamFlowBackingBinding *source = backing_identifier_row(state, value);
-        if (source == NULL && backing_storage_free_enum(state, published)) return;
+        if (source == NULL && (backing_storage_free_enum(state, published) ||
+                backing_unit_variant(state, published, binding))) return;
         if (source == NULL) { state->fact->complete = false; return; }
         source->destination_read_epoch = state->fact->epoch;
         backing_merge(state->fact->destination_words, destinations, source->destinations);
@@ -72,8 +75,12 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
                 /* A result the method returns from its receiver goes where
                  * the receiver goes. */
                 size_t entry = backing_receiver_summary(state, value, receiver);
-                if (entry == SIZE_MAX) state->fact->complete = false;
-                else if ((state->store->entries[entry].mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0)
+                unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+                if (entry == SIZE_MAX ||
+                    !function_param_flow_entry_outward_effects_current(
+                        state->store, entry, &outward_effects))
+                    state->fact->complete = false;
+                else if ((outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0)
                     backing_merge(state->fact->destination_words, destinations, received);
             }
             free(received);
@@ -84,28 +91,15 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
      * closed store graph and eager consumer traversal, including call inputs. */
     if (state->checking_declared_result &&
         semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) return;
-    if (value->type == AST_ARRAY_ACCESS && !published.meta &&
-        semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) {
+    if (semantic_param_publication_physical_array_element_value(
+            state->store->ctx, value)) {
         ASTNode *array = ast_array_access_array(value), *index = ast_array_access_index(value);
-        if (array != NULL && index != NULL
-            && ast_node_stable_id(array) != 0
-            && ast_node_stable_id(index) != 0) {
-            SemanticPublishedValue receiver = semantic_param_publication_value(state->store->ctx, array);
-            SemanticPublishedValue offset = semantic_param_publication_value(state->store->ctx, index);
-            const Type *element = receiver.ok && !receiver.meta &&
-                type_is_constructed_named(receiver.type, "Array") ? type_get_constructed_arg(receiver.type, 0) : NULL;
-            if (element != NULL && publication_physical_scalar(element) &&
-                type_equals(element, published.type) && offset.ok && !offset.meta &&
-                type_equals(offset.type, TYPE_INT) &&
-                semantic_param_publication_value_is_physical_scalar(state->store->ctx, index)) {
-                /* The element is a value, not an alias to the Array descriptor. */
-                if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, value) ||
-                    !function_param_flow_claim_record(state->store->ctx, state->fact->claims, array) ||
-                    !function_param_flow_claim_record(state->store->ctx, state->fact->claims, index))
-                    state->fact->complete = false;
-                return;
-            }
-        }
+        /* The element is a value, not an alias to the Array descriptor. */
+        if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, value) ||
+            !function_param_flow_claim_record(state->store->ctx, state->fact->claims, array) ||
+            !function_param_flow_claim_record(state->store->ctx, state->fact->claims, index))
+            state->fact->complete = false;
+        return;
     }
     if (published.meta || (!state->checking_declared_result && published.origin_ready && value->type != AST_IDENTIFIER &&
         value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
@@ -152,11 +146,16 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
                     kinds[p] = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_PHYSICAL;
                     continue;
                 }
-                unsigned mask = function_param_flow_summary_for_call(&state->lookup, value, p);
-                if (!function_param_flow_callee_relation_ready(&state->lookup, value, p)) {
+                (void)function_param_flow_summary_for_call(&state->lookup,
+                    value, p);
+                unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+                if (!function_param_flow_callee_relation_ready(
+                        &state->lookup, value, p) ||
+                    !function_param_flow_callee_outward_effects_current(
+                        &state->lookup, value, p, &outward_effects)) {
                     state->fact->complete = false; break;
                 }
-                kinds[p] = (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ?
+                kinds[p] = (outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ?
                     FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT : FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT;
             }
             if (state->fact->complete && !function_param_flow_declared_result_closed(state->store, value, state->fact))
@@ -194,6 +193,12 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
                 if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, arg))
                     state->fact->complete = false;
                 if (!state->fact->complete) break;
+                size_t claim_ordinal = SIZE_MAX;
+                if (!function_param_flow_claim_record_ordinal(
+                        state->store->ctx, state->fact->claims, value,
+                        &claim_ordinal)) {
+                    state->fact->complete = false; break;
+                }
                 uint32_t call_id = ast_node_stable_id(value), callee_id = ast_node_stable_id(callee);
                 if (body_witness_ordinal >= p || call_id == 0 || callee_id == 0 ||
                     !semantic_param_publication_checked_argument(state->store->ctx, value, body_witness_ordinal)) {
@@ -203,8 +208,13 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
                 for (; e < state->fact->pending_relation_count; e++) {
                     FunctionParamFlowPendingRelation *edge = &state->fact->pending_relations[e];
                     if (edge->call == value && edge->call_id == call_id && edge->callee_id == callee_id &&
-                        edge->ordinal == body_witness_ordinal) break;
+                        edge->ordinal == body_witness_ordinal) {
+                        if (edge->claim_ordinal != claim_ordinal)
+                            state->fact->complete = false;
+                        break;
+                    }
                 }
+                if (!state->fact->complete) break;
                 if (e == state->fact->pending_relation_count) {
                     if (e == SIZE_MAX / sizeof(*state->fact->pending_relations)) {
                         function_param_flow_fail(state->store, value, "backing witness relation size overflow");
@@ -218,7 +228,12 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
                     }
                     state->fact->pending_relations = rows;
                     rows[state->fact->pending_relation_count++] =
-                        (FunctionParamFlowPendingRelation){value, call_id, callee_id, body_witness_ordinal};
+                        (FunctionParamFlowPendingRelation){
+                            .call = value,
+                            .call_id = call_id,
+                            .callee_id = callee_id,
+                            .ordinal = body_witness_ordinal,
+                            .claim_ordinal = claim_ordinal};
                 }
                 if (!state->fact->pending)
                     state->fact->sealed_pending_relation_count = state->fact->pending_relation_count;
@@ -238,7 +253,8 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
             bool depends = false, retains = true;
             bool ready = false, pending_edge = false;
             if (callee != NULL) {
-                unsigned mask = function_param_flow_summary_for_call(&state->lookup, value, p);
+                (void)function_param_flow_summary_for_call(&state->lookup,
+                    value, p);
                 ready = function_param_flow_callee_relation_ready(&state->lookup, value, p);
                 if (!ready)
                     function_param_flow_callee_unfinished(&state->lookup, value, p, state->fact);
@@ -251,7 +267,26 @@ void backing_destination_value_at(ReturnedBacking *state, ASTNode *value,
                             edge->callee_id == callee_id && edge->ordinal == p) pending_edge = true;
                     }
                 }
-                depends = (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
+                /* A pending recursive answer is not an output dependency yet.
+                 * Its edge reopens this frame; the settled pass records the
+                 * dependency without making a provisional bit permanent. */
+                unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
+                bool outward_ready = ready &&
+                    function_param_flow_callee_outward_effects_current(
+                        &state->lookup, value, p, &outward_effects);
+                if (ready && !outward_ready) {
+                    state->fact->complete = false;
+                    break;
+                }
+                depends = outward_ready &&
+                    (outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
+            } else if (semantic_param_publication_nominal_result_complete(
+                    state->store->ctx, value)) {
+                /* The nominal result snapshot maps this actual to one exact
+                 * result field, so the result destination is also the
+                 * actual's destination. */
+                depends = true;
+                retains = true;
             } else if (!semantic_param_publication_checked_backing_relation(state->store->ctx, value, p, &depends, &retains)) {
                 /* An argument borrowed only for the call is kept by nothing
                  * after it; with no relation for the result, the result is

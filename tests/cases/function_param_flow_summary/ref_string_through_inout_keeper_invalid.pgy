@@ -31,8 +31,8 @@ struct Rows {
 }
 
 func Rebind(names: Array<String>) -> Rows {
-    let copied: Array<String> = [];
-    let i: Int = 0;
+    var copied: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(names) {
         ArrayPush(copied, names[i]);
         i = i + 1;
@@ -41,8 +41,8 @@ func Rebind(names: Array<String>) -> Rows {
 }
 
 func Names(ref index: Index) -> Rows {
-    let names: Array<String> = [];
-    let i: Int = 0;
+    var names: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(index.labels) {
         ArrayPush(names, "");
         i = i + 1;

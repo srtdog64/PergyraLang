@@ -15,7 +15,7 @@ import "../../semantic/wrapper_type_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func CodegenExpressionCallTypeFromGraph(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     env: CodegenTypeEnv
 ) -> Option<String> {
@@ -71,8 +71,8 @@ func CodegenExpressionCallTypeFromGraph(
         return ResultErrorTypeOpt(UnwrapOption(wrapped_error));
     }
     if SemanticBuiltinReturnDependsOnArguments(source_name) {
-        let argument_types: Array<String> = [];
-        let argument_index: Int = 0;
+        var argument_types: Array<String> = [];
+        var argument_index: Int = 0;
         while argument_index < ArrayLength(call.argument_nodes) {
             let argument_type: Option<String> = CodegenExpressionTypeFromGraph(
                 graph, call.argument_nodes[argument_index], env

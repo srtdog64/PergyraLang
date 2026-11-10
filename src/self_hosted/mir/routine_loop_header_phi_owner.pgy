@@ -18,10 +18,10 @@ func SelfMirLoopPrepareHeaderLocalVersions(
             build, "MIR loop-local scope boundary is invalid"
         );
     }
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < ArrayLength(build.local_names) {
-        let shadowed_by_loop_local: Bool = false;
-        let loop_local_row: Int = loop_local_start;
+        var shadowed_by_loop_local: Bool = false;
+        var loop_local_row: Int = loop_local_start;
         while loop_local_row < ArrayLength(build.local_names) {
             if loop_local_row != local_row &&
                 build.local_names[loop_local_row] ==

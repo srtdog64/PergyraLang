@@ -103,7 +103,7 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
         facts.node_types[left] == CompilerAbiLayoutStringTypeName() && facts.node_types[right] == CompilerAbiLayoutStringTypeName()); }
     if kind == DirectMirScalarProgramExprStringContains() ||
             kind == DirectMirScalarProgramExprStringSplit() {
-        let expected: String = CompilerAbiLayoutBoolTypeName();
+        var expected: String = CompilerAbiLayoutBoolTypeName();
         if kind == DirectMirScalarProgramExprStringSplit() {
             expected = CompilerAbiLayoutArrayStringTypeName();
         }
@@ -118,16 +118,19 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
     if kind == DirectMirScalarProgramExprArrayStringLength() {
         let left_array: Bool = IsSome(
             SemanticArrayElementType(facts.node_types[left]));
+        let left_slice: Bool =
+            facts.node_types[left] == CompilerAbiLayoutSliceIntTypeName() ||
+            facts.node_types[left] == CompilerAbiLayoutSliceStringTypeName();
         return Some(type_name == CompilerAbiLayoutIntTypeName() &&
-            left_array && right == -1);
+            (left_array || left_slice) && right == -1);
     }
     if kind == DirectMirScalarProgramExprToIntString() {
         return Some(type_name == CompilerAbiLayoutIntTypeName() &&
             facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
             right == -1);
     }
-    let expected_type: String = CompilerAbiLayoutStringTypeName();
-    let expected_left: String = CompilerAbiLayoutArrayStringTypeName();
+    var expected_type: String = CompilerAbiLayoutStringTypeName();
+    var expected_left: String = CompilerAbiLayoutArrayStringTypeName();
     if kind == DirectMirScalarProgramExprArrayIntIndex() {
         return Some(DirectMirScalarProgramArrayIntIndexNodeReady(facts, node));
     } else if kind == DirectMirScalarProgramExprArrayBoolIndex() {

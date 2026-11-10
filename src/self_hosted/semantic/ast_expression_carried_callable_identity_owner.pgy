@@ -15,13 +15,13 @@ func SemanticExpressionFormalParameterCarriedIdentityReady(
         parameter_name == "" {
         return false;
     }
-    let matches: Int = 0;
-    let signature: Int = 0;
+    var matches: Int = 0;
+    var signature: Int = 0;
     while signature < SemanticAstFunctionSignatureCount(signatures) {
         let count: Option<Int> = SemanticAstFunctionParamCountAt(
             signatures, signature);
         if !IsSome(count) { return false; }
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < UnwrapOption(count) {
             let node: Option<Int> = SemanticAstFunctionParamNodeAt(
                 signatures, signature, ordinal);
@@ -83,10 +83,10 @@ func SemanticExpressionDeclaredCallableSyntaxId(
     let function_id: Result<Int> =
         SemanticExpressionDeclaredFunctionSyntaxId(signatures, target_name);
     if IsErr(function_id) { return function_id; }
-    let found: Int = Unwrap(function_id);
-    let matches: Int = 0;
+    var found: Int = Unwrap(function_id);
+    var matches: Int = 0;
     if found > 0 { matches = 1; }
-    let intent_index: Int = 0;
+    var intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         if intents.names[intent_index] == "" ||
             intents.intent_node_ids[intent_index] <= 0 {

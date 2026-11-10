@@ -13,8 +13,8 @@ func DirectMirScalarCfgArrayIntReadOnlyLlvmRead(
         Die("direct MIR scalar CFG read-only Array<Int> LLVM read is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    let index: String = plan.operation_left_literals[operation];
-    let output: String = "";
+    var index: String = plan.operation_left_literals[operation];
+    var output: String = "";
     if index == "" {
         output = Concat("  ", Concat(stem, ".read.index = load i64, ptr "));
         output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
@@ -47,7 +47,7 @@ func DirectMirScalarCfgArrayIntReadOnlyLlvmCondition(
         Die("direct MIR scalar CFG read-only Array<Int> LLVM condition is invalid");
     }
     let stem: String = Concat("%pgy.cond.", ToString(block));
-    let output: String = Concat("  ", stem);
+    var output: String = Concat("  ", stem);
     output = Concat(output, ".index = load i64, ptr ");
     output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
         plan, plan.block_condition_left_values[block],

@@ -60,11 +60,11 @@ func SemanticAstExpressionOperatorRowsAppend(
     ArrayPush(rows, operators.comparison_index);
     ArrayPush(rows, operators.comparison_length);
     ArrayPush(rows, operators.equality_index);
-    let equality_is_not: Int = 0;
+    var equality_is_not: Int = 0;
     if operators.equality_is_not { equality_is_not = 1; }
     ArrayPush(rows, equality_is_not);
     ArrayPush(rows, operators.additive_index);
-    let additive_operator_code: Int = -1;
+    var additive_operator_code: Int = -1;
     if operators.additive_index >= 0 {
         additive_operator_code = SourceByteAt(
             normalized_text, normalized_text_extent, StringLength(normalized_text),
@@ -86,32 +86,32 @@ func SemanticAstExpressionInvalidShape() -> SemanticAstExpressionShapeFact {
 func SemanticAstExpressionSurfaceRowsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstExpressionSurfaceFacts {
-    let node_ids: Array<Int> = [];
-    let function_node_ids: Array<Int> = [];
-    let intent_node_ids: Array<Int> = [];
-    let enclosing_intents: Array<Int> = [];
-    let has_atoms: Array<Bool> = [];
-    let atoms: Array<String> = [];
-    let has_values: Array<Bool> = [];
-    let values: Array<String> = [];
-    let has_auxiliary_values: Array<Bool> = [];
-    let auxiliary_values: Array<String> = [];
-    let normalized_atoms: Array<String> = [];
-    let normalized_values: Array<String> = [];
-    let normalized_auxiliary_values: Array<String> = [];
-    let operator_rows: Array<Int> = [];
-    let graph_roots: Array<Int> = [];
-    let graph_has_roots: Array<Bool> = [];
-    let failure_node_id: Int = -1;
-    let failure_lane: String = "";
+    var node_ids: Array<Int> = [];
+    var function_node_ids: Array<Int> = [];
+    var intent_node_ids: Array<Int> = [];
+    var enclosing_intents: Array<Int> = [];
+    var has_atoms: Array<Bool> = [];
+    var atoms: Array<String> = [];
+    var has_values: Array<Bool> = [];
+    var values: Array<String> = [];
+    var has_auxiliary_values: Array<Bool> = [];
+    var auxiliary_values: Array<String> = [];
+    var normalized_atoms: Array<String> = [];
+    var normalized_values: Array<String> = [];
+    var normalized_auxiliary_values: Array<String> = [];
+    var operator_rows: Array<Int> = [];
+    var graph_roots: Array<Int> = [];
+    var graph_has_roots: Array<Bool> = [];
+    var failure_node_id: Int = -1;
+    var failure_lane: String = "";
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    let ok: Bool = function_scopes.ok;
-    let node_id: Int = 0;
+    var ok: Bool = function_scopes.ok;
+    var node_id: Int = 0;
     while node_id < artifact.count && ok {
         // Project the typed-parent purpose boundary once, before consumers
         // borrow expression rows. Functions/actions begin their own boundary.
-        let intent_node_id: Int = -1;
+        var intent_node_id: Int = -1;
         if TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindIntentDeclTag()) {
             intent_node_id = node_id;
         } else if !TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
@@ -134,9 +134,9 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
             artifact.arena, node_id
         );
         if IsSome(atom) || IsSome(value) || IsSome(auxiliary) {
-            let atom_text: String = "";
-            let value_text: String = "";
-            let auxiliary_text: String = "";
+            var atom_text: String = "";
+            var value_text: String = "";
+            var auxiliary_text: String = "";
             if IsSome(atom) { atom_text = UnwrapOption(atom); }
             if IsSome(value) { value_text = UnwrapOption(value); }
             if IsSome(auxiliary) { auxiliary_text = UnwrapOption(auxiliary); }
@@ -147,7 +147,7 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
             let normalized_auxiliary: String =
                 SemanticStripOuterParens(auxiliary_text);
             let normalized_auxiliary_extent: Int = StringLength(normalized_auxiliary);
-            let function_node_id: Int = -1;
+            var function_node_id: Int = -1;
             let function_node: Option<Int> =
                 SemanticAstFunctionScopeNodeId(function_scopes, node_id);
             if IsSome(function_node) {
@@ -182,7 +182,7 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
                 ),
                 normalized_auxiliary
             , normalized_auxiliary_extent);
-            let lane: Int = AstExpressionLaneAtom();
+            var lane: Int = AstExpressionLaneAtom();
             while lane <= AstExpressionLaneAuxiliary() {
                 ArrayPush(graph_roots, 0);
                 ArrayPush(graph_has_roots, false);
@@ -248,8 +248,8 @@ func SemanticAstExpressionSurfaceIndexForNode(
     }
     let count: Int = SemanticAstExpressionSurfaceCount(facts);
     // Expression-surface rows retain producer traversal order by syntax node.
-    let low: Int = 0;
-    let high: Int = count;
+    var low: Int = 0;
+    var high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
         if facts.node_ids[middle] < node_id {
@@ -263,7 +263,7 @@ func SemanticAstExpressionSurfaceIndexForNode(
 }
 
 func SemanticAstExpressionShapeAt(
-    facts: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstExpressionSurfaceFacts,
     index: Int,
     lane: Int
 ) -> SemanticAstExpressionShapeFact {
@@ -273,8 +273,8 @@ func SemanticAstExpressionShapeAt(
             count * SemanticAstExpressionShapeWidth() {
         return SemanticAstExpressionInvalidShape();
     }
-    let present: Bool = facts.has_atoms[index];
-    let normalized: String = facts.normalized_atoms[index];
+    var present: Bool = facts.has_atoms[index];
+    var normalized: String = facts.normalized_atoms[index];
     if lane == AstExpressionLaneValue() {
         present = facts.has_values[index];
         normalized = facts.normalized_values[index];
@@ -297,7 +297,7 @@ func SemanticAstExpressionShapeAt(
 }
 
 func SemanticAstExpressionShapeForNode(
-    facts: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstExpressionSurfaceFacts,
     node_id: Int,
     lane: Int
 ) -> SemanticAstExpressionShapeFact {
@@ -345,7 +345,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     // The surface graph is finished here. An arena without the shape mark is
     // checked now and carries the mark, so later readiness calls check only
     // overlays; a sealed arena also carries each node's first consumer.
-    let sealed: SemanticExpressionGraphFacts = graph;
+    var sealed: SemanticExpressionGraphFacts = graph;
     if !sealed.arena.shape_ready {
         sealed.arena.shape_ready = SemanticExpressionGraphArenaShapeReady(sealed.arena, 0);
     }
@@ -353,9 +353,9 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         SemanticExpressionGraphArenaNodeCount(sealed.arena) {
         sealed.arena.consumer_rows = SemanticExpressionGraphConsumerRows(sealed.arena.topology);
     }
-    let failure_node_id: Int = facts.failure_node_id;
-    let failure_lane: String = facts.failure_lane;
-    let valid: Bool = facts.ok &&
+    var failure_node_id: Int = facts.failure_node_id;
+    var failure_lane: String = facts.failure_lane;
+    var valid: Bool = facts.ok &&
         SemanticExpressionGraphFactsReady(
             sealed, SemanticAstExpressionSurfaceCount(facts) * 3
         );
@@ -367,8 +367,8 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
             )
         );
     }
-    let migrated_root_count: Int = 0;
-    let i: Int = 0;
+    var migrated_root_count: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) && valid {
         let node_id: Int = facts.node_ids[i];
         let migrated_atom: Bool = facts.has_atoms[i] &&
@@ -488,7 +488,7 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
         ) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
             facts.function_node_ids[i] != rebuilt.function_node_ids[i] ||
@@ -507,7 +507,7 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
         }
         i = i + 1;
     }
-    let operator_index: Int = 0;
+    var operator_index: Int = 0;
     while operator_index < ArrayLength(facts.operator_rows) {
         if facts.operator_rows[operator_index] !=
             rebuilt.operator_rows[operator_index] {

@@ -1,0 +1,13 @@
+struct CloneLeaf {
+    value: Int;
+}
+
+struct CloneBranch {
+    leaf: CloneLeaf;
+}
+
+func Main() -> Void {
+    let original: CloneBranch = CloneBranch(CloneLeaf(7));
+    let copied: CloneBranch = Clone(original);
+    Log(copied.leaf.value);
+}

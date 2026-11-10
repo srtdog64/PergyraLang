@@ -18,8 +18,8 @@ func Main() -> Void {
     var k: Int = 0;
     while k < 8 { ArrayPush(arr, 0); k = k + 1; }
     let mid: Int = 4;
-    let lo: Slice<Int> = arr.Slice(0, mid);
-    let hi: Slice<Int> = arr.Slice(mid, 4);
+    var lo: Slice<Int> = arr.Slice(0, mid);
+    var hi: Slice<Int> = arr.Slice(mid, 4);
     var i: Int = 0;
     var j: Int = 0;
     parallel {

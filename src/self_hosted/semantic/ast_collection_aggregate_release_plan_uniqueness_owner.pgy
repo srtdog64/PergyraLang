@@ -1,0 +1,198 @@
+// Final invocation and input-storage uniqueness checks.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_aggregate_value_lineage_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_signature_param_node_query_owner.pgy";
+import "ast_collection_aggregate_source_path_uniqueness_owner.pgy";
+import "ast_collection_aggregate_release_call_chain_owner.pgy";
+import "ast_collection_aggregate_terminal_alternative_owner.pgy";
+import "ast_collection_aggregate_forwarded_result_owner.pgy";
+
+func SemanticAstCollectionAggregateReleaseInvocationEnd(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+) -> Int {
+    if demand + 1 < ArrayLength(plan.demand_invocation_starts) {
+        return plan.demand_invocation_starts[demand + 1];
+    }
+    return ArrayLength(plan.demand_invocation_nodes);
+}
+
+// Two demands of one origin site reach distinct storage when their producer
+// invocation paths differ at a common depth: each differing call node is a
+// separate invocation, so its constructor runs separately. A path that is a
+// prefix of the other (recursion) or an equal path shares one invocation.
+func SemanticAstCollectionAggregateReleaseDistinctInvocations(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current < 0 || prior >= ArrayLength(plan.demand_invocation_starts) ||
+        current >= ArrayLength(plan.demand_invocation_starts) { return false; }
+    let a: Int = plan.demand_invocation_starts[prior];
+    let b: Int = plan.demand_invocation_starts[current];
+    let a_end: Int = SemanticAstCollectionAggregateReleaseInvocationEnd(plan, prior);
+    let b_end: Int = SemanticAstCollectionAggregateReleaseInvocationEnd(plan, current);
+    var depth: Int = 0;
+    while a + depth < a_end && b + depth < b_end {
+        if plan.demand_invocation_nodes[a + depth] != plan.demand_invocation_nodes[b + depth] {
+            return true;
+        }
+        depth = depth + 1;
+    }
+    return false;
+}
+
+// The storage-authority owner, not a logical result join, decides whether two
+// named constructor inputs can alias. Positive unequal sources denote
+// different backing generations; missing or equal evidence stays conflicting.
+func SemanticAstCollectionAggregateInputStorageSource(
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    input: Int
+) -> Int {
+    if input < 0 || input >= ArrayLength(inputs.producer_kinds) ||
+        !SemanticAstCollectionAggregateNamedInputKind(
+            inputs.producer_kinds[input]) ||
+        input >= ArrayLength(inputs.definition_rows) {
+        return 0;
+    }
+    let definition: Int = inputs.definition_rows[input];
+    if definition < 0 || definition >= ArrayLength(definitions.binding_rows) {
+        return 0;
+    }
+    return SemanticAstCollectionDefinitionStorageSource(
+        storage, definitions, definitions.binding_rows[definition],
+        definition);
+}
+
+func SemanticAstCollectionAggregateReleasePlanUnique(
+    artifact: AstTreeArtifact,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(plan.constructor_input_rows) {
+        let input: Int = plan.constructor_input_rows[row];
+        if input < 0 || input >= ArrayLength(inputs.producer_kinds) {
+            plan.diagnostic_reason = "constructor_input";
+            return false;
+        }
+        let demand_call: Int = SemanticAstCollectionAggregateReleaseDemandCallRow(plan, row);
+        var prior: Int = 0;
+        while prior < row {
+            let prior_input: Int = plan.constructor_input_rows[prior];
+            if SemanticAstCollectionAggregateReleaseDistinctInvocations(
+                    plan, prior, row) {
+                prior = prior + 1;
+                continue;
+            }
+            let same_origin_field: Bool =
+                plan.aggregate_origin_ids[prior] ==
+                    plan.aggregate_origin_ids[row] &&
+                inputs.field_ids[prior_input] == inputs.field_ids[input];
+            if same_origin_field &&
+                !SemanticAstCollectionAggregateReleaseSharedDemandReady(
+                        artifact, plan, inputs, signatures, locals,
+                        inferred_types, surfaces, assignments,
+                        exclusive_values, prior, row) {
+                if demand_call >= 0 {
+                    plan.diagnostic_syntax_id = plan.call_syntax_ids[demand_call];
+                }
+                if plan.diagnostic_reason == "" {
+                    plan.diagnostic_reason = "shared_origin_demand";
+                }
+                return false;
+            }
+            if SemanticAstCollectionAggregateNamedInputKind(inputs.producer_kinds[prior_input]) && SemanticAstCollectionAggregateNamedInputKind(inputs.producer_kinds[input]) {
+                let prior_source: Int =
+                    SemanticAstCollectionAggregateInputStorageSource(
+                        inputs, storage, definitions, prior_input);
+                let source: Int =
+                    SemanticAstCollectionAggregateInputStorageSource(
+                        inputs, storage, definitions, input);
+                // PendingReady has replayed every kind-3 input as an exact
+                // unused `[]` definition. It carries no backing storage to
+                // alias here; completion still revalidates and reserves the
+                // logical capture before the plan can finish.
+                let backing_pair: Bool =
+                    inputs.producer_kinds[prior_input] != 3 &&
+                    inputs.producer_kinds[input] != 3;
+                var disjoint_source_fields: Bool = false;
+                var prior_source_path: String = "";
+                var source_path: String = "";
+                if prior_source > 0 && prior_source == source {
+                    prior_source_path =
+                        SemanticAstCollectionAggregateNamedInputSourcePath(
+                            exclusive_values,
+                            inputs.binding_ids[prior_input], prior_source);
+                    source_path =
+                        SemanticAstCollectionAggregateNamedInputSourcePath(
+                            exclusive_values,
+                            inputs.binding_ids[input], source);
+                    disjoint_source_fields =
+                        SemanticAstCollectionAggregateSourcePathsDisjoint(
+                            prior_source_path, source_path);
+                    if !disjoint_source_fields &&
+                        inputs.binding_ids[prior_input] ==
+                            inputs.binding_ids[input] {
+                        disjoint_source_fields =
+                            SemanticAstCollectionAggregateNamedBindingFieldsDisjoint(
+                                signatures, constructors, locals,
+                                inferred_types, exclusive_values,
+                                inputs.binding_ids[input], source,
+                                inputs.field_ids[prior_input],
+                                inputs.field_ids[input]);
+                    }
+                }
+                if !disjoint_source_fields {
+                    disjoint_source_fields =
+                        SemanticAstCollectionAggregateNamedLineageFieldsDisjoint(
+                            constructors,
+                            exclusive_values,
+                            plan.aggregate_origin_ids[prior],
+                            plan.aggregate_origin_ids[row],
+                            inputs.binding_ids[prior_input],
+                            inputs.binding_ids[input],
+                            inputs.field_ids[prior_input],
+                            inputs.field_ids[input]);
+                }
+                // The preceding same-origin branch returned on failure, so
+                // reaching here with the same field is the ordered proof.
+                if backing_pair && !same_origin_field &&
+                    !disjoint_source_fields &&
+                    (prior_source <= 0 || source <= 0 ||
+                    (prior_source == source &&
+                     prior_input != input &&
+                     inputs.function_ids[prior_input] ==
+                        inputs.function_ids[input])) {
+                    if demand_call >= 0 {
+                        plan.diagnostic_syntax_id = plan.call_syntax_ids[demand_call];
+                    }
+                    plan.diagnostic_reason = "named_input_alias";
+                    return false;
+                }
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+

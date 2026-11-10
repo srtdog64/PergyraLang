@@ -43,7 +43,7 @@ func CompilerCompatibilitySurfaceAt(index: Int) -> String {
 }
 
 func CompilerCompatibilitySurfaceKnown(surface: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilitySurfaceCount() {
         if CompilerCompatibilitySurfaceAt(i) == surface {
             return true;
@@ -82,7 +82,7 @@ func CompilerCompatibilityChangeKindAt(index: Int) -> String {
 }
 
 func CompilerCompatibilityChangeKindKnown(kind: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeKindCount() {
         if CompilerCompatibilityChangeKindAt(i) == kind {
             return true;
@@ -120,7 +120,7 @@ func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
 }
 
 func CompilerObsoleteMigrationFieldKnown(field: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerObsoleteMigrationFieldCount() {
         if CompilerObsoleteMigrationFieldAt(i) == field {
             return true;
@@ -276,7 +276,7 @@ func CompilerCompatibilityChangeRowFieldAt(row: String, index: Int) -> String {
 }
 
 func CompilerCompatibilityChangeRowForSurface(surface: String) -> String {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
         let row: String = CompilerCompatibilityChangeRowAt(i);
         if CompilerCompatibilityChangeRowFieldAt(row, CompilerCompatibilityChangeSurfaceFieldIndex()) == surface {
@@ -332,10 +332,10 @@ func CompilerCompatibilityDiagnosticIdForSurface(surface: String) -> String {
 
 func CompilerCompatibilityEvolutionReceiptFromOwner()
     -> CompilerCompatibilityEvolutionReceipt {
-    let surfaces: Array<String> = [];
-    let diagnostic_ids: Array<String> = [];
-    let change_rows: Array<String> = [];
-    let index: Int = 0;
+    var surfaces: Array<String> = [];
+    var diagnostic_ids: Array<String> = [];
+    var change_rows: Array<String> = [];
+    var index: Int = 0;
     while index < CompilerCompatibilitySurfaceCount() {
         let surface: String = CompilerCompatibilitySurfaceAt(index);
         ArrayPush(surfaces, surface);
@@ -364,7 +364,7 @@ func CompilerCompatibilityEvolutionReceiptReady(
         ArrayLength(receipt.change_rows) != CompilerCompatibilitySurfaceCount() {
         return false;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerCompatibilitySurfaceCount() {
         let surface: String = receipt.surfaces[index];
         let diagnostic_id: String = receipt.diagnostic_ids[index];
@@ -381,7 +381,7 @@ func CompilerCompatibilityEvolutionReceiptReady(
             ) != diagnostic_id {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < index {
             if receipt.surfaces[prior] == surface ||
                 receipt.diagnostic_ids[prior] == diagnostic_id {
@@ -427,16 +427,16 @@ func CompilerCompatibilityExecutionViewFromReceipt(
     if !CompilerCompatibilityEvolutionReceiptReady(receipt) {
         return CompilerCompatibilityExecutionViewEmpty();
     }
-    let source_row: String = "";
-    let abi_binary_row: String = "";
-    let behavior_row: String = "";
-    let diagnostic_row: String = "";
-    let air_evidence_row: String = "";
-    let mir_json_row: String = "";
-    let runtime_trace_row: String = "";
-    let capability_profile_row: String = "";
-    let stdlib_module_row: String = "";
-    let index: Int = 0;
+    var source_row: String = "";
+    var abi_binary_row: String = "";
+    var behavior_row: String = "";
+    var diagnostic_row: String = "";
+    var air_evidence_row: String = "";
+    var mir_json_row: String = "";
+    var runtime_trace_row: String = "";
+    var capability_profile_row: String = "";
+    var stdlib_module_row: String = "";
+    var index: Int = 0;
     while index < ArrayLength(receipt.surfaces) {
         let surface: String = receipt.surfaces[index];
         let row: String = receipt.change_rows[index];

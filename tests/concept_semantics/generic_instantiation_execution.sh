@@ -78,7 +78,8 @@ while IFS='|' read -r name expected; do
         null-bound duplicate-constraint scalar-constraint)
     if [[ "$name" == generic_identity_read_valid ]]; then
         mutations+=(cell-missing-id cell-field-missing-id cell-field-crossed-id
-            cell-physical-layout cell-unknown-field-type cell-return-escape)
+            cell-physical-layout cell-unknown-field-type cell-return-escape
+            cell-call-carriage cell-binding-copy cell-opaque-consumer)
     fi
     for mutation in "${mutations[@]}"; do
         checks=$((checks + 1))

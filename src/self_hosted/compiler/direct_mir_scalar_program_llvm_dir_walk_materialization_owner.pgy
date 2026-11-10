@@ -23,7 +23,7 @@ func DirectMirScalarProgramLlvmDirWalkBlock(
         Die("direct MIR scalar LLVM dir-walk Array<String> projection drifted");
     }
     let aggregate: String = projection.llvm_value_type;
-    let output: String = Concat("declare ", Concat(aggregate,
+    var output: String = Concat("declare ", Concat(aggregate,
         Concat(" @pgy_dir_walk(ptr)\ndefine internal ", aggregate)));
     output = Concat(output, Concat(" @", Concat(runtime.dir_walk.symbol,
         "(ptr %root) {\nentry:\n  %result = call ")));

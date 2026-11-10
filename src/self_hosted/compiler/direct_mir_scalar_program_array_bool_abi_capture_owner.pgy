@@ -1,9 +1,10 @@
 // Admission capture for the program Array<Bool> ABI, copyout, and return identities.
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
 import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
-import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_array_bool_return_policy_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/machine_layer_fact_owner.pgy";
 func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
@@ -15,13 +16,13 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
     let empty: DirectMirScalarProgramArrayBoolAbiFact =
         DirectMirScalarProgramArrayBoolAbiFactInvalid();
     if ArrayLength(routine_rows) < 1 { return empty; }
-    let source: DirectMirScalarProgramArrayBoolAbiFact = empty;
-    let value_result_routines: Array<Int> = [];
-    let value_result_parameters: Array<Int> = [];
-    let value_result_digests: Array<Int> = [];
-    let owned_return_present: Bool = false;
-    let found: Int = 0;
-    let routine: Int = 0;
+    var source: DirectMirScalarProgramArrayBoolAbiFact = empty;
+    var value_result_routines: Array<Int> = [];
+    var value_result_parameters: Array<Int> = [];
+    var value_result_digests: Array<Int> = [];
+    var owned_return_present: Bool = false;
+    var found: Int = 0;
+    var routine: Int = 0;
     while routine < ArrayLength(routine_rows) {
         let routine_row: Int = routine_rows[routine];
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -31,7 +32,9 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
         if !index.valid || !DirectMirRoutineSignatureFactReady(signature) {
             return empty;
         }
-        let parameter: Int = 0;
+        let owned_return_signature: Bool =
+            DirectMirScalarProgramOwnedArrayBoolReturnSignatureReady(signature);
+        var parameter: Int = 0;
         while parameter < signature.param_count {
             if signature.parameters.type_names[parameter] ==
                     CompilerAbiLayoutArrayBoolTypeName() {
@@ -41,7 +44,8 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
                 let carriage: String =
                     signature.parameters.carriages[parameter];
                 if (carriage != "value" && carriage != "value-result" &&
-                    !DirectMirScalarProgramOwnedArrayValueParameterReady(signature, parameter)) ||
+                    !DirectMirScalarProgramOwnedArrayValueParameterReady(signature, parameter) &&
+                    !DirectMirScalarProgramArrayReadonlyRefParameterReady(signature, parameter)) ||
                     signature.parameters.resources[parameter] != "none" ||
                     signature.parameters.pass_shapes[parameter] != "direct" ||
                     !signature.parameters.abi_required[parameter] ||
@@ -77,9 +81,9 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
             }
             parameter = parameter + 1;
         }
-        let owned_return_count: Int = 0;
-        let return_count: Int = 0;
-        let instruction: Int = 0;
+        var owned_return_count: Int = 0;
+        var return_count: Int = 0;
+        var instruction: Int = 0;
         while instruction < ArrayLength(index.instruction_facts.starts) {
             let global: Int = index.instruction_facts.global_start + instruction;
             let capture: MirRoutineInstructionScalarCapture =
@@ -94,8 +98,7 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
                     return empty;
                 }
                 if instruction_kind == "return" {
-                    if !DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady(
-                            signature, logical_record) { return empty; }
+                    if !owned_return_signature { return empty; }
                     owned_return_count = owned_return_count + 1;
                 }
                 let abi_opt: Option<MirAbiLayoutRowCapture> =
@@ -127,8 +130,7 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
             }
             instruction = instruction + 1;
         }
-        if DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady(
-                signature, logical_record) {
+        if owned_return_signature {
             if owned_return_count < 1 || owned_return_count != return_count {
                 return empty;
             }

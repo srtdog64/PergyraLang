@@ -14,7 +14,8 @@ func DirectMirIdentityCellStoreReady(
     if result < -1 || result >= ArrayLength(plan.value_types) { return false; }
     let parameter: Int = plan.routines.parameter_starts[routine];
     let type_name: String = plan.routines.parameter_types[parameter];
-    if plan.routines.parameter_carriages[parameter] != "value" { return false; }
+    if plan.routines.parameter_carriages[parameter] !=
+            "mutable-identity" { return false; }
     if result >= 0 {
         let local_row: Int = plan.value_local_rows[result];
         if local_row < 0 || local_row >= ArrayLength(plan.local_ref_value_ids) ||
@@ -40,38 +41,35 @@ func DirectMirIdentityCellStoreReady(
         DirectMirScalarCfgProgramExpressionRowReady(plan, plan.program.operation_expression_rows[operation], field_type, routine);
 }
 
-// The store operation is the compact receipt that an admitted mutable-identity
-// method owns its implicit value/direct `self` parameter. Ordinary identity
-// parameters retain their explicit mutable-identity or readonly-ref carriage.
-func DirectMirIdentityCellStoredReceiverParameterReady(
+// The routine-instance signature is the receiver receipt. A read-only method
+// has no store operation, so reconstructing receiver identity from stores
+// would reject a valid admitted method and duplicate the signature owner.
+func DirectMirIdentityCellReceiverParameterReady(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
 ) -> Bool {
     if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
         ordinal != 0 || plan.routines.parameter_counts[routine] < 1 {
         return false;
     }
-    let parameter: Int = plan.routines.parameter_starts[routine];
-    if plan.routines.parameter_carriages[parameter] != "value" ||
-        DirectMirIdentityCellRow(
-            plan.program.logical_record.identity_cells,
-            plan.routines.parameter_types[parameter]) < 0 {
+    if routine >= ArrayLength(plan.routines.receiver_carriages) ||
+        routine >= ArrayLength(plan.routines.receiver_owner_rows) ||
+        plan.routines.receiver_carriages[routine] != "mutable-identity" {
         return false;
     }
-    let operation: Int = plan.routines.operation_starts[routine];
-    let end: Int = operation + plan.routines.operation_counts[routine];
-    while operation < end {
-        if plan.operation_kinds[operation] ==
-                DirectMirScalarCfgOpIdentityCellStore() &&
-            DirectMirIdentityCellStoreReady(plan, operation, routine) {
-            return true;
-        }
-        operation = operation + 1;
-    }
-    return false;
+    let parameter: Int = plan.routines.parameter_starts[routine];
+    let type_name: String = plan.routines.parameter_types[parameter];
+    let cell: Int = DirectMirIdentityCellRow(
+        plan.program.logical_record.identity_cells, type_name);
+    return cell >= 0 &&
+        CallableReceiverNominalKindUsesMutableLiteralIdentity(
+            plan.program.logical_record.identity_cells.nominal_kinds[cell]) &&
+        plan.program.logical_record.identity_cells.declaration_rows[cell] ==
+            plan.routines.receiver_owner_rows[routine] &&
+        plan.routines.parameter_carriages[parameter] == "mutable-identity";
 }
 
 // Last call consumers accept an identity parameter only through its ordinary
-// carried mode or the exact mutable-method receiver store receipt. Keeping this
+// carried mode or the exact mutable-method receiver receipt. Keeping this
 // decision here prevents C and LLVM from inventing separate receiver rules.
 func DirectMirIdentityCellCallParameterReady(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
@@ -85,6 +83,6 @@ func DirectMirIdentityCellCallParameterReady(
             plan.program.logical_record.identity_cells,
             plan.routines.parameter_types[parameter],
             plan.routines.parameter_carriages[parameter]) ||
-        DirectMirIdentityCellStoredReceiverParameterReady(
+        DirectMirIdentityCellReceiverParameterReady(
             plan, routine, ordinal);
 }

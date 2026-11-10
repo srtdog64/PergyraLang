@@ -45,7 +45,7 @@ func SemanticAstGenericSpecializationIndexForCall(
     ref call_node_ids: Array<Int>,
     call_node_id: Int
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(call_node_ids) {
         if call_node_ids[i] == call_node_id { return Some(i); }
         i = i + 1;
@@ -72,7 +72,7 @@ func SemanticAstGenericSpecializationAppend(
             actual_counts[existing_index] != ArrayLength(actuals) {
             return false;
         }
-        let i: Int = 0;
+        var i: Int = 0;
         while i < ArrayLength(actuals) {
             if actual_type_names[actual_starts[existing_index] + i] !=
                 actuals[i] {
@@ -90,7 +90,7 @@ func SemanticAstGenericSpecializationAppend(
     ArrayPush(signature_indexes, signature_index);
     ArrayPush(actual_starts, ArrayLength(actual_type_names));
     ArrayPush(actual_counts, ArrayLength(actuals));
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(actuals) {
         if actuals[i] == "" { return false; }
         // This persistent accumulator owns copies across later inout captures.
@@ -122,13 +122,13 @@ func SemanticAstGenericSpecializationAppendCaptured(
         actual_start + actual_count != ArrayLength(actual_type_names) {
         return false;
     }
-    let expected_start: Int = 0;
+    var expected_start: Int = 0;
     if row_count > 0 {
         expected_start = actual_starts[row_count - 1] +
             actual_counts[row_count - 1];
     }
     if actual_start != expected_start { return false; }
-    let actual: Int = 0;
+    var actual: Int = 0;
     while actual < actual_count {
         if actual_type_names[actual_start + actual] == "" { return false; }
         actual = actual + 1;
@@ -154,11 +154,11 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
     intent_transitions: SemanticAstIntentTransitionFacts,
     function_scopes: SemanticAstFunctionScopeFacts
 ) -> SemanticAstGenericSpecializationFacts {
-    let call_node_ids: Array<Int> = [];
-    let signature_indexes: Array<Int> = [];
-    let actual_starts: Array<Int> = [];
-    let actual_counts: Array<Int> = [];
-    let actual_type_names: Array<String> = [];
+    var call_node_ids: Array<Int> = [];
+    var signature_indexes: Array<Int> = [];
+    var actual_starts: Array<Int> = [];
+    var actual_counts: Array<Int> = [];
+    var actual_type_names: Array<String> = [];
     if !SemanticAstInitializerTypeFactsReadyProjection(
         artifact, locals, initializer_types
     ) {
@@ -171,7 +171,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
             actual_type_names
         );
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(
         expression_surfaces.expression_graph.arena
     ) {
@@ -221,8 +221,8 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                     actual_counts, actual_type_names
                 );
             }
-            let actuals: Array<String> = [];
-            let actual_i: Int = 0;
+            var actuals: Array<String> = [];
+            var actual_i: Int = 0;
             while actual_i < ArrayLength(view.generic_actual_type_names) {
                 let actual: String = SemanticCanonicalTypeName(
                     view.generic_actual_type_names[actual_i]
@@ -302,13 +302,13 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
             actual_type_names
         );
     }
-    let surface_index: Int = 0;
+    var surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(
         expression_surfaces
     ) {
         let use_node_id: Int = expression_surfaces.node_ids[surface_index];
-        let has_body_graph: Bool = false;
-        let root_lane: Int = AstExpressionLaneAtom();
+        var has_body_graph: Bool = false;
+        var root_lane: Int = AstExpressionLaneAtom();
         while root_lane <= AstExpressionLaneAuxiliary() && !has_body_graph {
             has_body_graph = IsSome(SemanticAstExpressionGraphRootForNode(
                 expression_surfaces, use_node_id, root_lane
@@ -337,10 +337,10 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 actual_counts, actual_type_names
             );
         }
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
-        let environment_ok: Bool = SemanticAstEnumValueRowsReady(enum_facts);
+        var names: Array<String> = [];
+        var types: Array<String> = [];
+        var modes: Array<String> = [];
+        var environment_ok: Bool = SemanticAstEnumValueRowsReady(enum_facts);
         if environment_ok && IsSome(function_node) {
             environment_ok = SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
                 signatures, constructors, UnwrapOption(function_node),
@@ -380,14 +380,14 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 actual_counts, actual_type_names
             );
         }
-        let lane: Int = AstExpressionLaneAtom();
+        var lane: Int = AstExpressionLaneAtom();
         while lane <= AstExpressionLaneAuxiliary() {
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                 expression_surfaces, use_node_id, lane
             );
             if IsSome(root) {
                 let root_id: Int = UnwrapOption(root);
-                let pending: Array<Int> = [root_id];
+                var pending: Array<Int> = [root_id];
                 while ArrayLength(pending) > 0 {
                     let current: Int = pending[ArrayLength(pending) - 1];
                     ArrayPop(pending);
@@ -422,7 +422,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                             );
                         }
                         let generic_applies: Bool = generic.applies;
-                        let generic_appended: Bool = true;
+                        var generic_appended: Bool = true;
                         if generic_applies {
                             generic_appended =
                                 SemanticAstGenericSpecializationAppendCaptured(
@@ -532,10 +532,10 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
         }
         node_id = node_id + 1;
     }
-    let source_owner_node_ids: Array<Int> = [];
-    let source_lanes: Array<Int> = [];
-    let source_call_ordinals: Array<Int> = [];
-    let identity_i: Int = 0;
+    var source_owner_node_ids: Array<Int> = [];
+    var source_lanes: Array<Int> = [];
+    var source_call_ordinals: Array<Int> = [];
+    var identity_i: Int = 0;
     while identity_i < ArrayLength(call_node_ids) {
         let identity: SemanticExpressionCallIdentity =
             SemanticExpressionCallIdentityForNode(

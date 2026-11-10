@@ -1,10 +1,10 @@
 // Sole scalar-GraphPlan phi binding and operation-row admission owner.
-
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
+import "direct_mir_scalar_cfg_program_phi_type_owner.pgy";
 
 struct DirectMirScalarCfgPhiOperationAdmission {
     let valid: Bool;
@@ -23,6 +23,7 @@ func DirectMirScalarCfgPhiOperationFromOwners(
     ref types: DirectMirScalarCfgValueTypePlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     inout phi_predecessors: Array<Int>,
     inout phi_incoming_values: Array<Int>
 ) -> DirectMirScalarCfgPhiOperationAdmission {
@@ -42,12 +43,13 @@ func DirectMirScalarCfgPhiOperationFromOwners(
         ) || result_value < 0 {
         return invalid;
     }
-    let kind: Int = DirectMirScalarCfgPhiOperationKind(
-        logical_record, payload_free_enum, types.value_types[result_value]
+    let kind: Int = DirectMirScalarCfgProgramPhiOperationKind(
+        logical_record, payload_free_enum, referenced_enum,
+        types.value_types[result_value]
     );
     if kind == 0 { return invalid; }
     let phi_start: Int = ArrayLength(phi_predecessors);
-    let predecessor: Int = 0;
+    var predecessor: Int = 0;
     while predecessor < ArrayLength(binding.predecessor_blocks) {
         let incoming_row: Int = binding.incoming_rows[predecessor];
         let incoming_value: Int = DirectMirScalarCfgGraphValueRow(

@@ -9,7 +9,7 @@ func DirectMirScalarProgramCIntMathMaterialization(
 ) -> String {
     let type_name: String = CompilerAbiLayoutIntCValueType();
     let prefix: String = Concat("static ", Concat(type_name, " "));
-    let output: String = "";
+    var output: String = "";
     if ids.long_modulo_id != 0 || ids.long_division_id != 0 {
         output = Concat(output,
             "#include \"pgy_runtime_panic_checked_inline.h\"\n\n");

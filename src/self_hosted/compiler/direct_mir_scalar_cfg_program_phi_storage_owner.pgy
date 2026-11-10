@@ -1,0 +1,73 @@
+// Appends one admitted phi and rebases its value and block identities.
+import "direct_mir_scalar_cfg_program_value_storage_owner.pgy";
+import "direct_mir_scalar_cfg_phi_operation_admission_owner.pgy";
+
+func DirectMirScalarCfgProgramOperationsAppendPhi(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    ref index: MirRoutineFactIndex,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref uses: MirRoutineInstructionUseFacts,
+    routine_row: Int, block: Int, instruction_row: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    value_offset: Int, block_offset: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    var predecessors: Array<Int> = storage.phi_predecessor_blocks;
+    var incoming: Array<Int> = storage.phi_incoming_values;
+    let start: Int = ArrayLength(predecessors);
+    let phi: DirectMirScalarCfgPhiOperationAdmission =
+        DirectMirScalarCfgPhiOperationFromOwners(
+            index, admitted, uses, routine_row, block, instruction_row,
+            locals, types, logical_record, payload_free_enum,
+            referenced_enum,
+            predecessors, incoming);
+    if !phi.valid || phi.phi_start != start {
+        return DirectMirScalarCfgProgramOperationStorage(
+            false, storage.kinds, storage.result_values,
+            storage.left_values, storage.right_values,
+            storage.left_locals, storage.right_locals,
+            storage.left_literals, storage.right_literals,
+            storage.phi_starts, storage.phi_counts,
+            predecessors, incoming, storage.expression_rows,
+            storage.secondary_expression_rows, storage.target_paths);
+    }
+    var row: Int = start;
+    while row < start + phi.phi_count {
+        ArraySet(predecessors, row, predecessors[row] + block_offset);
+        ArraySet(incoming, row, incoming[row] + value_offset);
+        row = row + 1;
+    }
+    var kinds: Array<Int> = storage.kinds;
+    var results: Array<Int> = storage.result_values;
+    var left_values: Array<Int> = storage.left_values;
+    var right_values: Array<Int> = storage.right_values;
+    var left_locals: Array<Int> = storage.left_locals;
+    var right_locals: Array<Int> = storage.right_locals;
+    var left_literals: Array<String> = storage.left_literals;
+    var right_literals: Array<String> = storage.right_literals;
+    var phi_starts: Array<Int> = storage.phi_starts;
+    var phi_counts: Array<Int> = storage.phi_counts;
+    var expression_rows: Array<Int> = storage.expression_rows;
+    var secondary_rows: Array<Int> = storage.secondary_expression_rows;
+    var target_starts: Array<Int> = storage.target_paths.starts;
+    var target_counts: Array<Int> = storage.target_paths.counts;
+    ArrayPush(kinds, phi.kind);
+    ArrayPush(results, phi.result_value + value_offset);
+    ArrayPush(left_values, -1); ArrayPush(right_values, -1);
+    ArrayPush(left_locals, -1); ArrayPush(right_locals, -1);
+    ArrayPush(left_literals, ""); ArrayPush(right_literals, "");
+    ArrayPush(phi_starts, phi.phi_start); ArrayPush(phi_counts, phi.phi_count);
+    ArrayPush(expression_rows, -1); ArrayPush(secondary_rows, -1);
+    ArrayPush(target_starts, ArrayLength(storage.target_paths.member_ordinals));
+    ArrayPush(target_counts, 0);
+    return DirectMirScalarCfgProgramOperationStorage(
+        true, kinds, results, left_values, right_values,
+        left_locals, right_locals, left_literals, right_literals,
+        phi_starts, phi_counts, predecessors, incoming, expression_rows,
+        secondary_rows, DirectMirScalarCfgProgramOperationTargetPaths(
+            target_starts, target_counts,
+            storage.target_paths.member_ordinals));
+}

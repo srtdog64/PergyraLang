@@ -12,21 +12,21 @@ func SelfMirInstructionIdPriority(kind: String) -> Int {
 func SelfMirCanonicalInstructionIds(facts: SelfMirProgramFacts) -> SelfMirProgramFacts {
     if !facts.ok { return facts; }
     // Preserve the old IDs until every plan reference has been rebound.
-    let ids: Array<Int> = [];
-    let copy_i: Int = 0;
+    var ids: Array<Int> = [];
+    var copy_i: Int = 0;
     while copy_i < ArrayLength(facts.cfg.instructions.ids) {
         ArrayPush(ids, facts.cfg.instructions.ids[copy_i]);
         copy_i = copy_i + 1;
     }
-    let routine_i: Int = 0;
+    var routine_i: Int = 0;
     while routine_i < ArrayLength(facts.routines.names) {
-        let next_id: Int = 0;
-        let priority: Int = 0;
+        var next_id: Int = 0;
+        var priority: Int = 0;
         while priority < 3 {
-            let block_i: Int = 0;
+            var block_i: Int = 0;
             while block_i < facts.routines.block_counts[routine_i] {
                 let block_row: Int = facts.routines.block_starts[routine_i] + block_i;
-                let instruction_i: Int = 0;
+                var instruction_i: Int = 0;
                 while instruction_i <
                     facts.cfg.blocks.instruction_counts[block_row] {
                     let instruction_row: Int = facts.cfg.blocks.instruction_starts[block_row] +
@@ -82,7 +82,9 @@ func SelfMirCanonicalInstructionIds(facts: SelfMirProgramFacts) -> SelfMirProgra
                 instructions.uses, instructions.expr0_graphs,
                 instructions.expr1_graphs, instructions.match_facts,
                 instructions.destructure_facts, instructions.abi_type_names,
-                instructions.runtime_call_abi, instructions.binding_source_syntax_ids
+                instructions.runtime_call_abi,
+                instructions.binding_source_syntax_ids,
+                instructions.collection_mutation_target_graphs
             ), facts.cfg.local_refs
         ), facts.instruction_abi_receipts, facts.collection_ownership_receipts,
         facts.expression_graph, plan

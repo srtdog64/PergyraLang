@@ -11,8 +11,8 @@ func MirIntentRoutineStepTreeLines(
     ref phase_projection: MirIntentPhaseProjection,
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
-    let tree: String = "";
-    let step_index: Int = 0;
+    var tree: String = "";
+    var step_index: Int = 0;
     while step_index < ArrayLength(plan.steps) {
         if plan.typed_execution {
             let step_header: String = MirIntentExecutionStepHeader(
@@ -39,7 +39,7 @@ func MirIntentRoutineStepTreeLines(
             tree = MirIntentTreeAppendLine(
                 tree, Concat("      Outcome: ", plan.steps[step_index].outcome_name));
         }
-        let phase_tree: String = "";
+        var phase_tree: String = "";
         if plan.typed_execution {
             phase_tree = MirIntentExecutionPhaseTreeLines(
                 phase_projection, step_index, intent_execution_plan,

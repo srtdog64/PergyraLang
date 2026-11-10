@@ -19,8 +19,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
     if !index.valid || !wire.valid {
         return invalid;
     }
-    let range_count: Int = 0;
-    let type_scan: Int = 0;
+    var range_count: Int = 0;
+    var type_scan: Int = 0;
     while type_scan < ArrayLength(
             index.iteration_type_facts.iteration_syntax_ids) {
         let loop_id: Int =
@@ -40,11 +40,11 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         ArrayLength(
         index.iteration_type_facts.iteration_syntax_ids
     ) { Die("direct MIR scalar CFG range inventory is invalid"); }
-    let facts: DirectMirScalarCfgRangeFactSet =
+    var facts: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactSetEmpty();
-    let prior_loop_id: Int = -1;
+    var prior_loop_id: Int = -1;
     while DirectMirScalarCfgRangeFactCount(facts) < range_count {
-        let loop_id: Int = -1;
+        var loop_id: Int = -1;
         type_scan = 0;
         while type_scan < ArrayLength(
                 index.iteration_type_facts.iteration_syntax_ids) {
@@ -60,8 +60,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
             type_scan = type_scan + 1;
         }
         if loop_id < 0 { Die("direct MIR scalar CFG range loop identity is missing"); }
-        let matched_flow: Int = -1;
-        let flow_row: Int = 0;
+        var matched_flow: Int = -1;
+        var flow_row: Int = 0;
         while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
             if index.loop_flow_summary_kinds[flow_row] == 1 &&
                 !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
@@ -73,8 +73,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
             }
             flow_row = flow_row + 1;
         }
-        let type_row: Int = -1;
-        let row: Int = 0;
+        var type_row: Int = -1;
+        var row: Int = 0;
         while row < ArrayLength(
             index.iteration_type_facts.iteration_syntax_ids
         ) {
@@ -99,13 +99,13 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         }
         let expected_ref: String =
             DirectMirScalarCfgIterationLocalRef(loop_id);
-        let init_global: Int = -1;
-        let branch_global: Int = -1;
-        let init_block: Int = -1;
-        let header: Int = -1;
-        let block: Int = 0;
+        var init_global: Int = -1;
+        var branch_global: Int = -1;
+        var init_block: Int = -1;
+        var header: Int = -1;
+        var block: Int = 0;
         while block < ArrayLength(index.block_starts) {
-            let local_binding: Int = 0;
+            var local_binding: Int = 0;
             while local_binding < index.block_instruction_counts[block] {
                 let instruction: Int =
                     index.block_instruction_starts[block] + local_binding;
@@ -155,7 +155,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         );
         let bound: DirectMirScalarCfgRangeBoundFact =
             DirectMirScalarCfgRangeBoundFromOwners(
-                branch_object, use_facts, branch_global
+                branch_object, use_facts, wire, branch_global,
+                branch_global - index.instruction_facts.global_start
             );
         if !DirectMirScalarCfgRangeBoundFactReady(bound) {
             Die("direct MIR scalar CFG range bound graph is invalid");
@@ -172,7 +173,7 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
             index.backedge_headers[header] != 1 {
             Die("direct MIR scalar CFG range instruction/CFG join is invalid");
         }
-        let backedges: Array<Int> = [];
+        var backedges: Array<Int> = [];
         block = 0;
         while block < ArrayLength(index.block_starts) {
             if block != init_block &&
@@ -187,7 +188,7 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
                 true, 0, init_global, branch_global, init_block, header,
                 index.block_succ_true[header], index.block_succ_false[header],
                 -1, loop_id, init.arg0, start, bound.stop_literal,
-                bound.stop_value_id, "1", backedges
+                bound.stop_value_id, bound.stop_local_ref, "1", backedges
             );
         let verified: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeIterationFactWithDigest(

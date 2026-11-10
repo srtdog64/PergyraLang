@@ -1,8 +1,10 @@
 func ResolveOptionLocal(
     choose: Bool, initial: Int, changed: Int
 ) -> Int {
-    let selected: Option<Int> = None;
+    var selected: Option<Int> = None;
     let option_string_seed: Option<String> = Some("seed");
+    var identity_witness: Array<Int> = [];
+    ArrayPush(identity_witness, initial);
     if choose {
         selected = Some(changed);
     }
@@ -15,7 +17,7 @@ func ResolveOptionLocal(
 func ResolveOptionString(
     choose: Bool, initial: String, changed: String
 ) -> String {
-    let chosen: Option<String> = None;
+    var chosen: Option<String> = None;
     if choose {
         chosen = Some(changed);
     }

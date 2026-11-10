@@ -29,15 +29,15 @@ struct MirIntentExecutionRoutineSignatureIndex {
 func MirIntentExecutionDeclarationIndexFromDocument(
     ref document: MirDocumentFactIndex
 ) -> MirIntentExecutionDeclarationIndex {
-    let kinds: Array<String> = [];
-    let nominal_kinds: Array<String> = [];
-    let names: Array<String> = [];
-    let source_syntax_ids: Array<Int> = [];
-    let variant_starts: Array<Int> = [];
-    let variant_counts: Array<Int> = [];
-    let variant_names: Array<String> = [];
-    let variant_param_counts: Array<Int> = [];
-    let variant_single_param_types: Array<String> = [];
+    var kinds: Array<String> = [];
+    var nominal_kinds: Array<String> = [];
+    var names: Array<String> = [];
+    var source_syntax_ids: Array<Int> = [];
+    var variant_starts: Array<Int> = [];
+    var variant_counts: Array<Int> = [];
+    var variant_names: Array<String> = [];
+    var variant_param_counts: Array<Int> = [];
+    var variant_single_param_types: Array<String> = [];
     if !document.valid ||
         !JsonArrayObjectFactTableReady(document.declarations) {
         return MirIntentExecutionDeclarationIndex(
@@ -47,9 +47,9 @@ func MirIntentExecutionDeclarationIndexFromDocument(
         );
     }
     let json: String = document.declarations.json;
-    let valid: Bool = true;
-    let cursor: Int = document.declarations.start + 1;
-    let bounds: Array<Int> = [0, 0];
+    var valid: Bool = true;
+    var cursor: Int = document.declarations.start + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
         document.declarations.json, document.declarations.json_extent, cursor, document.declarations.end, bounds
     ) {
@@ -65,7 +65,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
             MirIntentExecutionUniqueIntField(
                 document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "source_syntax_id"
             );
-        let nominal_kind: String = "";
+        var nominal_kind: String = "";
         let nominal_count: Int = MirIntentExecutionObjectFieldOccurrenceCount(
             document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "nominal_kind"
         );
@@ -82,7 +82,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
             name.value == "" || !syntax_id.valid || syntax_id.value <= 0 {
             valid = false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < ArrayLength(source_syntax_ids) {
             if source_syntax_ids[prior] == syntax_id.value {
                 valid = false;
@@ -94,7 +94,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
         ArrayPush(names, name.value);
         ArrayPush(source_syntax_ids, syntax_id.value);
         ArrayPush(variant_starts, ArrayLength(variant_names));
-        let variant_count: Int = 0;
+        var variant_count: Int = 0;
         let variants_occurrences: Int =
             MirIntentExecutionObjectFieldOccurrenceCount(
                 document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "variants"
@@ -105,14 +105,14 @@ func MirIntentExecutionDeclarationIndexFromDocument(
             valid = false;
         }
         if variants_occurrences == 1 {
-            let variants_bounds: Array<Int> = [0, 0];
+            var variants_bounds: Array<Int> = [0, 0];
             if !MirObjectArrayBoundsAtBounds(
                 document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "variants", variants_bounds
             ) {
                 valid = false;
             } else {
-                let variant_cursor: Int = variants_bounds[0] + 1;
-                let variant_bounds: Array<Int> = [0, 0];
+                var variant_cursor: Int = variants_bounds[0] + 1;
+                var variant_bounds: Array<Int> = [0, 0];
                 while JsonArrayNextObjectBounds(
                     document.declarations.json, document.declarations.json_extent, variant_cursor, variants_bounds[1], variant_bounds
                 ) {
@@ -135,7 +135,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
                             ArrayLength(param_types.values) {
                         valid = false;
                     }
-                    let single_param_type: String = "";
+                    var single_param_type: String = "";
                     if ArrayLength(param_types.values) == 1 {
                         single_param_type = param_types.values[0];
                     }
@@ -170,12 +170,12 @@ func MirIntentExecutionDeclarationIndexFromDocument(
 func MirIntentExecutionRoutineSignatureIndexFromRoutines(
     ref routines: MirProgramRoutineIndex
 ) -> MirIntentExecutionRoutineSignatureIndex {
-    let kinds: Array<String> = [];
-    let names: Array<String> = [];
-    let source_syntax_ids: Array<Int> = [];
-    let return_type_names: Array<String> = [];
-    let valid: Bool = MirProgramRoutineIndexStructureReady(routines);
-    let row: Int = 0;
+    var kinds: Array<String> = [];
+    var names: Array<String> = [];
+    var source_syntax_ids: Array<Int> = [];
+    var return_type_names: Array<String> = [];
+    var valid: Bool = MirProgramRoutineIndexStructureReady(routines);
+    var row: Int = 0;
     while row < MirProgramRoutineIndexCount(routines) {
         let source_id_text: String = routines.source_syntax_ids[row];
         let return_type: MirIntentExecutionStringValue =
@@ -205,8 +205,8 @@ func MirIntentExecutionRoutineRowByIdentity(
     syntax_id: Int, kind: String
 ) -> Int {
     if !routines.valid || syntax_id <= 0 || kind == "" { return 0 - 1; }
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(routines.source_syntax_ids) {
         if routines.source_syntax_ids[row] == syntax_id &&
             routines.kinds[row] == kind {
@@ -224,8 +224,8 @@ func MirIntentExecutionCallableRowByIdentity(
 ) -> Int {
     if !routines.valid || syntax_id <= 0 || expected_name == "" ||
         expected_return == "" { return 0 - 1; }
-    let found: Int = 0 - 1;
-    let row: Int = 0;
+    var found: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(routines.source_syntax_ids) {
         if routines.source_syntax_ids[row] == syntax_id &&
             routines.names[row] == expected_name &&
@@ -247,8 +247,8 @@ func MirIntentExecutionCallableReturnReady(
     if !routines.valid || syntax_id <= 0 || expected_return == "" {
         return false;
     }
-    let matches: Int = 0;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(routines.source_syntax_ids) {
         if routines.source_syntax_ids[row] == syntax_id &&
             routines.return_type_names[row] == expected_return &&
@@ -268,8 +268,8 @@ func MirIntentExecutionTobjectDeclarationReady(
     if !declarations.valid || name == "" || source_syntax_id <= 0 {
         return false;
     }
-    let matches: Int = 0;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(declarations.names) {
         if declarations.kinds[row] == "class" &&
             declarations.nominal_kinds[row] == "tobject" &&
@@ -289,8 +289,8 @@ func MirIntentExecutionZoneDeclarationReady(
     if !declarations.valid || name == "" || source_syntax_id <= 0 {
         return false;
     }
-    let matches: Int = 0;
-    let row: Int = 0;
+    var matches: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(declarations.names) {
         if declarations.kinds[row] == "class" &&
             declarations.nominal_kinds[row] == "zone" &&
@@ -314,8 +314,8 @@ func MirIntentExecutionEnumVariantReady(
         payload_decl_syntax_id <= 0 {
         return false;
     }
-    let declaration_row: Int = 0 - 1;
-    let row: Int = 0;
+    var declaration_row: Int = 0 - 1;
+    var row: Int = 0;
     while row < ArrayLength(declarations.names) {
         if declarations.kinds[row] == "enum" &&
             declarations.names[row] == enum_name &&

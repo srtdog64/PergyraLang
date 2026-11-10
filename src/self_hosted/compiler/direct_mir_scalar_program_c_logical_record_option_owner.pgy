@@ -4,23 +4,11 @@ import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pg
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "target_projection_fact_owner.pgy";
 
-func DirectMirScalarProgramCLogicalRecordOptionTypeName(
-    ref fact: DirectMirScalarProgramLogicalRecordFact,
-    option_type: String
-) -> String {
-    let payload: String =
-        DirectMirScalarProgramLogicalRecordOptionPayloadType(
-            fact, option_type);
-    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, payload);
-    if row < 0 { return ""; }
-    return Concat("pgy_scalar_option_logical_record_", ToString(row));
-}
-
 func DirectMirScalarProgramCLogicalRecordOptionExpression(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     kind: Int, result_type: String, left_type: String, left: String
 ) -> Option<String> {
-    let option_type: String = result_type;
+    var option_type: String = result_type;
     if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() ||
         kind == DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
         option_type = left_type;
@@ -52,8 +40,8 @@ func DirectMirScalarProgramCLogicalRecordOptionPreamble(
             target, CompilerTargetCpuCProjection()) {
         Die("direct MIR logical-record Option C fact is invalid");
     }
-    let output: String = "";
-    let row: Int = 0;
+    var output: String = "";
+    var row: Int = 0;
     while row < ArrayLength(fact.names) {
         let option_type: String = Concat(
             "Option<", Concat(fact.names[row], ">"));
@@ -61,8 +49,6 @@ func DirectMirScalarProgramCLogicalRecordOptionPreamble(
             fact, option_type);
         let payload: String = DirectMirScalarProgramCLogicalRecordTypeName(
             fact, fact.names[row]);
-        output = Concat(output, Concat("typedef struct { bool is_some; ",
-            Concat(payload, Concat(" value; } ", Concat(t, ";\n")))));
         output = Concat(output, "static inline "); output = Concat(output, t);
         output = Concat(output, Concat(" ", Concat(t, "_some(")));
         output = Concat(output, Concat(payload, Concat(" value) { ", t)));

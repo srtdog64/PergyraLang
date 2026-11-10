@@ -24,8 +24,8 @@ func DirectMirScalarCfgForEachStringCollectionFromOwners(
         return invalid;
     }
     string_elements = fact.elements;
-    let indices: Array<Int> = [];
-    let row: Int = 0;
+    var indices: Array<Int> = [];
+    var row: Int = 0;
     while row < ArrayLength(string_elements) {
         ArrayPush(indices, row); row = row + 1;
     }

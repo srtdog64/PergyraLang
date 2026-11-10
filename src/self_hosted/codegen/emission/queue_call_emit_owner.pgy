@@ -9,7 +9,7 @@ import "expr_semantic_call_argument_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticQueueCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     source_name: String,
     env: CodegenTypeEnv
@@ -38,9 +38,9 @@ func RewriteSemanticQueueCall(
     if !fact.ok {
         Die(Concat(source_name, " Queue<T> runtime ABI fact is missing"));
     }
-    let receiver: String = RewriteSemanticCallArgument(
+    let receiver: String = RewriteSemanticCollectionRuntimeInoutArgument(
         graph, view.argument_nodes[protocol.receiver_argument_index],
-        receiver_type, "inout", env
+        receiver_type, env
     );
     if protocol.operation == "QueuePush" {
         let value: String = RewriteSemanticCallArgument(

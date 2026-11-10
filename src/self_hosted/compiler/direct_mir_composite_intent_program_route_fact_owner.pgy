@@ -24,7 +24,7 @@ func DirectMirCompositeIntentProgramRouteFactDigest(
     ref fact: DirectMirCompositeIntentProgramRouteFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(929L, fact.main_row);
+    var hash: Long = DirectMirCfgHashInt(929L, fact.main_row);
     hash = DirectMirCfgHashInt(hash, fact.subject_declaration_row);
     hash = DirectMirScalarCfgHashInts(hash, fact.zone_declaration_rows);
     hash = DirectMirScalarCfgHashInts(hash, fact.method_rows);
@@ -54,14 +54,14 @@ func DirectMirCompositeIntentProgramRouteFactReady(
         ArrayLength(fact.intent_rows) != 5 {
         return false;
     }
-    let prior: Int = 0;
+    var prior: Int = 0;
     while prior < ArrayLength(fact.zone_declaration_rows) {
         if fact.zone_declaration_rows[prior] < 0 ||
             fact.zone_declaration_rows[prior] ==
                 fact.subject_declaration_row {
             return false;
         }
-        let row: Int = 0;
+        var row: Int = 0;
         while row < prior {
             if fact.zone_declaration_rows[row] ==
                     fact.zone_declaration_rows[prior] {
@@ -77,12 +77,12 @@ func DirectMirCompositeIntentProgramRouteFactReady(
 func DirectMirCompositeIntentProgramRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirCompositeIntentProgramRouteFact {
-    let zones: Array<Int> = [];
-    let methods: Array<Int> = [];
-    let intents: Array<Int> = [];
-    let subject_row: Int = -1;
-    let subject_count: Int = 0;
-    let declaration_row: Int = 0;
+    var zones: Array<Int> = [];
+    var methods: Array<Int> = [];
+    var intents: Array<Int> = [];
+    var subject_row: Int = -1;
+    var subject_count: Int = 0;
+    var declaration_row: Int = 0;
     while declaration_row < MirProgramDeclarationIndexCount(
         admitted.domain_runtime_admission.declarations
     ) {
@@ -100,16 +100,16 @@ func DirectMirCompositeIntentProgramRouteFactFromAdmitted(
         }
         declaration_row = declaration_row + 1;
     }
-    let subject_name: String = "";
+    var subject_name: String = "";
     if subject_row >= 0 {
         subject_name = admitted.domain_runtime_admission.declarations.names[
             subject_row
         ];
     }
-    let main_row: Int = -1;
-    let function_count: Int = 0;
-    let unsupported_routine: Bool = false;
-    let routine_row: Int = 0;
+    var main_row: Int = -1;
+    var function_count: Int = 0;
+    var unsupported_routine: Bool = false;
+    var routine_row: Int = 0;
     while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
         if admitted.routines.kinds[routine_row] == "function" &&
             admitted.routines.owners[routine_row] == "" {

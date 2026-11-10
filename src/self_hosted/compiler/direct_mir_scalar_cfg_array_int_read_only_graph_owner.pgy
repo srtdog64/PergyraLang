@@ -22,7 +22,7 @@ func DirectMirScalarCfgArrayIntIndexReadGraphFactFrom(
         graph.arena.topology.left_children[2] != 0 ||
         graph.arena.topology.right_children[2] != 1 ||
         !DirectMirScalarCfgNoCallTargets(graph) { return invalid; }
-    let index_name: String = ""; let index_literal: Int = -1;
+    var index_name: String = ""; var index_literal: Int = -1;
     if graph.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() &&
         graph.arena.node_texts[1] != "" {
         index_name = graph.arena.node_texts[1];
@@ -85,7 +85,7 @@ func DirectMirScalarCfgArrayIntMaxLogName(
             AstExpressionNodeCallArgument() ||
         graph.arena.topology.left_children[3] != 1 ||
         graph.arena.topology.right_children[3] != 2 { return ""; }
-    let node: Int = 0;
+    var node: Int = 0;
     while node < graph.ready_node_count {
         if node != 1 && (graph.arena.call_target_kinds[node] !=
                 SemanticCallTargetNone() ||

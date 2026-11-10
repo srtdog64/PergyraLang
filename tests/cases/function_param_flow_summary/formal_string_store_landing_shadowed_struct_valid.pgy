@@ -17,7 +17,7 @@ func Collect(ref routines: Routines, inout names: Array<String>) -> Int {
 func Main() -> Int {
     let marker: Clone = Clone(7);
     let routines: Routines = Routines([StringConcat("a", "")]);
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     Print(ToString(Collect(routines, names)));
     Print(names[0]);
     Print(ToString(marker.tag));

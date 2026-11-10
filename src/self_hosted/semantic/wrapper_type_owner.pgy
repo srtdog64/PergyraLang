@@ -23,8 +23,8 @@ func BoxPayloadTypeOpt(type_name: String) -> Option<String> {
     if n < 6 || Substring(type_name, 0, 4) != "Box<" {
         return None;
     }
-    let depth: Int = 1;
-    let i: Int = 4;
+    var depth: Int = 1;
+    var i: Int = 4;
     while i < n {
         let c: String = CharAt(type_name, i);
         if c == "<" {

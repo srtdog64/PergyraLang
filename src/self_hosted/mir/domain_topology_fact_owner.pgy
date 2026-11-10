@@ -70,8 +70,8 @@ func SelfMirDomainTopologyFactsInvalid(
 }
 
 func SelfMirDomainTopologySyntaxIdRows(ids: Array<Int>) -> Array<String> {
-    let projected: Array<String> = [];
-    let i: Int = 0;
+    var projected: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(ids) {
         ArrayPush(projected, ToString(ids[i]));
         i = i + 1;
@@ -132,7 +132,7 @@ func SelfMirDomainTopologyPositiveDecimal(value: String) -> Bool {
     if n <= 0 || CharCode(value, n, 0) == CharCode("0", 1, 0) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         let code: Int = CharCode(value, n, i);
         if code < CharCode("0", 1, 0) || code > CharCode("9", 1, 0) {
@@ -202,7 +202,7 @@ func SelfMirDomainTopologyFactsReady(
         ArrayLength(facts.participant_slot_source_syntax_ids) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if facts.owner_names[i] == "" ||
             !SelfMirDomainTopologyPositiveDecimal(
@@ -234,7 +234,7 @@ func SelfMirDomainTopologyFactsReady(
             ) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if facts.source_syntax_ids[prior] == facts.source_syntax_ids[i] ||
                 ((facts.owner_names[prior] == facts.owner_names[i]) !=
@@ -331,8 +331,8 @@ func SelfMirDomainTopologyJsonPrefix(
     facts: SelfMirDomainTopologyFacts
 ) -> String {
     if !facts.present { return ""; }
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < facts.row_count {
         ArrayPush(rows, SelfMirDomainTopologyJsonRow(facts, i));
         i = i + 1;

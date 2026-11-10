@@ -32,7 +32,7 @@ func SemanticAstStringFormalBorrowCandidate(
         (signatures.param_modes[start + ordinal] != 0 && signatures.param_modes[start + ordinal] != 3) {
         return false;
     }
-    let parameter: Int = 0;
+    var parameter: Int = 0;
     while parameter < signatures.param_counts[row] {
         let mode: Int = signatures.param_modes[start + parameter];
         if mode == 1 || mode == 2 { return false; }
@@ -72,7 +72,7 @@ func SemanticAstFunctionTextEscapeFree(
     if start < 0 || signatures.param_counts[row] < 0 ||
         start + signatures.param_counts[row] > ArrayLength(signatures.param_types) ||
         ArrayLength(signatures.param_modes) != ArrayLength(signatures.param_types) { return false; }
-    let parameter: Int = 0;
+    var parameter: Int = 0;
     while parameter < signatures.param_counts[row] {
         let mode: Int = signatures.param_modes[start + parameter];
         if (mode == 1 || mode == 2) &&
@@ -122,9 +122,9 @@ func SemanticAstBorrowedTextConsumer(ref graph: SemanticExpressionGraphFacts, no
             graph.arena.consumer_rows[node] > root { return -1; }
         return graph.arena.consumer_rows[node];
     }
-    let last: Int = count - 1;
+    var last: Int = count - 1;
     if root < last { last = root; }
-    let consumer: Int = node + 1;
+    var consumer: Int = node + 1;
     if consumer < 0 { consumer = 0; }
     while consumer <= last {
         if SemanticExpressionGraphRowConsumes(graph.arena.topology, consumer, node) { return consumer; }
@@ -139,8 +139,8 @@ func SemanticAstStringFormalOccurrence(
     ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, root_start: Int, node: Int, root: Int
 ) -> Int {
-    let text: Int = node;
-    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    var text: Int = node;
+    var consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
     while consumer >= 0 && SemanticAstBorrowedTextThroughToString(surfaces.expression_graph, consumer, text) {
         text = consumer;
         consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
@@ -163,20 +163,20 @@ func SemanticAstStringFormalBorrowOnlyFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts
 ) -> HashMap<String, Int> {
-    let retaining: HashMap<String, Int> = MapNew();
-    let sources: Array<Int> = []; let targets: Array<Int> = [];
+    var retaining: HashMap<String, Int> = MapNew();
+    var sources: Array<Int> = []; var targets: Array<Int> = [];
     // An unreadable expression cannot prove any formal it mentions.
-    let readable: Bool = true;
-    let slot: Int = 0;
+    var readable: Bool = true;
+    var slot: Int = 0;
     while readable && slot < ArrayLength(surfaces.expression_graph.roots) {
-        let start: Option<Int> = None;
+        var start: Option<Int> = None;
         if surfaces.expression_graph.has_roots[slot] {
             start = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, surfaces.expression_graph.roots[slot]);
             readable = IsSome(start);
         }
         if readable && IsSome(start) {
             let root: Int = surfaces.expression_graph.roots[slot];
-            let node: Int = UnwrapOption(start);
+            var node: Int = UnwrapOption(start);
             while node <= root {
                 let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
                     signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, node);
@@ -196,11 +196,11 @@ func SemanticAstStringFormalBorrowOnlyFacts(
         }
         slot = slot + 1;
     }
-    let changed: Bool = true;
-    let remaining: Int = ArrayLength(sources) + 1;
+    var changed: Bool = true;
+    var remaining: Int = ArrayLength(sources) + 1;
     while changed && remaining > 0 {
         changed = false;
-        let edge: Int = 0;
+        var edge: Int = 0;
         while edge < ArrayLength(sources) {
             if !MapHas(retaining, ToString(sources[edge])) && MapHas(retaining, ToString(targets[edge])) {
                 MapSet(retaining, ToString(sources[edge]), 1); changed = true;
@@ -210,11 +210,11 @@ func SemanticAstStringFormalBorrowOnlyFacts(
         remaining = remaining - 1;
     }
     ArrayDrop(sources); ArrayDrop(targets);
-    let borrow_only: HashMap<String, Int> = MapNew();
+    var borrow_only: HashMap<String, Int> = MapNew();
     if changed || !readable { return borrow_only; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(signatures.function_node_ids) {
-        let ordinal: Int = 0;
+        var ordinal: Int = 0;
         while ordinal < signatures.param_counts[row] {
             let formal_id: Int = signatures.param_node_ids[signatures.param_starts[row] + ordinal];
             if SemanticAstStringFormalBorrowCandidate(artifact, signatures, row, ordinal) &&

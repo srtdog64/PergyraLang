@@ -13,7 +13,7 @@ func MirProgramZoneAuthorityAbilityType(
 ) -> String {
     let base: Option<String> =
         JsonObjectFactStringFieldOpt(ability_fact, "base");
-    let actual_bounds: Array<Int> = [0, 0];
+    var actual_bounds: Array<Int> = [0, 0];
     if !IsSome(base) || UnwrapOption(base) == "" ||
         !JsonObjectFieldValueBoundsWithin(
             ability_fact.json, ability_fact.json_extent, ability_fact.start, ability_fact.end,
@@ -24,10 +24,10 @@ func MirProgramZoneAuthorityAbilityType(
     let actuals: Array<String> = MirObjectArrayStringFactsAtBounds(
         ability_fact.json, ability_fact.json_extent, ability_fact.start, ability_fact.end, "actuals"
     );
-    let result: String = UnwrapOption(base);
+    var result: String = UnwrapOption(base);
     if ArrayLength(actuals) == 0 { return result; }
     result = Concat(result, "<");
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(actuals) {
         if actuals[row] == "" { return ""; }
         if row > 0 { result = Concat(result, ", "); }
@@ -46,13 +46,13 @@ func BuildMirProgramDeclarationZoneAuthorityIndex(
         ArrayLength(nominal_kinds) != ArrayLength(names) {
         return SelfMirDeclarationZoneAuthorityRowsEmpty();
     }
-    let starts: Array<Int> = [];
-    let counts: Array<Int> = [];
-    let slots: Array<String> = [];
-    let ability_starts: Array<Int> = [];
-    let ability_counts: Array<Int> = [];
-    let abilities: Array<String> = [];
-    let declaration: Int = 0;
+    var starts: Array<Int> = [];
+    var counts: Array<Int> = [];
+    var slots: Array<String> = [];
+    var ability_starts: Array<Int> = [];
+    var ability_counts: Array<Int> = [];
+    var abilities: Array<String> = [];
+    var declaration: Int = 0;
     while declaration < ArrayLength(names) {
         ArrayPush(starts, ArrayLength(slots));
         let row: JsonObjectFactTable = JsonArrayObjectFactAt(
@@ -71,7 +71,7 @@ func BuildMirProgramDeclarationZoneAuthorityIndex(
         if !JsonArrayObjectFactTableReady(authorities) {
             return SelfMirDeclarationZoneAuthorityRowsEmpty();
         }
-        let authority: Int = 0;
+        var authority: Int = 0;
         while authority < JsonArrayObjectFactCount(authorities) {
             let authority_row: JsonObjectFactTable =
                 JsonArrayObjectFactAt(authorities, authority);
@@ -85,7 +85,7 @@ func BuildMirProgramDeclarationZoneAuthorityIndex(
             }
             ArrayPush(slots, UnwrapOption(slot));
             ArrayPush(ability_starts, ArrayLength(abilities));
-            let ability_index: Int = 0;
+            var ability_index: Int = 0;
             while ability_index < JsonArrayObjectFactCount(required) {
                 let ability_row: JsonObjectFactTable =
                     JsonArrayObjectFactAt(required, ability_index);
@@ -123,13 +123,13 @@ func MirProgramDeclarationZoneAuthorityIndexReady(
     ) {
         return false;
     }
-    let declaration: Int = 0;
+    var declaration: Int = 0;
     while declaration < ArrayLength(names) {
-        let offset: Int = 0;
+        var offset: Int = 0;
         while offset < rows.declaration_counts[declaration] {
             let authority: Int = rows.declaration_starts[declaration] + offset;
-            let matches: Int = 0;
-            let field: Int = 0;
+            var matches: Int = 0;
+            var field: Int = 0;
             while field < ArrayLength(fields.field_names) {
                 if fields.field_owner_indices[field] == declaration &&
                     fields.field_kinds[field] == "subject_slot" &&

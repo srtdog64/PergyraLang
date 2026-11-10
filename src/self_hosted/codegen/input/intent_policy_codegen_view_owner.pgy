@@ -15,12 +15,12 @@ struct CodegenIntentPolicyView {
     concurrent: Array<Bool>;
     priority_present: Array<Bool>;
     priority_expression_roots: Array<Int>;
-    expression_graph: SemanticExpressionGraphFacts;
 }
 
 func CodegenIntentPolicyViewReadyForSignatures(
     ref view: CodegenIntentPolicyView,
-    ref intents: SemanticAstIntentSignatureFacts
+    ref intents: SemanticAstIntentSignatureFacts,
+    ref expression_graph: SemanticExpressionGraphFacts
 ) -> Bool {
     let count: Int = SemanticAstIntentSignatureCount(intents);
     if !view.admitted || !intents.ok ||
@@ -29,14 +29,14 @@ func CodegenIntentPolicyViewReadyForSignatures(
         ArrayLength(view.concurrent) != count ||
         ArrayLength(view.priority_present) != count ||
         ArrayLength(view.priority_expression_roots) != count ||
-        !view.expression_graph.ok ||
-        !SemanticExpressionGraphArenaReady(view.expression_graph.arena) {
+        !expression_graph.ok ||
+        !SemanticExpressionGraphArenaReady(expression_graph.arena) {
         return false;
     }
     let graph_node_count: Int = SemanticExpressionGraphArenaNodeCount(
-        view.expression_graph.arena
+        expression_graph.arena
     );
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let syntax_id: Int = view.canonical_routine_syntax_ids[row];
         let root: Int = view.priority_expression_roots[row];
@@ -48,7 +48,7 @@ func CodegenIntentPolicyViewReadyForSignatures(
             (!view.priority_present[row] && root != 0) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if view.canonical_routine_syntax_ids[prior] == syntax_id ||
                 view.intent_names[prior] == view.intent_names[row] {

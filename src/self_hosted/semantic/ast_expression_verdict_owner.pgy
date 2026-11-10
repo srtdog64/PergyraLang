@@ -1,5 +1,6 @@
 // Expression verdicts over artifact-owned payload text and environment facts.
 import "expression_normalization_owner.pgy";
+import "ast_member_write_verdict_owner.pgy";
 import "ast_expression_graph_identifier_owner.pgy";
 import "ast_expression_graph_type_owner.pgy";
 import "ast_expression_graph_resolved_call_type_owner.pgy";
@@ -39,6 +40,13 @@ func SemanticAstExpressionCallErrorFromGraph(
     member_root_names: Array<String>,
     current_function_node_id: Int
 ) -> String {
+    let write_call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, root_id);
+    let write_target: SemanticExpressionCallTargetFact = SemanticExpressionGraphResolvedCallTarget(
+        graph, root_id, constructors, names, types, function_names, function_returns, enum_facts.value_scope);
+    let write: SemanticDiagnosticMessageFact = SemanticAstCollectionCallWriteVerdict(
+        graph, write_call, write_target, constructors, names, types, modes,
+        function_names, function_returns, enum_facts.value_scope);
+    if write.code != "" { return SemanticDiagnosticMessageFactRender(write); }
     let nominal: SemanticExpressionGraphNominalConstructorCallFact =
         SemanticExpressionGraphNominalConstructorCallFactFromGraph(
             graph, root_id, constructors, signatures, names, types,
@@ -85,7 +93,7 @@ func SemanticAstExpressionCallErrorFromGraph(
             "actual", ToString(actual_count)
         );
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < actual_count {
         let expected: String = SemanticDelimitedRangeText(
             facts.signature_ranges, facts.signature,
@@ -127,7 +135,7 @@ func SemanticAstExpressionCallErrorFromGraph(
         if !argument_verdict.ok {
             return argument_verdict.diagnostic_message;
         }
-        let actual: String = argument_verdict.inferred_type_name;
+        var actual: String = argument_verdict.inferred_type_name;
         if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
             graph, argument_node, expected, constructors, names, types,
             function_names, function_returns, enum_facts.value_scope
@@ -152,7 +160,7 @@ func SemanticAstExpressionCallErrorFromGraph(
         if !SemanticExpressionGraphFieldValueAssignableTo(
                 expected, actual, graph, argument_node
             ) {
-            let code: String = "call_arg_type_mismatch";
+            var code: String = "call_arg_type_mismatch";
             if facts.target.kind == SemanticCallTargetMember() {
                 code = "member_call_arg_type_mismatch";
             }
@@ -193,7 +201,7 @@ func SemanticAstExpressionCallTreeErrorFromGraphNode(
         );
     }
     let kind: Int = UnwrapOption(kind_fact);
-    let call_error: String = "";
+    var call_error: String = "";
     if AstExpressionNodeIsCallSpine(kind) && !inside_call_spine {
         let wrapper: SemanticExpressionGraphWrapperValueFact =
             SemanticExpressionGraphWrapperValueFactFromGraph(
@@ -348,7 +356,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
     if map_call_error != "" {
         return SemanticAstExpressionVerdictError(text, map_call_error);
     }
-    let queue_call: SemanticExpressionGraphQueueCallFact =
+    var queue_call: SemanticExpressionGraphQueueCallFact =
         SemanticExpressionGraphQueueCallNotApplicable();
     let call_view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
@@ -376,7 +384,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
             queue_call.diagnostic_message, text, "Unknown"
         );
     }
-    let set_call: SemanticExpressionGraphSetCallFact =
+    var set_call: SemanticExpressionGraphSetCallFact =
         SemanticExpressionGraphSetCallNotApplicable();
     if call_view.ok {
         let callee_text: Option<String> = SemanticExpressionGraphNodeText(
@@ -400,6 +408,12 @@ func SemanticAstExpressionVerdictFromGraphCore(
             false, set_call.diagnostic_code,
             set_call.diagnostic_message, text, "Unknown"
         );
+    }
+    let write: SemanticDiagnosticMessageFact = SemanticAstCollectionCallWriteVerdict(
+        graph, call_view, core_target, constructors, names, types, modes,
+        function_names, function_returns, enum_facts.value_scope);
+    if write.code != "" {
+        return SemanticAstExpressionVerdictError(text, SemanticDiagnosticMessageFactRender(write));
     }
     let collection_mutation: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
@@ -444,11 +458,11 @@ func SemanticAstExpressionVerdictFromGraphCore(
             graph, root_id, signatures, constructors, names, types,
             function_names, function_returns, enum_facts.value_scope
         );
-    let generic_applies: Bool = generic_call.applies;
-    let generic_ok: Bool = generic_call.ok;
-    let generic_diagnostic_code: String = generic_call.diagnostic_code;
-    let generic_diagnostic_message: String = generic_call.diagnostic_message;
-    let generic_return_type_name: String = generic_call.return_type_name;
+    var generic_applies: Bool = generic_call.applies;
+    var generic_ok: Bool = generic_call.ok;
+    var generic_diagnostic_code: String = generic_call.diagnostic_code;
+    var generic_diagnostic_message: String = generic_call.diagnostic_message;
+    var generic_return_type_name: String = generic_call.return_type_name;
     if generic_spawn.applies {
         generic_applies = true;
         generic_ok = generic_spawn.ok;
@@ -481,7 +495,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
     let concrete_scalar_operator_owned: Bool =
         concrete_scalar_value_owned && IsSome(root_kind) &&
         SemanticExpressionGraphScalarOperatorKind(UnwrapOption(root_kind));
-    let call_error: String = "";
+    var call_error: String = "";
     if concrete_scalar_operator_owned {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
             graph, root_id, constructors, signatures, names, types,
@@ -533,14 +547,14 @@ func SemanticAstExpressionVerdictFromGraphCore(
         UnwrapOption(root_kind) == AstExpressionNodeMemberAccess();
     let index_value_owned: Bool = IsSome(root_kind) &&
         UnwrapOption(root_kind) == AstExpressionNodeIndex();
-    let index_value_type: Option<String> = None;
+    var index_value_type: Option<String> = None;
     if index_value_owned {
         index_value_type = SemanticExpressionGraphIndexValueTypeName(
             graph, root_id, constructors, names, types,
             function_names, function_returns, enum_facts.value_scope
         );
     }
-    let inferred: String = "Unknown";
+    var inferred: String = "Unknown";
     if IsSome(array_literal_type) {
         inferred = UnwrapOption(array_literal_type);
     } else if IsSome(set_literal_type) {

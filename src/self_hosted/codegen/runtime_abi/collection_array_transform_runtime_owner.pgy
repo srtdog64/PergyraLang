@@ -1,0 +1,48 @@
+// Shared C materialization for collection value transforms. Runtime identity
+// and ABI type selection remain with collection_runtime_owner.
+
+func CollectionRuntimeCArrayCloneMaterialization(
+    array_type: String, clone_fn: String, new_fn: String, push_fn: String
+) -> String {
+    if array_type == "" || clone_fn == "" || new_fn == "" || push_fn == "" {
+        Die("array clone runtime ABI projection is missing");
+    }
+    var block: String = Concat("static ", array_type);
+    block = Concat(block, Concat(" ", clone_fn));
+    block = Concat(block, Concat("(", array_type));
+    block = Concat(block, " *a) { ");
+    block = Concat(block, Concat(array_type, " out = "));
+    block = Concat(block, Concat(new_fn, "(); "));
+    block = Concat(block, "if (a == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"array clone on null array\"); } ");
+    block = Concat(block, "for (long long i = 0; i < a->len; i++) { ");
+    block = Concat(block, Concat(push_fn, "(&out, a->data[i]); } "));
+    return Concat(block, "return out; }\n");
+}
+
+func CollectionRuntimeCArrayReverseBlock(
+    array_type: String, element_type: String, reverse_fn: String,
+    length_field: String, enabled: Bool
+) -> String {
+    if !enabled { return ""; }
+    if array_type == "" || element_type == "" || reverse_fn == "" ||
+        (length_field != "len" && length_field != "length") {
+        Die("array reverse runtime ABI projection is missing");
+    }
+    return "static ${array_type} ${reverse_fn}(${array_type} a) { for (size_t i = 0; i < (size_t)a.${length_field} / 2; i++) { ${element_type} value = a.data[i]; a.data[i] = a.data[a.${length_field} - 1 - i]; a.data[a.${length_field} - 1 - i] = value; } return a; }\n\n";
+}
+
+func CollectionRuntimeCIntSortBlock(
+    array_type: String, sort_fn: String, length_field: String,
+    enabled: Bool
+) -> String {
+    if array_type == "" || sort_fn == "" ||
+        (length_field != "len" && length_field != "length") {
+        Die("Array<Int> sort descriptor projection is missing");
+    }
+    var block: String = "";
+    if enabled {
+        block = Concat(block, "static int pgy_ai_cmp(const void *pa, const void *pb) { int32_t a = *(const int32_t *)pa; int32_t b = *(const int32_t *)pb; return (a > b) - (a < b); }\n");
+        block = Concat(block, "static ${array_type} ${sort_fn}(${array_type} a) { if (a.${length_field} > 1) { qsort(a.data, (size_t)a.${length_field}, sizeof(int32_t), pgy_ai_cmp); } return a; }\n\n");
+    }
+    return block;
+}

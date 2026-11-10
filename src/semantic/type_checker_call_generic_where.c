@@ -490,26 +490,29 @@ generic_call_validate_where(ASTNode *expr, SemanticContext *ctx,
     free(expected_sig);
 }
 
-void
+Type *
 semantic_validate_function_call_generic_where(ASTNode *expr,
                                               SemanticContext *ctx,
                                               const char *display_name,
                                               size_t provided,
-                                              Type **call_arg_types)
+                                              Type **call_arg_types,
+                                              Type *declared_return_type)
 {
     GenericCallBindingTable table;
     Type **bound_types;
     ASTNode *stmt;
     bool bound;
+    bool sealed;
+    Type *resolved_return;
 
     /* A lexical callable value is not the same-named declaration. */
     if (ctx == NULL || display_name == NULL || expr == NULL
         || expr->type != AST_CALL
         || ast_call_semantic_callee_value_binding_id(expr) != 0)
-        return;
+        return declared_return_type;
     stmt = semantic_find_function_decl_by_name(ctx, display_name);
     if (stmt == NULL || ast_generic_param_count(ast_func_generic_params(stmt)) == 0)
-        return;
+        return declared_return_type;
 
     memset(&table, 0, sizeof(table));
     table.ctx = ctx;
@@ -521,7 +524,7 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
         expr, ctx, stmt, table.params, display_name, provided, call_arg_types);
     if (generic_call_reject_unbound_parameters(
             expr, ctx, stmt, table.params, display_name))
-        return;
+        return TYPE_UNKNOWN;
     table.rows = calloc(table.count, sizeof(*table.rows));
     bound_types = calloc(table.count, sizeof(*bound_types));
     if (table.rows == NULL || bound_types == NULL) {
@@ -529,19 +532,42 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
         free(bound_types);
         semantic_error(ctx, expr,
             "Generic binding table allocation failed while checking a call");
-        return;
+        return TYPE_UNKNOWN;
     }
     bound = generic_call_bind_explicit(&table)
         && generic_call_bind_arguments(&table, stmt, provided, call_arg_types)
         && generic_call_bind_defaults(&table);
     for (size_t i = 0; bound && i < table.count; i++)
         bound_types[i] = table.rows[i].type;
-    if (bound
-        && semantic_generic_call_seal_type_arguments(ctx, expr, display_name,
-            table.params, bound_types, table.count)
-        && ast_func_where_clause(stmt) != NULL)
+    sealed = bound && semantic_generic_call_seal_type_arguments(
+        ctx, expr, display_name, table.params, bound_types, table.count);
+    if (sealed && ast_func_where_clause(stmt) != NULL)
         generic_call_validate_where(expr, ctx, display_name, table.params,
             ast_func_where_clause(stmt), bound_types);
+    resolved_return = TYPE_UNKNOWN;
+    if (sealed) {
+        ExprHostMethodGenericBindings bindings = {
+            .params = table.params,
+            .types = bound_types,
+            .count = table.count,
+            .valid = true,
+        };
+        Type *return_template = ast_func_return_type(stmt) != NULL
+            ? semantic_type_resolution_lookup_metadata_type_ref(
+                ctx, ast_func_return_type(stmt))
+            : NULL;
+
+        /* The function symbol can carry TYPE_UNKNOWN for a generic result:
+         * its concrete type belongs to this sealed call binding, not to the
+         * declaration-wide symbol.  The resolved return-type node preserves
+         * the generic shape (T, Array<T>, Result<T, E>, ...), so specialize
+         * that owner rather than re-inferring from a type spelling here. */
+        if (return_template == NULL || return_template == TYPE_UNKNOWN)
+            return_template = declared_return_type;
+        resolved_return = expr_host_method_generic_substitute(
+            return_template, NULL, NULL, &bindings);
+    }
     free(table.rows);
     free(bound_types);
+    return resolved_return;
 }

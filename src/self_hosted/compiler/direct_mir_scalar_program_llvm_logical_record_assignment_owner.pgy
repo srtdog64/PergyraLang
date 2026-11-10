@@ -3,16 +3,21 @@ import "direct_mir_scalar_program_llvm_logical_record_member_rebind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 
 func DirectMirScalarProgramLlvmExpressionNodeValue(
-    ref expressions: DirectMirScalarProgramExpressionSet, expression_row: Int, node: Int
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int, node: Int, routine: Int
 ) -> String {
-    let kind: Int = expressions.node_kinds[node];
+    let kind: Int = plan.program.expressions.node_kinds[node];
     if kind == DirectMirScalarProgramExprIntLiteral() ||
             kind == DirectMirScalarProgramExprLongLiteral() {
-        return expressions.node_literals[node];
+        return plan.program.expressions.node_literals[node];
     }
     if kind == DirectMirScalarProgramExprParameter() {
+        let parameter: Int = plan.routines.parameter_starts[routine] + plan.program.expressions.node_parameter_ordinals[node];
+        if plan.routines.parameter_carriages[parameter] == "value" ||
+            plan.routines.parameter_carriages[parameter] == "value-result" {
+            return DirectMirScalarProgramLlvmNodeName(expression_row, node);
+        }
         return Concat("%pgy.param.", ToString(
-            expressions.node_parameter_ordinals[node]));
+            plan.program.expressions.node_parameter_ordinals[node]));
     }
     return DirectMirScalarProgramLlvmNodeName(expression_row, node);
 }
@@ -66,11 +71,11 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
     }
     let result: Int = plan.operation_result_values[operation];
     let local_row: Int = plan.value_local_rows[result];
-    let addresses: Array<String> = [];
-    let address_instructions: String = "";
-    let node: Int = start;
+    var addresses: Array<String> = [];
+    var address_instructions: String = "";
+    var node: Int = start;
     while node < end {
-        let address: String = "";
+        var address: String = "";
         let kind: Int = plan.program.expressions.node_kinds[node];
         if kind == DirectMirScalarProgramExprLocal() ||
                 kind == DirectMirScalarProgramExprParameter() {
@@ -115,12 +120,12 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
         Die("direct MIR LLVM nested record array address is missing");
     }
     let index_value: String = DirectMirScalarProgramLlvmExpressionNodeValue(
-        plan.program.expressions, target_row, index_node);
-    let output: String = Concat(
+        plan, target_row, index_node, routine);
+    var output: String = Concat(
         target_expression.instructions, address_instructions);
     output = Concat(output, value_expression.instructions);
-    let symbol: String = "@pgy_ai_set";
-    let value_type: String = "i64";
+    var symbol: String = "@pgy_ai_set";
+    var value_type: String = "i64";
     if element_type == CompilerAbiLayoutStringTypeName() { symbol = "@pgy_as_set"; value_type = "ptr"; }
     if element_type == CompilerAbiLayoutBoolTypeName() { symbol = "@pgy_ab_set"; value_type = "i1"; }
     output = Concat(output, Concat("  call void ", symbol));

@@ -1,0 +1,22 @@
+func LiteralItem(value: Int) -> Int {
+    Log(value);
+    return value;
+}
+
+func Main() -> Void {
+    let first: Array<Int> = [1, 2, 3];
+    let second: Array<Int> = [1, 2, 3];
+    first[0] = 9;
+    ArrayPush(first, 4);
+    Log(first[0] + second[0] + first[3]);
+    let view: Slice<Int> = first.Slice(1, 2);
+    Log(view[0] + view[1]);
+
+    let ordered: Array<Int> = [LiteralItem(7), LiteralItem(8)];
+    Log(ordered[0] + ordered[1]);
+    let empty: Array<Int> = [];
+    ArrayPush(empty, 6);
+    Log(empty[0]);
+    let edges: Array<Int> = [0, 2147483647];
+    Log(edges[1]);
+}

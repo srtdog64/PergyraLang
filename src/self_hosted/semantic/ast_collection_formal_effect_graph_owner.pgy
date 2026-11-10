@@ -16,7 +16,7 @@ func SemanticAstCollectionFormalEffectFromFlags(
         }
         return None;
     }
-    let effect: Int = 1;
+    var effect: Int = 1;
     if reads { effect = 3; }
     if shallow { effect = SemanticAstCollectionFormalShallowMutationEffect(); }
     if mutation { effect = 2; }
@@ -44,7 +44,7 @@ func SemanticAstCollectionFormalEffectResolveAcyclic(
     }
     // Validate every caller-owned seed before the first MapSet. A malformed
     // map fails transactionally instead of leaving a partly derived result.
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let key: String = ToString(inventory.formal_nodes[row]);
         if MapHas(effects, key) {
@@ -53,15 +53,15 @@ func SemanticAstCollectionFormalEffectResolveAcyclic(
         }
         row = row + 1;
     }
-    let remaining: Array<Int> = [];
-    let values: Array<Int> = [];
-    let known: Array<Bool> = [];
-    let aggregate_mutations: Array<Bool> = [];
-    let aggregate_shallow: Array<Bool> = [];
-    let aggregate_reads: Array<Bool> = [];
-    let aggregate_opaque: Array<Bool> = [];
-    let aggregate_unproved: Array<Bool> = [];
-    let queue: Array<Int> = [];
+    var remaining: Array<Int> = [];
+    var values: Array<Int> = [];
+    var known: Array<Bool> = [];
+    var aggregate_mutations: Array<Bool> = [];
+    var aggregate_shallow: Array<Bool> = [];
+    var aggregate_reads: Array<Bool> = [];
+    var aggregate_opaque: Array<Bool> = [];
+    var aggregate_unproved: Array<Bool> = [];
+    var queue: Array<Int> = [];
     row = 0;
     while row < count {
         ArrayPush(remaining, 0); ArrayPush(values, 0);
@@ -76,7 +76,7 @@ func SemanticAstCollectionFormalEffectResolveAcyclic(
         if element_reads[row] { aggregate_reads[row] = true; }
         row = row + 1;
     }
-    let edge: Int = 0;
+    var edge: Int = 0;
     while edge < ArrayLength(sources) {
         remaining[sources[edge]] = remaining[sources[edge]] + 1;
         edge = edge + 1;
@@ -103,7 +103,7 @@ func SemanticAstCollectionFormalEffectResolveAcyclic(
         }
         row = row + 1;
     }
-    let cursor: Int = 0;
+    var cursor: Int = 0;
     while status.ok && cursor < ArrayLength(queue) {
         let target: Int = queue[cursor]; edge = incoming_heads[target];
         while status.ok && edge >= 0 {

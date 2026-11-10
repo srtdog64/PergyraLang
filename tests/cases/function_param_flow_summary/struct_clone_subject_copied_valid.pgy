@@ -2,7 +2,7 @@
 // the original's storage alone. A shallow copy shared it, and the pushes
 // freed the storage the original then read.
 subject Session {
-    let ids: Array<Int>;
+    var ids: Array<Int>;
 }
 
 func Main() -> Int {

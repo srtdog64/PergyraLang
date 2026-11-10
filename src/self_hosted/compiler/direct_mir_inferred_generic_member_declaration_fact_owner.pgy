@@ -32,7 +32,7 @@ func DirectMirInferredGenericMemberDeclarationFactDigest(
     ref fact: DirectMirInferredGenericMemberDeclarationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(313L, fact.host.digest);
+    var hash: Long = DirectMirCfgHashInt(313L, fact.host.digest);
     hash = DirectMirCfgHashString(hash, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.field_name);

@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 func DirectMirScalarCfgStringArrayPushCountInAccesses(
     ref accesses: DirectMirScalarCfgStringArrayAccessSet, collection_row: Int
 ) -> Int {
-    let count: Int = 0; let row: Int = 0;
+    var count: Int = 0; var row: Int = 0;
     while row < ArrayLength(accesses.global_rows) {
         if accesses.collection_rows[row] == collection_row &&
             accesses.kinds[row] ==
@@ -28,7 +28,7 @@ func DirectMirScalarCfgStringArrayCollectionPushCount(
 func DirectMirScalarCfgStringArrayCollectionPopCount(
     ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
 ) -> Int {
-    let count: Int = 0; let row: Int = 0;
+    var count: Int = 0; var row: Int = 0;
     while row < ArrayLength(plan.accesses.global_rows) {
         if plan.accesses.collection_rows[row] == collection_row &&
             plan.accesses.kinds[row] ==

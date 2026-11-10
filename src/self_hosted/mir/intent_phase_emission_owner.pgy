@@ -86,7 +86,7 @@ func SelfMirIntentAppendPhaseCarrier(
             build, "MIR intent phase expression type is missing"
         );
     }
-    let carrier_name: String = "IntentEval";
+    var carrier_name: String = "IntentEval";
     if is_check { carrier_name = "IntentCheck"; }
     let uses: Array<String> = SelfMirExpressionGraphUses(build, graph);
     if phase == "on" {

@@ -375,7 +375,7 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             "RelationPool: ", "SystemicSlot: ", "WorldSystemic: ",
             "WorldZone: "
         ];
-        let label_i: Int = 0;
+        var label_i: Int = 0;
         while label_i < ArrayLength(labels) {
             if StartsWith(text, labels[label_i]) {
                 return Substring(
@@ -599,7 +599,7 @@ func CodegenAstTextProvenance(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextIndentOf(raw: String) -> Int {
     let n: Int = StringLength(raw);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n && CodegenCharCodeAt(raw, n, n, i) == 32 {
         i = i + 1;
     }
@@ -608,13 +608,13 @@ func CodegenAstTextIndentOf(raw: String) -> Int {
 
 func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAstTextNode>, inout count_box: Array<Int>) -> Void {
     let lines: Array<String> = Split(tree_text, "\n");
-    let line_index: Int = 0;
-    let param_indent: Int = -1;
-    let field_indent: Int = -1;
-    let lifecycle_transition_indent: Int = -1;
+    var line_index: Int = 0;
+    var param_indent: Int = -1;
+    var field_indent: Int = -1;
+    var lifecycle_transition_indent: Int = -1;
     while line_index < ArrayLength(lines) {
         let raw_line: String = lines[line_index];
-        let trimmed: String = StringTrim(raw_line);
+        var trimmed: String = StringTrim(raw_line);
         // Namespace/import functions are flattened to top-level exported
         // function lines by the current parser bridge.
         if StartsWith(trimmed, "[export] ") {
@@ -622,7 +622,7 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         }
         if StringLength(trimmed) > 0 {
             let indent: Int = CodegenAstTextIndentOf(raw_line);
-            let kind: Int = TypedAstTextKindOf(trimmed);
+            var kind: Int = TypedAstTextKindOf(trimmed);
             if kind == TypedAstKindIntentDeclTag() && indent >= 6 {
                 kind = TypedAstKindIntentStepIntentTag();
             }

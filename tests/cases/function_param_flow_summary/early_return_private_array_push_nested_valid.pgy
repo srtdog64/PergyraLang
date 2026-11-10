@@ -2,7 +2,7 @@ struct Rows { ids: Array<Int>; }
 struct Envelope { row: Rows; }
 
 func Build(flag: Bool) -> Rows {
-    let ids: Array<Int> = [2];
+    var ids: Array<Int> = [2];
     if flag {
         let wrapped: Rows = Rows(ids);
         return wrapped;

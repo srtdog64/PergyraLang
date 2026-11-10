@@ -12,7 +12,7 @@ struct Source {
 }
 
 func Trim(build: Build, keep: Int) -> Build {
-    let names: Array<String> = build.names;
+    var names: Array<String> = build.names;
     while ArrayLength(names) > keep {
         ArrayPop(names);
     }

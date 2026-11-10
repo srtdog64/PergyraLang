@@ -6,7 +6,7 @@ import "../text/text_owner.pgy";
 import "call_argument_order_owner.pgy";
 
 func RewriteSemanticIndex(
-    graph: SemanticExpressionGraphFacts, receiver_id: Int, receiver: String,
+    ref graph: SemanticExpressionGraphFacts, receiver_id: Int, receiver: String,
     index_id: Int, index: String, env: CodegenTypeEnv
 ) -> String {
     let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
@@ -15,7 +15,7 @@ func RewriteSemanticIndex(
     if !IsSome(receiver_type) {
         Die("semantic index receiver type fact is missing");
     }
-    let runtime_kind: String = UnwrapOption(receiver_type);
+    var runtime_kind: String = UnwrapOption(receiver_type);
     if StartsWith(runtime_kind, "Slice<") {
         let fact: SliceRuntimeFact = SliceRuntimeFactFromSliceTypeName(
             runtime_kind, env
@@ -39,7 +39,7 @@ func RewriteSemanticIndex(
     // literal.
     if !CodegenOperandIsLeaf(SemanticExpressionGraphNodeKind(graph, receiver_id)) &&
         !CodegenOperandIsLiteral(SemanticExpressionGraphNodeKind(graph, index_id)) {
-        let name: String = Concat("__pgy_index_receiver_", ToString(receiver_id));
+        var name: String = Concat("__pgy_index_receiver_", ToString(receiver_id));
         // Only avoids collisions in emitted C.
         while StringIndexOf(receiver, name) >= 0 || StringIndexOf(index, name) >= 0 {
             name = Concat(name, "_");

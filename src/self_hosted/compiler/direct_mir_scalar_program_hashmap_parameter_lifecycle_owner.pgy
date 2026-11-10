@@ -1,0 +1,110 @@
+// HashMap callable carriage and value-result copy-in/copy-out lifecycle.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_hashmap_value_result_target_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func DirectMirScalarProgramCHashMapValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    var output: String = "";
+    var ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramHashMapValueResultAt(plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            let fact: CollectionHashMapRuntimeFact =
+                CollectionHashMapRuntimeFactFromTypeName(
+                    plan.routines.parameter_types[row]);
+            output = output + "    " + fact.c_value_type +
+                " pgy_param_" + ToString(ordinal) + " = *pgy_param_" +
+                ToString(ordinal) + "_mutref;\n";
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCHashMapValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    var output: String = "";
+    var ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramHashMapValueResultAt(plan, routine, ordinal) {
+            let local_row: Int =
+                DirectMirScalarProgramParameterValueResultLocalRow(
+                    plan, routine, ordinal);
+            var storage: String = "pgy_param_" + ToString(ordinal);
+            if local_row >= 0 {
+                storage = "pgy_local_" + ToString(local_row);
+            }
+            output = output + "    *pgy_param_" + ToString(ordinal) +
+                "_mutref = " + storage + ";\n";
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmHashMapParameterCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    var output: String = "";
+    var ordinal: Int = 0;
+    let type_name: String = CollectionHashMapLlvmStorageType();
+    while ordinal < plan.routines.parameter_counts[routine] {
+        let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+        if DirectMirScalarProgramHashMapParameterCarriageReady(
+                plan.routines.parameter_types[row],
+                plan.routines.parameter_carriages[row]) {
+            let spelling: String = ToString(ordinal);
+            output = output + "  %pgy.param." + spelling +
+                ".local = alloca " + type_name + ", align 8\n";
+            if plan.routines.parameter_carriages[row] == "value-result" {
+                output = output + "  %pgy.param." + spelling +
+                    ".copyin = load " + type_name + ", ptr %pgy.param." +
+                    spelling + ".mutref, align 8\n";
+                output = output + "  store " + type_name +
+                    " %pgy.param." + spelling +
+                    ".copyin, ptr %pgy.param." + spelling +
+                    ".local, align 8\n";
+            } else {
+                output = output + "  store " + type_name +
+                    " %pgy.param." + spelling + ", ptr %pgy.param." +
+                    spelling + ".local, align 8\n";
+            }
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmHashMapValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+) -> String {
+    var output: String = "";
+    var ordinal: Int = 0;
+    let type_name: String = CollectionHashMapLlvmStorageType();
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramHashMapValueResultAt(plan, routine, ordinal) {
+            let spelling: String = ToString(ordinal);
+            let local_row: Int =
+                DirectMirScalarProgramParameterValueResultLocalRow(
+                    plan, routine, ordinal);
+            var storage: String = "%pgy.param." + spelling + ".local";
+            if local_row >= 0 {
+                storage = "%pgy.local." + ToString(local_row);
+            }
+            let value: String = "%pgy.param." + spelling +
+                ".copyout." + ToString(exit_block);
+            output = output + "  " + value + " = load " + type_name +
+                ", ptr " + storage + ", align 8\n";
+            output = output + "  store " + type_name + " " + value +
+                ", ptr %pgy.param." + spelling + ".mutref, align 8\n";
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}

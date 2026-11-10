@@ -41,7 +41,7 @@ func SemanticAstNativePipelineOnlyStatementRefusal(
     if purpose == SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly {
         return SemanticDiagnosticMessageFactEmpty();
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < count {
         let surface: String = SemanticNativePipelineOnlyStatementSurface(kinds.kind_tags[row]);
         if surface != "" {

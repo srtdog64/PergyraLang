@@ -6,7 +6,7 @@ func Inspect(ref values: Array<Int>) -> Int
 func Main() -> Void
 {
     let values: Array<Int> = [1];
-    let names: Array<String> = [];
+    var names: Array<String> = [];
     var i: Int = 0;
     while i < 2
     {

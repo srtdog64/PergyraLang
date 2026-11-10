@@ -14,7 +14,7 @@ func Probe(inout state: State, key: String) -> Bool {
 }
 
 func Record(inout state: State, key: String) -> Int {
-    let marks: HashMap<String, Array<Int>> = state.marks;
+    var marks: HashMap<String, Array<Int>> = state.marks;
     if Probe(state, key) { return 0; }
     MapSet(marks, key, [1]);
     state.marks = marks;

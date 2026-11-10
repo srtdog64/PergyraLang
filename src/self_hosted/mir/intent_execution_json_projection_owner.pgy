@@ -5,7 +5,7 @@ import "intent_execution_fact_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirIntentStepJsonFields(ref rows: MirIntentStepTransitionFacts, row: Int) -> Array<String> {
-    let predecessor_name: String = "null";
+    var predecessor_name: String = "null";
     if rows.predecessor_transition_ids[row] != 0 {
         predecessor_name = JsonStringLiteral(rows.predecessor_step_names[row]);
     }
@@ -88,12 +88,12 @@ func SelfMirIntentTerminalJson(ref rows: MirIntentTerminalTransitionFacts, row: 
 }
 
 func SelfMirIntentExecutionJson(ref plan: MirIntentExecutionPlan) -> String {
-    let steps: Array<String> = [];
-    let row: Int = 0;
+    var steps: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(plan.steps.transition_ids) {
-        let fields: Array<String> = SelfMirIntentStepJsonFields(plan.steps, row);
-        let compensations: Array<String> = [];
-        let c: Int = plan.steps.compensation_starts[row];
+        var fields: Array<String> = SelfMirIntentStepJsonFields(plan.steps, row);
+        var compensations: Array<String> = [];
+        var c: Int = plan.steps.compensation_starts[row];
         let end: Int = c + plan.steps.compensation_counts[row];
         while c < end {
             ArrayPush(compensations, SelfMirIntentCompensationJson(plan.steps.compensations, c));
@@ -105,7 +105,7 @@ func SelfMirIntentExecutionJson(ref plan: MirIntentExecutionPlan) -> String {
         ArrayPush(steps, JsonEmitObject(fields));
         row = row + 1;
     }
-    let terminals: Array<String> = [];
+    var terminals: Array<String> = [];
     row = 0;
     while row < ArrayLength(plan.terminals.terminal_transition_ids) {
         ArrayPush(terminals, SelfMirIntentTerminalJson(plan.terminals, row));
@@ -126,19 +126,19 @@ func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, outpu
     CompilerArtifactWrite(output, ",\"plan_digest\":");
     JsonOwnedFragmentWriteFile(output, ToString(plan.plan_digest));
     CompilerArtifactWrite(output, ",\"steps\":[");
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(plan.steps.transition_ids) {
         if row > 0 { CompilerArtifactWrite(output, ","); }
         CompilerArtifactWrite(output, "{");
         let fields: Array<String> = SelfMirIntentStepJsonFields(plan.steps, row);
-        let f: Int = 0;
+        var f: Int = 0;
         while f < ArrayLength(fields) {
             if f > 0 { CompilerArtifactWrite(output, ","); }
             CompilerArtifactWrite(output, fields[f]);
             f = f + 1;
         }
         CompilerArtifactWrite(output, ",\"compensations\":[");
-        let c: Int = plan.steps.compensation_starts[row];
+        var c: Int = plan.steps.compensation_starts[row];
         let end: Int = c + plan.steps.compensation_counts[row];
         while c < end {
             if c > plan.steps.compensation_starts[row] { CompilerArtifactWrite(output, ","); }

@@ -1,0 +1,53 @@
+// The assignment operation survives parsing, typed AST admission and MIR.
+// Zero is plain replacement; nonzero operations read the place before writing.
+func BindingDeclarationMirName(mode: Int) -> Option<String> {
+    if mode == 0 { return Some("ssa-def"); }
+    if mode == 1 { return Some("mutable-def"); }
+    return None;
+}
+
+func BindingDeclarationModeFromMirName(name: String) -> Option<Int> {
+    if name == "ssa-def" { return Some(0); }
+    if name == "mutable-def" { return Some(1); }
+    return None;
+}
+
+func AssignmentOperationFromToken(token: String) -> Option<Int> {
+    if token == "=" { return Some(0); }
+    if token == "+=" { return Some(1); }
+    if token == "-=" { return Some(2); }
+    if token == "*=" { return Some(3); }
+    if token == "/=" { return Some(4); }
+    if token == "%=" { return Some(5); }
+    return None;
+}
+
+func AssignmentOperationToken(operation: Int) -> Option<String> {
+    if operation == 0 { return Some("="); }
+    if operation == 1 { return Some("+="); }
+    if operation == 2 { return Some("-="); }
+    if operation == 3 { return Some("*="); }
+    if operation == 4 { return Some("/="); }
+    if operation == 5 { return Some("%="); }
+    return None;
+}
+
+func AssignmentOperationMirName(operation: Int) -> Option<String> {
+    if operation == 0 { return Some("ssa-def"); }
+    if operation == 1 { return Some("assign-add"); }
+    if operation == 2 { return Some("assign-subtract"); }
+    if operation == 3 { return Some("assign-multiply"); }
+    if operation == 4 { return Some("assign-divide"); }
+    if operation == 5 { return Some("assign-remainder"); }
+    return None;
+}
+
+func AssignmentOperationFromMirName(name: String) -> Option<Int> {
+    if name == "ssa-def" || name == "assign" { return Some(0); }
+    if name == "assign-add" { return Some(1); }
+    if name == "assign-subtract" { return Some(2); }
+    if name == "assign-multiply" { return Some(3); }
+    if name == "assign-divide" { return Some(4); }
+    if name == "assign-remainder" { return Some(5); }
+    return None;
+}

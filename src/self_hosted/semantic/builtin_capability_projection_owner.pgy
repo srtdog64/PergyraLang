@@ -39,7 +39,7 @@ func SemanticBuiltinCapabilityRowAt(index: Int) -> SemanticBuiltinCapabilityRow 
 }
 
 func SemanticBuiltinCapabilityRowForName(name: String) -> SemanticBuiltinCapabilityRow {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < SemanticBuiltinCapabilityCount() {
         let row: SemanticBuiltinCapabilityRow = SemanticBuiltinCapabilityRowAt(index);
         if row.valid && row.source_name == name { return row; }
@@ -51,9 +51,9 @@ func SemanticBuiltinCapabilityRowForName(name: String) -> SemanticBuiltinCapabil
 func SemanticBuiltinFileModeCapabilityMask(mode_text: String, literal: Bool,
     read_mask: Int, write_mask: Int) -> Int {
     if !literal || StringLength(mode_text) < 2 { return read_mask + write_mask; }
-    let read: Bool = false;
-    let write: Bool = false;
-    let index: Int = 1;
+    var read: Bool = false;
+    var write: Bool = false;
+    var index: Int = 1;
     while index < StringLength(mode_text) - 1 {
         let character: String = SubstringWithLen(mode_text, StringLength(mode_text), index, 1);
         if character == "\\" { return read_mask + write_mask; }
@@ -75,8 +75,8 @@ func SemanticBuiltinCapabilityProjectionReady() -> Bool {
         SemanticBuiltinCapabilityRowAt(SemanticBuiltinCapabilityCount()).valid {
         return false;
     }
-    let index: Int = 0;
-    let file_mode_count: Int = 0;
+    var index: Int = 0;
+    var file_mode_count: Int = 0;
     while index < SemanticBuiltinCapabilityCount() {
         let row: SemanticBuiltinCapabilityRow = SemanticBuiltinCapabilityRowAt(index);
         if !row.valid || row.source_name == "" || row.primary_mask <= 0 ||

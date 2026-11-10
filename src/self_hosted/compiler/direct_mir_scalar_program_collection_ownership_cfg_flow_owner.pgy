@@ -27,6 +27,8 @@ func DirectMirCollectionOwnershipCfgStateJoin(left: Int, right: Int) -> Int {
 func DirectMirCollectionOwnershipCfgBlockOutput(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
+    ref receipt_effects: Array<Int>,
+    operation_offset: Int,
     block: Int,
     local_row: Int,
     input_state: Int
@@ -35,16 +37,18 @@ func DirectMirCollectionOwnershipCfgBlockOutput(
         block >= ArrayLength(storage.blocks.operation_counts) {
         return 0;
     }
-    let state: Int = input_state;
-    let operation: Int = storage.blocks.operation_starts[block];
+    var state: Int = input_state;
+    var operation: Int = storage.blocks.operation_starts[block];
     let end: Int = operation + storage.blocks.operation_counts[block];
-    if operation < 0 || end > ArrayLength(storage.operations.kinds) {
+    if operation < operation_offset || end > ArrayLength(storage.operations.kinds) ||
+        end - operation_offset > ArrayLength(receipt_effects) {
         return 0;
     }
     while operation < end {
-        let operation_local: Int = -1;
+        var operation_local: Int = -1;
+        let receipt_effect: Int = receipt_effects[operation - operation_offset];
         let effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(
-            storage, expressions, operation, operation_local
+            storage, expressions, operation, receipt_effect, operation_local
         );
         if effect != 0 && operation_local == local_row {
             state = DirectMirCollectionOwnershipNextState(state, effect);
@@ -59,6 +63,8 @@ func DirectMirCollectionOwnershipCfgTerminalState(
     ref index: MirRoutineFactIndex,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
+    ref receipt_effects: Array<Int>,
+    operation_offset: Int,
     routine: Int,
     local_row: Int,
     initial_state: Int
@@ -69,6 +75,9 @@ func DirectMirCollectionOwnershipCfgTerminalState(
     );
     if !index.valid || routine < 0 || local_row < 0 || block_count <= 1 ||
         block_start < 0 || routine >= ArrayLength(storage.routines.block_counts) ||
+        routine >= ArrayLength(storage.routines.operation_counts) ||
+        operation_offset < 0 || ArrayLength(receipt_effects) !=
+            storage.routines.operation_counts[routine] ||
         storage.routines.block_counts[routine] != block_count ||
         block_count != ArrayLength(index.block_reachable) ||
         block_count != ArrayLength(index.block_succ_true) ||
@@ -78,8 +87,8 @@ func DirectMirCollectionOwnershipCfgTerminalState(
         return 0;
     }
 
-    let expected_operation: Int = storage.blocks.operation_starts[block_start];
-    let block_row: Int = 0;
+    var expected_operation: Int = storage.blocks.operation_starts[block_start];
+    var block_row: Int = 0;
     while block_row < block_count {
         let block: Int = block_start + block_row;
         if storage.blocks.operation_starts[block] != expected_operation ||
@@ -91,8 +100,8 @@ func DirectMirCollectionOwnershipCfgTerminalState(
         block_row = block_row + 1;
     }
 
-    let inputs: Array<Int> = [];
-    let outputs: Array<Int> = [];
+    var inputs: Array<Int> = [];
+    var outputs: Array<Int> = [];
     block_row = 0;
     while block_row < block_count {
         ArrayPush(inputs, 0);
@@ -100,17 +109,17 @@ func DirectMirCollectionOwnershipCfgTerminalState(
         block_row = block_row + 1;
     }
 
-    let changed: Bool = true;
-    let iteration: Int = 0;
+    var changed: Bool = true;
+    var iteration: Int = 0;
     let iteration_limit: Int = block_count * 8 + 1;
     while changed && iteration < iteration_limit {
         changed = false;
         block_row = 0;
         while block_row < block_count {
             if index.block_reachable[block_row] {
-                let joined: Int = 0;
+                var joined: Int = 0;
                 if block_row == 0 { joined = initial_state; }
-                let predecessor: Int = 0;
+                var predecessor: Int = 0;
                 while predecessor < block_count {
                     if index.block_reachable[predecessor] &&
                         (index.block_succ_true[predecessor] == block_row ||
@@ -124,7 +133,8 @@ func DirectMirCollectionOwnershipCfgTerminalState(
                 }
                 if joined != 0 {
                     let output: Int = DirectMirCollectionOwnershipCfgBlockOutput(
-                        storage, expressions, block_start + block_row,
+                        storage, expressions, receipt_effects, operation_offset,
+                        block_start + block_row,
                         local_row, joined
                     );
                     if output == 0 { return 0; }
@@ -142,7 +152,7 @@ func DirectMirCollectionOwnershipCfgTerminalState(
     // The iteration budget is a refusal boundary, not a partial-proof fallback.
     if changed { return 0; }
 
-    let terminal: Int = 0;
+    var terminal: Int = 0;
     block_row = 0;
     while block_row < block_count {
         if index.block_reachable[block_row] {

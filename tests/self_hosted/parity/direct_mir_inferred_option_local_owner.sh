@@ -45,6 +45,8 @@ grep -Fq '"kind":"phi","name":"selected"' "$MIR" ||
     fail "producer omitted the selected Option<Int> phi"
 grep -Fq '"kind":"phi","name":"chosen"' "$MIR" ||
     fail "producer omitted the chosen Option<String> phi"
+grep -Fq '"local_ref":"declaration:' "$MIR" ||
+    fail "consumer fixture omitted declaration LocalRef identities"
 
 printf '29\n11\nright\nleft\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do

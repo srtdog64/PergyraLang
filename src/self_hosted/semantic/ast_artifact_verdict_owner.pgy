@@ -175,7 +175,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         SemanticAstExpressionFunctionTableFactsFromArtifact(
             artifact, signatures, constructors, enums
         );
-    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+    var expression_surfaces: SemanticAstExpressionSurfaceFacts =
         input_expression_surfaces;
     if signatures.ok && constructors.ok && input_expression_surfaces.ok {
         let target_capture: SemanticExpressionCallTargetCapture =
@@ -199,8 +199,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     let kind_surfaces: SemanticAstKindSurfaceFacts =
         SemanticAstKindSurfaceFactsFromArtifact(artifact);
     if !signatures.ok || !intent_signatures.ok || !intent_transitions.ok || !function_scopes.ok {
-        let signature_diagnostic_code: String = signatures.diagnostic_code;
-        let signature_diagnostic_message: String = signatures.diagnostic_message;
+        var signature_diagnostic_code: String = signatures.diagnostic_code;
+        var signature_diagnostic_message: String = signatures.diagnostic_message;
         if signatures.ok {
             signature_diagnostic_code = intent_signatures.diagnostic_code;
             signature_diagnostic_message = intent_signatures.diagnostic_message;
@@ -214,7 +214,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             signature_diagnostic_code = "ast_artifact_invalid";
             signature_diagnostic_message = SemanticError1("ast_artifact_invalid", "owner", "SemanticAstFunctionScopeFacts");
         }
-        let rejected: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
+        var rejected: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
             signature_diagnostic_code,
             signature_diagnostic_message,
             artifact.count,

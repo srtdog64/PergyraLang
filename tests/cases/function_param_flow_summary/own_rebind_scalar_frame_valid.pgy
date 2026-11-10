@@ -16,13 +16,13 @@ func AtBlock(build: Build, block: Int) -> Build {
 }
 
 func AddBlock(build: Build) -> Build {
-    let ids: Array<Int> = build.ids;
+    var ids: Array<Int> = build.ids;
     ArrayPush(ids, ArrayLength(ids));
     return Build(build.ok, ids, build.current);
 }
 
 func Append(own build: Build, ref input: SourceFacts, count: Int) -> Build {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count && ArrayLength(input.names) > 0 {
         let block: Int = ArrayLength(build.ids);
         build = AddBlock(build);
@@ -36,7 +36,7 @@ func Main() -> Int {
     let names: Array<String> = ["a"];
     let input: SourceFacts = SourceFacts(names);
     let ids: Array<Int> = [];
-    let build: Build = Build(true, ids, 0);
+    var build: Build = Build(true, ids, 0);
     build = Append(build, input, 3);
     Print(ToString(ArrayLength(build.ids) + build.current));
     return 0;

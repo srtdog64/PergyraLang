@@ -52,6 +52,14 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     let expr1_roots: Array<Int> = build.cfg.instructions.expr1_graphs.roots;
     let expr1_starts: Array<Int> = build.cfg.instructions.expr1_graphs.node_starts;
     let expr1_counts: Array<Int> = build.cfg.instructions.expr1_graphs.node_counts;
+    let collection_target_has_roots: Array<Int> =
+        build.cfg.instructions.collection_mutation_target_graphs.has_roots;
+    let collection_target_roots: Array<Int> =
+        build.cfg.instructions.collection_mutation_target_graphs.roots;
+    let collection_target_starts: Array<Int> =
+        build.cfg.instructions.collection_mutation_target_graphs.node_starts;
+    let collection_target_counts: Array<Int> =
+        build.cfg.instructions.collection_mutation_target_graphs.node_counts;
 
     let match_instruction_indices: Array<Int> = build.cfg.instructions.match_facts.instruction_indices;
     let match_pattern_starts: Array<Int> = build.cfg.instructions.match_facts.pattern_starts;
@@ -134,6 +142,10 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     CompilerRetireArrayStorage(expr0_starts); CompilerRetireArrayStorage(expr0_counts);
     CompilerRetireArrayStorage(expr1_has_roots); CompilerRetireArrayStorage(expr1_roots);
     CompilerRetireArrayStorage(expr1_starts); CompilerRetireArrayStorage(expr1_counts);
+    CompilerRetireArrayStorage(collection_target_has_roots);
+    CompilerRetireArrayStorage(collection_target_roots);
+    CompilerRetireArrayStorage(collection_target_starts);
+    CompilerRetireArrayStorage(collection_target_counts);
     CompilerRetireArrayStorage(match_instruction_indices); CompilerRetireArrayStorage(match_pattern_starts);
     CompilerRetireArrayStorage(match_pattern_counts); CompilerRetireArrayStorage(match_patterns);
     CompilerRetireArrayStorage(match_variants); CompilerRetireArrayStorage(match_binding_starts);

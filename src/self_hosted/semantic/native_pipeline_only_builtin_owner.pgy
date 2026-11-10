@@ -47,7 +47,7 @@ func SemanticNativePipelineOnlyBuiltinNames() -> Array<String> {
 
 func SemanticNativePipelineOnlyBuiltin(name: String) -> Bool {
     let names: Array<String> = SemanticNativePipelineOnlyBuiltinNames();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == name { return true; }
         i = i + 1;

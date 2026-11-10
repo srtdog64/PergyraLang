@@ -9,7 +9,7 @@ import "../codegen/runtime_abi/zone_runtime_owner.pgy";
 import "../codegen/runtime_abi/intent_runtime_symbol_owner.pgy";
 
 func DirectMirNestedIntentCStringContentReady(value: String) -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < StringLength(value) {
         let code: Int = CharCode(value, StringLength(value), i);
         if code < 32 || code > 126 || code == 34 || code == 92 {
@@ -87,7 +87,7 @@ func DirectMirNestedIntentCMethod(
     TextBuilderAppend(output, "\", (int)");
     TextBuilderAppend(output, rows[0].runtime_name);
     TextBuilderAppend(output, "());\n");
-    let active: Int = 0;
+    var active: Int = 0;
     while active < 2 {
         let base: Int = 1 + active * 3;
         TextBuilderAppend(output, "    ");
@@ -264,7 +264,7 @@ func DirectMirNestedIntentProgramEmitC(
     if !DirectMirNestedIntentCAbiReady(formatted_print, rows) {
         Die("direct MIR nested intent C runtime ABI is invalid");
     }
-    let literal: Int = 0;
+    var literal: Int = 0;
     while literal < ArrayLength(plan.graph.method_log_literals) {
         if !DirectMirNestedIntentCStringContentReady(
                 plan.graph.method_log_literals[literal]) {

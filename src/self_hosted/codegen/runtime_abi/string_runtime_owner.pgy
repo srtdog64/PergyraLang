@@ -6,7 +6,7 @@ import "collection_runtime_owner.pgy";
 import "string_runtime_symbol_owner.pgy";
 
 func StringRuntimeCStringLogBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static void ", Concat(StringRuntimeCLogFn(), "(const char *s)\n{\n")));
     block = Concat(block, "    long long n = 0;\n    while (s[n] != '\\0') { n++; }\n");
     block = Concat(block, "    while (n > 0 && (s[n-1] == '\\n' || s[n-1] == '\\r')) { n--; }\n");
@@ -15,7 +15,7 @@ func StringRuntimeCStringLogBlock() -> String {
 }
 
 func StringRuntimeCBoolLogBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static void ", Concat(
         StringRuntimeCBoolLogFn(), "(bool value)\n{\n"
     )));
@@ -27,7 +27,7 @@ func StringRuntimeCLogMaterializationBlock(
     runtime_header_owns_string_log: Bool,
     runtime_header_owns_bool_log: Bool
 ) -> String {
-    let block: String = "";
+    var block: String = "";
     if !runtime_header_owns_string_log {
         block = StringRuntimeCStringLogBlock();
     }
@@ -38,7 +38,7 @@ func StringRuntimeCLogMaterializationBlock(
 }
 
 func StringRuntimeCPrintBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, "#include <stdlib.h>\n#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#endif\n\n");
     block = Concat(block, Concat("static void ", Concat(StringRuntimeCPrintFn(), "(const char *s)\n{\n")));
     block = Concat(block, "#ifdef _WIN32\n    if (_setmode(_fileno(stdout), _O_BINARY) == -1) { abort(); }\n#endif\n");
@@ -48,7 +48,7 @@ func StringRuntimeCPrintBlock() -> String {
 }
 
 func StringRuntimeCConcatBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCConcatFn(), "(const char *a, const char *b)\n{\n")));
     block = Concat(block, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
     block = Concat(block, "    char *r = (char *)malloc(la + lb + 1);\n");
@@ -58,7 +58,7 @@ func StringRuntimeCConcatBlock() -> String {
 }
 
 func StringRuntimeCToStringBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToStringFn(), "(long long v)\n{\n")));
     block = Concat(block, "    char *r = (char *)malloc(24);\n");
     block = Concat(block, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
@@ -66,7 +66,7 @@ func StringRuntimeCToStringBlock() -> String {
 }
 
 func StringRuntimeCToUpperBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToUpperFn(), "(const char *s)\n{\n")));
     block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
     block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
@@ -75,7 +75,7 @@ func StringRuntimeCToUpperBlock() -> String {
 }
 
 func StringRuntimeCToLowerBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToLowerFn(), "(const char *s)\n{\n")));
     block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
     block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
@@ -84,7 +84,7 @@ func StringRuntimeCToLowerBlock() -> String {
 }
 
 func StringRuntimeCStringLengthBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static long long ", Concat(StringRuntimeCStringLengthFn(), "(const char *s)\n{\n")));
     block = Concat(block, "    size_t n = strlen(s);\n");
     block = Concat(block, "    if (n >= 9223372036854775807ULL) abort();\n");
@@ -92,7 +92,7 @@ func StringRuntimeCStringLengthBlock() -> String {
 }
 
 func StringRuntimeCSubstringBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCSubstringFn(), "(const char *s, long long start, long long len)\n{\n")));
     block = Concat(block, "    if (s == NULL) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    size_t raw_len = strlen(s);\n");
@@ -105,7 +105,7 @@ func StringRuntimeCSubstringBlock() -> String {
 }
 
 func StringRuntimeCSubstringWithLenBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCSubstringWithLenFn(), "(const char *s, long long source_len, long long start, long long len)\n{\n")));
     block = Concat(block, "    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n");
@@ -116,7 +116,7 @@ func StringRuntimeCSubstringWithLenBlock() -> String {
 }
 
 func StringRuntimeCStringIndexOfBlock() -> String {
-    let block: String = Concat("static long long ", Concat(
+    var block: String = Concat("static long long ", Concat(
         StringRuntimeCStringIndexOfFn(),
         "(const char *hay, const char *needle)\n{\n"));
     block = Concat(block, "    if (hay == NULL || needle == NULL) return -1;\n");
@@ -126,7 +126,7 @@ func StringRuntimeCStringIndexOfBlock() -> String {
 }
 
 func StringRuntimeCStringTrimBlock() -> String {
-    let block: String = Concat("static char *", Concat(
+    var block: String = Concat("static char *", Concat(
         StringRuntimeCStringTrimFn(), "(const char *s)\n{\n"));
     block = Concat(block, "    if (s == NULL) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
@@ -138,7 +138,7 @@ func StringRuntimeCStringTrimBlock() -> String {
 }
 
 func StringRuntimeCCharAtNBlock() -> String {
-    let block: String = Concat("static char *", Concat(
+    var block: String = Concat("static char *", Concat(
         StringRuntimeCCharAtNFn(),
         "(const char *s, long long len, long long i)\n{\n"));
     block = Concat(block,
@@ -151,7 +151,7 @@ func StringRuntimeCCharAtNBlock() -> String {
 }
 
 func StringRuntimeCCharCodeBlock() -> String {
-    let block: String = Concat("static long long ", Concat(
+    var block: String = Concat("static long long ", Concat(
         StringRuntimeCCharCodeFn(),
         "(const char *s, long long len, long long i)\n{\n"));
     block = Concat(block,
@@ -161,7 +161,7 @@ func StringRuntimeCCharCodeBlock() -> String {
 }
 
 func StringRuntimeCSubIndexOfWithLenBlock() -> String {
-    let block: String = Concat("static long long ", Concat(
+    var block: String = Concat("static long long ", Concat(
         StringRuntimeCSubIndexOfWithLenFn(),
         "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n"));
     block = Concat(block, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
@@ -171,7 +171,7 @@ func StringRuntimeCSubIndexOfWithLenBlock() -> String {
 }
 
 func StringRuntimeCSubEqualsWithLenBlock() -> String {
-    let block: String = Concat("static int ", Concat(
+    var block: String = Concat("static int ", Concat(
         StringRuntimeCSubEqualsWithLenFn(),
         "(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n"));
     block = Concat(block, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
@@ -183,10 +183,32 @@ func StringRuntimeCSubEqualsWithLenBlock() -> String {
         "    return memcmp(s + start, other, n) == 0;\n}\n\n");
 }
 
+func StringRuntimeCSubContainsWithLenBlock() -> String {
+    var block: String = Concat("static int ", Concat(
+        StringRuntimeCSubContainsWithLenFn(),
+        "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n"));
+    return Concat(block, Concat("    return ", Concat(
+        StringRuntimeCSubIndexOfWithLenFn(),
+        "(s, source_len, start, len, needle) >= 0;\n}\n\n")));
+}
+
+func StringRuntimeCSubStartsWithLenBlock() -> String {
+    var block: String = Concat("static int ", Concat(
+        StringRuntimeCSubStartsWithLenFn(),
+        "(const char *s, long long source_len, long long start, const char *prefix)\n{\n"));
+    block = Concat(block,
+        "    if (s == NULL || prefix == NULL || source_len < 0 || start < 0 || start > source_len) return 0;\n");
+    block = Concat(block,
+        "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
+    return Concat(block, Concat("    return ", Concat(
+        StringRuntimeCSubEqualsWithLenFn(),
+        "(s, source_len, start, (long long)n, prefix);\n}\n\n")));
+}
+
 // Emitted after the *WithLen forms it calls.
 func StringRuntimeCSubWindowSourceLengthBlock() -> String {
     let source_len: String = "s == NULL ? 0 : (long long)strlen(s)";
-    let block: String = Concat("static int ", Concat(StringRuntimeCSubContainsFn(), "(const char *s, long long start, long long len, const char *needle)\n{\n"));
+    var block: String = Concat("static int ", Concat(StringRuntimeCSubContainsFn(), "(const char *s, long long start, long long len, const char *needle)\n{\n"));
     block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubContainsWithLenFn(), Concat("(s, ", Concat(source_len, ", start, len, needle);\n}\n\n")))));
     block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubEqualsFn(), "(const char *s, long long start, long long len, const char *other)\n{\n")));
     block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubEqualsWithLenFn(), Concat("(s, ", Concat(source_len, ", start, len, other);\n}\n\n")))));
@@ -199,7 +221,7 @@ func StringRuntimeCSubWindowSourceLengthBlock() -> String {
 func StringRuntimeCStringCoreBlock(
     runtime_header_owns_bool_to_string: Bool
 ) -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, StringRuntimeCConcatBlock());
     block = Concat(block, StringRuntimeCStringLengthBlock());
     block = Concat(block, StringRuntimeCCharAtNBlock());
@@ -218,12 +240,8 @@ func StringRuntimeCStringCoreBlock(
     block = Concat(block, StringRuntimeCStringContainsBlock());
     block = Concat(block, StringRuntimeCSubIndexOfWithLenBlock());
     block = Concat(block, StringRuntimeCSubEqualsWithLenBlock());
-    block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubContainsWithLenFn(), "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n")));
-    block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubIndexOfWithLenFn(), "(s, source_len, start, len, needle) >= 0;\n}\n\n")));
-    block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubStartsWithLenFn(), "(const char *s, long long source_len, long long start, const char *prefix)\n{\n")));
-    block = Concat(block, "    if (s == NULL || prefix == NULL || source_len < 0 || start < 0 || start > source_len) return 0;\n");
-    block = Concat(block, "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
-    block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubEqualsWithLenFn(), "(s, source_len, start, (long long)n, prefix);\n}\n\n")));
+    block = Concat(block, StringRuntimeCSubContainsWithLenBlock());
+    block = Concat(block, StringRuntimeCSubStartsWithLenBlock());
     block = Concat(block, StringRuntimeCSubWindowSourceLengthBlock());
     block = Concat(block, StringRuntimeCToIntBlock());
     block = Concat(block, StringRuntimeCToUpperBlock());
@@ -257,7 +275,7 @@ func StringRuntimeCToIntBlock() -> String {
 }
 
 func StringRuntimeCSplitBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static pgy_as ", Concat(StringRuntimeCSplitFn(), "(const char *s, const char *sep)\n{\n")));
     block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
     block = Concat(block, "    size_t sl = strlen(sep);\n");
@@ -279,7 +297,7 @@ func StringRuntimeCSplitBlock() -> String {
 }
 
 func StringRuntimeCStringJoinBlock() -> String {
-    let block: String = "";
+    var block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCStringJoinFn(), "(pgy_as a, const char *sep)\n{\n")));
     block = Concat(block, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
     block = Concat(block, "    long long count = pgy_as_len(a);\n");

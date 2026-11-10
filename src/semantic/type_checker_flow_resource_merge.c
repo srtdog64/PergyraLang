@@ -43,6 +43,24 @@ merge_resource_states(ResourceConsumeSnapshot *dst,
         dst->valid = false;
         return;
     }
+    if (dst->slice_permission_count != src->slice_permission_count
+        || (dst->slice_permission_count != 0
+            && (dst->slice_permissions == NULL || src->slice_permissions == NULL))) {
+        dst->valid = false;
+        return;
+    }
+    for (size_t i = 0; i < dst->slice_permission_count; i++) {
+        SlicePermissionState *left = &dst->slice_permissions[i];
+        const SlicePermissionState *right = &src->slice_permissions[i];
+        if (left->symbol == NULL || left->symbol != right->symbol
+            || left->declaration_id != right->declaration_id
+            || left->symbol->decl_syntax_id != left->declaration_id) {
+            dst->valid = false;
+            return;
+        }
+        /* Both paths appended to this live binding's lexical loan union. */
+        left->sources = left->symbol->slice_borrow_sources;
+    }
     if ((dst->count > 0
             && (dst->symbols == NULL || dst->states == NULL
                 || dst->used_states == NULL || dst->future_states == NULL
@@ -103,6 +121,47 @@ merge_resource_states(ResourceConsumeSnapshot *dst,
             src->array_storage_states[src_index].pending;
         dst->array_storage_states[i].result_pending |=
             src->array_storage_states[src_index].result_pending;
+        ArrayStoragePathState *left = &dst->array_storage_states[i];
+        const ArrayStoragePathState *right =
+            &src->array_storage_states[src_index];
+        if (left->return_elements_present
+                != right->return_elements_present) {
+            dst->valid = false;
+            return;
+        }
+        if (left->return_elements_present) {
+            left->return_elements_owned &= right->return_elements_owned;
+            if (left->return_elements_source
+                    != right->return_elements_source
+                || left->return_elements_source_id
+                    != right->return_elements_source_id) {
+                left->return_elements_owned = false;
+                left->return_elements_source = NULL;
+                left->return_elements_source_id = 0;
+            }
+        }
+        ArrayStorageMemberElementPremiseState *left_member =
+            &left->member_elements;
+        const ArrayStorageMemberElementPremiseState *right_member =
+            &right->member_elements;
+        if (left_member->present != right_member->present) {
+            dst->valid = false;
+            return;
+        }
+        if (left_member->present) {
+            if (left_member->source != right_member->source
+                || left_member->source_id != right_member->source_id
+                || left_member->root_binding_id
+                    != right_member->root_binding_id
+                || left_member->leaf_field_id
+                    != right_member->leaf_field_id
+                || left_member->source_birth_serial
+                    != right_member->source_birth_serial) {
+                dst->valid = false;
+                return;
+            }
+            left_member->current &= right_member->current;
+        }
     }
 }
 

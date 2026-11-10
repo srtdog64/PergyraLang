@@ -10,7 +10,7 @@ func EmitFormattedScalarLog(
     print_argument_c_type: String,
     line_format: String
 ) -> String {
-    let stmt: String = Concat(StringRuntimeCFormattedPrintFn(), "(\"");
+    var stmt: String = Concat(StringRuntimeCFormattedPrintFn(), "(\"");
     stmt = Concat(stmt, line_format);
     stmt = Concat(stmt, "\", (");
     stmt = Concat(stmt, print_argument_c_type);
@@ -23,10 +23,11 @@ func EmitFormattedScalarLog(
 func EmitLog(
     inferred_type_name: String,
     env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
     let rendered: String = RewriteExprFromSemanticGraph(
-        graph.graph, graph.root_id, env
+        graph, root_id, env
     );
     if inferred_type_name == "Int" {
         return EmitFormattedScalarLog(

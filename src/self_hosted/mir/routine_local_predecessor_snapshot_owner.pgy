@@ -24,14 +24,14 @@ func SelfMirLocalPredecessorSnapshotsAppend(
     facts: SelfMirLocalPredecessorSnapshots,
     build: SelfMirRoutineBuild
 ) -> SelfMirLocalPredecessorSnapshots {
-    let blocks: Array<Int> = facts.blocks;
-    let starts: Array<Int> = facts.version_starts;
-    let counts: Array<Int> = facts.version_counts;
-    let versions: Array<Int> = facts.versions;
+    var blocks: Array<Int> = facts.blocks;
+    var starts: Array<Int> = facts.version_starts;
+    var counts: Array<Int> = facts.version_counts;
+    var versions: Array<Int> = facts.versions;
     ArrayPush(blocks, build.current_block);
     ArrayPush(starts, ArrayLength(versions));
     ArrayPush(counts, ArrayLength(build.local_versions));
-    let local_row: Int = 0;
+    var local_row: Int = 0;
     while local_row < ArrayLength(build.local_versions) {
         ArrayPush(versions, build.local_versions[local_row]);
         local_row = local_row + 1;
@@ -48,7 +48,7 @@ func SelfMirLocalPredecessorSnapshotsReady(
         ArrayLength(facts.blocks) != ArrayLength(facts.version_counts) {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.blocks) {
         if facts.blocks[row] < 0 || facts.version_starts[row] < 0 ||
             facts.version_counts[row] < 0 ||
@@ -56,7 +56,7 @@ func SelfMirLocalPredecessorSnapshotsReady(
                 ArrayLength(facts.versions) {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < row {
             if facts.blocks[prior] == facts.blocks[row] { return false; }
             prior = prior + 1;

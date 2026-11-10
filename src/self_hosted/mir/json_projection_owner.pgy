@@ -24,8 +24,8 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
     instruction_index: Int, emit_local_refs: Bool
 ) -> String {
     let rows: SelfMirInstructionRows = facts.cfg.instructions;
-    let uses: Array<String> = [];
-    let use_i: Int = 0;
+    var uses: Array<String> = [];
+    var use_i: Int = 0;
     while use_i < rows.use_counts[instruction_index] {
         ArrayPush(
             uses,
@@ -65,7 +65,7 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
     let abi_layout: String = abi_projection.layout;
     let abi_layout_required: Bool = StringLength(abi_layout) > 0;
     let abi_layout_id: String = SelfMirJsonAbiLayoutId(abi_layout);
-    let abi_layout_wire: String = "null";
+    var abi_layout_wire: String = "null";
     if abi_layout_required {
         abi_layout_wire = abi_layout;
     }
@@ -74,7 +74,7 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
             facts.collection_ownership_receipts, instruction_index
         );
     if collection_ownership_receipt == "" { return ""; }
-    let fields: Array<String> = [
+    var fields: Array<String> = [
         JsonEmitFieldNumber("id", ToString(rows.ids[instruction_index])),
         JsonEmitFieldString("kind", rows.kinds[instruction_index]),
         JsonEmitFieldString("name", rows.names[instruction_index]),
@@ -156,6 +156,19 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
     ArrayPush(fields, JsonEmitFieldRaw("destructure_bindings",
         SelfMirJsonDestructureBindings(rows, instruction_index)));
     ArrayPush(fields, JsonEmitFieldRaw("uses", JsonEmitArray(uses)));
+    if rows.kinds[instruction_index] == "stmt" &&
+        rows.source_types[instruction_index] == "AST_CALL" &&
+        (rows.arg0s[instruction_index] == "ArrayPush" ||
+         rows.arg0s[instruction_index] == "ArraySet" ||
+         rows.arg0s[instruction_index] == "ArrayPop") {
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "collection_mutation_target_graph",
+            SelfMirJsonExpressionGraph(
+                rows.collection_mutation_target_graphs,
+                facts.expression_graph, instruction_index
+            )
+        ));
+    }
     if rows.binding_source_syntax_ids[instruction_index] > 0 {
         ArrayPush(fields, JsonEmitFieldRaw("binding_source_syntax_id",
             ToString(rows.binding_source_syntax_ids[instruction_index])));
@@ -188,8 +201,8 @@ func SelfMirJsonBlock(facts: SelfMirProgramFacts,
     block_index: Int, emit_local_refs: Bool
 ) -> String {
     let blocks: SelfMirBlockRows = facts.cfg.blocks;
-    let instructions: Array<String> = [];
-    let i: Int = 0;
+    var instructions: Array<String> = [];
+    var i: Int = 0;
     while i < blocks.instruction_counts[block_index] {
         ArrayPush(
             instructions,
@@ -198,7 +211,7 @@ func SelfMirJsonBlock(facts: SelfMirProgramFacts,
         );
         i = i + 1;
     }
-    let fields: Array<String> = [
+    var fields: Array<String> = [
         JsonEmitFieldNumber("id", ToString(blocks.ids[block_index])),
         JsonEmitFieldBool("reachable", blocks.reachable[block_index] == 1),
         JsonEmitFieldRaw("instructions", JsonEmitArray(instructions))
@@ -230,9 +243,9 @@ func SelfMirJsonRoutine(
     routine_index: Int
 ) -> String {
     let rows: SelfMirRoutineRows = facts.routines;
-    let generics: Array<String> = [];
-    let generic_constraints: Array<String> = [];
-    let generic_i: Int = 0;
+    var generics: Array<String> = [];
+    var generic_constraints: Array<String> = [];
+    var generic_i: Int = 0;
     while generic_i < rows.generic_counts[routine_index] {
         let generic_row: Int = rows.generic_starts[routine_index] + generic_i;
         ArrayPush(generics, JsonStringLiteral(rows.generic_names[generic_row]));
@@ -240,8 +253,8 @@ func SelfMirJsonRoutine(
             SelfMirJsonRoutineGenericConstraint(rows, generic_row));
         generic_i = generic_i + 1;
     }
-    let params: Array<String> = [];
-    let param_i: Int = 0;
+    var params: Array<String> = [];
+    var param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
         let row: Int = rows.param_starts[routine_index] + param_i;
         ArrayPush(
@@ -250,11 +263,11 @@ func SelfMirJsonRoutine(
         );
         param_i = param_i + 1;
     }
-    let blocks: Array<String> = [];
+    var blocks: Array<String> = [];
     let emit_local_refs: Bool = SelfMirRoutineLocalRefWireRequired(
         facts, routine_index
     );
-    let block_i: Int = 0;
+    var block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
         ArrayPush(
             blocks,
@@ -265,8 +278,8 @@ func SelfMirJsonRoutine(
         );
         block_i = block_i + 1;
     }
-    let locals: Array<String> = [];
-    let local_i: Int = 0;
+    var locals: Array<String> = [];
+    var local_i: Int = 0;
     while local_i < rows.local_counts[routine_index] {
         let row2: Int = rows.local_starts[routine_index] + local_i;
         let fields2: Array<String> = [
@@ -282,13 +295,13 @@ func SelfMirJsonRoutine(
     // ResourceFlowUniverse rows.  It still emits the schema's explicit empty
     // projection so consumers never infer absence or recover rows from text.
     let resource_flow_symbols: Array<String> = [];
-    let loop_flow_summaries: Array<String> = [];
+    var loop_flow_summaries: Array<String> = [];
     let loop_rows: SelfMirLoopFlowRows = rows.loop_flows;
     let summary_start: Int = loop_rows.routine_starts[routine_index];
-    let summary_i: Int = 0;
+    var summary_i: Int = 0;
     while summary_i < loop_rows.routine_counts[routine_index] {
         let summary_row: Int = summary_start + summary_i;
-        let summary_kind: String = "while";
+        var summary_kind: String = "while";
         if loop_rows.summaries.kinds[summary_row] == 1 {
             summary_kind = "for";
         }
@@ -328,8 +341,8 @@ func SelfMirJsonRoutine(
         ]));
         summary_i = summary_i + 1;
     }
-    let loop_flow_states: Array<String> = [];
-    let state_i: Int = 0;
+    var loop_flow_states: Array<String> = [];
+    var state_i: Int = 0;
     while state_i < ArrayLength(loop_rows.states.stable_indices) {
         ArrayPush(loop_flow_states, JsonEmitObject([
             JsonEmitFieldNumber(
@@ -357,9 +370,9 @@ func SelfMirJsonRoutine(
         ]));
         state_i = state_i + 1;
     }
-    let iteration_type_facts: Array<String> = [];
+    var iteration_type_facts: Array<String> = [];
     let iteration_start: Int = rows.iteration_starts[routine_index];
-    let iteration_i: Int = 0;
+    var iteration_i: Int = 0;
     while iteration_i < rows.iteration_counts[routine_index] {
         let iteration_row: Int = iteration_start + iteration_i;
         ArrayPush(
@@ -389,10 +402,10 @@ func SelfMirJsonRoutine(
         );
         iteration_i = iteration_i + 1;
     }
-    let collection_ownership_facts: Array<String> = [];
+    var collection_ownership_facts: Array<String> = [];
     let collection_start: Int =
         rows.collection_ownership_facts.routine_starts[routine_index];
-    let collection_i: Int = 0;
+    var collection_i: Int = 0;
     while collection_i <
             rows.collection_ownership_facts.routine_counts[routine_index] {
         let collection_row: Int = collection_start + collection_i;
@@ -422,7 +435,7 @@ func SelfMirJsonRoutine(
         ]));
         collection_i = collection_i + 1;
     }
-    let fields3: Array<String> = [
+    var fields3: Array<String> = [
         JsonEmitFieldString("name", rows.names[routine_index]),
         JsonEmitFieldString("kind", rows.kinds[routine_index]),
         JsonEmitFieldNumber("source_syntax_id", ToString(rows.node_ids[routine_index])),
@@ -485,8 +498,8 @@ func SelfMirJsonParallelCaptureBoundary(
     rows: SelfMirParallelCaptureRows,
     boundary_index: Int
 ) -> String {
-    let captures: Array<String> = [];
-    let i: Int = 0;
+    var captures: Array<String> = [];
+    var i: Int = 0;
     while i < rows.row_counts[boundary_index] {
         let row: Int = rows.row_starts[boundary_index] + i;
         ArrayPush(captures, JsonEmitObject([
@@ -515,20 +528,20 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     if !SelfMirProgramFactsReady(facts) {
         return "";
     }
-    let declarations: Array<String> = [];
-    let i: Int = 0;
+    var declarations: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(facts.declarations.names) {
         ArrayPush(declarations, SelfMirJsonDeclaration(facts, i));
         i = i + 1;
     }
-    let routines: Array<String> = [];
-    let r: Int = 0;
+    var routines: Array<String> = [];
+    var r: Int = 0;
     while r < ArrayLength(facts.routines.names) {
         ArrayPush(routines, SelfMirJsonRoutine(facts, r));
         r = r + 1;
     }
-    let parallel_captures: Array<String> = [];
-    let capture_i: Int = 0;
+    var parallel_captures: Array<String> = [];
+    var capture_i: Int = 0;
     while capture_i < ArrayLength(facts.parallel_captures.source_stable_ids) {
         ArrayPush(
             parallel_captures,
@@ -559,7 +572,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     let output: TextBuilder = TextBuilderNew(capacity);
     TextBuilderAppend(output, prefix);
     TextBuilderAppend(output, "[");
-    let declaration_i: Int = 0;
+    var declaration_i: Int = 0;
     while declaration_i < ArrayLength(declarations) {
         if declaration_i > 0 { TextBuilderAppend(output, ","); }
         TextBuilderAppend(output, declarations[declaration_i]);
@@ -568,7 +581,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     TextBuilderAppend(output, "]");
     TextBuilderAppend(output, generic_prefix);
     TextBuilderAppend(output, "[");
-    let specialization_i: Int = 0;
+    var specialization_i: Int = 0;
     while specialization_i < ArrayLength(generic_specializations) {
         if specialization_i > 0 { TextBuilderAppend(output, ","); }
         TextBuilderAppend(output, generic_specializations[specialization_i]);
@@ -577,7 +590,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     TextBuilderAppend(output, "]");
     TextBuilderAppend(output, capture_prefix);
     TextBuilderAppend(output, "[");
-    let parallel_i: Int = 0;
+    var parallel_i: Int = 0;
     while parallel_i < ArrayLength(parallel_captures) {
         if parallel_i > 0 { TextBuilderAppend(output, ","); }
         TextBuilderAppend(output, parallel_captures[parallel_i]);
@@ -586,7 +599,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     TextBuilderAppend(output, "]");
     TextBuilderAppend(output, routine_prefix);
     TextBuilderAppend(output, "[");
-    let routine_i: Int = 0;
+    var routine_i: Int = 0;
     while routine_i < ArrayLength(routines) {
         if routine_i > 0 { TextBuilderAppend(output, ","); }
         TextBuilderAppend(output, routines[routine_i]);

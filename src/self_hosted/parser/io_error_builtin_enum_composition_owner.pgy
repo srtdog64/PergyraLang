@@ -27,8 +27,8 @@ func ParserIoErrorVariantNames() -> Array<String> {
 
 func ParserIoErrorEnumSource() -> String {
     let names: Array<String> = ParserIoErrorVariantNames();
-    let text: String = "enum IoError {";
-    let i: Int = 0;
+    var text: String = "enum IoError {";
+    var i: Int = 0;
     while i < ArrayLength(names) {
         if i > 0 { text = Concat(text, ","); }
         text = Concat(text, Concat(" ", names[i]));
@@ -45,7 +45,7 @@ func ParserComposedGraphCallsTryFileBuiltin(
 ) -> Bool {
     let kinds: Array<Int> = rows.arena.node_kinds;
     let n: Int = ArrayLength(kinds);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < n {
         if kinds[i] == AstExpressionNodeCall() {
             let callee: Int = rows.arena.left_children[i];
@@ -69,7 +69,7 @@ func ParserRefuseProgramIoErrorDeclaration(
     display_root: String,
     projection: ParseDiagnosticProjection
 ) -> Void {
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(observations) {
         let observed: ParserSourceLocationObservation = observations[row];
         if observed.declared_name == "IoError" {

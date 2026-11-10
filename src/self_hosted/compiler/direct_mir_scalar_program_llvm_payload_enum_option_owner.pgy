@@ -1,0 +1,91 @@
+// LLVM representation and expressions for Option<payload-enum> values.
+
+import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmPayloadEnumOptionExpressionAt(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    kind: Int, result: String, result_type: String,
+    left_type: String, left: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    var option_type: String = result_type;
+    if kind == DirectMirScalarProgramExprIsSomePayloadEnum() ||
+        kind == DirectMirScalarProgramExprUnwrapOptionPayloadEnum() {
+        option_type = left_type;
+    }
+    let t: String = DirectMirScalarProgramLlvmPayloadEnumOptionTypeName(
+        fact, option_type);
+    if t == "" { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    let stem: String = Concat("@",
+        Substring(t, 1, StringLength(t) - 1));
+    var function_name: String = ""; var output_type: String = t;
+    var argument_type: String = "";
+    if kind == DirectMirScalarProgramExprSomePayloadEnum() {
+        function_name = Concat(stem, ".some");
+        argument_type = DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(
+            DirectMirScalarProgramPayloadEnumOptionRow(fact, option_type));
+    } else if kind == DirectMirScalarProgramExprNonePayloadEnum() {
+        function_name = Concat(stem, ".none");
+    } else if kind == DirectMirScalarProgramExprIsSomePayloadEnum() {
+        function_name = Concat(stem, ".is_some");
+        output_type = "i1"; argument_type = t;
+    } else if kind == DirectMirScalarProgramExprUnwrapOptionPayloadEnum() {
+        function_name = Concat(stem, ".unwrap"); argument_type = t;
+        output_type = DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(
+            DirectMirScalarProgramPayloadEnumOptionRow(fact, option_type));
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    var output: String = "  " + result + " = call " + output_type + " " +
+        function_name;
+    if argument_type == "" { output = output + "()\n"; }
+    else { output = output + "(" + argument_type + " " + left + ")\n"; }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmPayloadEnumOptionPreamble(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    ref target: CompilerTargetProjectionFact, unwrap_called: Bool
+) -> String {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR payload-enum Option LLVM fact is invalid");
+    }
+    var output: String = ""; var row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.payload_flags[row] == 1 {
+            let payload: String =
+                DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(row);
+            let t: String =
+                DirectMirScalarProgramLlvmPayloadEnumOptionTypeNameAt(row);
+            let stem: String = Concat("@",
+                Substring(t, 1, StringLength(t) - 1));
+            output = output + t + " = type { i1, " + payload + " }\n";
+            output = output + "define internal " + t + " " + stem +
+                ".some(" + payload +
+                " %value) {\nentry:\n  %tagged = insertvalue " + t +
+                " poison, i1 true, 0\n  %wrapped = insertvalue " + t +
+                " %tagged, " + payload + " %value, 1\n  ret " + t +
+                " %wrapped\n}\n";
+            output = output + "define internal " + t + " " + stem +
+                ".none() {\nentry:\n  ret " + t + " zeroinitializer\n}\n";
+            output = output + "define internal i1 " + stem + ".is_some(" +
+                t + " %value) {\nentry:\n  %tag = extractvalue " + t +
+                " %value, 0\n  ret i1 %tag\n}\n";
+            if unwrap_called {
+                output = output + "define internal " + payload + " " + stem +
+                    ".unwrap(" + t +
+                    " %value) {\nentry:\n  %unwrap.tag = extractvalue " + t +
+                    " %value, 0\n  br i1 %unwrap.tag, label %some, label %none\nnone:\n" +
+                    DirectMirScalarProgramLlvmUnwrapNonePanic() +
+                    "some:\n  %payload = extractvalue " + t +
+                    " %value, 1\n  ret " + payload + " %payload\n}\n";
+            }
+        }
+        row = row + 1;
+    }
+    return output;
+}

@@ -52,7 +52,7 @@ func WorkerSnapshot(ref ledger: Slot<WorkerLedger>) -> String {
 }
 
 async func Main() -> Void {
-    let report: String = "";
+    var report: String = "";
 
     let laneA: Channel<Int> = Channel(2);
     let laneB: Channel<Int> = Channel(2);

@@ -1,0 +1,32 @@
+// A String projected through a local struct still borrows its ref source.
+// ArraySet copies that exact local path into the independently owned result.
+struct Rows {
+    names: Array<String>;
+}
+
+struct Source {
+    title: String;
+}
+
+struct Projection {
+    title: String;
+}
+
+func Project(ref source: Source) -> Projection {
+    return Projection(source.title);
+}
+
+func Rename(rows: Rows, ref source: Source) -> Rows {
+    var names: Array<String> = rows.names;
+    let projected: Projection = Project(source);
+    ArraySet(names, 0, projected.title);
+    return Rows(names);
+}
+
+func Main() -> Int {
+    let source: Source = Source(StringConcat("t", ""));
+    let rows: Rows = Rename(Rows([StringConcat("a", "")]), source);
+    Print(rows.names[0]);
+    Print(source.title);
+    return 0;
+}

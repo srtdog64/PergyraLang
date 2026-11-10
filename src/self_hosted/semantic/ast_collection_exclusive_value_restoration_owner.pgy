@@ -21,7 +21,7 @@ func SemanticAstCollectionFocusPartForLocal(
     if !binding.ok || binding.kind != SemanticExpressionBindingFormalParameter() { return absent; }
     let function: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, locals.function_node_ids[row]);
     if !IsSome(function) { return absent; }
-    let parameter: Int = signatures.param_starts[UnwrapOption(function)];
+    var parameter: Int = signatures.param_starts[UnwrapOption(function)];
     let end: Int = parameter + signatures.param_counts[UnwrapOption(function)];
     while parameter < end && signatures.param_node_ids[parameter] != binding.syntax_id { parameter = parameter + 1; }
     if parameter >= end || signatures.param_modes[parameter] != 1 { return absent; }
@@ -32,7 +32,7 @@ func SemanticAstCollectionFocusPartForLocal(
     let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(constructors, UnwrapOption(nominal), UnwrapOption(name));
     if !IsSome(field) || constructors.param_type_names[UnwrapOption(field)] != inferred_types[row] { return absent; }
     let element: Option<String> = SemanticArrayElementType(constructors.param_type_names[UnwrapOption(field)]);
-    let supported: Bool = IsSome(element) && (UnwrapOption(element) == "Int" || UnwrapOption(element) == "Long" ||
+    var supported: Bool = IsSome(element) && (UnwrapOption(element) == "Int" || UnwrapOption(element) == "Long" ||
         UnwrapOption(element) == "Float" || UnwrapOption(element) == "Double" || UnwrapOption(element) == "Bool" || UnwrapOption(element) == "String");
     let child: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, constructors.param_type_names[UnwrapOption(field)]);
     if IsSome(child) { supported = constructors.nominal_kinds[UnwrapOption(child)] == "struct"; }
@@ -49,9 +49,9 @@ func SemanticAstCollectionFocusRecoveryExitForNode(
 ) -> SemanticAstCollectionFocusRecoveryExit {
     let refused: SemanticAstCollectionFocusRecoveryExit = SemanticAstCollectionFocusRecoveryExit(false, false, -1, 0);
     if !SemanticAstCollectionFocusRecoveryShapeReady(facts) { return refused; }
-    let start: Int = -1;
-    let count: Int = 0;
-    let row: Int = 0;
+    var start: Int = -1;
+    var count: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(facts.exit_group_indices) {
         if facts.exit_function_ids[row] == function_id && facts.exit_scope_ids[row] == scope_id &&
             facts.exit_syntax_ids[row] == syntax_id && facts.exit_kinds[row] == kind {
@@ -77,8 +77,8 @@ func SemanticAstCollectionFocusPartRepack(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     function_id: Int, scope_id: Int, definition_id: Int, root_id: Int, field_name: String
 ) -> Int {
-    let found: Int = 0;
-    let row: Int = 0;
+    var found: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(assignments.node_ids) {
         let syntax: Int = assignments.node_ids[row];
         if assignments.function_node_ids[row] == function_id && assignments.scope_node_ids[row] == scope_id &&
@@ -136,12 +136,12 @@ func SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(
 ) -> Bool {
     if SemanticAstCollectionFocusRecoveryMapPartSettled(artifact, signatures, locals, inferred_types, surfaces,
             assignments, statements, facts, group, part) { return true; }
-    let row: Int = 0;
-    let restored: Int = 0;
+    var row: Int = 0;
+    var restored: Int = 0;
     while row < ArrayLength(assignments.node_ids) {
         let write: Int = assignments.node_ids[row];
         let scope: Int = assignments.scope_node_ids[row];
-        let covers: Bool = kind == SemanticAstCollectionFocusExitFallthrough() && scope == facts.group_scope_ids[group];
+        var covers: Bool = kind == SemanticAstCollectionFocusExitFallthrough() && scope == facts.group_scope_ids[group];
         if kind != SemanticAstCollectionFocusExitFallthrough() {
             covers = write < syntax && SemanticAstCollectionNodeEnclosedBy(artifact, syntax, scope) &&
                 SemanticAstCollectionExclusiveBlockJumpFree(artifact, scope, 0, artifact.count);
@@ -151,7 +151,7 @@ func SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(
         row = row + 1;
     }
     if restored == 0 { return false; }
-    let surface: Int = 0;
+    var surface: Int = 0;
     while surface < ArrayLength(surfaces.node_ids) {
         let use_site: Int = surfaces.node_ids[surface];
         if surfaces.function_node_ids[surface] == facts.group_function_ids[group] && use_site > restored &&
@@ -162,14 +162,14 @@ func SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(
             if target.ok && target.declaration_node_id == facts.part_local_binding_ids[part] &&
                 (TypedAstArenaNodeKindIs(artifact.arena, use_site, TypedAstKindArrayPushStmtTag()) ||
                  TypedAstArenaNodeKindIs(artifact.arena, use_site, TypedAstKindArrayPopStmtTag())) { return false; }
-            let lane: Int = 0;
+            var lane: Int = 0;
             while lane < 3 {
                 let slot: Int = surface * 3 + lane;
                 if surfaces.expression_graph.has_roots[slot] {
                     let root: Int = surfaces.expression_graph.roots[slot];
                     let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
                     if !IsSome(start) { return false; }
-                    let node: Int = UnwrapOption(start);
+                    var node: Int = UnwrapOption(start);
                     while node <= root {
                         let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                         if edge.ok {
@@ -202,9 +202,9 @@ func SemanticAstCollectionFocusRecoveryMapPartSettled(
 ) -> Bool {
     if !SemanticAstCollectionFormalScalarMapType(facts.part_type_names[part]) { return false; }
     let no_uses: Array<Int> = [];
-    let other: Int = 0;
+    var other: Int = 0;
     while other < ArrayLength(facts.part_definition_ids) {
-        let owner: Int = 0;
+        var owner: Int = 0;
         while owner < ArrayLength(facts.group_part_starts) && other >= facts.group_part_starts[owner] + facts.group_part_counts[owner] { owner = owner + 1; }
         if owner >= ArrayLength(facts.group_part_starts) { return false; }
         if facts.group_function_ids[owner] == facts.group_function_ids[group] && facts.group_root_binding_ids[owner] == facts.group_root_binding_ids[group] &&
@@ -214,19 +214,19 @@ func SemanticAstCollectionFocusRecoveryMapPartSettled(
                 facts.group_scope_ids[group], no_uses, false, facts.part_local_binding_ids[part]) { return false; }
         other = other + 1;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(surfaces.node_ids) {
         let use_site: Int = surfaces.node_ids[row];
         if surfaces.function_node_ids[row] == facts.group_function_ids[group] && use_site > facts.part_definition_ids[part] {
-            let mutation: Bool = false;
-            let lane: Int = 0;
+            var mutation: Bool = false;
+            var lane: Int = 0;
             while lane < 3 {
                 let slot: Int = row * 3 + lane;
                 if surfaces.expression_graph.has_roots[slot] {
                     let root: Int = surfaces.expression_graph.roots[slot];
                     let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
                     if !IsSome(start) { return false; }
-                    let node: Int = UnwrapOption(start);
+                    var node: Int = UnwrapOption(start);
                     while node <= root {
                         let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                         if edge.ok {
@@ -243,15 +243,15 @@ func SemanticAstCollectionFocusRecoveryMapPartSettled(
                 lane = lane + 1;
             }
             if mutation {
-                let settled: Bool = false;
-                let write_row: Int = 0;
+                var settled: Bool = false;
+                var write_row: Int = 0;
                 while write_row < ArrayLength(assignments.node_ids) && !settled {
                     let write: Int = assignments.node_ids[write_row];
                     if SemanticAstCollectionFocusRecoveryRepackAt(artifact, signatures, locals, inferred_types, surfaces,
                             assignments, facts, group, part, write) && SemanticAstCollectionExclusiveRunsAfter(artifact, use_site, write) &&
                             SemanticAstCollectionExclusiveRebindsEachIteration(artifact, use_site, write, facts.part_definition_ids[part]) {
                         settled = true;
-                        let exit: Int = 0;
+                        var exit: Int = 0;
                         while exit < ArrayLength(statements.node_ids) && settled {
                             let site: Int = statements.node_ids[exit];
                             let kind: Int = statements.kind_tags[exit];
@@ -261,7 +261,7 @@ func SemanticAstCollectionFocusRecoveryMapPartSettled(
                                 SemanticAstCollectionExclusiveExitAfterUse(artifact, assignments.scope_node_ids[write_row], use_site, site) { settled = false; }
                             exit = exit + 1;
                         }
-                        let pending: Int = row;
+                        var pending: Int = row;
                         while pending < ArrayLength(surfaces.node_ids) && settled {
                             let site: Int = surfaces.node_ids[pending];
                             if site >= use_site && site < write && SemanticAstCollectionNodeEnclosedBy(artifact, site, assignments.scope_node_ids[write_row]) &&
@@ -285,8 +285,8 @@ func SemanticAstCollectionFocusRecoveryPendingPartCount(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts, ref statements: SemanticAstStatementFacts,
     ref facts: SemanticAstCollectionFocusRecoveryFacts, group: Int, syntax: Int, kind: Int
 ) -> Int {
-    let count: Int = 0;
-    let part: Int = facts.group_part_starts[group];
+    var count: Int = 0;
+    var part: Int = facts.group_part_starts[group];
     let end: Int = part + facts.group_part_counts[group];
     while part < end {
         if !SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(artifact, signatures, locals, inferred_types,
@@ -308,8 +308,8 @@ func SemanticAstCollectionFocusRecoveryGroupActiveForExit(
         (facts.group_end_ids[group] > 0 && syntax_id > facts.group_end_ids[group]) ||
         !SemanticAstCollectionNodeEnclosedBy(artifact, syntax_id, facts.group_scope_ids[group]) { return false; }
     if kind == SemanticAstCollectionFocusExitBreak() || kind == SemanticAstCollectionFocusExitContinue() {
-        let ancestor: Int = syntax_id;
-        let remaining: Int = artifact.count;
+        var ancestor: Int = syntax_id;
+        var remaining: Int = artifact.count;
         while ancestor >= 0 && remaining > 0 {
             if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
                 TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag()) {
@@ -331,7 +331,7 @@ func SemanticAstCollectionFocusRecoveryAppendExit(
     ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts, ref statements: SemanticAstStatementFacts,
     function_id: Int, scope_id: Int, syntax_id: Int, kind: Int
 ) -> Bool {
-    let group: Int = ArrayLength(facts.group_function_ids) - 1;
+    var group: Int = ArrayLength(facts.group_function_ids) - 1;
     while group >= 0 {
         let active: Bool = SemanticAstCollectionFocusRecoveryGroupActiveForExit(
             artifact, facts, group, function_id, scope_id, syntax_id, kind);
@@ -339,7 +339,7 @@ func SemanticAstCollectionFocusRecoveryAppendExit(
             let last: Int = facts.group_part_starts[group] + facts.group_part_counts[group] - 1;
             if kind != SemanticAstCollectionFocusExitFallthrough() && syntax_id <= facts.part_definition_ids[last] { return false; }
             let active_start: Int = ArrayLength(facts.active_part_indices);
-            let at: Int = 0;
+            var at: Int = 0;
             while at < facts.group_part_counts[group] {
                 let part: Int = facts.group_part_starts[group] + at;
                 if !SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(artifact, signatures, locals, inferred_types,
@@ -394,7 +394,7 @@ func SemanticAstCollectionFocusRecoveryCallTargetReady(
     if !formal.ok || signatures.param_modes[signatures.param_starts[formal.signature_row] + formal.ordinal] != 1 { return false; }
     let result: String = signatures.return_types[formal.signature_row];
     if result != "Int" && result != "Bool" && result != "Void" { return false; }
-    let callee: Int = 0;
+    var callee: Int = 0;
     while callee < ArrayLength(facts.group_function_ids) {
         if facts.group_function_ids[callee] == signatures.function_node_ids[formal.signature_row] &&
             facts.group_root_binding_ids[callee] == formal.syntax_id && facts.group_root_type_names[callee] == type_name { return true; }
@@ -408,13 +408,13 @@ func SemanticAstCollectionFocusRecoveryLocalActive(
     function_id: Int, syntax_id: Int, local_id: Int
 ) -> Bool {
     if !facts.ok { return false; }
-    let group: Int = 0;
+    var group: Int = 0;
     while group < ArrayLength(facts.group_function_ids) {
         let end: Int = facts.group_part_starts[group] + facts.group_part_counts[group];
         if facts.group_function_ids[group] == function_id && syntax_id > facts.part_definition_ids[end - 1] &&
             (facts.group_end_ids[group] == 0 || syntax_id <= facts.group_end_ids[group]) &&
             SemanticAstCollectionNodeEnclosedBy(artifact, syntax_id, facts.group_scope_ids[group]) {
-            let part: Int = facts.group_part_starts[group];
+            var part: Int = facts.group_part_starts[group];
             while part < end {
                 if facts.part_local_binding_ids[part] == local_id { return true; }
                 part = part + 1;
@@ -426,15 +426,15 @@ func SemanticAstCollectionFocusRecoveryLocalActive(
 }
 
 func SemanticAstCollectionFocusRecoveryTryCount(ref surfaces: SemanticAstExpressionSurfaceFacts, row: Int) -> Int {
-    let tries: Int = 0;
-    let lane: Int = 0;
+    var tries: Int = 0;
+    var lane: Int = 0;
     while lane < 3 {
         let slot: Int = row * 3 + lane;
         if surfaces.expression_graph.has_roots[slot] {
             let root: Int = surfaces.expression_graph.roots[slot];
             let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
             if !IsSome(start) { return -1; }
-            let node: Int = UnwrapOption(start);
+            var node: Int = UnwrapOption(start);
             while node <= root {
                 if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeTry() { tries = tries + 1; }
                 node = node + 1;
@@ -453,7 +453,7 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
     ref assignments: SemanticAstAssignmentFacts, inout values: SemanticAstCollectionExclusiveValueFacts,
     mutating_formals: HashMap<String, Int>, excluded_roots: HashMap<String, Int>
 ) -> SemanticAstCollectionFocusRecoveryFacts {
-    let facts: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFactsEmpty();
+    var facts: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFactsEmpty();
     facts.excluded_roots = excluded_roots;
     facts.artifact_node_count = artifact.count;
     facts.artifact_identity_digest = artifact.identity_digest;
@@ -466,7 +466,7 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
         !statements.ok || !assignments.ok || ArrayLength(inferred_types) != ArrayLength(locals.node_ids) ||
         ArrayLength(resolved_leaf_types) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
         !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) { return facts; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
         let candidate: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
             signatures, constructors, locals, inferred_types, surfaces, row);
@@ -485,10 +485,10 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
             // use/exit and original copy-cut admission before any guard grant.
             let repack: Int = SemanticAstCollectionFocusPartRepack(artifact, signatures, locals, inferred_types,
                 surfaces, assignments, locals.function_node_ids[row], locals.scope_node_ids[row], locals.node_ids[row], candidate.root_id, candidate.field_name);
-            let group: Int = ArrayLength(facts.group_function_ids) - 1;
-            let repeated: Bool = false;
+            var group: Int = ArrayLength(facts.group_function_ids) - 1;
+            var repeated: Bool = false;
             if group >= 0 {
-                let prior: Int = facts.group_part_starts[group];
+                var prior: Int = facts.group_part_starts[group];
                 while prior < facts.group_part_starts[group] + facts.group_part_counts[group] {
                     if facts.part_field_ids[prior] == candidate.field_id { repeated = true; }
                     prior = prior + 1;
@@ -524,7 +524,7 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
         facts.ok = true;
         return facts;
     }
-    let functions: HashMap<String, Int> = MapNew();
+    var functions: HashMap<String, Int> = MapNew();
     row = 0;
     while row < ArrayLength(facts.group_function_ids) {
         MapSet(functions, ToString(facts.group_function_ids[row]), 1);
@@ -532,7 +532,7 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
     }
     row = 0;
     while row < ArrayLength(statements.node_ids) {
-        let kind: Int = 0;
+        var kind: Int = 0;
         if statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() { kind = SemanticAstCollectionFocusExitValueReturn(); }
         if statements.kind_tags[row] == TypedAstKindBareReturnStmtTag() { kind = SemanticAstCollectionFocusExitBareReturn(); }
         if statements.kind_tags[row] == TypedAstKindBreakStmtTag() { kind = SemanticAstCollectionFocusExitBreak(); }
@@ -556,8 +556,8 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
     }
     row = 0;
     while row < ArrayLength(facts.group_scope_ids) {
-        let seen: Bool = false;
-        let prior: Int = 0;
+        var seen: Bool = false;
+        var prior: Int = 0;
         while prior < row {
             if facts.group_scope_ids[prior] == facts.group_scope_ids[row] { seen = true; }
             prior = prior + 1;
@@ -581,11 +581,11 @@ func SemanticAstCollectionExclusiveFamilyRestored(
     first_surface: Int, end_surface: Int, function_id: Int, definition: Int
 ) -> Bool {
     if ArrayLength(uses) == 0 { return false; }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(uses) {
         let use_site: Int = uses[index];
-        let restored: Bool = false;
-        let surface: Int = first_surface;
+        var restored: Bool = false;
+        var surface: Int = first_surface;
         while surface < end_surface && !restored {
             let write: Int = surfaces.node_ids[surface];
             if write > use_site && SemanticAstCollectionExclusiveRedefinesPlace(artifact, signatures,
@@ -594,7 +594,7 @@ func SemanticAstCollectionExclusiveFamilyRestored(
                 SemanticAstCollectionExclusiveRebindsEachIteration(artifact, definition, write, place.origin_syntax_id) {
                 let block: Int = artifact.arena.parents[write];
                 restored = true;
-                let exit_index: Int = 0;
+                var exit_index: Int = 0;
                 while exit_index < ArrayLength(exits) && restored {
                     let exit_site: Int = exits[exit_index];
                     if exit_site < write && SemanticAstCollectionNodeEnclosedBy(artifact, exit_site, block) &&

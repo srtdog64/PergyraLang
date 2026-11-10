@@ -6,7 +6,7 @@ func DirectMirScalarProgramLlvmIntMathMaterialization(
     ref projection: DirectMirScalarProgramCaseMathRuntimeProjection,
     ref ids: DirectMirScalarProgramCaseMathRuntimeIds
 ) -> String {
-    let output: String = "";
+    var output: String = "";
     if ids.long_modulo_id != 0 {
         output = Concat(output, Concat("declare i64 @",
             Concat(projection.long_modulo.symbol, "(i64, i64)\n\n")));

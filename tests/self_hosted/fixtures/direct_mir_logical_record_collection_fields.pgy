@@ -25,6 +25,10 @@ struct WrongCollectionIndex {
     field_type_names: Array<String>;
 }
 
+struct MapIndex {
+    entries: HashMap<String, Int>;
+}
+
 func EmptyCollectionIndex() -> CollectionIndex {
     let names: Array<String> = [];
     let kinds: Array<String> = [];
@@ -58,6 +62,8 @@ func CollectionIndexOwnerAt(index: CollectionIndex, position: Int) -> Int {
         index.field_owner_indices[value_index]);
     return selected[0];
 }
+
+func MapIndexReady(index: MapIndex) -> Bool { return true; }
 
 func Main() -> Void {
     let names: Array<String> = [];

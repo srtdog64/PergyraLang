@@ -21,7 +21,7 @@ func SemanticAstExpressionMemberRootNames(constructors: SemanticAstNominalConstr
     if !SemanticAstNominalConstructorRowsReady(constructors) || !enums.ok {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstNominalConstructorCount(constructors) {
         let name: Option<String> = SemanticAstNominalConstructorNameAt(constructors, i);
         if !IsSome(name) { return false; }
@@ -36,7 +36,7 @@ func SemanticAstExpressionMemberRootNames(constructors: SemanticAstNominalConstr
         ArrayPush(roots, enum_text);
         let variant_count: Option<Int> = SemanticAstEnumVariantCountForName(enums, enum_text);
         if !IsSome(variant_count) { return false; }
-        let variant_index: Int = 0;
+        var variant_index: Int = 0;
         while variant_index < UnwrapOption(variant_count) {
             let variant_name: Option<String> = SemanticAstEnumVariantNameAt(
                     enums, enum_text, variant_index);
@@ -62,13 +62,13 @@ func SemanticAstExpressionSeedEnumValues(
     }
     // A binding already in scope keeps its name; each other value row is
     // appended once, in the enum owner's seed order.
-    let shadowed: Array<Bool> = [];
-    let row: Int = 0;
+    var shadowed: Array<Bool> = [];
+    var row: Int = 0;
     while row < ArrayLength(enums.value_names) {
         ArrayPush(shadowed, false);
         row = row + 1;
     }
-    let name_index: Int = 0;
+    var name_index: Int = 0;
     while name_index < ArrayLength(names) {
         // The lookup reads a copy; a bound name stays with its row.
         let bound: String = Concat("", names[name_index]);
@@ -98,7 +98,7 @@ func SemanticAstExpressionFunctionRowIndex(
     name: String,
     limit: Int
 ) -> Int {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < limit && i < ArrayLength(names) {
         if names[i] == name {
             return i;
@@ -122,21 +122,21 @@ func SemanticAstExpressionFunctionTables(
     // Builtin rows are searched directly; each later row's name is indexed
     // as it is added, so a lookup finds the first row with that name.
     let seeded_rows: Int = ArrayLength(names);
-    let first_rows: HashMap<String, Int> = MapNew();
+    var first_rows: HashMap<String, Int> = MapNew();
     if !SemanticAstNominalConstructorRowsReady(constructors) {
         return false;
     }
     if !SemanticAstEnumRowsReady(enums) {
         return false;
     }
-    let constructor_index: Int = 0;
+    var constructor_index: Int = 0;
     while constructor_index < SemanticAstNominalConstructorCount(constructors) {
         let constructor_name: String = constructors.names[constructor_index];
         if !MapHas(first_rows, constructor_name) { MapSet(first_rows, Concat("", constructor_name), ArrayLength(names)); }
         ArrayPushOwnedString(names, constructor_name);
         ArrayPushOwnedString(returns, constructors.return_type_names[constructor_index]);
-        let constructor_params: String = "";
-        let param_index: Int = 0;
+        var constructor_params: String = "";
+        var param_index: Int = 0;
         while param_index < constructors.param_counts[constructor_index] {
             if !SemanticAstNominalConstructorFieldIsArgument(
                 constructors, constructor_index, param_index
@@ -162,13 +162,13 @@ func SemanticAstExpressionFunctionTables(
         ArrayPushOwnedString(params, constructor_params);
         constructor_index = constructor_index + 1;
     }
-    let variant_index: Int = 0;
+    var variant_index: Int = 0;
     while variant_index < ArrayLength(enums.variant_names) {
         let param_count: Int = enums.variant_param_counts[variant_index];
         let variant_name: String = enums.variant_names[variant_index];
         let enum_name: String = enums.variant_enum_names[variant_index];
-        let variant_params: String = "";
-        let param_index: Int = 0;
+        var variant_params: String = "";
+        var param_index: Int = 0;
         while param_index < param_count {
             let param_type: Option<String> = SemanticAstEnumVariantPayloadTypeAt(enums, enum_name, variant_name, param_index);
             if !IsSome(param_type) {
@@ -183,7 +183,7 @@ func SemanticAstExpressionFunctionTables(
             param_index = param_index + 1;
         }
         let qualified_name: String = SemanticCallableCanonicalDeclaredName(enum_name, variant_name);
-        let existing: Int = SemanticAstExpressionFunctionRowIndex(names, qualified_name, seeded_rows);
+        var existing: Int = SemanticAstExpressionFunctionRowIndex(names, qualified_name, seeded_rows);
         if existing < 0 { existing = SemanticCallableNameTableValue(first_rows, qualified_name); }
         if existing >= 0 {
             if returns[existing] != enum_name ||
@@ -206,7 +206,7 @@ func SemanticAstExpressionFunctionTables(
         }
         variant_index = variant_index + 1;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
         let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
@@ -219,12 +219,12 @@ func SemanticAstExpressionFunctionTables(
             return false;
         }
         let declared_name: String = SemanticCallableCanonicalDeclaredName(UnwrapOption(owner), UnwrapOption(name));
-        let param_row: String = "";
+        var param_row: String = "";
         let param_count_opt: Option<Int> = SemanticAstFunctionParamCountAt(signatures, i);
         if !IsSome(param_count_opt) {
             return false;
         }
-        let p: Int = 0;
+        var p: Int = 0;
         while p < UnwrapOption(param_count_opt) {
             let param_type: Option<String> =
                 SemanticAstFunctionParamTypeAt(signatures, i, p);
@@ -237,7 +237,7 @@ func SemanticAstExpressionFunctionTables(
             param_row = Concat(param_row, UnwrapOption(param_type));
             p = p + 1;
         }
-        let existing: Int = SemanticAstExpressionFunctionRowIndex(names, declared_name, seeded_rows);
+        var existing: Int = SemanticAstExpressionFunctionRowIndex(names, declared_name, seeded_rows);
         if existing < 0 { existing = SemanticCallableNameTableValue(first_rows, declared_name); }
         if existing >= 0 {
             if (returns[existing] != UnwrapOption(return_type) || params[existing] != param_row) &&
@@ -261,16 +261,16 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts
 ) -> SemanticAstExpressionFunctionTableFacts {
-    let names: Array<String> = [];
-    let returns: Array<String> = [];
-    let params: Array<String> = [];
-    let ok: Bool = SemanticAstExpressionFunctionTables(
+    var names: Array<String> = [];
+    var returns: Array<String> = [];
+    var params: Array<String> = [];
+    var ok: Bool = SemanticAstExpressionFunctionTables(
         signatures, constructors, enums, names, returns, params
     );
     let intents: SemanticAstIntentSignatureFacts =
         SemanticAstIntentSignatureFactsFromArtifact(artifact);
     if ok && SemanticAstIntentSignatureFactsReady(artifact, intents) {
-        let intent_index: Int = 0;
+        var intent_index: Int = 0;
         while intent_index < SemanticAstIntentSignatureCount(intents) {
             let intent_name: String = intents.names[intent_index];
             if SemanticAstExpressionFunctionRowIndex(names, intent_name, ArrayLength(names)) >= 0 {
@@ -278,8 +278,8 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
                 intent_index = intent_index + 1;
                 continue;
             }
-            let intent_params: String = "";
-            let param_index: Int = 0;
+            var intent_params: String = "";
+            var param_index: Int = 0;
             while param_index < intents.param_counts[intent_index] {
                 if intent_params != "" {
                     intent_params = Concat(intent_params, "|");
@@ -328,7 +328,7 @@ func SemanticAstExpressionSeedParameterModes(
     if !IsSome(count_opt) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < UnwrapOption(count_opt) {
         let mode_opt: Option<Int> = SemanticAstFunctionParamModeAt(
             signatures, signature_index, i
@@ -336,7 +336,7 @@ func SemanticAstExpressionSeedParameterModes(
         if !IsSome(mode_opt) {
             return false;
         }
-        let mode_name: String = "default_param";
+        var mode_name: String = "default_param";
         let mode: Int = UnwrapOption(mode_opt);
         if mode == 1 {
             mode_name = "inout_param";
@@ -368,9 +368,9 @@ func SemanticAstExpressionParameterBodyTypeAt(
         ArrayLength(signatures.generic_names) {
         return None;
     }
-    let generic_name_row: String = "";
-    let binding_row: String = "";
-    let generic_ordinal: Int = 0;
+    var generic_name_row: String = "";
+    var binding_row: String = "";
+    var generic_ordinal: Int = 0;
     while generic_ordinal < generic_count {
         let generic_name: String = Concat(
             "", signatures.generic_names[generic_start + generic_ordinal]
@@ -429,7 +429,7 @@ func SemanticAstExpressionSeedParameters(
     ) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < UnwrapOption(count_opt) {
         let name: Option<String> = SemanticAstFunctionParamNameAt(
             signatures, signature_index, i
@@ -451,7 +451,7 @@ func SemanticAstExpressionSeedParameters(
 func SemanticAstExpressionSeedVisibleLocals(
     ref artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
-    inferred_types: Array<String>,
+    ref inferred_types: Array<String>,
     function_node_id: Int,
     use_node_id: Int,
     inout names: Array<String>,
@@ -467,9 +467,13 @@ func SemanticAstExpressionSeedVisibleLocals(
     let before: Int = SemanticAstLocalBindingFirstRowFrom(locals, range.start, range.end, use_node_id);
     if before == range.start { return true; }
     let chain: Array<Int> = SemanticAstExpressionScopeChain(artifact.arena, use_node_id);
-    let i: Int = range.start;
+    var i: Int = range.start;
     while i < before {
         if SemanticAstExpressionScopeChainContains(chain, locals.scope_node_ids[i]) {
+            let write_mode: Option<Int> = TypedAstArenaLocalWriteMode(artifact.arena, locals.node_ids[i]);
+            if !IsSome(write_mode) { return false; }
+            var local_mode: String = "immutable_local";
+            if UnwrapOption(write_mode) == 1 { local_mode = "mutable_local"; }
             let declared: Option<String> =
                 SemanticAstLocalBindingDeclaredTypeAt(locals, i);
             if IsSome(declared) {
@@ -479,7 +483,7 @@ func SemanticAstExpressionSeedVisibleLocals(
                 }
                 ArrayPushOwnedString(names, locals.names[i]);
                 ArrayPushOwnedString(types, type_name);
-                ArrayPushOwnedString(modes, "local");
+                ArrayPushOwnedString(modes, local_mode);
             } else {
                 if i >= ArrayLength(inferred_types) ||
                     inferred_types[i] == "" ||
@@ -488,7 +492,7 @@ func SemanticAstExpressionSeedVisibleLocals(
                 }
                 ArrayPushOwnedString(names, locals.names[i]);
                 ArrayPushOwnedString(types, inferred_types[i]);
-                ArrayPushOwnedString(modes, "local");
+                ArrayPushOwnedString(modes, local_mode);
             }
         }
         i = i + 1;
@@ -529,7 +533,7 @@ func SemanticAstExpressionSeedVisibleIterationRows(
         ArrayLength(iteration_verified) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if iteration_verified[i] == 1 &&
             iteration_function_node_ids[i] == function_node_id &&
@@ -562,13 +566,13 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         SemanticAstEnumFactsFromArtifact(artifact);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var function_names: Array<String> = [];
+    var function_returns: Array<String> = [];
+    var function_params: Array<String> = [];
     let builtin_count: Int = ArrayLength(SemanticBuiltinSignatureRows());
-    let modes: Array<String> = [];
+    var modes: Array<String> = [];
     let inferred: Array<String> = ["Int", "Int"];
     if !SemanticAstExpressionFunctionTables(
             signatures, constructors, enums,
@@ -579,7 +583,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
             enums, names, types, modes) {
         return false;
     }
-    let owner_fields_ok: Bool = false;
+    var owner_fields_ok: Bool = false;
     if SemanticAstNominalConstructorRowsReady(constructors) {
         owner_fields_ok =
             SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
@@ -607,8 +611,8 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     if ArrayLength(names) != 3 || names[0] != "p" || names[1] != "x" ||
         names[2] != "y" || types[0] != "Int" || types[1] != "Int" ||
         types[2] != "Int" || ArrayLength(modes) != 3 ||
-        modes[0] != "default_param" || modes[1] != "local" ||
-        modes[2] != "local" {
+        modes[0] != "default_param" || modes[1] != "immutable_local" ||
+        modes[2] != "immutable_local" {
         return false;
     }
     if ArrayLength(function_names) != builtin_count + 1 ||
@@ -632,9 +636,9 @@ func SemanticAstExpressionEnumValueContractReady() -> Bool {
     );
     let enums: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var modes: Array<String> = [];
     return SemanticAstExpressionSeedEnumValues(
         enums, names, types, modes
     ) && ArrayLength(names) == 4 &&

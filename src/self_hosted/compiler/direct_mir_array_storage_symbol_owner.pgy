@@ -26,7 +26,7 @@ func DirectMirArrayStorageSymbolFactReadyFor(
         CompilerSymbolCIdentifier(fact.name) != fact.name {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(occupied) {
         if fact.name == CompilerSymbolCIdentifier(occupied[i]) {
             return false;
@@ -39,7 +39,7 @@ func DirectMirArrayStorageSymbolFactReadyFor(
 func DirectMirArrayStorageSymbolFactFromOccupied(
     occupied: Array<String>
 ) -> DirectMirArrayStorageSymbolFact {
-    let ordinal: Int = 0;
+    var ordinal: Int = 0;
     while ordinal < 16 {
         let fact: DirectMirArrayStorageSymbolFact =
             DirectMirArrayStorageSymbolFact(

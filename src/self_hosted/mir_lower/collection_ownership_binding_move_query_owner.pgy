@@ -1,0 +1,57 @@
+// Collection ownership binding-move queries.
+
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "program_instruction_expression_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
+import "collection_ownership_binding_move_fact_owner.pgy";
+
+func MirCollectionOwnershipDefinitionValueBinding(
+    ref facts: MirCollectionOwnershipBindingMoveFacts,
+    value_name: String
+) -> Int {
+    if !facts.valid || value_name == "" ||
+        ArrayLength(facts.definition_value_names) !=
+            ArrayLength(facts.definition_binding_syntax_ids) {
+        return 0 - 1;
+    }
+    var binding: Int = 0 - 1;
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(facts.definition_value_names) {
+        if facts.definition_value_names[row] == value_name {
+            binding = facts.definition_binding_syntax_ids[row];
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    if matched != 1 { return 0 - 1; }
+    return binding;
+}
+
+func MirCollectionOwnershipBindingMoveSourceReady(
+    ref facts: MirCollectionOwnershipBindingMoveFacts,
+    destination_binding_syntax_id: Int,
+    source_binding_syntax_id: Int
+) -> Bool {
+    if !facts.valid || destination_binding_syntax_id <= 0 ||
+        source_binding_syntax_id <= 0 ||
+        ArrayLength(facts.destination_binding_syntax_ids) !=
+            ArrayLength(facts.source_binding_syntax_ids) {
+        return false;
+    }
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(facts.destination_binding_syntax_ids) {
+        if facts.destination_binding_syntax_ids[row] ==
+                destination_binding_syntax_id &&
+            facts.source_binding_syntax_ids[row] ==
+                source_binding_syntax_id {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+

@@ -1,6 +1,7 @@
 // Typed-AST arena carrier lifetime at the MIR domain/program-fact boundaries.
-// String elements, expression graphs, and source-module rows remain borrowed
-// until their final MIR consumers; only Array backing storage is retired.
+// String elements, expression graphs, source-module rows, and declaration
+// write modes remain borrowed until their final MIR consumers; only Array
+// backing storage whose last consumer has run is retired.
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 
@@ -39,7 +40,6 @@ func SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(
     CompilerRetireArrayStorage(has_values);
     CompilerRetireArrayStorage(aux_values);
     CompilerRetireArrayStorage(has_aux_values);
-    CompilerRetireArrayStorage(modes);
     CompilerRetireArrayStorage(indents);
     CompilerRetireArrayStorage(provenance_texts);
     CompilerRetireArrayStorage(atom_table);
@@ -50,7 +50,7 @@ func SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(
         AstArena(
             kinds, empty_ints, empty_ints, empty_ints,
             empty_ints, empty_ints, empty_ints, empty_ints,
-            empty_ints, empty_ints, empty_ints,
+            empty_ints, empty_ints, modes,
             first_children, child_counts, parents, empty_ints,
             empty_strings, children, empty_strings
         ),
@@ -66,6 +66,7 @@ func SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
     let child_counts: Array<Int> = artifact.arena.child_counts;
     let parents: Array<Int> = artifact.arena.parents;
     let children: Array<Int> = artifact.arena.children;
+    let modes: Array<Int> = artifact.arena.modes;
     let source_declaration_node_ids: Array<Int> =
         artifact.source_modules.declaration_node_ids;
     let source_module_paths: Array<String> = artifact.source_modules.module_paths;
@@ -74,6 +75,7 @@ func SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
     CompilerRetireArrayStorage(child_counts);
     CompilerRetireArrayStorage(parents);
     CompilerRetireArrayStorage(children);
+    CompilerRetireArrayStorage(modes);
     CompilerRetireArrayStorage(source_declaration_node_ids);
     CompilerRetireArrayStorage(source_module_paths);
 }

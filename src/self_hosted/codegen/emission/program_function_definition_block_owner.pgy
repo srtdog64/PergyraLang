@@ -25,7 +25,7 @@ func CodegenProgramFunctionDefinitionBlock(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     specializations: CodegenGenericSpecializationFacts,
     f_indent: Int,
-    base_env: CodegenTypeEnv,
+    inout base_env: CodegenTypeEnv,
     machine_startup: String,
     uses_args: Bool,
     ref domain_runtime: CodegenDomainRuntimeFacts,
@@ -33,8 +33,8 @@ func CodegenProgramFunctionDefinitionBlock(
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
-    let definition_count: Int = 0;
-    let cur: Array<Int> = [0];
+    var definition_count: Int = 0;
+    var cur: Array<Int> = [0];
     while cur[0] < count {
         let cur_node: Int = cur[0];
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);

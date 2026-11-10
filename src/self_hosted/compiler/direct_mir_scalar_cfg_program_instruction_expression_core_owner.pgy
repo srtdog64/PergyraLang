@@ -3,10 +3,7 @@
 import "direct_mir_scalar_program_expression_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
 import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
-import "direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy";
-import "direct_mir_scalar_program_payload_enum_match_condition_owner.pgy";
-import "direct_mir_scalar_program_option_int_match_condition_owner.pgy";
-import "direct_mir_scalar_program_int_match_condition_owner.pgy";
+import "direct_mir_scalar_cfg_program_match_expression_admission_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     inout expressions: DirectMirScalarProgramExpressionSet,
@@ -17,19 +14,23 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     ref wire: DirectMirScalarCfgWireLocalRefs, local_offset: Int, parameter_types: Array<String>,
     ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory, caller_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref option_int_abi: DirectMirOptionMatchAbiFact, graph_field: String, inout use_offset: Int,
-    require_all_uses: Bool, expected_type: String, source_root: Int
+    require_all_uses: Bool, expected_type: String, source_root: Int,
+    allow_process_exit_wrapper: Bool
 ) -> Option<Int> {
     let expression_row: Int = ArrayLength(expressions.graph_starts);
     let admission: DirectMirScalarProgramExpressionAdmission = DirectMirScalarProgramAppendExpression(
             expressions, instruction, uses, index, global_row,
             local_instruction, locals, types, wire, local_offset,
-            parameter_types, signature, callables, logical_record,
+            parameter_types, signature, callables, routine_instances,
+            caller_ordinal, logical_record,
             payload_free_enum, referenced_enum, graph_field, use_offset,
-            require_all_uses, expected_type, false, source_root);
+            require_all_uses, expected_type, false, source_root,
+            allow_process_exit_wrapper);
     // The admission may have grown the set before it failed: every exit
     // hands the caller the set it returned, never the stale one.
     if !admission.valid {
@@ -37,43 +38,11 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
         expressions = admission.facts;
         return None;
     }
-    let appended: DirectMirScalarProgramExpressionSet = admission.facts;
-    if JsonObjectFactStringFieldEquals(
-            instruction, "source_type", "AST_MATCH_CASE") {
-        let value_node: Int = admission.facts.graph_roots[expression_row];
-        let enum_row: Int = -1;
-        if value_node >= 0 && value_node < ArrayLength(admission.facts.node_types) {
-            enum_row = DirectMirScalarProgramReferencedEnumRow(
-                referenced_enum, admission.facts.node_types[value_node]);
-        }
-        if value_node >= 0 && value_node <
-                ArrayLength(admission.facts.node_types) &&
-            admission.facts.node_types[value_node] ==
-                CompilerAbiLayoutOptionIntTypeName() {
-            appended =
-                DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
-                    admission.facts, instruction, expression_row, global_row,
-                    local_offset, signature, index, locals, option_int_abi);
-        } else if value_node >= 0 && value_node < ArrayLength(admission.facts.node_types) &&
-            admission.facts.node_types[value_node] == CompilerAbiLayoutIntTypeName() {
-            appended = DirectMirScalarProgramIntMatchConditionFromInstruction(
-                admission.facts, instruction, expression_row);
-        } else if enum_row >= 0 && referenced_enum.payload_flags[enum_row] == 1 {
-            appended =
-                DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
-                    admission.facts, instruction, expression_row, global_row,
-                    local_offset, signature, index, locals, referenced_enum);
-        } else {
-            appended =
-                DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
-                    admission.facts, instruction, expression_row, payload_free_enum);
-        }
-    } else {
-        appended =
-            DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
-                admission.facts, instruction, expression_row,
-                payload_free_enum);
-    }
+    let appended: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarCfgProgramMatchExpressionFromInstruction(
+            admission.facts, instruction, expression_row, global_row,
+            local_offset, signature, index, locals, logical_record,
+            payload_free_enum, referenced_enum, option_int_abi);
     if !appended.valid {
         if !failure.present {
             failure = DirectMirScalarProgramExpressionAdmissionFailureAt(

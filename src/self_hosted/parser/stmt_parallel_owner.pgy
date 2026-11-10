@@ -13,7 +13,7 @@ func ParseParallelStmt(
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
-    let i: Int = after_head;
+    var i: Int = after_head;
     let parallel_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     // `parallel on` is a role reactive form, a declared vision surface
     // (docs/181). In a statement position native expects `{` after
@@ -43,7 +43,7 @@ func ParseParallelStmt(
             content, header.at, cursor_out, stmt_indent + 4, expression_graphs,
             location_context, source_locations
         );
-        let join_out: String = Concat(IndentStr(stmt_indent), "Parallel:");
+        var join_out: String = Concat(IndentStr(stmt_indent), "Parallel:");
         join_out = Concat(join_out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
         if StringLength(join_body) > 0 {
             join_out = Concat(join_out, Concat("\n", join_body));
@@ -57,7 +57,7 @@ func ParseParallelStmt(
     );
     i = cursor_out[0];
     ArraySet(cursor_out, 0, i);
-    let pout: String = Concat(IndentStr(stmt_indent), "Parallel:");
+    var pout: String = Concat(IndentStr(stmt_indent), "Parallel:");
     if StringLength(pbody) > 0 {
         pout = Concat(pout, Concat("\n", pbody));
     }

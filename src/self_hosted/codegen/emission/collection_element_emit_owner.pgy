@@ -5,35 +5,134 @@ import "../text/text_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../../semantic/ast_expression_graph_member_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
 
-func CodegenCollectionTargetCBindingOrDie(
-    env: CodegenTypeEnv, source_name: String, target: SemanticExpressionGraphView
+func CodegenCollectionTargetCBindingNodeOrDie(
+    ref env: CodegenTypeEnv,
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
 ) -> String {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(target.graph, target.root_id);
-    let text: Option<String> = SemanticExpressionGraphNodeText(target.graph, target.root_id);
-    if !target.ok || !IsSome(kind) || !IsSome(text) || UnwrapOption(text) != source_name {
-        Die("collection target expression graph is missing or inconsistent");
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
+    if !IsSome(kind) || !IsSome(text) {
+        Die("collection target expression graph is missing");
     }
-    if UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
-        return RewriteExprFromSemanticGraph(target.graph, target.root_id, env);
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let source_name: String = UnwrapOption(text);
+        if !IsIdentifier(source_name) {
+            Die("collection target leaf is not an identifier");
+        }
+        let c_name: String = LookupKindType(env, source_name, "cbind");
+        if c_name == "" {
+            Die("collection target C binding fact is missing");
+        }
+        return c_name;
     }
-    if UnwrapOption(kind) != AstExpressionNodeLeaf() {
+    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() {
         Die("collection target graph is not a supported storage place");
     }
-    let c_name: String = LookupKindType(env, source_name, "cbind");
-    if c_name == "" {
-        Die("collection target C binding fact is missing");
+    let view: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !view.ok {
+        Die("collection member target graph is malformed");
     }
-    return c_name;
+    let member: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.member_node
+    );
+    if !IsSome(member) || !IsIdentifier(UnwrapOption(member)) {
+        Die("collection member target name is invalid");
+    }
+    let receiver: String = CodegenCollectionTargetCBindingNodeOrDie(
+        env, graph, view.receiver_node
+    );
+    return Concat(
+        receiver, Concat(".", CompilerSymbolCFieldName(UnwrapOption(member)))
+    );
+}
+
+func CodegenCollectionTargetCBindingOrDie(
+    ref env: CodegenTypeEnv, source_name: String,
+    ref graph: SemanticExpressionGraphFacts, target_root_id: Int
+) -> String {
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, target_root_id);
+    if !IsSome(text) || UnwrapOption(text) != source_name {
+        Die("collection target expression graph is missing or inconsistent");
+    }
+    return CodegenCollectionTargetCBindingNodeOrDie(env, graph, target_root_id);
+}
+
+func CodegenCollectionTargetSemanticTypeNodeOrDie(
+    ref env: CodegenTypeEnv,
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> String {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
+    if !IsSome(kind) || !IsSome(text) {
+        Die("collection target type expression graph is missing");
+    }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let source_name: String = UnwrapOption(text);
+        if !IsIdentifier(source_name) {
+            Die("collection target type leaf is not an identifier");
+        }
+        let type_name: String = TypeEnvSemanticValueType(env, source_name);
+        if type_name == "" {
+            Die("collection target semantic type fact is missing");
+        }
+        return type_name;
+    }
+    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() {
+        Die("collection target type graph is not a supported storage place");
+    }
+    let view: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !view.ok {
+        Die("collection member target type graph is malformed");
+    }
+    let member: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.member_node
+    );
+    if !IsSome(member) || !IsIdentifier(UnwrapOption(member)) {
+        Die("collection member target type name is invalid");
+    }
+    let receiver_type: String =
+        CodegenCollectionTargetSemanticTypeNodeOrDie(
+            env, graph, view.receiver_node
+        );
+    let field_type: String = LookupFieldType(
+        env, receiver_type, UnwrapOption(member)
+    );
+    if field_type == "" {
+        Die("collection member target semantic type fact is missing");
+    }
+    return field_type;
+}
+
+func CodegenCollectionTargetSemanticTypeOrDie(
+    ref env: CodegenTypeEnv, source_name: String,
+    ref graph: SemanticExpressionGraphFacts, target_root_id: Int
+) -> String {
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, target_root_id
+    );
+    if !IsSome(text) || UnwrapOption(text) != source_name {
+        Die("collection target type expression graph is missing or inconsistent");
+    }
+    return CodegenCollectionTargetSemanticTypeNodeOrDie(
+        env, graph, target_root_id
+    );
 }
 
 func EmitCollectionGraphElementValue(
     value_expr: String,
     env: CodegenTypeEnv,
     collection: CollectionRuntimeFact,
-    graph: SemanticExpressionGraphView
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
 ) -> String {
     return RewriteExpectedValueWithSemanticGraph(
-        value_expr, collection.element_type, env, graph
+        value_expr, collection.element_type, env, graph, root_id
     );
 }

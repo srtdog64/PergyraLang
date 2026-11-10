@@ -35,7 +35,7 @@ func CompilerRuntimeCallAbiMachineLayerDeviceScalarType(type_name: String) -> St
         StringLength(prefix),
         StringLength(type_name) - StringLength(prefix) - 1
     );
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 6 {
         if CompilerRuntimeCallAbiNativeScalarTypeAt(i) == scalar {
             return scalar;
@@ -60,7 +60,7 @@ func CompilerRuntimeCallAbiMachineLayerDeviceScalarIndex(type_name: String) -> O
     if scalar == "" {
         return None;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 6 {
         if CompilerRuntimeCallAbiNativeScalarTypeAt(i) == scalar {
             return Some(i);
@@ -134,7 +134,7 @@ func CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock() -> String 
     let result_type: String = CompilerAbiLayoutResultIntCValueType();
     let raw_type: String =
         CompilerRuntimeCallAbiMachineLayerRemoteFutureRawCType();
-    let out: String = "static ";
+    var out: String = "static ";
     out = Concat(out, Concat(result_type, " pgy_machine_await_remote_Int(PgyTaskHandle handle) {\n"));
     out = Concat(out, "    void *_pgy_raw = pgy_await(handle);\n");
     out = Concat(out, Concat("    ", Concat(result_type, " r;\n")));

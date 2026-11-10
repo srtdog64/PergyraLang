@@ -17,7 +17,7 @@ func DirectMirScalarCfgStringArrayCPop(
     let prefix: String = Concat(
         "    pgy_indexed_collection_", ToString(fact.collection_row)
     );
-    let output: String = Concat(prefix, ".length = ");
+    var output: String = Concat(prefix, ".length = ");
     output = Concat(output, Concat(
         "pgy_indexed_collection_", ToString(fact.collection_row)
     ));

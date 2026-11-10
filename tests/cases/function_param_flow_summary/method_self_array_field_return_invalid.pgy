@@ -11,7 +11,7 @@ class Bag {
 
 func Main() -> Int {
     let bag: Bag = Bag(["a"]);
-    let names: Array<String> = bag.Names();
+    var names: Array<String> = bag.Names();
     ArrayPush(names, "b");
     Print(bag.names[0]);
     return 0;

@@ -96,8 +96,8 @@ func JsonObjectFactCount(ref table: JsonObjectFactTable) -> Int {
     if !JsonObjectFactTableReady(table) {
         return 0;
     }
-    let count: Int = 0;
-    let i: Int = table.start + 1;
+    var count: Int = 0;
+    var i: Int = table.start + 1;
     while i < table.end {
         i = JsonSkipWhitespaceWithin(table.json, table.json_extent, i, table.end);
         if i >= table.end {
@@ -142,8 +142,8 @@ func JsonObjectFactIndex(ref table: JsonObjectFactTable, field: String) -> Optio
     if !JsonObjectFactTableReady(table) {
         return None;
     }
-    let i: Int = 0;
-    let cursor: Int = table.start + 1;
+    var i: Int = 0;
+    var cursor: Int = table.start + 1;
     while cursor < table.end {
         cursor = JsonSkipWhitespaceWithin(table.json, table.json_extent, cursor, table.end);
         if cursor >= table.end {
@@ -203,7 +203,7 @@ func JsonObjectFactValueBounds(ref table: JsonObjectFactTable, field: String, in
 }
 
 func JsonObjectFactValueKind(ref table: JsonObjectFactTable, field: String) -> Option<String> {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactValueBounds(table, field, bounds) {
         return None;
     }
@@ -229,7 +229,7 @@ func JsonObjectFactObjectTable(ref table: JsonObjectFactTable, field: String) ->
     if UnwrapOption(kind_opt) != "object" {
         return EmptyJsonObjectFactTable();
     }
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactValueBounds(table, field, bounds) {
         return EmptyJsonObjectFactTable();
     }
@@ -281,7 +281,7 @@ func JsonScalarToken(json: String, json_extent: Int, start: Int, end: Int) -> St
 }
 
 func JsonScalarFieldValues(json: String, json_extent: Int, field: String) -> Array<String> {
-    let values: Array<String> = [];
+    var values: Array<String> = [];
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
     if !JsonObjectFactTableReady(root) {
         return values;
@@ -291,9 +291,9 @@ func JsonScalarFieldValues(json: String, json_extent: Int, field: String) -> Arr
     // current container bounds plus the next cursor to visit.  The parent
     // cursor advances before a nested frame is pushed, so returning from that
     // frame resumes at the exact next sibling.
-    let frame_starts: Array<Int> = [root.start];
-    let frame_ends: Array<Int> = [root.end];
-    let frame_cursors: Array<Int> = [root.start + 1];
+    var frame_starts: Array<Int> = [root.start];
+    var frame_ends: Array<Int> = [root.end];
+    var frame_cursors: Array<Int> = [root.start + 1];
     while ArrayLength(frame_starts) > 0 {
         let frame: Int = ArrayLength(frame_starts) - 1;
         let start: Int = frame_starts[frame];
@@ -334,7 +334,7 @@ func JsonScalarFieldValues(json: String, json_extent: Int, field: String) -> Arr
                 continue;
             }
             let key: String = UnwrapOption(key_read).value;
-            let value_start: Int = JsonSkipWhitespace(
+            var value_start: Int = JsonSkipWhitespace(
                 json, UnwrapOption(key_read).end, end
             );
             if value_start >= end ||
@@ -413,7 +413,7 @@ func JsonArrayObjectFactTableFromBounds(json: String, json_extent: Int, start: I
 }
 
 func JsonObjectFactArrayObjectTable(ref table: JsonObjectFactTable, field: String) -> JsonArrayObjectFactTable {
-    let bounds: Array<Int> = [0, 0];
+    var bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(table, field, bounds) {
         return EmptyJsonArrayObjectFactTable();
     }
@@ -428,9 +428,9 @@ func JsonArrayObjectFactCount(ref table: JsonArrayObjectFactTable) -> Int {
     if !JsonArrayObjectFactTableReady(table) {
         return 0;
     }
-    let count: Int = 0;
-    let cursor: Int = table.start + 1;
-    let bounds: Array<Int> = [0, 0];
+    var count: Int = 0;
+    var cursor: Int = table.start + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
         table.json, table.json_extent, cursor, table.end, bounds
     ) {
@@ -445,9 +445,9 @@ func JsonArrayObjectFactAt(ref table: JsonArrayObjectFactTable, index: Int) -> J
         return EmptyJsonObjectFactTable();
     }
     if index < 0 { return EmptyJsonObjectFactTable(); }
-    let row: Int = 0;
-    let cursor: Int = table.start + 1;
-    let bounds: Array<Int> = [0, 0];
+    var row: Int = 0;
+    var cursor: Int = table.start + 1;
+    var bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
         table.json, table.json_extent, cursor, table.end, bounds
     ) {
@@ -463,9 +463,9 @@ func JsonArrayObjectFactAt(ref table: JsonArrayObjectFactTable, index: Int) -> J
 }
 
 func JsonArrayObjectFactFieldCount(ref table: JsonArrayObjectFactTable, field: String) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
-    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+    var count: Int = 0;
+    var row: Int = 0;
+    var row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
     while JsonObjectFactTableReady(row_fact) {
         if JsonObjectFactHasField(row_fact, field) {
             count = count + 1;
@@ -481,11 +481,11 @@ func JsonArrayObjectFactStringFieldEqualsCount(
     field: String,
     expected: String
 ) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
-    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+    var count: Int = 0;
+    var row: Int = 0;
+    var row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
     while JsonObjectFactTableReady(row_fact) {
-        let value_bounds: Array<Int> = [0, 0];
+        var value_bounds: Array<Int> = [0, 0];
         if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
             if value_bounds[0] < value_bounds[1] &&
                 JsonCharCodeAt(
@@ -510,11 +510,11 @@ func JsonArrayObjectFactBoolFieldEqualsCount(
     field: String,
     expected: Bool
 ) -> Int {
-    let count: Int = 0;
-    let row: Int = 0;
-    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+    var count: Int = 0;
+    var row: Int = 0;
+    var row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
     while JsonObjectFactTableReady(row_fact) {
-        let value_bounds: Array<Int> = [0, 0];
+        var value_bounds: Array<Int> = [0, 0];
         if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
             if expected {
                 if value_bounds[0] + 4 <= value_bounds[1] &&

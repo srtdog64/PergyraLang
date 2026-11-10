@@ -54,14 +54,14 @@ func DirectMirArrayIntPlanIdentityDigest(
     ref plan: DirectMirArrayIntPlan
 ) -> Int {
     if !plan.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(83L, plan.schema);
+    var hash: Long = DirectMirCfgHashString(83L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
     hash = DirectMirCfgHashString(hash, plan.local_name);
     hash = DirectMirCfgHashString(hash, plan.initial_result);
     hash = DirectMirCfgHashString(hash, plan.assigned_result);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(plan.initial_elements) {
         hash = DirectMirCfgHashInt(hash, plan.initial_elements[i]);
         i = i + 1;
@@ -145,21 +145,21 @@ func DirectMirArrayIntPlanMutationRejected(
     own plan: DirectMirArrayIntPlan
 ) -> Bool {
     if !DirectMirArrayIntPlanReady(plan) { return false; }
-    let bad_target: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
+    var bad_target: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
         plan, plan.target_capability_fingerprint + 1,
         plan.declared_length, plan.right_index, plan.length_offset
     );
     bad_target = DirectMirArrayIntPlanWithDigest(
         bad_target, DirectMirArrayIntPlanIdentityDigest(bad_target)
     );
-    let bad_length: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
+    var bad_length: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
         plan, plan.target_capability_fingerprint,
         plan.declared_length + 1, plan.right_index, plan.length_offset
     );
     bad_length = DirectMirArrayIntPlanWithDigest(
         bad_length, DirectMirArrayIntPlanIdentityDigest(bad_length)
     );
-    let bad_index: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
+    var bad_index: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
         plan, plan.target_capability_fingerprint,
         plan.declared_length, ArrayLength(plan.assigned_elements),
         plan.length_offset
@@ -167,7 +167,7 @@ func DirectMirArrayIntPlanMutationRejected(
     bad_index = DirectMirArrayIntPlanWithDigest(
         bad_index, DirectMirArrayIntPlanIdentityDigest(bad_index)
     );
-    let bad_abi: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
+    var bad_abi: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(
         plan, plan.target_capability_fingerprint,
         plan.declared_length, plan.right_index, plan.length_offset + 8
     );
@@ -213,10 +213,10 @@ func DirectMirArrayIntPlanFromAdmitted(
         Die("direct MIR Array<Int> instruction use facts are invalid");
     }
     let local_name: String = index.source_local_names[0];
-    let captures: Array<MirRoutineInstructionScalarCapture> = [];
-    let expression_facts: Array<MirProgramInstructionExpressionFact> = [];
-    let global_rows: Array<Int> = [];
-    let row: Int = 0;
+    var captures: Array<MirRoutineInstructionScalarCapture> = [];
+    var expression_facts: Array<MirProgramInstructionExpressionFact> = [];
+    var global_rows: Array<Int> = [];
+    var row: Int = 0;
     while row < 4 {
         let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, 0, 0, row
@@ -257,7 +257,7 @@ func DirectMirArrayIntPlanFromAdmitted(
         first.arg0 != local_name ||
         first.arg1 != "" ||
         first.expr1 != CompilerAbiLayoutArrayIntTypeName() {
-        let diagnostic: String =
+        var diagnostic: String =
             "direct MIR Array<Int> initial definition identity is invalid: ";
         diagnostic = Concat(
             diagnostic,
@@ -286,7 +286,8 @@ func DirectMirArrayIntPlanFromAdmitted(
     if admitted.routines.instruction_kinds[global_rows[1]] != "def" ||
         admitted.routines.instruction_source_types[global_rows[1]] !=
             "AST_ASSIGNMENT" || assigned.name != "ssa-def" ||
-        assigned.arg0 != local_name || assigned.arg1 != "local" ||
+        assigned.arg0 != local_name ||
+        assigned.arg1 != "mutable_local" ||
         assigned.expr1 != local_name {
         Die("direct MIR Array<Int> assignment identity is invalid");
     }
@@ -361,7 +362,7 @@ func DirectMirArrayIntPlanFromAdmitted(
         let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, 0, 0, row
         );
-        let expected_use_count: Int = 0;
+        var expected_use_count: Int = 0;
         if row >= 2 { expected_use_count = 1; }
         if MirRoutineInstructionUseCountAtGlobal(
                 uses, global_row

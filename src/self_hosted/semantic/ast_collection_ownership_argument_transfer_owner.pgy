@@ -37,10 +37,10 @@ func SemanticAstCollectionOwnedArgumentUseAtEvent(
     let leaf: Bool = UnwrapOption(kind) == AstExpressionNodeLeaf();
     let argument: Bool = UnwrapOption(kind) == AstExpressionNodeCallArgument();
     if (!leaf && !argument) || (leaf && SemanticAstCollectionDefinitionWriteTarget(definitions, root_slot, node)) { return absent; }
-    let source_node: Int = node;
-    let own_parameter: Int = 0;
-    let releasing: Bool = false;
-    let mutating: Bool = false;
+    var source_node: Int = node;
+    var own_parameter: Int = 0;
+    var releasing: Bool = false;
+    var mutating: Bool = false;
     if argument {
         let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
         if !edge.ok { return invalid; }
@@ -51,13 +51,13 @@ func SemanticAstCollectionOwnedArgumentUseAtEvent(
     }
     let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, source_node);
     if !carried.ok { return invalid; }
-    let binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
+    var binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
     if carried.kind != SemanticExpressionBindingDeclaredCallable() {
         binding = SemanticAstCollectionOwnershipLocalForArgument(artifact, locals, inferred_types, surfaces, surface, source_node);
     }
     let formal_source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
         surfaces.function_node_ids[surface], surfaces.expression_graph, source_node);
-    let source: Int = formal_source;
+    var source: Int = formal_source;
     if binding.ok {
         if binding.row < 0 || binding.row >= ArrayLength(current) || current[binding.row] < 0 ||
             current[binding.row] >= ArrayLength(definitions.syntax_ids) ||
@@ -83,7 +83,7 @@ func SemanticAstCollectionOwnedArgumentUseAtEvent(
             return SemanticAstCollectionOwnedArgumentUse(
                 true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, source_node, 0, -1);
         }
-        let retirement: Int = SemanticAstCollectionCallRetirementSite(artifact, syntax_id);
+        var retirement: Int = SemanticAstCollectionCallRetirementSite(artifact, syntax_id);
         // Exit-tail consumption retires this generation, not a later loop one.
         if fresh_generation || SemanticAstCollectionTerminatingRetirementScope(artifact, syntax_id, true) >= 0 { retirement = syntax_id; }
         return SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, source, retirement);

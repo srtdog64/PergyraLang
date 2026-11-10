@@ -1,0 +1,10 @@
+func RelayBoolRows(own rows: Array<Bool>) -> Array<Bool> {
+    return rows;
+}
+
+func Main() -> Void {
+    let rows: Array<Bool> = [true, false];
+    let returned: Array<Bool> = RelayBoolRows(rows);
+    Log(returned[0]);
+    Log(returned[1]);
+}

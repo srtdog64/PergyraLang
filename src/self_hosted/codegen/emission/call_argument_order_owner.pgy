@@ -24,12 +24,12 @@ func CodegenOperandIsLeaf(kind: Option<Int>) -> Bool {
 }
 
 func CodegenCallArgumentsNeedOrder(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView
 ) -> Bool {
-    let non_literal: Int = 0;
-    let effectful: Bool = false;
-    let i: Int = 0;
+    var non_literal: Int = 0;
+    var effectful: Bool = false;
+    var i: Int = 0;
     while i < ArrayLength(view.argument_nodes) {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, view.argument_nodes[i]);
@@ -53,8 +53,8 @@ func CodegenOrderedOperandCall(
         return Concat(call_symbol, Concat("(", Concat(leading, Concat(", ",
             Concat(first, Concat(", ", Concat(second, ")")))))));
     }
-    let first_name: String = Concat("__pgy_operand_", Concat(ToString(seed), "_0"));
-    let second_name: String = Concat("__pgy_operand_", Concat(ToString(seed), "_1"));
+    var first_name: String = Concat("__pgy_operand_", Concat(ToString(seed), "_0"));
+    var second_name: String = Concat("__pgy_operand_", Concat(ToString(seed), "_1"));
     // Only avoids collisions in emitted C.
     while StringIndexOf(first, first_name) >= 0 || StringIndexOf(second, first_name) >= 0 {
         first_name = Concat(first_name, "_");
@@ -80,7 +80,7 @@ func CodegenCallArgumentIsAddress(mode: String) -> Bool {
 // of the arguments. `receiver_node` is the node `prefix_argument` renders, or
 // -1 for a call without a receiver.
 func CodegenCallReceiverNeedsBinding(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     prefix_argument: String,
     receiver_node: Int
@@ -101,7 +101,7 @@ func CodegenCallReceiverNeedsBinding(
 
 func RewriteSemanticOrderedCall(
     call_symbol: String,
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     modes: String,
     param_types: String,
@@ -123,10 +123,10 @@ func RewriteSemanticOrderedCall(
     let readonly_string_temporary_ready: Bool =
         SemanticCallReadonlyStringTemporaryReady(
             graph, view, modes, param_types);
-    let bindings: Array<String> = [];
-    let arguments: Array<String> = [];
+    var bindings: Array<String> = [];
+    var arguments: Array<String> = [];
     if receiver_bound {
-        let receiver_name: String = Concat("__pgy_recv_", ToString(view.call_node));
+        var receiver_name: String = Concat("__pgy_recv_", ToString(view.call_node));
         // Only avoids collisions in emitted C.
         while StringIndexOf(prefix_argument, receiver_name) >= 0 {
             receiver_name = Concat(receiver_name, "_");
@@ -137,23 +137,23 @@ func RewriteSemanticOrderedCall(
     } else if prefix_argument != "" {
         ArrayPush(arguments, prefix_argument);
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(view.argument_nodes) {
         let param_index: Int = i + param_offset;
-        let mode: String = "default";
+        var mode: String = "default";
         if param_index < ParamModeCsvCount(modes) {
             mode = ParamModeCsvAt(modes, param_index);
         }
         let argument: String =
             RewriteSemanticCallArgumentWithReadonlyStringTemporary(
                 graph, view.argument_nodes[i], CsvAt(param_types, param_index),
-                mode, env, readonly_string_temporary_ready);
+                mode, env, readonly_string_temporary_ready, false);
         // Arguments that need no ordering (at most one has an effect) stay
         // in the call, after the receiver binding.
         if !arguments_ordered || CodegenCallArgumentIsAddress(mode) {
             ArrayPush(arguments, argument);
         } else {
-            let name: String = Concat("__pgy_arg_", Concat(
+            var name: String = Concat("__pgy_arg_", Concat(
                 ToString(view.call_node), Concat("_", ToString(i))));
             // Only avoids collisions in emitted C; no source binding is
             // recovered from the spelling.

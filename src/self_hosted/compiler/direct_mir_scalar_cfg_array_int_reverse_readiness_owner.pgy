@@ -40,11 +40,11 @@ func DirectMirScalarCfgArrayIntReverseReady(
         ArrayLength(plan.array_int_program.reverse.log_operation_rows) != 4 {
         return false;
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 4 {
-        let expected_kind: Int = DirectMirScalarCfgArrayIntReverseIndexLog();
+        var expected_kind: Int = DirectMirScalarCfgArrayIntReverseIndexLog();
         let expected_index: Int = row - 1;
-        let expected_operation_kind: Int =
+        var expected_operation_kind: Int =
             DirectMirScalarCfgOpLogArrayIndexInt();
         if row == 0 {
             expected_kind = DirectMirScalarCfgArrayIntReverseLengthLog();

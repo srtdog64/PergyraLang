@@ -1,0 +1,199 @@
+// Constructed-member specialization occurrence and document projection.
+
+import "direct_mir_generic_specialization_fact_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+import "direct_mir_constructed_member_specialization_pair_fact_owner.pgy";
+
+// The occurrence index owns graph-to-call correspondence and is admitted before
+// this legacy projection route. This check only keeps this consumer on the
+// current wire envelope instead of silently accepting an older row schema.
+func DirectMirConstructedMemberSpecializationOccurrenceEnvelopeReady(
+    ref row: JsonObjectFactTable
+) -> Bool {
+    let target_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        row, "call_target_syntax_id"
+    );
+    let occurrences: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        row, "occurrences"
+    );
+    if !IsSome(target_opt) || !JsonArrayObjectFactTableReady(occurrences) ||
+        JsonArrayObjectFactCount(occurrences) == 0 {
+        return false;
+    }
+    let target_text: String = UnwrapOption(target_opt);
+    let target: Int = ToInt(target_text);
+    if ToString(target) != target_text || target <= 0 { return false; }
+    var occurrence: Int = 0;
+    while occurrence < JsonArrayObjectFactCount(occurrences) {
+        let anchor: JsonObjectFactTable = JsonArrayObjectFactAt(
+            occurrences, occurrence
+        );
+        let routine_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            anchor, "routine_syntax_id"
+        );
+        let block_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            anchor, "block_id"
+        );
+        let instruction_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            anchor, "instruction_id"
+        );
+        let lane_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            anchor, "expression_lane"
+        );
+        let node_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            anchor, "call_node"
+        );
+        if JsonObjectFactCount(anchor) != 5 || !IsSome(routine_opt) ||
+            !IsSome(block_opt) || !IsSome(instruction_opt) ||
+            !IsSome(lane_opt) || !IsSome(node_opt) {
+            return false;
+        }
+        let routine_text: String = UnwrapOption(routine_opt);
+        let block_text: String = UnwrapOption(block_opt);
+        let instruction_text: String = UnwrapOption(instruction_opt);
+        let lane_text: String = UnwrapOption(lane_opt);
+        let node_text: String = UnwrapOption(node_opt);
+        let routine: Int = ToInt(routine_text);
+        let block: Int = ToInt(block_text);
+        let instruction: Int = ToInt(instruction_text);
+        let lane: Int = ToInt(lane_text);
+        let node: Int = ToInt(node_text);
+        if ToString(routine) != routine_text || routine <= 0 ||
+            ToString(block) != block_text || block < 0 ||
+            ToString(instruction) != instruction_text || instruction < 0 ||
+            ToString(lane) != lane_text || lane < 0 || lane > 1 ||
+            ToString(node) != node_text || node < 0 {
+            return false;
+        }
+        occurrence = occurrence + 1;
+    }
+    return true;
+}
+
+func DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
+    ref root: JsonObjectFactTable, inner_actual: String
+) -> DirectMirConstructedMemberSpecializationPairFact {
+    let table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        root, "generic_method_specializations"
+    );
+    if !DirectMirExactObjectArrayCount(table, 2) {
+        return InvalidDirectMirConstructedMemberSpecializationPairFact();
+    }
+    var seen: Array<Bool> = [false, false];
+    var owner: String = "";
+    var source_owner: Int = 0;
+    var callables: Array<String> = ["", ""];
+    var symbols: Array<String> = ["", ""];
+    var params: Array<String> = ["", ""];
+    var actuals: Array<String> = ["", ""];
+    var row_i: Int = 0;
+    while row_i < 2 {
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
+        let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_owner_syntax_id"
+        );
+        let lane_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_lane"
+        );
+        let ordinal_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_call_ordinal"
+        );
+        let target_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "target_kind"
+        );
+        let owner_opt: Option<String> = JsonObjectFactStringFieldOpt(row, "owner");
+        let callable_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "callable"
+        );
+        let symbol_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "specialized_symbol"
+        );
+        var param_bounds: Array<Int> = [0, 0];
+        var actual_bounds: Array<Int> = [0, 0];
+        let param: String = DirectMirGenericSpecializationSingleString(
+            row, "generic_params"
+        );
+        let actual: String = DirectMirGenericSpecializationSingleString(
+            row, "generic_actuals"
+        );
+        if JsonObjectFactCount(row) != 11 ||
+            !DirectMirConstructedMemberSpecializationOccurrenceEnvelopeReady(
+                row
+            ) || !IsSome(owner_id_opt) ||
+            !IsSome(lane_opt) || !IsSome(ordinal_opt) || !IsSome(target_opt) ||
+            !IsSome(owner_opt) || !IsSome(callable_opt) ||
+            !IsSome(symbol_opt) || UnwrapOption(target_opt) != "member" ||
+            UnwrapOption(owner_opt) == "" || param == "" || actual == "" ||
+            !JsonObjectFactArrayBounds(row, "generic_params", param_bounds) ||
+            !JsonObjectFactArrayBounds(row, "generic_actuals", actual_bounds) ||
+            !DirectMirExactStringArrayCount(
+                row.json, row.json_extent, param_bounds[0], param_bounds[1], 1
+            ) || !DirectMirExactStringArrayCount(
+                row.json, row.json_extent, actual_bounds[0], actual_bounds[1], 1
+            ) {
+            return InvalidDirectMirConstructedMemberSpecializationPairFact();
+        }
+        let owner_text: String = UnwrapOption(owner_id_opt);
+        let lane_text: String = UnwrapOption(lane_opt);
+        let ordinal_text: String = UnwrapOption(ordinal_opt);
+        let owner_id: Int = ToInt(owner_text);
+        let lane: Int = ToInt(lane_text);
+        let ordinal: Int = ToInt(ordinal_text);
+        if ToString(owner_id) != owner_text || owner_id <= 0 ||
+            ToString(lane) != lane_text || lane != AstExpressionLaneValue() ||
+            ToString(ordinal) != ordinal_text || ordinal < 0 || ordinal > 1 ||
+            seen[ordinal] {
+            return InvalidDirectMirConstructedMemberSpecializationPairFact();
+        }
+        ArraySet(seen, ordinal, true);
+        if owner == "" {
+            owner = UnwrapOption(owner_opt);
+            source_owner = owner_id;
+        } else if owner != UnwrapOption(owner_opt) || source_owner != owner_id {
+            return InvalidDirectMirConstructedMemberSpecializationPairFact();
+        }
+        ArraySet(callables, ordinal, UnwrapOption(callable_opt));
+        ArraySet(symbols, ordinal, UnwrapOption(symbol_opt));
+        ArraySet(params, ordinal, param);
+        ArraySet(actuals, ordinal, actual);
+        row_i = row_i + 1;
+    }
+    let outer_shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(actuals[0]);
+    if !outer_shape.ok || ArrayLength(outer_shape.actual_type_names) != 1 {
+        return InvalidDirectMirConstructedMemberSpecializationPairFact();
+    }
+    let fact: DirectMirConstructedMemberSpecializationPairFact =
+        DirectMirConstructedMemberSpecializationPairFact(
+            true, 0, owner, source_owner,
+            callables[0], symbols[0], params[0], actuals[0],
+            outer_shape.nominal_base_name,
+            callables[1], symbols[1], params[1], actuals[1]
+        );
+    let verified: DirectMirConstructedMemberSpecializationPairFact =
+        DirectMirConstructedMemberSpecializationPairFact(
+            fact.valid,
+            DirectMirConstructedMemberSpecializationPairDigest(fact),
+            fact.owner, fact.source_owner_syntax_id,
+            fact.outer_callable, fact.outer_symbol,
+            fact.outer_generic_param, fact.outer_generic_actual,
+            fact.outer_constructor, fact.inner_callable, fact.inner_symbol,
+            fact.inner_generic_param, fact.inner_generic_actual
+        );
+    if !DirectMirConstructedMemberSpecializationPairFactReadyFor(
+        verified, inner_actual
+    ) {
+        return InvalidDirectMirConstructedMemberSpecializationPairFact();
+    }
+    return verified;
+}
+
+func DirectMirConstructedMemberSpecializationPairFromDocument(
+    ref root: JsonObjectFactTable
+) -> DirectMirConstructedMemberSpecializationPairFact {
+    return DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
+        root, CompilerAbiLayoutIntTypeName()
+    );
+}
+

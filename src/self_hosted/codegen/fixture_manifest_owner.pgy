@@ -28,8 +28,8 @@ func CodegenParityBaseName(path: String, suffix: String) -> String {
     if !CodegenParityPathEndsWith(path, suffix) {
         return "";
     }
-    let last_slash: Int = -1;
-    let i: Int = 0;
+    var last_slash: Int = -1;
+    var i: Int = 0;
     while i < StringLength(path) {
         if Substring(path, i, 1) == "/" {
             last_slash = i;
@@ -54,8 +54,8 @@ func CodegenParityExpectedPath(base: String) -> String {
 
 func CodegenParityFixtureManifestRows() -> Array<String> {
     let entries: Array<String> = DirWalk(CodegenParityFixtureDir());
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(entries) {
         let path: String = entries[i];
         if CodegenParityPathEndsWith(path, ".pgy") {

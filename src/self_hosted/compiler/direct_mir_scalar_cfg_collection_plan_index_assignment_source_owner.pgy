@@ -16,12 +16,12 @@ func DirectMirScalarCfgIndexAssignmentSourceSetFromOwners(
     ref uses: MirRoutineInstructionUseFacts,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgIndexAssignmentSourceSet {
-    let int_source: DirectMirScalarCfgArrayIntCollectionFact =
+    var int_source: DirectMirScalarCfgArrayIntCollectionFact =
         DirectMirScalarCfgArrayIntCollectionFactEmpty();
-    let string_source: DirectMirScalarCfgArrayStringCollectionFact =
+    var string_source: DirectMirScalarCfgArrayStringCollectionFact =
         DirectMirScalarCfgArrayStringCollectionFactEmpty();
-    let typed_assignments: Int = 0;
-    let instruction: Int = 0;
+    var typed_assignments: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let capture: MirRoutineInstructionScalarCapture =

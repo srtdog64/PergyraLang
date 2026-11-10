@@ -11,6 +11,7 @@
 #include "llvm_target_machine_internal.h"
 #include "llvm_runtime_attrs.h"
 #include "llvm_runtime_bitcode_freshness.h"
+#include "codegen_scalar_arithmetic_policy.h"
 #include "../common/string_compat.h"
 #include "../compiler/verified_projection_plan.h"
 #include <llvm-c/IRReader.h>
@@ -149,6 +150,12 @@ llvm_add_fn_attr(LLVMGenCtx *ctx, LLVMValueRef fn, unsigned kind)
  * This is a target-layout optimization policy, not a source ABI or syntax
  * choice. */
 #define PGY_LLVM_LARGE_AGGREGATE_RETURN_BYTES 2048u
+/* Whole self-host modules carry thousands of internal routines.  Running the
+ * full development O2 pipeline over that closed graph costs more than object
+ * emission itself.  Retire unreachable definitions and promote stack values
+ * at this measured compiler-scale boundary; ordinary modules keep O2 and
+ * explicit release builds keep O3. */
+#define PGY_LLVM_LARGE_MODULE_FUNCTIONS 1024u
 
 static bool
 llvm_function_returns_large_aggregate(LLVMGenCtx *ctx, LLVMValueRef fn)
@@ -232,7 +239,8 @@ llvm_strip_function_body(LLVMValueRef fn)
  * local bitcode still references it.
  */
 static void
-llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
+llvm_exclude_critical_runtime_from_bitcode(LLVMGenCtx *ctx,
+                                          LLVMModuleRef runtime_module)
 {
     /* Stateful runtime storage has one definition owner: the separately
      * linked runtime object.  Bitcode is an optimization consumer, so keep
@@ -247,6 +255,9 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
     for (LLVMValueRef fn = LLVMGetFirstFunction(runtime_module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *name = LLVMGetValueName(fn);
+        if (!LLVMIsDeclaration(fn))
+            llvm_runtime_definition_attrs_apply(
+                LLVMGetModuleContext(runtime_module), fn);
         bool strip_noreturn = llvm_fn_never_returns(name);
         if (name != NULL && strcmp(name, "pgy_runtime_panic_emit") == 0)
             strip_noreturn = false;
@@ -259,11 +270,13 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
         if (LLVMGetLinkage(fn) != LLVMExternalLinkage)
             continue;
         if (!LLVMIsDeclaration(fn)
-            && (llvm_fn_is_checked_arith(name)
+            && (!llvm_runtime_bitcode_has_direct_abi(
+                    LLVMGetNamedFunction(ctx->module, name), fn)
+                || llvm_fn_is_checked_arith(name)
                 || llvm_fn_is_lifecycle_runtime(name)
                 || llvm_fn_is_capability_runtime(name)
                 || llvm_fn_is_budget_runtime(name)
-                || llvm_fn_is_bounds_checked_accessor(name)
+                || llvm_fn_requires_external_bounds_guard(name)
                 || llvm_fn_is_stateful_runtime(name)
                 || strip_noreturn))
             llvm_strip_function_body(fn);
@@ -312,7 +325,7 @@ llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
     if (layout != NULL)
         LLVMSetDataLayout(runtime_module, layout);
 
-    llvm_exclude_critical_runtime_from_bitcode(runtime_module);
+    llvm_exclude_critical_runtime_from_bitcode(ctx, runtime_module);
 
     /* Link consumes runtime_module. The internalize pass below then gives the
      * merged definitions internal linkage so the inliner can fold and the dead
@@ -320,7 +333,45 @@ llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
     LLVMLinkModules2(ctx->module, runtime_module);
 }
 
-static void
+static bool
+llvm_fold_proven_integer_divisors(LLVMGenCtx *ctx)
+{
+    static const char *const names[] = {
+        "pgy_checked_div_i32_export", "pgy_checked_mod_i32_export"
+    };
+    bool changed = false;
+    LLVMBuilderRef builder = LLVMCreateBuilderInContext(ctx->context);
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+        const LLVMFuncEntry *entry = llvm_lookup_function(ctx, names[i]);
+        LLVMValueRef fn = LLVMGetNamedFunction(ctx->module, names[i]);
+        if (entry == NULL || !entry->runtime_entrypoint || fn == NULL)
+            continue;
+        for (LLVMUseRef use = LLVMGetFirstUse(fn); use != NULL;) {
+            LLVMUseRef next = LLVMGetNextUse(use);
+            LLVMValueRef call = LLVMGetUser(use);
+            if (LLVMIsACallInst(call) && LLVMGetCalledValue(call) == fn
+                && LLVMGetNumArgOperands(call) == 2) {
+                LLVMValueRef rhs = LLVMGetOperand(call, 1);
+                if (LLVMTypeOf(rhs) == ctx->type_i32 && LLVMIsAConstantInt(rhs)
+                    && pgy_codegen_i32_divisor_is_safe(LLVMConstIntGetSExtValue(rhs))) {
+                    LLVMValueRef lhs = LLVMGetOperand(call, 0);
+                    LLVMPositionBuilderBefore(builder, call);
+                    LLVMValueRef result = i == 0
+                        ? LLVMBuildSDiv(builder, lhs, rhs, "proved.div")
+                        : LLVMBuildSRem(builder, lhs, rhs, "proved.mod");
+                    LLVMReplaceAllUsesWith(call, result);
+                    LLVMInstructionEraseFromParent(call);
+                    changed = true;
+                }
+            }
+            use = next;
+        }
+    }
+    LLVMDisposeBuilder(builder);
+    return changed;
+}
+
+static LLVMGenResult *
 llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
                       const char *triple, bool release_opt)
 {
@@ -329,6 +380,7 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 
     unsigned noinline_kind = LLVMGetEnumAttributeKindForName("noinline", 8);
     unsigned optnone_kind = LLVMGetEnumAttributeKindForName("optnone", 7);
+    size_t defined_function_count = 0;
     for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *fn_name = LLVMGetValueName(fn);
@@ -345,6 +397,7 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
                 llvm_runtime_entrypoint_attrs_apply(ctx->context, fn);
             continue;
         }
+        defined_function_count++;
         /* Keep fail-closed checked arithmetic out of the inliner/folder so its
          * overflow and divide-by-zero guards survive optimization. optnone
          * implies (and requires) noinline and excludes the body from IPA. */
@@ -361,15 +414,31 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 
     LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
     if (options == NULL)
-        return;
-    const char *pipeline = release_opt ? "default<O3>" : "default<O2>";
+        return llvm_result_error("Cannot create LLVM optimization options");
+    const char *pipeline = release_opt
+        ? "default<O3>,function(loop-unroll<O3;full-unroll-max=8;no-partial;no-runtime;no-peeling;no-upperbound>,instcombine,simplifycfg)" :
+        defined_function_count >= PGY_LLVM_LARGE_MODULE_FUNCTIONS ?
+            "globaldce,function(mem2reg)" : "default<O2>";
+    llvm_debug_stage(pipeline);
+    /* Bound partial/runtime code expansion while retaining small full unrolls
+     * whose constants can remove work. Vectorization remains enabled. */
+    LLVMPassBuilderOptionsSetLoopUnrolling(options, false);
     LLVMErrorRef err = LLVMRunPasses(ctx->module, pipeline, machine, options);
+    /* Reuse the existing safe-divisor policy after LLVM exposes constants.
+     * Zero, -1 and unknown divisors keep their original checked runtime call. */
+    if (err == NULL && release_opt && llvm_fold_proven_integer_divisors(ctx))
+        err = LLVMRunPasses(ctx->module,
+            "function(instcombine,simplifycfg),globaldce", machine, options);
+    LLVMDisposePassBuilderOptions(options);
     if (err != NULL) {
         char *msg = LLVMGetErrorMessage(err);
+        LLVMGenResult *result = llvm_result_error_fmt("LLVM optimization failed: %s",
+            msg != NULL ? msg : "unknown pass error");
         if (msg != NULL)
             LLVMDisposeErrorMessage(msg);
+        return result;
     }
-    LLVMDisposePassBuilderOptions(options);
+    return NULL;
 }
 
 static LLVMGenResult *
@@ -378,6 +447,7 @@ llvm_codegen_mir_only(const MIRProgram *mir,
                       const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
                       const PgySpawnLanePlan *spawn_lane_plan,
                       const PgyRegionPlan *region_plan,
+                      const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
                       const char *module_name)
 {
     llvm_debug_stage("codegen_with_mir:ctx_create");
@@ -392,6 +462,15 @@ llvm_codegen_mir_only(const MIRProgram *mir,
     ctx->parallel_capture_plan = parallel_capture_plan;
     ctx->spawn_lane_plan = spawn_lane_plan;
     ctx->region_plan = region_plan;
+    if (collection_effect_receipt != NULL) {
+        if (!mir_collection_effect_evidence_receipt_current(
+                collection_effect_receipt, mir)) {
+            llvm_ctx_destroy(ctx);
+            return llvm_result_error(
+                "LLVM backend: current collection-effect evidence receipt required");
+        }
+        ctx->collection_effect_receipt = *collection_effect_receipt;
+    }
     if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
         || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
         llvm_ctx_destroy(ctx);
@@ -407,7 +486,8 @@ llvm_codegen_mir_only(const MIRProgram *mir,
     }
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
-    verify_result = llvm_validate_mir_for_codegen(mir);
+    verify_result = llvm_validate_mir_for_codegen(
+        mir, &ctx->collection_effect_receipt);
     if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
         return verify_result;
@@ -457,7 +537,8 @@ llvm_codegen_mir_only(const MIRProgram *mir,
 LLVMGenResult *
 llvm_codegen_from_mir(const MIRProgram *mir, const char *module_name)
 {
-    return llvm_codegen_mir_only(mir, NULL, NULL, NULL, NULL, module_name);
+    return llvm_codegen_mir_only(
+        mir, NULL, NULL, NULL, NULL, NULL, module_name);
 }
 
 LLVMGenResult *
@@ -468,7 +549,7 @@ llvm_codegen_from_mir_with_projection_plan(
     const char *module_name)
 {
     return llvm_codegen_mir_only(mir, projection_plan, NULL,
-                                 spawn_lane_plan, NULL, module_name);
+                                 spawn_lane_plan, NULL, NULL, module_name);
 }
 
 LLVMGenResult *
@@ -478,10 +559,12 @@ llvm_codegen_from_mir_with_projection_plans(
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
     const PgyRegionPlan *region_plan,
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
     const char *module_name)
 {
     return llvm_codegen_mir_only(mir, projection_plan, parallel_capture_plan,
-                                 spawn_lane_plan, region_plan, module_name);
+                                 spawn_lane_plan, region_plan,
+                                 collection_effect_receipt, module_name);
 }
 
 /* Debug view of the object path: write the module to the file the named
@@ -513,6 +596,7 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
                             const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
                             const PgySpawnLanePlan *spawn_lane_plan,
                             const PgyRegionPlan *region_plan,
+                            const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
                             const char *module_name,
                             const char *output_path,
                             bool release_opt)
@@ -533,6 +617,15 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
     ctx->parallel_capture_plan = parallel_capture_plan;
     ctx->spawn_lane_plan = spawn_lane_plan;
     ctx->region_plan = region_plan;
+    if (collection_effect_receipt != NULL) {
+        if (!mir_collection_effect_evidence_receipt_current(
+                collection_effect_receipt, mir)) {
+            llvm_ctx_destroy(ctx);
+            return llvm_result_error(
+                "LLVM backend: current collection-effect evidence receipt required");
+        }
+        ctx->collection_effect_receipt = *collection_effect_receipt;
+    }
     if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
         || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
         llvm_ctx_destroy(ctx);
@@ -548,7 +641,8 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
     }
 
     llvm_debug_stage("codegen_to_object:validate_mir");
-    verify_result = llvm_validate_mir_for_codegen(mir);
+    verify_result = llvm_validate_mir_for_codegen(
+        mir, &ctx->collection_effect_receipt);
     if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
         return verify_result;
@@ -589,7 +683,15 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
     }
 
     llvm_debug_stage("codegen_to_object:optimize");
-    llvm_run_optimization(ctx, machine, triple, release_opt);
+    verify_result = llvm_run_optimization(ctx, machine, triple, release_opt);
+    if (verify_result != NULL) {
+        LLVMDisposeTargetMachine(machine);
+        if (triple != NULL) LLVMDisposeMessage(triple);
+        if (cpu != NULL) LLVMDisposeMessage(cpu);
+        if (features != NULL) LLVMDisposeMessage(features);
+        llvm_ctx_destroy(ctx);
+        return verify_result;
+    }
     llvm_apply_target_machine(ctx, machine, triple);
     /* The module the object is emitted from, runtime attributes included. */
     llvm_debug_dump_module_ir(ctx, "PGY_LLVM_DUMP_OPT_IR");
@@ -642,7 +744,7 @@ llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                 const char *output_path,
                                 bool release_opt)
 {
-    return llvm_codegen_to_object_core(mir, NULL, NULL, NULL, NULL, module_name,
+    return llvm_codegen_to_object_core(mir, NULL, NULL, NULL, NULL, NULL, module_name,
                                        output_path, release_opt);
 }
 
@@ -656,7 +758,7 @@ llvm_codegen_to_object_from_mir_with_projection_plan(
                                          bool release_opt)
 {
     return llvm_codegen_to_object_core(mir, projection_plan, NULL,
-                                       spawn_lane_plan, NULL, module_name,
+                                       spawn_lane_plan, NULL, NULL, module_name,
                                        output_path, release_opt);
 }
 
@@ -667,13 +769,15 @@ llvm_codegen_to_object_from_mir_with_projection_plans(
     const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
     const PgyRegionPlan *region_plan,
+    const MIRCollectionEffectEvidenceReceipt *collection_effect_receipt,
     const char *module_name,
                                          const char *output_path,
                                          bool release_opt)
 {
     return llvm_codegen_to_object_core(mir, projection_plan,
                                        parallel_capture_plan,
-                                       spawn_lane_plan, region_plan, module_name,
+                                       spawn_lane_plan, region_plan,
+                                       collection_effect_receipt, module_name,
                                        output_path, release_opt);
 }
 

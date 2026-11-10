@@ -12,7 +12,7 @@ struct Source {
 }
 
 func Label(rows: Rows, source: Source) -> Rows {
-    let labels: HashMap<String, String> = rows.labels;
+    var labels: HashMap<String, String> = rows.labels;
     MapSet(labels, "k", source.title);
     return Rows(labels);
 }

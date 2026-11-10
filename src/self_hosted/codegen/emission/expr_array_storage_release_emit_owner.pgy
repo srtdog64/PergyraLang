@@ -7,19 +7,20 @@ import "../text/text_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 
 func RewriteSemanticArrayDropCall(
-    graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
+    ref graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
     env: CodegenTypeEnv
 ) -> String {
     if ArrayLength(view.argument_nodes) != 1 { Die("ArrayDrop requires exactly one argument"); }
     let argument_type: Option<String> = CodegenExpressionTypeFromGraph(graph, view.argument_nodes[0], env);
     if !IsSome(argument_type) { Die("ArrayDrop argument type fact is missing"); }
     let fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(UnwrapOption(argument_type), env);
-    let argument: String = RewriteSemanticCallArgument(graph, view.argument_nodes[0], UnwrapOption(argument_type), "inout", env);
+    let argument: String = RewriteSemanticCollectionRuntimeInoutArgument(
+        graph, view.argument_nodes[0], UnwrapOption(argument_type), env);
     return "(free((" + argument + ")->data), memset(" + argument + ", 0, sizeof(" + fact.c_array_type + ")))";
 }
 
 func RewriteSemanticCompilerRetireArrayStorageCall(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     env: CodegenTypeEnv
 ) -> String {
@@ -36,8 +37,8 @@ func RewriteSemanticCompilerRetireArrayStorageCall(
     let fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(
         array_type, env
     );
-    let array_arg: String = RewriteSemanticCallArgument(
-        graph, view.argument_nodes[0], array_type, "inout", env
+    let array_arg: String = RewriteSemanticCollectionRuntimeInoutArgument(
+        graph, view.argument_nodes[0], array_type, env
     );
     return Concat(
         CollectionRuntimeCDropStorageFn(

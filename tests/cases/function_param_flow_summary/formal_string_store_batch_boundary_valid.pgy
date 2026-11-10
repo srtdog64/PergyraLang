@@ -1,6 +1,6 @@
-// A non-store statement ends the risk-owner snapshot's bounded batch. The
-// second store must be rediscovered in a later analysis rather than inferred
-// across a program point whose ownership state was not captured.
+// A non-store statement ends the bounded program-point snapshot. The second
+// store must be rediscovered in a later analysis rather than inferred across
+// a program point whose ownership state was not captured.
 struct FormalStringStoreBoundaryRows {
     first: Array<String>;
     second: Array<String>;
@@ -15,8 +15,8 @@ func FormalStringStoreBoundaryApply(
     rows: FormalStringStoreBoundaryRows,
     ref fact: FormalStringStoreBoundaryFact
 ) -> FormalStringStoreBoundaryRows {
-    let first: Array<String> = rows.first;
-    let second: Array<String> = rows.second;
+    var first: Array<String> = rows.first;
+    var second: Array<String> = rows.second;
     ArraySet(first, 0, fact.first);
     Log(ArrayLength(first));
     ArraySet(second, 0, fact.second);

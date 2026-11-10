@@ -29,8 +29,8 @@ func SemanticAstFunctionReceiverSourceParameterOffsetForCallable(
     signatures: SemanticAstFunctionSignatureFacts,
     callable_name: String
 ) -> Option<Int> {
-    let found: Int = -1;
-    let signature_index: Int = 0;
+    var found: Int = -1;
+    var signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(signatures) {
         let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
             signatures, signature_index

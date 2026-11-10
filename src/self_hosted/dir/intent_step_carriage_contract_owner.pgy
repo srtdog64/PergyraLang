@@ -42,11 +42,11 @@ func SelfDirIntentStepCarriageReady(
     artifact: AstTreeArtifact, steps: SelfDirIntentStepFacts
 ) -> Bool {
     if !SelfDirIntentStepCarriageShapeReady(steps) { return false; }
-    let expected_compensate_start: Int = 0;
-    let i: Int = 0;
+    var expected_compensate_start: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(steps.node_ids) {
-        let child_count: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var child_count: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, steps.node_ids[i], child_count
         );
         while IsSome(child) {
@@ -57,7 +57,7 @@ func SelfDirIntentStepCarriageReady(
         }
         let compensate_start: Int = steps.compensate_starts[i];
         let compensate_count: Int = steps.compensate_counts[i];
-        let target_ready: Bool = TypedAstArenaNodeKindIs(artifact.arena,
+        var target_ready: Bool = TypedAstArenaNodeKindIs(artifact.arena,
             steps.target_expression_node_ids[i],
             TypedAstKindIntentStepIntentTag());
         if steps.target_kinds[i] == "action" {
@@ -100,7 +100,7 @@ func SelfDirIntentStepCarriageReady(
                 ArrayLength(steps.compensate_node_ids) {
             return false;
         }
-        let compensate_i: Int = 0;
+        var compensate_i: Int = 0;
         while compensate_i < compensate_count {
             if !TypedAstArenaNodeKindIs(
                 artifact.arena,

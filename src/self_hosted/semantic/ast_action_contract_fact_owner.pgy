@@ -45,17 +45,17 @@ func SemanticAstActionContractAppendList(
     let start: Int = ArrayLength(names);
     if StringTrim(payload) == "" { return false; }
     let ranges: SemanticDelimitedRangeFacts = SemanticNestedCommaRangeFactsFromSource(payload);
-    let range: Int = 0;
+    var range: Int = 0;
     while range < SemanticDelimitedRangeCount(ranges) {
         let item: String = SemanticDelimitedRangeText(ranges, payload, range);
-        let vocabulary_index: Int = -1;
+        var vocabulary_index: Int = -1;
         if vocabulary_axis > 0 {
             vocabulary_index = CallableContractVocabularyFindIndex(
                 vocabulary_axis, item
             );
         }
-        let duplicate: Bool = false;
-        let prior: Int = start;
+        var duplicate: Bool = false;
+        var prior: Int = start;
         while prior < ArrayLength(names) && !duplicate {
             duplicate = names[prior] == item;
             prior = prior + 1;
@@ -69,7 +69,7 @@ func SemanticAstActionContractAppendList(
             let item_zero: Bool = CallableContractVocabularyZeroPolicyAt(
                 vocabulary_index
             ) == CallableContractVocabularyZeroExclusive();
-            let i: Int = start;
+            var i: Int = start;
             while i < ArrayLength(names) {
                 let existing_name: String = Concat("", names[i]);
                 let existing: Int = CallableContractVocabularyFindIndex(
@@ -92,8 +92,8 @@ func SemanticAstActionContractAppendList(
 func SemanticAstActionContractOwnerNominalSubkind(
     arena: AstArena, callable_node_id: Int
 ) -> Option<Int> {
-    let parent: Option<Int> = TypedAstArenaParentId(arena, callable_node_id);
-    let remaining: Int = TypedAstArenaNodeCount(arena);
+    var parent: Option<Int> = TypedAstArenaParentId(arena, callable_node_id);
+    var remaining: Int = TypedAstArenaNodeCount(arena);
     while IsSome(parent) && remaining > 0 {
         let parent_id: Int = UnwrapOption(parent);
         if TypedAstArenaNodeKindIs(
@@ -113,33 +113,33 @@ func SemanticAstActionContractFactsFromArtifact(
     callable_node_ids: Array<Int>,
     runtime_callables: Array<Bool>
 ) -> SemanticAstActionContractFacts {
-    let is_actions: Array<Bool> = [];
-    let owner_nominal_subkinds: Array<Int> = [];
-    let body_node_ids: Array<Int> = [];
-    let requires_node_ids: Array<Int> = [];
-    let requires_starts: Array<Int> = [];
-    let requires_counts: Array<Int> = [];
-    let requires_names: Array<String> = [];
-    let within_node_ids: Array<Int> = [];
-    let within_zone_names: Array<String> = [];
-    let causes_node_ids: Array<Int> = [];
-    let causes_names: Array<String> = [];
-    let authorized_by_node_ids: Array<Int> = [];
-    let authorized_by_starts: Array<Int> = [];
-    let authorized_by_counts: Array<Int> = [];
-    let authorized_by_names: Array<String> = [];
-    let caps_node_ids: Array<Int> = [];
-    let cap_starts: Array<Int> = [];
-    let cap_counts: Array<Int> = [];
-    let cap_names: Array<String> = [];
-    let effects_node_ids: Array<Int> = [];
-    let effect_starts: Array<Int> = [];
-    let effect_counts: Array<Int> = [];
-    let effect_names: Array<String> = [];
-    let ok: Bool = AstTreeArtifactReady(artifact) &&
+    var is_actions: Array<Bool> = [];
+    var owner_nominal_subkinds: Array<Int> = [];
+    var body_node_ids: Array<Int> = [];
+    var requires_node_ids: Array<Int> = [];
+    var requires_starts: Array<Int> = [];
+    var requires_counts: Array<Int> = [];
+    var requires_names: Array<String> = [];
+    var within_node_ids: Array<Int> = [];
+    var within_zone_names: Array<String> = [];
+    var causes_node_ids: Array<Int> = [];
+    var causes_names: Array<String> = [];
+    var authorized_by_node_ids: Array<Int> = [];
+    var authorized_by_starts: Array<Int> = [];
+    var authorized_by_counts: Array<Int> = [];
+    var authorized_by_names: Array<String> = [];
+    var caps_node_ids: Array<Int> = [];
+    var cap_starts: Array<Int> = [];
+    var cap_counts: Array<Int> = [];
+    var cap_names: Array<String> = [];
+    var effects_node_ids: Array<Int> = [];
+    var effect_starts: Array<Int> = [];
+    var effect_counts: Array<Int> = [];
+    var effect_names: Array<String> = [];
+    var ok: Bool = AstTreeArtifactReady(artifact) &&
         ArrayLength(callable_node_ids) == ArrayLength(runtime_callables);
-    let diagnostic_message: String = "";
-    let callable_index: Int = 0;
+    var diagnostic_message: String = "";
+    var callable_index: Int = 0;
     while callable_index < ArrayLength(callable_node_ids) && ok {
         let callable_node_id: Int = callable_node_ids[callable_index];
         let kind: Option<Int> = TypedAstArenaNodeKind(
@@ -164,22 +164,22 @@ func SemanticAstActionContractFactsFromArtifact(
             continue;
         }
 
-        let body_node_id: Int = -1;
-        let requires_node_id: Int = -1;
-        let within_node_id: Int = -1;
-        let within_zone_name: String = "";
-        let causes_node_id: Int = -1;
-        let causes_name: String = "";
-        let authorized_by_node_id: Int = -1;
-        let caps_node_id: Int = -1;
-        let effects_node_id: Int = -1;
+        var body_node_id: Int = -1;
+        var requires_node_id: Int = -1;
+        var within_node_id: Int = -1;
+        var within_zone_name: String = "";
+        var causes_node_id: Int = -1;
+        var causes_name: String = "";
+        var authorized_by_node_id: Int = -1;
+        var caps_node_id: Int = -1;
+        var effects_node_id: Int = -1;
         let requires_start: Int = ArrayLength(requires_names);
         let authorized_by_start: Int = ArrayLength(authorized_by_names);
         let cap_start: Int = ArrayLength(cap_names);
         let effect_start: Int = ArrayLength(effect_names);
-        let contract_order: Int = 0;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
+        var contract_order: Int = 0;
+        var child_index: Int = 0;
+        var child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, callable_node_id, child_index
         );
         while IsSome(child) && ok {
@@ -193,7 +193,7 @@ func SemanticAstActionContractFactsFromArtifact(
                 continue;
             }
             let row_kind: Int = UnwrapOption(child_kind);
-            let next_order: Int = 0;
+            var next_order: Int = 0;
             if row_kind == TypedAstKindActionRequiresTag() { next_order = 1; }
             else if row_kind == TypedAstKindActionWithinTag() { next_order = 2; }
             else if row_kind == TypedAstKindActionCausesTag() { next_order = 3; }
@@ -399,7 +399,7 @@ func SemanticAstActionContractFactsReady(
         count != ArrayLength(facts.effect_counts) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if !TypedAstArenaNodeKindIsCallable(
             artifact.arena, facts.callable_node_ids[i]
@@ -432,9 +432,9 @@ func SemanticAstActionContractFactsReady(
 func SemanticAstActionContractChildCount(
     arena: AstArena, callable_node_id: Int, expected_kind: Int
 ) -> Int {
-    let count: Int = 0;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
+    var count: Int = 0;
+    var child_index: Int = 0;
+    var child: Option<Int> = TypedAstArenaChildAt(
         arena, callable_node_id, child_index
     );
     while IsSome(child) {
@@ -454,7 +454,7 @@ func SemanticAstActionContractNodeMatches(
     expected_kind: Int,
     expected_payload: String
 ) -> Bool {
-    let expected_count: Int = 0;
+    var expected_count: Int = 0;
     if node_id >= 0 { expected_count = 1; }
     if SemanticAstActionContractChildCount(
         arena, callable_node_id, expected_kind
@@ -475,7 +475,7 @@ func SemanticAstActionContractFactsMatchArtifact(
     if !SemanticAstActionContractFactsReady(artifact, facts) {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.callable_node_ids) {
         let callable_node_id: Int = facts.callable_node_ids[i];
         let owner_subkind: Option<Int> =
@@ -488,8 +488,8 @@ func SemanticAstActionContractFactsMatchArtifact(
                 TypedAstNominalSubkindSubject()) {
             return false;
         }
-        let requires_payload: String = "";
-        let range_index: Int = 0;
+        var requires_payload: String = "";
+        var range_index: Int = 0;
         while range_index < facts.requires_counts[i] {
             if range_index > 0 {
                 requires_payload = Concat(requires_payload, ", ");
@@ -500,7 +500,7 @@ func SemanticAstActionContractFactsMatchArtifact(
             );
             range_index = range_index + 1;
         }
-        let authority_payload: String = "";
+        var authority_payload: String = "";
         range_index = 0;
         while range_index < facts.authorized_by_counts[i] {
             if range_index > 0 {
@@ -514,7 +514,7 @@ func SemanticAstActionContractFactsMatchArtifact(
             );
             range_index = range_index + 1;
         }
-        let caps_payload: String = "";
+        var caps_payload: String = "";
         range_index = 0;
         while range_index < facts.cap_counts[i] {
             if range_index > 0 {
@@ -526,7 +526,7 @@ func SemanticAstActionContractFactsMatchArtifact(
             );
             range_index = range_index + 1;
         }
-        let effects_payload: String = "";
+        var effects_payload: String = "";
         range_index = 0;
         while range_index < facts.effect_counts[i] {
             if range_index > 0 {
@@ -560,9 +560,9 @@ func SemanticAstActionContractFactsMatchArtifact(
         ) {
             return false;
         }
-        let body_expected: Int = 0;
+        var body_expected: Int = 0;
         if facts.body_node_ids[i] >= 0 { body_expected = 1; }
-        let body_parent: Option<Int> = None;
+        var body_parent: Option<Int> = None;
         if facts.body_node_ids[i] >= 0 {
             body_parent = TypedAstArenaParentId(
                 artifact.arena, facts.body_node_ids[i]
@@ -591,7 +591,7 @@ func SemanticAstActionContractFactsMatchArtifact(
 func SemanticAstActionContractIndexForNode(
     facts: SemanticAstActionContractFacts, callable_node_id: Int
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(facts.callable_node_ids) {
         if facts.callable_node_ids[i] == callable_node_id { return Some(i); }
         i = i + 1;

@@ -19,7 +19,7 @@ func MirIntentZoneAuthorityTransitionAppendRoutine(
             routines.source_syntax_ids[routine_row] {
         return false;
     }
-    let step_index: Int = 0;
+    var step_index: Int = 0;
     while step_index < ArrayLength(plan.steps.steps) {
         let step: MirIntentRoutineStepFact = plan.steps.steps[step_index];
         let binding: MirIntentStepPlacementBinding =

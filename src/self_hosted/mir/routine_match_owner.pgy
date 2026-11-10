@@ -34,9 +34,9 @@ func SelfMirMatchSubjectType(
     ref input: SelfMirRoutineInput,
     match_node_id: Int
 ) -> Option<String> {
-    return SemanticAstStatementInferredTypeForNode(
+    return SemanticAstStatementTypeForNode(
         input.statement_types, match_node_id,
-        TypedAstKindMatchStmtTag()
+        TypedAstKindMatchStmtTag(), false
     );
 }
 
@@ -53,7 +53,7 @@ func SelfMirMatchSubjectFamily(
     let subject_type: String = UnwrapOption(subject_type_opt);
     if StartsWith(subject_type, "Option<") { return "option"; }
     if StartsWith(subject_type, "Result<") { return "result"; }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(input.analysis.enums.variant_enum_names) {
         if input.analysis.enums.variant_enum_names[i] == subject_type { return "enum"; }
         i = i + 1;
@@ -75,11 +75,11 @@ func SelfMirMatchCaseSubjectReady(
         let alternative_subject: Option<String> = SelfMirMatchSubjectType(
             input, match_node_id
         );
-        let alternative: Int = 0;
+        var alternative: Int = 0;
         while alternative < ArrayLength(fact.patterns) {
             let value: String = fact.patterns[alternative];
-            let ready: Bool = ToString(ToInt(value)) == value;
-            let row: Int = 0;
+            var ready: Bool = ToString(ToInt(value)) == value;
+            var row: Int = 0;
             while !ready && IsSome(alternative_subject) &&
                 row < ArrayLength(input.analysis.enums.variant_names) {
                 ready = input.analysis.enums.variant_enum_names[row] ==
@@ -113,7 +113,7 @@ func SelfMirMatchCaseSubjectReady(
             ArrayLength(fact.bindings) == 1;
     }
     if fact.variant != "" {
-        let i: Int = 0;
+        var i: Int = 0;
         while i < ArrayLength(input.analysis.enums.variant_names) {
             if input.analysis.enums.variant_enum_names[i] == subject_type &&
                 input.analysis.enums.variant_names[i] == fact.variant {
@@ -122,7 +122,7 @@ func SelfMirMatchCaseSubjectReady(
                 if param_count != ArrayLength(fact.bindings) {
                     return false;
                 }
-                let payload_index: Int = 0;
+                var payload_index: Int = 0;
                 while payload_index < param_count {
                     if !IsSome(SemanticAstEnumVariantPayloadTypeAt(
                         input.analysis.enums, subject_type,
@@ -141,7 +141,7 @@ func SelfMirMatchCaseSubjectReady(
     if ArrayLength(fact.bindings) != 0 {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(input.analysis.enums.variant_names) {
         if input.analysis.enums.variant_enum_names[i] == subject_type &&
             input.analysis.enums.variant_names[i] == fact.pattern &&
@@ -164,7 +164,7 @@ func SelfMirMatchBindingTypes(
         input, match_node_id
     );
     if !IsSome(subject_type) { return false; }
-    let wrapper_type: Option<String> = None;
+    var wrapper_type: Option<String> = None;
     if fact.variant == "Some" {
         wrapper_type = OptionPayloadTypeOpt(UnwrapOption(subject_type));
     } else if fact.variant == "Ok" {
@@ -181,7 +181,7 @@ func SelfMirMatchBindingTypes(
         ArrayPush(binding_types, UnwrapOption(wrapper_type));
         return true;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(input.analysis.enums.variant_names) {
         if input.analysis.enums.variant_enum_names[i] ==
                 UnwrapOption(subject_type) &&
@@ -191,7 +191,7 @@ func SelfMirMatchBindingTypes(
             if param_count != ArrayLength(fact.bindings) {
                 return false;
             }
-            let payload_index: Int = 0;
+            var payload_index: Int = 0;
             while payload_index < param_count {
                 let payload_type: Option<String> =
                     SemanticAstEnumVariantPayloadTypeAt(
@@ -242,7 +242,7 @@ func SelfMirLowerMatchCaseBranch(
             build, "MIR match subject type or variant fact is missing"
         );
     }
-    let binding_types: Array<String> = [];
+    var binding_types: Array<String> = [];
     if !SelfMirMatchBindingTypes(
         input, match_node_id, fact, binding_types
     ) || ArrayLength(binding_types) != ArrayLength(fact.bindings) {
@@ -289,7 +289,7 @@ func SelfMirLowerMatchFromArtifact(
         );
     }
     let match_scope_local_count: Int = ArrayLength(build.local_names);
-    let match_graph: SemanticExpressionGraphView =
+    var match_graph: SemanticExpressionGraphView =
         SemanticAstExpressionGraphForNode(
             input.analysis.expression_surfaces,
             node_id, AstExpressionLaneAtom()
@@ -347,11 +347,11 @@ func SelfMirLowerMatchFromArtifact(
     }
     let entry_versions: Array<Int> =
         SelfMirLocalVersionsSnapshot(build.local_versions);
-    let arm_exits: Array<Int> = [];
-    let arm_versions: Array<Int> = [];
-    let final_unmatched_block: Int = -1;
-    let child_index: Int = 0;
-    let child_opt: Option<Int> = first_child;
+    var arm_exits: Array<Int> = [];
+    var arm_versions: Array<Int> = [];
+    var final_unmatched_block: Int = -1;
+    var child_index: Int = 0;
+    var child_opt: Option<Int> = first_child;
     while IsSome(child_opt) && build.ok {
         let child_id: Int = UnwrapOption(child_opt);
         let kind_opt: Option<Int> = TypedAstArenaNodeKind(

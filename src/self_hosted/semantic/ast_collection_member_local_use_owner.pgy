@@ -49,10 +49,10 @@ func SemanticAstCollectionMemberReadLocalRootUse(
     let blocked: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberLocalRootUse(true, 0);
     let readable: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberLocalRootUse(false, 0);
     let no_path: Array<Int> = [];
-    let identity: SemanticAstCollectionMemberMoveIdentity =
+    var identity: SemanticAstCollectionMemberMoveIdentity =
         SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false, no_path);
-    let occurrence: Int = leaf;
-    let other_field: Bool = false;
+    var occurrence: Int = leaf;
+    var other_field: Bool = false;
     if leaf + 2 <= root {
         let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf + 2);
         if member.ok && member.receiver_node == leaf {
@@ -74,7 +74,7 @@ func SemanticAstCollectionMemberReadLocalRootUse(
         }
         return blocked;
     }
-    let consumer: Int = occurrence + 1;
+    var consumer: Int = occurrence + 1;
     while consumer <= root {
         let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
         let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);

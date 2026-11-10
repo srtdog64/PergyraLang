@@ -13,7 +13,7 @@ struct Facts {
 }
 
 func Collect(arena: Arena) -> Int {
-    let rows: Array<Facts> = [];
+    var rows: Array<Facts> = [];
     ArrayPush(rows, Facts(arena.count, [1, 2]));
     return ArrayLength(rows) + arena.count;
 }

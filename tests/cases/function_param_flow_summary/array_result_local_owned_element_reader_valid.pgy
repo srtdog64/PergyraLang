@@ -5,7 +5,7 @@ func ReadLength(text: String) -> Int
 
 func Main() -> Void
 {
-    let rows: Array<String> = [];
+    var rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
     Log(rows[0]);
     Log(ReadLength(rows[0]));

@@ -61,7 +61,7 @@ func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
         lane > AstExpressionLaneAuxiliary() || local_call_ordinal < 0 {
         return false;
     }
-    let existing: Int = 0;
+    var existing: Int = 0;
     while existing < ArrayLength(graph.arena.identities.builtin_argument_retention_calls) &&
         graph.arena.identities.builtin_argument_retention_calls[existing]
             .call_node < call_node {
@@ -91,8 +91,8 @@ func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
 func SemanticAstBuiltinArgumentRetentionFactRowForCall(
     ref surfaces: SemanticAstExpressionSurfaceFacts, call_node: Int
 ) -> Int {
-    let low: Int = 0;
-    let high: Int = ArrayLength(surfaces.expression_graph.arena.identities.builtin_argument_retention_calls);
+    var low: Int = 0;
+    var high: Int = ArrayLength(surfaces.expression_graph.arena.identities.builtin_argument_retention_calls);
     while low < high {
         let middle: Int = low + (high - low) / 2;
         if surfaces.expression_graph.arena.identities.builtin_argument_retention_calls[middle]
@@ -149,8 +149,8 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
         lane > AstExpressionLaneAuxiliary() {
         return None;
     }
-    let local_call_ordinal: Int = 0;
-    let node: Int = root_start;
+    var local_call_ordinal: Int = 0;
+    var node: Int = root_start;
     while node <= call_node {
         if surfaces.expression_graph.arena.topology.node_kinds[node] ==
                 AstExpressionNodeCall() {

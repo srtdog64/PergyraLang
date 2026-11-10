@@ -37,7 +37,7 @@ func EmitDriverRung2FixtureManifest() -> Void {
     if ArrayLength(rows) != DriverRung2ExpectedFixtureCount() {
         Exit(1);
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;

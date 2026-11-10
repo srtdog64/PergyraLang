@@ -1,0 +1,13 @@
+// A String borrowed from input is copied at the private Array store before
+// the Array leaves Build, so Publish hands Keep an independent value.
+extern "C" { func Keep(rows: Array<String>) -> Void; }
+func Build(ref input: Array<String>) -> Array<String> {
+    var owned_rows: Array<String> = [];
+    ArrayPush(owned_rows, input[0]);
+    return owned_rows;
+}
+func Publish(ref input: Array<String>) -> Bool { Keep(Build(input)); return true; }
+func Main() -> Void {
+    let input: Array<String> = [Concat("heap", " text")];
+    Log(Publish(input));
+}

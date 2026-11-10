@@ -14,7 +14,7 @@ func Main() -> Int {
     let empty: Array<Int> = [];
     let values: Array<Int> = [1];
     let source: Rows = Rows(values, 1);
-    let taken: Rows = Take(Rows(empty, 0), source);
+    var taken: Rows = Take(Rows(empty, 0), source);
     ArrayPush(taken.values, 2);
     Print(ToString(source.values[0]));
     return 0;

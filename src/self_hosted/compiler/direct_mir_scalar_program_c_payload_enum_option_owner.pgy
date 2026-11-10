@@ -1,0 +1,67 @@
+// C representation and expressions for Option<payload-enum> values.
+
+import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_type_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+func DirectMirScalarProgramCPayloadEnumOptionExpression(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    kind: Int, result_type: String, left_type: String, left: String
+) -> Option<String> {
+    var option_type: String = result_type;
+    if kind == DirectMirScalarProgramExprIsSomePayloadEnum() ||
+        kind == DirectMirScalarProgramExprUnwrapOptionPayloadEnum() {
+        option_type = left_type;
+    }
+    let t: String = DirectMirScalarProgramCPayloadEnumOptionTypeName(
+        fact, option_type);
+    if t == "" { return None; }
+    if kind == DirectMirScalarProgramExprSomePayloadEnum() {
+        return Some(Concat(t, Concat("_some(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprNonePayloadEnum() {
+        return Some(Concat(t, "_none()"));
+    }
+    if kind == DirectMirScalarProgramExprIsSomePayloadEnum() {
+        return Some(Concat(t, Concat("_is_some(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapOptionPayloadEnum() {
+        return Some(Concat(t, Concat("_unwrap(", Concat(left, ")"))));
+    }
+    return None;
+}
+
+func DirectMirScalarProgramCPayloadEnumOptionPreamble(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuCProjection()) {
+        Die("direct MIR payload-enum Option C fact is invalid");
+    }
+    var output: String = ""; var row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.payload_flags[row] == 1 {
+            let t: String =
+                DirectMirScalarProgramCPayloadEnumOptionTypeNameAt(row);
+            let payload: String =
+                DirectMirScalarProgramCPayloadEnumTypeNameAt(row);
+            output = output + "typedef struct { bool is_some; " + payload +
+                " value; } " + t + ";\n";
+            output = output + "static inline " + t + " " + t + "_some(" +
+                payload + " value) { " + t +
+                " out = {true, value}; return out; }\n";
+            output = output + "static inline " + t + " " + t +
+                "_none(void) { " + t +
+                " out = {0}; return out; }\n";
+            output = output + "static inline bool " + t + "_is_some(" + t +
+                " value) { return value.is_some; }\n";
+            output = output + "static inline " + payload + " " + t +
+                "_unwrap(" + t +
+                " value) { if (!value.is_some) abort(); return value.value; }\n";
+        }
+        row = row + 1;
+    }
+    return output;
+}

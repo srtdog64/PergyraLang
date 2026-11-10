@@ -7,14 +7,14 @@ struct Index {
 }
 
 func IdsUnique(ref index: Index) -> Bool {
-    let ids: Array<Int> = [];
-    let i: Int = 0;
+    var ids: Array<Int> = [];
+    var i: Int = 0;
     while i < ArrayLength(index.counts) {
         ArrayPush(ids, index.counts[i]);
         i = i + 1;
     }
     ArraySort(ids);
-    let row: Int = 1;
+    var row: Int = 1;
     while row < ArrayLength(ids) {
         if ids[row] == ids[row - 1] {
             return false;

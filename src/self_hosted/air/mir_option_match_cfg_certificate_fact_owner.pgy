@@ -24,7 +24,7 @@ func DirectMirOptionMatchCfgCertificateFactDigest(
     ref fact: DirectMirOptionMatchCfgCertificateFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(89L, fact.mir_digest);
+    var hash: Long = DirectMirCfgHashInt(89L, fact.mir_digest);
     hash = DirectMirCfgHashInt(hash, fact.cfg_digest);
     hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
     hash = DirectMirCfgHashString(hash, fact.some_value);
@@ -77,7 +77,7 @@ func DirectMirOptionMatchTopologyReady(
         ArrayLength(index.block_instruction_counts) != 7 {
         return false;
     }
-    let block: Int = 0;
+    var block: Int = 0;
     while block < 7 {
         if !index.block_reachable[block] ||
             index.block_succ_true[block] != expected_true[block] ||
@@ -105,14 +105,14 @@ func DirectMirOptionMatchScalarInventoryReady(
         "AST_CALL", "AST_MATCH_CASE", "AST_CALL"
     ];
     if ArrayLength(rows) != 7 { return false; }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 7 {
         let scalar: MirRoutineInstructionScalarCapture =
             MirRoutineInstructionFactBundleAtGlobal(
                 index.instruction_facts, rows[row]
             );
-        let expected_name: String = "stmt";
-        let expected_arg0: String = "Log";
+        var expected_name: String = "stmt";
+        var expected_arg0: String = "Log";
         if row == 0 { expected_name = "ssa-def"; expected_arg0 = local_name; }
         if row == 1 || row == 3 || row == 5 {
             expected_name = "branch";
@@ -151,12 +151,12 @@ func DirectMirOptionMatchCfgCertificateFactFromOwners(
         ArrayLength(index.source_local_types) != 2 {
         Die("direct MIR Option match typed owner inventory is invalid");
     }
-    let rows: Array<Int> = [];
+    var rows: Array<Int> = [];
     ArrayPush(rows, MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, 0, 0, 0));
     ArrayPush(rows, MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, 0, 0, 1));
-    let block: Int = 1;
+    var block: Int = 1;
     while block < 6 {
         ArrayPush(rows, MirProgramRoutineIndexGlobalInstructionRow(
             admitted.routines, 0, block, 0));
@@ -189,11 +189,11 @@ func DirectMirOptionMatchCfgCertificateFactFromOwners(
         none.binding_count != 0 || none.binding_type_count != 0 {
         Die("direct MIR Option match typed pattern facts are invalid");
     }
-    let row: Int = 0;
+    var row: Int = 0;
     while row < 7 {
         let match_fact: MirMatchInstructionCapture =
             MirRoutineInstructionMatchAtGlobal(matches, rows[row]);
-        let use_count: Int = 0;
+        var use_count: Int = 0;
         if row == 1 || row == 2 || row == 3 || row == 5 { use_count = 1; }
         if !match_fact.valid || ((row != 3 && row != 5) &&
             (match_fact.variant != "" || match_fact.pattern_count != 0 ||

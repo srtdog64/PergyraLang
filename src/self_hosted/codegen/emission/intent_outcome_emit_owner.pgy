@@ -10,7 +10,8 @@ import "intent_control_flow_emit_owner.pgy";
 
 func CodegenIntentEmitOnOutcome(
     inout body: Array<String>,
-    on_graph: SemanticExpressionGraphView,
+    ref graph: SemanticExpressionGraphFacts,
+    on_root_id: Int,
     on_expression: String,
     outcome_count: Int,
     outcome_name: String,
@@ -24,7 +25,7 @@ func CodegenIntentEmitOnOutcome(
         Die("self-host intent outcome binding is invalid");
     }
     let outcome_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
-        on_graph.graph, on_graph.root_id, step_env
+        graph, on_root_id, step_env
     );
     if !IsSome(outcome_type_opt) || UnwrapOption(outcome_type_opt) == "" ||
         UnwrapOption(outcome_type_opt) == "Unknown" ||
@@ -54,7 +55,7 @@ func CodegenIntentEmitOnOutcome(
 
 func CodegenIntentEmitExpect(
     inout body: Array<String>,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     expect_node: Int,
     outcome_count: Int,
     step_name: String,

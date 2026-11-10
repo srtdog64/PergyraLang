@@ -9,8 +9,8 @@ func DirectMirScalarCfgArrayIntInitializedModeFromOwners(
     collection_value_id: String,
     ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> Int {
-    let set_count: Int = 0;
-    let instruction: Int = 0;
+    var set_count: Int = 0;
+    var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let capture: MirRoutineInstructionScalarCapture =

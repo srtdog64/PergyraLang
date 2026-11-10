@@ -1,0 +1,10 @@
+func BuildNames() -> Array<String> {
+    let names: Array<String> = [Clone("")];
+    return names;
+}
+
+func Main() -> Void {
+    var names: Array<String> = BuildNames();
+    ArrayPush(names, Clone("Pergyra"));
+    Log(ArrayLength(names));
+}

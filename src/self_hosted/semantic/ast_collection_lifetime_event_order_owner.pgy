@@ -23,10 +23,10 @@ func SemanticAstCollectionLifetimeEventStepFromGraph(
     ref graph: SemanticExpressionGraphFacts, entry: Int, prefix: Bool
 ) -> SemanticAstCollectionLifetimeEventStep {
     let step: SemanticAstCollectionArgumentEventStep = SemanticAstCollectionArgumentEventStepFromGraph(graph, entry);
-    let event: Int = step.event_node;
-    let completed: Int = -1;
-    let left_prefix: Bool = false;
-    let ok: Bool = step.ok;
+    var event: Int = step.event_node;
+    var completed: Int = -1;
+    var left_prefix: Bool = false;
+    var ok: Bool = step.ok;
     if ok && entry >= 0 {
         left_prefix = graph.arena.topology.node_kinds[entry] == AstExpressionNodeCallArgument();
     }

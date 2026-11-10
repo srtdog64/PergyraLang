@@ -12,15 +12,15 @@ struct SemanticAstFunctionScopeFacts {
 func SemanticAstFunctionScopeFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstFunctionScopeFacts {
-    let function_node_ids: Array<Int> = [];
+    var function_node_ids: Array<Int> = [];
     if !AstTreeArtifactReady(artifact) {
         return SemanticAstFunctionScopeFacts(
             false, artifact.count, function_node_ids
         );
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
-        let function_node_id: Int = -1;
+        var function_node_id: Int = -1;
         if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
             function_node_id = node_id;
         } else {
@@ -70,7 +70,7 @@ func SemanticAstFunctionScopeFactsMatchArtifact(
         ArrayLength(facts.function_node_ids) != artifact.count {
         return false;
     }
-    let node_id: Int = 0;
+    var node_id: Int = 0;
     while node_id < artifact.count {
         if facts.function_node_ids[node_id] !=
             rebuilt.function_node_ids[node_id] {
@@ -87,8 +87,8 @@ func SemanticAstFunctionScopeFactsContractReady() -> Bool {
     );
     let facts: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    let function_node: Option<Int> = None;
-    let node_id: Int = 0;
+    var function_node: Option<Int> = None;
+    var node_id: Int = 0;
     while node_id < artifact.count && !IsSome(function_node) {
         if TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindLetStmtTag()

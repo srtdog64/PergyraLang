@@ -1,0 +1,40 @@
+// One contextual projection for aggregate Option builtins.
+
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_option_builtin_signature_owner.pgy";
+
+func DirectMirScalarProgramAggregateOptionBuiltinSignatureForCall(
+    fact: DirectMirScalarProgramBuiltinSignatureFact,
+    name: String, actual_types: Array<String>, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let record_option: String =
+        DirectMirScalarProgramLogicalRecordOptionBuiltinType(
+            logical_record, name, actual_types, expected_type);
+    if record_option != "" {
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            DirectMirScalarProgramLogicalRecordOptionBuiltinReturnType(
+                logical_record, name, record_option),
+            DirectMirScalarProgramLogicalRecordOptionBuiltinParameterTypes(
+                logical_record, name, record_option),
+            DirectMirScalarProgramLogicalRecordOptionBuiltinExpressionKind(name),
+            fact.runtime_call_abi_id);
+    }
+    let enum_option: String =
+        DirectMirScalarProgramPayloadEnumOptionBuiltinType(
+            referenced_enum, name, actual_types, expected_type);
+    if enum_option == "" {
+        return DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    }
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, fact.registry_row, fact.name,
+        DirectMirScalarProgramPayloadEnumOptionBuiltinReturnType(
+            referenced_enum, name, enum_option),
+        DirectMirScalarProgramPayloadEnumOptionBuiltinParameterTypes(
+            referenced_enum, name, enum_option),
+        DirectMirScalarProgramPayloadEnumOptionBuiltinExpressionKind(name),
+        fact.runtime_call_abi_id);
+}

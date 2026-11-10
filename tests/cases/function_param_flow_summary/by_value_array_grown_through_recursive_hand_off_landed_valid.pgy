@@ -1,7 +1,8 @@
 // Expr takes its trail by value and hands it to an inout Primary that may
 // push into it, on a cycle back through Expr. The push may free the buffer
-// Main's trail names: Expr moves its formal, and each caller that uses the
-// trail again takes a copy.
+// Main's trail names: Main takes one copy because it uses trail again.
+// Primary immediately returns the recursive call, so its trail is a last use
+// and no second copy is required.
 func Primary(start: Int, inout trail: Array<Int>) -> Int {
     if start > 0 {
         return Expr(start - 1, trail);

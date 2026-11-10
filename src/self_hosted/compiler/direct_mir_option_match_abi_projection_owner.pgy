@@ -71,7 +71,7 @@ func DirectMirOptionMatchAbiProjectionFromFact(
         abi.value_offset % abi.value_size != 0 {
         Die("direct MIR Option match ABI has no target projection");
     }
-    let projection: DirectMirOptionMatchAbiProjection =
+    var projection: DirectMirOptionMatchAbiProjection =
         DirectMirOptionMatchAbiProjection(
             true, target.projection,
             target.target_capability_fingerprint,

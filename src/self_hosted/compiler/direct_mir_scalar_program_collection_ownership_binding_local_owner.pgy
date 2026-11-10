@@ -19,8 +19,8 @@ func DirectMirCollectionOwnershipBindingLocalRow(
         local_end > ArrayLength(storage.values.local_names) {
         return -1;
     }
-    let source_name: String = "";
-    let source_row: Int = 0;
+    var source_name: String = "";
+    var source_row: Int = 0;
     while source_row < index.declared_source_local_count {
         if index.source_local_binding_syntax_ids[source_row] ==
                 binding_syntax_id {
@@ -33,8 +33,8 @@ func DirectMirCollectionOwnershipBindingLocalRow(
         source_row = source_row + 1;
     }
     if source_name == "" { return -1; }
-    let matched: Int = -1;
-    let local_row: Int = local_start;
+    var matched: Int = -1;
+    var local_row: Int = local_start;
     while local_row < local_end {
         if storage.values.local_names[local_row] == source_name {
             if matched >= 0 { return -1; }

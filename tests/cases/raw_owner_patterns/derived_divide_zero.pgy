@@ -1,0 +1,9 @@
+func Main() -> Void {
+    var pass: Int = 0;
+    var divisor: Int = 1;
+    while pass < 2 {
+        Log(9 / divisor);
+        divisor = 0;
+        pass = pass + 1;
+    }
+}

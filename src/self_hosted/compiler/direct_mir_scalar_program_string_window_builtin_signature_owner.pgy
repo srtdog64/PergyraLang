@@ -37,5 +37,13 @@ func DirectMirScalarProgramStringWindowBuiltinSignatureExpected(
         return ["Bool", "String|Int|Int|Int|String", ToString(
             DirectMirScalarProgramExprSubEqualsWithLen())];
     }
+    if name == "SubContainsWithLen" {
+        return ["Bool", "String|Int|Int|Int|String", ToString(
+            DirectMirScalarProgramExprSubContainsWithLen())];
+    }
+    if name == "SubStartsWithLen" {
+        return ["Bool", "String|Int|Int|String", ToString(
+            DirectMirScalarProgramExprSubStartsWithLen())];
+    }
     return [];
 }

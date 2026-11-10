@@ -34,7 +34,7 @@ func DirectMirScalarCfgArrayIntPopCOperation(
         );
     }
     if operation == plan.array_int_program.pop.length_log_operation_row {
-        let output: String = Concat("    ", formatted_print.symbol);
+        var output: String = Concat("    ", formatted_print.symbol);
         output = Concat(output, Concat("(\"", int_line_format));
         output = Concat(output, Concat("\", (", int_c_type));
         return DirectMirScalarCfgCCollectionOperationEmission(

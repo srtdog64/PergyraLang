@@ -63,7 +63,7 @@ func DirectMirBreakCfgCertificateFactDigest(
     ref fact: DirectMirBreakCfgCertificateFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(73L, fact.block_count);
+    var hash: Long = DirectMirCfgHashInt(73L, fact.block_count);
     hash = DirectMirCfgHashInt(hash, fact.preheader_block);
     hash = DirectMirCfgHashInt(hash, fact.header_block);
     hash = DirectMirCfgHashInt(hash, fact.decision_block);
@@ -161,12 +161,12 @@ func DirectMirBreakCfgCertificateFactReady(
         fact.preheader_block, fact.header_block, fact.decision_block,
         fact.break_block, fact.continue_block, fact.exit_block
     ];
-    let block_i: Int = 0;
+    var block_i: Int = 0;
     while block_i < ArrayLength(blocks) {
         if blocks[block_i] < 0 || blocks[block_i] >= fact.block_count {
             return false;
         }
-        let prior_block: Int = 0;
+        var prior_block: Int = 0;
         while prior_block < block_i {
             if blocks[prior_block] == blocks[block_i] { return false; }
             prior_block = prior_block + 1;
@@ -179,10 +179,10 @@ func DirectMirBreakCfgCertificateFactReady(
         fact.decision_global_row, fact.break_log_global_row,
         fact.break_global_row, fact.exit_log_global_row
     ];
-    let row_i: Int = 0;
+    var row_i: Int = 0;
     while row_i < ArrayLength(rows) {
         if rows[row_i] < 0 { return false; }
-        let prior_row: Int = 0;
+        var prior_row: Int = 0;
         while prior_row < row_i {
             if rows[prior_row] == rows[row_i] { return false; }
             prior_row = prior_row + 1;
@@ -218,8 +218,8 @@ func DirectMirBreakCfgCertificateFactFromIndex(
         Die("direct MIR break CFG inventory or loop-flow owner is invalid");
     }
 
-    let header: Int = 0 - 1;
-    let header_candidate: Int = 0;
+    var header: Int = 0 - 1;
+    var header_candidate: Int = 0;
     while header_candidate < block_count {
         if index.backedge_headers[header_candidate] == 1 {
             if header >= 0 {
@@ -233,8 +233,8 @@ func DirectMirBreakCfgCertificateFactFromIndex(
         Die("direct MIR break CFG header is missing");
     }
 
-    let preheader: Int = 0 - 1;
-    let predecessor: Int = 0;
+    var preheader: Int = 0 - 1;
+    var predecessor: Int = 0;
     while predecessor < block_count {
         if index.block_succ_true[predecessor] == header &&
             index.block_succ_false[predecessor] < 0 &&
@@ -250,7 +250,7 @@ func DirectMirBreakCfgCertificateFactFromIndex(
         Die("direct MIR break CFG preheader is missing");
     }
 
-    let continue_block: Int = 0 - 1;
+    var continue_block: Int = 0 - 1;
     predecessor = 0;
     while predecessor < block_count {
         if predecessor != preheader &&
@@ -289,9 +289,9 @@ func DirectMirBreakCfgCertificateFactFromIndex(
     let roles: Array<Int> = [
         preheader, header, decision, break_block, continue_block, exit
     ];
-    let role_i: Int = 0;
+    var role_i: Int = 0;
     while role_i < ArrayLength(roles) {
-        let prior_role: Int = 0;
+        var prior_role: Int = 0;
         while prior_role < role_i {
             if roles[prior_role] == roles[role_i] {
                 Die("direct MIR break CFG block roles overlap");
@@ -301,13 +301,13 @@ func DirectMirBreakCfgCertificateFactFromIndex(
         role_i = role_i + 1;
     }
 
-    let block: Int = 0;
+    var block: Int = 0;
     while block < block_count {
-        let expected_count: Int = 0;
-        let expected_branch: Int = 0;
-        let expected_phi: Int = 0;
-        let expected_backedge_header: Int = 0;
-        let expected_merge: Int = 0 - 1;
+        var expected_count: Int = 0;
+        var expected_branch: Int = 0;
+        var expected_phi: Int = 0;
+        var expected_backedge_header: Int = 0;
+        var expected_merge: Int = 0 - 1;
         if block == preheader || block == exit { expected_count = 1; }
         if block == header || block == decision || block == break_block {
             expected_count = 2;
@@ -344,9 +344,9 @@ func DirectMirBreakCfgCertificateFactFromIndex(
         ) != 2 {
         Die("direct MIR break CFG header phi is invalid");
     }
-    let preheader_incoming: String = "";
-    let backedge_incoming: String = "";
-    let incoming: Int = 0;
+    var preheader_incoming: String = "";
+    var backedge_incoming: String = "";
+    var incoming: Int = 0;
     while incoming < 2 {
         let definition_block: Int =
             phi.incoming_definition_blocks[incoming];
