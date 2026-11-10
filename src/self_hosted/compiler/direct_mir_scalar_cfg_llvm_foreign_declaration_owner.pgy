@@ -12,7 +12,7 @@ import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "mir_compound_assignment_readiness_owner.pgy";
 import "mir_compound_arithmetic_projection_owner.pgy";
-func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan, automatic_release: Bool) -> String {
+func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan) -> String {
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement = DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
     if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
     let slice_any: Bool = DirectMirScalarProgramSliceAnyReached(plan.program.expressions);
@@ -140,7 +140,10 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     if set_has { output = Concat(output, Concat("declare i1 @", Concat(
         CollectionSetRuntimeLlvmHasStringRawFn(), "(ptr, ptr)\n"))); }
     if collection { output = Concat(output, "declare ptr @realloc(ptr, i64)\n"); }
-    if collection || automatic_release { output = Concat(output, "declare void @free(ptr)\n"); }
+    // Released owned locals, collections and fresh String operands retired
+    // inside an expression all free; an unused declaration costs nothing.
+    output = Concat(output, "declare void @free(ptr)
+");
     if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present || slice_any { output = Concat(output, "declare void @abort()\n"); }
     output = Concat(output, DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(plan));
     // Storage materialization includes get even without a source-level read.

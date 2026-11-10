@@ -16,12 +16,6 @@ func DirectMirScalarCfgEmitProgramLlvm(
         Die("direct MIR scalar CFG program LLVM projection is invalid");
     }
     let lifetime: DirectMirOwnedLocalLifetimeFact = DirectMirOwnedLocalLifetimeFromPlan(plan);
-    var automatic_release: Bool = false;
-    var owned_local: Int = 0;
-    while owned_local < ArrayLength(lifetime.local_modes) {
-        if lifetime.local_modes[owned_local] > 0 { automatic_release = true; }
-        owned_local = owned_local + 1;
-    }
     let int_size: Int = DirectMirScalarLlvmFormatByteCount(int_line_format);
     let string_size: Int =
         DirectMirScalarLlvmFormatByteCount(string_line_format);
@@ -109,7 +103,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output, "\\00\", align 1\n");
     TextBuilderAppend(output, DirectMirScalarProgramLlvmStringGlobals(plan.program.expressions));
     TextBuilderAppend(output,
-        DirectMirScalarCfgLlvmForeignDeclarations(plan, automatic_release));
+        DirectMirScalarCfgLlvmForeignDeclarations(plan));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmRuntimeValueDeclarations(
             plan.program.expressions));

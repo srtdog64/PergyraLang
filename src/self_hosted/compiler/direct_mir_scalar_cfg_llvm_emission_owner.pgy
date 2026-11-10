@@ -71,7 +71,7 @@ func DirectMirScalarCfgEmitLlvm(
     output = Concat(output, DirectMirScalarCfgStringArrayLlvmGlobals(plan));
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanLlvmGlobals(plan));
-    output = Concat(output, DirectMirScalarCfgLlvmForeignDeclarations(plan, false));
+    output = Concat(output, DirectMirScalarCfgLlvmForeignDeclarations(plan));
     output = Concat(output,
         DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
     output = Concat(output, "\ndeclare i32 @");
