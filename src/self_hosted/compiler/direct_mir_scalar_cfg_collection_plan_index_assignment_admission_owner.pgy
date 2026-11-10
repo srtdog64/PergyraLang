@@ -153,7 +153,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             if type_row < 0 || transitions[type_row] >= 0 ||
                 !target.valid || target.index_literal == "" ||
                 target.index_name != "" || capture.name != "ssa-def" ||
-                capture.arg1 != "mutable_local" ||
+                capture.arg1 != "local" ||
                 capture.arg0 != expected_name ||
                 target.collection_name != capture.arg0 ||
                 capture.result == "" || capture.result == sources[type_row] ||

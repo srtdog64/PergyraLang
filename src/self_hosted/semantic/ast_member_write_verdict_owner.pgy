@@ -71,6 +71,11 @@ func SemanticAstCollectionCallWriteVerdict(
         target.name == "ArrayDrop" || target.name == "CompilerRetireArrayStorage" {
         return SemanticDiagnosticMessageFactEmpty();
     }
+    // A program function of the same name shadows the builtin (docs/205 R7);
+    // the call then changes nothing its argument names.
+    if MapHas(function_names.exact_first_rows, target.name) {
+        return SemanticDiagnosticMessageFactEmpty();
+    }
     return SemanticAstValueWriteVerdict(graph, call.argument_nodes[0], constructors,
         names, types, modes, function_names, function_returns, enum_values);
 }

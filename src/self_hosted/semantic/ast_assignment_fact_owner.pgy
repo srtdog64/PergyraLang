@@ -319,3 +319,12 @@ func SemanticAstAssignmentFactsContractReady() -> Bool {
         facts.target_root_names[2] == "box" &&
         facts.target_is_indexed[2] == 0;
 }
+
+// The MIR assignment carriage names where the target lives, as the native
+// producer writes it. Only a mutable binding reaches MIR, so the semantic
+// permission is not part of the carriage.
+func SemanticAssignmentMirCarriage(binding_mode: String) -> String {
+    if binding_mode == "mutable_local" { return "local"; }
+    if binding_mode == "mutable_owner_field" { return "owner_field"; }
+    return Concat("", binding_mode);
+}

@@ -174,7 +174,7 @@ func DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
         ) || initial.arg0 != identity.graph.local_name || initial.arg1 != "" ||
         initial.expr1 != CompilerAbiLayoutIntTypeName() ||
         assignment.arg0 != identity.graph.local_name ||
-        assignment.arg1 != "mutable_local" ||
+        assignment.arg1 != "local" ||
         assignment.expr1 != identity.graph.local_name ||
         !DirectMirArrayIntAssignmentTargetReady(
             assignment_target, identity.graph.local_name

@@ -60,7 +60,6 @@ func DirectMirScalarProgramLogicalRecordArrayIndexedTargetElementType(
         return "";
     }
     var path_carriage: String = target_carriage;
-    if path_carriage == "mutable_local" { path_carriage = "local"; }
     let path: DirectMirScalarProgramLogicalRecordMemberPathFact =
         DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
             graph, graph.arena.topology.left_children[root], target_name,
@@ -114,7 +113,7 @@ func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactsFromOwners(
         if admitted.routines.instruction_kinds[global] == "def" &&
                 admitted.routines.instruction_source_types[global] ==
                     "AST_ASSIGNMENT" &&
-                (capture.arg1 == "mutable_local" ||
+                (capture.arg1 == "local" ||
                  capture.arg1 == "inout_param") &&
                 IsSome(AssignmentOperationFromMirName(capture.name)) &&
                 capture.arg0 != "" && capture.result != "" &&
@@ -131,7 +130,7 @@ func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactsFromOwners(
                 parameter = parameter + 1;
             }
             if (capture.arg1 == "inout_param" && ordinal < 0) ||
-                (capture.arg1 == "mutable_local" && ordinal >= 0) {
+                (capture.arg1 == "local" && ordinal >= 0) {
                 return invalid;
             }
             let result: Int = DirectMirScalarCfgGraphValueRow(

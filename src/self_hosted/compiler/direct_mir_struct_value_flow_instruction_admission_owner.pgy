@@ -119,7 +119,7 @@ func DirectMirStructValueFlowInstructionAdmissionFromProgram(
         assignment.arg0 != identity.graph.source_local_name ||
         result.arg0 != identity.graph.result_local_name || output.arg0 != "Log" ||
         initial.arg1 != identity.declaration.name ||
-        assignment.arg1 != "mutable_local" ||
+        assignment.arg1 != "local" ||
         result.arg1 != identity.declaration.name || output.arg1 != "" ||
         returned.result != "" || returned.arg0 != "" || returned.arg1 != "" ||
         MirRoutineInstructionUseCountAtGlobal(main_uses, globals[0]) != 0 ||

@@ -118,7 +118,7 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
                         read.index_name != range.binding_name ||
                         read.index_literal >= 0 || capture.result == "" ||
                         capture.arg0 == "" ||
-                        capture.arg1 != "mutable_local" ||
+                        capture.arg1 != "local" ||
                         MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
                         !DirectMirScalarCfgArrayIntUseAt(
                             uses, global, 0, collection.collection_value_id

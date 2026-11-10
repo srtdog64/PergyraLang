@@ -68,7 +68,7 @@ func MirAssignmentBindingModesMatchSemanticFacts(
                 return false;
             }
         } else if !scalar.valid || scalar.arg1 == "" ||
-            scalar.arg1 != facts.target_binding_modes[assignment_i] {
+            scalar.arg1 != SemanticAssignmentMirCarriage(facts.target_binding_modes[assignment_i]) {
             return false;
         }
         assignment_i = assignment_i + 1;

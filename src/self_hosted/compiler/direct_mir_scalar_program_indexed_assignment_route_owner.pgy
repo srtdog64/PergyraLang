@@ -41,7 +41,7 @@ func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
         DirectMirScalarProgramLocalIndexedAssignmentElementType(
             capture.abi_type_name);
     if source != "AST_ASSIGNMENT" || wire_kind != "def" ||
-        capture.arg1 != "mutable_local" || element_type == "" {
+        capture.arg1 != "local" || element_type == "" {
         return unclaimed;
     }
     let graph: MirExpressionGraphSequence =

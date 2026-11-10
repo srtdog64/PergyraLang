@@ -81,14 +81,14 @@ cmp -s "$WORK_DIR/source.c.norm" "$WORK_DIR/public.c.norm" || fail "public C byp
 cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/source.ll" || fail "source LLVM differs from direct MIR"
 cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/public.ll" || fail "public LLVM differs from direct MIR"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/public-c.err" "$WORK_DIR/public-llvm.err" || fail "public route retried native pipeline"
-require_text "$WORK_DIR/source.c" 'static void pgy_scalar_routine_1(const char* pgy_param_0)'
-require_text "$WORK_DIR/source.c" 'pgy_scalar_routine_1(pgy_concat("left", "right"))'
-reject_text "$WORK_DIR/source.c" 'pgy_scalar_routine_1(&pgy_concat('
+require_text "$WORK_DIR/source.c" 'void Sink(const char* value)'
+require_text "$WORK_DIR/source.c" 'Sink(pgy_concat("left", "right"))'
+reject_text "$WORK_DIR/source.c" 'Sink(&pgy_concat('
 (cd "$ROOT_DIR" && "$DRIVER" "$ADDRESSABLE_REL" --emit-c-verified) \
     >"$WORK_DIR/addressable.c" 2>"$WORK_DIR/addressable.err" || fail "addressable source C failed"
-require_text "$WORK_DIR/addressable.c" 'static void pgy_scalar_routine_1(const char* pgy_param_0)'
-require_text "$WORK_DIR/addressable.c" 'pgy_scalar_routine_1(pgy_local_0)'
-reject_text "$WORK_DIR/addressable.c" 'pgy_scalar_routine_1(&pgy_local_0)'
+require_text "$WORK_DIR/addressable.c" 'void SinkAddressable(const char* value)'
+require_text "$WORK_DIR/addressable.c" 'SinkAddressable(value)'
+reject_text "$WORK_DIR/addressable.c" 'SinkAddressable(&value)'
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$BOOL_SOURCE_REL" \
     -o "$BOOL_MIR_REL") >"$WORK_DIR/readonly-bool-mir.out" \

@@ -236,7 +236,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     !expression.valid ||
                     (source == "AST_LET_DECL" && scalar.arg1 != "") ||
                     (source == "AST_ASSIGNMENT" &&
-                        scalar.arg1 != "mutable_local") ||
+                        scalar.arg1 != "local") ||
                     (source == "AST_ASSIGNMENT" &&
                         !DirectMirScalarCfgAssignmentTargetReady(
                             instruction, scalar.arg0

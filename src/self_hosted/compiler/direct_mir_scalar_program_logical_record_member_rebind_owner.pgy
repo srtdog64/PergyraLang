@@ -61,7 +61,6 @@ func DirectMirScalarProgramLogicalRecordMemberRebindTargetFromGraph(
         return invalid;
     }
     var path_carriage: String = target_carriage;
-    if path_carriage == "mutable_local" { path_carriage = "local"; }
     let path: DirectMirScalarProgramLogicalRecordMemberPathFact =
         DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
             graph, graph.roots[0], target_name, target_type, path_carriage,
@@ -141,7 +140,7 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
                 DirectMirScalarProgramLogicalRecordTypeReady(
                     record, capture.abi_type_name) &&
                 (capture.arg1 == "inout_param" || capture.arg1 ==
-                    "default_param" || capture.arg1 == "mutable_local") {
+                    "default_param" || capture.arg1 == "local") {
             var ordinal: Int = -1;
             var row: Int = 0;
             while row < signature.param_count {
@@ -153,7 +152,7 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
             }
             let parameter_target: Bool = capture.arg1 == "inout_param" || capture.arg1 == "default_param";
             if (parameter_target && ordinal < 0) ||
-                (capture.arg1 == "mutable_local" && ordinal >= 0) ||
+                (capture.arg1 == "local" && ordinal >= 0) ||
                 !IsSome(AssignmentOperationFromMirName(capture.name)) || capture.result == "" ||
                 !MirSsaNameMatches(capture.result, capture.arg0, false) {
                 return invalid;
@@ -197,7 +196,7 @@ func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
                     let prefix: Int =
                         DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
                             index, uses, global, capture.result, target_local,
-                            capture.arg1 == "mutable_local", locals, types);
+                            capture.arg1 == "local", locals, types);
                     if prefix < 0 { return invalid; }
                     ArrayPush(globals, global);
                     ArrayPush(members, target.member_ordinal);

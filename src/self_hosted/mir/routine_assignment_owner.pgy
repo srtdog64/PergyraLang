@@ -115,7 +115,8 @@ func SelfMirLowerAssignmentFromArtifact(
     let version: Int = build.local_versions[local_index];
     build = SelfMirRoutineAddInstruction(
         build, "def", UnwrapOption(opcode), SelfMirSsaName(target, version),
-        target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses
+        target, SemanticAssignmentMirCarriage(binding_mode), expression, target_text,
+        "AST_ASSIGNMENT", uses
     );
     build = SelfMirRoutineAttachLastPrimaryLocalRef(build, local_index);
     // The statement is this instruction's source: an indexed assignment's
