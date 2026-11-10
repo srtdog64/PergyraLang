@@ -109,8 +109,9 @@ for leg in native-llvm default-llvm; do
         fail "$leg IR keeps an alloca outside the entry block"
     fi
 done
-[[ "$(grep -Ec '^[[:space:]]+call void @pgy_map_drop_raw_export\(ptr %pgy.local.[0-9]+\)$' \
-        "$WORK_DIR/loop-default-llvm.ll")" == 2 ]] ||
+[[ "$(awk '/^[[:space:]]+call void @pgy_map_drop_raw_export\(ptr %pgy.local.[0-9]+\)$/ { drop = 1; next }
+           drop && /^[[:space:]]+ret / { exits++ } { drop = 0 }
+           END { print exits + 0 }' "$WORK_DIR/loop-default-llvm.ll")" == 2 ]] ||
     fail "default LLVM did not release both routine-local maps"
 # The storage this gate is about is present, so the checks above saw it.
 value_slots="$(grep -c '\.value = alloca ' "$WORK_DIR/loop-default-llvm.ll" || true)"
