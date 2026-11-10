@@ -31,10 +31,9 @@ Owner: Claude root lane. Checked 2026-11-10 23:30 KST at main `e875e9e90`.
    [collection_ownership_row]`; field `let` writes in the identity-cell probe;
    `effect_array_transform_valid` refused natively; `RcGet` has no retention
    row. The core shard has not been rerun since the claim fix.
-3. Backend compare: 7 native refusals remain of 23
-   (`subject_param_constructor_store`, `reflect_type_name`,
-   `generic_shadowed_argument_binding`, `option_of_result_consumers`,
-   `lambda_reduce`, `function_pointer_reduce`,
+3. Backend compare: 6 native refusals remain of 23 at `8a970305b`
+   (`reflect_type_name`, `generic_shadowed_argument_binding`,
+   `option_of_result_consumers`, `lambda_reduce`, `function_pointer_reduce`,
    `generic_default_ability_bind_dispatch`).
 4. Environment: after a memory exhaustion on 2026-11-10 the WSL distro
    restarts about two minutes into a heavy job. A `wsl --shutdown` by the
