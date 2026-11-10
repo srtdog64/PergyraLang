@@ -20,7 +20,7 @@ struct MirRoutineFactIndex {
     let block_ends: Array<Int>;
     let block_reachable: Array<Bool>;
     let backedge_headers: Array<Int>;
-    let block_succ_true: Array<Int>;
+    var block_succ_true: Array<Int>;
     let block_succ_false: Array<Int>;
     let block_has_conditional_branch: Array<Int>;
     let block_structural_merges: Array<Int>;

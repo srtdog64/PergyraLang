@@ -9,14 +9,14 @@ struct DirectMirRoutineParameterSetFact {
     let names: Array<String>;
     let source_syntax_ids: Array<Int>;
     let type_names: Array<String>;
-    let carriages: Array<String>;
+    var carriages: Array<String>;
     let resources: Array<String>;
-    let pass_shapes: Array<String>;
+    var pass_shapes: Array<String>;
     let abi_type_names: Array<String>;
     let abi_layout_ids: Array<Int>;
     let abi_required: Array<Bool>;
     let abi_row_keys: Array<String>;
-    let param_digests: Array<Int>;
+    var param_digests: Array<Int>;
     let first: DirectMirRoutineParamFact;
 }
 

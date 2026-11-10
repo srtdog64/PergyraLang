@@ -136,7 +136,7 @@ func IntentSignatureWithFirstParameterShape(
         parameters.param_digests, first);
     let changed: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
         true, 0, signature.row, signature.name, signature.kind, signature.source_syntax_id,
-        signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
+        signature.source_parameter_offset, signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
         signature.return_type, signature.param_count, sealed, first);
     return DirectMirRoutineSignatureFactWithDigest(changed, DirectMirRoutineSignatureFactDigest(changed));
 }
@@ -231,7 +231,7 @@ func Main() -> Void with caps env, io_read {
             }
             let ordinary: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
                 true, 0, signature.row, signature.name, "function", signature.source_syntax_id,
-                signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
+                signature.source_parameter_offset, signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
                 signature.return_type, signature.param_count, signature.parameters, signature.param);
             parameter = 0;
             while parameter < signature.param_count {

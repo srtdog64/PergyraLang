@@ -38,7 +38,7 @@ struct MirProgramRoutineIndex {
     let block_starts: Array<Int>;
     let block_ends: Array<Int>;
     let block_reachable: Array<Bool>;
-    let block_intent_roles: Array<String>;
+    var block_intent_roles: Array<String>;
     let block_succ_true: Array<Int>;
     let block_succ_false: Array<Int>;
     let block_instruction_starts: Array<Int>;
