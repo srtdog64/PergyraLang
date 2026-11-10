@@ -36,6 +36,7 @@ typedef struct {
     AllocatorUse *loans, *destroys;
     size_t loan_count, loan_capacity, destroy_count, destroy_capacity;
     bool failed, unsupported;
+    ASTNode *stale_summary;
 } LaneWalk;
 
 static bool use_add(LaneWalk *walk, AllocatorUse **rows, size_t *count, size_t *capacity,
@@ -90,14 +91,22 @@ static void record_call(LaneWalk *walk, ASTNode *call)
         return;
     }
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
+    bool compiler_builtin = ast_call_semantic_callee_builtin_kind(call, &kind) &&
+        kind != (uint32_t)BUILTIN_NOT_BUILTIN;
     for (size_t p = 0; p < ast_call_arg_count(call); p++) {
         uint32_t allocator = allocator_argument(ctx, call, p);
         if (allocator == 0 || semantic_param_publication_result_lane_argument(ctx, call, p)) continue;
-        (void)function_param_flow_summary_for_call(&lookup, call, p);
-        unsigned outward_effects = SLOT_PARAM_SUMMARY_NONE;
-        if (!function_param_flow_callee_outward_effects_current(&lookup, call,
+        /* The loan is a callee's summary returning the allocator formal it
+         * is passed. A compiler builtin has no such summary: finished text is
+         * recorded above, and no other builtin returns text of its allocator. */
+        if (compiler_builtin) continue;
+        /* Only a declared routine has an exact outward-effect row. A function
+         * value answers by its call summary. */
+        unsigned outward_effects = function_param_flow_summary_for_call(&lookup, call, p);
+        if (semantic_param_publication_callee(ctx, call, p) != NULL &&
+            !function_param_flow_callee_outward_effects_current(&lookup, call,
                 p, &outward_effects)) {
-            walk->failed = true;
+            walk->stale_summary = call;
             return;
         }
         if ((outward_effects & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0)
@@ -107,7 +116,7 @@ static void record_call(LaneWalk *walk, ASTNode *call)
 
 static void collect(LaneWalk *walk, ASTNode *node)
 {
-    if (node == NULL || walk->failed) return;
+    if (node == NULL || walk->failed || walk->stale_summary != NULL) return;
     if (node->type == AST_FUNC_DECL || node->type == AST_CLASS_DECL || node->type == AST_ENUM_DECL) return;
     if (node->type == AST_CALL) record_call(walk, node);
     bool supported = false;
@@ -245,7 +254,7 @@ bool semantic_allocator_lane_loan_finalize(SemanticContext *ctx)
     ASTNode *previous_decl = ctx->current_function_decl;
     const char *previous_module = ctx->current_module_path;
     LaneWalk walk = {.ctx = ctx};
-    for (size_t r = 0; r < view.routine_count && !walk.failed; r++) {
+    for (size_t r = 0; r < view.routine_count && !walk.failed && walk.stale_summary == NULL; r++) {
         const PendingRoutine *row = &view.routines[r];
         if (row->decl == NULL || ast_func_body(row->decl) == NULL) continue;
         ctx->current_function_decl = row->decl;
@@ -254,12 +263,15 @@ bool semantic_allocator_lane_loan_finalize(SemanticContext *ctx)
         walk.loan_count = walk.destroy_count = 0;
         walk.unsupported = false;
         collect(&walk, ast_func_body(row->decl));
-        if (!walk.failed) check_routine(&walk);
+        if (!walk.failed && walk.stale_summary == NULL) check_routine(&walk);
     }
     free(walk.loans);
     free(walk.destroys);
     ctx->current_function_decl = previous_decl;
     ctx->current_module_path = previous_module;
     if (walk.failed) semantic_error(ctx, ctx->program_root, "Allocator lane loan check allocation failed");
+    else if (walk.stale_summary != NULL)
+        semantic_error(ctx, walk.stale_summary,
+            "Allocator lane loan check has no current outward-effect summary for this call's allocator argument");
     return !ctx->has_error;
 }
