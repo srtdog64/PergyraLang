@@ -26,14 +26,14 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         SemanticAstExpressionInvalidShape();
     var logical_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
-    var logical_graph: SemanticExpressionGraphView =
-        SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    var value_graph: SemanticExpressionGraphView =
-        SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    var arithmetic_graph: SemanticExpressionGraphView =
-        SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    // Each view keeps a graph of its own while the facts are read again below:
-    // a real sharing site (2026-10-25), so the copy is explicit.
+    // Roots in the one expression graph the facts own; a view would carry a
+    // whole copy of that graph for each of the three expressions.
+    var logical_root: Int = 0;
+    var value_root: Int = 0;
+    var arithmetic_root: Int = 0;
+    var logical_found: Bool = false;
+    var value_found: Bool = false;
+    var arithmetic_found: Bool = false;
     var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
@@ -46,44 +46,47 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
             logical_shape = SemanticAstExpressionShapeAt(
                 facts, i, AstExpressionLaneAtom()
             );
-            logical_graph = SemanticExpressionGraphViewAt(
-                Clone(facts.expression_graph), i, AstExpressionLaneAtom()
+            let root: Option<Int> = SemanticExpressionGraphRootAt(
+                facts.expression_graph, i, AstExpressionLaneAtom()
             );
+            if IsSome(root) { logical_root = UnwrapOption(root); logical_found = true; }
         }
         if facts.has_values[i] && StartsWith(
             facts.normalized_values[i], "Concat("
         ) {
-            value_graph = SemanticExpressionGraphViewAt(
-                Clone(facts.expression_graph), i, AstExpressionLaneValue()
+            let root: Option<Int> = SemanticExpressionGraphRootAt(
+                facts.expression_graph, i, AstExpressionLaneValue()
             );
+            if IsSome(root) { value_root = UnwrapOption(root); value_found = true; }
         }
         if facts.has_values[i] &&
             facts.normalized_values[i] == "1 + (2 * 3)" {
-            arithmetic_graph = SemanticExpressionGraphViewAt(
-                Clone(facts.expression_graph), i, AstExpressionLaneValue()
+            let root: Option<Int> = SemanticExpressionGraphRootAt(
+                facts.expression_graph, i, AstExpressionLaneValue()
             );
+            if IsSome(root) { arithmetic_root = UnwrapOption(root); arithmetic_found = true; }
         }
         i = i + 1;
     }
     let logical_root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        logical_graph.graph, logical_graph.root_id
+        facts.expression_graph, logical_root
     );
     let value_root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        value_graph.graph, value_graph.root_id
+        facts.expression_graph, value_root
     );
     let value_root_text: Option<String> = SemanticExpressionGraphNodeText(
-        value_graph.graph, value_graph.root_id
+        facts.expression_graph, value_root
     );
     let arithmetic_root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        arithmetic_graph.graph, arithmetic_graph.root_id
+        facts.expression_graph, arithmetic_root
     );
     let arithmetic_right: Option<Int> = SemanticExpressionGraphRightChild(
-        arithmetic_graph.graph, arithmetic_graph.root_id
+        facts.expression_graph, arithmetic_root
     );
     var arithmetic_right_kind: Option<Int> = None;
     if IsSome(arithmetic_right) {
         arithmetic_right_kind = SemanticExpressionGraphNodeKind(
-            arithmetic_graph.graph, UnwrapOption(arithmetic_right)
+            facts.expression_graph, UnwrapOption(arithmetic_right)
         );
     }
     return SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
@@ -108,13 +111,13 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         logical_shape.ok && logical_shape.logical_and_index == 6 &&
         logical_shape.logical_or_index == 17 &&
         logical_shape.equality_index == 29 && logical_shape.equality_is_not &&
-        logical_graph.ok && IsSome(logical_root_kind) &&
+        logical_found && IsSome(logical_root_kind) &&
         UnwrapOption(logical_root_kind) == AstExpressionNodeLogicalOr() &&
-        value_graph.ok && IsSome(value_root_kind) &&
+        value_found && IsSome(value_root_kind) &&
         UnwrapOption(value_root_kind) == AstExpressionNodeCallArgument() &&
         IsSome(value_root_text) &&
         UnwrapOption(value_root_text) == "Concat(\"None\", \"x\")" &&
-        arithmetic_graph.ok && IsSome(arithmetic_root_kind) &&
+        arithmetic_found && IsSome(arithmetic_root_kind) &&
         UnwrapOption(arithmetic_root_kind) == AstExpressionNodeAdd() &&
         IsSome(arithmetic_right) && IsSome(arithmetic_right_kind) &&
         UnwrapOption(arithmetic_right_kind) == AstExpressionNodeMultiply();
