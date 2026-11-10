@@ -6,6 +6,7 @@
 
 #include "llvm_expr_projection_path_helpers.h"
 #include "llvm_expr_constructor_calls.h"
+#include "llvm_expr_constructor_internal.h"
 #include "llvm_internal_api.h"
 
 static LLVMValueRef
@@ -41,8 +42,16 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
              * is the full struct value, not the bare i32 tag. */
             LLVMClassTypeEntry *ecls = llvm_lookup_class(ctx, enum_name);
             if (ecls != NULL && ecls->struct_type != NULL
-                && LLVMGetTypeKind(ecls->struct_type) == LLVMStructTypeKind)
-                return llvm_emit_constructor_call(node, ctx, field_name);
+                && LLVMGetTypeKind(ecls->struct_type) == LLVMStructTypeKind) {
+                /* The qualified receiver selected this variant. A member
+                 * access is not a call and carries no selected-call
+                 * identity for the constructor selection to read. */
+                LLVMValueRef value = llvm_emit_enum_variant_constructor(
+                    node, ctx, field_name);
+                return value != NULL || ctx->has_error ? value
+                    : llvm_member_access_error(ctx, node,
+                        "LLVM selected enum constructor could not be emitted");
+            }
             return LLVMConstInt(ctx->type_i32,
                 (unsigned long long)variant->value, 0);
         }
