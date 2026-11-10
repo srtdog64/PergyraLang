@@ -456,7 +456,7 @@ landing_rounds = {
     # The exact inout member receipt and its Clone are both selected in the
     # initial semantic pass; no replay is needed to materialize them.
     "aggregate_inout_direct_member_owned_push_valid": 0,
-    "aggregate_mutable_local_direct_member_owned_push_invalid": 1,
+    "aggregate_mutable_local_direct_member_owned_push_valid": 1,
     "ref_default_constructor_result_loan_copied_valid": 1,
     "ref_returned_nested_projection_copy_landed_valid": 2,
     "ref_field_array_set_batch_landed_valid": 1,
@@ -479,7 +479,7 @@ landing_rounds = {
     "aggregate_result_owned_field_push_valid": 0,
     # The store candidate is replayed once, then the missing exact receipt on
     # the mutable root remains a fail-closed borrow refusal.
-    "aggregate_result_mutable_root_field_push_invalid": 1,
+    "aggregate_result_mutable_root_field_push_valid": 0,
     "constructor_string_field_snapshot_before_finalize_landed_valid": 1,
     "nonowner_risk_owned_constructor_transfer_landed_valid": 1,
     "nonowner_risk_empty_descriptor_nested_transfer_landed_valid": 1,
@@ -1103,11 +1103,11 @@ release_lifetime_refusals = {
 paired = (
     ("aggregate_local_direct_member_owned_push_valid", True),
     ("aggregate_inout_direct_member_owned_push_valid", True),
-    ("aggregate_mutable_local_direct_member_owned_push_invalid", False),
+    ("aggregate_mutable_local_direct_member_owned_push_valid", True),
     ("ref_default_constructor_result_loan_copied_valid", True),
     ("ref_default_constructor_result_loan_uncopyable_invalid", False),
     ("aggregate_result_owned_field_push_valid", True),
-    ("aggregate_result_mutable_root_field_push_invalid", False),
+    ("aggregate_result_mutable_root_field_push_valid", True),
     ("ref_returned_nested_projection_copy_landed_valid", True),
     ("ref_field_array_set_batch_landed_valid", True),
     ("recursive_inout_independent_aggregate_result_preserves_descriptor_valid", True),
@@ -1566,7 +1566,7 @@ paired = (
     ("owned_string_array_literal_loop_recheck_valid", True),
     ("mixed_string_array_literal_loop_recheck_invalid", False),
     ("direct_member_default_owned_elements_valid", True),
-    ("direct_member_default_mutable_root_invalid", False),
+    ("direct_member_default_mutable_root_valid", True),
     ("by_value_array_popped_by_inout_callee_valid", True),
     ("by_value_array_handed_to_generic_reader_valid", True),
     ("inout_string_chain_popped_by_recursive_parser_valid", True),
@@ -1877,7 +1877,7 @@ paired = (
     ("default_aggregate_move_field_alias_passed_on_landed_valid", True),
     ("aggregate_member_local_chain_owned_push_valid", True),
     ("aggregate_member_landed_string_push_valid", True),
-    ("aggregate_member_landed_string_push_mutable_carrier_invalid", False),
+    ("aggregate_member_landed_string_push_mutable_carrier_valid", True),
     ("aggregate_inout_member_local_chain_owned_push_valid", True),
     ("aggregate_member_retaining_read_before_owned_push_invalid", False),
     ("aggregate_member_constructor_transfer_valid", True),
@@ -1894,7 +1894,9 @@ paired = (
     ("local_ref_string_carrier_moved_to_own_landed_valid", True),
     ("direct_ref_string_moved_to_own_invalid", False),
     ("local_aggregate_copy_moved_to_own_beside_refusal_invalid", False),
-    ("aggregate_member_mutable_local_chain_owned_push_invalid", False),
+    ("aggregate_member_mutable_local_chain_owned_push_valid", True),
+    ("aggregate_member_replaced_carrier_borrowed_source_invalid", False),
+    ("aggregate_result_replaced_root_borrowed_source_invalid", False),
     ("default_aggregate_move_loop_element_read_valid", True),
     ("default_aggregate_move_loop_element_store_invalid", False),
     ("default_aggregate_move_array_loop_element_store_invalid", False),
@@ -2290,50 +2292,6 @@ for name, valid in paired:
                     "Intent aggregate argument 1 cannot satisfy an owned String-array field requirement")):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit("intent aggregate boundary lost its fail-closed source proof refusal")
-        if name == "aggregate_member_mutable_local_chain_owned_push_invalid" and (
-                checked.stdout or len(errors) != 1 or
-                (errors[0].get("location", {}).get("line"),
-                 errors[0].get("location", {}).get("column")) != (14, 26) or
-                errors[0].get("message") !=
-                    "ArrayPushOwnedString cannot mutate escaped array storage in 'values'"):
-            sys.stderr.buffer.write(checked.stderr)
-            raise SystemExit("mutable aggregate carrier lost its fail-closed lineage refusal")
-        if name == "aggregate_member_landed_string_push_mutable_carrier_invalid" and (
-                checked.stdout or not any(
-                    (row.get("location", {}).get("line"),
-                     row.get("location", {}).get("column")) == (18, 30) and
-                    row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
-                    row.get("message") ==
-                        "A landed String copy has no exact private-push receipt"
-                    for row in errors)):
-            sys.stderr.buffer.write(checked.stderr)
-            raise SystemExit("landed copy bypassed the mutable aggregate carrier refusal")
-        if name == "aggregate_result_mutable_root_field_push_invalid" and (
-                checked.stdout or len(errors) != 1 or
-                (errors[0].get("location", {}).get("line"),
-                 errors[0].get("location", {}).get("column")) != (15, 22) or
-                errors[0].get("message") !=
-                    "A landed String copy has no exact private-push receipt"):
-            sys.stderr.buffer.write(checked.stderr)
-            raise SystemExit("aggregate-result push bypassed its mutable-root refusal")
-        if name == "direct_member_default_mutable_root_invalid" and (
-                checked.stdout or len(errors) != 1 or
-                (errors[0].get("location", {}).get("line"),
-                 errors[0].get("location", {}).get("column")) != (19, 39) or
-                not errors[0].get("message", "").startswith(
-                    "A moving default Array<String> actual requires current owned elements")):
-            sys.stderr.buffer.write(checked.stderr)
-            raise SystemExit("moving direct member bypassed its mutable-root refusal")
-        if name == "aggregate_mutable_local_direct_member_owned_push_invalid" and (
-                checked.stdout or not any(
-                    (row.get("location", {}).get("line"),
-                     row.get("location", {}).get("column")) == (9, 27) and
-                    row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
-                    row.get("message") ==
-                        "A landed String copy has no exact private-push receipt"
-                    for row in errors)):
-            sys.stderr.buffer.write(checked.stderr)
-            raise SystemExit("mutable direct-member receiver gained an unproved owned push")
         if name == "returned_borrowed_array_independent_push_invalid" and (
                 checked.stdout or len(errors) != 1 or
                 (errors[0].get("location", {}).get("line"),
@@ -3340,7 +3298,7 @@ wide_inputs = 6
 wide_formals = ", ".join(f"ref a{i}: Array<Int>" for i in range(wide_inputs)) + ", n: Int"
 wide_actuals = ", ".join(f"a{i}" for i in range(wide_inputs))
 def wide_body(other):
-    rows = ["    let out: Array<Int> = [];", "    let s: Int = 0;"]
+    rows = ["    var out: Array<Int> = [];", "    var s: Int = 0;"]
     rows += ["    s = s + " + " + ".join(f"a{(i + k) % wide_inputs}[0]" for i in range(wide_inputs)) + ";"
              for k in range(180)]
     rows += ["    if n > 0 {", f"        let rest: Array<Int> = {other}({wide_actuals}, n - 1);",

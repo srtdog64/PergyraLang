@@ -1,5 +1,5 @@
-// A mutable aggregate carrier cannot issue the formal-relative field path
-// needed to admit a compiler-landed String copy into its Array field.
+// An unreplaced `var` carrier issues the same formal-relative field path as a
+// `let` one, so a compiler-landed String copy may enter its Array field.
 struct Names {
     values: Array<String>;
 }

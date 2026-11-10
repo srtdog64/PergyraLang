@@ -1,5 +1,5 @@
-// A mutable aggregate root cannot issue the exact result identity needed by
-// a later field move: it may have been replaced before the owned push.
+// A `var` aggregate root that is never replaced keeps the exact result
+// identity of its initializer for the later field move and owned push.
 struct Rows {
     names: Array<String>;
 }

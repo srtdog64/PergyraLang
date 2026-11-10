@@ -1,5 +1,5 @@
-// A mutable carrier can be rebound before the field take, so its initializer
-// is not an authoritative path from the Array back to the formal.
+// `var` carriers that are never replaced still follow their initializers, so
+// the field take and the owned push keep the path from the Array to the formal.
 struct Names {
     values: Array<String>;
 }

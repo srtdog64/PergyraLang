@@ -1,0 +1,26 @@
+// A carrier actually replaced by a borrowed aggregate no longer follows its
+// initializer: the borrowed value cannot enter the state the routine returns.
+struct Names {
+    values: Array<String>;
+}
+
+struct State {
+    names: Names;
+}
+
+func Append(state: State, ref other: Names) -> State {
+    var names: Names = state.names;
+    names = other;
+    var values: Array<String> = names.values;
+    ArrayPushOwnedString(values, Concat("b", ""));
+    names.values = values;
+    state.names = names;
+    return state;
+}
+
+func Main() -> Int {
+    let other: Names = Names([Concat("x", "")]);
+    let state: State = State(Names([Concat("a", "")]));
+    let changed: State = Append(state, other);
+    return ArrayLength(changed.names.values) + ArrayLength(other.values);
+}

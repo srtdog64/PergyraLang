@@ -1,5 +1,6 @@
-// A mutable local aggregate root has no current formal-relative field proof;
-// matching the field spelling alone must not authorize an owned String push.
+// A `var` aggregate root that still holds its initializer is as exact a place
+// as a `let` one: permission to replace is not a replacement. The landed
+// String copy enters the Array field of that unchanged root.
 struct Rows {
     names: Array<String>;
 }

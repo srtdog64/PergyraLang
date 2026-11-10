@@ -1,0 +1,23 @@
+// A root actually replaced by a borrowed aggregate has lost the result
+// identity of its initializer: its field cannot be taken for an owned push.
+struct Rows {
+    names: Array<String>;
+}
+
+func MakeRows() -> Rows {
+    let names: Array<String> = [Concat("a", "")];
+    return Rows(names);
+}
+
+func Append(ref other: Rows) -> Void {
+    var rows: Rows = MakeRows();
+    rows = other;
+    var names: Array<String> = rows.names;
+    ArrayPush(names, Concat("b", ""));
+}
+
+func Main() -> Int {
+    let other: Rows = Rows([Concat("x", "")]);
+    Append(other);
+    return ArrayLength(other.names);
+}

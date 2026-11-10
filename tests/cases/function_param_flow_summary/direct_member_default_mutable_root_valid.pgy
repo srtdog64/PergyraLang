@@ -1,5 +1,5 @@
-// A mutable aggregate root can be rebound before the moving call. Matching a
-// field path alone must not manufacture an owned-element premise for it.
+// A `var` aggregate root that is not rebound before the moving call proves its
+// field's owned elements exactly as a `let` root does.
 struct Rows {
     names: Array<String>;
 }
