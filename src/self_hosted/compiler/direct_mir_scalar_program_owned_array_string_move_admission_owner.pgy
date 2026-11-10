@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_site_owner.pgy";
 
 func DirectMirScalarProgramOperationForExpression(
     ref storage: DirectMirScalarCfgProgramGraphStorage, graph: Int
@@ -59,12 +60,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                         expressions, node);
                 var ordinal: Int = 0;
                 while ordinal < callables.parameter_counts[callable_row] {
-                    let parameter: Int =
-                        callables.parameter_starts[callable_row] + ordinal;
-                    if callables.parameter_carriages[parameter] ==
-                            "owner-handle" &&
-                        callables.parameter_types[parameter] ==
-                            CompilerAbiLayoutArrayStringTypeName() {
+                    if DirectMirScalarProgramOwnedArrayStringMoveParameterReady(
+                            callables, callable_row, ordinal) {
                         if ordinal >= ArrayLength(arguments) ||
                             !DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
                                 expressions, graph, node) {

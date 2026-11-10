@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_site_owner.pgy";
 
 func DirectMirOwnedCollectionMemberMoveLifecycleReady(
     ref index: MirRoutineFactIndex, row: Int
@@ -210,6 +211,14 @@ func DirectMirOwnedCollectionBlockOutput(
                 return 0;
             }
             state = 4;
+        } else if DirectMirScalarProgramOwnedArrayStringMoveOperationMovesLocal(
+                callables, storage, expressions, operation, target) {
+            // An `own Array<String>` formal takes the current allocation; the
+            // program-wide move fact proves last use and cleanup skips it.
+            if state % 8 != 2 { return 0; }
+            var prior: Int = 0;
+            if state >= 8 { prior = 8; }
+            state = 4 + prior;
         }
         var receiver: Int = -1;
         let effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(
