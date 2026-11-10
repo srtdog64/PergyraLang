@@ -21,7 +21,7 @@ struct Keeper {
 
 func Main() -> Void {
     let world = AgentWorld(ToolZone(Session("acme", 0)));
-    let keeper: Keeper = Keeper(ToolZone(Session("scratch", 0)));
+    var keeper: Keeper = Keeper(ToolZone(Session("scratch", 0)));
     keeper.zone_ref = world.tools;
     world.Rotate("globex");
     keeper.zone_ref.session.Record();
