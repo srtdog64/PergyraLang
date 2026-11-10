@@ -80,7 +80,7 @@ func SprayOne(buf: SprayBuffer, kernel: SprayKernel, config: SprayConfig) -> Spr
 // 여러 버퍼에 같은 커널 한번에 dispatch
 func SprayAll(buffers: List<SprayBuffer>, kernel: SprayKernel, config: SprayConfig) -> List<SprayResult>
 {
-    let results: List<SprayResult> = ListNew();
+    var results: List<SprayResult> = ListNew();
     for buf in buffers
     {
         let r = SprayOne(buf, kernel, config);
@@ -92,7 +92,7 @@ func SprayAll(buffers: List<SprayBuffer>, kernel: SprayKernel, config: SprayConf
 // 성공 개수 집계
 func SpraySuccessCount(results: List<SprayResult>) -> Int
 {
-    let count: Int = 0;
+    var count: Int = 0;
     for r in results
     {
         if r.success

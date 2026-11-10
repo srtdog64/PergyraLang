@@ -17,7 +17,7 @@ func Consume(own values: Array<Int>) -> Int {
 
 func Main() -> Void {
     let pair: Pair = Pair(20, 22);
-    let value: Int = 1;
+    var value: Int = 1;
     let values: Array<Int> = [1, 2];
     Mutate(value);
     Log(ToString(value));

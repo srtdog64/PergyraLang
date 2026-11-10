@@ -1,7 +1,7 @@
 func Main() -> Void {
     let cur: Int = 0;
     let size: Int = 2;
-    let largest: Int = cur;
+    var largest: Int = cur;
     while true {
         let right: Int = 1;
         if right < size {

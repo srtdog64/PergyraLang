@@ -1,7 +1,7 @@
 func Main() -> Void {
     let files: Array<String> = DirWalk("src/self_hosted/lexer");
-    let hasMain: Bool = false;
-    let i: Int = 0;
+    var hasMain: Bool = false;
+    var i: Int = 0;
     while i < ArrayLength(files) {
         if StringContains(files[i], "lexer/main.pgy") {
             hasMain = true;

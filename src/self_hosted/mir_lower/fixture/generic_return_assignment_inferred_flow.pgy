@@ -7,7 +7,7 @@ func ReturnIdentity(return_value: Int) -> Int {
 }
 
 func Main() -> Void {
-    let result: Int = 0;
+    var result: Int = 0;
     result = Identity(41);
     Log(ToString(ReturnIdentity(result)));
 }

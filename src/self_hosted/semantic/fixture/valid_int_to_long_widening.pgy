@@ -4,7 +4,7 @@ func Grow(n: Int) -> Long {
 
 func Main() -> Int {
     let n: Int = 5;
-    let wide: Long = n;
+    var wide: Long = n;
     wide = n;
     let grown: Long = Grow(n);
     return 0;

@@ -5,7 +5,7 @@ func AddLong(x: Long, y: Long) -> Long {
 func Main() -> Void {
     let a: Long = 5;
     let b: Long = 7;
-    let c: Long = AddLong(a, b);
+    var c: Long = AddLong(a, b);
     let d: Long = 3L;
     Log(c);
     c = c + d;

@@ -30,8 +30,8 @@ func ClampScore(value: Int) -> Int {
 func SumScores(scores: Array<Int>) -> Int {
     // Locals are mutable by rebinding in the currently supported surface.
     // `var` also exists, but ordinary examples keep the older stable form.
-    let total: Int = 0;
-    let i: Int = 0;
+    var total: Int = 0;
+    var i: Int = 0;
 
     // Arrays use `Array<T>`, `ArrayLength(xs)`, and `xs[index]`.
     while i < ArrayLength(scores) {

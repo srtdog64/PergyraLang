@@ -22,7 +22,7 @@ func Main() -> Void {
     if (flag || other) && !other {
         Log("grouped");
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < 5 {
         if IsEven(i) {
             Log(ToString(i));

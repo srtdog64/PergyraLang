@@ -3,7 +3,7 @@ import "../../../../src/self_hosted/semantic/ast_expression_function_table_fact_
 
 func Main() -> Void
 {
-    let facts: SemanticAstExpressionFunctionTableFacts =
+    var facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(
             true, ["BorrowedCallable"], ["Void"], [""]);
     if !SemanticAstExpressionFunctionTableFactsReady(facts)

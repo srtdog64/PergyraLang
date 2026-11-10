@@ -4,8 +4,8 @@
 // 포인터 트리 대신 인덱스 트리를 사용한다.
 
 func Main() -> Void {
-    let parent: Array<Int> = [0, 1, 2, 3, 4, 5];
-    let rank: Array<Int> = [0, 0, 0, 0, 0, 0];
+    var parent: Array<Int> = [0, 1, 2, 3, 4, 5];
+    var rank: Array<Int> = [0, 0, 0, 0, 0, 0];
 
     // union(0, 1)
     let ra: Int = parent[0];

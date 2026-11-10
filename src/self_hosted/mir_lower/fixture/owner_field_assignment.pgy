@@ -1,6 +1,6 @@
 class Account {
     let id: Int;
-    let balance: Int;
+    var balance: Int;
 
     func Deposit(self, amount: Int) -> Int {
         balance = balance + amount;

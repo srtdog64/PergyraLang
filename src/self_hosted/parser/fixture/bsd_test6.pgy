@@ -1,5 +1,5 @@
-let running = true;
-let turn = 1;
+var running = true;
+var turn = 1;
 while running
 {
     let event = Random(4);

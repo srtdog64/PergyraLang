@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let s: String = "a";
+    var s: String = "a";
     s = Concat(s, "b");
     s = Concat(s, "c");
     Log(s);

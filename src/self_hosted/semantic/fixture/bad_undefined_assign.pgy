@@ -1,4 +1,4 @@
 func Main() -> Void {
-    let x: Int = 1;
+    var x: Int = 1;
     x = nope;
 }

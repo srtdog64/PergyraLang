@@ -1,13 +1,13 @@
 func Main() -> Void {
-    let items: List<Int> = ListNew();
+    var items: List<Int> = ListNew();
     ListPush(items, 3);
     ListPush(items, 4);
 
-    let seen: Set<Int> = SetNew();
+    var seen: Set<Int> = SetNew();
     SetAdd(seen, 3);
     SetAdd(seen, 9);
 
-    let table: HashMap<Int, Int> = MapNew();
+    var table: HashMap<Int, Int> = MapNew();
     MapSet(table, 3, 30);
     MapSet(table, 4, 40);
 

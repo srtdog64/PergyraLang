@@ -1,5 +1,5 @@
 func RunMatch(x: Int) -> Int {
-    let value: Int = 0;
+    var value: Int = 0;
     match x {
         case 1: value = 10;
         case 2: value = 20;

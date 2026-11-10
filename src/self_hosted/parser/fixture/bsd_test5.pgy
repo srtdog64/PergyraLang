@@ -1,4 +1,4 @@
-let running = true;
+var running = true;
 while running
 {
     Log("tick");

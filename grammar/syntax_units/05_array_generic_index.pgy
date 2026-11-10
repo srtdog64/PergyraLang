@@ -17,8 +17,8 @@
 // - Indexing returns the element at that position.
 
 func Sum(values: Array<Int>) -> Int {
-    let i: Int = 0;
-    let total: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
 
     while i < ArrayLength(values) {
         total = total + values[i];

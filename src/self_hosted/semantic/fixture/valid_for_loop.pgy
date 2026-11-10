@@ -1,5 +1,5 @@
 func Main() -> Int {
-    let sum: Int = 0;
+    var sum: Int = 0;
     for i in 0..3 {
         sum = sum + i;
     }

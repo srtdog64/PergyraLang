@@ -7,7 +7,7 @@ func IsEven(x: Int) -> Bool {
 }
 
 func Main() -> Void {
-    let nums: Array<Int> = [5, 3, 1, 4, 2];
+    var nums: Array<Int> = [5, 3, 1, 4, 2];
     let sorted: Array<Int> = ArraySort(nums);
     for n in sorted {
         Log(n);

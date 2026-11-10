@@ -3,7 +3,7 @@ func Summary() -> String {
 }
 
 func Main() -> Void {
-    let output: String = "";
+    var output: String = "";
     output = Concat("head:", Summary());
     Log(output);
 }

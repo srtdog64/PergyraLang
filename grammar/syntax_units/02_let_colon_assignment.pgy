@@ -16,7 +16,7 @@
 // - `;` ends ordinary statements inside function bodies.
 
 func Main() -> Void {
-    let count: Int = 1;
+    var count: Int = 1;
     let label: String = "count=";
 
     count = count + 2;

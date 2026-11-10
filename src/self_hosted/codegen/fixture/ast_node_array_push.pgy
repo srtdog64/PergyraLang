@@ -6,7 +6,7 @@ struct CodegenAstTextNode {
 }
 
 func Main() -> Void {
-    let nodes: Array<CodegenAstTextNode> = [];
+    var nodes: Array<CodegenAstTextNode> = [];
     ArrayPush(nodes, CodegenAstTextNode(2, "Let", 0, 8));
     Log(ToString(ArrayLength(nodes)));
 }

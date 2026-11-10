@@ -7,10 +7,10 @@ func Main() -> Void {
     let values: Array<Int> = [3, 5, 8, 13, 21, 34, 55];
 
     // search 21
-    let left: Int = 0;
-    let right: Int = ArrayLength(values) - 1;
+    var left: Int = 0;
+    var right: Int = ArrayLength(values) - 1;
     let target: Int = 21;
-    let found: Int = -1;
+    var found: Int = -1;
 
     while left <= right {
         let mid: Int = (left + right) / 2;
@@ -34,7 +34,7 @@ func Main() -> Void {
     left = 0;
     right = ArrayLength(values) - 1;
     let missing_target: Int = 7;
-    let missing: Int = -1;
+    var missing: Int = -1;
 
     while left <= right {
         let mid2: Int = (left + right) / 2;

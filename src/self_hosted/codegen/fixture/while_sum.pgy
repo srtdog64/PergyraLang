@@ -1,7 +1,7 @@
 func Main() -> Void {
     let n: Int = 5;
-    let sum: Int = 0;
-    let i: Int = 1;
+    var sum: Int = 0;
+    var i: Int = 1;
     while i <= n {
         sum = sum + i;
         i = i + 1;

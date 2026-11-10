@@ -14,16 +14,16 @@ func Main() -> Void {
     // keys[i]   = i번째 버킷의 키
     // vals[i]   = i번째 버킷의 값
     // used[i]   = i번째 버킷 사용 여부 (1 = used, 0 = empty)
-    let keys: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
-    let vals: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
-    let used: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+    var keys: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+    var vals: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+    var used: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
     let cap: Int = 16;
 
     // ---- PUT: 키-값 삽입 ----
     // put(42, 100)
     let k1: Int = 42;
     let v1: Int = 100;
-    let h1: Int = k1 % cap;
+    var h1: Int = k1 % cap;
     // 선형 탐사: 빈 버킷을 찾을 때까지
     while used[h1] == 1 {
         if keys[h1] == k1 {
@@ -38,7 +38,7 @@ func Main() -> Void {
     // put(7, 200)
     let k2: Int = 7;
     let v2: Int = 200;
-    let h2: Int = k2 % cap;
+    var h2: Int = k2 % cap;
     while used[h2] == 1 {
         if keys[h2] == k2 {
             break;
@@ -52,7 +52,7 @@ func Main() -> Void {
     // put(23, 300) — 23 % 16 = 7, 충돌! 선형 탐사로 다음 슬롯
     let k3: Int = 23;
     let v3: Int = 300;
-    let h3: Int = k3 % cap;
+    var h3: Int = k3 % cap;
     while used[h3] == 1 {
         if keys[h3] == k3 {
             break;
@@ -65,9 +65,9 @@ func Main() -> Void {
 
     // ---- GET: 키로 값 검색 ----
     // get(42) → 100
-    let gk: Int = 42;
-    let gi: Int = gk % cap;
-    let gval: Int = -1;
+    var gk: Int = 42;
+    var gi: Int = gk % cap;
+    var gval: Int = -1;
     while used[gi] == 1 {
         if keys[gi] == gk {
             gval = vals[gi];
@@ -94,7 +94,7 @@ func Main() -> Void {
     gk = 99;
     gi = gk % cap;
     gval = -1;
-    let probe: Int = 0;
+    var probe: Int = 0;
     while used[gi] == 1 {
         if keys[gi] == gk {
             gval = vals[gi];

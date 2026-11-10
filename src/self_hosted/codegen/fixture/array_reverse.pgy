@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let nums: Array<Int> = [3, 1, 2];
+    var nums: Array<Int> = [3, 1, 2];
     let reversed: Array<Int> = ArrayReverse(nums);
     Log(ArrayLength(reversed));
     Log(reversed[0]);

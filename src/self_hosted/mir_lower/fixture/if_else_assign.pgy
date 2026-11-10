@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let value: Int = 0;
+    var value: Int = 0;
     if false {
         value = 1;
     } else {

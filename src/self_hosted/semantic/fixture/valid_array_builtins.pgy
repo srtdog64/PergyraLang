@@ -7,11 +7,11 @@ func IsPositive(value: Int) -> Bool {
 }
 
 func Main() -> Int {
-    let xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     ArrayPush(xs, 1);
     ArraySet(xs, 0, 2);
     let value: Int = xs[0];
-    let sorted: Array<Int> = ArraySort(xs);
+    var sorted: Array<Int> = ArraySort(xs);
     let reversed: Array<Int> = ArrayReverse(sorted);
     let mapped: Array<Int> = ArrayMap(reversed, Identity);
     let filtered: Array<Int> = ArrayFilter(mapped, IsPositive);

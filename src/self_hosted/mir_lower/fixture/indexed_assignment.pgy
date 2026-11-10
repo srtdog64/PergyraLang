@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let values: Array<Int> = [1, 2];
+    var values: Array<Int> = [1, 2];
     let i: Int = 0;
     let j: Int = 1;
     values[i] = values[j];

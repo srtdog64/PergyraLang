@@ -16,8 +16,8 @@
 // - Assignments inside the block remain ordinary statements.
 
 func CountUp(limit: Int) -> Int {
-    let i: Int = 0;
-    let total: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
 
     while i < limit {
         if i < 3 {

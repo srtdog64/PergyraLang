@@ -1,5 +1,5 @@
 let x = 1;
-let running = true;
+var running = true;
 while running
 {
     if x == 0
