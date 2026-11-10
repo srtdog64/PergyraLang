@@ -279,7 +279,8 @@ negative_rows=(
     "defer_multipart.wrong-count|defer body part is out of order: 2/3"
     "defer_multipart.nonconsecutive|defer body part is missing: 2/2"
     "let_log.nameless-let|local declaration is missing its binding-name fact"
-    "let_log.cleanup-kind|instruction kind has no statement rendering"
+    # A cleanup row now reaches the retirement-fact owner before rendering.
+    "let_log.cleanup-kind|cleanup instruction is missing its validated retirement fact"
     # A present string array with a non-string element used to read as
     # its (here empty) prefix.
     "let_log.non-string-use|MIR string array fact is malformed: uses"
