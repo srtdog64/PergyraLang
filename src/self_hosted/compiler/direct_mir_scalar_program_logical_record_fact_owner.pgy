@@ -33,7 +33,7 @@ struct DirectMirScalarProgramLogicalRecordFact {
     let field_payload_free_enums: Array<Int>;
     let physical: DirectMirScalarProgramRecordAbiCarriage;
     // Sibling carriage only: passive row/type lookup never claims these cells.
-    let identity_cells: DirectMirIdentityCellFacts;
+    var identity_cells: DirectMirIdentityCellFacts;
     let validation: DirectMirScalarProgramLogicalRecordValidationReceipt;
 }
 func DirectMirScalarProgramLogicalRecordFactInvalid() -> DirectMirScalarProgramLogicalRecordFact {

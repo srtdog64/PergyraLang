@@ -13,17 +13,17 @@ struct DirectMirScalarProgramExpressionSet {
     let graph_starts: Array<Int>;
     let graph_counts: Array<Int>;
     let graph_roots: Array<Int>;
-    let node_kinds: Array<Int>;
+    var node_kinds: Array<Int>;
     let node_types: Array<String>;
     let node_lefts: Array<Int>;
-    let node_rights: Array<Int>;
+    var node_rights: Array<Int>;
     let node_local_rows: Array<Int>;
     let node_parameter_ordinals: Array<Int>;
     let node_member_ordinals: Array<Int>;
     let node_literals: Array<String>;
     let node_callable_rows: Array<Int>;
     let node_runtime_call_abi_ids: Array<Int>;
-    let nary_operands: DirectMirScalarProgramNaryOperands;
+    var nary_operands: DirectMirScalarProgramNaryOperands;
 }
 
 // One typed literal route either recognizes its source graph and returns the

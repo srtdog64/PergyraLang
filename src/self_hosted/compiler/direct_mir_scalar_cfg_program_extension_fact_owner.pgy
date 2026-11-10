@@ -31,7 +31,7 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let valid: Bool;
     let digest: Int;
     let callable: DirectMirScalarCfgProgramCallableFact;
-    let expressions: DirectMirScalarProgramExpressionSet;
+    var expressions: DirectMirScalarProgramExpressionSet;
     let block_condition_expression_rows: Array<Int>;
     let operation_expression_rows: Array<Int>;
     let operation_secondary_expression_rows: Array<Int>;
@@ -43,7 +43,7 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let result_abi: DirectMirScalarResultAbiSet;
     let option_string_abi: DirectMirOptionMatchAbiFact;
     let option_bool_abi: DirectMirOptionMatchAbiFact;
-    let logical_record: DirectMirScalarProgramLogicalRecordFact;
+    var logical_record: DirectMirScalarProgramLogicalRecordFact;
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact;
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
     let opaque_readonly_zones: DirectMirScalarProgramOpaqueReadonlyZoneFact;

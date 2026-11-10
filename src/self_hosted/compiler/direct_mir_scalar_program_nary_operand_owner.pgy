@@ -5,7 +5,7 @@ struct DirectMirScalarProgramNaryOperands {
     let node_rows: Array<Int>;
     let starts: Array<Int>;
     let counts: Array<Int>;
-    let operand_rows: Array<Int>;
+    var operand_rows: Array<Int>;
 }
 
 func DirectMirScalarProgramNaryOperandsEmpty(

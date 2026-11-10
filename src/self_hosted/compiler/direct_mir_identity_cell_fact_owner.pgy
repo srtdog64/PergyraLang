@@ -23,7 +23,7 @@ struct DirectMirIdentityCellFacts {
     let field_names: Array<String>;
     let field_types: Array<String>;
     let field_source_syntax_ids: Array<Int>;
-    let field_kinds: Array<String>;
+    var field_kinds: Array<String>;
 }
 
 func DirectMirIdentityCellFactsDigest(ref fact: DirectMirIdentityCellFacts) -> Int {
