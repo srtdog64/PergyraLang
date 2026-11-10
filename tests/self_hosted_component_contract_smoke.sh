@@ -2973,7 +2973,7 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_projection_owner.pgy:220 \
     src/self_hosted/compiler/driver_mir_c_request_identity_owner.pgy:140 \
     src/self_hosted/compiler/driver_mir_c_payload_admission_owner.pgy:100 \
-    src/self_hosted/mir_lower/collection_ownership_binding_move_fact_owner.pgy:120 \
+    src/self_hosted/mir_lower/collection_ownership_binding_move_fact_owner.pgy:151 \
     src/self_hosted/mir_lower/collection_ownership_binding_move_query_owner.pgy:60 \
     src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy:200 \
     src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy:165 \

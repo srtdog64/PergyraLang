@@ -67,13 +67,47 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
                 routines.instruction_kinds[instruction] == "def" &&
                 routines.instruction_source_types[instruction] ==
                     "AST_LET_DECL";
+            let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
+                routines.source_json, routines.source_json_extent, start, end, "uses");
             var binding: Int = 0;
             if declaration {
                 binding = MirCollectionOwnershipBindingForLocalName(
                     local_names, local_binding_syntax_ids, local_name);
             }
-            let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
-                routines.source_json, routines.source_json_extent, start, end, "uses");
+            // A mutable local takes later versions from its assignments and
+            // from the phi that joins them; each is still that binding's value.
+            var version: Int = 0;
+            if routines.instruction_kinds[instruction] == "def" &&
+                routines.instruction_source_types[instruction] == "AST_ASSIGNMENT" {
+                version = MirCollectionOwnershipBindingForLocalName(
+                    local_names, local_binding_syntax_ids, local_name);
+            }
+            if routines.instruction_kinds[instruction] == "phi" && ArrayLength(uses) > 0 {
+                var operand: Int = 0;
+                version = 0 - 1;
+                while operand < ArrayLength(uses) && version != 0 {
+                    var operand_binding: Int = 0;
+                    if MapHas(value_bindings, uses[operand]) {
+                        operand_binding = MapGet(value_bindings, uses[operand]);
+                    }
+                    if operand_binding <= 0 || (version > 0 && operand_binding != version) {
+                        version = 0;
+                    } else {
+                        version = operand_binding;
+                    }
+                    operand = operand + 1;
+                }
+                if version < 0 { version = 0; }
+            }
+            if version > 0 && result != "" {
+                if MapHas(value_bindings, result) {
+                    valid = false;
+                } else {
+                    MapSet(value_bindings, result, version);
+                    ArrayPush(definition_values, result);
+                    ArrayPush(definition_bindings, version);
+                }
+            }
             if binding > 0 && result != "" {
                 if MapHas(value_bindings, result) {
                     valid = false;
