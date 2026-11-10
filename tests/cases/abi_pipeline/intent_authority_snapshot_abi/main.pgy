@@ -7,7 +7,7 @@ extern "C" {
 
 within PaymentZone {
     subject Buyer {
-        let hp: Int;
+        var hp: Int;
 
         action Approve(self) -> Void
             authorized by self
