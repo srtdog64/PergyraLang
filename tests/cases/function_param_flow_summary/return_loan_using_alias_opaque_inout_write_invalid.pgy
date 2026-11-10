@@ -1,12 +1,11 @@
-// Both using names identify held's one local owner. Mutation through the
-// second alias preserves it, so the final Slot handoff needs no copy landing.
+// `using` binds an immutable name, so an alias of a `var` carries no write
+// authority: handing it to an opaque inout call is refused at the argument.
 extern "C" { func Fill(inout text: String) -> Void; }
 func Echo(ref text: String) -> String { return text; }
 func Publish(ref output: Slot<String>) -> Void {
     var held: String = "literal";
-    using held as first;
-    using first as second;
-    Fill(second);
+    using held as alias;
+    Fill(alias);
     Write(output, Echo(held));
 }
 func Main() -> Void {

@@ -246,10 +246,7 @@ landed_clones = {
     "return_loan_mutated_literal_opaque_slot_valid": {"Publish": 0},
     "return_loan_mutated_literal_assignment_valid": {"Publish": 0},
     "return_loan_mutated_literal_bodyful_inout_valid": {"Publish": 0},
-    "return_loan_mutated_literal_two_aliases_valid": {"Publish": 0},
     "return_loan_site_two_aliases_valid": {"Publish": 0},
-    "return_loan_two_alias_assignment_valid": {"Publish": 0},
-    "return_loan_using_alias_opaque_inout_valid": {"Publish": 0},
     "local_ref_string_carrier_moved_to_own_landed_valid": {"BorrowText": 1},
     # Every reaching replacement and the final return of one mutable String
     # crosses an exact retention boundary. The definition owner lands those
@@ -641,11 +638,8 @@ landing_rounds = {
     "return_loan_mutated_literal_bodyful_inout_valid": 0,
     "return_loan_mutated_literal_opaque_inout_landed_valid": 1,
     "return_loan_mutated_literal_opaque_slot_valid": 0,
-    "return_loan_mutated_literal_two_aliases_valid": 0,
     "return_loan_site_two_aliases_valid": 0,
     "return_loan_staged_slot_valid": 0,
-    "return_loan_two_alias_assignment_valid": 0,
-    "return_loan_using_alias_opaque_inout_valid": 0,
     "return_loan_wrap_slot_landed_valid": 1,
     "stdlib_tostring_string_forward_landed_valid": 1,
     "match_payload_return_moves_landed_valid": 1,
@@ -753,6 +747,7 @@ landing_rounds = {
 }
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
+immutable_refusal = ("PGY_SEM_IMMUTABLE_BINDING_WRITE", "semantic:immutable_binding:write")
 builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch")
 # Exact emitted diagnostics for the reached release/retention cases. In
 # particular, a stale read can also trigger a checked builtin-arity cascade;
@@ -1099,6 +1094,10 @@ release_lifetime_refusals = {
     # the caller's pre-existing borrowed elements deep-drop safe.
     "inout_mixed_owned_string_result_borrowed_invalid": [
         (*borrow_refusal, 22, 17)],
+    # A using alias is an immutable name, even of a `var` (2026-11-08 binding rule).
+    "return_loan_using_alias_opaque_inout_write_invalid": [(*immutable_refusal, 8, 10)],
+    "return_loan_mutated_literal_two_aliases_write_invalid": [(*immutable_refusal, 9, 10)],
+    "return_loan_two_alias_assignment_write_invalid": [(*immutable_refusal, 9, 5)],
     # An inout formal may change while the loan lives, so it is not lent.
 }
 paired = (
@@ -1468,10 +1467,10 @@ paired = (
     ("return_loan_mutated_literal_opaque_inout_landed_valid", True),
     ("return_loan_mutated_literal_assignment_valid", True),
     ("return_loan_mutated_literal_bodyful_inout_valid", True),
-    ("return_loan_using_alias_opaque_inout_valid", True),
-    ("return_loan_mutated_literal_two_aliases_valid", True),
+    ("return_loan_using_alias_opaque_inout_write_invalid", False),
+    ("return_loan_mutated_literal_two_aliases_write_invalid", False),
     ("return_loan_site_two_aliases_valid", True),
-    ("return_loan_two_alias_assignment_valid", True),
+    ("return_loan_two_alias_assignment_write_invalid", False),
     ("return_loan_ordinary_copy_opaque_inout_valid", True),
     ("return_loan_literal_slot_valid", True),
     ("return_loan_read_static_local_valid", True),

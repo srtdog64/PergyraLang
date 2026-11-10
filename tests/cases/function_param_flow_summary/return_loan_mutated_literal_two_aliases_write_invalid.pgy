@@ -1,11 +1,12 @@
-// The opaque inout call mutates the one local owner through an alias. Echo
-// lends the resulting local value and the Slot receives its ownership.
+// Both using names are immutable, whatever held is. Mutating held through the
+// second alias by an opaque inout call is refused at the argument.
 extern "C" { func Fill(inout text: String) -> Void; }
 func Echo(ref text: String) -> String { return text; }
 func Publish(ref output: Slot<String>) -> Void {
     var held: String = "literal";
-    using held as alias;
-    Fill(alias);
+    using held as first;
+    using first as second;
+    Fill(second);
     Write(output, Echo(held));
 }
 func Main() -> Void {

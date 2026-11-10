@@ -1,5 +1,5 @@
-// Assignment through the second alias replaces held's local value but not its
-// ownership identity. The Slot receives that local owner without a Clone.
+// Assigning through the second using alias rebinds an immutable name and is
+// refused, though held itself is a `var`.
 extern "C" { func Fill(inout text: String) -> Void; }
 func Echo(ref text: String) -> String { return text; }
 func Publish(ref output: Slot<String>) -> Void {
