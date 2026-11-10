@@ -143,8 +143,8 @@ func Describe(code: Int) -> Void {
     if IsSome(c) {
         let s: String = UnwrapOption(c);
         let n: Int = StringLength(s);
-        let text: String = ToString(code) + ":" + ToString(n);
-        let i: Int = 0;
+        var text: String = ToString(code) + ":" + ToString(n);
+        var i: Int = 0;
         while i < n {
             text = text + " " + ToString(CharCode(s, n, i));
             i = i + 1;
