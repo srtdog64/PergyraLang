@@ -6,6 +6,7 @@
 
 #include "llvm_expr_call_methods_domain_slice.h"
 #include "llvm_expr_constructor_calls.h"
+#include "llvm_expr_constructor_internal.h"
 #include "llvm_expr_call_methods_vtable_dispatch.h"
 #include "llvm_expr_call_methods_world_effect_sync.h"
 #include "llvm_expr_call_projection_sync.h"
@@ -39,7 +40,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                ast_identifier_name(obj_node))
         && llvm_lookup_enum_variant_qualified(ctx,
                ast_identifier_name(obj_node), method_name) != NULL) {
-        return llvm_emit_constructor_call(node, ctx, method_name);
+        /* The qualified receiver selected the variant; the member call has
+         * no selected-call identity of its own to check against. */
+        LLVMValueRef variant = llvm_emit_enum_variant_constructor(
+            node, ctx, method_name);
+        if (variant != NULL || ctx->has_error)
+            return variant;
+        return llvm_member_call_error_recovery(ctx, node,
+            ast_identifier_name(obj_node), method_name,
+            "LLVM selected enum constructor could not be emitted");
     }
 
     handled = llvm_emit_member_call_vtable_dispatch(node, ctx, obj_node, method_name);
