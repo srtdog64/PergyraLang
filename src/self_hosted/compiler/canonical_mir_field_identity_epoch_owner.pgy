@@ -132,7 +132,11 @@ func CanonicalMirIdentityEpochBindDeclarationFields(
         }
         declaration_index = declaration_index + 1;
     }
-    return CanonicalMirDeclarationIdentityEpoch(true, declarations);
+    // field_ids is a copy of the rows' identities, not a view of them: the
+    // bound epoch carries the rebound identities in rows of its own.
+    var bound: SelfMirDeclarationRows = declarations;
+    bound.field_source_syntax_ids = field_ids;
+    return CanonicalMirDeclarationIdentityEpoch(true, bound);
 }
 
 func CanonicalMirIdentityEpochRemapField(
