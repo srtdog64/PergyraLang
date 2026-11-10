@@ -27,8 +27,8 @@ func CompilerTargetCapabilityMissingFactSelfTestMode() -> String {
 }
 
 func CompilerTargetCapabilityMissingFactSelfTestReport(found_count: Int) -> String {
-    let missing: Int = 0;
-    let findings: Array<String> = [];
+    var missing: Int = 0;
+    var findings: Array<String> = [];
     if found_count < 1 {
         missing = 1;
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_required_target_fact")]));
@@ -46,7 +46,7 @@ func CompilerTargetCapabilityMissingFactSelfTestReport(found_count: Int) -> Stri
 }
 
 func RunCompilerTargetCapabilityMissingFactSelfTest() -> Void {
-    let found_count: Int = 0;
+    var found_count: Int = 0;
     if CompilerTargetFactKnown("authority_evidence_missing") {
         found_count = 1;
     }
@@ -61,7 +61,7 @@ func CompilerTargetCapabilityFingerprintMutationSelfTestMode() -> String {
 }
 
 func RunCompilerTargetCapabilityFingerprintMutationSelfTest() -> Void {
-    let fact: CompilerTargetProjectionFact =
+    var fact: CompilerTargetProjectionFact =
         CompilerTargetProjectionFactFromOwner(CompilerTargetCpuCProjection());
     fact.target_capability_fingerprint =
         fact.target_capability_fingerprint + 1;
@@ -96,19 +96,19 @@ func Main() -> Void {
         "target_fingerprint=", ToString(CompilerTargetCapabilityFingerprint())
     ));
     Log(Concat("projection_count=", ToString(CompilerTargetProjectionCount())));
-    let projection_index: Int = 0;
+    var projection_index: Int = 0;
     while projection_index < CompilerTargetProjectionCount() {
         Log(CompilerTargetCapabilityProjectionManifestRowAt(projection_index));
         projection_index = projection_index + 1;
     }
     Log(Concat("fact_count=", ToString(CompilerTargetFactCount())));
-    let fact_index: Int = 0;
+    var fact_index: Int = 0;
     while fact_index < CompilerTargetFactCount() {
         Log(CompilerTargetCapabilityFactManifestRowAt(fact_index));
         fact_index = fact_index + 1;
     }
     Log(Concat("fallback_count=", ToString(CompilerTargetFallbackReasonCount())));
-    let fallback_index: Int = 0;
+    var fallback_index: Int = 0;
     while fallback_index < CompilerTargetFallbackReasonCount() {
         Log(CompilerTargetCapabilityFallbackManifestRowAt(fallback_index));
         fallback_index = fallback_index + 1;

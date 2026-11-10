@@ -22,17 +22,17 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let last_index: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
         facts, facts.node_ids[surface_count - 1]
     );
-    let additive_shape: SemanticAstExpressionShapeFact =
+    var additive_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
-    let logical_shape: SemanticAstExpressionShapeFact =
+    var logical_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
-    let logical_graph: SemanticExpressionGraphView =
+    var logical_graph: SemanticExpressionGraphView =
         SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    let value_graph: SemanticExpressionGraphView =
+    var value_graph: SemanticExpressionGraphView =
         SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    let arithmetic_graph: SemanticExpressionGraphView =
+    var arithmetic_graph: SemanticExpressionGraphView =
         SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    let i: Int = 0;
+    var i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
             additive_shape = SemanticAstExpressionShapeAt(
@@ -78,7 +78,7 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let arithmetic_right: Option<Int> = SemanticExpressionGraphRightChild(
         arithmetic_graph.graph, arithmetic_graph.root_id
     );
-    let arithmetic_right_kind: Option<Int> = None;
+    var arithmetic_right_kind: Option<Int> = None;
     if IsSome(arithmetic_right) {
         arithmetic_right_kind = SemanticExpressionGraphNodeKind(
             arithmetic_graph.graph, UnwrapOption(arithmetic_right)

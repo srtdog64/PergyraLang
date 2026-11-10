@@ -26,9 +26,9 @@ func DriverCliSourcePath(args: Array<String>) -> String {
 }
 
 func DriverCliArtifactMode(args: Array<String>) -> String {
-    let mode: String = DriverCliDefaultMode();
-    let saw_mode: Bool = false;
-    let i: Int = 1;
+    var mode: String = DriverCliDefaultMode();
+    var saw_mode: Bool = false;
+    var i: Int = 1;
     while i < ArrayLength(args) {
         let arg: String = args[i];
         if arg == "-o" {
@@ -51,9 +51,9 @@ func DriverCliArtifactMode(args: Array<String>) -> String {
 }
 
 func DriverCliOutputPath(args: Array<String>) -> String {
-    let out_path: String = "";
-    let saw_output: Bool = false;
-    let i: Int = 1;
+    var out_path: String = "";
+    var saw_output: Bool = false;
+    var i: Int = 1;
     while i < ArrayLength(args) {
         let arg: String = args[i];
         if arg == "-o" {

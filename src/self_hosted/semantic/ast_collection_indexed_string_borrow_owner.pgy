@@ -105,7 +105,7 @@ func SemanticAstIndexedStringBorrowCompleteValue(
         return true;
     }
     let root: Int = surfaces.expression_graph.roots[root_slot];
-    let incoming: Int = SemanticAstIndexedStringBorrowSourceForRoot(
+    var incoming: Int = SemanticAstIndexedStringBorrowSourceForRoot(
         artifact, locals, inferred_types, surfaces, definitions, storage,
         current_definitions, state.source_storage_ids, state.map_payload_sources, surface_row, root
     );

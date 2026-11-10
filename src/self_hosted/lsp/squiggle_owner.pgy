@@ -167,7 +167,7 @@ func LspSquiggleClassForDiagnostic(status: String, severity: String, stage: Stri
 }
 
 func LspSquigglePolicyCaseJson(name: String, status: String, severity: String, stage: String, code: String, facts: String) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("name", name));
     ArrayPush(fields, JsonEmitFieldString("code", code));
     ArrayPush(fields, JsonEmitFieldString("class", LspSquiggleClassForDiagnostic(status, severity, stage, code, facts)));
@@ -175,13 +175,13 @@ func LspSquigglePolicyCaseJson(name: String, status: String, severity: String, s
 }
 
 func LspSquigglePolicySnapshotJson() -> String {
-    let cases: Array<String> = [];
+    var cases: Array<String> = [];
     ArrayPush(cases, LspSquigglePolicyCaseJson("red-blocking-type", "error", "error", "semantic", "logical_operand_not_bool", ""));
     ArrayPush(cases, LspSquigglePolicyCaseJson("amber-axis", "ok", "advisory", "semantic", "subject_identity_shadowed", "- axis: role"));
     ArrayPush(cases, LspSquigglePolicyCaseJson("blue-erasure", "ok", "advisory", "air", "PGY_AIR_MEANING_ERASABLE", "- compression: SUMMARIZE"));
     ArrayPush(cases, LspSquigglePolicyCaseJson("violet-authority", "ok", "advisory", "semantic", "pin_escape", "- axis: authority"));
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspSquiggleSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", LspSquigglePolicyContractReady()));
     ArrayPush(fields, JsonEmitFieldRaw("cases", JsonEmitArray(cases)));

@@ -101,18 +101,18 @@ func Main() -> Void {
     // Reachability: five of seven lanes survive codegen (Inline is impossible
     // for a concurrent spawn boundary; Reject fail-closes the compile).
     Log(Concat("reachable_lanes=", ToString(ParallelLaneReachableCount())));
-    let lane: Int = 0;
+    var lane: Int = 0;
     while lane < ParallelLaneCount() {
         Log(ParallelLaneReachableRow(lane));
         lane = lane + 1;
     }
 
-    let required_index: Int = 0;
+    var required_index: Int = 0;
     while required_index < ParallelLaneRequiredCount() {
         Log(ParallelLaneRequiredRow(required_index));
         required_index = required_index + 1;
     }
-    let forbidden_index: Int = 0;
+    var forbidden_index: Int = 0;
     while forbidden_index < ParallelLaneForbiddenCount() {
         Log(ParallelLaneForbiddenRow(forbidden_index));
         forbidden_index = forbidden_index + 1;

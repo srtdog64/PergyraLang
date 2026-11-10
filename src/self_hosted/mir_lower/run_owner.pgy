@@ -26,7 +26,7 @@ func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read, io_writ
                 "usage: mir_lower --verify-input <mir-json-file> [machine-manifest-json-file]"
             );
         }
-        let declaration: SelfHostMachineLayerDeclaration =
+        var declaration: SelfHostMachineLayerDeclaration =
             SelfHostMachineLayerDeclarationEmpty();
         if ArrayLength(args) == 3 {
             declaration = SelfHostMachineLayerDeclarationFromPath(Concat("", args[2]));
@@ -38,7 +38,7 @@ func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read, io_writ
         return;
     }
     let path: String = MirJsonInputPath(args);
-    let declaration_path: String = "";
+    var declaration_path: String = "";
     if ArrayLength(args) > 1 { declaration_path = Concat("", args[1]); }
     let json: String = MirJsonReadInput(
         path, SelfHostMachineLayerDeclarationFromPath(declaration_path)

@@ -59,21 +59,21 @@ func LspDiagnosticSeverityNumber(severity: String) -> String {
 }
 
 func LspPositionJson(line: Int, character: Int) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldNumber("line", ToString(line)));
     ArrayPush(fields, JsonEmitFieldNumber("character", ToString(character)));
     return JsonEmitObject(fields);
 }
 
 func LspZeroRangeJson() -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldRaw("start", LspPositionJson(0, 0)));
     ArrayPush(fields, JsonEmitFieldRaw("end", LspPositionJson(0, 0)));
     return JsonEmitObject(fields);
 }
 
 func LspDiagnosticDataJson(block: String, squiggle: String) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     let code: String = LspDiagnosticField(block, "Code");
     if code == "parse_syntax" {
         ArrayPush(fields, JsonEmitFieldString("layer", "syntax"));
@@ -92,13 +92,13 @@ func LspDiagnosticJson(block: String) -> String {
     let severity: String = LspDiagnosticField(block, "Severity");
     let stage: String = LspDiagnosticField(block, "Stage");
     let code: String = LspDiagnosticField(block, "Code");
-    let wire_code: String = code;
+    var wire_code: String = code;
     if code == "parse_syntax" {
         wire_code = SemanticDiagnosticOracleCode(code);
     }
     let facts: String = LspDiagnosticFacts(block);
     let squiggle: String = LspSquiggleClassForDiagnostic(status, severity, stage, code, facts);
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldRaw("range", LspZeroRangeJson()));
     ArrayPush(fields, JsonEmitFieldNumber("severity", LspDiagnosticSeverityNumber(severity)));
     ArrayPush(fields, JsonEmitFieldString("code", wire_code));
@@ -109,7 +109,7 @@ func LspDiagnosticJson(block: String) -> String {
 }
 
 func LspDiagnosticsArrayJson(block: String) -> String {
-    let diagnostics: Array<String> = [];
+    var diagnostics: Array<String> = [];
     if LspDiagnosticField(block, "Status") == "error" {
         ArrayPush(diagnostics, LspDiagnosticJson(block));
     }
@@ -117,11 +117,11 @@ func LspDiagnosticsArrayJson(block: String) -> String {
 }
 
 func LspPublishDiagnosticsJson(uri: String, block: String) -> String {
-    let params_fields: Array<String> = [];
+    var params_fields: Array<String> = [];
     ArrayPush(params_fields, JsonEmitFieldString("uri", uri));
     ArrayPush(params_fields, JsonEmitFieldRaw("diagnostics", LspDiagnosticsArrayJson(block)));
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspDiagnosticsSchema()));
     ArrayPush(fields, JsonEmitFieldString("jsonrpc", "2.0"));
     ArrayPush(fields, JsonEmitFieldString("method", LspDiagnosticsMethod()));
@@ -131,8 +131,8 @@ func LspPublishDiagnosticsJson(uri: String, block: String) -> String {
 }
 
 func LspUriForPath(path: String) -> String {
-    let out: String = "";
-    let i: Int = 0;
+    var out: String = "";
+    var i: Int = 0;
     while i < StringLength(path) {
         let c: String = CharAt(path, i);
         if c == "\\" {
@@ -194,7 +194,7 @@ func RunLspDiagnosticsFromArgs(args: Array<String>) -> Void with caps io_read {
     }
     let content: String = LoadSemanticSourceBundle(source_path);
     let error: String = CheckProgram(source_path, content);
-    let block: String = SemanticOk();
+    var block: String = SemanticOk();
     if StringLength(error) > 0 {
         block = error;
     }

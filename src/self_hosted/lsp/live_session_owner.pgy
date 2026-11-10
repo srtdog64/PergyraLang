@@ -70,7 +70,7 @@ func LspLiveSessionDiagnosticsFrame(
     text: String
 ) -> String {
     let error: String = CheckProgram(uri, text);
-    let block: String = SemanticOk();
+    var block: String = SemanticOk();
     if StringLength(error) > 0 {
         block = error;
     }
@@ -259,7 +259,7 @@ func LspLiveSessionDispatch(
         let index_opt: Option<LspDocumentFeatureIndex> =
             LspLiveSessionDocumentIndex(state, root);
         if !IsSome(index_opt) {
-            let missing_result: String = "null";
+            var missing_result: String = "null";
             let missing_result_opt: Option<String> =
                 LspFeatureResultForMethod(method);
             if IsSome(missing_result_opt) {
@@ -268,7 +268,7 @@ func LspLiveSessionDispatch(
             return Some(LspLiveSessionResponseFrame(id, missing_result));
         }
         let index: LspDocumentFeatureIndex = UnwrapOption(index_opt);
-        let result: String = "null";
+        var result: String = "null";
         if method == "textDocument/documentSymbol" {
             result = LspDocumentFeatureDocumentSymbolsJson(index);
         } else if method == "textDocument/definition" {
@@ -295,7 +295,7 @@ func LspLiveSessionConsumeBuffer(
     inout buffer: String,
     inout state: LspLiveSessionState
 ) -> Void {
-    let keep_consuming: Bool = true;
+    var keep_consuming: Bool = true;
     while keep_consuming && !state.exit_requested {
         let complete_opt: Option<Int> =
             LspTransportCompleteFrameLength(buffer);
@@ -333,7 +333,7 @@ func LspLiveSessionConsumeBuffer(
 
 func RunLspLiveSession() -> Void with caps io_read, io_write {
     let state: LspLiveSessionState = NewLspLiveSessionState();
-    let buffer: String = "";
+    var buffer: String = "";
     while !state.exit_requested {
         let chunk: String = ReadStdin(65536);
         if StringLength(chunk) == 0 {

@@ -10,7 +10,7 @@ func ParserExpressionSetLiteralGraphContractReady() -> Bool {
         fact.arena.node_kinds[fact.root] != AstExpressionNodeSetElement() {
         return false;
     }
-    let spine: Int = fact.root;
+    var spine: Int = fact.root;
     while fact.arena.node_kinds[spine] == AstExpressionNodeSetElement() {
         spine = fact.arena.left_children[spine];
     }

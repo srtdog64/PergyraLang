@@ -3,12 +3,12 @@
 import "ast_expression_graph_build_owner.pgy";
 
 func SemanticExpressionGraphSerializedParserTryContractReady() -> Bool {
-    let prefix_kinds: Array<Int> = [];
-    let prefix_texts: Array<String> = [];
-    let prefix_left: Array<Int> = [];
-    let prefix_right: Array<Int> = [];
-    let prefix_target_kinds: Array<Int> = [];
-    let prefix_target_names: Array<String> = [];
+    var prefix_kinds: Array<Int> = [];
+    var prefix_texts: Array<String> = [];
+    var prefix_left: Array<Int> = [];
+    var prefix_right: Array<Int> = [];
+    var prefix_target_kinds: Array<Int> = [];
+    var prefix_target_names: Array<String> = [];
     let prefix: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             prefix_kinds, prefix_texts, prefix_left, prefix_right,
@@ -33,12 +33,12 @@ func SemanticExpressionGraphSerializedParserTryContractReady() -> Bool {
         return false;
     }
 
-    let postfix_kinds: Array<Int> = [];
-    let postfix_texts: Array<String> = [];
-    let postfix_left: Array<Int> = [];
-    let postfix_right: Array<Int> = [];
-    let postfix_target_kinds: Array<Int> = [];
-    let postfix_target_names: Array<String> = [];
+    var postfix_kinds: Array<Int> = [];
+    var postfix_texts: Array<String> = [];
+    var postfix_left: Array<Int> = [];
+    var postfix_right: Array<Int> = [];
+    var postfix_target_kinds: Array<Int> = [];
+    var postfix_target_names: Array<String> = [];
     let postfix: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             postfix_kinds, postfix_texts, postfix_left, postfix_right,
@@ -60,12 +60,12 @@ func SemanticExpressionGraphSerializedParserTryContractReady() -> Bool {
 }
 
 func SemanticExpressionGraphSerializedParserImportContractReady() -> Bool {
-    let nested_kinds: Array<Int> = [];
-    let nested_texts: Array<String> = [];
-    let nested_left: Array<Int> = [];
-    let nested_right: Array<Int> = [];
-    let nested_target_kinds: Array<Int> = [];
-    let nested_target_names: Array<String> = [];
+    var nested_kinds: Array<Int> = [];
+    var nested_texts: Array<String> = [];
+    var nested_left: Array<Int> = [];
+    var nested_right: Array<Int> = [];
+    var nested_target_kinds: Array<Int> = [];
+    var nested_target_names: Array<String> = [];
     let nested: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             nested_kinds, nested_texts, nested_left, nested_right,

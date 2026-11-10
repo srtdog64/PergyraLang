@@ -151,7 +151,7 @@ func ReachabilityStatusIsKnown(status: String) -> Bool {
 }
 
 func ReachabilityRowsWellFormed() -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ReachabilityRowCount() {
         if ReachabilityNameAt(i) == "" { return false; }
         if ReachabilitySymbolAt(i) == "" { return false; }
@@ -165,9 +165,9 @@ func ReachabilityRowsWellFormed() -> Bool {
 }
 
 func ReachabilityNamesUnique() -> Bool {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ReachabilityRowCount() {
-        let j: Int = i + 1;
+        var j: Int = i + 1;
         while j < ReachabilityRowCount() {
             if ReachabilityNameAt(i) == ReachabilityNameAt(j) { return false; }
             j = j + 1;
@@ -178,8 +178,8 @@ func ReachabilityNamesUnique() -> Bool {
 }
 
 func ReachabilityCountWithStatus(status: String) -> Int {
-    let found: Int = 0;
-    let i: Int = 0;
+    var found: Int = 0;
+    var i: Int = 0;
     while i < ReachabilityRowCount() {
         if ReachabilityStatusAt(i) == status { found = found + 1; }
         i = i + 1;

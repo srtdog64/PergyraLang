@@ -28,7 +28,7 @@ func LspFeatureReferencesResultJson() -> String {
 }
 
 func LspFeatureRenameResultJson() -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldRaw("changes", "{}"));
     return JsonEmitObject(fields);
 }

@@ -37,7 +37,7 @@ func LspSessionStateJson(buffer: String) -> Option<String> {
 
     let session: String = UnwrapOption(session_opt);
     let document_store: String = UnwrapOption(document_store_opt);
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspSessionStateSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", LspSessionStateArtifactOk(session, document_store)));
     ArrayPush(fields, JsonEmitFieldRaw("session", session));
@@ -63,7 +63,7 @@ func LspSessionStateContractReady() -> Bool {
 }
 
 func RunLspSessionStateProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }

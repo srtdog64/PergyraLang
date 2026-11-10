@@ -50,7 +50,7 @@ func CompilerBackendAirAccessSourceExtensionAt(index: Int) -> String {
 }
 
 func CompilerBackendAirAccessSourceExtensionKnown(extension: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendAirAccessSourceExtensionCount() {
         if CompilerBackendAirAccessSourceExtensionAt(index) == extension {
             return true;
@@ -81,7 +81,7 @@ func CompilerBackendAirAccessForbiddenTermAt(index: Int) -> String {
 }
 
 func CompilerBackendAirAccessForbiddenTermKnown(term: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendAirAccessForbiddenTermCount() {
         if CompilerBackendAirAccessForbiddenTermAt(index) == term {
             return true;

@@ -65,18 +65,18 @@ func CompilerCompatibilityEvolutionMutatedReceipt(
     ref canonical: CompilerCompatibilityEvolutionReceipt,
     mode: String
 ) -> CompilerCompatibilityEvolutionReceipt {
-    let surfaces: Array<String> = [];
-    let diagnostic_ids: Array<String> = [];
-    let change_rows: Array<String> = [];
-    let limit: Int = ArrayLength(canonical.surfaces);
+    var surfaces: Array<String> = [];
+    var diagnostic_ids: Array<String> = [];
+    var change_rows: Array<String> = [];
+    var limit: Int = ArrayLength(canonical.surfaces);
     if mode == CompilerCompatibilityReceiptMissingRowMode() {
         limit = limit - 1;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < limit {
-        let surface: String = canonical.surfaces[index];
-        let diagnostic_id: String = canonical.diagnostic_ids[index];
-        let row: String = canonical.change_rows[index];
+        var surface: String = canonical.surfaces[index];
+        var diagnostic_id: String = canonical.diagnostic_ids[index];
+        var row: String = canonical.change_rows[index];
         if mode == CompilerCompatibilityReceiptCrosswireMode() &&
             surface == CompilerBehaviorCompatibilitySurface() {
             diagnostic_id = CompilerCompatibilityDiagnosticId("003");
@@ -123,8 +123,8 @@ func CompilerCompatibilityExecutionViewMutated(
     ref canonical: CompilerCompatibilityExecutionView,
     mode: String
 ) -> CompilerCompatibilityExecutionView {
-    let diagnostic_row: String = canonical.diagnostic_row;
-    let stdlib_module_row: String = canonical.stdlib_module_row;
+    var diagnostic_row: String = canonical.diagnostic_row;
+    var stdlib_module_row: String = canonical.stdlib_module_row;
     if mode == CompilerCompatibilityViewDiagnosticCrosswireMode() {
         diagnostic_row = canonical.behavior_row;
     } else if mode == CompilerCompatibilityViewMissingPackageRowMode() {
@@ -178,13 +178,13 @@ func Main() -> Void {
     }
     Log(Concat("schema=", CompilerCompatibilityEvolutionSchema()));
     Log(Concat("surface_count=", ToString(CompilerCompatibilitySurfaceCount())));
-    let surface_index: Int = 0;
+    var surface_index: Int = 0;
     while surface_index < CompilerCompatibilitySurfaceCount() {
         Log(CompilerCompatibilitySurfaceManifestRowAt(surface_index));
         surface_index = surface_index + 1;
     }
     Log(Concat("obsolete_field_count=", ToString(CompilerObsoleteMigrationFieldCount())));
-    let obsolete_index: Int = 0;
+    var obsolete_index: Int = 0;
     while obsolete_index < CompilerObsoleteMigrationFieldCount() {
         Log(CompilerObsoleteMigrationManifestRowAt(obsolete_index));
         obsolete_index = obsolete_index + 1;
@@ -197,7 +197,7 @@ func Main() -> Void {
     Log(Concat("runtime_call_abi_constructed_nominal=", CompilerRuntimeCallAbiConstructedNominalPolicy()));
     Log(Concat("runtime_call_abi_policy=", CompilerRuntimeCallAbiCompatibilityPolicy()));
     Log(Concat("change_count=", ToString(CompilerCompatibilityChangeCount())));
-    let change_index: Int = 0;
+    var change_index: Int = 0;
     while change_index < CompilerCompatibilityChangeCount() {
         Log(CompilerCompatibilityChangeRowAt(change_index));
         change_index = change_index + 1;

@@ -112,12 +112,12 @@ func SpawnLanePlanProduce(
     b2: SpawnLaneBoundary,
     b3: SpawnLaneBoundary
 ) -> SpawnLanePlanOutcome {
-    let row0_source_stable_id: Int = SpawnLanePlanNoSite();
-    let row0_lane: Int = ParallelLaneReject();
-    let row1_source_stable_id: Int = SpawnLanePlanNoSite();
-    let row1_lane: Int = ParallelLaneReject();
-    let row_count: Int = 0;
-    let index: Int = 0;
+    var row0_source_stable_id: Int = SpawnLanePlanNoSite();
+    var row0_lane: Int = ParallelLaneReject();
+    var row1_source_stable_id: Int = SpawnLanePlanNoSite();
+    var row1_lane: Int = ParallelLaneReject();
+    var row_count: Int = 0;
+    var index: Int = 0;
     while index < 4 {
         let boundary: SpawnLaneBoundary = SpawnLaneBoundaryAt(b0, b1, b2, b3, index);
         index = index + 1;

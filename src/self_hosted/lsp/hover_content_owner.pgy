@@ -55,9 +55,9 @@ func LspHoverIsWordChar(c: String) -> Bool {
 }
 
 func LspHoverLineAt(source: String, line: Int) -> Option<String> {
-    let current: Int = 0;
-    let start: Int = 0;
-    let i: Int = 0;
+    var current: Int = 0;
+    var start: Int = 0;
+    var i: Int = 0;
     while i <= StringLength(source) {
         if i == StringLength(source) || CharAt(source, i) == "\n" {
             if current == line {
@@ -83,11 +83,11 @@ func LspHoverWordAt(source: String, line: Int, character: Int) -> Option<String>
     if !LspHoverIsWordChar(CharAt(line_text, character)) {
         return None;
     }
-    let start: Int = character;
+    var start: Int = character;
     while start > 0 && LspHoverIsWordChar(CharAt(line_text, start - 1)) {
         start = start - 1;
     }
-    let end: Int = character;
+    var end: Int = character;
     while end < StringLength(line_text) && LspHoverIsWordChar(CharAt(line_text, end)) {
         end = end + 1;
     }
@@ -107,11 +107,11 @@ func LspHoverResultForTextPosition(source: String, line: Int, character: Int) ->
     if !IsSome(text_opt) {
         return None;
     }
-    let content_fields: Array<String> = [];
+    var content_fields: Array<String> = [];
     ArrayPush(content_fields, JsonEmitFieldString("kind", "markdown"));
     ArrayPush(content_fields, JsonEmitFieldString("value", UnwrapOption(text_opt)));
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldRaw("contents", JsonEmitObject(content_fields)));
     return Some(JsonEmitObject(fields));
 }
@@ -154,7 +154,7 @@ func LspHoverContentEventJson(
     result: String,
     reason: String
 ) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("method", method));
     ArrayPush(fields, JsonEmitFieldString("id", id));
     ArrayPush(fields, JsonEmitFieldBool("hasDocument", has_document));
@@ -164,15 +164,15 @@ func LspHoverContentEventJson(
 }
 
 func LspHoverContentJson(buffer: String) -> Option<String> {
-    let events: Array<String> = [];
-    let cursor: Int = 0;
-    let frame_count: Int = 0;
-    let hover_count: Int = 0;
-    let document_mutations: Int = 0;
-    let errors: Int = 0;
-    let has_document: Bool = false;
-    let current_text: String = "";
-    let partial_reason: Option<String> = None;
+    var events: Array<String> = [];
+    var cursor: Int = 0;
+    var frame_count: Int = 0;
+    var hover_count: Int = 0;
+    var document_mutations: Int = 0;
+    var errors: Int = 0;
+    var has_document: Bool = false;
+    var current_text: String = "";
+    var partial_reason: Option<String> = None;
 
     while cursor < StringLength(buffer) {
         let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
@@ -204,8 +204,8 @@ func LspHoverContentJson(buffer: String) -> Option<String> {
                         let method: String = UnwrapOption(method_opt);
                         if method == "textDocument/hover" {
                             hover_count = hover_count + 1;
-                            let result: String = "null";
-                            let reason: String = "";
+                            var result: String = "null";
+                            var reason: String = "";
                             if !has_document {
                                 reason = "no_document";
                             } else {
@@ -231,12 +231,12 @@ func LspHoverContentJson(buffer: String) -> Option<String> {
         }
     }
 
-    let partial_reason_text: String = "";
+    var partial_reason_text: String = "";
     if IsSome(partial_reason) {
         partial_reason_text = UnwrapOption(partial_reason);
     }
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspHoverContentSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
     ArrayPush(fields, JsonEmitFieldNumber("frameCount", ToString(frame_count)));
@@ -285,7 +285,7 @@ func LspHoverContentContractReady() -> Bool {
 }
 
 func RunLspHoverContentProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }

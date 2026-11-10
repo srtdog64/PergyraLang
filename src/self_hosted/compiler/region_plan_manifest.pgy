@@ -42,7 +42,7 @@ func Main() -> Void {
     Log(Concat("revision=", ToString(RegionPlanRevision())));
 
     // The disposition space, plus one past the end: there is no third state.
-    let disposition: Int = 0;
+    var disposition: Int = 0;
     while disposition < RegionDispositionCount() + 1 {
         Log(RegionPlanDispositionRow(disposition));
         disposition = disposition + 1;
@@ -69,12 +69,12 @@ func Main() -> Void {
     Log(RegionPlanInvariantRow(
         "dispositions_are_bounded", RegionPlanDispositionsAreBounded()));
 
-    let required_index: Int = 0;
+    var required_index: Int = 0;
     while required_index < RegionPlanRequiredCount() {
         Log(RegionPlanRequiredRow(required_index));
         required_index = required_index + 1;
     }
-    let forbidden_index: Int = 0;
+    var forbidden_index: Int = 0;
     while forbidden_index < RegionPlanForbiddenCount() {
         Log(RegionPlanForbiddenRow(forbidden_index));
         forbidden_index = forbidden_index + 1;

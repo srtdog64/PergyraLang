@@ -16,7 +16,7 @@ func FuzzBackendGeneratorCaseKind() -> String {
 }
 
 func FuzzBackendGeneratorJsonHeader(seed: Int, count: Int) -> String {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, "{\"schema\":\"");
     ArrayPush(out, FuzzBackendGeneratorSchema());
     ArrayPush(out, "\",\"kind\":\"");
@@ -30,7 +30,7 @@ func FuzzBackendGeneratorJsonHeader(seed: Int, count: Int) -> String {
 }
 
 func FuzzBackendGeneratorJsonCase(index: Int, file: String, variant: Int) -> String {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, "{\"kind\":\"");
     ArrayPush(out, FuzzBackendGeneratorCaseKind());
     ArrayPush(out, "\",\"index\":");
@@ -44,7 +44,7 @@ func FuzzBackendGeneratorJsonCase(index: Int, file: String, variant: Int) -> Str
 }
 
 func FuzzBackendGeneratorSummary(seed: Int, count: Int) -> String {
-    let out: Array<String> = [];
+    var out: Array<String> = [];
     ArrayPush(out, "{\"schema\":\"");
     ArrayPush(out, FuzzBackendGeneratorSchema());
     ArrayPush(out, "\",\"ok\":true,\"seed\":");

@@ -35,7 +35,7 @@ func LspResponseIdRaw(id: String) -> Option<String> {
     if StringLength(id) == 0 {
         return Some("null");
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < StringLength(id) {
         let c: String = JsonCharAt(id, i);
         if c != "0" && c != "1" && c != "2" && c != "3" && c != "4" &&
@@ -48,7 +48,7 @@ func LspResponseIdRaw(id: String) -> Option<String> {
 }
 
 func LspResponseBodyJson(id: String, result_raw: String) -> Option<String> {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("jsonrpc", "2.0"));
     ArrayPush(fields, JsonEmitFieldRaw("id", UnwrapOption(LspResponseIdRaw(id))));
     ArrayPush(fields, JsonEmitFieldRaw("result", result_raw));
@@ -80,7 +80,7 @@ func LspResponseResultForMethod(method: String) -> Option<String> {
 }
 
 func LspResponsePlanJsonError(reason: String) -> Option<String> {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspResponseEmissionSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", false));
     ArrayPush(fields, JsonEmitFieldString("reason", reason));
@@ -111,9 +111,9 @@ func LspResponsePlanJson(body: String) -> Option<String> {
     let response_required: Bool = LspRequestResponseRequired(method, StringLength(id) > 0);
     let result_opt: Option<String> = LspResponseResultForMethod(method);
     let emitted: Bool = response_required && IsSome(result_opt);
-    let reason: String = "";
-    let response_body: String = "";
-    let frame: String = "";
+    var reason: String = "";
+    var response_body: String = "";
+    var frame: String = "";
     if !response_required {
         reason = "no_response_required";
     } else if !IsSome(result_opt) {
@@ -123,7 +123,7 @@ func LspResponsePlanJson(body: String) -> Option<String> {
         frame = UnwrapOption(LspResponseFrameForBody(response_body));
     }
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspResponseEmissionSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", !response_required || emitted));
     ArrayPush(fields, JsonEmitFieldString("reason", reason));
@@ -163,11 +163,11 @@ func LspResponseFrameForRequestBody(body: String) -> Option<String> {
 }
 
 func LspResponseEmissionStreamJson(buffer: String) -> Option<String> {
-    let responses: Array<String> = [];
-    let cursor: Int = 0;
-    let partial_reason: Option<String> = None;
-    let errors: Int = 0;
-    let emitted_count: Int = 0;
+    var responses: Array<String> = [];
+    var cursor: Int = 0;
+    var partial_reason: Option<String> = None;
+    var errors: Int = 0;
+    var emitted_count: Int = 0;
     while cursor < StringLength(buffer) {
         let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
         let complete_opt: Option<Int> = LspTransportCompleteFrameLength(tail);
@@ -193,11 +193,11 @@ func LspResponseEmissionStreamJson(buffer: String) -> Option<String> {
         }
     }
 
-    let partial_reason_text: String = "";
+    var partial_reason_text: String = "";
     if IsSome(partial_reason) {
         partial_reason_text = UnwrapOption(partial_reason);
     }
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspResponseEmissionStreamSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
     ArrayPush(fields, JsonEmitFieldNumber("frameCount", ToString(ArrayLength(responses))));
@@ -229,7 +229,7 @@ func LspResponseEmissionContractReady() -> Bool {
 }
 
 func RunLspResponseProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }

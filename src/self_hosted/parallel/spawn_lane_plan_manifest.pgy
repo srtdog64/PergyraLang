@@ -42,7 +42,7 @@ func Main() -> Void {
     Log(Concat("revision=", ToString(SpawnLanePlanRevision())));
 
     // Which lanes a produced plan row may carry, over the full lane space.
-    let lane: Int = 0;
+    var lane: Int = 0;
     while lane < ParallelLaneCount() {
         Log(SpawnLanePlanLegalRow(lane));
         lane = lane + 1;
@@ -63,12 +63,12 @@ func Main() -> Void {
     Log(SpawnLanePlanInvariantRow(
         "row_lanes_are_bounded", SpawnLanePlanRowLanesAreBounded()));
 
-    let required_index: Int = 0;
+    var required_index: Int = 0;
     while required_index < SpawnLanePlanRequiredCount() {
         Log(SpawnLanePlanRequiredRow(required_index));
         required_index = required_index + 1;
     }
-    let forbidden_index: Int = 0;
+    var forbidden_index: Int = 0;
     while forbidden_index < SpawnLanePlanForbiddenCount() {
         Log(SpawnLanePlanForbiddenRow(forbidden_index));
         forbidden_index = forbidden_index + 1;

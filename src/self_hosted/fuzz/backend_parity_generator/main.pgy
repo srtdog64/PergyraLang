@@ -19,7 +19,7 @@ func JoinPath(dir: String, name: String) -> String {
 }
 
 func RenderArithmeticCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func Mix(x: Int, y: Int) -> Int {");
     ArrayPush(lines, "    let v: Int = x * 3 + y;");
     ArrayPush(lines, "    if v % 2 == 0 {");
@@ -45,7 +45,7 @@ func RenderArithmeticCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderWhileArrayCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func Main() -> Void {");
     ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
     ArrayPush(lines, Concat("    let limit: Int = ", Concat(ToString(4 + twist % 4), ";")));
@@ -65,7 +65,7 @@ func RenderWhileArrayCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderStringCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func Tag(x: Int) -> String {");
     ArrayPush(lines, "    if x < 10 {");
     ArrayPush(lines, "        return Concat(\"lo\", ToString(x));");
@@ -86,7 +86,7 @@ func RenderStringCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderBranchCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func FuzzClamp(x: Int) -> Int {");
     ArrayPush(lines, "    if x < 0 {");
     ArrayPush(lines, "        return 0;");
@@ -112,7 +112,7 @@ func RenderBranchCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderStructCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "struct FuzzPair {");
     ArrayPush(lines, "    let a: Int;");
     ArrayPush(lines, "    let b: Int;");
@@ -134,7 +134,7 @@ func RenderStructCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderSlotCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func Main() -> Void {");
     ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
     ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
@@ -150,7 +150,7 @@ func RenderSlotCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderStringWindowCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func FuzzRun(s: String) -> Int {");
     ArrayPush(lines, "    let n: Int = StringLength(s);");
     ArrayPush(lines, "    if n == 0 {");
@@ -181,7 +181,7 @@ func RenderStringWindowCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func FuzzSum(xs: Array<Int>) -> Int {");
     ArrayPush(lines, "    var total: Int = 0;");
     ArrayPush(lines, "    var i: Int = 0;");
@@ -212,7 +212,7 @@ func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
 }
 
 func RenderPredicateCursorCase(index: Int, base: Int, twist: Int) -> String {
-    let lines: Array<String> = [];
+    var lines: Array<String> = [];
     ArrayPush(lines, "func TokenAt(pos: Int) -> Int {");
     ArrayPush(lines, "    let normalized: Int = pos % 6;");
     ArrayPush(lines, "    if normalized == 0 { return 4; }");
@@ -312,12 +312,12 @@ func Main() -> Void {
 
     SeedRandom(seed);
 
-    let manifest: Array<String> = [];
+    var manifest: Array<String> = [];
     ArrayPush(manifest, FuzzBackendGeneratorJsonHeader(seed, count));
 
     var i: Int = 0;
     while i < count {
-        let variant: Int = Random(9);
+        var variant: Int = Random(9);
         if i == 0 {
             variant = 7;
         }

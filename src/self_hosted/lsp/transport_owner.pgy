@@ -60,8 +60,8 @@ func LspTransportLengthAdmissionFromRaw(
     if maximum < 0 || StringLength(s) == 0 {
         return Err("invalid_content_length");
     }
-    let value: Int = 0;
-    let i: Int = 0;
+    var value: Int = 0;
+    var i: Int = 0;
     while i < StringLength(s) {
         let d_opt: Option<Int> = LspTransportDigitValue(CharAt(s, i));
         if !IsSome(d_opt) {
@@ -203,7 +203,7 @@ func LspTransportPartialReasonRequiresFailure(reason: String) -> Bool {
 }
 
 func LspTransportFrameJsonError(reason: String, content_length: Int) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspTransportSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", false));
     ArrayPush(fields, JsonEmitFieldString("reason", reason));
@@ -230,7 +230,7 @@ func LspTransportFrameJson(frame: String) -> Option<String> {
     }
     let body: String = UnwrapOption(body_opt);
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspTransportSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", true));
     ArrayPush(fields, JsonEmitFieldNumber("contentLength", ToString(len)));
@@ -240,9 +240,9 @@ func LspTransportFrameJson(frame: String) -> Option<String> {
 }
 
 func LspTransportStreamJson(buffer: String) -> Option<String> {
-    let bodies: Array<String> = [];
-    let cursor: Int = 0;
-    let partial_reason: Option<String> = None;
+    var bodies: Array<String> = [];
+    var cursor: Int = 0;
+    var partial_reason: Option<String> = None;
     while cursor < StringLength(buffer) {
         let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
         let complete_opt: Option<Int> = LspTransportCompleteFrameLength(tail);
@@ -261,11 +261,11 @@ func LspTransportStreamJson(buffer: String) -> Option<String> {
         }
     }
 
-    let partial_reason_text: String = "";
+    var partial_reason_text: String = "";
     if IsSome(partial_reason) {
         partial_reason_text = UnwrapOption(partial_reason);
     }
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspTransportStreamSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", !IsSome(partial_reason)));
     ArrayPush(fields, JsonEmitFieldNumber("frameCount", ToString(ArrayLength(bodies))));
@@ -339,7 +339,7 @@ func LspTransportStreamContractReady() -> Bool {
 }
 
 func RunLspTransportFrameProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }
@@ -348,7 +348,7 @@ func RunLspTransportFrameProbeFromArgs(args: Array<String>) -> Void with caps io
 }
 
 func RunLspTransportStreamProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }

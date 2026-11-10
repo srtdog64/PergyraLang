@@ -95,7 +95,7 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterRequiredRowKnown(path: String, term: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendEmitterRequiredCount() {
         if CompilerBackendEmitterRequiredPathAt(index) == path &&
             CompilerBackendEmitterRequiredTermAt(index) == term {
@@ -151,7 +151,7 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterForbiddenRowKnown(path: String, term: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendEmitterForbiddenCount() {
         if CompilerBackendEmitterForbiddenPathAt(index) == path &&
             CompilerBackendEmitterForbiddenTermAt(index) == term {

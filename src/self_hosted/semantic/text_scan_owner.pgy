@@ -43,7 +43,7 @@ func SkipBlockComment(content: String, content_extent: Int, start: Int, limit: I
 func SemanticMatchKeywordWithin(
     content: String, content_extent: Int, n: Int, start: Int, kw: String
 ) -> Bool {
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, n, start);
+    var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, n, start);
     let kl: Int = StringLength(kw);
     if i + kl > n {
         return false;

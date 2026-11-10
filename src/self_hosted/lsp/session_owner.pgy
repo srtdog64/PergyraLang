@@ -25,13 +25,13 @@ func LspSessionResponsePlanFailed(plan: String) -> Bool {
 }
 
 func LspSessionReplayJson(buffer: String) -> Option<String> {
-    let frames: Array<String> = [];
-    let wire: String = "";
-    let cursor: Int = 0;
-    let request_count: Int = 0;
-    let emitted_count: Int = 0;
-    let errors: Int = 0;
-    let partial_reason: Option<String> = None;
+    var frames: Array<String> = [];
+    var wire: String = "";
+    var cursor: Int = 0;
+    var request_count: Int = 0;
+    var emitted_count: Int = 0;
+    var errors: Int = 0;
+    var partial_reason: Option<String> = None;
 
     while cursor < StringLength(buffer) {
         let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
@@ -63,12 +63,12 @@ func LspSessionReplayJson(buffer: String) -> Option<String> {
         }
     }
 
-    let partial_reason_text: String = "";
+    var partial_reason_text: String = "";
     if IsSome(partial_reason) {
         partial_reason_text = UnwrapOption(partial_reason);
     }
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspSessionReplaySchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
     ArrayPush(fields, JsonEmitFieldNumber("requestCount", ToString(request_count)));
@@ -96,7 +96,7 @@ func LspSessionReplayContractReady() -> Bool {
 }
 
 func RunLspSessionReplayProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }

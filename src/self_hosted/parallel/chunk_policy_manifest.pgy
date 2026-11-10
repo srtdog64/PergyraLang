@@ -78,12 +78,12 @@ func Main() -> Void {
     Log(ParallelChunkCoverRow(7, 4));
     Log(ParallelChunkCoverRow(64, 64));
     Log(ParallelChunkCoverRow(200000, 64));
-    let required_index: Int = 0;
+    var required_index: Int = 0;
     while required_index < ParallelChunkRequiredCount() {
         Log(ParallelChunkRequiredRow(required_index));
         required_index = required_index + 1;
     }
-    let forbidden_index: Int = 0;
+    var forbidden_index: Int = 0;
     while forbidden_index < ParallelChunkForbiddenCount() {
         Log(ParallelChunkForbiddenRow(forbidden_index));
         forbidden_index = forbidden_index + 1;

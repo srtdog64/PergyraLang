@@ -46,12 +46,12 @@ func Main() -> Void {
     Log(ReachabilityInvariantRow("names_unique", ReachabilityNamesUnique()));
     Log(ReachabilityInvariantRow("both_polarities", ReachabilityHasBothPolarities()));
 
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ReachabilityRowCount() {
         Log(ReachabilityRow(i));
         i = i + 1;
     }
-    let n: Int = 0;
+    var n: Int = 0;
     while n < ReachabilityRowCount() {
         Log(ReachabilityNoteRow(n));
         n = n + 1;

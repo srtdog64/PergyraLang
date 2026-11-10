@@ -146,7 +146,7 @@ func LspDocumentRevisionFindUri(
     uri: String
 ) -> Option<Int>
 {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < ArrayLength(revisions) {
         if revisions[index].uri == uri {
             return Some(index);

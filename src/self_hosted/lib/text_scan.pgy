@@ -15,8 +15,8 @@ namespace TextScan {
     // Count non-overlapping occurrences of `needle` in `content`.
     // Returns 0 when needle is empty.
     export func CountOccurrences(content: String, needle: String) -> Int {
-        let count: Int = 0;
-        let remaining: String = content;
+        var count: Int = 0;
+        var remaining: String = content;
         let needle_len: Int = StringLength(needle);
         if needle_len == 0 {
             return 0;

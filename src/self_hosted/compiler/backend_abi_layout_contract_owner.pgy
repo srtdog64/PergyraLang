@@ -65,7 +65,7 @@ func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
     return "";
 }
 func CompilerBackendAbiLayoutRequiredRowKnown(path: String, term: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendAbiLayoutRequiredCount() {
         if CompilerBackendAbiLayoutRequiredPathAt(index) == path &&
             CompilerBackendAbiLayoutRequiredTermAt(index) == term {
@@ -99,7 +99,7 @@ func CompilerBackendAbiLayoutForbiddenTermAt(index: Int) -> String {
     return "";
 }
 func CompilerBackendAbiLayoutForbiddenRowKnown(path: String, term: String) -> Bool {
-    let index: Int = 0;
+    var index: Int = 0;
     while index < CompilerBackendAbiLayoutForbiddenCount() {
         if CompilerBackendAbiLayoutForbiddenPathAt(index) == path &&
             CompilerBackendAbiLayoutForbiddenTermAt(index) == term {

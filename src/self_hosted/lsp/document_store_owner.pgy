@@ -29,7 +29,7 @@ func LspDocumentStoreEventJson(
     ok: Bool,
     reason: String
 ) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("method", method));
     ArrayPush(fields, JsonEmitFieldString("uri", uri));
     ArrayPush(fields, JsonEmitFieldString("version", version));
@@ -40,7 +40,7 @@ func LspDocumentStoreEventJson(
 }
 
 func LspDocumentStoreStateRowJson(revision: LspDocumentRevision) -> Option<String> {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("uri", revision.uri));
     ArrayPush(fields, JsonEmitFieldString("version", ToString(revision.version)));
     ArrayPush(fields, JsonEmitFieldString("text", revision.text));
@@ -51,8 +51,8 @@ func LspDocumentStoreStateRowJson(revision: LspDocumentRevision) -> Option<Strin
 func LspDocumentStoreStateRowsJson(
     revisions: Array<LspDocumentRevision>
 ) -> String {
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(revisions) {
         let row: Option<String> = LspDocumentStoreStateRowJson(revisions[i]);
         if IsSome(row) {
@@ -97,7 +97,7 @@ func LspDocumentStorePublicationJson(
     candidate: LspDocumentRevision,
     admission: LspDocumentPublicationAdmission
 ) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("uri", candidate.uri));
     ArrayPush(fields, JsonEmitFieldString("version", ToString(candidate.version)));
     ArrayPush(fields, JsonEmitFieldNumber("generation", ToString(candidate.ticket.generation)));
@@ -145,7 +145,7 @@ func LspDocumentStoreEventForBody(body: String) -> Option<String> {
         return Some(LspDocumentStoreEventJson(method, "", "", "error", false, "missing_uri"));
     }
     let uri: String = UnwrapOption(uri_opt);
-    let version: String = "";
+    var version: String = "";
     if IsSome(version_opt) {
         version = UnwrapOption(version_opt);
     }
@@ -185,17 +185,17 @@ func LspDocumentStoreApplyText(body: String) -> Option<String> {
 }
 
 func LspDocumentStoreJson(buffer: String) -> Option<String> {
-    let events: Array<String> = [];
-    let cursor: Int = 0;
-    let frame_count: Int = 0;
-    let mutations: Int = 0;
-    let errors: Int = 0;
-    let revisions: Array<LspDocumentRevision> = [];
-    let publication_candidates: Array<LspDocumentRevision> = [];
-    let final_uri: String = "";
-    let final_version: String = "";
-    let final_text: String = "";
-    let partial_reason: Option<String> = None;
+    var events: Array<String> = [];
+    var cursor: Int = 0;
+    var frame_count: Int = 0;
+    var mutations: Int = 0;
+    var errors: Int = 0;
+    var revisions: Array<LspDocumentRevision> = [];
+    var publication_candidates: Array<LspDocumentRevision> = [];
+    var final_uri: String = "";
+    var final_version: String = "";
+    var final_text: String = "";
+    var partial_reason: Option<String> = None;
 
     while cursor < StringLength(buffer) {
         let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
@@ -211,7 +211,7 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
             } else {
                 frame_count = frame_count + 1;
                 let body: String = UnwrapOption(body_opt);
-                let event: String = UnwrapOption(LspDocumentStoreEventForBody(body));
+                var event: String = UnwrapOption(LspDocumentStoreEventForBody(body));
                 let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
                 let action_open: Bool = StringIndexOf(event, "\"action\":\"open\"") >= 0;
                 let action_change: Bool = StringIndexOf(event, "\"action\":\"change\"") >= 0;
@@ -219,7 +219,7 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
                     let text_document: JsonObjectFactTable = LspDocumentStoreTextDocument(root);
                     let uri: String = UnwrapOption(JsonObjectFactStringFieldOpt(text_document, "uri"));
                     let version_opt: Option<String> = JsonObjectFactNumberFieldOpt(text_document, "version");
-                    let version: String = "";
+                    var version: String = "";
                     if IsSome(version_opt) {
                         version = UnwrapOption(version_opt);
                     }
@@ -303,14 +303,14 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
         }
     }
 
-    let partial_reason_text: String = "";
+    var partial_reason_text: String = "";
     if IsSome(partial_reason) {
         partial_reason_text = UnwrapOption(partial_reason);
     }
 
-    let publications: Array<String> = [];
-    let publication_rejections: Int = 0;
-    let candidate_index: Int = 0;
+    var publications: Array<String> = [];
+    var publication_rejections: Int = 0;
+    var candidate_index: Int = 0;
     while candidate_index < ArrayLength(publication_candidates) {
         let candidate: LspDocumentRevision = publication_candidates[candidate_index];
         let current_index: Int = UnwrapOption(
@@ -331,7 +331,7 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
         candidate_index = candidate_index + 1;
     }
 
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspDocumentStoreSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
     ArrayPush(fields, JsonEmitFieldNumber("frameCount", ToString(frame_count)));
@@ -371,7 +371,7 @@ func LspDocumentStoreContractReady() -> Bool {
 }
 
 func RunLspDocumentStoreProbeFromArgs(args: Array<String>) -> Void with caps io_read {
-    let max_bytes: Int = 4096;
+    var max_bytes: Int = 4096;
     if ArrayLength(args) > 1 {
         max_bytes = ToInt(args[1]);
     }

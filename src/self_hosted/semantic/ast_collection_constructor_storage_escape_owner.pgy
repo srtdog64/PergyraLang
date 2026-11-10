@@ -20,7 +20,7 @@ func SemanticAstCollectionConstructorStorageEscapeField(
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface: Int,
     edge: SemanticCallArgumentEdgeView
 ) -> SemanticAstCollectionConstructorFieldIdentity {
-    let invalid: SemanticAstCollectionConstructorFieldIdentity =
+    var invalid: SemanticAstCollectionConstructorFieldIdentity =
         SemanticAstCollectionConstructorFieldIdentity(false, 0, 0, "", -1, -1);
     let absent: SemanticAstCollectionConstructorFieldIdentity =
         SemanticAstCollectionConstructorFieldIdentity(true, 0, 0, "", -1, -1);

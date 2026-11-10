@@ -30,12 +30,12 @@ func LspDocumentFeatureStartsWith(text: String, prefix: String) -> Bool {
 }
 
 func LspDocumentFeatureIdentifierFrom(line: String, start: Int) -> String {
-    let cursor: Int = start;
+    var cursor: Int = start;
     while cursor < StringLength(line) &&
         (CharAt(line, cursor) == " " || CharAt(line, cursor) == "\t") {
         cursor = cursor + 1;
     }
-    let end: Int = cursor;
+    var end: Int = cursor;
     while end < StringLength(line) && LspHoverIsWordChar(CharAt(line, end)) {
         end = end + 1;
     }
@@ -48,14 +48,14 @@ func LspDocumentFeatureIdentifierFrom(line: String, start: Int) -> String {
 func LspDocumentFeatureDeclarationCandidate(
     source_line: String
 ) -> LspDocumentDeclarationCandidate {
-    let line: String = StringTrim(source_line);
+    var line: String = StringTrim(source_line);
     if LspDocumentFeatureStartsWith(line, "export ") {
         line = StringTrim(
             Substring(line, 7, StringLength(line) - 7)
         );
     }
-    let keyword: String = "";
-    let kind: Int = 0;
+    var keyword: String = "";
+    var kind: Int = 0;
     if LspDocumentFeatureStartsWith(line, "func ") {
         keyword = "func";
         kind = 12;
@@ -116,11 +116,11 @@ func LspDocumentFeatureIndexBuild(
     uri: String,
     text: String
 ) -> LspDocumentFeatureIndex {
-    let names: Array<String> = [];
-    let kinds: Array<Int> = [];
-    let declaration_lines: Array<Int> = [];
+    var names: Array<String> = [];
+    var kinds: Array<Int> = [];
+    var declaration_lines: Array<Int> = [];
     let source_lines: Array<String> = Split(text, "\n");
-    let line: Int = 0;
+    var line: Int = 0;
     while line < ArrayLength(source_lines) {
         let candidate: LspDocumentDeclarationCandidate =
             LspDocumentFeatureDeclarationCandidate(source_lines[line]);
@@ -149,7 +149,7 @@ func LspDocumentFeatureIndexReady(
 }
 
 func LspDocumentFeaturePositionJson(line: Int, character: Int) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldNumber("line", ToString(line)));
     ArrayPush(fields, JsonEmitFieldNumber("character", ToString(character)));
     return JsonEmitObject(fields);
@@ -160,7 +160,7 @@ func LspDocumentFeatureRangeJson(
     start: Int,
     end: Int
 ) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(
         fields,
         JsonEmitFieldRaw("start", LspDocumentFeaturePositionJson(line, start))
@@ -177,7 +177,7 @@ func LspDocumentFeatureDocumentSymbolJson(
     kind: Int,
     line: Int
 ) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("name", name));
     ArrayPush(fields, JsonEmitFieldNumber("kind", ToString(kind)));
     ArrayPush(
@@ -197,8 +197,8 @@ func LspDocumentFeatureDocumentSymbolJson(
 func LspDocumentFeatureDocumentSymbolsJson(
     index: LspDocumentFeatureIndex
 ) -> String {
-    let symbols: Array<String> = [];
-    let row: Int = 0;
+    var symbols: Array<String> = [];
+    var row: Int = 0;
     while row < ArrayLength(index.names) {
         ArrayPush(
             symbols,
@@ -238,10 +238,10 @@ func LspDocumentFeatureDefinitionJson(
         return "null";
     }
     let word: String = UnwrapOption(word_opt);
-    let row: Int = 0;
+    var row: Int = 0;
     while row < ArrayLength(index.names) {
         if index.names[row] == word {
-            let fields: Array<String> = [];
+            var fields: Array<String> = [];
             ArrayPush(fields, JsonEmitFieldString("uri", index.uri));
             ArrayPush(
                 fields,
@@ -287,10 +287,10 @@ func LspDocumentFeatureOccurrencesJson(
         return "[]";
     }
     let word: String = UnwrapOption(word_opt);
-    let rows: Array<String> = [];
-    let cursor: Int = 0;
-    let line: Int = 0;
-    let character: Int = 0;
+    var rows: Array<String> = [];
+    var cursor: Int = 0;
+    var line: Int = 0;
+    var character: Int = 0;
     while cursor < StringLength(index.text) {
         if LspDocumentFeatureWordMatchesAt(index.text, cursor, word) {
             let range: String = LspDocumentFeatureRangeJson(
@@ -298,7 +298,7 @@ func LspDocumentFeatureOccurrencesJson(
                 character,
                 character + StringLength(word)
             );
-            let fields: Array<String> = [];
+            var fields: Array<String> = [];
             if IsSome(new_name) {
                 ArrayPush(fields, JsonEmitFieldRaw("range", range));
                 ArrayPush(

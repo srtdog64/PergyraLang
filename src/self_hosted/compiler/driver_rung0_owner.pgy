@@ -30,8 +30,8 @@ func CompilerDriverRung0Ready() -> Bool with caps io_read {
 
 func DriverParityFixtureRows() -> Array<String> {
     let bases: Array<String> = CodegenParityFixtureManifestRows();
-    let rows: Array<String> = [];
-    let i: Int = 0;
+    var rows: Array<String> = [];
+    var i: Int = 0;
     while i < ArrayLength(bases) {
         let base: String = bases[i];
         ArrayPush(rows, CodegenParityFixtureSourcePath(base));
@@ -57,7 +57,7 @@ func DriverParityFixtureManifestReady() -> Bool with caps io_read {
     if ArrayLength(rows) != CodegenParityFixtureExpectedCount() {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         let fixture: String = rows[i];
         if fixture == "" || !FileExists(fixture) {
@@ -73,7 +73,7 @@ func EmitDriverParityFixtureManifest() -> Void with caps io_read {
         Exit(1);
     }
     let rows: Array<String> = DriverParityFixtureRows();
-    let i: Int = 0;
+    var i: Int = 0;
     while i < ArrayLength(rows) {
         Log(rows[i]);
         i = i + 1;

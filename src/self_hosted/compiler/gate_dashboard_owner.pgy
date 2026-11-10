@@ -111,7 +111,7 @@ func CompilerGateDashboardManifestReady(
         ArrayLength(manifest.owner_facts) != count {
         return false;
     }
-    let i: Int = 0;
+    var i: Int = 0;
     while i < count {
         if manifest.ids[i] == "" || manifest.make_targets[i] == "" ||
             !CompilerGateDashboardTierKnown(manifest.tiers[i]) ||
@@ -122,7 +122,7 @@ func CompilerGateDashboardManifestReady(
             manifest.owner_facts[i] == "" {
             return false;
         }
-        let prior: Int = 0;
+        var prior: Int = 0;
         while prior < i {
             if manifest.ids[prior] == manifest.ids[i] ||
                 manifest.make_targets[prior] == manifest.make_targets[i] {
@@ -139,7 +139,7 @@ func CompilerGateDashboardIndex(
     manifest: CompilerGateDashboardManifest,
     gate_id: String
 ) -> Option<Int> {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerGateDashboardCount(manifest) {
         if manifest.ids[i] == gate_id { return Some(i); }
         i = i + 1;
@@ -151,10 +151,10 @@ func CompilerGateDashboardManifestText(
     manifest: CompilerGateDashboardManifest
 ) -> String {
     if !CompilerGateDashboardManifestReady(manifest) { return ""; }
-    let rows: Array<String> = [
+    var rows: Array<String> = [
         Concat("schema=", CompilerGateDashboardSchema())
     ];
-    let i: Int = 0;
+    var i: Int = 0;
     while i < CompilerGateDashboardCount(manifest) {
         let fields: Array<String> = [
             manifest.ids[i], manifest.make_targets[i], manifest.tiers[i],

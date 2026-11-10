@@ -227,8 +227,8 @@ func ParallelLaneReachableFromCodegen(lane: Int) -> Bool {
 }
 
 func ParallelLaneReachableCount() -> Int {
-    let reachable: Int = 0;
-    let lane: Int = 0;
+    var reachable: Int = 0;
+    var lane: Int = 0;
     while lane < ParallelLaneCount() {
         if ParallelLaneReachableFromCodegen(lane) {
             reachable = reachable + 1;

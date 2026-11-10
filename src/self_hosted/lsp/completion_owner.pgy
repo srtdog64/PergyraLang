@@ -29,11 +29,11 @@ func LspCompletionSpellingStrictlyAfter(
 ) -> Bool {
     let previous_length: Int = StringLength(previous);
     let current_length: Int = StringLength(current);
-    let shared_length: Int = previous_length;
+    var shared_length: Int = previous_length;
     if current_length < shared_length {
         shared_length = current_length;
     }
-    let index: Int = 0;
+    var index: Int = 0;
     while index < shared_length {
         let previous_code: Int = CharCode(previous, previous_length, index);
         let current_code: Int = CharCode(current, current_length, index);
@@ -49,7 +49,7 @@ func LspCompletionItemJson(
     class_name: String,
     axis_name: String
 ) -> String {
-    let fields: Array<String> = [];
+    var fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("label", spelling));
     ArrayPush(fields, JsonEmitFieldNumber("kind", "14"));
     let detail: String = Concat(
@@ -67,9 +67,9 @@ func LspCompletionItemsJson() -> String {
             "self-host LSP completion registry count is invalid"
         );
     }
-    let items: Array<String> = [];
-    let previous: String = "";
-    let index: Int = 0;
+    var items: Array<String> = [];
+    var previous: String = "";
+    var index: Int = 0;
     while index < registry_count {
         let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);
         if !row.valid || StringLength(row.spelling) == 0 ||
