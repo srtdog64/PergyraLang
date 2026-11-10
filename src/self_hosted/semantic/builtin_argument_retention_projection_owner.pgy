@@ -9,7 +9,7 @@ struct SemanticBuiltinArgumentRetentionRow {
     any_argument: Bool;
 }
 
-func SemanticBuiltinArgumentRetentionCount() -> Int { return 44; }
+func SemanticBuiltinArgumentRetentionCount() -> Int { return 45; }
 
 func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumentRetentionRow {
     if index == 0 { return SemanticBuiltinArgumentRetentionRow(true, "PRINT", "Print", 0, false); }
@@ -52,10 +52,11 @@ func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumen
     if index == 37 { return SemanticBuiltinArgumentRetentionRow(true, "MAP_SIZE", "MapSize", 0, false); }
     if index == 38 { return SemanticBuiltinArgumentRetentionRow(true, "ARRAY_LENGTH", "ArrayLength", 0, false); }
     if index == 39 { return SemanticBuiltinArgumentRetentionRow(true, "IS_SOME", "IsSome", 0, false); }
-    if index == 40 { return SemanticBuiltinArgumentRetentionRow(true, "TO_INT", "ToInt", 0, false); }
-    if index == 41 { return SemanticBuiltinArgumentRetentionRow(true, "STRING_TRIM", "StringTrim", 0, false); }
-    if index == 42 { return SemanticBuiltinArgumentRetentionRow(true, "SUB_STARTS_WITH_LEN", "SubStartsWithLen", 0, false); }
-    if index == 43 { return SemanticBuiltinArgumentRetentionRow(true, "SUB_STARTS_WITH_LEN", "SubStartsWithLen", 3, false); }
+    if index == 40 { return SemanticBuiltinArgumentRetentionRow(true, "IS_NONE", "IsNone", 0, false); }
+    if index == 41 { return SemanticBuiltinArgumentRetentionRow(true, "TO_INT", "ToInt", 0, false); }
+    if index == 42 { return SemanticBuiltinArgumentRetentionRow(true, "STRING_TRIM", "StringTrim", 0, false); }
+    if index == 43 { return SemanticBuiltinArgumentRetentionRow(true, "SUB_STARTS_WITH_LEN", "SubStartsWithLen", 0, false); }
+    if index == 44 { return SemanticBuiltinArgumentRetentionRow(true, "SUB_STARTS_WITH_LEN", "SubStartsWithLen", 3, false); }
     return SemanticBuiltinArgumentRetentionRow(false, "", "", -1, false);
 }
 
