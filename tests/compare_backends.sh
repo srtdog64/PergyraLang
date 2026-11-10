@@ -593,9 +593,15 @@ run_case() {
         fi
     fi
 
-    if ! files_equal "$c_err" "$llvm_err"; then
+    # A runtime panic names where it was raised: the C leg's generated main.c
+    # line, the LLVM leg's runtime helper. The panic gates compare class and
+    # reason, not that site, so the site alone is masked here.
+    local c_err_cmp="$c_err.cmp" llvm_err_cmp="$llvm_err.cmp"
+    sed -E 's#^\[PGY PANIC\] [^ ]+ class=#[PGY PANIC] <panic-site> class=#' "$c_err" >"$c_err_cmp"
+    sed -E 's#^\[PGY PANIC\] [^ ]+ class=#[PGY PANIC] <panic-site> class=#' "$llvm_err" >"$llvm_err_cmp"
+    if ! files_equal "$c_err_cmp" "$llvm_err_cmp"; then
         echo "backend-compare: stderr mismatch for $source_rel" >&2
-        show_diff "$c_err" "$llvm_err" >&2
+        show_diff "$c_err_cmp" "$llvm_err_cmp" >&2
         return 1
     fi
 
@@ -609,6 +615,19 @@ main() {
         "tests/cases/backend_compare/region_string_concat_heap"
         "tests/cases/backend_compare/region_user_callee"
         "tests/cases/backend_compare/region_user_callee_bad"
+        "tests/cases/backend_compare/region_call_temporary"
+        "tests/cases/backend_compare/region_string_clone"
+        "tests/cases/backend_compare/region_string_clone_escape"
+        "tests/cases/backend_compare/borrowed_string_pop"
+        "tests/cases/backend_compare/owned_string_pop"
+        "tests/cases/backend_compare/function_local_collection_cleanup"
+        "tests/cases/backend_compare/indexed_member_store"
+        "tests/cases/backend_compare/indexed_member_negative_index"
+        "tests/cases/backend_compare/indexed_member_past_end"
+        "tests/cases/backend_compare/try_inferred_success_local"
+        "tests/cases/backend_compare/typed_empty_map_factory"
+        "tests/cases/backend_compare/typed_literal_array_factory"
+        "tests/cases/backend_compare/typed_retention_factory"
         "tests/cases/backend_compare/role_override_mir"
         "tests/cases/backend_compare/inout_caller_mutation"
         "tests/cases/backend_compare/inout_nested_return_copyout"
