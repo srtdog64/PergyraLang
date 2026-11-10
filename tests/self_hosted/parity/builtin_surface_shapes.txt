@@ -94,21 +94,21 @@ func Main() -> Void {
 
 == ArrayPop
 func Main() -> Void {
-    let xs: Array<Int> = [1, 2, 3];
+    var xs: Array<Int> = [1, 2, 3];
     ArrayPop(xs);
     Log(ToString(ArrayLength(xs)));
 }
 
 == ArrayPush
 func Main() -> Void {
-    let xs: Array<Int> = [1];
+    var xs: Array<Int> = [1];
     ArrayPush(xs, 2);
     Log(ToString(xs[1]));
 }
 
 == ArraySet
 func Main() -> Void {
-    let xs: Array<Int> = [1, 2];
+    var xs: Array<Int> = [1, 2];
     ArraySet(xs, 0, 7);
     Log(ToString(xs[0]));
 }
@@ -206,8 +206,8 @@ func Describe(code: Int) -> Void {
     if IsSome(c) {
         let s: String = UnwrapOption(c);
         let n: Int = StringLength(s);
-        let text: String = ToString(code) + ":" + ToString(n);
-        let i: Int = 0;
+        var text: String = ToString(code) + ":" + ToString(n);
+        var i: Int = 0;
         while i < n {
             text = text + " " + ToString(CharCode(s, n, i));
             i = i + 1;
@@ -629,14 +629,14 @@ func Main() -> Void {
 
 == ListNew
 func Main() -> Void {
-    let l: List<Int> = ListNew();
+    var l: List<Int> = ListNew();
     ListPush(l, 5);
     Log(ToString(ListGet(l, 0)));
 }
 
 == ListSize
 func Main() -> Void {
-    let l: List<Int> = ListNew();
+    var l: List<Int> = ListNew();
     ListPush(l, 5);
     ListPush(l, 6);
     Log(ToString(ListSize(l)));
@@ -675,21 +675,21 @@ func Main() -> Void {
 
 == MapHas
 func Main() -> Void {
-    let m: HashMap<String, Int> = MapNew();
+    var m: HashMap<String, Int> = MapNew();
     MapSet(m, "k", 1);
     if MapHas(m, "k") { Log("has"); } else { Log("missing"); }
 }
 
 == MapNew
 func Main() -> Void {
-    let m: HashMap<String, Int> = MapNew();
+    var m: HashMap<String, Int> = MapNew();
     MapSet(m, "k", 9);
     Log(ToString(MapGet(m, "k")));
 }
 
 == MapSize
 func Main() -> Void {
-    let m: HashMap<String, Int> = MapNew();
+    var m: HashMap<String, Int> = MapNew();
     MapSet(m, "a", 1);
     MapSet(m, "b", 2);
     Log(ToString(MapSize(m)));
@@ -711,8 +711,8 @@ func Main() -> Void {
 
 == Now
 func Main() -> Void {
-    let t: Int = Now();
-    if t >= 0 || t < 0 { Log("now ok"); }
+    let t: Long = Now();
+    if t >= 0L || t < 0L { Log("now ok"); }
 }
 
 == PI
@@ -743,14 +743,14 @@ func Main() -> Void {
 
 == QueueNew
 func Main() -> Void {
-    let q: Queue<Int> = QueueNew();
+    var q: Queue<Int> = QueueNew();
     QueuePush(q, 3);
     Log(ToString(QueuePop(q)));
 }
 
 == QueueSize
 func Main() -> Void {
-    let q: Queue<Int> = QueueNew();
+    var q: Queue<Int> = QueueNew();
     QueuePush(q, 3);
     QueuePush(q, 4);
     Log(ToString(QueueSize(q)));
@@ -804,14 +804,14 @@ func Main() -> Void {
 
 == SetHas
 func Main() -> Void {
-    let s: Set<Int> = SetNew();
+    var s: Set<Int> = SetNew();
     SetAdd(s, 2);
     if SetHas(s, 2) { Log("has"); } else { Log("missing"); }
 }
 
 == SetNew
 func Main() -> Void {
-    let s: Set<Int> = SetNew();
+    var s: Set<Int> = SetNew();
     SetAdd(s, 2);
     SetAdd(s, 2);
     Log(ToString(SetSize(s)));
@@ -819,7 +819,7 @@ func Main() -> Void {
 
 == SetSize
 func Main() -> Void {
-    let s: Set<Int> = SetNew();
+    var s: Set<Int> = SetNew();
     SetAdd(s, 1);
     SetAdd(s, 2);
     Log(ToString(SetSize(s)));
