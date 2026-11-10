@@ -360,7 +360,7 @@ enum Turn { Answered(Done), Stopped(Stop) }
 enum Task { Delivered(Done), Failed(Stop) }
 
 func ShowActive(tag: String) -> Void {
-    let i: Int = 0;
+    var i: Int = 0;
     while i < IntentActiveCount() {
         Log(tag + " " + IntentActiveName(i) + " handle=" + ToString(IntentActiveHandle(i)) +
             " parent=" + ToString(IntentActiveParentHandle(i)));

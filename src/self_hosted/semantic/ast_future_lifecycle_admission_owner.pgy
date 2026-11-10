@@ -41,8 +41,7 @@ func SemanticFutureStatementExpressions(ref facts: SemanticFutureBindings,
             }
             SemanticFutureExpression(facts, flow, node_id, root, owns_initializer);
             if owns_initializer && flow.verdict.ok {
-                var states: Array<Int> = flow.states;
-                ArraySet(states, binding, 1);
+                ArraySet(flow.states, binding, 1);
             }
         }
         lane = lane + 1;

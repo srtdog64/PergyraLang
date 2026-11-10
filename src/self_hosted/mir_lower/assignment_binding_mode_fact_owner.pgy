@@ -64,7 +64,7 @@ func MirAssignmentBindingModesMatchSemanticFacts(
             return false;
         }
         if defer_assignment {
-            if facts.target_binding_modes[assignment_i] != "local" {
+            if facts.target_binding_modes[assignment_i] != "mutable_local" {
                 return false;
             }
         } else if !scalar.valid || scalar.arg1 == "" ||

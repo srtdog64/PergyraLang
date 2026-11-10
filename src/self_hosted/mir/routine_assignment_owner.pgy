@@ -41,7 +41,7 @@ func SelfMirLowerAssignmentFromArtifact(
     let binding_mode: String =
         input.assignments.target_binding_modes[binding_row];
     var local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
-    if !IsSome(local_opt) && binding_mode == "owner_field" {
+    if !IsSome(local_opt) && binding_mode == "mutable_owner_field" {
         build = SelfMirRoutineAddLocal(
             build, target,
             input.assignments.target_type_names[binding_row], 0,
@@ -87,12 +87,12 @@ func SelfMirLowerAssignmentFromArtifact(
             node_id, AstExpressionLaneAtom()
         );
     var uses: Array<String> = [];
-    if binding_mode == "owner_field" &&
+    if binding_mode == "mutable_owner_field" &&
         SelfMirExpressionGraphContainsLeafBinding(value_graph, target) {
         SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
     }
     if target_text != target || operation != 0 {
-        if binding_mode == "owner_field" &&
+        if binding_mode == "mutable_owner_field" &&
             SelfMirExpressionGraphContainsLeafBinding(target_graph, target) {
             SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
         }

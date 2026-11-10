@@ -43,7 +43,7 @@ func SelfMirDeferAssignmentTargetIsLocal(
     let row: Option<Int> = SelfMirAssignmentRowForNodeFromReadyRows(
         input.assignments, stmt_node_id);
     return IsSome(row) &&
-        input.assignments.target_binding_modes[UnwrapOption(row)] == "local";
+        input.assignments.target_binding_modes[UnwrapOption(row)] == "mutable_local";
 }
 
 func SelfMirLowerDeferFromArtifact(

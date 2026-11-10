@@ -74,10 +74,9 @@ func SemanticFutureJoin(inout target: SemanticFutureFlow, ref branch: SemanticFu
     if branch.continuing {
         if target.continuing { target.states = SemanticFutureMergeStates(target.states, branch.states); }
         else {
-            var target_states: Array<Int> = target.states;
             var index: Int = 0;
             while index < ArrayLength(branch.states) {
-                ArraySet(target_states, index, branch.states[index]); index = index + 1;
+                ArraySet(target.states, index, branch.states[index]); index = index + 1;
             }
         }
         target.continuing = true;
@@ -119,8 +118,7 @@ func SemanticFutureRetire(ref facts: SemanticFutureBindings, inout flow: Semanti
         SemanticFutureReject(flow, syntax_id, Concat("retirement requires a live handle: ", facts.names[index]));
         return;
     }
-    var states: Array<Int> = flow.states;
-    ArraySet(states, index, 2);
+    ArraySet(flow.states, index, 2);
 }
 
 func SemanticFutureExpression(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
@@ -196,7 +194,6 @@ func SemanticFutureExpression(ref facts: SemanticFutureBindings, inout flow: Sem
 
 func SemanticFutureRequireScope(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
     syntax_id: Int, scope_id: Int, descendants: Bool) -> Void {
-    var states: Array<Int> = flow.states;
     var index: Int = 0;
     while index < ArrayLength(facts.node_ids) && flow.verdict.ok {
         var exits: Bool = scope_id < 0 || facts.scope_ids[index] == scope_id;
@@ -207,7 +204,7 @@ func SemanticFutureRequireScope(ref facts: SemanticFutureBindings, inout flow: S
             if flow.states[index] == 1 || flow.states[index] == 3 {
                 SemanticFutureReject(flow, syntax_id, Concat("scope exits before await/own transfer: ", facts.names[index]));
             }
-            ArraySet(states, index, 0);
+            ArraySet(flow.states, index, 0);
         }
         index = index + 1;
     }

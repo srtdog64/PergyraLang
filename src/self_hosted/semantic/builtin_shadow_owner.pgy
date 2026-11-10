@@ -145,7 +145,7 @@ func SemanticBuiltinNameReservationFor(name: String) -> SemanticBuiltinNameReser
         return SemanticBuiltinNameReservation(true, "CAPABILITY");
     }
     let rows: Array<String> = SemanticBuiltinNameReservationRows();
-    // A row "LAYER^name" with exactly one "^" names `name` when the text
+    // A row `LAYER^name` with exactly one "^" names `name` when the text
     // after its first "^" is `name` and `name` holds no "^".
     if StringIndexOf(name, "^") >= 0 {
         return SemanticBuiltinNameReservation(false, "");
