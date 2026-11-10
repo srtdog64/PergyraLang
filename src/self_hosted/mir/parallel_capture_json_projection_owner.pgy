@@ -1,0 +1,33 @@
+// JSON row for one sealed parallel capture boundary of the MIR artifact.
+import "parallel_capture_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonParallelCaptureBoundary(
+    rows: SelfMirParallelCaptureRows,
+    boundary_index: Int
+) -> String {
+    var captures: Array<String> = [];
+    var i: Int = 0;
+    while i < rows.row_counts[boundary_index] {
+        let row: Int = rows.row_starts[boundary_index] + i;
+        ArrayPush(captures, JsonEmitObject([
+            JsonEmitFieldString("name", rows.names[row]),
+            JsonEmitFieldString("kind", rows.kinds[row]),
+            JsonEmitFieldNumber(
+                "writer_task", ToString(rows.writer_tasks[row])
+            )
+        ]));
+        i = i + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldNumber(
+            "source_stable_id",
+            ToString(rows.source_stable_ids[boundary_index])
+        ),
+        JsonEmitFieldNumber(
+            "task_count", ToString(rows.task_counts[boundary_index])
+        ),
+        JsonEmitFieldBool("sealed", rows.sealed[boundary_index] == 1),
+        JsonEmitFieldRaw("rows", JsonEmitArray(captures))
+    ]);
+}
