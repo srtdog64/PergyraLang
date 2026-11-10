@@ -485,7 +485,7 @@ test_hir_lowering_part_b(void)
     {
         const char *src =
             "func Merge(flag: Bool) -> Int {\n"
-            "    let score = 0;\n"
+            "    var score = 0;\n"
             "    if flag {\n"
             "        score = 1;\n"
             "    } else {\n"

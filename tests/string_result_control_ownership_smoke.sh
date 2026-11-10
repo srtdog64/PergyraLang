@@ -35,7 +35,7 @@ for backend in $BACKENDS; do
         artifact="$WORK_DIR/$negative.$backend.exe"
         if (cd "$ROOT_DIR" && pgy_run_with_timeout 45 \
             "$WORK_DIR/$negative.$backend.out" "$WORK_DIR/$negative.$backend.err" \
-            "$PGY" --native-pipeline \
+            "$PGY" --native-pipeline --error-format=json \
             "$(pgy_path_for_compiler "$PGY" "$FIXTURES/string_result_control_$negative.pgy")" \
             "--backend=$backend" -o "$(pgy_path_for_compiler "$PGY" "$artifact")"); then
             fail "$negative/$backend was granted a deep drop"
