@@ -132,7 +132,13 @@ func Main() -> Void {
     var shadow: Int = 1;
     while shadow <= 7 {
         value = ConstructorResult("Pair([])", shadow, constructors, signatures);
-        Log(!value.applies && value.ok && value.constructor_source_syntax_id == 0);
+        if shadow == 6 {
+            // A sealed call target naming another declaration is a forged
+            // artifact, not a call the constructor owner may pass over.
+            Log(ConstructorRefuses(value, "ast_artifact_invalid"));
+        } else {
+            Log(!value.applies && value.ok && value.constructor_source_syntax_id == 0);
+        }
         shadow = shadow + 1;
     }
     Log(!IsSome(SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, -1, 0)));
