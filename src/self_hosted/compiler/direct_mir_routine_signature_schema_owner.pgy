@@ -93,6 +93,14 @@ func DirectMirRoutineSignatureFactReady(ref fact: DirectMirRoutineSignatureFact)
           DirectMirRoutineParamFactReady(fact.param) &&
           fact.param.digest == fact.parameters.param_digests[0]));
     if !structural_ready { return false; }
-    return fact.kind != "intent" || DirectMirRoutineIntentParameterSetReady(fact.parameters);
+    if fact.kind == "intent" { return DirectMirRoutineIntentParameterSetReady(fact.parameters); }
+    // `participant` is the Intent protocol's carriage; the identity cell policy
+    // only recognizes its representation, so an ordinary routine is refused here.
+    var row: Int = 0;
+    while row < ArrayLength(fact.parameters.carriages) {
+        if fact.parameters.carriages[row] == "participant" { return false; }
+        row = row + 1;
+    }
+    return true;
 }
 

@@ -220,26 +220,36 @@ func Main() -> Void with caps env, io_read {
             signature = IntentSignatureWithFirstParameterShape(signature, original_carriage, original_pass);
             let crossed_mode: DirectMirRoutineSignatureFact =
                 IntentSignatureWithFirstParameterShape(signature, "readonly-ref", original_pass);
+            // An ordinary function may take a Zone or World by readonly ref, so
+            // the cell policy admits that carriage for them; the Intent
+            // signature schema must still refuse it for a participant.
+            let readonly_cell: Bool = DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                cells, signature.parameters.type_names[0], "readonly-ref");
             if !DirectMirRoutineParameterSetFactReady(crossed_mode.parameters) ||
                 DirectMirRoutineSignatureFactReady(crossed_mode) ||
-                DirectMirScalarProgramIdentityCellParameterReady(crossed_mode, 0, cells) {
+                (!readonly_cell && DirectMirScalarProgramIdentityCellParameterReady(crossed_mode, 0, cells)) {
                 Die("MIR Intent signature erased participant/value into ordinary ref");
             }
             signature = IntentSignatureWithFirstParameterShape(signature, original_carriage, original_pass);
             if !DirectMirRoutineSignatureFactReady(signature) || signature.digest != indexed.digest {
                 Die("MIR Intent signature probe failed to restore its owned facts");
             }
-            let ordinary: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
+            let unsealed: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
                 true, 0, signature.row, signature.name, "function", signature.source_syntax_id,
                 signature.source_parameter_offset, signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
                 signature.return_type, signature.param_count, signature.parameters, signature.param);
+            let ordinary: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactWithDigest(
+                unsealed, DirectMirRoutineSignatureFactDigest(unsealed));
+            // The cell policy recognizes a participant's cell representation;
+            // the signature schema refuses that carriage on an ordinary routine.
+            var participants: Int = 0;
             parameter = 0;
             while parameter < signature.param_count {
-                if bindings.kinds[parameter] == "participant" &&
-                    DirectMirScalarProgramIdentityCellParameterReady(ordinary, parameter, cells) {
-                    Die("MIR ordinary parameter policy accepted Intent participant carriage");
-                }
+                if bindings.kinds[parameter] == "participant" { participants = participants + 1; }
                 parameter = parameter + 1;
+            }
+            if participants > 0 && DirectMirRoutineSignatureFactReady(ordinary) {
+                Die("MIR ordinary parameter policy accepted Intent participant carriage");
             }
             if DirectMirScalarProgramIdentityCellParameterReady(signature, -1, cells) ||
                 DirectMirScalarProgramIdentityCellParameterReady(signature, signature.param_count, cells) {

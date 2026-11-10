@@ -2989,7 +2989,7 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_projection_owner.pgy:139 \
     src/self_hosted/compiler/direct_mir_scalar_cfg_scalar_type_family_owner.pgy:40 \
     src/self_hosted/compiler/direct_mir_scalar_cfg_collection_type_family_owner.pgy:80 \
-    src/self_hosted/compiler/direct_mir_routine_signature_schema_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_routine_signature_schema_owner.pgy:103 \
     src/self_hosted/compiler/direct_mir_routine_signature_projection_owner.pgy:140 \
     src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_schema_owner.pgy:40 \
     src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_projection_owner.pgy:85 \
