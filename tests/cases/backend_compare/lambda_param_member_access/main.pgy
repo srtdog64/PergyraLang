@@ -19,7 +19,9 @@ func Tag(c: Ctx, f: func(Ctx) -> String) -> String {
 
 func Main() -> Void {
     let c = Ctx(3, "raid");
-    let annotated = Score(4, c, (base: Int, ctx: Ctx) => Max(base + ctx.morale + 2, 0));
+    // Score forwards its Ctx to a function value, so `c` is shared with an
+    // opaque callee here; the explicit Clone keeps `c` usable afterwards.
+    let annotated = Score(4, Clone(c), (base: Int, ctx: Ctx) => Max(base + ctx.morale + 2, 0));
     Log("annotated=" + ToString(annotated));
     let bonus = 10;
     let withBonus: func(Int, Ctx) -> Int = (base: Int, ctx: Ctx) => base + ctx.morale + bonus;
