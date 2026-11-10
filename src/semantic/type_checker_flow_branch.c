@@ -3,6 +3,7 @@
 #include "diag_codes.h"
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
+#include "type_checker_assignment.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -323,8 +324,13 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
             ctx->future_lifecycle_unreachable_depth++;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
 
-        if (ast_match_case_pattern(mc) != NULL)
+        if (ast_match_case_pattern(mc) != NULL) {
             type_check_match_case_patterns(mc, subj_type, ctx);
+            /* The case scope is fresh: what it holds are the pattern's bindings. */
+            for (size_t b = 0; b < ctx->scope->symbol_count; b++)
+                semantic_mark_storage_alias_binding(
+                    ctx->scope->symbols[b], subject, ctx);
+        }
 
         if (ast_match_case_guard(mc) != NULL) {
             Type *guard_type = flow_normalize_type(

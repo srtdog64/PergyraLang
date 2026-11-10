@@ -3,6 +3,7 @@
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loop_summary.h"
 #include "function_param_publication_owner.h"
+#include "type_checker_assignment.h"
 
 static size_t
 for_loop_known_iteration_cap(const ASTNode *node, bool *known)
@@ -115,6 +116,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     Symbol *loop_var = symbol_create_variable(
         ast_for_variable(node), var_type, node->line, node->column);
     symbol_mark_declaration(loop_var, ast_node_stable_id(node), false);
+    if (iterable != NULL)
+        semantic_mark_storage_alias_binding(loop_var, iterable, ctx);
     scope_declare(ctx->scope, loop_var);
 
     if (range_start != NULL) {

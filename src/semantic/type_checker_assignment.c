@@ -164,8 +164,22 @@ semantic_admit_value_mutation(ASTNode *place, SemanticContext *ctx)
     Symbol *binding = lookup_identifier_symbol(root, ctx);
     /* An identity host's state is governed by its field/action authority;
      * an immutable handle does not freeze the host itself. Value aggregates
-     * and collections, in contrast, inherit the root binding's permission. */
-    if (binding == NULL || !expr_type_is_nominal_host_type(binding->type, ctx)) {
+     * and collections, in contrast, inherit the root binding's permission;
+     * a loop or match binding takes the permission of the owner it names. */
+    if (binding != NULL && binding->is_storage_alias_binding) {
+        if (!binding->storage_alias_owner_writable) {
+            const Symbol *owner = binding->storage_alias_owner;
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_BINDING_WRITE,
+                PGY_CAUSE_IMMUTABLE_BINDING_WRITE, PGY_FIX_USE_MUTABLE_BINDING,
+                root, "Cannot change storage through '%s': it names a value held by immutable binding '%s' declared at %u:%u.\n"
+                "Reason:\n- a loop or match binding names its iterable's or subject's storage\n"
+                "Fix:\n- declare that owner with `var` or `let mut`",
+                binding->name, owner != NULL ? owner->name : "<unknown>",
+                owner != NULL ? owner->decl_line : 0u,
+                owner != NULL ? owner->decl_col : 0u);
+            return false;
+        }
+    } else if (binding == NULL || !expr_type_is_nominal_host_type(binding->type, ctx)) {
         if (!semantic_admit_binding_replacement(root, ctx))
             return false;
     }
@@ -220,6 +234,49 @@ semantic_admit_value_mutation(ASTNode *place, SemanticContext *ctx)
         }
     }
     return true;
+}
+
+/* Whether the storage `owner` names may change: a `var` local, a non-`ref`
+ * parameter, an identity host or handle, a writable loop/match binding, or a
+ * value no binding holds (a call result the loop or match alone owns). */
+static bool
+storage_alias_owner_writable(ASTNode *owner, SemanticContext *ctx,
+                             Symbol **owner_binding)
+{
+    ASTNode *root = owner;
+    while (root != NULL && (root->type == AST_MEMBER_ACCESS
+                            || root->type == AST_ARRAY_ACCESS)) {
+        root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root)
+                                             : ast_array_access_array(root);
+    }
+    if (root == NULL || root->type != AST_IDENTIFIER)
+        return true;
+    Symbol *binding = lookup_identifier_symbol(root, ctx);
+    if (binding == NULL || binding->kind != SYMBOL_VARIABLE)
+        return true;
+    *owner_binding = binding->is_storage_alias_binding
+        && binding->storage_alias_owner != NULL
+        ? binding->storage_alias_owner : binding;
+    if (binding->is_storage_alias_binding)
+        return binding->storage_alias_owner_writable;
+    if (binding->is_parameter)
+        return binding->param_mode != PARAM_MODE_REF;
+    if (type_is_slot_handle(binding->type)
+        || expr_type_is_nominal_host_type(binding->type, ctx))
+        return true;
+    return binding->is_mut_binding;
+}
+
+void
+semantic_mark_storage_alias_binding(Symbol *binding, ASTNode *owner,
+                                    SemanticContext *ctx)
+{
+    if (binding == NULL || owner == NULL)
+        return;
+    binding->is_storage_alias_binding = true;
+    binding->storage_alias_owner = NULL;
+    binding->storage_alias_owner_writable =
+        storage_alias_owner_writable(owner, ctx, &binding->storage_alias_owner);
 }
 
 Type *

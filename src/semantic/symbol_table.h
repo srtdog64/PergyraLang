@@ -161,6 +161,12 @@ struct Symbol
 
     /* `var` vs `let` for locals (parameters use param_mode instead). */
     bool is_mut_binding;
+    /* A for-in variable or match payload binding names storage its iterable
+     * or subject holds. Rebinding the name is refused like `let`; changing
+     * that storage takes the owner's permission, never more. */
+    bool is_storage_alias_binding;
+    bool storage_alias_owner_writable;
+    Symbol *storage_alias_owner;  /* the owner's root binding; NULL for a temporary */
 
     /*
      * Disjoint slice-split provenance (docs/178 WO-DOP-1 rung 0).
