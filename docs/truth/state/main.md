@@ -1,18 +1,20 @@
 # Main and CI
 
-Owner: GPT root lane. Checked 2026-11-08 KST.
+Owner: Claude root lane (taken over 2026-11-10,
+[decision](../decisions/2026-11-10_root_lane_taken_over_all_work_lands_on_main.md)).
+Checked 2026-11-10 23:30 KST.
 
 | Item | Observed value |
 |---|---|
-| Local main | `60fd1e26d8ea3987efbcbfc65f59b892b234701a` plus preserved dirty work |
-| Published main | `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` |
-| Current source candidate | preserved dirty V.001 index plus unstaged later-milestone work; no candidate commit yet |
-| Current validation root | `/root/pgy-v001-current-result-v14`, isolated and not a Git checkout |
-| Current installed diagnostic driver | `.tmp/v001-compiler-build-v66/pgy-self-driver`; canonical gen2 emit is red |
-| Older exact candidate | `/root/pgy-v001-exact.WkZDds`; historical only because its source graph differs |
-| Required CI | OPEN: no V.001 candidate SHA has been pushed yet |
+| Published main | `e875e9e90` |
+| Work branch | `ci/all-green`, worktree `C:\Users\user\pgy-wt\ci-win`; ahead of main by the commits after `e875e9e90` |
+| Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
+| Linux validation | WSL `Ubuntu-C-WSL`: `/root/cc-all` (bootstrap), `/root/cc-all-b` (shards), `/root/cc-dbg-1110` (scratch, never committed) |
+| Required CI at `e6ca0e3f3` | RED: build-linux, contracts shard, 14 backend-compare shards, fixed point (60-minute limit) |
+| Required CI at `e875e9e90` | running when this was written (run 42832502605) |
 
-The current candidate has no fresh fixed-point or full installed-driver proof.
-Raw/View, `let mut`, store isolation and wider SoT work remain the next
-milestone and must not enter the V.001 commit. Commit, push and all required
-jobs at that exact SHA remain mandatory.
+Green at `e6ca0e3f3`: classify, tsan, macOS, Windows, formal proofs, codegen
+bootstrap, backend-compare toolchain, sanitizers, 6 backend-compare shards.
+
+The gate results are in [gates](gates.md) and the open items in
+[blocker](blocker.md).

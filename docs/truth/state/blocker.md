@@ -1,56 +1,51 @@
 # Current blocker
 
-Owner: GPT root lane. Checked 2026-11-10 KST at local main `60fd1e26d`
-plus the preserved dirty candidate in
-`/root/pgy-current-all-20261109.gOvxcs` (`Ubuntu-C-WSL`).
+Owner: Claude root lane. Checked 2026-11-10 23:30 KST at main `e875e9e90`.
 
 ## Objective card
 
-- Objective: publish one commit containing the preserved candidate with the
-  canonical fixed point, installed C/LLVM driver and required CI green on that
-  exact SHA.
-- Priority: semantic identity and one ownership fact; fail-closed admission;
+- Objective: required CI green on one published commit, with the bootstrap
+  and installed-driver jobs executed.
+- Priority: semantic identity and one fact owner; fail-closed admission;
   C/LLVM parity; fixed point; installed execution; exact-SHA CI.
-- Active slice: `driver.current26.test` passes the fresh-String C/LLVM focused
-  artifact, but source-to-MIR rejects the first returned-aggregate `own
-  Array<String>` transfer in `CodegenAstTextTypedArenaProjectionReady`.
-- Fact owner: the existing collection call argument and descriptor-retention
-  owners decide whether the caller descriptor is borrowed, retained or moved.
-- Last consumers: the semantic collection verdict, MIR collection state table,
-  canonical MIR producer, direct C/LLVM emitters and installed drivers.
-- Forbidden fallback: source `Clone` or manual drop, routine/program-shape
-  exception, admitting `(owned-literal, unknown, live)`, reduced canonical
-  input, skipped backend or weakened negative.
-- Falsifier: an `own Array<String>` whose descriptor is returned inside an
-  aggregate must retire the caller binding; a later caller use must still be
-  refused.
+- Forbidden: a larger job timeout, a reduced canonical input, a skipped
+  backend, a weakened negative, per-program-shape route admission.
 
-## Exact observed seam
+## Open, in dependency order
 
-- Minimal input:
-  `tests/self_hosted/fixtures/ast_text_arena_projection_ownership_probe.pgy`.
-- Failing local: `no_expression_graph_texts`, syntax `5320` in the probe.
-- Before the call: ownership `owned-elements` (`2`), disposition `live` (`0`),
-  origin `owned-literal` (`10`), transition `owned` (`3`).
-- Formal identity is intact: syntax `5240`, inventory row `3`, mode `own` (`2`).
-  The argument permission effect is consuming and not unknown.
-- The callee returns the descriptor in `AstArena.atom_table`, so the existing
-  retention summary correctly marks the definition retained.
-- The reached bug is the final application: descriptor retention calls
-  `SemanticAstCollectionRemoveCallPermission`, producing
-  `(owned-literal, unknown, live)`. The caller binding was moved, so its
-  disposition must become retired while element ownership remains attached to
-  the moved storage. The MIR state table must remain unchanged.
+1. Fixed point (`self-host-bootstrap-linux`).
+   - `gen2_emit` refused at `collection_ownership_transition` because the
+     scalar C route claimed programs it cannot emit. The claim is back to the
+     validated condition in `658a9fcc9`; the full fixed point has not been
+     rerun on it yet.
+   - Time: the native compile of the canonical driver takes about 32 minutes
+     on CI inside a 60-minute job. The landing fixed point runs about 65
+     whole-program analyses, and one analysis costs 13 s with no landed copy
+     and 40 to 100 s with 865 to 2308. Keeping copies across store growth
+     reaches the same plan (checked on `mir_lower`) but saves only 31 to 25
+     analyses. Next step: profile one analysis under a full copy plan.
+2. `build-linux` contracts shard: 8 of 11 steps fail with the corrected
+   driver, and the 2026-11-07 staged driver fails the same ones. Known
+   causes: `task_lifecycle_invalid` on `let task = spawn ...; await task` in
+   the self-host checker; `routine MIR fact index is incomplete: Classify
+   [collection_ownership_row]`; field `let` writes in the identity-cell probe;
+   `effect_array_transform_valid` refused natively; `RcGet` has no retention
+   row. The core shard has not been rerun since the claim fix.
+3. Backend compare: 7 native refusals remain of 23
+   (`subject_param_constructor_store`, `reflect_type_name`,
+   `generic_shadowed_argument_binding`, `option_of_result_consumers`,
+   `lambda_reduce`, `function_pointer_reduce`,
+   `generic_default_ability_bind_dispatch`).
+4. Environment: after a memory exhaustion on 2026-11-10 the WSL distro
+   restarts about two minutes into a heavy job. A `wsl --shutdown` by the
+   user is needed before the long local runs can be repeated.
 
-## Closure order
+## Falsifiers kept
 
-1. Make the existing retention application distinguish an `own` move from a
-   continuing borrow; retire only the moved caller descriptor.
-2. Prove the minimal positive and use-after-move negative, rebuild the current
-   driver and rerun the full canonical MIR producer.
-3. Continue only from the next full-input failure, then prove direct C/LLVM,
-   `gen2 == gen3`, installed C/LLVM execution and local required CI.
-4. Review the complete diff, remove exact scratch artifacts, commit and push
-   main, then observe required remote jobs on that exact SHA.
-
-The task is incomplete until exact-SHA required CI is green.
+- A carrier actually replaced by a borrowed aggregate is still refused
+  (`aggregate_member_replaced_carrier_borrowed_source_invalid`,
+  `aggregate_result_replaced_root_borrowed_source_invalid`).
+- Text finished with a local non-result allocator still cannot leave its
+  routine; only compiler builtins stopped producing lane loans.
+- An owned push or a drop on a collection fact with unestablished elements is
+  still an orphan receipt; only a shallow mutation is admitted.

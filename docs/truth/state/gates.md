@@ -1,24 +1,20 @@
 # Gates
 
-Owner: GPT root lane. Checked 2026-11-08 KST. Current candidate evidence is
-from `/root/pgy-v001-current-result-v14`; the older exact-candidate receipts
-below do not describe the current source index.
-
-## V.001 finish line
+Owner: Claude root lane. Checked 2026-11-10 23:30 KST. Local results are from
+`/root/cc-dbg-1110` at the named commit unless a line says otherwise.
 
 | Gate | Last observed result |
 |---|---|
-| Fixed canonical ownership admission | PASS: direct analyzer `body_ok=true`, empty diagnostic; seed and oracle both produced full MIR |
-| Carrier positives | PASS: disjoint restored carrier and unrelated-loop member read |
-| Carrier falsifiers | PASS: missing restore, moved/forwarded/root/deferred and mutator cases refused |
-| Canonical MIR producer parity | PASS on current validation tree: 394,160,290 bytes, SHA-256 `1a525181...2f232` on both producers |
-| Current gen2 emit | RED: installed diagnostic driver v66 refuses omitted-self role routine row 9143 before output |
-| Current gen2 == gen3 | OPEN: not reached after the current source changes |
-| Current installed C/MIR/LLVM driver | PARTIAL: build, ArrayDrop and owned-local-return gates pass; full canonical route is red |
-| Older exact candidate | HISTORICAL: gen2==gen3 and installed contracts passed in `/root/pgy-v001-exact.WkZDds`, but its source graph differs from the current index |
-| One-shot full make target | OPEN on the current candidate |
-| Required CI at published candidate SHA | OPEN: candidate not pushed |
+| Native compile of the canonical driver | PASS at `e6ca0e3f3`: `0 error(s), 26 warning(s)` |
+| Codegen bootstrap (gen2 == gen3, 119,545 lines) | PASS on CI at `e6ca0e3f3` |
+| Driver fixed point (gen2 == gen3) | OPEN: not rerun since `658a9fcc9`; CI job cancelled at 60 minutes |
+| Function parameter flow summary smoke | PASS at `f48930b65` |
+| Backend compare, the 23 cases red at `e6ca0e3f3` | 16 PASS in the real harness or on both backends at `4250b6f2e`; 7 native refusals |
+| Installed driver on 11 fixtures refused with `CODEGEN ERROR` | PASS with the driver built at `658a9fcc9` |
+| build-linux contracts shard, local | RED at `6fb4b2345`: 8 of 11 steps |
+| build-linux core shard, local | RED at `e6ca0e3f3`: 27 of 55 steps; not completed since |
+| Windows `test-all` | PASS on CI at `e6ca0e3f3` |
+| Required CI at the published SHA | RED at `e6ca0e3f3`; `e875e9e90` running |
 
-Historical green evidence cannot be attached to the current candidate. V.001
-requires a fresh unbroken bootstrap, installed-driver execution and required
-CI at the exact published SHA.
+A local PASS on a scratch tree is not CI evidence. The finish line is every
+required job green on one published SHA.
