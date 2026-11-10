@@ -47,9 +47,16 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
 
     if (handled != NULL)
         *handled = true;
+    /* Only this initializer's own refusal stops the declaration; an error
+     * elsewhere in the program must not leave the name undeclared and turn
+     * every later use into an undefined-symbol cascade. */
+    size_t initializer_diagnostic_base = ctx->diagnostic_count;
     (void)type_check_expression(init, ctx);
-    if (ctx->has_error)
-        return false;
+    for (size_t i = initializer_diagnostic_base; i < ctx->diagnostic_count; i++) {
+        Diagnostic *diagnostic = ctx->diagnostics[i];
+        if (diagnostic != NULL && diagnostic->level == DIAG_ERROR)
+            return false;
+    }
     uint32_t checked_builtin = 0;
     if (!ast_call_semantic_callee_builtin_kind(init, &checked_builtin)
         || checked_builtin != (uint32_t)bk
