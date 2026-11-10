@@ -14,11 +14,15 @@
 #include "indexed_string_borrow_owner.h"
 
 /* Indexes one rows capture already found current. Positions survive index
- * growth; each index's typed claims own its checked-call projection. */
+ * growth; each index's typed claims own its checked-call projection. `slots`
+ * finds a declaration's entry (entry + 1, 0 empty) so that a capture over a
+ * large callee closure does not scan every entry for each lookup. */
 typedef struct {
     ASTNode **decls;
     size_t *positions;
     size_t count, capacity;
+    size_t *slots;
+    size_t slot_capacity;
     bool verify;
 } RowsCaptureIndexes;
 
@@ -139,14 +143,54 @@ static bool rows_capture_relation_header_ready(FunctionParamFlowSummaryStore *st
  * A later top-level currency replay creates a fresh set and checks it again;
  * cycles and shared DAG descendants inside this capture reuse the pointer
  * that this capture already found current. */
+static size_t rows_capture_pointer_hash(const void *pointer, uint64_t salt)
+{
+    uint64_t h = (uint64_t)(uintptr_t)pointer ^ (salt * 0x9E3779B97F4A7C15ull);
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccdull;
+    h ^= h >> 33;
+    return (size_t)h;
+}
+
+/* Slot of `decl` in the entry table: its entry + 1, or the empty slot where
+ * it would go. */
+static size_t rows_capture_seen_slot(const RowsCaptureIndexes *seen,
+    const ASTNode *decl)
+{
+    size_t mask = seen->slot_capacity - 1;
+    size_t slot = rows_capture_pointer_hash(decl, 0) & mask;
+    while (seen->slots[slot] != 0 && seen->decls[seen->slots[slot] - 1] != decl)
+        slot = (slot + 1) & mask;
+    return slot;
+}
+
+/* Keeps the entry table at most half full. False only when it could not
+ * grow; the caller then keeps the entry uncached, as with the entry arrays. */
+static bool rows_capture_seen_reserve(RowsCaptureIndexes *seen)
+{
+    if (seen->slot_capacity != 0 && (seen->count + 1) * 2 <= seen->slot_capacity)
+        return true;
+    size_t next = seen->slot_capacity == 0 ? 16 : seen->slot_capacity * 2;
+    if (next < seen->slot_capacity || next > SIZE_MAX / sizeof(*seen->slots))
+        return false;
+    size_t *slots = calloc(next, sizeof(*slots));
+    if (slots == NULL) return false;
+    free(seen->slots);
+    seen->slots = slots;
+    seen->slot_capacity = next;
+    for (size_t i = 0; i < seen->count; i++)
+        seen->slots[rows_capture_seen_slot(seen, seen->decls[i])] = i + 1;
+    return true;
+}
+
 static bool rows_capture_index(FunctionParamFlowSummaryStore *store, RowsCaptureIndexes *seen,
     ASTNode *decl, FunctionParamFlowProgramPointIndex **index)
 {
     size_t reused = SIZE_MAX;
-    for (size_t i = 0; i < seen->count && reused == SIZE_MAX; i++)
-        if (seen->decls[i] == decl) {
-            reused = seen->positions[i];
-        }
+    if (seen->slot_capacity != 0) {
+        size_t entry = seen->slots[rows_capture_seen_slot(seen, decl)];
+        if (entry != 0) reused = seen->positions[entry - 1];
+    }
     if (reused != SIZE_MAX && reused < store->program_point_index_count &&
         store->program_point_indexes[reused].function_decl == decl) {
         *index = &store->program_point_indexes[reused];
@@ -171,6 +215,9 @@ static bool rows_capture_index(FunctionParamFlowSummaryStore *store, RowsCapture
     }
     seen->decls[seen->count] = decl;
     seen->positions[seen->count++] = (size_t)(*index - store->program_point_indexes);
+    /* A later entry for the same declaration replaces a stale earlier one. */
+    if (rows_capture_seen_reserve(seen))
+        seen->slots[rows_capture_seen_slot(seen, decl)] = seen->count;
     return true;
 }
 
@@ -181,30 +228,75 @@ static bool rows_capture_target_equal(const RowsCaptureTarget *left,
         (left->kind != ROWS_CAPTURE_FORMAL || left->formal == right->formal);
 }
 
-/* Appends `callee` to the validation queue unless it is already there. */
-static bool rows_capture_enqueue(FunctionParamFlowSummaryStore *store,
-    ASTNode *current, RowsCaptureTarget **queue, size_t *count,
-    size_t *capacity, RowsCaptureTarget target)
+/* The validation work queue, in first-reached order, with a set of the
+ * targets already in it (`slots`: position + 1, 0 empty, at most half full)
+ * so that reaching a target again costs one lookup, not a queue scan. */
+typedef struct {
+    RowsCaptureTarget *items;
+    size_t count, capacity;
+    size_t *slots;
+    size_t slot_capacity;
+} RowsCaptureQueue;
+
+static size_t rows_capture_queue_slot(const RowsCaptureQueue *queue,
+    const RowsCaptureTarget *target)
 {
-    for (size_t reached = 0; reached < *count; reached++)
-        if (rows_capture_target_equal(&(*queue)[reached], &target)) return true;
-    if (*count == *capacity) {
-        if (*capacity > SIZE_MAX / 2 / sizeof(**queue)) {
+    size_t mask = queue->slot_capacity - 1;
+    size_t formal = target->kind == ROWS_CAPTURE_FORMAL ? target->formal : 0;
+    size_t slot = rows_capture_pointer_hash(target->decl,
+        (uint64_t)target->kind * 0x10001u + (uint64_t)formal) & mask;
+    while (queue->slots[slot] != 0 &&
+           !rows_capture_target_equal(&queue->items[queue->slots[slot] - 1], target))
+        slot = (slot + 1) & mask;
+    return slot;
+}
+
+/* Grows the set so one more target keeps it at most half full. */
+static bool rows_capture_queue_reserve_slots(RowsCaptureQueue *queue)
+{
+    if ((queue->count + 1) * 2 <= queue->slot_capacity) return true;
+    size_t next = queue->slot_capacity == 0 ? 16 : queue->slot_capacity * 2;
+    if (next < queue->slot_capacity || next > SIZE_MAX / sizeof(*queue->slots))
+        return false;
+    size_t *slots = calloc(next, sizeof(*slots));
+    if (slots == NULL) return false;
+    free(queue->slots);
+    queue->slots = slots;
+    queue->slot_capacity = next;
+    for (size_t i = 0; i < queue->count; i++)
+        queue->slots[rows_capture_queue_slot(queue, &queue->items[i])] = i + 1;
+    return true;
+}
+
+/* Appends `target` to the validation queue unless it is already there. */
+static bool rows_capture_enqueue(FunctionParamFlowSummaryStore *store,
+    ASTNode *current, RowsCaptureQueue *queue, RowsCaptureTarget target)
+{
+    if (!rows_capture_queue_reserve_slots(queue)) {
+        function_param_flow_fail(store, current,
+            "backing validation queue set allocation failed");
+        return false;
+    }
+    size_t slot = rows_capture_queue_slot(queue, &target);
+    if (queue->slots[slot] != 0) return true;
+    if (queue->count == queue->capacity) {
+        if (queue->capacity > SIZE_MAX / 2 / sizeof(*queue->items)) {
             function_param_flow_fail(store, current,
                 "backing validation queue size overflow");
             return false;
         }
-        RowsCaptureTarget *grown = realloc(*queue,
-            *capacity * 2 * sizeof(**queue));
+        RowsCaptureTarget *grown = realloc(queue->items,
+            queue->capacity * 2 * sizeof(*queue->items));
         if (grown == NULL) {
             function_param_flow_fail(store, current,
                 "backing validation queue allocation failed");
             return false;
         }
-        *queue = grown;
-        *capacity *= 2;
+        queue->items = grown;
+        queue->capacity *= 2;
     }
-    (*queue)[(*count)++] = target;
+    queue->items[queue->count++] = target;
+    queue->slots[slot] = queue->count;
     return true;
 }
 
@@ -476,21 +568,21 @@ static bool function_param_flow_backing_rows_capture_target(
     FunctionParamFlowInputCapture capture, void *user)
 {
     if (store == NULL || decl == NULL) return false;
-    size_t capacity = 8, count = 1;
-    RowsCaptureTarget *queue = malloc(capacity * sizeof(*queue));
-    if (queue == NULL) {
+    RowsCaptureQueue queue = {.capacity = 8};
+    queue.items = malloc(queue.capacity * sizeof(*queue.items));
+    if (queue.items == NULL) {
         function_param_flow_fail(store, decl,
             "backing validation queue allocation failed");
         return false;
     }
-    queue[0] = (RowsCaptureTarget){.decl = decl, .kind = root_kind,
-        .formal = root_formal};
     RowsCaptureIndexes seen = {
         .verify = getenv("PGY_VERIFY_FLOW_CURRENCY_MEMO") != NULL,
     };
-    bool valid = true;
-    for (size_t at = 0; at < count && valid; at++) {
-        RowsCaptureTarget target = queue[at];
+    bool valid = rows_capture_enqueue(store, decl, &queue,
+        (RowsCaptureTarget){.decl = decl, .kind = root_kind,
+            .formal = root_formal});
+    for (size_t at = 0; at < queue.count && valid; at++) {
+        RowsCaptureTarget target = queue.items[at];
         ASTNode *current = target.decl;
         bool all_rows = target.kind == ROWS_CAPTURE_ALL;
         FunctionParamFlowProgramPointIndex *index;
@@ -546,8 +638,7 @@ static bool function_param_flow_backing_rows_capture_target(
         if (memo_reused && !seen.verify) {
             const FunctionParamFlowRowsMemo *memo = &store->program_point_indexes[ordinal].rows_memo;
             for (size_t c = 0; c < memo->callee_count && valid; c++)
-                valid = rows_capture_enqueue(store, current, &queue, &count,
-                    &capacity,
+                valid = rows_capture_enqueue(store, current, &queue,
                     (RowsCaptureTarget){.decl = memo->callees[c],
                         .kind = ROWS_CAPTURE_ALL, .formal = SIZE_MAX});
             continue;
@@ -736,8 +827,7 @@ static bool function_param_flow_backing_rows_capture_target(
                     }
                 }
                 if (valid && !all_rows && backing_target)
-                    valid = rows_capture_enqueue(store, current, &queue, &count,
-                        &capacity,
+                    valid = rows_capture_enqueue(store, current, &queue,
                         (RowsCaptureTarget){.decl = callee,
                             .kind = ROWS_CAPTURE_FORMAL,
                             .formal = formal});
@@ -1047,7 +1137,6 @@ static bool function_param_flow_backing_rows_capture_target(
                             .kind = ROWS_CAPTURE_ALL, .formal = SIZE_MAX};
                     if (edge_target.decl != NULL)
                         valid = rows_capture_enqueue(store, current, &queue,
-                            &count, &capacity,
                             edge_target);
                 }
             }
@@ -1065,9 +1154,11 @@ static bool function_param_flow_backing_rows_capture_target(
             free(memo_notes.receiver_calls);
         }
     }
-    free(queue);
+    free(queue.items);
+    free(queue.slots);
     free(seen.decls);
     free(seen.positions);
+    free(seen.slots);
     return valid;
 }
 
