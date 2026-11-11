@@ -211,7 +211,8 @@ calls and reborrows with mixed scalar/Zone parameters retain the same storage;
 crossed carriage/pass/resource/layout facts and returned cells must refuse.
 The probe checks value-carriage/return refusal at the lifetime owner itself.
 Zone sync and Intent protocol execution remain separate obligations. Native
-and public MIR enter the same C/LLVM GraphPlan issuer. Crossed owner, routine,
+and public MIR enter the same GraphPlan admission, then the installed driver's
+C/LLVM MIR backends project them. Crossed owner, routine,
 formal, field and call facts are admission-only controls, never executions.
 `--shared-only` skips production public execution during an owner edit loop;
 it must not be reported as installed-driver or full source-pipeline parity.
@@ -223,7 +224,7 @@ both MIR producers exercise C/LLVM; invalid conditions, body types, unretired
 tasks and crossed MIR return facts are refusal-only controls. Its shared-only
 mode has the same restricted meaning as the receiver gate above. The separate
 String parity script's structural cap/hash checks are not replaced by this gate.
-`--probe=PATH` reuses an already-built admission/projection probe and records its
+`--probe=PATH` reuses an already-built admission probe and records its
 hash. The report separately lists condition mutations that cannot be expressed
 after native constant folding; omitted mutations are not passing checks.
 
@@ -246,7 +247,7 @@ and String use the admitted formal's copy-in/copy-out storage boundary.
 
 `scalar_value_result_identity.py NATIVE DRIVER [PROBE]` is a focused manual
 gate, not a new CI job. Fixed valid String/Int-shadow controls execute through
-both source pipelines and both MIR producers' shared C/LLVM projections. MIR
+both source pipelines and the installed driver's C/LLVM MIR backends. MIR
 mutations are admission-only: formal/local/foreign-owner identity, entry SSA
 uses, carriage, layout and source-local inventory. Matching names and types do
 not authorize crossing a formal's storage identity. All artifacts and inputs

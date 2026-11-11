@@ -1,7 +1,8 @@
 """Exact scalar formal storage, with refusal-only crossed MIR facts.
 
 Only the fixed valid fixture executes. Optional third argument reuses the
-shared admission/projection probe built by loop_statement_execution.py.
+shared admission probe built by loop_statement_execution.py; the installed
+driver's MIR backends project the admitted MIR.
 """
 import copy
 import hashlib
@@ -91,11 +92,11 @@ def main():
             stem = origin + ".shared." + backend
             passed = shared_ready
             if passed:
-                projected = run(stem + ".project", [probe, relative(mir), backend])
-                passed = projected.returncode == 0
+                code = work / (stem + (".c" if backend == "c" else ".ll"))
+                projected = run(stem + ".project", [driver, "--mir-json-backend=" + backend,
+                                                    relative(mir), "-o", relative(code)])
+                passed = projected.returncode == 0 and code.exists()
                 if passed:
-                    code = work / (stem + (".c" if backend == "c" else ".ll"))
-                    code.write_bytes(projected.stdout)
                     exe = work / (stem + ".exe")
                     command = (["gcc", "-std=c11", "-O0", "-fwrapv", "-fno-strict-aliasing",
                                 relative(code), "-Isrc", "-Isrc/runtime", "-pthread", "-o", relative(exe)]

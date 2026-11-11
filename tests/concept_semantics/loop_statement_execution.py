@@ -127,11 +127,11 @@ def main():
                 check(leg, passed)
             for backend in ("c", "llvm"):
                 leg = stem + ".shared." + backend
-                projected = run(leg + ".project", [probe, relative(mir), backend])
-                passed = projected.returncode == 0
+                code = work / (leg + (".c" if backend == "c" else ".ll"))
+                projected = run(leg + ".project", [driver, "--mir-json-backend=" + backend,
+                                                   relative(mir), "-o", relative(code)])
+                passed = projected.returncode == 0 and code.exists()
                 if passed:
-                    code = work / (leg + (".c" if backend == "c" else ".ll"))
-                    code.write_bytes(projected.stdout)
                     exe = work / (leg + ".exe")
                     command = (["gcc", "-std=c11", "-O0", "-fwrapv", "-fno-strict-aliasing",
                                 relative(code), "-Isrc", "-Isrc/runtime", "-pthread", "-o", relative(exe)]

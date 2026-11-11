@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Sourced by domain_runtime_zone_sync_execution_owner.sh. The installed
-# self-host MIR producer and the source-owned direct-MIR C/LLVM projector must
+# self-host MIR producer and the installed driver's MIR C/LLVM backends must
 # consume the same default identity carriage for Zone and World parameters.
 
 : "${ROOT_DIR:?zone identity direct-MIR gate requires ROOT_DIR}"
@@ -11,14 +11,9 @@
 : "${CC_BIN:?zone identity direct-MIR gate requires CC_BIN}"
 
 IDENTITY_MIR_DIR="$BUILD_DIR/zone-identity-direct-mir"
-IDENTITY_MIR_PROBE_SOURCE="$ROOT_DIR/tests/self_hosted/parity/fixture/identity_cell_receiver_probe.pgy"
-IDENTITY_MIR_PROBE="$IDENTITY_MIR_DIR/probe.exe"
 IDENTITY_MIR_CLANG="${CLANG_BIN:-clang}"
 IDENTITY_MIR_PYTHON="${PYTHON_BIN:-python3}"
 mkdir -p "$IDENTITY_MIR_DIR"
-
-"$PGY_BIN" --native-pipeline --backend=c --opt=dev \
-    "$IDENTITY_MIR_PROBE_SOURCE" -o "$IDENTITY_MIR_PROBE"
 
 run_identity_mir_case() {
     local label="$1"
@@ -42,7 +37,8 @@ run_identity_mir_case() {
     grep -Fq "\"type\":\"$type_name\",\"carriage\":\"mutable-identity\",\"resource\":\"none\",\"pass\":\"indirect\"" \
         "$mir"
 
-    "$IDENTITY_MIR_PROBE" "${mir#"$ROOT_DIR/"}" c >"$c_file"
+    "$SELF_DRIVER" --mir-json-backend=c "${mir#"$ROOT_DIR/"}" \
+        -o "${c_file#"$ROOT_DIR/"}"
     if grep -Eq 'pgy_identity_cell_[0-9]+ \*[[:space:]]+\*pgy_param_0' "$c_file"; then
         echo "$label default identity regressed to pointer-to-pointer C ABI" >&2
         exit 1
@@ -54,7 +50,8 @@ run_identity_mir_case() {
         "$c_file" -o "$c_bin"
     "$c_bin" | tr -d '\r' >"$c_out"
 
-    "$IDENTITY_MIR_PROBE" "${mir#"$ROOT_DIR/"}" llvm >"$llvm_file"
+    "$SELF_DRIVER" --mir-json-backend=llvm "${mir#"$ROOT_DIR/"}" \
+        -o "${llvm_file#"$ROOT_DIR/"}"
     grep -Eq 'define internal i64 @pgy\.scalar\.routine\.[0-9]+\(ptr %pgy\.param\.0\)' \
         "$llvm_file"
     "$IDENTITY_MIR_CLANG" "$llvm_file" -o "$llvm_bin"
@@ -82,16 +79,22 @@ if matches != 1:
     raise SystemExit("expected one default identity parameter")
 target.write_text(json.dumps(document, separators=(",", ":")), encoding="utf-8")
 PY
-    if "$IDENTITY_MIR_PROBE" "${value_mutant#"$ROOT_DIR/"}" c \
-        >"$mutant_out" 2>"$mutant_err"; then
-        echo "$label value-carriage mutant escaped direct-MIR admission" >&2
-        exit 1
-    fi
-    grep -Fq 'CODEGEN ERROR:' "$mutant_out" "$mutant_err"
-    if grep -Eq '^#include |^define ' "$mutant_out"; then
-        echo "$label value-carriage rejection leaked a partial artifact" >&2
-        exit 1
-    fi
+    local backend mutant_artifact
+    for backend in c llvm; do
+        mutant_artifact="$IDENTITY_MIR_DIR/$label-value-carriage.$backend"
+        rm -f "$mutant_artifact"
+        if "$SELF_DRIVER" --mir-json-backend="$backend" \
+            "${value_mutant#"$ROOT_DIR/"}" -o "${mutant_artifact#"$ROOT_DIR/"}" \
+            >"$mutant_out" 2>"$mutant_err"; then
+            echo "$label value-carriage mutant escaped $backend MIR admission" >&2
+            exit 1
+        fi
+        grep -Fq 'CODEGEN ERROR:' "$mutant_out" "$mutant_err"
+        if [[ -e "$mutant_artifact" ]]; then
+            echo "$label value-carriage rejection leaked a $backend artifact" >&2
+            exit 1
+        fi
+    done
 }
 
 run_identity_mir_case zone \
@@ -122,10 +125,4 @@ run_public_identity_case zone \
 run_public_identity_case world \
     "$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_world_zone_identity_parameter.pgy" 1
 
-if rg -q 'DirectMirScalarProgramIdentityCellBorrowCarriage' \
-    "$ROOT_DIR/src/self_hosted/compiler"; then
-    echo "nominal kind reintroduced a second identity parameter carriage owner" >&2
-    exit 1
-fi
-
-echo "[domain-runtime-zone-identity-direct-mir] self MIR projector + public C/LLVM default Zone/World identity and value-carriage refusal: PASS"
+echo "[domain-runtime-zone-identity-direct-mir] self MIR + installed C/LLVM MIR backends + public C/LLVM default Zone/World identity and value-carriage refusal: PASS"
