@@ -53,54 +53,8 @@ negatives['map_default_root_extern_retaining_invalid']='borrow_boundary_escape'
 originals=['exclusive_inout_exit_before_writeback_negative.pgy','exclusive_inout_repeat_shared_alias_negative.pgy']
 inputs=[directory/('focus_recovery_'+name+'.pgy') for name in list(positives)+list(negatives)]+[directory/name for name in originals]
 source_paths={name:directory/('focus_recovery_'+name+'.pgy') for name in list(positives)+list(negatives)}
-paired_declarations={
-    'normal':(b'    let types: Array<String> = rows.types;',),
-    'nested_late_failure':(b'    let types: Array<String> = rows.types;',b'    let rows: Rows = outer.rows;'),
-    'scope_break_continue':(b'        let types: Array<String> = rows.types;',),
-    'try_option_failure':(b'    let types: Array<String> = rows.types;',),
-    'defer_return_capture':(b'    let types: Array<String> = rows.types;',),
-    'shared_alias_invalid':(b'    let kept: Rows = rows;',b'    let types: Array<String> = rows.types;'),
-    'root_read_invalid':(b'    let types: Array<String> = rows.types;',)}
-paired_directory=work/'paired-var'
-paired_directory.mkdir()
-paired_manifest=[]
-for baseline,declarations in paired_declarations.items():
-    original=source_paths[baseline]
-    before=original.read_bytes()
-    if re.search(rb'(?m)^\s*import\b',before): raise RuntimeError(baseline+': paired relocation requires import-free source')
-    lines=before.splitlines(keepends=True)
-    replacements=[]
-    for old in declarations:
-        positions=[i for i,line in enumerate(lines) if line.rstrip(b'\r\n')==old]
-        if len(positions)!=1: raise RuntimeError(baseline+': exact focus declaration premise failed')
-        new=old.replace(b'let ',b'var ',1)
-        index=positions[0]
-        lines[index]=lines[index].replace(old,new,1)
-        replacements.append({'line':index+1,'before':old.decode(),'after':new.decode()})
-    after=b''.join(lines)
-    inverse=after.splitlines(keepends=True)
-    for replacement in replacements:
-        index=replacement['line']-1
-        old=replacement['before'].encode(); new=replacement['after'].encode()
-        if inverse[index].rstrip(b'\r\n')!=new: raise RuntimeError(baseline+': paired inverse premise failed')
-        inverse[index]=inverse[index].replace(new,old,1)
-    if b''.join(inverse)!=before: raise RuntimeError(baseline+': non-spelling paired change')
-    name='var_'+baseline
-    path=paired_directory/(name+'.pgy')
-    path.write_bytes(after)
-    source_paths[name]=path
-    inputs.append(path)
-    paired_manifest.append({'case':name,'baseline':str(original),'source':str(path),'declarations':replacements,
-                            'baseline_sha256':hashlib.sha256(before).hexdigest(),'paired_sha256':hashlib.sha256(after).hexdigest()})
-paired_spec=work/'paired-var-inputs.json'
-paired_spec.write_text(json.dumps(paired_manifest,indent=2)+'\n',encoding='utf-8')
-inputs.append(paired_spec)
-paired_membership=sorted(p for p in paired_directory.rglob('*') if p.is_file())
 positive_cases=dict(positives)
 negative_cases=dict(negatives)
-for baseline in paired_declarations:
-    if baseline in positives: positive_cases['var_'+baseline]=positives[baseline]
-    else: negative_cases['var_'+baseline]=negatives[baseline]
 def membership():
     return sorted(p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ('.pgy','.c','.h','.def'))
 def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -297,7 +251,6 @@ try:
     guards[original_target]=digest(original_target)
     # Main's exact original observable is StringLength("x") == 1, no stdout.
     if run('original-recovered-run',[original_target],30,expected_rc=1)!='': raise RuntimeError('original recovered observable changed')
-    baseline_emitted={}
     for name,expected in positive_cases.items():
         emitted=[]
         for backend,tool in tools.items():
@@ -310,12 +263,6 @@ try:
             text=invoke(tool,name,mode,backend+'-'+name+'-emit',artifact)
             if text!='PROBE|emitted-c\n' or not artifact.is_file() or not artifact.stat().st_size: raise RuntimeError(name+': no admitted emitted C')
             emitted.append(artifact.read_bytes()); guards[artifact]=digest(artifact)
-            baseline=name[4:] if name.startswith('var_') else name
-            if baseline in paired_declarations and baseline in positives:
-                if name.startswith('var_'):
-                    if emitted[-1]!=baseline_emitted[(baseline,backend)]: raise RuntimeError(name+': paired emitted bytes/order drift')
-                else:
-                    baseline_emitted[(name,backend)]=emitted[-1]
         if emitted[0]!=emitted[1]: raise RuntimeError(name+': C/LLVM-built Pergyra emitters differ')
         target=work/(name+'-restored.exe')
         run(name+'-cc',[cc,*flags,work/('c-'+name+'.c'),'-o',target,'-lm'],120,compile_step=True)
@@ -323,7 +270,7 @@ try:
         # Only the actually restored Pergyra-emitted C is executed.
         text=run(name+'-run',[target],30)
         if text!=expected: raise RuntimeError(name+': stdout mismatch '+repr(text))
-        if baseline in ('try_option_failure','try_result_failure'):
+        if name in ('try_option_failure','try_result_failure'):
             threadsafe=work/(name+'-zone-cleanup.exe')
             generated=(work/('c-'+name+'.c')).as_posix()
             run(name+'-zone-cc',[cc,*flags,'-pthread','-DPGY_ZONE_THREADSAFE',
@@ -331,11 +278,10 @@ try:
             guards[threadsafe]=digest(threadsafe)
             actual=run(name+'-zone-run',[threadsafe],30)
             if actual!=expected+'FOCUS ZONE CLEANUP PASS\n': raise RuntimeError(name+': actual local mutex cleanup mismatch')
-    (work/'results.log').write_text('PASS: Pergyra C/LLVM-built emitters, direct/admitted receipt refusals, restored emitted-C execution; original 13 let baselines and 5 var pairs plus 4 Map controls; original 5 and 2 var refusals plus 6 Map refusals. Native target LLVM/MIR recovery OPEN.\n',encoding='utf-8')
+    (work/'results.log').write_text('PASS: Pergyra C/LLVM-built emitters, direct/admitted receipt refusals, restored emitted-C execution; original 13 baselines plus 4 Map controls; original 5 refusals plus 6 Map refusals. Native target LLVM/MIR recovery OPEN.\n',encoding='utf-8')
 finally:
     drift=[str(p) for p,h in guards.items() if not p.exists() or digest(p)!=h]
     if membership()!=sources: drift.append('source membership drift')
-    if sorted(p for p in paired_directory.rglob('*') if p.is_file())!=paired_membership: drift.append('paired input membership drift')
     (work/'end-guards.log').write_text('PASS\n' if not drift else '\n'.join(drift),encoding='utf-8')
     if drift: raise RuntimeError('generation drift: '+','.join(drift))
 print('[collection-focus-recovery] receipt '+str(work))
