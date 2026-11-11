@@ -16,19 +16,46 @@
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
+/* A name reused after its block closes names two source locals of
+ * different types. Such a name selects no fact; the instruction's own
+ * binding identity selects the one it defines. */
 static const MIRSourceLocalType *
-llvm_mir_local_source_fact(const MIRRoutine *routine, const char *name)
+llvm_mir_local_source_fact_by_name(const MIRRoutine *routine, const char *name)
+{
+    const MIRSourceLocalType *found = NULL;
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        const MIRSourceLocalType *entry = &routine->source_local_types[i];
+        if (entry->name == NULL || entry->type_name == NULL
+            || strcmp(entry->name, name) != 0)
+            continue;
+        if (found != NULL && strcmp(found->type_name, entry->type_name) != 0)
+            return NULL;
+        if (found == NULL)
+            found = entry;
+    }
+    return found;
+}
+
+static const MIRSourceLocalType *
+llvm_mir_local_source_fact(const MIRRoutine *routine,
+                           const MIRInstruction *inst, const char *name)
 {
     const MIRSourceLocalType *fact;
     char base_name[128];
     if (routine == NULL || name == NULL)
         return NULL;
-    fact = mir_routine_source_local_type_fact(routine, name);
+    if (inst != NULL && inst->binding_syntax_id != 0) {
+        fact = mir_routine_source_local_type_fact_by_binding_syntax_id(
+            routine, inst->binding_syntax_id);
+        if (fact != NULL)
+            return fact;
+    }
+    fact = llvm_mir_local_source_fact_by_name(routine, name);
     if (fact == NULL
         && llvm_mir_base_name_from_versioned(name, base_name,
             sizeof(base_name))
         && strcmp(base_name, name) != 0) {
-        fact = mir_routine_source_local_type_fact(routine, base_name);
+        fact = llvm_mir_local_source_fact_by_name(routine, base_name);
     }
     return fact;
 }
@@ -76,13 +103,14 @@ llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
 static LLVMTypeRef
 llvm_mir_local_type_from_source_fact(const MIRRoutine *routine,
                                      LLVMGenCtx *ctx,
+                                     const MIRInstruction *inst,
                                      const char *name)
 {
     const MIRSourceLocalType *fact;
 
     if (routine == NULL || ctx == NULL || name == NULL)
         return NULL;
-    fact = llvm_mir_local_source_fact(routine, name);
+    fact = llvm_mir_local_source_fact(routine, inst, name);
     return llvm_mir_local_type_from_source_fact_entry(ctx, fact);
 }
 
@@ -150,7 +178,7 @@ llvm_mir_local_type_from_assignment_target(const MIRRoutine *routine,
     if (local_type != NULL)
         return local_type;
 
-    local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);
+    local_type = llvm_mir_local_type_from_source_fact(routine, ctx, NULL, name);
     if (ctx->has_error || local_type != NULL)
         return local_type;
 
@@ -301,7 +329,7 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
         return NULL;
 
     if (mir_instruction_uses_source_local_decl_emit(inst)) {
-        type = llvm_mir_local_type_from_source_fact(routine, ctx,
+        type = llvm_mir_local_type_from_source_fact(routine, ctx, inst,
             inst->result_name);
         if (ctx->has_error || type != NULL)
             return type;
@@ -427,7 +455,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (!is_closure_local_decl
                     && mir_instruction_uses_source_local_decl_emit(inst)) {
                     source_local_fact = llvm_mir_local_source_fact(
-                        routine, has_base_name ? base_name : inst->result_name);
+                        routine, inst, has_base_name ? base_name : inst->result_name);
                     if (source_local_fact != NULL)
                         source_local_type_name = source_local_fact->type_name;
                     prefer_instruction_type_name =
@@ -450,7 +478,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
 
                 if (is_closure_local_decl) {
                     source_local_fact = llvm_mir_local_source_fact(
-                        routine, has_base_name ? base_name : inst->result_name);
+                        routine, inst, has_base_name ? base_name : inst->result_name);
                     if (source_local_fact == NULL
                         || !source_local_fact->is_callable
                         || !source_local_fact->is_closure_local) {
@@ -501,13 +529,13 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 } else if (value_expr != NULL) {
                     if (inst->arg0 != NULL) {
                         alloca_type = llvm_mir_local_type_from_source_fact(
-                            routine, ctx, inst->arg0);
+                            routine, ctx, inst, inst->arg0);
                         if (ctx->has_error)
                             return;
                     }
                     if (alloca_type == NULL && has_base_name) {
                         alloca_type = llvm_mir_local_type_from_source_fact(
-                            routine, ctx, base_name);
+                            routine, ctx, inst, base_name);
                         if (ctx->has_error)
                             return;
                     }
@@ -539,11 +567,23 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     if (ctx->has_error || alloca_type == NULL)
                         return;
                 } else if (has_base_name) {
-                    alloca_type = llvm_mir_local_type_from_vars(
-                        vars, var_count, base_name);
+                    /* A phi of a name reused after its block closes joins
+                     * one binding; its identity, not the latest same-named
+                     * variable, owns the slot's type. */
+                    if (inst->binding_syntax_id != 0
+                        && mir_routine_source_local_type_fact_by_binding_syntax_id(
+                            routine, inst->binding_syntax_id) != NULL) {
+                        alloca_type = llvm_mir_local_type_from_source_fact(
+                            routine, ctx, inst, base_name);
+                        if (ctx->has_error)
+                            return;
+                    }
+                    if (alloca_type == NULL)
+                        alloca_type = llvm_mir_local_type_from_vars(
+                            vars, var_count, base_name);
                     if (alloca_type == NULL) {
                         alloca_type = llvm_mir_local_type_from_source_fact(
-                            routine, ctx, base_name);
+                            routine, ctx, inst, base_name);
                         if (ctx->has_error)
                             return;
                     }
@@ -556,7 +596,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 }
                 if (alloca_type == NULL) {
                     alloca_type = llvm_mir_local_type_from_source_fact(
-                        routine, ctx, inst->result_name);
+                        routine, ctx, inst, inst->result_name);
                     if (ctx->has_error)
                         return;
                 }
