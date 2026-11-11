@@ -112,6 +112,15 @@ void
 semantic_param_publication_projection_destroy(PublishedNode *row)
 {
     if (row == NULL) return;
+    /* A projection is only ever written whole with `present` set, into a
+     * row that starts zeroed, so an absent one owns nothing and is already
+     * cleared. Most retired values carry none. */
+    if (!row->projection.present && row->projection.name == NULL &&
+        row->projection.index_name == NULL &&
+        row->projection.field_type_name == NULL &&
+        row->projection.declaration_name == NULL &&
+        row->projection.root_name == NULL)
+        return;
     free(row->projection.name);
     free(row->projection.index_name);
     free(row->projection.field_type_name);
