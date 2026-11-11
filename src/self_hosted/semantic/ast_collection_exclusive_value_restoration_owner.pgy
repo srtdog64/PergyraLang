@@ -411,12 +411,16 @@ func SemanticAstCollectionFocusRecoveryLocalActive(
     var group: Int = 0;
     while group < ArrayLength(facts.group_function_ids) {
         let end: Int = facts.group_part_starts[group] + facts.group_part_counts[group];
-        if facts.group_function_ids[group] == function_id && syntax_id > facts.part_definition_ids[end - 1] &&
+        // A part is active from its own definition: a later part of the same
+        // group (another field of the root) does not delay it. An exit still
+        // needs every part defined (AppendExit).
+        if facts.group_function_ids[group] == function_id &&
             (facts.group_end_ids[group] == 0 || syntax_id <= facts.group_end_ids[group]) &&
             SemanticAstCollectionNodeEnclosedBy(artifact, syntax_id, facts.group_scope_ids[group]) {
             var part: Int = facts.group_part_starts[group];
             while part < end {
-                if facts.part_local_binding_ids[part] == local_id { return true; }
+                if facts.part_local_binding_ids[part] == local_id &&
+                    syntax_id > facts.part_definition_ids[part] { return true; }
                 part = part + 1;
             }
         }

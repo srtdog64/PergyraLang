@@ -204,6 +204,17 @@ func SemanticAstCollectionExclusiveStatementRootReady(
     if !target.ok {
         return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
     }
+    // A routine with a defer has no single ordered surface range, so copy
+    // selection cannot run there. A focus part grows the field copy the
+    // admitted recovery group restores, and that admission already proved its
+    // copies unread; it is admitted without the selection. Every other
+    // routine still selects its copies below.
+    let function_key: String = ToString(function_id);
+    let ordered: Bool = MapHas(surface_starts, function_key) && MapGet(surface_starts, function_key) >= 0;
+    if !ordered && (kind == TypedAstKindArrayPushStmtTag() || kind == TypedAstKindArrayPopStmtTag()) &&
+        SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id, locals.node_ids[target.row]) {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
     if !SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
             artifact, signatures, locals, inferred_types, surfaces,
             surface_starts, surface_ends, copies,

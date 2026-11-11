@@ -454,6 +454,17 @@ func SemanticAstCollectionFocusRecoveryCopiesReady(
                 selected = selected + 1;
             }
         }
+        // A copy of the same field outside the group that nothing reads once
+        // the group starts cannot observe the growth the group restores. A
+        // whole-holder alias stays outside this (the holder boundary).
+        if !member && aliases.keys[alias] >= 0 && aliases.keys[alias] < ArrayLength(locals.node_ids) &&
+            SemanticAstCollectionFocusPartForLocal(signatures, constructors, locals, inferred_types, surfaces,
+                aliases.keys[alias]).ok {
+            let no_uses: Array<Int> = [];
+            member = SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
+                surfaces, first_surface, end_surface, function_id, facts.group_activation_ids[group], false, 0,
+                no_uses, false, locals.node_ids[aliases.keys[alias]]);
+        }
         if !member { return false; }
         alias = alias + 1;
     }
