@@ -201,6 +201,9 @@ mutate_defer_pair("defer_multipart.nonconsecutive", defer_gap)
 mutate("let_log", "let_log.nameless-let", is_let_decl,
        set_field("arg0", ""))
 mutate("let_log", "let_log.cleanup-kind", is_log_stmt,
+       lambda row: row.update(kind="cleanup",
+                              name="local-collection-retire"))
+mutate("let_log", "let_log.control-cleanup-text", is_log_stmt,
        set_field("kind", "cleanup"))
 mutate("let_log", "let_log.non-string-use", is_log_stmt,
        set_field("uses", [7]))
@@ -279,8 +282,12 @@ negative_rows=(
     "defer_multipart.wrong-count|defer body part is out of order: 2/3"
     "defer_multipart.nonconsecutive|defer body part is missing: 2/2"
     "let_log.nameless-let|local declaration is missing its binding-name fact"
-    # A cleanup row now reaches the retirement-fact owner before rendering.
-    "let_log.cleanup-kind|cleanup instruction is missing its validated retirement fact"
+    # A collection retirement row without its collection_cleanup object is
+    # refused by the routine fact index before any row is rendered.
+    "let_log.cleanup-kind|routine MIR fact index is incomplete: Main [collection_cleanup]"
+    # Any other cleanup edge (intent rollback or invalidation) has no
+    # statement form; one carrying statement text stops at the renderer.
+    "let_log.control-cleanup-text|instruction kind has no statement rendering: cleanup"
     # A present string array with a non-string element used to read as
     # its (here empty) prefix.
     "let_log.non-string-use|MIR string array fact is malformed: uses"
