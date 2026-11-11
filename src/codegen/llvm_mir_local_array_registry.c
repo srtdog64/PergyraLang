@@ -39,8 +39,15 @@ llvm_mir_register_source_local_array_fact(const MIRRoutine *routine,
 
     if (ast_array_literal_count(value_expr) > 0
         && ast_array_literal_element(value_expr, 0) != NULL) {
+        /* The local's declared element type is the expected type of its
+         * first element; a dependent-result call such as UnwrapOption has
+         * no other type source. */
+        const char *saved_expected = ctx->expected_type_name;
+        if (elem_name != NULL)
+            ctx->expected_type_name = elem_name;
         elem_type = llvm_stmt_infer_expr_type(ctx,
             ast_array_literal_element(value_expr, 0));
+        ctx->expected_type_name = saved_expected;
     } else {
         if (source_type_name != NULL) {
             elem_type = llvm_mir_local_elem_type_from_type_name(
