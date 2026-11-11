@@ -152,6 +152,44 @@ static size_t rows_capture_pointer_hash(const void *pointer, uint64_t salt)
     return (size_t)h;
 }
 
+/* The (node, id) pairs of one backing frame's node rows. Each slot holds a
+ * row ordinal + 1, so a probe compares against the rows themselves. */
+typedef struct {
+    size_t *slots;
+    size_t mask;
+} RowsCaptureNodeRows;
+
+static bool rows_capture_node_rows_build(RowsCaptureNodeRows *rows,
+    const FunctionParamFlowBackingFact *fact)
+{
+    size_t capacity = 16;
+    while (capacity / 2 < fact->node_count) {
+        if (capacity > SIZE_MAX / (2 * sizeof(*rows->slots))) return false;
+        capacity *= 2;
+    }
+    rows->slots = calloc(capacity, sizeof(*rows->slots));
+    if (rows->slots == NULL) return false;
+    rows->mask = capacity - 1;
+    for (size_t n = 0; n < fact->node_count; n++) {
+        size_t slot = rows_capture_pointer_hash(fact->nodes[n].node,
+            fact->nodes[n].id) & rows->mask;
+        while (rows->slots[slot] != 0) slot = (slot + 1) & rows->mask;
+        rows->slots[slot] = n + 1;
+    }
+    return true;
+}
+
+static bool rows_capture_node_rows_has(const RowsCaptureNodeRows *rows,
+    const FunctionParamFlowBackingFact *fact, const ASTNode *node, uint32_t id)
+{
+    for (size_t slot = rows_capture_pointer_hash(node, id) & rows->mask;
+         rows->slots[slot] != 0; slot = (slot + 1) & rows->mask) {
+        const FunctionParamFlowBackingNode *row = &fact->nodes[rows->slots[slot] - 1];
+        if (row->node == node && row->id == id) return true;
+    }
+    return false;
+}
+
 /* Slot of `decl` in the entry table: its entry + 1, or the empty slot where
  * it would go. */
 static size_t rows_capture_seen_slot(const RowsCaptureIndexes *seen,
@@ -735,13 +773,26 @@ static bool function_param_flow_backing_rows_capture_target(
                 if (!owned || fact->complete || fact->pending || fact->building ||
                     !function_param_flow_unsupported_relation_current(store, &fact->unsupported_relation)) { valid = false; break; }
             }
+            /* Each relation's call must be one of the frame's node rows. A
+             * frame with many of both probes a hash of its rows; the answer
+             * is the one the linear scan gives. */
+            RowsCaptureNodeRows node_rows = {0};
+            bool hashed_rows = fact->pending_relation_count > 4 &&
+                fact->node_count > 32;
+            if (hashed_rows && !rows_capture_node_rows_build(&node_rows, fact)) {
+                function_param_flow_fail(store, current,
+                    "backing relation node index allocation failed");
+                valid = false;
+                break;
+            }
             for (size_t e = 0; e < fact->pending_relation_count && valid; e++) {
                 FunctionParamFlowPendingRelation *edge = &fact->pending_relations[e];
                 ASTNode *callee = NULL;
                 size_t formal = SIZE_MAX;
                 bool backing_target = false;
-                bool owned = false;
-                for (size_t n = 0; n < fact->node_count && !owned; n++)
+                bool owned = hashed_rows && rows_capture_node_rows_has(
+                    &node_rows, fact, edge->call, edge->call_id);
+                for (size_t n = 0; !hashed_rows && n < fact->node_count && !owned; n++)
                     owned = fact->nodes[n].node == edge->call &&
                         fact->nodes[n].id == edge->call_id;
                 for (size_t n = 0; n < fact->node_count && !owned; n++)
@@ -832,6 +883,7 @@ static bool function_param_flow_backing_rows_capture_target(
                             .kind = ROWS_CAPTURE_FORMAL,
                             .formal = formal});
             }
+            free(node_rows.slots);
             if (!rows_capture_formals_build(store, current, parameter_count,
                     &formals)) {
                 valid = false;
