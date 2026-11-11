@@ -76,7 +76,7 @@ for entry in "${NEGATIVES[@]}"; do
     [[ "$result" == 1 ]] || fail "non-semantic failure exit=$result for $input"
     [[ ! -s "$WORK/$input.mir.json" ]] || fail "published MIR for $input"
     if [[ "$operation" == own ]]; then
-        expected="An own Array argument cannot transfer escaped array storage from '$receiver'"
+        expected="An own Array argument requires one current exclusive cleanup authority; '$receiver' is borrowed or aliased"
     elif [[ "$operation" == ArrayPushOwnedString ]]; then
         expected="$operation cannot mutate escaped array storage in '$receiver'"
     else

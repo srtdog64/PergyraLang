@@ -150,7 +150,14 @@ for backend in c llvm; do
             grep -Fxq 'body_ok=true' "$WORK/$backend-$name.log" || fail "$backend refused capture control: $name"
         else
             [[ "$status" == 1 ]] || fail "$backend native refusal missing: $name (status=$status)"
-            grep -Fq 'Borrowed ref boundary value' "$WORK/native-$backend-$name.log" || fail "$backend negative failed outside semantic borrow contract: $name"
+            native_refusal='Borrowed ref boundary value'
+            # A constructor temporary handed to a ref formal is refused by the
+            # value-boundary rule that wants a named argument, before the borrow check.
+            if [[ "$name" == member_capture_constructor_return_negative ||
+                "$name" == member_capture_constructor_temporary_negative ]]; then
+                native_refusal="Value boundary arguments in 'Observe' must use a named variable"
+            fi
+            grep -Fq "$native_refusal" "$WORK/native-$backend-$name.log" || fail "$backend negative failed outside semantic borrow contract: $name"
             grep -Fxq 'body_ok=false' "$WORK/$backend-$name.log" || fail "$backend accepted capture: $name"
             grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$name.log" || fail "$backend lost capture diagnosis: $name"
         fi
