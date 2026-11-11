@@ -63,7 +63,7 @@ bool semantic_param_publication_clone_independent(SemanticContext *ctx, const Ty
 /* ArraySort and ArrayReverse permute their Array's elements in place and
  * return the same Array (C: the receiver expression; LLVM: the receiver's
  * reloaded value). */
-static bool publication_array_permutation(const PublishedNode *row)
+bool publication_array_permutation(const PublishedNode *row)
 {
     return row != NULL && row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib && row->kind_present &&
         row->declaration == 0 && row->value_binding == 0 && row->target_shape == AST_IDENTIFIER &&

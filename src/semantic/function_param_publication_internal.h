@@ -27,6 +27,8 @@ bool publication_record_private_physical_array_mutation(SemanticContext *ctx,
 bool publication_routine_header_current(const SemanticContext *ctx, const ASTNode *decl);
 PublishedNode *publication_result_current(const SemanticContext *ctx,
     const ASTNode *call);
+/* `row` is a current ArraySort or ArrayReverse call result. */
+bool publication_array_permutation(const PublishedNode *row);
 PublishedNode *publication_current_value(const SemanticContext *ctx,
     const ASTNode *value);
 /* A whole-routine ownership proof may close an exact nominal result field

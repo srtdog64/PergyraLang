@@ -175,8 +175,7 @@ static void copy_record_made_at(MoveWalk *walk, MoveState *state, ASTNode *value
      * storage of its receiver place, which it rewrote in place and the
      * caller keeps: that copy is made by the call, so a copy landing clones
      * the call's result and leaves the place as the call changed it. */
-    bool permutation = value->type == AST_CALL &&
-        semantic_param_publication_checked_array_permutation(walk->ctx, value);
+    bool permutation = publication_array_permutation(published);
     for (size_t p = 0; value->type == AST_CALL && p < ast_call_arg_count(value); p++) {
         bool depends = false, retains = false;
         ASTNode *argument = ast_call_argument(value, p);
