@@ -5310,8 +5310,9 @@ self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-pr
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
 
 .PHONY: self-host-nominal-constructor-field-identity-test-smoke
-self-host-nominal-constructor-field-identity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/nominal_constructor_field_identity_owner.sh
+self-host-nominal-constructor-field-identity-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/nominal_constructor_field_identity_owner.sh
 
 .PHONY: self-host-collection-inout-effect-test-smoke
 .PHONY: collection-native-storage-escape-test-smoke
