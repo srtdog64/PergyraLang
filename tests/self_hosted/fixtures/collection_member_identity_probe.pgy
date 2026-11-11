@@ -3,8 +3,7 @@
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionMemberIdentityProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Log("expected source and member mutation"); Exit(2); }
     let mutation: Int = ToInt(args[1]);
     if mutation < 0 || mutation > 44 || ToString(mutation) != args[1] {
@@ -59,10 +58,9 @@ func InspectMemberIdentity(
     var roots: Array<Int> = [];
     var leaves: Array<Int> = [];
     let chosen: Array<Int> = [local_row, right, other, generic_local, lexical];
-    var graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
     var types: Array<String> = [];
     row = 0;
-    while row < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+    while row < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         ArrayPush(types, "Unknown"); row = row + 1;
     }
     row = 0;
@@ -70,7 +68,7 @@ func InspectMemberIdentity(
         let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
             analysis.expression_surfaces, analysis.local_bindings.node_ids[chosen[row]], AstExpressionLaneValue());
         if !IsSome(root) { return false; }
-        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, UnwrapOption(root));
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(analysis.expression_surfaces.expression_graph, UnwrapOption(root));
         if !member.ok { return false; }
         ArrayPush(roots, UnwrapOption(root)); ArrayPush(leaves, member.receiver_node);
         // Unit-only projection of this fixture's admitted nominal-bound type.
@@ -107,10 +105,10 @@ func InspectMemberIdentity(
                 let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
                     analysis.expression_surfaces, analysis.local_bindings.node_ids[row], AstExpressionLaneValue());
                 if !IsSome(value) { return false; }
-                let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, UnwrapOption(value));
+                let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(analysis.expression_surfaces.expression_graph, UnwrapOption(value));
                 if !member.ok { return false; }
                 let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
-                    analysis.signatures, function, graph, member.receiver_node);
+                    analysis.signatures, function, analysis.expression_surfaces.expression_graph, member.receiver_node);
                 if !formal.ok || formal.declared_type_name != "Pair" || formal.ordinal < 0 ||
                     formal.ordinal > 3 || formal.mode != formal.ordinal { return false; }
                 types[member.receiver_node] = "Pair";
@@ -120,19 +118,19 @@ func InspectMemberIdentity(
         }
         return true;
     }
-    if mutation == 1 { graph.arena.identities.binding_syntax_ids[leaf] = analysis.signatures.param_node_ids[analysis.signatures.param_starts[foreign]]; }
-    if mutation == 2 { graph.arena.identities.binding_ordinals[leaf] = 1; }
-    if mutation == 3 { graph.arena.identities.binding_ordinals[leaf] = -1; }
+    if mutation == 1 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[leaf] = analysis.signatures.param_node_ids[analysis.signatures.param_starts[foreign]]; }
+    if mutation == 2 { analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[leaf] = 1; }
+    if mutation == 3 { analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[leaf] = -1; }
     if mutation == 4 {
-        graph.arena.identities.binding_kinds[leaf] = SemanticExpressionBindingDeclaredCallable();
-        graph.arena.identities.binding_ordinals[leaf] = -1;
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[leaf] = SemanticExpressionBindingDeclaredCallable();
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[leaf] = -1;
     }
     if mutation == 5 {
-        graph.arena.identities.binding_kinds[leaf] = SemanticExpressionBindingNone();
-        graph.arena.identities.binding_ordinals[leaf] = -1;
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[leaf] = SemanticExpressionBindingNone();
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[leaf] = -1;
     }
-    if mutation == 6 { graph.arena.identities.binding_syntax_ids[leaf] = 0; }
-    if mutation == 7 { graph.arena.topology.node_kinds[leaf] = AstExpressionNodeIndex(); }
+    if mutation == 6 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[leaf] = 0; }
+    if mutation == 7 { analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[leaf] = AstExpressionNodeIndex(); }
     if mutation == 8 { analysis.signatures.param_modes[parameter] = -1; }
     if mutation == 9 { analysis.signatures.param_modes[parameter] = 4; }
     if mutation == 10 { ArrayPop(analysis.signatures.param_modes); }
@@ -160,14 +158,14 @@ func InspectMemberIdentity(
     if mutation == 23 {
         local_row = lexical; leaf = leaves[4]; root = roots[4];
         function = analysis.local_bindings.function_node_ids[local_row]; use_syntax = analysis.local_bindings.node_ids[local_row];
-        graph.arena.identities.binding_syntax_ids[leaf] = analysis.local_bindings.node_ids[lexical_root];
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[leaf] = analysis.local_bindings.node_ids[lexical_root];
     }
     if mutation == 24 {
-        graph.arena.identities.binding_ordinals[leaf] = 99;
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[leaf] = 99;
         analysis.local_bindings.names[shadow] = "a";
     }
-    if mutation == 25 { graph.arena.identities.binding_syntax_ids[leaf] = analysis.signatures.param_node_ids[parameter + 1]; }
-    if mutation == 26 { graph.arena.node_texts[graph.arena.topology.right_children[root]] = "missing"; }
+    if mutation == 25 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[leaf] = analysis.signatures.param_node_ids[parameter + 1]; }
+    if mutation == 26 { analysis.expression_surfaces.expression_graph.arena.node_texts[analysis.expression_surfaces.expression_graph.arena.topology.right_children[root]] = "missing"; }
     if mutation == 27 { analysis.constructors.field_source_syntax_ids[field_row] = 0; }
     if mutation == 28 { analysis.constructors.field_names[field_row + 1] = "left"; }
     if mutation == 29 {
@@ -197,10 +195,9 @@ func InspectMemberIdentity(
     if mutation == 42 { analysis.signatures.generic_counts[signature] = 0; }
     if mutation == 43 { ArrayPop(analysis.signatures.type_expressions.child_starts); }
     if mutation == 44 { analysis.signatures.generic_starts[signature] = ArrayLength(analysis.signatures.generic_names); }
-    analysis.expression_surfaces.expression_graph = graph;
     let result: SemanticAstCollectionMemberMoveIdentity = SemanticAstCollectionMemberMoveIdentityForNode(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-        bundle.initializer_types.inferred_type_names, types, function, use_syntax, graph, root);
+        bundle.initializer_types.inferred_type_names, types, function, use_syntax, analysis.expression_surfaces.expression_graph, root);
     return !result.ok;
 }
 

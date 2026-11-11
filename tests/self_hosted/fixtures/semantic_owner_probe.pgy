@@ -1,0 +1,45 @@
+// One build of every contract probe that imports the self-host semantic
+// body owner (docs/truth/decisions/2026-11-11_semantic_owner_probes_merge_into_one_build.md).
+// The first argument names the probe; the rest are that probe's own arguments.
+import "array_storage_call_preservation_probe.pgy";
+import "collection_aggregate_entry_requirement_probe.pgy";
+import "collection_binding_move_prefix_probe.pgy";
+import "collection_constructor_escape_identity_probe.pgy";
+import "collection_constructor_field_input_probe.pgy";
+import "collection_field_read_summary_probe.pgy";
+import "collection_focus_recovery_probe.pgy";
+import "collection_formal_key_consumption_probe.pgy";
+import "collection_inout_effect_identity_probe.pgy";
+import "collection_map_payload_written_root_unit.pgy";
+import "collection_member_capture_site_probe.pgy";
+import "collection_member_completed_read_identity_unit.pgy";
+import "collection_member_hazard_sites_unit.pgy";
+import "collection_member_identity_probe.pgy";
+import "collection_member_publication_probe.pgy";
+import "nominal_constructor_source_arity_probe.pgy";
+
+func Main() -> Void with caps env, io_read, io_write {
+    let all: Array<String> = Args();
+    if ArrayLength(all) < 1 { Die("semantic owner probe requires a probe mode"); }
+    var rest: Array<String> = [];
+    var at: Int = 1;
+    while at < ArrayLength(all) { ArrayPush(rest, all[at]); at = at + 1; }
+    let selected: String = all[0];
+    if selected == "array-storage-call-preservation" { ArrayStorageCallPreservationProbeMain(rest); return; }
+    if selected == "collection-aggregate-entry-requirement" { CollectionAggregateEntryRequirementProbeMain(rest); return; }
+    if selected == "collection-binding-move-prefix" { CollectionBindingMovePrefixProbeMain(rest); return; }
+    if selected == "collection-constructor-escape-identity" { CollectionConstructorEscapeIdentityProbeMain(rest); return; }
+    if selected == "collection-constructor-field-input" { CollectionConstructorFieldInputProbeMain(rest); return; }
+    if selected == "collection-field-read-summary" { CollectionFieldReadSummaryProbeMain(rest); return; }
+    if selected == "collection-focus-recovery" { CollectionFocusRecoveryProbeMain(rest); return; }
+    if selected == "collection-formal-key-consumption" { CollectionFormalKeyConsumptionProbeMain(rest); return; }
+    if selected == "collection-inout-effect-identity" { CollectionInoutEffectIdentityProbeMain(rest); return; }
+    if selected == "collection-map-payload-written-root" { CollectionMapPayloadWrittenRootUnitMain(rest); return; }
+    if selected == "collection-member-capture-site" { CollectionMemberCaptureSiteProbeMain(rest); return; }
+    if selected == "collection-member-completed-read-identity" { CollectionMemberCompletedReadIdentityUnitMain(rest); return; }
+    if selected == "collection-member-hazard-sites" { CollectionMemberHazardSitesUnitMain(rest); return; }
+    if selected == "collection-member-identity" { CollectionMemberIdentityProbeMain(rest); return; }
+    if selected == "collection-member-publication" { CollectionMemberPublicationProbeMain(rest); return; }
+    if selected == "nominal-constructor-source-arity" { NominalConstructorSourceArityProbeMain(rest); return; }
+    Die(Concat("unknown semantic owner probe mode: ", selected));
+}

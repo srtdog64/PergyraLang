@@ -5,6 +5,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=collection-aggregate-release-source
@@ -51,15 +52,14 @@ guard_exit() {
 trap guard_exit EXIT
 echo "[$LABEL] evidence=$REL; source fixtures are analyzed, never emitted/run"
 for backend in c llvm; do
-    timeout 240 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" \
-        --opt=dev -o "$REL/$backend-source.exe" \
-        >"$WORK/$backend-source.compile" 2>&1 || \
-        fail "$backend source analyzer did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$WORK/$backend-source.exe" || \
+        fail "$backend source analyzer is not admitted"
     [[ -s "$WORK/$backend-source.exe" ]] && sha256sum "$WORK/$backend-source.exe" >>"$WORK/binaries.sha256" || \
         fail "$backend source analyzer binary guard could not be recorded"
-    timeout 120 "$PGY" --native-pipeline "$QUERY" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-query.exe" >"$WORK/$backend-query.compile" 2>&1 || \
-        fail "$backend constructor query did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-constructor-field-input "$WORK/$backend-query.exe" || \
+        fail "$backend constructor query is not admitted"
     [[ -s "$WORK/$backend-query.exe" ]] && sha256sum "$WORK/$backend-query.exe" >>"$WORK/binaries.sha256" || \
         fail "$backend constructor query binary guard could not be recorded"
     timeout 30 "$WORK/$backend-query.exe" "$FIXTURES/empty_capture_two_fields_positive.pgy" 32 \

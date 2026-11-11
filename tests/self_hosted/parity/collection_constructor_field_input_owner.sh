@@ -4,6 +4,7 @@ set -Eeuo pipefail
 trap 'status=$?; echo "[constructor-field-input] failed at line $LINENO (status $status); evidence: ${REL:-not-created}" >&2' ERR
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here constructor-field-input "$PGY"
@@ -20,8 +21,8 @@ sha256sum "$PGY" "$PROBE" tests/self_hosted/parity/collection_constructor_field_
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 for input in "${INPUTS[@]}"; do sha256sum "$FIXTURES/$input.pgy"; done >"$WORK/inputs.sha256"
 for backend in c llvm; do
-    timeout 120 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-probe.exe" >"$WORK/$backend.build" 2>&1
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-constructor-field-input "$WORK/$backend-probe.exe"
     sha256sum "$WORK/$backend-probe.exe" >>"$WORK/binaries.sha256"
     for input in "${INPUTS[@]}"; do
         timeout 30 "$WORK/$backend-probe.exe" "$FIXTURES/$input.pgy" -1 \

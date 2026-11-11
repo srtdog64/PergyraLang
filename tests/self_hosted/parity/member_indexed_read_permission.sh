@@ -4,6 +4,7 @@ set -Eeuo pipefail
 trap 'status=$?; echo "[member-indexed-read] failure line=$LINENO status=$status evidence=${REL:-not-created}" >&2' ERR
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here member-indexed-read "$PGY"
@@ -80,8 +81,8 @@ observe() {
 }
 for backend in c llvm; do
     observer="$WORK/observer-$backend.exe"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" \
-        -o "$observer" >"$WORK/$backend.compile.log" 2>&1 || fail "$backend observer did not compile"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        array-storage-call-preservation "$observer" || fail "$backend observer is not admitted"
     sha256sum "$observer" >>"$WORK/binaries.sha256"
     timeout 15 "$observer" "$SCALAR_FIELDS" >"$WORK/$backend-scalar-fields.raw" 2>&1 || fail "$backend scalar-field observer failed"
     tr -d '\r' <"$WORK/$backend-scalar-fields.raw" >"$WORK/$backend-scalar-fields.log"
@@ -133,8 +134,8 @@ for backend in c llvm; do
         fi
     done
     publisher="$WORK/publication-$backend.exe"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PUBLICATION" \
-        -o "$publisher" >"$WORK/$backend-publication.compile.log" 2>&1 || fail "$backend publisher did not compile"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-member-publication "$publisher" || fail "$backend publisher is not admitted"
     sha256sum "$publisher" >>"$WORK/binaries.sha256"
     for mode in "${MODES[@]}"; do
         timeout 15 "$publisher" "$mode" >"$WORK/$backend-publication-$mode.raw" 2>&1
@@ -153,8 +154,8 @@ for backend in c llvm; do
         grep -Eq '\[ERROR\].*(own|transferred|released|moved|ownership)' "$WORK/$backend-publication-$name.log" || fail "$backend lost publisher ownership refusal: $name"
     done
     selected_site="$WORK/selected-site-$backend.exe"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$SELECTED_SITE" \
-        -o "$selected_site" >"$WORK/$backend-selected-site.compile.log" 2>&1 || fail "$backend selected-site probe did not compile"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-member-capture-site "$selected_site" || fail "$backend selected-site probe is not admitted"
     sha256sum "$selected_site" >>"$WORK/binaries.sha256"
     for mode in missing mode4; do
         timeout 15 "$selected_site" "$FIXTURES/member_capture_own_call_negative.pgy" "$mode" >"$WORK/$backend-selected-site-$mode.raw" 2>&1

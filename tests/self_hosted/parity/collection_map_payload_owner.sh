@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-map-payload "$PGY"
@@ -32,39 +33,9 @@ INPUTS=(
 sha256sum "$PGY" >"$WORK/native.sha256"
 find src/self_hosted -type f -name '*.pgy' -print0 | sort -z | xargs -0 sha256sum >"$WORK/source.sha256"
 { sha256sum "$PROBE" "${BASH_SOURCE[0]}"; for input in "${INPUTS[@]}"; do sha256sum "$FIXTURES/$input"; done; } >"$WORK/inputs.sha256"
-SOURCE_PAIR_DIR="${SOURCE_PROBE_DIR:-}"
-validate_source_pair_receipt() {
-    local manifest backend
-    for manifest in native source inputs probes; do
-        [[ -s "$SOURCE_PAIR_DIR/$manifest.sha256" ]] || {
-            echo "source-only reuse is missing $manifest receipt" >&2; return 1;
-        }
-        sha256sum --quiet -c "$SOURCE_PAIR_DIR/$manifest.sha256"
-    done
-    cmp "$SOURCE_PAIR_DIR/source.sha256" "$WORK/source.sha256"
-    [[ "$(cut -d ' ' -f 1 "$SOURCE_PAIR_DIR/native.sha256")" == "$(cut -d ' ' -f 1 "$WORK/native.sha256")" ]]
-    grep -Fxq "$(sha256sum "$PROBE")" "$SOURCE_PAIR_DIR/inputs.sha256"
-    for backend in c llvm; do
-        [[ -s "$SOURCE_PAIR_DIR/$backend-source.exe" ]] || {
-            echo "source-only reuse is missing $backend source binary" >&2; return 1;
-        }
-        grep -Fxq "$(sha256sum "$SOURCE_PAIR_DIR/$backend-source.exe")" "$SOURCE_PAIR_DIR/probes.sha256"
-    done
-}
-if [[ -n "$SOURCE_PAIR_DIR" ]]; then
-    SOURCE_PAIR_DIR="$(cd "$SOURCE_PAIR_DIR" && pwd -P)"
-    validate_source_pair_receipt
-    sha256sum "$SOURCE_PAIR_DIR/native.sha256" "$SOURCE_PAIR_DIR/source.sha256" \
-        "$SOURCE_PAIR_DIR/inputs.sha256" "$SOURCE_PAIR_DIR/probes.sha256" >"$WORK/source-reuse-receipts.sha256"
-fi
 for backend in ${BACKENDS:-c llvm}; do
-    if [[ -n "$SOURCE_PAIR_DIR" ]]; then
-        cp "$SOURCE_PAIR_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-        cmp "$SOURCE_PAIR_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" --opt=dev \
-            -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
-    fi
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$REL/$backend-source.exe"
     sha256sum "$WORK/$backend-source.exe" >>"$WORK/probes.sha256"
     for input in "${INPUTS[@]}"; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
@@ -88,8 +59,4 @@ sha256sum -c "$WORK/native.sha256" >"$WORK/native-recheck.log"
 sha256sum -c "$WORK/source.sha256" >"$WORK/source-recheck.log"
 sha256sum -c "$WORK/inputs.sha256" >"$WORK/input-recheck.log"
 sha256sum -c "$WORK/probes.sha256" >"$WORK/probe-recheck.log"
-if [[ -n "$SOURCE_PAIR_DIR" ]]; then
-    sha256sum --quiet -c "$WORK/source-reuse-receipts.sha256"
-    validate_source_pair_receipt
-fi
 echo "[collection-map-payload] PASS: ${#INPUTS[@]} analyze-only sources per backend; $REL"

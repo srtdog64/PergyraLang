@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=qualified-kind-match
@@ -36,8 +37,8 @@ for backend in c llvm; do
     test ! -s "$B/$backend-values.err" || fail "$backend values wrote stderr"
     tr -d '\r' <"$B/$backend-values.raw" >"$B/$backend-values.run"
     cmp "$B/expected" "$B/$backend-values.run" || fail "$backend member/precedence oracle drift"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" \
-        -o "$B/$backend-observer.exe" >"$B/$backend-observer.compile" 2>&1 || fail "$backend observer did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$B/$backend-observer.exe" || fail "$backend observer did not build"
     timeout 60 "$B/$backend-observer.exe" "$LIFETIME" diagnostic >"$B/$backend-lifetime.observe" 2>&1 || fail "$backend lifetime observation failed"
     tr -d '\r' <"$B/$backend-lifetime.observe" >"$B/$backend-lifetime.normalized"
     grep -Fxq 'body_ok=true' "$B/$backend-lifetime.normalized" || fail "$backend refused actual query lifetime"

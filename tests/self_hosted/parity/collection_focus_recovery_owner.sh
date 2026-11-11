@@ -224,7 +224,7 @@ try:
     tools={}
     for backend in ('c','llvm'):
         tool=work/(backend+'-probe.exe')
-        run(backend+'-probe-compile',[native,'--native-pipeline','--backend='+backend,'--opt=dev',probe,'-o',tool],120,compile_step=True)
+        run(backend+'-probe-install',['bash','-c','source tests/self_hosted/parity/semantic_owner_probe_owner.sh && pgy_semantic_owner_probe_install "$@"','install',root,native,backend,'collection-focus-recovery',tool],60,compile_step=True)
         guards[tool]=digest(tool); tools[backend]=tool
     for backend,tool in tools.items():
         observed=invoke(tool,'eight_field_late_failure','classifier',backend+'-classifier')

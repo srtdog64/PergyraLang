@@ -5,8 +5,7 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy";
 import "collection_member_capture_source_probe.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionMemberCaptureSiteProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Exit(2); }
     if args[1] == "source" { CollectionMemberCaptureSourceProbe(args[0]); return; }
     if args[1] != "missing" && args[1] != "mode4" { Exit(2); }

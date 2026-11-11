@@ -14,6 +14,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-member-place "$PGY"
@@ -36,9 +37,8 @@ refused() {
 }
 for backend in c llvm; do
     observer="$WORK/observer-$backend.exe"
-    "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
-        "$SOURCE_PROBE" \
-        -o "$observer" >"$WORK/$backend.compile.log" 2>&1 || fail "$backend observer did not compile"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$observer" || fail "$backend observer did not compile"
     for name in nested_local_read_positive nested_ref_formal_read_positive \
         nested_default_formal_read_positive nested_prefix_readonly_lend_positive \
         nested_index_length_lend_positive nested_struct_lend_positive \

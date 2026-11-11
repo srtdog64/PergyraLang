@@ -3,8 +3,7 @@ import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_owner.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionConstructorFieldInputProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Log("expected source and observation mode"); Exit(2); }
     let mode: Int = ToInt(args[1]);
     if args[1] != ToString(mode) || mode < -2 || mode > 32 { Log("invalid observation mode"); Exit(2); }

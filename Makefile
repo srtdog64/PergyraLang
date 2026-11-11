@@ -4482,8 +4482,8 @@ self-host-mir-program-routine-index-owner-test-smoke: $(PGY)
 self-host-json-bounded-string-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/json_bounded_string_owner_smoke.sh
 
-self-host-codegen-type-env-preseal-epoch-test-smoke: $(PGY)
-	PGY_NATIVE_LLVM_BIN="$(abspath $(PGY))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh
+self-host-codegen-type-env-preseal-epoch-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_NATIVE_LLVM_BIN="$(abspath $(PGY))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/type_env_state_retirement_owner.sh
 
 self-host-expression-graph-identity-prefix-test-smoke: $(PGY)
@@ -4691,13 +4691,13 @@ aggregate-storage-transfer-test-smoke: $(PGY)
 		"$(BASH)" tests/aggregate_storage_transfer_smoke.sh
 
 .PHONY: self-host-collection-descriptor-effect-test-smoke
-self-host-collection-descriptor-effect-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" \
+self-host-collection-descriptor-effect-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/collection_descriptor_effect_owner.sh
 
 .PHONY: self-host-collection-map-payload-test-smoke
-self-host-collection-map-payload-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" \
+self-host-collection-map-payload-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/collection_map_payload_owner.sh
 
 .PHONY: self-host-collection-native-member-release-restore-test-smoke
@@ -4716,8 +4716,8 @@ self-host-direct-mir-scalar-result-bool-test-smoke: $(PGY) self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_result_bool_owner.sh
 
 .PHONY: self-host-member-completed-read-test-smoke
-self-host-member-completed-read-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" \
+self-host-member-completed-read-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/member_completed_read_owner.sh
 
 .PHONY: self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke
@@ -5305,6 +5305,16 @@ self-host-array-index-receiver-admission-test-smoke: self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/array_mutation_receiver_use_contract.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
+# One build per backend of every contract probe that imports the self-host
+# semantic body owner (docs/truth/decisions/2026-11-11_semantic_owner_probes_merge_into_one_build.md).
+# Gates admit it only through the receipts in SEMANTIC_OWNER_PROBE_DIR.
+SEMANTIC_OWNER_PROBE_DIR := $(abspath .tmp/self_hosted/semantic_owner_probe)
+SEMANTIC_OWNER_PROBE_BUILD_SECONDS ?= 1200
+.PHONY: self-host-semantic-owner-probe-build
+self-host-semantic-owner-probe-build: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_owner_probe_build.sh \
+		"$(SEMANTIC_OWNER_PROBE_DIR)" $(SEMANTIC_OWNER_PROBE_BUILD_SECONDS)
+
 self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
@@ -5320,47 +5330,47 @@ collection-native-storage-escape-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_storage_escape_owner.sh
 
 .PHONY: self-host-collection-formal-key-consumption-test-smoke
-self-host-collection-formal-key-consumption-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_formal_key_consumption_owner.sh
+self-host-collection-formal-key-consumption-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_formal_key_consumption_owner.sh
 
 .PHONY: self-host-collection-binding-move-prefix-test-smoke
-self-host-collection-binding-move-prefix-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_binding_move_prefix_owner.sh
+self-host-collection-binding-move-prefix-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_binding_move_prefix_owner.sh
 
 .PHONY: self-host-collection-member-permission-test-smoke
-self-host-collection-member-permission-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/member_indexed_read_permission.sh
+self-host-collection-member-permission-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/member_indexed_read_permission.sh
 
 .PHONY: self-host-collection-field-read-summary-test-smoke
-self-host-collection-field-read-summary-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_field_read_summary_owner.sh
+self-host-collection-field-read-summary-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_field_read_summary_owner.sh
 
 .PHONY: self-host-collection-focus-recovery-test-smoke
-self-host-collection-focus-recovery-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_focus_recovery_owner.sh
+self-host-collection-focus-recovery-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_focus_recovery_owner.sh
 
-self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke self-host-collection-focus-recovery-test-smoke $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
+self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke self-host-collection-focus-recovery-test-smoke $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
 
 .PHONY: self-host-collection-owned-result-test-smoke
-self-host-collection-owned-result-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_owned_result_owner.sh
+self-host-collection-owned-result-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_owned_result_owner.sh
 
 .PHONY: self-host-collection-constructor-field-input-test-smoke
-self-host-collection-constructor-field-input-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_constructor_field_input_owner.sh
+self-host-collection-constructor-field-input-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_constructor_field_input_owner.sh
 
 .PHONY: self-host-collection-member-identity-test-smoke
-self-host-collection-member-identity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_member_identity_owner.sh
+self-host-collection-member-identity-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_member_identity_owner.sh
 
 .PHONY: self-host-collection-aggregate-entry-requirement-test-smoke
-self-host-collection-aggregate-entry-requirement-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh
+self-host-collection-aggregate-entry-requirement-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh
 
 .PHONY: self-host-collection-aggregate-release-source-test-smoke
-self-host-collection-aggregate-release-source-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_release_source_owner.sh
+self-host-collection-aggregate-release-source-test-smoke: $(PGY) self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_release_source_owner.sh
 
 .PHONY: self-host-enum-qualified-environment-test-smoke
 self-host-enum-qualified-environment-test-smoke: $(PGY)

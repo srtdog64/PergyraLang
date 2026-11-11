@@ -4,6 +4,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 cd "$ROOT"
 source tests/pgy_binary_path_helpers.sh
+source "tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT/bin/pgy}")"
 pgy_require_runnable_binary_here collection-map-written-root "$PGY"
@@ -15,8 +16,8 @@ sha256sum "$PGY" >"$WORK/native.sha256"
 find src/self_hosted -type f -name '*.pgy' -print0 | sort -z | xargs -0 sha256sum >"$WORK/source.sha256"
 sha256sum "$UNIT" "$INPUT" >"$WORK/inputs.sha256"
 for backend in ${BACKENDS:-c llvm}; do
-    timeout 120 "$PGY" --native-pipeline "$UNIT" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-unit.exe" >"$WORK/$backend-unit.compile" 2>&1
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-map-payload-written-root "$REL/$backend-unit.exe"
     sha256sum "$WORK/$backend-unit.exe" >>"$WORK/probes.sha256"
     timeout 30 "$WORK/$backend-unit.exe" "$INPUT" >"$WORK/$backend-unit.raw" 2>"$WORK/$backend-unit.err"
     tr -d '\r' <"$WORK/$backend-unit.raw" >"$WORK/$backend-unit.run"

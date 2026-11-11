@@ -186,7 +186,7 @@ try:
     outputs={}
     for backend in ('c','llvm'):
         executable=work/(backend+'-analyzer.exe')
-        run(backend+'-compile',[native,'--native-pipeline',f'--backend={backend}','--opt=dev',probe,'-o',executable],120,compile_step=True)
+        run(backend+'-install',['bash','-c','source tests/self_hosted/parity/semantic_owner_probe_owner.sh && pgy_semantic_owner_probe_install "$@"','install',root,native,backend,'collection-field-read-summary',executable],60,compile_step=True)
         guards[executable]=digest(executable)
         for name in cases:
             # Execute the analyzer, never the source input program.

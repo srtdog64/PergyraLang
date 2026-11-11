@@ -24,9 +24,8 @@ func BindingMoveProbeSource(name: String) -> String
     return "";
 }
 
-func Main() -> Void with caps env, io_read
+func CollectionBindingMovePrefixProbeMain(args: Array<String>) -> Void with caps env, io_read
 {
-    let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Log("expected case and mode"); Exit(2); }
     if args[1] != "facts" && args[1] != "malformed-analysis" { Log("unknown binding-move mode"); Exit(2); }
     let source: String = BindingMoveProbeSource(args[0]);

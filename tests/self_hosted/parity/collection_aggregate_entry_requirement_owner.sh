@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=collection-aggregate-entry-requirement
@@ -20,8 +21,8 @@ find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256su
 echo "[$LABEL] evidence=$REL; input source is parsed, never emitted/run"
 printf 'true\n' >"$WORK/expected"
 for backend in c llvm; do
-    timeout 240 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-entry.exe" >"$WORK/$backend-entry.compile" 2>&1 || fail "$backend fact probe did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-aggregate-entry-requirement "$WORK/$backend-entry.exe" || fail "$backend fact probe is not admitted"
     for mutation in $(seq 0 34); do
         timeout 30 "$WORK/$backend-entry.exe" "$INPUT" "$mutation" \
             >"$WORK/$backend-$mutation.raw" 2>"$WORK/$backend-$mutation.err" || fail "$backend mutation=$mutation refused"

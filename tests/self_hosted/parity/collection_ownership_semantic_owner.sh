@@ -12,7 +12,6 @@ LABEL="self-host-collection-ownership"
 FOCUS="${PGY_COLLECTION_OWNERSHIP_FOCUS:-all}"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
 FIELD_FIXTURE_DIR="tests/self_hosted/parity/fixture/collection_field_lifetime"
 CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
@@ -611,12 +610,12 @@ done
 
 # A MIR binding move is owned by the direct plan. The source local is retired,
 # and the destination alone releases borrowed, unknown, or MapKeys storage.
-(cd "$ROOT_DIR" && "$PGY" "$DIRECT_MOVE_PROBE" --native-pipeline \
-    --backend=c -o "$WORK_REL/binding-move-direct-backend-probe.exe") \
-    >"$WORK_DIR/binding-move-direct-backend-probe.compile" 2>&1 || {
-    tail -c 65536 "$WORK_DIR/binding-move-direct-backend-probe.compile" >&2
-    fail "native pipeline could not build the direct binding-move backend probe"
-}
+# The installed driver's MIR backend runs the same direct backend owner the
+# former native-built probe imported, built from this commit.
+printf '#!/usr/bin/env bash\nexec %q "--mir-json-backend=$2" "$1" -o "$3"\n' "$DRIVER" \
+    >"$WORK_DIR/binding-move-direct-backend-probe.exe" &&
+    chmod +x "$WORK_DIR/binding-move-direct-backend-probe.exe" ||
+    fail "could not place the direct binding-move backend launcher"
 MAP_KEYS_BROADENED_REL="$WORK_REL/map-keys-retirement-broadened.mir.json"
 python - "$ROOT_DIR/$WORK_REL/valid.mir.json" \
         "$ROOT_DIR/$MAP_KEYS_BROADENED_REL" <<'PY'

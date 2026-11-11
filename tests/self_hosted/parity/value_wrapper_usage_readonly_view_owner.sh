@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=value-wrapper-readonly-view
@@ -56,8 +57,8 @@ for backend in c llvm; do
     test ! -s "$B/$backend-values.err" || fail "$backend values wrote stderr"
     tr -d '\r' <"$B/$backend-values.raw" >"$B/$backend-values.run"
     cmp "$B/expected" "$B/$backend-values.run" || fail "$backend canonical/dedup/view oracle drift"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" \
-        -o "$B/$backend-observer.exe" >"$B/$backend-observer.compile" 2>&1 || fail "$backend observer did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$B/$backend-observer.exe" || fail "$backend observer did not build"
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
         "$FIXTURES/inout_recursive_current_descriptor_positive.pgy" \
         -o "$B/$backend-recursive.exe" >"$B/$backend-recursive.compile" 2>&1 || fail "$backend recursive values did not build"

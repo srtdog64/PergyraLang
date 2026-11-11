@@ -8,8 +8,7 @@ import "generic_default_selection_unit.pgy";
 import "collection_execution_context_generation_probe.pgy";
 import "owned_string_join_identity_unit.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func NominalConstructorSourceArityProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Log("expected source path and optional diagnostic mode"); Exit(2); }
     var diagnostic: Bool = false;
     var reassignment_mode: String = "";

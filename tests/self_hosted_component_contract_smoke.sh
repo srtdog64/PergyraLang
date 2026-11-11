@@ -3063,8 +3063,6 @@ require_max_lines "tests/self_hosted/parity/collection_aggregate_entry_requireme
 require_max_lines "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 129
 require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy" 220
 require_max_lines \
-    "tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy" 30
-require_max_lines \
     "tests/self_hosted/parity/collection_ownership_receipt_mutations.py" 100
 
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy" 50

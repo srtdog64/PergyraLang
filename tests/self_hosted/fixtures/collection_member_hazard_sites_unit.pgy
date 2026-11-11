@@ -4,8 +4,7 @@ import "../../../src/self_hosted/semantic/ast_collection_member_read_hazard_site
 import "../../../src/self_hosted/semantic/ast_collection_member_local_use_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionMemberHazardSitesUnitMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 1 { Log("expected hazard input"); Exit(2); }
     var artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("hazard input refused"); Exit(2); }

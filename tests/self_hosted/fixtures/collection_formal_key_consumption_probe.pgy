@@ -126,9 +126,8 @@ func FormalKeyProbeArtifact(source_path: String) -> AstTreeArtifact
     return ParseRootProgramArtifact(source_path);
 }
 
-func Main() -> Void with caps env, io_read
+func CollectionFormalKeyConsumptionProbeMain(args: Array<String>) -> Void with caps env, io_read
 {
-    let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Log("expected source and formal-key mode"); Exit(2); }
     let mode: String = args[1];
     if mode != "verdict" && mode != "facts" && mode != "formal-binding" && mode != "ordinary-binding" &&

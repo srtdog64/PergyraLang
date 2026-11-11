@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=generic-instance-owned-actuals
@@ -32,8 +33,8 @@ for backend in c llvm; do
         tr -d '\r' <"$B/$backend-$target.raw" >"$B/$backend-$target.run"
         cmp "$B/$target-expected" "$B/$backend-$target.run" || fail "$backend $target value/lifetime oracle drift"
     done
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" \
-        -o "$B/$backend-observer.exe" >"$B/$backend-observer.compile" 2>&1 || fail "$backend observer build refused"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$B/$backend-observer.exe" || fail "$backend observer build refused"
     for target in algorithm copy unsafe; do
         input="$ALGORITHM"; [[ "$target" != copy ]] || input="$COPY"; [[ "$target" != unsafe ]] || input="$UNSAFE"
         timeout 60 "$B/$backend-observer.exe" "$input" diagnostic >"$B/$backend-$target.observe" 2>&1 || fail "$backend $target source observation failed"

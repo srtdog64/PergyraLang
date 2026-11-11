@@ -7,8 +7,7 @@ import "collection_lifetime_event_probe.pgy";
 import "collection_storage_producer_probe.pgy";
 import "collection_storage_mutation_identity_unit.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Log("expected source and mutation"); Exit(2); }
     let mutation: Int = ToInt(args[1]);
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
@@ -773,11 +772,11 @@ func InspectOwnStorageAdmission(
                         }
                         let live: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                            analysis.expression_surfaces, slot / 3, edge, binding, false, false, true, facts, requirements,
+                            analysis.expression_surfaces, slot / 3, edge, binding, false, false, true, facts,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions, definitions, current_definitions);
                         let unknown: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                            analysis.expression_surfaces, slot / 3, edge, binding, true, false, true, facts, requirements,
+                            analysis.expression_surfaces, slot / 3, edge, binding, true, false, true, facts,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions, definitions, current_definitions);
                         var clean: Bool = live.ok && !unknown.ok && ownership[0] == SemanticAstCollectionOwnershipBorrowedElements() &&
                             transitions[0] == SemanticAstCollectionTransitionUntracked() &&

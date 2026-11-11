@@ -4,6 +4,7 @@ set -Eeuo pipefail
 trap 'status=$?; echo "[collection-inout-effect] failed at line $LINENO (status $status); evidence: ${REL:-not-created}" >&2' ERR
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-inout-effect "$PGY"
@@ -17,7 +18,6 @@ CONSTRUCTOR_PROBE=tests/self_hosted/fixtures/collection_constructor_escape_ident
 EVENT_PROBE=tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy
 STORAGE_PROBE=tests/self_hosted/fixtures/collection_storage_producer_probe.pgy
 WRITTEN_ROOT_PROBE=tests/self_hosted/fixtures/collection_map_payload_written_root_unit.pgy
-COPY_FIELD_PROBE=tests/self_hosted/fixtures/collection_copy_field_identity_unit.pgy
 MEMBER_HAZARD_PROBE=tests/self_hosted/fixtures/collection_member_hazard_sites_unit.pgy
 MEMBER_HAZARD_INPUT=tests/self_hosted/fixtures/collection_member_hazard_sites_input.pgy
 MEMBER_COMPLETED_PROBE=tests/self_hosted/fixtures/collection_member_completed_read_identity_unit.pgy
@@ -542,85 +542,16 @@ sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_storage_foreign_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
     "$FIXTURES/borrow_formal_identity_input.pgy" "$FIXTURES/storage_producer_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 sha256sum "$WRITTEN_ROOT_PROBE" "$FIXTURES/map_payload_written_root_backedge_facts.pgy" >>"$WORK/inputs.sha256"
-sha256sum "$COPY_FIELD_PROBE" >>"$WORK/inputs.sha256"
 sha256sum "$MEMBER_HAZARD_PROBE" "$MEMBER_HAZARD_INPUT" >>"$WORK/inputs.sha256"
 sha256sum "$MEMBER_COMPLETED_PROBE" >>"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
-# Root-coordinated reuse within a frozen source stage, not a compiler install
-# or a cache lookup. Refuse a different source/input/native or mutated binary.
-PROBE_DIR="${PGY_COLLECTION_EFFECT_PROBE_DIR:-}"
-SOURCE_PAIR_DIR="${SOURCE_PROBE_DIR:-}"
-if [[ -n "$PROBE_DIR" && -n "$SOURCE_PAIR_DIR" ]]; then
-    echo 'complete-probe and source-only reuse inputs are mutually exclusive' >&2
-    exit 1
-fi
-# The source-only owner proves just this semantic target. Other probe targets
-# still build once per backend; missing or drifting evidence never rebuilds.
-validate_source_pair_receipt() {
-    local manifest backend
-    for manifest in native source inputs probes; do
-        [[ -s "$SOURCE_PAIR_DIR/$manifest.sha256" ]] || {
-            echo "source-only reuse is missing $manifest receipt" >&2; return 1;
-        }
-        sha256sum --quiet -c "$SOURCE_PAIR_DIR/$manifest.sha256"
-    done
-    cmp "$SOURCE_PAIR_DIR/source.sha256" "$WORK/imports.sha256"
-    [[ "$(cut -d ' ' -f 1 "$SOURCE_PAIR_DIR/native.sha256")" == "$(cut -d ' ' -f 1 "$WORK/native.sha256")" ]]
-    grep -Fxq "$(sha256sum "$SOURCE_PROBE")" "$SOURCE_PAIR_DIR/inputs.sha256"
-    for backend in c llvm; do
-        [[ -s "$SOURCE_PAIR_DIR/$backend-source.exe" ]] || {
-            echo "source-only reuse is missing $backend source binary" >&2; return 1;
-        }
-        grep -Fxq "$(sha256sum "$SOURCE_PAIR_DIR/$backend-source.exe")" "$SOURCE_PAIR_DIR/probes.sha256"
-    done
-}
-if [[ -n "$SOURCE_PAIR_DIR" ]]; then
-    SOURCE_PAIR_DIR="$(cd "$SOURCE_PAIR_DIR" && pwd -P)"
-    validate_source_pair_receipt
-    sha256sum "$SOURCE_PAIR_DIR/native.sha256" "$SOURCE_PAIR_DIR/source.sha256" \
-        "$SOURCE_PAIR_DIR/inputs.sha256" "$SOURCE_PAIR_DIR/probes.sha256" >"$WORK/source-reuse-receipts.sha256"
-    echo "[collection-inout-effect] source-only exact-target reuse: $SOURCE_PAIR_DIR"
-fi
-if [[ -n "$PROBE_DIR" ]]; then
-    PROBE_DIR="$(cd "$PROBE_DIR" && pwd -P)"
-    case "$PROBE_DIR/" in "$ROOT_DIR/.tmp/self_hosted/"*) ;; *) echo 'probe reuse must stay in this checkout artifact directory' >&2; exit 1 ;; esac
-    for manifest in native owners inputs imports; do
-        cmp "$WORK/$manifest.sha256" "$PROBE_DIR/$manifest.sha256"
-        sha256sum --quiet -c "$PROBE_DIR/$manifest.sha256"
-    done
-    # A valid subset is not a complete proof. Pin exactly the eight binaries
-    # about to be copied, accepting old relative or new absolute receipt paths.
-    sha256sum --binary "$PROBE_DIR/c-source.exe" "$PROBE_DIR/c-identity.exe" "$PROBE_DIR/c-constructor.exe" "$PROBE_DIR/c-copy-field.exe" \
-        "$PROBE_DIR/llvm-source.exe" "$PROBE_DIR/llvm-identity.exe" "$PROBE_DIR/llvm-constructor.exe" "$PROBE_DIR/llvm-copy-field.exe" \
-        | LC_ALL=C sort >"$WORK/reuse-expected-binaries.sha256"
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ "${line:0:64}" =~ ^[0-9a-f]{64}$ &&
-            ( "${line:64:2}" == ' *' || "${line:64:2}" == '  ' ) ]] || {
-            echo 'invalid probe binary hash receipt' >&2; exit 1;
-        }
-        binary_path="$(realpath -- "${line:66}")"
-        printf '%s *%s\n' "${line:0:64}" "$binary_path"
-    done <"$PROBE_DIR/probe-binaries.sha256" \
-        | LC_ALL=C sort >"$WORK/reuse-declared-binaries.sha256"
-    cmp "$WORK/reuse-expected-binaries.sha256" "$WORK/reuse-declared-binaries.sha256"
-    sha256sum --quiet -c "$WORK/reuse-declared-binaries.sha256"
-    echo "[collection-inout-effect] exact-source probe reuse: ${PROBE_DIR#"$ROOT_DIR/"}"
-fi
 # This is a distinct direct fact-consumer target, executed once per backend.
 # Existing source-verdict probes cannot establish it through an earlier refusal.
 PGY_BIN="$PGY" BACKENDS="c llvm" timeout 300 bash \
     tests/self_hosted/parity/collection_map_payload_written_root_owner.sh >"$WORK/written-root-unit.log" 2>&1
 for backend in c llvm; do
-    if [[ -n "$PROBE_DIR" ]]; then
-        cp "$PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-        cmp "$PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-    elif [[ -n "$SOURCE_PAIR_DIR" ]]; then
-        cp "$SOURCE_PAIR_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-        cmp "$SOURCE_PAIR_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
-            -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
-    fi
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$WORK/$backend-source.exe"
     sha256sum "$WORK/$backend-source.exe" >>"$WORK/probe-binaries.sha256"
     for mode in current missing-owner missing-type foreign-owner crossed-node crossed-lane crossed-ordinal \
         borrowed-type unknown-type family-deleted declared-target runtime-abi callee-binding; do
@@ -1079,49 +1010,22 @@ BORROW_FORMAL_DIAGNOSTICS
         tr -d '\r' <"$WORK/$backend-mode-$mode_case.raw" >"$WORK/$backend-mode-$mode_case.run"
         cmp "$WORK/expected" "$WORK/$backend-mode-$mode_case.run"
     done
-    if [[ -n "$PROBE_DIR" ]]; then
-        cp "$PROBE_DIR/$backend-identity.exe" "$WORK/$backend-identity.exe"
-        cmp "$PROBE_DIR/$backend-identity.exe" "$WORK/$backend-identity.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$IDENTITY_PROBE" "--backend=$backend" --opt=dev \
-            -o "$REL/$backend-identity.exe" >"$WORK/$backend-identity.compile" 2>&1
-    fi
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-inout-effect-identity "$WORK/$backend-identity.exe"
     sha256sum "$WORK/$backend-identity.exe" >>"$WORK/probe-binaries.sha256"
-    if [[ -n "$PROBE_DIR" ]]; then
-        cp "$PROBE_DIR/$backend-constructor.exe" "$WORK/$backend-constructor.exe"
-        cmp "$PROBE_DIR/$backend-constructor.exe" "$WORK/$backend-constructor.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$CONSTRUCTOR_PROBE" "--backend=$backend" --opt=dev \
-            -o "$REL/$backend-constructor.exe" >"$WORK/$backend-constructor.compile" 2>&1
-    fi
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-constructor-escape-identity "$WORK/$backend-constructor.exe"
     sha256sum "$WORK/$backend-constructor.exe" >>"$WORK/probe-binaries.sha256"
-    if [[ -n "$PROBE_DIR" ]]; then
-        cp "$PROBE_DIR/$backend-copy-field.exe" "$WORK/$backend-copy-field.exe"
-        cmp "$PROBE_DIR/$backend-copy-field.exe" "$WORK/$backend-copy-field.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$COPY_FIELD_PROBE" "--backend=$backend" --opt=dev \
-            -o "$REL/$backend-copy-field.exe" >"$WORK/$backend-copy-field.compile" 2>&1
-    fi
-    sha256sum "$WORK/$backend-copy-field.exe" >>"$WORK/probe-binaries.sha256"
-    for copy_field_mode in {0..28}; do
-        timeout 30 "$WORK/$backend-copy-field.exe" "$FIXTURES/copy_field_disjoint_holder_positive.pgy" "$copy_field_mode" \
-            >"$WORK/$backend-copy-field-$copy_field_mode.raw" 2>"$WORK/$backend-copy-field-$copy_field_mode.err"
-        tr -d '\r' <"$WORK/$backend-copy-field-$copy_field_mode.raw" >"$WORK/$backend-copy-field-$copy_field_mode.run"
-        [[ ! -s "$WORK/$backend-copy-field-$copy_field_mode.err" ]]
-        grep -Fxq true "$WORK/$backend-copy-field-$copy_field_mode.run"
-    done
-    # A distinct producer target, never rebuilt per inventory/source row.
-    # Keep the existing full eight-binary reuse contract separate.
-    timeout 120 "$PGY" --native-pipeline "$MEMBER_HAZARD_PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-member-hazard.exe" >"$WORK/$backend-member-hazard.compile" 2>&1
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-member-hazard-sites "$WORK/$backend-member-hazard.exe"
     sha256sum "$WORK/$backend-member-hazard.exe" >>"$WORK/member-hazard-probes.sha256"
     timeout 30 "$WORK/$backend-member-hazard.exe" "$MEMBER_HAZARD_INPUT" \
         >"$WORK/$backend-member-hazard.raw" 2>"$WORK/$backend-member-hazard.err"
     tr -d '\r' <"$WORK/$backend-member-hazard.raw" >"$WORK/$backend-member-hazard.run"
     [[ ! -s "$WORK/$backend-member-hazard.err" ]]
     grep -Fxq 'MEMBER HAZARD SITES PASS' "$WORK/$backend-member-hazard.run"
-    timeout 120 "$PGY" --native-pipeline "$MEMBER_COMPLETED_PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-member-completed.exe" >"$WORK/$backend-member-completed.compile" 2>&1
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-member-completed-read-identity "$WORK/$backend-member-completed.exe"
     sha256sum "$WORK/$backend-member-completed.exe" >>"$WORK/member-completed-probes.sha256"
     for member_completed_mode in {0..30}; do
         timeout 30 "$WORK/$backend-member-completed.exe" "$FIXTURES/member_completed_read_before_alias_positive.pgy" "$member_completed_mode" \
@@ -1320,9 +1224,4 @@ sha256sum --quiet -c "$WORK/imports.sha256"
 sha256sum --quiet -c "$WORK/probe-binaries.sha256"
 sha256sum --quiet -c "$WORK/member-hazard-probes.sha256"
 sha256sum --quiet -c "$WORK/member-completed-probes.sha256"
-if [[ -n "$PROBE_DIR" ]]; then sha256sum --quiet -c "$PROBE_DIR/probe-binaries.sha256"; fi
-if [[ -n "$SOURCE_PAIR_DIR" ]]; then
-    sha256sum --quiet -c "$WORK/source-reuse-receipts.sha256"
-    validate_source_pair_receipt
-fi
 echo "[collection-inout-effect] evidence: $REL (analyze-only inputs)"

@@ -54,3 +54,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-05 | [v0.05 closes the SoT spine and raw-pointer ownership cleanup](2026-11-05_v0_05_sot_and_unsafe_ownership_scope.md) | future milestone |
 | 2026-11-11 | [The fixed point's native oracle emission runs in its own CI job](2026-11-11_native_oracle_emission_runs_in_its_own_job.md) | in force |
 | 2026-11-11 | [Probes that import the semantic owners merge into one build per job](2026-11-11_semantic_owner_probes_merge_into_one_build.md) | in force |
+| 2026-11-12 | [The unadopted split exclusive-copy owners and their unit are deleted](2026-11-12_unadopted_split_copy_owners_are_deleted.md) | in force |

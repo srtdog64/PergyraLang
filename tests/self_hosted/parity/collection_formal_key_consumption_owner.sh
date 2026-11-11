@@ -15,6 +15,7 @@ run_bounded() {
     timeout --signal=TERM --kill-after=2s "$maximum" "$@"
 }
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-formal-key "$PGY"
@@ -64,8 +65,8 @@ printf 'MALFORMED FORMAL KEY FACTS REFUSED\n' >"$WORK/expected-malformed"
 printf 'body=ok\n' >"$WORK/expected-map-baseline"
 printf 'MAP MUTATION CURRENTNESS REFUSED AND RESTORED\n' >"$WORK/expected-map-currentness"
 for backend in c llvm; do
-    run_bounded 120 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-key.exe" >"$WORK/$backend.compile" 2>&1
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-formal-key-consumption "$WORK/$backend-key.exe"
     sha256sum "$WORK/$backend-key.exe" >>"$WORK/probe-binaries.sha256"
     for embedded in map-mutation map-override; do
         run_bounded 30 "$WORK/$backend-key.exe" "embedded-$embedded" verdict \

@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=type-env-state-retirement
@@ -34,7 +35,8 @@ for row in "${POSITIVES[@]}"; do sha256sum "${row%%|*}" >>"$B/input.sha256"; don
 sha256sum "${NEGATIVES[@]}" >>"$B/input.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$B/import.sha256"
 for backend in c llvm; do
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" -o "$B/$backend-observer.exe" >"$B/$backend-observer.compile" 2>&1 || fail "$backend observer did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$B/$backend-observer.exe" || fail "$backend observer did not build"
     index=0
     for row in "${POSITIVES[@]}"; do
         IFS='|' read -r input oracle <<<"$row"

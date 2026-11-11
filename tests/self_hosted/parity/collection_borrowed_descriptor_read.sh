@@ -4,6 +4,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-borrowed-descriptor-read "$PGY"
@@ -33,9 +34,8 @@ observe() {
 }
 for backend in c llvm; do
     observer="$WORK/observer-$backend.exe"
-    "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
-        tests/self_hosted/fixtures/array_storage_call_preservation_probe.pgy \
-        -o "$observer" >"$WORK/$backend.compile.log" 2>&1 || fail "$backend observer did not compile"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        array-storage-call-preservation "$observer" || fail "$backend observer did not compile"
     for name in inout_borrowed_push_indexed_read_positive inout_owned_push_indexed_read_positive own_generation_indexed_read_positive \
         inout_borrowed_loop_growth_positive inout_borrowed_conditional_loop_growth_positive \
         inout_borrowed_loop_terminal_transfer_positive storage_opaque_return_read_positive \

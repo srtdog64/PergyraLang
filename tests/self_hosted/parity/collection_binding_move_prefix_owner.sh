@@ -85,6 +85,7 @@ PY
 fi
 [[ "$MODE" != --static-only ]] || exit 0
 source tests/pgy_binary_path_helpers.sh
+source tests/self_hosted/parity/semantic_owner_probe_owner.sh
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-binding-move-prefix "$PGY"
@@ -124,8 +125,8 @@ find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256su
 echo "[binding-move-prefix] compiler=$PGY evidence=$REL"
 cat "$WORK/native.sha256"
 for backend in c llvm; do
-    timeout 120 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-binding.exe" >"$WORK/$backend.compile" 2>&1
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-binding-move-prefix "$WORK/$backend-binding.exe"
     sha256sum "$WORK/$backend-binding.exe" >>"$WORK/probe-binaries.sha256"
     for name in "${CASES[@]}" malformed-analysis; do
         input="$name"; mode=facts

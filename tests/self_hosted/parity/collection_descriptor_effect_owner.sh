@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-descriptor-effect "$PGY"
@@ -32,27 +33,9 @@ inputs=(
 sha256sum "$PGY" >"$WORK/native.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 sha256sum "$SOURCE" "$UNIT" "${BASH_SOURCE[0]}" "${inputs[@]/#/$FIXTURES/}" >"$WORK/inputs.sha256"
-if [[ -n "${SOURCE_PROBE_DIR:-}" ]]; then
-    SOURCE_PROBE_DIR="$(cd "$SOURCE_PROBE_DIR" && pwd -P)"
-    for manifest in native source inputs probes; do
-        [[ -s "$SOURCE_PROBE_DIR/$manifest.sha256" ]]
-        sha256sum --quiet -c "$SOURCE_PROBE_DIR/$manifest.sha256"
-    done
-    cmp "$SOURCE_PROBE_DIR/source.sha256" "$WORK/imports.sha256"
-    [[ "$(cut -d ' ' -f 1 "$SOURCE_PROBE_DIR/native.sha256")" == "$(cut -d ' ' -f 1 "$WORK/native.sha256")" ]]
-    grep -Fxq "$(sha256sum "$SOURCE")" "$SOURCE_PROBE_DIR/inputs.sha256"
-    for backend in c llvm; do
-        [[ -s "$SOURCE_PROBE_DIR/$backend-source.exe" ]]
-        grep -Fxq "$(sha256sum "$SOURCE_PROBE_DIR/$backend-source.exe")" "$SOURCE_PROBE_DIR/probes.sha256"
-    done
-fi
 for backend in c llvm; do
-    if [[ -n "${SOURCE_PROBE_DIR:-}" ]]; then
-        cp "$SOURCE_PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$SOURCE" "--backend=$backend" --opt=dev \
-            -o "$WORK/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
-    fi
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$WORK/$backend-source.exe"
     timeout 120 "$PGY" --native-pipeline "$UNIT" "--backend=$backend" --opt=dev \
         -o "$WORK/$backend-unit.exe" >"$WORK/$backend-unit.compile" 2>&1
     sha256sum "$WORK/$backend-source.exe" "$WORK/$backend-unit.exe" >>"$WORK/binaries.sha256"
@@ -88,9 +71,4 @@ sha256sum --quiet -c "$WORK/native.sha256"
 sha256sum --quiet -c "$WORK/imports.sha256"
 sha256sum --quiet -c "$WORK/inputs.sha256"
 sha256sum --quiet -c "$WORK/binaries.sha256"
-if [[ -n "${SOURCE_PROBE_DIR:-}" ]]; then
-    for manifest in native source inputs probes; do
-        sha256sum --quiet -c "$SOURCE_PROBE_DIR/$manifest.sha256"
-    done
-fi
 echo "[collection-descriptor-effect] PASS C/LLVM: 14 source refusals/admissions, 8 identity and 3 forwarding facet checks; $WORK"

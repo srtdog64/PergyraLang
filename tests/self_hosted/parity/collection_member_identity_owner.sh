@@ -5,6 +5,7 @@ set -Eeuo pipefail
 trap 'status=$?; echo "[collection-member-identity] failed at line $LINENO (status $status); evidence: ${REL:-not-created}" >&2' ERR
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here collection-member-identity "$PGY"
@@ -18,37 +19,10 @@ sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$PROBE" >"$WORK/member-probe-source.sha256"
 sha256sum "$INPUT" >"$WORK/member-input.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
-PROBE_DIR="${PGY_COLLECTION_MEMBER_PROBE_DIR:-}"
-if [[ -n "$PROBE_DIR" ]]; then
-    PROBE_DIR="$(cd "$PROBE_DIR" && pwd -P)"
-    case "$PROBE_DIR/" in "$ROOT_DIR/.tmp/self_hosted/"*) ;; *) echo 'member probe reuse must stay in this checkout artifact directory' >&2; exit 1 ;; esac
-    for manifest in native member-probe-source member-input imports; do
-        cmp "$WORK/$manifest.sha256" "$PROBE_DIR/$manifest.sha256"
-        sha256sum --quiet -c "$PROBE_DIR/$manifest.sha256"
-    done
-    sha256sum --binary "$PROBE_DIR/c-member.exe" "$PROBE_DIR/llvm-member.exe" \
-        | LC_ALL=C sort >"$WORK/reuse-expected-binaries.sha256"
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ "${line:0:64}" =~ ^[0-9a-f]{64}$ &&
-            ( "${line:64:2}" == ' *' || "${line:64:2}" == '  ' ) ]] || {
-            echo 'invalid member probe binary receipt' >&2; exit 1;
-        }
-        binary_path="$(realpath -- "${line:66}")"
-        printf '%s *%s\n' "${line:0:64}" "$binary_path"
-    done <"$PROBE_DIR/member-probe-binaries.sha256" \
-        | LC_ALL=C sort >"$WORK/reuse-declared-binaries.sha256"
-    cmp "$WORK/reuse-expected-binaries.sha256" "$WORK/reuse-declared-binaries.sha256"
-    sha256sum --quiet -c "$WORK/reuse-declared-binaries.sha256"
-fi
 printf 'true\n' >"$WORK/expected"
 for backend in c llvm; do
-    if [[ -n "$PROBE_DIR" ]]; then
-        cp "$PROBE_DIR/$backend-member.exe" "$WORK/$backend-member.exe"
-        cmp "$PROBE_DIR/$backend-member.exe" "$WORK/$backend-member.exe"
-    else
-        timeout 120 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" --opt=dev \
-            -o "$REL/$backend-member.exe" >"$WORK/$backend-member.compile" 2>&1
-    fi
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        collection-member-identity "$WORK/$backend-member.exe"
     sha256sum "$WORK/$backend-member.exe" >>"$WORK/member-probe-binaries.sha256"
     for mutation in {0..44}; do
         timeout 30 "$WORK/$backend-member.exe" "$INPUT" "$mutation" \

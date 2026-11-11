@@ -4,8 +4,7 @@ import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionMemberPublicationProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 1 { Exit(2); }
     let mode: String = args[0];
     if mode != "early" && mode != "capture-unready" && mode != "context-unready" &&

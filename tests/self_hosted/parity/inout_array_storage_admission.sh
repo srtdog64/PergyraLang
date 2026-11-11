@@ -3,6 +3,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here inout-array-storage "$PGY"
@@ -19,8 +20,8 @@ observe_source() {
 }
 for backend in c llvm; do
     observer="$WORK/observer-$backend.exe"
-    "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" -o "$observer" \
-        >"$WORK/$backend.compile.log" 2>&1 || fail "$backend observer compilation failed"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        array-storage-call-preservation "$observer" || fail "$backend observer compilation failed"
     for name in inout_write inout_mutation inout_nested inout_record ref_result_plain; do
         observe_source "$FIXTURES/public_array_drop_$name.pgy" "$WORK/$backend-$name.log"
         grep -Fxq 'body_ok=true' "$WORK/$backend-$name.log" || fail "$backend refused: $name"

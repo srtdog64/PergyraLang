@@ -4,8 +4,7 @@ import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "collection_aggregate_entry_requirement_probe_support.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionAggregateEntryRequirementProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Log("expected source and entry mutation"); Exit(2); }
     let mutation: Int = ToInt(args[1]);
     if mutation < 0 || mutation > 34 || args[1] != ToString(mutation) { Log("invalid entry mutation"); Exit(2); }

@@ -6,8 +6,7 @@ import "../../../src/self_hosted/semantic/ast_collection_member_read_completion_
 import "../../../src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_collection_call_effect_owner.pgy";
 
-func Main() -> Void with caps env, io_read {
-    let args: Array<String> = Args();
+func CollectionMemberCompletedReadIdentityUnitMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Exit(2); }
     let mode: Int = ToInt(args[1]);
     if mode < 0 || mode > 30 || args[1] != ToString(mode) { Exit(2); }

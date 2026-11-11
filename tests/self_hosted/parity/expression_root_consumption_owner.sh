@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=expression-root-consumption
@@ -50,7 +51,8 @@ for backend in c llvm; do
     tr -d '\r' <"$B/$backend-copy.raw" >"$B/$backend-copy.run"
     printf 'OWN INDEXED COPY RETIREMENT PASS\n' >"$B/copy.expected"
     cmp "$B/copy.expected" "$B/$backend-copy.run" || fail "$backend copied value drift"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" -o "$B/$backend-observer.exe" >"$B/$backend-observer.compile" 2>&1 || fail "$backend observer did not compile"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$B/$backend-observer.exe" || fail "$backend observer did not compile"
     for input in "${POSITIVE[@]}"; do
         name="$(basename "$input" .pgy)"
         timeout 60 "$B/$backend-observer.exe" "$input" diagnostic >"$B/$backend-$name.observe" 2>&1 || fail "$backend $name observation failed"

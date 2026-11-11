@@ -4,6 +4,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=collection-owned-result
@@ -39,10 +40,9 @@ find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | \
     xargs -0 sha256sum >"$WORK/imports.sha256"
 echo "[$LABEL] evidence=$REL; source fixtures are analyzed, never emitted/run"
 for backend in c llvm; do
-    timeout 240 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" \
-        --opt=dev -o "$REL/$backend-source.exe" \
-        >"$WORK/$backend-source.compile" 2>&1 || \
-        fail "$backend source analyzer did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$WORK/$backend-source.exe" || \
+        fail "$backend source analyzer is not admitted"
     case_index=0
     for case_row in "${CASES[@]}"; do
         IFS='|' read -r fixture verdict expected_boundary <<<"$case_row"

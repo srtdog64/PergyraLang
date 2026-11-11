@@ -5408,22 +5408,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 
 ## Bounded collection exit, descriptor and payload-loan consumers
 
-- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_edge_owner.pgy`
-  -- immutable constructor-field copy edges, generation and adjacency admission.
-- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_binding_owner.pgy`
-  -- exact copy binding identities and assignment redefinitions.
-- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_observation_owner.pgy`
-  -- admitted integer-map observation certificate used by copy consumption.
-- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_consumption_owner.pgy`
-  -- final copy-edge and field-aware liveness consumption at owning boundaries.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_copy_read_projection_owner.pgy`
   -- read disjointness projected from admitted field identity and read summaries.
-- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_partition_owner.pgy`
-  -- actual root-type field partition from admitted copy edges and the nonempty
-  complementary fields handed to consumption; raw-row units are not root-type proof.
-- `src/self_hosted/semantic/ast_collection_exclusive_value_field_label_owner.pgy`
-  -- admitted field-label materialization directly into final owned outputs;
-  TypeFields and copy partition share the guarded allocation/grow boundary.
 - `src/self_hosted/semantic/ast_collection_member_read_hazard_site_owner.pgy`
   -- same-generation earliest/opaque hazard projection; publication admits its
   exact blocked-root identity, not physical field independence.
@@ -5471,8 +5457,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- source/alias read liveness at the exclusive-value boundary.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_restoration_owner.pgy`
   -- per-use family restoration certificates.
-- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_liveness_owner.pgy`
-  -- observational-copy last-read and post-growth liveness.
 - `src/self_hosted/semantic/builtin_argument_retention_selection_owner.pgy`
   -- exact registry/signature selection; Map rows join the canonical collection
   protocol, never a source-name or guessed-generic-signature exemption.

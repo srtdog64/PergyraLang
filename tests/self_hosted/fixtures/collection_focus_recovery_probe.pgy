@@ -4,9 +4,8 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "../../../src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy";
 import "../../../src/self_hosted/codegen/emission/program_entry_owner.pgy";
 
-func Main() -> Void with caps env, io_read, io_write
+func CollectionFocusRecoveryProbeMain(args: Array<String>) -> Void with caps env, io_read, io_write
 {
-    let args: Array<String> = Args();
     if ArrayLength(args) != 3 { Log("PROBE|input-invalid"); Exit(2); return; }
     var mode: String = args[1];
     let admitted_path: Bool = StartsWith(mode, "admitted-");

@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/semantic_owner_probe_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=named-string-own-entry
@@ -33,7 +34,8 @@ for backend in c llvm; do
     test ! -s "$B/$backend-value.err" || fail "$backend value stderr"
     tr -d '\r' <"$B/$backend-value.raw" >"$B/$backend-value.run"
     cmp "$B/expected" "$B/$backend-value.run" || fail "$backend value drift"
-    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$PROBE" -o "$B/$backend-observer.exe" >"$B/$backend-observer.compile" 2>&1 || fail "$backend observer did not build"
+    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+        nominal-constructor-source-arity "$B/$backend-observer.exe" || fail "$backend observer did not build"
     timeout 60 "$B/$backend-observer.exe" "$INPUT" diagnostic >"$B/$backend-positive.raw" 2>"$B/$backend-positive.err" || fail "$backend positive observation failed"
     test ! -s "$B/$backend-positive.err" || fail "$backend positive stderr"
     tr -d '\r' <"$B/$backend-positive.raw" >"$B/$backend-positive.run"
