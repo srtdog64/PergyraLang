@@ -94,8 +94,10 @@ bool move_walk_copy_next(MoveCopyTraversal *traversal, MoveCopyReach *reach)
     return false;
 }
 
-void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier,
-    const char *carrier_fields)
+/* `made_at` is the expression a copy landing would clone: the value itself,
+ * or the call whose result shares the value's storage. */
+static void copy_record_made_at(MoveWalk *walk, MoveState *state, ASTNode *value, ASTNode *made_at,
+    uint32_t carrier, const char *carrier_fields)
 {
     if (value == NULL || carrier == 0 || walk->failed) return;
     SemanticPublishedValue copied = semantic_param_publication_value(walk->ctx, value);
@@ -120,11 +122,11 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
             && !move_walk_state_add(walk, state, carrier,
                 carrier_fields != NULL ? carrier_fields : "",
                 outward_cause.callee, outward_cause.callee_decl,
-                outward_cause.param, value, 0, NULL,
+                outward_cause.param, made_at, 0, NULL,
                 outward_cause.argument, false, true))
             return;
         (void)move_walk_state_add(walk, state, binding, fields, NULL, NULL,
-            NULL, value, carrier, carrier_fields, NULL, false, false);
+            NULL, made_at, carrier, carrier_fields, NULL, false, false);
         return;
     }
     if (value->type == AST_ARRAY_LITERAL || value->type == AST_TUPLE_LITERAL) {
@@ -169,13 +171,26 @@ void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uin
         return;
     }
     /* A constructor, an Option wrap or a Clone that copies only by value
-     * returns its argument's storage. */
+     * returns its argument's storage. An Array sort or reverse returns the
+     * storage of its receiver place, which it rewrote in place and the
+     * caller keeps: that copy is made by the call, so a copy landing clones
+     * the call's result and leaves the place as the call changed it. */
+    bool permutation = value->type == AST_CALL &&
+        semantic_param_publication_checked_array_permutation(walk->ctx, value);
     for (size_t p = 0; value->type == AST_CALL && p < ast_call_arg_count(value); p++) {
         bool depends = false, retains = false;
+        ASTNode *argument = ast_call_argument(value, p);
         if (semantic_param_publication_callee(walk->ctx, value, p) == NULL &&
             semantic_param_publication_checked_result_relation(walk->ctx, value, p, &depends, &retains) && depends)
-            move_walk_copy_record(walk, state, ast_call_argument(value, p), carrier, carrier_fields);
+            copy_record_made_at(walk, state, argument, permutation && p == 0 ? value : argument,
+                carrier, carrier_fields);
     }
+}
+
+void move_walk_copy_record(MoveWalk *walk, MoveState *state, ASTNode *value, uint32_t carrier,
+    const char *carrier_fields)
+{
+    copy_record_made_at(walk, state, value, value, carrier, carrier_fields);
 }
 
 /* A change through a copy reaches the copied path's storage. A loan taken
