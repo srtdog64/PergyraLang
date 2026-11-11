@@ -111,8 +111,8 @@ func SemanticAstCollectionRequiredOwnedArgumentReady(
         SemanticAstCollectionStringArrayFormalIdentity(
             signatures, surfaces.function_node_ids[surface],
             surfaces.expression_graph, argument_node_id);
-    // A forwarding inout formal is admitted only when the same deep-element
-    // requirement has reached its own caller boundary.
-    return formal.ok && formal.mode == 1 &&
+    // A forwarding inout or own formal is admitted only when the same
+    // deep-element requirement has reached its own caller boundary.
+    return formal.ok && (formal.mode == 1 || formal.mode == 2) &&
         MapHas(requirements, ToString(formal.syntax_id));
 }

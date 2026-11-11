@@ -37,9 +37,9 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
         !assignments.ok {
         field_requirements.ok = false; return required;
     }
-    // An inout Array<String> pop destroys one caller-owned element. Seed the
-    // obligation on the exact formal, then propagate it through recursive and
-    // forwarding calls below.
+    // An inout or own Array<String> pop destroys one caller-owned element.
+    // Seed the obligation on the exact formal, then propagate it through
+    // recursive and forwarding calls below.
     var statement_row: Int = 0;
     while statement_row < ArrayLength(statements.node_ids) {
         if statements.kind_tags[statement_row] ==
@@ -57,7 +57,7 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
                     statements.function_node_ids[statement_row],
                     surfaces.expression_graph,
                     UnwrapOption(target_root));
-            if formal.ok && formal.mode == 1 {
+            if formal.ok && (formal.mode == 1 || formal.mode == 2) {
                 MapSet(required, ToString(formal.syntax_id), 1);
             }
         }

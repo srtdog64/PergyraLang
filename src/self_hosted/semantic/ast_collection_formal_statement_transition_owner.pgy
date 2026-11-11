@@ -31,7 +31,7 @@ func SemanticAstCollectionFormalStatementTransition(
             UnwrapOption(target_root));
     if array_pop {
         if !formal.ok { return SemanticAstCollectionStatementTransitionOk(); }
-        if formal.mode != 1 ||
+        if (formal.mode != 1 && formal.mode != 2) ||
             !MapHas(element_requirements, ToString(formal.syntax_id)) {
             return SemanticAstCollectionStatementTransitionArtifactError(
                 "owned_string_pop_formal", syntax_id);

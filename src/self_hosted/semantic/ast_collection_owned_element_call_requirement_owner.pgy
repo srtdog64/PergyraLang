@@ -52,15 +52,17 @@ func SemanticAstCollectionOwnedElementCallRequirements(
             target_mode = SemanticAstFunctionParamModeAt(
                 signatures, target.signature_row, target.ordinal);
         }
+        // An inout formal and an own formal both hand their elements' cleanup
+        // to the callee, so a requirement on either reaches the argument.
         if target.ok && IsSome(target_type) && IsSome(target_mode) &&
-            UnwrapOption(target_mode) == 1 &&
+            (UnwrapOption(target_mode) == 1 || UnwrapOption(target_mode) == 2) &&
             SemanticAstCollectionOwnershipIsStringArray(
                 UnwrapOption(target_type)) {
             let source: SemanticAstCollectionFormalStorageIdentity =
                 SemanticAstCollectionStringArrayFormalIdentity(
                     signatures, surfaces.function_node_ids[root_slot / 3],
                     surfaces.expression_graph, call.argument_nodes[argument]);
-            if source.ok && source.mode == 1 {
+            if source.ok && (source.mode == 1 || source.mode == 2) {
                 ArrayPush(forwarding_sources, source.syntax_id);
                 ArrayPush(forwarding_targets, target.syntax_id);
             }
