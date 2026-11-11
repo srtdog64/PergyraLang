@@ -42,19 +42,23 @@ finish_guards() {
 }
 trap finish_guards EXIT
 NEGATIVES=(
-    'field_ctor_clone_drop_negative|ArrayDropOwnedStrings|values'
-    'field_ctor_empty_drop_negative|ArrayDropOwnedStrings|values'
-    'field_ctor_alias_drop_negative|ArrayDropOwnedStrings|renamed'
     'field_ctor_own_formal_drop_negative|ArrayDropOwnedStrings|values'
-    'field_ctor_owned_push_negative|ArrayPushOwnedString|values'
-    'field_ctor_alias_owned_push_negative|ArrayPushOwnedString|renamed'
     'field_ctor_clone_own_negative|own|values'
     'field_ctor_alias_own_negative|own|renamed'
     'field_ctor_map_keys_alias_own_negative|own|renamed'
-    'field_ctor_branch_fresh_assign_negative|ArrayDropOwnedStrings|values'
-    'field_ctor_deferred_fresh_assign_negative|ArrayDropOwnedStrings|values'
     'field_ctor_member_rebind_drop_negative|ArrayDropOwnedStrings|values'
 )
+# The constructor stores `values` and the caller then drops or grows it, so
+# the call takes `Clone(values)` (docs/truth/decisions/
+# 2026-10-22_moved_argument_used_again_is_copied.md): the record and the local
+# own independent storage. Under the 2026-10-23 decision that safe copy
+# landings are positive cases, each is admitted with the Clone in MIR and runs
+# on C and LLVM with the record's length, 1. The self-host analyzer does not
+# land this copy yet and still refuses these inputs (collection_inout_effect).
+COPIED=(field_ctor_clone_drop_negative field_ctor_empty_drop_negative
+    field_ctor_alias_drop_negative field_ctor_owned_push_negative
+    field_ctor_alias_owned_push_negative field_ctor_branch_fresh_assign_negative
+    field_ctor_deferred_fresh_assign_negative)
 POSITIVES=(field_ctor_readonly_positive field_ctor_duplicate_readonly_positive
     field_ctor_indexed_readonly_positive field_ctor_fresh_assign_positive
     own_named_clone_positive native_unescaped_string_storage_positive)
@@ -79,6 +83,21 @@ for entry in "${NEGATIVES[@]}"; do
         expected="$operation cannot release escaped array storage in '$receiver'"
     fi
     grep -Fq "$expected" "$WORK/$input.err" || fail "wrong refusal for $input"
+done
+for input in "${COPIED[@]}"; do
+    sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
+    (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
+        >"$WORK/$input.mir.json" 2>"$WORK/$input.err" || fail "rejected copied $input"
+    grep -Fq '"Clone"' "$WORK/$input.mir.json" || fail "no Clone in MIR for copied $input"
+    for backend in c llvm; do
+        (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline "--backend=$backend" \
+            "$FIXTURES/$input.pgy" -o "$REL/$input-$backend.exe") \
+            >"$WORK/$input-$backend.build.out" 2>&1 || fail "$backend build failed for copied $input"
+        (cd "$ROOT"; run_admission_bounded "$WORK/$input-$backend.exe") \
+            >"$WORK/$input-$backend.raw" 2>"$WORK/$input-$backend.run.err" || fail "$backend run failed for copied $input"
+        [[ ! -s "$WORK/$input-$backend.run.err" ]] || fail "$backend runtime stderr for copied $input"
+        [[ "$(tr -d '\r' <"$WORK/$input-$backend.raw")" == 1 ]] || fail "$backend output for copied $input"
+    done
 done
 for input in "${POSITIVES[@]}"; do
     sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
@@ -108,4 +127,4 @@ done
 (cd "$ROOT"; sha256sum --quiet -c "$WORK/native-sources.sha256")
 sha256sum --quiet -c "$WORK/native-binary.sha256"
 sha256sum --quiet -c "$WORK/inputs.sha256"
-echo "[$LABEL] ${#NEGATIVES[@]} pre-MIR refusals, ${#POSITIVES[@]} source admissions, two safe native-C executions PASS"
+echo "[$LABEL] ${#NEGATIVES[@]} pre-MIR refusals, ${#COPIED[@]} copy landings run on C/LLVM, ${#POSITIVES[@]} source admissions, two safe native-C executions PASS"

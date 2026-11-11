@@ -41,7 +41,10 @@ BOUNDARY_INPUTS=(
     "$FIXTURES/exclusive_map_observed_forward_growth_negative.pgy"
     "$FIXTURES/inout_owned_pop_forward_positive.pgy"
     "$FIXTURES/inout_borrowed_pop_forward_negative.pgy")
-BOUNDARY_CODES=(ok borrow_boundary_escape borrow_boundary_escape ok borrow_boundary_escape borrow_boundary_escape ok borrow_boundary_escape)
+# inout_borrowed_push_drop_negative: the push into the inout formal copies the
+# literal (2026-10-22 String crossing copied where it crosses), so the later
+# owned-string drop frees only owned text; native and self-host both admit it.
+BOUNDARY_CODES=(ok borrow_boundary_escape borrow_boundary_escape ok ok borrow_boundary_escape ok borrow_boundary_escape)
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$PROBE" "${BASH_SOURCE[0]}" >"$WORK/probe-source.sha256"
 for input in "${INPUTS[@]}" "${BOUNDARY_INPUTS[@]}"; do sha256sum "$input"; done >"$WORK/inputs.sha256"

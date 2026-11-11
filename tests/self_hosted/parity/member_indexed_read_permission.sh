@@ -123,7 +123,29 @@ for backend in c llvm; do
             -o "$WORK/native-$backend-$name.exe" >"$WORK/native-$backend-$name.raw" 2>&1 || status=$?
         tr -d '\r' <"$WORK/native-$backend-$name.raw" >"$WORK/native-$backend-$name.log"
         printf '%s:%s=%s\n' "$backend" "$name" "$status" >>"$WORK/native-status.log"
-        if [[ "$name" == *_positive ]]; then
+        # A borrowed member stored into a local value is copied where it is
+        # stored (docs/truth/decisions/2026-10-22_borrowed_storage_handed_on_is_copied.md);
+        # safe copy landings are positive programs (2026-10-23). The native
+        # program runs with the copy in MIR. The self-host analyzer does not
+        # land this copy yet and stays fail-closed on these inputs.
+        copied_output=""
+        case "$name" in
+            member_capture_constructor_negative|member_capture_constructor_index_negative|\
+            member_capture_nominal_clone_negative) copied_output=true ;;
+            member_capture_struct_literal_negative) copied_output=1 ;;
+        esac
+        if [[ -n "$copied_output" ]]; then
+            [[ "$status" == 0 ]] || fail "$backend native copy landing did not compile: $name"
+            [[ "$(timeout 15 "$WORK/native-$backend-$name.exe" | tr -d '\r')" == "$copied_output" ]] || \
+                fail "$backend native copy landing output: $name"
+            if [[ "$backend" == c ]]; then
+                timeout 30 "$PGY" --native-pipeline --mir-json "$FIXTURES/$name.pgy" >"$WORK/native-$name.mir.json" \
+                    2>/dev/null || fail "native MIR of copy landing failed: $name"
+                grep -Fq '"Clone"' "$WORK/native-$name.mir.json" || fail "native copy landing has no Clone in MIR: $name"
+            fi
+            grep -Fxq 'body_ok=false' "$WORK/$backend-$name.log" || fail "$backend self-host admitted uncopied capture: $name"
+            grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$name.log" || fail "$backend lost capture diagnosis: $name"
+        elif [[ "$name" == *_positive ]]; then
             [[ "$status" == 0 ]] || fail "$backend native positive did not compile: $name"
             grep -Fxq 'body_ok=true' "$WORK/$backend-$name.log" || fail "$backend refused capture control: $name"
         else

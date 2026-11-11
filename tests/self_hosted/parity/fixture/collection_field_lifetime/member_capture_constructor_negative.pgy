@@ -6,4 +6,7 @@ func Observe(ref input: Envelope) -> Bool {
     let alias: Box = Box(input.table);
     return Reads(alias.table.names);
 }
-func Main() -> Void {}
+func Main() -> Void {
+    let input: Envelope = Envelope(Table(["x"]));
+    Log(Observe(input));
+}

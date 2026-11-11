@@ -5,4 +5,7 @@ func Observe(ref input: Envelope) -> Int {
     let captured: Box = Box { table: input.table };
     return ArrayLength(captured.table.names);
 }
-func Main() -> Void {}
+func Main() -> Void {
+    let input: Envelope = Envelope(Table(["x"]));
+    Log(Observe(input));
+}
