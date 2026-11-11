@@ -396,6 +396,7 @@ type_check_parallel_join_expr_type(ASTNode *node, SemanticContext *ctx)
             ? symbol_create_variable(elem_name, elem_type,
                                      node->line, node->column)
             : NULL;
+        symbol_mark_declaration(elem_sym, ast_node_stable_id(node), false);
         if (elem_sym != NULL)
             scope_declare(ctx->scope, elem_sym);
     }

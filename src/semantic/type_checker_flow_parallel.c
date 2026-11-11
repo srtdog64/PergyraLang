@@ -498,6 +498,9 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                 ? symbol_create_variable(elem_name, join_elem_type,
                                          node->line, node->column)
                 : NULL;
+            /* Like a for-in variable, the element binding's identity is
+             * its header node; uses resolve to it by that id. */
+            symbol_mark_declaration(elem_sym, ast_node_stable_id(node), false);
             if (elem_sym != NULL)
                 scope_declare(ctx->scope, elem_sym);
         }
