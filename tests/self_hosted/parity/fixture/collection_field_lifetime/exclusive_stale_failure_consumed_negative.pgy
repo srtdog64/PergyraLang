@@ -10,7 +10,7 @@ func Invalid(facts: NodeSet) -> NodeSet {
 
 func Grow(facts: NodeSet, fail: Bool) -> NodeSet {
     let invalid: NodeSet = Invalid(facts);
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
     if fail { return invalid; }
     return NodeSet(true, types);

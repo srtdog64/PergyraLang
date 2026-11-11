@@ -16,7 +16,7 @@ sha256sum "$PGY" >"$WORK/native.sha256"
 find src/self_hosted -type f -name '*.pgy' -print0 | sort -z | xargs -0 sha256sum >"$WORK/source.sha256"
 sha256sum "$UNIT" "$INPUT" >"$WORK/inputs.sha256"
 for backend in ${BACKENDS:-c llvm}; do
-    pgy_semantic_owner_probe_install "$ROOT_DIR" "$PGY" "$backend" \
+    pgy_semantic_owner_probe_install "$ROOT" "$PGY" "$backend" \
         collection-map-payload-written-root "$REL/$backend-unit.exe"
     sha256sum "$WORK/$backend-unit.exe" >>"$WORK/probes.sha256"
     timeout 30 "$WORK/$backend-unit.exe" "$INPUT" >"$WORK/$backend-unit.raw" 2>"$WORK/$backend-unit.err"

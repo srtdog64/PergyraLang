@@ -7,14 +7,14 @@ struct NodeSet {
 func NodeSetGrowChecked(facts: NodeSet, fail: Bool) -> NodeSet {
     let invalid: NodeSet = NodeSet(false, facts.types);
     if fail { return invalid; }
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
     return NodeSet(true, types);
 }
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetGrowChecked(facts, false);
     return ArrayLength(facts.types);
 }

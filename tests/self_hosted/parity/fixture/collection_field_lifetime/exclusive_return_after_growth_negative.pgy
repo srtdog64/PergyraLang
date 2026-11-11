@@ -5,7 +5,7 @@ struct NodeSet {
 }
 
 func NodeSetGrow(facts: NodeSet, fail: Bool) -> NodeSet {
-    let types: Array<String> = facts.types;
+    var types: Array<String> = facts.types;
     ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
     if fail { return facts; }
     return NodeSet(true, types);
@@ -13,7 +13,7 @@ func NodeSetGrow(facts: NodeSet, fail: Bool) -> NodeSet {
 
 func Main() -> Int {
     let types: Array<String> = ["x"];
-    let facts: NodeSet = NodeSet(true, types);
+    var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetGrow(facts, true);
     return StringLength(facts.types[0]);
 }

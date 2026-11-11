@@ -30,14 +30,14 @@ func InspectOwnedStringLocalReassignment(
             analysis.expression_surfaces.expression_graph, node);
     if StartsWith(mode, "owned-string-reassignment-owner-field") {
         if !baseline.ok || binding.ok ||
-            bundle.assignment_types.target_binding_modes[selected] != "owner_field" { return false; }
+            bundle.assignment_types.target_binding_modes[selected] != "mutable_owner_field" { return false; }
         if mode == "owned-string-reassignment-owner-field" { return true; }
         if mode == "owned-string-reassignment-owner-field-missing" {
             analysis.expression_surfaces.expression_graph.arena.node_texts[node] = "missing";
         } else if mode == "owned-string-reassignment-owner-field-type" {
             bundle.assignment_types.target_type_names[selected] = "Int";
         } else if mode == "owned-string-reassignment-owner-field-mode" {
-            bundle.assignment_types.target_binding_modes[selected] = "local";
+            bundle.assignment_types.target_binding_modes[selected] = "mutable_local";
         } else { return false; }
         let invalid_field: SemanticAstOwnedStringLocalReassignmentFacts =
             SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
