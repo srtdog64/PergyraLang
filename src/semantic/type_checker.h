@@ -207,6 +207,13 @@ struct SemanticContext
     ASTNode     *indexed_string_defer_body;
     size_t       indexed_string_defer_sequence, indexed_string_next_defer_sequence;
     bool         indexed_string_nested_defer;
+    /* Map storage sources whose String values changed, in check order
+     * (map_string_payload_view_owner). */
+    uint32_t    *map_payload_view_changes;
+    size_t       map_payload_view_change_count, map_payload_view_change_capacity;
+    /* Views that became invalid; a loop whose body adds one checks it again,
+     * so a use before the change in the body meets the next pass's view. */
+    size_t       map_payload_view_invalidation_count;
     bool         in_parallel_join_expr; /* Inside an expression-form
                                     * parallel join body (docs/181 R2):
                                     * the only scope where `give` is

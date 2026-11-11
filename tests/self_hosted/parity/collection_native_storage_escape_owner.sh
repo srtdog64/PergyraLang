@@ -99,6 +99,31 @@ for input in "${COPIED[@]}"; do
         [[ "$(tr -d '\r' <"$WORK/$input-$backend.raw")" == 1 ]] || fail "$backend output for copied $input"
     done
 done
+# A String MapGet returned points into the map's own value; MapSet, MapRemove,
+# a hand-off or a reassignment of the map frees it (map_string_payload_view_owner).
+# Each negative read freed memory under ASan before the owner refused it.
+MAP_VIEW_NEGATIVES=(replace remove string_alias map_alias field_alias forwarded
+    nested_argument unproved_formal array_escape assigned_formal_after
+    assigned_formal_before loop_backedge)
+MAP_VIEW_POSITIVES=(clone disjoint formal_read int key_copy read_before remove_key
+    shadow unrelated_unknown)
+for name in "${MAP_VIEW_NEGATIVES[@]}"; do
+    input="map_payload_${name}_negative"
+    sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
+    if (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
+        >"$WORK/$input.mir.json" 2>"$WORK/$input.err"; then
+        fail "accepted map view $input; rejected input was not executed"
+    fi
+    [[ ! -s "$WORK/$input.mir.json" ]] || fail "published MIR for $input"
+    grep -Eq "holds a String MapGet returned from a HashMap value that was replaced or removed|A String MapGet returned is passed while the same call changes its HashMap" \
+        "$WORK/$input.err" || fail "wrong refusal for map view $input"
+done
+for name in "${MAP_VIEW_POSITIVES[@]}"; do
+    input="map_payload_${name}_positive"
+    sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
+    (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
+        >"$WORK/$input.mir.json" 2>"$WORK/$input.err" || fail "rejected safe map view $input"
+done
 for input in "${POSITIVES[@]}"; do
     sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
     (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
@@ -127,4 +152,4 @@ done
 (cd "$ROOT"; sha256sum --quiet -c "$WORK/native-sources.sha256")
 sha256sum --quiet -c "$WORK/native-binary.sha256"
 sha256sum --quiet -c "$WORK/inputs.sha256"
-echo "[$LABEL] ${#NEGATIVES[@]} pre-MIR refusals, ${#COPIED[@]} copy landings run on C/LLVM, ${#POSITIVES[@]} source admissions, two safe native-C executions PASS"
+echo "[$LABEL] ${#NEGATIVES[@]} pre-MIR refusals, ${#COPIED[@]} copy landings run on C/LLVM, ${#MAP_VIEW_NEGATIVES[@]}+${#MAP_VIEW_POSITIVES[@]} map view refusals/admissions, ${#POSITIVES[@]} source admissions, two safe native-C executions PASS"

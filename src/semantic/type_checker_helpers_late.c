@@ -18,6 +18,7 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
+#include "map_string_payload_view_owner.h"
 #include "default_aggregate_move_rule.h"
 #include "loan_copy_landing_owner.h"
 #include "../common/string_compat.h"
@@ -252,6 +253,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
 
+    MapPayloadViewCallFrame map_view_frame;
+    semantic_map_payload_view_call_begin(&map_view_frame);
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
         /* A field or element place passed inout was a lost update on C
@@ -376,6 +379,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
         if (call_arg_types != NULL)
             call_arg_types[i] = arg_type;
+        semantic_map_payload_view_call_argument(&map_view_frame, arg_expr, arg_type, ctx);
         semantic_array_storage_call_argument(arg_expr, arg_type,
             type_function_return_type(sym->type), type_function_param_mode(sym->type, i),
             sym->kind == SYMBOL_ENUM_CONSTRUCTOR, expr, callable_decl, i, ctx);
@@ -417,6 +421,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
         require_assignable(arg_type, param_type, arg_expr, ctx);
     }
+    /* The callee runs after every argument: a map it may change (any mode but
+     * ref) changes under the view arguments too. */
+    for (size_t i = 0; i < provided; i++) {
+        if (type_function_param_mode(sym->type, i) != PARAM_MODE_REF)
+            semantic_map_payload_view_change(ast_call_argument(expr, i), NULL, ctx);
+    }
+    semantic_map_payload_view_call_finish(&map_view_frame, ctx);
 
     Type *return_type = semantic_validate_function_call_generic_where(
         expr, ctx, display_name, provided, call_arg_types,

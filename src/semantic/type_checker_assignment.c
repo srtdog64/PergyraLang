@@ -7,6 +7,7 @@
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
 #include "indexed_string_borrow_owner.h"
+#include "map_string_payload_view_owner.h"
 #include "function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -530,6 +531,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
             semantic_param_publication_invalidate_allocator_binding(ctx, target);
         semantic_indexed_string_borrow_record_assignment(
             target_sym, value, expr, ctx);
+        semantic_map_payload_view_record_assignment(target_sym, value, expr, ctx);
         if (target_sym != NULL && type_is_constructed_named(target_sym->type, "Slice")) {
             ownership_slice_record_source(target_sym, value, ctx);
             target_sym->slice_split_info.has_fact = false;

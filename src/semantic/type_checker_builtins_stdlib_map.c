@@ -14,6 +14,7 @@
 #include "type_checker_collection_policy.h"
 #include "diag_codes.h"
 #include "typed_map_query_fact_owner.h"
+#include "map_string_payload_view_owner.h"
 #include "function_param_publication_owner.h"
 
 typedef enum StdlibMapBuiltinKind {
@@ -202,6 +203,7 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             report_expected_hashmap(expr, name, map_type, ctx);
         }
+        semantic_map_payload_view_change(stdlib_map_arg(expr, 0), map_type, ctx);
         return TYPE_VOID;
     }
     if (kind == STDLIB_MAP_BUILTIN_GET || kind == STDLIB_MAP_BUILTIN_HAS
@@ -261,6 +263,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
                     expr, "MapGet requires a checked HashMap receiver and value type; missing type facts cannot establish result ownership");
             return TYPE_UNKNOWN; /* Failed signature, never a contextual grant. */
         }
+        if (kind == STDLIB_MAP_BUILTIN_REMOVE)
+            semantic_map_payload_view_change(stdlib_map_arg(expr, 0), map_type, ctx);
         return kind == STDLIB_MAP_BUILTIN_HAS ? TYPE_BOOL : TYPE_VOID;
     }
     if (kind == STDLIB_MAP_BUILTIN_SIZE) {

@@ -206,6 +206,7 @@ semantic_context_destroy(SemanticContext *ctx)
 
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
+    free(ctx->map_payload_view_changes);
     free(ctx->string_store_landing_selected);
     free(ctx->string_store_landing_selected_kinds);
     free(ctx->string_store_landing_selected_nodes);

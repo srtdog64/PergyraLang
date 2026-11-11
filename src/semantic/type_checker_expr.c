@@ -7,6 +7,7 @@
 #include "string_window_extent.h"
 #include "type_checker_visibility.h"
 #include "indexed_string_borrow_owner.h"
+#include "map_string_payload_view_owner.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
 #include "function_param_publication_owner.h"
@@ -170,6 +171,8 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         if (!semantic_indexed_string_borrow_validate_use(sym, expr, ctx))
+            return TYPE_UNKNOWN;
+        if (!semantic_map_payload_view_validate_use(sym, expr, ctx))
             return TYPE_UNKNOWN;
         if (sym->kind == SYMBOL_SLOT && sym->type != NULL
             && type_is_owned_slot_handle(sym->type)) {
