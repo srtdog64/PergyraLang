@@ -4,6 +4,7 @@
 import "ast_collection_ownership_statement_transition_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_indexed_string_borrow_owner.pgy";
+import "ast_collection_map_payload_use_owner.pgy";
 import "ast_collection_aggregate_release_transition_owner.pgy";
 import "ast_owned_string_literal_transfer_owner.pgy";
 import "ast_collection_read_literal_argument_owner.pgy";
@@ -272,6 +273,18 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     }
                 }
                 if step.completed_call >= 0 {
+                    // A MapGet String is a loan of the map value; MapSet,
+                    // MapRemove and a mutating hand-off of the map end it.
+                    let map_payload_event: SemanticAstCollectionOwnershipVerdict =
+                        SemanticAstMapStringPayloadAtCallCompletion(artifact, signatures, constructors,
+                            locals, initializer_types.inferred_type_names, surfaces, assignments,
+                            definitions, storage, current_definitions,
+                            formal_effects.borrowed_text_formals, mutating_formals,
+                            indexed_string_borrows, root_slot, step.completed_call, node);
+                    if !map_payload_event.ok {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        verdict = map_payload_event; return;
+                    }
                     let aggregate_reservation:
                         SemanticAstCollectionOwnershipVerdict =
                         SemanticAstCollectionAggregateReleaseReserveAtCompletion(
@@ -331,6 +344,16 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                             surfaces.node_ids[root_slot / 3], node
                         ); return;
                     }
+                    let loop_use: SemanticAstCollectionOwnershipVerdict = SemanticAstMapStringPayloadLoopUseAtMutation(
+                        artifact, locals, initializer_types.inferred_type_names, surfaces,
+                        indexed_string_borrows, root_slot, node);
+                    if !loop_use.ok { ArrayDrop(pending); ArrayDrop(prefixes); verdict = loop_use; return; }
+                }
+                if entry < 0 {
+                    let completed_value: SemanticAstCollectionOwnershipVerdict = SemanticAstMapStringPayloadAtValueCompletion(
+                        artifact, locals, initializer_types.inferred_type_names, surfaces, assignments, definitions, storage,
+                        current_definitions, indexed_string_borrows, root_slot, 0 - entry - 1);
+                    if !completed_value.ok { ArrayDrop(pending); ArrayDrop(prefixes); verdict = completed_value; return; }
                 }
             }
             ArrayDrop(pending); ArrayDrop(prefixes);

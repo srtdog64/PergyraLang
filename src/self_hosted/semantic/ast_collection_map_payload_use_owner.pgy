@@ -8,10 +8,13 @@ func SemanticAstMapStringPayloadAtValueCompletion(
     ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref assignments: SemanticAstAssignmentFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts, ref current_definitions: Array<Int>,
-    ref borrow_sources: Array<Int>, inout loans: SemanticAstIndexedStringBorrowState,
+    inout loans: SemanticAstIndexedStringBorrowState,
     root_slot: Int, node: Int
 ) -> SemanticAstCollectionOwnershipVerdict {
     let surface: Int = root_slot / 3;
+    if !SemanticAstMapPayloadLoansIn(loans, surfaces.function_node_ids[surface]) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
     if !IsSome(kind) { return SemanticAstCollectionOwnershipVerdictOk(); }
     if UnwrapOption(kind) == AstExpressionNodeArrayElement() {
@@ -20,7 +23,7 @@ func SemanticAstMapStringPayloadAtValueCompletion(
         if !element.ok { return SemanticAstMapStringPayloadBoundary(
             surfaces, surface, node, "map_string_array_element_unproved"); }
         let element_source: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types,
-            surfaces, definitions, storage, current_definitions, borrow_sources,
+            surfaces, definitions, storage, current_definitions, loans.source_storage_ids,
             loans.map_payload_sources, surface, element.element_node);
         if element_source < -1 { return SemanticAstMapStringPayloadBoundary(
             surfaces, surface, node, "map_string_array_element_escape"); }
@@ -32,9 +35,9 @@ func SemanticAstMapStringPayloadAtValueCompletion(
         if !IsSome(left) || !IsSome(right) { return SemanticAstMapStringPayloadBoundary(
             surfaces, surface, node, "map_string_operand_unproved"); }
         let left_source: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types,
-            surfaces, definitions, storage, current_definitions, borrow_sources, loans.map_payload_sources, surface, UnwrapOption(left));
+            surfaces, definitions, storage, current_definitions, loans.source_storage_ids, loans.map_payload_sources, surface, UnwrapOption(left));
         let right_source: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types,
-            surfaces, definitions, storage, current_definitions, borrow_sources, loans.map_payload_sources, surface, UnwrapOption(right));
+            surfaces, definitions, storage, current_definitions, loans.source_storage_ids, loans.map_payload_sources, surface, UnwrapOption(right));
         if SemanticAstMapStringPayloadInvalidated(artifact, surfaces, loans, left_source, surfaces.node_ids[surface]) ||
             SemanticAstMapStringPayloadInvalidated(artifact, surfaces, loans, right_source, surfaces.node_ids[surface]) {
             return SemanticAstMapStringPayloadBoundary(surfaces, surface, node, "map_string_use_after_mutation");
@@ -42,10 +45,17 @@ func SemanticAstMapStringPayloadAtValueCompletion(
     }
     if surfaces.expression_graph.roots[root_slot] == node && root_slot % 3 == AstExpressionLaneValue() {
         let source: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types,
-            surfaces, definitions, storage, current_definitions, borrow_sources, loans.map_payload_sources, surface, node);
+            surfaces, definitions, storage, current_definitions, loans.source_storage_ids, loans.map_payload_sources, surface, node);
         if source < -1 {
             let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, surfaces.node_ids[surface]);
-            let stored: Bool = IsSome(declared) && inferred_types[UnwrapOption(declared)] == "String";
+            // A String or carrier local is tracked from here; a local whose
+            // known type cannot hold a String (a length, Option<Int>) cannot
+            // hold the loan at all.
+            var stored: Bool = false;
+            if IsSome(declared) {
+                let declared_type: String = inferred_types[UnwrapOption(declared)];
+                stored = declared_type != "" && declared_type != "Unknown";
+            }
             if !stored { stored = SemanticAstCollectionAssignedStringLocal(artifact, locals, inferred_types,
                 surfaces, surfaces.node_ids[surface], surface); }
             if !stored && !TypedAstArenaNodeKindIs(artifact.arena, surfaces.node_ids[surface], TypedAstKindLogStmtTag()) &&
@@ -60,28 +70,31 @@ func SemanticAstMapStringPayloadAtValueCompletion(
 func SemanticAstMapStringPayloadLoopUseAtMutation(
     artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref borrow_sources: Array<Int>, inout loans: SemanticAstIndexedStringBorrowState,
+    inout loans: SemanticAstIndexedStringBorrowState,
     root_slot: Int, node: Int
 ) -> SemanticAstCollectionOwnershipVerdict {
     let surface: Int = root_slot / 3;
-    let row: Int = 0;
-    while row < ArrayLength(borrow_sources) {
-        if inferred_types[row] == "String" && SemanticAstMapStringPayloadInvalidated(
-                artifact, surfaces, loans, borrow_sources[row], surfaces.node_ids[surface]) &&
+    if !SemanticAstMapPayloadLoansIn(loans, surfaces.function_node_ids[surface]) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    var row: Int = 0;
+    while row < ArrayLength(loans.source_storage_ids) {
+        if (inferred_types[row] == "String" || loans.source_storage_ids[row] < -1) && SemanticAstMapStringPayloadInvalidated(
+                artifact, surfaces, loans, loans.source_storage_ids[row], surfaces.node_ids[surface]) &&
             SemanticAstCollectionExclusiveLoopCarries(artifact, locals.node_ids[row],
                 surfaces.node_ids[surface], surfaces.node_ids[surface]) {
-            let earlier: Int = 0;
+            var earlier: Int = 0;
             while earlier <= surface {
                 if surfaces.function_node_ids[earlier] == surfaces.function_node_ids[surface] &&
                     SemanticAstCollectionExclusiveLoopCarries(artifact, locals.node_ids[row],
                         surfaces.node_ids[earlier], surfaces.node_ids[surface]) {
-                    let lane: Int = 0;
+                    var lane: Int = 0;
                     while lane < 3 {
                         let slot: Int = earlier * 3 + lane;
                         if surfaces.expression_graph.has_roots[slot] {
                             let root: Int = surfaces.expression_graph.roots[slot];
                             let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
-                            let leaf: Int = root + 1;
+                            var leaf: Int = root + 1;
                             if IsSome(start) { leaf = UnwrapOption(start); }
                             while leaf <= root {
                                 if !SemanticAstCollectionExclusiveMemberName(surfaces, leaf, root) {

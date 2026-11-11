@@ -5444,9 +5444,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   and same-routine replacement/removal/unknown-mutation invalidation.
 - `src/self_hosted/semantic/ast_collection_map_payload_use_owner.pgy`
   -- operand-completion, escape and loop-backedge String payload consumers.
-- `src/self_hosted/semantic/ast_collection_call_completion_transition_owner.pgy`
-  -- sole completed-call state consumer preserving reservation, builtin and
-  deep-drop order; not an alternate event walk or semantic permission owner.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_exit_facts_owner.pgy`
   -- admitted statement exit facts carried once with exclusive-value facts.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_exit_reachability_owner.pgy`

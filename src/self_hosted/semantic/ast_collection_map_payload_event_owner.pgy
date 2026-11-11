@@ -45,17 +45,40 @@ func SemanticAstMapStringPayloadInvalidated(
     return invalid;
 }
 
+// A declared callee with no inout formal can hand a loan argument back only
+// through its result, which then carries the loan (indexed String source
+// policy); its later use is checked there.
+func SemanticAstMapPayloadLoanLeavesOnlyThroughResult(
+    ref signatures: SemanticAstFunctionSignatureFacts, signature_row: Int
+) -> Bool {
+    if signature_row < 0 || signature_row >= ArrayLength(signatures.param_starts) ||
+        signature_row >= ArrayLength(signatures.param_counts) { return false; }
+    var parameter: Int = signatures.param_starts[signature_row];
+    let end: Int = parameter + signatures.param_counts[signature_row];
+    if parameter < 0 || end > ArrayLength(signatures.param_modes) { return false; }
+    while parameter < end {
+        if signatures.param_modes[parameter] == 1 { return false; }
+        parameter = parameter + 1;
+    }
+    return true;
+}
+
 func SemanticAstMapStringPayloadAtCallCompletion(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts, ref storage: SemanticAstCollectionStorageAuthorityFacts,
-    ref current_definitions: Array<Int>, ref borrow_sources: Array<Int>,
+    ref current_definitions: Array<Int>,
     borrowed_text_formals: HashMap<String, Int>, mutating_formals: HashMap<String, Int>,
     inout loans: SemanticAstIndexedStringBorrowState, root_slot: Int, call_node: Int, terminal: Int
 ) -> SemanticAstCollectionOwnershipVerdict {
     let surface: Int = root_slot / 3;
+    // With no loan in this routine nothing below can refuse or record.
+    if !SemanticAstMapPayloadLoansIn(loans, surfaces.function_node_ids[surface]) &&
+        !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, terminal);
     if !call.ok || call.call_node != call_node { return SemanticAstMapStringPayloadBoundary(
         surfaces, surface, terminal, "map_string_completion_unproved"); }
@@ -83,7 +106,7 @@ func SemanticAstMapStringPayloadAtCallCompletion(
     while ordinal < ArrayLength(call.argument_nodes) {
         let argument: Int = call.argument_nodes[ordinal];
         let source: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types,
-            surfaces, definitions, storage, current_definitions, borrow_sources, loans.map_payload_sources, surface, argument);
+            surfaces, definitions, storage, current_definitions, loans.source_storage_ids, loans.map_payload_sources, surface, argument);
         if SemanticAstMapStringPayloadInvalidated(artifact, surfaces, loans, source, surfaces.node_ids[surface]) {
             ArrayDrop(none); ArrayDrop(sources_to_invalidate);
             return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_use_after_mutation");
@@ -100,7 +123,8 @@ func SemanticAstMapStringPayloadAtCallCompletion(
             }
             if !(IsSome(identity) && SemanticBuiltinArgumentBorrowedForIdentity(UnwrapOption(identity), ordinal)) &&
                 !SemanticAstIndexedStringBorrowResultCarriesArgument(surfaces.expression_graph, call_node, ordinal) &&
-                !(formal.ok && MapHas(borrowed_text_formals, ToString(formal.syntax_id))) {
+                !(formal.ok && MapHas(borrowed_text_formals, ToString(formal.syntax_id))) &&
+                !(formal.ok && SemanticAstMapPayloadLoanLeavesOnlyThroughResult(signatures, formal.signature_row)) {
                 ArrayDrop(none); ArrayDrop(sources_to_invalidate);
                 return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_borrow_escape");
             }
@@ -119,6 +143,7 @@ func SemanticAstMapStringPayloadAtCallCompletion(
     var syntax_ids: HashMap<String, Int> = loans.map_payload_syntax_ids;
     var invalidations: HashMap<String, Int> = loans.map_payload_invalidations;
     var functions: HashMap<String, Int> = loans.map_payload_functions;
+    var loan_functions: HashMap<String, Int> = loans.map_payload_loan_functions;
     if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") &&
         IsSome(result_type) && UnwrapOption(result_type) == "String" {
         var backing: Int = 0;
@@ -134,6 +159,7 @@ func SemanticAstMapStringPayloadAtCallCompletion(
         MapSet(sources, ToString(terminal), backing);
         MapSet(syntax_ids, ToString(terminal), surfaces.node_ids[surface]);
         MapSet(functions, ToString(terminal), surfaces.function_node_ids[surface]);
+        MapSet(loan_functions, ToString(surfaces.function_node_ids[surface]), 1);
     }
     if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapSet") ||
         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapRemove") {
@@ -166,6 +192,7 @@ func SemanticAstMapStringPayloadAtCallCompletion(
     ArrayDropOwnedStrings(keys); ArrayDrop(none); ArrayDrop(sources_to_invalidate);
     loans.map_payload_sources = sources; loans.map_payload_syntax_ids = syntax_ids; loans.map_payload_invalidations = invalidations;
     loans.map_payload_functions = functions;
+    loans.map_payload_loan_functions = loan_functions;
     return SemanticAstCollectionOwnershipVerdictOk();
 }
 

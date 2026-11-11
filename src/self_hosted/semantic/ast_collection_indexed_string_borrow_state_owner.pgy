@@ -9,6 +9,16 @@ struct SemanticAstIndexedStringBorrowState {
     map_payload_syntax_ids: HashMap<String, Int>;
     map_payload_invalidations: HashMap<String, Int>;
     map_payload_functions: HashMap<String, Int>;
+    // Functions holding a map payload loan, and an empty table that stands
+    // for the loans everywhere else, so other routines skip the loan walk.
+    map_payload_loan_functions: HashMap<String, Int>;
+    map_payload_none: HashMap<String, Int>;
+}
+
+func SemanticAstMapPayloadLoansIn(
+    ref state: SemanticAstIndexedStringBorrowState, function_id: Int
+) -> Bool {
+    return MapHas(state.map_payload_loan_functions, ToString(function_id));
 }
 
 func SemanticAstIndexedStringBorrowStateForLocals(
@@ -26,8 +36,11 @@ func SemanticAstIndexedStringBorrowStateForLocals(
     let map_syntax_ids: HashMap<String, Int> = MapNew();
     let map_invalidations: HashMap<String, Int> = MapNew();
     let map_functions: HashMap<String, Int> = MapNew();
+    let loan_functions: HashMap<String, Int> = MapNew();
+    let none: HashMap<String, Int> = MapNew();
     return SemanticAstIndexedStringBorrowState(
-        locals.ok, sources, invalidated, map_sources, map_syntax_ids, map_invalidations, map_functions
+        locals.ok, sources, invalidated, map_sources, map_syntax_ids, map_invalidations, map_functions,
+        loan_functions, none
     );
 }
 
