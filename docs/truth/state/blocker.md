@@ -1,7 +1,7 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-11 10:30 KST on `ci/all-green`
-(main `ec109c765` plus the branch commits after it).
+Owner: Claude root lane. Checked 2026-11-11 21:40 KST on `ci/all-green`
+(main `5c72599e2` plus `c7a67bd3f`).
 
 ## Objective card
 
@@ -14,44 +14,42 @@ Owner: Claude root lane. Checked 2026-11-11 10:30 KST on `ci/all-green`
 
 ## Open, in dependency order
 
-1. Native analysis time. CI at `1acc31c5b`: oracle C emit 24 minutes, the
-   fixed point job 58 of 60 minutes. Probe builds measured locally:
-   - `nominal_constructor_source_arity_probe`: 160 s; with only the parser
-     and body type owner imported, 155 s (139 s of it native semantic
-     analysis: 25 landing rounds of about 5.5 s, nine store waves each
-     resetting the copy plan). Fewer imports do not help. The installed driver refuses to
-     build it (`borrow_boundary_escape` at
-     `owned_string_local_reassignment_unit.pgy:26`).
-   - `identity_cell_receiver_probe` without the projection owner: 310 s
-     (was about 420 s); built by the installed driver: 126 s at 12.7 GB.
-2. Fixed point after gen2 == gen3 (all passed on CI up to it):
-   `self-host-array-index-type` needs Slice parameters (`ref`/`inout`) in
-   both self-host emitters; the fixture never compiled on any driver.
-3. Contracts shard: 3 identity cell probe build (item 1); behind it, 17
-   public-origin rows fail locally at `stage=local_inventory ordinal=1` on
-   the driver's own MIR (driver of an earlier local build). 4: the nominal
-   gate now uses the installed driver (`49a6b92af`); the next gates in the
-   same make chain build the arity probe (item 1). 10 fixed (`9f91cb3c1`).
-4. Core shard on CI: 5 role override (the general C emitter lacks the
-   erased role receiver ABI); 6 `fact.value` into `own` refused by the
-   self-host owned-String proof; 24 default LLVM JSON refusal lacks
-   `"stage":"llvm_codegen"`; 32 qubit builtins have no C emission; 34
-   native parallel join slot analysis fails closed.
-5. Backend compare: four shards; native ownership refusals of valid
-   programs: `generic_shadowed_argument_binding` (array return from a
-   generic non-own parameter), `option_of_result_consumers` (storage
-   escape after `Pick`), `lambda_reduce` and `function_pointer_reduce`
-   (preserved array storage across a function-value call).
+1. Native analysis time (needs a user decision). The canonical driver's
+   native C emission at `f1d4a0232` runs 67 analyses (semantic 1,844 s of
+   1,963 s locally): 19 store waves, each resetting the copy plan, which
+   then rebuilds over 6 to 10 analyses; the last 8 add one copy each.
+   CI at `51fbdca00`: oracle emit 28 minutes; the fixed point job was
+   cancelled at 60 minutes while compiling gen2. Copy retention saves 14%
+   and changes the plan
+   ([record](../evidence/2026-11-11_landing_copy_retention_rejected.md)).
+2. Contracts shard (needs a user decision): 3 identity cell probe build
+   (310 s locally) and 4, whose make chain builds 14 probes importing the
+   semantic or direct-MIR admission owners, each over its 120 s limit.
+3. Core shard: 5 role override. The general scalar route now claims the
+   program first; it emits the unused override routine as a static
+   function (`-Werror`) and accepts the MIR negative
+   `direct_override_as_ability_impl`. 6: the self-host owned-String proof
+   refuses `fact.value` into `own`. 24: the general emitter dies on
+   `Clone(a)` of a subject (`stage=builtin-call`), so the JSON route has
+   no receipt.
+4. Backend compare 4 and 7: generic ownership precision. `Twice<T>`
+   returning `[x, x]` is refused even for `T = Int` and with explicit
+   `Clone(x)`; `Pick<T>` returning its fallback, then reusing it, needs a
+   whole copy of `Result<Int, String>`. Generic bodies are checked once
+   with `T` opaque.
+
+## Fixed after `51fbdca00`
+
+- 43 zone identity gate projects through the driver (`f1d4a0232`).
+- 32 qubit stdlib calls emit by name again (`90dfbeac8`).
+- 34 the parallel element binding has its header id (`b48136b5e`).
+- Backend compare 14 and 16: a copy-only function-value call keeps the
+  backing frame complete (`c7a67bd3f`, not yet on CI).
 
 ## Falsifiers kept
 
+- Handing the Array itself to a function value is still refused.
+- The zone/world value-carriage mutant is refused on both MIR backends
+  with no artifact.
 - A struct constructor that leaves a field out is refused by both front
-  ends; domain nominals may still omit trailing fields.
-- `let` passed to inout stays refused for values; identity hosts follow
-  native's field and action authority.
-- An ordinary routine signature carrying the Intent `participant`
-  carriage is refused by the signature schema.
-- The string window negative `reject_cloned_record_source_unproven` is
-  refused again on the self-host route.
-- `effect_array_transform_valid` prints `values[0] == 1` after the sort, so
-  a copy landed on the receiver instead of the result fails the gate.
+  ends; `let` passed to inout stays refused for values.
