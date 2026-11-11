@@ -75,6 +75,13 @@ func SemanticAstCollectionCallWriteVerdict(
     if IsOk(declared) && Unwrap(declared) > 0 {
         return SemanticDiagnosticMessageFactEmpty();
     }
+    // A local value of callable type shadows the builtin the same way (R7):
+    // the call target owner binds it as a direct call of that value.
+    let local_callable: SemanticAstCallableTypeShape = SemanticAstCallableTypeShapeFromName(
+        EnvValueLookup(names, types, enum_values, target.name));
+    if local_callable.ok {
+        return SemanticDiagnosticMessageFactEmpty();
+    }
     return SemanticAstValueWriteVerdict(graph, call.argument_nodes[0], constructors,
         names, types, modes, function_names, function_returns, enum_values);
 }
