@@ -1,0 +1,13 @@
+// A reassignment under a branch gets an SSA version and a join PHI. The
+// owned-local transition view reads both as the straight-line assignment,
+// and LLVM registers the versions' storage as Array<String>.
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    var values: Array<String> = Clone(seed);
+    let replace: Bool = ArrayLength(seed) == 1;
+    if replace { values = Clone(seed); }
+    ArrayPushOwnedString(values, "added");
+    Log(ArrayLength(values));
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(seed));
+}

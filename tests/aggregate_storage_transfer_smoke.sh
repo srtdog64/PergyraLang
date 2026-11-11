@@ -34,7 +34,9 @@ for row in \
     map_alias_landed_valid:1,0 \
     nested_borrowed_string_move_landed_valid:2,9 \
     ambiguous_string_loan_definition_copy_positive:right,left \
-    owned_string_set_alias_positive:right,right; do
+    owned_string_set_alias_positive:right,right \
+    branch_reassigned_owned_strings_positive:2,1 \
+    loop_reassigned_array_push_positive:3,4; do
     name="${row%%:*}"
     values="${row#*:}"
     printf '%s\n%s\n' "${values%%,*}" "${values#*,}" >"$WORK_DIR/$name.expected"
@@ -66,7 +68,8 @@ for row in \
 done
 
 for name in array_map_alias_negative post_field_return_negative \
-        nested_overlap_move_negative owned_string_set_stale_borrow_negative; do
+        nested_overlap_move_negative owned_string_set_stale_borrow_negative \
+        branch_dropped_owned_strings_read_negative; do
     for backend in c llvm; do
         artifact="$WORK_DIR/$name-$backend.exe"
         log="$WORK_DIR/$name-$backend.refusal.log"
@@ -108,6 +111,8 @@ target_lines = {
     "post_field_return_negative": {18},
     "nested_overlap_move_negative": {19},
     "owned_string_set_stale_borrow_negative": {6},
+    # The drop on one branch reaches the read after the join.
+    "branch_dropped_owned_strings_read_negative": {8},
 }
 location = errors[0].get("location")
 if errors[0].get("code") not in allowed or any(

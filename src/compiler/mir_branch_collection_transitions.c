@@ -995,6 +995,18 @@ mir_collection_validate_owned_local_transitions(
                 }
                 continue;
             }
+            /* A straight-line reassignment is an `assign` with no binding
+             * identity, so it is not a transition of this view. Under a
+             * branch or loop the same reassignment also gets an SSA version
+             * definition (named by the binding, sourced at the assignment)
+             * and a join PHI. Neither births, moves nor retires the
+             * binding's storage, so both are read the way the straight-line
+             * assignment is; the semantic owner already admitted the value
+             * assigned. */
+            if (inst->kind == MIR_INST_PHI
+                || (inst->kind == MIR_INST_DEF
+                    && inst->source_node_type == AST_ASSIGNMENT))
+                continue;
             ASTNode *evaluated_roots[2] = {NULL, NULL};
             failure_stage = "owned-evaluated-expression";
             failure_binding = inst->binding_syntax_id;

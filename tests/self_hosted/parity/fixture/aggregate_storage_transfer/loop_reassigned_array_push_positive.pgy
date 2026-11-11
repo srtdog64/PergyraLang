@@ -1,0 +1,10 @@
+// Each loop pass replaces the array; the version after the loop header PHI
+// is still a registered Array<Int> receiver for ArrayPush.
+func Main() -> Void {
+    var xs: Array<Int> = [1];
+    var i: Int = 0;
+    while i < 2 { xs = [2, 3]; i = i + 1; }
+    ArrayPush(xs, 4);
+    Log(ArrayLength(xs));
+    Log(xs[2]);
+}

@@ -1,0 +1,9 @@
+// The drop on one path reaches the read after the join.
+func Count(ref values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    var values: Array<String> = Clone(seed);
+    let drop: Bool = ArrayLength(seed) == 1;
+    if drop { ArrayDropOwnedStrings(values); }
+    Log(Count(values));
+}

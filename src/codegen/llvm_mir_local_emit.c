@@ -639,6 +639,31 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 vars[var_count].type = alloca_type;
                 vars[var_count].alloca = llvm_create_entry_alloca(
                     ctx, alloca_type, inst->result_name);
+                /* Each SSA version of a sequence local has its own storage,
+                 * and array operations find a receiver by name and storage.
+                 * The declaring `let` registers its version when emitted; a
+                 * version made by a reassignment under a branch or loop, or
+                 * by the join PHI, takes the element type from its binding's
+                 * declared type here. */
+                if (has_base_name && vars[var_count].alloca != NULL
+                    && inst->binding_syntax_id != 0
+                    && (inst->kind == MIR_INST_PHI
+                        || inst->source_node_type == AST_ASSIGNMENT)) {
+                    const MIRSourceLocalType *binding_type =
+                        mir_routine_source_local_type_fact_by_binding_syntax_id(
+                            routine, inst->binding_syntax_id);
+                    LLVMTypeRef elem_type = binding_type != NULL
+                        ? llvm_mir_local_elem_type_from_type_name(ctx,
+                            binding_type->type_name)
+                        : NULL;
+                    char elem_name[256];
+                    if (elem_type != NULL
+                        && llvm_constructed_arg_name_copy(
+                            binding_type->type_name, 0, elem_name,
+                            sizeof(elem_name)))
+                        llvm_register_array_var_binding(ctx, base_name,
+                            vars[var_count].alloca, elem_type, elem_name, -1);
+                }
                 if (has_base_name && vars[var_count].alloca != NULL
                     && llvm_current_host_class_name(ctx) != NULL
                     && llvm_scope_contains(ctx, "self")) {
