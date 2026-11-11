@@ -362,8 +362,10 @@ echo "[self-host-bootstrap] building oracle tool (gen0)..."
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" != "1" ]]; then
     compile_parser_ast_producer
 fi
-PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
-PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_nominal_array_declaration.sh"
+# The call-argument-graph and nominal-array-declaration gates judge the
+# published codegen: the seed-only mode runs them on gen2 (reused or built
+# here), which CI does in the job that admits the seed. Running them on gen0
+# as well repeated the same checks inside this job's time budget.
 emit "$B/gen0.exe" "$B/gen1.c"
 if grep -q '^CODEGEN ERROR' "$B/gen1.c"; then
     echo "[self-host-bootstrap] tool rejects its own source (out of subset):" >&2
@@ -381,6 +383,8 @@ pgy_binary_is_runnable_here "$B/gen2.exe" || { echo "[self-host-bootstrap] gen2.
 pgy_selfhost_codegen_seed_record "$ROOT_DIR" "$B" "$PGY" "$CC" "${BASH_SOURCE[0]}"
 
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
+    PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
+    PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_nominal_array_declaration.sh"
     echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"
     exit 0
 fi
