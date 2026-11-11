@@ -923,6 +923,28 @@ static void backing_consumers_impl(ReturnedBacking *state, ASTNode *node)
             !semantic_param_publication_bodyless_selected_call_current(state->store->ctx, node)) {
             fact->complete = false; break;
         }
+        /* Invoking a function value does not store or retain that value.
+         * When every argument and the result are copy-only, no backing this
+         * frame tracks reaches the callee or comes back from it. Any other
+         * function-value call leaves the frame incomplete below. */
+        if (ast_call_semantic_callee_value_binding_id(node) != 0 &&
+            semantic_param_publication_value_is_physical_scalar(
+                state->store->ctx, node)) {
+            bool copy_only = true;
+            for (size_t p = 0; p < ast_call_arg_count(node) && copy_only; p++) {
+                const uint64_t *bits =
+                    semantic_param_publication_checked_argument(
+                        state->store->ctx, node, p)
+                    ? backing_origin(state, ast_call_argument(node, p))
+                    : NULL;
+                copy_only = bits != NULL && !backing_any_origin(state, bits);
+            }
+            if (copy_only && fact->complete) {
+                for (size_t p = 0; p < ast_call_arg_count(node); p++)
+                    backing_consumers(state, ast_call_argument(node, p));
+                break;
+            }
+        }
         if (direct == NULL && function_param_flow_backing_unsupported_call(state->store, fact, node)) break;
         if (ast_call_semantic_callee_value_binding_id(node) != 0 || ast_call_callee(node) == NULL ||
             (ast_call_callee(node)->type != AST_IDENTIFIER &&
