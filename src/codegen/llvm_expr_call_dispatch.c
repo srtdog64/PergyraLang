@@ -210,12 +210,21 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return task_channel_call;
     }
 emit_declared_callable:;
-    LLVMSelectedCall selected = llvm_selected_source_callable(
-        ctx, node, callee_name);
+    /* The checker resolved this spelling to a stdlib runtime operation: no
+     * declaration and no local value own it, and no builtin route above
+     * claimed it. Its runtime declaration is resolved by name below; any
+     * other call needs its selected declaration. */
+    bool stdlib_runtime_call = !ast_call_semantic_callee_declared_callable(node)
+        && ast_call_semantic_callee_is_stdlib(node)
+        && ast_call_semantic_callee_decl_id(node) == 0;
+    LLVMSelectedCall selected = {LLVM_SELECTED_CALL_INVALID, NULL, NULL};
+    if (!stdlib_runtime_call)
+        selected = llvm_selected_source_callable(ctx, node, callee_name);
     ASTNode *callable_decl = selected.decl;
     ASTNode *host_decl = llvm_current_host_decl(ctx);
-    if (selected.kind == LLVM_SELECTED_CALL_INVALID
-        || selected.kind == LLVM_SELECTED_CALL_EVENT)
+    if (!stdlib_runtime_call
+        && (selected.kind == LLVM_SELECTED_CALL_INVALID
+            || selected.kind == LLVM_SELECTED_CALL_EVENT))
         return llvm_call_error_recovery(ctx, node,
             "LLVM declared call has no matching selected declaration");
     if (selected.kind == LLVM_SELECTED_CALL_HOST_METHOD) {

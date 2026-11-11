@@ -151,7 +151,16 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     }
     ASTNode *decl = NULL;
     const MIRRoutine *selected_alias_routine = NULL;
-    if (callee->type == AST_IDENTIFIER && !local_callee) {
+    /* The checker resolved this spelling to a stdlib runtime operation: no
+     * declaration and no local value own it. The C runtime defines it under
+     * the same name, so it is called by name. Any other identifier call
+     * needs its selected declaration. */
+    bool stdlib_runtime_call = callee->type == AST_IDENTIFIER && !local_callee
+        && ast_call_semantic_callee_is_stdlib(call)
+        && !ast_call_semantic_callee_declared_callable(call)
+        && ast_call_semantic_callee_decl_id(call) == 0;
+    if (callee->type == AST_IDENTIFIER && !local_callee
+        && !stdlib_runtime_call) {
         TranspilerSelectedCall selected =
             transpiler_selected_source_callable(ctx, call, callee_name);
         ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
