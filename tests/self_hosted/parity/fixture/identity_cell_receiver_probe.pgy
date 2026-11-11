@@ -1,13 +1,14 @@
-// Production admission/projection only. Rejected MIR is never executed.
+// Production admission and identity cell lifetime owners only. Projection
+// to C/LLVM is the installed driver's --mir-json-backend route; rejected
+// MIR is never executed.
 import "../../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
 import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
 import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
 import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
-    if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Die("receiver probe requires MIR and optional c/llvm target"); }
+    if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Die("receiver probe requires MIR and an optional zone mode"); }
     let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(args[0], SelfHostMachineLayerDeclarationEmpty());
     let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
     if !calls.valid { Die("receiver probe call identity is invalid"); }
@@ -87,13 +88,7 @@ func Main() -> Void with caps env, io_read {
             Log("zone ownership: shared/borrowed backing and crossed slot kind refused");
             return;
         }
-        var projection: String = "";
-        if args[1] == "c" { projection = CompilerTargetCpuCProjection(); }
-        else if args[1] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
-        else { Die("receiver probe target must be c or llvm"); }
-        let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactFromOwner(projection);
-        Log(CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
-        return;
+        Die("receiver probe mode must be zone-readonly or zone-ownership");
     }
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
     if !DirectMirScalarCfgGraphPlanReady(plan) { Die("receiver GraphPlan did not seal"); }

@@ -1,7 +1,10 @@
 """Receiver execution parity and admission-only crossed-identity controls.
 
-Use --shared-only during an owner edit loop; it does not certify the installed
-or production public driver. Only fixed valid source controls execute.
+The probe holds only the admission and identity cell lifetime owners; the
+shared C/LLVM projection of each MIR document is the given driver's
+--mir-json-backend route. --shared-only skips the public-origin source
+compiles and MIR, so it does not certify the public driver's front end.
+Only fixed valid source controls execute.
 """
 import copy
 import hashlib
@@ -178,13 +181,16 @@ def main():
                     check(f"{label}.native.zone-borrow-rir", rir_ok)
             mir = work / f"{label}.{origin}.json"
             mir.write_text(json.dumps(document, separators=(",", ":")), encoding="utf-8")
+            # The receiver GraphPlan must seal before the document is projected.
+            admitted = run(f"{label}.{origin}.admit", [probe, mir], 30)
+            check(f"{label}.{origin}.admit", admitted.returncode == 0 and
+                  b"receiver GraphPlan admitted" in admitted.stdout)
             for backend in ("c", "llvm"):
                 stem = f"{label}.{origin}.shared.{backend}"
-                projected = run(stem + ".project", [probe, mir, backend])
-                passed = projected.returncode == 0
+                code = work / (stem + (".c" if backend == "c" else ".ll"))
+                projected = run(stem + ".project", [driver, f"--mir-json-backend={backend}", mir, "-o", code])
+                passed = projected.returncode == 0 and code.exists()
                 if passed:
-                    code = work / (stem + (".c" if backend == "c" else ".ll"))
-                    code.write_bytes(projected.stdout)
                     exe = work / (stem + ".exe")
                     command = ["gcc", "-std=c11", "-O0", "-fwrapv", "-fno-strict-aliasing", code, "-Isrc", "-Isrc/runtime", "-pthread", "-o", exe] if backend == "c" else ["clang", code, "-o", exe]
                     built = run(stem + ".compile", command)
