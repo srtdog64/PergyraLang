@@ -21,7 +21,21 @@ source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap_part_receipt_owner.sh"
 pgy_prepend_windows_runtime_paths
+
+# CI runs the fixed point as three jobs
+# (docs/truth/decisions/2026-11-11_native_oracle_emission_runs_in_its_own_job.md):
+# `oracle` emits and compiles the native oracle driver, `seed` runs the
+# Pergyra-built seed driver through gen3, and `join` runs the oracle driver
+# and compares every oracle artifact with the seed's. `all` runs every step
+# in one process, in the order a single job always ran them.
+PART="${PGY_SELFHOST_DRIVER_BOOTSTRAP_PART:-all}"
+case "$PART" in
+    all|oracle|seed|join) ;;
+    *) echo "[self-host-driver-bootstrap] unknown part: $PART" >&2; exit 2 ;;
+esac
+part_runs() { [[ "$PART" == all || "$PART" == "$1" ]]; }
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -65,7 +79,11 @@ fi
 
 DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"
 SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"
-for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$CODEGEN_BIN"; do
+# The oracle part runs only the native compiler; every other part names
+# the codegen seed (the join through the profile receipt).
+bootstrap_inputs=("$DRIVER_SOURCE" "$SAMPLE_SOURCE")
+[[ "$PART" == oracle ]] || bootstrap_inputs+=("$CODEGEN_BIN")
+for path in "${bootstrap_inputs[@]}"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-driver-bootstrap] missing bootstrap input: $path" >&2
         exit 1
@@ -77,6 +95,7 @@ done
 # -- or worse, the mismatch is read as compiler drift. Existence is not
 # enough; the seed must be runnable on THIS host, else the fix is a reseed.
 for seed_bin in "$CODEGEN_BIN"; do
+    [[ "$PART" != oracle ]] || break
     if ! pgy_binary_is_runnable_here "$seed_bin"; then
         echo "[self-host-driver-bootstrap] seed binary is not runnable on this host: $seed_bin" >&2
         echo "[self-host-driver-bootstrap] it was likely produced on another platform (WSL<->Windows .tmp reuse)" >&2
@@ -170,135 +189,198 @@ run_driver_mode_to_file() {
         exit 1
     fi
 }
-[[ "${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}" != "1" ]] || pgy_selfhost_fixed_point_profile_begin \
-    "$BUILD_DIR" "${PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT:-$BUILD_DIR/driver.fixed-point.profile.receipt}"
+FULL_FIXPOINT="${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}"
+PROFILE_RECEIPT="${PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT:-$BUILD_DIR/driver.fixed-point.profile.receipt}"
+ORACLE_PART_RECEIPT="$BUILD_DIR/driver_oracle.part.receipt"
+[[ "$FULL_FIXPOINT" != "1" ]] || pgy_selfhost_fixed_point_profile_begin \
+    "$BUILD_DIR" "$PROFILE_RECEIPT"
 driver_rel="$(pgy_selfhost_path_relative_to_root "$DRIVER_SOURCE")"
-echo "[self-host-driver-bootstrap] emitting integrated driver seed"
-rm -f "$DRIVER_SEED_C_RAW" "$DRIVER_SEED_C"
-if ! pgy_selfhost_fixed_point_profile_run_to_files "$ROOT_DIR" driver_seed_emit self_codegen_source_emit \
-    "$DRIVER_SEED_C_RAW" "$BUILD_DIR/seed_emit.err" "$CODEGEN_BIN" --source "$driver_rel"; then
-    echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2
-    tail -c 65536 "$DRIVER_SEED_C_RAW" >&2 || true
-    cat "$BUILD_DIR/seed_emit.err" >&2 || true
-    exit 1
+if part_runs seed; then
+    echo "[self-host-driver-bootstrap] emitting integrated driver seed"
+    rm -f "$DRIVER_SEED_C_RAW" "$DRIVER_SEED_C"
+    if ! pgy_selfhost_fixed_point_profile_run_to_files "$ROOT_DIR" driver_seed_emit self_codegen_source_emit \
+        "$DRIVER_SEED_C_RAW" "$BUILD_DIR/seed_emit.err" "$CODEGEN_BIN" --source "$driver_rel"; then
+        echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2
+        tail -c 65536 "$DRIVER_SEED_C_RAW" >&2 || true
+        cat "$BUILD_DIR/seed_emit.err" >&2 || true
+        exit 1
+    fi
+    if ! tr -d '\r' <"$DRIVER_SEED_C_RAW" >"$DRIVER_SEED_C"; then
+        echo "[self-host-driver-bootstrap] driver seed C normalization failed" >&2
+        exit 1
+    fi
+    rm -f "$DRIVER_SEED_C_RAW"
+    if grep -q '^CODEGEN ERROR' "$DRIVER_SEED_C"; then
+        echo "[self-host-driver-bootstrap] integrated driver is outside the codegen subset" >&2
+        grep '^CODEGEN ERROR' "$DRIVER_SEED_C" | head -3 >&2
+        exit 1
+    fi
+    compile_c "driver_seed" "$DRIVER_SEED_C" "$BUILD_DIR/driver_seed.exe"
 fi
-if ! tr -d '\r' <"$DRIVER_SEED_C_RAW" >"$DRIVER_SEED_C"; then
-    echo "[self-host-driver-bootstrap] driver seed C normalization failed" >&2
-    exit 1
+if part_runs oracle; then
+    echo "[self-host-driver-bootstrap] emitting native oracle C"
+    # Keep native compilation and host C compilation in separate lifetimes.
+    rm -f "$BUILD_DIR/driver_oracle.c"
+    if ! (cd "$ROOT_DIR" && pgy_selfhost_fixed_point_profile_run "driver_oracle_emit" native_source_emit \
+        "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
+        --native-pipeline \
+        --emit-c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.c")" \
+        >"$BUILD_DIR/driver_oracle.emit.log" 2>&1); then
+        echo "[self-host-driver-bootstrap] oracle driver C emission failed" >&2
+        tail -c 65536 "$BUILD_DIR/driver_oracle.emit.log" >&2 || true
+        exit 1
+    fi
+    [[ -s "$BUILD_DIR/driver_oracle.c" ]] || { echo "[self-host-driver-bootstrap] oracle emitted no C" >&2; exit 1; }
+    compile_c "driver_oracle" "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_oracle.exe"
 fi
-rm -f "$DRIVER_SEED_C_RAW"
-if grep -q '^CODEGEN ERROR' "$DRIVER_SEED_C"; then
-    echo "[self-host-driver-bootstrap] integrated driver is outside the codegen subset" >&2
-    grep '^CODEGEN ERROR' "$DRIVER_SEED_C" | head -3 >&2
-    exit 1
+if [[ "$PART" == oracle ]]; then
+    pgy_selfhost_driver_oracle_part_write "$ROOT_DIR" "$PGY" "$CC" \
+        "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_oracle.exe" \
+        "$ORACLE_PART_RECEIPT" || exit 1
+    if [[ "$FULL_FIXPOINT" == "1" ]]; then
+        pgy_selfhost_driver_part_save_profile_rows oracle "$PROFILE_RECEIPT" || exit 1
+    fi
+    echo "[self-host-driver-bootstrap] oracle part ok: $(wc -l < "$BUILD_DIR/driver_oracle.c") lines of native oracle C"
+    exit 0
 fi
-compile_c "driver_seed" "$DRIVER_SEED_C" "$BUILD_DIR/driver_seed.exe"
-echo "[self-host-driver-bootstrap] emitting native oracle C"
-# Keep native compilation and host C compilation in separate lifetimes.
-rm -f "$BUILD_DIR/driver_oracle.c"
-if ! (cd "$ROOT_DIR" && pgy_selfhost_fixed_point_profile_run "driver_oracle_emit" native_source_emit \
-    "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
-    --native-pipeline \
-    --emit-c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.c")" \
-    >"$BUILD_DIR/driver_oracle.emit.log" 2>&1); then
-    echo "[self-host-driver-bootstrap] oracle driver C emission failed" >&2
-    tail -c 65536 "$BUILD_DIR/driver_oracle.emit.log" >&2 || true
-    exit 1
+if [[ "$PART" == join ]]; then
+    pgy_selfhost_driver_oracle_part_validate "$ROOT_DIR" "$PGY" "$CC" \
+        "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_oracle.exe" \
+        "$ORACLE_PART_RECEIPT" || exit 1
+    for seed_output in sample_self.c bounded_seed.mir.json bounded_seed.c; do
+        [[ -s "$BUILD_DIR/$seed_output" ]] || {
+            echo "[self-host-driver-bootstrap] join is missing the seed part's $seed_output" >&2
+            exit 1
+        }
+    done
 fi
-[[ -s "$BUILD_DIR/driver_oracle.c" ]] || { echo "[self-host-driver-bootstrap] oracle emitted no C" >&2; exit 1; }
-compile_c "driver_oracle" "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_oracle.exe"
-run_driver_to_file "sample_self" "$BUILD_DIR/driver_seed.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_self.c"
-run_driver_to_file "sample_oracle" "$BUILD_DIR/driver_oracle.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_oracle.c"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:sample" \
-    "$BUILD_DIR" \
-    "$BUILD_DIR/sample_oracle.c" \
-    "$BUILD_DIR/sample_self.c" \
-    "emitted_c"
-run_driver_mode_to_file \
-    "bounded_mir_seed" \
-    "$BUILD_DIR/driver_seed.exe" \
-    "--emit-mir-json-verified" \
-    "$SAMPLE_SOURCE" \
-    "$BUILD_DIR/bounded_seed.mir.json"
-run_driver_mode_to_file \
-    "bounded_mir_oracle" \
-    "$BUILD_DIR/driver_oracle.exe" \
-    "--emit-mir-json-verified" \
-    "$SAMPLE_SOURCE" \
-    "$BUILD_DIR/bounded_oracle.mir.json"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:bounded-mir-producer" \
-    "$BUILD_DIR" \
-    "$BUILD_DIR/bounded_oracle.mir.json" \
-    "$BUILD_DIR/bounded_seed.mir.json" \
-    "mir_json"
-run_driver_mode_to_file \
-    "bounded_seed" \
-    "$BUILD_DIR/driver_seed.exe" \
-    "--mir-json" \
-    "$BUILD_DIR/bounded_seed.mir.json" \
-    "$BUILD_DIR/bounded_seed.c"
-run_driver_mode_to_file \
-    "bounded_oracle" \
-    "$BUILD_DIR/driver_oracle.exe" \
-    "--mir-json" \
-    "$BUILD_DIR/bounded_seed.mir.json" \
-    "$BUILD_DIR/bounded_oracle.c"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:bounded-mir-consumer" \
-    "$BUILD_DIR" \
-    "$BUILD_DIR/bounded_oracle.c" \
-    "$BUILD_DIR/bounded_seed.c" \
-    "emitted_c"
-echo "[self-host-driver-bootstrap] integrated seed bounded MIR consumer parity ok"
+if part_runs seed; then
+    run_driver_to_file "sample_self" "$BUILD_DIR/driver_seed.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_self.c"
+fi
+if part_runs join; then
+    run_driver_to_file "sample_oracle" "$BUILD_DIR/driver_oracle.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_oracle.c"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:sample" \
+        "$BUILD_DIR" \
+        "$BUILD_DIR/sample_oracle.c" \
+        "$BUILD_DIR/sample_self.c" \
+        "emitted_c"
+fi
+if part_runs seed; then
+    run_driver_mode_to_file \
+        "bounded_mir_seed" \
+        "$BUILD_DIR/driver_seed.exe" \
+        "--emit-mir-json-verified" \
+        "$SAMPLE_SOURCE" \
+        "$BUILD_DIR/bounded_seed.mir.json"
+fi
+if part_runs join; then
+    run_driver_mode_to_file \
+        "bounded_mir_oracle" \
+        "$BUILD_DIR/driver_oracle.exe" \
+        "--emit-mir-json-verified" \
+        "$SAMPLE_SOURCE" \
+        "$BUILD_DIR/bounded_oracle.mir.json"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:bounded-mir-producer" \
+        "$BUILD_DIR" \
+        "$BUILD_DIR/bounded_oracle.mir.json" \
+        "$BUILD_DIR/bounded_seed.mir.json" \
+        "mir_json"
+fi
+if part_runs seed; then
+    run_driver_mode_to_file \
+        "bounded_seed" \
+        "$BUILD_DIR/driver_seed.exe" \
+        "--mir-json" \
+        "$BUILD_DIR/bounded_seed.mir.json" \
+        "$BUILD_DIR/bounded_seed.c"
+fi
+if part_runs join; then
+    run_driver_mode_to_file \
+        "bounded_oracle" \
+        "$BUILD_DIR/driver_oracle.exe" \
+        "--mir-json" \
+        "$BUILD_DIR/bounded_seed.mir.json" \
+        "$BUILD_DIR/bounded_oracle.c"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:bounded-mir-consumer" \
+        "$BUILD_DIR" \
+        "$BUILD_DIR/bounded_oracle.c" \
+        "$BUILD_DIR/bounded_seed.c" \
+        "emitted_c"
+    echo "[self-host-driver-bootstrap] integrated seed bounded MIR consumer parity ok"
+fi
 
-if [[ "${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}" != "1" ]]; then
-    echo "[self-host-driver-bootstrap] bounded integrated bootstrap ok; full stage2/gen3 fixed point is explicit"
+if [[ "$FULL_FIXPOINT" != "1" ]]; then
+    echo "[self-host-driver-bootstrap] bounded integrated bootstrap ok ($PART); full stage2/gen3 fixed point is explicit"
     exit 0
 fi
 
 # The complete-source MIR starts from the Pergyra-built seed. The native driver
-# emits oracle evidence only; both artifacts must match before gen2 consumes it.
-run_driver_mode_to_file \
-    "full_mir_seed" "$BUILD_DIR/driver_seed.exe" \
-    "--emit-mir-json-verified" \
-    "$DRIVER_SOURCE" \
-    "$BUILD_DIR/driver_source.mir.json" "--pressure-owned-full-fixpoint"
-run_driver_mode_to_file \
-    "full_mir_oracle" "$BUILD_DIR/driver_oracle.exe" \
-    "--emit-mir-json-verified" \
-    "$DRIVER_SOURCE" \
-    "$BUILD_DIR/driver_source.oracle.mir.json" "--pressure-owned-full-fixpoint"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:full-mir-producer" "$BUILD_DIR" \
-    "$BUILD_DIR/driver_source.oracle.mir.json" \
-    "$BUILD_DIR/driver_source.mir.json" "mir_json"
-run_driver_mode_to_file \
-    "gen2_emit" "$BUILD_DIR/driver_seed.exe" "--mir-json" \
-    "$BUILD_DIR/driver_source.mir.json" \
-    "$BUILD_DIR/driver_gen2.c"
-compile_c "driver_gen2" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen2.exe"
-run_driver_mode_to_file \
-    "bounded_gen2" "$BUILD_DIR/driver_gen2.exe" "--mir-json" \
-    "$BUILD_DIR/bounded_seed.mir.json" \
-    "$BUILD_DIR/bounded_gen2.c"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:generated-bounded-preflight" "$BUILD_DIR" \
-    "$BUILD_DIR/bounded_seed.c" \
-    "$BUILD_DIR/bounded_gen2.c" "emitted_c"
-echo "[self-host-driver-bootstrap] generated driver bounded MIR preflight ok"
+# emits oracle evidence only; both artifacts must match. In the split jobs gen2
+# consumes the seed MIR before the join compares it; the join's refusal still
+# fails the fixed point.
+if part_runs seed; then
+    run_driver_mode_to_file \
+        "full_mir_seed" "$BUILD_DIR/driver_seed.exe" \
+        "--emit-mir-json-verified" \
+        "$DRIVER_SOURCE" \
+        "$BUILD_DIR/driver_source.mir.json" "--pressure-owned-full-fixpoint"
+fi
+if part_runs join; then
+    [[ -s "$BUILD_DIR/driver_source.mir.json" ]] || {
+        echo "[self-host-driver-bootstrap] join is missing the seed part's full-source MIR" >&2
+        exit 1
+    }
+    run_driver_mode_to_file \
+        "full_mir_oracle" "$BUILD_DIR/driver_oracle.exe" \
+        "--emit-mir-json-verified" \
+        "$DRIVER_SOURCE" \
+        "$BUILD_DIR/driver_source.oracle.mir.json" "--pressure-owned-full-fixpoint"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:full-mir-producer" "$BUILD_DIR" \
+        "$BUILD_DIR/driver_source.oracle.mir.json" \
+        "$BUILD_DIR/driver_source.mir.json" "mir_json"
+fi
+if part_runs seed; then
+    run_driver_mode_to_file \
+        "gen2_emit" "$BUILD_DIR/driver_seed.exe" "--mir-json" \
+        "$BUILD_DIR/driver_source.mir.json" \
+        "$BUILD_DIR/driver_gen2.c"
+    compile_c "driver_gen2" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen2.exe"
+    run_driver_mode_to_file \
+        "bounded_gen2" "$BUILD_DIR/driver_gen2.exe" "--mir-json" \
+        "$BUILD_DIR/bounded_seed.mir.json" \
+        "$BUILD_DIR/bounded_gen2.c"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:generated-bounded-preflight" "$BUILD_DIR" \
+        "$BUILD_DIR/bounded_seed.c" \
+        "$BUILD_DIR/bounded_gen2.c" "emitted_c"
+    echo "[self-host-driver-bootstrap] generated driver bounded MIR preflight ok"
 
-run_driver_mode_to_file \
-    "gen3_emit" "$BUILD_DIR/driver_gen2.exe" "--mir-json" \
-    "$BUILD_DIR/driver_source.mir.json" \
-    "$BUILD_DIR/driver_gen3.c"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:fixpoint" "$BUILD_DIR" \
-    "$BUILD_DIR/driver_gen2.c" \
-    "$BUILD_DIR/driver_gen3.c" "emitted_c"
+    run_driver_mode_to_file \
+        "gen3_emit" "$BUILD_DIR/driver_gen2.exe" "--mir-json" \
+        "$BUILD_DIR/driver_source.mir.json" \
+        "$BUILD_DIR/driver_gen3.c"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:fixpoint" "$BUILD_DIR" \
+        "$BUILD_DIR/driver_gen2.c" \
+        "$BUILD_DIR/driver_gen3.c" "emitted_c"
 
-pgy_selfhost_driver_write_fixed_point_receipt "$ROOT_DIR" "$CODEGEN_BIN" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe" "$BUILD_DIR/driver_gen2.fixed-point.receipt"
+    pgy_selfhost_driver_write_fixed_point_receipt "$ROOT_DIR" "$CODEGEN_BIN" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe" "$BUILD_DIR/driver_gen2.fixed-point.receipt"
+fi
+if [[ "$PART" == seed ]]; then
+    pgy_selfhost_driver_part_save_profile_rows seed "$PROFILE_RECEIPT" || exit 1
+    echo "[self-host-driver-bootstrap] seed part ok: gen2 == gen3 ($(wc -l < "$BUILD_DIR/driver_gen2.c") lines); the join compares the oracle"
+    exit 0
+fi
+if [[ "$PART" == join ]]; then
+    pgy_selfhost_driver_validate_fixed_point_receipt "$ROOT_DIR" "$CODEGEN_BIN" \
+        "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe" \
+        "$BUILD_DIR/driver_gen2.fixed-point.receipt" || exit 1
+    pgy_selfhost_driver_part_merge_profile_rows "$PROFILE_RECEIPT" oracle seed || exit 1
+fi
 pgy_selfhost_fixed_point_profile_finish "$ROOT_DIR" "$PGY" "$CODEGEN_BIN" "$CC" "$DRIVER_SOURCE" \
     "$BUILD_DIR/driver_gen2.fixed-point.receipt" "$DRIVER_SEED_C" "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_source.mir.json" \
     "$BUILD_DIR/driver_source.oracle.mir.json" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe"

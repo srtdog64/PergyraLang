@@ -1075,8 +1075,11 @@ require_max_lines "tests/self_hosted/parity/codegen_bootstrap.sh" 600
 require_max_lines "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh" 120
 # Re-armed +5 for the oracle compile's --native-pipeline declaration: the
 # oracle is the native reference, and undeclared it delegated to the very
-# driver being bootstrapped.
-require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 305
+# driver being bootstrapped. Re-armed to 390 for the oracle/seed/join parts
+# (docs/truth/decisions/2026-11-11_native_oracle_emission_runs_in_its_own_job.md);
+# their receipts live in driver_bootstrap_part_receipt_owner.sh.
+require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 390
+require_max_lines "tests/self_hosted/parity/driver_bootstrap_part_receipt_owner.sh" 100
 require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" 300
 require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" 111
 require_max_lines \
