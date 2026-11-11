@@ -19,7 +19,7 @@ func BindingMoveProbeSource(name: String) -> String
     if name == "first-invalid-node" { return "func Main() -> Void { let a: Array<String> = [\"a\"]; let b: Array<String> = [\"b\"]; let x: Array<String> = a; let y: Array<String> = b; Log(ArrayLength(a) + ArrayLength(b)); }"; }
     if name == "first-invalid-node-reversed" { return "func Main() -> Void { let a: Array<String> = [\"a\"]; let b: Array<String> = [\"b\"]; let x: Array<String> = a; let y: Array<String> = b; Log(ArrayLength(b) + ArrayLength(a)); }"; }
     if name == "member-failure" { return "struct Bundle { values: Array<String>; } func Main() -> Void { let bundle: Bundle = Bundle([\"a\"]); let moved: Array<String> = bundle.values; Log(ArrayLength(bundle.values)); }"; }
-    if name == "formal-failure" { return "func Retire(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); } func Forward(own values: Array<String>) -> Int { Retire(values); return ArrayLength(values); } func Main() -> Void {}"; }
+    if name == "formal-failure" { return "func Retire(own values: Array<String>) -> Void { Log(ArrayLength(values)); } func Forward(own values: Array<String>) -> Int { Retire(values); return ArrayLength(values); } func Main() -> Void {}"; }
     if name == "type-failure" { return "func Main() -> Void { let seed: Array<String> = 42; Log(ArrayLength(seed)); }"; }
     return "";
 }
