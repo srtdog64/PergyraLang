@@ -74,8 +74,8 @@ PGYSRC
 
 cat >"$WORK_DIR/forced.pgy" <<'PGYSRC'
 func Burn(n: Int) -> Int {
-    let acc: Int = 0;
-    let i: Int = 0;
+    var acc: Int = 0;
+    var i: Int = 0;
     while i < n { acc = acc + 1; i = i + 1; }
     return acc;
 }
