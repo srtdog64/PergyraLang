@@ -152,6 +152,20 @@ func CollectionFormalKeyConsumptionProbeMain(args: Array<String>) -> Void with c
         return;
     }
     if !bundle.collection_formal_effects.ok { Log("formal owner not reached"); Exit(2); }
+    // The body computes formal effects with the owned String store landings
+    // its first landing pass selects (decision 2026-10-19); recompute the same
+    // before any mutation below.
+    let owned_literals: SemanticAstOwnedStringLiteralOwnershipFacts =
+        SemanticAstOwnedStringLiteralOwnershipFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
+            analysis.expression_surfaces, bundle.owned_string_result_domains, bundle.numeric_string_allocations);
+    let no_formal_effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsEmpty();
+    var landing_clones: Array<Int> = [];
+    var landing_stores: Array<Int> = [];
+    if !SemanticAstOwnedStringStoreLandingPlanSelect(artifact, analysis.signatures, analysis.local_bindings,
+            bundle.initializer_types, analysis.expression_surfaces, analysis.statements, analysis.assignments,
+            bundle.owned_string_result_domains, bundle.numeric_string_allocations, owned_literals,
+            no_formal_effects, landing_clones, landing_stores) { Log("owned store landing plan refused"); Exit(2); }
     let no_synthetic_roots: Array<Int> = [];
     var order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
         analysis.expression_surfaces, no_synthetic_roots, no_synthetic_roots);
@@ -184,10 +198,10 @@ func CollectionFormalKeyConsumptionProbeMain(args: Array<String>) -> Void with c
         node = node + 1;
     }
     if !changed { Log("mutation did not reach its fact"); Exit(2); }
-    let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+    let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
         artifact, analysis.signatures, analysis.function_scopes, analysis.local_bindings,
         bundle.initializer_types, analysis.expression_surfaces, analysis.statements,
-        bundle.owned_string_result_domains, order);
+        bundle.owned_string_result_domains, landing_stores, order);
     let retained: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
     // Observe every returned field, including refused partial carriers. Keep
     // MapKeys traversal local: ref-map forwarding is not admitted here.

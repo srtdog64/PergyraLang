@@ -5,6 +5,6 @@ func Forward(inout values: Array<String>) -> Void {
     Log(Matches(values));
 }
 func Main() -> Void {
-    var values: Array<String> = ["borrowed"];
+    var values: Array<String> = [];
     Forward(values);
 }

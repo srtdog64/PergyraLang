@@ -130,7 +130,8 @@ for backend in c llvm; do
         # land this copy yet and stays fail-closed on these inputs.
         copied_output=""
         case "$name" in
-            member_capture_constructor_negative|member_capture_constructor_index_negative|\
+            member_capture_constructor_negative) copied_output=true ;;
+            member_capture_constructor_index_negative) copied_output=true ;;
             member_capture_nominal_clone_negative) copied_output=true ;;
             member_capture_struct_literal_negative) copied_output=1 ;;
         esac

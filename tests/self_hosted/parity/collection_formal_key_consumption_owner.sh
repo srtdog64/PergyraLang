@@ -41,6 +41,11 @@ BOUNDARY_INPUTS=(
     "$FIXTURES/exclusive_map_observed_forward_growth_negative.pgy"
     "$FIXTURES/inout_owned_pop_forward_positive.pgy"
     "$FIXTURES/inout_borrowed_pop_forward_negative.pgy")
+# The body's formal effects count a borrowed literal pushed into an inout
+# formal as an owned push (code 2): the push lands as an owned copy
+# (decision 2026-10-19), and the probe recomputes them with the same landings.
+# The forwarding formal of inout_forward_owned_push_drop_positive is an owned
+# push leaf as well.
 # inout_borrowed_push_drop_negative: the push into the inout formal copies the
 # literal (2026-10-22 String crossing copied where it crosses), so the later
 # owned-string drop frees only owned text; native and self-host both admit it.
@@ -54,12 +59,12 @@ cat "$WORK/native.sha256"
 # Exact pre-edit semantic controls. Indexed assignment is deliberately effect5;
 # it is NOT the ArraySet parser-statement Atom-target exception.
 printf 'body=ok\nAppend:0:2=6\nPop:0:2=6\nSet:0:2=6\nIndexed:0:2=5\ntargets=3:0\nordinary=5\n' >"$WORK/expected-0"
-printf 'body=ok\nMatches:0:0=3\nAppendBorrowed:0:1=6\nForward:0:1=6\ntargets=1:0\nordinary=6\n' >"$WORK/expected-1"
+printf 'body=ok\nMatches:0:0=3\nAppendBorrowed:0:1=2\nForward:0:1=2\ntargets=1:0\nordinary=6\n' >"$WORK/expected-1"
 printf 'body=ok\nMetadata:0:2=1\nMatches:0:0=3\nForeign:0:3=1\nModes:0:0=-1\nModes:1:1=-1\nModes:2:2=-1\nModes:3:3=-1\ntargets=0:0\nordinary=12\n' >"$WORK/expected-2"
 printf 'body=move_from_released\nRetire:0:2=1\nForward:0:2=1\ntargets=0:0\nordinary=6\n' >"$WORK/expected-3"
 printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nObserve:0:3=-1\ntargets=0:0\nordinary=4\n' >"$WORK/expected-4"
-printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nOpaque:0:1=6\nObserve:0:3=4\ntargets=1:0\nordinary=8\n' >"$WORK/expected-5"
-printf 'body=borrow_boundary_escape\nOpaque:0:1=6\nStore:0:2=4\ntargets=1:0\nordinary=3\n' >"$WORK/expected-6"
+printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nOpaque:0:1=2\nObserve:0:3=4\ntargets=1:0\nordinary=8\n' >"$WORK/expected-5"
+printf 'body=borrow_boundary_escape\nOpaque:0:1=2\nStore:0:2=4\ntargets=1:0\nordinary=3\n' >"$WORK/expected-6"
 printf 'body=borrow_boundary_escape\nMatches:0:0=3\nOpaque:0:1=4\nForward:0:1=4\ntargets=1:0\nordinary=6\n' >"$WORK/expected-7"
 printf 'body=ok\nHas:0:3=3\nCheck:0:3=3\ntargets=0:0\nordinary=26\n' >"$WORK/expected-8"
 printf 'body=ok\nPopulate:0:1=2\nForward:0:1=2\ntargets=0:0\nordinary=5\n' >"$WORK/expected-9"
@@ -107,8 +112,9 @@ for backend in c llvm; do
                 grep -Fxq "carrier:map:borrowed-text:$field" "$WORK/$backend-$index.carrier"
             done
         elif [[ "$index" == 9 ]]; then
-            grep -Fxq 'carrier:map:owned-push:size=1' "$WORK/$backend-$index.carrier"
+            grep -Fxq 'carrier:map:owned-push:size=2' "$WORK/$backend-$index.carrier"
             grep -Fxq 'carrier:map:owned-push:3=1' "$WORK/$backend-$index.carrier"
+            grep -Fxq 'carrier:map:owned-push:10=1' "$WORK/$backend-$index.carrier"
         fi
     done
     # Admitted borrowed-element statement-target positive is OPEN: indexed

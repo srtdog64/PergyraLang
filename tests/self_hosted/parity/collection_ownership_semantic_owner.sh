@@ -220,21 +220,20 @@ if [[ "$FOCUS" == owned-parameter || "$FOCUS" == owned-parameter-self-host ]]; t
     exit 0
 fi
 
+# empty_mixed_string_push_without_drop, map_keys_shallow_{push,set,pop},
+# ast_graph_atom_late_owned_growth_invalid and collection_field_owned_push
+# left this list: native lands each pushed or set String as an owned copy
+# (decision 2026-10-19) and runs them clean; the self-host still refuses
+# all but map_keys_shallow_pop (docs/truth/state/blocker.md).
 NEGATIVE_CASES=(
     borrowed_string_array_deep_drop
     borrowed_string_array_shallow_assignment
     empty_shallow_string_push_drop
-    empty_mixed_string_push_without_drop
     empty_string_array_shallow_copy
     empty_string_array_assignment_shallow_copy
     empty_owned_string_double_drop
     inout_string_array_deep_drop
-    map_keys_shallow_push
-    map_keys_shallow_set
-    map_keys_shallow_pop
     map_keys_double_drop
-    ast_graph_atom_late_owned_growth_invalid
-    collection_field_owned_push
     collection_field_deep_drop
     unknown_string_array_alias_drop
     unknown_string_array_assignment_without_drop
@@ -259,7 +258,8 @@ for name in "${NEGATIVE_CASES[@]}"; do
     fi
     [[ ! -e "$ROOT_DIR/$self_rel" ]] ||
         fail "installed self-host published MIR for rejected $name"
-    grep -Fq 'borrow_boundary_escape' \
+    # A use after a binding move is an ownership refusal too.
+    grep -Eq 'borrow_boundary_escape|move_from_released' \
         "$WORK_DIR/self-$name.out" "$WORK_DIR/self-$name.err" ||
         fail "installed self-host lost ownership diagnostic for $name"
 
@@ -272,7 +272,7 @@ for name in "${NEGATIVE_CASES[@]}"; do
         fi
         [[ ! -e "$ROOT_DIR/$public_rel" ]] ||
             fail "public $backend path published a rejected artifact for $name"
-        grep -Fq 'borrow_boundary_escape' \
+        grep -Eq 'borrow_boundary_escape|move_from_released' \
             "$WORK_DIR/public-$backend-$name.out" \
             "$WORK_DIR/public-$backend-$name.err" ||
             fail "public $backend path lost ownership diagnostic for $name"

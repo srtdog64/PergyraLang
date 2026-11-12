@@ -623,14 +623,49 @@ for backend in c llvm; do
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
-            exclusive_inout_exit_before_writeback_negative.pgy)
-                # The original no-writeback source now carries a produced focus
-                # recovery group. collection_focus_recovery_owner.sh owns its
-                # negative contract: the missing or poisoned recovery fact.
+            exclusive_inout_exit_before_writeback_negative.pgy|exclusive_map_loop_missing_restore_negative.pgy|exclusive_map_loop_break_restore_negative.pgy|exclusive_map_loop_continue_restore_negative.pgy|field_ctor_local_set_negative.pgy)
+                # A field copy an exit leaves unassigned, and a local handed to
+                # a constructor and changed after, are copies: both front ends
+                # take them with a Clone (decisions 2026-11-12 and 2026-10-22)
+                # and print the same output. collection_focus_recovery_owner.sh
+                # owns the focus fact refusals.
                 printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             owned_string_result_synthetic_binding_rebinding_negative.pgy)
                 # Loop and match bindings are immutable names since 2026-11-08.
                 printf 'body_ok=false\nbody_diagnostic=immutable_binding_write\n' >"$WORK/expected" ;;
+            inout_event_copy_after_unknown_negative.pgy|inout_event_borrowed_push_after_copy_negative.pgy|inout_event_nested_same_binding_negative.pgy|inout_event_deferred_push_unknown_negative.pgy|inout_borrowed_push_deferred_indexed_negative.pgy|inout_shallow_accumulator_owned_mutation_negative.pgy|inout_event_unknown_then_owned_transfer_negative.pgy)
+                # These inputs were refused for a borrowed String element
+                # that a later owned push or deep drop would mix with owned
+                # ones. Both front ends now push an owned copy of a String
+                # they cannot prove owned (decision 2026-10-19 String landing),
+                # so no borrowed element is left; native and self-host C
+                # run clean under ASan (evidence 2026-11-12_inout_effect_mismatch_classes).
+                printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
+            inout_borrowed_push_drop_negative.pgy|inout_shadow_drop_negative.pgy|inout_unknown_then_copy_negative.pgy|inout_moved_unknown_drop_negative.pgy|inout_branch_borrow_drop_negative.pgy|builtin_completion_nested_borrowed_negative.pgy|builtin_retention_unregistered_call_negative.pgy)
+                # Same String landing copy as above.
+                printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
+            descriptor_text_escape_opaque_negative.pgy|inout_index_string_lambda_negative.pgy)
+                # A lambda that captures a local: the self-host does not
+                # resolve the capture and native refuses lambda captures.
+                printf 'body_ok=false\nbody_diagnostic=undefined_symbol\n' >"$WORK/expected" ;;
+            exclusive_scalar_set_holder_growth_negative.pgy)
+                # Refused at the member use after the move, before the
+                # growth check (the paired positive is refused there too).
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            borrow_formal_alias_read_before_positive.pgy|borrow_formal_seed_read_before_positive.pgy|borrow_formal_assign_alias_before_positive.pgy|inout_index_before_unknown_positive.pgy)
+                # Both front ends refuse these since the 2026-11-08 binding
+                # rules made their locals `var` (native: a borrowed ref value
+                # cannot escape into a new binding / an inout replacement).
+                printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
+            descriptor_text_escape_read_positive.pgy|descriptor_text_escape_loop_positive.pgy|descriptor_text_escape_forward_positive.pgy|own_formal_shallow_forward_positive.pgy|exclusive_thread_inout_positive.pgy|exclusive_inout_repeat_alias_positive.pgy|exclusive_alias_inout_then_read_positive.pgy)
+                # Self-host generality gaps: native admits these and runs them
+                # clean under ASan; the self-host still refuses them
+                # (docs/truth/state/blocker.md). Admitting one fails here so
+                # that it moves back to the positives.
+                printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
+            exclusive_scalar_set_holder_positive.pgy)
+                # Same generality gap, refused at the member use after the move.
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy|main.pgy|intent_zone_authority_transition.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
@@ -673,7 +708,6 @@ OWNED_PUSH_LEAF_DIAGNOSTICS
         grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-opaque.run"
         grep -Fxq 'body_function=Main' "$WORK/$backend-$input-opaque.run"
     done <<'OPAQUE_EXECUTION_DIAGNOSTICS'
-inout_index_string_lambda_negative.pgy|CaptureIndexedRead(values)
 inout_index_string_async_negative.pgy|AsyncIndexedRead(values)
 OPAQUE_EXECUTION_DIAGNOSTICS
     while IFS='|' read -r input boundary atom function; do
@@ -697,11 +731,10 @@ builtin_retention_shadow_retainer_negative.pgy|unproved_formal_element_use_entry
 builtin_retention_store_negative.pgy|unproved_formal_element_use_entry|StoreIndexedString(values, destination)|Main
 builtin_retention_text_builder_append_retainer_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
 builtin_retention_array_push_owned_string_shadow_negative.pgy|unproved_formal_element_use_entry|CopyIndexedString(source, destination)|Main
-builtin_retention_unregistered_call_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
 indexed_string_fresh_borrowed_element_negative.pgy|owned_element_escape|FirstMatches([source[0]])|Main
 indexed_string_alias_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
 indexed_string_branch_rebind_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Observe
-indexed_string_unknown_call_after_owned_drop_negative.pgy|owned_element_escape|borrowed|Main
+indexed_string_unknown_call_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
 indexed_string_tostring_passthrough_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
 aggregate_owned_push_retaining_aggregate_negative.pgy|aggregate_release_incomplete|Observe(rows)|Append
 read_temporary_releasing_sibling_negative.pgy|unproved_formal_indexed_read_entry|ReadAfterRelease(holder, [first])|Main
@@ -710,7 +743,7 @@ element_escape_released_member_negative.pgy|unproved_formal_element_use_entry|ke
 element_escape_empty_then_owned_negative.pgy|ArrayPushOwnedString|ArrayPushOwnedString(names, Concat("x", "y"))|Main
 owned_element_literal_escape_negative.pgy|owned_element_escape|b|Main
 owned_element_push_escape_negative.pgy|owned_element_escape|b|Main
-owned_element_retaining_text_negative.pgy|owned_element_escape|named|Main
+owned_element_retaining_text_negative.pgy|indexed_string_use_after_deep_drop|StringLength(named.name)|Main
 exclusive_sibling_array_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
 exclusive_caller_reuse_negative.pgy|unproved_exclusive_sink_entry|grown|Main
 exclusive_borrowed_wrap_negative.pgy|unproved_exclusive_sink_entry|facts|Main
@@ -727,12 +760,12 @@ exclusive_array_copy_negative.pgy|unproved_exclusive_sink_entry|grown|Main
 exclusive_branch_loop_return_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetPickUntil
 exclusive_holder_sibling_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
 exclusive_inout_argument_exit_stale_negative.pgy|unproved_exclusive_sink_entry|grown|TypeListAddChecked
-exclusive_inout_repeat_shared_alias_negative.pgy|unproved_shallow_mutation_entry|TypesAdd(types, "a")|NodeSetAddTwiceKept
+exclusive_inout_repeat_shared_alias_negative.pgy|unproved_inout_copy_entry|TypesAdd(types, "a")|NodeSetAddTwiceKept
 exclusive_mutating_sibling_call_negative.pgy|unproved_exclusive_sink_entry|facts|Main
 exclusive_nested_path_reads_grown_negative.pgy|unproved_exclusive_member_mutation|kinds|SeqAppend
 exclusive_holder_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|grown|Run
 exclusive_rebind_branch_stale_negative.pgy|unproved_exclusive_sink_entry|record_index|AppendPopulated
-exclusive_alias_read_shared_root_negative.pgy|unproved_indexed_read_entry|left|Append
+exclusive_alias_read_shared_root_negative.pgy|aggregate_release_source_not_live|facts|Main
 owned_element_text_escapes_result_negative.pgy|unproved_formal_element_use_entry|expr|Main
 owned_element_text_escapes_string_local_negative.pgy|unproved_formal_element_use_entry|first|Main
 owned_element_text_escapes_array_alias_negative.pgy|unproved_formal_element_use_entry|gathered|Main
@@ -742,15 +775,15 @@ exclusive_other_branch_loop_negative.pgy|unproved_exclusive_sink_entry|grown|Pic
 exclusive_later_holder_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_alias_element_write_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_dead_alias_partial_negative.pgy|unproved_exclusive_sink_entry|grown|Build
-exclusive_map_copy_growth_negative.pgy|unproved_exclusive_storage_mutation|MapSet(copy, "next", 2)|Main
-exclusive_map_remove_shared_negative.pgy|unproved_exclusive_storage_mutation|MapRemove(copy, "seed")|Main
+exclusive_map_copy_growth_negative.pgy|unproved_exclusive_sink_entry|MapSet(copy, "next", 2)|Main
+exclusive_map_remove_shared_negative.pgy|unproved_exclusive_sink_entry|MapRemove(copy, "seed")|Main
 exclusive_map_field_growth_negative.pgy|unproved_exclusive_sink_entry|state|Main
 exclusive_map_forwarded_growth_negative.pgy|unproved_exclusive_sink_entry|state|Main
 exclusive_map_shared_field_negative.pgy|unproved_exclusive_sink_entry|state|Build
-exclusive_set_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|SetAdd(copy, 1)|Main
-exclusive_map_old_query_negative.pgy|unproved_exclusive_storage_mutation|MapSet(copy, "seed", 1)|Main
-exclusive_list_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|ListPush(copy, 1)|Main
-exclusive_queue_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|QueuePush(copy, 1)|Main
+exclusive_set_shared_mutation_negative.pgy|unproved_exclusive_sink_entry|SetAdd(copy, 1)|Main
+exclusive_map_old_query_negative.pgy|unproved_exclusive_sink_entry|MapSet(copy, "seed", 1)|Main
+exclusive_list_shared_mutation_negative.pgy|unproved_exclusive_sink_entry|ListPush(copy, 1)|Main
+exclusive_queue_shared_mutation_negative.pgy|unproved_exclusive_sink_entry|QueuePush(copy, 1)|Main
 exclusive_rebind_after_later_break_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
 exclusive_branch_rebind_missing_else_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
 exclusive_branch_rebind_continue_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
@@ -796,23 +829,22 @@ field_ctor_alias_own_negative.pgy|owned_argument_storage_not_live|Consume(rename
 field_ctor_inout_mutation_negative.pgy|unproved_inout_copy_entry|AppendCopy(values)|Main
 field_ctor_owned_push_negative.pgy|ArrayPushOwnedString|ArrayPushOwnedString(values, "next")|Main
 field_ctor_own_formal_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "next")|Store
-field_ctor_local_push_negative.pgy|ArrayPush|values|Main|"next"
-field_ctor_local_pop_negative.pgy|ArrayPop|values|Main
-field_ctor_local_set_negative.pgy|ArraySet|values|Main|0
+field_ctor_local_push_negative.pgy|unproved_exclusive_member_mutation|values|Main|"next"
+field_ctor_local_pop_negative.pgy|unproved_exclusive_member_mutation|values|Main
 field_ctor_local_index_negative.pgy|ArraySet|values[0]|Main|"next"
 field_ctor_own_formal_push_negative.pgy|owned_argument_storage_unproved|values|Store|"next"
 field_ctor_own_formal_pop_negative.pgy|owned_argument_storage_unproved|values|Store
 field_ctor_own_formal_set_negative.pgy|owned_argument_storage_unproved|values|Store|0
 field_ctor_own_formal_index_negative.pgy|owned_argument_storage_unproved|values[0]|Store|"next"
-field_ctor_old_alias_mutation_negative.pgy|ArrayPush|old|Main|"next"
+field_ctor_old_alias_mutation_negative.pgy|unproved_exclusive_member_mutation|old|Main|"next"
 field_ctor_own_formal_deferred_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "late")|Store
 field_ctor_own_formal_deferred_statement_negative.pgy|owned_argument_storage_unproved|values|Store|"late"
-field_ctor_local_deferred_statement_negative.pgy|ArrayPush|values|Main|"late"
+field_ctor_local_deferred_statement_negative.pgy|unproved_exclusive_member_mutation|values|Main|"late"
 field_ctor_own_formal_nested_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, Stamp(Carrier(values)))|Store
 field_ctor_own_formal_nested_retire_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, Consume(values))|Store
 field_ctor_own_formal_nested_retire_statement_negative.pgy|owned_argument_storage_unproved|values|Store|Consume(values)
 field_ctor_own_formal_nested_retire_index_negative.pgy|owned_argument_storage_unproved|values[0]|Store|Consume(values)
-field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "deferred")|Store
+field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|unproved_own_formal_copy_entry|Opaque(values)|Store
 CONSTRUCTOR_DIAGNOSTICS
     timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/member_double_move_negative.pgy" diagnostic \
         >"$WORK/$backend-diagnostic.raw" 2>"$WORK/$backend-diagnostic.err"
@@ -860,9 +892,6 @@ MEMBER_DIAGNOSTICS
         grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
         grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-$input-diagnostic.run"
     done <<'EVENT_DIAGNOSTICS'
-inout_event_copy_after_unknown_negative.pgy|unproved_inout_copy_entry|rejected_copy|Copy(values, 2)
-inout_event_borrowed_push_after_copy_negative.pgy|ArrayPush|values|"borrowed"
-inout_event_nested_same_binding_negative.pgy|unproved_inout_copy_entry|rejected_nested|Copy(a, Mark(a))
 inout_event_index_write_after_copy_negative.pgy|ArraySet|values[0]|"borrowed"
 own_storage_retired_empty_negative.pgy|owned_argument_storage_not_live|rejected_own|Metadata(values)
 own_storage_retired_clone_negative.pgy|owned_argument_storage_not_live|rejected_clone|Metadata(values)
@@ -941,7 +970,7 @@ OWN_EVENT_DIAGNOSTICS
 own_assign_original_read_negative.pgy|move_from_released|owned_argument_use_after_move|rejected_original_read|ArrayLength(values)|Forward
 own_assign_duplicate_redefine_negative.pgy|move_from_released|owned_argument_use_after_move|moved|first|Forward
 own_assign_self_retired_negative.pgy|move_from_released|owned_argument_use_after_move|moved|moved|Forward
-own_assign_old_new_unknown_negative.pgy|borrow_boundary_escape|owned_argument_storage_not_live|rejected_new_unknown|Metadata(moved)|Forward
+own_assign_old_new_unknown_negative.pgy|borrow_boundary_escape|unproved_inout_copy_entry|Opaque(moved)||Forward
 own_assign_stale_empty_drop_negative.pgy|borrow_boundary_escape|owned_string_drop|ArrayDropOwnedStrings(moved)||Forward
 own_assign_stale_clone_drop_negative.pgy|borrow_boundary_escape|owned_string_drop|ArrayDropOwnedStrings(moved)||Forward
 own_assign_old_drop_new_drop_negative.pgy|borrow_boundary_escape|owned_string_drop|ArrayDropOwnedStrings(moved)||Forward
@@ -966,16 +995,16 @@ borrow_formal_ref_own_negative.pgy|owned_argument_storage_not_live|Metadata(alia
 borrow_formal_inout_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
 borrow_formal_default_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
 borrow_formal_chain_own_negative.pgy|owned_argument_storage_not_live|Metadata(third)|Observe
-borrow_formal_fresh_deferred_negative.pgy|unproved_shallow_mutation_entry|Opaque(alias)|Observe
+borrow_formal_fresh_deferred_negative.pgy|unproved_inout_copy_entry|Opaque(alias)|Observe
 borrow_formal_assign_old_empty_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
-borrow_formal_alias_unknown_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
-borrow_formal_alias_deferred_read_negative.pgy|unproved_shallow_mutation_entry|Opaque(second)|Observe
-borrow_formal_alias_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(right)|Observe
-borrow_formal_seed_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
-borrow_formal_assign_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
-borrow_formal_assign_alias_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
-borrow_formal_assign_child_scope_negative.pgy|unproved_shallow_mutation_entry|Opaque(alias)|Observe
-generic_default_borrowed_return_negative.pgy|unproved_indexed_read_entry|GenericDefaultMatches(first)|Observe
+borrow_formal_alias_unknown_read_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
+borrow_formal_alias_deferred_read_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
+borrow_formal_alias_sibling_read_negative.pgy|unproved_inout_copy_entry|Opaque(left)|Observe
+borrow_formal_seed_sibling_read_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
+borrow_formal_assign_shared_read_negative.pgy|unproved_inout_copy_entry|Opaque(dst)|Observe
+borrow_formal_assign_alias_shared_read_negative.pgy|unproved_inout_copy_entry|Opaque(third)|Observe
+borrow_formal_assign_child_scope_negative.pgy|unproved_inout_copy_entry|Opaque(alias)|Observe
+generic_default_borrowed_return_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
 formal_read_cycle_escape_negative.pgy|unproved_formal_element_use_entry|EscapeCycleA(values)|Main
 formal_read_cycle_partial_sink_negative.pgy|ArrayDropOwnedStrings|ArrayDropOwnedStrings(values)|Main
 BORROW_FORMAL_DIAGNOSTICS
@@ -1068,7 +1097,7 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
-    for mutation in 129 130 131 132; do
+    for mutation in 142 143 144 145; do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/exclusive_map_fresh_positive.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
         tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
@@ -1105,7 +1134,7 @@ BORROW_FORMAL_DIAGNOSTICS
     done
     for reader in trim toint; do
         timeout 30 "$WORK/$backend-identity.exe" \
-            "$ROOT_DIR/tests/cases/function_param_flow_summary/stdlib_${reader}_shadow_invalid.pgy" 131 \
+            "tests/cases/function_param_flow_summary/stdlib_${reader}_shadow_invalid.pgy" 131 \
             >"$WORK/$backend-$reader-shadow.raw" 2>"$WORK/$backend-$reader-shadow.err"
         tr -d '\r' <"$WORK/$backend-$reader-shadow.raw" >"$WORK/$backend-$reader-shadow.run"
         [[ ! -s "$WORK/$backend-$reader-shadow.err" ]]
@@ -1141,9 +1170,9 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
-    for ((mutation=125; mutation<=128; mutation++)); do
+    for ((mutation=146; mutation<=149; mutation++)); do
         input="$FIXTURES/own_storage_identity_input.pgy"
-        if [[ "$mutation" == 127 ]]; then input="$FIXTURES/own_storage_foreign_identity_input.pgy"; fi
+        if [[ "$mutation" == 148 ]]; then input="$FIXTURES/own_storage_foreign_identity_input.pgy"; fi
         timeout 30 "$WORK/$backend-identity.exe" "$input" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
         tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"

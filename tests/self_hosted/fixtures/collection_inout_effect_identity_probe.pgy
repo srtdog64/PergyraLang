@@ -210,18 +210,38 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
     if mutation >= 133 && mutation <= 141 {
         let selection: Long = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
             analysis.signatures, analysis.function_tables);
+        // Row positions come from the registry, which grows; the prefix rows
+        // must stay above bit 31 so the selection needs a Long.
+        var write_row: Int = -1;
+        var prefix_row: Int = -1;
+        var registry_row: Int = 0;
+        while registry_row < SemanticBuiltinArgumentRetentionCount() {
+            let entry: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(registry_row);
+            if entry.valid && entry.builtin_identity == "WRITE" && write_row < 0 { write_row = registry_row; }
+            if entry.valid && entry.builtin_identity == "SUB_STARTS_WITH_LEN" && prefix_row < 0 { prefix_row = registry_row; }
+            registry_row = registry_row + 1;
+        }
+        var prefix_bit: Long = 1L;
+        var write_second_bit: Long = 2L;
+        var beyond_bit: Long = 1L;
+        var power: Int = 0;
+        while power < SemanticBuiltinArgumentRetentionCount() {
+            if power < prefix_row { prefix_bit = prefix_bit * 2L; }
+            if power < write_row { write_second_bit = write_second_bit * 2L; }
+            beyond_bit = beyond_bit * 2L;
+            power = power + 1;
+        }
         let first_prefix: SemanticBuiltinArgumentRetentionRow =
-            SemanticBuiltinArgumentRetentionRowAt(31);
+            SemanticBuiltinArgumentRetentionRowAt(prefix_row);
         let second_prefix: SemanticBuiltinArgumentRetentionRow =
-            SemanticBuiltinArgumentRetentionRowAt(32);
-        let high_rows: Bool = selection >= 0L &&
-            SemanticBuiltinArgumentRetentionCount() == 33 &&
+            SemanticBuiltinArgumentRetentionRowAt(prefix_row + 1);
+        let high_rows: Bool = selection >= 0L && write_row >= 0 && prefix_row > 31 &&
             first_prefix.valid && second_prefix.valid &&
             first_prefix.builtin_identity == "SUB_STARTS_WITH_LEN" &&
             second_prefix.builtin_identity == first_prefix.builtin_identity &&
             first_prefix.argument_ordinal == 0 && second_prefix.argument_ordinal == 3 &&
-            (selection / 2147483648L) % 2L == 1L &&
-            (selection / 4294967296L) % 2L == 1L;
+            (selection / prefix_bit) % 2L == 1L &&
+            (selection / (prefix_bit * 2L)) % 2L == 1L;
         if mutation == 133 { Log(high_rows); return; }
         let facts: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
             analysis.expression_surfaces.expression_graph.arena.identities
@@ -257,7 +277,7 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
                 selection, graph, write_call.owner_node_id, write_call.lane,
                 write_call.local_call_ordinal, write_call.call_node,
                 write_call.call_node);
-            Log(write_call.retention_row == 9 &&
+            Log(write_call.retention_row == write_row &&
                 IsSome(identity) && UnwrapOption(identity) == "WRITE" &&
                 SemanticBuiltinArgumentBorrowedForIdentity("WRITE", 0) &&
                 SemanticBuiltinArgumentBorrowedForIdentity("WRITE", 2) &&
@@ -271,7 +291,7 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
                 selection, graph, prefix_call.owner_node_id, prefix_call.lane,
                 prefix_call.local_call_ordinal, prefix_call.call_node,
                 prefix_call.call_node);
-            Log(prefix_call.retention_row == 31 &&
+            Log(prefix_call.retention_row == prefix_row &&
                 IsSome(identity) && UnwrapOption(identity) == "SUB_STARTS_WITH_LEN" &&
                 SemanticBuiltinArgumentBorrowedForIdentity("SUB_STARTS_WITH_LEN", 0) &&
                 SemanticBuiltinArgumentBorrowedForIdentity("SUB_STARTS_WITH_LEN", 3) &&
@@ -281,9 +301,9 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
         }
         var call: SemanticAstBuiltinArgumentRetentionCallFact = prefix_call;
         var mask: Long = selection;
-        if mutation == 137 { call = write_call; mask = selection - 1024L; }
-        if mutation == 136 { mask = selection - 4294967296L; }
-        if mutation == 138 { mask = selection + 8589934592L; }
+        if mutation == 137 { call = write_call; mask = selection - write_second_bit; }
+        if mutation == 136 { mask = selection - prefix_bit * 2L; }
+        if mutation == 138 { mask = selection + beyond_bit; }
         if mutation == 139 { mask = -1L; }
         if mutation >= 136 && mutation <= 139 {
             let recorded: Bool = SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
@@ -312,7 +332,7 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
                 analysis.expression_surfaces, prefix_call.call_node)));
         return;
     }
-    if mutation >= 129 && mutation <= 132 {
+    if mutation >= 142 && mutation <= 145 {
         Log(InspectCollectionStorageMutationIdentity(analysis, mutation)); return;
     }
     if mutation >= 85 && mutation <= 94 {
@@ -333,7 +353,7 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
     if mutation >= 22 && mutation <= 25 {
         Log(InspectOwnArgumentOccurrenceOrder(artifact, analysis, bundle, mutation)); return;
     }
-    if (mutation >= 16 && mutation <= 21) || (mutation >= 125 && mutation <= 128) {
+    if (mutation >= 16 && mutation <= 21) || (mutation >= 146 && mutation <= 149) {
         Log(InspectOwnStorageAdmission(artifact, analysis, bundle, mutation)); return;
     }
     if mutation >= 103 && mutation <= 113 {
@@ -683,7 +703,7 @@ func InspectOwnStorageAdmission(
                             artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge.argument_node);
                         let local_count: Int = ArrayLength(analysis.local_bindings.node_ids);
-                        if !binding.ok || binding.row != 0 || (mutation != 127 && local_count != 1) { return false; }
+                        if !binding.ok || binding.row != 0 || (mutation != 148 && local_count != 1) { return false; }
                         let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.function_scopes,
                             analysis.local_bindings, bundle.initializer_types,
@@ -715,19 +735,19 @@ func InspectOwnStorageAdmission(
                         let requirements: HashMap<String, Int> = MapNew();
                         let syntax: Int = analysis.expression_surfaces.node_ids[slot / 3];
                         var current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
-                        if mutation >= 125 && mutation <= 128 {
+                        if mutation >= 146 && mutation <= 149 {
                             var retired: HashMap<String, Int> = MapNew();
-                            if mutation == 126 { current_definitions[0] = -1; }
-                            if mutation == 127 {
+                            if mutation == 147 { current_definitions[0] = -1; }
+                            if mutation == 148 {
                                 if local_count != 2 || current_definitions[1] < 0 ||
                                     definitions.binding_rows[current_definitions[1]] != 1 { return false; }
                                 current_definitions[0] = current_definitions[1];
                             }
-                            if mutation == 128 { definitions.syntax_ids[current_definitions[0]] = 0; }
+                            if mutation == 149 { definitions.syntax_ids[current_definitions[0]] = 0; }
                             let pending_use: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUseAtEvent(
                                 artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                                 analysis.expression_surfaces, definitions, facts, current_definitions, retired, slot, node);
-                            if mutation != 125 {
+                            if mutation != 146 {
                                 return pending_use.found && pending_use.diagnostic_code == "ast_artifact_invalid" &&
                                     pending_use.boundary == "owned_argument_event_identity" && MapSize(retired) == 0;
                             }

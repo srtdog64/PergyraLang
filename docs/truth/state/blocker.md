@@ -1,6 +1,7 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-12 on `ci/all-green` at `912788ef9`.
+Owner: Claude root lane. Checked 2026-11-12 on `ci/all-green` after
+`c7e599f58`.
 
 ## Objective card
 
@@ -13,45 +14,38 @@ Owner: Claude root lane. Checked 2026-11-12 on `ci/all-green` at `912788ef9`.
 
 ## Open, in dependency order
 
-1. The native compiler admits 40 negative fixtures that fail under ASan
-   (33 use-after-free, 6 double free, 1 unbounded recursion), among them
-   12 `MapGet` views read after `MapSet`/`MapRemove`. Seen since at least
-   `3dac8b4ac`. They cannot serve as the V1 "native admits" oracle
-   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
-2. collection_inout_effect, whose verdict loop was never reached before the
-   merged probe: 59 C-backend mismatches (37 negatives the self-host now
-   admits, 15 positives it refuses, 7 other codes). The self-host driver's C
-   for `owned_element_retaining_text_negative` reads freed memory.
-3. The self-host owned-element requirement covers inout formals only:
-   `ArrayPop` on an `own` formal is an artifact error, and an `own` formal
-   handed to a dropping `own` callee is refused. Native admits both. This
-   fails collection_formal_key input 0 and several inout-effect inputs.
-4. Self-host focus recovery refuses a `var` field focus with a `defer`
-   (`focus_recovery_defer_return_capture`) or inside a loop
-   (`exclusive_map_loop_branch_restore_positive`); also at `1acc31c5b`.
-5. Linux CI runners cannot resolve the Ubuntu mirrors since 2026-11-11
-   14:47 UTC: codegen bootstrap fails at apt, every Linux job is skipped.
-6. Contracts 3: identity cell probe build (310 s) over its 120 s limit.
-7. Core 5, 6, 24 and backend compare 4, 7, as recorded at `51fbdca00`.
+1. The native compiler admits 28 negative fixtures that fail under ASan
+   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md),
+   minus the 12 MapGet views fixed in `0268e6330`), and
+   `focus_recovery_scope_break_continue` frees a bad pointer natively.
+2. Self-host generality gaps (native admits and runs clean, the self-host
+   refuses): eight inout gate positives
+   ([class 6](../evidence/2026-11-12_inout_effect_mismatch_classes.md)) and
+   five former ownership negatives native now lands as owned copies
+   (`empty_mixed_string_push_without_drop`, `map_keys_shallow_{push,set}`,
+   `ast_graph_atom_late_owned_growth_invalid`, `collection_field_owned_push`).
+3. The self-host MIR route carries no compiler `Clone` (focus part copies,
+   constructor and mutation copy landings); only its semantic C route does.
+4. Contracts 3: identity cell probe build (310 s) over its 120 s limit.
+5. Core 5 (direct-MIR C with an unused routine), 6, 24; backend compare 4, 7;
+   bootstrap `self-host-array-index-type` (a `ref Slice` element write that
+   both front ends refuse). All red at `1acc31c5b` too.
 
-## Self-host generality gaps found (native admits, self-host refuses)
+## Done since `c7e599f58` (local, not yet on CI)
 
-- Owned `Array<String>` reassigned under a branch or loop (semantic), or
-  reassigned then dropped in straight-line code (CODEGEN ERROR route).
-- Constructor and capture stores that native copies (field_ctor_*,
-  member_capture_constructor*, struct literal, nominal Clone).
-
-## Fixed since `51fbdca00` (local unless CI is named)
-
-- Fixed point split into oracle/seed/join jobs (`61ebf046b`); semantic
-  owner probes built once per job, 497 s locally (`891a1f23a`).
-- Native: array reassigned under a branch or loop admitted on C and LLVM
-  (`3cd211b94`); aggregate storage smoke gains two positives the previous
-  compiler refused and one negative.
-- Self-host: a callable local named like a collection mutator owns its call
-  (`60f718914`).
-- Gates now pass locally: aggregate release source, binding move prefix,
-  native storage escape (copy landings run on C/LLVM).
+- A field copy an exit leaves unassigned is a copy
+  ([decision](../decisions/2026-11-12_unwritten_field_copy_is_a_copy.md)):
+  the self-host takes a Clone where the part is defined and no longer writes
+  it back; its emitted C now prints what native prints on every focus input
+  both admit. The canonical driver stays admitted (1,310 s).
+- Self-host refusals added: a grown Map/Set/List/Queue receiver whose copy is
+  read later; a String element loan a call hands to a struct; the defer
+  regression of `13dea684c`.
+- collection_inout_effect, formal key, focus recovery and the other
+  contracts step-4 gates pass locally on the side tree (the inout gate had
+  59 verdict mismatches at `1acc31c5b` and had never run past them); the
+  ownership semantic gate is checked through the installed-driver steps on
+  CI only.
 
 ## Falsifiers kept
 
