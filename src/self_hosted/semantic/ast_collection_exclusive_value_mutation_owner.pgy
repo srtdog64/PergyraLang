@@ -153,6 +153,46 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
         let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
             artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, edge.argument_node);
         if !place.ok || place.temporary { return false; }
+        let root_key: String = ToString(SemanticAstCollectionExclusivePlaceRoot(locals, place));
+        let from: String = Concat("from:", root_key);
+        let function_key: String = ToString(function_id);
+        if mutation_kind == 3 {
+            // The exclusive-value classifier and its copy edges cover Array,
+            // Map and struct values only. A Set, List or Queue local shares
+            // its storage with the local it was defined from and with every
+            // local defined from it; none of them may be read after the change.
+            if place.key < 0 || ArrayLength(place.chain) != 0 { return true; }
+            let ordered: Bool = MapHas(surface_starts, function_key) && MapHas(surface_ends, function_key) &&
+                MapGet(surface_starts, function_key) >= 0;
+            let no_reads: Array<Int> = [];
+            var row: Int = 0;
+            while row < ArrayLength(locals.node_ids) {
+                var sharer: Int = -1;
+                if row == place.key || (locals.function_node_ids[row] == function_id && locals.node_ids[row] < syntax_id) {
+                    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row],
+                        AstExpressionLaneValue());
+                    var leaf: Bool = false;
+                    if IsSome(value) {
+                        let value_kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph,
+                            UnwrapOption(value));
+                        leaf = IsSome(value_kind) && UnwrapOption(value_kind) == AstExpressionNodeLeaf();
+                    }
+                    if leaf {
+                        let source: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, locals, inferred_types, function_id, locals.node_ids[row],
+                            surfaces.expression_graph, UnwrapOption(value));
+                        if source.ok && row == place.key && source.row != row { sharer = source.row; }
+                        if source.ok && row != place.key && source.row == place.key { sharer = row; }
+                    }
+                }
+                if sharer >= 0 && (!ordered || !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures,
+                        locals, inferred_types, surfaces, MapGet(surface_starts, function_key),
+                        MapGet(surface_ends, function_key), function_id, syntax_id, false, 0, no_reads, false,
+                        locals.node_ids[sharer])) { return false; }
+                row = row + 1;
+            }
+            return true;
+        }
         let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
             artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
             shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths, surface_starts,
@@ -161,9 +201,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
         if !part.exclusive || ArrayLength(part.shared_fields) != 0 { return false; }
         // The growth retires the storage the receiver shares with the copies
         // made of it: no holder of such a copy is read from this call on.
-        let from: String = Concat("from:", ToString(SemanticAstCollectionExclusivePlaceRoot(locals, place)));
         if SemanticAstCollectionExclusiveCopyCount(copies, from) == 0 { return true; }
-        let function_key: String = ToString(function_id);
         if !MapHas(surface_starts, function_key) || !MapHas(surface_ends, function_key) ||
             MapGet(surface_starts, function_key) < 0 { return false; }
         let destination: Int = SemanticAstCollectionExclusiveStatementBinding(artifact, signatures, locals,
