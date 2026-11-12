@@ -40,17 +40,20 @@ func SemanticAstIndexedStringBorrowUseAtEvent(
             surfaces.function_node_ids[surface_row],
             surfaces.node_ids[surface_row], surfaces.expression_graph, node
         );
-    // A carrier (struct, Array, Option) is tracked for map payload loans only;
-    // an Array deep drop concerns String rows.
+    // A carrier (struct, Array, Option) is tracked for the loans it was
+    // handed: a map payload loan, or a String element loan a deep drop of its
+    // Array retires.
     let carrier: Bool = binding.ok && binding.type_name != "String" &&
-        binding.row < ArrayLength(state.source_storage_ids) && state.source_storage_ids[binding.row] < -1;
-    if binding.ok && (binding.type_name == "String" || carrier) &&
-        binding.row < ArrayLength(state.invalidated) &&
-        ((!carrier && state.invalidated[binding.row]) || SemanticAstMapStringPayloadInvalidated(
+        binding.row < ArrayLength(state.source_storage_ids) && state.source_storage_ids[binding.row] != 0;
+    if !binding.ok || (binding.type_name != "String" && !carrier) ||
+        binding.row >= ArrayLength(state.invalidated) { return SemanticAstCollectionOwnershipVerdictOk(); }
+    let dropped: Bool = state.invalidated[binding.row] &&
+        (!carrier || state.source_storage_ids[binding.row] >= -1);
+    if dropped || SemanticAstMapStringPayloadInvalidated(
             artifact, surfaces, state, state.source_storage_ids[binding.row],
-            surfaces.node_ids[surface_row])) {
+            surfaces.node_ids[surface_row]) {
         var boundary: String = "indexed_string_use_after_deep_drop";
-        if carrier || !state.invalidated[binding.row] { boundary = "map_string_use_after_mutation"; }
+        if !dropped { boundary = "map_string_use_after_mutation"; }
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",
@@ -109,17 +112,41 @@ func SemanticAstIndexedStringBorrowCompleteValue(
     }
     let root: Int = surfaces.expression_graph.roots[root_slot];
     if inferred_types[target_row] != "String" {
-        // A carrier (struct, Array, Option) holds a map payload loan only.
-        if !SemanticAstMapPayloadLoanCarrierType(inferred_types[target_row]) ||
-            !SemanticAstMapPayloadLoansIn(state, surfaces.function_node_ids[surface_row]) { return true; }
-        let carried: Int = SemanticAstIndexedStringBorrowSourceForRoot(
-            artifact, locals, inferred_types, surfaces, definitions, storage,
-            current_definitions, state.source_storage_ids, state.map_payload_sources, surface_row, root
-        );
+        // A carrier (struct, Array, Option) holds a map payload loan, or the
+        // String element loan a call hands it (`NamedFrom(rows[0])`).
+        if !SemanticAstMapPayloadLoanCarrierType(inferred_types[target_row]) { return true; }
+        var carried: Int = 0;
+        if SemanticAstMapPayloadLoansIn(state, surfaces.function_node_ids[surface_row]) {
+            carried = SemanticAstIndexedStringBorrowSourceForRoot(
+                artifact, locals, inferred_types, surfaces, definitions, storage,
+                current_definitions, state.source_storage_ids, state.map_payload_sources, surface_row, root
+            );
+            if carried >= -1 { carried = 0; }
+        }
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+        if carried == 0 && call.ok {
+            var identity: String = "";
+            let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+            if IsSome(name) {
+                let found: Option<String> = SemanticBuiltinArgumentRetentionIdentityForSourceName(UnwrapOption(name));
+                if IsSome(found) { identity = UnwrapOption(found); }
+            }
+            var argument: Int = 0;
+            while argument < ArrayLength(call.argument_nodes) {
+                if !SemanticBuiltinArgumentBorrowedForIdentity(identity, argument) {
+                    let incoming: Int = SemanticAstIndexedStringBorrowSourceForRoot(
+                        artifact, locals, inferred_types, surfaces, definitions, storage,
+                        current_definitions, state.source_storage_ids, state.map_payload_none, surface_row,
+                        call.argument_nodes[argument]);
+                    if incoming > 0 { carried = SemanticAstIndexedStringBorrowSourceJoin(carried, incoming); }
+                }
+                argument = argument + 1;
+            }
+        }
         if IsSome(declared) {
-            state.source_storage_ids[target_row] = 0;
-            if carried < -1 { state.source_storage_ids[target_row] = carried; }
-        } else if carried < -1 {
+            state.source_storage_ids[target_row] = carried;
+            state.invalidated[target_row] = false;
+        } else if carried != 0 {
             state.source_storage_ids[target_row] = SemanticAstIndexedStringBorrowSourceJoin(
                 state.source_storage_ids[target_row], carried);
         }

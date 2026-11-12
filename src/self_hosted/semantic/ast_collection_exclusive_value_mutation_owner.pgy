@@ -149,7 +149,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
             }
         }
     }
-    if edge.ordinal == 0 && mutation_kind == 2 {
+    if edge.ordinal == 0 && mutation_kind >= 2 {
         let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
             artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, edge.argument_node);
         if !place.ok || place.temporary { return false; }
@@ -158,7 +158,29 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
             shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths, surface_starts,
             surface_ends, consumed, copies, empty_locals, field_reads, function_id, syntax_id, edge.argument_node,
             false, 0, 0);
-        return part.exclusive && ArrayLength(part.shared_fields) == 0;
+        if !part.exclusive || ArrayLength(part.shared_fields) != 0 { return false; }
+        // The growth retires the storage the receiver shares with the copies
+        // made of it: no holder of such a copy is read from this call on.
+        let from: String = Concat("from:", ToString(SemanticAstCollectionExclusivePlaceRoot(locals, place)));
+        if SemanticAstCollectionExclusiveCopyCount(copies, from) == 0 { return true; }
+        let function_key: String = ToString(function_id);
+        if !MapHas(surface_starts, function_key) || !MapHas(surface_ends, function_key) ||
+            MapGet(surface_starts, function_key) < 0 { return false; }
+        let destination: Int = SemanticAstCollectionExclusiveStatementBinding(artifact, signatures, locals,
+            inferred_types, surfaces, function_id, syntax_id);
+        let no_uses: Array<Int> = [];
+        var index: Int = 0;
+        while index < SemanticAstCollectionExclusiveCopyCount(copies, from) {
+            let copy_edge: Int = MapGet(copies, Concat(from, Concat(":", ToString(index))));
+            let holder: Int = MapGet(copies, Concat("edge_holder:", ToString(copy_edge)));
+            if holder != destination && !SemanticAstCollectionExclusiveDeclaredFrom(locals, holder, syntax_id) &&
+                SemanticAstCollectionExclusiveCopyEdgeField(copies, surfaces, copy_edge, place.chain) &&
+                !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
+                    surfaces, MapGet(surface_starts, function_key), MapGet(surface_ends, function_key), function_id,
+                    syntax_id, false, 0, no_uses, false, holder) { return false; }
+            index = index + 1;
+        }
+        return true;
     }
     let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);

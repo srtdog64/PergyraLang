@@ -1,3 +1,37 @@
 // Completed expression loan encodings never stand for runtime allocations.
 func SemanticAstMapStringPayloadLoanSource(root: Int) -> Int { return 0 - root - 3; }
 func SemanticAstMapStringPayloadLoanNode(source: Int) -> Int { return 0 - source - 3; }
+
+// A map payload loan (below -2) also rides in a
+// value whose type can hold a String: String itself or a user type anywhere in
+// it (Array<Row>, Option<Fact>). Scalars and containers of scalars
+// (Option<Int>) cannot; a map keeps its own copies of what it is given.
+func SemanticAstMapPayloadLoanCarrierToken(token: String) -> Bool {
+    return token != "Int" && token != "Long" && token != "Float" && token != "Double" &&
+        token != "Bool" && token != "Void" && token != "Duration" && token != "Array" &&
+        token != "Slice" && token != "List" && token != "Queue" && token != "Set" &&
+        token != "Option" && token != "Result" && token != "Box" && token != "Rc" &&
+        token != "Weak" && token != "Future" && token != "Channel" && token != "Unknown";
+}
+
+func SemanticAstMapPayloadLoanCarrierType(type_name: String) -> Bool {
+    if type_name == "" || type_name == "Unknown" || StartsWith(type_name, "HashMap<") { return false; }
+    let n: Int = StringLength(type_name);
+    var start: Int = -1;
+    var index: Int = 0;
+    while index <= n {
+        var letter: Bool = false;
+        if index < n {
+            let code: Int = CharCode(type_name, n, index);
+            letter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122) ||
+                (code >= 48 && code <= 57) || code == 95;
+        }
+        if letter && start < 0 { start = index; }
+        if !letter && start >= 0 {
+            if SemanticAstMapPayloadLoanCarrierToken(Substring(type_name, start, index - start)) { return true; }
+            start = -1;
+        }
+        index = index + 1;
+    }
+    return false;
+}
