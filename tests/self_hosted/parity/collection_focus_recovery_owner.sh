@@ -29,14 +29,17 @@ root,native,work,cc=map(pathlib.Path,sys.argv[1:])
 probe=root/'tests/self_hosted/fixtures/collection_focus_recovery_probe.pgy'
 directory=root/'tests/self_hosted/parity/fixture/collection_field_lifetime'
 positives={
-'normal':'9\n9\nseed\nrow\n','late_failure':'-1\n9\nseed\nrow\n',
-'manual_writeback_control':'-1\n9\nseed\nrow\n','nested_late_failure':'false\n9\nseed\nrow\n',
-'branch_early_exit':'false\n1\nfalse\n9\nrow\n',
-'eight_field_late_failure':'false\n'+'9\n'*8+'7\nrow\n',
-'multi_iteration':'false\n25\nrow\n','scope_break_continue':'false\n17\nrow\n',
-'defer_return_capture':'10\n9\n10\ndeferred\n','bare_fallthrough':'9\n17\nrow\n',
-'try_option_failure':'7\nfalse\n9\nrow\n','try_result_failure':'8\ntrue\n9\nrow\n',
-'partial_branch_repack':('false\n9\n9\nleft-row\nright-row\n'*2)}
+'normal':'9\n9\nseed\nrow\n','late_failure':'-1\n1\nseed\nseed\n',
+'manual_writeback_control':'-1\n9\nseed\nrow\n','nested_late_failure':'false\n1\nseed\nseed\n',
+'branch_early_exit':'false\n1\nfalse\n1\nseed\n',
+'eight_field_late_failure':'false\n1\n1\n1\n1\n1\n1\n1\n1\n99\nseed\n',
+'multi_iteration':'false\n1\nseed\n','scope_break_continue':'false\n1\nseed\n',
+'defer_return_capture':'10\n9\n1\nseed\n','bare_fallthrough':'1\n1\nseed\n',
+'try_option_failure':'7\nfalse\n1\nseed\n','try_result_failure':'8\ntrue\n1\nseed\n',
+'partial_branch_repack':'false\n9\n1\nleft-row\nright-seed\nfalse\n1\n1\nleft-seed\nright-seed\n'}
+# Copy semantics (decision 2026-11-12): a part an exit leaves unassigned
+# keeps the root's field unchanged on that path. Every output above that
+# native also admits is the native output.
 negatives={'shared_alias_invalid':'borrow_boundary_escape','root_read_invalid':'move_from_released',
 'retaining_alias_invalid':'borrow_boundary_escape','deferred_root_invalid':'move_from_released',
 # Current whole-holder borrowing boundary control, not a runtime unsafety claim.
@@ -267,7 +270,8 @@ try:
         target=work/(name+'-restored.exe')
         run(name+'-cc',[cc,*flags,work/('c-'+name+'.c'),'-o',target,'-lm'],120,compile_step=True)
         guards[target]=digest(target)
-        # Only the actually restored Pergyra-emitted C is executed.
+        # The Pergyra-emitted C takes a Clone of each part an exit leaves
+        # unassigned (decision 2026-11-12); nothing is written back on exit.
         text=run(name+'-run',[target],30)
         if text!=expected: raise RuntimeError(name+': stdout mismatch '+repr(text))
         if name in ('try_option_failure','try_result_failure'):
@@ -278,7 +282,7 @@ try:
             guards[threadsafe]=digest(threadsafe)
             actual=run(name+'-zone-run',[threadsafe],30)
             if actual!=expected+'FOCUS ZONE CLEANUP PASS\n': raise RuntimeError(name+': actual local mutex cleanup mismatch')
-    (work/'results.log').write_text('PASS: Pergyra C/LLVM-built emitters, direct/admitted receipt refusals, restored emitted-C execution; original 13 baselines plus 4 Map controls; original 5 refusals plus 6 Map refusals. Native target LLVM/MIR recovery OPEN.\n',encoding='utf-8')
+    (work/'results.log').write_text('PASS: Pergyra C/LLVM-built emitters, direct/admitted receipt refusals, copy-landing emitted-C execution; 13 baselines plus 4 Map controls; 5 refusals plus 6 Map refusals. Self-host MIR copy landing OPEN.\n',encoding='utf-8')
 finally:
     drift=[str(p) for p,h in guards.items() if not p.exists() or digest(p)!=h]
     if membership()!=sources: drift.append('source membership drift')

@@ -20,5 +20,5 @@ func Main() -> Void
     var rows: Rows = Rows(["seed"]);
     Log(RepeatedCapture(rows));
     Log(ArrayLength(rows.types));
-    Log(rows.types[24]);
+    Log(rows.types[ArrayLength(rows.types) - 1]);
 }

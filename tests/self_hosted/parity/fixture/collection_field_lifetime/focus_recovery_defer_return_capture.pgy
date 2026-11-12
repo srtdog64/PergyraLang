@@ -20,5 +20,5 @@ func Main() -> Void
     var rows: Rows = Rows(["seed"]);
     Log(DeferredCapture(rows));
     Log(ArrayLength(rows.types));
-    Log(rows.types[9]);
+    Log(rows.types[ArrayLength(rows.types) - 1]);
 }

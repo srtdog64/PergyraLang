@@ -31,5 +31,5 @@ func Main() -> Void
     Log(Capture(rows, "[[0],[0],[0],[0],[0],[0],[0],[0],bad]"));
     Log(ArrayLength(rows.types));
     Log(rows.types[0]);
-    Log(rows.types[8]);
+    Log(rows.types[ArrayLength(rows.types) - 1]);
 }

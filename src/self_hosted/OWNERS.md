@@ -653,9 +653,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Shape is not current-generation admission or independent backing permission.
 - `src/self_hosted/semantic/ast_collection_focus_recovery_admission_owner.pgy`
   -- current-generation focus uses, typed selection, copy cut and exact exit
-  coverage, plus the existing admission receipt digest. Consumes the original
-  issuer rows; ordered transitions use its current active-local query without
-  reconstructing focus policy. It adds no parent fact family or freshness.
+  coverage. Consumes the original issuer rows; ordered transitions use its
+  current active-local query without reconstructing focus policy. It adds no
+  parent fact family or freshness.
+- `src/self_hosted/semantic/ast_collection_focus_recovery_receipt_owner.pgy`
+  -- the admission receipt digest of the focus rows and its receipt match.
+  It reads finished rows only; admission stays with the owner above.
 - `src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy` --
   stable semantic event rows for owned push, shallow mutation, and explicit
   drop. Call identity is consumed at MIR attachment; the persisted receipt is

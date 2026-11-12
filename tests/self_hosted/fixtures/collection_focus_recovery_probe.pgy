@@ -356,24 +356,20 @@ func CollectionFocusRecoveryProbeMain(args: Array<String>) -> Void with caps env
     if mode == "copy-facts"
     {
         // Diagnostic projection of the real admitted bundle, never target emission.
-        let diagnostic_generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
-            analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
-        let diagnostic_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
-            artifact, analysis, bundle, diagnostic_generic, receipt);
         var group: Int = 0;
-        while group < ArrayLength(diagnostic_view.focus_recovery.group_root_binding_ids)
+        while group < ArrayLength(bundle.collection_focus_recovery.group_root_binding_ids)
         {
-            Log(Concat("COPYGROUP|", Concat(ToString(diagnostic_view.focus_recovery.group_root_binding_ids[group]),
-                Concat("|", diagnostic_view.focus_recovery.group_copy_signatures[group]))));
+            Log(Concat("COPYGROUP|", Concat(ToString(bundle.collection_focus_recovery.group_root_binding_ids[group]),
+                Concat("|", bundle.collection_focus_recovery.group_copy_signatures[group]))));
             group = group + 1;
         }
-        Log(Concat("COPYSIZE|", ToString(MapSize(diagnostic_view.focus_recovery.exclusive_copies))));
-        let keys: Array<String> = MapKeys(diagnostic_view.focus_recovery.exclusive_copies);
+        Log(Concat("COPYSIZE|", ToString(MapSize(bundle.collection_focus_recovery.exclusive_copies))));
+        let keys: Array<String> = MapKeys(bundle.collection_focus_recovery.exclusive_copies);
         var index: Int = 0;
         while index < ArrayLength(keys)
         {
             Log(Concat("COPYKEY|", Concat(keys[index], Concat("|",
-                ToString(MapGet(diagnostic_view.focus_recovery.exclusive_copies, keys[index]))))));
+                ToString(MapGet(bundle.collection_focus_recovery.exclusive_copies, keys[index]))))));
             index = index + 1;
         }
         return;

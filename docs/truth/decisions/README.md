@@ -55,3 +55,5 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-11 | [The fixed point's native oracle emission runs in its own CI job](2026-11-11_native_oracle_emission_runs_in_its_own_job.md) | in force |
 | 2026-11-11 | [Probes that import the semantic owners merge into one build per job](2026-11-11_semantic_owner_probes_merge_into_one_build.md) | in force |
 | 2026-11-12 | [The unadopted split exclusive-copy owners and their unit are deleted](2026-11-12_unadopted_split_copy_owners_are_deleted.md) | in force |
+| 2026-11-12 | [A grown field copy never assigned back: copy or write back?](2026-11-12_open_unwritten_field_copy_copy_or_write_back.md) | answered 2026-11-12 |
+| 2026-11-12 | [A grown field copy never assigned back is a copy](2026-11-12_unwritten_field_copy_is_a_copy.md) | in force |

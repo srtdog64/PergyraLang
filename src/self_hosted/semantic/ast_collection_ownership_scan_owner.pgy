@@ -91,6 +91,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
         }
         planned_clone = planned_clone + 1;
     }
+    if !SemanticAstCollectionExclusiveSelectFocusPartCopies(focus_recovery, surfaces, compiler_clone_expression_node_ids) {
+        verdict = SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "focus_part_copy_landing"), -1, -1); return; }
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         // Each syntax event precedes its own call lanes, not every call in the
         // program. Keeping statements first also closes same-syntax RHS effects.

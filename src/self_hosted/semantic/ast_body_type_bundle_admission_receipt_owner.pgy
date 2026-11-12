@@ -3,7 +3,7 @@ import "ast_body_type_bundle_owner.pgy";
 import "ast_collection_compiler_clone_projection_owner.pgy";
 import "ast_collection_formal_effect_readiness_owner.pgy";
 import "ast_collection_formal_effect_receipt_owner.pgy";
-import "ast_collection_focus_recovery_admission_owner.pgy";
+import "ast_collection_focus_recovery_receipt_owner.pgy";
 
 func SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
     artifact: AstTreeArtifact,

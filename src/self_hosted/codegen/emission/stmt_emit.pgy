@@ -184,7 +184,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
         if ind < stmt_indent {
             return CodegenStatementBlockEmission(
-                CodegenJoinOwnedStringFragments(result, ""), EmitFocusScopeCleanup(body_types, function_id, scope_id, scope_cleanup, pad)
+                CodegenJoinOwnedStringFragments(result, ""), scope_cleanup
             );
         }
         if ind > stmt_indent {
@@ -209,8 +209,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                     local_bindings, arena, idx,
                     expression_surfaces.expression_graph, let_root_id,
                     statement_env, env,
-                    cur_fn_ret, pad, EmitContinuingExitCleanup(body_types, function_id, scope_id, idx,
-                        SemanticAstCollectionFocusExitTryError(), routine_defers, scope_cleanup, active_defers, routine_copyout, pad));
+                    cur_fn_ret, pad, Concat(routine_defers, Concat(scope_cleanup, Concat(active_defers, routine_copyout))));
             } else {
                 emitted_let = EmitLet(
                     local_bindings, arena, idx, statement_env, env,
@@ -325,8 +324,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             if !AbiLayoutIsVoidReturnType(cur_fn_ret) {
                 bare = Concat("return ", Concat(AbiLayoutCDefaultReturnValue(cur_fn_ret, env), ";"));
             }
-            ArrayPushOwnedString(result, EmitContinuingExitCleanup(body_types, function_id, scope_id, idx,
-                SemanticAstCollectionFocusExitBareReturn(), routine_defers, scope_cleanup, active_defers, routine_copyout, pad));
+            ArrayPushOwnedString(result, Concat(routine_defers, Concat(scope_cleanup, Concat(active_defers, routine_copyout))));
             ArrayPushOwnedString(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -336,8 +334,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAtom()
                 );
-            let return_cleanup: String = EmitContinuingExitCleanup(body_types, function_id, scope_id, idx,
-                SemanticAstCollectionFocusExitValueReturn(), routine_defers, scope_cleanup, active_defers, routine_copyout, pad);
+            let return_cleanup: String = Concat(routine_defers, Concat(scope_cleanup, Concat(active_defers, routine_copyout)));
             ArrayPushOwnedString(result, EmitReturnWithCleanup(
                 rexpr, cur_fn_ret, env,
                 expression_surfaces.expression_graph, return_root_id,
@@ -423,8 +420,6 @@ func EmitStmtList(count: Int, arena: AstArena,
             if loop_escape_defers != "" {
                 ArrayPushOwnedString(result, Concat("", loop_escape_defers));
             }
-            ArrayPushOwnedString(result, EmitAdmittedFocusRecovery(body_types, function_id,
-                scope_id, idx, SemanticAstCollectionFocusExitBreak(), pad));
             ArrayPushOwnedString(result, Concat(pad, "break;\n"));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -435,8 +430,6 @@ func EmitStmtList(count: Int, arena: AstArena,
             if loop_escape_defers != "" {
                 ArrayPushOwnedString(result, Concat("", loop_escape_defers));
             }
-            ArrayPushOwnedString(result, EmitAdmittedFocusRecovery(body_types, function_id,
-                scope_id, idx, SemanticAstCollectionFocusExitContinue(), pad));
             ArrayPushOwnedString(result, Concat(pad, "continue;\n"));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -796,7 +789,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
     }
     return CodegenStatementBlockEmission(
-        CodegenJoinOwnedStringFragments(result, ""), EmitFocusScopeCleanup(body_types, function_id, scope_id, scope_cleanup, pad)
+        CodegenJoinOwnedStringFragments(result, ""), scope_cleanup
     );
 }
 // C parameter type for a Pergyra type. `String` params are read-only.

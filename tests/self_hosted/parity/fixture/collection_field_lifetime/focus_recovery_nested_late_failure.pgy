@@ -39,5 +39,5 @@ func Main() -> Void
     Log(CaptureStep(outer, "[[0],[0],[0],[0],[0],[0],[0],[0],bad]"));
     Log(ArrayLength(outer.rows.types));
     Log(outer.rows.types[0]);
-    Log(outer.rows.types[8]);
+    Log(outer.rows.types[ArrayLength(outer.rows.types) - 1]);
 }

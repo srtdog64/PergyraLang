@@ -23,12 +23,12 @@ func Main() -> Void
     Log(CapturePair(partial_rows, true));
     Log(ArrayLength(partial_rows.left));
     Log(ArrayLength(partial_rows.right));
-    Log(partial_rows.left[8]);
-    Log(partial_rows.right[8]);
+    Log(partial_rows.left[ArrayLength(partial_rows.left) - 1]);
+    Log(partial_rows.right[ArrayLength(partial_rows.right) - 1]);
     var sibling_rows: PairRows = PairRows(["left-seed"], ["right-seed"]);
     Log(CapturePair(sibling_rows, false));
     Log(ArrayLength(sibling_rows.left));
     Log(ArrayLength(sibling_rows.right));
-    Log(sibling_rows.left[8]);
-    Log(sibling_rows.right[8]);
+    Log(sibling_rows.left[ArrayLength(sibling_rows.left) - 1]);
+    Log(sibling_rows.right[ArrayLength(sibling_rows.right) - 1]);
 }

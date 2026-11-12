@@ -53,6 +53,6 @@ func Main() -> Void
     Log(ArrayLength(rows.graph_digests));
     Log(ArrayLength(rows.call_target_names));
     Log(ArrayLength(rows.call_target_syntax_ids));
-    Log(rows.transition_ids[8]);
-    Log(rows.call_target_names[8]);
+    Log(rows.transition_ids[ArrayLength(rows.transition_ids) - 1]);
+    Log(rows.call_target_names[ArrayLength(rows.call_target_names) - 1]);
 }

@@ -4,7 +4,6 @@ import "ast_collection_focus_recovery_schema_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_collection_exclusive_value_restoration_owner.pgy";
 import "ast_collection_exclusive_value_consumption_owner.pgy";
-import "ast_body_type_bundle_admission_receipt_schema_owner.pgy";
 
 // A root use may touch only a fully checked extraction or callee footprint.
 // All group copies are validated before this compositional use check.
@@ -456,14 +455,30 @@ func SemanticAstCollectionFocusRecoveryCopiesReady(
         }
         // A copy of the same field outside the group that nothing reads once
         // the group starts cannot observe the growth the group restores. A
-        // whole-holder alias stays outside this (the holder boundary).
+        // whole-holder alias stays outside this (the holder boundary). A
+        // defer body runs at every exit, after the group, wherever it stands,
+        // so a routine with a defer keeps every alias inside the group.
         if !member && aliases.keys[alias] >= 0 && aliases.keys[alias] < ArrayLength(locals.node_ids) &&
             SemanticAstCollectionFocusPartForLocal(signatures, constructors, locals, inferred_types, surfaces,
                 aliases.keys[alias]).ok {
+            var deferred: Bool = false;
+            var at: Int = first_surface;
+            while at < end_surface && !deferred {
+                var ancestor: Int = surfaces.node_ids[at];
+                var remaining: Int = artifact.count;
+                while ancestor >= 0 && ancestor < artifact.count && ancestor != function_id && remaining > 0 {
+                    if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) { deferred = true; }
+                    let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+                    ancestor = -1;
+                    if IsSome(parent) { ancestor = UnwrapOption(parent); }
+                    remaining = remaining - 1;
+                }
+                at = at + 1;
+            }
             let no_uses: Array<Int> = [];
-            member = SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
-                surfaces, first_surface, end_surface, function_id, facts.group_activation_ids[group], false, 0,
-                no_uses, false, locals.node_ids[aliases.keys[alias]]);
+            member = !deferred && SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals,
+                inferred_types, surfaces, first_surface, end_surface, function_id, facts.group_activation_ids[group],
+                false, 0, no_uses, false, locals.node_ids[aliases.keys[alias]]);
         }
         if !member { return false; }
         alias = alias + 1;
@@ -493,97 +508,6 @@ func SemanticAstCollectionFocusRecoveryCopiesReady(
     return true;
 }
 
-func SemanticAstBodyFocusReceiptIntRowsDigest(
-    hash: Long, ref rows: Array<Int>
-) -> Long {
-    let modulus: Long = 15000000L;
-    var out: Long = (hash * 131L + (ArrayLength(rows) as Long)) % modulus;
-    var row: Int = 0;
-    while row < ArrayLength(rows) {
-        let value: Long = ((rows[row] as Long) % modulus + modulus) % modulus;
-        out = (out * 131L + value) % modulus;
-        row = row + 1;
-    }
-    return out;
-}
-
-func SemanticAstBodyFocusReceiptStringRowsDigest(
-    hash: Long, ref rows: Array<String>
-) -> Long {
-    var out: Long = (hash * 131L + (ArrayLength(rows) as Long)) % 15000000L;
-    var row: Int = 0;
-    while row < ArrayLength(rows) {
-        out = AstTreeArtifactIdentityHashString(out, rows[row], 15000000L);
-        row = row + 1;
-    }
-    return out;
-}
-
-func SemanticAstBodyTypeBundleFocusRecoveryReceiptDigest(
-    ref facts: SemanticAstCollectionFocusRecoveryFacts
-) -> Int {
-    var out: Long = 17L;
-    if facts.ok { out = 18L; }
-    out = (out * 131L + (facts.artifact_node_count as Long)) % 15000000L;
-    out = (out * 131L + (facts.artifact_identity_digest as Long)) % 15000000L;
-    let selection_keys: Array<String> = MapKeys(facts.mutating_formals);
-    out = (out * 131L + (ArrayLength(selection_keys) as Long)) % 15000000L;
-    var selection: Int = 0;
-    while selection < ArrayLength(selection_keys) {
-        let key: String = selection_keys[selection];
-        out = AstTreeArtifactIdentityHashString(out, key, 15000000L);
-        let value: Long = ((MapGet(facts.mutating_formals, key) as Long) % 15000000L + 15000000L) % 15000000L;
-        out = (out * 131L + value) % 15000000L;
-        selection = selection + 1;
-    }
-    out = (out * 131L + (facts.exclusive_copy_count as Long)) % 15000000L;
-    out = (out * 131L + (facts.exclusive_field_read_count as Long)) % 15000000L;
-    let copy_keys: Array<String> = MapKeys(facts.exclusive_copies);
-    out = (out * 131L + (ArrayLength(copy_keys) as Long)) % 15000000L;
-    var copy: Int = 0;
-    while copy < ArrayLength(copy_keys) {
-        let key: String = copy_keys[copy];
-        out = AstTreeArtifactIdentityHashString(out, key, 15000000L);
-        let value: Long = ((MapGet(facts.exclusive_copies, key) as Long) % 15000000L + 15000000L) % 15000000L;
-        out = (out * 131L + value) % 15000000L;
-        copy = copy + 1;
-    }
-    let read_keys: Array<String> = MapKeys(facts.exclusive_field_reads);
-    out = (out * 131L + (ArrayLength(read_keys) as Long)) % 15000000L;
-    var read: Int = 0;
-    while read < ArrayLength(read_keys) {
-        let key: String = read_keys[read];
-        out = AstTreeArtifactIdentityHashString(out, key, 15000000L);
-        let value: Long = ((MapGet(facts.exclusive_field_reads, key) as Long) % 15000000L + 15000000L) % 15000000L;
-        out = (out * 131L + value) % 15000000L;
-        read = read + 1;
-    }
-    out = SemanticAstBodyFocusReceiptStringRowsDigest(out, facts.group_copy_signatures);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_function_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_root_binding_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_scope_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_activation_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_end_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_part_starts);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.group_part_counts);
-    out = SemanticAstBodyFocusReceiptStringRowsDigest(out, facts.group_root_type_names);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.part_local_binding_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.part_definition_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.part_field_ids);
-    out = SemanticAstBodyFocusReceiptStringRowsDigest(out, facts.part_field_names);
-    out = SemanticAstBodyFocusReceiptStringRowsDigest(out, facts.part_type_names);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_group_indices);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_function_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_scope_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_syntax_ids);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_kinds);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_part_starts);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.exit_part_counts);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.active_part_indices);
-    out = SemanticAstBodyFocusReceiptIntRowsDigest(out, facts.active_definition_ids);
-    return out as Int;
-}
-
 func SemanticAstCollectionFocusRecoveryRetiredLocalUseInvalid(
     artifact: AstTreeArtifact, ref facts: SemanticAstCollectionFocusRecoveryFacts,
     retired_locals: HashMap<String, Int>, function_id: Int, syntax_id: Int, binding_id: Int
@@ -592,27 +516,4 @@ func SemanticAstCollectionFocusRecoveryRetiredLocalUseInvalid(
     return MapHas(retired_locals, ToString(binding_id)) &&
         syntax_id > MapGet(retired_locals, ToString(binding_id)) &&
         !SemanticAstCollectionFocusRecoveryLocalActive(artifact, facts, function_id, syntax_id, binding_id);
-}
-
-// Only the existing focus-specific receipt projection; general body checks stay with its caller.
-func SemanticAstCollectionFocusRecoveryReceiptMatches(
-    receipt: SemanticAstBodyTypeBundleAdmissionReceipt, artifact: AstTreeArtifact,
-    ref facts: SemanticAstCollectionFocusRecoveryFacts
-) -> Bool
-{
-    return SemanticAstCollectionFocusRecoveryShapeReady(facts) &&
-        facts.artifact_node_count == artifact.count &&
-        facts.artifact_identity_digest == artifact.identity_digest &&
-        receipt.collection_focus_group_count ==
-            ArrayLength(facts.group_function_ids) &&
-        receipt.collection_focus_part_count ==
-            ArrayLength(facts.part_local_binding_ids) &&
-        receipt.collection_focus_exit_count ==
-            ArrayLength(facts.exit_group_indices) &&
-        receipt.collection_focus_active_part_count ==
-            ArrayLength(facts.active_part_indices) &&
-        receipt.collection_focus_selection_count ==
-            MapSize(facts.mutating_formals) &&
-        receipt.collection_focus_recovery_digest ==
-            SemanticAstBodyTypeBundleFocusRecoveryReceiptDigest(facts);
 }

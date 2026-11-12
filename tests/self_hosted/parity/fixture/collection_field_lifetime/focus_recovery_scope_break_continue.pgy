@@ -23,5 +23,5 @@ func Main() -> Void
     var rows: Rows = Rows(["seed"]);
     Log(ScopedCapture(rows));
     Log(ArrayLength(rows.types));
-    Log(rows.types[16]);
+    Log(rows.types[ArrayLength(rows.types) - 1]);
 }

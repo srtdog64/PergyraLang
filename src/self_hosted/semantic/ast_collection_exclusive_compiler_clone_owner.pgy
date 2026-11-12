@@ -2,6 +2,9 @@
 // materialized independent value. Structural copy edges remain owned by the
 // exclusive-value analysis; this owner publishes only the selected landings.
 
+import "ast_collection_focus_recovery_schema_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+
 func SemanticAstCollectionExclusiveCompilerCloneCount(
     ref copies: HashMap<String, Int>, key: String
 ) -> Int {
@@ -117,4 +120,36 @@ func SemanticAstCollectionExclusiveRecordCopySite(
     MapSet(copies, Concat("copy_site_destination_field:", key),
         destination_field);
     MapSet(copies, "copy_site_count", count + 1);
+}
+
+// A focus part an exit leaves unassigned is a copy of its field (decision
+// 2026-11-12): its definition's value becomes a Clone landing, and no exit
+// writes the part back.
+func SemanticAstCollectionExclusiveSelectFocusPartCopies(
+    ref focus: SemanticAstCollectionFocusRecoveryFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    inout nodes: Array<Int>
+) -> Bool {
+    var exit_row: Int = 0;
+    while exit_row < ArrayLength(focus.exit_group_indices) {
+        if exit_row >= ArrayLength(focus.exit_part_starts) ||
+            exit_row >= ArrayLength(focus.exit_part_counts) { return false; }
+        var active: Int = focus.exit_part_starts[exit_row];
+        let active_end: Int = active + focus.exit_part_counts[exit_row];
+        while active < active_end {
+            if active < 0 || active >= ArrayLength(focus.active_part_indices) { return false; }
+            let part: Int = focus.active_part_indices[active];
+            if part < 0 || part >= ArrayLength(focus.part_definition_ids) { return false; }
+            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, focus.part_definition_ids[part], AstExpressionLaneValue());
+            if !IsSome(value) { return false; }
+            if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(nodes, UnwrapOption(value)) &&
+                !SemanticAstCollectionExclusiveSelectCompilerCloneNode(nodes, UnwrapOption(value)) {
+                return false;
+            }
+            active = active + 1;
+        }
+        exit_row = exit_row + 1;
+    }
+    return true;
 }

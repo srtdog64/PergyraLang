@@ -17,5 +17,5 @@ func Main() -> Void
     Log(ArrayLength(rows.types));
     CaptureVoid(rows, true);
     Log(ArrayLength(rows.types));
-    Log(rows.types[16]);
+    Log(rows.types[ArrayLength(rows.types) - 1]);
 }
