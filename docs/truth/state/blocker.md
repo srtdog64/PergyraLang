@@ -14,10 +14,15 @@ Owner: Claude root lane. Checked 2026-11-12 on `ci/all-green` after
 
 ## Open, in dependency order
 
-1. The native compiler admits 28 negative fixtures that fail under ASan
-   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md),
-   minus the 12 MapGet views fixed in `0268e6330`), and
-   `focus_recovery_scope_break_continue` frees a bad pointer natively.
+1. The native compiler admits 20 negative fixtures that fail under ASan
+   (from 28: a call that grows an argument's field now invalidates the other
+   copies of that field even when it returns it). Left: 7 owned-String
+   transfers (a String used, or aliased, after an `own` formal took it),
+   5 exclusive aliasing cases, 4 `own` handoffs under defer/nesting, 2 empty
+   captures, `read_temporary_releasing_sibling`, `inout_cycle_drop`
+   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
+   `focus_recovery_scope_break_continue`: native copies a field without a
+   Clone and leaves it stale on `break`/`continue`.
 2. Self-host generality gaps (native admits and runs clean, the self-host
    refuses): eight inout gate positives
    ([class 6](../evidence/2026-11-12_inout_effect_mismatch_classes.md)) and
