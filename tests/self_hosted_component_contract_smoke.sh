@@ -1708,6 +1708,7 @@ require_max_lines "src/self_hosted/semantic/ast_owned_string_result_domain_owner
 require_max_lines "src/self_hosted/semantic/ast_owned_string_domain_exposure_owner.pgy" 160
 require_max_lines "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy" 30
+require_max_lines "src/self_hosted/semantic/ast_owned_string_member_actual_owner.pgy" 90
 require_max_lines "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" 100
 require_max_lines "tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy" 175
 require_max_lines \
@@ -2815,6 +2816,7 @@ require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_max_lines "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" 600
 
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_readonly_string_parameter_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_readonly_value_parameter_owner.pgy" 40
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" 150
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_readonly_string_temporary_owner.pgy" 140
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_rewrite_owner.pgy" 80

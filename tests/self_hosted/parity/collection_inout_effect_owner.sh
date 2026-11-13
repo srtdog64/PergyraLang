@@ -86,6 +86,9 @@ INPUTS=(
     owned_string_named_actual_deferred_negative.pgy
     owned_string_literal_transfer_aliased_result_negative.pgy
     owned_string_literal_transfer_borrowed_negative.pgy
+    owned_string_member_actual_positive.pgy
+    owned_string_member_actual_reused_negative.pgy
+    owned_string_member_actual_borrowed_negative.pgy
     owned_string_literal_transfer_deferred_borrow_negative.pgy
     owned_string_literal_transfer_after_use_negative.pgy
     owned_string_literal_transfer_concat_after_negative.pgy

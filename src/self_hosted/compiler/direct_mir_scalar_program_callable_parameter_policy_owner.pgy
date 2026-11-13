@@ -1,4 +1,5 @@
 // Value-carriage and ABI policy for scalar-program callable parameters.
+import "direct_mir_scalar_program_readonly_value_parameter_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_array_string_abi_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
@@ -104,12 +105,11 @@ func DirectMirScalarProgramCallableParameterSupported(
     if ordinal < 0 || ordinal >= signature.param_count { return false; }
     if DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) ||
         DirectMirScalarProgramOwnedArrayValueParameterReady(signature, ordinal) ||
-        DirectMirScalarProgramReadonlyStringParameterReady(
-            signature, ordinal) {
+        DirectMirScalarProgramReadonlyStringParameterReady(signature, ordinal) ||
+        DirectMirScalarProgramReadonlyValueParameterReady(signature, ordinal) {
         return true;
     }
-    if DirectMirScalarProgramCallableFunctionParameterReady(
-            signature, ordinal) { return true; }
+    if DirectMirScalarProgramCallableFunctionParameterReady(signature, ordinal) { return true; }
     let type_name: String = signature.parameters.type_names[ordinal];
     if DirectMirScalarProgramCallableRuntimeValueParameterReady(
             signature, ordinal) { return true; }

@@ -1,0 +1,15 @@
+// A struct field filled with an allocated String moves into an own formal
+// when the field read is the struct's only use.
+func ReleaseOwnedString(own value: String) -> Void {
+    if value == "" { return; }
+    let owned_values: Array<String> = [value];
+    ArrayDropOwnedStrings(owned_values);
+}
+
+struct OwnedStringFact { let value: String; }
+
+func Main() -> Void {
+    let fact: OwnedStringFact = OwnedStringFact(Concat("owned", "-member"));
+    ReleaseOwnedString(fact.value);
+    Log("released");
+}

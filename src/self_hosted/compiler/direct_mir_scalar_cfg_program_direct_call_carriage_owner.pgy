@@ -1,4 +1,5 @@
 // Admit one direct-call argument against its declared parameter carriage.
+import "direct_mir_scalar_program_readonly_value_parameter_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
@@ -64,9 +65,11 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
             DirectMirScalarProgramPayloadEnumReadonlyRefAt(
                 plan.routines, plan.program.referenced_enum,
                 target, ordinal);
+        let readonly_value: Bool = DirectMirScalarProgramReadonlyValueTargetAt(
+            plan.routines, target, ordinal);
         if !readonly_array && !readonly_string && !readonly_cell &&
             !readonly_hashmap && !readonly_payload_free_enum &&
-            !readonly_payload_enum &&
+            !readonly_payload_enum && !readonly_value &&
             !DirectMirScalarProgramLogicalRecordTypeReady(plan.program.logical_record,
                 plan.routines.parameter_types[parameter_row]) {
             return false;

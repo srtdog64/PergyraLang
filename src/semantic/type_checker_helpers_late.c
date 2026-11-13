@@ -297,7 +297,20 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         /* Resolve identities only after the original argument's type issuer;
            spelling is diagnostic text, never overlap or source-mode authority. */
         FuncParam *borrow_param = callable_decl == NULL ? NULL : ast_func_param(callable_decl, i);
-        if (borrow_param != NULL && borrow_param->mode == PARAM_MODE_MUT_REF)
+        /* A caller's read-only ref parameter passed inout is refused once,
+         * below, as a borrow escape; it is not also a replaced binding. */
+        bool readonly_ref_to_inout = false;
+        if (borrow_param != NULL && borrow_param->mode == PARAM_MODE_MUT_REF && arg_expr != NULL &&
+            arg_expr->type == AST_IDENTIFIER && ctx->current_function_decl != NULL &&
+            ctx->current_function_decl->type == AST_FUNC_DECL) {
+            uint32_t named = ast_identifier_binding_syntax_id(arg_expr);
+            for (size_t p = 0; named != 0 && p < ast_func_param_count(ctx->current_function_decl); p++) {
+                FuncParam *source = ast_func_param(ctx->current_function_decl, p);
+                if (source != NULL && ast_func_param_stable_id(source) == named && source->mode == PARAM_MODE_REF)
+                    readonly_ref_to_inout = true;
+            }
+        }
+        if (borrow_param != NULL && borrow_param->mode == PARAM_MODE_MUT_REF && !readonly_ref_to_inout)
             (void)semantic_admit_value_mutation(arg_expr, ctx);
         if (borrow_param != NULL && arg_expr != NULL && arg_expr->type == AST_IDENTIFIER &&
             (borrow_param->mode == PARAM_MODE_REF || borrow_param->mode == PARAM_MODE_MUT_REF)) {

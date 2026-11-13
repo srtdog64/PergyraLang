@@ -209,7 +209,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                     let scalar_transfer_verdict: SemanticAstCollectionOwnershipVerdict =
                         SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
-                            artifact, signatures, locals, initializer_types,
+                            artifact, signatures, constructors, locals, initializer_types,
                             surfaces, owned_string_results,
                             numeric_string_allocations,
                             literal_transfers,

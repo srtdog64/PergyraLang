@@ -1,0 +1,20 @@
+// The field holds the caller's String, not one the constructor allocated,
+// so moving it into the own formal would release the caller's storage.
+func ReleaseOwnedString(own value: String) -> Void {
+    if value == "" { return; }
+    let owned_values: Array<String> = [value];
+    ArrayDropOwnedStrings(owned_values);
+}
+
+struct OwnedStringFact { let value: String; }
+
+func ReleaseHeld(text: String) -> Void {
+    let fact: OwnedStringFact = OwnedStringFact(text);
+    ReleaseOwnedString(fact.value);
+}
+
+func Main() -> Void {
+    let text: String = Concat("owned", "-member");
+    ReleaseHeld(text);
+    Log(text);
+}

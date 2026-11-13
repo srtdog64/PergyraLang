@@ -1,7 +1,7 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-12 on `ci/all-green` after
-`c7e599f58`.
+Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
+`bbbadc926`, with the working changes on the WSL side tree.
 
 ## Objective card
 
@@ -14,48 +14,48 @@ Owner: Claude root lane. Checked 2026-11-12 on `ci/all-green` after
 
 ## Open, in dependency order
 
-1. The native compiler admits 28 negative fixtures that fail under ASan
-   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md),
-   minus the 12 MapGet views fixed in `0268e6330`). Eight of them share one
-   cause: a callee that grows a local copy of a by-value formal's field and
-   returns it reads as a lending call with no write, so the caller's other
-   copies of that field are not invalidated. Treating every unproved field
-   preservation as a change (`841436e2c`, reverted in the next commit) fixed
-   the eight but refused an unchanged returned field in
-   `expression_surface_closure_probe`; the fix belongs in the formal's
-   write summary. `focus_recovery_scope_break_continue`: native copies a
-   field without a Clone and leaves it stale on `break`/`continue`.
-2. Self-host generality gaps (native admits and runs clean, the self-host
-   refuses): eight inout gate positives
-   ([class 6](../evidence/2026-11-12_inout_effect_mismatch_classes.md)) and
-   five former ownership negatives native now lands as owned copies
-   (`empty_mixed_string_push_without_drop`, `map_keys_shallow_{push,set}`,
-   `ast_graph_atom_late_owned_growth_invalid`, `collection_field_owned_push`).
-3. The self-host MIR route carries no compiler `Clone` (focus part copies,
-   constructor and mutation copy landings); only its semantic C route does.
-4. Contracts 3: identity cell probe build (310 s) over its 120 s limit.
-5. Core 5 (direct-MIR C with an unused routine), 6, 24; backend compare 4, 7;
-   bootstrap `self-host-array-index-type` (a `ref Slice` element write that
-   both front ends refuse). All red at `1acc31c5b` too.
+1. Native admits 28 negative fixtures that fail under ASan
+   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
+   Eight share the lending-callee cause (the fix belongs in the formal's
+   write summary). Native also admits a String read after it moved into an
+   `own` formal, local or struct field, in the known ArrayDropOwnedStrings
+   family.
+2. Core shard step 5 (role override): the general scalar route claims role
+   programs and accepts two MIR mutants (`direct_override_as_ability_impl`,
+   `role-source-id`); it rejects the other 14. Refusing role declarations
+   there sends the program to the old role override route, which dies on
+   current MIR ("routine facts are invalid"). Either the MIR declaration
+   validation rejects the two mutants and the gate checks the general
+   emitter, or the old route is repaired.
+3. Core shard step 24 (containment): a direct-MIR routine refusal still
+   ends in Die, so JSON mode prints "receipt is malformed". Carrying the
+   refusal out of the routine fold makes the self-host refuse the driver
+   source (`aggregate_release_incomplete`, `alias_assignment_restoration`
+   on the `routine_state` rebinding).
+4. Bootstrap `self-host-array-index-type`: C passes; direct-MIR LLVM has no
+   Slice element write (`view[0] = 7` fails graph-use completeness).
+5. Contracts 3: the identity cell probe build takes 300+ s against 120 s;
+   33 landing rounds ([record](../evidence/2026-11-13_identity_probe_landing_rounds.md)).
+6. Contracts 4 ownership semantic: the LLVM route refuses
+   `collection_field_restore_valid` at `collection_ownership_transition`.
+7. The self-host MIR route carries no compiler `Clone`; only its semantic C
+   route does.
 
-## Done since `c7e599f58` (local, not yet on CI)
+## Done since `6452bad92`
 
-- A field copy an exit leaves unassigned is a copy
-  ([decision](../decisions/2026-11-12_unwritten_field_copy_is_a_copy.md)):
-  the self-host takes a Clone where the part is defined and no longer writes
-  it back; its emitted C now prints what native prints on every focus input
-  both admit. The canonical driver stays admitted (1,310 s).
-- Self-host refusals added: a grown Map/Set/List/Queue receiver whose copy is
-  read later; a String element loan a call hands to a struct; the defer
-  regression of `13dea684c`.
-- collection_inout_effect, formal key, focus recovery and the other
-  contracts step-4 gates pass locally on the side tree (the inout gate had
-  59 verdict mismatches at `1acc31c5b` and had never run past them); the
-  ownership semantic gate is checked through the installed-driver steps on
-  CI only.
+- `bbbadc926`: a generic routine's Some/UnwrapOption has a result relation,
+  so its summary matches the single-type routine; backend compare 4 and 7
+  pass locally (988/988).
+- Local, not yet committed: unused attribute on direct-MIR C routines; Slice
+  index type and element write on the semantic C route; read-only ref of a
+  scalar or Slice passed by value on the direct-MIR route; a struct field
+  String moved into an `own` formal admitted when the field read is the
+  struct's only use (two negatives added to the inout gate); native reports
+  a read-only ref passed inout once, as a borrow escape.
 
 ## Falsifiers kept
 
-- A drop on one branch still refuses the read after the join.
-- Own transfers of storage a constructor kept stay refused natively.
-- The zone/world value-carriage mutant is refused on both MIR backends.
+- A drop on one branch still refuses the read after the join; own
+  transfers of storage a constructor kept stay refused natively.
+- A struct read after its String field moved into an `own` formal is
+  refused by the self-host.

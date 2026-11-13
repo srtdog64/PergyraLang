@@ -1,0 +1,15 @@
+// The struct is read after its field moved into the own formal, so the
+// field was not the only reference the call took.
+func ReleaseOwnedString(own value: String) -> Void {
+    if value == "" { return; }
+    let owned_values: Array<String> = [value];
+    ArrayDropOwnedStrings(owned_values);
+}
+
+struct OwnedStringFact { let value: String; }
+
+func Main() -> Void {
+    let fact: OwnedStringFact = OwnedStringFact(Concat("owned", "-member"));
+    ReleaseOwnedString(fact.value);
+    Log(fact.value);
+}

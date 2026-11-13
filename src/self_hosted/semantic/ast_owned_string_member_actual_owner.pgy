@@ -1,0 +1,84 @@
+// A String field read once as an own actual: `holder.field` where `holder`
+// is a local struct whose constructor filled the field with an allocated,
+// exclusive String, and nothing else reads, writes or passes `holder`. The
+// field then holds the only reference, so the call may take it, as native
+// admits it.
+
+import "ast_owned_string_actual_exclusivity_owner.pgy";
+import "ast_constructor_call_identity_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+
+func SemanticAstOwnedStringMemberActualExclusive(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    ref numeric: SemanticAstNumericStringAllocationCalls,
+    function_id: Int, use_id: Int, actual: Int
+) -> Bool {
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(surfaces.expression_graph, actual);
+    if !member.ok { return false; }
+    let field_name: Option<String> = SemanticExpressionGraphNodeText(
+        surfaces.expression_graph, member.member_node);
+    let holder: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            function_id, use_id, surfaces.expression_graph,
+            member.receiver_node);
+    if !IsSome(field_name) || !holder.ok ||
+        locals.binding_kinds[holder.row] != SemanticAstLocalBindingKindNormal() ||
+        locals.binding_indices[holder.row] != 0 {
+        return false;
+    }
+    let mode: Option<Int> = TypedAstArenaMode(
+        artifact.arena, holder.declaration_node_id);
+    let owner: Result<Int> = SemanticAstNominalConstructorUniqueIndexForName(
+        constructors, holder.type_name);
+    if !IsSome(mode) || UnwrapOption(mode) != 0 || IsErr(owner) ||
+        Unwrap(owner) < 0 ||
+        constructors.nominal_kinds[Unwrap(owner)] != "struct" {
+        return false;
+    }
+    let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, Unwrap(owner), UnwrapOption(field_name));
+    if !IsSome(field) ||
+        constructors.param_type_names[UnwrapOption(field)] != "String" {
+        return false;
+    }
+    // The member read is the holder's only use: no earlier read can alias
+    // the field and no later read, write or call can see it after the move.
+    if !SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
+            artifact, locals, initializer_types.inferred_type_names,
+            surfaces, holder, use_id, member.receiver_node) {
+        return false;
+    }
+    let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, holder.declaration_node_id, AstExpressionLaneValue());
+    if !IsSome(initializer) { return false; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, UnwrapOption(initializer));
+    let row: Option<Int> = SemanticExpressionGraphNominalConstructorRow(
+        constructors, surfaces.expression_graph, call.call_node);
+    let ordinal: Int = UnwrapOption(field) - constructors.param_starts[Unwrap(owner)];
+    if !call.ok || !IsSome(row) || UnwrapOption(row) != Unwrap(owner) ||
+        ArrayLength(call.argument_nodes) != constructors.param_counts[Unwrap(owner)] {
+        return false;
+    }
+    let argument: Int = call.argument_nodes[ordinal];
+    let domain: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringExpressionAllocationDomain(
+            artifact, signatures, locals, initializer_types, surfaces,
+            results.writes, results.domain_exposures, results, numeric,
+            function_id, holder.declaration_node_id,
+            AstExpressionLaneValue(), argument, 0);
+    return domain.kind == 1 &&
+        SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+            artifact, signatures, locals, initializer_types, surfaces,
+            results, numeric, function_id, holder.declaration_node_id,
+            AstExpressionLaneValue(), argument, 0,
+            holder.declaration_node_id, argument);
+}

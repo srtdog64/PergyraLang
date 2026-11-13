@@ -13,6 +13,7 @@ import "diagnostic_owner.pgy";
 import "ast_owned_string_actual_exclusivity_owner.pgy";
 import "ast_owned_string_literal_ownership_fact_owner.pgy";
 import "ast_owned_string_literal_definition_transfer_owner.pgy";
+import "ast_owned_string_member_actual_owner.pgy";
 
 func SemanticAstOwnedStringLiteralTransferParameterNode(
     ref signatures: SemanticAstFunctionSignatureFacts,
@@ -61,6 +62,7 @@ func SemanticAstOwnedStringLiteralTransferRequiresFormal(
 func SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
@@ -98,7 +100,11 @@ func SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
             surfaces.function_node_ids[surface_row],
             surfaces.node_ids[surface_row], surfaces.expression_graph,
             edge.argument_node);
-    if domain.kind != 1 ||
+    let member_actual: Bool = SemanticAstOwnedStringMemberActualExclusive(
+        artifact, signatures, constructors, locals, initializer_types,
+        surfaces, results, numeric, surfaces.function_node_ids[surface_row],
+        surfaces.node_ids[surface_row], edge.argument_node);
+    if !member_actual && (domain.kind != 1 ||
         (named_actual.ok &&
          !SemanticAstOwnedStringLiteralTransferDirectDefinition(
             artifact, surfaces.function_node_ids[surface_row],
@@ -109,7 +115,7 @@ func SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
             surfaces.function_node_ids[surface_row],
             surfaces.node_ids[surface_row], lane,
             edge.argument_node, 0,
-            surfaces.node_ids[surface_row], edge.argument_node) {
+            surfaces.node_ids[surface_row], edge.argument_node)) {
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",

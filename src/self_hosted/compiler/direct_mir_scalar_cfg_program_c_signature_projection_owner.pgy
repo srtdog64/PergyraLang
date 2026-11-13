@@ -58,7 +58,9 @@ func DirectMirScalarCfgProgramCSignature(ref plan: DirectMirScalarCfgGraphPlan,
         }
         return "int main(void)";
     }
-    var output: String = Concat("static ", Concat(
+    // A routine the program never calls (an override body a subject call
+    // does not reach) is still emitted; `unused` keeps -Wall -Werror quiet.
+    var output: String = Concat("static __attribute__((unused)) ", Concat(
         DirectMirScalarCfgProgramCTypeWithReferencedEnum(
             plan.routines.return_types[routine], int_c_type,
             plan.program.logical_record,
