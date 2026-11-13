@@ -16,9 +16,10 @@ func DirectMirScalarProgramLlvmArrayIntPushMaterialization() -> String {
     return "define internal void @pgy_ai_push(ptr %array, i64 %value) {\nentry:\n  %data.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %bytes = mul i64 %next.capacity, 4\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i32, ptr %data, i64 %length\n  %element = trunc i64 %value to i32\n  store i32 %element, ptr %slot, align 4\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n";
 }
 func DirectMirScalarProgramLlvmLocalArraySetMaterialization(ref plan: DirectMirScalarCfgGraphPlan, array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> String {
-    var int_set: Bool = false; var string_set: Bool = false; var bool_set: Bool = false;
+    var int_set: Bool = false; var string_set: Bool = false; var bool_set: Bool = false; var slice_int_set: Bool = false;
     var row: Int = 0;
     while row < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[row] == DirectMirScalarCfgOpLocalSliceIntSet() { slice_int_set = true; }
         if plan.operation_kinds[row] == DirectMirScalarCfgOpLocalArrayIntSet() ||
             plan.operation_kinds[row] == DirectMirScalarCfgOpArrayIntValueResultSet() {
             int_set = true;
@@ -39,6 +40,7 @@ func DirectMirScalarProgramLlvmLocalArraySetMaterialization(ref plan: DirectMirS
     if string_set {
         output = Concat(output, DirectMirScalarProgramLlvmArrayStringSetMaterialization(plan.program.array_string_abi, array_string_projection));
     }
+    if slice_int_set { output = Concat(output, "define internal void @pgy_si_set(ptr %slice, i64 %index, i64 %value) {\nentry:\n  %length.ptr = getelementptr inbounds %pgy.slice.int, ptr %slice, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @pgy_runtime_panic_out_of_bounds_export(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds %pgy.slice.int, ptr %slice, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i32, ptr %data, i64 %index\n  %element = trunc i64 %value to i32\n  store i32 %element, ptr %slot, align 4\n  ret void\n}\n\n"); }
     if bool_set {
         output = Concat(output, "define internal void @pgy_ab_set(ptr %array, i64 %index, i1 %value) {\nentry:\n  %length.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @pgy_runtime_panic_out_of_bounds_export(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i8, ptr %data, i64 %index\n  %element = zext i1 %value to i8\n  store i8 %element, ptr %slot, align 1\n  ret void\n}\n\n");
     }
@@ -148,13 +150,9 @@ func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPl
     if DirectMirScalarProgramArraySetKind(kind) {
         if index == "" { Die("direct MIR LLVM local array set index is invalid"); }
         symbol = "@pgy_as_set";
-        if kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
-            kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
-            symbol = "@pgy_ai_set";
-        }
-        if kind == DirectMirScalarCfgOpArrayBoolSet() {
-            symbol = "@pgy_ab_set"; value_type = "i1";
-        }
+        if kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() { symbol = "@pgy_ai_set"; }
+        if kind == DirectMirScalarCfgOpArrayBoolSet() { symbol = "@pgy_ab_set"; value_type = "i1"; }
+        if kind == DirectMirScalarCfgOpLocalSliceIntSet() { symbol = "@pgy_si_set"; value_type = "i64"; }
     }
     if DirectMirScalarProgramArrayPopKind(kind) {
         if kind == DirectMirScalarCfgOpArrayStringPop() {

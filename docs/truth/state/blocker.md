@@ -20,36 +20,38 @@ Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
    write summary). Native also admits a String read after it moved into an
    `own` formal, local or struct field, in the known ArrayDropOwnedStrings
    family.
-2. Core shard step 24 (containment): a direct-MIR routine refusal still
-   ends in Die, so JSON mode prints "receipt is malformed". The fold proves
+2. A direct-MIR routine the scalar route cannot admit ends in Die, so a
+   JSON-selected request prints "receipt is malformed": core step 24
+   (containment) and the bootstrap CLI smoke's public LLVM IR receipt gate,
+   whose three Float programs the route now claims (one compiles
+   runtime-equal; two die in expression admission). The fold proves
    `routine_state = DirectMirScalarCfgProgramAppendRoutine(...)` a field-pack
-   move only when every reachable return carries each field; today the
-   failure returns follow a Die and are unreachable. A non-dying refusal
-   makes them reachable and the driver source is refused.
-3. Bootstrap `self-host-array-index-type`: C passes; direct-MIR LLVM has no
-   Slice element write. A `LocalSliceIntSet` operation reaches plan
-   verification and fails an unnamed readiness check (`program_readiness=0`).
-4. Locally, core step 5 fails only on WSL: `wslpath -w` turns the repo root
+   move only when every reachable return carries each field; the failure
+   returns follow a Die today, so a non-dying refusal is refused there.
+3. Locally, core step 5 fails only on WSL: `wslpath -w` turns the repo root
    into a `wsl.localhost` UNC path, so the struct argument gate's path check
    fails; with a pass-through `wslpath` the step passes.
-5. Contracts 3: the identity cell probe build takes 300+ s against 120 s;
+4. Contracts 3: the identity cell probe build takes 300+ s against 120 s;
    33 landing rounds ([record](../evidence/2026-11-13_identity_probe_landing_rounds.md)).
-6. Contracts 4 ownership semantic: the LLVM route refuses
+5. Contracts 4 ownership semantic: the LLVM route refuses
    `collection_field_restore_valid` at `collection_ownership_transition`.
-7. The self-host MIR route carries no compiler `Clone`; only its semantic C
+6. The self-host MIR route carries no compiler `Clone`; only its semantic C
    route does.
 
 ## Done since `6452bad92`
 
+- Slice<Int> element writes on the direct-MIR route (`LocalSliceIntSet`);
+  the bootstrap `self-host-array-index-type` gate passes locally.
 - `bbbadc926`: a generic routine's Some/UnwrapOption has a result relation,
   so its summary matches the single-type routine; backend compare 4 and 7
   pass locally (988/988).
-- Local, not yet committed: unused attribute on direct-MIR C routines; Slice
+- `5bf70e773`, `47fd47cc5`: unused routines marked on their prototype; Slice
   index type and element write on the semantic C route; read-only ref of a
-  scalar or Slice passed by value on the direct-MIR route; a struct field
-  String moved into an `own` formal admitted when the field read is the
-  struct's only use (two negatives added to the inout gate); native reports
-  a read-only ref passed inout once, as a borrow escape.
+  scalar or Slice passed by value; a struct field String moved into an `own`
+  formal when the field read is the struct's only use; one native borrow
+  escape for a read-only ref passed inout; role programs back on the role
+  override route; local Array writes with a literal index. Core shard
+  passes 54 of 55 locally.
 
 ## Falsifiers kept
 

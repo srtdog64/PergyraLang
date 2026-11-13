@@ -50,6 +50,9 @@ func DirectMirScalarCfgOpArrayBoolSet() -> Int { return 42; }
 func DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() -> Int { return 43; }
 func DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() -> Int { return 44; }
 func DirectMirScalarCfgOpIdentityCellStore() -> Int { return 45; }
+// 46 to 50 are the compound assignment kinds (MirCompoundAssignmentPlanKind);
+// the last kind below is the highest a plan admits.
+func DirectMirScalarCfgOpLocalSliceIntSet() -> Int { return 51; }
 func MirCompoundAssignmentPlanKind(operation: Int) -> Int {
     if operation < 1 || operation > 5 { return -1; }
     return 45 + operation;

@@ -22,6 +22,7 @@ func DirectMirScalarProgramLocalIndexedAssignmentElementType(
     if array_type == CompilerAbiLayoutArrayIntTypeName() { return CompilerAbiLayoutIntTypeName(); }
     if array_type == CompilerAbiLayoutArrayStringTypeName() { return CompilerAbiLayoutStringTypeName(); }
     if array_type == CompilerAbiLayoutArrayBoolTypeName() { return CompilerAbiLayoutBoolTypeName(); }
+    if array_type == CompilerAbiLayoutSliceIntTypeName() { return CompilerAbiLayoutIntTypeName(); }
     return "";
 }
 func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
@@ -246,6 +247,7 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     if element_type == CompilerAbiLayoutIntTypeName() {
         kind = DirectMirScalarCfgOpArrayIntValueResultSet();
         if local_fact.valid { kind = DirectMirScalarCfgOpLocalArrayIntSet(); }
+        if local_fact.valid && capture.abi_type_name == CompilerAbiLayoutSliceIntTypeName() { kind = DirectMirScalarCfgOpLocalSliceIntSet(); }
     } else if element_type == CompilerAbiLayoutBoolTypeName() {
         kind = DirectMirScalarCfgOpArrayBoolSet();
     } else if element_type != CompilerAbiLayoutStringTypeName() {

@@ -108,7 +108,7 @@ func DirectMirScalarProgramArrayMutationOperationReady(
     }
     var expected: String = CompilerAbiLayoutStringTypeName();
     if kind == DirectMirScalarCfgOpArrayIntPush() ||
-        kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpLocalSliceIntSet() ||
         kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
         expected = CompilerAbiLayoutIntTypeName();
     }

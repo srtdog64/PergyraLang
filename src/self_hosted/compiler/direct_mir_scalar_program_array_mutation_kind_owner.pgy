@@ -2,7 +2,7 @@
 import "direct_mir_scalar_cfg_op_code_owner.pgy";
 
 func DirectMirScalarProgramArrayPushKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPush() || kind == DirectMirScalarCfgOpLocalArrayStringPush() || kind == DirectMirScalarCfgOpArrayBoolPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush(); }
-func DirectMirScalarProgramArraySetKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpArrayStringSet() || kind == DirectMirScalarCfgOpArrayBoolSet() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+func DirectMirScalarProgramArraySetKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpLocalSliceIntSet() || kind == DirectMirScalarCfgOpArrayStringSet() || kind == DirectMirScalarCfgOpArrayBoolSet() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
 func DirectMirScalarProgramArrayPopKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPop() || kind == DirectMirScalarCfgOpArrayStringPop(); }
 
 func DirectMirScalarProgramArrayMutationKind(kind: Int) -> Bool {
@@ -56,6 +56,7 @@ func DirectMirScalarProgramLocalArrayMutationKind(kind: Int) -> Bool {
         kind == DirectMirScalarCfgOpArrayBoolPush() ||
         kind == DirectMirScalarCfgOpArrayBoolSet() ||
         kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        kind == DirectMirScalarCfgOpLocalSliceIntSet() ||
         kind == DirectMirScalarCfgOpArrayStringSet() ||
         DirectMirScalarProgramArrayPopKind(kind);
 }
@@ -63,7 +64,10 @@ func DirectMirScalarProgramLocalArrayMutationKind(kind: Int) -> Bool {
 func DirectMirScalarProgramArrayMutationTargetTypeReady(
     kind: Int, type_name: String
 ) -> Bool {
-    return ((kind == DirectMirScalarCfgOpArrayIntPush() ||
+    // A Slice<Int> element write goes through the descriptor to the Array.
+    return (kind == DirectMirScalarCfgOpLocalSliceIntSet() &&
+            type_name == CompilerAbiLayoutSliceIntTypeName()) ||
+        ((kind == DirectMirScalarCfgOpArrayIntPush() ||
              kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
              kind == DirectMirScalarCfgOpArrayIntPop()) &&
             type_name == CompilerAbiLayoutArrayIntTypeName()) ||

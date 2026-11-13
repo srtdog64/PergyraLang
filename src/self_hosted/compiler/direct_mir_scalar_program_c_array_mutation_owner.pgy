@@ -139,7 +139,7 @@ func DirectMirScalarProgramCArrayMutation(
     var symbol: String = "pgy_as_push"; var value_type: String = "const char *";
     var cast: String = "";
     if kind == DirectMirScalarCfgOpArrayIntPush() ||
-        kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpLocalSliceIntSet() ||
         kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
         symbol = "pgy_ai_push"; value_type = "long long"; cast = "(long long)(";
     }
@@ -194,9 +194,9 @@ func DirectMirScalarProgramCArrayMutation(
         kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
         symbol = CollectionRuntimeCSetFn(1);
     }
-    if kind == DirectMirScalarCfgOpArrayBoolSet() {
-        symbol = CollectionRuntimeCSetFn(4); value_type = "bool";
-    }
+    if kind == DirectMirScalarCfgOpArrayBoolSet() { symbol = CollectionRuntimeCSetFn(4); value_type = "bool"; }
+    // The runtime Slice write takes the descriptor and stores through it.
+    if kind == DirectMirScalarCfgOpLocalSliceIntSet() { symbol = "pgy_slice_set_Int"; }
     let stem: String = Concat("pgy_set_", ToString(operation));
     var output: String = Concat("    long long ", stem);
     output = Concat(output, "_index = (long long)(");

@@ -65,7 +65,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
                 plan.routines, routine, plan.program.array_string_abi,
                 array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
         var expected: String = CompilerAbiLayoutStringTypeName();
-        if kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        if kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpLocalSliceIntSet() ||
             kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
             expected = CompilerAbiLayoutIntTypeName();
         }
