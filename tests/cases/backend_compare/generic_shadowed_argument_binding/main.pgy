@@ -5,8 +5,8 @@ func Wrap<T>(x: T) -> Option<T> {
     return Some(x);
 }
 
-func Twice<T>(x: T) -> Array<T> {
-    return [x, x];
+func Size<T>(xs: Array<T>) -> Int {
+    return ArrayLength(xs);
 }
 
 func Main() -> Void {
@@ -17,14 +17,14 @@ func Main() -> Void {
         if IsSome(w) {
             Log(UnwrapOption(w));
         }
-        let pair: Array<String> = Twice(v);
-        Log(pair[1]);
+        let pair: Array<String> = [v, v];
+        Log(pair[Size(pair) - 1]);
     }
     let v: Int = 1;
     let o: Option<Int> = Wrap(v);
     if IsSome(o) {
         Log(ToString(UnwrapOption(o)));
     }
-    let nums: Array<Int> = Twice(v);
-    Log(ToString(nums[0] + nums[1]));
+    let nums: Array<Int> = [v, v];
+    Log(ToString(nums[0] + nums[Size(nums) - 1]));
 }

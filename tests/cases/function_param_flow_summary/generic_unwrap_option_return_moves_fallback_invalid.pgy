@@ -1,0 +1,18 @@
+// A generic routine that may return its T formal moves the caller's
+// argument, as the same routine written for one payload type does. A
+// Result's Clone shares its String payload, so no copy can land and the
+// later read is refused.
+func Pick<T>(o: Option<T>, fallback: T) -> T {
+    if IsSome(o) {
+        return UnwrapOption(o);
+    }
+    return fallback;
+}
+
+func Main() -> Void {
+    let n: Option<Result<Int, String>> = None;
+    let bad: Result<Int, String> = Err("no");
+    let picked: Result<Int, String> = Pick(n, bad);
+    Log(ToString(IsErr(picked)));
+    Log(ToString(IsErr(bad)));
+}

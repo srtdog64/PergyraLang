@@ -53,10 +53,13 @@ stdlib_variant_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
-/* Optional dependence requires resolved payload types, not provisional names. */
+/* Optional dependence requires resolved payload types. A routine's own type
+ * parameter is resolved: the relation says only that the result depends on
+ * the operand, which holds for every T. Without it a generic routine's
+ * summary was unsupported where the same routine for one type was current. */
 static bool stdlib_variant_relation_type_ready(const Type *type)
 {
-    if (type == NULL || type == TYPE_UNKNOWN || type->kind == TYPE_KIND_GENERIC) return false;
+    if (type == NULL || type == TYPE_UNKNOWN) return false;
     if (type->kind == TYPE_KIND_CONSTRUCTED)
         for (size_t i = 0; i < type_constructed_arg_count(type); i++)
             if (!stdlib_variant_relation_type_ready(type_constructed_arg(type, i))) return false;

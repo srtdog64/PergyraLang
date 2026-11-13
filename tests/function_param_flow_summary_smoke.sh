@@ -811,6 +811,9 @@ release_lifetime_refusals = {
         (*released_refusal, 39, 5), (*released_refusal, 57, 24)],
     "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 25, 32)],
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 28, 41)],
+    # A generic routine's summary is current, so the move is named rather
+    # than read as an unsupported escape.
+    "generic_unwrap_option_return_moves_fallback_invalid": [(*released_refusal, 17, 24)],
     # A call result that holds a formal's storage is a path of that formal:
     # growing it changes the storage the caller's copy shares.
     "enum_formal_matched_payload_grown_invalid": [(*released_refusal, 27, 11)],
@@ -1692,6 +1695,8 @@ paired = (
     ("default_aggregate_move_reuse_invalid", False),
     ("default_aggregate_move_loop_reuse_invalid", False),
     ("default_aggregate_move_branch_use_invalid", False),
+    ("generic_unwrap_option_return_read_valid", True),
+    ("generic_unwrap_option_return_moves_fallback_invalid", False),
     ("default_aggregate_move_ref_param_invalid", False),
     ("own_rebind_scalar_frame_valid", True),
     ("own_rebind_ref_input_return_landed_valid", True),

@@ -36,8 +36,9 @@ func Main() -> Void {
     Log(ToString(IsSome(o)));
     let bad: Result<Int, String> = Err("no");
     let picked: Result<Int, String> = Pick(n, bad);
+    let spare: Result<Int, String> = Err("spare");
     Log(ToString(IsErr(picked)));
-    Log(ToString(UnwrapOr(Pick(o, bad), 0)));
+    Log(ToString(UnwrapOr(Pick(o, spare), 0)));
     Log(ToString(IsSome(Wrap(good))));
     Log(ToString(IsNone(Nothing())));
 }

@@ -1,0 +1,21 @@
+// A generic routine that returns UnwrapOption of its Option<T> formal has a
+// current summary, as the same routine written for one payload type does:
+// the value the Option was built from stays usable after the call.
+func Pick<T>(o: Option<T>, fallback: T) -> T {
+    if IsSome(o) {
+        return UnwrapOption(o);
+    }
+    return fallback;
+}
+
+func Wrap(r: Result<Int, String>) -> Option<Result<Int, String>> {
+    return Some(r);
+}
+
+func Main() -> Void {
+    let good: Result<Int, String> = Ok(3);
+    let o: Option<Result<Int, String>> = Some(good);
+    let spare: Result<Int, String> = Err("spare");
+    Log(ToString(UnwrapOr(Pick(o, spare), 0)));
+    Log(ToString(IsSome(Wrap(good))));
+}
