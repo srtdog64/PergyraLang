@@ -142,9 +142,13 @@ func CompileAdmittedDirectMirForTargetObserved(
                     (scalar_program_route.referenced_enum.payload_present ||
                      scalar_program_route.logical_record.present);
                 if runtime_declaration_route {
-                    payload = CompileAdmittedDirectMirScalarProgramForTarget(
-                        admitted, scalar_program_route, target_projection
-                    );
+                    let scalar_payload: CodegenRoutePayload =
+                        CompileAdmittedDirectMirScalarProgramForTarget(
+                            admitted, scalar_program_route, target_projection);
+                    match scalar_payload {
+                        case CodegenRoutePayloadEmitted(text): payload = text;
+                        case CodegenRoutePayloadRefused(refusal): return CompilerEmissionRouteRefused(refusal);
+                    }
                 } else if DirectMirCompileTimeDeclarationErasureRouteClaimed(
                         admitted) || literal_log_route {
                     let literal_log: DirectMirLiteralLogPlan =
@@ -157,9 +161,13 @@ func CompileAdmittedDirectMirForTargetObserved(
                         );
                     }
                 } else if scalar_program_route.claimed {
-                    payload = CompileAdmittedDirectMirScalarProgramForTarget(
-                        admitted, scalar_program_route, target_projection
-                    );
+                    let scalar_payload: CodegenRoutePayload =
+                        CompileAdmittedDirectMirScalarProgramForTarget(
+                            admitted, scalar_program_route, target_projection);
+                    match scalar_payload {
+                        case CodegenRoutePayloadEmitted(text): payload = text;
+                        case CodegenRoutePayloadRefused(refusal): return CompilerEmissionRouteRefused(refusal);
+                    }
                 } else if DirectMirScalarCfgGraphRouteClaimed(admitted) {
                     payload = CompileAdmittedDirectMirScalarCfgForTarget(
                         admitted, target_projection

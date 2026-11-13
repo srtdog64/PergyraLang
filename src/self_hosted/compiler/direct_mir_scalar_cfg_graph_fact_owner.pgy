@@ -69,6 +69,26 @@ struct DirectMirScalarCfgGraphPlan {
     var program: DirectMirScalarCfgProgramExtensionFact;
 }
 
+// The plan of a program the route refuses: never ready, sealed or emitted.
+// The plan owner returns it so its one sealed return stays terminal, and the
+// refusal travels in the owner's inout text.
+func DirectMirScalarCfgGraphPlanRefused() -> DirectMirScalarCfgGraphPlan {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    let routines: DirectMirScalarCfgRoutinePartitionFact = DirectMirScalarCfgRoutinePartitionFact(
+        false, 0, -1, ints, ints, ints, strings, strings, strings, strings,
+        ints, ints, ints, strings, strings, ints, ints, ints, ints,
+        ints, ints, ints, ints, ints, ints, ints, ints, ints, ints);
+    return DirectMirScalarCfgGraphPlan(false, "", 0, 0, 0, 0, "", 0, routines,
+        strings, strings, ints, strings, ints, strings, strings, ints, ints,
+        ints, ints, ints, ints, ints, ints, ints, ints, ints, strings, strings,
+        ints, ints, ints, ints, ints, ints, strings, strings, ints, ints, ints, ints,
+        DirectMirScalarCfgRangeFactSetEmpty(), DirectMirScalarCfgForEachFactSetEmpty(),
+        DirectMirScalarCfgForEachElementFactsEmpty(), DirectMirScalarCfgStringArrayPlanEmpty(),
+        DirectMirScalarCfgArrayIntProgramFactEmpty(), DirectMirScalarCfgCollectionPopProgramFactEmpty(),
+        DirectMirScalarCfgCollectionPlanEmpty(), 0, DirectMirScalarCfgProgramExtensionFactEmpty());
+}
+
 func DirectMirScalarCfgGraphPlanSchema() -> String {
     return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v83";
 }

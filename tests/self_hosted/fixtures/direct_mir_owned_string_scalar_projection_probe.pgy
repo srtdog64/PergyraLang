@@ -28,8 +28,13 @@ func Main() -> Void with caps env, io_read, io_write {
     else if args[2] != "c" { Die("invalid backend"); }
     let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactFromOwner(projection);
     let route: DirectMirScalarProgramRouteFact = admission.route;
-    let payload: String = CompileAdmittedDirectMirScalarProgramForTargetObserved(
+    var payload: String = "";
+    let routed: CodegenRoutePayload = CompileAdmittedDirectMirScalarProgramForTargetObserved(
         admitted, route, target, false);
+    match routed {
+        case CodegenRoutePayloadEmitted(text): payload = text;
+        case CodegenRoutePayloadRefused(refusal): Die(refusal.message);
+    }
     // Publication is last: refusal must preserve an existing projected artifact.
     WriteFile(args[3], payload);
 }

@@ -7,12 +7,13 @@ import "direct_mir_scalar_program_route_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_pressure_observation_owner.pgy";
 import "direct_mir_scalar_int_format_projection_owner.pgy";
+import "codegen_route_refusal_owner.pgy";
 
 func CompileAdmittedDirectMirScalarProgramForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     own route: DirectMirScalarProgramRouteFact,
     target_projection: CompilerTargetProjectionFact
-) -> String {
+) -> CodegenRoutePayload {
     return CompileAdmittedDirectMirScalarProgramForTargetObserved(
         admitted, route, target_projection, false
     );
@@ -23,7 +24,7 @@ func CompileAdmittedDirectMirScalarProgramForTargetObserved(
     own route: DirectMirScalarProgramRouteFact,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool
-) -> String {
+) -> CodegenRoutePayload {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection()
     );
@@ -34,8 +35,13 @@ func CompileAdmittedDirectMirScalarProgramForTargetObserved(
         Die("direct MIR scalar program target projection is invalid");
     }
     DirectMirPressureStage(observe_pressure, "graph-plan:start");
+    var refusal: String = "";
     let plan: DirectMirScalarCfgGraphPlan =
-        DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+        DirectMirScalarCfgProgramGraphPlanAdmission(admitted, route, refusal);
+    if refusal != "" {
+        return CodegenRoutePayloadRefused(CodegenRouteRefusal(
+            "scalar-program-route", "routine-admission", refusal));
+    }
     if !DirectMirScalarCfgGraphPlanReady(plan) {
         Die("direct MIR scalar program plan is invalid before projection");
     }
@@ -70,5 +76,5 @@ func CompileAdmittedDirectMirScalarProgramForTargetObserved(
         );
     }
     DirectMirPressureStage(observe_pressure, "emission:done");
-    return payload;
+    return CodegenRoutePayloadEmitted(payload);
 }

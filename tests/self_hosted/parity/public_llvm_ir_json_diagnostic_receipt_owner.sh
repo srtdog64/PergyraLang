@@ -215,19 +215,21 @@ llvm_route_refusal_receipt() {
         require_text "$WORK_DIR/$name-expected.json" "$fact"
     done
 }
-# One routine with a Float local: the single-routine dispatcher refuses it.
-llvm_route_refusal_receipt float-log \
-    'CODEGEN ERROR: direct MIR scalar program route rejected: owner=scalar-program-route stage=single-program-shape routine=-1 name= parameter=-1 type= carriage=' \
-    'func Main() -> Void {' '    let f: Float = 1.5;' '    Log(f);' '}'
-# One routine whose CFG shape no single-routine route claims.
+# The general scalar route claims these Float programs, but routine admission
+# cannot admit their Float arithmetic or comparison. That refusal travels as
+# the same typed receipt as a route-level one.
+# One routine: a Float product passed to Log.
+llvm_route_refusal_receipt float-arith \
+    'CODEGEN ERROR: direct MIR scalar CFG program expression admission is invalid: stage=expression-kind node=2 row=1 source=AST_CALL' \
+    'func Main() -> Void {' '    let f: Float = 1.5;' '    Log(f * 2.0);' '}'
+# One routine whose branches compare a Float.
 llvm_route_refusal_receipt float-cfg-shape \
-    'CODEGEN ERROR: direct MIR backend projection rejected unsupported CFG shape' \
+    'CODEGEN ERROR: direct MIR scalar CFG program expression admission is invalid: stage=expression-kind node=2 row=1 source=AST_BINARY' \
     'func Main() -> Void {' '    let f: Float = 1.5;' '    if f > 1.0 { Log(1); }' \
     '    if f > 2.0 { Log(2); }' '    if f > 3.0 { Log(3); }' '    if f > 4.0 { Log(4); }' '}'
-# A Float-returning callable: the multi-routine terminal owner refuses it with
-# the scalar route's receipt.
+# A Float-returning callable whose body multiplies a Float.
 llvm_route_refusal_receipt float-callable \
-    'CODEGEN ERROR: direct MIR scalar program route rejected: owner=callable-route-envelope stage=return-type routine=1 name=Twice parameter=-1 type=Float carriage=' \
+    'CODEGEN ERROR: direct MIR scalar CFG program expression admission is invalid: stage=expression-kind node=2 row=0 source=AST_BINARY' \
     'func Twice(x: Float) -> Float {' '    return x * 2.0;' '}' '' \
     'func Main() -> Void {' '    Log(Twice(1.5));' '}'
 

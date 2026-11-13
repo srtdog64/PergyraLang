@@ -75,10 +75,10 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     DirectMirPressureStage(observe_pressure, "scalar-route:done");
     let scalar_program_route: DirectMirScalarProgramRouteFact = scalar_program_admission.route;
     if scalar_program_route.claimed {
-        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirScalarProgramForTargetObserved(
+        return CompileAdmittedDirectMirScalarProgramForTargetObserved(
             admitted, scalar_program_route, target_projection,
             observe_pressure
-        ));
+        );
     }
     if DirectMirTwoRoutineNominalProgramCandidate(admitted) {
         let two_routine: DirectMirTwoRoutineClassificationFact =

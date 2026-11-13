@@ -60,8 +60,15 @@ func DriverRung2ScalarCSubstitutionIfClaimed(
     let route: DirectMirScalarProgramRouteFact = admission.route;
     let receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
         MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
-    let payload: String = MirDomainTopologyGraphPlanAttachToC(receipt, admitted.domain_topology_plan,
-        CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
+    // The C substitution has no typed refusal consumer: a refusal ends it.
+    var scalar_c: String = "";
+    let scalar_payload: CodegenRoutePayload =
+        CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target);
+    match scalar_payload {
+        case CodegenRoutePayloadEmitted(text): scalar_c = text;
+        case CodegenRoutePayloadRefused(refusal): Die(refusal.message);
+    }
+    let payload: String = MirDomainTopologyGraphPlanAttachToC(receipt, admitted.domain_topology_plan, scalar_c);
     let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact("emitted-c", payload,
         target.schema, target.projection, target.target_capability_fingerprint);
     if !CompilerEmissionArtifactReady(artifact) { Die("scalar C substitution target receipt is invalid"); }

@@ -21,5 +21,9 @@ func Main() -> Void with caps env, io_read {
     let admission: DirectMirScalarProgramRouteAdmission = DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
     if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed { Exit(2); }
     let route: DirectMirScalarProgramRouteFact = admission.route;
-    Log(CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
+    let routed: CodegenRoutePayload = CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target);
+    match routed {
+        case CodegenRoutePayloadEmitted(text): Log(text);
+        case CodegenRoutePayloadRefused(refusal): Die(refusal.message);
+    }
 }

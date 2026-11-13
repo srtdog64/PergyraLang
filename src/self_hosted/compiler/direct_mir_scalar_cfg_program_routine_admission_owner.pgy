@@ -66,16 +66,13 @@ func DirectMirScalarCfgProgramAppendRoutine(
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
     ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
-    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    inout refusal: String
 ) -> DirectMirScalarCfgProgramRoutineAdmission {
-    // A failed admission carries no storage: the appends below may release
-    // what the inputs name, and the caller stops on an invalid admission.
-    let invalid: DirectMirScalarCfgProgramRoutineAdmission = DirectMirScalarCfgProgramRoutineAdmission(
-            false, DirectMirScalarCfgProgramGraphStorageEmpty(), DirectMirScalarProgramExpressionSetEmpty(),
-            DirectMirOptionMatchAbiFactEmpty(), DirectMirScalarResultAbiSetEmpty(),
-            DirectMirOptionMatchAbiFactEmpty(), DirectMirOptionMatchAbiFactEmpty(),
-            DirectMirScalarCfgRangeFactSetInvalid(),
-            DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty());
+    // `refusal` names a routine this route cannot emit; the admission is then
+    // invalid but still carries every input. A broken input ends in Die.
+    // (Not a result field: a field-pack rebind must carry every String field.)
+    refusal = "";
     if !input.index.valid || !DirectMirScalarCfgProgramInputReady(input) {
         Die("direct MIR scalar program routine input has an external collection plan");
     }
@@ -110,12 +107,12 @@ func DirectMirScalarCfgProgramAppendRoutine(
             input.index, locals, input.foreach_elements, logical_record,
             referenced_enum, signature.parameters);
     if !locals.valid {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "local_refs", routine_ordinal, -1, -1, ""); return invalid;
+        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+            "local_refs", routine_ordinal, -1, -1, ""));
     }
     if !types.valid {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "value_types", routine_ordinal, -1, -1, ""); return invalid;
+        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+            "value_types", routine_ordinal, -1, -1, ""));
     }
     let routine_ranges: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactsAtLocalRows(
@@ -126,8 +123,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
         !DirectMirScalarCfgLoopFlowFactsReady(
             input.index, admitted.routines, routine_row,
             routine_ranges, input.foreach_facts) {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "range_facts", routine_ordinal, -1, -1, ""); return invalid;
+        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+            "range_facts", routine_ordinal, -1, -1, ""));
     }
     if !DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
         input.index, locals.local_names, types.local_types,
@@ -135,8 +132,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
         input.collections, logical_record, referenced_enum,
         signature.parameters
     ) {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "local_inventory", routine_ordinal, -1, -1, ""); return invalid;
+        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+            "local_inventory", routine_ordinal, -1, -1, ""));
     }
     let member_rebinds:
         DirectMirScalarProgramLogicalRecordMemberRebindFactSet =
@@ -158,8 +155,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
         ranges, routine_ranges, local_offset, block_offset,
         ArrayLength(input.index.block_starts));
     if !ranges.valid {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "range_projection", routine_ordinal, -1, -1, ""); return invalid;
+        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+            "range_projection", routine_ordinal, -1, -1, ""));
     }
     let values: DirectMirScalarCfgProgramValueStorage =
         DirectMirScalarCfgProgramValuesAppendRoutine(
@@ -173,8 +170,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
     var parameter_types: Array<String> = [];
     if !DirectMirScalarCfgProgramAppendParameterTypes(
             parameter_types, signature) {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "parameter_types", routine_ordinal, -1, -1, ""); return invalid;
+        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+            "parameter_types", routine_ordinal, -1, -1, ""));
     }
     // Keep block identity stable. Unreachable blocks still undergo complete
     // instruction admission; their flags must agree with the owned CFG edges.
@@ -183,8 +180,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
     var block: Int = 0;
     while block < ArrayLength(input.index.block_starts) {
         if input.index.block_reachable[block] != (reachable[block] >= 0) {
-            DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                "block_reachability_identity", routine_ordinal, block, -1, ""); return invalid;
+            refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                "block_reachability_identity", routine_ordinal, block, -1, ""); break;
         }
         let operation_start: Int = ArrayLength(operations.kinds);
         var condition_row: Int = -1;
@@ -208,17 +205,17 @@ func DirectMirScalarCfgProgramAppendRoutine(
             var expression_failure:
                 DirectMirScalarProgramExpressionAdmissionFailure =
                     DirectMirScalarProgramExpressionAdmissionFailureEmpty();
-            if !capture.valid { DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                "instruction_capture", routine_ordinal, block, global_row, source); return invalid; }
+            if !capture.valid { refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                "instruction_capture", routine_ordinal, block, global_row, source); break; }
             if DirectMirScalarCfgScalarTypeSupported(capture.abi_type_name) &&
                 !DirectMirInstructionHasNoPhysicalAbi(admitted.routines.source_json, admitted.routines.source_json_extent, capture, capture.abi_type_name) {
-                DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                    "scalar_physical_abi", routine_ordinal, block, global_row, source); return invalid;
+                refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                    "scalar_physical_abi", routine_ordinal, block, global_row, source); break;
             }
             if !DirectMirScalarProgramLogicalRecordInstructionReady(
                     logical_record, admitted.routines.source_json, admitted.routines.source_json_extent, capture) {
-                DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                    "logical_record_abi", routine_ordinal, block, global_row, source); return invalid;
+                refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                    "logical_record_abi", routine_ordinal, block, global_row, source); break;
             }
             option_int_abi =
                 DirectMirScalarProgramOptionIntAbiFromInstruction(
@@ -237,9 +234,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarCfgRangeFactAtInitGlobalRow(
                         routine_ranges, global_row);
                 if !range.valid || block != range.init_block {
-                    DirectMirScalarCfgProgramRoutineAdmissionFailed(
+                    refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
                         "range_init", routine_ordinal, block,
-                        global_row, source); return invalid;
+                        global_row, source); break;
                 }
             } else if kind == "def" || kind == "assign" {
                 let member_rebind:
@@ -265,17 +262,20 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         indexed_assignment);
                 if !definition.valid {
                     if expression_failure.present {
-                        DirectMirScalarCfgProgramExpressionAdmissionFailed(
+                        refusal = DirectMirScalarCfgProgramExpressionAdmissionRefusal(
                             global_row, source, expression_failure);
                     } else {
-                        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                            definition.failure_stage, routine_ordinal, block,
-                            global_row, source);
+                        // A copy: the refusal text outlives the definition.
+                        let failure_stage: String = Concat("", definition.failure_stage);
+                        refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                            failure_stage, routine_ordinal, block, global_row, source);
                     }
-                    return invalid;
                 }
+                // The call consumed both; a refused definition hands them back
+                // too, so the refusal return still carries them.
                 operations = definition.operations;
                 expressions = definition.expressions;
+                if refusal != "" { break; }
             } else if kind == "stmt" {
                 let statement: DirectMirScalarCfgProgramStatementAdmission =
                     DirectMirScalarCfgProgramAppendStatement(
@@ -291,37 +291,37 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         routine_ordinal);
                 if !statement.valid {
                     if expression_failure.present {
-                        DirectMirScalarCfgProgramExpressionAdmissionFailed(
+                        refusal = DirectMirScalarCfgProgramExpressionAdmissionRefusal(
                             global_row, source, expression_failure);
                     } else {
-                        DirectMirScalarCfgProgramRoutineAdmissionFailed(
+                        refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
                             "statement", routine_ordinal, block, global_row, source);
                     }
-                    return invalid;
                 }
                 operations = statement.operations;
                 expressions = statement.expressions;
+                if refusal != "" { break; }
             } else if kind == "phi" {
                 operations = DirectMirScalarCfgProgramOperationsAppendPhi(
                     operations, input.index, admitted, input.use_facts, routine_row,
                     block, instruction_row, locals, types, logical_record,
                     payload_free_enum, referenced_enum,
                     value_offset, block_offset);
-                if !operations.valid { DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                    "phi", routine_ordinal, block, global_row, source); return invalid; }
+                if !operations.valid { refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                    "phi", routine_ordinal, block, global_row, source); break; }
             } else if kind == "branch" {
                 let transfer: DirectMirScalarCfgControlTransferAdmission = DirectMirScalarCfgControlTransferFromOwners(
                     input.index, input.use_facts, source, global_row, block, instruction_row);
                 if transfer.claimed {
-                    if !transfer.valid { DirectMirScalarCfgProgramBranchTopologyAdmissionFailed(routine_ordinal, block, global_row, source); return invalid; }
+                    if !transfer.valid { refusal = DirectMirScalarCfgProgramBranchTopologyAdmissionRefusal(routine_ordinal, block, global_row, source); break; }
                 } else if source == "AST_FOR_LOOP" {
                     let range: DirectMirScalarCfgRangeIterationFact =
                         DirectMirScalarCfgRangeFactAtBranchGlobalRow(
                             routine_ranges, global_row);
                     if !range.valid || block != range.header_block {
-                        DirectMirScalarCfgProgramBranchTopologyAdmissionFailed(
+                        refusal = DirectMirScalarCfgProgramBranchTopologyAdmissionRefusal(
                             routine_ordinal, block, global_row, source);
-                        return invalid;
+                        break;
                     }
                     let condition_row_opt: Option<Int> =
                         DirectMirScalarCfgProgramAppendRangeConditionExpression(
@@ -333,14 +333,14 @@ func DirectMirScalarCfgProgramAppendRoutine(
                             logical_record, payload_free_enum,
                             referenced_enum, range);
                     if !IsSome(condition_row_opt) {
-                        DirectMirScalarCfgProgramExpressionAdmissionFailed(
+                        refusal = DirectMirScalarCfgProgramExpressionAdmissionRefusal(
                             global_row, source, expression_failure);
-                        return invalid;
+                        break;
                     }
                     condition_row = UnwrapOption(condition_row_opt);
                 } else {
                     if instruction_row + 1 != input.index.block_instruction_counts[block] || input.index.block_succ_true[block] < 0 ||
-                        input.index.block_succ_false[block] < 0 { DirectMirScalarCfgProgramBranchTopologyAdmissionFailed(routine_ordinal, block, global_row, source); return invalid; }
+                        input.index.block_succ_false[block] < 0 { refusal = DirectMirScalarCfgProgramBranchTopologyAdmissionRefusal(routine_ordinal, block, global_row, source); break; }
                     let condition_row_opt: Option<Int> =
                         DirectMirScalarCfgProgramAppendMatchConditionExpression(
                         expressions, expression_failure, instruction,
@@ -351,20 +351,20 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         routine_instances, routine_ordinal,
                         logical_record, payload_free_enum, referenced_enum,
                         option_int_abi);
-                    if !IsSome(condition_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source, expression_failure); return invalid; }
+                    if !IsSome(condition_row_opt) { refusal = DirectMirScalarCfgProgramExpressionAdmissionRefusal(global_row, source, expression_failure); break; }
                     condition_row = UnwrapOption(condition_row_opt);
                 }
             } else if kind == "return" {
                 if !DirectMirScalarCfgTerminalReturnShapeReady(
                         input.index, capture, block, instruction_row) {
-                    DirectMirScalarCfgProgramRoutineAdmissionFailed("return_shape", routine_ordinal, block, global_row, source); return invalid;
+                    refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal("return_shape", routine_ordinal, block, global_row, source); break;
                 }
                 if signature.return_type == "Void" {
                     if !DirectMirScalarCfgVoidReturnReady(
                             input.index, input.use_facts, instruction, capture,
                             global_row, block, instruction_row,
                             source, signature.return_type) {
-                        DirectMirScalarCfgProgramRoutineAdmissionFailed("void_return", routine_ordinal, block, global_row, source); return invalid;
+                        refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal("void_return", routine_ordinal, block, global_row, source); break;
                     }
                     return_row =
                         DirectMirScalarCfgVoidReturnExpressionRow();
@@ -375,7 +375,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         capture.expr0, capture.abi_type_name,
                         signature.return_type, logical_record,
                         referenced_enum) {
-                    DirectMirScalarCfgProgramRoutineAdmissionFailed("return_abi", routine_ordinal, block, global_row, source); return invalid;
+                    refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal("return_abi", routine_ordinal, block, global_row, source); break;
                 }
                 let return_row_opt: Option<Int> =
                     DirectMirScalarCfgProgramAppendTypedExpression(
@@ -386,11 +386,14 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         routine_instances, routine_ordinal,
                         logical_record, payload_free_enum, referenced_enum, 0,
                     signature.return_type, false);
-                if !IsSome(return_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source, expression_failure); return invalid; }
+                if !IsSome(return_row_opt) { refusal = DirectMirScalarCfgProgramExpressionAdmissionRefusal(global_row, source, expression_failure); break; }
                 return_row = UnwrapOption(return_row_opt);
-            } else { DirectMirScalarCfgProgramRoutineAdmissionFailed("instruction_kind", routine_ordinal, block, global_row, source); return invalid; }
+            } else { refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal("instruction_kind", routine_ordinal, block, global_row, source); break; }
             instruction_row = instruction_row + 1;
         }
+        // A refused instruction ends the routine; the tail below still
+        // returns every input it was handed, as a field-pack move needs.
+        if refusal != "" { break; }
         var true_target: Int = input.index.block_succ_true[block];
         var false_target: Int = input.index.block_succ_false[block];
         if routine_ordinal != 0 && signature.return_type == "Void" &&
@@ -416,22 +419,22 @@ func DirectMirScalarCfgProgramAppendRoutine(
         DirectMirScalarCfgProgramGraphStorage(
             values, blocks, operations, routines
         );
-    collection_ownership =
-        DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
-            collection_ownership, admitted.routines.source_json, admitted.routines.source_json_extent,
-            input.index, appended_storage, expressions, callables,
-             signature, logical_record,
-            routine_ordinal, local_offset, operation_offset
-        );
-    if !collection_ownership.valid {
-        DirectMirScalarCfgProgramRoutineAdmissionFailed(
-            "collection_ownership_transition", routine_ordinal,
-            -1, -1, ""
-        );
-        return invalid;
+    // One terminal return: a refused routine still hands back every input.
+    if refusal == "" {
+        collection_ownership =
+            DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
+                collection_ownership, admitted.routines.source_json, admitted.routines.source_json_extent,
+                input.index, appended_storage, expressions, callables,
+                signature, logical_record,
+                routine_ordinal, local_offset, operation_offset
+            );
+        if !collection_ownership.valid {
+            refusal = DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                "collection_ownership_transition", routine_ordinal, -1, -1, "");
+        }
     }
     return DirectMirScalarCfgProgramRoutineAdmission(
-        true, appended_storage, expressions,
+        refusal == "", appended_storage, expressions,
         option_int_abi, result_abi,
         option_string_abi, option_bool_abi, ranges,
         collection_ownership);
