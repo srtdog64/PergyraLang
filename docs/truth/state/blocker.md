@@ -40,8 +40,7 @@ Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
 
 ## Done since `6452bad92`
 
-- Slice<Int> element writes on the direct-MIR route (`LocalSliceIntSet`);
-  the bootstrap `self-host-array-index-type` gate passes locally.
+- `09990f45e`: Slice<Int> element writes on the direct-MIR route.
 - `bbbadc926`: a generic routine's Some/UnwrapOption has a result relation,
   so its summary matches the single-type routine; backend compare 4 and 7
   pass locally (988/988).
