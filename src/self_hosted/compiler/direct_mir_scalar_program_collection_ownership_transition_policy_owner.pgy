@@ -94,6 +94,14 @@ func DirectMirCollectionOwnershipNextState(
     if effect == 5 && state == DirectMirCollectionOwnershipStateOwned() {
         return DirectMirCollectionOwnershipStateOwned();
     }
+    // Effect 6 moves a retired local into a new binding: the destination
+    // takes the storage, so the source retires without a release. An owned
+    // row takes this move through the owned CFG flow, not here.
+    if effect == 6 && (state == DirectMirCollectionOwnershipStateEmpty() ||
+        state == DirectMirCollectionOwnershipStateBorrowed() ||
+        state == DirectMirCollectionOwnershipStateUnknown()) {
+        return DirectMirCollectionOwnershipStateRetired();
+    }
     // A member move owns its descriptor/storage but carries no proof that
     // every String element is releasable. Shallow mutation preserves that
     // uncertainty; deep release or owned-element mixing must not be inferred.

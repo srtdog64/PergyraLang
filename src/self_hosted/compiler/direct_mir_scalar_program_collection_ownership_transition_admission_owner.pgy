@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy"
 import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
 import "direct_mir_scalar_program_owned_collection_flow_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_binding_move_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_receipt_plan_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 import "direct_mir_scalar_program_array_string_replacement_owner.pgy";
@@ -213,12 +214,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 "unknown" &&
             index.collection_ownership_facts.element_ownerships[
                 ownership_row] == "unknown" && !retired;
-        if owned || literal || index.collection_ownership_facts.origins[ownership_row] ==
-                "empty-literal" ||
-                index.collection_ownership_facts.origins[ownership_row] ==
-                "member-move" ||
-                index.collection_ownership_facts.origins[ownership_row] ==
-                "binding" || retired || unknown {
+        let origin: String = index.collection_ownership_facts.origins[ownership_row];
+        if owned || literal || origin == "member-move" || origin == "binding" || retired || unknown {
             let binding: Int = index.collection_ownership_facts.
                 binding_syntax_ids[ownership_row];
             let local_end: Int = local_offset +
@@ -234,10 +231,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 DirectMirCollectionOwnershipUnknownLiteralStorageReady(
                     storage, expressions, routine, matched_local);
             let requires_transition: Bool = owned || literal ||
-                index.collection_ownership_facts.origins[ownership_row] ==
-                    "member-move" ||
-                index.collection_ownership_facts.origins[ownership_row] ==
-                    "binding" || retired ||
+                origin == "member-move" || origin == "binding" || retired ||
                 unknown_literal_storage ||
                 DirectMirCollectionOwnershipReceiptPlanHasReceiver(
                     receipt_plan, binding) ||
@@ -247,12 +241,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     storage.routines.operation_counts[routine], matched_local);
             if requires_transition {
                 if !owned && ArrayLength(index.block_starts) != 1 &&
-                    (index.collection_ownership_facts.origins[
-                         ownership_row] == "member-move" ||
-                     index.collection_ownership_facts.origins[
-                         ownership_row] == "binding" ||
-                     (retired && index.collection_ownership_facts.origins[
-                          ownership_row] != "empty-literal")) {
+                    (origin == "member-move" || origin == "binding" ||
+                     (retired && origin != "empty-literal")) {
                     return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                 }
                 ArrayPush(routines, routine);
@@ -321,10 +311,13 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
         let receipt_source: Int =
             receipt_plan.source_binding_syntax_ids[receipt_row];
         var local_row: Int = -1;
-        let expected_effect: Int =
-            DirectMirCollectionOwnershipExpectedOperationEffect(
-                storage, expressions, operation, receipt_effect, local_row
-            );
+        var expected_effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(
+            storage, expressions, operation, receipt_effect, local_row);
+        if local_row < 0 && !receipt_present {
+            local_row = DirectMirCollectionOwnershipBindingMoveSource(index, storage, expressions,
+                operation, local_offset, local_offset + storage.routines.local_counts[routine]);
+            if local_row >= 0 { expected_effect = 6; }
+        }
         let tracked: Int =
             DirectMirCollectionOwnershipTrackedRowForLocal(
                 routines, locals, routine, local_row
@@ -339,6 +332,12 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 cfg_index = cfg_index + 1;
             }
             if expected_effect == 0 && !receipt_present {
+                next = states[tracked];
+            } else if cfg_tracked && (expected_effect == 2 || expected_effect == 6) && !receipt_present {
+                // The CFG owner that computed this row's terminal (the owned
+                // flow or the receipt fixed point) applied this shallow
+                // mutation or binding move at its own state. A move it did not
+                // model leaves a retired claim unmet, which fails below.
                 next = states[tracked];
             } else if cfg_tracked {
                 if states[tracked] ==
@@ -369,6 +368,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     }
                 }
                 next = states[tracked];
+            } else if expected_effect == 6 {
+                next = DirectMirCollectionOwnershipNextState(states[tracked], 6);
             } else if states[tracked] ==
                     DirectMirCollectionOwnershipStateUnknown() {
                 if expected_effect != 2 || receipt_present {

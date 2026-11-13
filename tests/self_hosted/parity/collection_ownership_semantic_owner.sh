@@ -645,6 +645,71 @@ for backend in c llvm; do
         "$WORK_DIR/map-keys-retirement-broadened-$backend.err" ||
         fail "direct $backend broad-retirement refusal lost its stage"
 done
+# A field restore retires the member-moved local only when the rebind stores
+# it into the exact field its MIR row names. Point the row at another
+# declaration and the restore no longer matches, so the retired claim fails.
+RESTORE_MISFIELD_REL="$WORK_REL/collection-field-restore-misfield.mir.json"
+python - "$ROOT_DIR/$WORK_REL/collection_field_restore_valid.mir.json" \
+        "$ROOT_DIR/$RESTORE_MISFIELD_REL" <<'PY'
+import json, pathlib, sys
+source, output = map(pathlib.Path, sys.argv[1:])
+program = json.loads(source.read_text(encoding="utf-8"))
+facts = program["routines"][0]["collection_ownership_facts"]
+assert len(facts) == 1 and facts[0]["origin"] == "member-move"
+assert facts[0]["disposition"] == "retired"
+facts[0]["origin_syntax_id"] = facts[0]["function_syntax_id"]
+output.write_text(json.dumps(program, separators=(",", ":")), encoding="utf-8")
+PY
+for backend in c llvm; do
+    output_rel="$WORK_REL/collection-field-restore-misfield.$backend"
+    marker="preserved:collection-field-restore-misfield:$backend"
+    printf '%s\n' "$marker" >"$ROOT_DIR/$output_rel"
+    if (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$RESTORE_MISFIELD_REL" "$backend" "$output_rel") \
+        >"$WORK_DIR/collection-field-restore-misfield-$backend.out" \
+        2>"$WORK_DIR/collection-field-restore-misfield-$backend.err"; then
+        fail "direct $backend retired a restore into a field its row does not name"
+    fi
+    [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
+        fail "direct $backend misfield restore refusal replaced its artifact"
+    grep -Fq 'stage=collection_ownership_transition' \
+        "$WORK_DIR/collection-field-restore-misfield-$backend.out" \
+        "$WORK_DIR/collection-field-restore-misfield-$backend.err" ||
+        fail "direct $backend misfield restore refusal lost its stage"
+done
+# A borrowed binding move retires its source only when the destination's MIR
+# row names that source. Name the destination itself and the move no longer
+# matches, so the source's retired claim fails.
+MOVE_UNNAMED_REL="$WORK_REL/borrowed-binding-move-unnamed.mir.json"
+python - "$ROOT_DIR/$WORK_REL/borrowed_string_array_shallow_copy.mir.json" \
+        "$ROOT_DIR/$MOVE_UNNAMED_REL" <<'PY'
+import json, pathlib, sys
+source, output = map(pathlib.Path, sys.argv[1:])
+program = json.loads(source.read_text(encoding="utf-8"))
+facts = program["routines"][0]["collection_ownership_facts"]
+moved = [f for f in facts if f["origin"] == "binding"]
+assert len(facts) == 2 and len(moved) == 1
+assert any(f["disposition"] == "retired" for f in facts if f["origin"] != "binding")
+moved[0]["source_binding_syntax_id"] = moved[0]["binding_syntax_id"]
+output.write_text(json.dumps(program, separators=(",", ":")), encoding="utf-8")
+PY
+for backend in c llvm; do
+    output_rel="$WORK_REL/borrowed-binding-move-unnamed.$backend"
+    marker="preserved:borrowed-binding-move-unnamed:$backend"
+    printf '%s\n' "$marker" >"$ROOT_DIR/$output_rel"
+    if (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$MOVE_UNNAMED_REL" "$backend" "$output_rel") \
+        >"$WORK_DIR/borrowed-binding-move-unnamed-$backend.out" \
+        2>"$WORK_DIR/borrowed-binding-move-unnamed-$backend.err"; then
+        fail "direct $backend retired a move source its destination does not name"
+    fi
+    [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
+        fail "direct $backend unnamed move refusal replaced its artifact"
+    grep -Fq 'stage=collection_ownership_transition' \
+        "$WORK_DIR/borrowed-binding-move-unnamed-$backend.out" \
+        "$WORK_DIR/borrowed-binding-move-unnamed-$backend.err" ||
+        fail "direct $backend unnamed move refusal lost its stage"
+done
 for name in borrowed_string_array_shallow_copy \
         unknown_string_array_alias_without_drop string_array_clone_independence; do
     mir_rel="$WORK_REL/$name.mir.json"

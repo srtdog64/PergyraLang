@@ -1,0 +1,56 @@
+// A record member rebind that stores a member-moved local back into the exact
+// field it was moved from consumes that local. The MIR ownership row must
+// already say so (origin member-move, disposition retired); this owner only
+// matches the operation to that row: the rebound value, the record and the
+// field must all be the row's.
+import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+
+// The restored local's row, or -1 when the operation restores nothing.
+func DirectMirCollectionOwnershipMemberRestoreLocal(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    operation: Int, local_start: Int, local_end: Int
+) -> Int {
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) ||
+        storage.operations.kinds[operation] != DirectMirScalarCfgOpLogicalRecordMemberRebind() {
+        return -1;
+    }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) { return -1; }
+    let root: Int = expressions.graph_roots[graph];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[root] != DirectMirScalarProgramExprLocal() { return -1; }
+    let value_local: Int = expressions.node_local_rows[root];
+    let record_value: Int = storage.operations.result_values[operation];
+    if record_value < 0 || record_value >= ArrayLength(storage.values.value_local_rows) { return -1; }
+    let record_local: Int = storage.values.value_local_rows[record_value];
+    if record_local < local_start || record_local >= local_end { return -1; }
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(
+        logical_record, storage.values.local_types[record_local]);
+    let member: Int = storage.operations.right_locals[operation];
+    if record < 0 || member < 0 || member >= logical_record.field_counts[record] { return -1; }
+    let field_syntax_id: Int = logical_record.field_source_syntax_ids[
+        logical_record.field_starts[record] + member];
+    var matched: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(index.collection_ownership_facts.binding_syntax_ids) {
+        if index.collection_ownership_facts.origins[row] == "member-move" &&
+            index.collection_ownership_facts.dispositions[row] == "retired" &&
+            index.collection_ownership_facts.origin_syntax_ids[row] == field_syntax_id &&
+            DirectMirCollectionOwnershipBindingLocalRow(index, storage,
+                index.collection_ownership_facts.binding_syntax_ids[row], local_start, local_end) == value_local &&
+            DirectMirCollectionOwnershipBindingLocalRow(index, storage,
+                index.collection_ownership_facts.source_binding_syntax_ids[row], local_start, local_end) == record_local {
+            if matched >= 0 { return -1; }
+            matched = value_local;
+        }
+        row = row + 1;
+    }
+    return matched;
+}

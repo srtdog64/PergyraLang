@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_site_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_member_restore_owner.pgy";
 
 func DirectMirOwnedCollectionMemberMoveLifecycleReady(
     ref index: MirRoutineFactIndex, row: Int
@@ -215,6 +216,15 @@ func DirectMirOwnedCollectionBlockOutput(
                 callables, storage, expressions, operation, target) {
             // An `own Array<String>` formal takes the current allocation; the
             // program-wide move fact proves last use and cleanup skips it.
+            if state % 8 != 2 { return 0; }
+            var prior: Int = 0;
+            if state >= 8 { prior = 8; }
+            state = 4 + prior;
+        } else if DirectMirCollectionOwnershipMemberRestoreLocal(index, storage, expressions,
+                logical_record, operation, local_start, local_end) == target {
+            // A member-moved local stored back into the exact field it came
+            // from: the record owns that storage again, so the local retires
+            // without a release of its own.
             if state % 8 != 2 { return 0; }
             var prior: Int = 0;
             if state >= 8 { prior = 8; }

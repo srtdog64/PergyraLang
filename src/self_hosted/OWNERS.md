@@ -5473,6 +5473,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- normalized DEF/local-ref and actual canonical producer operand admission.
 - `src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_block_owner.pgy`
   -- evaluated birth/move/drop operations within admitted CFG blocks.
+- `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_member_restore_owner.pgy`
+  -- matches a record member rebind that stores a member-moved local back into
+  the exact field its retired MIR row names; the block owner then retires the
+  local without a release of its own.
+- `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_binding_move_owner.pgy`
+  -- matches `let alias = source;` to a retired source row and the destination
+  row that names it; the transition admission then retires the borrowed or
+  unknown source without a release. Owned rows take the move in the CFG flow.
 - `src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_flow_owner.pgy`
   -- owned-local generation state across admitted CFG edges; no scope-exit retirement.
 - `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy`
