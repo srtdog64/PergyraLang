@@ -273,11 +273,9 @@ record_default_struct_field_moves(MoveWalk *walk, MoveState *state,
                 callee_name, callee, param_name, lends ? call : NULL, 0,
                 NULL, argument, copy_on_reuse, outward_borrow_escape))
             break;
-        /* The callee does not preserve this field: it changed the storage
-         * even when it hands it back through its result, so every other
-         * copy of the argument's field is stale from here on. */
-        move_walk_copy_changed_at(walk, state, argument, binding,
-            path, copy_on_reuse);
+        if (!lends)
+            move_walk_copy_changed_at(walk, state, argument, binding,
+                path, copy_on_reuse);
     }
     return true;
 }
