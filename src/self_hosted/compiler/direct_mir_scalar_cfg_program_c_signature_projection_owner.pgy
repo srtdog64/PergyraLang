@@ -58,9 +58,7 @@ func DirectMirScalarCfgProgramCSignature(ref plan: DirectMirScalarCfgGraphPlan,
         }
         return "int main(void)";
     }
-    // A routine the program never calls (an override body a subject call
-    // does not reach) is still emitted; `unused` keeps -Wall -Werror quiet.
-    var output: String = Concat("static __attribute__((unused)) ", Concat(
+    var output: String = Concat("static ", Concat(
         DirectMirScalarCfgProgramCTypeWithReferencedEnum(
             plan.routines.return_types[routine], int_c_type,
             plan.program.logical_record,
@@ -136,7 +134,10 @@ func DirectMirScalarCfgProgramCSignature(ref plan: DirectMirScalarCfgGraphPlan,
         ordinal = ordinal + 1;
     }
     output = Concat(output, ")");
-    if prototype { return Concat(output, ";\n"); }
+    // A routine the program never calls (an override body a subject call
+    // does not reach) is still emitted. Its prototype marks it `unused` for
+    // -Wall -Werror; the attribute carries to the definition.
+    if prototype { return Concat(output, " __attribute__((unused));\n"); }
     return output;
 }
 

@@ -1,6 +1,5 @@
 // Callable parameter-role schema and per-kind readiness.
 
-import "direct_mir_scalar_program_readonly_value_parameter_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";

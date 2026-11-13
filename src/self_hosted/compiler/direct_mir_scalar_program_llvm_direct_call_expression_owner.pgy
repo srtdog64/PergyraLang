@@ -1,5 +1,4 @@
 // LLVM direct-call instruction from ordered GraphPlan arguments.
-import "direct_mir_scalar_program_readonly_value_parameter_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
@@ -112,10 +111,8 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
             routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(
             expressions, routines, logical_record, routine, argument_node, value);
-    } else if !DirectMirScalarProgramReadonlyStringTargetAt(
-            routines, callable, argument) &&
-        !DirectMirScalarProgramReadonlyValueTargetAt(
-            routines, callable, argument) {
+    } else if !DirectMirScalarProgramReadonlyStringTargetAt(routines, callable, argument) &&
+        !DirectMirScalarProgramReadonlyValueTargetAt(routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmLogicalRecordCallArgument(
             expressions, routines, logical_record, routine, callable,
             argument, argument_node, value);
@@ -174,12 +171,8 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
             DirectMirScalarProgramPayloadFreeEnumTypeReady(
                 payload_free_enum, argument_types[ordinal]);
         // A read-only scalar or Slice passes its value.
-        let readonly_value: Bool =
-            argument_carriages[ordinal] == "readonly-ref" &&
-            DirectMirScalarProgramReadonlyValueTypeSupported(argument_types[ordinal]);
-        if (argument_carriages[ordinal] == "readonly-ref" &&
-                !readonly_hashmap && !readonly_payload_free_enum &&
-                !readonly_value) ||
+        let readonly_value: Bool = argument_carriages[ordinal] == "readonly-ref" && DirectMirScalarProgramReadonlyValueTypeSupported(argument_types[ordinal]);
+        if (argument_carriages[ordinal] == "readonly-ref" && !readonly_hashmap && !readonly_payload_free_enum && !readonly_value) ||
             argument_carriages[ordinal] == "mutable-identity" ||
             argument_carriages[ordinal] == "participant" ||
             argument_carriages[ordinal] == "value-result" {

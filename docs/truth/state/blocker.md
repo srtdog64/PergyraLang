@@ -20,20 +20,18 @@ Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
    write summary). Native also admits a String read after it moved into an
    `own` formal, local or struct field, in the known ArrayDropOwnedStrings
    family.
-2. Core shard step 5 (role override): the general scalar route claims role
-   programs and accepts two MIR mutants (`direct_override_as_ability_impl`,
-   `role-source-id`); it rejects the other 14. Refusing role declarations
-   there sends the program to the old role override route, which dies on
-   current MIR ("routine facts are invalid"). Either the MIR declaration
-   validation rejects the two mutants and the gate checks the general
-   emitter, or the old route is repaired.
-3. Core shard step 24 (containment): a direct-MIR routine refusal still
-   ends in Die, so JSON mode prints "receipt is malformed". Carrying the
-   refusal out of the routine fold makes the self-host refuse the driver
-   source (`aggregate_release_incomplete`, `alias_assignment_restoration`
-   on the `routine_state` rebinding).
-4. Bootstrap `self-host-array-index-type`: C passes; direct-MIR LLVM has no
-   Slice element write (`view[0] = 7` fails graph-use completeness).
+2. Core shard step 24 (containment): a direct-MIR routine refusal still
+   ends in Die, so JSON mode prints "receipt is malformed". The fold proves
+   `routine_state = DirectMirScalarCfgProgramAppendRoutine(...)` a field-pack
+   move only when every reachable return carries each field; today the
+   failure returns follow a Die and are unreachable. A non-dying refusal
+   makes them reachable and the driver source is refused.
+3. Bootstrap `self-host-array-index-type`: C passes; direct-MIR LLVM has no
+   Slice element write. A `LocalSliceIntSet` operation reaches plan
+   verification and fails an unnamed readiness check (`program_readiness=0`).
+4. Locally, core step 5 fails only on WSL: `wslpath -w` turns the repo root
+   into a `wsl.localhost` UNC path, so the struct argument gate's path check
+   fails; with a pass-through `wslpath` the step passes.
 5. Contracts 3: the identity cell probe build takes 300+ s against 120 s;
    33 landing rounds ([record](../evidence/2026-11-13_identity_probe_landing_rounds.md)).
 6. Contracts 4 ownership semantic: the LLVM route refuses

@@ -407,3 +407,4 @@ src/self_hosted/compiler/direct_mir_scalar_cfg_range_scope_query_owner.pgy|60
 src/self_hosted/compiler/direct_mir_scalar_cfg_range_graph_shape_owner.pgy|35
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy|165
 src/self_hosted/compiler/direct_mir_scalar_program_expression_source_range_owner.pgy|45
+src/self_hosted/compiler/direct_mir_scalar_program_role_declaration_owner.pgy|20

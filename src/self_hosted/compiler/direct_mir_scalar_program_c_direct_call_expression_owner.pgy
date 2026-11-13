@@ -1,5 +1,4 @@
 // C direct-call syntax from ordered GraphPlan argument values.
-import "direct_mir_scalar_program_readonly_value_parameter_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
@@ -60,11 +59,9 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
     }
     if DirectMirScalarProgramReadonlyStringTargetAt(
             routines, callable, argument) { return value; }
-    if routines.parameter_carriages[parameter_row] == "readonly-ref" &&
-        (CollectionHashMapRuntimeFactFromTypeName(
+    if routines.parameter_carriages[parameter_row] == "readonly-ref" && (CollectionHashMapRuntimeFactFromTypeName(
             routines.parameter_types[parameter_row]).ok ||
-         DirectMirScalarProgramReadonlyValueTypeSupported(
-            routines.parameter_types[parameter_row])) { return value; }
+        DirectMirScalarProgramReadonlyValueTypeSupported(routines.parameter_types[parameter_row])) { return value; }
     if DirectMirScalarProgramOpaqueReadonlyZoneRow(
             plan.program.opaque_readonly_zones,
             routines.parameter_types[parameter_row]) >= 0 {

@@ -214,7 +214,9 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
         index_use_offset = 0;
     }
     var index_expression: Option<Int> = None;
-    if index_literal != "" {
+    // A local target's index is read from its own target graph, literal or
+    // not, so every node of that graph is used once.
+    if index_literal != "" && !local_fact.valid {
         index_expression = DirectMirScalarCfgProgramAppendIntLiteralExpression(
             expressions, global_row, index_literal);
     } else {
@@ -226,10 +228,7 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
             index_use_offset, false, CompilerAbiLayoutIntTypeName(),
             index_root);
     }
-    if local_fact.valid {
-        value_use_offset = DirectMirScalarProgramIndexedAssignmentValueUseOffset(
-            instruction, index_use_offset);
-    } else { value_use_offset = index_use_offset; }
+    if local_fact.valid { value_use_offset = DirectMirScalarProgramIndexedAssignmentValueUseOffset(instruction, index_use_offset); } else { value_use_offset = index_use_offset; }
     if value_use_offset < 0 {
         return DirectMirScalarProgramIndexedAssignmentRoute(true, false, "indexed_assignment_value_use", operations, expressions);
     }

@@ -292,11 +292,12 @@ func DirectMirRoleOverrideLiteralFromRoutine(
     );
 }
 
+// The constructor call names the subject declaration it constructs.
 func DirectMirRoleOverrideConstructorGraphValue(
     ref sequence: MirExpressionGraphSequence,
-    subject_name: String
+    subject_name: String, subject_syntax_id: Int
 ) -> Option<Int> {
-    if !DirectMirRoleOverrideGraphIdentitiesMatch(sequence, -1, 0) ||
+    if !DirectMirRoleOverrideGraphIdentitiesMatch(sequence, 1, subject_syntax_id) ||
         sequence.ready_node_count != 4 || ArrayLength(sequence.roots) != 1 ||
         sequence.roots[0] != 3 ||
         sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
@@ -360,7 +361,8 @@ func DirectMirRoleOverrideMainFromRoutine(
     routine_row: Int,
     subject_name: String,
     method_name: String,
-    source_module_path: String, member_target_syntax_id: Int
+    source_module_path: String, member_target_syntax_id: Int,
+    subject_syntax_id: Int
 ) -> DirectMirRoleOverrideMainFact {
     let invalid: DirectMirRoleOverrideMainFact =
         InvalidDirectMirRoleOverrideMainFact();
@@ -461,7 +463,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         );
     let constructor_value: Option<Int> =
         DirectMirRoleOverrideConstructorGraphValue(
-            definition_graph, subject_name
+            definition_graph, subject_name, subject_syntax_id
         );
     let log_expression: MirProgramInstructionExpressionFact =
         MirProgramInstructionExpressionIndexAt(
@@ -765,7 +767,8 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
         DirectMirRoleOverrideMainFromRoutine(
             admitted, main_row,
             admitted.routines.declarations.names[subject_row],
-            subject_method_name, module_path, subject_literal.source_syntax_id
+            subject_method_name, module_path, subject_literal.source_syntax_id,
+            ToInt(UnwrapOption(subject_source))
         );
     if !subject_literal.valid || !role_literal.valid || !main.valid {
         Die("direct MIR role override routine facts are invalid");

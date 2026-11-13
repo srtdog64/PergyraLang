@@ -10,6 +10,7 @@ import "direct_mir_scalar_program_callable_signature_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
+import "direct_mir_scalar_program_role_declaration_owner.pgy";
 import "codegen_route_refusal_owner.pgy";
 import "direct_mir_identity_cell_type_join_owner.pgy";
 import "direct_mir_scalar_program_logical_record_validation_receipt_owner.pgy";
@@ -29,7 +30,7 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
 ) -> Bool {
     if owner == "scalar-program-route" {
         return stage == "ready" || stage == "routine-count" || stage == "routine-instance" ||
-            stage == "declaration-index" ||
+            stage == "declaration-index" || stage == "role-declaration" ||
             stage == "opaque-readonly-zone" ||
             stage == "logical-record" || stage == "referenced-enum" ||
             stage == "payload-free-enum" ||
@@ -136,14 +137,12 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             "scalar-program-route", "routine-instance", -1, "", -1, routine_instances.diagnostic, "");
     }
     let routine_count: Int = ArrayLength(routine_instances.source_rows);
-    if routine_count < 1 {
-        return DirectMirScalarProgramRouteAdmissionRejected(
-            "scalar-program-route", "routine-count", -1, "", -1, "", "");
-    }
-    if !JsonArrayObjectFactTableReady(admitted.document.declarations) {
-        return DirectMirScalarProgramRouteAdmissionRejected(
-            "scalar-program-route", "declaration-index", -1, "", -1, "", "");
-    }
+    if routine_count < 1 { return DirectMirScalarProgramRouteAdmissionRejected(
+        "scalar-program-route", "routine-count", -1, "", -1, "", ""); }
+    if !JsonArrayObjectFactTableReady(admitted.document.declarations) { return DirectMirScalarProgramRouteAdmissionRejected(
+        "scalar-program-route", "declaration-index", -1, "", -1, "", ""); }
+    if DirectMirScalarProgramRoleDeclarationPresent(admitted.routines.declarations) { return DirectMirScalarProgramRouteAdmissionRejected(
+        "scalar-program-route", "role-declaration", -1, "", -1, "", ""); }
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactFromAdmitted(admitted, routine_instances);
     if !DirectMirScalarProgramReferencedEnumFactReady(referenced_enum) {
