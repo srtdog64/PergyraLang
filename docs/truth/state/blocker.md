@@ -1,7 +1,7 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
-`bbbadc926`, with the working changes on the WSL side tree.
+Owner: Claude root lane. Checked 2026-11-14 on `ci/all-green` at `0d35d1238`
+on the WSL tree; CI run 43477748900 is the last full run (at `d78654846`).
 
 ## Objective card
 
@@ -14,43 +14,33 @@ Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
 
 ## Open, in dependency order
 
-1. Native admits 28 negative fixtures that fail under ASan
+1. Contracts 3: the identity cell probe's native build takes 300+ s locally
+   (about 200 s estimated on CI) against 120 s; 33 landing rounds
+   ([record](../evidence/2026-11-13_identity_probe_landing_rounds.md)).
+   Built by the installed self-host driver instead, it emits C in 159 s
+   (measured while another build ran) plus 24 s of gcc, at 12.8 GB peak RSS.
+2. Contracts 4 ownership semantic: the gate now stops at
+   `unknown_string_array_alias_without_drop` on the native C path. Native
+   marks the callee's literal result an owned-element candidate
+   (`return_elements_owned`), so `let alias = returned;` needs an owned-result
+   proof that `semantic_array_storage_owned_string_result_current` does not
+   find. Later gate sections have not run on CI since 2026-11-12.
+3. Native admits 28 negative fixtures that fail under ASan
    ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
-   Eight share the lending-callee cause (the fix belongs in the formal's
-   write summary). Native also admits a String read after it moved into an
-   `own` formal, local or struct field, in the known ArrayDropOwnedStrings
-   family.
-2. A direct-MIR routine the scalar route cannot admit ends in Die, so a
-   JSON-selected request prints "receipt is malformed": core step 24
-   (containment) and the bootstrap CLI smoke's public LLVM IR receipt gate,
-   whose three Float programs the route now claims (one compiles
-   runtime-equal; two die in expression admission). The fold proves
-   `routine_state = DirectMirScalarCfgProgramAppendRoutine(...)` a field-pack
-   move only when every reachable return carries each field; the failure
-   returns follow a Die today, so a non-dying refusal is refused there.
-3. Locally, core step 5 fails only on WSL: `wslpath -w` turns the repo root
-   into a `wsl.localhost` UNC path, so the struct argument gate's path check
-   fails; with a pass-through `wslpath` the step passes.
-4. Contracts 3: the identity cell probe build takes 300+ s against 120 s;
-   33 landing rounds ([record](../evidence/2026-11-13_identity_probe_landing_rounds.md)).
-5. Contracts 4 ownership semantic: the LLVM route refuses
-   `collection_field_restore_valid` at `collection_ownership_transition`.
-6. The self-host MIR route carries no compiler `Clone`; only its semantic C
+4. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
+   root); a pass-through `wslpath` shim makes it pass.
+5. The self-host MIR route carries no compiler `Clone`; only its semantic C
    route does.
 
-## Done since `6452bad92`
+## Done since `d78654846`
 
-- `09990f45e`: Slice<Int> element writes on the direct-MIR route.
-- `bbbadc926`: a generic routine's Some/UnwrapOption has a result relation,
-  so its summary matches the single-type routine; backend compare 4 and 7
-  pass locally (988/988).
-- `5bf70e773`, `47fd47cc5`: unused routines marked on their prototype; Slice
-  index type and element write on the semantic C route; read-only ref of a
-  scalar or Slice passed by value; a struct field String moved into an `own`
-  formal when the field read is the struct's only use; one native borrow
-  escape for a read-only ref passed inout; role programs back on the role
-  override route; local Array writes with a literal index. Core shard
-  passes 54 of 55 locally.
+- `85c05361d`: a routine the scalar route cannot admit is a typed
+  `CodegenRouteRefusal`, not a Die; core step 24 and the public LLVM IR
+  receipt gate pass. Core shard 55/55 and the CLI smoke pass locally.
+- `0d35d1238`: field restore, CFG-proved shallow mutation and borrowed or
+  unknown binding moves admitted from their MIR facts, with two negatives.
+- `09990f45e`, `bbbadc926`, `5bf70e773`, `47fd47cc5`: Slice<Int> writes,
+  generic summaries, role programs, unused routines, literal-index writes.
 
 ## Falsifiers kept
 
@@ -58,3 +48,5 @@ Owner: Claude root lane. Checked 2026-11-13 on `ci/all-green` after
   transfers of storage a constructor kept stay refused natively.
 - A struct read after its String field moved into an `own` formal is
   refused by the self-host.
+- A field restore whose MIR row names another field, and a binding move
+  whose destination row does not name its source, are refused on C and LLVM.
