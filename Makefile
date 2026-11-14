@@ -5316,6 +5316,13 @@ self-host-semantic-owner-probe-build: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_owner_probe_build.sh \
 		"$(SEMANTIC_OWNER_PROBE_DIR)" $(SEMANTIC_OWNER_PROBE_BUILD_SECONDS)
 
+# The identity cell receiver probe is one program of the shared build above.
+.PHONY: self-host-identity-cell-receiver-test-smoke
+self-host-identity-cell-receiver-test-smoke: $(PGY) self-host-compiler self-host-semantic-owner-probe-build
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" \
+		python3 tests/concept_semantics/identity_cell_receiver_execution.py \
+		"$(abspath $(PGY))" "$(abspath $(SELF_HOST_DRIVER))"
+
 self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh

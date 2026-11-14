@@ -12,10 +12,14 @@
 # run `make self-host-semantic-owner-probe-build` and export
 # PGY_SEMANTIC_OWNER_PROBE_DIR first.
 #
-# Programs: `probe` holds every merged probe.
+# Programs: `probe` holds every merged probe that imports the semantic owners;
+# `identity` is the identity cell receiver probe, which imports the direct-MIR
+# admission owner (tests/concept_semantics/identity_cell_receiver_execution.py
+# takes it through `pgy_semantic_owner_probe_binary`).
 
 PGY_SEMANTIC_OWNER_PROBE_PROGRAMS=(
     "probe|tests/self_hosted/fixtures/semantic_owner_probe.pgy"
+    "identity|tests/self_hosted/parity/fixture/identity_cell_receiver_probe.pgy"
 )
 
 pgy_semantic_owner_probe_error() {
@@ -24,8 +28,11 @@ pgy_semantic_owner_probe_error() {
 }
 
 pgy_semantic_owner_probe_inputs() {
-    (cd "$1" && find src/self_hosted tests/self_hosted/fixtures -name '*.pgy' -type f -print0 \
-        | LC_ALL=C sort -z | xargs -0 sha256sum)
+    local row
+    (cd "$1" && {
+        find src/self_hosted tests/self_hosted/fixtures -name '*.pgy' -type f -print0
+        for row in "${PGY_SEMANTIC_OWNER_PROBE_PROGRAMS[@]}"; do printf '%s\0' "${row#*|}"; done
+    } | LC_ALL=C sort -zu | xargs -0 sha256sum)
 }
 
 pgy_semantic_owner_probe_binaries() {
@@ -83,6 +90,21 @@ pgy_semantic_owner_probe_validate() {
         pgy_semantic_owner_probe_error "shared build predates the current probe sources" || return 1
     (cd "$dir" && sha256sum --quiet -c probes.sha256) ||
         pgy_semantic_owner_probe_error "shared build binaries changed after their receipt" || return 1
+}
+
+# usage: pgy_semantic_owner_probe_binary ROOT PGY BACKEND PROGRAM
+# Prints the shared build's binary for PROGRAM once its receipts match.
+pgy_semantic_owner_probe_binary() {
+    local root="$1" pgy="$2" backend="$3" program="$4"
+    local dir="${PGY_SEMANTIC_OWNER_PROBE_DIR:-}"
+    [[ -n "$dir" ]] ||
+        pgy_semantic_owner_probe_error "PGY_SEMANTIC_OWNER_PROBE_DIR is unset; run the gate through make" || return 1
+    dir="$(cd "$dir" && pwd -P)" ||
+        pgy_semantic_owner_probe_error "shared build directory is missing: $dir" || return 1
+    pgy_semantic_owner_probe_validate "$root" "$pgy" "$dir" || return 1
+    [[ -x "$dir/$backend-$program.exe" ]] ||
+        pgy_semantic_owner_probe_error "shared build lacks $backend-$program.exe" || return 1
+    printf '%s\n' "$dir/$backend-$program.exe"
 }
 
 # usage: pgy_semantic_owner_probe_install ROOT PGY BACKEND MODE LAUNCHER

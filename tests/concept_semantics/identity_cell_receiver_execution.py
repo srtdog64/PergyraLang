@@ -6,9 +6,12 @@ shared C/LLVM projection of each MIR document is the given driver's
 compiles and MIR, so it does not certify the public driver's front end.
 Only fixed valid source controls execute.
 
-The probe itself is built by the given driver on the public C route. It
-imports most of the direct-MIR compiler, and the native pipeline's landing
-fixed point takes several times this gate's build limit on it.
+The probe imports the direct-MIR admission owner, so it is built once per job
+with the other such probes (docs/truth/decisions/
+2026-11-11_semantic_owner_probes_merge_into_one_build.md): run this gate
+through `make self-host-identity-cell-receiver-test-smoke`, which builds that
+set and names it in PGY_SEMANTIC_OWNER_PROBE_DIR. The gate takes the native C
+build only through its receipts and never builds the probe.
 """
 import copy
 import hashlib
@@ -126,11 +129,14 @@ def main():
         print(f"[identity-cell-receiver] {'PASS' if passed else 'FAIL'}: {label}", flush=True)
 
     probe_source = root / "tests/self_hosted/parity/fixture/identity_cell_receiver_probe.pgy"
-    probe = work / "probe.exe"
-    build = run("probe-build", [native, probe_source, "--backend=c", "--opt=dev", "-o", probe], 120)
-    if build.returncode:
-        print(build.stdout.decode(errors="replace") + build.stderr.decode(errors="replace"))
+    shared = subprocess.run(
+        ["bash", "-c", 'source tests/self_hosted/parity/semantic_owner_probe_owner.sh && '
+         'pgy_semantic_owner_probe_binary "$@"', "_", str(root), str(native), "c", "identity"],
+        cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if shared.returncode or not shared.stdout.strip():
+        print(shared.stderr.decode(errors="replace"))
         return 1
+    probe = pathlib.Path(shared.stdout.decode().strip())
     hashes = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in (native, driver, probe_source, probe)}
     cases = [
         ("authority_effect/action_authority_valid.pgy", "0\n"),
