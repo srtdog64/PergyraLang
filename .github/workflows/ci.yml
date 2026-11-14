@@ -301,7 +301,6 @@ jobs:
             self-host-direct-mir-nested-intent-program-llvm-test-smoke \
             self-host-driver-source-c-execution-action-test-smoke \
             self-host-installed-driver-cli-mode-test-smoke
-          PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
 
       - name: Hand the seed side to the fixed-point join
         uses: actions/upload-artifact@v4
@@ -309,6 +308,7 @@ jobs:
           name: self-host-fixed-point-seed-part
           path: |
             .tmp/self_hosted/driver/bootstrap/driver_seed.c
+            .tmp/self_hosted/driver/bootstrap/driver_seed.exe
             .tmp/self_hosted/driver/bootstrap/sample_self.c
             .tmp/self_hosted/driver/bootstrap/bounded_seed.mir.json
             .tmp/self_hosted/driver/bootstrap/bounded_seed.c
@@ -424,6 +424,13 @@ jobs:
           PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1 \
           PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt" \
           make self-host-driver-bootstrap-full-test-smoke
+
+      # The policy corpus runs each manifest through the seed driver and the
+      # native oracle driver; only this job holds both.
+      - name: Run the bootstrap policy corpus on both drivers
+        run: |
+          chmod +x .tmp/self_hosted/driver/bootstrap/driver_seed.exe
+          PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
 
       - name: Publish the exact fixed-point profile receipt
         uses: actions/upload-artifact@v4
