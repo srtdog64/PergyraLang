@@ -35,11 +35,10 @@ seed_key() {
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$GRAPH_DIR" "$BUILD_DIR/owners/codegen"
-for owner in codegen_bootstrap.sh codegen_bootstrap_compile_leg.sh \
+for owner in codegen/codegen_bootstrap.sh codegen_bootstrap_compile_leg.sh \
     parser_tool_build_leg.sh emitted_c_runtime_header_owner.sh; do
     printf '%s-v1\n' "$owner" >"$BUILD_DIR/owners/$owner"
 done
-mv "$BUILD_DIR/owners/codegen_bootstrap.sh" "$BUILD_DIR/owners/codegen/codegen_bootstrap.sh"
 mkdir -p "$CASE_ROOT/tests"
 printf 'path-owner-v1\n' >"$CASE_ROOT/tests/pgy_binary_path_helpers.sh"
 write_clean_inputs
@@ -59,13 +58,9 @@ printf '%s\n' "$key_one" >"$STAMP"
 pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one" ||
     fail "exact single-key stamp was rejected"
 printf 'stale-key\n%s\n' "$key_one" >"$STAMP"
-if pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one"; then
-    fail "multi-key stamp was admitted"
-fi
+! pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one" || fail "multi-key stamp was admitted"
 printf '%s' "$key_one" >"$STAMP"
-if pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one"; then
-    fail "unterminated key stamp was admitted"
-fi
+! pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one" || fail "unterminated key stamp was admitted"
 
 PGY_SELFHOST_CODEGEN_SEED_MODE=build
 pgy_selfhost_codegen_seed_mode_validate || fail "build seed mode was rejected"
@@ -95,13 +90,9 @@ key_owner="$(seed_key owner cc-v1)"
 [[ "$key_one" != "$key_owner" ]] || fail "owner mutation kept prebuild key"
 # The shared legs sit beside the codegen family directory, not inside it.
 printf 'compile-leg-v2\n' >"$BUILD_DIR/owners/codegen_bootstrap_compile_leg.sh"
-key_leg="$(seed_key leg cc-v1)"
-[[ "$key_owner" != "$key_leg" ]] || fail "shared compile leg mutation kept prebuild key"
+[[ "$key_owner" != "$(seed_key leg cc-v1)" ]] || fail "shared compile leg mutation kept prebuild key"
 rm "$BUILD_DIR/owners/parser_tool_build_leg.sh"
-if seed_key missing cc-v1 >/dev/null 2>&1; then
-    fail "missing shared parser leg was hashed into a prebuild key"
-fi
-printf '%s-v1\n' parser_tool_build_leg.sh >"$BUILD_DIR/owners/parser_tool_build_leg.sh"
+! seed_key missing cc-v1 >/dev/null 2>&1 || fail "missing shared parser leg was hashed into a prebuild key"
 
 printf 'changed-seed-c\n' >"$SOURCE_ARTIFACT"
 if pgy_selfhost_codegen_seed_validate_artifact_receipt \
