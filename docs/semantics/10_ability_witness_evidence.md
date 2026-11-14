@@ -226,4 +226,4 @@ witness=dictionary(표면 누출 금지), `where T: Ability`=제약된 파라메
 `ability-coherence-test-smoke`로 닫았다. 이론 감사가 게이트를 낳은 사례.
 
 참조: docs/semantics/19 Lineage Map의 `ability`/`role` row(본 감사로 추가),
-docs/semantics/03(generics), tests/ability_coherence_smoke.sh.
+docs/semantics/03(generics), tests/language/ability_coherence_smoke.sh.

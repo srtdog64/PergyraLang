@@ -1,7 +1,7 @@
 // src/self_hosted/tools/diagnostic_catalog_checker/scan_owner.pgy
 //
 // Stable diagnostic catalog fact extraction. This owner is the single place
-// that interprets src/semantic/diag_codes.h and docs/72_diagnostic_codes.md.
+// that interprets src/semantic/diag_codes.h and docs/tooling/72_diagnostic_codes.md.
 
 func ExtractDelimitedLiteral(line: String, delimiter: String) -> String {
     let first: Int = StringIndexOf(line, delimiter);

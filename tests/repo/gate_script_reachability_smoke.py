@@ -15,7 +15,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MANUAL = ROOT / "tests" / "manual_gate_inventory.tsv"
+MANUAL = ROOT / "tests" / "repo" / "manual_gate_inventory.tsv"
 SCRIPT_PATH = re.compile(r"(?:tests|scripts)/[A-Za-z0-9_./-]+\.sh")
 COMMAND = re.compile(r"\b(?:bash|source|exec|run|sh)\b")
 NONEXECUTING = re.compile(

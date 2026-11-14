@@ -2,7 +2,7 @@
   Pergyra structured async lifecycle core.
 
   This is a bounded model of the named Future/RemoteFuture lifecycle owned by
-  src/semantic/type_checker_future_lifecycle.c.  It proves containment for the
+  src/semantic/type_checker/type_checker_future_lifecycle.c.  It proves containment for the
   beta-stable named-spawn surface; it does not make `async` a lifetime owner and
   does not prove scheduler termination, fairness, detached-capture safety, or
   whole-language memory safety.

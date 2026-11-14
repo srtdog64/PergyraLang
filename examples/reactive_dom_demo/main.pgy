@@ -1,6 +1,6 @@
 // Reactive DOM thesis demo (rung-0).
 //
-// Tracks docs/web_dom_ownership_thesis.md. This is the first runnable step of
+// Tracks docs/language/web_dom_ownership_thesis.md. This is the first runnable step of
 // the "writing a slot inside a zone drives the DOM" thesis.
 //
 // What this proves now (rung-0, verified on C and LLVM backends):

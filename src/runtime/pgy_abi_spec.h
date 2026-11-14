@@ -153,7 +153,7 @@ typedef struct { char   *value; bool claimed; } pgy_abi_device_slot_string;
  * tag and value as needed for alignment. Rust-style niche encoding
  * is not part of this stable ABI; MIRTypeLayout records these rows as
  * MIR_ABI_REPR_EXPLICIT_TAG, not as a backend-inferred niche. See
- * docs/136_abi_niche_and_explicit_layout.md.
+ * docs/compiler/136_abi_niche_and_explicit_layout.md.
  * ================================================================ */
 
 typedef enum {

@@ -13,7 +13,7 @@ set -euo pipefail
 # the subject above. Declared per harness because the compiler is
 # reached through make and nested scripts, and the variable is the
 # same declared opt-out as --native-pipeline -- never a fallback.
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
 

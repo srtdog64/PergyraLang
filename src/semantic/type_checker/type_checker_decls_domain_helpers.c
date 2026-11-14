@@ -59,7 +59,7 @@ domain_lookup_named_type_metadata(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 /* Intent and world declaration bodies are owned by type_checker_intent_decl.c
- * and type_checker_world_decl.c. See docs/101_semantic_split_template.md. */
+ * and type_checker_world_decl.c. See docs/compiler/101_semantic_split_template.md. */
 
 size_t
 count_subject_domain_slots(ASTNode **slots, size_t slot_count)

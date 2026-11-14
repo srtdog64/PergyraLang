@@ -2,7 +2,7 @@
 # Counterexample corpus gate (manual; see tests/counterexample_corpus/README.md).
 #
 # Each manifest row fixes what Pergyra does with one bug class from
-# docs/198_market_safety_positioning.md. The bug program must be refused at
+# docs/language/198_market_safety_positioning.md. The bug program must be refused at
 # compile time (REJECT_COMPILE), stop fail-closed at run time (TRAP_RUNTIME),
 # keep state correct at run time (RUNTIME_SAFE), or still be accepted
 # (ACCEPTED_GAP, a recorded gap: if Pergyra starts refusing it, the row must be

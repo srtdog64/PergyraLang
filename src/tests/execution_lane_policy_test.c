@@ -8,7 +8,7 @@
  * move) and the strict MovableScheduler gate (M:N only when every capture is a
  * pure value AND the authority boundary is clear).
  *
- * Built and run by tests/execution_lane_policy_smoke.sh.
+ * Built and run by tests/parallel/execution_lane_policy_smoke.sh.
  */
 #include "execution_lane.h"
 #include <stdio.h>

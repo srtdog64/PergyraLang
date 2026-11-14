@@ -1,4 +1,4 @@
-# Call shapes for tests/self_hosted/parity/builtin_surface_parity_owner.sh.
+# Call shapes for tests/self_hosted/parity/frontend/builtin_surface_parity_owner.sh.
 #
 # One block per row of src/common/pgy_builtin_type_table.c, plus the rows the
 # gate lists in EXTRA_ROWS. A block starts with `== Name` and holds one whole

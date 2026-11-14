@@ -186,11 +186,11 @@ identity_cap_definition="$(awk '
 ' "$REPO_DIR/tests/self_hosted/parity/mir/expression_graph_identity_carriage_owner.sh")"
 eval "$identity_cap_definition"
 declare -F require_scalar_identity_owner_caps >/dev/null || fail 'missing shared identity cap consumer'
-mkdir -p "$ROOT_DIR/src/self_hosted/compiler" "$ROOT_DIR/tests/self_hosted/parity"
+mkdir -p "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program" "$ROOT_DIR/tests/self_hosted/parity/mir"
 shared_caps="$ROOT_DIR/tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv"
 identity_cap_rows=()
 for basename in expression_admission leaf_identity_fact call_expression_admission call_with_arguments_admission; do
-    identity_rel="src/self_hosted/compiler/direct_mir_scalar_program_${basename}_owner.pgy"
+    identity_rel="src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_${basename}_owner.pgy"
     printf 'one\ntwo\nthree' >"$ROOT_DIR/$identity_rel"
     identity_cap_rows+=("$identity_rel|3")
 done

@@ -4,7 +4,7 @@
 # owners). Stage 2 exercises the installed self-host driver separately, on
 # its own MIR-production surface. Delegated, stage 1 would judge the
 # self-host driver against native-owned pins.
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
 set -euo pipefail

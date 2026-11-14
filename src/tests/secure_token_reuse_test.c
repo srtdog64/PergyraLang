@@ -9,7 +9,7 @@
  *
  * The reject modes panic (abort), so the test is mode-driven: the smoke runs
  * each mode as a subprocess and checks exit + output. Built and run by
- * tests/secure_token_reuse_failclosed_smoke.sh.
+ * tests/security/secure_token_reuse_failclosed_smoke.sh.
  */
 #include <stddef.h>
 #include <stdio.h>

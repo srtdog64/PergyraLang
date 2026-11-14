@@ -1,5 +1,5 @@
 // Reactive DOM thesis demo (rung-1): Pergyra-owned reactivity.
-// Tracks docs/web_dom_ownership_thesis.md.
+// Tracks docs/language/web_dom_ownership_thesis.md.
 //
 // Verified on C and LLVM backends:
 //   [rung-1] initial DOM:            <div id="app">count: 0</div>

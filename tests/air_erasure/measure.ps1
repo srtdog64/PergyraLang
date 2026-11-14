@@ -30,7 +30,7 @@ $ErrorActionPreference = 'Continue'
 # seven fixtures failed emit-c that way. Declared per harness because the
 # compiler is reached through make and nested scripts, and the variable is the
 # same declared opt-out as --native-pipeline -- never a fallback.
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 $env:PGY_NATIVE_PIPELINE = '1'
 
 # Self-locate the repo root (this script lives at <repo>/tests/air_erasure/).

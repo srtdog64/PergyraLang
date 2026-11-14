@@ -29,7 +29,7 @@
 # compile in-process; delegated, the oracle would judge the self-host
 # emitter against itself and reject fixtures would surface the driver's
 # spelling instead of the pinned native diagnostics.
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
 

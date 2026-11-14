@@ -74,7 +74,7 @@ Slot ABI, src/**, installed executables or registry statuses.
 Static checks: 60 seconds. Focused audit: 300 seconds. Corpus: 1800 seconds.
 Use the project-owned WSL Rocq prefix through scripts/run_rocq_toolchain.sh;
 never system Coq or an expanded assumption budget. Integration owner is this
-chat; the focused gate is tests/memory_boundary_composition_smoke.sh.
+chat; the focused gate is tests/ownership/memory_boundary_composition_smoke.sh.
 No commit, push, install, GUI message or production implementation in this
 contract scope. Documents are adopted requirements; audit results are bounded
 formal observations, not graph-feature or self-host closure.

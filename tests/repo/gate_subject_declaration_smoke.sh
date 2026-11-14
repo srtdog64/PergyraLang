@@ -14,7 +14,7 @@ set -euo pipefail
 #   2. no self-host-subject script declares it at all.
 #   3. named native C oracle legs cannot omit the explicit native route.
 #
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 #
 # This gate reads scripts; it does not compile, so it declares nothing itself.
 

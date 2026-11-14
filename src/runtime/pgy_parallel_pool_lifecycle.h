@@ -212,7 +212,7 @@ pgy_pool_help_run_one(void)
  * shape): a pool task parked on a channel occupies its thread, and with
  * every pool thread so parked, a queued task that would unblock them can
  * never run -- the channel edition of the WO-RT-3 starvation class,
- * witnessed RED by tests/channel_pool_starvation_probe.sh. Running a queued
+ * witnessed RED by tests/parallel/channel_pool_starvation_probe.sh. Running a queued
  * task INLINE on the parked thread was tried first and REFUTED by the
  * backpressure gate: channel dependencies are cyclic, so the helped consumer
  * can nest above the parked producer it depends on and self-deadlock the

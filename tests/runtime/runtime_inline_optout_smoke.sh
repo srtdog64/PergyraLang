@@ -19,7 +19,7 @@
 #   native C-backend runtime linkage and cache materialization policy.
 # Delegating would turn a self-host Channel coverage gap into a runtime-linkage
 # regression. This is the declared in-process opt-out, never a fallback.
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
 

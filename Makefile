@@ -5701,7 +5701,7 @@ clean-local-artifacts: clean clean-scratch clean-local-variant-artifacts
 
 # Force a default compiler/LSP rebuild from scratch. Use when source edits
 # aren't reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).
-# See docs/91_build_troubleshooting.md.
+# See docs/tooling/91_build_troubleshooting.md.
 rebuild: clean
 	$(MAKE) all
 

@@ -7,7 +7,7 @@
  *      result on every non-Reject lane. The scheduler must not change meaning.
  *   2. fail-closed Reject: a Reject lane never runs the task.
  *
- * Built and run by tests/lane_scheduler_smoke.sh.
+ * Built and run by tests/parallel/lane_scheduler_smoke.sh.
  */
 #include "pgy_runtime.h"
 #include "pgy_parallel.h"

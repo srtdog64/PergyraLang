@@ -17,7 +17,7 @@
  *
  * This is the seed.  Today only the borrowed-container-store helper is
  * converted (proof of concept).  Other 10-param helpers will migrate
- * incrementally; see docs/72_diagnostic_codes.md.
+ * incrementally; see docs/tooling/72_diagnostic_codes.md.
  *
  * Naming:
  *   DiagPayload           — opaque-ish struct, fields have stable names

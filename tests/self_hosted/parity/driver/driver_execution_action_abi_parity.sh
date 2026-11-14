@@ -3,7 +3,7 @@
 # instrumentation (the expected stdout carries native authority
 # telemetry). Delegated, the self-host driver's standalone emission would
 # be judged against native-owned output.
-# See docs/152_validation_isolation_policy.md.
+# See docs/release/152_validation_isolation_policy.md.
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
 set -euo pipefail

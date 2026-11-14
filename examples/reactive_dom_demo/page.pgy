@@ -1,5 +1,5 @@
 // Reactive DOM thesis demo (rung-1 page).
-// Tracks docs/web_dom_ownership_thesis.md.
+// Tracks docs/language/web_dom_ownership_thesis.md.
 //
 // Pergyra owns the zone/slot/view model and renders the full HTML page.
 // A thin JS glue performs the DOM event-to-update cycle (the intent-step

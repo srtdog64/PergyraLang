@@ -3929,7 +3929,7 @@ Everything below is lookup evidence, not an active implementation queue.
   admitted. Do not reuse this seed as current c3e34496 evidence.
 - Scoped caps, old-selection residue ratchet, shell syntax and diff hygiene
   pass. The broader SoT edge gate fails at the existing lexer.language_word_registry
-  enforcement text `146 rows`, absent from tests/language_keyword_registry_smoke.sh.
+  enforcement text `146 rows`, absent from tests/registry/language_keyword_registry_smoke.sh.
   That script was unchanged; no lexer or unrelated SoT repair was opened.
   Full component inventory remains unobserved beyond its prior 60-second
   timeout; no green prefix is a full pass. No installed overwrite, commit/push,

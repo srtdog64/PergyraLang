@@ -34,7 +34,7 @@
 /* =================================================================
  * Stable diagnostic codes
  *
- * Documented in docs/72_diagnostic_codes.md.  Codes are grouped by
+ * Documented in docs/tooling/72_diagnostic_codes.md.  Codes are grouped by
  * stage prefix for downstream stage routing (driver_route_stage).
  * ================================================================= */
 

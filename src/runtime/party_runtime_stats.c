@@ -15,7 +15,7 @@
  * concurrently. The growth path realloc()s the stats array and rebuilds the
  * open-addressed index, so a concurrent reader following an unlocked path
  * would race against rehash, which is the AI-generated UB pattern documented
- * in docs/113_memory_concurrency_model.md.
+ * in docs/concurrency/113_memory_concurrency_model.md.
  *
  * Lock discipline: every reader and writer of g_fiberStats acquires this
  * mutex. The lock is a flat per-process mutex because the registry is

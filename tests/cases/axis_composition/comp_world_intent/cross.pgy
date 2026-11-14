@@ -7,7 +7,7 @@
 // CLOSED 2026-07-05 (full theorem T, docs/157 §5): world-owned zone
 // bindings cannot escape as live values — this file is now the REJECT
 // regression fixture ("cannot escape as a live binding"), locked by
-// tests/axis_composition_smoke.sh.
+// tests/language/axis_composition_smoke.sh.
 subject Buyer {
     var hp: Int;
     action Promote(self) -> Void {

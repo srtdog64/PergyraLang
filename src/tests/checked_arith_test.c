@@ -6,7 +6,7 @@
  *
  * The overflow modes panic (abort), so the test is mode-driven: the smoke runs
  * each mode as a subprocess and checks exit + output. Built and run by
- * tests/checked_arith_failclosed_smoke.sh.
+ * tests/runtime/checked_arith_failclosed_smoke.sh.
  */
 #include "pgy_runtime_panic_checked_inline.h"
 #include <stdio.h>
