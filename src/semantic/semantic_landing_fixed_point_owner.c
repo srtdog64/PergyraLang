@@ -172,7 +172,6 @@ semantic_analyze_landing_fixed_point(ASTNode **ast,
     while (semantic != NULL) {
         bool round_trace = getenv("PGY_DEBUG_LANDING_ROUNDS") != NULL;
         size_t stores_before = stores.count;
-        size_t copies_before = copies.count;
         bool stores_grew = false;
         bool copies_grew = false;
         if (round_trace || getenv("PGY_DEBUG_PIPELINE_STAGE") != NULL)
@@ -192,15 +191,14 @@ semantic_analyze_landing_fixed_point(ASTNode **ast,
             semantic = NULL;
             break;
         }
-        /* Store evidence owns the outer fixed point. A newly admitted store
-         * can make an earlier loan copy unnecessary, so do not retain the
-         * copy plan across store growth. The unchanged source must select
-         * again every copy that remains necessary with the enlarged store
-         * plan; a missing receipt still fails closed on that replay. */
-        if (stores_grew) {
-            free(copies.ids);
-            copies = (SemanticLandingPlan){0};
-        } else if (!semantic_landing_plan_merge(&copies,
+        /* Every copy any store plan selected is kept. A copy lands as an
+         * explicit Clone of the unchanged source node, which stays valid
+         * when a later store makes it unnecessary: its cost is one extra
+         * copy. Dropping the copy plan on each store growth made the next
+         * analyses select the same copies again, one whole-program analysis
+         * per round (docs/truth/evidence/2026-11-13_identity_probe_landing_rounds.md).
+         * Both plans only grow, so the fixed point still terminates. */
+        if (!semantic_landing_plan_merge(&copies,
                        semantic->loan_copy_landings,
                        semantic->loan_copy_landing_count,
                        stable_id_ceiling, &copies_grew)) {
@@ -216,7 +214,7 @@ semantic_analyze_landing_fixed_point(ASTNode **ast,
                 round, stores.count - stores_before,
                 semantic->loan_copy_landing_count,
                 stores.count, copies.count,
-                stores_grew ? copies_before : 0,
+                (size_t)0,
                 (stores_grew || copies_grew) ? 1 : 0);
         if (!stores_grew && !copies_grew)
             break;
