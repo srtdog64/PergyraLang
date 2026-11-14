@@ -65,7 +65,7 @@ message) if it was accepted.
 
 ## Oracle
 
-The C backend is the oracle. `tests/self_hosted/parity/wrapper_policy_probe_parity.sh`
+The C backend is the oracle. `tests/self_hosted/parity/frontend/wrapper_policy_probe_parity.sh`
 compiles the fixtures with `--backend=c` and asserts the valid Option/Result
 sources compile clean while `bad_option.pgy` is rejected with
 `PGY_C_TYPE_UNSUPPORTED` and `bad_unwrap.pgy` with `PGY_SEM_BUILTIN_ARGS_INVALID`.

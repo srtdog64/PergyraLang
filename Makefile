@@ -1916,13 +1916,13 @@ else
 self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		PGY_SELFHOST_CC="$(CC)" \
-		"$(BASH)" tests/self_hosted/parity/self_host_compiler_build.sh
+		"$(BASH)" tests/self_hosted/parity/driver/self_host_compiler_build.sh
 endif
 
 self-host-lsp: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" \
 		PGY_SELFHOST_CC="$(CC)" \
-		"$(BASH)" tests/self_hosted/parity/self_host_lsp_build.sh
+		"$(BASH)" tests/self_hosted/parity/driver/self_host_lsp_build.sh
 
 dev-compiler:
 	$(MAKE) -j$(PGY_DEV_COMPILER_JOBS) LLVM_ENABLED=0 PGY_DEBUG_SYMBOLS=0 BUILD_DIR=build-dev BIN_DIR=bin-dev compiler
@@ -2930,14 +2930,14 @@ self-host-mir-machine-layer-test-smoke: $(PGY)
 
 .PHONY: self-host-mir-row-mutation-cost-test-smoke
 self-host-mir-row-mutation-cost-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_row_mutation_cost_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_row_mutation_cost_owner.sh
 
 .PHONY: self-host-mir-row-borrow-retention-c-test-smoke self-host-mir-row-borrow-retention-llvm-test-smoke
 self-host-mir-row-borrow-retention-c-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir_row_borrow_retention_owner.sh c
+	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir/mir_row_borrow_retention_owner.sh c
 
 self-host-mir-row-borrow-retention-llvm-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir_row_borrow_retention_owner.sh llvm
+	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir/mir_row_borrow_retention_owner.sh llvm
 
 mir-declaration-inventory-test-smoke:
 	"$(BASH)" tests/mir_declaration_inventory_smoke.sh
@@ -3299,20 +3299,20 @@ self-host-preparation-contract-test-smoke: $(PGY)
 		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
 	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
 	"$(BASH)" tests/intent_observability_abi_registry_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/builtin_signature_registry_owner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/builtin_signature_registry_owner_parity.sh
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_host_ci_profile_smoke.sh
-	"$(BASH)" tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/driver/self_host_fixed_point_profile_receipt_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_surface_closure_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_manifest.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/expression_surface_closure_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_manifest.sh
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/numeric_payload_byte_projection_owner.sh
-	"$(BASH)" tests/self_hosted/parity/semantic_enum_variant_builtin_collision_installed_owner.sh
-	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_statement_type_installed_owner.sh
-	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/enum_qualified_environment_fact_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/numeric_payload_byte_projection_owner.sh
+	"$(BASH)" tests/self_hosted/parity/semantic/semantic_enum_variant_builtin_collision_installed_owner.sh
+	"$(BASH)" tests/self_hosted/parity/semantic/semantic_tagged_enum_payload_statement_type_installed_owner.sh
+	"$(BASH)" tests/self_hosted/parity/semantic/semantic_tagged_enum_payload_variant_provenance_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/enum_qualified_environment_fact_owner.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
@@ -3323,19 +3323,19 @@ self-host-preparation-contract-test-smoke: $(PGY)
 
 self-host-preparation-platform-parser-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/parser_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/parser_parity.sh
 
 self-host-preparation-platform-semantic-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/semantic_parity.sh
 
 self-host-preparation-platform-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/codegen_parity.sh
 
 self-host-preparation-platform-driver-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung2_body_parity.sh
 
 self-host-preparation-platform-parity-test-smoke: \
 	self-host-preparation-platform-parser-parity-test-smoke \
@@ -3349,197 +3349,197 @@ self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-
 	# Run the reached compiler-scale falsifier first so a projection regression
 	# fails before the cumulative ledger/codegen budget is spent. This remains
 	# the same C/LLVM positive and missing-fact-negative gate.
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_live_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_reachability_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ast_read_surface_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_comparator_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/abi_layout_row_manifest_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/target_capability_manifest_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/sandbox_capability_manifest_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_air_access_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/doc_link_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/examples_inventory_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lexer_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/linter_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/assignment_projection_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_id_uniqueness_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_node_count_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_ref_live_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_ref_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_reachability_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/ast_read_surface_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_output_comparator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/abi_layout_row_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/runtime_call_abi_row_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/target_capability_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain/sandbox_capability_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_emitter_contract_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_air_access_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_abi_layout_contract_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/compatibility_evolution_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/compatibility_evolution_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_output_tri_compare_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/diagnostic_catalog_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/doc_link_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/examples_inventory_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/lexer_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/linter_parity.sh
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/parser_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/parser_parity.sh
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/semantic_parity.sh
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_ledger.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_incremental_cache_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_planner_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/selfcheck_sources.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_ledger.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_incremental_cache_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_planner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_run_group_runner.sh
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/initializer_projection_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_return_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/wrapper_policy_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_policy_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/codegen_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/initializer_projection_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/generic_return_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/wrapper_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/aggregate_field_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/gate_dashboard_parity.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung0_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung0_parity.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung1_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung1_parity.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung2_body_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung2_analysis_admission_owner.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" "$(BASH)" tests/self_hosted/parity/lsp_diagnostics_parity.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_transport_frame_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_transport_frame_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_transport_stream_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_transport_stream_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_request_dispatch_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_request_dispatch_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_response_emission_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_response_emission_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_replay_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_session_replay_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_document_store_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_document_store_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_state_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_session_state_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_hover_content_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_hover_content_parity.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" \
-	"$(BASH)" tests/self_hosted/parity/lsp_live_session_owner.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/module_manifest_resolver_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/production_header_size_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_boundary_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/stable_subset_section_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh
+	"$(BASH)" tests/self_hosted/parity/lsp/lsp_live_session_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_json_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/module_manifest_resolver_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/production_c_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/production_header_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/runtime_boundary_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/stable_subset_section_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/stdlib_dispatch_inventory_checker_parity.sh
 
 self-host-runtime-boundary-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_boundary_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/runtime_boundary_checker_parity.sh
 
 self-host-air-graph-consumer-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_live_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_reachability_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_id_uniqueness_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_node_count_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_ref_live_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_ref_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/air_graph_reachability_parity.sh
 
 self-host-diagnostic-catalog-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/diagnostic_catalog_checker_parity.sh
 
 self-host-ast-read-surface-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ast_read_surface_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/ast_read_surface_checker_parity.sh
 
 self-host-semantic-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/semantic_parity.sh
 
 self-host-semantic-selfcheck-test-smoke: $(PGY)
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/selfcheck_sources.sh
 
 self-host-completeness-smoke: $(if $(PGY_BIN),,$(PGY))
-	PGY_BIN="$${PGY_BIN:-$(abspath $(PGY))}" "$(BASH)" tests/self_hosted/parity/completeness_ledger.sh
+	PGY_BIN="$${PGY_BIN:-$(abspath $(PGY))}" "$(BASH)" tests/self_hosted/parity/semantic/completeness_ledger.sh
 
 self-host-completeness-incremental-cache-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_incremental_cache_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_incremental_cache_parity.sh
 
 self-host-completeness-impact-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_manifest.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_planner_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_manifest.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_planner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_run_group_runner.sh
 
 self-host-completeness-impact-planner-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_planner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_planner_parity.sh
 
 self-host-completeness-impact-runner-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_run_group_runner.sh
 
 self-host-preparation-impact-test-smoke: $(PGY)
 	PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS=1 \
 	PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS=all \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_run_group_runner.sh
 
 self-host-preparation-impact-changed-paths-test-smoke: $(PGY)
 	PGY_SELFHOST_IMPACT_CHANGED_PATHS="tests/self_hosted_component_contract_smoke.sh" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" scripts/self_host_impact_changed_paths.sh
 
 self-host-linter-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/linter_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/linter_parity.sh
 
 self-host-backend-tri-compare-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_output_tri_compare_parity.sh
 
 self-host-backend-tri-compare-extended-test-smoke: $(PGY)
-	PGY_BACKEND_TRI_COMPARE_SUITE=extended PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
+	PGY_BACKEND_TRI_COMPARE_SUITE=extended PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_output_tri_compare_parity.sh
 
 self-host-lexer-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lexer_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/lexer_parity.sh
 
 self-host-lex-minimal-parity-test-smoke: self-host-lexer-parity-test-smoke
 
 self-host-parser-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" \
-	"$(BASH)" tests/self_hosted/parity/parser_parity.sh
+	"$(BASH)" tests/self_hosted/parity/frontend/parser_parity.sh
 
 self-host-driver-execution-action-optional-within-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-	"$(BASH)" tests/self_hosted/parity/driver_execution_action_optional_within_parity.sh
+	"$(BASH)" tests/self_hosted/parity/driver/driver_execution_action_optional_within_parity.sh
 
 .PHONY: self-host-driver-source-c-execution-action-test-smoke
 self-host-driver-source-c-execution-action-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/driver_source_c_execution_action_gate.sh
+		"$(BASH)" tests/self_hosted/parity/driver/driver_source_c_execution_action_gate.sh
 
 self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/codegen_parity.sh
 
 self-host-codegen-role-receiver-admission-test-smoke:
 	PGY_SELFHOST_DRIVER_BIN="$(abspath bin/pgy-self-driver.exe)" \
-	"$(BASH)" tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh
+	"$(BASH)" tests/self_hosted/parity/codegen/codegen_role_receiver_admission_owner.sh
 
 self-host-codegen-assignment-projection-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/assignment_projection_probe_parity.sh
 
 self-host-initializer-projection-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/initializer_projection_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/initializer_projection_probe_parity.sh
 
 self-host-generic-return-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_return_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/generic_return_probe_parity.sh
 
 self-host-wrapper-policy-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/wrapper_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/wrapper_policy_probe_parity.sh
 
 self-host-collection-policy-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_policy_probe_parity.sh
 
 self-host-aggregate-field-policy-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/aggregate_field_policy_probe_parity.sh
 
 self-host-expression-surface-closed-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_surface_closure_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/expression_surface_closure_probe_parity.sh
 
 self-host-gate-dashboard-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/gate_dashboard_parity.sh
 
 self-host-gate-dashboard: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_runner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/gate_dashboard_runner.sh
 
 .PHONY: self-host-initializer-projection-parity-test-smoke self-host-generic-return-parity-test-smoke
 .PHONY: self-host-wrapper-policy-parity-test-smoke
@@ -3549,411 +3549,411 @@ self-host-gate-dashboard: $(PGY)
 .PHONY: self-host-gate-dashboard-parity-test-smoke self-host-gate-dashboard
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/codegen_bootstrap.sh
 	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/foreach_slice_codegen_source_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/foreach_slice_codegen_source_owner.sh
 
 self-host-builtin-signature-registry-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/builtin_signature_registry_owner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/builtin_signature_registry_owner_parity.sh
 
 self-host-codegen-bootstrap-seed-test-smoke: $(PGY)
-	PGY_SELFHOST_CODEGEN_SEED_ONLY=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
+	PGY_SELFHOST_CODEGEN_SEED_ONLY=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/codegen_bootstrap.sh
 
 .PHONY: asan-uaf-witness-test-smoke
 
 self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_bootstrap.sh
 
 .PHONY: self-host-driver-fixed-point-receipt-test-smoke
 self-host-driver-fixed-point-receipt-test-smoke:
-	"$(BASH)" tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/driver/self_host_driver_fixed_point_receipt_smoke.sh
 
 .PHONY: self-host-fixed-point-profile-receipt-test-smoke
 self-host-fixed-point-profile-receipt-test-smoke:
-	"$(BASH)" tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/driver/self_host_fixed_point_profile_receipt_smoke.sh
 
 .PHONY: self-host-codegen-seed-receipt-test-smoke
 self-host-codegen-seed-receipt-test-smoke:
-	"$(BASH)" tests/self_hosted/parity/codegen_bootstrap_seed_receipt_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/codegen/codegen_bootstrap_seed_receipt_smoke.sh
 
 self-host-one-mir-dual-backend-projection-test-smoke: self-host-driver-bootstrap-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_dual_backend_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_dual_backend_projection.sh
 
 self-host-direct-mir-scalar-multi-routine-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_multi_routine_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_multi_routine_owner.sh
 
 self-host-direct-mir-scalar-option-int-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_owner.sh
 
 self-host-direct-mir-scalar-option-int-try-let-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_option_int_try_let_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_try_let_owner.sh
 
 self-host-direct-mir-scalar-bool-sub-equals-short-circuit-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_bool_sub_equals_short_circuit_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_sub_equals_short_circuit_owner.sh
 
 self-host-direct-mir-scalar-option-bool-equality-short-circuit-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_option_bool_equality_short_circuit_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_bool_equality_short_circuit_owner.sh
 
 self-host-direct-mir-scalar-option-string-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_option_string_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_string_owner.sh
 
 self-host-direct-mir-scalar-option-bool-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_option_bool_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_bool_owner.sh
 
 self-host-direct-mir-scalar-two-int-nominal-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_two_int_nominal_owner.sh
 
 self-host-direct-mir-scalar-logical-record-option-int-field-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_option_int_field_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_int_field_owner.sh
 
 self-host-direct-mir-scalar-logical-record-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_owner.sh
 
 .PHONY: self-host-direct-mir-physical-record-return-test-smoke
 self-host-direct-mir-physical-record-return-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_physical_record_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_physical_record_return_owner.sh
 
 self-host-direct-mir-scalar-logical-record-option-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_option_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_return_owner.sh
 
 self-host-direct-mir-scalar-recursive-logical-record-phi-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_recursive_logical_record_phi_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_recursive_logical_record_phi_owner.sh
 
 self-host-direct-mir-scalar-zero-parameter-callable-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_zero_parameter_callable_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_zero_parameter_callable_owner.sh
 
 self-host-direct-mir-scalar-array-int-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_owner.sh
 
 self-host-direct-mir-scalar-array-int-value-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_int_value_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_parameter_owner.sh
 
 self-host-direct-mir-scalar-array-string-value-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_value_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_parameter_owner.sh
 
 self-host-direct-mir-scalar-set-string-value-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_set_string_value_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_set_string_value_parameter_owner.sh
 
 self-host-direct-mir-scalar-array-string-readonly-ref-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_readonly_ref_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_readonly_ref_owner.sh
 
 self-host-direct-mir-scalar-entrypoint-early-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_entrypoint_early_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_entrypoint_early_return_owner.sh
 
 self-host-direct-mir-scalar-namespace-internal-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_namespace_internal_call_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_namespace_internal_call_owner.sh
 
 self-host-direct-mir-scalar-array-string-value-result-void-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_value_result_void_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_result_void_owner.sh
 
 self-host-direct-mir-scalar-owned-array-string-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_array_string_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_return_owner.sh
 
 self-host-direct-mir-scalar-owned-string-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_string_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_string_parameter_owner.sh
 
 self-host-direct-mir-owned-string-argument-source-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_argument_source.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_string_argument_source.sh
 
 .PHONY: self-host-direct-mir-owned-string-argument-source-test-smoke
 
 self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_parameter_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_call_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_string_call_result_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_result_composition.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_string_result_composition.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_reachable_proof.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_string_reachable_proof.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		PGY_SELFHOST_CC="$(CC)" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_scalar_projection.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_string_scalar_projection.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_alternative_owned_array_string_parameter_owner.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_array_string_callee_identity_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_array_string_callee_identity_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_array_string_terminal_flow_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_array_string_terminal_flow_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_array_string_sealed_flow_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_array_string_sealed_flow_owner.sh
 
 .PHONY: self-host-cfg-identity-digest-test-smoke
 self-host-cfg-identity-digest-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_cfg_identity_digest_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_digest_owner.sh
 
 .PHONY: self-host-direct-mir-array-int-readonly-ref-test-smoke
 self-host-direct-mir-array-int-readonly-ref-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_array_int_readonly_ref_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_array_int_readonly_ref_owner.sh
 
 .PHONY: self-host-intent-participant-readonly-query-test-smoke
 self-host-intent-participant-readonly-query-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/intent_participant_readonly_query_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_participant_readonly_query_owner.sh
 
 .PHONY: self-host-compiler-readonly-query-test-smoke
 self-host-compiler-readonly-query-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/compiler_readonly_query_owner.sh
+		"$(BASH)" tests/self_hosted/parity/driver/compiler_readonly_query_owner.sh
 
 .PHONY: self-host-call-spine-root-projection-test-smoke
 self-host-call-spine-root-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/call_spine_root_projection_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/call_spine_root_projection_owner.sh
 
 .PHONY: self-host-logical-record-shape-query-test-smoke
 self-host-logical-record-shape-query-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/logical_record_shape_query_owner.sh
+		"$(BASH)" tests/self_hosted/parity/mir/logical_record_shape_query_owner.sh
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/logical_record_validation_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/mir/logical_record_validation_receipt_owner.sh
 
 .PHONY: self-host-logical-record-constructor-query-test-smoke
 self-host-logical-record-constructor-query-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/logical_record_constructor_query_owner.sh
+		"$(BASH)" tests/self_hosted/parity/mir/logical_record_constructor_query_owner.sh
 
 .PHONY: self-host-direct-mir-signed-integer-to-string-test-smoke
 self-host-direct-mir-signed-integer-to-string-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_signed_integer_to_string_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_signed_integer_to_string_owner.sh
 
 .PHONY: self-host-direct-mir-utf8-string-literal-test-smoke
 self-host-direct-mir-utf8-string-literal-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_utf8_string_literal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_utf8_string_literal_owner.sh
 
 self-host-array-named-value-boundary-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_array_named_value_boundary_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_array_named_value_boundary_owner.sh
 
 self-host-owned-sequence-named-value-boundary-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_sequence_named_value_boundary_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_owned_sequence_named_value_boundary_owner.sh
 
 self-host-contextual-collection-constructor-argument-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_contextual_collection_constructor_argument_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_contextual_collection_constructor_argument_owner.sh
 
 self-host-direct-mir-scalar-logical-record-collection-fields-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_collection_fields_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_collection_fields_owner.sh
 
 self-host-direct-mir-scalar-nested-logical-record-array-bool-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh
 
 self-host-direct-mir-scalar-array-int-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_int_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_return_owner.sh
 
 self-host-direct-mir-scalar-long-literal-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_literal_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_literal_return_owner.sh
 
 self-host-direct-mir-scalar-bool-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_bool_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-logical-record-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_value_result_owner.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_branch_member_rebind_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_branch_member_rebind_owner.sh
 
 self-host-direct-mir-scalar-readonly-logical-record-single-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_single_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_single_value_result_owner.sh
 
 self-host-direct-mir-scalar-direct-scalar-callable-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_direct_scalar_callable_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_direct_scalar_callable_owner.sh
 
 self-host-direct-mir-scalar-value-parameter-rebind-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_value_parameter_rebind_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_parameter_rebind_owner.sh
 
 self-host-direct-mir-scalar-int-comparison-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_int_comparison_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_comparison_owner.sh
 
 self-host-direct-mir-scalar-array-index-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_index_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_index_owner.sh
 
 self-host-direct-mir-scalar-void-process-exit-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_void_process_exit_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_process_exit_owner.sh
 
 self-host-direct-mir-scalar-populated-array-int-literal-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_populated_array_int_literal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_populated_array_int_literal_owner.sh
 
 self-host-direct-mir-scalar-populated-array-bool-literal-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_populated_array_bool_literal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_populated_array_bool_literal_owner.sh
 
 self-host-direct-mir-scalar-array-mutation-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_mutation_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_mutation_owner.sh
 
 self-host-direct-mir-scalar-array-int-value-result-indexed-assignment-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_indexed_assignment_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_indexed_assignment_owner.sh
 
 self-host-direct-mir-scalar-array-string-dynamic-indexed-assignment-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_dynamic_indexed_assignment_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_dynamic_indexed_assignment_owner.sh
 
 self-host-direct-mir-scalar-nested-logical-record-array-string-indexed-assignment-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_string_indexed_assignment_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_nested_logical_record_array_string_indexed_assignment_owner.sh
 
 self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assignment-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_owner.sh
 
 self-host-direct-mir-scalar-local-array-int-indexed-direct-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh
 
 self-host-direct-mir-scalar-collection-phi-value-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_collection_phi_value_owner.sh
 
 self-host-direct-mir-scalar-program-control-transfer-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_program_control_transfer_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_control_transfer_owner.sh
 
 self-host-direct-mir-scalar-logical-record-array-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_owner.sh
 
 self-host-direct-mir-scalar-logical-record-array-record-input-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_array_record_input_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_record_input_owner.sh
 
 self-host-direct-mir-scalar-logical-record-array-element-input-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_array_element_input_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_element_input_owner.sh
 
 self-host-direct-mir-scalar-logical-record-mixed-collection-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_mixed_collection_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_mixed_collection_value_result_owner.sh
 
 self-host-direct-mir-scalar-bool-mixed-collection-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_bool_mixed_collection_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_mixed_collection_value_result_owner.sh
 
 self-host-direct-mir-scalar-void-logical-record-array-int-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_int_value_result_owner.sh
 
 self-host-direct-mir-scalar-logical-record-inputs-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_inputs_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_inputs_value_result_owner.sh
 
 self-host-direct-mir-scalar-readonly-logical-record-two-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-int-two-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_int_two_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_two_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-bool-two-array-string-two-array-int-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_owner.sh
 
 self-host-direct-mir-scalar-readonly-logical-record-array-bool-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh
 
 .PHONY: self-host-direct-mir-scalar-owned-array-bool-return-lifetime-test-smoke
 self-host-direct-mir-scalar-owned-array-bool-return-lifetime-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_array_bool_return_lifetime_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_bool_return_lifetime_owner.sh
 
 self-host-direct-mir-scalar-graph-plan-test-smoke: \
 	self-host-direct-mir-scalar-owned-array-bool-return-lifetime-test-smoke
 
 self-host-direct-mir-scalar-owned-logical-record-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_logical_record_return_owner.sh
 
 self-host-direct-mir-scalar-readonly-logical-record-string-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-readonly-logical-record-two-logical-record-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_owner.sh
 
 self-host-direct-mir-scalar-logical-record-return-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh
 
 self-host-direct-mir-composable-logical-record-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_composable_logical_record_return_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_composable_logical_record_return_owner.sh
 
 .PHONY: self-host-direct-mir-composable-logical-record-return-test-smoke
 
 self-host-direct-mir-scalar-void-logical-record-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-void-logical-record-three-string-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-void-logical-record-four-string-array-string-value-result-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_owner.sh
 
 self-host-direct-mir-scalar-logical-record-array-value-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
 
 self-host-direct-mir-scalar-payload-free-enum-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_free_enum_parameter_owner.sh
 
 .PHONY: self-host-direct-mir-scalar-enum-readonly-ref-test-smoke
 self-host-direct-mir-scalar-enum-readonly-ref-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_enum_readonly_ref_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_enum_readonly_ref_owner.sh
 
 self-host-direct-mir-scalar-graph-plan-test-smoke: \
 	self-host-direct-mir-scalar-enum-readonly-ref-test-smoke
@@ -3962,90 +3962,90 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: \
 
 self-host-direct-mir-scalar-payload-enum-match-binding-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_enum_match_binding_owner.sh
 
 self-host-direct-mir-scalar-process-args-direct-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_process_args_direct_call_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_process_args_direct_call_owner.sh
 
 self-host-direct-mir-scalar-dir-walk-direct-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_dir_walk_direct_call_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_dir_walk_direct_call_owner.sh
 
 self-host-direct-mir-scalar-file-exists-direct-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_file_exists_direct_call_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_file_exists_direct_call_owner.sh
 
 self-host-direct-mir-scalar-read-file-direct-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_read_file_direct_call_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_read_file_direct_call_owner.sh
 
 self-host-direct-mir-scalar-array-string-nested-expression-literal-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_nested_expression_literal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_nested_expression_literal_owner.sh
 
 self-host-direct-mir-scalar-array-string-formal-literal-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_formal_literal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_formal_literal_owner.sh
 .PHONY: self-host-direct-mir-scalar-array-string-formal-literal-test-smoke
 
 self-host-direct-mir-scalar-array-string-local-literal-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_array_string_local_literal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_local_literal_owner.sh
 .PHONY: self-host-direct-mir-scalar-array-string-local-literal-test-smoke
 
 self-host-direct-mir-scalar-int-multiply-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_int_multiply_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_multiply_owner.sh
 
 self-host-direct-mir-document-admission-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_document_admission_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_document_admission_owner.sh
 .PHONY: self-host-direct-mir-document-admission-test-smoke
 
 self-host-direct-mir-scalar-int-divide-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_int_divide_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_divide_owner.sh
 
 self-host-direct-mir-scalar-long-remainder-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_remainder_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_remainder_owner.sh
 
 self-host-direct-mir-scalar-long-addition-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_addition_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_addition_owner.sh
 
 self-host-direct-mir-scalar-long-multiplication-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_multiplication_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_multiplication_owner.sh
 
 self-host-direct-mir-scalar-long-subtraction-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_subtraction_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_subtraction_owner.sh
 
 self-host-direct-mir-scalar-int-to-long-cast-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_int_to_long_cast_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_to_long_cast_owner.sh
 
 self-host-direct-mir-scalar-long-division-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_division_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_division_owner.sh
 
 self-host-direct-mir-scalar-long-phi-value-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_phi_value_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_phi_value_owner.sh
 
 self-host-direct-mir-scalar-long-greater-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_long_greater_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_greater_owner.sh
 
 self-host-direct-mir-scalar-program-routine-admission-diagnostic-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh
 
 self-host-direct-mir-inferred-option-local-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_inferred_option_local_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_inferred_option_local_owner.sh
 
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-direct-mir-scalar-option-string-test-smoke self-host-direct-mir-scalar-option-bool-test-smoke self-host-direct-mir-scalar-two-int-nominal-test-smoke self-host-direct-mir-scalar-logical-record-test-smoke self-host-direct-mir-scalar-logical-record-option-return-test-smoke self-host-direct-mir-scalar-recursive-logical-record-phi-test-smoke self-host-direct-mir-scalar-zero-parameter-callable-test-smoke self-host-direct-mir-scalar-array-int-value-result-test-smoke self-host-direct-mir-scalar-array-int-value-parameter-test-smoke self-host-direct-mir-scalar-array-string-value-parameter-test-smoke self-host-direct-mir-scalar-array-string-value-result-void-test-smoke self-host-direct-mir-scalar-owned-array-string-return-test-smoke self-host-direct-mir-scalar-logical-record-collection-fields-test-smoke self-host-direct-mir-scalar-nested-logical-record-array-bool-return-test-smoke self-host-direct-mir-scalar-array-int-return-test-smoke self-host-direct-mir-scalar-long-literal-return-test-smoke self-host-direct-mir-scalar-bool-array-string-value-result-test-smoke self-host-direct-mir-scalar-logical-record-value-result-test-smoke self-host-direct-mir-scalar-void-process-exit-test-smoke self-host-direct-mir-scalar-populated-array-int-literal-test-smoke self-host-direct-mir-scalar-logical-record-array-value-result-test-smoke self-host-direct-mir-scalar-logical-record-array-record-input-test-smoke self-host-direct-mir-scalar-logical-record-array-element-input-test-smoke self-host-direct-mir-scalar-logical-record-mixed-collection-value-result-test-smoke self-host-direct-mir-scalar-bool-mixed-collection-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-array-int-value-result-test-smoke self-host-direct-mir-scalar-logical-record-inputs-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-two-array-string-value-result-test-smoke self-host-direct-mir-scalar-int-two-array-string-value-result-test-smoke self-host-direct-mir-scalar-bool-two-array-string-two-array-int-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-array-bool-return-test-smoke self-host-direct-mir-scalar-owned-logical-record-return-test-smoke self-host-direct-mir-scalar-readonly-logical-record-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-two-logical-record-value-result-test-smoke self-host-direct-mir-scalar-logical-record-return-array-string-value-result-test-smoke self-host-direct-mir-composable-logical-record-return-test-smoke self-host-direct-mir-scalar-void-logical-record-array-string-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-three-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-four-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-logical-record-array-value-parameter-test-smoke self-host-direct-mir-scalar-payload-free-enum-parameter-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-int-multiply-test-smoke
@@ -4148,106 +4148,106 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-p
 .PHONY: self-host-one-mir-string-collection-builtin-projection-test-smoke
 
 self-host-one-mir-cfg-air-plan-projection-test-smoke: self-host-one-mir-dual-backend-projection-test-smoke
-	PGY_SELFHOST_CFG_SKIP_SCALAR_GATE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
+	PGY_SELFHOST_CFG_SKIP_SCALAR_GATE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh
 
 self-host-one-mir-option-match-projection-test-smoke: self-host-driver-bootstrap-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_option_match_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_option_match_projection.sh
 
 self-host-one-mir-array-int-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_array_int_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_int_projection.sh
 
 self-host-one-mir-array-return-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_array_return_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_return_projection.sh
 
 self-host-one-mir-array-argument-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_array_argument_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_mutation_ownership_contract.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_argument_projection.sh
 
 self-host-one-mir-array-param-projection-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/one_mir_array_param_projection.sh
+		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh
 
 self-host-one-mir-bool-logic-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_bool_logic_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_bool_logic_projection.sh
 
 self-host-one-mir-string-equality-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_string_equality_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_string_equality_projection.sh
 
 self-host-one-mir-string-equality-concat-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_string_equality_concat_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_string_equality_concat_projection.sh
 
 self-host-one-mir-string-builtin-program-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_string_builtin_program_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_string_builtin_program_projection.sh
 
 self-host-one-mir-string-indexof-projection-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/one_mir_string_indexof_projection.sh
+		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_string_indexof_projection.sh
 
 self-host-one-mir-string-collection-builtin-projection-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/one_mir_string_collection_builtin_projection.sh
+		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_projection.sh
 
 self-host-scalar-cfg-routine-partition-test-smoke:
-	"$(BASH)" tests/self_hosted/parity/scalar_cfg_routine_partition_owner.sh
+	"$(BASH)" tests/self_hosted/parity/mir/scalar_cfg_routine_partition_owner.sh
 
 self-host-expression-graph-identity-carriage-test-smoke:
-	"$(BASH)" tests/self_hosted/parity/expression_graph_identity_carriage_owner.sh
+	"$(BASH)" tests/self_hosted/parity/mir/expression_graph_identity_carriage_owner.sh
 
 self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_struct_argument_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_struct_argument_projection.sh
 
 self-host-one-mir-struct-value-flow-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_struct_value_flow_projection.sh
 
 self-host-one-mir-option-struct-value-flow-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_option_struct_value_flow_projection.sh
 
 self-host-one-mir-generic-struct-value-flow-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_projection.sh
 
 self-host-one-mir-inferred-generic-nominal-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_inferred_generic_nominal_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_inferred_generic_nominal_projection.sh
 
 self-host-one-mir-inferred-generic-scalar-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_projection.sh
 
 self-host-one-mir-inferred-generic-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_inferred_generic_member_projection.sh
 
 self-host-one-mir-passive-nominal-literal-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_passive_nominal_literal_projection.sh
 
 self-host-one-mir-mutable-nominal-identity-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_mutable_nominal_identity_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_mutable_nominal_identity_projection.sh
 
 self-host-one-mir-compile-time-declaration-literal-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_compile_time_declaration_literal_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_projection.sh
 
 self-host-one-mir-enum-value-match-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_enum_value_match_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_enum_value_match_projection.sh
 
 self-host-one-mir-tagged-enum-payload-projection-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh
+		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_tagged_enum_payload_projection.sh
 
 self-host-one-mir-role-operator-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_role_operator_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_role_operator_projection.sh
 
 self-host-role-override-replacement-test-smoke: self-host-one-mir-struct-argument-projection-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/role_override_mir_replacement.sh
+		"$(BASH)" tests/self_hosted/parity/domain/role_override_mir_replacement.sh
 
 self-host-one-mir-constructed-generic-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_constructed_generic_member_projection.sh
 
 self-host-one-mir-constructed-array-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_constructed_array_member_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_constructed_array_member_projection.sh
 
 self-host-one-mir-constructed-record-array-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_projection.sh
 
 self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/default_llvm_installed_self_host_owner.sh
 
 .PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-one-mir-string-equality-projection-test-smoke self-host-one-mir-string-equality-concat-projection-test-smoke self-host-one-mir-string-builtin-program-projection-test-smoke self-host-scalar-cfg-routine-partition-test-smoke self-host-expression-graph-identity-carriage-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-struct-value-flow-projection-test-smoke self-host-one-mir-option-struct-value-flow-projection-test-smoke self-host-one-mir-generic-struct-value-flow-projection-test-smoke self-host-one-mir-inferred-generic-nominal-projection-test-smoke self-host-one-mir-inferred-generic-scalar-projection-test-smoke self-host-one-mir-inferred-generic-member-projection-test-smoke self-host-one-mir-passive-nominal-literal-projection-test-smoke self-host-one-mir-mutable-nominal-identity-projection-test-smoke self-host-one-mir-compile-time-declaration-literal-projection-test-smoke self-host-one-mir-enum-value-match-projection-test-smoke self-host-one-mir-tagged-enum-payload-projection-test-smoke self-host-one-mir-role-operator-projection-test-smoke self-host-role-override-replacement-test-smoke self-host-one-mir-constructed-generic-member-projection-test-smoke self-host-one-mir-constructed-array-member-projection-test-smoke self-host-one-mir-constructed-record-array-member-projection-test-smoke self-host-default-llvm-replacement-test-smoke
 
@@ -4262,7 +4262,7 @@ self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-tes
 		exit 1; \
 	else \
 		PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1 PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh; \
+		"$(BASH)" tests/self_hosted/parity/driver/driver_bootstrap.sh; \
 	fi
 
 self-host-driver-bootstrap-full-pressure-body-test-smoke:
@@ -4271,7 +4271,7 @@ self-host-driver-bootstrap-full-pressure-body-test-smoke:
 		exit 1; \
 	fi
 	PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1 PGY_BIN="$(abspath $(PGY))" \
-	"$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
+	"$(BASH)" tests/self_hosted/parity/driver/driver_bootstrap.sh
 
 PGY_SELFHOST_DRIVER_MIR_SHARD_TIMEOUT_SEC ?= 300
 self-host-driver-full-mir-seed-pressure-shard-test-smoke:
@@ -4292,7 +4292,7 @@ self-host-driver-full-mir-seed-pressure-shard-body-test-smoke:
 		echo "[self-host-driver-full-mir-shard] body requires measure_build_pressure.ps1" >&2; \
 		exit 1; \
 	fi
-	"$(BASH)" tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh
+	"$(BASH)" tests/self_hosted/parity/driver/driver_full_mir_seed_pressure_shard.sh
 
 .PHONY: self-host-driver-full-mir-seed-pressure-shard-test-smoke
 .PHONY: self-host-driver-full-mir-seed-pressure-shard-body-test-smoke
@@ -4316,7 +4316,7 @@ self-host-driver-full-mir-consumer-pressure-shard-body-test-smoke:
 		echo "[self-host-driver-full-mir-consumer-shard] body requires measure_build_pressure.ps1" >&2; \
 		exit 1; \
 	fi
-	"$(BASH)" tests/self_hosted/parity/driver_full_mir_consumer_pressure_shard.sh
+	"$(BASH)" tests/self_hosted/parity/driver/driver_full_mir_consumer_pressure_shard.sh
 
 .PHONY: self-host-driver-full-mir-consumer-pressure-shard-test-smoke
 .PHONY: self-host-driver-full-mir-consumer-pressure-shard-body-test-smoke
@@ -4329,180 +4329,180 @@ self-host-bootstrap-policy-corpus-test-smoke: self-host-driver-bootstrap-test-sm
 
 self-host-driver-rung0-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung0_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung0_parity.sh
 
 self-host-driver-rung1-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung1_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung1_parity.sh
 
 self-host-driver-rung2-body-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung2_body_parity.sh
 
 self-host-llvm-option-member-assignment-context-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
-		tests/self_hosted/parity/llvm_option_member_assignment_context_owner.sh
+		tests/self_hosted/parity/codegen/llvm_option_member_assignment_context_owner.sh
 
 .PHONY: self-host-llvm-option-member-assignment-context-test-smoke
 
 self-host-llvm-intent-value-argument-abi-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
-		tests/self_hosted/parity/llvm_intent_value_argument_abi_owner.sh
+		tests/self_hosted/parity/codegen/llvm_intent_value_argument_abi_owner.sh
 
 .PHONY: self-host-llvm-intent-value-argument-abi-test-smoke
 
 self-host-generic-default-contract-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_default_contracts_parser_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/generic_default_contracts_parser_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung2_generic_default_contract_parity.sh
 
 .PHONY: self-host-generic-default-contract-parity-test-smoke
 
 self-host-hard-driver-rung2-parity-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/match_scrutinee_single_evaluation_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/match_scrutinee_single_evaluation_owner.sh
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_SELFHOST_DRIVER_BACKENDS=hard \
 	PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="$${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-$(SELFHOST_HARD_DRIVER_FRONTIER)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/driver_rung2_body_parity.sh
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
-		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
+		tests/self_hosted/parity/domain/domain_runtime_assignment_execution_owner.sh
 
 self-host-world-tobject-query-test-smoke: self-host-compiler
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
-		tests/self_hosted/parity/world_tobject_projection_query_owner.sh
+		tests/self_hosted/parity/domain/world_tobject_projection_query_owner.sh
 
 self-host-hard-driver-rung2-parity-full-test-smoke: self-host-compiler
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_SELFHOST_DRIVER_BACKENDS=hard PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
+		"$(BASH)" tests/self_hosted/parity/driver/driver_rung2_body_parity.sh
 
 self-host-mir-abi-first-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_abi_first_lane.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_abi_first_lane.sh
 
 self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" \
 	PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" \
-	"$(BASH)" tests/self_hosted/parity/lsp_diagnostics_parity.sh
+	"$(BASH)" tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh
 
 self-host-lsp-transport-frame-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_transport_frame_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_transport_frame_parity.sh
 
 self-host-lsp-transport-stream-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_transport_stream_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_transport_stream_parity.sh
 
 self-host-lsp-request-dispatch-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_request_dispatch_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_request_dispatch_parity.sh
 
 self-host-lsp-response-emission-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_response_emission_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_response_emission_parity.sh
 
 self-host-lsp-session-replay-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_replay_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_session_replay_parity.sh
 
 self-host-lsp-document-store-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_document_store_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_document_store_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_document_latest_publication_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh
 
 self-host-lsp-session-state-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_state_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_session_state_parity.sh
 
 self-host-lsp-hover-content-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_hover_content_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp/lsp_hover_content_parity.sh
 
 self-host-lsp-live-session-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" \
-	"$(BASH)" tests/self_hosted/parity/lsp_live_session_owner.sh
+	"$(BASH)" tests/self_hosted/parity/lsp/lsp_live_session_owner.sh
 
 self-host-abi-layout-row-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/abi_layout_row_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/abi_layout_row_manifest_parity.sh
 
 self-host-runtime-call-abi-row-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/runtime_call_abi_row_manifest_parity.sh
 
 self-host-target-capability-envelope-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/target_capability_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/target_capability_manifest_parity.sh
 
 self-host-sandbox-capability-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/sandbox_capability_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain/sandbox_capability_manifest_parity.sh
 
 self-host-backend-emitter-contract-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_emitter_contract_checker_parity.sh
 
 self-host-backend-air-access-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_air_access_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_air_access_checker_parity.sh
 
 self-host-backend-abi-layout-contract-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/backend_abi_layout_contract_checker_parity.sh
 
 self-host-compatibility-evolution-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/compatibility_evolution_manifest_parity.sh
 
 self-host-compatibility-corpus-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/compatibility_evolution_checker_parity.sh
 
 self-host-mir-json-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_json_parity.sh
 
 self-host-domain-topology-admission-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain_topology_admission_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain/domain_topology_admission_owner.sh
 
 self-host-dir-graph-inventory-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/dir_graph_inventory_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/dir_graph_inventory_owner.sh
 
 self-host-intent-execution-plan-admission-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent/intent_execution_plan_json_admission_owner.sh
 
 self-host-domain-runtime-assignment-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
-		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
+		tests/self_hosted/parity/domain/domain_runtime_assignment_execution_owner.sh
 
 self-host-domain-runtime-zone-sync-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" \
-		tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh
+		tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh
 
 self-host-mir-cfg-graph-query-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_cfg_graph_query_owner_smoke.sh
 
 self-host-mir-program-routine-index-owner-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_program_routine_index_owner_smoke.sh
 
 self-host-json-bounded-string-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/json_bounded_string_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/json_bounded_string_owner_smoke.sh
 
 self-host-codegen-type-env-preseal-epoch-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_NATIVE_LLVM_BIN="$(abspath $(PGY))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/type_env_state_retirement_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_NATIVE_LLVM_BIN="$(abspath $(PGY))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/codegen_type_env_preseal_epoch_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/type_env_state_retirement_owner.sh
 
 self-host-expression-graph-identity-prefix-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/expression_graph_identity_prefix_owner_smoke.sh
 
 self-host-routine-build-storage-lifetime-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/routine_build_copy_retire_probe.sh
-	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/body_bundle_typed_retirement_probe.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/routine_build_storage_lifetime_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/mir/routine_build_copy_retire_probe.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/ownership/body_bundle_typed_retirement_probe.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/routine_build_storage_lifetime_owner.sh
 
 self-host-compiler-internal-caller-provenance-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compiler_internal_builtin_caller_provenance_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver/compiler_internal_builtin_caller_provenance_owner.sh
 
 self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_json_instruction_writer_byte_parity.sh
 
 self-host-json-owned-fragment-empty-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/json_owned_fragment_empty_runtime.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/json_owned_fragment_empty_runtime.sh
 
 .PHONY: self-host-json-owned-fragment-empty-test-smoke
 
@@ -4515,15 +4515,15 @@ mir-lower-stmt-render-fail-closed-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh
 
 self-host-fuzz-backend-generator-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
 
 fuzz-backend-parity-test-smoke: $(PGY)
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
 
 fuzz-backend-parity-matrix-test-smoke: $(PGY)
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=42 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1001 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=42 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1001 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
 
 # Campaign variant: same oracle-on differential fuzz, but the seed and
 # count come from the environment (defaults keep a bare `make` useful).
@@ -4532,7 +4532,7 @@ fuzz-backend-parity-matrix-test-smoke: $(PGY)
 # differential-fuzzing gap the docs/189 review flagged (the dual backend
 # is a free oracle that was only ever run on a fixed corpus).
 fuzz-backend-parity-campaign-test-smoke: $(PGY)
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT="$${PGY_FUZZ_COUNT:-12}" PGY_FUZZ_SEED="$${PGY_FUZZ_SEED:-2026}" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT="$${PGY_FUZZ_COUNT:-12}" PGY_FUZZ_SEED="$${PGY_FUZZ_SEED:-2026}" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
 
 self-host-component-contract-test-smoke:
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
@@ -4542,134 +4542,134 @@ self-host-hard-contract-test-smoke:
 
 self-host-intent-observability-runtime-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_observability_installed_self_host_owner.sh
 
 self-host-intent-observability-mir-identity-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/intent_observability_mir_identity_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_observability_mir_identity_owner.sh
 
 .PHONY: self-host-direct-mir-legacy-intent-program-llvm-test-smoke
 self-host-direct-mir-legacy-intent-program-llvm-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_legacy_intent_program_llvm_owner.sh
 
 .PHONY: self-host-direct-mir-composite-intent-program-llvm-test-smoke
 self-host-direct-mir-composite-intent-program-llvm-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_composite_intent_program_llvm_owner.sh
 
 .PHONY: self-host-direct-mir-nested-intent-program-llvm-test-smoke
 self-host-direct-mir-nested-intent-program-llvm-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_llvm_owner.sh
 
 self-host-progress-metric-test-smoke:
 	"$(BASH)" tests/self_host_progress_metric_smoke.sh
 
 self-host-canonical-mir-verified-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh
+		"$(BASH)" tests/self_hosted/parity/mir/canonical_mir_verified_projection_owner.sh
 
 self-host-canonical-mir-routine-phase-identity-test-smoke: self-host-canonical-mir-verified-projection-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/canonical_mir_routine_phase_identity_owner.sh
+		"$(BASH)" tests/self_hosted/parity/mir/canonical_mir_routine_phase_identity_owner.sh
 
 self-host-generic-specialization-identity-epoch-test-smoke: self-host-canonical-mir-routine-phase-identity-test-smoke
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/generic_specialization_identity_epoch_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/generic_specialization_identity_epoch_owner.sh
 
 self-host-public-mir-json-replacement-test-smoke: self-host-installed-driver-cli-mode-test-smoke self-host-generic-specialization-identity-epoch-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_mir_json_installed_self_host_owner.sh
 
 self-host-public-mir-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_mir_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_mir_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-return-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-return-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_return_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_return_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-logical-operand-json-diagnostic-receipt-test-smoke
 self-host-public-logical-operand-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_logical_operand_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_logical_operand_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-condition-not-bool-json-diagnostic-receipt-test-smoke
 self-host-public-condition-not-bool-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_condition_not_bool_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_condition_not_bool_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-not-operand-json-diagnostic-receipt-test-smoke
 self-host-public-not-operand-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_not_operand_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_not_operand_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-compare-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-compare-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-binop-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-binop-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-let-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-let-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_let_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_let_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-assign-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-assign-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-call-arg-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-call-arg-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-builtin-arg-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-builtin-arg-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-value-param-collection-mutation-json-diagnostic-receipt-test-smoke
 self-host-public-value-param-collection-mutation-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-call-arity-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-call-arity-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-nested-collection-call-arity-semantic-admission-test-smoke
 self-host-nested-collection-call-arity-semantic-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/nested_collection_call_arity_semantic_admission_owner.sh
 
 .PHONY: self-host-vessel-method-argument-type-admission-test-smoke
 self-host-vessel-method-argument-type-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh
+		"$(BASH)" tests/self_hosted/parity/domain/vessel_method_argument_type_admission_owner.sh
 
 .PHONY: self-host-array-index-type-semantic-admission-test-smoke
 self-host-array-index-type-semantic-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/array_index_type_semantic_admission_owner.sh
 
 .PHONY: self-host-slice-copy-semantic-bridge-test-smoke
 self-host-slice-copy-semantic-bridge-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/slice_copy_semantic_bridge_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/slice_copy_semantic_bridge_owner.sh
 
 .PHONY: self-host-task-is-cancelled-builtin-test-smoke
 self-host-task-is-cancelled-builtin-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/task_is_cancelled_builtin_owner.sh
+		"$(BASH)" tests/self_hosted/parity/domain/task_is_cancelled_builtin_owner.sh
 
 .PHONY: effect-admission-test-smoke
 effect-admission-test-smoke: $(PGY) self-host-compiler
@@ -4679,12 +4679,12 @@ effect-admission-test-smoke: $(PGY) self-host-compiler
 .PHONY: self-host-zone-spawn-transport-admission-test-smoke
 self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/zone_spawn_transport_admission_owner.sh
+		"$(BASH)" tests/self_hosted/parity/domain/zone_spawn_transport_admission_owner.sh
 
 .PHONY: self-host-future-aggregate-storage-admission-test-smoke
 self-host-future-aggregate-storage-admission-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/future_aggregate_storage_admission_owner.sh
+		"$(BASH)" tests/self_hosted/parity/domain/future_aggregate_storage_admission_owner.sh
 
 .PHONY: aggregate-storage-transfer-test-smoke
 aggregate-storage-transfer-test-smoke: $(PGY)
@@ -4694,156 +4694,156 @@ aggregate-storage-transfer-test-smoke: $(PGY)
 .PHONY: self-host-collection-descriptor-effect-test-smoke
 self-host-collection-descriptor-effect-test-smoke: $(PGY) self-host-semantic-owner-probe-build
 	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/collection_descriptor_effect_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/collection_descriptor_effect_owner.sh
 
 .PHONY: self-host-collection-map-payload-test-smoke
 self-host-collection-map-payload-test-smoke: $(PGY) self-host-semantic-owner-probe-build
 	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/collection_map_payload_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/collection_map_payload_owner.sh
 
 .PHONY: self-host-collection-native-member-release-restore-test-smoke
 self-host-collection-native-member-release-restore-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/collection_native_member_release_restore_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/collection_native_member_release_restore_owner.sh
 
 .PHONY: self-host-collection-replacement-cleanup-test-smoke
 self-host-collection-replacement-cleanup-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/collection_replacement_cleanup_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/collection_replacement_cleanup_owner.sh
 
 .PHONY: self-host-direct-mir-scalar-result-bool-test-smoke
 self-host-direct-mir-scalar-result-bool-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_result_bool_owner.sh
+		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_scalar_result_bool_owner.sh
 
 .PHONY: self-host-member-completed-read-test-smoke
 self-host-member-completed-read-test-smoke: $(PGY) self-host-semantic-owner-probe-build
 	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/member_completed_read_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/member_completed_read_owner.sh
 
 .PHONY: self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke
 self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_parser_callable_contract_json_diagnostic_receipt_owner.sh
 
 .PHONY: self-host-public-artifact-json-diagnostic-receipt-test-smoke
 self-host-public-artifact-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_artifact_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_artifact_json_diagnostic_receipt_owner.sh
 
 self-host-public-machine-manifest-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_machine_manifest_installed_self_host_owner.sh
 
 self-host-public-tokens-replacement-test-smoke: self-host-public-machine-manifest-replacement-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_tokens_installed_self_host_owner.sh
 
 .PHONY: self-host-public-tokens-json-diagnostic-receipt-test-smoke
 self-host-public-tokens-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_tokens_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_tokens_json_diagnostic_receipt_owner.sh
 
 self-host-public-ast-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_ast_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_ast_installed_self_host_owner.sh
 
 .PHONY: self-host-public-ast-json-diagnostic-receipt-test-smoke
 self-host-public-ast-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_ast_json_diagnostic_receipt_owner.sh
 
 self-host-public-capability-manifest-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_capability_manifest_installed_self_host_owner.sh
 
 self-host-public-dir-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_dir_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_dir_installed_self_host_owner.sh
 
 self-host-source-inspection-opt-profile-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_source_inspection_opt_profile_owner.sh
 
 self-host-mir-opt-profile-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_mir_opt_profile_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_mir_opt_profile_owner.sh
 
 self-host-llvm-ir-opt-profile-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_opt_profile_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_llvm_ir_opt_profile_owner.sh
 
 .PHONY: self-host-public-llvm-ir-json-diagnostic-receipt-test-smoke
 self-host-public-llvm-ir-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_json_diagnostic_receipt_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_llvm_ir_json_diagnostic_receipt_owner.sh
 
 self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke self-host-llvm-ir-opt-profile-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_llvm_ir_installed_self_host_owner.sh
 
 self-host-public-nested-scalar-cfg-llvm-test-smoke: self-host-public-llvm-ir-replacement-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_nested_scalar_cfg_llvm_owner.sh
 
 self-host-public-llvm-ir-stdout-replacement-test-smoke: self-host-public-nested-scalar-cfg-llvm-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_llvm_ir_stdout_installed_self_host_owner.sh
 
 self-host-live-replacement-test-smoke: self-host-public-llvm-ir-stdout-replacement-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/self_host_live_replacement_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_debug_installed_self_host_session_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_debug_installed_self_host_session_owner.sh
 
 self-host-public-debug-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_debug_installed_self_host_session_owner.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_debug_installed_self_host_session_owner.sh
 
 self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke self-host-llvm-ir-opt-profile-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/installed_driver_cli_mode_owner.sh
+		"$(BASH)" tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/binary_output_refusal_owner.sh
+		"$(BASH)" tests/self_hosted/parity/codegen/binary_output_refusal_owner.sh
 
 self-host-default-c-emit-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/default_c_emit_installed_self_host_owner.sh
 
 self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/default_c_compile_installed_self_host_owner.sh
 
 .PHONY: self-host-callable-parameter-identity-replacement-test-smoke
 self-host-callable-parameter-identity-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh
+		"$(BASH)" tests/self_hosted/parity/driver/driver_rung2_callable_parameter_identity_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/callable_parameter_installed_self_host_owner.sh
 
 .PHONY: self-host-region-user-callee-replacement-test-smoke
 self-host-region-user-callee-replacement-test-smoke: self-host-callable-parameter-identity-replacement-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/region_user_callee_installed_self_host_owner.sh
 
 .PHONY: self-host-lowercase-entrypoint-replacement-test-smoke
 self-host-lowercase-entrypoint-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/frontend/lowercase_entrypoint_installed_self_host_owner.sh
 
 .PHONY: self-host-replacement-frontier-installed-test-smoke
 self-host-replacement-frontier-installed-test-smoke: $(PGY)
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh
+		"$(BASH)" tests/self_hosted/parity/driver/driver_rung2_callable_parameter_identity_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/callable_parameter_installed_self_host_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/region_user_callee_installed_self_host_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/frontend/lowercase_entrypoint_installed_self_host_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/one_mir_struct_argument_projection.sh
+		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_struct_argument_projection.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/role_override_mir_replacement.sh
+		"$(BASH)" tests/self_hosted/parity/domain/role_override_mir_replacement.sh
 
 .PHONY: self-host-replacement-frontier-test-smoke
 self-host-replacement-frontier-test-smoke: self-host-compiler
@@ -4851,7 +4851,7 @@ self-host-replacement-frontier-test-smoke: self-host-compiler
 
 self-host-package-command-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/package_commands_installed_self_host_owner.sh
+		"$(BASH)" tests/self_hosted/parity/frontend/package_commands_installed_self_host_owner.sh
 
 execution-lane-policy-test-smoke:
 	"$(BASH)" tests/execution_lane_policy_smoke.sh
@@ -4989,46 +4989,46 @@ intent-observability-abi-registry-test-smoke:
 
 self-host-intent-callable-reachability-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_callable_reachability_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_callable_reachability_owner.sh
 
 self-host-zone-authority-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/zone_authority_fact_owner.sh
+		"$(BASH)" tests/self_hosted/parity/domain/zone_authority_fact_owner.sh
 
 self-host-intent-callable-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_callable_execution_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_callable_execution_owner.sh
 
 self-host-intent-outcome-frontend-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_outcome_frontend_parser_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_outcome_frontend_parser_owner.sh
 
 self-host-intent-typed-outcome-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_typed_outcome_execution_owner.sh
 
 self-host-intent-typed-compensation-test-smoke: self-host-compiler
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 		PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh
 
 self-host-intent-guard-post-compensation-execution-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" \
 		PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_guard_post_compensation_execution_owner.sh
 
 self-host-intent-phase-carrier-negative-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_phase_carrier_negative_owner.sh
 
 self-host-intent-execution-fact-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_execution_fact_contract_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_execution_fact_contract_owner.sh
 
 self-host-intent-zone-authority-transition-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" \
 		PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/intent_zone_authority_transition_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent/intent_zone_authority_transition_owner.sh
 
 intent-typed-transition-native-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
@@ -5036,11 +5036,11 @@ intent-typed-transition-native-execution-test-smoke: $(PGY)
 
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/tobject_boundary_execution_owner.sh
+		"$(BASH)" tests/self_hosted/parity/domain/tobject_boundary_execution_owner.sh
 
 self-host-fallible-tobject-outcome-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/driver_rung2_fallible_tobject_outcome_owner.sh
+		"$(BASH)" tests/self_hosted/parity/driver/driver_rung2_fallible_tobject_outcome_owner.sh
 
 lsp-completion-registry-test-smoke:
 	"$(BASH)" tests/lsp_completion_registry_smoke.sh
@@ -5187,19 +5187,19 @@ semantic-tu-size-test-smoke:
 
 production-header-size-test-smoke: $(PGY)
 	python3 tests/source_size_count_test.py
-	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/source_size_c_owner_probe.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/driver/source_size_c_owner_probe.sh
 	"$(BASH)" tests/production_header_size_smoke.sh
-	"$(BASH)" tests/self_hosted/parity/production_header_size_checker_parity.sh
+	"$(BASH)" tests/self_hosted/parity/driver/production_header_size_checker_parity.sh
 
 # Pergyra-side primary gate: no C-side smoke owns the .c file cap today.
 production-c-size-test-smoke: $(PGY)
 	python3 tests/source_size_count_test.py
-	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/source_size_c_owner_probe.sh
-	"$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/driver/source_size_c_owner_probe.sh
+	"$(BASH)" tests/self_hosted/parity/driver/production_c_size_checker_parity.sh
 
 # Pergyra-side primary gate: examples/ inventory has no C-side smoke today.
 examples-inventory-test-smoke: $(PGY)
-	"$(BASH)" tests/self_hosted/parity/examples_inventory_checker_parity.sh
+	"$(BASH)" tests/self_hosted/parity/frontend/examples_inventory_checker_parity.sh
 
 backend-inc-size-test-smoke:
 	"$(BASH)" tests/backend_inc_size_smoke.sh
@@ -5287,23 +5287,23 @@ call-argument-evaluation-order-test-smoke: $(PGY) array-member-mutation-test-smo
 
 .PHONY: self-host-public-array-drop-test-smoke
 self-host-public-array-drop-test-smoke: self-host-compiler
-	"$(BASH)" tests/self_hosted/parity/linked_runtime_compile_profile_smoke.sh
-	"$(BASH)" tests/self_hosted/parity/public_array_drop_owner_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/codegen/linked_runtime_compile_profile_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/public_route/public_array_drop_owner_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/public_array_drop.sh
+		"$(BASH)" tests/self_hosted/parity/public_route/public_array_drop.sh
 
 .PHONY: self-host-array-string-layout-consumer-closure-test-smoke
 self-host-array-string-layout-consumer-closure-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/array_string_layout_consumer_closure_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/array_string_layout_consumer_closure_owner.sh
 
 .PHONY: self-host-array-index-receiver-admission-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-array-index-receiver-admission-test-smoke
 self-host-array-index-receiver-admission-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/one_mir_string_array_mutation_projection.sh
+		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_string_array_mutation_projection.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/array_mutation_receiver_use_contract.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/array_mutation_receiver_use_contract.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
 # One build per backend of every contract probe that imports the self-host
@@ -5313,7 +5313,7 @@ SEMANTIC_OWNER_PROBE_DIR := $(abspath .tmp/self_hosted/semantic_owner_probe)
 SEMANTIC_OWNER_PROBE_BUILD_SECONDS ?= 1200
 .PHONY: self-host-semantic-owner-probe-build
 self-host-semantic-owner-probe-build: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_owner_probe_build.sh \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/semantic_owner_probe_build.sh \
 		"$(SEMANTIC_OWNER_PROBE_DIR)" $(SEMANTIC_OWNER_PROBE_BUILD_SECONDS)
 
 # The identity cell receiver probe is one program of the shared build above.
@@ -5325,74 +5325,74 @@ self-host-identity-cell-receiver-test-smoke: $(PGY) self-host-compiler self-host
 
 self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 
 .PHONY: self-host-nominal-constructor-field-identity-test-smoke
 self-host-nominal-constructor-field-identity-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/nominal_constructor_field_identity_owner.sh
+		"$(BASH)" tests/self_hosted/parity/semantic/nominal_constructor_field_identity_owner.sh
 
 .PHONY: self-host-collection-inout-effect-test-smoke
 .PHONY: collection-native-storage-escape-test-smoke
 collection-native-storage-escape-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_storage_escape_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_native_storage_escape_owner.sh
 
 .PHONY: self-host-collection-formal-key-consumption-test-smoke
 self-host-collection-formal-key-consumption-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_formal_key_consumption_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_formal_key_consumption_owner.sh
 
 .PHONY: self-host-collection-binding-move-prefix-test-smoke
 self-host-collection-binding-move-prefix-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_binding_move_prefix_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_binding_move_prefix_owner.sh
 
 .PHONY: self-host-collection-member-permission-test-smoke
 self-host-collection-member-permission-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/member_indexed_read_permission.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/member_indexed_read_permission.sh
 
 .PHONY: self-host-collection-field-read-summary-test-smoke
 self-host-collection-field-read-summary-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_field_read_summary_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_field_read_summary_owner.sh
 
 .PHONY: self-host-collection-focus-recovery-test-smoke
 self-host-collection-focus-recovery-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_focus_recovery_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_focus_recovery_owner.sh
 
 self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke self-host-collection-focus-recovery-test-smoke $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_inout_effect_owner.sh
 
 .PHONY: self-host-collection-owned-result-test-smoke
 self-host-collection-owned-result-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_owned_result_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_owned_result_owner.sh
 
 .PHONY: self-host-collection-constructor-field-input-test-smoke
 self-host-collection-constructor-field-input-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_constructor_field_input_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_constructor_field_input_owner.sh
 
 .PHONY: self-host-collection-member-identity-test-smoke
 self-host-collection-member-identity-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_member_identity_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_member_identity_owner.sh
 
 .PHONY: self-host-collection-aggregate-entry-requirement-test-smoke
 self-host-collection-aggregate-entry-requirement-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_aggregate_entry_requirement_owner.sh
 
 .PHONY: self-host-collection-aggregate-release-source-test-smoke
 self-host-collection-aggregate-release-source-test-smoke: $(PGY) self-host-semantic-owner-probe-build
-	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_release_source_owner.sh
+	PGY_SEMANTIC_OWNER_PROBE_DIR="$(SEMANTIC_OWNER_PROBE_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ownership/collection_aggregate_release_source_owner.sh
 
 .PHONY: self-host-enum-qualified-environment-test-smoke
 self-host-enum-qualified-environment-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/enum_qualified_environment_fact_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/enum_qualified_environment_fact_owner.sh
 
 .PHONY: self-host-mir-round-trip-semantic-test-smoke
 self-host-mir-round-trip-semantic-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/mir_round_trip_semantic_owner.sh
+		"$(BASH)" tests/self_hosted/parity/mir/mir_round_trip_semantic_owner.sh
 
 .PHONY: self-host-collection-ownership-fact-carrier-test-smoke
 self-host-collection-ownership-fact-carrier-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-		"$(BASH)" tests/self_hosted/parity/collection_ownership_fact_carrier_owner.sh
+		"$(BASH)" tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh
 
 mir-param-carriage-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_param_carriage_smoke.sh

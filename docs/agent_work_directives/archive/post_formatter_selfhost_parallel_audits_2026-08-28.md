@@ -24,7 +24,7 @@ progress number, registry state, or successor implementation rung.
   output, or generated artifacts as substitution progress; proposing dual-read
   compatibility; reopening an unrelated query/cache/performance track.
 - Integration owner: the primary task. The current integration gate is
-  `tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh`; any
+  `tests/self_hosted/parity/public_route/public_fmt_installed_self_host_owner.sh`; any
   successor must name one production entrypoint and a new focused executable
   or negative gate before implementation begins.
 
@@ -85,7 +85,7 @@ gate. Do not infer readiness from surface syntax or parser-only reachability.
   reconstruction and absent-view fallback, and fail before artifact
   publication on missing or crossed facts.
 - Candidate integration evidence is
-  `tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh`,
+  `tests/self_hosted/parity/intent/intent_guard_post_compensation_execution_owner.sh`,
   extended through the real installed/public source-C entrypoint with static
   old-read bans and no-artifact mutations. This audit does not authorize that
   implementation until the active formatter lease is published and released.

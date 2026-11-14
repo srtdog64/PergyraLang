@@ -79,7 +79,7 @@ local-expression depth. Finite graph bounds now count the right units. This is
 not an arbitrary multiplier increase. The file remains 160 lines / cap180 and
 both external consumers start callable depth0.
 
-New gate: `tests/self_hosted/parity/direct_mir_owned_string_result_composition.sh`.
+New gate: `tests/self_hosted/parity/direct_mir/direct_mir_owned_string_result_composition.sh`.
 It checks minimal/reordered/unused-tail/long-chain/local-alias/shared-callee
 positive programs. The unused tail preserves original callable and receipt
 identities. The shared-callee case executes both terminal return paths.
@@ -92,7 +92,7 @@ Artifact refusal policy derives from the actual owners:
 - MIR/projected artifacts: preserve the previous artifact on rejection.
 - Public executable requests: invalidate the exact previous binary before
   admission, as `driver_binary_output_owner.h` and
-  `tests/self_hosted/parity/binary_output_refusal_owner.sh` explicitly require.
+  `tests/self_hosted/parity/codegen/binary_output_refusal_owner.sh` explicitly require.
 
 Initial generic-preservation assumptions were corrected after those contracts
 were read. The observed binary invalidation is not recorded as a defect.
@@ -111,7 +111,7 @@ native-bootstrap candidate, under MSYS2 UCRT64 with a 300-second gate budget:
 ```bash
 export PGY_BIN="D:/PergyraLang/.tmp/vision_owned_result_6e732613/pgy-pinned.exe"
 export PGY_SELF_DRIVER_BIN="D:/PergyraLang/.tmp/vision_owned_result_6e732613/native-candidate-driver.exe"
-timeout 300s bash tests/self_hosted/parity/direct_mir_owned_string_result_composition.sh
+timeout 300s bash tests/self_hosted/parity/direct_mir/direct_mir_owned_string_result_composition.sh
 ```
 
 Observed exit0 and final PASS. Evidence directory:

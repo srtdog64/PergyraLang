@@ -118,7 +118,7 @@ Observed importer and blast-radius evidence:
 
 Gate if later authorized:
 
-- executable: `tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh`;
+- executable: `tests/self_hosted/parity/driver/compatibility_evolution_manifest_parity.sh`;
 - path projection: `tests/self_hosted/compiler_world_manifest.sh` through the
   existing compiler-world contract;
 - structural negative: reject both old root paths after all importers,
@@ -217,7 +217,7 @@ Observed importer and blast-radius evidence:
 
 Gate if later authorized:
 
-- executable: `tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh`
+- executable: `tests/self_hosted/parity/public_route/public_mir_diagnostic_installed_self_host_owner.sh`
   and the installed-driver CLI mode gate;
 - structural/action: `tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh`;
 - old-path negative: reject all three root paths only after Lease F is committed

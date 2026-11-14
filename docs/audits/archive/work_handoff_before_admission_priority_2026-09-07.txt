@@ -1308,7 +1308,7 @@ or agent lease is being left running. Next work is the one Intent query card.
   identity readiness 80->110 (109). The focused identity gate's stale leaf
   cap 50 is replaced by the already existing component limit 55 (actual 52).
   All four overlapping scalar caps now derive from
-  `tests/self_hosted/parity/scalar_program_owner_caps.tsv`; missing, duplicate,
+  `tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv`; missing, duplicate,
   malformed or tighter cap rows are tested through the actual consumer.
   Its focused identity gate passes. No semantic admission was weakened or
   compiler function split merely to fit a physical cap.
@@ -2390,7 +2390,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - Exact owner card and falsifier are in
   `docs/agent_work_directives/parser_statement_typed_ast_source_location_2026-09-03.md`.
   The opening control is `channel_ops.pgy`; the integration gate remains the
-  owned 189-source `tests/self_hosted/parity/parser_parity.sh` inventory.
+  owned 189-source `tests/self_hosted/parity/frontend/parser_parity.sh` inventory.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%.
 - Local implementation `196ed689508e40956b8656537e617009e245007d`
@@ -2523,7 +2523,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The exact objective card and focused falsifier are
   `docs/agent_work_directives/array_index_type_semantic_admission_2026-09-02.md`
   and
-  `tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh`.
+  `tests/self_hosted/parity/ownership/array_index_type_semantic_admission_owner.sh`.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%. This section records fresh admission evidence,
   not completed repair or substitution progress.
@@ -2640,7 +2640,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - Exact directive and focused gate are
   `docs/agent_work_directives/binop_type_mismatch_public_json_diagnostic_receipt_2026-09-02.md`
   and
-  `tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh`.
   Exact CI run `33591240737` completed `30/30` success in 35 minutes 13
   seconds. Full self-host completed in 34 minutes 56 seconds with one
   `gen2 == gen3 (173300 lines)`, a Pergyra-built DRV-2, the focused marker,
@@ -2716,7 +2716,7 @@ or agent lease is being left running. Next work is the one Intent query card.
   infer a public-identity admission group.
 - Replacement negatives are unadmitted `bad_binop_assign`, missing-oracle
   `bad_issome_none_call`, and an unknown Pergyra code. The focused falsifier is
-  `tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh`.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.24% and
   project forecast remains 83%.
@@ -2759,7 +2759,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code, prove builtin and
   direct-ArraySet private contexts, and reuse the existing MIR/artifact process
   and wire owners for public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused two-context gate. Rebaselined
   return, logical, let, assignment, call-argument, and builtin-argument gates
   keep arity siblings fail-closed, and the complete installed CLI aggregate
@@ -2805,7 +2805,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code, prove both private
   contexts, and reuse the existing MIR/artifact process and wire owners for
   public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused two-context gate, rebaselined
   return/logical/let/assignment/call-argument negatives, and the complete
   installed CLI aggregate through artifact, parser, tokens, AST, LLVM IR,
@@ -2846,7 +2846,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code, prove all thirteen
   private contexts, and reuse the existing MIR/artifact process and wire owners
   for public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused thirteen-context gate,
   rebaselined return/logical/let/assignment negatives, and the complete
   installed CLI aggregate through artifact, parser, tokens, AST, LLVM IR,
@@ -2884,7 +2884,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code and reuse the existing
   MIR/artifact process and wire owners for public MIR/C/LLVM relay. Its focused
   falsifier is
-  `tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused assignment gate, rebaselined
   return/logical/let negatives, and the complete installed CLI aggregate
   through artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL,
@@ -2925,7 +2925,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code, prove all thirteen
   private contexts, and reuse the existing MIR/artifact process and wire owners
   for public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_let_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_let_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused thirteen-context gate,
   rebaselined return/logical negative checks, all existing semantic receipt
   gates, and the complete installed CLI aggregate through artifact, parser,
@@ -2968,7 +2968,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code, prove all three
   private contexts, and reuse the existing MIR/artifact process and wire owners
   for public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused compare gate, rebaselined
   logical/unary gates, and the complete installed CLI aggregate through
   artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL, formatter, and
@@ -3007,7 +3007,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code and reuse the existing
   MIR/artifact process and wire owners for public MIR/C/LLVM relay. Its focused
   falsifier is
-  `tests/self_hosted/parity/public_not_operand_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_not_operand_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused unary gate, rebaselined
   condition/logical gates, and the complete installed CLI aggregate through
   artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL, formatter, and
@@ -3046,7 +3046,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung may admit only this exact Pergyra code, prove both private
   contexts, and reuse the existing MIR/artifact process and wire owners for
   public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_condition_not_bool_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_condition_not_bool_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused if/while gate, rebaselined
   return/logical gates, and the complete installed CLI aggregate through
   artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL, formatter, and
@@ -3087,7 +3087,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - The active rung admits only this exact Pergyra code, proves all five private
   contexts, and reuses the existing MIR/artifact process and wire owners for
   public MIR/C/LLVM relay. Its focused falsifier is
-  `tests/self_hosted/parity/public_logical_operand_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_logical_operand_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes the focused gate, the updated return-type
   exclusion, existing undefined-function/artifact/parser receipt gates, and the
   complete installed CLI aggregate. Diagnostic, SoT, Gate, protocol,
@@ -3140,7 +3140,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - Other type-mismatch codes, lexer failure propagation, C mapping, native
   preflight/retry, wording-derived identity, source-location invention, and a
   second semantic pass are forbidden. The focused gate is
-  `tests/self_hosted/parity/public_return_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_return_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - A fresh Pergyra-built DRV-2 passes preserved text, direct private wire, exact
   public MIR/C/LLVM stderr relay, no artifact or native timing, wording
   independence, and an unrelated mismatch-code exclusion. Existing semantic,
@@ -7206,7 +7206,7 @@ Everything below this line is inactive lookup evidence, not an active queue.
   and `nested_if_in_loop` MIR artifacts are also byte-equal, preserving SSA
   merge and lexical-local restoration behavior.
 - The canonical full gate
-  `tests/self_hosted/parity/driver_bootstrap.sh` ran with
+  `tests/self_hosted/parity/driver/driver_bootstrap.sh` ran with
   `PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1` and the owned release flags
   `-O3 -fwrapv -fno-strict-aliasing`. It exited 0. The 5,903,397-byte
   Pergyra-built seed and 6,554,592-byte native oracle independently emitted
@@ -8489,7 +8489,7 @@ blocker again.
   cannot pass. Missing/wrong receiver, wrong type/index/value, broken graph,
   duplicate use, missing ABI, wrong owner, and out-of-range ordinal all fail
   closed. The renamed
-  `tests/self_hosted/parity/direct_mir_scalar_array_mutation_owner.sh` passed
+  `tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_mutation_owner.sh` passed
   C/LLVM execution in 15.1 seconds.
 - The canonical self-driver was rebuilt after stable try operation 38 was
   admitted. Installed `bin/pgy-self-driver.exe` is 5,506,092 bytes, mtime
@@ -9980,7 +9980,7 @@ blocker again.
   is admitted by the installed driver's internal CLI. Public `pgy --dir` now
   delegates to that request; `--native-pipeline --dir` is the one independent
   native oracle.
-- `tests/self_hosted/parity/dir_graph_inventory_owner.sh` most recently exits
+- `tests/self_hosted/parity/mir/dir_graph_inventory_owner.sh` most recently exits
   0 in 61.4 seconds with zero errors and zero warnings. Native and self-host
   rows match for
   `function_clause_order_minimal`, `party_role_bind`, the relation/effect
@@ -10009,7 +10009,7 @@ blocker again.
   with zero errors and zero warnings. It installed a 5,156,760-byte
   `bin/pgy-self-driver.exe` with SHA-256
   `A08140CDF9F7806E828F0F4F54B08F8AFDCC4FB92A1379E75B05307430DB6A4A`.
-  `tests/self_hosted/parity/public_dir_installed_self_host_owner.sh` then exits
+  `tests/self_hosted/parity/public_route/public_dir_installed_self_host_owner.sh` then exits
   0 in 3.3 seconds: public bytes equal direct installed bytes, while the
   normalized installed rows equal the explicit native oracle for authority,
   defaults, transfer shorthand, inline `intent:`, and nested `on:` intent
@@ -10110,18 +10110,18 @@ blocker again.
   seconds with zero errors and zero warnings. The matching native launcher is
   4,640,318 bytes, SHA-256
   `A5824D4929FB75CCA53B0188F79E033E98E9B553918EBCFAA02C560A09ABFE4D`.
-- `tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh`
+- `tests/self_hosted/parity/public_route/public_machine_manifest_installed_self_host_owner.sh`
   exits 0 in 2.2 seconds. Installed direct, public, changed-working-directory,
   companion, and explicit native-oracle bytes are equal. Its first build smoke
   exposed Windows CRLF being passed through text-mode `Log` as CRCRLF; the
   consumer now removes only the already-owned CR before the text stream emits
   exactly one CRLF.
-- `tests/self_hosted/parity/public_ast_installed_self_host_owner.sh` exits 0 in
+- `tests/self_hosted/parity/public_route/public_ast_installed_self_host_owner.sh` exits 0 in
   2.2 seconds. Direct/public AST bytes equal the committed arithmetic fixture
   and the explicit native oracle. The imported-source leg also equals the
   native artifact and retains `Intent: ImportedFrontendPipeline`, preventing a
   root-only parser from falsely passing.
-- `tests/self_hosted/parity/parser_parity.sh` exits 0 in 324.8 seconds for all
+- `tests/self_hosted/parity/frontend/parser_parity.sh` exits 0 in 324.8 seconds for all
   189 manifest rows on C and LLVM. Every native reference now uses explicit
   `pgy --native-pipeline --ast`; using public `pgy --ast` there would execute
   the installed candidate twice. Imported intent composition, generic default
@@ -10237,7 +10237,7 @@ blocker again.
   added on only one side and still pass the registry/public gates.
 - Capability verification evidence: both registry generators pass `--check`;
   `tests/builtin_capability_registry_smoke.sh` exits 0 in 2.7 seconds;
-  `tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh`
+  `tests/self_hosted/parity/public_route/public_capability_manifest_installed_self_host_owner.sh`
   exits 0 in 4.9 seconds; `tests/capability/run_manifest.sh` reports zero
   failures; public token, public AST, and installed CLI gates remain green; the
   full component inventory exits 0 in 126.7 seconds.
@@ -12695,7 +12695,7 @@ explicitly names it.
 - One process-management error remains part of the handoff record: while
   narrowing its own 661-file selfcheck, the CI worker incorrectly terminated a
   separate `C:\msys64\usr\bin\bash.exe` process running
-  `tests/self_hosted/parity/selfcheck_sources.sh` (PIDs 30812 and 54352,
+  `tests/self_hosted/parity/driver/selfcheck_sources.sh` (PIDs 30812 and 54352,
   parent 49280) around 06:39 KST. No source changed. The parent had
   already exited and cwd/environment were not recoverable, so the exact run was
   not guessed or restarted. Do not count that interrupted external selfcheck
@@ -12972,7 +12972,7 @@ explicitly names it.
   - `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/host_task_slot_smoke.sh`: LLVM
     compile/run PASS;
   - `PGY_BIN=bin/pgy.exe bash
-    tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh`: C
+    tests/self_hosted/parity/codegen/binary_projection_preflight_probe_parity.sh`: C
     compile/run PASS, LLVM compile/run PASS, and output parity PASS;
   - `bash tests/self_hosted_scaffold_smoke.sh`: `35 tool(s) gated`;
   - `bash tests/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
@@ -13137,9 +13137,9 @@ explicitly names it.
   matrix against that same revision.
 - Four protected paths remain outside this follow-up's scope and must not be
   staged or overwritten:
-  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`, and
+  `tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_match_parity_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh`, and
   `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
 
 ## Current resume checkpoint - integrated SoT and self-host closure audit
@@ -13150,9 +13150,9 @@ explicitly names it.
   49 untracked paths, and 0 staged paths. This is a shared dirty tree; do not
   treat the counts as an invitation to stage or discard unrelated work.
 - Four pre-existing protected paths remain outside this checkpoint's ownership:
-  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`, and
+  `tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_match_parity_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh`, and
   untracked `docs/self_hosted/18_c_oracle_bootstrap_contract.md`. They were not
   modified, staged, or deleted by this work.
 - Objective card:
@@ -13370,9 +13370,9 @@ explicitly names it.
   reach that Pergyra intent, and delete exactly one current direct orchestration
   bypass. Do not invent an intent from stage count or use `tobject` as topology.
 - Preserved concurrent/user work: do not stage or overwrite
-  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`, or
+  `tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_match_parity_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh`, or
   untracked `docs/self_hosted/18_c_oracle_bootstrap_contract.md` without first
   reconciling their separate owner/task.
 
@@ -13853,7 +13853,7 @@ explicitly names it.
     zero fill, native MIR graft, map-child omission followed by node-ID offset
     repair, or fixture-specific output;
   - verification gate:
-    `tests/self_hosted/parity/domain_runtime_explicit_map_execution_owner.sh`,
+    `tests/self_hosted/parity/domain/domain_runtime_explicit_map_execution_owner.sh`,
     invoked by `domain_runtime_assignment_execution_owner.sh`, plus component,
     object/action, source/MIR inventory and SoT gates.
 - Parser emits a typed `ProjectionMap:` child for effect/relation/zone
@@ -14422,7 +14422,7 @@ explicitly names it.
 - Resume with `docs/200_object_to_action_boundary_patterns.md` sections 2.1 and
   4.2.1, the `dir.domain_graph` registry row,
   `tests/domain_runtime_topology_smoke.sh`, and
-  `tests/self_hosted/parity/domain_topology_admission_owner.sh`.
+  `tests/self_hosted/parity/domain/domain_topology_admission_owner.sh`.
 
 ## Previous compiler world/action boundary checkpoint (superseded)
 
@@ -14730,9 +14730,9 @@ dogfood boundary. Neither changes released/default replacement.
 The following unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
-- `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
+- `tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh`;
+- `tests/self_hosted/parity/driver/driver_rung2_match_parity_owner.sh`;
+- `tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh`.
 
 No registry, dogfood-contract, action-rung, codegen-ordering, ABI-probe, v74
 implementation, gate, or documentation file should remain dirty.
@@ -14869,11 +14869,11 @@ Green:
 - DRV-2 C build and executable `let_log` readiness;
 - native current-source `driver_bootstrap_main.pgy` C build: 0 errors and
   0 warnings;
-- Pergyra-built bounded `tests/self_hosted/parity/driver_bootstrap.sh`, with
+- Pergyra-built bounded `tests/self_hosted/parity/driver/driver_bootstrap.sh`, with
   seed/oracle production and bounded MIR consumer parity;
-- `tests/self_hosted/parity/one_mir_dual_backend_projection.sh` using the
+- `tests/self_hosted/parity/one_mir/one_mir_dual_backend_projection.sh` using the
   current driver for hello, `let_log`, and `multilet`;
-- `tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh` using the fresh
+- `tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh` using the fresh
   Pergyra-built v74 seed for `ifelse`, `if_else_assign`, `reassign_block`,
   `nestedif`, `whileloop`, `forloop`, and `break_after_stmt`, including
   CFG/phi/nested/while/range/break/AIR/certificate/plan mutations;
@@ -14883,10 +14883,10 @@ Green:
   lexer rows, stable native/self-host word identity and metadata, native
   lookup/debug probe, eight generated projection owners below 600 lines, and
   exact generated-inventory drift checks;
-- `tests/self_hosted/parity/parser_language_word_registry_parity.sh`: 80 typed
+- `tests/self_hosted/parity/frontend/parser_language_word_registry_parity.sh`: 80 typed
   word IDs reached by the current selectors, `action/impl/ref/own/type` native-
   selfhost AST parity, and matching rejection of unregistered `systemic`;
-- `tests/self_hosted/parity/lexer_parity.sh`: all 9 sources byte-equal on C,
+- `tests/self_hosted/parity/frontend/lexer_parity.sh`: all 9 sources byte-equal on C,
   LLVM, and live-native comparison;
 - `tests/lsp_completion_registry_smoke.sh`: 27 registry-owned native/self-host
   completion rows; the old independent `items:[]` path is rejected;
@@ -14894,7 +14894,7 @@ Green:
   builtins, with C/self-host runtime parity and decoded multiline Markdown;
 - `tests/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
   grammar, and no grammar ownership in the thin client;
-- `tests/self_hosted/parity/driver_execution_action_abi_parity.sh`: C/LLVM
+- `tests/self_hosted/parity/driver/driver_execution_action_abi_parity.sh`: C/LLVM
   subject/action aggregate ABI, enum result, capabilities, `WriteFile`/`ReadFile`,
   stdout, and artifact byte parity;
 - `tests/self_hosted/parity/driver_rung2_execution_action_gate.sh`: production
@@ -14918,7 +14918,7 @@ Green:
   green, explicit missing-prover skip; 41 proofs not machine-checked;
 - `git diff --check`;
 - gen2/gen3 complete C byte equality and bounded gen2/gen3 parity.
-- the rewired `tests/self_hosted/parity/driver_bootstrap.sh` full-fixpoint body
+- the rewired `tests/self_hosted/parity/driver/driver_bootstrap.sh` full-fixpoint body
   with fresh isolated seeds under the 3,072 MB pressure owner.
 
 Environment omission:
@@ -15305,9 +15305,9 @@ successor carries no semantic change. After that checkpoint is pushed,
 documentation change is dirty. These unstaged files are concurrent user work
 and must remain unmodified and excluded from task commits:
 
-- `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
+- `tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh`;
+- `tests/self_hosted/parity/driver/driver_rung2_match_parity_owner.sh`;
+- `tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh`.
 
 ## Historical v60 executable objective card
 
@@ -15752,9 +15752,9 @@ measurements:
 - v60 full integration: graph and semantic completion observed before the
   1,800-second timeout in assignment body typing, with 1,130.3/1,041.1 MB peak
   private/working set and no memory-limit crossing;
-- `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
+- `tests/self_hosted/parity/mir/json_bounded_string_owner_smoke.sh` (C/LLVM,
   plain, escaped, empty, and truncated exact-bound strings);
-- `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
+- `tests/self_hosted/parity/mir/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
   partitions, direct-field spans, malformed scalar tails, missing structure,
   corrupted counts, invalid row guards, explicit negative CFG successor
   rejection, missing/unique/duplicate/forged/out-of-block branch-row facts, and
@@ -15763,10 +15763,10 @@ measurements:
   name/type count mismatch, forged non-match local arrays, malformed FOR
   scalar rows, invalid branch sentinel, same-endpoint scalar range, and
   no-branch block-span mutation);
-- `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
+- `tests/self_hosted/parity/mir/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
-- `tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh`;
+- `tests/self_hosted/parity/driver/driver_rung2_mir_abi_layout_negative_owner.sh`;
 - `tests/abi_ownership_shape_smoke.sh`;
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
@@ -15792,18 +15792,18 @@ measurements:
 - `tests/build_pressure_contract_smoke.sh`;
 - focused current-driver `nested_if_in_loop` MIR production/consumption plus a
   forged one-predecessor header-phi rejection;
-- `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
+- `tests/self_hosted/parity/frontend/module_manifest_resolver_parity.sh` (C/LLVM,
   clean plus malformed/missing manifest negatives);
-- `tests/self_hosted/parity/air_graph_json_validator_parity.sh` (C/LLVM,
+- `tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh` (C/LLVM,
   clean, missing-key, and live-drift negatives);
-- `tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh`
+- `tests/self_hosted/parity/mir/mir_json_instruction_writer_byte_parity.sh`
   (C/LLVM, five raw String/file and cross-backend fixtures, plus invalid
   pre-open sentinel rejection);
 - `instruction-string-pool-ready` pressure shard: exit 0, complete JSON below
   3072 MB;
 - `tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh`;
 - `tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh`;
-- `tests/self_hosted/parity/initializer_projection_probe_parity.sh` (C/LLVM,
+- `tests/self_hosted/parity/ownership/initializer_projection_probe_parity.sh` (C/LLVM,
   including shadow/exit/destructure positives and self/sibling negatives);
 - `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh`;
 - `python scripts/protocol_registry_gate.py`:

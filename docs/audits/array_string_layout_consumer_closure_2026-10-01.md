@@ -122,7 +122,7 @@ test-only addition.
 
 The installed native and old driver remain unchanged until fresh private gates
 pass. The one integration owner is
-`tests/self_hosted/parity/array_string_layout_consumer_closure_owner.sh`:
+`tests/self_hosted/parity/ownership/array_string_layout_consumer_closure_owner.sh`:
 sixteen unique producer bases, actual general/legacy route attribution, executed
 C/LLVM, 102 coherent ABI and 28 reached-route refusals, unchanged input and
 preserved rejected artifacts. Adjacent public ArrayDrop needs regression too.

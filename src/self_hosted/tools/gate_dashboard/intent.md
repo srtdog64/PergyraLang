@@ -47,7 +47,7 @@ The process bridge must consume the manifest budget through
 
 ## Oracle
 
-`tests/self_hosted/parity/gate_dashboard_parity.sh` pins the JSON golden,
+`tests/self_hosted/parity/driver/gate_dashboard_parity.sh` pins the JSON golden,
 validates every Make target, rejects unknown and duplicate result IDs, and
 rejects over-budget results, verifies the portable timeout binding, and
 compares C/LLVM projection output.

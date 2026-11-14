@@ -22,7 +22,7 @@ negative self-test is requested or a forbidden AIR access term is found.
 
 ## Oracle
 
-`tests/self_hosted/parity/backend_air_access_checker_parity.sh` compiles this
+`tests/self_hosted/parity/codegen/backend_air_access_checker_parity.sh` compiles this
 tool through the C backend and, when available, the LLVM backend. The clean
 artifact must byte-match `expected/clean.json`; the forbidden-hit self-test must
 byte-match `expected/forbidden_hit.json` and exit `1`. Shell owns only harness

@@ -232,7 +232,7 @@ self-host codegen `GenerateC` input only after consuming compiler-world path,
 stage-artifact, and target-capability readiness facts. The AST and C artifact
 edges are named separately (`CompileSourceToAst`, `CompileAstToC`, and
 `CompileSourceToC`). `driver_rung0_main.pgy` is the runnable boundary for those
-facts, and `tests/self_hosted/parity/driver_rung0_parity.sh` compares the
+facts, and `tests/self_hosted/parity/driver/driver_rung0_parity.sh` compares the
 assembled AST/C outputs against the C oracle across the same 69 committed
 codegen parity fixtures named by `codegen/fixture_manifest_owner.pgy`. It is
 not a second driver graph; the owner still only assembles parser and codegen
@@ -241,7 +241,7 @@ facts.
 `driver_cli_owner.pgy` is the DRV-1 CLI surface owner. It consumes the DRV-0
 artifact functions and owns only argv shape: source path, `--emit-ast` /
 `--emit-c`, and `-o` artifact writes. `driver_rung1_main.pgy` is the runnable
-boundary for that surface, and `tests/self_hosted/parity/driver_rung1_parity.sh`
+boundary for that surface, and `tests/self_hosted/parity/driver/driver_rung1_parity.sh`
 checks stdout and file-output parity across that shared driver fixture frontier
 without moving artifact generation out of the stage owners.
 

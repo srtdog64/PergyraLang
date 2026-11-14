@@ -39,7 +39,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   `binop_type_mismatch`, changing Pergyra text code or facts, a second semantic
   pass, invented source location, partial wire output, or another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: `bad_compare_assign.pgy`,
   `bad_compare_condition.pgy`, and `bad_compare_operand.pgy` must retain their
   normalized text code and left/right facts and produce the same owned private
@@ -80,7 +80,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 
 ## Local implementation evidence

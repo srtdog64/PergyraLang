@@ -308,7 +308,7 @@ Evidence: native semantic (`type_checker_builtin_owner_let_contract.c` for
 copies, `type_checker_future_lifecycle.c` for aggregate storage), the self-host
 semantic (`ast_single_owner_handle_verdict_owner.pgy`, which has no
 Rc/Weak/`Box<class>` surface yet, and `ast_future_storage_admission_owner.pgy`),
-and `tests/self_hosted/parity/single_owner_handle_owner.sh`.
+and `tests/self_hosted/parity/driver/single_owner_handle_owner.sh`.
 
 ## Theorem: Slice Borrowed View Safety
 

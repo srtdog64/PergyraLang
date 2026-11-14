@@ -1062,7 +1062,7 @@ last consumer: CompilerDirTextArtifactFromProjection and
 forbidden fallback: count-to-row reconstruction, native-oracle graft,
                     provenance-text rescan, renderer default re-inference,
                     native numeric source-ID equality
-gate: tests/self_hosted/parity/dir_graph_inventory_owner.sh
+gate: tests/self_hosted/parity/mir/dir_graph_inventory_owner.sh
 falsifier: a count-preserving edge or intent-provenance mutation compares equal
 ```
 
@@ -1168,7 +1168,7 @@ derived owner: DirectMirScalarCfgProgramCallableInventory
 last consumer: DirectMirScalarCfgGraphPlan C and LLVM program emitters
 forbidden fallback: routine_count == N dispatch, name lookup, AST/source rescan,
                     fabricated local/value rows, native retry
-gate: tests/self_hosted/parity/direct_mir_scalar_multi_routine_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_multi_routine_owner.sh
 falsifier: four-routine call chain, missing call target, duplicate routine identity
 ```
 
@@ -1198,7 +1198,7 @@ fact owner: required MIR ABI row projected as DirectMirOptionMatchAbiFact
 last consumer: GraphPlan C/LLVM signatures, expression writers, and program preambles
 forbidden fallback: type-name-only {tag,value} invention, copied offsets/tags,
                     routine-count route, source rescan, native backend retry
-gate: tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_owner.sh
 falsifier: Main -> Extract -> Relay -> Wrap, exact 11, value offset 4 -> 0 mutation
 ```
 
@@ -1231,7 +1231,7 @@ fact owner: DirectMirScalarProgramTwoIntNominalAbiFact derived from abi.layout_r
 last consumer: GraphPlan C/LLVM nominal preamble, signature, and return emission
 forbidden fallback: type-spelling layout inference, copied field offsets,
                     routine-count routing, unused-routine deletion, native retry
-gate: tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_two_int_nominal_owner.sh
 falsifier: unused Keep(Pair)->Pair plus scalar Main chain; offset 4 -> 0 mutation
 ```
 
@@ -1270,7 +1270,7 @@ fact owner: DirectMirScalarProgramLogicalRecordFact plus DirectMirRoutineSignatu
 last consumer: C/LLVM signature, expression, local, and direct-call projection
 forbidden fallback: shape selection, first-match selection, copied offsets,
                     readonly-to-value coercion, temporary-by-address, backend MIR reopen
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_owner.sh
 falsifier: same-shape ObjectTableFact/ArrayObjectTableFact plus readonly-ref carriage mutation
 ```
 
@@ -1301,7 +1301,7 @@ fact owner: DirectMirScalarProgramLogicalRecordFact plus DirectMirScalarCfgPhiOp
 last consumer: C/LLVM record preamble, signature, expression, local, and memory-local phi projection
 forbidden fallback: fixed field count, shape/first-match identity, unsupported-candidate global poison,
                     record-to-Int/String phi relabeling, backend layout inference, backend MIR reopen
-gate: tests/self_hosted/parity/direct_mir_scalar_recursive_logical_record_phi_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_recursive_logical_record_phi_owner.sh
 falsifier: same-shape nested leaves, five-field outer record, dependency cycle,
            cross-identity nested field, and value-phi identity mutation
 ```
@@ -1332,7 +1332,7 @@ fact owner: DirectMirScalarProgramArrayStringAbiFact plus DirectMirRoutineSignat
 last consumer: C/LLVM signature, call argument, copy-in, push, return-edge copy-out
 forbidden fallback: Void-by-name, Array<Int> type substitution, by-value caller,
                     backend MIR reopen, early-return copy-out omission
-gate: tests/self_hosted/parity/direct_mir_scalar_array_string_value_result_void_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_result_void_owner.sh
 falsifier: recursive owned pushes with pre/post-mutation early returns plus ABI/carriage mutations
 ```
 
@@ -1362,7 +1362,7 @@ fact owner: DirectMirRoutineSignatureFact plus DirectMirScalarProgramArrayString
 last consumer: C/LLVM return, direct-call result, caller local, entrypoint cleanup
 forbidden fallback: borrowed-static/value-result substitution, spelling-only return,
                     copied offsets, callee cleanup, backend MIR reopen
-gate: tests/self_hosted/parity/direct_mir_scalar_owned_array_string_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_return_owner.sh
 falsifier: empty and populated returns plus return-layout and return-kind mutations
 ```
 
@@ -1390,7 +1390,7 @@ fact owner: DirectMirScalarProgramLogicalRecordFact plus existing Array ABI fact
 last consumer: C/LLVM record preamble, constructor, member, local, and return projection
 forbidden fallback: shape-first identity, copied collection offsets, populated ArrayInt widening,
                     type-only local readiness, backend MIR reopen
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_collection_fields_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_collection_fields_owner.sh
 falsifier: exact nine-field record plus cross-identity and ArrayInt/ArrayString layout mutations
 ```
 
@@ -1415,8 +1415,8 @@ fact owner: DirectMirRoutineSignatureFact plus the existing ArrayInt/ArrayString
 last consumer: route, C/LLVM signature, call argument, callee local, and value-result copy owner
 forbidden fallback: value-result substitution, copied offsets, type-family lifetime widening,
                     backend MIR reopen, deep-free of borrowed collection elements
-gates: tests/self_hosted/parity/direct_mir_scalar_array_int_value_parameter_owner.sh
-       tests/self_hosted/parity/direct_mir_scalar_array_string_value_parameter_owner.sh
+gates: tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_parameter_owner.sh
+       tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_parameter_owner.sh
 falsifier: C/LLVM execution plus offset, carriage, and pass-shape mutations
 ```
 
@@ -1480,7 +1480,7 @@ fact owner: DirectMirScalarProgramLogicalRecordFact plus DirectMirScalarProgramA
 last consumer: logical-record readiness and C/LLVM constructor/member/return projection
 forbidden fallback: same-shape selection, copied offsets, per-consumer arity decoding,
                     mixed left-right/nary storage, backend MIR reopen
-gate: tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh
 falsifier: same-shape distractor plus field-order, identity, ArrayBool-layout, and pass-shape mutations
 ```
 
@@ -1497,7 +1497,7 @@ fact owner: DirectMirRoutineSignatureFact plus DirectMirScalarProgramArrayIntVal
 last consumer: C/LLVM signature, return expression, direct-call result, caller local, value argument
 forbidden fallback: value-result relabeling, copied offsets, legacy two-routine route,
                     nested-call broadening, backend MIR reopen
-gate: tests/self_hosted/parity/direct_mir_scalar_array_int_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_return_owner.sh
 falsifier: exact C/LLVM output plus return-layout, return-kind, and parameter-layout mutations
 ```
 
@@ -1521,7 +1521,7 @@ priority: stable kind identity -> canonical payload -> target type -> generated 
 fact owner: CompilerAbiLayoutLongTypeName plus DirectMirScalarProgramExprLongLiteral
 last consumer: callable return policy, expression readiness, C/LLVM signature and return emission
 forbidden fallback: Int semantic kind, host long width, suffix passthrough, Long arithmetic/call widening
-gate: tests/self_hosted/parity/direct_mir_scalar_long_literal_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_literal_return_owner.sh
 falsifier: C long-long/LLVM i64 projection plus return-type and literal-kind mutations
 ```
 
@@ -1548,7 +1548,7 @@ fact owner: DirectMirRoutineSignatureFact plus DirectMirScalarProgramArrayString
 last consumer: C/LLVM signature, copy-in, every return edge, and caller addressability
 forbidden fallback: broad non-Void admission, first-array-only copy, arity/name allowlist,
                     backend MIR reopen, unrelated comparison/operator widening
-gate: tests/self_hosted/parity/direct_mir_scalar_bool_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_array_string_value_result_owner.sh
 falsifier: C/LLVM execution plus return-type and fourth-copyout-carriage mutations
 ```
 
@@ -1576,7 +1576,7 @@ fact owner: DirectMirScalarProgramLogicalRecordFact plus DirectMirRoutineSignatu
 last consumer: direct-call addressability, callee parameter reads, and C/LLVM return copy-out
 forbidden fallback: record spelling/arity allowlist, ArrayString copyout substitution,
                     field-prefix copy, backend MIR reopen, unrelated member-operation widening
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_value_result_owner.sh
 falsifier: C/LLVM execution plus record carriage and pass-shape mutations
 ```
 
@@ -1605,7 +1605,7 @@ fact owner: DirectMirRoutineSignatureFact, GraphPlan operation rows, host-io exi
 last consumer: callable admission and the C/LLVM block operation emitters
 forbidden fallback: routine-name allowlist, returning-expression treatment for Exit,
                     backend symbol hardcode, MIR reopen, or dropped following path
-gate: tests/self_hosted/parity/direct_mir_scalar_void_process_exit_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_process_exit_owner.sh
 falsifier: exact stdout plus exit status 7 in both backends and three no-artifact mutations
 ```
 
@@ -1634,7 +1634,7 @@ fact owner: persisted expression graph, callable inventory, and ArrayInt ABI rec
 last consumer: literal readiness plus C/LLVM expression and return emission
 forbidden fallback: second literal decoder, routine/tag allowlist, copied tag table,
                     empty-literal substitution, backend MIR reread, or unsequenced C initializer
-gate: tests/self_hosted/parity/direct_mir_scalar_populated_array_int_literal_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_populated_array_int_literal_owner.sh
 falsifier: exact call order and [1,0] output plus target, element-type, spine, and ABI mutations
 ```
 
@@ -1665,7 +1665,7 @@ fact owner: DirectMirScalarProgramLogicalRecordFact, CompilerAbiNominalArrayLayo
 last consumer: claimant/final signature, target type projection, and C/LLVM return copyout
 forbidden fallback: record-name allowlist, public four-field layout substitution,
                     ArrayInt-only copyout, backend MIR reopen, or by-value widening
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_owner.sh
 falsifier: C/LLVM compile/run plus carriage, missing-element, and physical-ABI mutations
 ```
 
@@ -1697,7 +1697,7 @@ fact owner: DirectMirRoutineSignatureFact, DirectMirScalarProgramLogicalRecordFa
 last consumer: claimant/final signature, expression readiness, and C/LLVM indexed load
 forbidden fallback: record-name allowlist, public four-field Array substitution,
                     backend MIR reread, or collection-mutation widening
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
 falsifier: C/LLVM compile/run plus carriage, missing-element, physical-ABI, and member mutations
 ```
 
@@ -1729,7 +1729,7 @@ fact owner: MirRoutineInstructionUseFacts, DirectMirScalarCfgLocalRefPlan,
 last consumer: expression admission/readiness and the C/LLVM local-push operation emitters
 forbidden fallback: routine-name branch, public Array carrier substitution,
                     receiver-use skipping, legacy collection-plan retry, or backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
 falsifier: C/LLVM compile/run plus a mutation that replaces the first receiver use
 ```
 
@@ -1762,7 +1762,7 @@ fact owner: DirectMirRoutineSignatureFact and DirectMirScalarProgramLogicalRecor
 last consumer: claimant/final signature and the C/LLVM callable emitters
 forbidden fallback: routine-name or ordinal allowlist, String/Option widening,
                     public Array substitution, body skipping, or backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_owner.sh
 falsifier: C/LLVM execution plus mutation of ProjectionReady's Bool return to String
 ```
 
@@ -1845,7 +1845,7 @@ fact owner: MirProgramDeclarationIndex.enum_variants and DirectMirScalarProgramP
 last consumer: claimant/final signature and the C/LLVM callable type emitters
 forbidden fallback: enum or routine-name allowlist, general Int relabeling,
                     nominal widening, payload-bearing variants, or backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_free_enum_parameter_owner.sh
 falsifier: two distinct enums execute on C/LLVM; carriage, physical ABI,
            payload, missing declaration, declaration-kind, and return mutations reject
 ```
@@ -1880,8 +1880,8 @@ fact owner: DirectMirScalarProgramLogicalRecordFact and DirectMirRoutineSignatur
 last consumer: claimant/final signature and existing C/LLVM record-Array copy emitters
 forbidden fallback: routine-name allowlist, unrelated Array<Int> requirement,
                     same/distinct declaration guessing, broad aggregate widening, or backend MIR reread
-gates: tests/self_hosted/parity/direct_mir_scalar_logical_record_array_record_input_owner.sh
-       tests/self_hosted/parity/direct_mir_scalar_logical_record_array_element_input_owner.sh
+gates: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_record_input_owner.sh
+       tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_element_input_owner.sh
 falsifier: C/LLVM execution plus carriage, physical ABI, declaration relation,
            missing element, scalar-type, and return-type mutations
 ```
@@ -1918,7 +1918,7 @@ fact owner: DirectMirRoutineSignatureFact plus existing logical-record, ArrayInt
 last consumer: claimant/final signature and existing C/LLVM parameter/return emitters
 forbidden fallback: routine-name allowlist, count-only matching, first-array ABI
                     substitution, general multi-array widening, or backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_mixed_collection_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_mixed_collection_value_result_owner.sh
 falsifier: exact C/LLVM signature and six copy lifecycles plus carriage, ABI,
            collection-count/order, scalar-carriage/type, and return mutations
 ```
@@ -1966,7 +1966,7 @@ fact owner: DirectMirScalarProgramArrayBoolAbiFact plus existing ArrayInt/ArrayS
 last consumer: claimant/final signature and C/LLVM parameter/return emitters
 forbidden fallback: ArrayInt substitution, copied layout, global instruction rescan,
                     count-only match, routine-name allowlist, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_bool_mixed_collection_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_mixed_collection_value_result_owner.sh
 falsifier: exact C/LLVM signature and eight copy lifecycles plus ArrayBool ABI,
            family count/order, scalar carriage/type, and return mutations
 ```
@@ -1992,7 +1992,7 @@ fact owner: DirectMirRoutineSignatureFact, DirectMirScalarProgramLogicalRecordFa
 last consumer: claimant/final signature and existing C/LLVM parameter/return emitters
 forbidden fallback: routine-name allowlist, arbitrary Void widening, record-shape
                     guessing, count-only matching, copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_int_value_result_owner.sh
 falsifier: exact C/LLVM signature/copy lifecycle plus carriage, ABI, type,
            return, and parameter-count mutations
 ```
@@ -2022,7 +2022,7 @@ fact owner: DirectMirRoutineSignatureFact and DirectMirScalarProgramLogicalRecor
 last consumer: claimant/final signature and existing C/LLVM record parameter/return emitters
 forbidden fallback: routine-name allowlist, record-shape guessing, arbitrary
                     value-result widening, count-only matching, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_inputs_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_inputs_value_result_owner.sh
 falsifier: exact C/LLVM callee signature/copy lifecycle plus nine identity,
            carriage, pass-shape, ABI, return, and cardinality mutations
 ```
@@ -2054,7 +2054,7 @@ fact owner: DirectMirRoutineSignatureFact, DirectMirScalarProgramLogicalRecordFa
 last consumer: claimant/final signature and existing C/LLVM readonly-record and ArrayString emitters
 forbidden fallback: routine-name allowlist, broad readonly-record/two-array widening,
                     count-only matching, copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_owner.sh
 falsifier: actual C/LLVM call plus ten record, String, carriage, pass-shape,
            ABI identity, return, and parameter-count mutations
 ```
@@ -2083,7 +2083,7 @@ fact owner: DirectMirRoutineSignatureFact and DirectMirScalarProgramArrayStringA
 last consumer: claimant/final signature and existing C/LLVM ArrayString emitters
 forbidden fallback: routine-name allowlist, broad two-array widening,
                     count-only matching, copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_int_two_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_two_array_string_value_result_owner.sh
 falsifier: actual C/LLVM call plus nine type, carriage, pass-shape,
            ABI identity, return, and parameter-count mutations
 ```
@@ -2112,7 +2112,7 @@ fact owner: DirectMirRoutineSignatureFact, DirectMirScalarProgramArrayStringAbiF
 last consumer: claimant/final signature and existing C/LLVM ArrayString and ArrayInt emitters
 forbidden fallback: routine-name allowlist, broad mixed-copyout widening,
                     count-only matching, copied/cross-family layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_owner.sh
 falsifier: emitted C/LLVM callee lifecycle plus thirteen type, carriage, ABI,
            cross-family layout, return, and parameter-count mutations
 ```
@@ -2143,7 +2143,7 @@ fact owner: DirectMirRoutineSignatureFact, DirectMirScalarProgramLogicalRecordFa
 last consumer: claimant/final signature and existing C/LLVM readonly-record and ArrayBool return emitters
 forbidden fallback: routine/record-name allowlist, broad ArrayBool-return widening,
                     guessed record layout, copied return ABI, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh
 falsifier: emitted C/LLVM callee plus twelve record, scalar, carriage,
            pass-shape, return-type, return-ABI, layout, and cardinality mutations
 ```
@@ -2173,7 +2173,7 @@ last consumer: claimant/final signature and existing C/LLVM logical-record value
 forbidden fallback: routine/record-name allowlist, general owner-handle widening,
                     value/readonly-ref/value-result coercion, copied layout,
                     inferred destruction, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_logical_record_return_owner.sh
 falsifier: emitted C/LLVM callee plus invalid carriage, declaration-identity,
            pass, resource, ABI, return, and parameter-count mutations
 ```
@@ -2207,7 +2207,7 @@ fact owner: DirectMirRoutineSignatureFact, DirectMirScalarProgramLogicalRecordFa
 last consumer: claimant/final signature and existing C/LLVM readonly-record and ArrayString emitters
 forbidden fallback: routine/record-name allowlist, broad one-copyout widening,
                     record-as-value coercion, missing/copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_owner.sh
 falsifier: actual C/LLVM call plus eleven record, scalar, copyout, ABI-layout,
            return, and parameter-count mutations
 ```
@@ -2244,7 +2244,7 @@ last consumer: claimant/final signature and existing C/LLVM readonly-record and 
 forbidden fallback: routine/record-name allowlist, broad two-copyout widening,
                     record identity collapse, invented layout, partial copyout,
                     backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_owner.sh
 falsifier: actual C/LLVM call plus fourteen type, identity, carriage, pass,
            ABI, return, and parameter-count mutations
 ```
@@ -2282,7 +2282,7 @@ last consumer: claimant/final signature and existing C/LLVM ArrayString copyout,
                record-value, and record-return emitters
 forbidden fallback: routine/record-name allowlist, broad record-return/copyout
                     widening, identity mismatch, missing/copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh
 falsifier: actual C/LLVM call plus nine genuinely invalid type, pass, ABI/layout,
            record-identity, return, and parameter-count mutations
 ```
@@ -2319,7 +2319,7 @@ last consumer: claimant/final signature and existing C/LLVM ArrayString copyout
                and logical-record value emitters
 forbidden fallback: routine/record-name allowlist, broad Void+record+copyout
                     widening, carriage coercion, missing/copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_string_value_result_owner.sh
 falsifier: actual C/LLVM early/final returns plus ten invalid carriage, type,
            pass, ABI/layout, missing-record, return, and cardinality mutations
 ```
@@ -2352,7 +2352,7 @@ last consumer: claimant/final signature and existing C/LLVM ArrayString copyout,
                logical-record value, and String-value emitters
 forbidden fallback: routine/record-name allowlist, arbitrary String tail,
                     carriage coercion, missing/copied layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_owner.sh
 falsifier: actual C/LLVM mutation/copyout plus twelve invalid carriage, type,
            pass, ABI/layout, missing-record, String-tail, return, and arity mutations
 ```
@@ -2428,7 +2428,7 @@ fact owner: DirectMirRoutineSignatureFact and DirectMirScalarProgramDirectCallFa
 last consumer: claimant/final signature, expression admission, and existing C/LLVM call/branch/Log/Exit emitters
 forbidden fallback: routine-name allowlist, dummy parameter, body-spelling signature inference,
                     separate zero-Void policy, call-target spelling lookup, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_void_process_exit_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_process_exit_owner.sh
 falsifier: zero-parameter Void function with a zero-argument Bool direct call,
            plus five return/carriage/value/phantom-parameter mutations
 ```
@@ -2478,7 +2478,7 @@ priority: exact type parsing -> declaration identity -> contextual builtin facts
 fact owner: OptionPayloadTypeOpt and DirectMirScalarProgramLogicalRecordFact
 last consumer: claimant/final signature, expression readiness, and existing C/LLVM record/Option emitters
 forbidden fallback: routine/record-name allowlist, Option<Unknown> widening, inferred physical layout, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_option_return_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_return_owner.sh
 falsifier: C/LLVM execution plus return-carrier, local-carrier, and record-physical-ABI mutations
 ```
 
@@ -2534,7 +2534,7 @@ fact owner: DirectMirRoutineSignatureFact and DirectMirScalarProgramLogicalRecor
 last consumer: callable claimant/signature and C/LLVM logical-record parameter emitters
 forbidden fallback: routine/type-name allowlist, exact arity/block matching, physical ABI inference,
                     field-schema copy, backend MIR reread, body admission hidden in signature policy
-gate: tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_single_value_result_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_single_value_result_owner.sh
 falsifier: two readonly record inputs plus ordinal-4 copyout, with carriage/pass/cardinality mutations
 ```
 
@@ -2976,7 +2976,7 @@ fact owner: DirectMirRoutineParameterSetFact
 last consumer: local inventory/type plan, phi predecessor binding, C/LLVM local initialization
 forbidden fallback: name-only approval, source-local duplication, routine spelling branch,
                     backend MIR reread, or a second parameter inventory
-gate: tests/self_hosted/parity/direct_mir_scalar_value_parameter_rebind_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_parameter_rebind_owner.sh
 falsifier: one loop executes the backedge rebind, one takes the zero-iteration entry,
            and a forged formal identity rejects without an artifact
 ```
@@ -3005,7 +3005,7 @@ fact owners: DirectMirRoutineParameterSetFact and populated ArrayInt operand adm
 last consumers: C/LLVM populated ArrayInt literal materializers
 forbidden fallback: same-type formal guess, routine branch, literal-only sibling route,
                     backend MIR reread, new graph/cache
-gate: tests/self_hosted/parity/direct_mir_scalar_populated_array_int_literal_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_populated_array_int_literal_owner.sh
 falsifier: select ordinal 1 of two Int formals and reject wrong owner, ordinal, and String type
 ```
 
@@ -3032,7 +3032,7 @@ priority: first rejecting owner -> source node -> routine row/source diagnostic
 fact owner: DirectMirScalarProgramExpressionAdmissionFailure
 last consumer: DirectMirScalarCfgProgramExpressionAdmissionFailed
 forbidden fallback: coarse None, graph rescan, backend diagnosis, routine spelling
-gate: tests/self_hosted/parity/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh
 falsifier: leaf-operand node 0 and expression-kind node 2 remain distinguishable
 ```
 
@@ -3049,7 +3049,7 @@ priority: declaration identity -> ordered field types -> nested source order -> 
 fact owner: DirectMirScalarProgramLogicalRecordFact
 last consumers: existing C/LLVM logical-record expression emitters
 forbidden fallback: expected-type constructor filter, record/routine spelling, backend JSON reread
-gate: tests/self_hosted/parity/direct_mir_scalar_logical_record_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_owner.sh
 falsifier: LocalDocumentFact(LocalTableFact(...), ...) executes identically in C and LLVM
 ```
 
@@ -3074,7 +3074,7 @@ priority: Long operand identity -> runtime ABI row -> zero/MIN-minus-one semanti
 fact owners: expression kind/readiness and abi.runtime_call_rows row 246
 last consumers: existing C/LLVM case-math expression emitters
 forbidden fallback: safe-Int reuse, routine spelling, positive-divisor assumption, raw %/srem
-gate: tests/self_hosted/parity/direct_mir_scalar_long_remainder_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_remainder_owner.sh
 falsifier: 100%7=2, INT64_MIN%-1=0, zero divisor panic, wrong type/kind reject
 ```
 
@@ -3100,7 +3100,7 @@ priority: exact value/local type -> predecessor dominance -> common operation 29
 fact owners: DirectMirScalarCfgValueTypePlan and MirPhiPredecessorBindingFact
 last consumers: common PhiValue readiness and existing C/LLVM block emitters
 forbidden fallback: Long-only opcode, routine spelling, use-order semantics, backend MIR reread
-gate: tests/self_hosted/parity/direct_mir_scalar_long_phi_value_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_phi_value_owner.sh
 falsifier: true=29, false=11, wrong type/non-dominating/missing incoming reject
 ```
 
@@ -3127,7 +3127,7 @@ priority: exact operand types -> append-only identities 76/77 -> Bool result -> 
 fact owners: DirectMirScalarProgramComparisonExpressionKindFact and ComparisonExpressionNodeReady
 last consumers: existing C/LLVM expression and CFG branch emitters
 forbidden fallback: Int identity alias, routine spelling, literal text, backend MIR reread, second graph
-gate: tests/self_hosted/parity/direct_mir_scalar_long_greater_owner.sh
+gate: tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_greater_owner.sh
 falsifier: both comparisons execute true/false and reject wrong operand type/source kind
 ```
 

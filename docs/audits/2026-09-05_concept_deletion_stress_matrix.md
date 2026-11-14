@@ -149,7 +149,7 @@ complete borrow checker”; the owner contract explicitly rejects that claim.
 | `Zone + spawn + own/ref` | A zone sent to outstanding work must preserve its ABI/ownership boundary. The current adversarial audit records an **open implementation hole**: native C emission can publish an invalid artifact for `own/ref CounterZone` spawn crossings (`docs/audits/2026-09-05_counterexample_attack_results.md:157-176`). | This is not evidence that Zone is removable; it is evidence that the Zone fact is not yet carried through every execution boundary. Treating ordinary task capture as a substitute loses the exact fact that the missing gate needs. |
 
 **Observed run (2026-09-05):**
-`tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh` passed,
+`tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh` passed,
 including copy/reassignment rejection, default-parameter rejection, explicit
 `ref` execution in single/thread-safe modes, and world-zone carriage.
 
@@ -273,7 +273,7 @@ cancellation subtree or an authorized detach boundary before admission.
 
 | Combination | What deletion loses | Deletion verdict |
 | --- | --- | --- |
-| `Intent + two actions + typed enum outcomes + predecessor + compensation` | `RunWorkflow` binds step B to A's exact successful payload, maps each step failure to a typed terminal variant, and compensates only completed predecessors (`tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy:124-148`). The parity gate also attacks crossed identity and reverse compensation (`tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh:6-7,153-260`). | A normal function can hand-code this runtime behavior, but current concepts do not statically cross-seal all those rows under one identity. A replacement `Saga`/`Workflow` compiler owner would be an Intent rename. **Qualifies.** |
+| `Intent + two actions + typed enum outcomes + predecessor + compensation` | `RunWorkflow` binds step B to A's exact successful payload, maps each step failure to a typed terminal variant, and compensates only completed predecessors (`tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy:124-148`). The parity gate also attacks crossed identity and reverse compensation (`tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh:6-7,153-260`). | A normal function can hand-code this runtime behavior, but current concepts do not statically cross-seal all those rows under one identity. A replacement `Saga`/`Workflow` compiler owner would be an Intent rename. **Qualifies.** |
 | `Intent + multi-phase guards/postconditions + ordered rollback` | The guard/expect/post fixture distinguishes failure before a step, failure after action evaluation, postcondition failure, and reverse ordered compensation (`tests/self_hosted/parity/fixture/intent_guard_post_compensation_execution.pgy:86-112`; gate summary at `intent_guard_post_compensation_execution_owner.sh:205-217`). | `action` owns each behavior contract, but not the cross-step completion log and compensation order. **Qualifies**, though it is the same workflow family as the typed-outcome case rather than a fully unrelated domain. |
 | `Intent + nested exclusive/concurrent + priority + observability` | The nested fixture carries outer/inner mode and priority into runtime identity (`tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy:21-51`). | This is useful standardization, but mode/priority/trace can be recreated by a runtime workflow registry. The proof pack itself keeps trace in the library bucket. **Does not independently qualify.** |
 | `Intent + Zone + Authority + one Action` | `SyncDrive` combines one action with using/authority/post/expect (`tests/cases/backend_compare/intent_zone_binding/main.pgy:21-35`). | Zone and action already own most static facts. With one step, no dependency or compensation proof is exercised. Unless the purpose identity is consumed by another admitted contract, this is a **borderline negative control**, not proof of Intent necessity. |
@@ -360,7 +360,7 @@ Observed in this audit session:
 - `tests/structured_spawn_lifecycle_smoke.sh`: PASS.
 - `tests/runtime_spawn_context_propagation_smoke.sh`: PASS on inline, C-extern,
   and LLVM-runtime lanes.
-- `tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh`: PASS,
+- `tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh`: PASS,
   including zone carriage and parameter admission sub-gates.
 - `tests/self_hosted/parity/intent_step_binding_contract_owner.sh`: **inconclusive
   in the shared dirty worktree**. It stopped before its tested assertions with

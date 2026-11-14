@@ -4,7 +4,7 @@
 // is refused here. When the spelling is one of these native builtins the
 // refusal says so (builtin_native_pipeline_only) instead of reporting an
 // undefined function, so the user learns the builtin exists and which route
-// runs it. tests/self_hosted/parity/builtin_surface_parity_owner.sh holds this
+// runs it. tests/self_hosted/parity/frontend/builtin_surface_parity_owner.sh holds this
 // list equal to its NATIVE_ONLY allowlist, which only shrinks.
 
 import "diagnostic_owner.pgy";

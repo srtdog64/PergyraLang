@@ -287,7 +287,7 @@ jobs:
           # A producer gets 14 GiB; the 16 GiB job retains harness/OS headroom.
           PGY_SELFHOST_FULL_MIR_BULKHEAD: '1'
         run: |
-          python3 tests/self_hosted/parity/full_mir_phase_process_smoke.py
+          python3 tests/self_hosted/parity/mir/full_mir_phase_process_smoke.py
           PGY_SELFHOST_DRIVER_BOOTSTRAP_PART=seed \
           PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1 \
           PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt" \
@@ -354,7 +354,7 @@ jobs:
           PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1 \
           PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1 \
           PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt" \
-          PGY_BIN="$PWD/bin/pgy" bash tests/self_hosted/parity/driver_bootstrap.sh
+          PGY_BIN="$PWD/bin/pgy" bash tests/self_hosted/parity/driver/driver_bootstrap.sh
 
       - name: Hand the oracle side to the fixed-point join
         uses: actions/upload-artifact@v4
@@ -529,14 +529,14 @@ jobs:
           test -s .tmp/self_hosted/codegen/bootstrap/gen2.c
           test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
           test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
-          bash tests/self_hosted/parity/codegen_bootstrap.sh
+          bash tests/self_hosted/parity/codegen/codegen_bootstrap.sh
 
       - name: Build the installed backend-compare driver once
         env:
           PGY_BIN: ${{ github.workspace }}/bin/pgy
           PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
           PGY_SELFHOST_CC: gcc
-        run: bash tests/self_hosted/parity/self_host_compiler_build.sh
+        run: bash tests/self_hosted/parity/driver/self_host_compiler_build.sh
 
       - name: Publish the installed compiler pair
         uses: actions/upload-artifact@v4

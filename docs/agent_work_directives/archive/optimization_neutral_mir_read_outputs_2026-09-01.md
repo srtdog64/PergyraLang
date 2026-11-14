@@ -38,7 +38,7 @@ Exact base: `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`
   representation, or bundling machine-manifest/RIR/AIR/HIR/runtime-none work
   into this rung.
 - Verification gate:
-  `tests/self_hosted/parity/public_mir_opt_profile_owner.sh`. Each public dev
+  `tests/self_hosted/parity/public_route/public_mir_opt_profile_owner.sh`. Each public dev
   request must equal its release request and direct installed owner, invoke
   exactly one installed child, and fail without native timing or partial
   output when the sibling is absent. `--verbose` remains rejected and the

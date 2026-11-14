@@ -20,7 +20,7 @@ preserved. The shared ArrayDrop diagnostic mapping is part of this release.
 - Forbidden fallback: remove the internal caller restriction, infer element
   ownership from `Array<T>`, accept borrowed parameters, or deep-free unknown
   elements. No change to the 24 BRIDGE rows is implied.
-- Integration gate: `tests/self_hosted/parity/public_array_drop.sh`; positive
+- Integration gate: `tests/self_hosted/parity/public_route/public_array_drop.sh`; positive
   execution and negative source/MIR admission are separate evidence.
 - Falsifiers: use after drop, double drop, borrowed/inout receiver, live Slice,
   alias/escaped descriptor, nested owned resource, and private-builtin spoofing.

@@ -28,7 +28,7 @@ owners carry the facts. The last consumers are callable-table release after its
 actual final projection/admission, MIR readers, and direct C/LLVM cleanup.
 Do not derive OWNED from type, spelling, inout, a same-name callable, or a native
 oracle. One integration gate remains
-`tests/self_hosted/parity/collection_ownership_semantic_owner.sh`, preceded by
+`tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`, preceded by
 `collection_ownership_fact_carrier_owner.sh`. This report neither moves registry
 authority nor opens a new rung.
 
@@ -136,12 +136,12 @@ The following is an unexecuted proposal, not a command dispatched by this team.
 
 | File/scope | Smallest prepared change |
 |---|---|
-| `tests/self_hosted/parity/collection_ownership_semantic_owner.sh:22-23,62-63` | Own one unique run path; remove fixed-directory recursive cleanup; keep all artifacts attributable to that run |
+| `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh:22-23,62-63` | Own one unique run path; remove fixed-directory recursive cleanup; keep all artifacts attributable to that run |
 | Same semantic gate negative/positive loops | Integrate agent B's nonredundant formal-field controls and actual production proof probe; add previous-artifact markers to formal/post-release refusals on self/public/native and direct lanes |
 | Same semantic gate direct-probe section 437-462 | Add LLVM generation/drop assertions/link/runtime for existing borrowed/UNKNOWN move controls; reuse existing runtime object boundary appropriately |
 | `tests/self_hosted/parity/fixture/direct_mir_hashmap_early_return_cleanup.pgy` and its same-gate caller | Admit a bounded second input/call selecting normal exit, or a minimal separate normal-exit fixture; execute each semantic target once per C/LLVM stage |
-| `tests/self_hosted/parity/collection_ownership_fact_carrier_owner.sh` | Add owner-shaped formal/field/provenance mutations only after the actual producer protocol exists; its existing mktemp and move mutations remain valid |
-| `tests/self_hosted/parity/collection_ownership_receipt_mutations.py` plus same semantic gate | Add reached retirement receipt/fact/definition and post-release mutations; distinguish required receipts from independently proved receipt-free retirement |
+| `tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh` | Add owner-shaped formal/field/provenance mutations only after the actual producer protocol exists; its existing mktemp and move mutations remain valid |
+| `tests/self_hosted/parity/ownership/collection_ownership_receipt_mutations.py` plus same semantic gate | Add reached retirement receipt/fact/definition and post-release mutations; distinguish required receipts from independently proved receipt-free retirement |
 | `tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy` | Existing CLI already selects C or LLVM despite its filename; reuse it, do not add a parallel wrapper |
 
 Source proof patches, native bypass deletion, registry/handoff changes and build
@@ -172,9 +172,9 @@ editing the concurrently owned transition/retirement files.
 SHA-256; hashes observed from working-tree bytes, not an immutable source bundle.
 
 ```text
-66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/collection_ownership_semantic_owner.sh
-E3A9509D771D701C02FF80B6ADF4C55D0E4A34F40F20B1AB58AD66F3B4065E19  tests/self_hosted/parity/collection_ownership_fact_carrier_owner.sh
-0F77FCF9793121A0F4002A37911D6E72E04E71DA05A916AC188E6A8185BDDE45  tests/self_hosted/parity/collection_ownership_receipt_mutations.py
+66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
+E3A9509D771D701C02FF80B6ADF4C55D0E4A34F40F20B1AB58AD66F3B4065E19  tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh
+0F77FCF9793121A0F4002A37911D6E72E04E71DA05A916AC188E6A8185BDDE45  tests/self_hosted/parity/ownership/collection_ownership_receipt_mutations.py
 006447A010162C2685E081001BA0F96AF5BD45E1105974A6753E6E6C8685B65B  tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy
 530AB47EE71C034EC57AC4ABD49443F30FF3C09A60E4DBA0D5641068173116C1  src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_retirement_admission_owner.pgy
 C811403597B0774395FFBE69C04E421A52B9AA2708EE3CA096F84C78C0C6FC81  src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy

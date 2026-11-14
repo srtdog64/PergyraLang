@@ -39,7 +39,7 @@ progress increment, or completion claim.
   partial/private wire output; changing native parser semantics; or widening
   this rung to the other bare parser exits.
 - Focused gate:
-  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_ast_json_diagnostic_receipt_owner.sh`.
 - Falsifying case: exact one-byte source `=` must keep direct/public text
   rejection byte-identical and silent. Direct JSON must publish the private
   marker plus a parser-owned receipt; public JSON must relay its exact JSON on

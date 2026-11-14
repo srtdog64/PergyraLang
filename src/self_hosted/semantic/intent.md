@@ -106,7 +106,7 @@ must not extract that field with `grep` or `sed`.
 
 ## Oracle
 
-`tests/self_hosted/parity/semantic_parity.sh` compiles this tool through the
+`tests/self_hosted/parity/semantic/semantic_parity.sh` compiles this tool through the
 available C/LLVM backends, runs it on committed fixtures, and checks the same
 fixtures against the C compiler accept/reject oracle. The same gate also checks
 the diagnostic-code vocabulary emitted by `--diagnostic-vocabulary` so new
@@ -122,7 +122,7 @@ The parity script writes each C oracle diagnostic artifact to a file and asks
 `--oracle-json-code-match` to validate it, keeping JSON field ownership inside
 the self-hosted semantic tool.
 
-`tests/self_hosted/parity/selfcheck_sources.sh` is the real-source rung. It
+`tests/self_hosted/parity/driver/selfcheck_sources.sh` is the real-source rung. It
 compiles this checker through C and LLVM and requires 56 curated self-host
 owner/source files to produce `Status: ok`, including the parser entrypoint
 through its real import bundle, the compiler path manifest owner, semantic

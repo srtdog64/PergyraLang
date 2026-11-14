@@ -80,7 +80,7 @@ lifetime/conditional-move facts remain owned by the existing semantic/projection
 rows; closing this layout row will not claim those facts or a new target profile.
 
 One integration gate, owned by root:
-`tests/self_hosted/parity/array_string_layout_consumer_closure_owner.sh`.
+`tests/self_hosted/parity/ownership/array_string_layout_consumer_closure_owner.sh`.
 It must execute each unique producer-issued MIR once per C/LLVM projection,
 cover both general program and legacy CFG layout consumers, refuse ABI
 missing/offset/size/alignment/cross-family mutations with prior outputs intact,

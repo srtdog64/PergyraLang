@@ -9835,7 +9835,7 @@ land when an existing substitution is blocked on a missing tool.
 **First compiler-internal substitution candidate (2026-05-28):**
 `src/self_hosted/lexer/` is rung-1, not a full lexer. It emits the same
 token-list text as `pgy --tokens <source>` and is gated by
-`tests/self_hosted/parity/lexer_parity.sh`. This is the first
+`tests/self_hosted/parity/frontend/lexer_parity.sh`. This is the first
 Pergyra-origin tool that substitutes a compiler-internal component
 rather than only auditing repository text. Six committed fixtures cover
 the common token families; 191/195 example sources are byte-equal at
@@ -10207,7 +10207,7 @@ replacement 0%를 뒤집는 수치가 아니다.
   source path → `ParseRootProgram` → `GenerateC` 조립과 path/stage/target
   readiness fact 소비를 한 owner로 묶고,
   `src/self_hosted/compiler/driver_rung0_main.pgy`가 runnable artifact
-  boundary를 제공한다. `tests/self_hosted/parity/driver_rung0_parity.sh`가
+  boundary를 제공한다. `tests/self_hosted/parity/driver/driver_rung0_parity.sh`가
   AST text와 emitted C를 oracle artifact와 비교하므로 §4 rung은 landed.
   **소유권 주의**: codegen/emission owner들은 typed-AST 동시 스트림
   활성 영역 — import만, 수정 금지.
@@ -10216,7 +10216,7 @@ replacement 0%를 뒤집는 수치가 아니다.
   계약이 어휘를 이미 파둠) → **WO-DRV-3** `--self-driver` 플래그 parity.
 - **WO-LSP-0 — 진단 페이로드 투영 (landed, 고가성비)**: checker 진단 →
   `publishDiagnostics` JSON(lib/json_emit 재사용). `src/self_hosted/lsp/main.pgy`
-  와 `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error payload를
+  와 `tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh`가 clean/error payload를
   C/LLVM-built self-host tool과 committed JSON artifact로 비교한다.
   **오라클 배관 O-LSP landed**: `pgy-lsp --dump-diagnostics <src>`가 C LSP
   live `publishDiagnostics` payload를 덤프하고 같은 parity gate가 JSON-RPC

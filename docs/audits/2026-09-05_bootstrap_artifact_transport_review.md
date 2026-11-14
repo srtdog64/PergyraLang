@@ -195,8 +195,8 @@ of these separate commands completed with exit 0:
 
 ```text
 timeout 60s bash -n tests/self_hosted/parity/llvm_leg_helpers.sh
-timeout 60s bash -n tests/self_hosted/parity/text_artifact_file_comparison_owner.sh
-timeout 60s bash -n tests/self_hosted/parity/backend_output_comparator_parity.sh
+timeout 60s bash -n tests/self_hosted/parity/ownership/text_artifact_file_comparison_owner.sh
+timeout 60s bash -n tests/self_hosted/parity/codegen/backend_output_comparator_parity.sh
 ```
 
 Primary reported the initial old-function RED at `run.FEbn0y` and announced

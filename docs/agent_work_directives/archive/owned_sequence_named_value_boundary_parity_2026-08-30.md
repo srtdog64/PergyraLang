@@ -67,7 +67,7 @@ Exact base: `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
   List/Queue ABI or lowering, and unrelated BRIDGE rows.
 - Integration owner: the primary task at this exact base.
 - Integration gate:
-  `tests/self_hosted/parity/direct_mir_owned_sequence_named_value_boundary_owner.sh`.
+  `tests/self_hosted/parity/direct_mir/direct_mir_owned_sequence_named_value_boundary_owner.sh`.
 
 This directive is a temporary coordination artifact. It does not own semantic
 status, registry census, project percentage, remote publication, or a successor

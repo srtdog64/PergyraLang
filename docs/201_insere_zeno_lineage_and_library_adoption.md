@@ -290,11 +290,11 @@ canonical `HostTasks.*`로 되돌리는 것이 다음 DX ratchet이다.
 | Track | 상태 | Evidence | Grade |
 | --- | --- | --- | --- |
 | HostTaskSlot | generation guard와 typed admission policy 구현·배치·focused parity 완료 | `stdlib/host_task_slot.pgy`, `tests/host_task_slot_smoke.sh`, `tests/host_task_policy_smoke.sh`, `docs/stdlib/host_task_slot.md`, stdlib inventory/stable-use wiring | `REACHABLE` official library |
-| LSP latest publication | URI/version/text/ticket revision admission과 stale diagnostics publication rejection이 production self-host LSP Main에 연결됨 | `src/self_hosted/lsp/document_revision_owner.pgy`, `document_store_owner.pgy`, `tests/self_hosted/parity/lsp_document_latest_publication_parity.sh` | bounded `REACHABLE` self-host LSP |
+| LSP latest publication | URI/version/text/ticket revision admission과 stale diagnostics publication rejection이 production self-host LSP Main에 연결됨 | `src/self_hosted/lsp/document_revision_owner.pgy`, `document_store_owner.pgy`, `tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh` | bounded `REACHABLE` self-host LSP |
 | SnapshotTicket | caller-provided identity의 immutable 결속과 generation rejection 구현; live handle authenticity는 미연결 | `src/self_hosted/lib/snapshot_ticket.pgy` | `REACHABLE` tooling/library |
 | BinaryProjection | existing layout id + explicit endian preflight 구현 | `src/self_hosted/lib/binary_projection_preflight_owner.pgy` | `REACHABLE` tooling/library |
 | executable probe | C와 LLVM 동일 positive/negative 실행 | `src/self_hosted/tools/binary_projection_preflight_probe/main.pgy`와 `intent.md` | focused evidence |
-| parity owner | N/N+1, offset, endian, missing-endian negative | `tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh` | PASS |
+| parity owner | N/N+1, offset, endian, missing-endian negative | `tests/self_hosted/parity/codegen/binary_projection_preflight_probe_parity.sh` | PASS |
 
 `REACHABLE`은 official-library fixture 또는 tooling entrypoint가 실제 Pergyra
 C/LLVM 프로그램으로 실행된다는 뜻이다. production compiler root가 소비한다는
@@ -408,10 +408,10 @@ Zeno의 capability-derived runtime import/emission 원칙은 이미 Pergyra의
 - `PGY_HOST_TASK_POLICY_BACKENDS=llvm bash tests/host_task_policy_smoke.sh`:
   동일 decision/status와 generation/ticket 결과 LLVM 실행 PASS.
 - `PGY_SELFHOST_LSP_BACKENDS=c bash
-  tests/self_hosted/parity/lsp_document_latest_publication_parity.sh`: production
+  tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh`: production
   `Main --document-store-probe`의 monotonic revision과 stale publication C PASS.
 - `PGY_SELFHOST_LSP_BACKENDS=llvm bash
-  tests/self_hosted/parity/lsp_document_latest_publication_parity.sh`: 동일 artifact
+  tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh`: 동일 artifact
   LLVM PASS; C/LLVM byte parity PASS.
 - 기존 `lsp_document_store_parity.sh`와 `lsp_session_state_parity.sh`도 갱신된
   revision/publication artifact로 C/LLVM PASS.
@@ -422,7 +422,7 @@ Zeno의 capability-derived runtime import/emission 원칙은 이미 Pergyra의
   각각 실제 소비한다.
 - `bash tests/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
 - `PGY_BIN=bin/pgy.exe bash
-  tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh`:
+  tests/self_hosted/parity/codegen/binary_projection_preflight_probe_parity.sh`:
   C compile/run PASS, LLVM compile/run PASS, output parity PASS.
 - positive: current generation, exact existing layout id, matching explicit
   endian은 receipt를 발급한다.

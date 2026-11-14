@@ -82,7 +82,7 @@ Negative modes exit nonzero with their stable semantic or MIR diagnostic.
 
 ## Oracle
 
-`tests/self_hosted/parity/initializer_projection_probe_parity.sh` runs the
+`tests/self_hosted/parity/ownership/initializer_projection_probe_parity.sh` runs the
 positive and negative modes under C and LLVM when available. It also ratchets
 the old consumer-side initializer rebuild and declared-type-only path out of
 the executable rung.

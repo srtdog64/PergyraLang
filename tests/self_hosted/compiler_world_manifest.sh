@@ -43,15 +43,15 @@ PGY_SELFHOST_STAGE_PATHS=(
 )
 
 PGY_SELFHOST_PARITY_PATHS=(
-    "tests/self_hosted/parity/lexer_parity.sh"
-    "tests/self_hosted/parity/parser_parity.sh"
-    "tests/self_hosted/parity/semantic_parity.sh"
-    "tests/self_hosted/parity/mir_json_parity.sh"
-    "tests/self_hosted/parity/codegen_parity.sh"
-    "tests/self_hosted/parity/codegen_bootstrap.sh"
-    "tests/self_hosted/parity/driver_rung0_parity.sh"
-    "tests/self_hosted/parity/driver_rung1_parity.sh"
-    "tests/self_hosted/parity/driver_rung2_body_parity.sh"
+    "tests/self_hosted/parity/frontend/lexer_parity.sh"
+    "tests/self_hosted/parity/frontend/parser_parity.sh"
+    "tests/self_hosted/parity/semantic/semantic_parity.sh"
+    "tests/self_hosted/parity/mir/mir_json_parity.sh"
+    "tests/self_hosted/parity/codegen/codegen_parity.sh"
+    "tests/self_hosted/parity/codegen/codegen_bootstrap.sh"
+    "tests/self_hosted/parity/driver/driver_rung0_parity.sh"
+    "tests/self_hosted/parity/driver/driver_rung1_parity.sh"
+    "tests/self_hosted/parity/driver/driver_rung2_body_parity.sh"
 )
 
 PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(

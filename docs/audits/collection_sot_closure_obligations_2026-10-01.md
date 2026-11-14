@@ -36,7 +36,7 @@ Production entrypoint: `pgy-self-driver --emit-mir-json-verified`; final consume
 are source-C intent/codegen admission and direct C/LLVM cleanup. Forbidden fallback:
 OWNED from descriptor type, spelling, `inout`, readiness, native success, missing
 identity, or a second cleanup inference. Integration owner is the existing main
-chat; gate is `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`
+chat; gate is `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`
 after the carrier prerequisite. All falsifiers below are unexecuted obligations.
 
 ## Current owner-to-consumer chain
@@ -173,7 +173,7 @@ FD36CC85B6C84EDA485BD7025D974DBD4BC56A785A53AE6AB3B0F151CD1D58D8  src/self_hoste
 32AB6613979F18A6C7C9FB886A57E45E1C0AFA56429AF6333B0A70EC6D3E5229  src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy
 9429C47E150CD57298682AE8EAF83AE884DECBCC4B500327B5B2B8EE0520C5B5  src/self_hosted/compiler/driver_rung2_owner.pgy
 9F92945F17B4251523873BFC8567CFF63D98EF90D385673B31406CE51E7B6B3E  src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy
-66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 ```
 
 Hashes are a bounded working-tree snapshot, not a guarantee against subsequent

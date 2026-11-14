@@ -961,13 +961,13 @@
   typed `DriverCliSourceAstStdout` identity, and the read executor consumes it
   through import-composed `ParseRootProgram`. Unsupported option mixtures and
   a missing sibling fail without entering `driver_run_pipeline`.
-- `tests/self_hosted/parity/public_ast_installed_self_host_owner.sh` passes in
+- `tests/self_hosted/parity/public_route/public_ast_installed_self_host_owner.sh` passes in
   2.2 seconds. It proves direct-installed/public byte equality, equality with
   the committed arithmetic fixture and explicit native oracle, imported-source
   composition through `Intent: ImportedFrontendPipeline`, missing sibling
   no-fallback behavior, unsupported-option rejection, and installed argv arity
   failure.
-- `tests/self_hosted/parity/parser_parity.sh` passes all 189 manifest rows for C
+- `tests/self_hosted/parity/frontend/parser_parity.sh` passes all 189 manifest rows for C
   and LLVM in 324.8 seconds. Every live native reference now spells
   `--native-pipeline --ast`; public `--ast` is the installed candidate and must
   not be reused as its own oracle. Imported intent composition, generic default
@@ -6116,7 +6116,7 @@ payload fact instead of relying on branch-local `String` reassignment.
 Previous historical match counts:
 105 -> 86 -> 83 -> 80 -> 79 -> 77 -> 72 -> 72 -> 63 -> 59 -> 58 -> 57 -> 53 -> 48 -> 46 -> 43 -> 37 -> 25 -> 11.
 Refresh:
-`bash tests/self_hosted/parity/parser_scale_probe.sh --failing`.
+`bash tests/self_hosted/parity/frontend/parser_scale_probe.sh --failing`.
 
 **Rung-1 parity (2026-06-16):** the committed
 `parser_parity.sh` now consumes a **188-row** source/fixture manifest emitted

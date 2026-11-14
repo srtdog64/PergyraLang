@@ -76,7 +76,7 @@ CI.
   rejected by the same validator consumed at the installed boundary.
 - A fresh `make self-host-compiler` installed a Pergyra-built DRV-2 from the
   modified source. Direct execution of
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` with that
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` with that
   binary is green across the installed source-C, source-MIR, MIR-C, LLVM
   intent, diagnostic, REPL, format, and device-manifest requests.
 - `tests/self_host_compiler_topology_smoke.sh` and

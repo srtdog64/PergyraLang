@@ -58,7 +58,7 @@ Exact base: `965d4399e46795f583dcbb8b881cd78e626f13a2` on
   architecture, and unrelated BRIDGE rows.
 - Integration owner: the primary task at this exact base.
 - Integration gate:
-  `tests/self_hosted/parity/direct_mir_array_named_value_boundary_owner.sh`.
+  `tests/self_hosted/parity/direct_mir/direct_mir_array_named_value_boundary_owner.sh`.
 
 The current-source installed driver, consolidated Array family gate, existing
 Array ABI/owner-transfer controls, component contract, and native production

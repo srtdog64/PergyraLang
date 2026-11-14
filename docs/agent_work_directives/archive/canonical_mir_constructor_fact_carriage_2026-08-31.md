@@ -41,7 +41,7 @@ claim closure of the broader `selfhost.semantic_artifact_admission` authority.
   facts; retrying the old reconstruction when carried facts fail readiness; or
   weakening raw-entry deep verification for external callers.
 - Verification gate: strengthen
-  `tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh` to
+  `tests/self_hosted/parity/mir/canonical_mir_verified_projection_owner.sh` to
   require the exact carried constructor expression and reject the reconstruction
   call. Preserve its public launcher/installed-driver byte equality and repeated
   canonicalization fixpoint. The existing canonical identity-epoch gate remains

@@ -101,10 +101,10 @@ compiler 재빌드는 하지 않았다. 처음 두 명령은 scratch 환경변�
 
 | Gate | 실제 결과 | 검증 범위 |
 |---|---|---|
-| [intent_typed_outcome_execution_owner.sh](../../tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh) | PASS | legacy Bool intent 안 한 action의 enum outcome binding, 정확 한 번 평가, native C/LLVM/self C, MIR binding negatives |
-| [intent_typed_outcome_compensation_owner.sh](../../tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh) | PASS | typed 2-step success/first failure/second failure, predecessor 역보상, 복수·중복 보상, zero compensation, history, Zone identity와 MIR negatives |
+| [intent_typed_outcome_execution_owner.sh](../../tests/self_hosted/parity/intent/intent_typed_outcome_execution_owner.sh) | PASS | legacy Bool intent 안 한 action의 enum outcome binding, 정확 한 번 평가, native C/LLVM/self C, MIR binding negatives |
+| [intent_typed_outcome_compensation_owner.sh](../../tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh) | PASS | typed 2-step success/first failure/second failure, predecessor 역보상, 복수·중복 보상, zero compensation, history, Zone identity와 MIR negatives |
 | [terminal_substitution_smoke.sh](../../tests/concept_semantics/intent/terminal_substitution_smoke.sh) | PASS | 위 bounded source 대체 실험과 terminal 거절 |
-| [intent_execution_fact_contract_owner.sh](../../tests/self_hosted/parity/intent_execution_fact_contract_owner.sh) | INCONCLUSIVE | probe를 실행하기 전 default self source-C가 `undefined_symbol`, `name: steps.transition_ids`로 compile을 거절했다. fact owner 자체의 positive/negative 실행 결과는 얻지 못했다. |
+| [intent_execution_fact_contract_owner.sh](../../tests/self_hosted/parity/intent/intent_execution_fact_contract_owner.sh) | INCONCLUSIVE | probe를 실행하기 전 default self source-C가 `undefined_symbol`, `name: steps.transition_ids`로 compile을 거절했다. fact owner 자체의 positive/negative 실행 결과는 얻지 못했다. |
 
 `intent_step_binding_contract_owner.sh`는 다른 lane이 실행했으므로 여기서는
 중복 실행하지 않았다. 다른 lane의 결과도 probe compile에서

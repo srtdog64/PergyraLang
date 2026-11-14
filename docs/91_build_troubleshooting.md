@@ -50,7 +50,7 @@ upper-bound literal indices before publication. Byte-equal output alone does
 not prove lifetime correctness; inspect that the borrowed literal local has no
 deep-drop call while owned collection regressions remain green. The focused
 gate is
-`tests/self_hosted/parity/one_mir_string_array_index_return_projection.sh`.
+`tests/self_hosted/parity/one_mir/one_mir_string_array_index_return_projection.sh`.
 
 ---
 
@@ -135,7 +135,7 @@ The correction is owner-directed:
   String-array diagnostics.
 
 The focused evidence is
-`tests/self_hosted/parity/one_mir_string_collection_builtin_projection.sh`.
+`tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_projection.sh`.
 It also pins the producer MIR hash, exact C/LLVM execution, semantic mutation,
 captured Array<String> ABI layout, and no artifact for malformed facts.
 
@@ -161,7 +161,7 @@ cursor explicitly and a negative gate must mutate ordinal, type, and routine
 row order.
 
 The focused evidence is
-`tests/self_hosted/parity/one_mir_string_case_math_projection.sh`.
+`tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh`.
 
 ---
 
@@ -192,7 +192,7 @@ is reached.
 This was observed while closing the one-routine String-concat GraphPlan. The
 focused scalar-program gates carried current caps such as 220/250 lines for the
 C/LLVM program emitters, while the component contract still asserted 85/125.
-The correction is `tests/self_hosted/parity/scalar_program_owner_caps.tsv`, the
+The correction is `tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv`, the
 single shared data owner consumed by all four gates. A responsibility split
 changes that row only after the new named owner and its focused evidence exist;
 consumers must not retain a copied table.
@@ -648,9 +648,9 @@ producer `storage_identity` owns the Array body, while outer, inner, and
 trailing foreach receipts own distinct cursors. Validate the boundary with:
 
 ```text
-tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh
-tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh
-tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_returned_array_foreach_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_foreach_array_int_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh
 tests/self_hosted_component_contract_smoke.sh
 ```
 
@@ -719,12 +719,12 @@ wrong assignment targets, and break backedges are negatives.
 Use these gates in order:
 
 ```text
-tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
-tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh
-tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh
-tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh
-tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
-tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh
+tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_break_exit_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_for_break_exit_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_continue_backedge_projection.sh
+tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh
+tests/self_hosted/parity/public_route/public_nested_scalar_cfg_llvm_owner.sh
 tests/self_hosted_component_contract_smoke.sh
 ```
 
@@ -796,7 +796,7 @@ variants; `driver_rung2_installed_cli_owner.pgy` owns artifact variants. Do not
 repair this by restoring positional-third guessing in either executor.
 
 The falsifier is
-`tests/self_hosted/parity/installed_driver_cli_mode_owner.sh`: legacy positional
+`tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh`: legacy positional
 forms, missing `-o` values, option-shaped paths, extras, and empty argv must
 fail without output or transaction temporaries. Fixture manifests are test-only
 and must remain outside `driver_bootstrap_main.pgy`.
@@ -804,7 +804,7 @@ and must remain outside `driver_bootstrap_main.pgy`.
 When validating only this installed-driver change, do not use the full
 `make self-host-compiler` chain as a timing sample: that target may rebuild the
 seed parser and gen2 codegen first. Reuse the already validated seed and run
-`tests/self_hosted/parity/self_host_compiler_build.sh`, then state that the
+`tests/self_hosted/parity/driver/self_host_compiler_build.sh`, then state that the
 measurement covers the installed driver only.
 
 ## Canonical MIR reports stale call-return rows after source MIR succeeds
@@ -837,7 +837,7 @@ not make the resolver idempotent, reconstruct a return-type table, rescan the
 AST/program root, or hide the second verification behind a cache.
 
 Use
-`tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh` as the
+`tests/self_hosted/parity/mir/canonical_mir_verified_projection_owner.sh` as the
 focused falsifier. It emits `let_log.pgy`, canonicalizes through the installed
 launcher, requires byte equality, canonicalizes the result again, and requires
 the second result to be the same fixpoint. Broaden to
@@ -943,7 +943,7 @@ instrumentation is evidence of a stale executable, not evidence that the new
 branch executed.
 
 - Build/install the sibling through the official
-  `tests/self_hosted/parity/self_host_compiler_build.sh` owner.
+  `tests/self_hosted/parity/driver/self_host_compiler_build.sh` owner.
 - On Windows invoke `C:\Program Files\Git\bin\bash.exe` explicitly.
 - Pass repository-relative source and artifact paths to self-host tools; do not
   turn an absolute Windows path into a second path authority inside Git Bash.
@@ -1284,7 +1284,7 @@ owned install leg로 시간을 분리해 측정할 수 있다.
 PGY_BIN="$PWD/bin/pgy.exe" \
 PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver.exe" \
 PGY_SELFHOST_CC=gcc \
-bash tests/self_hosted/parity/self_host_compiler_build.sh
+bash tests/self_hosted/parity/driver/self_host_compiler_build.sh
 ```
 
 이 경로는 seed가 현재 source와 맞다는 증거를 새로 만들지 않는다. Parser/codegen
@@ -3265,7 +3265,7 @@ seed가 native gen0보다 넓거나 다른 문법을 받아들일 수 있다. 20
 generated C equality는 gen0 부트스트랩 가능성을 증명하지 않는다.
 
 - Self-host source 변경은 현재 native compiler를 `PGY_BIN`으로 둔
-  `tests/self_hosted/parity/codegen_bootstrap.sh`의 gen0 parse와 fixpoint를 확인한다.
+  `tests/self_hosted/parity/codegen/codegen_bootstrap.sh`의 gen0 parse와 fixpoint를 확인한다.
 - 키워드는 declaration/local 이름으로 쓰지 않는다. parser 세대 차이를 fallback이나
   별도 허용 목록으로 덮지 않는다.
 - JSON negative mutation은 marker가 존재하는지만 보지 말고 현재 schema의 실제 owner
@@ -4559,7 +4559,7 @@ source-to-C pipeline self-check가 통과했다. Rung2 전체 owner check는 180
 아직 재측정 전이며, 기존 timeout 수치를 개선 결과로 재라벨하지 않는다.
 
 후속 raw-boundary 보강 뒤
-`tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh`는 fresh/checked
+`tests/self_hosted/parity/driver/driver_rung2_analysis_admission_owner.sh`는 fresh/checked
 호출 방향의 정적 ratchet, mutable-analysis C probe build, materialization 전 exact
 diagnostic을 실행해 PASS했다. 이 gate는 exhaustive self-host parity target에도
 결속했다. Signature/role/intent/constructor/enum malformed shape negative는 별도
@@ -5226,7 +5226,7 @@ Clean tree와 CI에서 실행하는 focused gate는 재현 가능해야 하므�
 
 ```sh
 PGY_SELF_DRIVER_BIN=/d/PergyraLang/bin/pgy-self-driver.exe \
-  tests/self_hosted/parity/self_host_compiler_build.sh
+  tests/self_hosted/parity/driver/self_host_compiler_build.sh
 ```
 
 Windows에서는 Make가 선택한 MSYS bash 또는 로그인 MSYS shell을 사용한다. 빈
@@ -5838,7 +5838,7 @@ contract 밖 옵션을 섞으면 거부된다. 기존 native MIR carrier 테스�
 public producer로 요구해서는 self driver를 처음부터 만들 수 없다.
 
 Focused gate는
-`tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh`다. Mixed
+`tests/self_hosted/parity/public_route/public_mir_json_installed_self_host_owner.sh`다. Mixed
 generic+intent fixture에서 public/self 46,727-byte equality, frozen-native/self
 canonical equality, rejected source diagnostic equality, missing sibling, unsupported
 option, mixed public/test mode를 확인한다. 이 gate는 다른 shell test가 public
@@ -5869,7 +5869,7 @@ MIR과 LLVM artifact를 완성한 뒤 성공한 `.ll`만 rename한다. 실행 �
 spelling이 같으면 source를 지우기 전에 fail closed한다.
 
 Focused gate는
-`tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh`다. Public/direct
+`tests/self_hosted/parity/public_route/public_llvm_ir_installed_self_host_owner.sh`다. Public/direct
 LLVM byte equality, host clang exact `7/11/5`, producer/backend exact-once,
 missing/unsupported/rejected action, stale output, source/output identity, native timing
 부재를 확인한다. 이 file-form green 하나만으로 stdout까지 치환됐다고 과장하지
@@ -5973,7 +5973,7 @@ constructor로 재구성해야 한다.
 ```powershell
 $env:PGY_SELFHOST_ONE_MIR_DRIVER_BIN='D:/PergyraLang/bin/pgy-self-driver.exe'
 & 'C:\Program Files\Git\bin\bash.exe' `
-  tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
+  tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh
 ```
 
 `c91def86` current-source driver에서 이 경로는 307.8초에 green이었다. 기본
@@ -6012,7 +6012,7 @@ SSA type, LocalRef는 각각의 fact/admission owner가 plan 발행 전에 검�
 
 ```powershell
 & 'C:\Program Files\Git\bin\bash.exe' -lc `
-  'cd /d/PergyraLang && tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh'
+  'cd /d/PergyraLang && tests/self_hosted/parity/one_mir/one_mir_mixed_collection_foreach_projection.sh'
 ```
 
 이 gate는 C/LLVM exact `60`, `abbccc` 실행과 graph-only 문자열 변경
@@ -6088,7 +6088,7 @@ Focused 재현은 다음 gate가 소유한다.
 
 ```powershell
 & 'C:\Program Files\Git\bin\bash.exe' `
-  tests/self_hosted/parity/one_mir_array_param_projection.sh
+  tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh
 ```
 
 Baseline `12/4`, `Build(5)`의 `20/5`, routine order와 raw-ValueId collision을
@@ -6128,7 +6128,7 @@ Focused 회귀는 다음 gate가 소유한다.
 
 ```powershell
 & 'C:\msys64\usr\bin\bash.exe' -lc `
-  'cd /d/PergyraLang && tests/self_hosted/parity/one_mir_string_window_builtin_projection.sh'
+  'cd /d/PergyraLang && tests/self_hosted/parity/one_mir/one_mir_string_window_builtin_projection.sh'
 ```
 
 이 gate는 C/LLVM 실행, semantic output mutation, 잘못된 result ABI, 최종/중간

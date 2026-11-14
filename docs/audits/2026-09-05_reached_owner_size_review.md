@@ -131,9 +131,9 @@ establish the original introduction commit of every older exception.
    caps in the focused test contract.
 
 There is an existing scoped precedent:
-[scalar_program_owner_caps.tsv](../../tests/self_hosted/parity/scalar_program_owner_caps.tsv)
+[scalar_program_owner_caps.tsv](../../tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv)
 is the shared scalar-program cap SoT, and
-[expression_graph_identity_carriage_owner.sh](../../tests/self_hosted/parity/expression_graph_identity_carriage_owner.sh)
+[expression_graph_identity_carriage_owner.sh](../../tests/self_hosted/parity/mir/expression_graph_identity_carriage_owner.sh)
 rejects missing/duplicate/invalid required rows without a local numeric fallback.
 None of the five reached owners belongs to that scalar table. Reuse its bounded
 reader pattern if useful; do not silently broaden its scalar responsibility into

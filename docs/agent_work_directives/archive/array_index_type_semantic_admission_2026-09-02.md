@@ -41,7 +41,7 @@ collection campaign, or completion claim.
   public diagnostic transport, or widening this rung to the separate
   non-indexable-target and heterogeneous-array-literal families.
 - Focused gate:
-  `tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh`.
+  `tests/self_hosted/parity/ownership/array_index_type_semantic_admission_owner.sh`.
 - Falsifying cases: the exact `examples/array_literal.pgy` program must remain
   green through direct self-driver, public/native MIR, and public C execution;
   changing only its final `primes[4]` to `primes[""]` must reject through direct
@@ -92,7 +92,7 @@ collection campaign, or completion claim.
   after publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Outputs remain implementation candidates until the focused and integration
   gates are observed green. No source edit, fixture, or test result changes

@@ -44,19 +44,19 @@ export PGY_SELF_DRIVER_BIN="$DRIVER"
 case "$SHARD" in
     parser)
         export PGY_SELFHOST_PARSER_BACKENDS="$BACKENDS"
-        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/parser_parity.sh"
+        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/frontend/parser_parity.sh"
         ;;
     semantic)
         export PGY_SELFHOST_SEMANTIC_BACKENDS="$BACKENDS"
-        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/semantic_parity.sh"
+        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/semantic/semantic_parity.sh"
         ;;
     codegen)
         export PGY_SELFHOST_CODEGEN_BACKENDS="$BACKENDS"
-        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/codegen_parity.sh"
+        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_parity.sh"
         ;;
     driver)
         export PGY_SELFHOST_DRIVER_BACKENDS="$BACKENDS"
-        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
+        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver/driver_rung2_body_parity.sh"
         ;;
     harness-evidence)
         command -v sha256sum >/dev/null || fail "SHA-256 tool is required for installed harness provenance"

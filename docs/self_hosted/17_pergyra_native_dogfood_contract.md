@@ -953,7 +953,7 @@ entrypoint-cardinality boundary에서 fail closed한다. Production root의 sema
    check는 두 주소의 non-null presence만 검증한다. slot membership, subject
    identity/token, action/zone ability authorization은 증명하지 않는다.
 
-`tests/self_hosted/parity/driver_execution_action_abi_parity.sh`는 C/LLVM positive
+`tests/self_hosted/parity/driver/driver_execution_action_abi_parity.sh`는 C/LLVM positive
 snapshot과 artifact parity, missing/wrong zone authority의 semantic compile
 negative와 named/multiple/indirect world-action authority의 backend fail-close
 negative를 고정한다. runtime identity/token mismatch와 generic direct-subject
@@ -1410,7 +1410,7 @@ orchestration을 교체한 것이며 새로운 C-owned compiler implementation�
 - Falsifying case: member ID/type 또는 relation destination role 하나를 바꿔도
   artifact가 생성되거나, self C가 `.poison`/`.trust` zero storage를 읽거나,
   zone method가 by-value receiver로 방출되는 경우.
-- Gate: `tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh`가
+- Gate: `tests/self_hosted/parity/domain/domain_runtime_assignment_execution_owner.sh`가
   direct source와 explicit MIR의 byte-equal C, exact 5개 prologue assignment,
   `7`/`dst` 실행과 missing/duplicate/foreign role·member·directive·epoch 변조의
   output-before-failure를 함께 고정한다.
@@ -1498,11 +1498,11 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   actual tobject execution path; direct self semantic/codegen support for
   `ToTObject(Target, source)` is still open and must not be claimed from parser
   fixtures alone.
-- Gate: `tests/self_hosted/parity/world_tobject_projection_query_owner.sh` owns
+- Gate: `tests/self_hosted/parity/domain/world_tobject_projection_query_owner.sh` owns
   self source -> semantic/DIR -> typed MIR reachability, current native C/LLVM
   execution parity, and the missing declaration-identity negative. The full
   fixture is now also pinned by
-  `tests/self_hosted/parity/intent_callable_reachability_owner.sh`: arity, type,
+  `tests/self_hosted/parity/intent/intent_callable_reachability_owner.sh`: arity, type,
   renamed-intent and wrong-zone-using negatives fail without partial MIR. The
   positive single-step graph matches native at 14 nodes/30 edges and a two-step
   explicit-using mutation matches the native predecessor-edge graph. This
@@ -1615,7 +1615,7 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   failure excludes future steps and successful execution compensates nothing.
   Phase/step/slot/graph/result/type mutations reject before partial C.
 - The previously named two-action falsifier now has an executable owner gate at
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`. Its two
+  `tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh`. Its two
   actions expose predecessor-only rollback; they are a fixture shape, not the
   definition of `intent`. The v3 plan preserves the v2 typed branches,
   success-only
@@ -1677,7 +1677,7 @@ plan과 executable owner gate에 존재한다. 두 action fixture는 predecessor
   predecessor, call-implies-completed, source-order rollback scan, AST/source
   compensate 재조회, native graft, old direct orchestration 병존이다.
 - Executable evidence:
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`는 fixture를
+  `tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh`는 fixture를
   MIR로 내리고 `pgy.selfhost.mir-intent-execution-plan.v3`를 admission한 뒤 stage-0 self C를
   실행한다. Success는 A/B success payload와 compensation 0회를, A failure는 미래
   step 미실행을, B failure는 A compensation 1회와 B compensation 0회를 관측한다.
@@ -1716,8 +1716,8 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
   Driver missing, artifact missing, unsupported runtime/debug/diagnostic envelope는
   native fallback 없이 fail closed한다.
 - Executable evidence:
-  `tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh`와
-  `tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh`가 실제
+  `tests/self_hosted/parity/semantic/default_c_emit_installed_self_host_owner.sh`와
+  `tests/self_hosted/parity/semantic/default_c_compile_installed_self_host_owner.sh`가 실제
   sibling driver, exactly-once counting shim, output execution, missing driver,
   unsupported option, partial artifact 부재를 검증한다.
 - Grade: 이 세 C target과 아래 admitted default-runtime LLVM target이

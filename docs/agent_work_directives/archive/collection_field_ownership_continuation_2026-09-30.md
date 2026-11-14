@@ -40,7 +40,7 @@ in `docs/current_work_handoff.md`, then verify the current owners and gates.
   or a bootstrap admission promoted into element ownership. No blanket formal
   exemption, old/new dual read, second descriptor owner, or missing-fact success.
 - Integration gate: extend and execute
-  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh` against one
+  `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh` against one
   recorded current-source native/driver pair. Its carrier validation is a
   prerequisite, not an independent implementation track. Include the borrowed
   formal-field falsifier, legitimate callable-table cleanup, landed binding

@@ -1,7 +1,7 @@
 # Parser Parity Fixtures
 
 This directory holds inputs and baselines for
-`tests/self_hosted/parity/parser_parity.sh`. The source/fixture row inventory
+`tests/self_hosted/parity/frontend/parser_parity.sh`. The source/fixture row inventory
 is owned by `../fixture_manifest_owner.pgy`, emitted through
 `--fixture-manifest`, and consumed by the shell runner. Each row is
 `"<source path>:<base name>"`; the parity test asserts that running the

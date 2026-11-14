@@ -193,7 +193,7 @@ The fact owner remains the installed Pergyra compiler world; the C REPL is only
 the last orchestration consumer.
 
 The smallest gate should be a sourced sibling of
-`tests/self_hosted/parity/installed_driver_cli_mode_owner.sh`, reused by
+`tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh`, reused by
 `self-host-installed-driver-cli-mode-test-smoke` (`Makefile:4074-4076`). This
 reuses the existing `pgy` and installed self-host driver build; it needs no new
 Make target or CI job.

@@ -104,7 +104,7 @@ calls either builtin can name `IoError` and its variants and `match` on them,
 and a program may not declare its own `IoError` beside it. Each variant names
 one runtime failure status. The names and their order are stable and
 append-only (`src/runtime/pgy_runtime_io_error.def`;
-`tests/self_hosted/parity/io_result_builtin_owner.sh` holds this list equal to
+`tests/self_hosted/parity/driver/io_result_builtin_owner.sh` holds this list equal to
 that file):
 
 <!-- io-error-variants:start -->

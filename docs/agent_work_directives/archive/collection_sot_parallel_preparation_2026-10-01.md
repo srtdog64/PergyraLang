@@ -46,7 +46,7 @@ new work queue: keep one active executable rung and do not close unrelated rows.
   chat's root integrates preparation reports and independently verifies material
   source claims; neither reports nor fixture drafts are acceptance evidence.
 - Integration gate: the current semantic collection ownership parity gate,
-  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`, with carrier
+  `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`, with carrier
   validation as a prerequisite. Main owns all gate/implementation integration.
 - Falsifier: borrowed aggregate formal field extraction followed by deep drop,
   paired with the genuine callable-table producer/release positive. A formal-root
@@ -133,7 +133,7 @@ last consumer and minimal falsifier; do not invent a broad compatibility waiver.
 CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy
 F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression_environment_owner.pgy
 85D206EE7ABBAEAB5B95B1F227B4EB063697847336007D0BE26CE265BD345B9D  src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy
-66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 ```
 
 All three exclusive preparation scopes completed. Root independently read their

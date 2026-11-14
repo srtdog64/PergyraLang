@@ -42,7 +42,7 @@ the same borrowed-static element and borrowed-result identity. Deep cleanup is
 suppressed only for that sealed local, while owned Split results keep cleanup.
 
 The executable evidence is
-`tests/self_hosted/parity/one_mir_string_array_index_return_projection.sh`.
+`tests/self_hosted/parity/one_mir/one_mir_string_array_index_return_projection.sh`.
 It proves exact C/LLVM execution, display and routine-order equality, semantic
 value/index changes, lower/upper bound failure, and malformed parameter/ABI/
 call/return/topology/literal rejection before artifact publication. The final
@@ -72,7 +72,7 @@ owners retain only their semantic bodies. This is bounded declaration
 composition, not a general FFI registry.
 
 The executable evidence is
-`tests/self_hosted/parity/one_mir_string_trim_projection.sh`. It proves exact
+`tests/self_hosted/parity/one_mir/one_mir_string_trim_projection.sh`. It proves exact
 C/LLVM execution, display neutrality, semantic/already-trimmed/empty cases,
 six malformed no-artifact families, and exact declaration cardinality in the
 combined artifact. StringIndexOf, window, case/math replace, collection,
@@ -100,7 +100,7 @@ materialization owners carry the search operation. LLVM checked Substring has
 a responsibility owner and its former file is again a small compositor.
 
 The executable evidence is
-`tests/self_hosted/parity/one_mir_string_indexof_projection.sh`. It covers
+`tests/self_hosted/parity/one_mir/one_mir_string_indexof_projection.sh`. It covers
 display-only equality, semantic mutation, missing and empty needles, exact
 C/LLVM execution, and seven malformed families with no artifact. Every new
 owner is capped in `scalar_program_owner_caps.tsv`; no existing cap was raised.
@@ -141,7 +141,7 @@ shared row/source diagnostic instead of an opaque outer failure.
 
 Every new owner is in `scalar_program_owner_caps.tsv`; no existing cap was
 raised. The executable evidence is
-`tests/self_hosted/parity/one_mir_string_case_math_projection.sh`, including
+`tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh`, including
 display and routine-order equality, semantic mutation, eight negative families,
 and exact C/LLVM execution.
 
@@ -182,7 +182,7 @@ caps were not raised. The C runtime's exact length and substring bodies now
 have one block owner and are reused by the complete String runtime block.
 
 The executable evidence is
-`tests/self_hosted/parity/one_mir_string_window_builtin_projection.sh`.
+`tests/self_hosted/parity/one_mir/one_mir_string_window_builtin_projection.sh`.
 It proves both targets, semantic output mutation, malformed signature/edge/type
 negatives, no artifact on rejection, and no retry through the legacy local
 inventory path.

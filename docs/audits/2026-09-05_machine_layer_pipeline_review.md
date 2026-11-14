@@ -217,9 +217,9 @@ that intent from current C/LLVM production scope
 - `tests/machine_layer_pipeline_smoke.sh`: native RIR/MIR/AIR and C/LLVM machine
   pipeline. Inspect any reported skip; its old introductory self-host limitation
   is not evidence against the newer installed-source gate below.
-- `tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh`:
+- `tests/self_hosted/parity/public_route/public_machine_manifest_installed_self_host_owner.sh`:
   installed companion replay, native oracle equality, missing/corrupt refusals.
-- `tests/self_hosted/parity/public_device_slot_machine_manifest_installed_self_host_owner.sh`:
+- `tests/self_hosted/parity/public_route/public_device_slot_machine_manifest_installed_self_host_owner.sh`:
   reached public source-C, exact host-sim output and missing/corrupt companion
   no-native-retry cases. It does not prove all source-LLVM or board targets.
 - `tests/self_hosted/mir_machine_layer_smoke.sh`: broader existing producer and

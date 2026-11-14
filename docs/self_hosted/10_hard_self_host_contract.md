@@ -151,7 +151,7 @@ The active hard rungs are:
   routine-local typed view over instruction `uses`. It is captured once from
   admitted instruction spans and prevents direct backends from reopening raw
   JSON arrays or treating missing uses as empty facts.
-- `tests/self_hosted/parity/one_mir_dual_backend_projection.sh`: produces MIR
+- `tests/self_hosted/parity/one_mir/one_mir_dual_backend_projection.sh`: produces MIR
   once with the Pergyra-built driver, pins its identity across both backend
   projections, compiles and runs both, compares them with the native runtime
   oracle, and rejects missing graph/use facts, invalid instruction/result/use,
@@ -330,7 +330,7 @@ The ownership rules at this boundary are:
 - a whole graph storage value is consumed once at its last split; blanket
   cloning is not an ownership repair.
 
-`tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh` is the
+`tests/self_hosted/parity/direct_mir/direct_mir_mutation_ownership_contract.sh` is the
 focused positive/negative falsifier for these rules. The integrated bootstrap
 remains the acceptance gate because it proves the production import-composed
 driver, not only the small ownership fixture.

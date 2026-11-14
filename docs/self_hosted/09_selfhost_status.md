@@ -5,8 +5,8 @@ the current commit. It records what was verified by building pgy and running
 `make self-host-preparation-test-smoke` on 2026-06-21. The lexer/parser scale
 figures below were refreshed on 2026-06-23 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
-and `tests/self_hosted/parity/lexer_scale_probe.sh --failing` /
-`tests/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
+and `tests/self_hosted/parity/frontend/lexer_scale_probe.sh --failing` /
+`tests/self_hosted/parity/frontend/parser_scale_probe.sh --failing`. The gate runs the
 self-hosted tools on C and, when the current `pgy` build includes the LLVM
 backend, LLVM. `LLVM_ENABLED=0` jobs still prove the C leg and require an
 explicit LLVM-leg skip instead of treating the build configuration as a tool
@@ -762,7 +762,7 @@ Substrate progress.
   same-type `Int`/`Long`/`Float` numeric operands, same-type `Bool` arithmetic,
   and C-oracle `String + String` concatenation typing while still rejecting
   mixed `Int + String` as a binary-operand mismatch.
-  `tests/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
+  `tests/self_hosted/parity/semantic/semantic_parity.sh` compares its verdicts with the C
   compiler accept/reject oracle on C and LLVM across 107 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
@@ -795,7 +795,7 @@ Substrate progress.
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
   environment. The parity set now includes an import-backed fixture, and
-  `tests/self_hosted/parity/selfcheck_sources.sh` now consumes the
+  `tests/self_hosted/parity/driver/selfcheck_sources.sh` now consumes the
   `self-host-completeness-semantic-targets` manifest from TestHarness instead
   of owning a shell source list. The current completeness-owned inventory
   accepts 155 real self-host production source rows through the semantic
@@ -859,4 +859,4 @@ and writes the manifest-projected expected directory, so the checker remains
 the single source of truth for its own output. Review the diff before
 committing:
 
-    tests/self_hosted/parity/regen_expected.sh
+    tests/self_hosted/parity/driver/regen_expected.sh

@@ -45,7 +45,7 @@ claim.
   carriage/lifecycle semantics, weakening valid nominal calls, or admitting a
   broad unsupported argument shape merely to reach this fixture.
 - Focused gate:
-  `tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh`.
+  `tests/self_hosted/parity/domain/vessel_method_argument_type_admission_owner.sh`.
 - Falsifying cases: a vessel `V` with `F(self, x: V) -> Void` must reject
   `v.F(0)` as `member_call_arg_type_mismatch` with expected `V` and actual
   `Int` in direct self-driver and public MIR/C/LLVM requests, with no artifact
@@ -101,7 +101,7 @@ claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Outputs are implementation candidates until the primary task observes the
   focused and integration gates. Fuzz observations do not reorder this active

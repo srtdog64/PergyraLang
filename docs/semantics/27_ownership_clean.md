@@ -1109,7 +1109,7 @@ release and exercises compiler-synthesized cleanup after the inout call; it
 runs without leaks or use after free. Keep a separate manifest-listed negative
 fixture containing the retired call, with the stable refusal/no-artifact
 oracle. Migrate the safety shape and the old rejection expectation together in
-`tests/self_hosted/parity/collection_ownership_semantic_owner.sh:269-309`,
+`tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh:269-309`,
 which expects the old rejection today. Do not merely flip that old manual-call
 program to acceptance or delete its static-storage safety coverage.
 

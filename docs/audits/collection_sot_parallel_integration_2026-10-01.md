@@ -91,7 +91,7 @@ source-current acceptance.
    bootstrap oracle differs from a production fallback; a deleted filename or
    green fixture alone cannot close the owner row.
 
-Integration target stays `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`
+Integration target stays `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`
 after carrier validation. Budgets: static 60 seconds, focused 5 minutes, integration
 shard 30 minutes. Full matrices are not a preparation step.
 

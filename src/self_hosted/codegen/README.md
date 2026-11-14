@@ -358,7 +358,7 @@ owners before codegen participants can consume them.
 The run boundary emits that manifest, and later hard-substitution gates consume
 the same owner instead of carrying parallel fixture lists.
 
-Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy`
+Parity gate: `tests/self_hosted/parity/codegen/codegen_parity.sh` builds `main.pgy`
 through the requested backend set, builds the self-host parser as the AST text
 producer, asks `RunCodegenFromArgs --fixture-manifest` for the active codegen
 fixture inventory, runs codegen on each parser-produced AST text artifact,

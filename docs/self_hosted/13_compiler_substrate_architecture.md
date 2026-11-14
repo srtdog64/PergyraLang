@@ -366,7 +366,7 @@ implementations.
 policy owner. It consumes the path manifest, stage artifact readiness, target
 capability envelope, and shared pipeline readiness before routing artifacts.
 `src/self_hosted/compiler/driver_rung0_main.pgy` is only the runnable artifact
-boundary for those facts. `tests/self_hosted/parity/driver_rung0_parity.sh`
+boundary for those facts. `tests/self_hosted/parity/driver/driver_rung0_parity.sh`
 compares assembled AST text against a separately built self-parser AST producer
 and compares C/LLVM-built in-process driver emission against a C-built driver
 oracle across the committed parity fixtures named by

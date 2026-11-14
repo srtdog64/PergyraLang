@@ -225,12 +225,12 @@ private launcher and source producer when reproducing this packet:
 ```bash
 export PATH=/ucrt64/bin:/usr/bin:$PATH
 PGY_BIN="$PWD/.tmp/owned_result_reachable_20260930/native-bin/pgy.exe" \
-  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/direct_mir_owned_string_reachable_proof.sh
+  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/direct_mir/direct_mir_owned_string_reachable_proof.sh
 PGY_BIN="$PWD/.tmp/owned_result_reachable_20260930/native-bin/pgy.exe" \
   PGY_SELF_DRIVER_BIN="$PWD/.tmp/vision_owned_result_6e732613/native-candidate-driver.exe" \
-  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/direct_mir_owned_string_scalar_projection.sh
+  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/direct_mir/direct_mir_owned_string_scalar_projection.sh
 PGY_BIN="$PWD/.tmp/owned_result_reachable_20260930/native-bin/pgy.exe" \
-  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/routine_build_copy_retire_probe.sh
+  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/mir/routine_build_copy_retire_probe.sh
 ```
 
 These are focused local bootstrap/projection gates. They are not current

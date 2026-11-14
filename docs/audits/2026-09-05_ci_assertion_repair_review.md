@@ -56,7 +56,7 @@ Primary owns implementation and the eventual semantic parity integration gate.
 - `diagnostic_contract_owner.pgy:347` already compares the actual manifest
   count with that owner. The new CLI in `semantic_run_owner.pgy:20` transports
   the same owner value with `ToString`, without a second policy table.
-- `tests/self_hosted/parity/semantic_parity.sh:73` requires a canonical positive
+- `tests/self_hosted/parity/semantic/semantic_parity.sh:73` requires a canonical positive
   decimal string and exact string equality with the parsed row count. This
   avoids arithmetic overflow/wrap and rejects zero, leading zeroes, negative,
   missing, multiline, and mismatched values. The caller at line 253 makes
@@ -127,7 +127,7 @@ UCRT64/MSYS2/Git PATH and `timeout 60s` per invocation.
 
 | Command inside Bash | Observed result |
 |---|---|
-| `timeout 60s bash tests/self_hosted/parity/semantic_fixture_frontier_owner.sh` | PASS, exit 0; matching owner frontier and missing/malformed/mismatched refusals |
+| `timeout 60s bash tests/self_hosted/parity/semantic/semantic_fixture_frontier_owner.sh` | PASS, exit 0; matching owner frontier and missing/malformed/mismatched refusals |
 | `timeout 60s bash tests/border_registry_checker_smoke.sh` | PASS, exit 0; comment-only references, both cross-includes, existing missing inputs |
 | `timeout 60s bash tests/border_registry_smoke.sh` | PASS, exit 0; backend/stage/twin/AIR text checks including the checker self-test |
 

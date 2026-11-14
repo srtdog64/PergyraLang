@@ -187,7 +187,7 @@ source-visible value result.
   truncates to `i32` and re-extends; before 2026-09-27 it passed the `Long`
   through and printed `9223372036854775807` for `9223372036854775807L as Int`
   where every other leg printed `-1`.
-- Gate: `tests/self_hosted/parity/numeric_literal_conversion_owner.sh` runs
+- Gate: `tests/self_hosted/parity/codegen/numeric_literal_conversion_owner.sh` runs
   the values on native C, native LLVM and the default C route and the
   refusals on both front ends; the `int_literal_signed_minimum`,
   `string_to_int_long_narrowing` and `int_to_long_widening` backend-compare

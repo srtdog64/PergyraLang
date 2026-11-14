@@ -12,7 +12,7 @@ SHA-256: `FC669FD242A7FE400BE0450C33BC991DD78B807CB2D949F4FC70D386B58F039E`.
 Source graph: `d1571d6723654bbf4ee1f3fa3ddf12838a775eba89f732e9abd69163b84a8e98`.
 The isolated sibling native launcher is `30F4130B`; shared `bin/` is unchanged.
 
-`tests/self_hosted/parity/assignment_projection_probe_parity.sh` ran against
+`tests/self_hosted/parity/ownership/assignment_projection_probe_parity.sh` ran against
 that candidate. C compilation, expected runtime output and all seven missing-fact
 negatives completed before the LLVM leg. LLVM failed, exit 1 (`693e73`):
 

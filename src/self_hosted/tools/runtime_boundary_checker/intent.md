@@ -24,7 +24,7 @@ missing.
 
 ## Oracle
 
-`tests/self_hosted/parity/runtime_boundary_checker_parity.sh` treats the
+`tests/self_hosted/parity/codegen/runtime_boundary_checker_parity.sh` treats the
 Pergyra checker JSON as the oracle: the clean verdict byte-matches
 `expected/clean.json`, and a synthetic missing-term fixture byte-matches
 `expected/missing_term.json`. Shell may execute the compiled tool, read its

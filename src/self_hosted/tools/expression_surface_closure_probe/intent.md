@@ -28,7 +28,7 @@ Any failed owner contract emits one owned diagnostic line and exits nonzero.
 
 ## Oracle
 
-`tests/self_hosted/parity/expression_surface_closure_probe_parity.sh` compiles and runs
+`tests/self_hosted/parity/mir/expression_surface_closure_probe_parity.sh` compiles and runs
 the probe through C and LLVM, compares their output artifacts, rejects an
 unowned graph type, and ratchets every retired expression text-rewrite owner.
 

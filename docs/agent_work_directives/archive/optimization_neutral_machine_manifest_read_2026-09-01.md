@@ -34,7 +34,7 @@ Exact base: `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`
   profile-specific bytes, accepting `--verbose`, or changing physical-manifest
   override/runtime/backend behavior.
 - Verification gate:
-  `tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_machine_manifest_installed_self_host_owner.sh`.
   Public dev output must equal release, direct installed, and explicit native
   dev output from any caller working directory. Missing/invalid companions and
   `--verbose` under dev must fail without payload or native timing; the typed

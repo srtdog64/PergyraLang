@@ -36,7 +36,7 @@ abi_delivery_ci_integration_2026-10-02.md.
 - Falsifier: `tests/concept_semantics/hashmap/collection_parameter_member_move_deep_drop.pgy`,
   paired with existing borrowed/inout controls and the actual owned table
   producer plus all three release callers. Unsafe admitted artifacts never run.
-- Integration gate: `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`
+- Integration gate: `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`
   focused on aggregate-field, after the collection ownership carrier gate.
   Private and installed evidence are separate; a native developer probe is
   not a Pergyra-built installed-driver or hard-substitution receipt.

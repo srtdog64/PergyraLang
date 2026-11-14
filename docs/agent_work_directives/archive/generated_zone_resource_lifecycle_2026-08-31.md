@@ -44,7 +44,7 @@ authority.
   adding a user-visible fixed lifetime; or accepting a missing/stale constructor
   identity.
 - Verification gate: extend
-  `tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh` with a
+  `tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh` with a
   real source local-zone constructor and method call. Generated C must contain
   one init before first sync and one destroy on normal exit, compile and print
   the same result in single/thread-safe modes, and reject non-fresh local zone

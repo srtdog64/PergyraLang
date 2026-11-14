@@ -116,7 +116,7 @@ Correction (2026-09-15): the diagnosis this section first gave was wrong, and
 the refusal is correct. The fixture delegated `FrontendPipeline`'s step to the
 intent `IntakeSource` with `on:`, which names a receiver action; a delegation to
 an intent is spelled `intent:`. `a9b842e6` corrected the fixture (line 57), and
-`tests/self_hosted/parity/intent_completion_projection.py:184` already required
+`tests/self_hosted/parity/intent/intent_completion_projection.py:184` already required
 a nested delegation to record `arg0 == "intent"`. With the correct spelling both
 producers record phase `intent` and the check passes as written. The original
 reading is kept below for the record; its "two coherent repairs" do not apply,

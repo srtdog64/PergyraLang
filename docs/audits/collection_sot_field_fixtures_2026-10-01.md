@@ -25,7 +25,7 @@ Pergyra collection verdict, member identity and transition owners must provide
 the proof; the native admission remains a consumer/oracle with an explicit
 UNKNOWN exemption. The integration owner is `pergyraLang 메인`; the proposed
 single integration gate remains
-`tests/self_hosted/parity/collection_ownership_semantic_owner.sh`, after carrier
+`tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`, after carrier
 validation. No new implementation track is opened here.
 
 Inspected source facts:
@@ -132,7 +132,7 @@ HEAD. Working-tree content, not HEAD alone, identifies the inspected owners.
 CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy
 F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression_environment_owner.pgy
 85D206EE7ABBAEAB5B95B1F227B4EB063697847336007D0BE26CE265BD345B9D  src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy
-66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 3B07A6A1867CACBF220FF06071D1E43A761335255CED65AB8EBCC3859110CBA3  docs/semantics/sot_owner_spine_registry.md
 F2E1252C539965B5276C3AFC82C6E57E125FF6122B2C61F08B87E7776E68EEBA  src/self_hosted/parser/program_parse_owner.pgy
 34569399CFB3FCB2512C5DFA40278A67F5F7E9AEA8ECC4A95AED9FC085A1CAF8  src/self_hosted/semantic/ast_artifact_verdict_owner.pgy

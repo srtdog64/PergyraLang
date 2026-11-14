@@ -173,7 +173,7 @@ reachable once user objects can be linked, so the table should be keyed on
 "this symbol is a runtime entrypoint" rather than on spelling.
 
 **E3. A red gate that CI never runs.**
-`tests/self_hosted/parity/one_mir_string_case_math_projection.sh` fails at HEAD
+`tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh` fails at HEAD
 ("current producer rejected source"), and it failed the same way before this
 round. Gate reachability counts it as covered only because the component
 contract names it in a `require_file` line; no Makefile target or CI step runs
@@ -193,7 +193,7 @@ instead of native's "Long literal is outside the signed 64-bit range".
   truncated a Long operand. They now keep the operand's type.
 - The self-host front end accepted a Long literal past
   `9223372036854775807` and the C compiler wrapped it. It is refused now.
-- `tests/self_hosted/parity/default_route_scalar_value_owner.sh` runs those
+- `tests/self_hosted/parity/semantic/default_route_scalar_value_owner.sh` runs those
   shapes on the default route. It also runs the C reserved-word escape case,
   whose `backend_compare` case was native-only and could not see the self-host
   defect it was added for.
@@ -218,7 +218,7 @@ all four legs.
   native C, native LLVM and the default C route (12 MB before). The hashmap
   runtime smokes check capacity after 100,000 pairs.
 - **R3.** The panic emitter flushes stdout first.
-  `tests/self_hosted/parity/runtime_panic_leg_owner.sh` checks the output
+  `tests/self_hosted/parity/codegen/runtime_panic_leg_owner.sh` checks the output
   printed before an index and a division panic on all four legs.
 - **M10, C half.** The default C route panics on `UnwrapOption(None)`,
   `Unwrap(Err)` and `UnwrapErr(Ok)`; the same gate checks class and reason.

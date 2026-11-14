@@ -27,7 +27,7 @@ dependency order and with CI's commands:
 | CI step | Result |
 |---|---|
 | `self-host-codegen-bootstrap-linux` (`make LLVM_ENABLED=1 self-host-codegen-bootstrap-test-smoke`) | PASS, 905 s, `SELF-HOSTING OK` |
-| toolchain: installed driver (`tests/self_hosted/parity/self_host_compiler_build.sh`) | PASS, 203 s, **peak 13.7 GB** |
+| toolchain: installed driver (`tests/self_hosted/parity/driver/self_host_compiler_build.sh`) | PASS, 203 s, **peak 13.7 GB** |
 | `collection_ownership_fact_carrier_owner.sh` | PASS (its earlier probe-self refusal is gone) |
 | `mir_round_trip_semantic_owner.sh` (new gate) | PASS |
 | driver fixed point (`self-host-driver-bootstrap-full-test-smoke`) | **PASS: `gen2 == gen3 (219995 lines)`** |

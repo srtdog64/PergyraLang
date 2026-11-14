@@ -38,7 +38,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   identity, a second semantic pass, invented source location, changed text-mode
   wording, partial/private wire publication, or another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_return_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_return_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: the current return-type fixture must retain its Pergyra text
   payload; direct private JSON must carry one wire; public MIR/C/LLVM JSON must
   emit exact code/stage/layer/cause/fix on stderr with no stdout, artifact, or
@@ -81,7 +81,7 @@ inspection, edit, and staging: `docs/compiler_architectures/`,
   after publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Every local and CI output in this directive is an observation. The source
   change remains an implementation candidate until exact-head CI is green; it

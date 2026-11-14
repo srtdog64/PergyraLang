@@ -11,7 +11,7 @@
  * `enum IoError { ... }` in this order to a program that calls TryReadFile
  * or TryWriteFile (import_resolver_compose_io_error_enum natively,
  * src/self_hosted/parser/io_error_builtin_enum_composition_owner.pgy on the
- * self-host route). tests/self_hosted/parity/io_result_builtin_owner.sh holds
+ * self-host route). tests/self_hosted/parity/driver/io_result_builtin_owner.sh holds
  * this file, the self-host list and the docs/108 list equal.
  */
 

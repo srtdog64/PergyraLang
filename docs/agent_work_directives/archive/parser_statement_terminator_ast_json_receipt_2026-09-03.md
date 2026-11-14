@@ -41,7 +41,7 @@ recovery campaign, or completion claim.
   changing native parser semantics, parsing the legacy `PARSE ERROR` string,
   partial/private wire output, or admitting the separate silent `=` family.
 - Focused gate:
-  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_ast_json_diagnostic_receipt_owner.sh`.
 - Falsifying case: exact source `c C` must retain nonzero text-mode legacy
   output, while direct private-JSON and installed public JSON AST requests must
   carry `stage=parse`, `layer=syntax`, `code=PGY_PARSE_SYNTAX`,

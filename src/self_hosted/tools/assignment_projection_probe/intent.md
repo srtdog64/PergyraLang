@@ -25,7 +25,7 @@ diagnostic. C and LLVM output must remain byte-identical when LLVM is enabled.
 
 ## Oracle
 
-`tests/self_hosted/parity/assignment_projection_probe_parity.sh` compiles and
+`tests/self_hosted/parity/ownership/assignment_projection_probe_parity.sh` compiles and
 runs the probe, compares normal output with `expected.txt`, checks all
 fail-closed modes, and performs the C/LLVM parity leg. Reintroducing source
 expression type recovery or codegen environment type guessing is forbidden.

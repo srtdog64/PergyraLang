@@ -21,7 +21,7 @@ This card coordinates implementation; it is not a semantic owner or closure rece
   permitting borrowed-formal release, or reopening callee bodies in consumers.
 - Falsifiers: caller release after a descriptor rebind, alias store, retained or
   returned descriptor, deferred/worker handoff, unknown target or owned forwarding.
-- Integration gate: `tests/self_hosted/parity/public_array_drop.sh`, including
+- Integration gate: `tests/self_hosted/parity/public_route/public_array_drop.sh`, including
   valid inout mutation execution and existing diagnostic-specific refusals.
 
 ## Scope and coordination

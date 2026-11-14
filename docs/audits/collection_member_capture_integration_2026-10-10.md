@@ -63,7 +63,7 @@ It builds importing observers from the current Pergyra sources, not an
 installed self-host driver.
 
 Initial shared gate (before the scalar/retirement follow-up):
-`tests/self_hosted/parity/member_indexed_read_permission.sh`, exit 0,
+`tests/self_hosted/parity/ownership/member_indexed_read_permission.sh`, exit 0,
 260 seconds, `.tmp/self_hosted/member-indexed-read.xz7oo0/`.
 
 - Sixteen original source observations per C/LLVM, including indexed-read,

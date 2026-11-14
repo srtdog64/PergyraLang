@@ -42,7 +42,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   emission, partial/private wire output, environment inference, or admission of
   JSON for tokens, capability manifest, DIR, MIR JSON, or machine manifest.
 - Focused gate:
-  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_ast_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: valid text and JSON requests must have byte-identical AST
   stdout; the reached duplicate callable-contract rejection must publish the
   exact parser-owned JSON receipt on stderr only; missing/malformed/absent/

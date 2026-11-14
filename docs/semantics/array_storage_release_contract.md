@@ -68,9 +68,9 @@ Source-C and native C/LLVM evidence are consequently listed separately.
 Focused verification:
 
 ```sh
-bash tests/self_hosted/parity/public_array_drop_owner_smoke.sh
+bash tests/self_hosted/parity/public_route/public_array_drop_owner_smoke.sh
 PGY_BIN=<current-native> PGY_SELF_DRIVER_BIN=<current-driver> \
-  bash tests/self_hosted/parity/public_array_drop.sh
+  bash tests/self_hosted/parity/public_route/public_array_drop.sh
 ```
 
 The inventory gate checks release ID 146 without changing ArraySlice ID 139.

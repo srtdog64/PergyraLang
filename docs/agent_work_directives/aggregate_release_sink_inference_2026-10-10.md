@@ -23,7 +23,7 @@ the first CI red is this refusal, so the two are one rung.
   "Source `own` is not a substitute for inferred ownership"); speculative
   copies; new manual carrier restorations; accepting a crossing whose caller
   keeps reading the consumed storage.
-- Gate: `tests/self_hosted/parity/collection_aggregate_release_source_owner.sh`
+- Gate: `tests/self_hosted/parity/ownership/collection_aggregate_release_source_owner.sh`
   (12 positive + 20 falsifying, C/LLVM) and DRV-2 on
   `driver_bootstrap_main.pgy`.
 

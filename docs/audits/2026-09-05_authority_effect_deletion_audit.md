@@ -105,7 +105,7 @@ bounded 동작 증거다. 전체 frontier/임의 effect algebra를 증명하지 
 | --- | --- | --- |
 | `bash tests/concept_semantics/authority_effect/run.sh` | PASS, 약 4.5초: native 6 accepted/4 rejected; installed manifest 3 accepted/1 rejected; 두 assertion 삭제본 CLOCK byte parity | 일반 source-MIR의 네 실패는 이 green runner의 보장 범위 밖이며 위에 별도 기록 |
 | `bash tests/capability/run_manifest.sh` | PASS: 2 clean, 8 under-declaration rejection | 설치 public capability manifest 경로의 현재 operation-bound 검사 |
-| `PGY_SELFHOST_ZONE_AUTHORITY_BUILD_DIR=.../authority_effect/zone_owner_gate bash tests/self_hosted/parity/zone_authority_fact_owner.sh` | PASS, 약 9.8초 | producer carriage, missing/duplicate ability/slot, DIR no-rescan owner probe. 실제 모든 source mutation 승인까지 확인하는 gate가 아님 |
+| `PGY_SELFHOST_ZONE_AUTHORITY_BUILD_DIR=.../authority_effect/zone_owner_gate bash tests/self_hosted/parity/domain/zone_authority_fact_owner.sh` | PASS, 약 9.8초 | producer carriage, missing/duplicate ability/slot, DIR no-rescan owner probe. 실제 모든 source mutation 승인까지 확인하는 gate가 아님 |
 | `bash tests/runtime_authority_contract_smoke.sh` | PASS | 공유 runtime 진단/토큰 export 구조 계약. runtime 전체 실행 검증으로 세지 않음 |
 | 기존 zone_action_effect_runtime native C/LLVM 컴파일·실행 | PASS, 각각 `true\n6`, 약 3.3초 | 해당 effect activation/projection 프로그램 한 개 |
 | 네 negative의 installed `--emit-mir-json-verified` | semantic completeness claim에 FAIL: 모두 exit 0 + JSON | 잘못된 수용을 expected success 회귀로 고정하지 않음 |

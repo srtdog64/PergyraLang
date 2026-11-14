@@ -29,7 +29,7 @@ semantic owner, registry owner, progress claim, or successor queue.
   code recovery, native-pipeline retry, a C copy of the Pergyra diagnostic
   mapping, or accepting a nonzero child with an empty/malformed JSON payload.
 - Verification gate and falsifying case:
-  `tests/self_hosted/parity/public_mir_json_diagnostic_receipt_owner.sh` must
+  `tests/self_hosted/parity/public_route/public_mir_json_diagnostic_receipt_owner.sh` must
   observe exact `stage=semantic`, `code=PGY_SEM_UNDEFINED_SYMBOL`,
   `cause_ir=semantic:symbol:undefined`, and
   `fix_source=import-or-declare-symbol` from the default installed path. A

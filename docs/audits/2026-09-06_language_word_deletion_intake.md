@@ -232,7 +232,7 @@ Predicate acceptance after rewriting `guard`, `pre`, `post`, `invariant` or
 removing `expect` does not show phase equivalence. Primary read
 `src/codegen/transpiler_intent_step_completion_emit.c`: completion checks
 guard, expect, post, then invariant-post. The existing executable gate
-`tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh`
+`tests/self_hosted/parity/intent/intent_guard_post_compensation_execution_owner.sh`
 expects `first_guard.a_calls=1` and `first_guard.undo_a=1` on failure, as well
 as ordered later compensation observations. That gate was inspected, not
 executed here. Rewrites must retain predicate evaluation count, side effects,

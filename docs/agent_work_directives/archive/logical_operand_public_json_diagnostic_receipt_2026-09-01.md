@@ -39,7 +39,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   code under this identity, a second semantic pass, invented source location,
   changed text wording or facts, partial wire output, or another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_logical_operand_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_logical_operand_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: all five `bad_logical_*` fixtures must retain their text
   code and operand facts and produce the same owned private identity; installed
   MIR/C/LLVM requests must relay that exact receipt on stderr without stdout,
@@ -82,7 +82,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 
 ## Local implementation evidence

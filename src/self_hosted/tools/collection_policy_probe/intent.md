@@ -66,7 +66,7 @@ value_param_collection_mutation
 
 ## Oracle
 
-The C backend is the oracle. `tests/self_hosted/parity/collection_policy_probe_parity.sh`
+The C backend is the oracle. `tests/self_hosted/parity/ownership/collection_policy_probe_parity.sh`
 compiles the fixtures with `--backend=c` and asserts `valid.pgy` compiles clean
 while `bad_value_param.pgy` is rejected with `PGY_SEM_BUILTIN_ARGS_INVALID`. It
 then compiles the probe on both the C and LLVM legs, runs each, and byte-compares

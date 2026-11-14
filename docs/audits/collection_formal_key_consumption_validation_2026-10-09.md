@@ -59,7 +59,7 @@ Main's final focused command (Windows Git Bash, actual PE compiler):
 
 ```sh
 PGY_BIN=/d/PergyraLang/.tmp/ownership-cutover-ci-2026-10-09/native-rebuilt/pgy.exe \
-  bash tests/self_hosted/parity/collection_formal_key_consumption_owner.sh
+  bash tests/self_hosted/parity/ownership/collection_formal_key_consumption_owner.sh
 ```
 
 Do not execute that PE compiler as an admitted WSL parity runner. Its normal
@@ -339,7 +339,7 @@ Main runs the existing aggregate source gate with the bound native builder:
 
 ```bash
 PGY_BIN=/d/PergyraLang/.tmp/ownership-cutover-ci-2026-10-09/native-rebuilt/pgy.exe \
-  bash tests/self_hosted/parity/collection_aggregate_release_source_owner.sh
+  bash tests/self_hosted/parity/ownership/collection_aggregate_release_source_owner.sh
 ```
 
 Result: `.tmp/self_hosted/aggregate-release-source.HOCgQs/`, 6 positive and

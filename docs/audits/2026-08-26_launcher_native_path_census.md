@@ -66,7 +66,7 @@ from the declared `PGY_NATIVE_PIPELINE` opt-out.
 | any compiler-bearing verb with `PGY_NATIVE_PIPELINE` truthy | `driver_run_pipeline` | declared harness/bootstrap opt-out | explicit native oracle, not fallback |
 
 This agrees with the executable structural/behavioral assertions in
-`tests/self_hosted/parity/package_commands_installed_self_host_owner.sh`: the
+`tests/self_hosted/parity/frontend/package_commands_installed_self_host_owner.sh`: the
 default package commands must not re-enter the native pipeline, and a missing
 installed driver must not fall back.
 
@@ -95,7 +95,7 @@ compiler executions. Its internal `find_driver_option` pointer/null returns and
 | any remaining admitted request, including bare `--rir*`, `--air*`, or `--hir*` | `driver_emit_uninstalled_self_host_request_fail` | fail-closed boundary | The mode-specific rejection reports that no installed Pergyra fact owner exists; there is no final native retry. |
 
 The static ratchet in
-`tests/self_hosted/parity/public_native_ir_explicit_opt_in_owner.sh` expects
+`tests/self_hosted/parity/public_route/public_native_ir_explicit_opt_in_owner.sh` expects
 exactly two direct `return driver_run_pipeline(&flags)` statements in the
 launcher: the exact test oracle and the explicit CLI/environment opt-out. It
 also requires the final uninstalled-request rejection owner. The launcher

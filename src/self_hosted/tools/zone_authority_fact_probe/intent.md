@@ -1,7 +1,7 @@
 # Zone Authority Fact Probe
 
 **Status:** focused executable semantic-to-DIR carriage contract.
-**Parity owner:** `tests/self_hosted/parity/zone_authority_fact_probe_parity.sh`
+**Parity owner:** `tests/self_hosted/parity/domain/zone_authority_fact_probe_parity.sh`
 
 ## Intent
 
@@ -24,6 +24,6 @@ must exit nonzero before DIR can consume a partial graph.
 
 ## Oracle
 
-`tests/self_hosted/parity/zone_authority_fact_probe_parity.sh` delegates to the
+`tests/self_hosted/parity/domain/zone_authority_fact_probe_parity.sh` delegates to the
 zone-authority gate owner, compiles and runs the Pergyra probe through C, and
 ratchets `TypedAstKindZoneAuthorityTag` rescanning out of the DIR consumer.

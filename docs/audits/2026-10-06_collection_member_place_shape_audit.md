@@ -4,7 +4,7 @@ Date: 2026-10-06 (Asia/Seoul)
 
 Status: read-only audit record. It does not own compiler semantics, registry
 status or a successor rung. The executable gate
-`tests/self_hosted/parity/collection_member_place_rules.sh` and the owners named
+`tests/self_hosted/parity/ownership/collection_member_place_rules.sh` and the owners named
 below are authoritative.
 
 ## Why this audit exists

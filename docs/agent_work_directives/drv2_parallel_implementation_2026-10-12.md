@@ -101,7 +101,7 @@ is serial under main; concurrent compiler-scale runs must not manufacture a
 timeout. Source/binary hashes and incomplete runs remain explicit.
 
 Shared integration gate: unchanged-condition
-`tests/self_hosted/parity/collection_inout_effect_owner.sh`, C and LLVM, with the
+`tests/self_hosted/parity/ownership/collection_inout_effect_owner.sh`, C and LLVM, with the
 registered falsifiers and an identified current native compiler. Supplement with
 component/source-scan gates, parser parity/membership, the complete fixed-input
 DRV-2 refusal census, production driver substitution and exact-SHA compiler CI.

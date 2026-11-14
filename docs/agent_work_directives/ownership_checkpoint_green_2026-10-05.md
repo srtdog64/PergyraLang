@@ -29,7 +29,7 @@ The starting checkout has 57 dirty paths; preserve existing work.
 - Root: `tests/self_hosted_component_contract_smoke.sh`, this directive,
   integration review, Git staging/commit/push, exact-head CI verification.
 - `generic_return_gate`: only
-  `tests/self_hosted/parity/generic_return_probe_parity.sh` (completed), then
+  `tests/self_hosted/parity/semantic/generic_return_probe_parity.sh` (completed), then
   `tests/self_hosted_component_checker_smoke.sh` for the isolated dry-run tests.
 - `handoff_refresh`: only `docs/current_work_handoff.md` and
   `src/self_hosted/tools/generic_return_probe/intent.md`.

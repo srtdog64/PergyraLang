@@ -52,7 +52,7 @@ Outputs are implementation candidates until the executable gates below pass.
 - Negative gate: missing/changed declaration and instruction ABI, parameter
   receipt drift, layout/field identity disagreement, and a forged physical
   receipt on a logical-only record must fail before artifact publication.
-- Integration: `tests/self_hosted/parity/assignment_projection_probe_parity.sh`;
+- Integration: `tests/self_hosted/parity/ownership/assignment_projection_probe_parity.sh`;
   retain logical-record and two-Int nominal parity gates as regression evidence.
 - Non-goals: keyword deletion, retry semantics, general evaluation-order work,
   CI workflow redesign, module build, shared installation and a new fixed point.

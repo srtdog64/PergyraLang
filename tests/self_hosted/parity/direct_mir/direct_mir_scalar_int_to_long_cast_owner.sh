@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Exact Int/Long cast identities are admitted once and consumed by C/LLVM.
+# Long-to-Int narrows to 32 bits on both (docs/semantics/11 4a).
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+pgy_prepend_windows_runtime_paths
+
+LABEL="self-host-direct-mir-scalar-int-to-long-cast"
+DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+CC="${PGY_SELFHOST_CC:-gcc}"
+CLANG="${PGY_SELFHOST_CLANG:-clang}"
+WORK_REL=".tmp/self_hosted/direct_mir_scalar_int_to_long_cast"
+WORK_DIR="$ROOT_DIR/$WORK_REL"
+SOURCE_REL="tests/self_hosted/fixtures/direct_mir_int_to_long_cast.pgy"
+MIR_REL="$WORK_REL/program.mir.json"
+MIR="$ROOT_DIR/$MIR_REL"
+MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_to_long_cast_mutations.py"
+VARIANTS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_to_long_cast_artifact_variants.py"
+
+fail() { echo "[$LABEL] $*" >&2; exit 1; }
+pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
+command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
+
+mkdir -p "$WORK_DIR"
+rm -f "$WORK_DIR"/*
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
+    2>"$WORK_DIR/producer.err" || fail "MIR production failed"
+grep -Fq '"kind":"type_name","text":"Long"' "$MIR" ||
+    fail "producer omitted the Long type-name row"
+grep -Fq '"kind":"cast","text":"value as Long"' "$MIR" ||
+    fail "producer omitted the Int-to-Long cast graph"
+grep -Fq '"kind":"type_name","text":"Int"' "$MIR" ||
+    fail "producer omitted the Int type-name row"
+grep -Fq '"kind":"cast","text":"value as Int"' "$MIR" ||
+    fail "producer omitted the Long-to-Int cast graph"
+
+printf '%s\n' '-17' '536870919' >"$WORK_DIR/expected-ordinary.run"
+printf '%s\n' '-2147483648' '-2147483648' >"$WORK_DIR/expected-boundary.run"
+for backend in c llvm; do
+    extension=c; [[ "$backend" == llvm ]] && extension=ll
+    artifact_rel="$WORK_REL/program.$extension"
+    artifact="$ROOT_DIR/$artifact_rel"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$MIR_REL" -o "$artifact_rel") >"$WORK_DIR/$backend.project.out" \
+        2>"$WORK_DIR/$backend.project.err" || fail "$backend projection failed"
+    [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
+    if [[ "$backend" == c ]]; then
+        [[ "$(grep -Fc '= ((int64_t)(pgy_param_0));' "$artifact")" -eq 1 ]] &&
+            [[ "$(grep -Fc '= ((int32_t)(pgy_param_0));' "$artifact")" -eq 1 ]] ||
+            fail "C omitted one of the exact Int/Long casts"
+    else
+        # Int-to-Long keeps the sign-extended carrier; Long-to-Int is the
+        # one width conversion: truncate to 32 bits, then re-extend.
+        [[ "$(grep -Ec '= trunc i64 .* to i32$' "$artifact")" -eq 1 ]] &&
+            [[ "$(grep -Ec '= sext i32 .* to i64$' "$artifact")" -eq 1 ]] &&
+            ! grep -Eq '\bzext\b' "$artifact" ||
+            fail "LLVM Long-to-Int did not narrow to 32 bits exactly once"
+    fi
+    for mode in ordinary boundary; do
+        variant="$WORK_DIR/$backend-$mode.$extension"
+        python "$VARIANTS" "$artifact" "$backend" "$mode" "$variant"
+        bin="$WORK_DIR/$backend-$mode.exe"
+        if [[ "$backend" == c ]]; then
+            command=("$CC" -x c -std=c11 -fwrapv "$variant")
+            if pgy_selfhost_emitted_c_uses_runtime_headers "$variant"; then
+                command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+            fi
+            command+=(-lm -o "$bin")
+            "${command[@]}" >"$WORK_DIR/$backend-$mode.compile.out" \
+                2>"$WORK_DIR/$backend-$mode.compile.err" ||
+                fail "$backend $mode compile failed"
+        else
+            "$CLANG" -x ir "$variant" -pthread -lm -o "$bin" \
+                >"$WORK_DIR/$backend-$mode.compile.out" \
+                2>"$WORK_DIR/$backend-$mode.compile.err" ||
+                fail "$backend $mode compile failed"
+        fi
+        "$bin" | tr -d '\r' >"$WORK_DIR/$backend-$mode.run"
+        cmp -s "$WORK_DIR/expected-$mode.run" "$WORK_DIR/$backend-$mode.run" ||
+            fail "$backend $mode Int/Long cast drifted"
+    done
+done
+
+for mutation in \
+        wrong-source-type wrong-target-type malformed-type-name-shape non-cast-use \
+        long-to-int-wrong-source-type long-to-int-wrong-target-type \
+        long-to-int-malformed-type-name-shape long-to-int-non-cast-use; do
+    mutated_rel="$WORK_REL/$mutation.mir.json"
+    python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$mutation.$backend"
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+                "$mutated_rel" -o "$output_rel") >"$WORK_DIR/$mutation.$backend.out" \
+                2>"$WORK_DIR/$mutation.$backend.err"; then
+            fail "$backend accepted $mutation"
+        fi
+        [[ ! -e "$ROOT_DIR/$output_rel" ]] || fail "$backend published $mutation"
+    done
+done
+
+echo "[$LABEL] exact Int/Long cast C/LLVM parity + source/target/shape negatives: PASS"

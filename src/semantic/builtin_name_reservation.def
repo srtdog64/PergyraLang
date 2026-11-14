@@ -22,7 +22,7 @@
  *                    the declared-callable fact.
  *
  * src/self_hosted/semantic/builtin_shadow_owner.pgy projects the same rows;
- * tests/self_hosted/parity/builtin_name_shadow_owner.sh checks the two and
+ * tests/self_hosted/parity/semantic/builtin_name_shadow_owner.sh checks the two and
  * the runtime declarations. Rows are byte-sorted within each family.
  */
 

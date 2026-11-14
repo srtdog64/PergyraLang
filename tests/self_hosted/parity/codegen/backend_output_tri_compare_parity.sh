@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+# Tri-parity smoke for backend outputs:
+#   C and LLVM backend outputs are compared by the Pergyra-origin
+#   backend_output_comparator. That ArtifactZone/TestHarness report is the
+#   verdict owner for stdout/stderr equality.
+
+set -euo pipefail
+
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v grep >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
+if [[ ! -x "$PGY" ]]; then
+    echo "[self-host-parity:backend-tri-compare] missing compiler binary: $PGY" >&2
+    exit 1
+fi
+
+WORK_ROOT="$ROOT_DIR/.tmp"
+mkdir -p "$WORK_ROOT"
+WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_selfhost_tri_compare.XXXXXX")"
+RUN_TIMEOUT_SECONDS="${PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS:-30}"
+HARNESS_MANIFEST_BIN=""
+TRI_COMPARE_BIN=""
+
+cleanup() {
+    rm -rf "$WORK_DIR"
+}
+trap cleanup EXIT
+
+# Probe LLVM backend availability. macOS C-only CI builds pgy with
+# LLVM_ENABLED=0, and a pgy that lacks the LLVM backend cannot satisfy this
+# tri-compare contract. SKIP gracefully so the parity script does not turn a
+# build configuration into a self-host smoke failure.
+LLVM_PROBE_SRC="$WORK_DIR/_pgy_llvm_probe.pgy"
+LLVM_PROBE_BIN="$WORK_DIR/_pgy_llvm_probe_bin"
+printf 'func Main() -> Void {}\n' > "$LLVM_PROBE_SRC"
+LLVM_PROBE_REL="${LLVM_PROBE_SRC#"$ROOT_DIR/"}"
+LLVM_PROBE_BIN_REL="${LLVM_PROBE_BIN#"$ROOT_DIR/"}"
+if ! (cd "$ROOT_DIR" && "$PGY" "$LLVM_PROBE_REL" --backend=llvm \
+        -o "$LLVM_PROBE_BIN_REL") >/dev/null 2>&1; then
+    echo "[self-host-parity:backend-tri-compare] SKIP: LLVM backend unavailable in this pgy build"
+    exit 0
+fi
+
+pgy_quote_ps() {
+    local value="${1//\'/\'\'}"
+    printf "'%s'" "$value"
+}
+
+resolve_native_bin() {
+    local path="$1"
+    if [[ -x "$path" ]]; then
+        printf '%s\n' "$path"
+    elif [[ "$path" != *.exe && -x "${path}.exe" ]]; then
+        printf '%s.exe\n' "$path"
+    else
+        printf '%s\n' "$path"
+    fi
+}
+
+run_windows_fallback() {
+    local bin="$1"
+    local out="$2"
+    local err="$3"
+    shift 3
+    local bin_native
+    local out_native
+    local err_native
+    local cwd_native
+    local ps_args=""
+    local arg
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v powershell.exe >/dev/null 2>&1 || return 127
+
+    bin_native="$(pgy_path_for_windows_tool "$bin")"
+    out_native="$(pgy_path_for_windows_tool "$out")"
+    err_native="$(pgy_path_for_windows_tool "$err")"
+    cwd_native="$(pgy_path_for_windows_tool "$PWD")"
+
+    for arg in "$@"; do
+        ps_args="${ps_args} $(pgy_quote_ps "$arg")"
+    done
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); & $(pgy_quote_ps "$bin_native")${ps_args} > $(pgy_quote_ps "$out_native") 2> $(pgy_quote_ps "$err_native"); exit \$LASTEXITCODE"
+}
+
+run_native_bin() {
+    local bin="$1"
+    local out="$2"
+    local err="$3"
+    shift 3
+    local rc
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$RUN_TIMEOUT_SECONDS"s "$bin" "$@" >"$out" 2>"$err"
+        rc=$?
+    else
+        "$bin" "$@" >"$out" 2>"$err"
+        rc=$?
+    fi
+    if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
+        run_windows_fallback "$bin" "$out" "$err" "$@"
+        return $?
+    fi
+    return "$rc"
+}
+
+run_pergyra_output_compare() {
+    local source_rel="$1"
+    local stream_label="$2"
+    local expected="$3"
+    local actual="$4"
+    local tri_root="$5"
+    local tri_bin="$6"
+    local tri_out
+    local tri_stdout
+    local tri_stderr
+    local tri_rc
+    local expected_arg
+    local actual_arg
+
+    mkdir -p "$tri_root/.tmp"
+
+    expected_arg="${expected#"$ROOT_DIR/"}"
+    actual_arg="${actual#"$ROOT_DIR/"}"
+    tri_stdout="$tri_root/.tmp/${stream_label}.tri.stdout"
+    tri_stderr="$tri_root/.tmp/${stream_label}.tri.stderr"
+    set +e
+    run_native_bin "$tri_bin" "$tri_stdout" "$tri_stderr" "$expected_arg" "$actual_arg" 0 1
+    tri_rc=$?
+    set -e
+    tri_out="$(cat "$tri_stdout" "$tri_stderr")"
+    if [[ "$tri_rc" -ne 0 ]]; then
+        echo "[self-host-parity:backend-tri-compare] self-host comparator rejected matching C/LLVM ${stream_label} for $source_rel" >&2
+        printf '%s\n' "$tri_out" >&2
+        exit 1
+    fi
+    if ! grep -Fq '"schema":"pgy.selfhost.backend-output-comparator.v1"' <<<"$tri_out"; then
+        echo "[self-host-parity:backend-tri-compare] comparator output missing schema for ${stream_label} in $source_rel" >&2
+        printf '%s\n' "$tri_out" >&2
+        exit 1
+    fi
+}
+
+run_tri_case() {
+    local case_dir="$1"
+    local case_name
+    local source_rel
+    local c_bin
+    local llvm_bin
+    local c_out
+    local llvm_out
+    local c_err
+    local llvm_err
+    local c_rc
+    local llvm_rc
+    local tri_root
+
+    case_name="$(basename "$case_dir")"
+    source_rel="$case_dir/main.pgy"
+    if [[ ! -f "$ROOT_DIR/$source_rel" ]]; then
+        echo "[self-host-parity:backend-tri-compare] missing backend compare source: $source_rel" >&2
+        exit 1
+    fi
+    c_bin="$WORK_DIR/${case_name}_c"
+    llvm_bin="$WORK_DIR/${case_name}_llvm"
+    c_out="$WORK_DIR/${case_name}_c.stdout"
+    llvm_out="$WORK_DIR/${case_name}_llvm.stdout"
+    c_err="$WORK_DIR/${case_name}_c.stderr"
+    llvm_err="$WORK_DIR/${case_name}_llvm.stderr"
+
+    # This gate owns the native C/LLVM oracle pair.  The public compiler now
+    # delegates to the bounded self-host driver by default, so leaving the
+    # selector implicit changes the subject of this gate and makes a missing
+    # self-host source family look like backend-output drift.
+    if ! (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$source_rel" \
+            --backend=c -o "${c_bin#"$ROOT_DIR"/}") \
+            >"$WORK_DIR/${case_name}_c.compile.log" 2>&1; then
+        echo "[self-host-parity:backend-tri-compare] native C oracle compile failed for $source_rel" >&2
+        cat "$WORK_DIR/${case_name}_c.compile.log" >&2
+        exit 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$source_rel" \
+            --backend=llvm -o "${llvm_bin#"$ROOT_DIR"/}") \
+            >"$WORK_DIR/${case_name}_llvm.compile.log" 2>&1; then
+        echo "[self-host-parity:backend-tri-compare] native LLVM oracle compile failed for $source_rel" >&2
+        cat "$WORK_DIR/${case_name}_llvm.compile.log" >&2
+        exit 1
+    fi
+
+    c_bin="$(resolve_native_bin "$c_bin")"
+    llvm_bin="$(resolve_native_bin "$llvm_bin")"
+
+    set +e
+    (cd "$ROOT_DIR/$case_dir" && run_native_bin "$c_bin" "$c_out" "$c_err")
+    c_rc=$?
+    (cd "$ROOT_DIR/$case_dir" && run_native_bin "$llvm_bin" "$llvm_out" "$llvm_err")
+    llvm_rc=$?
+    set -e
+
+    if [[ "$c_rc" -ne "$llvm_rc" ]]; then
+        echo "[self-host-parity:backend-tri-compare] exit mismatch for $source_rel: C=$c_rc LLVM=$llvm_rc" >&2
+        exit 1
+    fi
+
+    tri_root="$WORK_DIR/${case_name}_tri_root"
+    mkdir -p "$tri_root/.tmp"
+
+    run_pergyra_output_compare "$source_rel" "stdout" "$c_out" "$llvm_out" \
+        "$tri_root" "$TRI_COMPARE_BIN"
+    run_pergyra_output_compare "$source_rel" "stderr" "$c_err" "$llvm_err" \
+        "$tri_root" "$TRI_COMPARE_BIN"
+}
+
+compile_harness_manifest_once() {
+    pgy_selfhost_compile_test_harness_manifest \
+        "self-host-parity:backend-tri-compare" \
+        "$WORK_DIR"
+    HARNESS_MANIFEST_BIN="$(pgy_selfhost_test_harness_manifest_bin "$WORK_DIR")"
+}
+
+read_harness_manifest_suite() {
+    local suite="$1"
+    local out_file="$2"
+    local err_file="$WORK_DIR/${suite}.manifest.err"
+
+    if [[ -z "$HARNESS_MANIFEST_BIN" ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest binary not compiled" >&2
+        exit 1
+    fi
+
+    if ! run_native_bin "$HARNESS_MANIFEST_BIN" "$out_file" "$err_file" "$suite"; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest failed for suite=$suite" >&2
+        cat "$out_file" "$err_file" >&2
+        exit 1
+    fi
+}
+
+compile_tri_comparator() {
+    local comparator_paths_file="$WORK_DIR/backend_output_comparator_paths.txt"
+    local comparator_paths=()
+    local line
+    local comparator_source
+
+    read_harness_manifest_suite \
+        "backend-output-comparator-paths" \
+        "$comparator_paths_file"
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        comparator_paths+=("$line")
+    done <"$comparator_paths_file"
+
+    if [[ "${#comparator_paths[@]}" -ne 7 ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest expected 7 comparator paths, got ${#comparator_paths[@]}" >&2
+        exit 1
+    fi
+
+    comparator_source="$ROOT_DIR/${comparator_paths[0]}"
+    if [[ ! -f "$comparator_source" ]]; then
+        echo "[self-host-parity:backend-tri-compare] missing TestHarness comparator source: $comparator_source" >&2
+        exit 1
+    fi
+
+    pgy_selfhost_compile_backend_output_comparator \
+        "self-host-parity:backend-tri-compare" \
+        "$WORK_DIR" \
+        "$comparator_source"
+    TRI_COMPARE_BIN="$(pgy_selfhost_backend_output_comparator_bin "$WORK_DIR")"
+}
+
+append_cases_from_harness_manifest() {
+    local suite="$1"
+    local manifest_out="$WORK_DIR/${suite}.cases"
+    local line
+
+    read_harness_manifest_suite "$suite" "$manifest_out"
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        cases+=("$line")
+    done <"$manifest_out"
+}
+
+if [[ "$#" -gt 0 ]]; then
+    cases=("$@")
+else
+    cases=()
+    compile_harness_manifest_once
+    append_cases_from_harness_manifest "backend-tri-smoke"
+    if [[ "${PGY_BACKEND_TRI_COMPARE_SUITE:-smoke}" == "extended" ]]; then
+        append_cases_from_harness_manifest "backend-tri-extended"
+    fi
+fi
+
+if [[ -z "$HARNESS_MANIFEST_BIN" ]]; then
+    compile_harness_manifest_once
+fi
+compile_tri_comparator
+
+for case_dir in "${cases[@]}"; do
+    run_tri_case "$case_dir"
+done
+
+echo "[self-host-parity:backend-tri-compare] C/LLVM stdout/stderr accepted by Pergyra comparator (${#cases[@]} cases)"

@@ -37,4 +37,4 @@ success output from Pergyra-built C and LLVM executables. Its falsifiers are:
 This probe does not expose DataView, SharedArrayBuffer, Atomics, pointer32, or a
 mutable rebase view, and it does not add a new Slot allocator.
 
-**Parity owner:** `tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh`
+**Parity owner:** `tests/self_hosted/parity/codegen/binary_projection_preflight_probe_parity.sh`

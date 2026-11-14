@@ -24,7 +24,7 @@ compiler fact, progress number, registry status, or implementation authority.
   native retry, unstable/unparsed output success, remove-then-rename, or a
   registry CLOSED claim unsupported by the named gate.
 - Integration owner: the primary task. Integration gate is
-  `tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh`, followed
+  `tests/self_hosted/parity/public_route/public_fmt_installed_self_host_owner.sh`, followed
   by installed-driver CLI integration and exact-head remote CI.
 
 ## Independent review scopes

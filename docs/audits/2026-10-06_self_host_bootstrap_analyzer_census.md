@@ -50,7 +50,7 @@ the code, boundary, statement, function, module and callee of each refusal.
 | 6 | 1 | formal indexed read 1 |
 | 7, 8 | 0 | `body_ok=true` (every body analyzer, not only ownership) |
 
-Local `tests/self_hosted/parity/codegen_bootstrap.sh` on this checkout
+Local `tests/self_hosted/parity/codegen/codegen_bootstrap.sh` on this checkout
 reached the following:
 
 - gen0 → gen1 → gen2 → gen3.
@@ -100,7 +100,7 @@ ownership really was ambiguous.
 ### Analyzer rules made precise (fail-closed refusals kept)
 
 All of these are covered by
-`tests/self_hosted/parity/collection_bootstrap_closure_rules.sh`: C and LLVM
+`tests/self_hosted/parity/ownership/collection_bootstrap_closure_rules.sh`: C and LLVM
 analysis, 8 positives and 16 refusals each.
 
 1. **Loop-local constructor field escape.**

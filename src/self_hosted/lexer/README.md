@@ -22,4 +22,4 @@ not a full compiler rewrite.
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract.
 
-Run: `bash tests/self_hosted/parity/lexer_parity.sh`
+Run: `bash tests/self_hosted/parity/frontend/lexer_parity.sh`

@@ -75,7 +75,7 @@ Exact base: `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
   Option gap, and unrelated BRIDGE rows.
 - Integration owner: the primary task at this exact base.
 - Integration gate:
-  `tests/self_hosted/parity/direct_mir_contextual_collection_constructor_argument_owner.sh`.
+  `tests/self_hosted/parity/direct_mir/direct_mir_contextual_collection_constructor_argument_owner.sh`.
 
 ## Local closure evidence
 

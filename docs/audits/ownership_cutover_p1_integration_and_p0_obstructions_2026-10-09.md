@@ -83,7 +83,7 @@ workers (zero compile/link samples). Its small root-process pressure is
 Receipt: `pressure/native-build-diagnostic.summary.json`.
 
 Using that fresh executable, native-only
-`tests/self_hosted/parity/public_array_drop.sh` PASS on C and LLVM.
+`tests/self_hosted/parity/public_route/public_array_drop.sh` PASS on C and LLVM.
 Evidence: `.tmp/self_hosted/public-array-drop.s2zel6/` and
 `p0-native-array-drop.log`. The shared summary describes all-stage routes,
 but this invocation selected `PGY_ARRAY_DROP_STAGE=native`; source-C,

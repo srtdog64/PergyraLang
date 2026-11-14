@@ -72,7 +72,7 @@ core_string_munge↓로 측정한다.
 
 ## 2. Fixed-point는 이미 작동한다 (G-EXEC 불필요)
 
-**하니스: `tests/self_hosted/parity/codegen_bootstrap.sh`.** 3-stage 부트스트랩을
+**하니스: `tests/self_hosted/parity/codegen/codegen_bootstrap.sh`.** 3-stage 부트스트랩을
 실제로 돌린다(셸이 조립공, gcc는 외부):
 
 ```
@@ -284,5 +284,5 @@ M2를 미루고 M1을 self-hosting 마일스톤으로 받기로 하면:
 
 docs/self_hosted/01(North Star + Stage 5 정의) · docs/150(driver/LSP rung —
 DRV-2 semantic landed / DRV-3 G-EXEC 블로커) · docs/148(stdlib — 병행 베팅) · PROGRESS.md(치환 원장) ·
-`tests/self_hosted/parity/codegen_bootstrap.sh`(fixed-point 하니스) ·
+`tests/self_hosted/parity/codegen/codegen_bootstrap.sh`(fixed-point 하니스) ·
 `tests/self_host_pergyra_likeness_smoke.sh`(진짜 metric) · docs/159(stdlib 설계도)

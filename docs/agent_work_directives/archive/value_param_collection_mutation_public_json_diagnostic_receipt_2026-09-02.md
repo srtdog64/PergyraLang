@@ -47,7 +47,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   second semantic pass, invented source location, partial wire output, or
   another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: existing `bad_value_param_arraypush.pgy` and a new direct
   index-assignment fixture must retain exact normalized Pergyra diagnostics
   with `ArrayPush`/`ArraySet`, parameter `xs`, and mode `default`; installed
@@ -142,7 +142,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Outputs are implementation candidates until the primary task observes the
   focused and integration gates. They do not change SoT or progress status by

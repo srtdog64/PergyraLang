@@ -40,7 +40,7 @@ definition, SoT registry, and executable gates remain authoritative.
   missing/foreign valid ID, retrying through raw expression text, or closing
   only one of the three reached consumer families.
 - Verification gate: the integration owner extends
-  `tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh`
+  `tests/self_hosted/parity/intent/intent_observability_installed_self_host_owner.sh`
   and the existing MIR identity, nested C/LLVM, and composite LLVM gates. The
   decisive falsifiers hold source spelling and shape fixed while crossing the
   carried ID to another valid observability row, and require nonzero exit with
@@ -79,7 +79,7 @@ definition, SoT registry, and executable gates remain authoritative.
 - Integration owner: the primary task holding
   `docs/current_work_collaboration.md`'s sole active lease.
 - One integration gate:
-  `tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh`,
+  `tests/self_hosted/parity/intent/intent_observability_installed_self_host_owner.sh`,
   expanded to invoke the existing nested/composite identity negatives rather
   than rebuilding the compiler per fixture.
 - The three 2026-08-29 agent audits are `OBSERVATIONS` and this file is an

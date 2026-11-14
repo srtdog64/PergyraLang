@@ -123,7 +123,7 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   mir_lower의 렌더러·조건·expression graph가 이 fact로 wrapper 여부를 정한다.
   `enum Verdict { Ok(Int), Bad(String) }`와 `enum Maybe { Some(Int), None }`이 native C와
   LLVM에서 정답을 출력한다. 게이트는
-  `tests/self_hosted/parity/match_subject_family_owner.sh`(push CI core shard)다.
+  `tests/self_hosted/parity/semantic/match_subject_family_owner.sh`(push CI core shard)다.
 - 계열이 없는 case(semantic 이후 컴파일러가 합성한 match)는 기존 철자 규칙을 쓴다.
 - **self-host 기본 경로는 아직 이 프로그램들을 거부한다.** self-host semantic과 MIR producer는
   대상 타입으로 계열을 먼저 정하도록 바뀌었지만, self-host에는 한정 payload 생성식
@@ -145,7 +145,7 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   겹치면 `PGY_SEM_REDECLARATION`으로 거부하고, `Enum.Variant(..)`의 이름 폴백이 다른
   enum의 variant에 닿으면 거부한다. self-host는 두 enum의 같은 variant를
   `enum_variant_redeclaration`으로 거부한다(`ast_declaration_contract_owner.pgy`).
-  게이트는 `tests/self_hosted/parity/enum_variant_identity_owner.sh`다. 서로 다른 enum의 같은
+  게이트는 `tests/self_hosted/parity/semantic/enum_variant_identity_owner.sh`다. 서로 다른 enum의 같은
   variant 이름을 한정해서 허용하는 규칙 4는 L3d의 문맥 해석과 함께 들어온다.
 - 확인 중 드러난 기존 결함(이 변경과 무관, L3가 없는 빌드에서도 같다):
   - **고침.** `Result<Int, String>`이 native C에서 `PgyResult_Int_String` 미선언으로
@@ -188,7 +188,7 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   두 목록 중 하나라도 없거나 두 번 있으면 이름을 정하지 않고 거부한다. 렌더러와
   expression graph projection이 이 owner를 함께 부른다. 재현에서 사용자 지역 변수
   `_pgy_destructure_first`는 기본 C 경로에서 `Array<String>`으로 덮여 컴파일되지 않았다.
-  게이트는 `tests/self_hosted/parity/destructure_temporary_hygiene_owner.sh`(native C/LLVM,
+  게이트는 `tests/self_hosted/parity/ownership/destructure_temporary_hygiene_owner.sh`(native C/LLVM,
   기본 C 경로. 기본 LLVM 경로는 지금 모든 destructure를 거부한다)와 렌더러 스모크의
   numbered-temporary 행이다.
 
@@ -257,7 +257,7 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   끝나는 본문도 받는다. 같은 owner가 non-Void 함수의 반환 누락을 `missing_return`
   (PGY_SEM_MISSING_RETURN)으로 거부한다. 전에는 default route가 이 검사 없이 함수 끝을
   지나 흘러가는 코드를 냈다(red-team 감사 M8).
-- 게이트: `tests/self_hosted/parity/never_return_type_owner.sh`(push CI core shard).
+- 게이트: `tests/self_hosted/parity/ownership/never_return_type_owner.sh`(push CI core shard).
 - **L1b (LLVM) 착지.** 확인 중에 이름 추측이 오컴파일을 만든다는 것이 드러났다. LLVM 속성
   패스는 모듈의 **모든** 함수에 이름 표(`panic`을 포함하거나 `pgy_exit`)를 적용했다.
   그래서 `count_panics(n: Int) -> Int` 같은 사용자 함수가 noreturn이 되었고, native LLVM
@@ -306,7 +306,7 @@ self-host 기본 경로에서 `5b`였다. opener 앞에서 잘린 리터럴 조�
 닫는 따옴표를 escape했고, 그 앞의 텍스트가 사라졌다. self-host parser는 이제 현재 조각
 안의 백슬래시 개수로 opener escape를 판단한다. direct MIR 문자열 리터럴 해석은 `\$`와
 `\{`에서 백슬래시를 뗀다. 게이트는
-`tests/self_hosted/parity/string_interpolation_escape_parity_owner.sh`(push CI core shard)다.
+`tests/self_hosted/parity/ownership/string_interpolation_escape_parity_owner.sh`(push CI core shard)다.
 
 ## 6. L4 — 한 칸 out 배열
 
@@ -372,7 +372,7 @@ Option<JsonStringRead>`(`value`, `end`)가 실패를 None으로 돌려주고, �
   `stmt`/`AST_DEFER_STMT` 행을 소스 순서로 내고, 문장이 n개면 `arg1`에 `1/n`..`n/n`을
   싣는다(한 문장이면 빈 값). defer를 n개로 쪼개면 역순으로 실행되므로 mir_lower는 연속한
   행을 하나의 `Defer` 블록으로 다시 묶는다. 순서가 어긋나거나, 빠지거나, 형식이 틀린 part는
-  거부한다. 게이트는 `tests/self_hosted/parity/defer_multi_statement_owner.sh`(native C/LLVM,
+  거부한다. 게이트는 `tests/self_hosted/parity/ownership/defer_multi_statement_owner.sh`(native C/LLVM,
   기본 C 경로)와 렌더러 스모크의 part 행이다. 기본 LLVM 경로는 defer 자체를 거부한다.
 - **F5 착지 (native MIR 행).** native MIR도 본문 문장마다 `stmt`/`AST_DEFER_STMT` 행을 낸다.
   각 행은 자기 part 인덱스와 routing(`Log`/`Call`/`Assign`)을 싣고, 문장이 둘 이상이면
@@ -452,7 +452,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 
 ### 10.3 게이트
 
-`tests/self_hosted/parity/builtin_name_shadow_owner.sh`:
+`tests/self_hosted/parity/semantic/builtin_name_shadow_owner.sh`:
 
 - 두 예약 표가 같은지, `RUNTIME_ABI` 행이 런타임 선언인지, 가리기 목록의 이름이 런타임 선언이
   아닌지, 빌트인 표(`builtin_resolve`, `pgy_builtin_type_table.c`, self-host 시그니처 행)의 모든
@@ -525,7 +525,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
   컴파일 오류, LLVM은 method registry 거부).
 - 게이트: backend_compare의 `method_receiver_before_arguments`와
   `party_ability_call_argument_order`가 native C와 native LLVM을 비교한다.
-  `tests/self_hosted/parity/default_route_method_receiver_order_owner.sh`는 같은 두 프로그램을
+  `tests/self_hosted/parity/semantic/default_route_method_receiver_order_owner.sh`는 같은 두 프로그램을
   native C, native LLVM, 기본 C 경로에서 돌려 같은 출력을 요구하고, 바인딩이 아닌 party는 기본 C
   경로에서만 돌린다. 기본 LLVM 경로는 세 프로그램을 모두 컴파일 전에 거부한다(틀린 순서로 돌지는
   않는다).
@@ -539,7 +539,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 런타임의 `ToInt`/`ToFloat`는 인자를 C 문자열로 읽는다. 두 컴파일러가 인자 타입을 보지 않아서
 `ToInt(1)`이 컴파일되고 실행 중에 죽었다(native C, 기본 C). 이제 두 컴파일러 모두 String 인자만
 받는다. 숫자 변환은 `value as Int`다. 게이트는
-`tests/self_hosted/parity/text_conversion_argument_owner.sh`다. 문자열 변환은 native C/LLVM과
+`tests/self_hosted/parity/ownership/text_conversion_argument_owner.sh`다. 문자열 변환은 native C/LLVM과
 기본 C 경로에서 돌고, 숫자 인자는 두 front end 모두 바이너리 없이 거부한다.
 
 ### 11.3 산출물 게시
@@ -548,7 +548,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 디렉터리의 staging 파일(`<name>.pgy-staging-<pid><ext>`)에 만들고, toolchain이 성공한 뒤에만
 한 번의 rename으로 목적지에 게시한다(Windows는 `MoveFileEx(MOVEFILE_REPLACE_EXISTING)`).
 실패하면 staging 파일을 지우므로 새 바이너리는 나타나지 않는다. 옛 바이너리는 여전히 compile
-시작 전에 지운다(stale 실행 방지). `tests/self_hosted/parity/binary_output_refusal_owner.sh`가
+시작 전에 지운다(stale 실행 방지). `tests/self_hosted/parity/codegen/binary_output_refusal_owner.sh`가
 거부와 성공 뒤에 staging 파일이 남지 않는지 본다.
 
 ## 12. 남은 일과 측정된 규모 (2026-09-23)

@@ -130,7 +130,7 @@ SHA-256
 `E0C74E79B3585DE70D620B41F57C8C06E6AF5F3980B47175F58ACC310141871C`.
 
 The durable focused gate is
-`tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh`. It
+`tests/self_hosted/parity/one_mir/one_mir_tagged_enum_payload_projection.sh`. It
 executes the positive through both targets and requires nine mutations,
 including the three adversarial families above, to fail without artifacts.
 
@@ -358,7 +358,7 @@ that was too strong. Physical instruction row order is not an identity fallback.
 The duplicate-ID falsifier collides instructions in two different CFG blocks of
 one routine, so a block-local uniqueness check cannot make the gate false-green.
 
-The initial `tests/self_hosted/parity/direct_mir_document_admission_owner.sh`
+The initial `tests/self_hosted/parity/direct_mir/direct_mir_document_admission_owner.sh`
 observed two successful control projections and six refusals with no negative
 artifact, but did not falsify an overstrict density condition.
 Root mutations report `input is not a pgy.mir.v1 MIR-JSON document`; both

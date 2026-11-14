@@ -59,13 +59,13 @@ check_replacement_frontier_build_graph() {
             self-host-replacement-frontier-test-smoke
     )" || fail "admitted replacement frontier dry-run failed"
     installed_bootstraps="$(grep -F -c \
-        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         <<<"$installed_frontier_dry_run" || true)"
     standalone_bootstraps="$(grep -F -c \
-        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         <<<"$standalone_frontier_dry_run" || true)"
     admitted_bootstraps="$(grep -F -c \
-        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         <<<"$admitted_frontier_dry_run" || true)"
     [[ "$installed_bootstraps" -eq 0 ]] ||
         fail "installed replacement frontier must be bootstrap-free"
@@ -169,13 +169,13 @@ for domain_runtime_owner in \
     require_max_lines "$domain_runtime_owner" 600
 done
 require_max_lines \
-    "tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh" 360
+    "tests/self_hosted/parity/domain/domain_runtime_assignment_execution_owner.sh" 360
 require_max_lines \
-    "tests/self_hosted/parity/domain_runtime_explicit_map_execution_owner.sh" 160
+    "tests/self_hosted/parity/domain/domain_runtime_explicit_map_execution_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" 210
+    "tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh" 210
 require_max_lines \
-    "tests/self_hosted/parity/domain_runtime_zone_value_carriage_admission_owner.sh" 80
+    "tests/self_hosted/parity/domain/domain_runtime_zone_value_carriage_admission_owner.sh" 80
 require_max_lines \
     "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" 240
 require_max_lines \
@@ -190,9 +190,9 @@ require_max_lines \
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" 100
 require_max_lines \
-    "tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh" 180
+    "tests/self_hosted/parity/codegen/codegen_role_receiver_admission_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh" 240
+    "tests/self_hosted/parity/driver/driver_rung2_callable_receiver_carriage_owner.sh" 240
 require_max_lines "src/self_hosted/lib/json.pgy" 600
 require_max_lines "src/self_hosted/lib/json_emit.pgy" 600
 require_max_lines "src/self_hosted/lib/json_scan.pgy" 600
@@ -250,7 +250,7 @@ for mir_producer_owner in \
     require_max_lines "src/self_hosted/mir/$mir_producer_owner" 600
 done
 require_max_lines "tests/self_hosted/fixtures/json_owned_fragment_empty.pgy" 30
-require_max_lines "tests/self_hosted/parity/json_owned_fragment_empty_runtime.sh" 95
+require_max_lines "tests/self_hosted/parity/mir/json_owned_fragment_empty_runtime.sh" 95
 require_max_lines "tests/self_hosted/fixtures/mir_json_writer_roles_only.pgy" 15
 require_max_lines "src/self_hosted/compiler/canonical_mir_source_module_epoch_owner.pgy" 80
 require_max_lines "src/self_hosted/mir_lower/program_lower.pgy" 220
@@ -271,7 +271,7 @@ for language_word_projection_owner_cap in \
 done
 require_max_lines \
     "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" 80
-require_max_lines "tests/self_hosted/parity/generic_default_contracts_parser_parity.sh" 100
+require_max_lines "tests/self_hosted/parity/semantic/generic_default_contracts_parser_parity.sh" 100
 require_max_lines "src/self_hosted/parser/intent_default_clause_owner.pgy" 100
 require_max_lines "tests/self_hosted/parity/parser_tool_build_leg.sh" 200
 require_max_lines "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" 570
@@ -279,15 +279,15 @@ require_max_lines \
     "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy" 70
 require_max_lines "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" 320
 require_max_lines "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" 140
-require_max_lines "tests/self_hosted/parity/intent_callable_execution_owner.sh" 220
+require_max_lines "tests/self_hosted/parity/intent/intent_callable_execution_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" 130
+    "tests/self_hosted/parity/intent/intent_nested_callable_execution_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/intent_placed_nested_callable_execution_owner.sh" 100
+    "tests/self_hosted/parity/intent/intent_placed_nested_callable_execution_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/intent_execution_graph_target_mutation_owner.py" 100
+    "tests/self_hosted/parity/intent/intent_execution_graph_target_mutation_owner.py" 100
 require_max_lines \
-    "tests/self_hosted/parity/intent_execution_zero_compensation_mutation_owner.py" 80
+    "tests/self_hosted/parity/intent/intent_execution_zero_compensation_mutation_owner.py" 80
 require_max_lines \
     "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" 100
 require_max_lines \
@@ -367,9 +367,9 @@ require_max_lines \
     "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" 120
 require_max_lines "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" 120
 require_max_lines \
-    "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" 280
+    "tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh" 280
 require_max_lines \
-    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" 220
+    "tests/self_hosted/parity/intent/intent_guard_post_compensation_execution_owner.sh" 220
 require_max_lines \
     "tests/self_hosted/parity/fixture/intent_declaration_rows_negative_probe.pgy" 110
 require_max_lines "src/self_hosted/codegen/emission/intent_emit_owner.pgy" 360
@@ -379,17 +379,17 @@ require_max_lines \
     "src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy" 70
 require_max_lines "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" 250
 require_max_lines "tests/self_hosted/fixtures/intent_participant_readonly_query.pgy" 90
-require_max_lines "tests/self_hosted/parity/intent_participant_readonly_query_owner.sh" 65
+require_max_lines "tests/self_hosted/parity/intent/intent_participant_readonly_query_owner.sh" 65
 require_max_lines "tests/self_hosted/fixtures/compiler_readonly_query.pgy" 90
-require_max_lines "tests/self_hosted/parity/compiler_readonly_query_owner.sh" 65
+require_max_lines "tests/self_hosted/parity/driver/compiler_readonly_query_owner.sh" 65
 require_max_lines "tests/self_hosted/fixtures/call_spine_root_projection.pgy" 165
-require_max_lines "tests/self_hosted/parity/call_spine_root_projection_owner.sh" 65
+require_max_lines "tests/self_hosted/parity/semantic/call_spine_root_projection_owner.sh" 65
 require_max_lines "tests/self_hosted/fixtures/logical_record_shape_query.pgy" 170
-require_max_lines "tests/self_hosted/parity/logical_record_shape_query_owner.sh" 65
+require_max_lines "tests/self_hosted/parity/mir/logical_record_shape_query_owner.sh" 65
 require_max_lines "tests/self_hosted/fixtures/logical_record_negative_lookup_shortcut.pgy" 150
-require_max_lines "tests/self_hosted/parity/logical_record_validation_receipt_owner.sh" 45
+require_max_lines "tests/self_hosted/parity/mir/logical_record_validation_receipt_owner.sh" 45
 require_max_lines "tests/self_hosted/fixtures/logical_record_constructor_query.pgy" 210
-require_max_lines "tests/self_hosted/parity/logical_record_constructor_query_owner.sh" 65
+require_max_lines "tests/self_hosted/parity/mir/logical_record_constructor_query_owner.sh" 65
 require_max_lines \
     "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" 220
 require_max_lines \
@@ -419,9 +419,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" 80
 require_max_lines \
-    "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh" 180
+    "tests/self_hosted/parity/intent/intent_priority_nested_observability_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/intent_mode_nested_observability_owner.sh" 170
+    "tests/self_hosted/parity/intent/intent_mode_nested_observability_owner.sh" 170
 for owner_cap in \
     "intent_execution_plan_emit_owner.pgy:180" \
     "intent_execution_plan_index_owner.pgy:180" \
@@ -590,14 +590,14 @@ require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 5
 
 require_max_lines "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" 200
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh" 100
+    "tests/self_hosted/parity/driver/driver_rung2_array_set_graph_negative_owner.sh" 100
 require_max_lines "src/self_hosted/semantic/ast_body_verdict_owner.pgy" 600
 require_max_lines \
     "src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy" 45
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 525
 require_max_lines "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" 140
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh" 130
+    "tests/self_hosted/parity/driver/driver_rung2_analysis_admission_owner.sh" 130
 require_max_lines \
     "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" 80
 require_max_lines "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" 600
@@ -613,11 +613,11 @@ require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owne
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 360
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" 300
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" 240
+    "tests/self_hosted/parity/driver/driver_rung2_callable_parameter_identity_owner.sh" 240
 require_max_lines \
-    "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" 120
+    "tests/self_hosted/parity/semantic/callable_parameter_installed_self_host_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" 180
+    "tests/self_hosted/parity/frontend/lowercase_entrypoint_installed_self_host_owner.sh" 180
 require_max_lines "src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy" 200
 require_max_lines "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" 260
 require_max_lines \
@@ -634,7 +634,7 @@ require_max_lines "src/self_hosted/mir_lower/expression_graph_occurrence_owner.p
 require_max_lines \
     "src/self_hosted/mir_lower/expression_graph_indexed_instruction_policy_owner.pgy" 100
 require_max_lines "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy" 115
-require_max_lines "tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh" 80
+require_max_lines "tests/self_hosted/parity/mir/expression_graph_identity_prefix_owner_smoke.sh" 80
 require_max_lines \
     "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" 95
 require_max_lines \
@@ -645,31 +645,31 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_index_expression_type_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_iteration_graph_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_foreach_call_type_parity_owner.sh" 100
 require_max_lines "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy" 220
-require_max_lines "tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_array_argument_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_struct_argument_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_struct_value_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_generic_struct_value_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_inferred_generic_value_parity_owner.sh" 140
 require_max_lines "src/self_hosted/mir/loop_reachability_fact_owner.pgy" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_loop_phi_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_destructure_parity_owner.sh" 120
 require_max_lines "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" 120
 require_max_lines "src/self_hosted/mir_lower/destructure_temporary_owner.pgy" 160
 require_max_lines "src/self_hosted/mir/routine_defer_owner.pgy" 120
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" 60
-require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 160
-require_max_lines "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh" 190
+require_max_lines "tests/self_hosted/parity/intent/intent_observability_installed_self_host_owner.sh" 160
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_legacy_intent_program_llvm_owner.sh" 190
 require_max_lines "src/self_hosted/compiler/direct_mir_intent_completion_fact_owner.pgy" 40
 require_max_lines "src/self_hosted/compiler/direct_mir_intent_completion_llvm_emission_owner.pgy" 40
-require_max_lines "tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh" 200
-require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" 190
-require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh" 220
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_composite_intent_program_llvm_owner.sh" 200
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_llvm_owner.sh" 190
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_c_owner.sh" 220
 while IFS='|' read -r composite_intent_owner composite_intent_cap; do
     require_max_lines \
         "src/self_hosted/compiler/$composite_intent_owner" \
@@ -696,81 +696,81 @@ direct_mir_nested_intent_program_llvm_emission_owner.pgy|360
 direct_mir_nested_intent_program_projection_owner.pgy|40
 driver_rung2_nested_intent_c_substitution_owner.pgy|50
 NESTED_INTENT_OWNERS
-require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh" 145
-require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py" 90
+require_max_lines "tests/self_hosted/parity/intent/intent_observability_mir_identity_owner.sh" 145
+require_max_lines "tests/self_hosted/parity/intent/intent_observability_mir_identity_mutations.py" 90
 require_max_lines "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" 20
 require_max_lines "tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh" 20
-require_max_lines "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" 120
-require_max_lines "tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh" 60
-require_max_lines "tests/self_hosted/parity/driver_rung2_defer_graph_negative_owner.sh" 40
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_pipeline_step_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_defer_parity_owner.sh" 60
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_defer_graph_negative_owner.sh" 40
 require_max_lines "src/self_hosted/mir/generic_specialization_owner.pgy" 220
 require_max_lines "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy" 100
 require_max_lines "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" 420
 require_max_lines \
     "src/self_hosted/mir_lower/generic_specialization_identity_epoch_owner.pgy" 140
-require_max_lines "tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh" 120
-require_max_lines "tests/self_hosted/parity/driver_rung2_generic_spawn_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_generic_string_spawn_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_generic_spawn_mixed_parity_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity_owner.sh" 120
-require_max_lines "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh" 120
-require_max_lines "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh" 120
-require_max_lines "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_list_literal_context_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_queue_ops_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_set_ops_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_set_index_value_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_spawn_await_parity_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_generic_spawn_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_generic_string_spawn_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_generic_spawn_mixed_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_generic_default_contract_parity_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_generic_default_contract_parity.sh" 120
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_nested_generic_containers_parity_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_list_ops_parity_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_list_int_loop_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_for_in_list_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_list_push_scalar_value_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_list_shadow_scope_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_list_literal_context_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_queue_ops_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_set_ops_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_set_index_value_parity_owner.sh" 100
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" 220
 require_max_lines "src/self_hosted/codegen/emission/set_call_emit_owner.pgy" 80
 require_max_lines "src/self_hosted/codegen/emission/set_call_type_owner.pgy" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_result_field_parity_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_result_field_parity_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_string_concat_alias_parity_owner.sh" 140
 require_max_lines "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" 100
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy" 100
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" 74
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" 160
 require_max_lines "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy" 80
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy" 420
-require_max_lines "tests/self_hosted/parity/world_tobject_projection_query_owner.sh" 150
-require_max_lines "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" 180
-require_max_lines "tests/self_hosted/parity/tobject_boundary_self_mir_owner.sh" 160
+require_max_lines "tests/self_hosted/parity/domain/world_tobject_projection_query_owner.sh" 150
+require_max_lines "tests/self_hosted/parity/domain/tobject_boundary_execution_owner.sh" 180
+require_max_lines "tests/self_hosted/parity/domain/tobject_boundary_self_mir_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_fallible_tobject_outcome_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/driver_rung2_fieldless_class_parity_owner.sh" 140
+    "tests/self_hosted/parity/driver/driver_rung2_fallible_tobject_outcome_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_fieldless_class_parity_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh" 80
+    "tests/self_hosted/parity/driver/driver_rung2_recursive_call_target_parity_owner.sh" 80
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" 60
-require_max_lines "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh" 100
+    "tests/self_hosted/parity/driver/driver_rung2_wrapper_match_loop_phi_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_try_parity_owner.sh" 60
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_option_struct_value_parity_owner.sh" 100
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy" 160
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" 599
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" 599
 require_max_lines "src/self_hosted/tools/wrapper_policy_probe/main.pgy" 300
-require_max_lines "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" 300
+require_max_lines "tests/self_hosted/parity/frontend/wrapper_policy_probe_parity.sh" 300
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" 300
 require_max_lines "src/self_hosted/tools/collection_policy_probe/main.pgy" 300
-require_max_lines "tests/self_hosted/parity/collection_policy_probe_parity.sh" 300
+require_max_lines "tests/self_hosted/parity/ownership/collection_policy_probe_parity.sh" 300
 require_max_lines "src/self_hosted/semantic/array_type_shape_owner.pgy" 80
 require_max_lines "src/self_hosted/semantic/tuple_type_shape_owner.pgy" 100
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 127
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" 194
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" 180
 require_max_lines "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" 300
-require_max_lines "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" 300
+require_max_lines "tests/self_hosted/parity/ownership/aggregate_field_policy_probe_parity.sh" 300
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
 require_max_lines "src/self_hosted/parser/expression_set_literal_graph_owner.pgy" 100
 require_max_lines "src/self_hosted/parser/expression_set_literal_contract_owner.pgy" 100
 require_max_lines "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" 100
 require_max_lines "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
-require_max_lines "tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh" 60
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_assignment_binding_mode_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_else_if_graph_parity_owner.sh" 40
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_continue_parity_owner.sh" 60
 require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 310
 require_max_lines "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" 360
 require_max_lines \
@@ -800,53 +800,53 @@ require_max_lines "src/self_hosted/compiler/driver_rung2_main.pgy" 30
 require_max_lines "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy" 60
 require_max_lines "src/self_hosted/compiler/driver_rung2_fixture_manifest_main.pgy" 30
 require_max_lines "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" 600
-require_max_lines "tests/self_hosted/parity/self_host_compiler_build.sh" 220
+require_max_lines "tests/self_hosted/parity/driver/self_host_compiler_build.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" 285
+    "tests/self_hosted/parity/driver/self_host_driver_fixed_point_receipt_owner.sh" 285
 require_max_lines \
-    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 125
+    "tests/self_hosted/parity/driver/self_host_driver_fixed_point_receipt_smoke.sh" 125
 require_max_lines \
-    "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh" 340
+    "tests/self_hosted/parity/driver/self_host_fixed_point_profile_receipt_owner.sh" 340
 require_max_lines \
-    "tests/self_hosted/parity/self_host_fixed_point_profile_validation_owner.sh" 70
+    "tests/self_hosted/parity/driver/self_host_fixed_point_profile_validation_owner.sh" 70
 require_max_lines \
-    "tests/self_hosted/parity/self_host_fixed_point_profile_negative_owner.sh" 80
+    "tests/self_hosted/parity/driver/self_host_fixed_point_profile_negative_owner.sh" 80
 require_max_lines \
-    "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh" 100
+    "tests/self_hosted/parity/driver/self_host_fixed_point_profile_receipt_smoke.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" 180
+    "tests/self_hosted/parity/codegen/codegen_bootstrap_seed_receipt_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_smoke.sh" 120
+    "tests/self_hosted/parity/codegen/codegen_bootstrap_seed_receipt_smoke.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/public_logical_operand_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_logical_operand_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_condition_not_bool_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_condition_not_bool_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_not_operand_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_not_operand_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_let_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_let_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh" 220
+    "tests/self_hosted/parity/public_route/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh" 220
+    "tests/self_hosted/parity/ownership/nested_collection_call_arity_semantic_admission_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh" 220
+    "tests/self_hosted/parity/domain/vessel_method_argument_type_admission_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh" 220
+    "tests/self_hosted/parity/ownership/array_index_type_semantic_admission_owner.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
+    "tests/self_hosted/parity/public_route/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
 require_max_lines "src/self_hosted/lib/public_diagnostic_receipt_owner.pgy" 70
 require_max_lines \
     "tests/self_hosted/parity/fixture/fmt_recovery_publication_owner.c" 80
@@ -863,35 +863,35 @@ require_max_lines "src/compiler/compiler_process.c" 620
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 140
 require_max_lines "src/compiler/self_host_machine_manifest_artifact_owner.c" 70
-require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 160
+require_max_lines "tests/self_hosted/parity/public_route/public_mir_json_installed_self_host_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh" 250
+    "tests/self_hosted/parity/public_route/public_mir_diagnostic_installed_self_host_owner.sh" 250
 require_max_lines \
     "tests/self_hosted/parity/fixture/silent_self_host_driver.c" 60
-require_max_lines "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/public_route/public_machine_manifest_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_route/public_tokens_installed_self_host_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh" 520
+    "tests/self_hosted/parity/public_route/public_fmt_installed_self_host_owner.sh" 520
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_fmt_driver.c" 70
-require_max_lines "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh" 180
-require_max_lines "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_route/public_ast_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_route/public_capability_manifest_installed_self_host_owner.sh" 180
+require_max_lines "tests/self_hosted/parity/public_route/public_dir_installed_self_host_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh" 180
+    "tests/self_hosted/parity/public_route/public_source_inspection_opt_profile_owner.sh" 180
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_source_stdout_driver.c" 45
 require_max_lines \
-    "tests/self_hosted/parity/public_mir_opt_profile_owner.sh" 180
+    "tests/self_hosted/parity/public_route/public_mir_opt_profile_owner.sh" 180
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_mir_read_driver.c" 45
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
-require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/public_llvm_ir_opt_profile_owner.sh" 180
-require_max_lines "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" 70
+require_max_lines "tests/self_hosted/parity/public_route/public_llvm_ir_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_route/public_llvm_ir_opt_profile_owner.sh" 180
+require_max_lines "tests/self_hosted/parity/public_route/public_nested_scalar_cfg_llvm_owner.sh" 70
 require_max_lines "src/compiler/self_host_llvm_ir_stdout_owner.c" 80
-require_max_lines "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/public_route/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
 require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
 require_max_lines "src/pgy_driver.c" 343
@@ -899,7 +899,7 @@ require_max_lines "src/compiler/c_runner.c" 380
 require_max_lines "src/compiler/llvm_runner.c" 300
 require_max_lines "src/compiler/pkg.c" 300
 require_max_lines \
-    "tests/self_hosted/parity/package_commands_installed_self_host_owner.sh" 220
+    "tests/self_hosted/parity/frontend/package_commands_installed_self_host_owner.sh" 220
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_package_self_host_driver.c" 90
 require_max_lines "src/compiler/compiler.c" 560
@@ -913,44 +913,44 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/driver_source_llvm_projection_publication_owner.pgy" 90
 require_max_lines \
-    "tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh" 100
+    "tests/self_hosted/parity/mir/canonical_mir_verified_projection_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/canonical_mir_routine_phase_identity_owner.sh" 140
+    "tests/self_hosted/parity/mir/canonical_mir_routine_phase_identity_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/canonical_mir_routine_phase_projection_owner.sh" 15
+    "tests/self_hosted/parity/mir/canonical_mir_routine_phase_projection_owner.sh" 15
 require_max_lines \
-    "tests/self_hosted/parity/generic_specialization_identity_epoch_owner.sh" 100
+    "tests/self_hosted/parity/semantic/generic_specialization_identity_epoch_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" 100
+    "tests/self_hosted/parity/semantic/default_c_emit_installed_self_host_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" 120
+    "tests/self_hosted/parity/semantic/default_c_compile_installed_self_host_owner.sh" 120
 require_max_lines "tests/self_hosted/parity/fixture/counting_self_host_c_driver.c" 40
 require_max_lines \
-    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" 180
+    "tests/self_hosted/parity/semantic/default_llvm_installed_self_host_owner.sh" 180
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_llvm_driver.c" 90
-require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 320
-require_max_lines "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" 180
-require_max_lines "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" 80
-require_max_lines "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_mir_producer_parity_owner.sh" 320
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_match_materialization_delta_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_canonical_declaration_order_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_machine_mir_parity_owner.sh" 180
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_mir_graph_negative_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_call_target_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_enum_argument_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_enum_return_parity_owner.sh" 80
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_class_enum_composition_parity_owner.sh" 140
+    "tests/self_hosted/parity/driver/driver_rung2_class_enum_composition_parity_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_nominal_builtin_collision_parity_owner.sh" 100
+    "tests/self_hosted/parity/driver/driver_rung2_nominal_builtin_collision_parity_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_class_array_composition_parity_owner.sh" 120
+    "tests/self_hosted/parity/driver/driver_rung2_class_array_composition_parity_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_collection_enum_match_loop_parity_owner.sh" 120
+    "tests/self_hosted/parity/driver/driver_rung2_collection_enum_match_loop_parity_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_collection_option_coalesce_loop_parity_owner.sh" 100
+    "tests/self_hosted/parity/driver/driver_rung2_collection_option_coalesce_loop_parity_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_coalesce_bool_loop_parity_owner.sh" 120
+    "tests/self_hosted/parity/driver/driver_rung2_coalesce_bool_loop_parity_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_nested_coalesce_parity_owner.sh" 100
+    "tests/self_hosted/parity/driver/driver_rung2_nested_coalesce_parity_owner.sh" 100
 require_max_lines "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" 600
@@ -970,9 +970,9 @@ require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_llvm_strin
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_collection_builtin_projection.sh" 140
+    "tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_projection.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_collection_builtin_mutations.py" 150
+    "tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_mutations.py" 150
 require_max_lines "src/self_hosted/codegen/emission/assign_emit_owner.pgy" 160
 require_max_lines \
     "src/self_hosted/semantic/ast_expression_call_return_type_diagnostic_owner.pgy" 50
@@ -1009,10 +1009,10 @@ require_max_lines "src/self_hosted/semantic/ast_expression_graph_member_view_own
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 374
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" 500
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" 250
-require_max_lines "tests/self_hosted/parity/expression_surface_closure_probe_parity.sh" 220
+require_max_lines "tests/self_hosted/parity/mir/expression_surface_closure_probe_parity.sh" 220
 require_max_lines "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" 600
-require_max_lines "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_collection_mutation_graph_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_array_literal_graph_parity_owner.sh" 100
 require_max_lines "src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy" 200
 require_max_lines "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" 500
@@ -1064,24 +1064,24 @@ require_max_lines "src/self_hosted/mir/runtime_call_abi_json_projection_owner.pg
 require_max_lines "src/self_hosted/mir/expression_runtime_abi_owner.pgy" 270
 require_max_lines "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" 185
 
-require_max_lines "tests/self_hosted/parity/codegen_reject_parity_leg.sh" 600
-require_max_lines "tests/self_hosted/parity/codegen_role_parity_leg.sh" 600
-require_max_lines "tests/self_hosted/parity/codegen_tool_build_leg.sh" 600
+require_max_lines "tests/self_hosted/parity/codegen/codegen_reject_parity_leg.sh" 600
+require_max_lines "tests/self_hosted/parity/codegen/codegen_role_parity_leg.sh" 600
+require_max_lines "tests/self_hosted/parity/codegen/codegen_tool_build_leg.sh" 600
 require_max_lines "src/self_hosted/tools/assignment_projection_probe/main.pgy" 599
-require_max_lines "tests/self_hosted/parity/assignment_projection_probe_parity.sh" 599
+require_max_lines "tests/self_hosted/parity/ownership/assignment_projection_probe_parity.sh" 599
 require_max_lines "tests/selfhost_bootstrap_policy_corpus_smoke.sh" 200
 require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
-require_max_lines "tests/self_hosted/parity/codegen_bootstrap.sh" 600
+require_max_lines "tests/self_hosted/parity/codegen/codegen_bootstrap.sh" 600
 require_max_lines "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh" 120
 # Re-armed +5 for the oracle compile's --native-pipeline declaration: the
 # oracle is the native reference, and undeclared it delegated to the very
 # driver being bootstrapped. Re-armed to 390 for the oracle/seed/join parts
 # (docs/truth/decisions/2026-11-11_native_oracle_emission_runs_in_its_own_job.md);
 # their receipts live in driver_bootstrap_part_receipt_owner.sh.
-require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 390
-require_max_lines "tests/self_hosted/parity/driver_bootstrap_part_receipt_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" 300
-require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" 111
+require_max_lines "tests/self_hosted/parity/driver/driver_bootstrap.sh" 390
+require_max_lines "tests/self_hosted/parity/driver/driver_bootstrap_part_receipt_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_dual_backend_projection.sh" 300
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_dual_backend_case_verdict_owner.sh" 111
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 335
 require_max_lines \
@@ -1113,7 +1113,7 @@ require_max_lines "src/self_hosted/mir_lower/match_json_fact_owner.pgy" 180
 require_max_lines \
     "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy" 170
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_option_match_projection.sh" 200
+    "tests/self_hosted/parity/one_mir/one_mir_option_match_projection.sh" 200
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy" 220
 require_max_lines \
@@ -1125,7 +1125,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" 320
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_projection.sh" 210
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_projection.sh" 210
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_return_graph_fact_owner.pgy" 120
 require_max_lines \
@@ -1151,9 +1151,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_string_abi_projection_owner.pgy" 140
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_return_projection.sh" 220
+    "tests/self_hosted/parity/one_mir/one_mir_array_return_projection.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_return_mutations.py" 100
+    "tests/self_hosted/parity/one_mir/one_mir_array_return_mutations.py" 100
 require_max_lines "src/self_hosted/mir_lower/json_fact_read.pgy" 454
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy" 180
@@ -1170,15 +1170,15 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_argument_projection.sh" 220
+    "tests/self_hosted/parity/one_mir/one_mir_array_argument_projection.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh" 75
+    "tests/self_hosted/parity/direct_mir/direct_mir_mutation_ownership_contract.sh" 75
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_array_argument_mutation_ownership.pgy" 15
 require_max_lines \
     "tests/self_hosted/fixtures/borrowed_ref_constructor_store_reject.pgy" 25
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_argument_mutations.py" 130
+    "tests/self_hosted/parity/one_mir/one_mir_array_argument_mutations.py" 130
 require_max_lines \
     "src/self_hosted/mir/routine_param_json_projection_owner.pgy" 65
 for collection_program_owner_cap in \
@@ -1206,171 +1206,171 @@ for collection_program_owner_cap in \
         "$collection_program_cap"
 done
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_param_projection.sh" 190
+    "tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh" 190
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_param_mutations.py" 150
+    "tests/self_hosted/parity/one_mir/one_mir_array_param_mutations.py" 150
 while IFS='|' read -r scalar_program_owner scalar_program_cap; do
     scalar_program_cap="${scalar_program_cap%$'\r'}"
     [[ -z "$scalar_program_owner" || "$scalar_program_owner" == \#* ]] && continue
     require_max_lines "$scalar_program_owner" "$scalar_program_cap"
-done < tests/self_hosted/parity/scalar_program_owner_caps.tsv
+done < tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy" 100
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" 170
+    "tests/self_hosted/parity/one_mir/one_mir_bool_logic_projection.sh" 170
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_bool_logic_mutations.py" 160
+    "tests/self_hosted/parity/one_mir/one_mir_bool_logic_mutations.py" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh" 210
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_owner.sh" 210
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_int_try_let_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_try_let_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_int_try_let_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_try_let_mutations.py" 70
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_sub_equals_short_circuit_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_sub_equals_short_circuit_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_sub_equals_short_circuit_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_sub_equals_short_circuit_mutations.py" 50
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_bool_equality_short_circuit_owner.sh" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_bool_equality_short_circuit_owner.sh" 110
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_bool_equality_short_circuit_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_bool_equality_short_circuit_mutations.py" 60
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_multiply_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_multiply_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_multiply_mutations.py" 35
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_multiply_mutations.py" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_divide_owner.sh" 125
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_divide_owner.sh" 125
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_divide_mutations.py" 35
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_divide_mutations.py" 35
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_long_remainder.pgy" 15
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_remainder_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_remainder_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_remainder_mutations.py" 30
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_remainder_mutations.py" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_remainder_artifact_variants.py" 65
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_remainder_artifact_variants.py" 65
 require_max_lines "tests/self_hosted/fixtures/direct_mir_long_addition.pgy" 10
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_addition_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_addition_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_addition_mutations.py" 30
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_addition_mutations.py" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_addition_artifact_variants.py" 55
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_addition_artifact_variants.py" 55
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_long_multiplication.pgy" 10
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_multiplication_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_multiplication_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_multiplication_mutations.py" 30
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_multiplication_mutations.py" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_multiplication_artifact_variants.py" 55
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_multiplication_artifact_variants.py" 55
 require_max_lines "tests/self_hosted/fixtures/direct_mir_long_subtraction.pgy" 10
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_subtraction_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_subtraction_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_subtraction_mutations.py" 30
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_subtraction_mutations.py" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_subtraction_artifact_variants.py" 55
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_subtraction_artifact_variants.py" 55
 require_max_lines "tests/self_hosted/fixtures/direct_mir_int_to_long_cast.pgy" 15
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_to_long_cast_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_to_long_cast_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_to_long_cast_mutations.py" 40
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_to_long_cast_mutations.py" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_to_long_cast_artifact_variants.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_to_long_cast_artifact_variants.py" 60
 require_max_lines "tests/self_hosted/fixtures/direct_mir_long_division.pgy" 10
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_division_owner.sh" 160
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_division_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_division_mutations.py" 30
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_division_mutations.py" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_division_artifact_variants.py" 55
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_division_artifact_variants.py" 55
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_long_phi_value.pgy" 15
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_phi_value_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_phi_value_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_phi_value_mutations.py" 35
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_phi_value_mutations.py" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_phi_value_artifact_variants.py" 45
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_phi_value_artifact_variants.py" 45
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_long_greater.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_greater_owner.sh" 160
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_greater_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_greater_mutations.py" 45
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_greater_mutations.py" 45
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_greater_artifact_variants.py" 75
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_greater_artifact_variants.py" 75
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_failure_owner.pgy" 45
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_program_routine_admission_diagnostic_mutations.py" 40
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_routine_admission_diagnostic_mutations.py" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_int_logical_record_mutations.py" 40
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_int_logical_record_mutations.py" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_string_owner.sh" 200
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_string_owner.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_bool_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_option_bool_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_two_int_nominal_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_option_int_field_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_int_field_owner.sh" 180
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy" 90
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_record_abi_fact_owner.pgy" 180
-require_max_lines "tests/self_hosted/parity/direct_mir_physical_record_return_owner.sh" 100
-require_max_lines "tests/self_hosted/parity/direct_mir_physical_record_return_mutations.py" 160
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_physical_record_return_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_physical_record_return_mutations.py" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_owner.sh" 240
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_owner.sh" 240
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy" 50
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_owner.sh" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_collection_phi_value_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_mutations.py" 55
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_collection_phi_value_mutations.py" 55
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_mutations.py" 70
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_int_value_parameter_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_parameter_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_int_return_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_return_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_literal_return_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_literal_return_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_long_return_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_return_mutations.py" 50
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_array_string_value_result_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_array_string_value_result_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_array_string_value_result_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_array_string_value_result_mutations.py" 50
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_owner.sh" 260
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_value_result_owner.sh" 260
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_mutations.py" 160
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_value_result_mutations.py" 160
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_single_value_result.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_single_value_result_owner.sh" 90
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_single_value_result_owner.sh" 90
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_value_parameter_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_parameter_owner.sh" 130
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_kind_owner.pgy" 60
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_readiness_owner.pgy" 45
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_recursive_logical_record_phi_owner.sh" 160
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_recursive_logical_record_phi_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_collection_fields_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_collection_fields_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_logical_record_collection_index_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_logical_record_collection_index_mutations.py" 80
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh" 200
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" 792
+    "tests/self_hosted/parity/direct_mir/direct_mir_multi_routine_mutations.py" 792
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy" 80
 require_max_lines \
@@ -1384,11 +1384,11 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_option_owner.pgy" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_option_return_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_return_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_logical_record_option_return_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_logical_record_option_return_mutations.py" 60
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_zero_parameter_callable_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_zero_parameter_callable_owner.sh" 180
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_nominal_parameter_projection_owner.pgy" 90
 require_max_lines \
@@ -1398,7 +1398,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_set_string_value_parameter.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_set_string_value_parameter_owner.sh" 220
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_set_string_value_parameter_owner.sh" 220
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_set_string_expression_owner.pgy" 40
 require_max_lines \
@@ -1411,11 +1411,11 @@ for readonly_array_owner in \
     require_max_lines "$readonly_array_owner" 80
 done
 require_max_lines "tests/self_hosted/fixtures/direct_mir_array_int_readonly_ref.pgy" 50
-require_max_lines "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_owner.sh" 110
-require_max_lines "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_mutations.py" 90
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_array_int_readonly_ref_owner.sh" 110
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_array_int_readonly_ref_mutations.py" 90
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" 60
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
-require_max_lines "tests/self_hosted/parity/direct_mir_cfg_identity_digest_reference.py" 60
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_digest_reference.py" 60
 
 require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
 require_max_lines "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" 286
@@ -1423,13 +1423,13 @@ require_max_lines \
     "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" 80
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 60
 for executable_gate in \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_readonly_ref_owner.sh" \
-    "tests/self_hosted/parity/direct_mir_scalar_entrypoint_early_return_owner.sh" \
-    "tests/self_hosted/parity/direct_mir_scalar_namespace_internal_call_owner.sh"; do
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_readonly_ref_owner.sh" \
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_entrypoint_early_return_owner.sh" \
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_namespace_internal_call_owner.sh"; do
     require_max_lines "$executable_gate" 160
 done
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_value_result_void_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_result_void_owner.sh" 180
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 120
 require_max_lines \
@@ -1461,19 +1461,19 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_duplicate_arm_owned_array_string_parameter.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_alternative_owned_array_string_parameter_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh" 160
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_parameter_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh" 120
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_nested_caller_owned_array_string_parameter.pgy" 20
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_nested_caller_owned_array_string_parameter_use_after_move.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_single_value_result_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_single_value_result_mutations.py" 50
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy" 120
 require_max_lines \
@@ -1491,9 +1491,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_result_owner.sh" 190
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_owner.sh" 190
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_result_mutations.py" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_mutations.py" 120
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" 60
 require_max_lines \
@@ -1503,41 +1503,41 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy" 75
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_index_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_index_owner.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_index_mutations.py" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_index_mutations.py" 100
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_mutation_owner.sh" 200
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_mutation_owner.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_mutation_mutations.py" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_mutation_mutations.py" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_value_result_pop_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_value_result_pop_mutations.py" 60
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_bool_push_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_bool_push_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy" 220
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_indexed_assignment_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_indexed_assignment_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_indexed_assignment_mutations.py" 65
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_indexed_assignment_mutations.py" 65
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_array_string_value_result_dynamic_indexed_assignment.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_dynamic_indexed_assignment_owner.sh" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_dynamic_indexed_assignment_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_dynamic_indexed_assignment_mutations.py" 65
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_dynamic_indexed_assignment_mutations.py" 65
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_nested_logical_record_array_string_indexed_assignment.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_string_indexed_assignment_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_nested_logical_record_array_string_indexed_assignment_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_string_indexed_assignment_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_nested_logical_record_array_string_indexed_assignment_mutations.py" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_value_result_logical_record_array_int_indexed_assignment.pgy" 50
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" 262
 require_max_lines \
@@ -1545,13 +1545,13 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh" 93
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh" 93
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py" 58
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py" 58
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_owner.sh" 165
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_owner.sh" 165
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_mutations.py" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_mutations.py" 100
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" 300
 require_max_lines \
@@ -1565,21 +1565,21 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" 220
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh" 175
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_free_enum_parameter_owner.sh" 175
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_free_enum_parameter_mutations.py" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_enum_readonly_ref_owner.sh" 160
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_enum_readonly_ref_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_enum_readonly_ref_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_enum_readonly_ref_mutations.py" 60
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_owner.sh" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_enum_match_binding_owner.sh" 110
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_enum_match_binding_mutations.py" 50
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh" 190
+    "tests/self_hosted/parity/one_mir/one_mir_tagged_enum_payload_projection.sh" 190
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_tagged_enum_payload_mutations.py" 75
+    "tests/self_hosted/parity/one_mir/one_mir_tagged_enum_payload_mutations.py" 75
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" 115
 require_max_lines \
@@ -1587,93 +1587,93 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_formal_literal_owner.sh" 150
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_formal_literal_owner.sh" 150
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_formal_literal_mutations.py" 75
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_formal_literal_mutations.py" 75
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_local_literal_owner.sh" 150
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_local_literal_owner.sh" 150
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_local_literal_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_local_literal_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy" 35
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy" 70
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_nested_expression_literal_owner.sh" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_nested_expression_literal_owner.sh" 110
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_array_string_nested_expression_literal_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_nested_expression_literal_mutations.py" 80
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_array_record_input.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_record_input_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_record_input_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_record_input_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_record_input_mutations.py" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_array_element_input.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_element_input_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_element_input_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_element_input_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_element_input_mutations.py" 60
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_mixed_collection_value_result_policy_owner.pgy" 80
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_mixed_collection_value_result.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_mixed_collection_value_result_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_mixed_collection_value_result_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_mixed_collection_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_mixed_collection_value_result_mutations.py" 70
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_bool_mixed_collection_value_result.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_mixed_collection_value_result_owner.sh" 190
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_mixed_collection_value_result_owner.sh" 190
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_mixed_collection_value_result_mutations.py" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_mixed_collection_value_result_mutations.py" 110
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_int_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_array_int_value_result.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_int_value_result_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_int_value_result_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_inputs_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_inputs_value_result.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_inputs_value_result_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_inputs_value_result_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_inputs_value_result_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_inputs_value_result_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_array_string_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_two_array_string_value_result.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_array_string_value_result_mutations.py" 80
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_int_two_array_string_value_result.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_two_array_string_value_result_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_two_array_string_value_result_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_two_array_string_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_two_array_string_value_result_mutations.py" 70
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_bool_two_array_string_two_array_int_value_result.pgy" 40
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_bool_return_policy_owner.pgy" 20
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_array_bool_return.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh" 130
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_array_bool_return_owner.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_array_bool_return_mutations.py" 80
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_array_bool_return_mutations.py" 80
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy" 40
 require_max_lines \
@@ -1685,9 +1685,9 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_owned_logical_record_return.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_owner.sh" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_logical_record_return_owner.sh" 110
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_logical_record_return_mutations.py" 70
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy" 30
 require_max_lines \
@@ -1699,7 +1699,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_owned_string_parameter_owner.sh" 150
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_string_parameter_owner.sh" 150
 require_max_lines "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" 120
 require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" 207
 require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy" 100
@@ -1716,63 +1716,63 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_string_array_string_value_result.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_owner.sh" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_owner.sh" 110
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_mutations.py" 70
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_two_logical_record_value_result.pgy" 45
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_owner.sh" 110
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_owner.sh" 110
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_mutations.py" 70
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy" 55
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_return_array_string_value_result.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_return_array_string_value_result_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_return_array_string_value_result_mutations.py" 65
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_return_array_string_value_result_mutations.py" 65
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_composable_logical_record_return.pgy" 60
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_composable_logical_record_return_owner.sh" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_composable_logical_record_return_owner.sh" 60
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_composable_logical_record_return_mutations.py" 40
+    "tests/self_hosted/parity/direct_mir/direct_mir_composable_logical_record_return_mutations.py" 40
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_array_string_value_result.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_string_value_result_owner.sh" 90
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_string_value_result_owner.sh" 90
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_string_value_result_mutations.py" 65
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_string_value_result_mutations.py" 65
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_three_string_array_string_value_result.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_owner.sh" 90
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_owner.sh" 90
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_three_string_array_string_value_result_mutations.py" 70
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_four_string_array_string_value_result.pgy" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_owner.sh" 90
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_owner.sh" 90
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_mutations.py" 70
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_mutations.py" 70
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_direct_scalar_string_return.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_direct_scalar_callable_owner.sh" 125
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_direct_scalar_callable_owner.sh" 125
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_string_literal_mutations.py" 35
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_string_literal_mutations.py" 35
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_direct_scalar_mutations.py" 90
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_direct_scalar_mutations.py" 90
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_int_comparison.pgy" 20
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_comparison_owner.sh" 135
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_comparison_owner.sh" 135
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_comparison_mutations.py" 60
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_comparison_mutations.py" 60
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" 45
 require_max_lines \
@@ -1784,9 +1784,9 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_scalar_process_exit.pgy" 30
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_process_exit_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_process_exit_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_void_process_exit_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_process_exit_mutations.py" 50
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
 require_max_lines \
@@ -1800,7 +1800,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_bool_nested_literal_owner.pgy" 50
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_return_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_return_owner.sh" 140
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" 30
 require_max_lines \
@@ -1843,9 +1843,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owner.pgy" 110
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" 150
+    "tests/self_hosted/parity/one_mir/one_mir_struct_argument_projection.sh" 150
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_struct_argument_mutations.py" 190
+    "tests/self_hosted/parity/one_mir/one_mir_struct_argument_mutations.py" 190
 for value_flow_owner_cap in \
     direct_mir_nominal_abi_row_equality_owner.pgy:40 \
     direct_mir_struct_value_flow_program_admission_owner.pgy:95 \
@@ -1862,9 +1862,9 @@ for value_flow_owner_cap in \
     require_max_lines "src/self_hosted/compiler/$value_flow_owner" "$value_flow_cap"
 done
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" 200
+    "tests/self_hosted/parity/one_mir/one_mir_struct_value_flow_projection.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py" 240
+    "tests/self_hosted/parity/one_mir/one_mir_struct_value_flow_mutations.py" 240
 for option_value_flow_owner_cap in \
     direct_mir_two_routine_nominal_classification_owner.pgy:150 \
     direct_mir_two_routine_nominal_program_admission_owner.pgy:90 \
@@ -1888,13 +1888,13 @@ done
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh" 180
+    "tests/self_hosted/parity/one_mir/one_mir_option_struct_value_flow_projection.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_option_struct_value_flow_mutations.py" 260
+    "tests/self_hosted/parity/one_mir/one_mir_option_struct_value_flow_mutations.py" 260
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh" 190
+    "tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_projection.sh" 190
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_mutations.py" 270
+    "tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_mutations.py" 270
 for inferred_scalar_owner_cap in \
     direct_mir_three_routine_shape_owner.pgy:40 \
     direct_mir_three_routine_classification_owner.pgy:110 \
@@ -1915,9 +1915,9 @@ for inferred_scalar_owner_cap in \
         "src/self_hosted/compiler/$inferred_scalar_owner" "$inferred_scalar_cap"
 done
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" 180
+    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_projection.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py" 280
+    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_mutations.py" 280
 for inferred_member_owner_cap in \
     direct_mir_two_routine_shape_owner.pgy:80 \
     direct_mir_two_routine_classification_owner.pgy:120 \
@@ -1941,17 +1941,17 @@ for inferred_member_owner_cap in \
     require_max_lines \
         "src/self_hosted/compiler/$inferred_member_owner" "$inferred_member_cap"
 done
-require_max_lines "tests/self_hosted/parity/generic_member_parameter_identity_cases.py" 80
+require_max_lines "tests/self_hosted/parity/semantic/generic_member_parameter_identity_cases.py" 80
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" 200
+    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_member_projection.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" 360
+    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_member_mutations.py" 360
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh" 200
+    "tests/self_hosted/parity/one_mir/one_mir_passive_nominal_literal_projection.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_mutable_nominal_identity_projection.sh" 200
+    "tests/self_hosted/parity/one_mir/one_mir_mutable_nominal_identity_projection.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_nominal_literal_mutations.py" 260
+    "tests/self_hosted/parity/one_mir/one_mir_nominal_literal_mutations.py" 260
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" 90
 shared_nominal_total=0
@@ -2010,9 +2010,9 @@ for constructed_member_owner in \
         "src/self_hosted/compiler/$constructed_member_owner" 220
 done
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh" 170
+    "tests/self_hosted/parity/one_mir/one_mir_constructed_generic_member_projection.sh" 170
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py" 350
+    "tests/self_hosted/parity/one_mir/one_mir_constructed_generic_member_mutations.py" 350
 for constructed_array_member_owner in \
     direct_mir_constructed_member_specialization_pair_owner.pgy \
     direct_mir_constructed_member_variant_owner.pgy \
@@ -2042,9 +2042,9 @@ done
 require_max_lines \
     "src/self_hosted/mir/routine_tracked_statement_owner.pgy" 220
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_array_member_projection.sh" 180
+    "tests/self_hosted/parity/one_mir/one_mir_constructed_array_member_projection.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_array_member_mutations.py" 300
+    "tests/self_hosted/parity/one_mir/one_mir_constructed_array_member_mutations.py" 300
 for constructed_record_array_member_owner in \
     direct_mir_three_routine_mixed_constructed_member_shape_owner.pgy \
     direct_mir_constructed_record_array_member_program_admission_owner.pgy \
@@ -2072,9 +2072,9 @@ for constructed_record_array_member_owner in \
         "src/self_hosted/compiler/$constructed_record_array_member_owner" 220
 done
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh" 181
+    "tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_projection.sh" 181
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py" 360
+    "tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_mutations.py" 360
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
 require_max_lines \
@@ -2104,7 +2104,7 @@ require_max_lines \
     "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 180
 require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
 require_max_lines "tests/self_hosted/fixtures/direct_mir_cfg_identity_digest.pgy" 30
-require_max_lines "tests/self_hosted/parity/direct_mir_cfg_identity_digest_owner.sh" 90
+require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_digest_owner.sh" 90
 require_max_lines \
     "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" 220
 require_max_lines \
@@ -2122,11 +2122,11 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" 650
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
-require_max_lines "tests/self_hosted/parity/one_mir_cfg_nested_case.sh" 80
-require_max_lines "tests/self_hosted/parity/one_mir_cfg_loop_case.sh" 150
-require_max_lines "tests/self_hosted/parity/one_mir_cfg_range_case.sh" 180
-require_max_lines "tests/self_hosted/parity/one_mir_cfg_break_case.sh" 240
+    "tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh" 300
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_nested_case.sh" 80
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_loop_case.sh" 150
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_range_case.sh" 180
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_break_case.sh" 240
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" 600
 require_max_lines \
@@ -2136,9 +2136,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy" 100
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_compile_time_declaration_literal_projection.sh" 130
+    "tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_projection.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_compile_time_declaration_literal_mutations.py" 110
+    "tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_mutations.py" 110
 literal_log_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
     src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy \
     src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy \
@@ -2160,9 +2160,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy" 50
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_enum_value_match_projection.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_enum_value_match_projection.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_enum_value_match_mutations.py" 160
+    "tests/self_hosted/parity/one_mir/one_mir_enum_value_match_mutations.py" 160
 enum_value_match_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
     src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy \
     src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy \
@@ -2184,9 +2184,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy" 150
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_role_operator_projection.sh" 220
+    "tests/self_hosted/parity/one_mir/one_mir_role_operator_projection.sh" 220
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_role_operator_mutations.py" 220
+    "tests/self_hosted/parity/one_mir/one_mir_role_operator_mutations.py" 220
 role_operator_family_lines=$((
     $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy) +
     $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy) +
@@ -2207,9 +2207,9 @@ for role_override_owner_cap in \
         "src/self_hosted/compiler/$role_override_owner" "$role_override_cap"
 done
 require_max_lines \
-    "tests/self_hosted/parity/role_override_mir_replacement.sh" 380
+    "tests/self_hosted/parity/domain/role_override_mir_replacement.sh" 380
 require_max_lines \
-    "tests/self_hosted/parity/role_override_mir_mutations.py" 100
+    "tests/self_hosted/parity/domain/role_override_mir_mutations.py" 100
 role_override_family_lines=$((
     $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy) +
     $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy) +
@@ -2242,13 +2242,13 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/driver_source_c_request_owner.pgy" 80
 require_max_lines \
-    "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh" 130
+    "tests/self_hosted/parity/driver/driver_source_c_execution_action_gate.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/driver_source_c_stdout_execution_action_gate.sh" 115
+    "tests/self_hosted/parity/driver/driver_source_c_stdout_execution_action_gate.sh" 115
 require_max_lines \
-    "tests/self_hosted/parity/driver_mir_c_stdout_execution_action_gate.sh" 175
+    "tests/self_hosted/parity/driver/driver_mir_c_stdout_execution_action_gate.sh" 175
 require_max_lines \
-    "tests/self_hosted/parity/public_device_slot_machine_manifest_installed_self_host_owner.sh" 140
+    "tests/self_hosted/parity/public_route/public_device_slot_machine_manifest_installed_self_host_owner.sh" 140
 require_max_lines \
     "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" 100
 require_max_lines \
@@ -2579,9 +2579,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" 130
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_value_parameter_rebind_owner.sh" 100
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_parameter_rebind_owner.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_value_parameter_rebind_mutations.py" 25
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_parameter_rebind_mutations.py" 25
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy" 180
 require_max_lines \
@@ -2740,55 +2740,55 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" 60
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_break_exit_projection.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_for_break_exit_projection.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_continue_backedge_projection.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_program_control_transfer_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_control_transfer_owner.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh" 180
+    "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_foreach_array_int_projection.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh" 180
+    "tests/self_hosted/parity/one_mir/one_mir_returned_array_foreach_projection.sh" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh" 100
+    "tests/self_hosted/parity/one_mir/one_mir_mixed_collection_foreach_projection.sh" 100
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_mixed_collection_foreach_mutations.py" 120
+    "tests/self_hosted/parity/one_mir/one_mir_mixed_collection_foreach_mutations.py" 120
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_indexed_string_array_projection.sh" 150
+    "tests/self_hosted/parity/one_mir/one_mir_indexed_string_array_projection.sh" 150
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_indexed_string_array_mutations.py" 180
+    "tests/self_hosted/parity/one_mir/one_mir_indexed_string_array_mutations.py" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_array_mutation_projection.sh" 130
+    "tests/self_hosted/parity/one_mir/one_mir_string_array_mutation_projection.sh" 130
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_array_mutations.py" 180
+    "tests/self_hosted/parity/one_mir/one_mir_string_array_mutations.py" 180
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_array_push_projection.sh" 140
+    "tests/self_hosted/parity/one_mir/one_mir_string_array_push_projection.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_array_push_artifact_contract.sh" 60
+    "tests/self_hosted/parity/one_mir/one_mir_string_array_push_artifact_contract.sh" 60
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_string_array_push_mutations.py" 175
+    "tests/self_hosted/parity/one_mir/one_mir_string_array_push_mutations.py" 175
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_loop_push_projection.sh" 140
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_loop_push_projection.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_loop_push_artifact_contract.sh" 60
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_loop_push_artifact_contract.sh" 60
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_loop_push_mutations.py" 175
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_loop_push_mutations.py" 175
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_sum_projection.sh" 140
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_sum_projection.sh" 140
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_sum_artifact_contract.sh" 60
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_sum_artifact_contract.sh" 60
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_array_int_sum_mutations.py" 160
+    "tests/self_hosted/parity/one_mir/one_mir_array_int_sum_mutations.py" 160
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_iteration_binding_scope_owner.sh" 160
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_nested_iteration_binding_scope_owner.sh" 120
+    "tests/self_hosted/parity/one_mir/one_mir_nested_iteration_binding_scope_owner.sh" 120
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_nested_iteration_continue_scope_owner.sh" 160
+    "tests/self_hosted/parity/one_mir/one_mir_nested_iteration_continue_scope_owner.sh" 160
 require_max_lines "src/self_hosted/mir/local_ref_fact_owner.pgy" 180
 require_max_lines "src/self_hosted/mir/local_ref_validation_owner.pgy" 70
 require_max_lines "src/self_hosted/mir/cfg_view_owner.pgy" 20
@@ -2799,7 +2799,7 @@ require_max_lines \
     "src/self_hosted/mir/routine_source_statement_attachment_owner.pgy" 60
 require_max_lines \
     "src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy" 600
-require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 310
+require_max_lines "tests/self_hosted/parity/driver/driver_rung2_body_parity.sh" 310
 require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/document_store_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/feature_owner.pgy" 600
@@ -2820,8 +2820,8 @@ require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_readonly_v
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" 150
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_readonly_string_temporary_owner.pgy" 140
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_rewrite_owner.pgy" 80
-require_max_lines "tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh" 220
-require_max_lines "tests/self_hosted/parity/region_user_callee_mutations.py" 70
+require_max_lines "tests/self_hosted/parity/ownership/region_user_callee_installed_self_host_owner.sh" 220
+require_max_lines "tests/self_hosted/parity/ownership/region_user_callee_mutations.py" 70
 
 require_max_lines "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" 40
 require_max_lines "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy" 75
@@ -3062,19 +3062,19 @@ require_max_lines "tests/self_hosted/fixtures/collection_storage_producer_probe.
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe.pgy" 180
 require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe_support.pgy" 130
-require_max_lines "tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh" 140
-require_max_lines "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 129
+require_max_lines "tests/self_hosted/parity/ownership/collection_aggregate_entry_requirement_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/ownership/collection_aggregate_release_source_owner.sh" 129
 require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy" 220
 require_max_lines \
-    "tests/self_hosted/parity/collection_ownership_receipt_mutations.py" 100
+    "tests/self_hosted/parity/ownership/collection_ownership_receipt_mutations.py" 100
 
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy" 50
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_void_return_admission_owner.pgy" 50
 
-require_max_lines "tests/self_hosted/parity/one_mir_string_array_emitted_contract.py" 110
-require_max_lines "tests/self_hosted/parity/one_mir_string_array_execution_contract.sh" 50
-require_max_lines "tests/self_hosted/parity/array_mutation_receiver_use_contract.sh" 230
-require_max_lines "tests/self_hosted/parity/array_mutation_receiver_use_mutations.py" 220
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_string_array_emitted_contract.py" 110
+require_max_lines "tests/self_hosted/parity/one_mir/one_mir_string_array_execution_contract.sh" 50
+require_max_lines "tests/self_hosted/parity/ownership/array_mutation_receiver_use_contract.sh" 230
+require_max_lines "tests/self_hosted/parity/ownership/array_mutation_receiver_use_mutations.py" 220
 
 echo "[self-host-component-contract] checkpoint: checking line caps"
 run_line_cap_checks

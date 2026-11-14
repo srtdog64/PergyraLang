@@ -25,7 +25,7 @@ the negative self-test modes.
 
 ## Oracle
 
-`tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh`
+`tests/self_hosted/parity/codegen/backend_abi_layout_contract_checker_parity.sh`
 compiles this tool through the C backend and, when available, the LLVM backend.
 The clean artifact byte-matches `expected/clean.json`; the missing-required,
 missing-input, and forbidden-hit self-tests byte-match their expected JSON files

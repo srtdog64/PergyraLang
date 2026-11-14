@@ -57,7 +57,7 @@ Exact base: `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
 - Integration owner: the primary task at this exact base.
 - Integration gate:
   current consolidated successor
-  `tests/self_hosted/parity/direct_mir_array_named_value_boundary_owner.sh`
+  `tests/self_hosted/parity/direct_mir/direct_mir_array_named_value_boundary_owner.sh`
   supersedes the published String-only filename while retaining its cases.
 
 The focused native/self-host gate, existing ownership controls, current-source

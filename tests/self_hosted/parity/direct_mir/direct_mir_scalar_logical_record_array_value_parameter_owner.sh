@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# Declaration-keyed record-Array by-value parameter, indexed read, and record return parity.
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+pgy_selfhost_select_linked_runtime_compile_profile
+pgy_prepend_windows_runtime_paths
+LABEL="self-host-direct-mir-scalar-logical-record-array-value-parameter"
+DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+CC="${PGY_SELFHOST_CC:-gcc}"
+CLANG="${PGY_SELFHOST_CLANG:-clang}"
+WORK_REL=".tmp/self_hosted/direct_mir_scalar_logical_record_array_value_parameter"
+WORK_DIR="$ROOT_DIR/$WORK_REL"
+SOURCE_REL="tests/self_hosted/fixtures/direct_mir_logical_record_array_value_parameter.pgy"
+MIR_REL="$WORK_REL/program.mir.json"
+MIR="$ROOT_DIR/$MIR_REL"
+MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_mutations.py"
+fail() { echo "[$LABEL] $*" >&2; exit 1; }
+need_f() { grep -Fq "$1" "$2" || fail "$3"; }
+pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
+command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
+mkdir -p "$WORK_DIR"
+rm -f "$WORK_DIR"/*
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
+    2>"$WORK_DIR/producer.err" || {
+        cat "$WORK_DIR/producer.out" "$WORK_DIR/producer.err" >&2
+        fail "MIR production failed"
+    }
+need_f '"name":"IndexedRow"' "$MIR" "producer omitted the record declaration"
+need_f '"type":"Array<IndexedRow>","carriage":"value"' "$MIR" "producer omitted the by-value record-array identity"
+need_f '"abi_type_name":"Array<IndexedRow>","abi_layout_id":0,"abi_layout_required":false' "$MIR" "producer attached a public physical ABI to the compiler-owned array"
+need_f '"kind":"index","text":"rows[0]"' "$MIR" "producer omitted the indexed record-array expression"
+need_f '"expr0":"IndexedRowIndent(rows[0])"' "$MIR" "producer omitted the indexed record-array direct-call argument"
+need_f '"name":"ProjectArena"' "$MIR" "producer omitted the record-returning projection"
+need_f '"return":"IndexedArena"' "$MIR" "producer omitted the declaration-keyed record return"
+need_f '"expr0":"IndexedArena(indents, labels)"' "$MIR" "producer omitted the record constructor"
+need_f '"name":"ProjectionReady"' "$MIR" "producer omitted the Bool-returning record-Array callable"
+need_f '"return":"Bool"' "$MIR" "producer omitted the exact Bool return identity"
+need_f '"expr0":"(ArrayLength(rows) != count)"' "$MIR" "producer omitted the nominal record-Array length expression"
+need_f '"name":"SingleRecordArrayReady"' "$MIR" "producer omitted the one-parameter record-Array callable"
+need_f '"expr0":"(ArrayLength(rows) != 0)"' "$MIR" "producer omitted the one-parameter record-Array body"
+need_f '"name":"RecordArrayText"' "$MIR" "producer omitted the scalar-plus-record-Array String callable"
+need_f '"expr0":"Concat(prefix, rows[0].label)"' "$MIR" "producer omitted the String-returning record-Array body"
+need_f '"name":"RecordArrayAndOwnedLabelsReady"' "$MIR" "producer omitted the mixed record-Array/owned-Array callable"
+need_f '"type":"Array<String>","carriage":"owner-handle"' "$MIR" "producer omitted the owned Array parameter carriage"
+printf 'logical-record-array-value-parameter-ready\n' >"$WORK_DIR/expected.run"
+for backend in c llvm; do
+    artifact_rel="$WORK_REL/program.$backend"
+    artifact="$ROOT_DIR/$artifact_rel"
+    bin="$WORK_DIR/program-$backend.exe"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$MIR_REL" -o "$artifact_rel") >"$WORK_DIR/$backend.project.out" \
+        2>"$WORK_DIR/$backend.project.err" || {
+            cat "$WORK_DIR/$backend.project.out" \
+                "$WORK_DIR/$backend.project.err" >&2
+            fail "$backend projection failed"
+        }
+    [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
+    if [[ "$backend" == c ]]; then
+        grep -Eq 'pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1' "$artifact" ||
+            fail "C signature omitted the by-value record Array"
+        grep -Eq '\(pgy_param_0\)\.data\[[^]]+\]' "$artifact" ||
+            fail "C artifact omitted the record-array indexed load"
+        grep -Fq ').field_0' "$artifact" ||
+            fail "C artifact omitted the indexed record member read"
+        grep -Eq 'static pgy_scalar_logical_record_value_[0-9]+ pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1\)' "$artifact" ||
+            fail "C artifact omitted the record-returning record-Array signature"
+        grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1\)' "$artifact" ||
+            fail "C artifact omitted the Bool-returning record-Array signature"
+        grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0\)' "$artifact" ||
+            fail "C artifact omitted the one-parameter record-Array signature"
+        grep -Eq 'static const char\* pgy_scalar_routine_[0-9]+\(const char\* pgy_param_0, pgy_IndexedRow_array pgy_param_1\)' "$artifact" ||
+            fail "C artifact omitted the String-returning record-Array signature"
+        grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, pgy_as pgy_param_1\)' "$artifact" ||
+            fail "C artifact omitted the mixed record-Array/owned-Array signature"
+        grep -Fq '((long long)(pgy_param_0).len)' "$artifact" ||
+            fail "C artifact omitted the record-Array length projection"
+        grep -Eq 'pgy_scalar_logical_record_value_[0-9]+ pgy_return_[0-9]+ = \(\{ pgy_scalar_logical_record_value_[0-9]+ pgy_record_value_[0-9]+ = \{0\}; pgy_record_value_[0-9]+\.field_0 = \(pgy_local_[0-9]+\); pgy_record_value_[0-9]+\.field_1 = \(pgy_local_[0-9]+\); pgy_record_value_[0-9]+; \}\);' "$artifact" ||
+            fail "C artifact omitted the declaration-keyed record constructor return"
+        grep -Eq 'pgy_ai_push\(&pgy_local_[0-9]+, \(long long\)\(' "$artifact" ||
+            fail "C artifact omitted the local ArrayInt push"
+        grep -Eq 'pgy_as_push\(&pgy_local_[0-9]+, ' "$artifact" ||
+            fail "C artifact omitted the local ArrayString push"
+        command=("$CC" -x c -std=c11 "$artifact")
+        if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
+            command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+        fi
+        command+=(-lm -o "$bin")
+        "${command[@]}" >"$WORK_DIR/c.compile.out" \
+            2>"$WORK_DIR/c.compile.err" || fail "C artifact did not compile"
+    else
+        grep -Eq 'define internal %pgy\.array\.int @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, i64 %pgy\.param\.1\)' "$artifact" ||
+            fail "LLVM signature omitted the by-value record Array"
+        grep -Eq 'extractvalue %pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, 0' "$artifact" ||
+            fail "LLVM artifact omitted record-array data projection"
+        grep -Eq 'getelementptr inbounds %pgy\.scalar\.logical\.record\.value\.[0-9]+, ptr ' "$artifact" ||
+            fail "LLVM artifact omitted the declaration-keyed indexed slot"
+        grep -Eq 'extractvalue %pgy\.scalar\.logical\.record\.value\.[0-9]+ .*?, 0' "$artifact" ||
+            fail "LLVM artifact omitted the indexed record member read"
+        grep -Eq 'define internal %pgy\.scalar\.logical\.record\.value\.[0-9]+ @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, i64 %pgy\.param\.1\)' "$artifact" ||
+            fail "LLVM artifact omitted the record-returning record-Array signature"
+        grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, i64 %pgy\.param\.1\)' "$artifact" ||
+            fail "LLVM artifact omitted the Bool-returning record-Array signature"
+        grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0\)' "$artifact" ||
+            fail "LLVM artifact omitted the one-parameter record-Array signature"
+        grep -Eq 'define internal ptr @pgy\.scalar\.routine\.[0-9]+\(ptr %pgy\.param\.0, %pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.1\)' "$artifact" ||
+            fail "LLVM artifact omitted the String-returning record-Array signature"
+        grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, %pgy\.array\.string %pgy\.param\.1\)' "$artifact" ||
+            fail "LLVM artifact omitted the mixed record-Array/owned-Array signature"
+        grep -Eq 'extractvalue %pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, 1' "$artifact" ||
+            fail "LLVM artifact omitted the record-Array length projection"
+        grep -Eq 'ret %pgy\.scalar\.logical\.record\.value\.[0-9]+ %pgy\.expr\.[0-9]+\.[0-9]+' "$artifact" ||
+            fail "LLVM artifact omitted the declaration-keyed record return"
+        grep -Eq 'call void @pgy_ai_push\(ptr %pgy\.local\.[0-9]+, i64 ' "$artifact" ||
+            fail "LLVM artifact omitted the local ArrayInt push"
+        grep -Eq 'call void @pgy_as_push\(ptr %pgy\.local\.[0-9]+, ptr ' "$artifact" ||
+            fail "LLVM artifact omitted the local ArrayString push"
+        runtime_object="$WORK_DIR/pgy-runtime-lib.o"
+        if [[ ! -f "$runtime_object" ]]; then
+            "$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" \
+                -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+                -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+                -o "$runtime_object" \
+                >"$WORK_DIR/llvm.runtime.compile.out" \
+                2>"$WORK_DIR/llvm.runtime.compile.err" || {
+                    cat "$WORK_DIR/llvm.runtime.compile.err" >&2
+                    fail "LLVM runtime object did not compile"
+                }
+        fi
+        "$CLANG" -x ir "$artifact" -x none "$runtime_object" \
+            -pthread -lm -o "$bin" \
+            >"$WORK_DIR/llvm.compile.out" 2>"$WORK_DIR/llvm.compile.err" ||
+            fail "LLVM artifact did not compile"
+    fi
+    "$bin" | tr -d '\r' >"$WORK_DIR/$backend.run"
+    cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||
+        fail "$backend runtime output drifted"
+done
+for mutation in record-array-value-carriage record-array-missing-element \
+    record-array-length-missing-element \
+    record-array-physical-abi record-array-missing-member \
+    record-return-missing-declaration record-return-field-type \
+    record-array-missing-return-type single-record-array-value-carriage \
+    single-record-array-missing-element \
+    single-record-array-missing-return-type \
+    record-array-text-missing-return-type; do
+    mutated_rel="$WORK_REL/$mutation.mir.json"
+    python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$mutation.$backend"
+        rm -f "$ROOT_DIR/$output_rel"
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+            "$mutated_rel" -o "$output_rel") >"$WORK_DIR/$mutation.$backend.out" \
+            2>"$WORK_DIR/$mutation.$backend.err"; then
+            fail "$backend accepted $mutation"
+        fi
+        [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
+            fail "$backend published an artifact for $mutation"
+    done
+done
+
+echo "[$LABEL] record-array value parameter/index/member/record-return C/LLVM parity + negatives: PASS"

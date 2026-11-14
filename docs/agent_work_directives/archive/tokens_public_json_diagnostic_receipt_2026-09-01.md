@@ -39,7 +39,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   inference, or JSON admission for capability manifest, DIR, raw MIR JSON, or
   machine manifest.
 - Focused gate:
-  `tests/self_hosted/parity/public_tokens_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_tokens_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: valid text/JSON/native requests must have byte-identical
   token stdout; the invalid `~` character must preserve current text behavior
   and publish exact lexer-owned JSON on public stderr only; missing, silent,

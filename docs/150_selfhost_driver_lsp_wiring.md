@@ -52,7 +52,7 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   path/stage/target readiness facts를 먼저 소비한다. `CompileSourceToAst`,
   `CompileAstToC`, `CompileSourceToC`가 AST/C artifact boundary를 각각
   노출하고, `driver_rung0_main.pgy`가 `RunDriverRung0FromArgs`의 runnable
-  boundary를 제공한다. `tests/self_hosted/parity/driver_rung0_parity.sh`가
+  boundary를 제공한다. `tests/self_hosted/parity/driver/driver_rung0_parity.sh`가
   같은 소스에 대해 AST text와 emitted C를 각각 oracle artifact와
   비교하므로 DRV-0은 §4 rung 표에서 landed다.
 - **DRV-1 — CLI 표면**: `Args()`(존재, PGY_CAP_ENV 게이트)로
@@ -98,7 +98,7 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   `SelfHostDiagnostic` 렌더러의 소비자 반대편)을 LSP
   `publishDiagnostics` JSON으로 투영. lib/json_emit 재사용.
   **현재 landed**: `src/self_hosted/lsp/main.pgy`가 runnable boundary를
-  제공하고, `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error
+  제공하고, `tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh`가 clean/error
   source fixture를 C/LLVM-built self-host tool로 실행해 committed JSON
   artifact와 비교한다. C LSP transport와의 세션 parity는 아직 아니다.
   **O-LSP public takeover landed**: 기본
@@ -209,21 +209,21 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 <!-- DRIVER-LSP-RUNG-BEGIN -->
 | track | rung | status | artifact | gate |
 | --- | --- | --- | --- | --- |
-| driver | DRV-0 | landed | src/self_hosted/compiler/driver_rung0_main.pgy | tests/self_hosted/parity/driver_rung0_parity.sh |
-| driver | DRV-1 | landed | src/self_hosted/compiler/driver_rung1_main.pgy | tests/self_hosted/parity/driver_rung1_parity.sh |
-| driver | DRV-2 | landed | src/self_hosted/compiler/driver_rung2_main.pgy | tests/self_hosted/parity/driver_rung2_body_parity.sh |
+| driver | DRV-0 | landed | src/self_hosted/compiler/driver_rung0_main.pgy | tests/self_hosted/parity/driver/driver_rung0_parity.sh |
+| driver | DRV-1 | landed | src/self_hosted/compiler/driver_rung1_main.pgy | tests/self_hosted/parity/driver/driver_rung1_parity.sh |
+| driver | DRV-2 | landed | src/self_hosted/compiler/driver_rung2_main.pgy | tests/self_hosted/parity/driver/driver_rung2_body_parity.sh |
 | driver | DRV-3 | planned | - | - |
-| lsp | LSP-0 | landed | src/self_hosted/lsp/main.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
-| lsp | LSP-1 | landed | src/self_hosted/lsp/squiggle_owner.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
-| lsp | LSP-2a | landed | src/self_hosted/lsp/transport_owner.pgy | tests/self_hosted/parity/lsp_transport_frame_parity.sh |
-| lsp | LSP-2b | landed | src/self_hosted/lsp/transport_owner.pgy | tests/self_hosted/parity/lsp_transport_stream_parity.sh |
-| lsp | LSP-2c | landed | src/self_hosted/lsp/request_owner.pgy | tests/self_hosted/parity/lsp_request_dispatch_parity.sh |
-| lsp | LSP-2d | landed | src/self_hosted/lsp/response_owner.pgy | tests/self_hosted/parity/lsp_response_emission_parity.sh |
-| lsp | LSP-2e | landed | src/self_hosted/lsp/session_owner.pgy | tests/self_hosted/parity/lsp_session_replay_parity.sh |
-| lsp | LSP-2f | landed | src/self_hosted/lsp/document_store_owner.pgy | tests/self_hosted/parity/lsp_document_store_parity.sh |
-| lsp | LSP-2g | landed | src/self_hosted/lsp/feature_owner.pgy | tests/self_hosted/parity/lsp_response_emission_parity.sh |
-| lsp | LSP-2h | landed | src/self_hosted/lsp/session_state_owner.pgy | tests/self_hosted/parity/lsp_session_state_parity.sh |
-| lsp | LSP-2i | landed | src/self_hosted/lsp/hover_content_owner.pgy | tests/self_hosted/parity/lsp_hover_content_parity.sh |
+| lsp | LSP-0 | landed | src/self_hosted/lsp/main.pgy | tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh |
+| lsp | LSP-1 | landed | src/self_hosted/lsp/squiggle_owner.pgy | tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh |
+| lsp | LSP-2a | landed | src/self_hosted/lsp/transport_owner.pgy | tests/self_hosted/parity/lsp/lsp_transport_frame_parity.sh |
+| lsp | LSP-2b | landed | src/self_hosted/lsp/transport_owner.pgy | tests/self_hosted/parity/lsp/lsp_transport_stream_parity.sh |
+| lsp | LSP-2c | landed | src/self_hosted/lsp/request_owner.pgy | tests/self_hosted/parity/lsp/lsp_request_dispatch_parity.sh |
+| lsp | LSP-2d | landed | src/self_hosted/lsp/response_owner.pgy | tests/self_hosted/parity/lsp/lsp_response_emission_parity.sh |
+| lsp | LSP-2e | landed | src/self_hosted/lsp/session_owner.pgy | tests/self_hosted/parity/lsp/lsp_session_replay_parity.sh |
+| lsp | LSP-2f | landed | src/self_hosted/lsp/document_store_owner.pgy | tests/self_hosted/parity/lsp/lsp_document_store_parity.sh |
+| lsp | LSP-2g | landed | src/self_hosted/lsp/feature_owner.pgy | tests/self_hosted/parity/lsp/lsp_response_emission_parity.sh |
+| lsp | LSP-2h | landed | src/self_hosted/lsp/session_state_owner.pgy | tests/self_hosted/parity/lsp/lsp_session_state_parity.sh |
+| lsp | LSP-2i | landed | src/self_hosted/lsp/hover_content_owner.pgy | tests/self_hosted/parity/lsp/lsp_hover_content_parity.sh |
 | lsp | LSP-2 | planned | - | - |
 | lsp | LSP-3 | planned | - | - |
 <!-- DRIVER-LSP-RUNG-END -->

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# Explicit LocalRef identity keeps a range binder distinct from a later local
+# that reuses its name after the loop has closed (docs/206 section 3).
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+LABEL="self-host-one-mir-iteration-binding-scope"
+DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
+CC="${CC:-gcc}"
+CLANG="${PGY_SELFHOST_CLANG:-clang}"
+PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
+WORK_REL=".tmp/self_hosted/one_mir_iteration_binding_scope"
+WORK_DIR="$ROOT_DIR/$WORK_REL"
+SOURCE_REL="src/self_hosted/mir_lower/fixture/iteration_binding_shadow.pgy"
+MIR_REL="$WORK_REL/program.json"
+MIR="$ROOT_DIR/$MIR_REL"
+
+fail() { echo "[$LABEL] $*" >&2; exit 1; }
+DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
+[[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
+command -v "$CC" >/dev/null || fail "C compiler is unavailable"
+command -v "$CLANG" >/dev/null || fail "clang is unavailable"
+[[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
+
+mkdir -p "$WORK_DIR"
+rm -f "$WORK_DIR"/*
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$SOURCE_REL" -o "$MIR_REL") || fail "producer rejected shadow source"
+"$PYTHON_BIN" - "$MIR" "$WORK_DIR" <<'PY'
+import copy, json, pathlib, sys
+doc = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+target = pathlib.Path(sys.argv[2]); routine = doc["routines"][0]
+# The loop binder and the later `let i` are two identities under one name.
+assert [(x["name"], x["type"]) for x in routine["source_locals"]] == [
+    ("i", "Int"), ("i", "Int")]
+ins = [row for block in routine["blocks"] for row in block["instructions"]]
+assert [row["kind"] for row in ins] == [
+    "loop-init", "branch", "stmt", "def", "stmt", "return"]
+assert ins[0]["local_ref"] == ins[1]["local_ref"] == "iteration:6:0"
+assert ins[2]["uses"] == [] and ins[2]["expr0_local_refs"] == [
+    {"node": 0, "ref": "iteration:6:0"}]
+assert ins[3]["result"] == "i.1" and ins[3]["local_ref"] == "declaration:9:0"
+assert ins[4]["uses"] == ["i.1"] and ins[4]["expr0_local_refs"] == []
+assert all(row["kind"] != "phi" for row in ins)
+def write(name, mutate):
+    changed = copy.deepcopy(doc); rows = [row for block in
+        changed["routines"][0]["blocks"] for row in block["instructions"]]
+    mutate(changed["routines"][0], rows)
+    (target / f"{name}.json").write_text(
+        json.dumps(changed, separators=(",", ":")), encoding="utf-8")
+write("missing-def-ref", lambda r, x: x[3].pop("local_ref"))
+write("forged-def-ref", lambda r, x: x[3].__setitem__("local_ref", "iteration:6:0"))
+write("forged-init-ref", lambda r, x: x[0].__setitem__("local_ref", "declaration:9:0"))
+write("missing-body-ref", lambda r, x: x[2].__setitem__("expr0_local_refs", []))
+write("forged-body-ref", lambda r, x: x[2]["expr0_local_refs"][0].__setitem__(
+    "ref", "declaration:9:0"))
+write("body-later-use", lambda r, x: x[2].__setitem__("uses", ["i.1"]))
+write("missing-later-use", lambda r, x: x[4].__setitem__("uses", []))
+write("orphan-later-ref", lambda r, x: x[4].__setitem__("expr0_local_refs", [
+    {"node": 99, "ref": "iteration:6:0"}]))
+write("duplicate-local", lambda r, x: r["source_locals"].append(
+    copy.deepcopy(r["source_locals"][0])))
+PY
+
+project() {
+    local input="$1" target="$2" suffix="$3"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
+        "$WORK_REL/$input.json" -o "$WORK_REL/$input.$suffix") ||
+        fail "$target rejected $input"
+}
+project program c c; project program llvm ll
+# The C/LLVM pins below predate the fixture's move to a closed-loop reuse;
+# direct MIR projection rejects this CFG shape on main, so re-pin them when
+# projection accepts it again.
+[[ "$(sha256sum "$MIR" | awk '{print $1}')" == \
+    34a1d66592ed6e3e8fa3dfc0fb1e8184742fa30fa671b5ec80713a907ac77e7c ]] ||
+    fail "single-range MIR identity drifted"
+[[ "$(sha256sum "$WORK_DIR/program.c" | awk '{print $1}')" == \
+    e2724f4f1b6972be932c30e4545ae89eb749e7f8883b322e2df23eb9c25fdf31 ]] ||
+    fail "single-range C artifact drifted"
+[[ "$(sha256sum "$WORK_DIR/program.ll" | awk '{print $1}')" == \
+    9cedd99d55b94b8473ceb9741b954617d7d349257e527d374a9d708920c0c449 ]] ||
+    fail "single-range LLVM artifact drifted"
+"$CC" -std=c11 -Wall -Wextra -Werror "$WORK_DIR/program.c" \
+    -o "$WORK_DIR/c.exe" || fail "C artifact did not compile"
+"$CLANG" -x ir "$WORK_DIR/program.ll" -o "$WORK_DIR/llvm.exe" \
+    >/dev/null 2>&1 || fail "LLVM artifact did not compile"
+"$WORK_DIR/c.exe" | tr -d '\r' >"$WORK_DIR/c.run"
+"$WORK_DIR/llvm.exe" | tr -d '\r' >"$WORK_DIR/llvm.run"
+printf '0\n1\n2\n40\n' >"$WORK_DIR/expected.run"
+cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/c.run" &&
+    cmp -s "$WORK_DIR/c.run" "$WORK_DIR/llvm.run" ||
+    fail "C/LLVM execution did not preserve lexical binding identity"
+
+for mutation in missing-def-ref forged-def-ref forged-init-ref \
+    missing-body-ref forged-body-ref body-later-use missing-later-use \
+    orphan-later-ref duplicate-local; do
+    case "$mutation" in
+        missing-def-ref)
+            diagnostic='direct MIR scalar CFG LocalRef plan is invalid' ;;
+        duplicate-local)
+            diagnostic='direct MIR scalar CFG local inventory is invalid: source_syntax_id=' ;;
+        *)
+            diagnostic='direct MIR scalar CFG range LocalRef binding is invalid' ;;
+    esac
+    for target in c llvm; do
+        artifact="$WORK_DIR/$mutation-$target.artifact"
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
+            "$WORK_REL/$mutation.json" -o "$WORK_REL/$mutation-$target.artifact") \
+            >"$WORK_DIR/$mutation-$target.out" 2>"$WORK_DIR/$mutation-$target.err"; then
+            fail "$target accepted $mutation"
+        fi
+        [[ ! -e "$artifact" ]] || fail "$target published before rejecting $mutation"
+        grep -Fq "$diagnostic" \
+            "$WORK_DIR/$mutation-$target.out" "$WORK_DIR/$mutation-$target.err" ||
+            fail "$target lost the LocalRef boundary diagnostic for $mutation"
+    done
+done
+
+echo "[$LABEL] one LocalRef plan preserves lexical scope in exact C/LLVM execution"

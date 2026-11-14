@@ -925,7 +925,7 @@ definition/ownership documentation, not an Intent implementation lease.
   runtime rejection used as semantic proof, unchecked union reads, native
   retry, unrelated successor work, or Module Build.
 - Integration gate is
-  `tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh`.
+  `tests/self_hosted/parity/semantic/semantic_tagged_enum_payload_variant_provenance_owner.sh`.
   The fresh Pergyra-built DRV-2 is 6,710,592 bytes with SHA-256
   `FB37EA36D92E9C28B6BB7162F87BA00E733255AD5E46B24A166578713DF75847`.
   It accepts five exact positive flows and rejects 21 counterexamples with the
@@ -1715,7 +1715,7 @@ definition/ownership documentation, not an Intent implementation lease.
   The exact objective and forbidden fallbacks are fixed in
   `docs/agent_work_directives/parser_statement_head_unexpected_token_ast_json_receipt_2026-09-03.md`.
 - The focused integration owner remains
-  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_ast_json_diagnostic_receipt_owner.sh`.
   An `=` spelling branch, second start-token recognizer, C message mapping,
   native retry, and expansion to unrelated parser exits are forbidden.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
@@ -1750,7 +1750,7 @@ definition/ownership documentation, not an Intent implementation lease.
 - The exact objective and excluded `=` family are fixed in
   `docs/agent_work_directives/parser_statement_terminator_ast_json_receipt_2026-09-03.md`.
   The focused integration owner is the existing
-  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_ast_json_diagnostic_receipt_owner.sh`.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%. No status or progress change is claimed before
   installed executable and exact-CI evidence.
@@ -1791,7 +1791,7 @@ definition/ownership documentation, not an Intent implementation lease.
 - Exact objective and falsifier are in
   `docs/agent_work_directives/array_index_type_semantic_admission_2026-09-02.md`.
   The focused gate is
-  `tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh`.
+  `tests/self_hosted/parity/ownership/array_index_type_semantic_admission_owner.sh`.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%. No status or progress changes before published
   executable replacement evidence.

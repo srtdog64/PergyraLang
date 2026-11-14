@@ -28,7 +28,7 @@ This directive coordinates the current recovery, not a new implementation rung.
 ## Verified entrypoint and dependency chain
 
 CI `self-host-codegen-bootstrap-linux` invokes the existing Make target and
-`tests/self_hosted/parity/codegen_bootstrap.sh`. The native compiler builds
+`tests/self_hosted/parity/codegen/codegen_bootstrap.sh`. The native compiler builds
 gen0 from `src/self_hosted/codegen/main.pgy`. Gen0 then analyzes that complete
 import-composed program to emit gen1 C. Parser artifact/header analysis flows
 through the body bundle assembly, collection exclusive-value admission and

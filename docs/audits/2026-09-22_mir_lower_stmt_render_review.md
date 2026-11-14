@@ -62,7 +62,7 @@ routine fact index가 `routine MIR fact index is incomplete: ... [match_binding_
 
 ## 3. 수정 전 기준선에서 이미 실패하던 것
 
-`tests/self_hosted/parity/mir_json_parity.sh`는 이 수정 **전** 트리에서도 실패했다.
+`tests/self_hosted/parity/mir/mir_json_parity.sh`는 이 수정 **전** 트리에서도 실패했다.
 
 ```
 [self-host-parity:mir-json] intent_nested_direct: missing-zone-authority diagnostic drifted

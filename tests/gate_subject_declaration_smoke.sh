@@ -113,9 +113,9 @@ if awk "$native_c_oracle_route_awk" <(printf '%s\n' \
 fi
 
 for oracle_script in \
-    tests/self_hosted/parity/mir_json_parity.sh \
-    tests/self_hosted/parity/mir_json_coverage_probe.sh \
-    tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh; do
+    tests/self_hosted/parity/mir/mir_json_parity.sh \
+    tests/self_hosted/parity/mir/mir_json_coverage_probe.sh \
+    tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh; do
     verify_native_c_oracle_route "$oracle_script"
 done
 

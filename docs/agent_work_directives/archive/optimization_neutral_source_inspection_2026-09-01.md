@@ -33,7 +33,7 @@ Exact base: `f5f85f1ac2773079e98af6aa176ac061f2d76f60`
   bytes, accepting `--verbose` or unrelated option combinations, or treating
   the existing native-only RIR/AIR/HIR modes as part of this rung.
 - Verification gate:
-  `tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_source_inspection_opt_profile_owner.sh`.
   Each dev-profile public request must equal the installed release-profile
   payload and the explicit native dev-profile stdout, invoke the installed
   sibling exactly once, and fail without native timing when that sibling is

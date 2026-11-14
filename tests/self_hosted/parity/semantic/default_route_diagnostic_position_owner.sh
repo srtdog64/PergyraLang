@@ -1,0 +1,498 @@
+#!/usr/bin/env bash
+# A failed compile on the default route (self-hosted front end) names a
+# diagnostic code and the source position it is about, in text and in JSON,
+# for `--backend=c` and `--emit-c`. Before this gate the self-host semantic
+# printed `Span: none` for every code, and most parse refusals printed
+# nothing: the launcher's `self-host driver failed (exit 1)` was all a user
+# saw, and JSON mode had no receipt at all.
+# - Imported-file rows: the refusal lives in lib.pgy, so the span must name
+#   lib.pgy and its line, not the entry file. An import back to main.pgy is a
+#   cycle, refused at lib.pgy's import as native refuses it; the self-hosted
+#   parser used to skip the second visit and compile the pair.
+# - A builtin call refused for arity or argument type names the builtin's
+#   whole registry signature on the default route; native names it for the
+#   TextBuilder family.
+# - Broken-input rows: each must exit non-zero with one positioned diagnostic.
+# - Uncovered rows: programs native compiles whose declaration form the
+#   self-hosted parser does not cover are refused as surface_not_covered at
+#   the form's position.
+# - Binding names follow the registry NAME context on both front ends.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+LABEL="default-route-diagnostic-position"
+PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
+DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+FIXTURES="tests/self_hosted/parity/fixture/diagnostic_position"
+WORK_REL=".tmp/self_hosted/default_route_diagnostic_position"
+WORK_DIR="$ROOT_DIR/$WORK_REL"
+
+fail() { echo "[$LABEL] $*" >&2; exit 1; }
+pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
+pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
+command -v "$PYTHON_BIN" >/dev/null || fail "missing $PYTHON_BIN"
+
+rm -rf "$WORK_DIR"
+mkdir -p "$WORK_DIR"
+
+# refuse LOG SOURCE LEG: run one default-route leg that must fail.
+refuse() {
+    local log="$1" source="$2" leg="$3" flags=()
+    case "$leg" in
+        c-text) flags=(--backend=c -o "$WORK_REL/refused.bin") ;;
+        c-json) flags=(--backend=c --error-format=json -o "$WORK_REL/refused.bin") ;;
+        emit-text) flags=(--emit-c -o "$WORK_REL/refused.c") ;;
+        emit-json) flags=(--emit-c --error-format=json -o "$WORK_REL/refused.c") ;;
+        *) fail "unknown leg $leg" ;;
+    esac
+    rm -f "$WORK_DIR/refused.bin" "$WORK_DIR/refused.c"
+    if (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN="$DRIVER" \
+        "$PGY" "$source" "${flags[@]}") >"$log" 2>&1; then
+        fail "$leg accepted $source"
+    fi
+    [[ ! -e "$WORK_DIR/refused.bin" && ! -e "$WORK_DIR/refused.c" ]] ||
+        fail "$leg published an artifact for $source"
+}
+
+# check_text LOG FILE LINE CODE: one diagnostic block names CODE and a span
+# FILE:LINE:COLUMN with a real column.
+check_text() {
+    local log="$1" file="$2" line="$3" code="$4"
+    tr -d '\r' <"$log" | grep -Fxq "Code: $code" ||
+        { cat "$log" >&2; fail "$log lost code $code"; }
+    # Both lines must sit in one block, which starts at a Diagnostic: line.
+    tr -d '\r' <"$log" | PGY_DIAG_CODE_LINE="Code: $code" \
+        PGY_DIAG_SPAN_RE="^Span: ${file//./\\.}:$line:[1-9][0-9]*$" awk '
+        /^Diagnostic:/ { if (c && s) ok = 1; c = 0; s = 0 }
+        $0 == ENVIRON["PGY_DIAG_CODE_LINE"] { c = 1 }
+        $0 ~ ENVIRON["PGY_DIAG_SPAN_RE"] { s = 1 }
+        END { if (c && s) ok = 1; exit !ok }' ||
+        { cat "$log" >&2; fail "$log does not place $code at $file:$line in one diagnostic"; }
+}
+
+# check_json LOG FILE LINE CODE: one receipt entry has a code and a location
+# naming FILE:LINE with a real column, and carries CODE in its message.
+check_json() {
+    "$PYTHON_BIN" - "$1" "$2" "$3" "$4" <<'PY' || fail "$1 lacks a positioned JSON diagnostic"
+import json
+import sys
+
+log, file, line, code = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4]
+entries = []
+for raw in open(log, encoding="utf-8", errors="replace"):
+    raw = raw.strip()
+    if raw.startswith("["):
+        try:
+            entries.extend(json.loads(raw))
+        except json.JSONDecodeError:
+            pass
+for entry in entries:
+    location = entry.get("location") or {}
+    if (entry.get("code") and location.get("file") == file and
+            location.get("line") == line and location.get("column", 0) >= 1 and
+            f"Code: {code}" in entry.get("message", "")):
+        sys.exit(0)
+sys.stderr.write(open(log, encoding="utf-8", errors="replace").read())
+sys.exit(1)
+PY
+}
+
+# expect_refusal NAME SOURCE FILE LINE CODE [EXTRA_TEXT]
+expect_refusal() {
+    local name="$1" source="$2" file="$3" line="$4" code="$5" extra="${6:-}"
+    local leg log
+    for leg in c-text c-json emit-text emit-json; do
+        log="$WORK_DIR/$name-$leg.log"
+        refuse "$log" "$source" "$leg"
+        case "$leg" in
+            *-text) check_text "$log" "$file" "$line" "$code" ;;
+            *-json) check_json "$log" "$file" "$line" "$code" ;;
+        esac
+        [[ -z "$extra" ]] || grep -Fq -- "$extra" "$log" ||
+            { cat "$log" >&2; fail "$name $leg lost: $extra"; }
+    done
+}
+
+# name|expected line in lib.pgy|code|required text
+IMPORTED_CASES=(
+    "undefined_function|3|undefined_function|- func: Frobnicate"
+    "call_arg_type|6|call_arg_type_mismatch|- func: Twice"
+    "call_arity|7|call_arity_mismatch|- func: Twice"
+    "undefined_symbol|3|undefined_symbol|- name: nope"
+    "builtin_arity_new|3|call_arity_mismatch|signature: TextBuilderNew(Int) -> TextBuilder"
+    "builtin_arity_finish|4|call_arity_mismatch|signature: TextBuilderFinish(TextBuilder, Allocator) -> String"
+    "builtin_arg_type|3|call_arg_type_mismatch|signature: StringLength(String) -> Int"
+    "import_cycle|1|import_cycle|- path:"
+)
+for row in "${IMPORTED_CASES[@]}"; do
+    IFS='|' read -r name line code extra <<<"$row"
+    case_rel="$WORK_REL/imported-$name"
+    mkdir -p "$ROOT_DIR/$case_rel"
+    cp "$ROOT_DIR/$FIXTURES/main.pgy" "$ROOT_DIR/$case_rel/main.pgy"
+    cp "$ROOT_DIR/$FIXTURES/lib_$name.pgy" "$ROOT_DIR/$case_rel/lib.pgy"
+    expect_refusal "imported-$name" "$case_rel/main.pgy" lib.pgy "$line" "$code" "$extra"
+done
+
+# A typed intent called in a step's Bool `intent:` gate reached MIR lowering
+# or C emission and failed there with no position. The self-host semantic now
+# refuses it with a code. Step clauses record no source row, so the span names
+# the enclosing intent (38:1) where native names the call (40:17); a clause
+# row would move it.
+# name|expected line|code
+BROKEN_CASES=(
+    "spawn_local|1|binding_name_reserved"
+    "async_local|2|binding_name_reserved"
+    "stray_brace|1|statement_head_unexpected_token"
+    "stray_token|3|statement_head_unexpected_token"
+    "braced_match_arm|5|statement_head_unexpected_token"
+    "unclosed_body|1|block_unclosed"
+    "unclosed_if|1|block_unclosed"
+    "unclosed_paren|2|expected_token"
+    "unterminated_string|2|string_unterminated"
+    "unclosed_generic|2|type_name_invalid"
+    "missing_return_type|1|type_name_invalid"
+    "missing_let_name|2|declaration_name_missing"
+    "var_destructure|2|binding_form_invalid"
+    "missing_func_name|1|declaration_name_missing"
+    "bad_type_name|2|let_type_mismatch"
+    "inout_field|9|inout_argument_not_variable"
+    "inout_element|8|inout_argument_not_variable"
+    "member_call_arg|9|member_call_arg_type_mismatch"
+    "enum_unclosed|1|block_unclosed"
+    "zone_unclosed|1|block_unclosed"
+    "class_unclosed|1|block_unclosed"
+    "enum_missing_name|1|declaration_name_missing"
+    "struct_field_colon|1|expected_token"
+    "export_statement|1|expected_token"
+    "import_unquoted|1|expected_token"
+    "import_missing|1|import_source_missing"
+    "script_with_main|4|script_statement_with_main"
+    "long_literal|2|long_literal_out_of_range"
+    "expression_statement|3|statement_kind_unsupported"
+    "member_expression_statement|5|statement_kind_unsupported"
+    "match_unclosed|3|block_unclosed"
+    "empty_match_arm|3|match_arm_empty"
+    "string_match_pattern|3|match_string_pattern"
+    "string_match_subject|2|match_pattern_invalid"
+    "intent_missing_name|1|declaration_name_missing"
+    "intent_step_unclosed|2|block_unclosed"
+    "intent_duplicate_guard|4|declaration_clause_duplicate"
+    "intent_step_outcome|4|intent_shape_invalid"
+    "intent_retry_zero|1|declaration_clause_invalid"
+    "intent_clause_typed|38|intent_step_clause_not_bool"
+    "zone_apply_target|10|expected_token"
+    "zone_apply_number|10|expected_token"
+    "zone_link_number|11|expected_token"
+    "zone_refresh_keyword|12|expected_token"
+    "zone_bind_number|12|expected_token"
+    "zone_state_number|11|expected_token"
+    "zone_authority_number|7|expected_token"
+    "zone_slot_type|6|type_name_invalid"
+    "effect_for|5|expected_token"
+    "effect_unclosed|5|block_unclosed"
+    "effect_let_field|6|expected_token"
+    "effect_bare_field|6|expected_token"
+    "effect_refresh_by|11|expected_token"
+    "relation_comma|5|expected_token"
+    "relation_field_type|6|type_name_invalid"
+    "relation_let_field|6|expected_token"
+    "relation_bare_field|6|expected_token"
+    "type_alias_equals|1|expected_token"
+    "event_param_colon|1|expected_token"
+    "role_member|4|expected_token"
+    "ability_member|2|expected_token"
+    "parallel_on|3|expected_token"
+    "role_parallel|6|vision_surface_not_executable"
+    "parallel_join_mode|3|expected_token"
+    "parallel_join_binding|3|expected_token"
+    "give_statement|3|give_outside_parallel_join"
+    "reserved_recovery|3|binding_name_reserved"
+    "field_reserved|2|field_name_reserved"
+    "variant_function_clash|6|enum_variant_function_clash"
+    "zone_authority_requires|9|zone_authority_ability_unsatisfied"
+    "local_shadow|7|local_name_rebound"
+    "local_redeclare|4|local_name_rebound"
+    "loop_binding_shadow|4|local_name_rebound"
+    "match_binding_shadow|8|local_name_rebound"
+    "bind_role_only|7|bind_subject_missing"
+    "bind_subject_type|8|bind_subject_invalid"
+    "bound_party_escape|9|bound_party_escape"
+    "bind_static_slot|8|bind_subject_invalid"
+)
+for row in "${BROKEN_CASES[@]}"; do
+    IFS='|' read -r name line code <<<"$row"
+    expect_refusal "broken-$name" "$FIXTURES/broken_$name.pgy" \
+        "broken_$name.pgy" "$line" "$code"
+done
+
+# Native never compiles `parallel on`: in a statement it expects `{` after
+# `parallel` and refuses at `on`; in a role body it is a declared vision
+# surface. A zone, effect or relation fact names its slots with names, so
+# native refuses a number or a reserved word there, and an effect or relation
+# body takes `shared` fields but no `let x: T`, bare `x: T` or `by`. The
+# self-hosted parser read `42` and `subject` as names and admitted those
+# members; the zone rows then failed in DIR with no code (`apply directive
+# field identity is missing`), the effect rows compiled on default C. The
+# default route refuses each at native's line and column. The self-hosted
+# parser skipped a parallel join header to its brace and read `give VALUE`
+# as a name followed by a stray token; it now refuses where native does.
+# name|line|column|native text
+for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
+    "role_parallel|6|5|declared vision surface" \
+    "parallel_join_mode|3|51|Expected join mode" \
+    "parallel_join_binding|3|15|requires an element binding" \
+    "give_statement|3|9|only legal as the final statement" \
+    "zone_apply_number|10|19|Expected target slot name after 'to'" \
+    "zone_link_number|11|32|Expected right slot name after ','" \
+    "zone_refresh_keyword|12|13|Expected object slot name after 'refresh'" \
+    "zone_bind_number|12|20|Expected source slot name after 'from'" \
+    "zone_state_number|11|35|Expected target slot name after 'on'" \
+    "zone_authority_number|7|15|Expected subject slot name after 'authority'" \
+    "effect_let_field|6|5|in effect body" \
+    "effect_bare_field|6|5|in effect body" \
+    "effect_refresh_by|11|30|in effect body" \
+    "relation_let_field|6|5|in relation body" \
+    "relation_bare_field|6|5|in relation body" \
+    "empty_match_arm|3|9|match arms do not fall through"; do
+    IFS='|' read -r name line column needle <<<"$row"
+    native_log="$WORK_DIR/native-$name.log"
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c --error-format=json -o "$WORK_REL/native-$name.bin") \
+        >"$native_log" 2>&1; then
+        fail "native accepted $name"
+    fi
+    grep -Fq "$needle" "$native_log" &&
+        grep -Fq "\"location\":{\"line\":$line,\"column\":$column}" "$native_log" ||
+        { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
+    tr -d '\r' <"$WORK_DIR/broken-$name-c-text.log" |
+        grep -Fxq "Span: broken_$name.pgy:$line:$column" ||
+        { cat "$WORK_DIR/broken-$name-c-text.log" >&2; fail "default route refuses $name away from $line:$column"; }
+done
+
+# Declaration forms native compiles and the self-hosted parser does not
+# cover yet: the default route names the form at its position instead of a
+# bare `self-host driver failed (exit 1)`. When the form is implemented,
+# its row leaves this list and the case joins the default-route sweep.
+# case|expected line in main.pgy|code|required text
+UNCOVERED_CASES=(
+    "role_include_methods|21|surface_not_covered|- surface: role include"
+    "relation_effect_projection_sync|21|surface_not_covered|- surface: relation method"
+    "intent_decl_overlay|51|surface_not_covered|- surface: repeated intent step on clause"
+    "zone_layer_projection_state_alias|30|surface_not_covered|- surface: zone apply of a state"
+    "select_match_case|5|surface_not_covered|- surface: select statement"
+    "pin_inside_for_loop|5|surface_not_covered|- surface: pin block"
+    "match_guard_or_pattern|5|surface_not_covered|- surface: match guard"
+    "match_guard_enum_payload|17|surface_not_covered|- surface: match guard"
+    "reflect_type_name|14|surface_not_covered|"
+    "type_test|3|surface_not_covered|"
+)
+for row in "${UNCOVERED_CASES[@]}"; do
+    IFS='|' read -r name line code extra <<<"$row"
+    source_rel="tests/cases/backend_compare/$name/main.pgy"
+    (cd "$ROOT_DIR" && "$PGY" "$source_rel" --native-pipeline --backend=c \
+        -o "$WORK_REL/native-$name.bin") >"$WORK_DIR/native-$name.log" 2>&1 ||
+        { cat "$WORK_DIR/native-$name.log" >&2; fail "native no longer compiles $name; its uncovered row is stale"; }
+    expect_refusal "uncovered-$name" "$source_rel" main.pgy "$line" "$code" "$extra"
+done
+
+# Statement forms native compiles and runs that the default route does not
+# lower yet (native_pipeline_only_statement_owner.pgy). Semantic admission
+# refuses the first one at its own position; before, the MIR producer failed
+# with `AST node is outside bounded MIR producer` and no code, and a let in a
+# parallel body was refused as local_binding_invalid with `Span: none`. A form
+# that the default route lowers leaves this list and joins the sweep.
+# name|expected line|required text. A fixture row reads native_only_NAME.pgy;
+# a `case:NAME` row reads tests/cases/backend_compare/NAME/main.pgy.
+NATIVE_ONLY_STATEMENT_CODE="statement_native_pipeline_only"
+NATIVE_ONLY_STATEMENT_CASES=(
+    "parallel_block|3|- surface: parallel block"
+    "parallel_let|3|- surface: parallel block"
+    "nested_parallel|3|- surface: parallel block"
+    "channel_send|3|- surface: channel send"
+    "parallel_join_stmt|3|- surface: parallel block"
+    "case:llvm_dynamic_scope_capture|264|- surface: parallel block"
+    "case:channel_basic|3|- surface: channel send"
+)
+for row in "${NATIVE_ONLY_STATEMENT_CASES[@]}"; do
+    IFS='|' read -r name line extra <<<"$row"
+    source_rel="$FIXTURES/native_only_$name.pgy"
+    file="native_only_$name.pgy"
+    if [[ "$name" == case:* ]]; then
+        name="${name#case:}"
+        source_rel="tests/cases/backend_compare/$name/main.pgy"
+        file=main.pgy
+    fi
+    tag="native-only-$name"
+    (cd "$ROOT_DIR" && "$PGY" "$source_rel" --native-pipeline --backend=c \
+        -o "$WORK_REL/$tag.exe") >"$WORK_DIR/$tag.native.log" 2>&1 ||
+        { cat "$WORK_DIR/$tag.native.log" >&2; fail "native no longer compiles $source_rel; its native-only row is stale"; }
+    expect_refusal "$tag" "$source_rel" "$file" "$line" "$NATIVE_ONLY_STATEMENT_CODE" "$extra"
+    grep -Fq 'outside bounded MIR producer' "$WORK_DIR/$tag-c-text.log" &&
+        fail "$source_rel reached the MIR producer"
+done
+# The refusal is for requests that lower routine bodies. The capability
+# manifest and DIR lower none, so for these programs the default route prints
+# what native prints (public_capability_manifest_installed_self_host_owner.sh
+# holds the manifest rows too).
+for name in parallel_block channel_send; do
+    for mode in --capability-manifest --dir; do
+        tag="inspect-$name${mode#--}"
+        (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN="$DRIVER" \
+            "$PGY" "$mode" "$FIXTURES/native_only_$name.pgy") \
+            >"$WORK_DIR/$tag.default" 2>"$WORK_DIR/$tag.default.err" ||
+            { cat "$WORK_DIR/$tag.default" >&2; fail "the default route refused $mode for native_only_$name.pgy"; }
+        (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$mode" "$FIXTURES/native_only_$name.pgy") \
+            >"$WORK_DIR/$tag.native" 2>"$WORK_DIR/$tag.native.err" ||
+            fail "native refused $mode for native_only_$name.pgy"
+        [[ -s "$WORK_DIR/$tag.native" && "$(tr -d '\r' <"$WORK_DIR/$tag.default")" == "$(tr -d '\r' <"$WORK_DIR/$tag.native")" ]] ||
+            fail "default-route $mode of native_only_$name.pgy differs from native's"
+    done
+done
+
+# Reserved binding names: native refuses the same spellings, and the words
+# the registry admits as names compile on both front ends.
+for name in spawn_local async_local; do
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c -o "$WORK_REL/native-$name.bin") \
+        >"$WORK_DIR/native-$name.log" 2>&1; then
+        fail "native accepted the reserved binding in $name"
+    fi
+done
+# Native names the cause of a reserved binding name and recovers at the next
+# statement: the fixture has two defects (a binding at 3:13 and a use at
+# 4:16) and a valid second function. Native once said only "Expected
+# variable name", and its recovery skipped a statement after every later
+# one and swallowed the braces, so the valid function reported a set literal.
+native_log="$WORK_DIR/native-reserved-recovery.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_reserved_recovery.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-reserved-recovery.bin") >"$native_log" 2>&1; then
+    fail "native accepted reserved_recovery"
+fi
+grep -Fq "'remote' is a reserved language word and cannot name a binding" "$native_log" &&
+    grep -Fq "check-syntax at line 3, column 13" "$native_log" &&
+    grep -Fq "'remote' is a reserved language word, not a value or a name" "$native_log" &&
+    grep -Fq "check-syntax at line 4, column 16" "$native_log" ||
+    { cat "$native_log" >&2; fail "native does not name the reserved word at both defects"; }
+[[ "$(grep -c '^pgy: parse error' "$native_log")" -eq 2 ]] ||
+    { cat "$native_log" >&2; fail "native recovery reported an error past the two defects"; }
+# A reserved word cannot name a struct field either (harness PP-059): native
+# once reported "Unexpected token in expression" and the default route
+# accepted the field.
+native_log="$WORK_DIR/native-field-reserved.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_field_reserved.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-field-reserved.bin") >"$native_log" 2>&1; then
+    fail "native accepted a reserved field name"
+fi
+grep -Fq "'ref' is a reserved language word and cannot name a field" "$native_log" &&
+    grep -Fq "check-syntax at line 2, column 5" "$native_log" ||
+    { cat "$native_log" >&2; fail "native does not name the reserved field"; }
+[[ "$(grep -c '^pgy: parse error' "$native_log")" -eq 1 ]] ||
+    { cat "$native_log" >&2; fail "native reported more than the reserved field"; }
+# A function that reuses an enum variant's name (harness PP-060): native named
+# neither declaration (0:0) and the default route had no code or span.
+native_log="$WORK_DIR/native-variant-function-clash.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_variant_function_clash.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-variant-function-clash.bin") >"$native_log" 2>&1; then
+    fail "native accepted a function that reuses a variant name"
+fi
+grep -Fq "[ERROR] 6:6 - Redeclaration of function 'Quiet': the declaration at line 1, column 6 already owns this name" "$native_log" ||
+    { cat "$native_log" >&2; fail "native does not place the variant/function clash"; }
+# A zone authority's `requires` needs the slot subject's role on both front
+# ends (harness PP-065); the default route used to accept the program.
+native_log="$WORK_DIR/native-zone-authority-requires.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_zone_authority_requires.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-zone-authority-requires.bin") >"$native_log" 2>&1; then
+    fail "native accepted a zone authority whose subject lacks the required role"
+fi
+grep -Fq "Zone authority 'agent' requires ability 'WorkspaceActor', but subject type 'Agent' has no matching role impl" "$native_log" ||
+    { cat "$native_log" >&2; fail "native lost the zone authority ability check"; }
+# One local name rule on both front ends (harness PP-061/062, docs/206
+# section 3): a local may not reuse a name that a parameter or an earlier
+# local in its own or an enclosing scope holds. The default route crashed in
+# a phi join on the inner-scope shape and accepted the same-scope one. For a
+# match binding the default route names the match (line 8), because the
+# self-hosted parser records no position for a case; native names the case.
+for row in "local_shadow|7|13|Local 'tag' reuses the name of the binding at line 2" \
+    "local_redeclare|4|9|Redeclaration of 'started' in the same scope" \
+    "loop_binding_shadow|4|9|Local 'i' reuses the name of the binding at line 3" \
+    "match_binding_shadow|9|19|Local 'v' reuses the name of the binding at line 7"; do
+    IFS='|' read -r name line column needle <<<"$row"
+    native_log="$WORK_DIR/native-$name.log"
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c --error-format=json -o "$WORK_REL/native-$name.bin") \
+        >"$native_log" 2>&1; then
+        fail "native accepted $name"
+    fi
+    grep -Fq "$needle" "$native_log" &&
+        grep -Fq "\"location\":{\"line\":$line,\"column\":$column}" "$native_log" ||
+        { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
+done
+# A party slot borrows a local subject through its role (docs/206 section 1,
+# harness PP-064). A role-only bind left the role's self without a subject:
+# native segfaulted on a field read and LLVM read the party as the subject.
+for row in "bind_role_only|7|32|bind names only the role 'Warrior'" \
+    "bind_subject_type|8|25|bind subject 'n' has type 'Int', but role 'Warrior' is for 'Fighter'" \
+    "bound_party_escape|9|12|Party 'team' has a slot bound to a local subject" \
+    "bind_static_slot|8|5|party slot 'Team.fighter' is not a \`dyn role slot\`"; do
+    IFS='|' read -r name line column needle <<<"$row"
+    native_log="$WORK_DIR/native-$name.log"
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c --error-format=json -o "$WORK_REL/native-$name.bin") \
+        >"$native_log" 2>&1; then
+        fail "native accepted $name"
+    fi
+    grep -Fq "$needle" "$native_log" &&
+        grep -Fq "\"location\":{\"line\":$line,\"column\":$column}" "$native_log" ||
+        { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
+done
+# Sibling scopes and a closed block may reuse the name on both front ends.
+# `let mut` is now the mutable declaration alias. Retain the old parser
+# fixtures as positive controls; mutable destructuring remains refused above.
+for name in let_mut_local let_mut_field; do
+    for leg in native default; do
+        flags=(--backend=c)
+        [[ "$leg" == native ]] && flags+=(--native-pipeline)
+        (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" "$PGY" \
+            "$FIXTURES/broken_$name.pgy" "${flags[@]}" \
+            -o "$WORK_REL/$name-$leg.exe") >"$WORK_DIR/$name-$leg.log" 2>&1 ||
+            { cat "$WORK_DIR/$name-$leg.log" >&2; fail "$leg refused $name alias"; }
+        [[ "$("$WORK_DIR/$name-$leg.exe" | tr -d '\r')" == "x" ]] ||
+            fail "$leg $name alias printed the wrong value"
+    done
+done
+for leg in native default; do
+    flags=(--backend=c)
+    [[ "$leg" == native ]] && flags+=(--native-pipeline)
+    (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" "$PGY" \
+        "$FIXTURES/control_local_name_reuse.pgy" "${flags[@]}" \
+        -o "$WORK_REL/reuse-$leg.exe") >"$WORK_DIR/reuse-$leg.log" 2>&1 ||
+        { cat "$WORK_DIR/reuse-$leg.log" >&2; fail "$leg refused a sibling or closed-block name reuse"; }
+    [[ "$("$WORK_DIR/reuse-$leg.exe" | tr -d '\r')" == "135" ]] ||
+        fail "$leg reuse control printed the wrong value"
+done
+for leg in native default; do
+    flags=(--backend=c)
+    [[ "$leg" == native ]] && flags+=(--native-pipeline)
+    (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" "$PGY" \
+        "$FIXTURES/control_binding_words.pgy" "${flags[@]}" \
+        -o "$WORK_REL/control-$leg.exe") >"$WORK_DIR/control-$leg.log" 2>&1 ||
+        { cat "$WORK_DIR/control-$leg.log" >&2; fail "$leg refused admitted binding words"; }
+    [[ "$("$WORK_DIR/control-$leg.exe" | tr -d '\r')" == "3" ]] ||
+        fail "$leg control printed the wrong value"
+done
+
+# Native TextBuilder arity names the signature the self-host rows name.
+case_rel="$WORK_REL/imported-builtin_arity_new"
+if (cd "$ROOT_DIR" && "$PGY" "$case_rel/main.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-arity.bin") >"$WORK_DIR/native-arity.log" 2>&1; then
+    fail "native accepted TextBuilderNew()"
+fi
+grep -Fq 'Declared signature: TextBuilderNew(Int) -> TextBuilder' \
+    "$WORK_DIR/native-arity.log" ||
+    { cat "$WORK_DIR/native-arity.log" >&2; fail "native TextBuilderNew arity lost its signature"; }
+
+echo "[$LABEL] ${#IMPORTED_CASES[@]} imported-file spans, ${#BROKEN_CASES[@]} broken inputs, ${#UNCOVERED_CASES[@]} uncovered native forms, ${#NATIVE_ONLY_STATEMENT_CASES[@]} native-only statements x 4 default legs, reserved binding names, builtin signatures: PASS"

@@ -117,7 +117,7 @@ owner 계측은 활성 slice가 실제로 도달하는 곳에 한정한다.
 - Budget: static owner checks 60초, focused parity 5분, integration shard 30분.
   전체 matrix는 기존 scheduled/merge boundary에 둔다.
 - Integration owner: 활성 P1의 primary compiler 작업.
-- One integration gate: `tests/self_hosted/parity/direct_mir_owned_string_call_result_owner.sh`에
+- One integration gate: `tests/self_hosted/parity/direct_mir/direct_mir_owned_string_call_result_owner.sh`에
   W0 composition/unused/reordered 반례와 forged-source refusal을 결속시키고
   public/native/direct C/LLVM 결과를 확인한다. 현재 게이트에 추가하거나 실행했다고
   주장하지 않는다.

@@ -1,0 +1,406 @@
+#!/usr/bin/env bash
+# Rung 2 parity for the Pergyra-origin semantic substitution slice.
+# The Pergyra tool emits a bounded deterministic verdict while the C compiler
+# remains the accept/reject oracle for the same fixtures.
+
+set -euo pipefail
+
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v tr >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+bash "$ROOT_DIR/tests/self_hosted/parity/semantic/semantic_fixture_frontier_owner.sh"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
+PGY_EXPLICIT=0
+[[ -n "${PGY_BIN:-}" ]] && PGY_EXPLICIT=1
+
+if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
+        echo "[self-host-parity:semantic] SKIP missing compiler binary: $PGY"
+        exit 0
+    fi
+    echo "[self-host-parity:semantic] missing compiler binary: $PGY" >&2
+    exit 1
+fi
+
+PGY_BIN="$PGY" bash "$ROOT_DIR/tests/self_hosted/parity/semantic/semantic_index_mutation_owner.sh"
+
+PGY_EXPECTS_WINDOWS_PATHS=0
+if pgy_binary_expects_windows_paths "$PGY"; then
+    PGY_EXPECTS_WINDOWS_PATHS=1
+fi
+
+semantic_compiler_path() {
+    local path="$1"
+    if [[ "$PGY_EXPECTS_WINDOWS_PATHS" -eq 1 ]]; then
+        pgy_path_for_windows_tool "$path"
+        return 0
+    fi
+    printf '%s\n' "$path"
+}
+
+PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic}"
+ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_harness_paths.txt"
+SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifest.txt"
+SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_vocabulary.txt"
+SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_surface_audit.txt"
+SEMANTIC_COMPARATOR_BIN=""
+SEMANTIC_OWNER_BIN=""
+PERGYRA_TOOL_SOURCE=""
+PERGYRA_TOOL_ARG=""
+COMPARATOR_SOURCE=""
+FIXTURE_DIR=""
+FIXTURE_DIR_REL=""
+EXPECTED_DIR=""
+DIAGNOSTIC_CODE_OWNER=""
+DIAGNOSTIC_RENDERER_OWNER=""
+SEMANTIC_SOURCE_DIR=""
+
+SOURCE_PAIRS=()
+
+check_semantic_fixture_frontier() {
+    local frontier="$1"
+    if [[ ! "$frontier" =~ ^[1-9][0-9]*$ ]]; then
+        echo "[self-host-parity:semantic] malformed owner fixture frontier: $frontier" >&2
+        return 1
+    fi
+    if [[ "${#SOURCE_PAIRS[@]}" != "$frontier" ]]; then
+        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != owner $frontier" >&2
+        return 1
+    fi
+}
+
+compare_semantic_verdict_with_owner() {
+    local backend="$1"
+    local base="$2"
+    local expected_file="$3"
+    local actual_text="$4"
+    local safe_label="${base//[^A-Za-z0-9_]/_}_${backend}"
+    local expected_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_expected.diag"
+    local actual_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_actual.diag"
+    local cmp_out="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}.compare.out"
+    local cmp_err="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}.compare.err"
+    local expected_rel
+    local actual_rel
+
+    # The goldens carry the installed driver's span; this text-scan checker
+    # has no source positions, so it is compared with the span slot empty.
+    pgy_selfhost_normalize_text_artifact < "$expected_file" |
+        sed -E 's/^Span: .+$/Span: none/' > "$expected_norm"
+    printf '%s' "$actual_text" | pgy_selfhost_normalize_text_artifact > "$actual_norm"
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+
+    if ! (cd "$ROOT_DIR" && "$SEMANTIC_COMPARATOR_BIN" \
+        "$expected_rel" "$actual_rel" 0 2 diagnostics \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[self-host-parity:semantic] backend=$backend $base: diagnostics artifact parity FAIL" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
+
+check_semantic_diagnostic_code_surface() {
+    local owner="$DIAGNOSTIC_CODE_OWNER"
+
+    if [[ ! -f "$owner" ]]; then
+        echo "[self-host-parity:semantic] missing diagnostic code owner: $owner" >&2
+        exit 1
+    fi
+    if [[ ! -s "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE" ]]; then
+        echo "[self-host-parity:semantic] missing diagnostic vocabulary manifest" >&2
+        exit 1
+    fi
+    if [[ ! -s "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE" ]]; then
+        echo "[self-host-parity:semantic] missing diagnostic surface audit artifact" >&2
+        exit 1
+    fi
+    if [[ "$(tr -d '\r\n' < "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE")" != "ok" ]]; then
+        echo "[self-host-parity:semantic] diagnostic surface audit failed" >&2
+        cat "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE" >&2
+        exit 1
+    fi
+
+    echo "[self-host-parity:semantic] diagnostic surface audit ok"
+}
+
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:semantic" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "semantic-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:semantic] TestHarness manifest expected 7 semantic paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"
+FIXTURE_DIR_REL="${harness_paths[2]}"
+EXPECTED_DIR="$ROOT_DIR/${harness_paths[3]}"
+DIAGNOSTIC_CODE_OWNER="$ROOT_DIR/${harness_paths[4]}"
+DIAGNOSTIC_RENDERER_OWNER="$ROOT_DIR/${harness_paths[5]}"
+SEMANTIC_SOURCE_DIR="$ROOT_DIR/${harness_paths[6]}"
+
+for path in "$PERGYRA_TOOL_SOURCE" "$COMPARATOR_SOURCE" "$DIAGNOSTIC_CODE_OWNER" "$DIAGNOSTIC_RENDERER_OWNER"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:semantic] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
+for dir in "$FIXTURE_DIR" "$EXPECTED_DIR" "$SEMANTIC_SOURCE_DIR"; do
+    if [[ ! -d "$dir" ]]; then
+        echo "[self-host-parity:semantic] missing TestHarness directory: $dir" >&2
+        exit 1
+    fi
+done
+
+pgy_selfhost_compile_backend_output_comparator \
+    "self-host-parity:semantic" "$ARTIFACT_COMPARE_BUILD_DIR" "$COMPARATOR_SOURCE"
+SEMANTIC_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
+
+check_c_oracle() {
+    local base="$1"
+    local expected_class="$2"
+    local expected_self_code="$3"
+    local expected_oracle_code="$4"
+    local source="$FIXTURE_DIR/${base}.pgy"
+    local exe="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.exe"
+    local output_file="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.out"
+    local output_rel
+    local match_out="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle-code.out"
+    local match_err="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle-code.err"
+    local rc
+
+    set +e
+    # The oracle leg's subject is the NATIVE semantic verdict; without the
+    # explicit native pipeline the default path delegates to the self-host
+    # driver and the oracle would grade itself.
+    (cd "$ROOT_DIR" && "$PGY" "$(semantic_compiler_path "$source")" \
+        --native-pipeline --backend=c --error-format=json \
+        -o "$(semantic_compiler_path "$exe")" >"$output_file" 2>&1)
+    rc=$?
+    set -e
+
+    if [[ "$expected_class" == "ok" && "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:semantic] C oracle rejected valid fixture: $base" >&2
+        sed -n '1,40p' "$output_file" >&2
+        exit 1
+    fi
+    if [[ "$expected_class" == "error" && "$rc" -eq 0 ]]; then
+        echo "[self-host-parity:semantic] C oracle accepted invalid fixture: $base" >&2
+        exit 1
+    fi
+    if [[ "$expected_class" == "error" ]]; then
+        output_rel="$(pgy_selfhost_path_relative_to_root "$output_file")"
+        if ! (cd "$ROOT_DIR" && "$SEMANTIC_OWNER_BIN" \
+            --oracle-json-code-match "$output_rel" "$expected_oracle_code" \
+            >"$match_out" 2>"$match_err"); then
+            echo "[self-host-parity:semantic] C oracle code drift for $base (expected=$expected_oracle_code self=$expected_self_code)" >&2
+            cat "$match_out" "$match_err" >&2
+            sed -n '1,40p' "$output_file" >&2
+            exit 1
+        fi
+    fi
+}
+
+compile_semantic_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+
+    # Native pipeline for the llvm-built tool: the delegated DirectMirLlvm
+    # projector is a bounded classifier (replacement subject:
+    # self-host-default-llvm-replacement-test-smoke).
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
+    echo "[self-host-parity:semantic] compiling semantic backend=$backend..."
+    if ! (cd "$ROOT_DIR" && "$PGY" \
+        "$PERGYRA_TOOL_ARG" \
+        --backend="$backend" $native_subject \
+        -o "$(semantic_compiler_path "$tool_bin")" >"$tool_bin.compile.out"); then
+        cat "$tool_bin.compile.out" >&2
+        return 1
+    fi
+}
+
+read_semantic_fixture_manifest() {
+    local manifest_bin="$PERGYRA_TOOL_BUILD_DIR/main_manifest.exe"
+    local line
+    local frontier_count
+
+    compile_semantic_backend c "$manifest_bin"
+    SEMANTIC_OWNER_BIN="$manifest_bin"
+    # The Pergyra diagnostic owner owns the declared fixture frontier. Import
+    # support modules are not verdict fixtures; do not recover it by file count.
+    if ! frontier_count="$(cd "$ROOT_DIR" && "$manifest_bin" --fixture-frontier-count)"; then
+        echo "[self-host-parity:semantic] fixture frontier emission failed" >&2
+        exit 1
+    fi
+    frontier_count="${frontier_count%$'\r'}"
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest >"$SEMANTIC_FIXTURE_MANIFEST_FILE"); then
+        echo "[self-host-parity:semantic] fixture manifest emission failed" >&2
+        exit 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --diagnostic-vocabulary >"$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE"); then
+        echo "[self-host-parity:semantic] diagnostic vocabulary manifest emission failed" >&2
+        exit 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --diagnostic-surface-audit >"$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE"); then
+        echo "[self-host-parity:semantic] diagnostic surface audit failed" >&2
+        cat "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE" >&2
+        exit 1
+    fi
+
+    SOURCE_PAIRS=()
+    while IFS= read -r line; do
+        local base
+        local status
+        local self_code
+        local oracle_code
+        local extra
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        IFS=':' read -r base status self_code oracle_code extra <<<"$line"
+        if [[ -z "$base" || -z "$status" || -n "${extra:-}" ]]; then
+            echo "[self-host-parity:semantic] malformed fixture manifest row: $line" >&2
+            exit 1
+        fi
+        case "$status" in
+            ok|error) ;;
+            *)
+                echo "[self-host-parity:semantic] unknown fixture expectation in row: $line" >&2
+                exit 1
+                ;;
+        esac
+        if [[ "$status" == "error" && ( -z "$self_code" || -z "$oracle_code" ) ]]; then
+            echo "[self-host-parity:semantic] invalid fixture row lacks diagnostic mapping: $line" >&2
+            exit 1
+        fi
+        SOURCE_PAIRS+=("$line")
+    done <"$SEMANTIC_FIXTURE_MANIFEST_FILE"
+
+    check_semantic_fixture_frontier "$frontier_count"
+}
+
+run_semantic_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+
+    local enum_contract
+    enum_contract="$(cd "$ROOT_DIR" && "$tool_bin" \
+        --enum-callable-contract 2>/dev/null | tr -d '\r')"
+    if [[ "$enum_contract" != "enum-callable-projection: ok" ]]; then
+        echo "[self-host-parity:semantic] backend=$backend enum callable projection contract failed" >&2
+        printf '%s\n' "$enum_contract" >&2
+        exit 1
+    fi
+
+    for pair in "${SOURCE_PAIRS[@]}"; do
+        local base
+        local expected_class
+        local expected_self_code
+        local expected_oracle_code
+        IFS=':' read -r base expected_class expected_self_code expected_oracle_code <<<"$pair"
+        local source="$FIXTURE_DIR/${base}.pgy"
+        local expected_file="$EXPECTED_DIR/${base}.diag"
+        local pergyra_out
+        local rc
+
+        if [[ ! -f "$source" ]]; then
+            echo "[self-host-parity:semantic] missing source: $source" >&2
+            exit 1
+        fi
+        if [[ ! -f "$expected_file" ]]; then
+            echo "[self-host-parity:semantic] missing expected: $expected_file" >&2
+            exit 1
+        fi
+
+        set +e
+        pergyra_out="$(cd "$ROOT_DIR" && "$tool_bin" \
+            "${FIXTURE_DIR_REL}/${base}.pgy" 2>/dev/null \
+            | tr -d '\r')"
+        rc=$?
+        set -e
+
+        if [[ "$rc" -ne 0 ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: exit-code FAIL ($rc)" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if [[ "$pergyra_out" == SEMANTIC\ * ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: raw semantic text leaked" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if [[ "$pergyra_out" == \{* ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: JSON semantic output leaked" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if ! grep -Fq 'Diagnostic: pgy.selfhost.semantic.v1' <<<"$pergyra_out"; then
+            echo "[self-host-parity:semantic] backend=$backend $base: semantic diagnostic header missing" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if [[ "$expected_class" == "ok" ]]; then
+            if ! grep -Fq 'Status: ok' <<<"$pergyra_out"; then
+                echo "[self-host-parity:semantic] backend=$backend $base: ok status missing" >&2
+                printf '%s\n' "$pergyra_out" >&2
+                exit 1
+            fi
+        else
+            if ! grep -Fq 'Status: error' <<<"$pergyra_out" || ! grep -Fq 'Code: ' <<<"$pergyra_out"; then
+                echo "[self-host-parity:semantic] backend=$backend $base: error diagnostic shape missing" >&2
+                printf '%s\n' "$pergyra_out" >&2
+                exit 1
+            fi
+        fi
+
+        compare_semantic_verdict_with_owner "$backend" "$base" "$expected_file" "$pergyra_out"
+    done
+
+    echo "[self-host-parity:semantic] backend=$backend verdicts ok (${#SOURCE_PAIRS[@]} fixtures)"
+}
+
+read_semantic_fixture_manifest
+check_semantic_diagnostic_code_surface
+
+for pair in "${SOURCE_PAIRS[@]}"; do
+    IFS=':' read -r base expected_class expected_self_code expected_oracle_code <<<"$pair"
+    check_c_oracle "$base" "$expected_class" "$expected_self_code" "$expected_oracle_code"
+done
+
+BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
+for backend in $BACKENDS; do
+    if [[ "$backend" == c ]]; then
+        tool_bin="$SEMANTIC_OWNER_BIN"
+        echo "[self-host-parity:semantic] reusing the C manifest-owner executable for verdicts"
+    else
+        tool_bin="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.exe"
+        compile_semantic_backend "$backend" "$tool_bin"
+    fi
+    run_semantic_backend "$backend" "$tool_bin"
+done
+
+echo "[self-host-parity:semantic] rung-2 parity ok (${#SOURCE_PAIRS[@]} fixtures; backends=$BACKENDS)"

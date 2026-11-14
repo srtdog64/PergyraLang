@@ -113,7 +113,7 @@ behavior (`docs/109_package_module_resolver_contract.md:53-130`).
 - The existing executable gate observes the exact installed-owner request
   counts for C and LLVM, rejects a missing installed sibling without native
   retry, and proves a failed package verification leaves the old lock unchanged
-  (`tests/self_hosted/parity/package_commands_installed_self_host_owner.sh:48-88,90-172`).
+  (`tests/self_hosted/parity/frontend/package_commands_installed_self_host_owner.sh:48-88,90-172`).
   Consequently the compiler-bearing half is already bounded `SUBSTITUTING`;
   moving metadata parsing does not replace another C semantic/codegen path.
 - Current owner documents say the same: package manifest/lock parsing remains
@@ -153,7 +153,7 @@ observable behavior is:
   reaches `pgy_package_manifest_write_lock`
   (`src/compiler/pkg.c:214-216,240-244`). The existing parity negative confirms
   invalid source cannot replace the prior lock
-  (`tests/self_hosted/parity/package_commands_installed_self_host_owner.sh:70-88`).
+  (`tests/self_hosted/parity/frontend/package_commands_installed_self_host_owner.sh:70-88`).
 - Publication writes fixed `pgy.lock` content: generated-file comments,
   `[seashell]` schema and manifest schema, then one `[[package]]` row containing
   name, version, `source = "path:."`, app entry, backend and deterministic

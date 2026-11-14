@@ -132,9 +132,9 @@ new meanings, but they escape the declared spelling owner and its ratchet.
   direct C/LLVM refusal. Add a no-consumer-literal ratchet over production
   field-kind consumers, not just six legacy files.
 - Existing gate foundations: `tests/mir_decl_field_kind_vocabulary_smoke.sh`,
-  `tests/self_hosted/parity/domain_topology_admission_owner.sh`,
-  `tests/self_hosted/parity/driver_rung2_effect_declaration_parity_owner.sh`,
-  `tests/self_hosted/parity/tobject_boundary_execution_owner.sh`.
+  `tests/self_hosted/parity/domain/domain_topology_admission_owner.sh`,
+  `tests/self_hosted/parity/driver/driver_rung2_effect_declaration_parity_owner.sh`,
+  `tests/self_hosted/parity/domain/tobject_boundary_execution_owner.sh`.
 - Effort: index/literal delta is small-to-medium, one shared driver rebuild;
   full preserved-vessel identity is medium-to-large and also reaches the
   native producer. Neither has been implemented or behaviorally verified here.
@@ -233,7 +233,7 @@ shared integration gate. No BRIDGE count reduction is claimed by this report.
   ABI projection; consumer-owned four-field/order reconstruction; positional
   initializers which silently depend on that reconstructed order.
 - Integration gate, owned and executed by root:
-  `tests/self_hosted/parity/array_string_layout_consumer_closure_owner.sh`.
+  `tests/self_hosted/parity/ownership/array_string_layout_consumer_closure_owner.sh`.
   Missing or inconsistent layout facts must refuse before replacing a sentinel
   artifact. This reviewer did not execute that gate or change registry status.
 

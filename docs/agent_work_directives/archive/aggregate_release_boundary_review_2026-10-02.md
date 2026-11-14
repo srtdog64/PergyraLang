@@ -26,7 +26,7 @@ verified task-owned member/resolved-leaf prerequisite; preserve unrelated work.
   weakened MIR terminal guards. Do not open another executable rung.
 - Falsifying controls: actual empty/owned/FromArtifact release must execute;
   borrowed elements, alias, wrong field/root, stale/repeated release must refuse.
-- Integration gate: tests/self_hosted/parity/collection_ownership_semantic_owner.sh,
+- Integration gate: tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh,
   aggregate-field slice first. Existing inout parity is an adjacent regression
   gate, not aggregate closure. No installed-driver or C-substitution claim.
 - Current BLOCKED fact: exclusive aggregate-field storage, String-element

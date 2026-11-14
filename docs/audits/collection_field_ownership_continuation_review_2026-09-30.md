@@ -151,12 +151,12 @@ export PGY_SELFHOST_CODEGEN_BUILD_DIR="$COLLECTION_RUN/codegen"
 export PGY_SELFHOST_COMPILER_BUILD_DIR="$COLLECTION_RUN/driver"
 export PGY_SELFHOST_CC=gcc PGY_SELFHOST_CLANG=clang
 make LLVM_ENABLED=1 BUILD_DIR="$COLLECTION_RUN/obj" BIN_DIR="$COLLECTION_RUN/bin" compiler
-PGY_SELFHOST_CODEGEN_SEED_ONLY=1 bash tests/self_hosted/parity/codegen_bootstrap.sh
+PGY_SELFHOST_CODEGEN_SEED_ONLY=1 bash tests/self_hosted/parity/codegen/codegen_bootstrap.sh
 PGY_SELFHOST_CODEGEN_SEED="$COLLECTION_RUN/codegen/gen2.exe" \
-  bash tests/self_hosted/parity/self_host_compiler_build.sh
-bash tests/self_hosted/parity/collection_ownership_fact_carrier_owner.sh
+  bash tests/self_hosted/parity/driver/self_host_compiler_build.sh
+bash tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh
 # Only after the semantic gate owns a unique directory and the new controls:
-bash tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+bash tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 ```
 
 Preserve per-stage exit codes/stdout/stderr, source graph/seed/driver receipts,
@@ -172,11 +172,11 @@ Private acceptance, installed/public acceptance, fixed point, and CI are distinc
 3504AB775DB78CA434399CE5BCB9000501D92A15805EA68D1FD4B3DD51B9E02E  src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy
 CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy
 F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression_environment_owner.pgy
-1CA4851C7BCC2676A61A50532E39D5A29B7707B61241B357AA5CF43A3A33F1CB  tests/self_hosted/parity/collection_ownership_semantic_owner.sh
-B420561777E94D048CD11B245EC04E7AF8F89E97F4CE49309FB98DFAE8742E03  tests/self_hosted/parity/collection_ownership_fact_carrier_owner.sh
+1CA4851C7BCC2676A61A50532E39D5A29B7707B61241B357AA5CF43A3A33F1CB  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
+B420561777E94D048CD11B245EC04E7AF8F89E97F4CE49309FB98DFAE8742E03  tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh
 006447A010162C2685E081001BA0F96AF5BD45E1105974A6753E6E6C8685B65B  tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy
 523D15232473BA2026E96401EB7E4522532EDF17AA877ABE5C40D3F1D7B85FF8  Makefile
-80D7E3C5415E35D2CFADC4833131D27123CF6C791B6B884279208DB44FD3EC7A  tests/self_hosted/parity/self_host_compiler_build.sh
+80D7E3C5415E35D2CFADC4833131D27123CF6C791B6B884279208DB44FD3EC7A  tests/self_hosted/parity/driver/self_host_compiler_build.sh
 ```
 
 No compiler fix, fresh private-pair green result, installed publication, full

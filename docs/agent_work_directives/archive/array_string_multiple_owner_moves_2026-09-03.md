@@ -29,7 +29,7 @@ or admit general control-flow ownership analysis.
   second independent row exists, duplicate local retirement, later use,
   missing/drifted ABI identity, or widening to conditional and loop flow.
 - Verification gate:
-  `tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh`
+  `tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_parameter_owner.sh`
   executes the single- and two-move forms in C and LLVM, checks exact output and
   terminal drops, and rejects use-after-move plus forged carriage/pass/layout/
   target and duplicate-local paths without artifacts.

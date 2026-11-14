@@ -121,7 +121,7 @@ for required in (
         raise SystemExit(f"missing destructure negative gate term: {required}")
 
 self_host_gate = (
-    root / "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh"
+    root / "tests/self_hosted/parity/driver/driver_rung2_destructure_parity_owner.sh"
 ).read_text(encoding="utf-8")
 for required in (
     "missing semantic destructure type must fail self-host MIR production",

@@ -33,8 +33,8 @@ The 69 existing dirty entries are outside this scope and must be preserved.
   stripping carried facts, guessed collection length/identity, backend-local
   proof, unguarded indexed loads or registry closure by narrowing an existing
   row's obligations.
-- Integration gate: `tests/self_hosted/parity/one_mir_string_array_mutation_projection.sh`
-  and `tests/self_hosted/parity/array_mutation_receiver_use_contract.sh`, with
+- Integration gate: `tests/self_hosted/parity/one_mir/one_mir_string_array_mutation_projection.sh`
+  and `tests/self_hosted/parity/ownership/array_mutation_receiver_use_contract.sh`, with
   route attribution, exact positive outputs and preserved-output refusals;
   adjacent complete ABI and public ArrayDrop gates also passed. Detailed
   evidence: `docs/audits/array_index_receiver_admission_2026-10-01.md`.

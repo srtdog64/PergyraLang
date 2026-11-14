@@ -299,6 +299,6 @@ self-semantic에서 축소 가능(§2 주). SEM-8이 capability만 남으면 ~1.
 
 docs/158(self-bootstrap 전략 — §4 M2 분기 결정) · docs/self_hosted/01(Stage 5
 정의·완전성 게이트) · docs/150(DRV rung — DRV-0 self-parser 삽입) ·
-`tests/self_hosted/parity/codegen_bootstrap.sh`(fixpoint 하니스) ·
+`tests/self_hosted/parity/codegen/codegen_bootstrap.sh`(fixpoint 하니스) ·
 `self_host_pergyra_likeness_smoke.sh`(typed-AST 래칫) · docs/125(SoT — Layer 8
 축소 근거) · PROGRESS.md(치환 원장)

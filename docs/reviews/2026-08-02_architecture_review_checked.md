@@ -27,8 +27,8 @@ claim, or an independent work queue.
   call ABI, backend semantic reconstruction, planner retry after classification,
   or stale binaries reported as current-source evidence.
 - Gates: focused direct-MIR aggregate gates already recorded in the SoT
-  registry, `tests/self_hosted/parity/one_mir_role_operator_projection.sh`, and
-  `tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh` for the
+  registry, `tests/self_hosted/parity/one_mir/one_mir_role_operator_projection.sh`, and
+  `tests/self_hosted/parity/codegen/codegen_role_receiver_admission_owner.sh` for the
   separate current-source self-codegen receiver seam.
 
 ## Superseded findings

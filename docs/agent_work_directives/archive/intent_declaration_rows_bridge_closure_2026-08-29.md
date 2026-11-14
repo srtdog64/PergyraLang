@@ -39,7 +39,7 @@ run `33197495199` completed GREEN, so this bounded executable rung is released.
   AST-child step discovery, source-text header parsing, compensation AST
   rescanning, mixed plan/AST reads, or success after missing/crossed identity.
 - Verification gate: extend
-  `tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh`
+  `tests/self_hosted/parity/intent/intent_guard_post_compensation_execution_owner.sh`
   through installed/public source-C. Require success/failure/ordered reverse
   compensation parity, missing/drifted/crossed fact mutations with no artifact,
   and static rejection of the deleted reconstruction terms.

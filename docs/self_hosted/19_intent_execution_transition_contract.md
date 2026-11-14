@@ -125,7 +125,7 @@ not interchangeable spellings. Nested evaluation cannot carry an action outcome
 binding. Target kind, not absence of Zone placement, chooses nested-call emission.
 
 `tests/concept_semantics/intent_predicates.py` checks source observations and
-Bool admission. `tests/self_hosted/parity/intent_completion_projection.py`
+Bool admission. `tests/self_hosted/parity/intent/intent_completion_projection.py`
 checks both producers through MIR-to-C, including no-artifact refusal of the
 removed entry-statement mirror. The common identity-epoch owner canonicalizes
 method spelling using admitted declaration IDs; source-local names are only
@@ -215,7 +215,7 @@ Source-local and canonical names are cross-checks derived from the same callable
 owner, not alternative lookup authorities. Missing or foreign IDs and crossed
 spellings refuse; canonicalization preserves identity.
 
-`tests/self_hosted/parity/intent_block_role_projection.py` is the focused
+`tests/self_hosted/parity/intent/intent_block_role_projection.py` is the focused
 both-producer MIR-to-C execution/no-artifact-refusal gate. It reuses the existing
 typed compensation gate's independent observations. The identity-prefix fixture
 also checks missing/foreign target IDs, crossed names and already canonical
@@ -304,12 +304,12 @@ success/failure or payload-type rule.
 `src/self_hosted/mir/intent_execution_fact_owner.pgy` implements the in-memory
 fact families, explicit predecessor/cycle validation, terminal coverage,
 tobject payload cross-seals, and mutation digest.  The focused contract gate
-is `tests/self_hosted/parity/intent_execution_fact_contract_owner.sh`.
+is `tests/self_hosted/parity/intent/intent_execution_fact_contract_owner.sh`.
 
 Native and self frontend/DIR now preserve `IntentReturns`, explicit `after`,
 step success/failure payload patterns and labeled terminals.  The focused
 frontend gate is
-`tests/self_hosted/parity/intent_typed_transition_frontend_owner.sh`.
+`tests/self_hosted/parity/intent/intent_typed_transition_frontend_owner.sh`.
 
 Native MIR now preserves the exact intent return signature, materializes one
 validated `MIRIntentExecutionPlan`, and projects it as
@@ -368,7 +368,7 @@ registry row. The row remains `BRIDGE` while its remaining declaration/policy
 consumers and transition semantics are open.
 
 The active executable gate is
-`tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`; protocol
+`tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh`; protocol
 admission and mutation ratchets are rooted at
-`tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh` and
+`tests/self_hosted/parity/intent/intent_execution_plan_json_admission_owner.sh` and
 `tests/self_hosted/parity/intent_execution_protocol_static_owner.py`.

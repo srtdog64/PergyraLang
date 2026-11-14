@@ -37,7 +37,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   runtime-none, verbose, debug-line, final-binary, and explicit native-pipeline
   contracts.
 - Focused gate:
-  `tests/self_hosted/parity/public_llvm_ir_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_llvm_ir_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: valid JSON-selected release/dev requests must retain the
   text-mode LLVM IR bytes; the reached duplicate callable-contract rejection
   must publish the exact parser-owned public JSON receipt on stderr only;

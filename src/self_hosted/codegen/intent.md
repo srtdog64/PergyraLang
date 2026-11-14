@@ -317,7 +317,7 @@ or arbitrary nested/mixed struct layout.
 
 ## Oracle
 
-`tests/self_hosted/parity/codegen_parity.sh` builds this tool through the C and
+`tests/self_hosted/parity/codegen/codegen_parity.sh` builds this tool through the C and
 LLVM backends, builds the self-host parser as the AST producer, gets the active
 fixture rows from the compiled tool's `--fixture-manifest` mode, derives AST
 text with that parser, runs this tool to emit C, compiles the emitted C, and

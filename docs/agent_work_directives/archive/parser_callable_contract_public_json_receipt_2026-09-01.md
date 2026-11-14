@@ -38,7 +38,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   environment, process-global mutable diagnostic mode, or changing explicit
   native-pipeline behavior.
 - Focused gate:
-  `tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_parser_callable_contract_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: stable public code/stage/layer/cause/fix must survive parser
   wording changes; text mode must retain the existing parser envelope; valid
   requests must retain byte behavior; missing/malformed/crosswired children

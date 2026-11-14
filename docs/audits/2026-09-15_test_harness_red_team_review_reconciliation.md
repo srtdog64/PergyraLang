@@ -68,11 +68,11 @@ refusals admits an overstrict implementation.
 driver unless `--native-pipeline` or `PGY_NATIVE_PIPELINE` is set. These legs
 set neither, anywhere in their scripts:
 
-- `tests/self_hosted/parity/mir_json_parity.sh:1019-1021` -- the "C oracle" is
+- `tests/self_hosted/parity/mir/mir_json_parity.sh:1019-1021` -- the "C oracle" is
   `"$PGY" <fixture> --backend=c`. Its pass line (`:1033`) reads
   `frozen native MIR | mir_lower | codegen == C oracle`.
-- `tests/self_hosted/parity/mir_json_coverage_probe.sh:111` -- same shape.
-- `tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh:225-231` -- its
+- `tests/self_hosted/parity/mir/mir_json_coverage_probe.sh:111` -- same shape.
+- `tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh:225-231` -- its
   failure text says "native oracle compile failed" and "native oracle did not
   produce".
 
@@ -102,7 +102,7 @@ were checked by hand and are unreached:
 
 - `tests/arena_ledger_smoke.sh` (the Makefile builds `arena_ledger_smoke.c`, not
   this script);
-- `tests/self_hosted/parity/world_zone_admission_owner.sh`,
+- `tests/self_hosted/parity/domain/world_zone_admission_owner.sh`,
   `hashmap_runtime_owner.sh` and `one_mir_string_trim_projection.sh`, which are
   cited only from documentation, including
   `docs/semantics/sot_owner_spine_registry.md` -- registry evidence that nothing

@@ -42,7 +42,7 @@ claim.
   new arity policy, changing text codes or facts, a second semantic pass,
   invented source location, partial wire output, or another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: `bad_arity_builtin.pgy`, `bad_arity_too_many.pgy`, and
   `bad_arity_too_few.pgy` must retain exact Pergyra facts for `StringLength` or
   `Twice` with expected 1 and actual 0/2/0; installed MIR/C/LLVM requests must
@@ -122,7 +122,7 @@ claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Outputs are implementation candidates until the primary task observes the
   focused and integration gates. They do not change SoT or progress status by

@@ -29,7 +29,7 @@ compiler progress, SoT status, ABI status, or successor rung.
   backend-local tag/field inference, native retry, C round-trip, fixture-name
   routing, or merging same-spelled bindings across distinct CFG scopes.
 - Verification gate:
-  `tests/self_hosted/parity/match_scrutinee_single_evaluation_owner.sh` must run
+  `tests/self_hosted/parity/semantic/match_scrutinee_single_evaluation_owner.sh` must run
   installed C and LLVM with the exact four-line oracle, then reject binding-type
   and Option-tag mutations for both targets without an artifact.
 

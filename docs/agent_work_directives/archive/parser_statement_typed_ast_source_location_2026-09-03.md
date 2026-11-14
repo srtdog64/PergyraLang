@@ -42,7 +42,7 @@ SoT status change, or a progress increment.
   changing parser/channel semantics or AST bytes.
 - Focused gate: execute the current parser tool on
   `src/self_hosted/parser/fixture/channel_ops.pgy`, then run
-  `tests/self_hosted/parity/parser_parity.sh` across its owned 189-source
+  `tests/self_hosted/parity/frontend/parser_parity.sh` across its owned 189-source
   inventory.
 - Falsifying case: the unchanged opening parser tool exits 1 for
   `channel_ops.pgy` with `PARSER GRAPH ERROR: source-location observation rows

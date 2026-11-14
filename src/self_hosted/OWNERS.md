@@ -1181,7 +1181,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   of a borrowed parameter. It also owns the bounded TextBuilder rung that the
   native checker enforces: one immutable top-level TextBuilderNew local,
   finished or dropped once in its declaration scope before any return.
-  `tests/self_hosted/parity/single_owner_handle_owner.sh` checks it against
+  `tests/self_hosted/parity/driver/single_owner_handle_owner.sh` checks it against
   native semantic.
 - `src/self_hosted/semantic/ast_body_flow_verdict_owner.pgy` -- body flow of
   every callable with a declared result, by native's
@@ -1445,7 +1445,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   one refusal for a callee that resolves to nothing on the default route;
   names the native builtins the default route does not run yet
   (builtin_native_pipeline_only) and is held equal to the shrink-only
-  allowlist of `tests/self_hosted/parity/builtin_surface_parity_owner.sh`.
+  allowlist of `tests/self_hosted/parity/frontend/builtin_surface_parity_owner.sh`.
 - `src/self_hosted/semantic/native_pipeline_only_statement_owner.pgy` -- the
   statement forms (parallel block, channel send) the native pipeline runs
   and the default route does not lower; artifact admission refuses the first
@@ -1954,9 +1954,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   semantic joins. Full plan readiness belongs only to machine admission.
   Its focused executable evidence is
   `tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy`;
-  `tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh`
+  `tests/self_hosted/parity/intent/intent_execution_plan_json_admission_owner.sh`
   delegates present/multi/interleaved/mutation evidence to
-  `tests/self_hosted/parity/intent_execution_protocol_mutation_owner.sh`.
+  `tests/self_hosted/parity/intent/intent_execution_protocol_mutation_owner.sh`.
 - `src/self_hosted/dir/domain_graph_fact_owner.pgy` -- bounded DIR census,
   graph-anchor identity, topology-producer orchestration, and exact zone-state
   row carriage.
@@ -5485,7 +5485,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- owned-local generation state across admitted CFG edges; no scope-exit retirement.
 - `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy`
   -- final disposition claims compared to witnessed terminal states, never forced.
-  Validation-only gate: `tests/self_hosted/parity/direct_mir_owned_collection_execution_owner.sh`.
+  Validation-only gate: `tests/self_hosted/parity/direct_mir/direct_mir_owned_collection_execution_owner.sh`.
   Native stage-0 typed MIR input is bounded bootstrap evidence, not installed-driver substitution.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_projection_owner.pgy`
   -- subordinate admitted raw-envelope/family-to-semantic-type projection for the

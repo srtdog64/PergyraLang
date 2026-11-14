@@ -18,7 +18,7 @@ This directive coordinates implementation; it is not semantic authority.
   after initializer analysis and DRV-2 source intent/codegen admission.
 - Forbidden fallback: OWNED inferred from type, field spelling, `inout`, `ok`,
   or a successful bootstrap compile; no aggregate-parameter UNKNOWN exemption.
-- Integration gate: `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`
+- Integration gate: `tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh`
   on a recorded private current-source native/driver pair, with carrier checks.
 - Falsifier: a borrowed Bundle formal field cannot reach deep release; actual
   FromArtifact-produced callable tables must still release and write back empty.

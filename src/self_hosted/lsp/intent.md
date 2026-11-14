@@ -126,18 +126,18 @@ diagnostic events. A missing installed tool must fail with no payload. C-side LS
 transport parity remains blocked on the full `G-LSP-STREAM` session gap
 documented in `docs/150_selfhost_driver_lsp_wiring.md`. LSP-2a single-frame
 transport parity is checked by
-`tests/self_hosted/parity/lsp_transport_frame_parity.sh`; LSP-2b buffered
+`tests/self_hosted/parity/lsp/lsp_transport_frame_parity.sh`; LSP-2b buffered
 stream parity is checked by
-`tests/self_hosted/parity/lsp_transport_stream_parity.sh`; LSP-2c request
+`tests/self_hosted/parity/lsp/lsp_transport_stream_parity.sh`; LSP-2c request
 dispatch parity is checked by
-`tests/self_hosted/parity/lsp_request_dispatch_parity.sh`; LSP-2d response
+`tests/self_hosted/parity/lsp/lsp_request_dispatch_parity.sh`; LSP-2d response
 emission parity is checked by
-`tests/self_hosted/parity/lsp_response_emission_parity.sh`; LSP-2e session
+`tests/self_hosted/parity/lsp/lsp_response_emission_parity.sh`; LSP-2e session
 replay parity is checked by
-`tests/self_hosted/parity/lsp_session_replay_parity.sh`; LSP-2f document-store
-parity is checked by `tests/self_hosted/parity/lsp_document_store_parity.sh`.
+`tests/self_hosted/parity/lsp/lsp_session_replay_parity.sh`; LSP-2f document-store
+parity is checked by `tests/self_hosted/parity/lsp/lsp_document_store_parity.sh`.
 Its Insere-derived latest-only negative is checked by
-`tests/self_hosted/parity/lsp_document_latest_publication_parity.sh`: the real
+`tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh`: the real
 `Main --document-store-probe` route rejects stale version, same-version payload
 conflict, and a superseded diagnostics candidate while admitting the latest
 candidate for each URI on C and LLVM.
@@ -145,6 +145,6 @@ LSP-2g feature-shape parity is checked by the response-emission and
 session-replay parity gates because those are the artifact owners that consume
 `feature_owner.pgy`.
 LSP-2h session-state parity is checked by
-`tests/self_hosted/parity/lsp_session_state_parity.sh`.
+`tests/self_hosted/parity/lsp/lsp_session_state_parity.sh`.
 LSP-2i hover-content parity is checked by
-`tests/self_hosted/parity/lsp_hover_content_parity.sh`.
+`tests/self_hosted/parity/lsp/lsp_hover_content_parity.sh`.

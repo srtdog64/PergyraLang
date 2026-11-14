@@ -45,7 +45,7 @@ zone parameter, return, or embedded carriage is complete.
   implicit compatibility path; automatic lock copying/reinitialization; or a
   user-visible fixed world/zone lifetime.
 - Verification gate:
-  `tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh` must
+  `tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh` must
   keep fresh-zone lifecycle execution exact, make both negative sources fail
   before any C artifact is published with stable semantic diagnostic codes,
   and reject reintroduction of either backend `#error` string. The current

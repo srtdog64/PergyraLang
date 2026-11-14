@@ -1243,7 +1243,7 @@ zone/subject receiver와 `authorized by self` 단일 항목
 non-null만 검증한다. 따라서 positive snapshot은 정확한 정적 slot 선택과 주소
 전달 증거이지 identity/token/ability 권한 승인 증거가 아니다.
 
-`tests/self_hosted/parity/driver_execution_action_abi_parity.sh`는 C/LLVM positive
+`tests/self_hosted/parity/driver/driver_execution_action_abi_parity.sh`는 C/LLVM positive
 snapshot/artifact parity와 missing/wrong zone authority의 **semantic compile
 negative**, named/multiple/indirect world-action authority의 **backend
 fail-close negative**를 고정한다. runtime identity/token mismatch와 generic
@@ -1354,7 +1354,7 @@ receipt/failure payload일 뿐 completion/rollback owner가 아니다.
   모든 이전 step을 역순 보상, compensate AST/source 재스캔, native MIR graft,
   missing carrier 성공, 기존 `Main -> action` 직행 orchestration 병존이다.
 - **Executable gate:**
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`는
+  `tests/self_hosted/parity/intent/intent_typed_outcome_compensation_owner.sh`는
   `intent_typed_outcome_compensation.pgy`를 MIR로 내리고
   `pgy.selfhost.mir-intent-execution-plan.v2`를 admission한 뒤 general self C를
   실행한다. success, first-step failure, predecessor-only compensation과

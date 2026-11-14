@@ -170,7 +170,7 @@ export PATH=/ucrt64/bin:/usr/bin:$PATH
 python3 tests/source_size_count_test.py -v
 timeout 60 bash tests/self_hosted_component_checker_smoke.sh
 PGY_BIN="$PWD/.tmp/owned_result_reachable_20260930/native-bin/pgy.exe" \
-  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/source_size_c_owner_probe.sh
+  PGY_SELFHOST_CC=gcc bash tests/self_hosted/parity/driver/source_size_c_owner_probe.sh
 ```
 
 The private compiler in the observed run has SHA

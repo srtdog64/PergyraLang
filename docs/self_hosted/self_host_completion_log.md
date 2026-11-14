@@ -3162,7 +3162,7 @@ rewrite history.
 
 ## 2026-07-10 - Completeness cache gets clean/cache parity gate
 
-- Added `tests/self_hosted/parity/completeness_incremental_cache_parity.sh`.
+- Added `tests/self_hosted/parity/semantic/completeness_incremental_cache_parity.sh`.
   It runs the focused completeness ledger in clean/no-cache, cache-prime, and
   cache-hit modes, compares the stable `ledger.tsv` plus focused summary
   artifacts, and fails unless the cache-hit run reports an actual cache hit.
@@ -3237,7 +3237,7 @@ rewrite history.
 
 ## 2026-07-10 - Completeness run-group plan gets a bounded runner
 
-- Added `tests/self_hosted/parity/completeness_impact_run_group_runner.sh`.
+- Added `tests/self_hosted/parity/semantic/completeness_impact_run_group_runner.sh`.
   It consumes the planner's `pgy.selfhost.completeness-impact-run-groups.v1`
   TSV projection, validates all groups, and executes a bounded prefix of the
   proof-gate plan without rebuilding path-class impact decisions in shell.
@@ -3289,7 +3289,7 @@ rewrite history.
 - Added a rung0 incremental cache contract to `completeness_ledger_owner.pgy`:
   schema plus required source-set, stage, source, check-target, tool executable,
   and producer executable fingerprints.
-- Repointed `tests/self_hosted/parity/completeness_ledger.sh` so stage-tool
+- Repointed `tests/self_hosted/parity/semantic/completeness_ledger.sh` so stage-tool
   builds and stage checks may reuse artifacts only when the full fingerprint
   key matches.
 - Kept the cache deliberately coarse. Any production self-host source change
@@ -4106,7 +4106,7 @@ rewrite history.
 
 ## 2026-07-06 - Real-source semantic selfcheck consumes completeness owner
 
-- Repointed `tests/self_hosted/parity/selfcheck_sources.sh` away from its
+- Repointed `tests/self_hosted/parity/driver/selfcheck_sources.sh` away from its
   shell-owned `SELF_SOURCES` array. The runner now reads `semantic-parity-paths`
   for the semantic checker source and `self-host-completeness-semantic-targets`
   for the source-to-semantic-target rows from `test_harness_manifest.pgy`.
@@ -4475,7 +4475,7 @@ rewrite history.
 
 ## 2026-07-05 - MIR JSON run-output parity consumes ArtifactZone verdicts
 
-- Repointed `tests/self_hosted/parity/mir_json_parity.sh` so the final
+- Repointed `tests/self_hosted/parity/mir/mir_json_parity.sh` so the final
   `pgy --mir-json | mir_lower | codegen | gcc` run-output comparison against
   the C oracle is a `run_output` artifact comparison through the Pergyra
   `backend_output_comparator` owner.
@@ -4487,7 +4487,7 @@ rewrite history.
 
 ## 2026-07-05 - Semantic verdict parity consumes ArtifactZone verdicts
 
-- Repointed `tests/self_hosted/parity/semantic_parity.sh` so expected
+- Repointed `tests/self_hosted/parity/semantic/semantic_parity.sh` so expected
   diagnostic verdicts and C/LLVM-built semantic checker output compare as
   `diagnostics` artifacts through the Pergyra `backend_output_comparator`
   owner.
@@ -4503,7 +4503,7 @@ rewrite history.
 
 ## 2026-07-05 - Parser AST parity consumes ArtifactZone verdicts
 
-- Repointed `tests/self_hosted/parity/parser_parity.sh` so committed AST fixture
+- Repointed `tests/self_hosted/parity/frontend/parser_parity.sh` so committed AST fixture
   drift checks and self-host parser backend output checks compare `ast_text`
   artifacts through the Pergyra `backend_output_comparator` owner.
 - The parser parity harness now builds the comparator once per run and feeds
@@ -5210,7 +5210,7 @@ rewrite history.
 
 ### 2026-06-30 -- Lexer token parity consumes Artifact/TestHarness owner
 
-- Repointed `tests/self_hosted/parity/lexer_parity.sh` so C-compiled,
+- Repointed `tests/self_hosted/parity/frontend/lexer_parity.sh` so C-compiled,
   LLVM-compiled, and live `pgy --tokens` lexer output comparison is no longer a
   shell string/diff verdict. The harness writes token streams as artifact files
   and invokes the Pergyra `backend_output_comparator` with explicit projection
@@ -5239,7 +5239,7 @@ rewrite history.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` keeps mixed
   `Int + String` rejected as `binop_type_mismatch`, matching the C semantic
   oracle, while the valid String/Bool cases are accepted.
-- `tests/self_hosted/parity/semantic_parity.sh` now covers 107 fixtures on both
+- `tests/self_hosted/parity/semantic/semantic_parity.sh` now covers 107 fixtures on both
   C and LLVM, adding `valid_string_plus`, `valid_string_scalar_plus`, and
   `valid_bool_arith`.
 
@@ -5251,10 +5251,10 @@ rewrite history.
 - `src/self_hosted/semantic/call_check_owner.pgy` rejects `IsSome` and
   `UnwrapOption` when the operand is not `Option<T>` or when the operand is the
   non-concrete `Option<Unknown>` fact produced by unannotated `None`.
-- `tests/self_hosted/parity/semantic_parity.sh` now covers 104 fixtures on
+- `tests/self_hosted/parity/semantic/semantic_parity.sh` now covers 104 fixtures on
   both C and LLVM, including `Some("x")` payload mismatch, `None()` contextual
   success, and non-concrete Option builtin rejection.
-- `tests/self_hosted/parity/selfcheck_sources.sh` accepts 87 real self-host
+- `tests/self_hosted/parity/driver/selfcheck_sources.sh` accepts 87 real self-host
   source files on C and LLVM after the stricter Option contract.
 
 ### 2026-06-27 -- Final self-host reports consume JSON owner
@@ -5562,7 +5562,7 @@ rewrite history.
 
 - Promoted `array_combinators`, `result_int_core`, and `string_utils_core` from
   codegen-only parity into the MIR JSON fact-only parity path.
-- `tests/self_hosted/parity/mir_json_parity.sh` now proves **80 fixtures / 2
+- `tests/self_hosted/parity/mir/mir_json_parity.sh` now proves **80 fixtures / 2
   clean rejects** through `pgy --mir-json | mir_lower | codegen == C oracle`.
 - Updated the self-host progress/status/scorecard docs and the component
   contract ratchet so the new MIR-lower frontier cannot drift back to the old
@@ -5657,7 +5657,7 @@ rewrite history.
 - Removed the legacy `fixture/source.txt` source override from
   `src/self_hosted/parser/main.pgy`; no-arg runs still default to
   `examples/hello.pgy`, while parity/scale runs use `Args()[0]`.
-- Rewrote `tests/self_hosted/parity/parser_scale_probe.sh` to invoke the parser
+- Rewrote `tests/self_hosted/parity/frontend/parser_scale_probe.sh` to invoke the parser
   through the same argv path as the hard parity gate and to compare AST outputs
   through files with `cmp -s`, avoiding shell string interpretation as a hidden
   comparison path.
@@ -5668,7 +5668,7 @@ rewrite history.
   `Case: Some()` because the generated parser depended on branch-local
   `String` reassignment. Moved that responsibility behind
   `ParseIfLetPayload`, which returns the payload fact directly.
-- Verified `tests/self_hosted/parity/parser_scale_probe.sh --failing` with
+- Verified `tests/self_hosted/parity/frontend/parser_scale_probe.sh --failing` with
   **120/121 byte-equal**, 0 drift, 0 self-host failures, 1 C skip
   (`secure_slots`), and `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c
   BIN_DIR=.tmp/pgy-bin-c self-host-parser-parity-test-smoke` green at
@@ -5676,7 +5676,7 @@ rewrite history.
 
 ### 2026-06-23 -- Lexer measured corpus closed and escape fixture gated
 
-- Moved `tests/self_hosted/parity/lexer_scale_probe.sh` from the legacy
+- Moved `tests/self_hosted/parity/frontend/lexer_scale_probe.sh` from the legacy
   `fixture/source.txt` override to the real `Args()[0]` invocation boundary and
   widened the measured corpus from examples-only to examples +
   `tests/cases/backend_compare/**/main.pgy`.
@@ -5686,7 +5686,7 @@ rewrite history.
 - Promoted `tests/cases/backend_compare/string_escape_sequences/main.pgy` into
   the hard lexer parity gate, moving the committed lexer fixture set from 6 to
   **7 fixtures**.
-- Verified `tests/self_hosted/parity/lexer_scale_probe.sh --failing` with
+- Verified `tests/self_hosted/parity/frontend/lexer_scale_probe.sh --failing` with
   **993/993 byte-equal**, 0 drift, 0 self-host failures, 0 C skips, and
   `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c BIN_DIR=.tmp/pgy-bin-c
   self-host-lexer-parity-test-smoke` green.
@@ -5718,7 +5718,7 @@ rewrite history.
 - Added `ability_decl.pgy` to the MIR JSON manifest. Role declarations remain a
   clean reject until role impl/body semantics have their own owner facts.
   Verified `PGY_BIN=/tmp/pgy-PergyraLang-bin/pgy
-  tests/self_hosted/parity/mir_json_parity.sh`: **77 positive fixtures plus 2
+  tests/self_hosted/parity/mir/mir_json_parity.sh`: **77 positive fixtures plus 2
   clean rejects** pass through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
 
@@ -6072,7 +6072,7 @@ rewrite history.
 
 ### 2026-06-23 -- MIR JSON hard rung widened to 54 and coverage probe made fail-closed
 
-- Made `tests/self_hosted/parity/mir_json_coverage_probe.sh` fail closed: it now
+- Made `tests/self_hosted/parity/mir/mir_json_coverage_probe.sh` fail closed: it now
   runs with `set -euo pipefail`, removes stale generated gen0
   `mir_lower.exe` / `codegen.exe` before rebuilding, and asserts both tools are
   executable before classifying coverage. This closes the measurement false
@@ -6148,7 +6148,7 @@ rewrite history.
   codegen fixtures: args, arrays, Bool/string/Float builtins, concat/equality,
   recursion, `continue`, mixed int/string output, and file handle/read/write.
 - Verified with `PGY_BIN=/mnt/e/PergyraLang/bin-codex-hard-full/pgy.exe bash
-  tests/self_hosted/parity/mir_json_parity.sh`: **30/30 MIR JSON -> self-hosted
+  tests/self_hosted/parity/mir/mir_json_parity.sh`: **30/30 MIR JSON -> self-hosted
   lowering -> self-hosted codegen -> native run** equal to the C backend oracle.
 
 ### 2026-06-22 -- parser examples scale closed to oracle skip
@@ -6201,7 +6201,7 @@ nested if, boolean conditions, reassignment, while, for) is covered end to end.
 
 The self-host MIR->C lowering path (`pgy --mir-json | mir_lower | codegen | gcc`
 == C oracle) had a set of empty parts mapped by the coverage probe
-(`tests/self_hosted/parity/mir_json_coverage_probe.sh`). This session filled three,
+(`tests/self_hosted/parity/mir/mir_json_coverage_probe.sh`). This session filled three,
 each a *read-a-fact-already-present* fill (not decompilation):
 
 - **multi-routine** (`df370923`): `mir_lower` walked only one routine and merged
@@ -6232,7 +6232,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `if`/`else` case (closes `if_else`, then `nested_if`/`bool_ops`/
   `reassign_block`); `while`, `for`, nesting follow as their own increments.
 
-- Committed `tests/self_hosted/parity/lexer_scale_probe.sh` (`c7adbb1a`) -- fills
+- Committed `tests/self_hosted/parity/frontend/lexer_scale_probe.sh` (`c7adbb1a`) -- fills
   the noted "no committed lexer-scale probe" gap; mirrors the parser probe.
   Initial measurement: 115/121.
 - `a856d3d9`: emit `DOC_COMMENT` for `///` (was skipped), matching the oracle's
@@ -6347,7 +6347,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
   `source_path_owner.pgy` as part of the parser owner surface. Verified with
   `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/self_hosted/parity/parser_parity.sh`,
+  `tests/self_hosted/parity/frontend/parser_parity.sh`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
 
@@ -6453,7 +6453,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   rendering an error. Unknown codes become the visible
   `unregistered_diagnostic_code` diagnostic instead of leaking as new ad hoc
   strings.
-- `tests/self_hosted/parity/semantic_parity.sh` now checks expected fixture
+- `tests/self_hosted/parity/semantic/semantic_parity.sh` now checks expected fixture
   `Code:` fields and literal `SemanticError...("code")` call sites against the
   code owner before running C/LLVM verdict parity. This closes the self-hosted
   diagnostic-code vocabulary seam while honestly leaving a fully shared
@@ -6468,7 +6468,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Extended `diagnostic_code_owner.pgy` with `SemanticDiagnosticOracleCode`, the
   fixture-root mapping from self-hosted lower-case semantic codes to the current
   C oracle JSON diagnostic codes.
-- Tightened `tests/self_hosted/parity/semantic_parity.sh`: invalid fixtures must
+- Tightened `tests/self_hosted/parity/semantic/semantic_parity.sh`: invalid fixtures must
   now be rejected by the C oracle with the mapped JSON root code. A backend-native
   fallthrough with no semantic JSON code is a gate failure.
 - Closed the scalar builtin signature gap in
@@ -6479,7 +6479,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 
 ### 2026-06-25 -- Semantic real-source selfcheck expands to owner slices
 
-- Expanded `tests/self_hosted/parity/selfcheck_sources.sh` from 4 to 41 real
+- Expanded `tests/self_hosted/parity/driver/selfcheck_sources.sh` from 4 to 41 real
   self-host owner/source files. The manifest now includes accepted lexer/parser/
   codegen/compiler-world slices plus audit-tool sources, not only the semantic
   and lexer entrypoints.
@@ -6534,7 +6534,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   instead of reopening an unbounded brace scan.
 - Verified `src/self_hosted/parser/main.pgy` through the real import-aware
   semantic checker. It now produces `Status: ok` and is included in
-  `tests/self_hosted/parity/selfcheck_sources.sh`.
+  `tests/self_hosted/parity/driver/selfcheck_sources.sh`.
 - Ratcheted the real-source semantic selfcheck manifest from 43 to 44 accepted
   self-host owner/source files. The parser entrypoint still takes about 21s on
   the local Windows checker binary, so performance work remains; the semantic
@@ -6577,7 +6577,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 
 ### 2026-06-25 -- Fuzz generator parity enters self-host preparation
 
-- Wired `tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh` into
+- Wired `tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh` into
   `self-host-preparation-parity-test-smoke`. The generator was already a named
   parity target; this closes the docs/CI drift where the parity README said the
   preparation gate ran the full parity set while the fuzz generator leg stayed
@@ -6816,7 +6816,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   index, and the top-level docs index. Refreshed the self-hosted doc-link
   checker golden count for the new index link.
 - Verified with `make self-host-preparation-contract-test-smoke`,
-  `tests/self_hosted/parity/doc_link_checker_parity.sh`,
+  `tests/self_hosted/parity/frontend/doc_link_checker_parity.sh`,
   `make documentation-quality-test-smoke`, and `git diff --check`.
 
 ### 2026-06-26 -- Shared JSON read owner enters self-host substrate
@@ -7469,7 +7469,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 
 ### 2026-06-29 -- Codegen parity run output consumes Artifact/TestHarness owner
 
-- Repointed `tests/self_hosted/parity/codegen_parity.sh` so generated
+- Repointed `tests/self_hosted/parity/codegen/codegen_parity.sh` so generated
   run-output comparison is no longer a local shell string verdict. The script
   builds the Pergyra `backend_output_comparator` once and invokes it for each
   committed-expected/live-oracle and expected/generated run-output artifact
@@ -7682,9 +7682,9 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   contract cannot return to direct `JsonObjectStringField(json, ...)` sentinel
   comparison.
 - Verified `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/self_hosted/parity/selfcheck_sources.sh` with C backend
+  `tests/self_hosted/parity/driver/selfcheck_sources.sh` with C backend
   (**107 real sources accepted**), and
-  `tests/self_hosted/parity/mir_json_parity.sh` (**86 fixtures**, 0 clean
+  `tests/self_hosted/parity/mir/mir_json_parity.sh` (**86 fixtures**, 0 clean
   rejects).
 
 ### 2026-07-03 -- JSON emit splits from read owner and number facts become Option-owned
@@ -7701,8 +7701,8 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   the owner ledger so JSON read/emit responsibilities are no longer stored in
   one growing file.
 - Verified `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/self_hosted/parity/air_graph_json_validator_parity.sh`, and
-  `tests/self_hosted/parity/selfcheck_sources.sh` with C backend
+  `tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh`, and
+  `tests/self_hosted/parity/driver/selfcheck_sources.sh` with C backend
   (**108 real sources accepted**).
 
 ### 2026-07-03 -- JSON emit consumers declare the emit owner directly
@@ -7828,7 +7828,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   consume `CompilerAirEvidenceEnvelopeReady()` before reading AIR fixtures. This
   makes the compiler-world AIR evidence vocabulary load-bearing for the first
   self-host AIR JSON consumer.
-- Updated `tests/self_hosted/parity/air_graph_json_validator_parity.sh` so the
+- Updated `tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh` so the
   isolated tool build copies `air_evidence_owner.pgy` into the compiler owner
   slot required by the new import.
 - Tightened `self_hosted_component_contract_smoke.sh` and
@@ -7842,7 +7842,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 
 ### 2026-07-04 -- AIR graph clean JSON parity uses artifact comparator
 
-- Repointed `tests/self_hosted/parity/air_graph_json_validator_parity.sh` clean
+- Repointed `tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh` clean
   expected-vs-actual JSON equality to the Pergyra
   `backend_output_comparator` instead of direct shell string comparison.
 - Kept shell grep as count ground truth and left live AIR fixture drift
@@ -7859,7 +7859,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 ### 2026-07-05 -- AIR graph live drift uses AIR artifact owner
 
 - Repointed the two live `pgy --air-json` fixture drift checks in
-  `tests/self_hosted/parity/air_graph_json_validator_parity.sh` from shell
+  `tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh` from shell
   `diff -q` to `backend_output_comparator` with artifact kind `air_json`.
 - Preserved the existing `PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1` escape hatch for
   C-only lanes whose committed fixtures are pinned against an LLVM-enabled

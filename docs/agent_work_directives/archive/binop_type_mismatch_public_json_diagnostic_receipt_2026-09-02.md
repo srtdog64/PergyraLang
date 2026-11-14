@@ -41,7 +41,7 @@ claim.
   second semantic pass, invented source locations, partial wire output, or
   another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: `bad_arith_operand.pgy`, `bad_binop_assign.pgy`,
   `bad_binop_condition.pgy`, and `bad_binop_return.pgy` must retain exact
   `Int`/`String` facts; installed MIR/C/LLVM requests must relay exact receipts
@@ -138,7 +138,7 @@ claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Outputs are implementation candidates until the primary task observes the
   focused and integration gates. Fuzz observations do not reorder this active

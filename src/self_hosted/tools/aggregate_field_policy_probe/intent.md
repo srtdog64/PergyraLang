@@ -76,7 +76,7 @@ call_arg_type_mismatch
 
 ## Oracle
 
-The C backend is the oracle. `tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh`
+The C backend is the oracle. `tests/self_hosted/parity/ownership/aggregate_field_policy_probe_parity.sh`
 compiles the fixtures with `--backend=c` and asserts `valid.pgy` compiles clean
 while `bad_field_type.pgy` and `bad_generic_field_type.pgy` are rejected with
 `PGY_SEM_CLASS_CONTRACT_INVALID`. It then compiles the probe on both the C and

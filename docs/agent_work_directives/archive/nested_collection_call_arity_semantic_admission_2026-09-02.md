@@ -38,7 +38,7 @@ claim.
   rejecting all nested calls, backend-only repair, or treating malformed JSON
   as the semantic result.
 - Focused gate:
-  `tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh`.
+  `tests/self_hosted/parity/ownership/nested_collection_call_arity_semantic_admission_owner.sh`.
 - Falsifying case: `let x=SetSize(0,0)-0;` must remain accepted by both AST
   paths, fail before public MIR/C artifact publication with exact function,
   expected-one, and actual-two Pergyra facts, match explicit native public

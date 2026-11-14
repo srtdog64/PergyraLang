@@ -152,7 +152,7 @@ Add a structural ratchet to the existing component inventory that requires both
 signature owners to consume the sealed parameter-indirection row and forbids
 their current local `value_result` / `readonly_record` /
 `readonly_array_string` reconstruction. Keep the executable mutation legs in
-`tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_owner.sh`:
+`tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_owner.sh`:
 carriage, pass-shape, resource, ABI-required, composed-record-pass, and
 composed-copyout-carriage must fail for both C and LLVM and publish no artifact.
 The readonly-`Array<String>` branch remains covered by
@@ -162,7 +162,7 @@ mutations. No new compiler build or CI job is required.
 ### Executable fixture
 
 Primary falsifier:
-`tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_owner.sh`
+`tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_owner.sh`
 through the existing
 `self-host-direct-mir-scalar-array-int-value-result-test-smoke` target. Its
 single fixture contains both a readonly logical-record parameter and

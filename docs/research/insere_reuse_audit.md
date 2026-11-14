@@ -263,7 +263,7 @@ version, immutable diagnostics와 producer identity를 운반하는 detached tra
   latest document를 다시 읽어 old result를 current로 위장, native single-document
   global과 self document store의 dual authority.
 - First gate: existing
-  `D:/PergyraLang/tests/self_hosted/parity/lsp_document_store_parity.sh`를 schema-v2
+  `D:/PergyraLang/tests/self_hosted/parity/lsp/lsp_document_store_parity.sh`를 schema-v2
   revision admission corpus로 확장한다. C/LLVM-built self-host output parity를
   유지한다.
 - Grade: probe/fixture는 `REACHABLE`; live installed LSP가 이 owner를 호출하고 old C

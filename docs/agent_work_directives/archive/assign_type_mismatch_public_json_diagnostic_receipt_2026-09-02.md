@@ -38,7 +38,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   semantic pass, invented source location, partial wire output, or another
   serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - Falsifying case: `bad_assign_type.pgy` must retain its normalized text code
   and expected/actual facts and produce the owned private identity; installed
   MIR/C/LLVM requests must relay its exact Pergyra receipt on stderr without
@@ -78,7 +78,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 
 ## Local implementation evidence

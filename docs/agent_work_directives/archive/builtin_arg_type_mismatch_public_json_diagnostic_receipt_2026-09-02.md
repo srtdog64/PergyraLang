@@ -41,7 +41,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   second semantic pass, invented source location, partial wire output, or
   another serializer.
 - Focused gate:
-  `tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  `tests/self_hosted/parity/public_route/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
 - Falsifying cases: `bad_issome_non_option.pgy` and
   `bad_unwrap_non_option.pgy` must retain their normalized text diagnostics
   and produce the same owned private identity; installed MIR/C/LLVM requests
@@ -84,7 +84,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   publication.
 - Integration owner and gate: the primary task owns integration; the focused
   gate above is the falsifier and
-  `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the single
+  `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` is the single
   local integration boundary.
 - Outputs are implementation candidates until the primary task observes the
   focused and integration gates. They do not change SoT or progress status by

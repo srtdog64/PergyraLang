@@ -24,7 +24,7 @@ temporary coordination, not compiler semantics or completion evidence.
   suppressed diagnostics, accepting malformed transport, or a native retry.
 - Integration owner: primary task alone owns implementation, shared gates,
   navigation/progress documents, and any candidate build.
-- Integration gate: `tests/self_hosted/parity/semantic_parity.sh`, after the
+- Integration gate: `tests/self_hosted/parity/semantic/semantic_parity.sh`, after the
   focused indexed-write probe and source-owner gate pass. A source-review result
   is not executable parity, installed-driver evidence, or remote CI green.
 

@@ -54,7 +54,7 @@ a second AST serialization format.
 - `intent.md` - contract, current grammar surface, and latest fixture/scale
   coverage result.
 
-Run: `bash tests/self_hosted/parity/parser_parity.sh`
+Run: `bash tests/self_hosted/parity/frontend/parser_parity.sh`
 
 The compact tree remains the byte-parity and provenance projection. It is not
 the semantic owner of migrated expression graphs. The current single-element

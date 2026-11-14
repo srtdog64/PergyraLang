@@ -148,7 +148,7 @@ rescans, or default type guesses.
 
 ## Oracle
 
-`tests/self_hosted/parity/mir_json_parity.sh` compares reconstructed output
+`tests/self_hosted/parity/mir/mir_json_parity.sh` compares reconstructed output
 against the C compiler's `pgy --ast` output for supported fixtures and checks
 that unsupported fixtures fail closed. Supported fixture paths come from the
 compiled `fixture_manifest_owner.pgy` manifest, not from shell-owned arrays. The

@@ -57,7 +57,7 @@ write_replacement_frontier_make_fixture() {
         $'\t@printf "executed\\n" >> "$(CURDIR)/recipes.executed"' \
         'self-host-replacement-frontier-installed-test-smoke: native-fixture' \
         'ifeq ($(FIXTURE_CASE),installed-bootstrap)' \
-        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        $'\t@echo tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         'endif' \
         'ifeq ($(FIXTURE_CASE),installed-make-failure)' \
         $'\t$(error fixture installed make failure)' \
@@ -66,17 +66,17 @@ write_replacement_frontier_make_fixture() {
         'self-host-compiler:' \
         'ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED),1)' \
         'ifeq ($(FIXTURE_CASE),admitted-rebuild)' \
-        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        $'\t@echo tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         'endif' \
         'ifeq ($(FIXTURE_CASE),admitted-make-failure)' \
         $'\t$(error fixture admitted make failure)' \
         'endif' \
         'else' \
         'ifneq ($(FIXTURE_CASE),standalone-missing)' \
-        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        $'\t@echo tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         'endif' \
         'ifeq ($(FIXTURE_CASE),standalone-duplicate)' \
-        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        $'\t@echo tests/self_hosted/parity/driver/self_host_compiler_build.sh' \
         'endif' \
         'ifeq ($(FIXTURE_CASE),standalone-make-failure)' \
         $'\t$(error fixture standalone make failure)' \
@@ -183,11 +183,11 @@ identity_cap_definition="$(awk '
     /^require_scalar_identity_owner_caps\(\) \{/ { capture = 1 }
     capture { print }
     /^}/ { capture = 0 }
-' "$REPO_DIR/tests/self_hosted/parity/expression_graph_identity_carriage_owner.sh")"
+' "$REPO_DIR/tests/self_hosted/parity/mir/expression_graph_identity_carriage_owner.sh")"
 eval "$identity_cap_definition"
 declare -F require_scalar_identity_owner_caps >/dev/null || fail 'missing shared identity cap consumer'
 mkdir -p "$ROOT_DIR/src/self_hosted/compiler" "$ROOT_DIR/tests/self_hosted/parity"
-shared_caps="$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
+shared_caps="$ROOT_DIR/tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv"
 identity_cap_rows=()
 for basename in expression_admission leaf_identity_fact call_expression_admission call_with_arguments_admission; do
     identity_rel="src/self_hosted/compiler/direct_mir_scalar_program_${basename}_owner.pgy"

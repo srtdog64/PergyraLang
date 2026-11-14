@@ -102,7 +102,7 @@ The compatibility gate must cover these surfaces together:
 
 | Production-bar item | Owner or next source of truth |
 |---|---|
-| Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
+| Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/driver/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/driver/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
 | MIR-owned ABI layout | `src/compiler/mir_abi_layout.c` for type/layout rows, `src/compiler/mir_abi_resource_runtime.c` for resource runtime-call spelling rows, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, `self-host-abi-layout-row-parity-test-smoke`, and `self-host-backend-abi-layout-contract-parity-test-smoke` |
 | Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |

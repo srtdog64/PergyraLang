@@ -5,7 +5,7 @@
 // the variant ordinal is the runtime's IoError ordinal. The native import
 // resolver composes the same declaration (import_resolver_compose_io_error_enum
 // in src/compiler/import_resolver.c) and
-// tests/self_hosted/parity/io_result_builtin_owner.sh holds the rows equal.
+// tests/self_hosted/parity/driver/io_result_builtin_owner.sh holds the rows equal.
 
 import "../hir/ast_expression_graph_owner.pgy";
 import "../lib/path.pgy";

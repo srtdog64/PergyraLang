@@ -34,7 +34,7 @@ Exact base: `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`
   combinations, buffering/reinterpreting stdout IR, or merging unrelated LLVM
   backend SoT work.
 - Verification gate:
-  `tests/self_hosted/parity/public_llvm_ir_opt_profile_owner.sh`. Public release
+  `tests/self_hosted/parity/public_route/public_llvm_ir_opt_profile_owner.sh`. Public release
   and dev file/stdout forms must be byte-equal, invoke one installed intent per
   request, compile and execute correctly, and match the current native
   release/dev profile-neutral IR contract. Missing siblings and `--verbose`

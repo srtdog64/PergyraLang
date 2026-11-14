@@ -44,10 +44,10 @@ Observed base/current boundary:
 
 | # | Kind | Owner and evidence | Input identity -> output identity | Owned responsibility | Executable falsifier |
 |---:|:---:|---|---|---|---|
-| 1 | S | `src/pgy_driver.c:234-262` | public argv -> admitted `DriverFlags` route | Keeps explicit native opt-out before the default installed `dump_mir` selection. | `tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh:202-207` rejects selector reordering; lines 103-111 keep the explicit native bytes distinct. |
+| 1 | S | `src/pgy_driver.c:234-262` | public argv -> admitted `DriverFlags` route | Keeps explicit native opt-out before the default installed `dump_mir` selection. | `tests/self_hosted/parity/public_route/public_mir_diagnostic_installed_self_host_owner.sh:202-207` rejects selector reordering; lines 103-111 keep the explicit native bytes distinct. |
 | 2 | S | `src/compiler/self_host_mir_diagnostic_stdout_owner.c:19-73` | exact `dump_mir` flag envelope + source path -> canonical source identity + private child argv | Rejects incompatible public flags, resolves the one installed child, canonicalizes source identity, and maps the public mode to `--emit-mir-diagnostic-verified`. This is a process-boundary request admission, not MIR semantics. | Public gate lines 129-162 cover invalid source, missing child, unsupported flags, no native retry; lines 208-212 reject native/string-shell fallback in this owner. |
 | 3 | T | `src/compiler/compiler_process.c:225-373` (Windows), `:444-567` (POSIX) | child argv -> bounded captured stdout bytes + child status | Transports bytes/status with output limit, timeout, and process-tree cleanup. It does not interpret MIR bytes. | Public gate lines 164-200 exercise silent success, descendant-held stdout, and child-closed stdout. |
-| 4 | S | `src/self_hosted/compiler/driver_bootstrap_main.pgy:7-10`; `driver_rung2_cli_request_owner.pgy:53-59,124-129` | child argv -> `DriverCliSourceMirDiagnosticStdout(normalized_path)` | Sole child argv-to-request meaning assignment and path-shape admission. | Public gate lines 213-214 plus `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` can reject a missing or ambiguous variant. |
+| 4 | S | `src/self_hosted/compiler/driver_bootstrap_main.pgy:7-10`; `driver_rung2_cli_request_owner.pgy:53-59,124-129` | child argv -> `DriverCliSourceMirDiagnosticStdout(normalized_path)` | Sole child argv-to-request meaning assignment and path-shape admission. | Public gate lines 213-214 plus `tests/self_hosted/parity/driver/installed_driver_cli_mode_owner.sh` can reject a missing or ambiguous variant. |
 | 5 | T | `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy:9-12,63-64` | typed diagnostic request -> same typed request at read-only executor | Chooses the installed read-capability executor; it does not reinterpret source or MIR identity. | `tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh:135-136` and the public gate line 215 require the admitted read route. |
 | 6 | T | `src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy:14-16,44-47` | typed request -> `(source_path, empty machine declaration)` call | Last CLI-mode dispatch and stdout call. The request variant already owns the mode meaning. | Public gate lines 215-217 requires the diagnostic consumer, compiler-world producer, and borrowed admission. |
 | 7 | T | `src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy:9-16`; `compiler_world_direct_mir_owner.pgy:56-63` | source identity + `SourceMirVerified` -> compiler-world method call | Reuses the canonical source-MIR payload protocol and one executable world; creates no diagnostic-specific receipt species. | `driver_source_mir_execution_action_gate.sh:122,142-151`; public gate lines 216-219. |
@@ -108,7 +108,7 @@ listed because the source-C wrapper contains the only observed duplicate.
 
 | # | Kind | Owner and evidence | Input identity -> output identity | Owned responsibility | Executable falsifier |
 |---:|:---:|---|---|---|---|
-| 1 | S | `direct_mir_nested_intent_program_route_fact_owner.pgy:11-20,61-138` | admitted declaration/routine inventories -> sealed route fact | Sole exclusive claim: one function, one method, two intents, one subject, one zone, with distinct rows and a digest. It scans admitted inventory arrays, not source/AST/JSON text. | `tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh:116-124` requires route before plan/emission and before scalar fallback. |
+| 1 | S | `direct_mir_nested_intent_program_route_fact_owner.pgy:11-20,61-138` | admitted declaration/routine inventories -> sealed route fact | Sole exclusive claim: one function, one method, two intents, one subject, one zone, with distinct rows and a digest. It scans admitted inventory arrays, not source/AST/JSON text. | `tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_c_owner.sh:116-124` requires route before plan/emission and before scalar fallback. |
 | 2 | S | `direct_mir_nested_intent_program_graph_fact_owner.pgy:14-69,454-538` | admitted spans + claimed route -> sealed graph fact | Seals callable/declaration syntax identity, field/zone identity, call edges, construction/method values, and log literals. | C/LLVM gate negatives `missing-inner-priority`, `priority-graph-drift`, `duplicate-source-identity`, `method-owner-crosswire`, and `action-name-crosswire` (`direct_mir_nested_intent_program_llvm_owner.sh:90-157`). |
 | 3 | S | `direct_mir_nested_intent_program_plan_owner.pgy:13-51,99-199,559-598` | graph row identities -> four sealed routine header facts | Captures exact function/method/intent kind, owner, name, syntax ID, receiver, return, and parameter facts; cross-seals the four rows against the graph. Four bounded routine spans are consumed under one header-fact responsibility. | The same C/LLVM identity negatives plus the plan-order assertion at C gate lines 116-120. |
 | 4 | S | `direct_mir_nested_intent_program_plan_owner.pgy:203-237,337-460,599-609` | admitted intent spans + graph/header facts -> outer/inner policy facts | Owns concurrent/exclusive mode, literal/parameter priority carrier, participant bindings, nested argument, expected result, and outer/inner policy relation. | `missing-inner-priority` and `priority-graph-drift` must fail at their owned diagnostic with no source/direct C or LLVM artifact (`C gate:64-100`; `LLVM gate:137-157`). |
@@ -186,7 +186,7 @@ Consumers to retain/migrate:
 Forbidden old read / negative ratchet:
 
 - Add a structural negative to
-  `tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh` that
+  `tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_c_owner.sh` that
   rejects `MirProgramRoutineIndexCount` and
   `MirProgramDeclarationIndexCount` in
   `driver_rung2_nested_intent_c_substitution_owner.pgy`.
@@ -196,7 +196,7 @@ Forbidden old read / negative ratchet:
 
 Executable falsifier:
 
-- Reuse `tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh`,
+- Reuse `tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_llvm_owner.sh`,
   which sources `direct_mir_nested_intent_program_c_owner.sh`. Its exact
   success case must still produce the same nine-line C/LLVM result and
   byte-identical source/direct C, while all five owned mutations must publish

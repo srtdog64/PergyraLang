@@ -73,7 +73,7 @@ typedef struct
     /* --native-pipeline: run this compile through the in-process native
      * pipeline instead of delegating to the installed self-host driver.
      * This exists for bootstrap scaffolding only. The gen0 oracle in
-     * tests/self_hosted/parity/codegen_bootstrap.sh cannot be built by the
+     * tests/self_hosted/parity/codegen/codegen_bootstrap.sh cannot be built by the
      * self-host driver: that driver is the artifact the bootstrap is
      * producing, so delegating there is circular on a clean checkout and,
      * even once a driver exists, makes the oracle validate itself. The flag

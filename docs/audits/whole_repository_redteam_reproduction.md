@@ -543,7 +543,7 @@ Status: LANDED 9e6dc6f6
   `diagnostic_owner.pgy`.
 - Do not edit: nothing in the other lane's WIP is in scope.
 - Gate: new rows in
-  `tests/self_hosted/parity/default_route_diagnostic_position_owner.sh`;
+  `tests/self_hosted/parity/semantic/default_route_diagnostic_position_owner.sh`;
   `make self-host-preparation-contract-test-smoke` (likeness ratchet and the
   600-line owner cap).
 
@@ -1083,7 +1083,7 @@ tests/self_hosted/parity/p0_runtime_counterexamples.sh: 7 failures
   R3 installed Unwrap(Err) success and post-error execution
   R5 installed Float/Double precision loss
 
-tests/self_hosted/parity/collection_ownership_semantic_owner.sh:
+tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh:
   installed self-host accepted deep_drop_nonbinding_literal_invalid
 
 src/self_hosted/mir_lower/main.pgy native admission:
@@ -1263,7 +1263,7 @@ join. The installed self-host semantic-owner gate is independently red:
 ```text
 PGY_BIN=.tmp/redteam-current/bin/pgy.exe \
 PGY_SELF_DRIVER_BIN=bin/pgy-self-driver.exe \
-bash tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+bash tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 FAIL: installed self-host accepted deep_drop_nonbinding_literal_invalid
 ```
 
@@ -1836,7 +1836,7 @@ The MIR inventory slice is now green; the rung is not.
   the `func BuildMirCollectionOwnershipFacts` signature was never extended to
   accept and thread it. This is a defect in the Pergyra-side consumer half,
   independent of the C-side fix above.
-- `tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh` was
+- `tests/self_hosted/parity/mir/mir_json_instruction_writer_byte_parity.sh` was
   already reported RED by the earlier agent for a second arity defect:
   `MirRoutineInstructionFactBundle` constructor arity (21 vs 23 args). Not
   yet independently reproduced in this session; do not treat as closed.

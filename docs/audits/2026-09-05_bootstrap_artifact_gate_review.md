@@ -73,7 +73,7 @@ After primary announced the candidate, this reviewer independently ran
 script individually, then ran:
 
 ```sh
-timeout 300s bash tests/self_hosted/parity/text_artifact_file_comparison_owner.sh \
+timeout 300s bash tests/self_hosted/parity/ownership/text_artifact_file_comparison_owner.sh \
   /d/PergyraLang/.tmp/self_hosted/driver/enum_receiver_integration_20260905/backend_output_comparator_38116.exe
 ```
 
@@ -107,9 +107,9 @@ Executed source snapshot hashes:
 
 | File under repository root | SHA-256 |
 | --- | --- |
-| `tests/self_hosted/parity/text_artifact_file_comparison_owner.sh` | `B04DF5A3D0B62828BBF69863799138900F5DE6612ABF73F0C588DA851987B456` |
+| `tests/self_hosted/parity/ownership/text_artifact_file_comparison_owner.sh` | `B04DF5A3D0B62828BBF69863799138900F5DE6612ABF73F0C588DA851987B456` |
 | `tests/self_hosted/parity/llvm_leg_helpers.sh` | `C40E707CFB0CEF9497EDF4FB817F2DC277D4C1B81316A929EED596DE2E9B9447` |
-| `tests/self_hosted/parity/backend_output_comparator_parity.sh` | `8AB92E87384BDB7BCB5289D903AB5D2FF5CF87A2B01A6F9B5DF6702EB1193E66` |
+| `tests/self_hosted/parity/codegen/backend_output_comparator_parity.sh` | `8AB92E87384BDB7BCB5289D903AB5D2FF5CF87A2B01A6F9B5DF6702EB1193E66` |
 
 ## Gate strength and source review
 

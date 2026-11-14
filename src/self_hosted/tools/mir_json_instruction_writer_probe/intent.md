@@ -2,7 +2,7 @@
 
 **Status:** soft self-host parity candidate.
 
-**Parity owner:** `tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh`
+**Parity owner:** `tests/self_hosted/parity/mir/mir_json_instruction_writer_byte_parity.sh`
 
 ## Intent
 

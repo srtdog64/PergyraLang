@@ -78,7 +78,7 @@ claim native/public asynchronous runtime parity.
 `zone_rule_admission.sh` checks exact approving subject-slot identity, including
 same-type and same-name slots in other zones, plus effect/relation declaration
 kind. It preserves both explicit-authority and authority-free valid sources.
-`tests/self_hosted/parity/zone_rule_admission_owner.sh` executes the validator
+`tests/self_hosted/parity/domain/zone_rule_admission_owner.sh` executes the validator
 on synthetic typed facts. Neither command executes invalid source programs or
 claims complete domain/lifecycle semantics.
 
@@ -86,7 +86,7 @@ claims complete domain/lifecycle semantics.
 bounds, exact role implementations, and forwarding of a caller's formal
 bounds. It also executes valid controls in native/public C/LLVM and remains
 RED when a backend cannot execute them. The synthetic
-`tests/self_hosted/parity/generic_bound_admission_owner.sh` separately checks
+`tests/self_hosted/parity/semantic/generic_bound_admission_owner.sh` separately checks
 binding witnesses, public diagnostic identity and stripped/missing bounds.
 
 The focused `field_write_admission.sh` requires the owned immutable-field
@@ -108,7 +108,7 @@ report masks with an error status; that does not authorize executable output.
 The existing capability fact is now produced by the common body bundle, not
 recomputed by the manifest renderer. Callable attribution has its own gate below;
 runtime emission failures remain open claims, not successful rejection evidence.
-`tests/self_hosted/parity/capability_admission_fact_owner.sh`
+`tests/self_hosted/parity/domain/capability_admission_fact_owner.sh`
 executes eleven identity/missing-row/diagnostic controls in native C only;
 it is not public C/LLVM or full-bootstrap proof.
 
@@ -269,7 +269,7 @@ waiver for Intent. No malformed source/MIR executes. Compile failures, timeouts,
 runtime errors and incorrect output remain failed rows in its hashed report.
 
 Dynamic Int division retains the existing checked i32 zero/overflow boundary.
-`tests/self_hosted/parity/direct_mir_scalar_int_divide_owner.sh` checks shared
+`tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_divide_owner.sh` checks shared
 C/LLVM execution, runtime linkage and crossed ABI/type admission. Its normalized
 validator checks malformed facts without executing a division or emitted program.
 
@@ -277,7 +277,7 @@ validator checks malformed facts without executing a division or emitted program
 pre/post failure, placement-before-check and successful action observations.
 Duplicate/non-Bool predicates are admission-only. The named C rung does not
 waive the default four-leg LLVM obligation. The separate
-`tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh` checks missing
+`tests/self_hosted/parity/intent/intent_phase_carrier_negative_owner.sh` checks missing
 or crossed invariant graph pairs and refuses partial artifact publication.
 
 `generic_call_occurrence.sh` checks the public MIR specialization-to-call join:

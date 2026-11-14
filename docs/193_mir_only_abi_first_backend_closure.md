@@ -527,10 +527,10 @@ policy; the remaining bridge is the wider artifact/consumer migration, not
 the existence of a policy string. The focused evidence
 is `abi-ownership-shape-test-smoke`, `backend-fail-closed-test-smoke`,
 `machine-layer-pipeline-test-smoke`, and
-`tests/self_hosted/parity/mir_abi_first_lane.sh`. The stable-ID negative
+`tests/self_hosted/parity/mir/mir_abi_first_lane.sh`. The stable-ID negative
 ratchet is also covered by `src/tests/mir/test_mir_runtime_call_abi.cases.h`
 and the driver rung-2 wrong-ID mutation in
-`tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh`.
+`tests/self_hosted/parity/driver/driver_rung2_resource_runtime_abi_negative_owner.sh`.
 
 The LLVM runtime-row selector now fails closed when a source-level MIR
 operation is active but no routine-owned row exists. The one explicit exception
@@ -574,7 +574,7 @@ the source type or a process-local table. `abi_layout_required=false` is an
 explicit dynamic case and must carry ID `0` plus `null`; a missing tuple,
 partial row, or mutated ID fails closed in `mir_lower`. The permanent mutation
 gate is the device-slot rung in
-`tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh`.
+`tests/self_hosted/parity/driver/driver_rung2_mir_abi_layout_negative_owner.sh`.
 
 The self-host producer now materializes a bounded fixed-row subset directly:
 the fixed scalar `Slot<T>`, `DeviceSlot<T>`, and `SecureSlot<T>` rows for
@@ -759,9 +759,9 @@ native planner retains the full-width target fingerprint for C/LLVM plans.
 the carried values and fingerprint against the canonical owner and rejects an
 empty, changed, or mutated projection before C text emission. The negative
 owner is
-`tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh`,
+`tests/self_hosted/parity/driver/driver_rung2_target_projection_negative_owner.sh`,
 with fingerprint mutation covered by
-`tests/self_hosted/parity/target_capability_manifest_parity.sh`;
+`tests/self_hosted/parity/codegen/target_capability_manifest_parity.sh`;
 the focused `device_slot_routine`, `option_string_core`, `array_sum_filtered`, and `str_array` lanes pass under
 both C-built and LLVM-built Pergyra drivers.
 
@@ -819,7 +819,7 @@ break/continue, nested alternatives, formal/member/literal/fresh-result moves,
 and general ownership flow remain separate rungs.
 
 The focused gate is
-`tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh`.
+`tests/self_hosted/parity/direct_mir/direct_mir_alternative_owned_array_string_parameter_owner.sh`.
 It produces MIR once, executes both C and LLVM artifacts for true and false
 inputs, checks callee cleanup and absent caller cleanup, and runs the negative
 fixtures and mutations through both projections.

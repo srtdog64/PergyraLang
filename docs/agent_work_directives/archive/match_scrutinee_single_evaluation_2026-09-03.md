@@ -39,10 +39,10 @@ match rewrite.
 ## Implementation edit scope
 
 - `tests/self_hosted/fixtures/match_scrutinee_single_evaluation.pgy`
-- `tests/self_hosted/parity/match_scrutinee_single_evaluation_owner.sh`
-- `tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh`
-- `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`
-- `tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh`
+- `tests/self_hosted/parity/semantic/match_scrutinee_single_evaluation_owner.sh`
+- `tests/self_hosted/parity/driver/driver_rung2_match_materialization_delta_owner.sh`
+- `tests/self_hosted/parity/driver/driver_rung2_mir_producer_parity_owner.sh`
+- `tests/self_hosted/parity/driver/driver_rung2_wrapper_match_loop_phi_parity_owner.sh`
 - `src/self_hosted/semantic/ast_match_materialization_fact_owner.pgy`
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy`
 - `src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy`
