@@ -1,13 +1,13 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-14 on main `bcdf042c4` (CI
-green, run 43588624419).
+Owner: Claude root lane. Checked 2026-11-14 on main `65724e27d` (CI
+green, run 43596693746).
 
 ## Objective card
 
 - Objective: keep required CI green on one published commit, with the
   bootstrap and installed-driver jobs executed (met at `cdb65d798`,
-  `edbb4575b` and `bcdf042c4`).
+  `edbb4575b`, `bcdf042c4` and `65724e27d`).
 - Priority: memory safety of what either front end admits; one fact owner;
   fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
@@ -19,7 +19,11 @@ green, run 43588624419).
    ([remeasured 2026-11-14](../evidence/2026-11-14_native_unsafe_negative_admissions_remeasured.md)):
    13 owned-String transfers (`ArrayDropOwnedStrings` admits UNKNOWN
    element provenance on purpose, `collection_ownership_fact.c`), 11 callee
-   growths of a by-value formal's field copy, 12 others.
+   growths of a by-value formal's field copy, 12 others. Refusing UNKNOWN
+   outright (WSL trial at `65724e27d`) refuses 26 positive fixtures and one
+   canonical drop (`ast_generic_parameter_fact_owner.pgy:302`, filled only
+   by `ArrayPushOwnedString` in a loop): native needs the provenance facts
+   the self-host analyzer has, not a closed boundary.
 2. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
    root); a pass-through `wslpath` shim makes it pass.
 3. The self-host MIR route carries no compiler `Clone`; native lands one for
@@ -27,12 +31,9 @@ green, run 43588624419).
 
 ## Done since `cdb65d798`
 
-- Folder reorganization (user decision 2026-11-13): `editors/` holds both
-  extensions; parity scripts in twelve family directories; loose `tests/`
-  gates in subject directories; loose `docs/` documents in their facade
-  areas; large flat `src/` directories split by file prefix (codegen `c/`
-  and `llvm/`, compiler IR families, `type_checker/`, `direct_mir/`,
-  `driver/`, `ast_collection/`, `ast_expression/`).
+- Folder reorganization (user decision 2026-11-13): `editors/`, twelve
+  parity family directories, subject directories for loose `tests/` gates
+  and `docs/` documents, large flat `src/` directories split by prefix.
 - Gates kept their coverage across the moves: depth-limited scans
   (`semantic_tu_size`, `test_inc_size`, numbered-doc uniqueness, inc
   sentinel) read the new directories, and the semantic 599-line cap covers
