@@ -3,37 +3,58 @@
 import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_op_code_owner.pgy";
 import "../../../codegen/runtime_abi/collection_runtime_owner.pgy";
 
-func DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(
+// With no transition row, the definitions of a local that is never pushed,
+// set or popped decide what it owns. A literal of borrowed elements owns only
+// its storage. StringSplit, Args, DirWalk and SliceCopy return fresh storage
+// whose elements the runtime strdup'd. Any other definition (a user call
+// result, an alias of another local) or any element change proves nothing
+// and yields "".
+func DirectMirScalarProgramUnrowedArrayStringLocalDrop(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
-) -> Bool {
+) -> String {
     if routine < 0 || routine >=
             ArrayLength(plan.routines.operation_starts) ||
         ArrayLength(plan.operation_result_values) !=
             ArrayLength(plan.program.operation_expression_rows) {
-        return false;
+        return "";
     }
-    var definition_count: Int = 0;
+    var borrowed_literals: Int = 0;
+    var runtime_results: Int = 0;
     var operation: Int = plan.routines.operation_starts[routine];
     let end: Int = operation + plan.routines.operation_counts[routine];
-    if operation < 0 || end > ArrayLength(plan.operation_result_values) {
-        return false;
+    if operation < 0 || end > ArrayLength(plan.operation_result_values) ||
+        end > ArrayLength(plan.operation_kinds) ||
+        end > ArrayLength(plan.operation_left_locals) {
+        return "";
     }
     while operation < end {
+        let operation_kind: Int = plan.operation_kinds[operation];
+        if (operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+                operation_kind == DirectMirScalarCfgOpArrayStringValueResultPush() ||
+                operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
+                operation_kind == DirectMirScalarCfgOpArrayStringPop()) &&
+            plan.operation_left_locals[operation] == local_row {
+            return "";
+        }
         let expression_row: Int =
             plan.program.operation_expression_rows[operation];
         if expression_row >= 0 && expression_row <
                 ArrayLength(plan.program.expressions.graph_roots) {
             let root: Int = plan.program.expressions.graph_roots[expression_row];
             if plan.program.expressions.node_kinds[root] ==
-                    DirectMirScalarProgramExprArrayStringPushOwned() {
+                    DirectMirScalarProgramExprArrayStringPushOwned() ||
+                plan.program.expressions.node_kinds[root] ==
+                    DirectMirScalarProgramExprArrayStringDropOwned() {
                 let receiver: Int = plan.program.expressions.node_lefts[root];
                 if receiver >= 0 &&
                     plan.program.expressions.node_kinds[receiver] ==
                         DirectMirScalarProgramExprLocal() &&
                     plan.program.expressions.node_local_rows[receiver] ==
-                        local_row { return false; }
+                        local_row { return ""; }
             }
         }
         let result: Int = plan.operation_result_values[operation];
@@ -41,20 +62,32 @@ func DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(
             plan.value_local_rows[result] == local_row {
             if expression_row < 0 || expression_row >=
                     ArrayLength(plan.program.expressions.graph_roots) {
-                return false;
+                return "";
             }
             let root: Int = plan.program.expressions.graph_roots[expression_row];
-            if plan.program.expressions.node_kinds[root] !=
-                    DirectMirScalarProgramExprArrayStringLiteral() ||
-                DirectMirScalarProgramArrayStringLiteralOwnsElements(
+            let kind: Int = plan.program.expressions.node_kinds[root];
+            if kind == DirectMirScalarProgramExprArrayStringLiteral() &&
+                !DirectMirScalarProgramArrayStringLiteralOwnsElements(
                     plan.program.expressions, root, plan.routines, routine) {
-                return false;
+                borrowed_literals = borrowed_literals + 1;
+            } else if kind == DirectMirScalarProgramExprStringSplit() ||
+                kind == DirectMirScalarProgramExprProcessArgs() ||
+                kind == DirectMirScalarProgramExprDirWalk() ||
+                kind == DirectMirScalarProgramExprSliceCopy() {
+                runtime_results = runtime_results + 1;
+            } else {
+                return "";
             }
-            definition_count = definition_count + 1;
         }
         operation = operation + 1;
     }
-    return definition_count == 1;
+    if borrowed_literals == 1 && runtime_results == 0 {
+        return CollectionRuntimeCDropStorageFn(2);
+    }
+    if runtime_results > 0 && borrowed_literals == 0 {
+        return CollectionRuntimeCOwnedStringDropFn();
+    }
+    return "";
 }
 
 func DirectMirScalarProgramArrayStringCleanupDropSymbol(
@@ -77,11 +110,15 @@ func DirectMirScalarProgramArrayStringCleanupDropSymbol(
         }
         return "";
     }
-    if DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(
-            plan, routine, local_row) {
-        return CollectionRuntimeCDropStorageFn(2);
-    }
-    return CollectionRuntimeCOwnedStringDropFn();
+    let unrowed: String = DirectMirScalarProgramUnrowedArrayStringLocalDrop(
+        plan, routine, local_row);
+    if unrowed != "" { return unrowed; }
+    // Neither a row nor a runtime producer: the storage and its elements are
+    // unknown (a user call result, an alias of a formal). Releasing either
+    // would free what this local may not own.
+    Die(Concat("direct MIR Array<String> cleanup requires an admitted ownership row: routine=",
+        Concat(ToString(routine), Concat(" local=", ToString(local_row)))));
+    return "";
 }
 
 func DirectMirScalarProgramArrayStringLocalCleanupRequired(

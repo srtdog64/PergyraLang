@@ -106,6 +106,7 @@ fi
 if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'make self-host-identity-cell-receiver-test-smoke'
     run 'make self-host-collection-ownership-semantic-test-smoke'
+    run 'make self-host-direct-mir-array-string-cleanup-test-smoke'
     run 'make self-host-mir-round-trip-semantic-test-smoke'
     run 'make self-host-task-is-cancelled-builtin-test-smoke'
     run 'make self-host-slice-copy-semantic-bridge-test-smoke'
