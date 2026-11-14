@@ -20,6 +20,7 @@
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_result_inputs.h"
 #include "loan_copy_landing_owner.h"
+#include "region_retention_summary.h"
 #include "../parser/ast_api.h"
 
 /* An owned String among borrowed elements, or among elements of unknown
@@ -964,6 +965,9 @@ collection_owned_string_call_fact_current(
     return true;
 }
 
+static bool collection_owned_string_callee_static_only(const ASTNode *call,
+    SemanticContext *ctx);
+
 static bool collection_owned_string_source_current(const ASTNode *expression,
     SemanticContext *ctx, const OwnedStringResultVisit *parent,
     IndexedStringResultInputs *inputs)
@@ -993,10 +997,13 @@ static bool collection_owned_string_source_current(const ASTNode *expression,
         return semantic_param_publication_checked_finish_independent(
             ctx, expression);
     if (semantic_indexed_string_independent_result(expression, ctx)) return true;
+    /* Source zero says the result borrows no argument; it does not say the
+     * result is allocated. A callee whose every return is a literal hands
+     * back static storage. */
     uint32_t flow_source = UINT32_MAX;
     if (function_param_flow_string_result_source_current(
             ctx, expression, &flow_source)
-        && flow_source == 0)
+        && flow_source == 0 && !collection_owned_string_callee_static_only(expression, ctx))
         return true;
     bool result_lane = false;
     for (size_t a = 0; a < ast_call_arg_count(expression); a++)
@@ -1358,6 +1365,107 @@ static void collection_owned_string_receipt_destroy(PublishedOwnedStringResult *
 }
 
 static bool
+collection_owned_string_callee_static_only(const ASTNode *call, SemanticContext *ctx)
+{
+    const ASTNode *callee = ast_call_callee(call);
+    const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    ASTNode *decl = name != NULL && ast_call_semantic_callee_decl_id(call) != 0
+        ? semantic_find_callable_decl_by_name(ctx, name) : NULL;
+    PublishedNode *row = decl != NULL
+        && ast_node_stable_id(decl) == ast_call_semantic_callee_decl_id(call)
+        ? publication_node(ctx->function_param_publications, decl, false) : NULL;
+    return row != NULL && row->node == decl && row->owned_string_result_examined
+        && row->owned_string_result_static_only;
+}
+
+static bool
+collection_owned_string_names_binding(const ASTNode *node, uint32_t binding_id)
+{
+    return node != NULL && node->type == AST_IDENTIFIER
+        && ast_identifier_binding_syntax_id(node) == binding_id;
+}
+
+/* A user routine keeps an argument only through an own or inout formal; a
+ * constructor keeps every field; a builtin keeps what its retention summary
+ * does not borrow for the call. */
+static bool
+collection_owned_string_call_keeps_argument(const ASTNode *call, size_t ordinal,
+    SemanticContext *ctx)
+{
+    const ASTNode *callee = ast_call_callee(call);
+    const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    if (ast_call_semantic_callee_decl_id(call) != 0
+        && ast_call_semantic_callee_declared_callable(call)) {
+        ASTNode *decl = name != NULL ? semantic_find_callable_decl_by_name(ctx, name) : NULL;
+        FuncParam *formal = decl != NULL && decl->type == AST_FUNC_DECL
+            && ast_node_stable_id(decl) == ast_call_semantic_callee_decl_id(call)
+            ? ast_func_param(decl, ordinal) : NULL;
+        return formal == NULL || formal->mode == PARAM_MODE_OWN
+            || formal->mode == PARAM_MODE_MUT_REF;
+    }
+    uint32_t builtin = 0;
+    PgyRegionRetentionKind retention = PGY_REGION_RETENTION_UNKNOWN;
+    bool known = ast_call_semantic_callee_builtin_kind(call, &builtin)
+            && builtin != BUILTIN_NOT_BUILTIN
+        ? semantic_region_retention_summary_for_builtin(builtin, ordinal, &retention)
+        : ast_call_semantic_callee_is_stdlib(call)
+            && semantic_region_retention_summary_for_stdlib(call, ordinal, &retention);
+    return !known || retention != PGY_REGION_RETENTION_BORROWED_FOR_CALL;
+}
+
+/* `node` (a statement or an expression in one) stores the String bound to
+ * `binding_id` somewhere that outlives the read: an assignment of it to
+ * another place, an alias let, an Array literal element, or a call argument
+ * the callee does not merely borrow (a constructor field, ArrayPush). */
+static bool
+collection_owned_string_statement_retains(const ASTNode *node,
+    uint32_t binding_id, SemanticContext *ctx, int depth)
+{
+    if (node == NULL || binding_id == 0)
+        return false;
+    if (depth > 64)
+        return true;
+    switch (node->type) {
+    case AST_ASSIGNMENT: {
+        const ASTNode *target = ast_assignment_target(node);
+        const ASTNode *value = ast_assignment_value(node);
+        if (collection_owned_string_names_binding(value, binding_id)
+            && !collection_owned_string_names_binding(target, binding_id))
+            return true;
+        return collection_owned_string_statement_retains(value, binding_id, ctx, depth + 1);
+    }
+    case AST_LET_DECL:
+        return collection_owned_string_names_binding(ast_let_initializer(node), binding_id)
+            || collection_owned_string_statement_retains(ast_let_initializer(node),
+                binding_id, ctx, depth + 1);
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < ast_array_literal_count(node); i++)
+            if (collection_owned_string_names_binding(ast_array_literal_element(node, i), binding_id)
+                || collection_owned_string_statement_retains(ast_array_literal_element(node, i),
+                    binding_id, ctx, depth + 1))
+                return true;
+        return false;
+    case AST_CALL:
+        for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+            const ASTNode *argument = ast_call_argument(node, i);
+            if (collection_owned_string_names_binding(argument, binding_id)
+                && collection_owned_string_call_keeps_argument(node, i, ctx))
+                return true;
+            if (collection_owned_string_statement_retains(argument, binding_id, ctx, depth + 1))
+                return true;
+        }
+        return false;
+    case AST_BINARY:
+        return collection_owned_string_statement_retains(ast_binary_left(node), binding_id, ctx, depth + 1)
+            || collection_owned_string_statement_retains(ast_binary_right(node), binding_id, ctx, depth + 1);
+    default:
+        return false;
+    }
+}
+
+static bool
 collection_owned_string_expression_ready(ASTNode *body,
                                          const ASTNode *expression,
                                          SemanticContext *ctx,
@@ -1394,6 +1502,12 @@ collection_owned_string_expression_ready(ASTNode *body,
                     continue;
                 declaration_seen = true;
                 continue;
+            }
+            /* A statement that also keeps the String (a field, an alias, a
+             * constructor or a retaining call) leaves it owned twice. */
+            if (collection_owned_string_statement_retains(stmt, binding_id, ctx, 0)) {
+                receipt->return_retained = true;
+                return false;
             }
             if (stmt->type == AST_ASSIGNMENT) {
                 ASTNode *target = ast_assignment_target(stmt);
@@ -1551,6 +1665,15 @@ semantic_collection_owned_string_results_prepare(SemanticContext *ctx)
                 PublishedOwnedStringSource *source = &receipt->sources[s];
                 bool source_current = collection_owned_string_source_current(
                     source->value.node, ctx, &visit, source->inputs);
+                /* A callee that returns only literals hands back static
+                 * storage: like a literal branch, its result is copied where
+                 * it is returned, and the next round proves the copy. */
+                if (!source_current && source->inputs == NULL
+                    && source->value.node != NULL
+                    && source->value.node->type == AST_CALL
+                    && collection_owned_string_callee_static_only(source->value.node, ctx))
+                    source_current = semantic_loan_copy_landing_select_string(
+                        ctx, source->value.node);
                 if (!source_current)
                     source_unproven = true;
             }
@@ -1629,6 +1752,25 @@ semantic_collection_owned_string_results_prepare(SemanticContext *ctx)
         }
     }
     return true;
+}
+
+/* The callee of `call` was examined and its result is not an owned
+ * allocation: every return is a literal, or a returned local is also kept
+ * elsewhere. An unexamined or merely unproved result is not disproved. */
+bool
+semantic_collection_owned_string_result_disproved(const ASTNode *call,
+    SemanticContext *ctx)
+{
+    const ASTNode *callee = call != NULL && call->type == AST_CALL ? ast_call_callee(call) : NULL;
+    const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    ASTNode *decl = name != NULL && ast_call_semantic_callee_decl_id(call) != 0
+        ? semantic_find_callable_decl_by_name(ctx, name) : NULL;
+    PublishedNode *row = decl != NULL && ctx->function_param_publications != NULL
+        && ast_node_stable_id(decl) == ast_call_semantic_callee_decl_id(call)
+        ? publication_node(ctx->function_param_publications, decl, false) : NULL;
+    return row != NULL && row->node == decl && row->owned_string_result_examined
+        && (row->owned_string_result_static_only || row->owned_string_result_return_retained);
 }
 
 bool
@@ -1803,6 +1945,10 @@ semantic_collection_record_owned_string_result_summary(
             "Owned String result examination lost its routine identity");
     } else {
         row->owned_string_result_examined = true;
+        row->owned_string_result_static_only = returns_ready && scan.saw_return
+            && !scan.saw_owned && scan.static_count != 0;
+        row->owned_string_result_return_retained =
+            receipt != NULL && receipt->return_retained;
     }
     if (getenv("PGY_DEBUG_OWNED_STRING_RESULTS") != NULL
         && type_equals(ctx->current_return, TYPE_STRING)) {

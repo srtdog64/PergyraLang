@@ -4,6 +4,13 @@
 #include "type_checker_flow_universe.h"
 #include "../array_storage_element_lifetime_owner.h"
 
+static uint8_t
+deferred_string_mask(const Symbol *symbol)
+{
+    return (uint8_t)((symbol->indexed_string_borrow_invalidated ? DEFERRED_STRING_BORROW_INVALIDATED : 0u)
+        | (symbol->owned_string_released ? DEFERRED_STRING_OWNED_RELEASED : 0u));
+}
+
 bool
 resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap, SemanticContext *ctx)
 {
@@ -24,7 +31,7 @@ resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap, Semant
             if (!type_equals(symbol->type, TYPE_STRING)) continue;
             if (symbol->decl_syntax_id == 0) return false;
             rows[snap->deferred_string_count++] = (DeferredStringInvalidationState){
-                symbol, symbol->decl_syntax_id, symbol->indexed_string_borrow_invalidated};
+                symbol, symbol->decl_syntax_id, deferred_string_mask(symbol)};
         }
     snap->deferred_strings_captured = true;
     return true;
@@ -48,8 +55,12 @@ resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap, 
                     && type_equals(s->symbols[j]->type, TYPE_STRING)) found = true;
         if (!found) return false;
     }
-    for (size_t i = 0; i < snap->deferred_string_count; i++)
-        snap->deferred_strings[i].symbol->indexed_string_borrow_invalidated = snap->deferred_strings[i].invalidated;
+    for (size_t i = 0; i < snap->deferred_string_count; i++) {
+        Symbol *symbol = snap->deferred_strings[i].symbol;
+        uint8_t mask = snap->deferred_strings[i].invalidated;
+        symbol->indexed_string_borrow_invalidated = (mask & DEFERRED_STRING_BORROW_INVALIDATED) != 0;
+        symbol->owned_string_released = (mask & DEFERRED_STRING_OWNED_RELEASED) != 0;
+    }
     return true;
 }
 
@@ -57,11 +68,11 @@ resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap, 
  * captured row. The rows name Strings of scopes enclosing the capture, which
  * are still live while a branch of that scope is joined. */
 void
-resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, bool *joined)
+resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, uint8_t *joined)
 {
     if (snap == NULL || !snap->deferred_strings_captured || joined == NULL) return;
     for (size_t i = 0; i < snap->deferred_string_count; i++)
-        joined[i] |= snap->deferred_strings[i].symbol->indexed_string_borrow_invalidated;
+        joined[i] |= deferred_string_mask(snap->deferred_strings[i].symbol);
 }
 
 void

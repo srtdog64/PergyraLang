@@ -199,6 +199,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         ResourceConsumeSnapshot backedge = {0};
         bool has_backedge = false;
         size_t map_view_invalidations = ctx->map_payload_view_invalidation_count;
+        size_t owned_string_releases = ctx->owned_string_release_count;
         FlowFlags body_flags = FLOW_NONE;
         uint32_t iter_effect_delta = EFFECT_NONE;
 
@@ -270,7 +271,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         }
 
         if (resource_snapshot_availability_equal(&entry, &backedge)
-            && ctx->map_payload_view_invalidation_count == map_view_invalidations) {
+            && ctx->map_payload_view_invalidation_count == map_view_invalidations
+            && ctx->owned_string_release_count == owned_string_releases) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;
@@ -407,6 +409,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         ResourceConsumeSnapshot backedge = {0};
         bool has_backedge = false;
         size_t map_view_invalidations = ctx->map_payload_view_invalidation_count;
+        size_t owned_string_releases = ctx->owned_string_release_count;
         FlowFlags body_flags = FLOW_NONE;
         uint32_t iter_effect_delta = EFFECT_NONE;
 
@@ -494,7 +497,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         }
 
         if (resource_snapshot_availability_equal(&entry, &backedge)
-            && ctx->map_payload_view_invalidation_count == map_view_invalidations) {
+            && ctx->map_payload_view_invalidation_count == map_view_invalidations
+            && ctx->owned_string_release_count == owned_string_releases) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;

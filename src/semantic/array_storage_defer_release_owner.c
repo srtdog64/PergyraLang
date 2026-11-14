@@ -6,6 +6,7 @@
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_release_owner.h"
 #include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_ownership_internal.h"
 #include "diag_codes.h"
 #include <stdlib.h>
 
@@ -25,6 +26,22 @@ defer_release_failure(SemanticContext *ctx, ASTNode *site, const char *name,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
         site, "A defer cleanup releases Array '%s' when the routine exits: %s",
         name != NULL ? name : "<array>", reason);
+    return false;
+}
+
+static bool
+defer_read_failure(SemanticContext *ctx, ASTNode *site, const char *name)
+{
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+        site, "A defer cleanup reads '%s' when the routine exits, but its storage was moved after the defer.\n"
+        "Reason:\n"
+        "- the cleanup runs after every statement of the routine\n"
+        "- the move or own handoff released the storage the cleanup reads\n"
+        "Fix:\n"
+        "- read the value in the defer before handing it off, or move the defer after the handoff\n"
+        "- or pass an independent Clone to the own call",
+        name != NULL ? name : "<value>");
     return false;
 }
 
@@ -64,7 +81,58 @@ semantic_array_storage_record_defer_release(ASTNode *receiver,
         owner->deferred_array_release_capacity = next;
     }
     owner->deferred_array_releases[owner->deferred_array_release_count++] =
-        (DeferredArrayRelease){receiver, binding->decl_syntax_id, owned_strings, false};
+        (DeferredArrayRelease){receiver, binding->decl_syntax_id, owned_strings, false, false};
+    return true;
+}
+
+/* The binding is named outside the defer body: in the scope the defer is
+ * written in or an enclosing one of the same routine. */
+static bool
+defer_read_outer_binding(const Symbol *binding, const SemanticContext *ctx)
+{
+    for (Scope *s = ctx->defer_registration_scope; s != NULL;
+         s = s->kind == SCOPE_FUNCTION ? NULL : s->parent)
+        for (size_t i = 0; i < s->symbol_count; i++)
+            if (s->symbols[i] == binding)
+                return true;
+    return false;
+}
+
+bool
+semantic_array_storage_record_defer_read(Symbol *binding, ASTNode *use,
+    SemanticContext *ctx)
+{
+    if (ctx == NULL || !ctx->in_defer_cleanup || binding == NULL
+        || ctx->future_lifecycle_unreachable_depth != 0
+        || binding->decl_syntax_id == 0 || binding->is_host_field
+        || binding->type == NULL || binding->type == TYPE_UNKNOWN
+        || semantic_ownership_type_holds_no_container(binding->type, ctx)
+        || !defer_read_outer_binding(binding, ctx))
+        return true;
+    Scope *owner = ctx->indexed_string_defer_scope;
+    if (owner == NULL || owner->kind != SCOPE_FUNCTION)
+        return defer_release_failure(ctx, use, binding->name,
+            "the read has no routine owner");
+    for (size_t i = 0; i < owner->deferred_array_release_count; i++) {
+        DeferredArrayRelease *row = &owner->deferred_array_releases[i];
+        if (row->receiver != use) continue;
+        row->settled = false;
+        return true;
+    }
+    if (owner->deferred_array_release_count == owner->deferred_array_release_capacity) {
+        size_t capacity = owner->deferred_array_release_capacity;
+        size_t next = capacity == 0 ? 4 : capacity * 2;
+        DeferredArrayRelease *rows = next <= capacity
+            || next > SIZE_MAX / sizeof(*rows) ? NULL
+            : realloc(owner->deferred_array_releases, next * sizeof(*rows));
+        if (rows == NULL)
+            return defer_release_failure(ctx, use, binding->name,
+                "the read record could not be allocated");
+        owner->deferred_array_releases = rows;
+        owner->deferred_array_release_capacity = next;
+    }
+    owner->deferred_array_releases[owner->deferred_array_release_count++] =
+        (DeferredArrayRelease){use, binding->decl_syntax_id, false, false, true};
     return true;
 }
 
@@ -102,6 +170,10 @@ defer_release_admit(SemanticContext *ctx, ASTNode *site, const ASTNode *returned
     if (binding == NULL)
         return defer_release_failure(ctx, site, name,
             "its binding is not in scope at this exit");
+    /* A read needs the storage still held by the binding it names. */
+    if (row->read_only)
+        return !binding->is_consumed || !binding->storage_moved_out
+            || defer_read_failure(ctx, row->receiver, name);
     /* Returning the binding hands its storage to the caller. */
     if (returned != NULL && returned->type == AST_IDENTIFIER
         && ast_identifier_binding_syntax_id(returned) == row->binding_id)

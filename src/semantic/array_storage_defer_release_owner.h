@@ -12,6 +12,12 @@ typedef struct ASTNode ASTNode;
  * own handoff of a named Array) on the routine's function scope. */
 bool semantic_array_storage_record_defer_release(ASTNode *receiver,
     bool owned_strings, SemanticContext *ctx);
+/* A defer body that reads an outer binding holding storage (an Array, a
+ * collection, a struct with one) reads it when the routine exits; each exit
+ * refuses the read once a later move or own handoff took the storage. */
+typedef struct Symbol Symbol;
+bool semantic_array_storage_record_defer_read(Symbol *binding, ASTNode *use,
+    SemanticContext *ctx);
 /* A later binding move would transfer the storage while the registered
  * cleanup still names the source binding. Refuse at that move site. */
 bool semantic_array_storage_admit_move_before_defer_release(

@@ -17,6 +17,11 @@ typedef struct {
     bool scoped_string_stack_failed, direct_string_pop_seen;
     const char *focus;
     bool *buffer_unkept;
+    /* writes_only: a field walk that asks whether the routine writes the
+     * field's storage. A path escaping through the routine's result is not
+     * a write; a user callee's argument follows that callee's write verdict.
+     * in_return: the walk is inside a returned value. */
+    bool writes_only, in_return;
 } FunctionParamArrayStorageWalk;
 
 bool function_param_array_storage_formal_kind(

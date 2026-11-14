@@ -56,5 +56,15 @@ bool function_param_flow_preserves_array_storage(SemanticContext *ctx,
  * unproved. */
 unsigned function_param_flow_field_preservation_failures(SemanticContext *ctx,
     ASTNode *function_decl, size_t param_index, const char *field);
+/* Whether the function writes the storage of its struct formal's `field`
+ * (any field when NULL), as a builtin store, an element write or a write
+ * through a local copy that grows; a path it only returns is not written.
+ * A non-struct formal answers with its full preservation verdict. */
+bool function_param_flow_field_written(SemanticContext *ctx,
+    ASTNode *function_decl, size_t param_index, const char *field);
+/* Whether the function reads an element of, writes or hands on the
+ * storage of its struct formal's `field`; unknown answers true. */
+bool function_param_flow_field_touched(SemanticContext *ctx,
+    ASTNode *function_decl, size_t param_index, const char *field);
 
 #endif /* PERGYRA_SLOT_SUMMARY_H */

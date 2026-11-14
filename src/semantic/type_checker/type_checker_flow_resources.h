@@ -21,10 +21,15 @@ typedef struct
     ArrayStorageMemberElementPremiseState member_elements;
 } ArrayStoragePathState;
 
+/* invalidated is a mask of DEFERRED_STRING_* bits. */
+enum {
+    DEFERRED_STRING_BORROW_INVALIDATED = 1u,
+    DEFERRED_STRING_OWNED_RELEASED = 2u
+};
 typedef struct {
     Symbol *symbol;
     uint32_t declaration_id;
-    bool invalidated;
+    uint8_t invalidated;
 } DeferredStringInvalidationState;
 
 /* Origin lists grow monotonically during one scope's check. The head is an
@@ -65,7 +70,7 @@ bool resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap,
     SemanticContext *ctx);
 bool resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap,
     SemanticContext *ctx);
-void resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, bool *joined);
+void resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, uint8_t *joined);
 void restore_resource_states(const ResourceConsumeSnapshot *snap);
 void restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                                          SemanticContext *ctx);

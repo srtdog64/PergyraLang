@@ -12,6 +12,8 @@
 #include "../callable_capability_inference.h"
 #include "../collection_owned_element_requirement_owner.h"
 #include "../collection_ownership_fact.h"
+#include "../owned_string_transfer_owner.h"
+#include "../call_argument_move_order_owner.h"
 #include "../default_aggregate_move_owner.h"
 #include "../allocator_lane_loan_owner.h"
 #include "../string_window_extent.h"
@@ -643,7 +645,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     bool owned_requirements_finalized =
         semantic_collection_owned_string_results_prepare(ctx)
         && semantic_array_storage_deferral_finalize(ctx)
-        && semantic_collection_owned_element_requirements_finalize(ctx);
+        && semantic_owned_string_finalize(ctx)
+        && semantic_collection_owned_element_requirements_finalize(ctx)
+        && semantic_call_argument_sibling_finalize(ctx);
     if (!owned_requirements_finalized) {
         free(topo_order);
         return false;

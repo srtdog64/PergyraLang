@@ -8,6 +8,7 @@
 #include "../array_storage_element_lifetime_owner.h"
 #include "../indexed_string_borrow_owner.h"
 #include "../map_string_payload_view_owner.h"
+#include "../owned_string_transfer_owner.h"
 #include "../function_param_flow/function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -518,20 +519,26 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
             (target_sym->is_parameter && target_sym->param_mode == PARAM_MODE_MUT_REF));
     }
     if (callable_carrier_store) callable_capability_record_retained_value(ctx, expr, value, value_type);
+    if (ctx->diagnostic_count == diagnostic_base && target != NULL
+        && (target->type == AST_MEMBER_ACCESS || target->type == AST_ARRAY_ACCESS))
+        semantic_owned_string_record_member_assignment(target, value, ctx);
     if (ctx->diagnostic_count == diagnostic_base
         && target != NULL && target->type == AST_IDENTIFIER) {
         Symbol *target_sym = lookup_identifier_symbol(target, ctx);
         /* The target is a write place, not a read of its old generation.
          * Restore liveness only after the RHS and all assignment contracts
          * admit the new value; this grants no array storage exclusivity. */
-        if (tracked_value_place && target_sym != NULL)
+        if (tracked_value_place && target_sym != NULL) {
             target_sym->is_consumed = false;
+            target_sym->storage_moved_out = false;
+        }
         if (target_sym != NULL && target_sym->type == TYPE_ALLOCATOR &&
             semantic_param_publication_pending(ctx))
             semantic_param_publication_invalidate_allocator_binding(ctx, target);
         semantic_indexed_string_borrow_record_assignment(
             target_sym, value, expr, ctx);
         semantic_map_payload_view_record_assignment(target_sym, value, expr, ctx);
+        semantic_owned_string_record_assignment(target_sym, value, ctx);
         if (target_sym != NULL && type_is_constructed_named(target_sym->type, "Slice")) {
             ownership_slice_record_source(target_sym, value, ctx);
             target_sym->slice_split_info.has_fact = false;

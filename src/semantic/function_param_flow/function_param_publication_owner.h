@@ -155,6 +155,9 @@ typedef struct {
     size_t source_count, sealed_source_count;
     size_t static_return_count;
     bool static_return_normalization, source_validation_pending;
+    /* A returned local is also kept elsewhere (a field, an alias, a
+     * constructor or retaining call). */
+    bool return_retained;
 } PublishedOwnedStringResult;
 typedef struct {
     const ASTNode *source;
@@ -207,6 +210,9 @@ typedef struct {
     bool owned_slot_binding;
     PublishedOwnedStringResult *owned_string_result;
     bool owned_string_result_examined, owned_string_result_cycle_withdrawn;
+    /* Every return of the routine was examined and each is a String literal;
+     * a returned local is also kept elsewhere. Either disproves ownership. */
+    bool owned_string_result_static_only, owned_string_result_return_retained;
     bool result_allocator_binding, allocator_invalidated;
     const ASTNode *allocator_initializer, *allocator_type_node;
     uint32_t allocator_initializer_id, allocator_type_node_id;

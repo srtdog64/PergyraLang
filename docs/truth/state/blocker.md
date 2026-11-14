@@ -1,13 +1,13 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-14 on main `65724e27d` (CI
-green, run 43596693746).
+Owner: Claude root lane. Checked 2026-11-15 on `fix/native-unsafe-admissions`
+(on main `b06f07c1a`, CI green at `65724e27d`).
 
 ## Objective card
 
-- Objective: keep required CI green on one published commit, with the
-  bootstrap and installed-driver jobs executed (met at `cdb65d798`,
-  `edbb4575b`, `bcdf042c4` and `65724e27d`).
+- Objective: native admits no lifetime negative that reads or frees freed
+  memory, with required CI green on one published commit (user goal
+  2026-11-14: all memory errors, SoT rows they pass through).
 - Priority: memory safety of what either front end admits; one fact owner;
   fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
@@ -15,38 +15,30 @@ green, run 43596693746).
 
 ## Open, in dependency order
 
-1. Native admits 36 negative fixtures that fail under ASan
-   ([remeasured 2026-11-14](../evidence/2026-11-14_native_unsafe_negative_admissions_remeasured.md)):
-   13 owned-String transfers (`ArrayDropOwnedStrings` admits UNKNOWN
-   element provenance on purpose, `collection_ownership_fact.c`), 11 callee
-   growths of a by-value formal's field copy, 12 others. Refusing UNKNOWN
-   outright (WSL trial at `65724e27d`) refuses 26 positive fixtures and one
-   canonical drop (`ast_generic_parameter_fact_owner.pgy:302`, filled only
-   by `ArrayPushOwnedString` in a loop): native needs the provenance facts
-   the self-host analyzer has, not a closed boundary.
-2. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
+1. Required CI on the commit carrying the native checker fixes
+   ([measurement](../evidence/2026-11-15_native_unsafe_negative_admissions_closed.md)):
+   36 memory errors to 1; the one left (`inout_cycle_drop`) is endless
+   recursion that its admitted positive twin shares.
+2. A user-call String producer the owned-result examination neither
+   proves nor disproves stays at the native boundary (the self-host
+   analyzer proves the canonical ones, e.g. `EmitFunctionSet`).
+3. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
    root); a pass-through `wslpath` shim makes it pass.
-3. The self-host MIR route carries no compiler `Clone`; native lands one for
+4. The self-host MIR route carries no compiler `Clone`; native lands one for
    `collection_field_use_after_move`, the self-host refuses it.
 
 ## Done since `cdb65d798`
 
-- Folder reorganization (user decision 2026-11-13): `editors/`, twelve
-  parity family directories, subject directories for loose `tests/` gates
-  and `docs/` documents, large flat `src/` directories split by prefix.
-- Gates kept their coverage across the moves: depth-limited scans
-  (`semantic_tu_size`, `test_inc_size`, numbered-doc uniqueness, inc
-  sentinel) read the new directories, and the semantic 599-line cap covers
-  `ast_collection/` and `ast_expression/`.
-- The codegen seed prebuild key hashed three shared legs at paths that no
-  longer existed into empty fields; it now refuses a missing input.
-- A nested Array element store (`slots[i] = row`) emitted an invalid C
-  kernel name and was refused by LLVM; both legs now store it
-  (`backend_compare/nested_array_element_assign`).
-- Three drifted projections regenerated (`751e5dd05`): the builtin effect
-  table (`ArraySetOwnedString`), the LSP hover renderer (`var` locals) and
-  the language-word inventory. The core shard now checks the builtin-effect
-  and language-keyword registries, so the next drift fails CI.
+- Folder reorganization (user decision 2026-11-13) with gate coverage kept
+  across the moves; the seed prebuild key refuses a missing input.
+- Nested Array element store on both legs; three drifted projections
+  regenerated and checked in the core shard.
+- Native checker (2026-11-15): later-argument moves and changes, defer
+  reads after an own hand-off, owned String transfers, field write versus
+  escape (a written field moves), break/continue move states, String reads
+  beside a releasing argument, releases of shared or borrowed parts.
+  `tests/ownership/native_unsafe_negative_refusal_smoke.sh` (core shard)
+  holds the refusals, their safe neighbours and the copy landings.
 
 ## Falsifiers kept
 
@@ -56,3 +48,6 @@ green, run 43596693746).
   whose destination row names itself, are refused with no artifact.
 - A 600-line unregistered owner in `src/self_hosted/semantic/ast_collection/`
   is refused; a missing shared leg refuses the seed prebuild key.
+- `owned_string_member_actual_positive`, `exclusive_focus_update_positive`
+  and `empty_capture_two_fields_positive` stay admitted beside the
+  refused negatives they mirror.

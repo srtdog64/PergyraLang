@@ -569,6 +569,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/collection_moved_member_restoration_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
                    $(SEMANTIC_DIR)/map_string_payload_view_owner.c \
+                   $(SEMANTIC_DIR)/call_argument_move_order_owner.c                    $(SEMANTIC_DIR)/owned_string_transfer_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_field_lineage.c \
                    $(SEMANTIC_DIR)/indexed_string_field_flow.c \
                    $(SEMANTIC_DIR)/indexed_string_result_inputs.c \
@@ -5244,6 +5245,10 @@ slot-contract-test-smoke: $(PGY)
 
 hashmap-owned-string-provenance-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/hashmap_owned_string_provenance_smoke.sh
+
+.PHONY: native-unsafe-negative-refusal-test-smoke
+native-unsafe-negative-refusal-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/native_unsafe_negative_refusal_smoke.sh
 
 .PHONY: process-args-utf8-test-smoke
 process-args-utf8-test-smoke:

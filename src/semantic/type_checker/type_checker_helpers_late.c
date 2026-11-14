@@ -18,7 +18,9 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "../diag_codes.h"
+#include "../call_argument_move_order_owner.h"
 #include "../map_string_payload_view_owner.h"
+#include "../owned_string_transfer_owner.h"
 #include "../default_aggregate_move_rule.h"
 #include "../loan_copy_landing_owner.h"
 #include "../../common/string_compat.h"
@@ -255,8 +257,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
     MapPayloadViewCallFrame map_view_frame;
     semantic_map_payload_view_call_begin(&map_view_frame);
+    CallArgumentMoveFrame move_frame;
+    semantic_call_argument_move_begin(&move_frame);
+    move_frame.call = expr;
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
+        if (i > 0)
+            (void)semantic_call_argument_move_record(&move_frame,
+                ast_call_argument(expr, i - 1), ctx);
         /* A field or element place passed inout was a lost update on C
          * (`Both(s.a, s.a)` printed 11), invalid IR on LLVM, and a codegen
          * refusal on the self-host route. Only a variable is carried as an
@@ -286,6 +294,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 semantic_type_mentions_generic_param(param_type)
                     ? NULL : param_type,
                 ctx);
+        (void)semantic_call_argument_move_check(&move_frame, ctx);
         if (type_equals(arg_type, TYPE_VOID)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_ASSIGNABILITY_CHECK,
@@ -396,6 +405,15 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_array_storage_call_argument(arg_expr, arg_type,
             type_function_return_type(sym->type), type_function_param_mode(sym->type, i),
             sym->kind == SYMBOL_ENUM_CONSTRUCTOR, expr, callable_decl, i, ctx);
+        (void)semantic_call_argument_sibling_record(&move_frame, arg_expr, i, arg_type,
+            (int)type_function_param_mode(sym->type, i), ctx);
+        (void)semantic_formal_release_record_argument(arg_expr, callable_decl, i,
+            (int)type_function_param_mode(sym->type, i), ctx);
+        if (callable_decl != NULL && callable_decl->type == AST_FUNC_DECL
+            && type_function_param_mode(sym->type, i) == PARAM_MODE_OWN
+            && type_equals(arg_type, TYPE_STRING)
+            && ctx->diagnostic_count == argument_diagnostic_base)
+            (void)semantic_owned_string_transfer(arg_expr, "An own String formal", ctx);
         if (ctx->diagnostic_count > argument_diagnostic_base)
             continue;
         if (arg_type == TYPE_UNKNOWN
@@ -441,6 +459,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             semantic_map_payload_view_change(ast_call_argument(expr, i), NULL, ctx);
     }
     semantic_map_payload_view_call_finish(&map_view_frame, ctx);
+    (void)semantic_call_argument_sibling_check(&move_frame, expr, ctx);
+    semantic_call_argument_move_finish(&move_frame);
 
     Type *return_type = semantic_validate_function_call_generic_where(
         expr, ctx, display_name, provided, call_arg_types,

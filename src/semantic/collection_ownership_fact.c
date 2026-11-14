@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "owned_string_transfer_owner.h"
+#include "call_argument_move_order_owner.h"
 #include "symbol_table.h"
 #include "type_checker.h"
 #include "type_checker/type_checker_internal.h"
@@ -506,6 +508,8 @@ semantic_collection_admit_owned_string_drop(
 
     if (receiver == NULL)
         return false;
+    if (!semantic_formal_release_record_drop(receiver, ctx))
+        return false;
     if (receiver->type != AST_IDENTIFIER) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_BORROW_ESCAPE,
@@ -658,8 +662,10 @@ semantic_collection_admit_owned_string_drop(
         }
         /* This native bootstrap-oracle boundary still admits general UNKNOWN
          * provenance. Admission here is not owned-element proof and must not
-         * be projected as an OWNED carrier row from type or spelling. */
-        return true;
+         * be projected as an OWNED carrier row from type or spelling. An
+         * Array<String> literal's elements are handed to the drop: each one
+         * must be an owned allocation, and its storage is released. */
+        return semantic_owned_string_drop_literal_elements(receiver, ctx);
     }
     if (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED) {
         semantic_error_with_hints(ctx,

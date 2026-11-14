@@ -653,6 +653,30 @@ semantic_collection_owned_inout_actuals_issued(
     return concrete;
 }
 
+/* After the requirement finalizer: the formal (any mode) carries a release
+ * requirement, its own or one forwarded from a callee it hands it to. */
+bool
+semantic_collection_owned_parameter_release_required(
+    SemanticContext *ctx, ASTNode *function_decl, size_t formal_index)
+{
+    CollectionOwnedElementRequirementStore *store = ctx != NULL
+        ? ctx->collection_owned_element_requirements : NULL;
+    FuncParam *formal = function_decl != NULL
+        && function_decl->type == AST_FUNC_DECL
+        && formal_index < ast_func_param_count(function_decl)
+        ? ast_func_param(function_decl, formal_index) : NULL;
+    uint32_t function_id = function_decl != NULL ? ast_node_stable_id(function_decl) : 0;
+    uint32_t parameter_id = formal != NULL ? ast_func_param_stable_id(formal) : 0;
+    if (store == NULL || function_id == 0 || parameter_id == 0)
+        return false;
+    for (size_t i = 0; i < store->parameter_count; i++) {
+        const OwnedElementParameter *row = &store->parameters[i];
+        if (row->function_id == function_id && row->parameter_id == parameter_id)
+            return (row->requirements & 2u) != 0;
+    }
+    return false;
+}
+
 bool
 semantic_collection_owned_parameter_releases_storage(
     SemanticContext *ctx, ASTNode *function_decl, size_t formal_index)

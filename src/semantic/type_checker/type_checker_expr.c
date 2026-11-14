@@ -8,10 +8,12 @@
 #include "type_checker_visibility.h"
 #include "../indexed_string_borrow_owner.h"
 #include "../map_string_payload_view_owner.h"
+#include "../owned_string_transfer_owner.h"
 #include "../diag_codes.h"
 #include "../../common/match_variant_policy.h"
 #include "../function_param_flow/function_param_publication_owner.h"
 #include "../array_storage_release_owner.h"
+#include "../array_storage_defer_release_owner.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING visit census: total expression visits vs
  * distinct nodes separates "each node costs too much" from "nodes are
@@ -173,6 +175,10 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         if (!semantic_indexed_string_borrow_validate_use(sym, expr, ctx))
             return TYPE_UNKNOWN;
         if (!semantic_map_payload_view_validate_use(sym, expr, ctx))
+            return TYPE_UNKNOWN;
+        if (!semantic_array_storage_record_defer_read(sym, expr, ctx))
+            return TYPE_UNKNOWN;
+        if (!semantic_owned_string_validate_use(sym, expr, ctx))
             return TYPE_UNKNOWN;
         if (sym->kind == SYMBOL_SLOT && sym->type != NULL
             && type_is_owned_slot_handle(sym->type)) {

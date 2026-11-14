@@ -5,6 +5,7 @@
  * Array and Slice stdlib builtin type contracts.
  */
 
+#include "../owned_string_transfer_owner.h"
 #include "../formal_string_store_landing_owner.h"
 #include "type_checker_internal.h"
 #include "../collection_owned_element_requirement_owner.h"
@@ -260,6 +261,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, op_name, ctx))
             return TYPE_UNKNOWN;
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH)
+            semantic_owned_string_record_push(arg0, arg1, ctx);
         bool member_value_copy_landed =
             kind == STDLIB_COLLECTION_ARRAY_PUSH
             && semantic_formal_string_store_landing_member_value_copy_selected(

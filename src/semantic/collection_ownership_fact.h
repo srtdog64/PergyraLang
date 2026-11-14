@@ -318,6 +318,8 @@ bool semantic_collection_member_value_copy_replay_ready(
     ASTNode *receiver,
     SemanticContext *ctx);
 
+bool semantic_collection_owned_string_result_disproved(const ASTNode *call,
+    SemanticContext *ctx);
 bool semantic_collection_owned_string_call_result(
     const ASTNode *expression,
     SemanticContext *ctx,

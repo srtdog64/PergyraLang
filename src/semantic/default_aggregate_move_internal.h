@@ -117,6 +117,8 @@ typedef struct {
     /* Stack-local loans held while an indexed assignment has captured an
      * address into collection backing but has not performed its store. */
     MoveAssignmentBackingLoan *assignment_loan;
+    /* The innermost loop's break and continue states. */
+    MoveState *loop_exits;
 } MoveWalk;
 
 bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
@@ -192,6 +194,8 @@ void move_walk_prepare_lent_argument(MoveWalk *walk, uint32_t binding,
  * was already transferred. */
 void move_walk_apply_constructor_moves(MoveWalk *walk, MoveState *state,
     ASTNode *call);
+bool move_walk_reject_argument_moved_by_later(MoveWalk *walk, const MoveState *state,
+    ASTNode *call, size_t later, size_t moves_before);
 bool move_walk_reject_overlapping_moving_arguments(MoveWalk *walk,
     ASTNode *call);
 #endif

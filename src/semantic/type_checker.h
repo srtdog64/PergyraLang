@@ -204,9 +204,24 @@ struct SemanticContext
     bool         in_parallel;    /* Inside parallel block          */
     bool         in_defer_cleanup; /* Deferred writes do not replace current storage. */
     Scope       *indexed_string_defer_scope;
+    /* The scope a defer body is written in; outer bindings it reads are
+     * checked at every exit (array_storage_defer_release_owner). */
+    Scope       *defer_registration_scope;
     ASTNode     *indexed_string_defer_body;
     size_t       indexed_string_defer_sequence, indexed_string_next_defer_sequence;
     bool         indexed_string_nested_defer;
+    /* Owned String transfers (owned_string_transfer_owner): releases so
+     * far (a loop body that releases is checked once more) and the user-call
+     * producers whose ownership is proved after Pass 2. */
+    size_t       owned_string_release_count;
+    struct OwnedStringPendingProof *owned_string_pending;
+    size_t       owned_string_pending_count, owned_string_pending_capacity;
+    /* String arguments read from a sibling inout/own argument's binding,
+     * judged after Pass 2 (call_argument_move_order_owner). */
+    struct CallArgumentSiblingPending *call_argument_sibling_pending;
+    size_t       call_argument_sibling_count, call_argument_sibling_capacity;
+    struct FormalReleaseRow *formal_release_rows;
+    size_t       formal_release_count, formal_release_capacity;
     /* Map storage sources whose String values changed, in check order
      * (map_string_payload_view_owner). */
     uint32_t    *map_payload_view_changes;

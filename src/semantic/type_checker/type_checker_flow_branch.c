@@ -154,8 +154,8 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
      * with it: after the if, a String is released only when a path that
      * reaches the join released it. Without the capture the old join stays. */
     bool strings_joined = resource_snapshot_capture_deferred_strings(&base, ctx);
-    bool *string_released = strings_joined && base.deferred_string_count != 0 ?
-        calloc(base.deferred_string_count, sizeof(bool)) : NULL;
+    uint8_t *string_released = strings_joined && base.deferred_string_count != 0 ?
+        calloc(base.deferred_string_count, sizeof(uint8_t)) : NULL;
     if (base.deferred_string_count != 0 && string_released == NULL) strings_joined = false;
 
     if (!type_equals(cond, TYPE_BOOL)) {

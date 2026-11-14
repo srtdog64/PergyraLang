@@ -886,7 +886,7 @@ bool function_param_flow_array_buffer_kept(SemanticContext *ctx, ASTNode *functi
 bool function_param_array_storage_field_unproved_in_program_points(
     ASTNode *const *statements, size_t statement_count, ASTNode *const *roots, size_t count,
     const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, unsigned summary, const char *field,
-    unsigned *failures);
+    bool writes_only, unsigned *failures, bool *payload_read);
 /* One entry's settled Array preservation failures, for the published snapshot. */
 unsigned function_param_flow_array_preservation_settled(FunctionParamFlowSummaryStore *store, size_t index);
 

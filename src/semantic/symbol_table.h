@@ -113,6 +113,9 @@ struct Symbol
     bool       is_forward_placeholder;
     bool       is_used;
     bool       is_consumed;
+    /* The consumption moved the storage to another owner (an own handoff),
+     * unlike an in-place release that leaves an empty descriptor. */
+    bool       storage_moved_out;
     /* Public ArrayDrop authority; descriptor copies/escapes invalidate it. */
     bool       has_exclusive_array_storage;
     /* A recorded descriptor store is distinct from unproved call-result storage. */
@@ -138,6 +141,27 @@ struct Symbol
     uint32_t   map_storage_source_syntax_id;
     uint32_t   map_payload_view_source_syntax_id;
     bool       map_payload_view_invalidated;
+    /* Owned String transfer (owned_string_transfer_owner): whether the
+     * String storage this binding holds (a String, a struct or Array built
+     * from one) is an owned allocation, the storage identity aliases share,
+     * the user call whose result decides ownership after Pass 2, and whether
+     * an own hand-off or deep drop released it. */
+    uint8_t    owned_string_state;
+    uint32_t   owned_string_source_syntax_id;
+    const ASTNode *owned_string_producer;
+    const ASTNode *owned_string_literal;
+    bool       owned_string_released;
+    /* The binding whose storage a value read from an element or field path
+     * names (`let first = holder.tables.names[0]` and `var tables =
+     * holder.tables` both read holder); an alias keeps its source's root. */
+    uint32_t   storage_root_binding_id;
+    /* Two parts of this value share one storage (`Pair(seed, seed)`,
+     * `names.right = names.left`), or a part holds String elements it does
+     * not own (a literal, a plain push of a borrowed String). A routine that
+     * releases its formal's storage frees such parts twice or frees borrowed
+     * storage. */
+    bool       storage_fields_aliased;
+    bool       storage_elements_borrowed;
     PgyFutureLifecycleState future_lifecycle_state;
     bool       future_lifecycle_reported;
     bool       is_parameter;
@@ -256,7 +280,8 @@ typedef struct IndexedStringDeferredRead {
 typedef struct DeferredArrayRelease {
     ASTNode *receiver;
     uint32_t binding_id;
-    bool owned_strings, settled;
+    /* read_only: the cleanup reads the storage instead of releasing it. */
+    bool owned_strings, settled, read_only;
 } DeferredArrayRelease;
 
 struct Scope

@@ -44,6 +44,8 @@ bool semantic_collection_owned_inout_actuals_issued(
 /* Whether the current typed requirement store records a storage-release
  * obligation for this exact own formal.  Missing or stale rows grant
  * nothing; callers use this to keep provisional storage borrowed. */
+bool semantic_collection_owned_parameter_release_required(
+    SemanticContext *ctx, ASTNode *function_decl, size_t formal_index);
 bool semantic_collection_owned_parameter_releases_storage(
     SemanticContext *ctx, ASTNode *function_decl, size_t formal_index);
 bool semantic_collection_owned_element_requirement_record_member_push(

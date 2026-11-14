@@ -269,11 +269,16 @@ record_default_struct_field_moves(MoveWalk *walk, MoveState *state,
             walk->failed = true;
             break;
         }
+        /* A callee that writes the field (a local copy of it grows and is
+         * handed back) does not lend it: the call moves the field, and the
+         * storage every other copy of it names changed. */
+        bool field_lends = lends
+            && !function_param_flow_field_written(walk->ctx, callee, formal, name);
         if (!move_walk_state_add(walk, state, binding, path,
-                callee_name, callee, param_name, lends ? call : NULL, 0,
+                callee_name, callee, param_name, field_lends ? call : NULL, 0,
                 NULL, argument, copy_on_reuse, outward_borrow_escape))
             break;
-        if (!lends)
+        if (!field_lends)
             move_walk_copy_changed_at(walk, state, argument, binding,
                 path, copy_on_reuse);
     }
@@ -651,6 +656,66 @@ move_walk_apply_constructor_moves(MoveWalk *walk, MoveState *state,
                 NULL, 0, NULL, argument, true, false))
             return;
     }
+}
+
+/* Every argument is evaluated before the callee runs. A nested call in
+ * argument `later` that moves (not lends) storage an earlier argument names
+ * - a callee that grows a copy of that field and hands it back - frees the
+ * storage the earlier argument hands the callee. */
+bool
+move_walk_reject_argument_moved_by_later(MoveWalk *walk, const MoveState *state,
+    ASTNode *call, size_t later, size_t moves_before)
+{
+    for (size_t r = moves_before; r < state->count; r++) {
+        const MovedPath *row = &state->rows[r];
+        if (row->lending_call != NULL)
+            continue;
+        for (size_t earlier = 0; earlier < later; earlier++) {
+            ASTNode *argument = ast_call_argument(call, earlier);
+            uint32_t binding = 0;
+            char fields[512];
+            if (!move_walk_access_path(argument, &binding, fields, sizeof(fields))
+                || binding != row->binding
+                || (!move_walk_path_contains(fields, row->fields)
+                    && !move_walk_path_contains(row->fields, fields)))
+                continue;
+            /* The changed path lies below the argument: a callee formal that
+             * never touches that top-level field is not reached by it. */
+            size_t length = strlen(fields);
+            if (strncmp(row->fields, fields, length) == 0 && row->fields[length] == '.') {
+                char field[256];
+                const char *start = row->fields + length + 1;
+                size_t n = strcspn(start, ".");
+                ASTNode *callee = NULL;
+                size_t formal = 0;
+                bool body_call = false;
+                if (n < sizeof(field)
+                    && semantic_param_publication_body_actual_current(walk->ctx,
+                        walk->routine, call, earlier, &body_call, &callee, &formal)
+                    && body_call && callee != NULL) {
+                    memcpy(field, start, n);
+                    field[n] = '\0';
+                    if (!function_param_flow_field_touched(walk->ctx, callee, formal, field))
+                        continue;
+                }
+            }
+            if (move_walk_reported_once(walk, argument))
+                semantic_error_with_hints(walk->ctx,
+                    PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, argument,
+                    "Argument %zu is passed to this call and changed by argument %zu of the same call.\n"
+                    "Reason:\n"
+                    "- every argument is evaluated before the callee runs\n"
+                    "- the later argument's call grows or takes the storage this argument hands the callee\n"
+                    "Fix:\n"
+                    "- evaluate the changing call in a statement before this call\n"
+                    "- or pass an independent Clone",
+                    earlier + 1, later + 1);
+            walk->failed = true;
+            return false;
+        }
+    }
+    return true;
 }
 
 bool

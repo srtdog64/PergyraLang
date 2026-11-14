@@ -347,6 +347,7 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
             return false;
         }
         bool prior_defer = ctx->in_defer_cleanup;
+        Scope *prior_registration = ctx->defer_registration_scope;
         Scope *prior_read_scope = ctx->indexed_string_defer_scope;
         ASTNode *prior_read_body = ctx->indexed_string_defer_body;
         size_t prior_sequence = ctx->indexed_string_defer_sequence;
@@ -369,6 +370,7 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
         TransactionFlowContext *saved_transaction = ctx->transaction_flow;
         int saved_transaction_depth = ctx->transaction_depth;
         ctx->in_defer_cleanup = true;
+        if (!prior_defer) ctx->defer_registration_scope = ctx->scope;
         ctx->transaction_flow = NULL;
         ctx->transaction_depth = 0;
         (void)type_check_block_flow(body, ctx, NULL);
@@ -377,6 +379,7 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
         ctx->transaction_flow = saved_transaction;
         ctx->transaction_depth = saved_transaction_depth;
         ctx->in_defer_cleanup = prior_defer;
+        ctx->defer_registration_scope = prior_registration;
         ctx->indexed_string_defer_scope = prior_read_scope;
         ctx->indexed_string_defer_body = prior_read_body;
         ctx->indexed_string_defer_sequence = prior_sequence;

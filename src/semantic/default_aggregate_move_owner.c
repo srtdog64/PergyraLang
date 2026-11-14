@@ -633,12 +633,21 @@ static bool walk_loop(MoveWalk *walk, MoveState *state, ASTNode *condition, ASTN
 {
     MoveState entry;
     if (!state_copy(walk, &entry, state)) return false;
-    for (int pass = 0; pass < 2; pass++) {
-        if (!walk_expression(walk, state, condition)) { state_free(&entry); return false; }
+    MoveState exits = {0};
+    MoveState *prior = walk->loop_exits;
+    walk->loop_exits = &exits;
+    bool ok = true;
+    for (int pass = 0; pass < 2 && ok; pass++) {
+        ok = walk_expression(walk, state, condition);
         bool terminated = false;
-        if (body != NULL && !walk_node(walk, state, body, &terminated)) { state_free(&entry); return false; }
+        if (ok && body != NULL) ok = walk_node(walk, state, body, &terminated);
+        /* A continue reaches the next pass and a break the loop exit, with
+         * the moves made on its path. */
+        if (ok) ok = state_union(walk, state, &exits);
     }
-    bool ok = state_union(walk, state, &entry);
+    walk->loop_exits = prior;
+    if (ok) ok = state_union(walk, state, &entry);
+    state_free(&exits);
     state_free(&entry);
     return ok;
 }
@@ -669,11 +678,15 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         if (callee != NULL && callee->type == AST_MEMBER_ACCESS && !walk_expression(walk, state, ast_member_object(callee)))
             return false;
         for (size_t p = 0; p < ast_call_arg_count(node); p++) {
+            size_t moves_before = state->count;
             walk->argument_call = node;
             walk->argument_ordinal = p;
             bool walked = walk_expression(walk, state, ast_call_argument(node, p));
             walk->argument_call = NULL;
             if (!walked) return false;
+            if (!walk->landing_only && p > 0
+                && !move_walk_reject_argument_moved_by_later(walk, state, node, p, moves_before))
+                return false;
         }
         if (!walk->landing_only) {
             move_walk_check_assignment_loan_call(walk, state, node);
@@ -817,6 +830,8 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         return true;
     case AST_BREAK: case AST_CONTINUE: case AST_FAIL_STMT:
         if (node->type == AST_FAIL_STMT && !walk_children(walk, state, node, terminated)) return false;
+        if (node->type != AST_FAIL_STMT && walk->loop_exits != NULL
+            && !state_union(walk, walk->loop_exits, state)) return false;
         *terminated = true;
         return true;
     case AST_IF_STMT: {

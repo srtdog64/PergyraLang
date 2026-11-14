@@ -81,6 +81,7 @@ consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
     }
 
     sym->is_consumed = true;
+    sym->storage_moved_out = true;
     sym->is_used = true;
     (void)action;
     return true;
