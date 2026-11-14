@@ -42,7 +42,7 @@ collection_artifact_from_mir() {
     if [[ "$backend" == c ]]; then
         compile_command=("$CC" -std=c11 "$ROOT_DIR/$artifact_rel")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$ROOT_DIR/$artifact_rel"; then
-            compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+            compile_command+=(-D_POSIX_C_SOURCE=200809L "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
         fi
         compile_command+=(-o "$executable")
     else
@@ -647,7 +647,9 @@ for backend in c llvm; do
 done
 # A field restore retires the member-moved local only when the rebind stores
 # it into the exact field its MIR row names. Point the row at another
-# declaration and the restore no longer matches, so the retired claim fails.
+# declaration and the program is refused with no artifact: the MIR fact index
+# checks the row against the definition first, and the transition admission
+# would not match the restore either.
 RESTORE_MISFIELD_REL="$WORK_REL/collection-field-restore-misfield.mir.json"
 python - "$ROOT_DIR/$WORK_REL/collection_field_restore_valid.mir.json" \
         "$ROOT_DIR/$RESTORE_MISFIELD_REL" <<'PY'
@@ -672,14 +674,14 @@ for backend in c llvm; do
     fi
     [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
         fail "direct $backend misfield restore refusal replaced its artifact"
-    grep -Fq 'stage=collection_ownership_transition' \
+    grep -Fq 'CODEGEN ERROR:' \
         "$WORK_DIR/collection-field-restore-misfield-$backend.out" \
         "$WORK_DIR/collection-field-restore-misfield-$backend.err" ||
-        fail "direct $backend misfield restore refusal lost its stage"
+        fail "direct $backend misfield restore was not a code-generation refusal"
 done
 # A borrowed binding move retires its source only when the destination's MIR
-# row names that source. Name the destination itself and the move no longer
-# matches, so the source's retired claim fails.
+# row names that source. Name the destination itself and the program is
+# refused with no artifact, before or at the transition admission.
 MOVE_UNNAMED_REL="$WORK_REL/borrowed-binding-move-unnamed.mir.json"
 python - "$ROOT_DIR/$WORK_REL/borrowed_string_array_shallow_copy.mir.json" \
         "$ROOT_DIR/$MOVE_UNNAMED_REL" <<'PY'
@@ -705,10 +707,10 @@ for backend in c llvm; do
     fi
     [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
         fail "direct $backend unnamed move refusal replaced its artifact"
-    grep -Fq 'stage=collection_ownership_transition' \
+    grep -Fq 'CODEGEN ERROR:' \
         "$WORK_DIR/borrowed-binding-move-unnamed-$backend.out" \
         "$WORK_DIR/borrowed-binding-move-unnamed-$backend.err" ||
-        fail "direct $backend unnamed move refusal lost its stage"
+        fail "direct $backend unnamed move was not a code-generation refusal"
 done
 for name in borrowed_string_array_shallow_copy \
         unknown_string_array_alias_without_drop string_array_clone_independence; do
@@ -749,7 +751,7 @@ for name in borrowed_string_array_shallow_copy \
         fi
         executable="$WORK_DIR/$name-direct-$backend.exe"
         if [[ "$backend" == c ]]; then
-            "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+            "$CC" -std=c11 -D_POSIX_C_SOURCE=200809L -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
                 "$artifact" -o "$executable" ||
                 fail "generated direct C did not compile for $name"
         else
@@ -786,11 +788,15 @@ MAP_KEYS_MOVE_LLVM="$ROOT_DIR/$MAP_KEYS_MOVE_LLVM_REL"
     "$MAP_KEYS_MOVE_C")" == 1 ]] || fail "direct C did not drop the moved snapshot once"
 ! grep -Fq 'pgy_as_drop_owned(&pgy_local_1);' "$MAP_KEYS_MOVE_C" ||
     fail "direct C dropped the retired MapKeys source"
-[[ "$(grep -Fc 'pgy_map_drop_int(&pgy_local_0);' \
-    "$MAP_KEYS_MOVE_C")" == 1 ]] || fail "direct C did not drop the map once"
+# An owned local's definition releases the old value first; before the first
+# definition that is the zero-initialized local and frees nothing. The map's
+# one real release is the one after its MapKeys snapshot.
+[[ "$(awk 'index($0, "pgy_self_map_keys_HashMap_String_Int(&(pgy_local_0))") { after = 1 }
+    after && index($0, "pgy_map_drop_int(&pgy_local_0);") { n++ } END { print n + 0 }' \
+    "$MAP_KEYS_MOVE_C")" == 1 ]] || fail "direct C did not drop the map once after its snapshot"
 ! grep -Fq 'pgy_as values' "$MAP_KEYS_MOVE_C" ||
     fail "direct C fell back to reconstructed AST storage for MapKeys"
-"$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+"$CC" -std=c11 -D_POSIX_C_SOURCE=200809L -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
     "$MAP_KEYS_MOVE_C" -o "$WORK_DIR/map-keys-direct-c.exe" ||
     fail "generated MapKeys C did not compile"
 "$WORK_DIR/map-keys-direct-c.exe" >"$WORK_DIR/map-keys-direct-c.run" ||
@@ -806,8 +812,9 @@ MAP_KEYS_MOVE_LLVM="$ROOT_DIR/$MAP_KEYS_MOVE_LLVM_REL"
     "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the moved snapshot once"
 ! grep -Fq 'call void @pgy_as_drop_owned(ptr %pgy.local.1)' \
     "$MAP_KEYS_MOVE_LLVM" || fail "direct LLVM dropped the retired MapKeys source"
-[[ "$(grep -Fc 'call void @pgy_map_drop_raw_export(ptr %pgy.local.0)' \
-    "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the map once"
+[[ "$(awk 'index($0, "call void @pgy_map_keys_raw_export(ptr %pgy.local.0") { after = 1 }
+    after && index($0, "call void @pgy_map_drop_raw_export(ptr %pgy.local.0)") { n++ } END { print n + 0 }' \
+    "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the map once after its snapshot"
 "$CLANG" -x ir "$MAP_KEYS_MOVE_LLVM" -x none \
     "$WORK_DIR/collection-runtime.o" -pthread -lm \
     -o "$WORK_DIR/map-keys-direct-llvm.exe" || fail "generated MapKeys LLVM did not link"
@@ -842,8 +849,10 @@ for backend in c llvm; do
 done
 
 # The first fixture executes only the early return. The second actually reaches
-# the closing brace; static cleanup counts alone do not cover that exit.
-for row in hashmap-early-return:2 hashmap-normal-exit:1; do
+# the closing brace; static cleanup counts alone do not cover that exit. Each
+# count includes the owned definition's release of the zero-initialized local
+# before `MapNew()` is stored, which frees nothing; the rest are one per exit.
+for row in hashmap-early-return:3 hashmap-normal-exit:2; do
     name="${row%%:*}"
     source="tests/self_hosted/parity/fixture/direct_mir_hashmap_early_return_cleanup.pgy"
     [[ "$name" == hashmap-normal-exit ]] &&
@@ -867,7 +876,7 @@ for row in hashmap-early-return:2 hashmap-normal-exit:1; do
             fail "direct $backend emitted the wrong cleanup count for $name"
         executable="$WORK_DIR/$name-$backend.exe"
         if [[ "$backend" == c ]]; then
-            "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+            "$CC" -std=c11 -D_POSIX_C_SOURCE=200809L -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
                 "$ROOT_DIR/$output_rel" -o "$executable" ||
                 fail "generated $name C did not compile"
         else
@@ -930,6 +939,21 @@ for name in "${MOVE_NEGATIVE_CASES[@]}"; do
             command=("$PGY")
             [[ "$lane" == native ]] && command+=(--native-pipeline)
             command+=("$source" "--backend=$backend" -o "$output_rel")
+            if [[ "$lane" == native && "$name" == collection_field_use_after_move ]]; then
+                # Native lands a complete Clone of the field at the extraction
+                # (decisions 2026-10-22 and 2026-10-25), so the later read sees
+                # the original. The self-host MIR route lands no Clone yet and
+                # refuses, as the rows above check.
+                (cd "$ROOT_DIR" && "${command[@]}") \
+                    >"$WORK_DIR/$name-$lane-$backend.out" \
+                    2>"$WORK_DIR/$name-$lane-$backend.err" ||
+                    fail "native $backend refused the Clone-landed $name"
+                "$ROOT_DIR/$output_rel" >"$WORK_DIR/$name-$lane-$backend.run" ||
+                    fail "native $backend Clone-landed $name did not run"
+                [[ "$(tr -d '\r\n' <"$WORK_DIR/$name-$lane-$backend.run")" == original ]] ||
+                    fail "native $backend Clone-landed $name output drifted"
+                continue
+            fi
             if (cd "$ROOT_DIR" && "${command[@]}") \
                 >"$WORK_DIR/$name-$lane-$backend.out" \
                 2>"$WORK_DIR/$name-$lane-$backend.err"; then
