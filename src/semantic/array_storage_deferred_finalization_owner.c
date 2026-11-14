@@ -18,6 +18,38 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* A binding move hands on whatever its source's elements are. When neither
+ * the source's fact nor any result or String push into it can make them
+ * owned (a literal or unknown call result), the destination never deep-drops
+ * them, so the move needs a current descriptor only, not an owned-element
+ * proof. */
+static bool
+array_storage_move_source_elements_unowned(SemanticContext *ctx,
+    const ArrayStorageDeferredPreservationStore *store, uint32_t binding_id)
+{
+    size_t facts = 0;
+    for (size_t i = 0; i < ctx->collection_ownership_fact_count; i++) {
+        const PgyCollectionOwnershipFact *fact = &ctx->collection_ownership_facts[i];
+        if (fact->binding_syntax_id != binding_id)
+            continue;
+        if (fact->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
+            || fact->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+            return false;
+        facts++;
+    }
+    if (facts != 1)
+        return false;
+    for (size_t i = 0; i < store->result_count; i++)
+        if (store->results[i].birth.binding_id == binding_id
+            && semantic_array_storage_owned_string_result_current(ctx,
+                store->results[i].birth.call))
+            return false;
+    for (size_t i = 0; i < store->owned_string_result_count; i++)
+        if (store->owned_string_results[i].binding_id == binding_id)
+            return false;
+    return true;
+}
+
 bool
 semantic_array_storage_deferral_finalize(SemanticContext *ctx)
 {
@@ -123,7 +155,10 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
             && ((drop->operation != ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS
                     && drop->operation != ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS
                     && drop->operation != ARRAY_STORAGE_MUTATE_OWNED_STRINGS)
-                || pending_elements_preserved);
+                || pending_elements_preserved
+                || (drop->operation == ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS
+                    && array_storage_move_source_elements_unowned(ctx, store,
+                        drop->binding_id)));
         if (elements_preserved)
             continue;
         /* A String element handed to a callee that may keep it, with no proof
