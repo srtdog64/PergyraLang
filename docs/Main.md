@@ -30,6 +30,9 @@ navigation; they must not restate mutable status as a second source of truth.
 
 ## Migration Rule
 
-Do not move a canonical numbered document merely to improve browsing. A move
-is allowed only after inbound links, scripts, gates, and ownership registries
-have a coordinated migration. Until then, add or improve a facade link.
+Each numbered or named design document lives in the area directory of the
+facade that owns it; only the indexes, this facade, the Korean README and the
+current-work handoff stay at the root. Keep a document's number and file name
+when it moves. A move is allowed only together with its inbound links,
+scripts, gates and ownership registries in the same change; otherwise add or
+improve a facade link.

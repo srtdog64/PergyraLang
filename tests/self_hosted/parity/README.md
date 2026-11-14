@@ -10,6 +10,15 @@ truth until a Pergyra-written component can run and produce deterministic output
 that agrees with the C oracle. JSON is used when the owned format is JSON;
 semantic verdicts use diagnostic blocks, and codegen rungs use run-stdout.
 
+Scripts sit in one directory per family, named by their file prefix:
+`direct_mir/`, `one_mir/`, `driver/` (installed driver, bootstrap, fixed
+point), `public_route/`, `intent/`, `mir/`, `ownership/`, `semantic/`,
+`codegen/`, `domain/`, `frontend/` (lexer, parser, tools) and `lsp/`. Helpers
+that several families source (`llvm_leg_helpers.sh`,
+`emitted_c_runtime_header_owner.sh`, `linked_runtime_compile_profile_owner.sh`,
+`parser_tool_build_leg.sh`, `codegen_bootstrap_compile_leg.sh`,
+`semantic_owner_probe_owner.sh`) stay here, beside `fixture/`.
+
 Hard substitution rungs are parity gates promoted to pass conditions: failure
 means the Pergyra substitute, the C oracle surface, or the LLVM oracle leg has a
 real source-of-truth problem to close. Bridge scripts may compare artifacts, but
@@ -58,7 +67,8 @@ The parity set currently covers:
 
 `make self-host-preparation-test-smoke` runs the full set. Individual parity
 targets may still be used for focused work, but a tool is not considered
-current unless its `tests/self_hosted/parity/<tool>_parity.sh` rung passes.
+current unless its `tests/self_hosted/parity/<family>/<tool>_parity.sh` rung
+passes.
 
 Minimum parity contract for each tool:
 
