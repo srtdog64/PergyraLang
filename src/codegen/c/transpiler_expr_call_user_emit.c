@@ -660,6 +660,12 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 }
                 codebuf_write(args_buf, "%s", address);
                 free(address);
+            } else if (transpiler_call_arg_is_carried_by_address(ctx,
+                           arg_node)) {
+                /* A by-value parameter takes the value of an argument the
+                 * caller carries by address (a ref formal), as a
+                 * constructor field does. */
+                codebuf_write(args_buf, "(*%s)", arg);
             } else {
                 codebuf_write(args_buf, "%s", arg);
             }

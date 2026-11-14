@@ -370,6 +370,19 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             /* MIR's admitted parameter type owns numeric widening, including
              * nonliteral Int values. Pointer/resource carriage is unchanged. */
             if (value != NULL && !pointer_self) {
+                /* A by-value parameter takes the value of a struct the
+                 * caller holds by address (a ref formal). */
+                LLVMVarEntry carried;
+                if (expected_ty != NULL && arg_node != NULL
+                    && arg_node->type == AST_IDENTIFIER
+                    && LLVMGetTypeKind(expected_ty) == LLVMStructTypeKind
+                    && LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMPointerTypeKind
+                    && llvm_scope_lookup_snapshot(ctx,
+                        ast_identifier_name(arg_node), &carried)
+                    && carried.type == LLVMPointerType(expected_ty, 0)) {
+                    value = LLVMBuildLoad2(ctx->builder, expected_ty, value,
+                        llvm_tmp_name(ctx));
+                }
                 value = llvm_mir_coerce_value_for_store(ctx, value, expected_ty);
                 if (expected_ty == NULL || LLVMTypeOf(value) != expected_ty) {
                     ctx->current_ret_type = saved_ret;

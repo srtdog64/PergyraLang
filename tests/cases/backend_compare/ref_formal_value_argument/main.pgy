@@ -1,0 +1,17 @@
+// A ref formal handed to a by-value parameter: the caller carries the
+// struct by address, the callee takes its value on both legs.
+struct Table { names: Array<String>; count: Int; }
+func Inner(table: Table) -> Int { return ArrayLength(table.names) + table.count; }
+func InnerRef(ref table: Table) -> Int { return table.count; }
+func SetCount(table: Table) -> Int { table.count = 9; return table.count; }
+func Observe(ref table: Table) -> Int { return Inner(table) + InnerRef(table); }
+func Change(ref table: Table) -> Int { return SetCount(table); }
+func Main() -> Void {
+    var names: Array<String> = [];
+    ArrayPush(names, "a");
+    var table: Table = Table(names, 2);
+    Log(Observe(table));
+    Log(Change(table));
+    Log(table.count);
+    Log(table.names[0]);
+}
