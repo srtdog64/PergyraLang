@@ -19,9 +19,9 @@ GitHub repository 의 **Languages** 위젯에 `Pergyra` 를 표시하기 위한 
 | 항목 | 상태 | 경로 |
 |---|---|---|
 | 파일 확장자 | `.pgy` (고유, 충돌 없음) | 315 파일 |
-| TextMate grammar | 완성 | [editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json](../editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json) |
+| TextMate grammar | 완성 | [editors/vscode-pergyra/syntaxes/pergyra.tmLanguage.json](../editors/vscode-pergyra/syntaxes/pergyra.tmLanguage.json) |
 | TextMate scope | `source.pergyra` | ↑ 동일 |
-| VSCode extension | 완성 (marketplace 미배포) | [editor/vscode-pergyra/](../editor/vscode-pergyra/) |
+| VSCode extension | 완성 (marketplace 미배포) | [editors/vscode-pergyra/](../editors/vscode-pergyra/) |
 | 언어 개요/문법 | README + docs/grammar | [../README.md](../README.md), [grammar/](grammar/) |
 | tree-sitter grammar | 없음 | — |
 | Vim/Emacs/Sublime | 없음 | — |
@@ -74,7 +74,7 @@ Linguist 는 grammar 를 `vendor/grammars/` 아래 **git submodule** 로 가져�
 **분리 계획**:
 1. 새 공개 repo 생성: 권장명 `pergyra-lang/pergyra-tmLanguage`
 2. 포함 파일:
-   - `pergyra.tmLanguage.json` (현재 [editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json](../editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json) 복사본, 단일 정본)
+   - `pergyra.tmLanguage.json` (현재 [editors/vscode-pergyra/syntaxes/pergyra.tmLanguage.json](../editors/vscode-pergyra/syntaxes/pergyra.tmLanguage.json) 복사본, 단일 정본)
    - `LICENSE` — MIT 권장 (Linguist 가 받아들이기 쉬움)
    - `README.md` — grammar 사용법 + Pergyra repo 링크
 3. 이 repo 의 grammar 는 **mirror** 로 재정의 — 이후 CI 로 sync
@@ -96,9 +96,9 @@ bar 의 작은 원형 dot 에서 가독성이 높다.
 
 확정값: **`#DD891D`** — 로고 외곽 링 및 "P" 글자 톤.
 
-출처: [../editor/vscode-pergyra/icons/pergyra-logo.png](../editor/vscode-pergyra/icons/pergyra-logo.png),
-[pgy-icon-dark.png](../editor/vscode-pergyra/icons/pgy-icon-dark.png),
-[pgy-icon-light.png](../editor/vscode-pergyra/icons/pgy-icon-light.png).
+출처: [../editors/vscode-pergyra/icons/pergyra-logo.png](../editors/vscode-pergyra/icons/pergyra-logo.png),
+[pgy-icon-dark.png](../editors/vscode-pergyra/icons/pgy-icon-dark.png),
+[pgy-icon-light.png](../editors/vscode-pergyra/icons/pgy-icon-light.png).
 
 ### 현 Linguist 등록 언어와의 충돌 분석
 

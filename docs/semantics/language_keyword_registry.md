@@ -80,7 +80,7 @@ primary categories does not itself establish a new closure or driver claim.
   implementation evidence.
 
 The full VS Code grammar remains at
-`editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json`. `editors/vscode` is
+`editors/vscode-pergyra/syntaxes/pergyra.tmLanguage.json`. `editors/vscode` is
 the thin LSP client and must not grow a second grammar, `syntaxes` directory,
 or `tmLanguage` contribution.
 

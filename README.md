@@ -663,7 +663,7 @@ If a build looks stale ("Nothing to be done" while sources changed), see
 
 - File extension: `.pgy`
 - TextMate scope: `source.pergyra`
-- VS Code language extension: [editor/vscode-pergyra/](editor/vscode-pergyra/)
+- VS Code language extension: [editors/vscode-pergyra/](editors/vscode-pergyra/)
   (marketplace publication pending)
 - Semantic squiggle/LSP client: [editors/vscode/](editors/vscode/)
 - Tracked [`.vscode/`](.vscode/) settings select the workspace-local compiler

@@ -102,7 +102,7 @@
       "command": "node",
       "args": [
         "--check",
-        "editor/vscode-pergyra/extension.js"
+        "editors/vscode-pergyra/extension.js"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

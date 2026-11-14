@@ -6,7 +6,7 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/editor/vscode-pergyra",
+        "--extensionDevelopmentPath=${workspaceFolder}/editors/vscode-pergyra",
         "${workspaceFolder}"
       ]
     },

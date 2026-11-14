@@ -12,7 +12,7 @@
 
 # Editor extension assets are tooling, not primary source; exclude from
 # repo language stats so the language bar reflects actual Pergyra code.
-editor/vscode-pergyra/** linguist-vendored=true
+editors/vscode-pergyra/** linguist-vendored=true
 
 # Build / binary artifacts should never count.
 build/**  linguist-generated=true

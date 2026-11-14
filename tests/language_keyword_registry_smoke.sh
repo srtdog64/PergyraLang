@@ -21,7 +21,7 @@ PROJECTION_PARTS=(
     language_word_row_projection_owner.pgy
     language_keyword_compatibility_projection_owner.pgy
 )
-GRAMMAR="$ROOT_DIR/editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json"
+GRAMMAR="$ROOT_DIR/editors/vscode-pergyra/syntaxes/pergyra.tmLanguage.json"
 INVENTORY="$ROOT_DIR/docs/semantics/language_word_implementation_inventory.generated.md"
 FIXTURE_SOURCE="$ROOT_DIR/src/self_hosted/lexer/fixture/all_keywords.pgy"
 FIXTURE_EXPECTED="$ROOT_DIR/src/self_hosted/lexer/fixture/all_keywords_tokens.txt"
