@@ -58,3 +58,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-12 | [A grown field copy never assigned back: copy or write back?](2026-11-12_open_unwritten_field_copy_copy_or_write_back.md) | answered 2026-11-12 |
 | 2026-11-12 | [A grown field copy never assigned back is a copy](2026-11-12_unwritten_field_copy_is_a_copy.md) | in force |
 | 2026-11-13 | [Reorganize the folder structure right after CI is green](2026-11-13_reorganize_folders_after_ci_green.md) | in force |
+| 2026-11-15 | [Does a value returned from `Main` set the process exit status?](2026-11-15_open_main_int_return_exit_status.md) | OPEN |
