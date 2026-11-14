@@ -9,6 +9,12 @@ pgy_selfhost_driver_receipt_error() {
 
 pgy_selfhost_driver_receipt_hash_file() {
     local path="$1"
+    # A missing input must not hash to an empty field: sha256sum's failure
+    # would be hidden by the pipeline's last command.
+    if [[ ! -f "$path" ]]; then
+        pgy_selfhost_driver_receipt_error "missing receipt input: $path"
+        return 2
+    fi
     if command -v sha256sum >/dev/null 2>&1; then
         sha256sum "$path" | cut -d' ' -f1
         return

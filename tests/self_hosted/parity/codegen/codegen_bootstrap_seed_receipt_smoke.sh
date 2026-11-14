@@ -29,16 +29,17 @@ seed_key() {
     local suffix="$1" cc_identity="$2"
     pgy_selfhost_codegen_seed_prebuild_key \
         "$CASE_ROOT" "$BUILD_DIR/native-pgy" "$cc_identity" runtime-v1 \
-        release '-O3 -fwrapv' "$BUILD_DIR/owners/codegen_bootstrap.sh" \
+        release '-O3 -fwrapv' "$BUILD_DIR/owners/codegen/codegen_bootstrap.sh" \
         "$BUILD_DIR/key-${suffix}.input" "$BUILD_DIR/graph-${suffix}.input"
 }
 
 rm -rf "$BUILD_DIR"
-mkdir -p "$GRAPH_DIR" "$BUILD_DIR/owners"
+mkdir -p "$GRAPH_DIR" "$BUILD_DIR/owners/codegen"
 for owner in codegen_bootstrap.sh codegen_bootstrap_compile_leg.sh \
     parser_tool_build_leg.sh emitted_c_runtime_header_owner.sh; do
     printf '%s-v1\n' "$owner" >"$BUILD_DIR/owners/$owner"
 done
+mv "$BUILD_DIR/owners/codegen_bootstrap.sh" "$BUILD_DIR/owners/codegen/codegen_bootstrap.sh"
 mkdir -p "$CASE_ROOT/tests"
 printf 'path-owner-v1\n' >"$CASE_ROOT/tests/pgy_binary_path_helpers.sh"
 write_clean_inputs
@@ -89,9 +90,18 @@ key_source="$(seed_key source cc-v1)"
 write_clean_inputs
 key_cc="$(seed_key cc cc-v2)"
 [[ "$key_one" != "$key_cc" ]] || fail "compiler mutation kept prebuild key"
-printf 'codegen-bootstrap-v2\n' >"$BUILD_DIR/owners/codegen_bootstrap.sh"
+printf 'codegen-bootstrap-v2\n' >"$BUILD_DIR/owners/codegen/codegen_bootstrap.sh"
 key_owner="$(seed_key owner cc-v1)"
 [[ "$key_one" != "$key_owner" ]] || fail "owner mutation kept prebuild key"
+# The shared legs sit beside the codegen family directory, not inside it.
+printf 'compile-leg-v2\n' >"$BUILD_DIR/owners/codegen_bootstrap_compile_leg.sh"
+key_leg="$(seed_key leg cc-v1)"
+[[ "$key_owner" != "$key_leg" ]] || fail "shared compile leg mutation kept prebuild key"
+rm "$BUILD_DIR/owners/parser_tool_build_leg.sh"
+if seed_key missing cc-v1 >/dev/null 2>&1; then
+    fail "missing shared parser leg was hashed into a prebuild key"
+fi
+printf '%s-v1\n' parser_tool_build_leg.sh >"$BUILD_DIR/owners/parser_tool_build_leg.sh"
 
 printf 'changed-seed-c\n' >"$SOURCE_ARTIFACT"
 if pgy_selfhost_codegen_seed_validate_artifact_receipt \

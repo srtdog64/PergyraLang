@@ -117,7 +117,7 @@ cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
 }
 trap cleanup_neg_root EXIT
-mkdir -p "$NEG_ROOT/src/codegen"
+mkdir -p "$NEG_ROOT/$(dirname "$C_DISPATCH")" "$NEG_ROOT/$(dirname "$C_UNARY_DISPATCH")"
 mkdir -p "$NEG_ROOT/.tmp"
 cp "$ROOT_DIR/$C_DISPATCH" "$NEG_ROOT/$C_DISPATCH"
 cp "$ROOT_DIR/$C_UNARY_DISPATCH" "$NEG_ROOT/$C_UNARY_DISPATCH"

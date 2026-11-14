@@ -74,7 +74,7 @@ trap 'rm -f "$reference_blob"' EXIT
 {
     find src -maxdepth 1 -name 'test_*.c' -type f -print0 |
         xargs -0 cat 2>/dev/null || true
-    find tests -maxdepth 1 -name '*.sh' -type f -print0 |
+    find tests -name '*.sh' -type f -print0 |
         xargs -0 cat 2>/dev/null || true
 } > "$reference_blob"
 

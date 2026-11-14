@@ -107,10 +107,10 @@ import sys
 
 root = Path(sys.argv[1])
 compiler = root / "src/self_hosted/compiler"
-emitter = (compiler / "direct_mir_nested_intent_program_c_emission_owner.pgy").read_text()
-projection = (compiler / "direct_mir_nested_intent_program_projection_owner.pgy").read_text()
-driver = (compiler / "driver_rung2_owner.pgy").read_text()
-multi = (compiler / "direct_mir_multi_routine_projection_owner.pgy").read_text()
+emitter = (compiler / "direct_mir/direct_mir_nested_intent_program_c_emission_owner.pgy").read_text()
+projection = (compiler / "direct_mir/direct_mir_nested_intent_program_projection_owner.pgy").read_text()
+driver = (compiler / "driver/driver_rung2_owner.pgy").read_text()
+multi = (compiler / "direct_mir/direct_mir_multi_routine_projection_owner.pgy").read_text()
 for forbidden in ("MirMachineLayerAdmittedJsonInput", "source_json", "Json", "Ast",
                   "DriverRung2IntentTreeEmissionOrDie", "scalar-program-route"):
     assert forbidden not in emitter, f"C emitter reopened {forbidden}"

@@ -67,7 +67,7 @@ mode == "scan" {
     limit = general_limit + 0
     if (rel in caps) {
         limit = caps[rel]
-    } else if (rel ~ /^src\/self_hosted\/semantic\/[^\/]+[.]pgy$/ &&
+    } else if (rel ~ /^src\/self_hosted\/semantic\/((ast_collection|ast_expression)\/)?[^\/]+[.]pgy$/ &&
                rel != "src/self_hosted/semantic/diagnostic_owner.pgy" &&
                semantic_limit + 0 < limit) {
         limit = semantic_limit + 0

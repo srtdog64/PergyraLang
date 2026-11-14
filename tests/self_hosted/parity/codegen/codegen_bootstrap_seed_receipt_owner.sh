@@ -96,25 +96,39 @@ pgy_selfhost_codegen_seed_prebuild_key() {
     local bootstrap_owner="$7"
     local key_input="$8"
     local graph_input="$9"
-    local source_graph_hash owner_dir
+    local source_graph_hash helper_dir native_hash bootstrap_hash compile_hash
+    local parser_hash path_hash profile_hash receipt_hash
 
-    owner_dir="$(cd "$(dirname "$bootstrap_owner")" && pwd)"
+    # The compile, parser and runtime-header legs are parity helpers shared
+    # by several families; they sit one level above the codegen family.
+    helper_dir="$(cd "$(dirname "$bootstrap_owner")/.." && pwd)" || return 2
     source_graph_hash="$(pgy_selfhost_driver_source_graph_fingerprint \
         "$root_dir" "$graph_input")" || return 2
+    native_hash="$(pgy_selfhost_driver_receipt_hash_file "$native_pgy")" || return 2
+    bootstrap_hash="$(pgy_selfhost_driver_receipt_hash_file "$bootstrap_owner")" || return 2
+    compile_hash="$(pgy_selfhost_driver_receipt_hash_file \
+        "$helper_dir/codegen_bootstrap_compile_leg.sh")" || return 2
+    parser_hash="$(pgy_selfhost_driver_receipt_hash_file \
+        "$helper_dir/parser_tool_build_leg.sh")" || return 2
+    path_hash="$(pgy_selfhost_driver_receipt_hash_file \
+        "$root_dir/tests/pgy_binary_path_helpers.sh")" || return 2
+    profile_hash="$(pgy_selfhost_driver_receipt_hash_file \
+        "$helper_dir/emitted_c_runtime_header_owner.sh")" || return 2
+    receipt_hash="$(pgy_selfhost_driver_receipt_hash_file "${BASH_SOURCE[0]}")" || return 2
     printf '%s\n' \
         'schema=pgy.selfhost.codegen-seed-prebuild.v1' \
         "source_graph=$source_graph_hash" \
-        "native_pgy=$(pgy_selfhost_driver_receipt_hash_file "$native_pgy")" \
+        "native_pgy=$native_hash" \
         "runtime_headers=$runtime_headers" \
         "cc_profile=$cc_profile" \
         "cc_flags=$cc_flags" \
         "cc_fingerprint=$cc_identity" \
-        "bootstrap_owner=$(pgy_selfhost_driver_receipt_hash_file "$bootstrap_owner")" \
-        "compile_owner=$(pgy_selfhost_driver_receipt_hash_file "$owner_dir/codegen_bootstrap_compile_leg.sh")" \
-        "parser_owner=$(pgy_selfhost_driver_receipt_hash_file "$owner_dir/parser_tool_build_leg.sh")" \
-        "path_owner=$(pgy_selfhost_driver_receipt_hash_file "$root_dir/tests/pgy_binary_path_helpers.sh")" \
-        "profile_owner=$(pgy_selfhost_driver_receipt_hash_file "$owner_dir/emitted_c_runtime_header_owner.sh")" \
-        "receipt_owner=$(pgy_selfhost_driver_receipt_hash_file "${BASH_SOURCE[0]}")" \
+        "bootstrap_owner=$bootstrap_hash" \
+        "compile_owner=$compile_hash" \
+        "parser_owner=$parser_hash" \
+        "path_owner=$path_hash" \
+        "profile_owner=$profile_hash" \
+        "receipt_owner=$receipt_hash" \
         >"$key_input" || return 2
     pgy_selfhost_driver_receipt_hash_file "$key_input"
 }

@@ -50,12 +50,12 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_membe
 $ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_projection_owner.pgy
 EOF
     [[ "$total" -le 2160 ]] || fail "constructed Array member family cap exceeded: $total/2160"
-    for shared_owner in direct_mir_array_storage_layout_contract_owner.pgy direct_mir_array_storage_abi_projection_owner.pgy direct_mir_array_storage_symbol_owner.pgy direct_mir_array_storage_c_assertion_owner.pgy; do
+    for shared_owner in direct_mir/direct_mir_array_storage_layout_contract_owner.pgy direct_mir/direct_mir_array_storage_abi_projection_owner.pgy direct_mir/direct_mir_array_storage_symbol_owner.pgy direct_mir/direct_mir_array_storage_c_assertion_owner.pgy; do
         require_file "$ROOT_DIR/src/self_hosted/compiler/$shared_owner"
         source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/$shared_owner")" || fail "source-size measurement failed"
         [[ "$source_size_lines" -le 140 ]] || fail "shared Array storage owner hard cap exceeded: $shared_owner"
     done
-    for aggregate_owner_cap in direct_mir_aggregate_value_flow_fact_owner.pgy:220 direct_mir_aggregate_value_flow_target_projection_owner.pgy:100; do
+    for aggregate_owner_cap in direct_mir/direct_mir_aggregate_value_flow_fact_owner.pgy:220 direct_mir/direct_mir_aggregate_value_flow_target_projection_owner.pgy:100; do
         local aggregate_owner="${aggregate_owner_cap%%:*}" aggregate_cap="${aggregate_owner_cap##*:}"
         require_file "$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner"
         source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner")" || fail "source-size measurement failed"

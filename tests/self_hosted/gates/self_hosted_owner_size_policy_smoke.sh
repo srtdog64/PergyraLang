@@ -12,11 +12,12 @@ ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/owner_size_policy/run.XXXXXX")
 ROOT_DIR="$ROOT_DIR/root with 'quote"
 MANIFEST="$ROOT_DIR/tests/fixtures/self_hosted_responsibility_caps.tsv"
 mkdir -p "$ROOT_DIR/tests/fixtures" "$ROOT_DIR/src/self_hosted/compiler" \
-    "$ROOT_DIR/src/self_hosted/semantic" "$ROOT_DIR/src/self_hosted/codegen/emission"
+    "$ROOT_DIR/src/self_hosted/semantic" "$ROOT_DIR/src/self_hosted/codegen/emission" \
+    "$ROOT_DIR/tests/self_hosted/gates"
 cp "$POLICY" "$ROOT_DIR/tests/self_hosted/gates/self_hosted_owner_size_policy.awk"
 cp "$REPO_DIR/tests/fixtures/self_hosted_responsibility_caps.tsv" "$MANIFEST"
 
-make_lines() { awk -v count="$2" 'BEGIN { for (i = 0; i < count; i++) print "line" }' >"$ROOT_DIR/$1"; }
+make_lines() { mkdir -p "$(dirname "$ROOT_DIR/$1")"; awk -v count="$2" 'BEGIN { for (i = 0; i < count; i++) print "line" }' >"$ROOT_DIR/$1"; }
 scan() {
     local target="$1" registered=0 path
     for path in "${owners[@]}"; do [[ "$path" != "$target" ]] || registered=1; done
@@ -63,6 +64,11 @@ expect_rejection generic-over 'cap is 699' scan "$generic"
 make_lines "$semantic" 599; scan "$semantic"
 make_lines "$semantic" 600
 expect_rejection semantic-over 'cap is 599' scan "$semantic"
+# The semantic owner families keep the semantic cap in their directories.
+family_semantic=src/self_hosted/semantic/ast_collection/unregistered_owner.pgy
+make_lines "$family_semantic" 599; scan "$family_semantic"
+make_lines "$family_semantic" 600
+expect_rejection family-semantic-over 'cap is 599' scan "$family_semantic"
 nested_semantic=src/self_hosted/semantic/nested/unregistered_owner.pgy
 mkdir -p "$ROOT_DIR/src/self_hosted/semantic/nested"
 make_lines "$nested_semantic" 699; scan "$nested_semantic"

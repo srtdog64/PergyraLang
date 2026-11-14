@@ -125,7 +125,7 @@ cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
 }
 trap cleanup_neg_root EXIT
-mkdir -p "$NEG_ROOT/docs"
+mkdir -p "$NEG_ROOT/$(dirname "$MANIFEST_PATH")"
 mkdir -p "$NEG_ROOT/.tmp"
 printf '%s\n' "$MISSING_MODULES_FIXTURE_JSON" > "$NEG_ROOT/$MANIFEST_PATH"
 

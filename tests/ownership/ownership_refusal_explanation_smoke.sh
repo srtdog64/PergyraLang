@@ -31,8 +31,8 @@ for input in "${inputs[@]}"; do
 done
 # Run the captured driver/owner, not a possibly changed source generation.
 # coq_kernel_check.sh derives ROOT_DIR from its location; give it its layout.
-mkdir -p "$work/tests" "$work/scripts" "$work/docs/semantics/proofs"
-cp "$work/coq_kernel_check.sh" "$work/tests/"
+mkdir -p "$work/tests/proof" "$work/scripts" "$work/docs/semantics/proofs"
+cp "$work/coq_kernel_check.sh" "$work/tests/proof/"
 cp "$work/rocq_toolchain_owner.sh" "$work/scripts/"
 PGY_COQ_PROOFS_DIR="$work" PGY_COQ_EXPECTED_AXIOMS='' PGY_ROCQ_EXTRACT_DIR="$work" \
   bash "$work/tests/proof/coq_kernel_check.sh" >"$receipt/kernel.log" 2>&1 || {
