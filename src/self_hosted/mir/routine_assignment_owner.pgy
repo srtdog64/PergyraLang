@@ -6,6 +6,35 @@ import "routine_local_ref_attachment_owner.pgy";
 import "routine_source_statement_attachment_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../semantic/ast_nominal_constructor_lookup_owner.pgy";
+
+// A member store through a mutable-identity receiver (`self.value = ...` in a
+// subject action) writes the receiver's cell in place. It is an `assign` with
+// no new SSA version of `self`, the shape the native producer emits: an SSA
+// definition would name a receiver copy, and reads after it would see that
+// copy instead of the cell.
+func SelfMirAssignmentStoresThroughIdentityReceiver(
+    ref input: SelfMirRoutineInput, ref build: SelfMirRoutineBuild,
+    assignment_index: Int, local_index: Int, target: String, target_text: String
+) -> Bool {
+    if target_text == target { return false; }
+    let function_node_id: Int =
+        input.analysis.assignments.function_node_ids[assignment_index];
+    if build.local_refs[local_index] != SelfMirLocalRef("parameter", function_node_id, 0) {
+        return false;
+    }
+    let signature_opt: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        input.analysis.signatures, function_node_id);
+    if !IsSome(signature_opt) { return false; }
+    let signature: Int = UnwrapOption(signature_opt);
+    if input.analysis.signatures.receiver_source_param_offsets[signature] != 1 { return false; }
+    let owner: String = Concat("", input.analysis.signatures.owner_names[signature]);
+    let row: Option<Int> = SemanticAstNominalConstructorIndexForName(
+        input.analysis.constructors, owner);
+    return IsSome(row) && CallableReceiverNominalKindUsesMutableIdentity(
+        input.analysis.constructors.nominal_kinds[UnwrapOption(row)]);
+}
 
 func SelfMirLowerAssignmentFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -110,6 +139,22 @@ func SelfMirLowerAssignmentFromArtifact(
     while value_use_i < ArrayLength(value_uses) {
         SelfMirUsesAppendUnique(uses, Concat("", value_uses[value_use_i]));
         value_use_i = value_use_i + 1;
+    }
+    if SelfMirAssignmentStoresThroughIdentityReceiver(
+            input, build, assignment_index, local_index, target, target_text) {
+        // A plain store is named `assign`, as the native producer names it.
+        var store_name: String = UnwrapOption(opcode);
+        if operation == 0 { store_name = "assign"; }
+        build = SelfMirRoutineAddInstruction(
+            build, "assign", store_name, "", "",
+            SemanticAssignmentMirCarriage(binding_mode), target_text, expression,
+            "AST_ASSIGNMENT", uses
+        );
+        build = SelfMirRoutineAttachLastSourceStatement(build, node_id);
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, target_graph, input.machine_declaration
+        );
+        return SelfMirRoutineAttachLastSecondaryExpressionGraph(build, value_graph);
     }
     build = SelfMirRoutineAdvanceLocalVersion(build, local_index);
     let version: Int = build.local_versions[local_index];

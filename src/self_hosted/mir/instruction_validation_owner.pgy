@@ -253,9 +253,13 @@ func SelfMirInstructionRowsValidationErrorObserved(
                 row_prefix, " collection mutation target graph is invalid"
             );
         }
+        // `assign` is an in-place store through a mutable-identity receiver:
+        // an assignment with no result, as the native producer writes it.
+        let receiver_store: Bool = kind == "assign" &&
+            rows.source_types[i] == "AST_ASSIGNMENT" && rows.results[i] == "";
         if kind != "def" && kind != "stmt" && kind != "return" &&
             kind != "branch" && kind != "phi" && kind != "loop-init" &&
-            kind != "destructure" && !intent_carrier {
+            kind != "destructure" && !intent_carrier && !receiver_store {
             return Concat(row_prefix, " instruction kind is unknown");
         }
         if kind == "branch" && rows.names[i] == "branch" &&

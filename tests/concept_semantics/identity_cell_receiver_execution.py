@@ -5,6 +5,10 @@ shared C/LLVM projection of each MIR document is the given driver's
 --mir-json-backend route. --shared-only skips the public-origin source
 compiles and MIR, so it does not certify the public driver's front end.
 Only fixed valid source controls execute.
+
+The probe itself is built by the given driver on the public C route. It
+imports most of the direct-MIR compiler, and the native pipeline's landing
+fixed point takes several times this gate's build limit on it.
 """
 import copy
 import hashlib
@@ -123,7 +127,7 @@ def main():
 
     probe_source = root / "tests/self_hosted/parity/fixture/identity_cell_receiver_probe.pgy"
     probe = work / "probe.exe"
-    build = run("probe-build", [native, "--native-pipeline", "--backend=c", "--opt=dev", probe_source, "-o", probe], 120)
+    build = run("probe-build", [native, probe_source, "--backend=c", "--opt=dev", "-o", probe], 120)
     if build.returncode:
         print(build.stdout.decode(errors="replace") + build.stderr.decode(errors="replace"))
         return 1

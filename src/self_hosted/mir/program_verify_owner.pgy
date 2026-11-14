@@ -62,6 +62,20 @@ func SelfMirAssignmentTargetGraphValidationError(rows: SelfMirInstructionRows,
     if rows.source_types[instruction_index] != "AST_ASSIGNMENT" {
         return "";
     }
+    if rows.kinds[instruction_index] == "assign" {
+        // An in-place receiver store names its target in expr0 and has no SSA
+        // base: a member projection of a parameter binding, as native writes.
+        if rows.expr0_graphs.has_roots[instruction_index] != 1 { return "in-place target graph root is missing"; }
+        let in_place_root: Int = rows.expr0_graphs.roots[instruction_index];
+        let in_place_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, in_place_root);
+        if rows.arg0s[instruction_index] != "" || rows.expr0s[instruction_index] == "" ||
+            !SemanticAssignmentBindingModeIsParameter(rows.arg1s[instruction_index]) ||
+            !IsSome(in_place_kind) || UnwrapOption(in_place_kind) != AstExpressionNodeMemberAccess() ||
+            !IsSome(SelfMirAssignmentTargetGraphBaseText(graph, in_place_root)) {
+            return "in-place receiver store target is invalid";
+        }
+        return "";
+    }
     let target: String = rows.expr1s[instruction_index];
     let base_name: String = rows.arg0s[instruction_index];
     if target == "" || base_name == "" {
