@@ -565,7 +565,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 ctx->type_i64, llvm_tmp_name(ctx));
         if (use_raw_nominal)
             return llvm_array_emit_raw_nominal_set(ctx, node, callee_name,
-                arr_alloca, entry, index64, value, out);
+                arr_alloca, entry->elem_type, index64, value, out);
         /* Owned String replacement clones its input before retiring the old
          * element; ordinary ArraySet remains a shallow value mutation. */
         LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,

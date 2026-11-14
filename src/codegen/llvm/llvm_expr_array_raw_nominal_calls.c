@@ -126,7 +126,7 @@ bool
 llvm_array_emit_raw_nominal_set(LLVMGenCtx *ctx, ASTNode *node,
                                 const char *callee_name,
                                 LLVMValueRef arr_alloca,
-                                LLVMArrayVarEntry *entry,
+                                LLVMTypeRef elem_type,
                                 LLVMValueRef index64,
                                 LLVMValueRef value,
                                 LLVMValueRef *out)
@@ -134,8 +134,8 @@ llvm_array_emit_raw_nominal_set(LLVMGenCtx *ctx, ASTNode *node,
     LLVMValueRef args[] = {
         llvm_array_raw_nominal_array_ptr(ctx, arr_alloca),
         index64,
-        llvm_array_raw_nominal_value_ptr(ctx, entry->elem_type, value),
-        llvm_array_raw_nominal_elem_size_i64(ctx, entry->elem_type)
+        llvm_array_raw_nominal_value_ptr(ctx, elem_type, value),
+        llvm_array_raw_nominal_elem_size_i64(ctx, elem_type)
     };
     return llvm_array_emit_raw_nominal_call(ctx, node, callee_name,
         "pgy_array_set_raw_export", args, 4, out);

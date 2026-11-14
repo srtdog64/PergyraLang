@@ -15,8 +15,11 @@ green, run 43588624419).
 
 ## Open, in dependency order
 
-1. Native admits 28 negative fixtures that fail under ASan
-   ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
+1. Native admits 36 negative fixtures that fail under ASan
+   ([remeasured 2026-11-14](../evidence/2026-11-14_native_unsafe_negative_admissions_remeasured.md)):
+   13 owned-String transfers (`ArrayDropOwnedStrings` admits UNKNOWN
+   element provenance on purpose, `collection_ownership_fact.c`), 11 callee
+   growths of a by-value formal's field copy, 12 others.
 2. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
    root); a pass-through `wslpath` shim makes it pass.
 3. The self-host MIR route carries no compiler `Clone`; native lands one for
@@ -36,6 +39,9 @@ green, run 43588624419).
   `ast_collection/` and `ast_expression/`.
 - The codegen seed prebuild key hashed three shared legs at paths that no
   longer existed into empty fields; it now refuses a missing input.
+- A nested Array element store (`slots[i] = row`) emitted an invalid C
+  kernel name and was refused by LLVM; both legs now store it
+  (`backend_compare/nested_array_element_assign`).
 - Three drifted projections regenerated (`751e5dd05`): the builtin effect
   table (`ArraySetOwnedString`), the LSP hover renderer (`var` locals) and
   the language-word inventory. The core shard now checks the builtin-effect

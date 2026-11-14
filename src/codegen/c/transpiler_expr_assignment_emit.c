@@ -93,9 +93,13 @@ transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
                     return NULL;
                 }
                 if (operation == AST_ASSIGN_SET) {
+                    /* Runtime kernels are named by the sanitized element
+                     * suffix: an Array<String> element is Array_String. */
+                    char suffix[128];
+                    sanitize_c_suffix(inner, suffix, sizeof(suffix));
                     result = strdup_fmt(
                         "pgy_array_set_%s(&%s, (size_t)(%s), %s)",
-                        inner, array, index, value);
+                        suffix, array, index, value);
                 } else {
                     int id = assignment_capture_identity(ctx, array, index, value);
                     char *old = strdup_fmt("pgy_array_get_%s(_pgy_update_array_%d, _pgy_update_index_%d)",

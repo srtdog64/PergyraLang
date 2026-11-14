@@ -1,0 +1,13 @@
+// An element store whose element is itself an Array: the C leg names the
+// runtime kernel by the sanitized suffix (Array_String, Array_Int).
+func Main() -> Void {
+    var slots: Array<Array<String>> = [["a"], ["b"]];
+    let words: Array<String> = ["c", "d"];
+    slots[1] = words;
+    Log(ArrayLength(slots[1]));
+    Log(slots[1][0]);
+    Log(slots[0][0]);
+    var grid: Array<Array<Int>> = [[1], [2, 3]];
+    grid[0] = [4, 5, 6];
+    Log(ArrayLength(grid[0]) + grid[0][2] + grid[1][1]);
+}

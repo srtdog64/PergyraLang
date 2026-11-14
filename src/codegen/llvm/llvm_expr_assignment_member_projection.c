@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../codegen_slot_type_policy.h"
+#include "llvm_expr_array_raw_nominal_calls.h"
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_expr_scalar_core.h"
@@ -188,6 +189,20 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                     "LLVM indexed array assignment could not lower value expression");
 
             suffix = llvm_type_to_suffix(ctx, elem_type);
+            /* An Array or nominal element has no scalar kernel; the raw
+             * kernel copies its bytes, as ArraySet and the C leg do. */
+            if ((suffix == NULL || strcmp(suffix, "Unknown") == 0)
+                && operation == AST_ASSIGN_SET && !recv_is_slice
+                && LLVMGetTypeKind(elem_type) == LLVMStructTypeKind
+                && LLVMTypeOf(val) == elem_type) {
+                LLVMValueRef placeholder = NULL;
+                index64 = LLVMTypeOf(idx) == ctx->type_i64 ? idx
+                    : LLVMBuildSExtOrBitCast(ctx->builder, idx,
+                        ctx->type_i64, llvm_tmp_name(ctx));
+                llvm_array_emit_raw_nominal_set(ctx, node, "ArraySet",
+                    array_ptr, elem_type, index64, val, &placeholder);
+                return ctx->has_error ? NULL : val;
+            }
             if (suffix == NULL || strcmp(suffix, "Unknown") == 0) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,

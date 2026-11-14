@@ -22,7 +22,7 @@ bool llvm_array_emit_raw_nominal_set(LLVMGenCtx *ctx,
                                      ASTNode *node,
                                      const char *callee_name,
                                      LLVMValueRef arr_alloca,
-                                     LLVMArrayVarEntry *entry,
+                                     LLVMTypeRef elem_type,
                                      LLVMValueRef index64,
                                      LLVMValueRef value,
                                      LLVMValueRef *out);
