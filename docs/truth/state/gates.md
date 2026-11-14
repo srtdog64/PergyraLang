@@ -6,8 +6,8 @@ native trials); a local PASS is not CI evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | GREEN at `cdb65d798` (run 43554588799): every job succeeded, none skipped, no step skipped in the bootstrap, oracle, join or contracts jobs |
-| Folder reorganization, branch CI | `d29fda1bb` (run 43578035229): 32 of 33 jobs green, fixed point included; contracts failed on two line caps fixed in `360ff8cf0`, whose contracts shard passes locally |
+| Required CI at the published SHA | GREEN at `edbb4575b`, the folder reorganization (run 43583259892): all 33 jobs succeeded, no step skipped in the bootstrap, oracle, join or contracts jobs; before it GREEN at `cdb65d798` (run 43554588799) |
+| Folder reorganization, branch CI | `d29fda1bb` (run 43578035229): 32 of 33 jobs green; contracts failed on two line caps that `360ff8cf0` fits |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `cdb65d798`, with the bootstrap policy corpus in the join job |
 | Codegen bootstrap | PASS on CI at `cdb65d798` |
 | Bootstrap installed-driver jobs, CLI mode | PASS on CI at `cdb65d798` |

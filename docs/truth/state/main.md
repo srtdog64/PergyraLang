@@ -6,11 +6,11 @@ Checked 2026-11-14.
 
 | Item | Observed value |
 |---|---|
-| Published main | fast-forwarded to the `ci/all-green` commit that carries this file; previous published head `7a9d1aa58` (state record for the green `cdb65d798`) |
-| Work branch | `reorg/folders` (the folder reorganization), worktree `C:\Users\user\pgy-wt\ci-win` |
+| Published main | fast-forwarded to the commit that carries this file; previous published head `edbb4575b` (the folder reorganization, CI green) |
+| Work branch | `fix/generator-drift` (after `reorg/folders`), worktree `C:\Users\user\pgy-wt\ci-win` |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
 | Linux validation | WSL `Ubuntu-C-WSL`: `/root/cc-phi` synced to the branch plus working changes; a pass-through `wslpath` shim at `/root/shim` |
-| Last CI with Linux jobs executed | `cdb65d798` (run 43554588799): every required job green (see [gates](gates.md)) |
+| Last CI with Linux jobs executed | `edbb4575b` (run 43583259892): every required job green (see [gates](gates.md)) |
 
 The gate results are in [gates](gates.md) and the open items in
 [blocker](blocker.md).

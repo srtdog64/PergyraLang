@@ -1,13 +1,13 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-14 on `reorg/folders` at
-`360ff8cf0`, the folder reorganization on top of the green `cdb65d798`.
+Owner: Claude root lane. Checked 2026-11-14 on `fix/generator-drift` at
+`751e5dd05`, on top of main `edbb4575b` (the folder reorganization).
 
 ## Objective card
 
 - Objective: keep required CI green on one published commit, with the
-  bootstrap and installed-driver jobs executed (met at `cdb65d798`; the
-  reorganization must hold it).
+  bootstrap and installed-driver jobs executed (met at `cdb65d798` and at
+  the reorganized `edbb4575b`).
 - Priority: memory safety of what either front end admits; one fact owner;
   fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
@@ -15,17 +15,14 @@ Owner: Claude root lane. Checked 2026-11-14 on `reorg/folders` at
 
 ## Open, in dependency order
 
-1. Required CI on the published reorganization commit.
-2. Generator drift no required job checks (all older than the
-   reorganization): `builtin_effect_projection_owner.pgy` lacks the
-   registry's `ArraySetOwnedString` row; the hover projection says `var`
-   where its renderer emits `let`; the language-word implementation
-   inventory counts are stale.
-3. Native admits 28 negative fixtures that fail under ASan
+1. Required CI on the commit carrying `751e5dd05` (three regenerated
+   projections; builtin-effect and language-keyword registry checks in the
+   core shard). Locally: seed, driver, seed-side intent gates, both shards.
+2. Native admits 28 negative fixtures that fail under ASan
    ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
-4. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
+3. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
    root); a pass-through `wslpath` shim makes it pass.
-5. The self-host MIR route carries no compiler `Clone`; native lands one for
+4. The self-host MIR route carries no compiler `Clone`; native lands one for
    `collection_field_use_after_move`, the self-host refuses it.
 
 ## Done since `cdb65d798`
