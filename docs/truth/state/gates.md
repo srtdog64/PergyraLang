@@ -6,15 +6,16 @@ native trials); a local PASS is not CI evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | GREEN at `edbb4575b`, the folder reorganization (run 43583259892): all 33 jobs succeeded, no step skipped in the bootstrap, oracle, join or contracts jobs; before it GREEN at `cdb65d798` (run 43554588799) |
-| Folder reorganization, branch CI | `d29fda1bb` (run 43578035229): 32 of 33 jobs green; contracts failed on two line caps that `360ff8cf0` fits |
-| Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `cdb65d798`, with the bootstrap policy corpus in the join job |
-| Codegen bootstrap | PASS on CI at `cdb65d798` |
-| Bootstrap installed-driver jobs, CLI mode | PASS on CI at `cdb65d798` |
-| build-linux core shard | PASS on CI at `cdb65d798` |
-| Contracts shard (identity probe in the shared probe build) | PASS on CI at `cdb65d798`; the shard step took 15.4 min of the 30 min job limit (at `ac0205b71` the job was cancelled at 30 min) |
-| Backend compare (20 shards), sanitizers, native oracle | PASS on CI at `cdb65d798` |
-| macOS, Windows, formal proofs, tsan | PASS on CI at `cdb65d798` |
+| Required CI at the published SHA | GREEN at `bcdf042c4` (run 43588624419): all 33 jobs succeeded, no step skipped in the bootstrap, oracle, join or contracts jobs; before it GREEN at `edbb4575b` (run 43583259892, the folder reorganization) and `cdb65d798` (run 43554588799) |
+| Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `bcdf042c4`, with the bootstrap policy corpus in the join job |
+| Codegen bootstrap | PASS on CI at `bcdf042c4` |
+| Bootstrap installed-driver jobs, CLI mode | PASS on CI at `bcdf042c4` |
+| build-linux core shard | PASS on CI at `bcdf042c4`, including the builtin-effect and language-keyword registry checks (steps 38 and 39); the Markdown contract step runs only on markdown-only changes |
+| Contracts shard (identity probe in the shared probe build) | PASS on CI at `bcdf042c4` (job 25 min of the 30 min limit) |
+| Backend compare (20 shards), sanitizers, native oracle | PASS on CI at `bcdf042c4` |
+| macOS, Windows, formal proofs, tsan | PASS on CI at `bcdf042c4` |
+| LSP hover registry (`make self-host-lsp` first; not in a CI shard) | PASS locally on WSL at `751e5dd05` (language=27, builtin=7) |
 
-Job times at `cdb65d798`: seed part 30.0 min (limit 60), native oracle
-17.6 min, build-linux 21.0 min, join 8.1 min, codegen bootstrap 18.3 min.
+Job times at `bcdf042c4`: seed part 29 min (limit 60), native oracle
+14 min, build-linux 17 min, join 11 min, codegen bootstrap 14 min,
+contracts 25 min.

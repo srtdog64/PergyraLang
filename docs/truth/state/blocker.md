@@ -1,13 +1,13 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-14 on `fix/generator-drift` at
-`751e5dd05`, on top of main `edbb4575b` (the folder reorganization).
+Owner: Claude root lane. Checked 2026-11-14 on main `bcdf042c4` (CI
+green, run 43588624419).
 
 ## Objective card
 
 - Objective: keep required CI green on one published commit, with the
-  bootstrap and installed-driver jobs executed (met at `cdb65d798` and at
-  the reorganized `edbb4575b`).
+  bootstrap and installed-driver jobs executed (met at `cdb65d798`,
+  `edbb4575b` and `bcdf042c4`).
 - Priority: memory safety of what either front end admits; one fact owner;
   fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
@@ -15,14 +15,11 @@ Owner: Claude root lane. Checked 2026-11-14 on `fix/generator-drift` at
 
 ## Open, in dependency order
 
-1. Required CI on the commit carrying `751e5dd05` (three regenerated
-   projections; builtin-effect and language-keyword registry checks in the
-   core shard). Locally: seed, driver, seed-side intent gates, both shards.
-2. Native admits 28 negative fixtures that fail under ASan
+1. Native admits 28 negative fixtures that fail under ASan
    ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
-3. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
+2. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
    root); a pass-through `wslpath` shim makes it pass.
-4. The self-host MIR route carries no compiler `Clone`; native lands one for
+3. The self-host MIR route carries no compiler `Clone`; native lands one for
    `collection_field_use_after_move`, the self-host refuses it.
 
 ## Done since `cdb65d798`
@@ -39,11 +36,10 @@ Owner: Claude root lane. Checked 2026-11-14 on `fix/generator-drift` at
   `ast_collection/` and `ast_expression/`.
 - The codegen seed prebuild key hashed three shared legs at paths that no
   longer existed into empty fields; it now refuses a missing input.
-- Locally at `360ff8cf0` (WSL): native build, semantic tests 3394/3394,
-  seed, driver, seed-side intent gates, CLI mode, core shard, contracts
-  shard. Branch CI at `d29fda1bb` (run 43578035229): 32 of 33 jobs green,
-  fixed point included; contracts failed only on two line caps that
-  `360ff8cf0` fits.
+- Three drifted projections regenerated (`751e5dd05`): the builtin effect
+  table (`ArraySetOwnedString`), the LSP hover renderer (`var` locals) and
+  the language-word inventory. The core shard now checks the builtin-effect
+  and language-keyword registries, so the next drift fails CI.
 
 ## Falsifiers kept
 
