@@ -19,7 +19,7 @@ The lexer table currently contains 70 reserved keywords (147 registry rows:
 `docs/semantics/language_keyword_registry.md`). The four entries that were
 missing from the older 66-word reference are `compensate`, `fail`, `reflect`,
 and `transaction`; `channel` has since been removed outright
-(`docs/199_language_word_and_dogfood_grammar.md` §5).
+(`docs/language/199_language_word_and_dogfood_grammar.md` §5).
 
 Run the narrow closure gate with:
 
@@ -75,7 +75,7 @@ full nominal/action semantic parity:
   zone authority binding or runtime identity/ability evidence;
 - `tobject` hosted helpers, nested object/tobject mutation, receiver versus
   parameter carriage and temporary identity receivers still have semantic/ABI
-  gaps documented in `docs/200_object_to_action_boundary_patterns.md`;
+  gaps documented in `docs/language/200_object_to_action_boundary_patterns.md`;
 - domain topology carries exact slot identity, including distinct
   `apply-effect`, but not projection member maps, effect/relation destination
   roles, layer materialization or runtime sync; native `apply <stateName>` is

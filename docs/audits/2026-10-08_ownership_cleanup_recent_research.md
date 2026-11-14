@@ -5,7 +5,7 @@
 최초 검토는 읽기 전용이었다. 뒤의 사용자 요청으로 합성 증명·추출 하네스만
 보완했으며, 논문의 전체 type/effect calculus나 production 알고리즘을 이식한 것은 아니다.
 
-핵심 설명과 도표는 [207](../207_compiler_owned_cleanup_algorithm.md)에 있다.
+핵심 설명과 도표는 [207](../compiler/207_compiler_owned_cleanup_algorithm.md)에 있다.
 기존 owner는 [27](../semantics/27_ownership_clean.md)와
 [OwnershipCleanCore.v](../semantics/proofs/OwnershipCleanCore.v)다.
 아래 적용성 평가는 이 저장소에 대한 검토자의 판단이며, 논문 자체의 결론과
@@ -81,7 +81,7 @@ Rocq 모델이다. 최신 §7은 scope 중간/일반 arena의 회수, GC의 완�
 [최신 v3 본문](https://arxiv.org/html/2509.04253v3).
 
 **적용 후보:** packet 단위로 공동 수명이 확인된 뒤에만 기존
-[region owner](../197_region_arena_strategy.md)와 접점을 검토한다.
+[region owner](../runtime/197_region_arena_strategy.md)와 접점을 검토한다.
 현재 일반 cleanup 공백을 arena로 덮거나 원소별 owner 검증을 생략하지 않는다.
 성능 최적화는 같은 입력에서 현재 closure gate를 막는 비용이 측정될 때만 한다.
 
@@ -187,7 +187,7 @@ sanitizer 검사, installed driver 교체, 원격 CI, commit/push는 이번 범�
 사용자가 Rocq 적용과 모나드식 분기를 요청하여, 기존 기계를 import하는
 `OwnershipCleanComposition.v`를 추가했다. 목표·전체 소비 체인·범위는
 [bounded directive](../agent_work_directives/ownership_clean_composition_2026-10-08.md),
-원리와 다음 반례는 [207 §9](../207_compiler_owned_cleanup_algorithm.md#9-순차-합성과-분기-모나드에서-가져올-것)에 있다.
+원리와 다음 반례는 [207 §9](../compiler/207_compiler_owned_cleanup_algorithm.md#9-순차-합성과-분기-모나드에서-가져올-것)에 있다.
 
 논문에서 참고한 구분은 **순차 효과 합성 vs 비순차 join**이다. 이번 실제
 증명은 `TSeq`의 unit/associativity, guarded branch/continuation 분배,
@@ -255,7 +255,7 @@ GUI inline 23→11 nodes와 0→0 copies다. 실제 allocation 감소와 cleanup
 사용자가 다음 단계도 진행하도록 요청하여, canonical core를 바꾸지 않는
 지역 whole-value 별칭 제거를 구현·증명했다. 전체 체인과 거부 조건은
 [작업 범위](../agent_work_directives/ownership_clean_readonly_elision_2026-10-08.md),
-설명과 도표는 [207 §10](../207_compiler_owned_cleanup_algorithm.md#10-읽기-전용-별칭-제거-같은-계산-한-번-적은-추상-할당)에 있다.
+설명과 도표는 [207 §10](../compiler/207_compiler_owned_cleanup_algorithm.md#10-읽기-전용-별칭-제거-같은-계산-한-번-적은-추상-할당)에 있다.
 여기서 완료한 것은 Rocq/추출 slice이며 native/self-host 구현 인수가 아니다.
 
 ### 변경과 증거의 경계

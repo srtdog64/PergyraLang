@@ -604,7 +604,7 @@ void    propagate_collapse_to_pool(SemanticContext *ctx, int32_t pool_id);
 
 /* Cross-TU helpers promoted from static to extern to support the
  * type_checker_decls_domain_helpers.c translation unit extraction
- * (5-A slice, docs/101_semantic_split_template.md). */
+ * (5-A slice, docs/compiler/101_semantic_split_template.md). */
 bool decl_is_projection_source(const ASTNode *decl);
 const char *projection_refresh_source_field_name(ASTNode *refresh,
                                                  const char *target_field_name);

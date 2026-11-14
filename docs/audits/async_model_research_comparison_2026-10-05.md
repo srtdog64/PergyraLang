@@ -2,10 +2,10 @@
 
 Delivery base: `d0fa49ea`.
 Status: 읽기 전용 탐색 증거다. 컴파일러 의미론의 권위가 아니다. 의미 계약은
-`docs/05_async_concurrency.md`, `docs/113_memory_concurrency_model.md`,
-`docs/114_async_model_positioning.md`, `docs/146_sea_execution_lanes.md`,
-`docs/178_parallel_boundary_evidence.md`, `docs/181_parallel_surface_full_design.md`,
-`docs/204_concurrency_direction_pscc_review.md`와 그 실행 게이트가 소유한다.
+`docs/concurrency/05_async_concurrency.md`, `docs/concurrency/113_memory_concurrency_model.md`,
+`docs/concurrency/114_async_model_positioning.md`, `docs/concurrency/146_sea_execution_lanes.md`,
+`docs/concurrency/178_parallel_boundary_evidence.md`, `docs/concurrency/181_parallel_surface_full_design.md`,
+`docs/concurrency/204_concurrency_direction_pscc_review.md`와 그 실행 게이트가 소유한다.
 이 문서는 후속 구현 rung을 열지 않는다. §4의 권고는 결정 후보일 뿐이다.
 
 연구 쪽 인용은 2026-10-05에 웹에서 제목·저자·학회·연도·URL을 확인했다. arXiv에만
@@ -212,7 +212,7 @@ Effekt(OOPSLA 2020), Scala capabilities, Zig 0.16 `Io`(2026-04). Zig는 색을 �
   이 정보를 쓴다. 색을 그냥 없애면 피호출자의 멈춤이 호출자의 pin을 몰래 넘게 된다.
 - 연구가 주는 답은 색을 **사용자 표시**에서 **추론된 효과**로 바꾸는 것이다.
   Pergyra에는 이미 재료가 있다. intent 검사는 spawn·send에 대해 호출 요약으로
-  프로시저 간 검사를 한다(`type_checker_intent_control.c`). `docs/effect_system_design.md`는
+  프로시저 간 검사를 한다(`type_checker_intent_control.c`). `docs/language/effect_system_design.md`는
   `async` 효과 멤버를 제안해 두었다. "멈출 수 있음"을 추론된 요약으로 만들면, pin·intent
   검사는 그 요약을 소비하고 사용자는 `async`를 쓰지 않아도 된다.
 - 다만 이것은 큰 결정이다. 사용자가 보는 의미가 바뀐다. 즉시 착지할 일이 아니라
@@ -326,7 +326,7 @@ workflow 엔진들이 "workflow 코드는 결정적이어야 하고 I/O는 activ
 
 ### 3.1 문서 불일치
 
-- `docs/05_async_concurrency.md` §2의 예제는 일반 `func Main` 안에서 `await`를 쓴다.
+- `docs/concurrency/05_async_concurrency.md` §2의 예제는 일반 `func Main` 안에서 `await`를 쓴다.
   체커는 `[ERROR] 7:20 - 'await' used outside of async function`으로 거부한다. 테스트
   픽스처는 모두 `async func Main`을 쓴다. 문서 쪽이 틀렸거나, §2.4의 결정에 따라 규칙
   쪽이 바뀌어야 한다.

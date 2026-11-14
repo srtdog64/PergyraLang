@@ -28,8 +28,8 @@ Status: AUDIT COMPLETE — 구현 정책과 SoT 상태를 소유하지 않는 �
   terminal이 실제로 어디서 검사되고 어떤 경로로 실행되는지 분해한다.
 - 우선순위: 동일 의미 보존 여부 → accepted/rejected 구별 → 실제 실행 →
   fact owner와 소비자 → 개념 비용. spelling 변경은 의미 삭제로 세지 않는다.
-- fact owner: canonical [docs/01](../01_intent_first_design.md),
-  [docs/173](../173_intent_axis_strengthening.md), 아래 구현 owner와 실행 gate.
+- fact owner: canonical [docs/01](../language/01_intent_first_design.md),
+  [docs/173](../semantics/173_intent_axis_strengthening.md), 아래 구현 owner와 실행 gate.
 - 마지막 소비자: primary agent의 통합 감사와 이후 한 개의 구현 rung 선택.
 - 금지 fallback: step/action 개수 판정, trace만으로 정적 정리 주장,
   native MIR 공급 경로를 Pergyra source 전체 구현으로 승격.
@@ -148,7 +148,7 @@ emitter와 `sched_ok`의 일치는 gate 의무라고 명시한다. 이 감사는
 `보상 유무, action 수, step 수는 어느 쪽도 단독 판정 기준이 아니다`와
 `Micro는 보상이 필요할 때만 Intent`, `step 10개/body 20줄이면 쪼개기`는
 같은 규칙으로 적용할 수 없다. primary는
-[docs/200](../200_object_to_action_boundary_patterns.md)에도 action 두 개 이상
+[docs/200](../language/200_object_to_action_boundary_patterns.md)에도 action 두 개 이상
 기준과 action 개수 판정 금지가 함께 있음을 확인했다. 본 lane은 원문을
 수정하지 않았고 통합 시 purpose-bound obligation 기준으로 정정하도록 넘겼다.
 

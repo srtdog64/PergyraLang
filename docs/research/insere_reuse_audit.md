@@ -3,7 +3,7 @@
 Updated: 2026-07-30 (Asia/Seoul)
 
 Status: research/adoption dossier. 이 문서는
-`docs/201_insere_zeno_lineage_and_library_adoption.md`의 canonical 채택 계약을
+`docs/stdlib/201_insere_zeno_lineage_and_library_adoption.md`의 canonical 채택 계약을
 대체하지 않는다. Insere는 provenance와 falsifier이며 Pergyra source, owner,
 registry와 executable gate가 의미 권위다.
 
@@ -150,7 +150,7 @@ identity, authority, state/stage 또는 resource handoff가 있는 system/phase/
 - Grade: official-library `REACHABLE`; real host adapter consumer는 아직 없음
 
 추가 generic scheduler, clock, mailbox, event bus, effect combinator는 stdlib core로
-채택하지 않는다. `D:/PergyraLang/docs/138_standard_library_scope.md`의 generic
+채택하지 않는다. `D:/PergyraLang/docs/stdlib/138_standard_library_scope.md`의 generic
 callable/monomorphization 제약과 기존 `Channel<T>`/runtime mechanism 소유권에도
 충돌한다.
 

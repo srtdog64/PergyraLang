@@ -101,9 +101,9 @@ scope simulation {
 `slot`, `spawn`, `await`, `pin`, `within`이 있지만 `scope`는 없다. 현재 계약은
 `parallel`이 자기 블록에서 join하고, named `spawn`의 `Future`를 lexical
 owner가 모든 정상 경로에서 retire하게 하며, intent step도 작업 범위를
-제공한다고 분리한다(`docs/05_async_concurrency.md:25`,
-`docs/113_memory_concurrency_model.md:238`,
-`docs/204_concurrency_direction_pscc_review.md:99`).
+제공한다고 분리한다(`docs/concurrency/05_async_concurrency.md:25`,
+`docs/concurrency/113_memory_concurrency_model.md:238`,
+`docs/concurrency/204_concurrency_direction_pscc_review.md:99`).
 
 **I:** 따라서 현재의 정직한 비교 단위는 한 줄짜리 가상 구문이 아니라 다음
 선언들의 합이다.
@@ -168,7 +168,7 @@ resource lifetime and authority, if handles are captured
 3. **Deterministic reduction.**
    `tests/cases/backend_compare/parallel_join_reduce/main.pgy`는
    `sum/product/min/max`를 completion order가 아니라 index-order fixed fold로
-   정의하고 checked arithmetic을 사용한다. `docs/181_parallel_surface_full_design.md:64`
+   정의하고 checked arithmetic을 사용한다. `docs/concurrency/181_parallel_surface_full_design.md:64`
    및 `:101`이 순서 계약을 기록한다.
 
 세 workload가 sharing, partitioned mutation, aggregation을 각각 건드리므로
@@ -243,7 +243,7 @@ suspension/task/channel boundaries do not smuggle a live view
 가르치지 않으면 Pergyra 코드는 짧지만 추론은 틀린다.
 
 **P:** await resume에서 automatic generation revalidation은
-`docs/204_concurrency_direction_pscc_review.md:307`의 future rung이다. 현재
+`docs/concurrency/204_concurrency_direction_pscc_review.md:307`의 future rung이다. 현재
 보장은 live view가 await를 넘지 못한다는 데까지다. 이를 이미 착지한 temporal
 world safety라고 세면 semantic power가 과대 계산된다.
 
@@ -270,7 +270,7 @@ authority: 이 domain participant가 이 transition을 승인할 수 있는가
    gate가 ground truth임을 구분한다.
 3. **Spawned work under a shared ceiling.**
    `tests/capability/budget_spawn_demo.pgy`는 task 수 budget의 runtime
-   chokepoint를 건드린다. `docs/113_memory_concurrency_model.md:38` 이후 계약은
+   chokepoint를 건드린다. `docs/concurrency/113_memory_concurrency_model.md:38` 이후 계약은
    child가 parent capability snapshot과 exact shared budget owner를 받고,
    executor thread의 default TLS를 fallback으로 쓰지 못하게 한다.
 
@@ -396,7 +396,7 @@ contract lens"는 현재 이 감사에서 user-facing tool로 확인하지 못�
 Intent를 source-level cross-axis binder로 정의하면서, 현 typed transition을
 coordination/boundary/compensation의 **bounded projection**이라고 제한한다.
 
-**O/P:** `docs/173_intent_axis_strengthening.md:133-135`의 INT-1/2/3은 명확한
+**O/P:** `docs/semantics/173_intent_axis_strengthening.md:133-135`의 INT-1/2/3은 명확한
 compiler rejection 목표지만, 같은 문서 `:187-210`은 semantic pass 잔여를
 명시한다. Coq kernel이 obligation shape와 guard-free theorem을 갖는 것과,
 현재 compiler가 모든 source intent에 그 전제를 방출하는 것은 다른 주장이다.
@@ -496,23 +496,23 @@ Intent를 지켜야 할 근거는 이름 자체가 아니라, 같은 purpose ide
 ## 저장소 근거
 
 - Parallel/future freeze:
-  `docs/113_memory_concurrency_model.md:19-80`, `:232-279`.
+  `docs/concurrency/113_memory_concurrency_model.md:19-80`, `:232-279`.
 - Current async mental model:
-  `docs/05_async_concurrency.md:10-18`, `:23-48`, `:84-110`, `:206-256`.
+  `docs/concurrency/05_async_concurrency.md:10-18`, `:23-48`, `:84-110`, `:206-256`.
 - Slot static/runtime boundary:
   `docs/semantics/08_slot_capability_calculus.md:22-99`, `:101-163`,
   `:348-418`.
 - Capability declare/manifest/gate:
   `docs/semantics/15_capability_sandbox.md:9-110`.
 - Intent bundle and unlanded general obligations:
-  `docs/173_intent_axis_strengthening.md:50-115`, `:129-210`.
+  `docs/semantics/173_intent_axis_strengthening.md:50-115`, `:129-210`.
 - Bounded typed Intent execution:
   `docs/self_hosted/19_intent_execution_transition_contract.md:8-41`,
   `:91-224`.
 - Concurrency corrections and status:
-  `docs/204_concurrency_direction_pscc_review.md:55-252`, `:254-478`.
+  `docs/concurrency/204_concurrency_direction_pscc_review.md:55-252`, `:254-478`.
 - Intent derivation boundary:
-  `docs/60_zone_context_and_transfer_derivation.md:68-119`, `:220-236`.
+  `docs/language/60_zone_context_and_transfer_derivation.md:68-119`, `:220-236`.
 - Exact current word registry:
   `src/lexer/language_keyword_registry.def` (`scope` row absent at inspection).
 

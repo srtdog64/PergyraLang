@@ -1,0 +1,45 @@
+# Beta Readiness Checklist
+
+This file is now the lightweight index for the beta closure checklist. The
+checklist body was split on 2026-05-29 because the single file had become too
+large to review safely.
+
+Current implementation/beta split (2026-06-08): feature-surface feel is about
+85%, and strict beta readiness is now about 83%. Do not call this beta-complete until the P0 source-of-truth closures below have current full-suite evidence
+and no remaining compatibility fallback decides a beta-stable path. Do not
+raise it beyond the low-80% band on feature count alone. The 83% line is backed
+by green semantic/HIR/RIR/MIR/AIR/C-transpile/LLVM smoke gates, backend-compare
+fixture inventory registration, backend-compare range evidence, MIR declaration
+inventory guards, and ABI/Slot/Pin ownership smokes.
+
+## Shards
+
+- `docs/release/100a_beta_active_status.md` - current status, active blocker summary,
+  and recent closure context.
+- `docs/release/100b_beta_p0_semantics_systems_air.md` - formal semantics, systems
+  baseline, CFG/body dataflow, core semantic closure, runtime panic/security,
+  user quality, AIR, compiler design quality, and DAG P0 notes.
+- `docs/release/100c_beta_dag_mir_abi_runtime.md` - module boundary, DAG closure, MIR
+  declaration debt, ABI ownership/arena lifetime, parallel/core keyword tests,
+  and pain-point loop.
+- `docs/release/100d_beta_execution_log.md` - immediate execution order and historical
+  progress log.
+
+## P0 Source-Of-Truth Order
+
+1. CFG/body safety source-of-truth: ownership, cleanup, drop, and zone/effect
+   body facts must be consumed from CFG/MIR facts, not AST/helper fallbacks.
+2. AIR abstraction-boundary verification: EvidenceNode and `pgy.air.graph.v1`
+   must remain the stable verifier surface for boundary drift.
+3. DAG recursive compatibility seam removal: semantic decisions must use the
+   graph/materialized metadata path instead of recursive resolver compatibility.
+4. MIR/LLVM declaration bootstrap parity: frozen subset declaration inventory
+   must be DIR/RIR/MIR-owned rather than AST-carried metadata.
+5. ABI/Slot/Pin ownership freeze: Slot/Pin/Zone-bound handle, raw escape, and
+   runtime-none policy must be documented, smoked, and backend-stable.
+
+## Editing Rule
+
+Do not grow this index into another mega-checklist. Put details in the owning
+shard and keep completed backend/declaration evidence in
+`docs/release/133_beta_completed_closure_archive.md`.

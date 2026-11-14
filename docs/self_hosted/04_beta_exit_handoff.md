@@ -14,9 +14,9 @@ self-host migration.
 
 Self-host preparation may begin after all of these are true:
 
-- `docs/100_beta_readiness_checklist.md` has no open blocker for the stable
+- `docs/release/100_beta_readiness_checklist.md` has no open blocker for the stable
   subset.
-- `docs/107_beta_stable_subset.md` matches the parser, semantic checker,
+- `docs/release/107_beta_stable_subset.md` matches the parser, semantic checker,
   diagnostics, examples, and C/LLVM support matrix.
 - CFG/MIR body safety gates prove stable paths do not rely on AST fallback
   judgments.

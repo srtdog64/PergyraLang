@@ -372,7 +372,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
                 PGY_CAUSE_UNARY_OPERATOR_OPERAND,
                 PGY_FIX_CHECK_INTENT_STEP_LOWERING, expr,
                 "'reflect' currently supports only a type name; richer targets "
-                "are not lowered yet (docs/reflect_operator_design.md)");
+                "are not lowered yet (docs/language/reflect_operator_design.md)");
             return TYPE_UNKNOWN;
         }
 

@@ -1076,7 +1076,7 @@ rewrite history.
   collection ABI/bounds/index/element facts into the existing scalar-CFG plan;
   a topology-specific foreach compiler or legacy block-count route is forbidden.
 - The accepted Rust 2026 `Move`/`Forget` direction remains documented as prior
-  art in `docs/106_ownership_model_comparison.md`. Pergyra's covered structured
+  art in `docs/semantics/106_ownership_model_comparison.md`. Pergyra's covered structured
   slices compose more authority/effect/cleanup evidence, but general `!Move`
   and guaranteed arbitrary user finalization are still open rather than claimed.
 
@@ -5051,7 +5051,7 @@ rewrite history.
    MIR CFG/body/ownership, ABI layout, backend fact consumption) gets a verifier
    that owns its contract.
 5. **Post-self-host: the validation milestone**
-   ([`../post_selfhost_validation_milestone.md`](../post_selfhost_validation_milestone.md)).
+   ([`post_selfhost_validation_milestone.md`](post_selfhost_validation_milestone.md)).
    The broad stdlib is written in self-hosted Pergyra (the usability bulk +
    dogfood), and the dungeon crawler is built, against falsifiable criteria for
    whether domain-meaning preservation actually pays off (differential safety,

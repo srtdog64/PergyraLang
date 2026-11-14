@@ -13,7 +13,7 @@ result. Do not cite it as "the language is mechanically verified."
   model; `coqc`-checked). Proof-sketch scope, not language soundness.
 - Differential test: [`../../../tests/axis_keyword_adequacy_smoke.sh`](../../../tests/axis_keyword_adequacy_smoke.sh)
   (grep-level source consistency, not a verified extraction)
-- Design source of truth: [`../../42_keyword_orthogonality.md`](../../42_keyword_orthogonality.md)
+- Design source of truth: [`../../language/42_keyword_orthogonality.md`](../../language/42_keyword_orthogonality.md)
 
 ## 1. Why
 

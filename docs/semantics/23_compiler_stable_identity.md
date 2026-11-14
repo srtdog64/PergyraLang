@@ -62,7 +62,7 @@ overflow guard, and negative duplicate/zero-ID mutations.
 ## Remaining Obligation
 
 This closes uniqueness within one merged program. It does not yet close the
-full stable-identity gate from `docs/180_compiler_logical_spine_handles_gates.md`:
+full stable-identity gate from `docs/compiler/180_compiler_logical_spine_handles_gates.md`:
 
 - `CompilationRevisionId` and `SourceUnitId` remain implicit; provenance still
   uses `origin_path` strings.

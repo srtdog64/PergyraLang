@@ -3,7 +3,7 @@
 // SubEquals(s, start, len, other) is the zero-allocation form of
 // Substring(s, start, len) == other -- the keyword-match pattern at the heart
 // of lexers/parsers. Keep the Rust/C/Pergyra timing ledger in
-// docs/perf_close_to_c.md; this fixture is the executable source for the
+// docs/tooling/perf_close_to_c.md; this fixture is the executable source for the
 // Pergyra length-fact fused-builtin equality row. Output: hits=625000.
 func Main() -> Void {
     let s: String = "the quick brown fox jumps over the lazy dog and runs away";

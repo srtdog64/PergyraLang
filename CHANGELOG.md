@@ -190,11 +190,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **compiler/mir**: Channel<T> changed from full struct to opaque handle
   (`uint32_t`). `ZoneChannelHandle` and `WorldChannelHandle` eliminate
   platform-dependent `pthread_mutex_t`/`condvar_t` size variance.
-- **docs**: Add `docs/38_c_macro_deception_and_abi.md` — analysis of C macro
+- **docs**: Add `docs/compiler/38_c_macro_deception_and_abi.md` — analysis of C macro
   ABI deception and backend autonomy problem.
-- **docs**: Add `docs/39_test_driven_abi_and_explicit_lowering.md` — execution
+- **docs**: Add `docs/compiler/39_test_driven_abi_and_explicit_lowering.md` — execution
   strategy for Test-Driven ABI and Explicit Lowering.
-- **docs**: Add `docs/40_lowering_rules.md` — 17 RIR→MIR mapping rules with
+- **docs**: Add `docs/compiler/40_lowering_rules.md` — 17 RIR→MIR mapping rules with
   ABI lookup table.
 - **docs**: Add `review/channel_ownership_tier.md` — Zone/World dual ownership
   model for channels.
@@ -528,7 +528,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Folder-based example smoke entries: a path may now point to an example directory with `main.pgy`
 - New multi-file example scenarios: `examples/battle_simulator/` and `examples/biome_simulator/`
 - Richer biome simulator scenario: vegetation pools, species-specific traits, four-creature biome loops, world season/storm aggregation, and file report output
-- Practical simulator pain-point tracker: `docs/27_simulator_pain_points.md`
+- Practical simulator pain-point tracker: `docs/language/27_simulator_pain_points.md`
 - Nested vessel-backed projection paths in `ToObject` / `ToTObject` and domain `refresh` / `publish`
 - `vessel slot` support inside `zone` declarations for grouped passive state
 - Folder-level exact `expected_results.txt` golden comparison for simulator outputs
@@ -830,7 +830,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - strengthened backend parity coverage for intent trace/rollback/materialize
   via `tests/cases/backend_compare/intent_trace_compensate`
 - documented the post-implementation strengths and weaknesses of Pergyra in
-  `docs/35_hands_on_language_assessment.md`
+  `docs/language/35_hands_on_language_assessment.md`
 - intent: added `transfer: source -> target;` to `intent step`, with semantic validation that both bindings are zone participants, target matches `where`, and `who` participants match subject slots on both sides; C/LLVM lowering now performs live handoff materialization, dual-zone sync, and `[transfer] ...` runtime trace lines, with backend parity coverage in `tests/cases/backend_compare/intent_cross_world_transfer/`
 - intent/semantic: suppress the misleading "intent is declarative only" warning
   for steps that already declare explicit `on:` expressions; same-name action
@@ -852,7 +852,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - compiler/rir: started the new Resource IR layer with [`src/compiler/rir.h`](src/compiler/rir.h) and [`src/compiler/rir.c`](src/compiler/rir.c). `pgy --rir` now dumps scope-based resource facts and explicit ops for slot claim/read/write/release, projection refresh/publish, zone lifecycle operations, authority/capability facts, and intent commit/abort/compensate skeletons.
 - tests/docs: added [`src/test_rir.c`](src/test_rir.c), `make test-rir`, and updated the compiler pipeline docs so `DIR` and `RIR` are both documented as started-but-not-backend-owning layers. The fixed compiler contracts now explicitly drive the implementation instead of living only as design notes.
-- docs/architecture: fixed the compiler contract around `HIR -> DIR -> RIR -> MIR` and separated it from the current implementation state. Added [`docs/37_compiler_contracts.md`](docs/37_compiler_contracts.md) to pin the IR layer responsibilities, the resource state lattice, the intent compensation model, the projection sync contract, and the authority/capability split as the forward compiler contract.
+- docs/architecture: fixed the compiler contract around `HIR -> DIR -> RIR -> MIR` and separated it from the current implementation state. Added [`docs/compiler/37_compiler_contracts.md`](docs/compiler/37_compiler_contracts.md) to pin the IR layer responsibilities, the resource state lattice, the intent compensation model, the projection sync contract, and the authority/capability split as the forward compiler contract.
 - docs/dir: strengthened the new DIR start point so `pgy --dir` now prints stable unresolved ids, resolved zone-parameter participants, and `transfer: source -> target` metadata in intent steps instead of ambiguous `-0` output. Added a second DIR regression covering transfer aliases and zone-typed intent participants.
 
 - intent/runtime: added richer trace-id and identity-aware step history. `IntentLastTraceId()` and `IntentActiveTraceId()` now expose per-instance trace ids, and `IntentHistoryStepPhase/Participant/Slot/FromZone/FromSlot/ToZone/ToSlot` now expose typed step identity for materialize/transfer flows on both C and LLVM.
@@ -863,7 +863,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - parser: string interpolation `${expr}` now reparses embedded expressions and wraps them in `ToString(...)`, which makes calendar/report-style text with ints and member access type-check again.
 - codegen: `ToString(...)` in the C backend now handles `String` passthrough and `Bool` text emission instead of always lowering to `pgy_int_to_string(...)`.
 - examples: added [`examples/calendar_working/main.pgy`](examples/calendar_working/main.pgy) as a direct proof that Pergyra can now build a basic calendar-style schedule renderer using `List<Event>`, `for-in`, and interpolation.
-- docs: updated [`docs/35_hands_on_language_assessment.md`](docs/35_hands_on_language_assessment.md) so the old “calendar even this cannot be built” section reflects the current state instead of stale pre-fix claims.
+- docs: updated [`docs/language/35_hands_on_language_assessment.md`](docs/language/35_hands_on_language_assessment.md) so the old “calendar even this cannot be built” section reflects the current state instead of stale pre-fix claims.
 - Lifted `shopping_mall_checkout_refund` onto real `use http; use storage; use page;` surfaces. The example now emits `HttpIntentRequest/HttpIntentResponse`, page route/action binding lines, and transcript persistence through `SaveTranscript(...)` / `RenderStorageWrite(...)` instead of direct ad hoc transport/storage strings.
 - Fixed stdlib `use` deduplication in the import resolver so repeated `use http; use storage; use page;` across imported files no longer redeclare the same stdlib types.
 - Fixed CI portability in `tests/repo/example_contract_smoke.sh` by normalizing CRLF/LF in exact comparisons and running generated example binaries from a repo-local `.tmp` directory instead of `/tmp`, which avoided `noexec` failures in GitHub Actions. Updated `.github/workflows/ci.yml` to `actions/checkout@v5`.

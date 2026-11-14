@@ -74,7 +74,7 @@ func InputErrorJsonForOwners(path: String, code_owner: String, docs_owner: Strin
 }
 
 func InputErrorJson(path: String) -> Option<String> {
-    return InputErrorJsonForOwners(path, "src/semantic/diag_codes.h", "docs/72_diagnostic_codes.md");
+    return InputErrorJsonForOwners(path, "src/semantic/diag_codes.h", "docs/tooling/72_diagnostic_codes.md");
 }
 
 func DiagnosticCatalogJsonForOwners(
@@ -117,6 +117,6 @@ func DiagnosticCatalogJson(codes: Int, documented: Int, missing: Int, duplicates
         orphans,
         findings,
         "src/semantic/diag_codes.h",
-        "docs/72_diagnostic_codes.md"
+        "docs/tooling/72_diagnostic_codes.md"
     );
 }

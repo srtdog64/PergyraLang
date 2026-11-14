@@ -33,7 +33,7 @@ drop_i32_map(PgyHashMap_Int *map)
 }
 
 /* Child modes. A failed allocation now panics with class oom
- * (docs/105_runtime_panic_contract.md), so each injected failure runs in its
+ * (docs/runtime/105_runtime_panic_contract.md), so each injected failure runs in its
  * own process and the smoke script checks the exit status and stderr. The
  * checks that used to follow a failed constructor or grow (map fields
  * unchanged, old values still readable, new key absent) described a process

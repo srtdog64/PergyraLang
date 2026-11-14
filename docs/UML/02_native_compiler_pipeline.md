@@ -123,8 +123,8 @@ sequenceDiagram
 
 ## 권위 링크
 
-- 현재 구현 안내: [20번 문서](../20_compiler_pipeline_guide.md)
-- 계층별 계약: [36번 문서](../36_ir_pipeline_architecture.md)
-- logical spine: [180번 문서](../180_compiler_logical_spine_handles_gates.md)
+- 현재 구현 안내: [20번 문서](../compiler/20_compiler_pipeline_guide.md)
+- 계층별 계약: [36번 문서](../compiler/36_ir_pipeline_architecture.md)
+- logical spine: [180번 문서](../compiler/180_compiler_logical_spine_handles_gates.md)
 - production entrypoint: [`driver_app.c`](../../src/compiler/driver_app.c)
 

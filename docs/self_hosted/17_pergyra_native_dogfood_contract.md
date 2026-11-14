@@ -727,7 +727,7 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 세는 것이다.
 
 구성체 자체의 선택 기준은
-[`../200_object_to_action_boundary_patterns.md`](../200_object_to_action_boundary_patterns.md)가
+[`../language/200_object_to_action_boundary_patterns.md`](../language/200_object_to_action_boundary_patterns.md)가
 소유한다. 이 문서는 같은 패턴을 self-host 실행 도달성과 대체 증거에 적용한다.
 
 ## 현재 관측된 상태

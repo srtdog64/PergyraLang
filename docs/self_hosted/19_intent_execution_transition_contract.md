@@ -31,7 +31,7 @@ Date: 2026-07-29
 
 This executable rung does not redefine `intent` as a generic multi-action
 orchestration function.  The canonical language meaning remains
-`docs/01_intent_first_design.md` and `docs/173_intent_axis_strengthening.md`:
+`docs/language/01_intent_first_design.md` and `docs/semantics/173_intent_axis_strengthening.md`:
 an intent closes a real-world purpose and is a source-level cross-axis binder
 that elaborates into verification-plane coordination, authority, effect,
 boundary, compensation, and trace facts.  Those facts keep their axis-specific

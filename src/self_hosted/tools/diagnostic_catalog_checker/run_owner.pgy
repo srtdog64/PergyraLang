@@ -17,7 +17,7 @@ func DiagnosticCatalogDocsPathFromArgs(args: Array<String>) -> String {
     if ArrayLength(args) > 1 {
         return Concat("", args[1]);
     }
-    return "docs/72_diagnostic_codes.md";
+    return "docs/tooling/72_diagnostic_codes.md";
 }
 
 func RunDiagnosticCatalogCheckWithPaths(header_path: String, docs_path: String) -> Void {
@@ -63,6 +63,6 @@ func RunDiagnosticCatalogCheckFromArgs(args: Array<String>) -> Void {
 func RunDiagnosticCatalogCheck() -> Void {
     RunDiagnosticCatalogCheckWithPaths(
         "src/semantic/diag_codes.h",
-        "docs/72_diagnostic_codes.md"
+        "docs/tooling/72_diagnostic_codes.md"
     );
 }

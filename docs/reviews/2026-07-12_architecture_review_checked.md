@@ -24,7 +24,7 @@ routing, not a production-readiness claim.
   body. `test-mir` owns the loop cleanup-order witness and passes 128/128 in the
   current worktree.
 - **carriage implies pointer attributes:** already withdrawn. MIR carriage owns
-  physical ABI only; `docs/143_evidence_parameter_attributes.md` and
+  physical ABI only; `docs/runtime/143_evidence_parameter_attributes.md` and
   `mir-param-carriage-test-smoke` forbid deriving `noalias` or `readonly` from
   carriage.
 - **V1 benchmark cardinality:** the review was correct about the defect, but it

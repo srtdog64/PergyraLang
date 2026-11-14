@@ -9,7 +9,7 @@ evidence can support.
 ## Scope
 
 The model covers the evidence ladder from
-`docs/139_golden_adt_verification_methodology.md`:
+`docs/semantics/139_golden_adt_verification_methodology.md`:
 
 - prose contracts make a rule reviewable;
 - smoke gates catch known regressions;

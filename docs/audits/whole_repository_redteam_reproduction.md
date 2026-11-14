@@ -188,7 +188,7 @@ or classify it with a narrowly justified historical/manual reason.
 
 ### P1: Stable documentation claims red `Array<T>` behavior
 
-`docs/107_beta_stable_subset.md` says a feature is stable only when the
+`docs/release/107_beta_stable_subset.md` says a feature is stable only when the
 full `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression`
 chain is coherent, then lists `Array<T>` as Stable. The fresh runtime oracle
 shows both native backends violating the value-copy contract. The README
@@ -319,7 +319,7 @@ negative gate.
 ### P3: Some documentation links are broken
 
 Repository-relative links in `docs/README_ko.md` and
-`docs/71_beta_execution_tickets.md` resolve as `docs/docs/...`, and split
+`docs/release/71_beta_execution_tickets.md` resolve as `docs/docs/...`, and split
 targets referenced by `CHANGELOG.md` are absent. The link checker must use
 source-file-relative resolution; historical changelog links need archive or
 rebased paths.
@@ -1444,13 +1444,13 @@ Authoritative baseline captured before the audit:
   `D:\PergyraLang\docs\00_vision.md:117`.
 - Evidence: `LICENSE` in `docs/README_ko.md` resolves to
   `D:\PergyraLang\docs\LICENSE`, which is absent; the repository license is at
-  the repository root. The intent-design link in `docs/00_vision.md` contains
+  the repository root. The intent-design link in `docs/language/00_vision.md` contains
   a `docs/` prefix inside a file already under `docs/`, so it resolves to
   `D:\PergyraLang\docs\docs\01_intent_first_design.md`. The current dirty
   corrections to the other `README_ko` links and both `71_beta_execution_tickets`
   links are present and should be preserved.
 - Direction: use `../LICENSE` from `docs/README_ko.md` and
-  `01_intent_first_design.md` from `docs/00_vision.md`. Add a repository
+  `01_intent_first_design.md` from `docs/language/00_vision.md`. Add a repository
   relative-link checker that treats machine-specific absolute paths and
   historical missing split files as explicit exceptions rather than silently
   accepting them.

@@ -1,7 +1,7 @@
 (*
   CheckedArith.v  --  fail-closed checked integer division/modulo (no UB).
 
-  Companion to docs/100b_beta_p0_semantics_systems_air.md (UB model) and to the
+  Companion to docs/release/100b_beta_p0_semantics_systems_air.md (UB model) and to the
   runtime guards in src/runtime/pgy_runtime_lib_authority_file_core.h /
   pgy_runtime_panic_checked_inline.h.
 

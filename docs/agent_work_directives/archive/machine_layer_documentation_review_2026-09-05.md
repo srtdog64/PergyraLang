@@ -41,7 +41,7 @@ integration and all unrelated changes remain with their existing owners.
 | --- | --- | --- |
 | Pipeline reviewer | native/self-host contact classification, manifest, MIR/AIR/plan, C/LLVM and runtime gates | `docs/audits/2026-09-05_machine_layer_pipeline_review.md` |
 | Formal reviewer | machine/resource Rocq cores, proof contracts, machine-neutral boundary and existing proof gates | `docs/audits/2026-09-05_machine_layer_formal_review.md` |
-| Primary integration | existing Intent definition and machine-layer overview/documentation tests | both READMEs, `docs/01_intent_first_design.md`, existing machine-layer overview, documentation gate, this directive and navigation handoff; completed report link-anchor reconciliation |
+| Primary integration | existing Intent definition and machine-layer overview/documentation tests | both READMEs, `docs/language/01_intent_first_design.md`, existing machine-layer overview, documentation gate, this directive and navigation handoff; completed report link-anchor reconciliation |
 
 Reviewers must not edit production code, proof files, tests, shared navigation
 or one another's reports. Use `apply_patch` for reports. Outputs are source

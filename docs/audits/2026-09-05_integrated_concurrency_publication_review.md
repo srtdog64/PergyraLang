@@ -14,7 +14,7 @@ edited only this report and ran the permitted existing gates.
 
 ## Reviewed scope and owner reconciliation
 
-Reviewed the scoped diffs in `docs/204_concurrency_direction_pscc_review.md`,
+Reviewed the scoped diffs in `docs/concurrency/204_concurrency_direction_pscc_review.md`,
 `docs/concurrency/Main.md` and `tests/async_model_positioning_smoke.sh`, and the
 new `advanced_examples.md`, reconciliation audit, example runner and eight
 `expected.stdout` files. Read all eight unchanged canonical source programs

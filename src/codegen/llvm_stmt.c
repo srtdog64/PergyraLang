@@ -479,7 +479,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_INCLUDE_STMT:
     case AST_IMPL_ABILITY:
         /* Category 3 (top-level declarations) skip list.
-         * See docs/95_ast_dispatch_partition.md for the partition model.
+         * See docs/compiler/95_ast_dispatch_partition.md for the partition model.
          *
          * These are consumed by the program pass (MIR-backed emitters in
          * llvm_pipeline.c / llvm_domain.c / llvm_intent.c / llvm_register.c).
@@ -617,7 +617,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ZONE_AUTHORITY:
     case AST_ZONE_STATE:
         /* Category 2 (decl sub-metadata) safety-net forward.
-         * See docs/95_ast_dispatch_partition.md for the partition model.
+         * See docs/compiler/95_ast_dispatch_partition.md for the partition model.
          *
          * These domain runtime verbs are created only as sub-nodes of
          * world_decl / zone_decl in parser_domain.c, and llvm_domain.c

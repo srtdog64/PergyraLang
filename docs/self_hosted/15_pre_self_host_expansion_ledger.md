@@ -1240,7 +1240,7 @@ Plane note, 2026-07-06: this is repository-authoring guard work, not
 Fortran-derived data-parallel language work. The former keeps future
 LLM-written changes from drifting across owner boundaries; the latter remains a
 Pergyra semantics/projection competitiveness axis in
-`docs/168_fortran_parallel_evidence.md`.
+`docs/concurrency/168_fortran_parallel_evidence.md`.
 
 TestHarness split, 2026-07-06: inventory checker suites now live in
 `test_harness_inventory_paths_owner.pgy`, and production size checker suites

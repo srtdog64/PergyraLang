@@ -27,7 +27,7 @@ evidence override this card. Resume this card, not the archive below.
 ### Frozen former active card — checked ReadFile binding/storage review
 
 - HEAD main `8404061d7`; ReadFile changes are uncommitted. Preserve unrelated
-  `docs/01_intent_first_design.md`, SHA256100AFB33... Main only; no worktree,
+  `docs/language/01_intent_first_design.md`, SHA256100AFB33... Main only; no worktree,
   known-red push or new implementation track. Root runs builds/WSL/Git/processes.
   A/B/C have disjoint edit scopes; read-only PowerShell inspection is allowed.
 - Objective/full reached chain:
@@ -219,7 +219,7 @@ evidence override this card. Resume this card, not the archive below.
   card does not change that source. See
   `docs/agent_work_directives/indexed_string_field_lineage_466_closure_2026-10-18.md`.
   At this card's update, code/tests have no WIP; a separate change to
-  `docs/01_intent_first_design.md` belongs to another lane and was not edited
+  `docs/language/01_intent_first_design.md` belongs to another lane and was not edited
   or staged by root. Resolve exact status before continuing.
   Only main; root owns builds, WSL,
   process control and Git. No known-red push or independent new work track.
@@ -3000,7 +3000,7 @@ scoped to those inputs after the whole-repo WSL query exhausted a 300-s run;
 all semantic inputs, repetitions and budgets are unchanged. Final logs:
 .tmp/ownership-cleanup/composition-{extraction-final,formal}-2026-10-08.log.
 Exact hashes and limitations: docs/audits/2026-10-08_ownership_cleanup_recent_research.md.
-Diagram and next proof proposal: docs/207_compiler_owned_cleanup_algorithm.md §9.
+Diagram and next proof proposal: docs/compiler/207_compiler_owned_cleanup_algorithm.md §9.
 
 Next proposed falsifier: elide a read-only local copy across a branch without
 letting its owner drop before the loan's last use; mutation/escape must refuse
@@ -3012,7 +3012,7 @@ actual native/self-host cleanup and physical-backend validation.
 ## Previous scoped work: automatic-cleanup algorithm documentation (2026-10-08)
 
 User requested a checked core-algorithm document, explanatory diagrams, and
-recent-paper applicability review. Added docs/207_compiler_owned_cleanup_algorithm.md
+recent-paper applicability review. Added docs/compiler/207_compiler_owned_cleanup_algorithm.md
 and docs/audits/2026-10-08_ownership_cleanup_recent_research.md with index/facade
 links. These are explanation and review, not semantic owners or a new rung.
 HEAD remains 3658548d24bca3d721e4f1974ac7a10da99f7aa8 with the pre-existing dirty
@@ -5368,7 +5368,7 @@ ownership, capability, effect, transition, intent, type, and boundary. Human
 `WHY` or rationale remains in ADRs, issues, requirements, design notes, commits,
 and discussions. IDEs may link those external artifacts by stable semantic
 identity, but prose is not compiler authority and must not become language
-syntax. `docs/00_vision.md` owns this boundary.
+syntax. `docs/language/00_vision.md` owns this boundary.
 
 ### Next falsifying case
 

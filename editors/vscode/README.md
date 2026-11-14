@@ -1,6 +1,6 @@
 # Pergyra Semantic Squiggle (VS Code)
 
-Meaning-axis squiggles for Pergyra (design: [`docs/140`](../../docs/140_semantic_squiggle.md)).
+Meaning-axis squiggles for Pergyra (design: [`docs/140`](../../docs/tooling/140_semantic_squiggle.md)).
 
 This is a **thin client**. The C analyzer (`pgy-lsp`) is the source of truth; the
 extension only runs it and recolours advisory diagnostics by their

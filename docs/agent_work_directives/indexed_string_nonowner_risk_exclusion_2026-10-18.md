@@ -3,7 +3,7 @@
 Status: BOUNDED NATIVE REPAIR INDEPENDENTLY APPROVED; canonical/CI OPEN.
 Base: main `1dae4522189bb48cf09dd299ca165c2807d8c228`, code checkpoint
 `7d08b9db575a1a06c46b64b77a8cae6c61802a51`. A separate uncommitted
-`docs/01_intent_first_design.md` change is outside this edit scope.
+`docs/language/01_intent_first_design.md` change is outside this edit scope.
 
 ## Objective and complete chain
 

@@ -1,6 +1,6 @@
 // src/self_hosted/tools/stable_subset_section_checker/main.pgy
 //
-// Status: rung-2 minimal (2026-05-27). Reads docs/107_beta_stable_subset.md
+// Status: rung-2 minimal (2026-05-27). Reads docs/release/107_beta_stable_subset.md
 // relative to cwd, counts `^## ` headings, and verifies a canonical anchor
 // list against the document. Emits the schema document and exits 1 on
 // any missing anchor.
@@ -63,7 +63,7 @@ func MissingFinding(title: String) -> String {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", "missing_section"),
         JsonEmitFieldString("title", title),
-        JsonEmitFieldString("location", "docs/107_beta_stable_subset.md")
+        JsonEmitFieldString("location", "docs/release/107_beta_stable_subset.md")
     ];
     return JsonEmitObject(fields);
 }
@@ -111,7 +111,7 @@ func InputErrorJson(path: String) -> Option<String> {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    var manifest_path: String = "docs/107_beta_stable_subset.md";
+    var manifest_path: String = "docs/release/107_beta_stable_subset.md";
     if ArrayLength(args) > 0 {
         manifest_path = args[0];
     }

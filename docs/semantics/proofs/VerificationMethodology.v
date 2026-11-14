@@ -2,7 +2,7 @@
   Pergyra Verification Methodology Core
 
   Status: proof-sketch; not whole-language proof. This file models the
-  evidence-ladder discipline from docs/139_golden_adt_verification_methodology.md:
+  evidence-ladder discipline from docs/semantics/139_golden_adt_verification_methodology.md:
 
     a method permits only the claim it is strong enough to support;
     golden fixtures, differential oracles, verifier gates, and mechanized

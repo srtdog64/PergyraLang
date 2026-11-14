@@ -12,7 +12,7 @@ backend, LLVM. `LLVM_ENABLED=0` jobs still prove the C leg and require an
 explicit LLVM-leg skip instead of treating the build configuration as a tool
 failure. The C compiler remains the oracle.
 
-For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
+For work after this snapshot, follow `docs/release/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 

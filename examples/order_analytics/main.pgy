@@ -4,7 +4,7 @@
 // EDA: 주문 데이터를 탐색하여 통계를 산출
 // ETL: 유효한 주문만 정제하여 목표 테이블에 적재
 //
-// 패턴 참조: docs/43_design_patterns.md (EDA, ETL)
+// 패턴 참조: docs/language/43_design_patterns.md (EDA, ETL)
 // Status: compile-smoke covered example.
 // ============================================================
 

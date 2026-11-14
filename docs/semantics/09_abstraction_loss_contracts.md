@@ -558,7 +558,7 @@ independently of either compiler: ordered scalar/String effects, lazy RHS
 suppression, and Intent participant observations. The Intent inline expression
 must print `true 1`; the separate-statement control must print `true 1 1` under
 the existing `using:` materialize/sync/writeback contract in
-`../34_intent_oriented_paradigm.md`. Equal but incorrect backend outputs do not
+`../language/34_intent_oriented_paradigm.md`. Equal but incorrect backend outputs do not
 satisfy this gate. Compile failure, execution failure and incorrect output are
 distinct failures, not semantic refusal or expected-failure passes.
 

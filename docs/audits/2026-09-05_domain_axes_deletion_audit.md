@@ -73,7 +73,7 @@ where 충돌 거절은 별도 실행 증거다. 이번 lane에서 Rocq/Lean 정�
 각각 `callable_kind:action`과 `callable_kind:function`으로 유지했다.
 
 이는 mutation이 action의 독점 의미가 아니라는 구별이다.
-[docs/200 §3.2](../200_object_to_action_boundary_patterns.md#32-func와-action-선택)는
+[docs/200 §3.2](../language/200_object_to_action_boundary_patterns.md#32-func와-action-선택)는
 func도 caps/effects를 가질 수 있다고 명시한다. 효과 유무만으로 action을
 정당화하지 않는다. 이 좁은 프로그램에는 추가 domain 계약이 없어 func가 충분하다.
 
@@ -91,7 +91,7 @@ action-only 규칙이다. **이 문법 거절 자체를 새로운 정적 정리�
 `src/semantic/type_checker_func_action_contract.c:76`은 실제 Zone 존재를,
 `:170` 이후는 subject slot/authority 적합성을 검사한다. 마지막 계약 consumer는
 MIR method contract admission이며, call-site 권한과 runtime 승인 증거는 별도다.
-[docs/200 §4.1](../200_object_to_action_boundary_patterns.md#41-actioncontract-sot-패턴)이
+[docs/200 §4.1](../language/200_object_to_action_boundary_patterns.md#41-actioncontract-sot-패턴)이
 이 구별을 고정한다.
 
 ## 치환 실험 B — Ability/Role과 직접 함수
@@ -166,7 +166,7 @@ Zone graph가 소유·handoff·frontier fact를 전부 담으면 World의 내부
 사용할 수 있다. 그 graph에 World root와 같은 소유 판정을 다시 넣었다면 fact를
 삭제한 것은 아니다. Bounded frontier와 일반 transitive scheduler의 차이는
 [semantics/01](../semantics/01_intent_world_zone.md#theorem-worldzone-frontier-termination)에
-남아 있다. [docs/195](../195_world_universe_composition.md)는 dynamic World/module
+남아 있다. [docs/195](../language/195_world_universe_composition.md)는 dynamic World/module
 composition을 `proposed, out-of-beta`로 명시하므로 현재 World 보장의 근거로 쓰지 않았다.
 
 ## 반대 증거와 보강 제안

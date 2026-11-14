@@ -124,7 +124,7 @@ The retained C implementation is reached only through
 `--native-pipeline --dump-diagnostics` and is compared through canonical
 diagnostic events. A missing installed tool must fail with no payload. C-side LSP
 transport parity remains blocked on the full `G-LSP-STREAM` session gap
-documented in `docs/150_selfhost_driver_lsp_wiring.md`. LSP-2a single-frame
+documented in `docs/self_hosted/150_selfhost_driver_lsp_wiring.md`. LSP-2a single-frame
 transport parity is checked by
 `tests/self_hosted/parity/lsp/lsp_transport_frame_parity.sh`; LSP-2b buffered
 stream parity is checked by

@@ -1,7 +1,7 @@
 // src/self_hosted/tools/module_manifest_resolver/main.pgy
 //
 // Status: rung-2 minimal (2026-05-27). Reads
-// docs/language_module_manifest.json relative to cwd, counts modules,
+// docs/stdlib/language_module_manifest.json relative to cwd, counts modules,
 // beta_blocker entries, and stable-subset entries through the shared JSON
 // owner, validates that every module object has a full required-field set, and
 // emits the validator schema.
@@ -24,7 +24,7 @@ func MissingFieldFinding(field: String, expected: Int, actual: Int) -> String {
         JsonEmitFieldString("key", field),
         JsonEmitFieldNumber("expected", ToString(expected)),
         JsonEmitFieldNumber("actual", ToString(actual)),
-        JsonEmitFieldString("location", "docs/language_module_manifest.json")
+        JsonEmitFieldString("location", "docs/stdlib/language_module_manifest.json")
     ];
     return JsonEmitObject(fields);
 }
@@ -33,7 +33,7 @@ func MissingModulesKeyFinding() -> String {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", "missing_modules_key"),
         JsonEmitFieldString("key", "modules"),
-        JsonEmitFieldString("location", "docs/language_module_manifest.json")
+        JsonEmitFieldString("location", "docs/stdlib/language_module_manifest.json")
     ];
     return JsonEmitObject(fields);
 }
@@ -80,7 +80,7 @@ func InputErrorJson(path: String) -> Option<String> {
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    var manifest_path: String = "docs/language_module_manifest.json";
+    var manifest_path: String = "docs/stdlib/language_module_manifest.json";
     if ArrayLength(args) > 0 {
         manifest_path = args[0];
     }

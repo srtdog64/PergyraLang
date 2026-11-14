@@ -2,13 +2,13 @@
 
 > Current status: executable experimental alpha / beta-closure sprint.
 > Feature-surface feel is about 85%, and strict beta readiness is now about 83%.
-> The authoritative beta contract is `docs/100_beta_readiness_checklist.md`.
+> The authoritative beta contract is `docs/release/100_beta_readiness_checklist.md`.
 
 > 현재 상태: 실행 가능한 experimental alpha이며, 기능 체감 진행도는 약 85%,
 > strict beta readiness는 약 83%로 본다. 아직 beta-complete는 아니다.
-> 이 문서는 소개용 문서이고, 베타 계약의 최종 기준은 `docs/107_beta_stable_subset.md`,
-> `docs/100_beta_readiness_checklist.md`, `docs/118_slot_model_rigor_audit.md`,
-> `docs/119_pergyra_lineage_positioning.md`, `docs/120_vision_and_capability_audit.md`다.
+> 이 문서는 소개용 문서이고, 베타 계약의 최종 기준은 `docs/release/107_beta_stable_subset.md`,
+> `docs/release/100_beta_readiness_checklist.md`, `docs/runtime/118_slot_model_rigor_audit.md`,
+> `docs/language/119_pergyra_lineage_positioning.md`, `docs/release/120_vision_and_capability_audit.md`다.
 > Pergyra를 production-ready, Rust-level memory safe, AI-first, quantum-ready,
 > zero-cost, fully proven 언어로 설명하지 않는다.
 
@@ -28,7 +28,7 @@ source-level binder입니다. 각 fact의 소유권은 해당 owner에 남습니
 목적을 선언했다고 권한이나 효과의 증거가 생기지는 않습니다. 같은 이름이나
 같은 결과값만으로 동일한 귀속을 인정하지도 않습니다.
 
-이는 [설계 정전](01_intent_first_design.md)의 정의이며, 모든 self-host 경로가
+이는 [설계 정전](language/01_intent_first_design.md)의 정의이며, 모든 self-host 경로가
 이미 완성됐다는 뜻은 아닙니다. 현재 검증한 범위와 남은 생산 경계는
 [Intent 삭제·보강 의미 감사](audits/2026-09-05_intent_graph_semantic_audit.md)에
 구분해 기록합니다.
@@ -85,7 +85,7 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
                                                     drift / abstraction-safety 검증
 ```
 
-> `AIR`는 codegen path에 얹지 않고 옆에 합성되는 verification-only IR입니다 (`HIR`/`RIR`로부터 단방향 합성, backend로 lowering 안 됨). 자세한 내용은 `docs/104_air_compiler_architecture.md`.
+> `AIR`는 codegen path에 얹지 않고 옆에 합성되는 verification-only IR입니다 (`HIR`/`RIR`로부터 단방향 합성, backend로 lowering 안 됨). 자세한 내용은 `docs/compiler/104_air_compiler_architecture.md`.
 
 ### 핵심 특징
 
@@ -143,7 +143,7 @@ not stable WebGL language surface. `pgy.render.webgl` is post-beta module work.
 
 안정 예제 가이드:
 
-- smoke-covered 예제 목록은 [docs/65_stable_example_surface_board.md](65_stable_example_surface_board.md)를 기준으로 본다
+- smoke-covered 예제 목록은 [docs/release/65_stable_example_surface_board.md](release/65_stable_example_surface_board.md)를 기준으로 본다
 - 현재 바로 따라 써도 되는 대표 예제:
   - `examples/logistics_intent_probe/`
   - `examples/resource_scheduler_async_probe/`
@@ -234,7 +234,7 @@ make test-memory    # 메모리 레이아웃
 
 source of truth:
 
-- [Stable Example Surface Board](65_stable_example_surface_board.md)
+- [Stable Example Surface Board](release/65_stable_example_surface_board.md)
 
 추천 stable 예제:
 
@@ -294,18 +294,18 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 
 ## 문서
 
-- [컴파일러 파이프라인 가이드](20_compiler_pipeline_guide.md)
-- [현재 진행 상황](docs/00_progress.md)
+- [컴파일러 파이프라인 가이드](compiler/20_compiler_pipeline_guide.md)
+- [현재 진행 상황](docs/release/00_progress.md)
 - [구문 레퍼런스](docs/grammar/01_syntax.md)
 - [문법 정의](docs/grammar/02_grammar.md)
 - [네이밍 규칙](docs/grammar/03_naming.md)
-- [언어 상태 평가](docs/18_language_status.md)
-- [보안 모드 설계](docs/03_security_mode_design.md)
-- [제네릭 설계](docs/04_generic_design.md)
-- [언어 비전](docs/00_vision.md)
-- [비동기/동시성 설계](docs/05_async_concurrency.md)
-- [개발 현황](docs/17_development_status.md)
-- [Class 객체 모델](docs/22_class_object_model.md)
+- [언어 상태 평가](docs/release/18_language_status.md)
+- [보안 모드 설계](docs/security/03_security_mode_design.md)
+- [제네릭 설계](docs/language/04_generic_design.md)
+- [언어 비전](docs/language/00_vision.md)
+- [비동기/동시성 설계](docs/concurrency/05_async_concurrency.md)
+- [개발 현황](docs/release/17_development_status.md)
+- [Class 객체 모델](docs/language/22_class_object_model.md)
 - [Intrinsic Template 개요](docs/intrinsic_templates/README.md)
 
 

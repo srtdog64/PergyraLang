@@ -20,7 +20,7 @@
   E: copy.
 - **Must not touch:** the uncommitted files in `D:\PergyraLang`'s working
   tree (GPT's `state/main.md` line, its untracked 2026-10-18 directive,
-  and the preserved `docs/01_intent_first_design.md` change), Codex
+  and the preserved `docs/language/01_intent_first_design.md` change), Codex
   worktrees, `bin/pgy.exe`, `bin/pgy-self-driver.exe`.
 - **Edits in `docs/truth/`:** this file, `decisions/`, `evidence/`, and
   [state/native_checker.md](../state/native_checker.md); main's state files

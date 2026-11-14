@@ -4,7 +4,7 @@ Updated: 2026-07-30 (Asia/Seoul)
 
 Status: research inventory. 이 문서는 채택 후보와 falsifier를 정리하지만
 semantic SoT나 완료 원장은 아니다. 실제 채택 상태는
-`docs/201_insere_zeno_lineage_and_library_adoption.md`, Pergyra source, owner
+`docs/stdlib/201_insere_zeno_lineage_and_library_adoption.md`, Pergyra source, owner
 registry와 executable gate가 소유한다.
 
 ## 0. 결론
@@ -327,7 +327,7 @@ Pergyra가 채택할 것은 다음 불변식이다.
 Zeno 구현처럼 emitted source를 TypeScript AST로 다시 parse하는 알고리즘은
 Pergyra에 맞지 않는다. Pergyra emitter가 text span을 생성하는 순간 기존
 `SourceUnitId`/`SyntaxNodeId`/MIR identity에서 mapping row를 함께 발행해야 한다.
-`docs/180_compiler_logical_spine_handles_gates.md`의 source/AST stable handle이 아직
+`docs/compiler/180_compiler_logical_spine_handles_gates.md`의 source/AST stable handle이 아직
 `PARTIAL`이므로 그 owner가 먼저 닫혀야 한다.
 
 ### 5.7 즉시 채택할 수 있는 test/release 패턴
@@ -480,7 +480,7 @@ C/Pergyra runtime과 test harness로 검증한다. FlatBuffers fixture도 비교
 
 ### Current Pergyra owners
 
-- `D:/PergyraLang/docs/201_insere_zeno_lineage_and_library_adoption.md` — canonical
+- `D:/PergyraLang/docs/stdlib/201_insere_zeno_lineage_and_library_adoption.md` — canonical
   provenance/adoption contract.
 - `D:/PergyraLang/src/self_hosted/mir_lower/abi_layout_fact_owner.pgy` — MIR ABI
   exact tuple와 identity owner.
@@ -490,11 +490,11 @@ C/Pergyra runtime과 test harness로 검증한다. FlatBuffers fixture도 비교
   snapshot ticket.
 - `D:/PergyraLang/src/self_hosted/lib/binary_projection_preflight_owner.pgy` —
   projection admission receipt.
-- `D:/PergyraLang/docs/200_object_to_action_boundary_patterns.md` —
+- `D:/PergyraLang/docs/language/200_object_to_action_boundary_patterns.md` —
   struct/object/tobject/vessel/subject/action/zone/intent 경계.
 - `D:/PergyraLang/docs/semantics/sot_owner_spine_registry.md` — graph와 compiler fact
   family owner registry.
-- `D:/PergyraLang/docs/180_compiler_logical_spine_handles_gates.md` — stable
+- `D:/PergyraLang/docs/compiler/180_compiler_logical_spine_handles_gates.md` — stable
   source/stage handle 상태.
 
 ## 12. 최종 판정

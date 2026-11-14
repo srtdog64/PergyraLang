@@ -65,7 +65,7 @@ Semantic authority is not in this file. It lives in:
 |---|---|---|
 | G0 | Finish the Rocq 9.3.0 migration that is in progress. The fresh corpus kernel check must include `OwnershipCleanCore.v`. If that file fails under 9.3, report the exact error in the coordination log below; Claude fixes Claude's files. | — |
 | G1 | Remove `OwnershipCleanup.v` as a separate model. Either delete it, or turn its useful content into an extraction and performance harness over `OwnershipCleanCore.elab`, with no separate state machine or heap. Run cost tests on the extracted `elab`: fixed workloads, growth in statements and loop nesting, receipts with exact hashes. | G0 |
-| G2 | Revert GPT's 2026-10-07/08 MIR-builder own/carrier chain, the aggregate-release expansions, and Claude's C0 set to `3658548d`. That covers MIR/semantic/codegen/compiler own threading; the new `aggregate_*_generation/publication/transfer/carrier`, `member_read_local_origin` and related owners and fixtures; their caps; and the "Owned Functional Updates" section of `docs/mut_borrow_parameters.md`. **Keep:** the proof/Rocq lane, `AGENTS.md`, the native assignment write-place fix in `type_checker_assignment.c` with its semantic cases, the stdlib argument-retention rows, and the 2026-10-08 direction records (`docs/audits/ownership_dx_architecture_recheck_2026-10-08.md`, `docs/self_hosted/13` "Ownership Cleanup Synthesis Direction"). Mark the v11–v14 handoff text SUPERSEDED rather than deleting it. Write the list of reverted paths into the coordination log. | — |
+| G2 | Revert GPT's 2026-10-07/08 MIR-builder own/carrier chain, the aggregate-release expansions, and Claude's C0 set to `3658548d`. That covers MIR/semantic/codegen/compiler own threading; the new `aggregate_*_generation/publication/transfer/carrier`, `member_read_local_origin` and related owners and fixtures; their caps; and the "Owned Functional Updates" section of `docs/language/mut_borrow_parameters.md`. **Keep:** the proof/Rocq lane, `AGENTS.md`, the native assignment write-place fix in `type_checker_assignment.c` with its semantic cases, the stdlib argument-retention rows, and the 2026-10-08 direction records (`docs/audits/ownership_dx_architecture_recheck_2026-10-08.md`, `docs/self_hosted/13` "Ownership Cleanup Synthesis Direction"). Mark the v11–v14 handoff text SUPERSEDED rather than deleting it. Write the list of reverted paths into the coordination log. | — |
 | G3 | Runtime and backends, consuming C2 facts only: the String owned/static distinction, per-type drop glue in C and LLVM, deep drops for Array, Map, List and aggregates, C/LLVM parity, and ASan/LSan zero-leak and zero-UAF gates over the shared fixture set. | C2 |
 | G4 | Drop-glue emission in the self-host codegen, consuming C5 facts. | C5 |
 | G5 | Deletion sweep. Remove the manual release calls (about 447), the `ast_collection_aggregate_*` release analyzer (34 files), the carrier/restore code paths, own threading, and the gates that only test those mechanisms. Add negative ratchets so they cannot come back. Re-measure peak memory against the 3 GiB cap. | C3, C5, G3, G4 |
@@ -98,7 +98,7 @@ Semantic authority is not in this file. It lives in:
 **Shared, append-only files:**
 
 - `tests/proof/formal_semantics_smoke.sh` (proof list)
-- `docs/102_formal_semantics_and_proof_obligations.md`
+- `docs/semantics/102_formal_semantics_and_proof_obligations.md`
 - `docs/semantics/README.md`
 - `src/self_hosted/OWNERS.md`
 - `docs/current_work_handoff.md`. Each agent edits only its own card. The

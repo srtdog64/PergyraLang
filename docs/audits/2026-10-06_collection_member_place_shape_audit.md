@@ -93,7 +93,7 @@ dangling read, not a style issue.
    result stays the same borrow and its own consumer decides. Formal
    element-use effects, member escapes and this summary share one consumer
    predicate.
-5. Plain parameters are readonly roots. `docs/mut_borrow_parameters.md` says
+5. Plain parameters are readonly roots. `docs/language/mut_borrow_parameters.md` says
    value semantics are not permission for untracked alias mutation. The
    receiver walk refused field mutation only under a `ref` root; a plain root
    now gets the same `value_param_collection_mutation` (mode `default`). Two

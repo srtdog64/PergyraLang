@@ -1047,7 +1047,7 @@ definition/ownership documentation, not an Intent implementation lease.
   This repairs consumers of already-`CLOSED` role/node-kind rows and one
   `BRIDGE` direct-MIR projection family; it does not change the 88/185 census,
   `55/32/1` states, or 83% forecast. Module Build remains design-only in
-  `docs/202_module_authority_boundary_design.md` and stays post-self-host.
+  `docs/language/202_module_authority_boundary_design.md` and stays post-self-host.
 - The local implementation meets the focused contract on fresh DRV-2
   `53648B71F533419EEC56294A2B57DAAF8FC9B8D71CC6F8F836B3A4DD64ACBF78`
   (6,665,454 bytes): eight role C/LLVM runtime legs, three exact receiver
@@ -1159,7 +1159,7 @@ definition/ownership documentation, not an Intent implementation lease.
   `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: installed
   source-C/source-LLVM/self-MIR reject lowercase `main` at semantic cardinality,
   while native C/LLVM execute exact `lowercase-main` and native MIR selects
-  routine `main`. `docs/124_syntax_pattern_matrix.md` already declares this
+  routine `main`. `docs/language/124_syntax_pattern_matrix.md` already declares this
   spelling as a driver entry path.
 - Existing owner `SemanticAstFunctionSignatureFacts` now issues one selected
   signature identity using `Main` first and lowercase `main` only as fallback.
@@ -4748,7 +4748,7 @@ definition/ownership documentation, not an Intent implementation lease.
   current implementation checkpoint's 29-job platform/release matrix.
 - Last legitimate consumers: the current table in
   `docs/self_hosted/07_hard_self_host_scorecard.md`, the percentage baseline in
-  `docs/00_progress.md`, and the top progress summary in
+  `docs/release/00_progress.md`, and the top progress summary in
   `docs/current_work_handoff.md`.
 - Forbidden fallback: retaining `9/10 READY`, bootstrap or CI `3/4`, reviving
   already deleted public native compiler bypasses as open work, or calling the

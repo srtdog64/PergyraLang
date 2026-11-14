@@ -1,7 +1,7 @@
 # 의미 축(Semantic Axis) 전수 감사 + 수정 영향 분석
 
 > 읽기 전용 분석. 축 소유권은 `src/lexer/language_keyword_registry.def`와
-> `docs/42_keyword_orthogonality.md`에 있다. 이 문서는 판정·수정안이 아니라
+> `docs/language/42_keyword_orthogonality.md`에 있다. 이 문서는 판정·수정안이 아니라
 > 감사 기록이다.
 
 ## 1. 센서스 (147개 키워드 전수)
@@ -92,7 +92,7 @@ GENERAL(17개) 내역: 정당 4(`let`/`true`/`false`/`in`) + 오배정 3(`on`/`a
 | 렌더러 `AXIS_VALUES`에 `(5, "module")` 추가 | 필수 — **C enum과 숫자 동기화 필수** |
 | 투영 재생성 | `--write` 1회 |
 | 자체호스팅 소비자 | 코드 변경 불필요 (validator는 axis ≥ 0만 검사) |
-| 문서 | `docs/42_keyword_orthogonality.md`·`156_axis_composition_safety.md`·`151_generic_axis_composition.md`의 축 목록 5→6 갱신 |
+| 문서 | `docs/language/42_keyword_orthogonality.md`·`156_axis_composition_safety.md`·`151_generic_axis_composition.md`의 축 목록 5→6 갱신 |
 | 축 센서스를 고정하는 게이트가 있는지 확인 | 필요 (고정 카운트가 있으면 갱신) |
 
 **리스크: 중간-낮음.** 신규 enum 값은 additive이지만, **C enum ↔ 렌더러 dict의

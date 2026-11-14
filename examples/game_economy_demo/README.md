@@ -34,7 +34,7 @@ game_economy_demo/
     market/                경매 (intent·zone·효과·관계·경매 규칙)
 ```
 
-`docs/34_intent_oriented_paradigm.md` §10.1의 도메인 분할을 따른다. 도메인마다
+`docs/language/34_intent_oriented_paradigm.md` §10.1의 도메인 분할을 따른다. 도메인마다
 `intents/`, `zones/`, `subjects/`, `abilities/`, `effects/`, `relations/`를 필요한 만큼만 두고,
 순수 규칙은 `policy.pgy` 한 파일에 둔다. 각 파일은 자기가 쓰는 파일을 그 파일 기준
 상대 경로로 import한다(`docs/109`).

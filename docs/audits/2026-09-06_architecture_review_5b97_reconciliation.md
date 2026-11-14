@@ -61,7 +61,7 @@ and old fixed-point results cannot be promoted into current full integration.
 | Evaluation order | Retain language-owned sequencing. Array/record and reached eager-binary obligations have separate executable controls; arbitrary call-argument and assignment-place ordering still need their own evidence. |
 | Async, parallel and Slot | Follow docs/204's canon/rung distinctions. The nine-axis map already exists in [advanced_examples](../concurrency/advanced_examples.md), including explicit OPEN cells. Complete those contracts rather than create another map. No new scope keyword, AIR lowering or lane annotations. Resume revalidation is not implied by negative suspension tests. |
 | Cancellation and scheduling | Cancelled must not mean retired: cancellation request leaves the Future join/transfer obligation. Proven overlap safety also does not justify run-to-completion serialization of communicating arms; retain progress/happens-before contracts. The existing lifecycle owner and ping-pong example own these distinctions. |
-| Intent necessity | Keep the [purpose attribution binder](../01_intent_first_design.md), not an action-count rule. One action may have a typed outcome/terminal obligation; many actions without such a purpose-bound contract do not justify Intent automatically. |
+| Intent necessity | Keep the [purpose attribution binder](../language/01_intent_first_design.md), not an action-count rule. One action may have a typed outcome/terminal obligation; many actions without such a purpose-bound contract do not justify Intent automatically. |
 | External MIR | Preserve strict grammar, identity and publication-boundary obligations. Reported acceptance is not proof of a sandbox escape; no invalid generated artifact is executed in this intake. |
 | Erasure / synchronization / OperationSchema | Keep as bounded proposals until the active executable path reaches a measured missing fact or repeated operation. CI wall time is not a compiler-stage or live-byte measurement. |
 | Module Build / query database | Deferred. No new primary implementation lane follows from the research table. |
@@ -117,7 +117,7 @@ later attachment.
 
 | Proposed boundary | Disposition and existing landing point |
 | --- | --- |
-| Plain collection parameter mutation | Confirmed documentation contradiction. Corrected [inout contract](../mut_borrow_parameters.md) to the existing native/public refusal policy; historical copy loss is not current permission. |
+| Plain collection parameter mutation | Confirmed documentation contradiction. Corrected [inout contract](../language/mut_borrow_parameters.md) to the existing native/public refusal policy; historical copy loss is not current permission. |
 | Future aggregate containment | Retain recursive stored-type shape and conservative unresolved cases as obligations. Phantom generic arguments are not automatically stored handles. This is not a new general ResourceCarriage implementation or evidence that every aggregate is covered. |
 | Zone spawn admission | Require one call identity to join parameter mode, source place, capture/lifetime and ABI obligations. Unsupported combinations must refuse before publication; no claim of repaired runtime layout from a source-only refusal. |
 | Value receivers | Keep explicit value-result `inout self`. A normal `Result.Err` return is not panic or implicit rollback. Receiver overlap and exceptional-exit obligations need their own evidence; do not widen temporary/nested places by analogy. |

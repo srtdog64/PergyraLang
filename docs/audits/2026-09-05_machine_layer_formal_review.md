@@ -122,6 +122,6 @@ hardware declaration, resource-to-machine binding을 만들어서는 안 된다.
 각 fact의 owner는 분리한 채 필요한 귀속과 binding을 마지막 admission consumer까지
 보존하고, 이후 증거는 해당 owner의 계약에 따라 압축·소거한다. 이는 모든 기계
 연산을 Intent로 감싸라는 규칙이 아니며, Intent가 하드웨어 권한의 owner라는
-뜻도 아니다. [Intent의 정적 identity](../01_intent_first_design.md#intent의-정적-identity)와
+뜻도 아니다. [Intent의 정적 identity](../language/01_intent_first_design.md#intent의-정적-identity)와
 현재 두 machine/resource 모델은 이 설명에 양립하지만, 두 `.v`에는 Intent identity가
 등장하지 않으므로 이 연결 자체가 이미 기계 증명됐다고 쓰면 안 된다.

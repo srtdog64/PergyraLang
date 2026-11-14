@@ -1,0 +1,300 @@
+# 166. Production Bar Review - Gate-First Status
+
+Status: `accepted, routed`. Date: 2026-07-06.
+
+This note records the production-bar review as an engineering contract, not as a
+release verdict. The review uses a stricter rule than the beta checklist: every
+capability claim must name the executable gate that blocks regression.
+
+## Production-Bar Rule
+
+- Gate-less claim = FAIL.
+- Partial executable coverage = PARTIAL.
+- A claim can move toward PASS only when a smoke, golden, parity, verifier, or
+  negative regression gate blocks the old path from returning.
+- A document-only assertion is useful routing, but it is not production
+  evidence.
+
+## Current Verdict
+
+| Surface | Verdict | Reason |
+|---|---|---|
+| Language identity | PASS | The systems-language-with-domain-extensions identity is explicit and gated by beta docs. |
+| AIR verification-only role | PASS | AIR is treated as evidence, not as a second codegen truth. |
+| IR architecture | PASS/PARTIAL | The source-of-truth spine is correct, but several consumer paths still need hard gates. |
+| ABI ownership | PARTIAL/BLOCKER | Slot/resource rows are increasingly MIR-owned, but aggregate/generic ABI surfaces must keep moving out of backend-local spellings. |
+| C/LLVM backend parity | PARTIAL | Many parity rows are gated; whole-backend equivalence is still fixture and shard dependent. |
+| Compatibility evolution | PARTIAL | Compatibility vocabulary, a seed versioned breaking-change corpus, and its first self-hosted consumer gate exist; full production consumer coverage is still incomplete. |
+| Concurrency semantics | PARTIAL | Execution lane facts exist; routine-level AIR boundary rows now flow from HIR/RIR evidence, but full lane-matrix producer coverage remains P0. |
+| Runtime executor | FAIL | The production executor split is not proven by lane-specific implementation gates. |
+| Sandbox/runtime safety | FAIL/PARTIAL | Several guards exist, but capability manifests and platform-specific atomicity are incomplete. |
+| Performance maturity | PARTIAL | Guard amortization has evidence; a continuous dashboard and frame-budget contract are not closed. |
+| Stdlib discipline | PARTIAL | Layering docs exist; L2/domain-module doctrine gates are not complete. |
+| Tooling/LSP | PARTIAL | Useful tooling exists, but diagnostic golden and latency contracts are incomplete. |
+| Release maturity | FAIL | This is not production-ready and must not be described as such. |
+
+## Accepted P0 Blockers
+
+The review adds these P0 production-bar closures. They augment the existing
+beta-closure targets; they do not replace them.
+
+1. Compatibility evolution gate:
+   source, ABI/binary, behavior, diagnostic, AIR, MIR, runtime trace,
+   capability profile, and stdlib-module compatibility must have one owner.
+2. Obsolete migration gate:
+   every obsolete surface needs `diagnosticId`, replacement, migration URL,
+   warning version, error version, removal version, and codefix status.
+3. MIR-owned ABI layout:
+   layout rows, runtime function spellings, materialization policy, and
+   target-size/align policy must be facts consumed by C, LLVM, and self-hosted
+   projections rather than backend-local reconstruction.
+4. Backend dumb-emitter gate:
+   backend code must consume MIR/ABI/runtime facts and fail closed when a fact is
+   missing; it must not infer layout, runtime function names, or semantic facts
+   from HIR/AST/AIR fallback paths.
+5. LLVM runtime bitcode integration:
+   runtime primitives that C sees as inline headers must be visible to LLVM
+   before optimization through the runtime bitcode link policy.
+6. Precise `BoundaryCaptureFact` producer coverage:
+   boundary facts must distinguish value-only, pin, live view, raw slot, raw
+   channel, authority crossing, and movability requirements.
+7. `ExecutionLane` negative regression coverage:
+   Inline, PinnedZone, BlockingPool, LocalAsync, WorkerPool,
+   MovableScheduler, and Reject need positive and negative fixture rows.
+8. AIR/backend access lint:
+   backend code must not consume AIR as a codegen source of truth.
+9. Sandbox capability and frame-budget gate:
+   filesystem, network, clock, random, subprocess, storage, render, input,
+   host-call count, fuel, memory, queues, streams, and blocking calls must be
+   explicit capability/profile facts before sandbox claims become active.
+10. Stdlib L2 doctrine pass:
+   L2/domain modules must remain sketch or pass their layer doctrine gate before
+   being presented as active language capability.
+
+## Compatibility Surfaces
+
+The compatibility gate must cover these surfaces together:
+
+- source syntax,
+- semantic behavior,
+- diagnostics and LSP squiggles,
+- MIR JSON,
+- AIR evidence,
+- ABI/binary layout,
+- runtime trace,
+- capability profile,
+- stdlib module surface.
+
+## Non-Overclaim Rules
+
+- Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness from
+  projection architecture alone.
+- Do not claim a production runtime executor until lane-specific executors and
+  negative lane rows are gated.
+- Do not claim L2/domain stdlib capability until `docs/stdlib/148_stdlib_architecture.md`
+  doctrine gates mark it active.
+- Do not call self-hosting complete beyond named parity rungs and replacement
+  gates.
+- Do not call C/LLVM parity production-complete until backend output, ABI shape,
+  diagnostics, and IR artifacts are covered by the same compatibility owner.
+
+## Owner Routing
+
+| Production-bar item | Owner or next source of truth |
+|---|---|
+| Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/driver/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/driver/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
+| Obsolete migration | Diagnostic registry plus migration metadata gate |
+| MIR-owned ABI layout | `src/compiler/mir_abi_layout.c` for type/layout rows, `src/compiler/mir_abi_resource_runtime.c` for resource runtime-call spelling rows, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, `self-host-abi-layout-row-parity-test-smoke`, and `self-host-backend-abi-layout-contract-parity-test-smoke` |
+| Backend dumb emitter | `tests/backend/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
+| LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
+| Boundary capture | `docs/concurrency/146_sea_execution_lanes.md` and MIR/RIR producer code |
+| Execution lane negatives | `tests/parallel/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
+| AIR/backend access lint | `docs/compiler/104_air_compiler_architecture.md`, `tests/ir/air_backend_nonimpact_smoke.sh`, `src/self_hosted/compiler/backend_air_access_contract_owner.pgy`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
+| Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, `src/self_hosted/compiler/sandbox_capability_owner.pgy`, `src/self_hosted/compiler/sandbox_capability_manifest.pgy`, `self-host-sandbox-capability-parity-test-smoke`, capability manifest gates, and future runtime frame-budget fixtures |
+| Stdlib L2 doctrine | `docs/stdlib/148_stdlib_architecture.md` and stdlib conformance gates |
+| Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/self_hosted/160_m2_completeness_execution_plan.md` |
+
+## Immediate Closure
+
+The current self-host source-owner work is aligned with this review, and the
+latest broad preparation parity run makes that evidence stronger than the
+earlier source-owner slice. On 2026-07-09,
+`make self-host-preparation-parity-test-smoke` completed green with:
+
+- 203 real self-hosted sources accepted by the C and LLVM selfcheck legs.
+- M2 completeness ledger at `sources=203`, with `lexer=203`, `parser=203`,
+  `semantic=203`, `codegen=203`, and `full_pipeline=203`.
+- Focused M2 completeness refresh: 204 real self-hosted sources measured at
+  `sources=204`, with lexer/parser/semantic/codegen and `full_pipeline` all at
+  204/204.
+- Focused M2 completeness refresh: 205 real self-hosted sources measured at
+  `sources=205`, with lexer/parser/semantic/codegen and `full_pipeline` all at
+  205/205.
+- Parser parity over 188 source/fixture rows on C and LLVM parser binaries.
+- Semantic parity over 108 fixtures on C and LLVM checker binaries.
+- Codegen parity over 68 fixtures on C and LLVM-built codegen tools.
+- Bootstrap fixpoint `gen2 == gen3` at 9816 generated-C lines.
+- `SELF-HOSTING OK`: the Pergyra-built codegen builds lexer, parser, semantic,
+  `mir_lower`, 13 gate/audit tools, and the backend fuzz generator with outputs
+  matching the oracle-built tools.
+- DRV-0 artifact parity and DRV-1 CLI parity over C and LLVM driver rungs.
+- LSP diagnostics, transport, request/response, session, document-store,
+  session-state, and hover-content parity over C and LLVM.
+- MIR JSON rung-0b parity over 95 fixtures through
+  `pgy --mir-json | mir_lower | codegen == C oracle`.
+
+This is a broad parity/preparation evidence refresh, not a claim that the
+heavier all-in-one `self-host-preparation-test-smoke` wrapper was rerun in the
+same slice.
+- Follow-up compatibility slice: compatibility vocabulary, obsolete migration
+  fields, and a seed breaking-change row for every compatibility surface now
+  emit a stable `compatibility_evolution` artifact, gated by
+  `make self-host-compatibility-evolution-parity-test-smoke`.
+- Follow-up consumer slice: `compatibility_evolution_checker` consumes the same
+  owner rows through the TestHarness manifest and proves that the seed corpus
+  covers all nine compatibility surfaces plus diagnostic-id, version-ladder,
+  migration-URL, and codefix-status rows, gated by
+  `make self-host-compatibility-corpus-parity-test-smoke`.
+- Follow-up row-shape slice: the same checker now rejects malformed
+  compatibility rows by requiring every change row to keep the `change|...`
+  prefix and the eleven-field compatibility envelope. This keeps the corpus
+  from passing through loose substring matches alone.
+- Follow-up negative slice: the checker now has malformed-row and invalid-codefix
+  self-test modes that must exit non-zero and byte-match the
+  TestHarness-projected negative JSON artifacts on both C and LLVM legs when
+  LLVM is available.
+- Follow-up obsolete-migration exactness slice: the checker now validates
+  diagnostic IDs, warning/error/remove versions, migration URLs, codefix
+  statuses, and obsolete migration envelopes by canonical field position rather
+  than loose substring presence. The warning/error/remove version ladder is now
+  a `CompatibilityEvolutionZone` owner fact consumed by the checker instead of a
+  checker-local literal; diagnostic-id and migration-URL construction now flows
+  through owner constructors for the same reason, change-kind vocabulary is now
+  an owner fact consumed by obsolete-row checks, and row delimiter/count/index
+  policy is consumed through owner facts. The corpus JSON schema, negative
+  schema, count-field names, finding-kind vocabulary, and invalid-codefix
+  self-test status are now owner facts as well, so the checker no longer owns
+  report-shape spelling. A second negative artifact rejects an 11-field row
+  with an invalid codefix status on both C and LLVM legs when LLVM is available.
+- Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
+  35-row policy/evidence artifact. The parity gate locks positive
+  `MovableScheduler` rows and negative `Reject` rows for pin, live-view,
+  raw-slot, and raw-channel resource capture under movability requirements on
+  both C and LLVM. The same suite now emits
+  `pgy.selfhost.lane-executor-contract.v1` over `PgyLaneScheduler`. The schema,
+  runtime file set, required runtime terms, lane rows, scaffold-depth label, and
+  missing-term artifact vocabulary now live in
+  `lane_executor_contract_owner.pgy`; the probe consumes those owner facts while
+  honestly recording the current `worker_join_scaffold` executor depth and
+  proving its missing-term fail-closed artifact through both C-built and
+  LLVM-built probes when LLVM is available. The live AIR JSON golden now also
+  covers five source-gated boundary rows: intent-step `zone`/`world` plus
+  routine-level `channel-send`, `channel-recv`, and `spawn`, each backed by
+  HIR/RIR/MIR inputs and source locations. Full AIR JSON lane-matrix coverage
+  and lane-specific production executor depth remain separate P0/P1 work.
+- Follow-up AIR/backend access slice: `backend_air_access_checker` now walks
+  `src/codegen` from Pergyra, rejects AIR header/type tokens in backend sources,
+  and emits `pgy.selfhost.backend-air-access.v1` plus forbidden-hit negative
+  artifacts from both C-built and LLVM-built tools under
+  `make self-host-backend-air-access-parity-test-smoke`. This moves the
+  verification-only AIR boundary toward hard self-hosted parity while the
+  existing Bash full-sweep non-impact gate remains the broad production
+  backstop. The schema, source root, source-file extensions, count-field names,
+  forbidden AIR token list, finding kind, negative self-test path, and
+  owner-not-ready diagnostic now live in
+  `backend_air_access_contract_owner.pgy`; the checker is only the executable
+  `DirWalk`/scan projection over those owner facts.
+- Follow-up native/backend ABI layout slice: `backend_abi_layout_contract_checker`
+  now consumes `abi_layout_row_owner.pgy` rows through the TestHarness manifest,
+  requires selected native MIR ABI layout rows and runtime-function consumers,
+  rejects old `_rel` alias and backend-local runtime-name synthesis terms, and
+  emits clean, missing-required, and forbidden-hit artifacts from both C-built
+  and LLVM-built tools under
+  `make self-host-backend-abi-layout-contract-parity-test-smoke`. This starts
+  moving the production ABI ownership blocker into hard self-host parity. The
+  negative schema, count-field names, and finding-kind vocabulary are ABI owner
+  facts rather than checker-local strings, while `abi-ownership-shape-test-smoke`
+  remains the broad native backstop.
+- Follow-up backend-emitter negative slice: the first self-host
+  dumb-emitter contract checker now runs missing-required and forbidden-hit
+  negative artifacts through both C-built and LLVM-built tools when LLVM is
+  available, gated by `make self-host-backend-emitter-contract-parity-test-smoke`.
+  Negative schema, count-field names, finding-kind vocabulary, and the
+  owner-not-ready diagnostic are backend-emitter owner facts rather than
+  checker-local strings. This strengthens the hard self-host parity path; it
+  does not replace the broad native `backend-fail-closed-test-smoke` gate.
+- Follow-up sandbox capability slice: `SandboxCapabilityZone` now owns the
+  capability/frame-budget vocabulary for filesystem, network, clock, random,
+  subprocess, storage, render, input, fuel, host calls, command buffers, memory,
+  queues, streams, wall-clock, ambient-denial, and blocking host-call rules.
+  `sandbox_capability_manifest.pgy` emits clean and missing-budget artifacts
+  under `make self-host-sandbox-capability-parity-test-smoke`. This is a
+  production-bar routing gate for the sandbox surface, not a claim that the
+  runtime executor or sandbox quotas are fully implemented.
+- Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
+  lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
+- Follow-up owner-scoped TestHarness split refresh: `sources=175`, with
+  lexer/parser/semantic/codegen and `full_pipeline` all at 175/175.
+- Follow-up backend AIR access source-count refresh: after adding the
+  self-hosted backend AIR access checker, focused
+  `make self-host-completeness-smoke` completed at `sources=182`, with
+  `lexer=182`, `parser=182`, `semantic=182`, `codegen=182`,
+  `lex_parse=182`, `lex_parse_semantic=182`, and `full_pipeline=182`.
+- Follow-up backend ABI layout contract source-count refresh: after adding the
+  self-hosted backend ABI layout contract checker, focused
+  `make self-host-completeness-smoke` completed at `sources=183`, with
+  `lexer=183`, `parser=183`, `semantic=183`, `codegen=183`,
+  `lex_parse=183`, `lex_parse_semantic=183`, and `full_pipeline=183`.
+- Follow-up broad parity refresh: after the runtime-call ABI rows and ABI
+  owner split, `make self-host-preparation-parity-test-smoke` completed at
+  `sources=203`, with lexer/parser/semantic/codegen and `full_pipeline` all at
+  203/203, and the bootstrap fixpoint at 9816 generated-C lines.
+- Focused completeness refresh: after splitting type-usage facts out of the
+  aggregate codegen runtime/header owner, `make self-host-completeness-smoke`
+  completed at `sources=204`, with lexer/parser/semantic/codegen and
+  `full_pipeline` all at 204/204.
+- Focused completeness refresh: after splitting kind-usage facts out of the
+  aggregate codegen runtime/header owner, `make self-host-completeness-smoke`
+  completed at `sources=205`, with lexer/parser/semantic/codegen and
+  `full_pipeline` all at 205/205.
+
+That is enough to close the stale "hidden main staging" concern for the active
+self-host preparation path. It is not enough to call production readiness done:
+released/native driver and LSP replacement are still runged substitutes, the
+runtime executor and sandbox quota surfaces remain partial, and the
+compatibility-evolution corpus is still a seed corpus until old source, old
+ABI layout, old diagnostic JSON, old AIR/MIR JSON, old runtime trace,
+capability manifest, stdlib surface, and native C/LLVM/self-host production
+consumers read it as their shared upgrade policy.
+
+## 2026-07-10 Attached Review Reconciliation
+
+The external evidence-lifetime review is directionally correct, but its P0 list
+must be read against the live gates rather than as a list of wholly missing
+features:
+
+| Claim | Current repository verdict |
+|---|---|
+| `MIR owns ABI` | `PARTIAL / BLOCKER`: `MIRTypeLayout`, native resource runtime-call rows, self-host ABI/runtime-call row artifacts, and negative backend contracts exist. Closure still requires every native C/LLVM aggregate/generic/runtime-call consumer to read concrete rows only. |
+| `AIR owns evidence` | `PASS` for the measured boundary: AIR schema/drift/lifetime registries exist and AIR stays outside backend input. Evidence lifetime policy remains `PARTIAL` because the registry gate proves enum/row correspondence more strongly than all discharge/retention combinations. |
+| `Backend emits only rows` | `PARTIAL`: AIR recovery and selected backend-local synthesis are prohibited, but the C MIR resource hook still recovers a layout type from an AST-backed DEF expression and rescans routine instructions. The complete native backend consumer inventory has therefore not reached row-only emission. |
+| `Runtime retains only safety-relevant tokens` | `PARTIAL`: retained-runtime attribution exists for measured fixtures; full runtime evidence-retention inventory is not closed. |
+| `Sandbox fails closed` | `PARTIAL / NOT PRODUCT READY`: native capability denial plus allocation/spawn/channel/wall-clock budgets fail closed on covered paths. Default `PGY_CAP_ALL`, the signed/content loader, ambient file/network chokepoints, lane-specific production executors, and complete frame/host-call quotas remain open. |
+| `Compatibility is corpus-backed` | `PARTIAL`: owner vocabulary and a nine-surface seed corpus exist; real old-version source/ABI/diagnostic/AIR/MIR/trace/capability/stdlib artifacts, migration targets, and production consumers are not yet complete. |
+
+AIR/backend access is not an unimplemented P0: native source lint, strict-vs-
+relaxed full-fixture non-impact, and a Pergyra-built backend AIR access checker
+already enforce that boundary. The self-host boundary is different. The
+integrated driver reaches a real byte-identical fixed point, but broader
+semantic analysis and MIR are absent from that executable. The typed AST arena owner has therefore
+been moved from codegen into `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
+Parser now produces one HIR-owned `AstTreeArtifact`, and the integrated driver
+passes its typed arena through one `SemanticAstArtifactAnalysis` and into
+codegen without rebuilding it. The analysis owns executable `Main` cardinality,
+artifact-bound function signature rows, and local declaration/function/scope
+rows; codegen no longer reconstructs those rows from the arena. The self-built
+driver fixed point is byte-identical at 17,536 generated-C lines. This is a
+bounded semantic hard rung, not broad semantic substitution. Initializer
+expression typing, the remaining body verdict, and MIR remain outside the driver;
+reusing the current semantic source scanner there would still be a second
+parser and is explicitly not counted as progress.

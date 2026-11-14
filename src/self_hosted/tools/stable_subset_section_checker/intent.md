@@ -1,21 +1,21 @@
 # Stable Subset Section Checker -- Intent / Contract
 
 **Status:** *rung-2 minimal* (2026-07-06). Reads
-[`docs/107_beta_stable_subset.md`](../../../../docs/107_beta_stable_subset.md),
+[`docs/release/107_beta_stable_subset.md`](../../../../docs/release/107_beta_stable_subset.md),
 counts `^## ` section headings, and emits the schema document with a real
 `counts.sections` value. `findings[]` lists missing canonical anchors.
 
 ## Intent
 
 Verify that the beta stable-subset freeze document
-([`docs/107_beta_stable_subset.md`](../../../../docs/107_beta_stable_subset.md))
+([`docs/release/107_beta_stable_subset.md`](../../../../docs/release/107_beta_stable_subset.md))
 contains every canonical section anchor required by the BDFL freeze decision.
 A missing anchor means the contract was silently weakened or restructured
 without owner sign-off; the tool surfaces that drift before it ships.
 
 ## Input Contract
 
-- **manifest_owner**: `docs/107_beta_stable_subset.md` (text, UTF-8,
+- **manifest_owner**: `docs/release/107_beta_stable_subset.md` (text, UTF-8,
   Markdown).
 - The tool does not parse Markdown structure; it line-scans for `^## ` headings
   and compares the visible titles against a fixed canonical list.
@@ -32,7 +32,7 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.stable-subset-section.v1",
   "ok": true,
   "source": {
-    "manifest_owner": "docs/107_beta_stable_subset.md"
+    "manifest_owner": "docs/release/107_beta_stable_subset.md"
   },
   "counts": {
     "sections": 0,
@@ -89,6 +89,6 @@ second tool without further LLVM/runtime gaps.
 
 - Markdown structure / link / heading-level validation (out of scope for
   rung-2; would need a small Markdown reader).
-- Cross-doc consistency between `docs/107` and `docs/19_design_philosophy.md`
+- Cross-doc consistency between `docs/107` and `docs/language/19_design_philosophy.md`
   (different tool).
 - Auto-fix / docs rewrite.

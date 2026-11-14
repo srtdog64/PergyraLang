@@ -107,5 +107,5 @@ Pergyra is pre-1.0 with no production users. Filed openly.
 ## References
 
 - Threat model: `../02_red_team_threat_model.md` (tier A3)
-- Trinity (residue must fail closed): `../../155_declare_gate_failclose.md`
+- Trinity (residue must fail closed): `../../semantics/155_declare_gate_failclose.md`
 - Related finding: `2026-07-05_fingerprint_not_attestation.md` (same red-team pass)

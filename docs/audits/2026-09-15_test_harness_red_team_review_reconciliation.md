@@ -31,7 +31,7 @@ below is established by reading the exact lines, not by a red run.
 | Latest external-MIR push 30/30 green; `gen2 == gen3` at 190,082 lines | Confirmed | `docs/current_work_handoff.md:83-86` (`09d514cb`, run `34935370223`). |
 | The handoff itself says Platform full, Self-host parity and the language-word matrix were not rerun for that packet | Confirmed | `docs/current_work_handoff.md:144-147`. |
 | Orchestration is fail-fast, so one red hides later gates for weeks | Confirmed | `.github/workflows/self_host_parity.yml:94-136` is one `make` invocation over ~40 targets without `-k`; `mir_json_parity.sh` exits on the first fixture. Commit history records the effect repeatedly (`d9331de3` "weeks-shadowed", `2efea28f`, `7d4c4cde`, `edfadb96`). The exact phrase "shadowed behind earlier red" does not occur; the class does. |
-| Golden and pin churn invites "update the expectation" | Confirmed | This window alone: `58ed4765` (field-adjacency pin), `cb7c8149` (`owner_set_sha256`), `89d00fea` (census 795 to 801), `13ecb4c6` (registry count), the `RESULT_USE_MIN` ratchet. `docs/188_redteam_golden_sot_review.md` R2 recorded exact-string pin fragility on 2026-07-17; that finding was not generalized. |
+| Golden and pin churn invites "update the expectation" | Confirmed | This window alone: `58ed4765` (field-adjacency pin), `cb7c8149` (`owner_set_sha256`), `89d00fea` (census 795 to 801), `13ecb4c6` (registry count), the `RESULT_USE_MIN` ratchet. `docs/reviews/188_redteam_golden_sot_review.md` R2 recorded exact-string pin fragility on 2026-07-17; that finding was not generalized. |
 | No compiler mutation testing exists | Confirmed | Existing mutants are **input** mutants (`loop_statement_execution.py`, the document admission generator). No harness mutates compiler source and asks whether the suite notices, beyond one comment-out example in docs/188. |
 | A 4-way native/self-host x C/LLVM differential is needed | Partly exists | The binary evaluation-order observation runs all four legs (execution matrix, lines 50-57); nothing does so generally. |
 
@@ -79,7 +79,7 @@ set neither, anywhere in their scripts:
 This is not literal self-grading: the candidate is `mir_lower` plus `codegen`,
 the oracle is the installed driver. But the oracle is a second self-host route,
 not the native reference the gates name, so a defect shared by both routes
-passes. `docs/152_validation_isolation_policy.md:385-434` requires an oracle
+passes. `docs/release/152_validation_isolation_policy.md:385-434` requires an oracle
 leg to name its compiler. The consequence for an earlier claim is recorded
 below (C2). Not repaired here: changing oracle identity changes these gates'
 results, as `8df77c92` did, and has to land with a gate run.
@@ -130,7 +130,7 @@ hash cannot be tied to what ran.
 
 ### F6. A gate that ordinary push CI runs only for Markdown-only pushes
 
-`docs/192_protocol_abi_api_registry.md` declared `runtime_call_abi_rows.txt#count=262`
+`docs/compiler/192_protocol_abi_api_registry.md` declared `runtime_call_abi_rows.txt#count=262`
 from `419b1745` (2026-09-09) while the artifact carried 267, so
 `protocol_registry_smoke.sh` failed at every HEAD until `13ecb4c6` repaired it
 on 2026-09-13. In `.github/workflows/ci.yml` the gate is a step of the

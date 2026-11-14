@@ -234,7 +234,7 @@ passed directly:
 - Unsound, and already present before this work: mutation through a copy of a
   struct (`let copy: T = place`) or through a plain struct parameter's field
   shares the descriptor with the source. The accepted contract in
-  `docs/mut_borrow_parameters.md` forbids that untracked alias mutation.
+  `docs/language/mut_borrow_parameters.md` forbids that untracked alias mutation.
 - Too strict for direct array formals only: an element passed to a user
   `String` formal that only compares it is refused, while the same call
   through a struct member is admitted.

@@ -31,7 +31,7 @@ H절과 P0가 소유한다.
 ### 1.1 기존 고정 규모 기록
 
 출처: [`self_host_completion_log.md`](../self_hosted/self_host_completion_log.md)
-11620행 근처, [`91_build_troubleshooting.md`](../91_build_troubleshooting.md) 6638행 근처.
+11620행 근처, [`91_build_troubleshooting.md`](../tooling/91_build_troubleshooting.md) 6638행 근처.
 
 | 경로 | 시간 | 최고 private | 출력 |
 |---|---|---|---|

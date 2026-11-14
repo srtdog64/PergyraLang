@@ -1,0 +1,1464 @@
+# Intent-First 설계 철학
+
+Status: canonical design and authoring guidance
+
+> **프로그램의 핵심은 자료구조를 잘 만드는 것이 아니라<br>현실의 의도를 정확한 실행 단위로 닫는 것이다.**
+
+---
+
+## 한 문장 정의
+
+**Pergyra는 intent를 최상위 설계 축으로 잡아, 현실의 복잡한 행위를 목적 단위로 닫고 나머지 구조를 유도하는 언어다.**
+
+이 정의에서 핵심어는 **"유도한다"** 다. intent가 정해지면 설계자는
+world, zone, subject, ability, effect, object/tobject 경계를 그 목적에서 역산한다.
+이는 현재 컴파일러가 선언을 자동 생성한다는 뜻이 아니다.
+
+## Intent의 정적 identity
+
+> **Intent는 ‘프로그래머의 의도’를 주석처럼 표현하는 것이 아니라, 여러 compiler fact가 동일한 목적에서 발생했다는 귀속 관계를 보존하는 정적 identity다.**
+
+이 문장에서 목적은 컴파일러가 자연어를 읽고 추측하는 의도가 아니다.
+소스에 선언된 Intent와 그 계약이 귀속 경계를 정한다. Intent는 그 경계를
+여러 의미 축에 걸쳐 유지하는 **source-level binder**다. 정적 identity는
+선언과 검증된 관계의 식별이지, 목적 이름 문자열이나 실행 시점 객체의 주소가 아니다.
+
+- **fact 소유권과 목적 귀속은 다르다.** participant, coordination, authority,
+  effect, Zone boundary, compensation, terminal 등의 사실은 각 semantic
+  owner가 판정한다. Intent가 그 owner를 대체하거나, 목적 선언만으로 권한과
+  효과의 증거를 만들어서는 안 된다. Intent는 이 사실들이 어느 목적의 계약에
+  속하는지 결속한다. 축별 소유권은 [키워드 직교성](42_keyword_orthogonality.md),
+  fact 분해는 [Intent 축 강화](../semantics/173_intent_axis_strengthening.md)를 따른다.
+- **같은 값은 같은 귀속의 증거가 아니다.** typed step이 산출한 payload를
+  terminal이 운반해야 한다면, 같은 타입·값의 새 payload를 만드는 것으로
+  그 관계를 대체할 수 없다. step·outcome·terminal의 선언 및 binding identity를
+  통해 해당 계약을 검사해야 한다. 이는 일반 값의 복사·재구성을 금지하는 규칙이 아니다.
+- **귀속 보존은 풍부한 증거의 영구 보관을 뜻하지 않는다.** 각 fact는 마지막
+  정당한 소비자까지 필요한 identity와 검증된 관계를 보존한다. 그 뒤에는 해당
+  owner의 계약에 따라 compact fact/receipt로 압축하거나 소거할 수 있다.
+  runtime trace가 필요하면 그 소비자가 요구하는 projection을 남기며,
+  AST/HIR 전체나 거대한 단일 Intent fact를 끝까지 운반하지 않는다.
+
+Intent를 정당화하는 것은 action 수가 아니라 **목적에 귀속되어 검사되는 계약**이다.
+단일 action에도 typed outcome과 terminal 사이에 이 의무가 있을 수 있다.
+반대로 그런 의무 없이 계산과 값만 있다면 `func`/`struct`가 맞다.
+
+이 구분은 [기계층](../semantics/proofs/MachineLayerCore.md)에서도 유지된다.
+Intent 안의 기계 연산을 어느 목적에 귀속할지는 Intent 계약의 문제이고,
+그 주소에 접촉할 권한·lease·접근 모드가 성립하는지는 기계층의 별도 문제다.
+목적 identity가 물리 주소나 접근 증거를 대신하지 않는다.
+
+**구현 범위 기록 — 2026-09-05:**
+[삭제·대체 테스트](../../tests/concept_semantics/intent/terminal_substitution_smoke.sh)는
+Intent와 `func + match`가 같은 결과값·호출 횟수를 내면서도, typed Intent의
+terminal에서 payload를 새로 구성하면 native/self source 의미 검사가 거절함을
+확인했다. 이는 이 입력에서 귀속 계약이 값 동등성보다 강하다는 증거이지,
+모든 구문 조합에 대한 비표현성 정리는 아니다. 정상 typed Intent의 self-source
+MIR에서 `intent_execution` v3 plan이 빠지는 생산 경계는 아직 열려 있다.
+구체적 owner·경로·반례는 [실행 감사](../audits/2026-09-05_intent_graph_semantic_audit.md)를
+참조한다. 이 정의 자체로 self-host closure나 새 구현 rung을 선언하지 않는다.
+
+---
+
+## 왜 Intent가 1차인가
+
+대부분의 언어는 이것들을 1차로 둔다:
+
+```
+데이터 구조    → 타입
+실행 단위      → 함수
+모듈화         → 모듈/클래스
+```
+
+Pergyra는 순서를 뒤집는다:
+
+```
+무엇을 위해        → intent (1차)
+어떤 세계/장면에서 → world/zone
+누가 수행하는가    → subject (2차 host)
+어떤 조건에서      → requires/authorized by/guard
+무슨 결과를        → effect/success/failure
+```
+
+이 순서가 다른 이유가 있다.
+
+**프로그래밍을 "계산"보다 "행위의 조직화"로 보기 때문이다.**
+
+## 예제를 보여 주는 순서도 intent-first여야 한다
+
+여기서 자주 생기는 오해가 있다.
+
+- `subject`가 core host라는 사실
+- `intent`가 설계의 1차 계약이라는 사실
+
+이 둘을 섞으면 예제가 다시 주체 정의부터 시작하는 문서처럼 보인다.
+
+하지만 문서가 가르쳐야 하는 것은 다음이다.
+
+1. 먼저 `intent`를 본다
+2. 그 intent가 놓일 `world` / `zone` 경계를 본다
+3. 그 다음 그 계약을 실행할 `subject`를 본다
+
+즉:
+
+```text
+읽기/설계 순서: intent -> world -> zone -> subject
+구현/host 축:   subject-core
+```
+
+문서 예제는 이 두 축을 분리해서 보여 줘야 한다.
+`subject`를 먼저 소개하면 독자는 Pergyra를 `subject`부터 정의하는 언어로 배우게 되는데,
+그건 lowering/host 관점의 일부만 보여 주는 것이고 설계 관점의 학습 순서로는 틀리다.
+
+---
+
+## 함수가 아니라 Intent가 1차인 이유
+
+### 함수는 이미 쪼개진 조각이다
+
+```c
+// 함수는 "어떻게"에 답한다
+int CalculateDamage(int atk, int def) {
+    return atk - def;
+}
+```
+
+이 함수는 다음을 알 수 없다:
+- **누가** 왜 이 계산을 하는가
+- 이 계산이 **어떤 맥락**에서 발생하는가
+- 계산 실패 시 **무엇을 보상**해야 하는가
+- 이 계산이 **어떤 경계** 안에서 유효한가
+
+### Intent는 현실의 목적이다
+
+```pergyra
+// Intent는 "왜"에 답한다
+intent SlayDragon(hero: Player, dragon: Monster)
+{
+    who: hero;
+
+    step attack
+    {
+        where: BattleZone;
+        requires: Combatable;
+        authorized by: hero;
+        on: hero.Attack(dragon);
+        compensate: hero.Retreat();
+        post: dragon.hp <= 0 || hero.hp > 0;
+    }
+
+    success: dragon.hp <= 0;
+    failure: hero.fled = true;
+}
+```
+
+이 Intent는 다음을 **표면에 올린다**:
+- **주체**: hero
+- **자격**: Combatable ability 필요
+- **승인**: hero 자신이 승인
+- **실행**: Attack action
+- **보상**: 실패 시 Retreat
+- **성공 조건**: dragon이 죽거나 hero가 생존
+- **실패 처리**: hero가 도주
+
+---
+
+## Intent가 틀리면 나머지 구조가 다 흔들린다
+
+### Intent가 정확할 때 — 나머지가 따라온다
+
+```
+intent 정의
+  ↓
+필요한 world/zone이 보임   → BattleZone, RaidWorld
+필요한 subject가 보임      → Player, Monster
+필요한 ability가 보임      → Combatable
+object/tobject이 보임     → PlayerView, BattleReport
+effect와 relation이 보임  → DamageEffect, AggroRelation
+rollback/compensate 지점  → Retreat()
+```
+
+### Intent가 애매할 때 — 전부 흔들린다
+
+```
+intent가 애매
+  ↓
+subject가 이상해짐         → Player인가 Character인가 Entity인가
+ability가 과하거나 부족함  → Combatable + Attackable + Targetable... (과다)
+zone이 뒤틀림              → BattleZone인가 WorldZone인가 DungeonZone인가
+effect가 중복됨            → DamageEffect, AttackEffect, HitEffect... (중복)
+generic contract가 붕 뜸   → <T>의 의미가 불명확해짐
+```
+
+---
+
+## Intent는 상태의 상위 소유자가 아니다
+
+Rust의 `impl`이나 Spring의 `Service`에 행위가 계속 모이는 현상은 같은 데이터를
+다루는 일을 같은 책임으로 묶기 쉬운 데서 시작한다. 두 도구의 기술적 역할은
+다르고, `impl`이 모든 메서드를 한 파일에 모으도록 강제하는 것도 아니다.
+설계에서 확인할 것은 행위들이 정말 같은 불변식·권한·변경 이유를 공유하는가다.
+
+### 소유권은 한 축이 아니다
+
+같은 값을 읽고 쓴다는 사실만으로 그 값에 관한 모든 책임이 한 객체에 속하지는
+않는다. Pergyra 설계에서는 적어도 다음 다섯 축을 따로 판정한다.
+
+| 소유권 축 | 핵심 질문 | 대표적인 Pergyra 경계 |
+|-----------|-----------|------------------------|
+| 메모리 수명 | 누가 값을 보관하고 마지막에 해제하는가? | 값 수명과 소유권 기반 자동 메모리 관리의 증거 |
+| 상태 원본 | 어느 identity가 현재 상태의 기준인가? | `subject`와 그 소유하의 `vessel`, 실제 자원 경계인 `zone` |
+| 변경 권한 | 누가 어떤 조건에서 전이를 요청하고 승인할 수 있는가? | `action`, `authority`, ability와 zone binding |
+| 지역 불변식 | 한 상태 안에서 어떤 변경이 유효한지 누가 판정하는가? | 해당 상태 owner와 그 owner의 `action` |
+| 작업 완료 | 여러 owner에 걸친 순서·실패·보상·종료를 누가 책임지는가? | typed outcome/receipt를 결속하는 `intent`와 trace |
+
+이 축들은 작은 문제에서는 같은 선언에 모일 수 있지만 항상 일치하지는 않는다.
+메모리 수명이 안전하다는 사실은 도메인 상태의 원본이나 변경 권한을 정하지 않고,
+한 `subject`의 지역 불변식이 닫혔다는 사실도 여러 `zone`에 걸친 작업 완료를
+뜻하지 않는다. 따라서 메서드 수나 파일 길이를 기준으로 owner를 나누지 않는다.
+불변식, 권한, 원자적 commit 또는 시간에 걸친 완료 경계가 실제로 갈라질 때만
+상태 owner와 조정 프로토콜을 나눈다.
+
+상태를 여러 `subject`와 `zone`으로 나누면 한 객체나 서비스의 크기는 줄어들 수
+있다. 대신 서로 다른 상태를 한 목적 아래 조정하는 비용이 드러난다. Pergyra는
+그 비용이 사라진다고 가정하지 않는다. `intent`는 참여자의 상태와 불변식을
+흡수하는 상위 객체가 아니라, **하나의 현실 목적을 위해 여러 소유 경계를
+통과하는 프로토콜의 귀속자**다.
+
+각 의미 사실의 소유자는 다음처럼 남는다.
+
+| 질문 | 의미 소유자 |
+|------|-------------|
+| 어떤 정체성과 상태 원본인가? | `subject`와 그 소유하의 `vessel` |
+| 한 소유자 안에서 어떤 변경이 유효한가? | 해당 `action`과 지역 불변식 |
+| 누가 진입·변경할 수 있고 자원은 언제까지 사는가? | `authority`, `slot`, `zone` |
+| 어떤 관계와 관측 가능한 변화가 생겼는가? | `relation`, `effect` |
+| 여러 소유자의 실행 순서·실패·보상·종료를 어느 목적에 귀속하는가? | `intent` |
+| 이 경계들이 어떤 실행 세계에 함께 놓이는가? | `world` |
+
+따라서 `intent`는 참여자의 내부 상태를 직접 고치거나, 참여자에게 속한 정책과
+권한 판정을 다시 계산해서는 안 된다. 각 `action`이 자기 상태 전이를 판정하고
+typed outcome 또는 receipt를 내면, `intent`는 그 결과를 다음 단계와 terminal에
+연결한다. 다른 owner가 이미 판정한 사실을 다시 계산해 별도 권위로 삼거나,
+검증된 귀속 증거를 값이 같은 새 payload로 대체해서는 안 된다. 일반 값의
+복사와 재구성은 해당 값의 계약을 따른다. 더 자세한 owner 배치는
+[객체에서 행위 중심으로 옮길 때의 경계 패턴](200_object_to_action_boundary_patterns.md)을
+따른다.
+
+### 교차 경계 일관성은 세 종류로 나눈다
+
+`Order`, `Inventory`, `Payment`를 건드리는 주문 취소를 예로 들면, 모든 조건을
+한 덩어리의 "일관성"으로 부르면 소유자가 다시 흐려진다.
+
+1. **지역 불변식**은 한 상태 소유자 안에서 항상 지켜야 하는 조건이다.
+   `Order.Cancel`, `Inventory.Restore`, `Payment.Refund`가 각자의 전이를 거절하거나
+   완료하는 책임을 가진다.
+2. **경계 안전 조건**은 외부에 보이는 commit 지점마다 반드시 성립해야 하는
+   조건이다. 여러 상태를 실제로 원자적으로 묶어야 한다면 공통 transaction 또는
+   invariant boundary가 그것을 소유해야 한다. `intent` 선언만으로 서로 다른
+   `zone`이 하나의 원자적 상태가 되지는 않는다.
+3. **시간에 걸친 목표**는 중간 실패와 재시도를 거쳐 결국 도달해야 하는 조건이다.
+   환불 완료와 재고 복구가 분리될 수 있다면 partial completion, 보상 대기,
+   보상 실패, irreversible step을 outcome과 receipt로 드러내야 한다. 이를 순간적인
+   불변식이나 이미 완료된 rollback처럼 표현해서는 안 된다.
+
+개념적으로 `CancelOrder` intent는 다음 흐름을 한 목적에 귀속할 수 있다.
+
+```text
+Order.BeginCancellation
+  -> Payment.Refund
+  -> Inventory.Restore
+  -> Order.CommitCancellation
+```
+
+여기서 각 상태와 지역 불변식은 여전히 각 참여자가 소유한다. `CancelOrder`는
+단계 의존성, terminal 의미, 실패의 위치, 보상 의무와 trace를 한 목적에 귀속한다.
+이 사실을 판정하는 축별 semantic owner도 그대로 유지한다.
+원자성이 없는 경계를 넘는다면 그 사실도 계약에 나타나야 한다.
+
+### 거대한 Service를 Intent로 옮기지 않는다
+
+다음 모양은 이름만 바뀐 거대 서비스다.
+
+- participant의 원시 가변 상태를 `intent`가 직접 소유한다.
+- 지역 불변식, 가격 정책, 재고 정책, 권한 판정을 `intent`가 다시 구현한다.
+- 서로 다른 현실 목적의 작업을 하나의 포괄적인 `intent`에 계속 붙인다.
+- partial failure와 irreversible effect를 성공 또는 완전한 rollback 뒤에 숨긴다.
+- 단순 계산과 조회까지 목적 조정의 일부로 만들어 모든 호출을 step으로 감싼다.
+
+순수 계산은 `func`/`struct`에, 지역 상태 전이는 그 상태를 소유한 `action`에,
+자원과 진입 경계는 `zone`에 둔다. `intent`는 이 owner들이 낸 typed fact를 한
+목적의 프로토콜로 결속한다. 물리적인 파일 분리는 의미 소유권과 별개다. 같은
+정체성·불변식·권한·변경 이유를 가진 action이 많다는 이유만으로 subject를 쪼개지
+않고, 이 경계가 실제로 갈라질 때 나눈다. 줄 수와 메서드 수는 검토 신호일 뿐
+소유권 판정 기준이 아니다.
+
+분할의 평가는 조정 비용까지 포함한다. 줄어든 지역 코드와 함께 새로 생긴
+소유자 사이 의존성, 실패 지점, 동시 변경 충돌, 보상 의무를 비교해야 한다.
+소유자 수를 늘렸다는 사실만으로 설계가 좋아졌다고 판정할 수 없다.
+
+### 언어가 보장할 수 있는 범위
+
+Pergyra가 올바른 도메인 경계를 자동으로 발견해 주는 것은 아니다. 설계자가
+상태 원본, 불변식, 권한, transaction, 시간에 걸친 목표의 경계를 선택한다.
+컴파일러의 역할은 선언된 경계가 실제 실행과 맞는지, participant와 의존성이
+빠지지 않았는지, 필요한 보상과 terminal이 연결됐는지, 충돌하는 변경이 순서나
+권한 없이 겹치지 않는지를 검사하는 것이다.
+
+메모리 안전성 증명만으로 이 도메인 분할의 적절성이나 분산 작업의 완료까지
+보장되지는 않는다. 이 계약들은 각각의 모델, 전제와 실행 증거가 필요하다.
+
+따라서 Pergyra의 차이는 경계 결정을 없애는 데 있지 않다. **선택한 경계 사이의
+계약을 명시하고, 다른 owner의 사실을 빼앗지 않은 채 검증 가능하게 유지하는 데**
+있다. 이 검사의 목표 규칙과 현재 구현 공백은
+[Intent 축 강화](../semantics/173_intent_axis_strengthening.md)가 소유한다. 이 절은 설계
+원칙을 고정하며, participant·dependency·compensation·conflict 검사가 현재
+production 경로에서 모두 닫혔다고 주장하지 않는다.
+
+---
+
+## Intent 설계의 균형 — 너무 작아도, 너무 커도 안 된다
+
+### 너무 작게 잡으면: 단순 명령 나열
+
+```pergyra
+// 나쁜 예 — intent가 너무 작음
+intent SwingSword(hero: Player, target: Monster)
+{
+    step swing
+    {
+        on: hero.SwingWeapon();
+    }
+    success: true;
+}
+
+intent MoveForward(hero: Player)
+{
+    step move
+    {
+        on: hero.Move(1);
+    }
+    success: true;
+}
+```
+
+이것은 intent가 아니라 함수 호출이다. "왜"가 없다.
+
+### 너무 크게 잡으면: 현실을 다루지 못함
+
+```pergyra
+// 나쁜 예 — intent가 너무 큼
+intent CompleteEntireGame(hero: Player)
+{
+    step do_everything
+    {
+        where: EntireWorld;
+        on: hero.PlayGame();
+    }
+    success: hero.won;
+}
+```
+
+이것은 intent가 아니라 main 함수다. 실패 지점이 보이지 않는다.
+
+### 적절한 크기: 목적을 잃지 않으면서 감당 가능한 단위
+
+```pergyra
+// 좋은 예 — 목적 단위
+intent ClearDungeon(hero: Player, dungeon: DungeonZone)
+{
+    who: hero;
+
+    step enter
+    {
+        where: dungeon;
+        on: hero.EnterDungeon();
+        compensate: hero.ExitDungeon();
+        pre: hero.level >= dungeon.min_level;
+    }
+
+    step fight_boss
+    {
+        where: dungeon;
+        requires: Combatable;
+        on: hero.Attack(dungeon.boss);
+        compensate: hero.FleeDungeon();
+        post: dungeon.boss.hp <= 0;
+    }
+
+    step collect_reward
+    {
+        where: dungeon;
+        on: hero.CollectTreasure();
+        pre: dungeon.boss.hp <= 0;
+    }
+
+    success: dungeon.cleared;
+    failure: hero.fled;
+}
+```
+
+이 intent는:
+- **명확한 목적**: 던전 클리어
+- **감당 가능한 범위**: enter → fight → collect
+- **실패 지점 보임**: 각 step에 compensate 정의
+- **성공/실패 조건 명시**: cleared vs fled
+
+---
+
+## Intent를 정의하는 4가지 질문
+
+좋은 intent를 찾으려면 다음 질문을 순서대로 답해야 한다:
+
+### 1. "누가 무엇을 이루려 하는가?" (Purpose)
+
+```
+질문: 이 시스템(또는 기능)의 궁극적 목적은 무엇인가?
+검사: "이 intent가 성공하면 무엇이 달라지는가?"에 한 문장으로 답해야 한다.
+```
+
+```pergyra
+// 명확한 목적
+intent PurchaseItem(buyer: Member, item: Item)
+// → "구매자가 아이템을 소유하게 된다"
+
+// 모호한 목적
+intent ProcessData(data: Data)
+// → "데이터가 처리된다" (무엇이 달라지는가?)
+```
+
+### 2. "어디까지가 한 행위인가?" (Boundary)
+
+```
+질문: 어디서 시작해서 어디서 끝나는가?
+검사: step 수는 경계 재검토 신호일 뿐 semantic 판정이나 gate가 아니다.
+      여러 현실 목적이나 fact 귀속이 섞였을 때 목적별로 분리한다.
+```
+
+```pergyra
+// 적절한 경계 — 4단계
+intent Checkout(buyer: Member, cart: Cart)
+{
+    step validate_cart   { ... }   // 1
+    step calculate_total { ... }   // 2
+    step process_payment { ... }   // 3
+    step confirm_order   { ... }   // 4
+}
+
+// 경계 초과 — 10단계 (쪼개야 함)
+intent Checkout(buyer: Member, cart: Cart)
+{
+    step validate_cart       { ... }  // → ValidateCart로 분리
+    step check_stock         { ... }  // → ValidateCart에 포함
+    step apply_discount      { ... }  // → CalculateTotal에 포함
+    step calculate_subtotal  { ... }  // → CalculateTotal에 포함
+    step calculate_tax       { ... }  // → CalculateTotal에 포함
+    step calculate_shipping  { ... }  // → CalculateTotal에 포함
+    step process_payment     { ... }  // → ProcessPayment로 분리
+    step verify_fraud        { ... }  // → ProcessPayment에 포함
+    step confirm_order       { ... }  // → ConfirmOrder로 분리
+    step send_email          { ... }  // → ConfirmOrder에 포함
+}
+```
+
+### 3. "실패를 어디서 끊을 것인가?" (Failure Point)
+
+```
+질문: 각 step이 실패하면 무엇을 보상해야 하는가?
+검사: full rollback을 주장하는 intent(`rollback: full`을 쓰거나 어느 step이든
+      `compensate:`를 쓴 intent)에서, 뒤에 실패가 올 수 있는 effectful step은
+      `compensate:` 또는 `irreversible: "이유";`를 가져야 한다. 없으면 compile error다.
+      순수·무상태 step과, 보상도 정책도 쓰지 않은 intent에는 의례적으로 강제하지
+      않는다. 규칙과 근거는 docs/grammar/01_syntax.md §2.2.1과 docs/173 INT-2.
+```
+
+```pergyra
+// 되돌릴 수 없는 효과는 이유와 함께 표시한다
+step notify
+{
+    on: order.Notify();
+    irreversible: "a sent notification cannot be recalled";
+}
+```
+
+```pergyra
+// 실패 지점이 명확
+intent TransferFunds(from: Account, to: Account)
+{
+    step withdraw
+    {
+        on: from.Withdraw(amount);
+        compensate: from.Deposit(amount);  // 출금 취소
+    }
+
+    step deposit
+    {
+        on: to.Deposit(amount);
+        compensate: from.Deposit(amount);  // 입금 취소 (출금도 취소)
+    }
+
+    success: from.balance >= 0 && to.balance > 0;
+    failure: rollback;
+}
+```
+
+### 4. "누가 책임을 질 것인가?" (Authority)
+
+```
+질문: 이 intent의 각 step을 누가 승인하는가?
+검사: step의 유효 권한은 직접 `authorized by`/`requires`를 선언하거나 호출하는
+action 계약에서 유일하게 상속되어야 한다. 동일한 action 계약을 orchestration step이
+다시 적으면 이중 권위이므로 경고하고 제거한다.
+```
+
+```pergyra
+// 권한이 명확
+intent ApproveLoan(officer: LoanOfficer, application: LoanApplication)
+{
+    step review
+    {
+        who: officer;
+        authorized by: officer;        // 담당자가 검토 승인
+        requires: LoanReviewer;
+    }
+
+    step escalate
+    {
+        who: officer;
+        authorized by: manager;        // 금액 초과 시 관리자 승인
+        pre: application.amount > 100000;
+    }
+
+    step disburse
+    {
+        who: officer;
+        authorized by: system;         // 시스템 자동 승인
+        post: application.status == Approved;
+    }
+}
+```
+
+---
+
+## Intent가 나머지를 유도하는 구조
+
+### Intent → Subject
+
+```pergyra
+// Intent를 먼저 쓰면
+intent TradeGoods(seller: Merchant, buyer: Customer)
+{
+    step list_item    { who: seller; }
+    step browse_items { who: buyer; }
+    step make_offer   { who: buyer; }
+    step accept_offer { who: seller; }
+}
+
+// Subject가 자동 유도
+subject Merchant { ... }   // seller
+subject Customer { ... }   // buyer
+```
+
+### Intent → Ability
+
+```pergyra
+// Intent에 requires가 있으면
+intent SlayDragon(hero: Player)
+{
+    step attack
+    {
+        requires: Combatable;    // 이 ability가 필요함
+    }
+}
+
+// Ability가 자동 유도
+ability Combatable {
+    func CanFight(self) -> Bool;
+}
+
+// 그리고 Role 구현
+role Combatable for Player {
+    func CanFight(self) -> Bool {
+        return self.hp > 0;
+    }
+}
+```
+
+### Intent → Zone
+
+```pergyra
+// Intent에 where가 있으면
+intent Battle(hero: Player, enemy: Monster)
+{
+    step attack { where: Arena; }
+    step flee   { where: Arena; }
+}
+
+// Zone이 자동 유도
+zone Arena {
+    subject slot challenger: Player;
+    subject slot defender: Monster;
+}
+```
+
+### Intent → Effect/Relation
+
+```pergyra
+// Intent에 causes가 있으면
+intent CastSpell(caster: Wizard, target: Creature)
+{
+    step cast
+    {
+        causes: FireDamage;      // 이 effect가 발생
+    }
+}
+
+// Effect가 자동 유도
+effect FireDamage for bearer: Creature {
+    let intensity: Int;
+    let duration: Int;
+}
+```
+
+### Intent → Object/TObject
+
+```pergyra
+// Intent의 성공/실패가 투영을 필요로 함
+intent GenerateReport(admin: Admin)
+{
+    step collect_data { ... }
+    step format_report  { ... }
+
+    success: report.ready;       // 내부 투영
+    failure: report.error;       // 내부 투영
+}
+
+// Object/TObject이 자동 유도
+object ReportView {
+    let title: String;
+    let data: Array<String>;
+    let status: String;
+}
+
+tobject ReportExport {
+    let title: String;
+    let data: String;   // 직렬화된 형태
+    let generated_at: DateTime;
+}
+```
+
+---
+
+## Intent-First 프로젝트 구조
+
+```
+project/
+  intents/              ← FIRST: 이 프로그램이 하려는 일
+    purchase.pgy        → "사용자가 상품을 구매한다"
+    refund.pgy          → "사용자가 상품을 환불한다"
+    onboarding.pgy      → "새 사용자가 시스템을 배운다"
+
+  world.pgy             ← SECOND: 실행/신뢰/실패 경계
+
+  zones/                ← THIRD: intent step이 일어나는 문맥
+    shop.pgy            → Purchase step들의 무대
+    payment.pgy         → Purchase, Refund step들의 무대
+    tutorial.pgy        → Onboarding step들의 무대
+
+  subjects/             ← FOURTH: 그 계약을 실제로 수행하는 host
+    member.pgy          → Purchase, Refund, Onboarding에 모두 등장
+    merchant.pgy        → Purchase, Refund에 등장
+    admin.pgy           → Onboarding에 등장
+
+  main.pgy              ← entry point
+```
+
+### 의도 목차 (Table of Contents)
+
+`intents/` 폴더만 읽어도 **"이 프로그램이 무엇을 하려는 프로그램인가"** 를 먼저 이해할 수 있어야 한다.
+
+```
+기존 구조:
+  models/
+  services/
+  controllers/
+  → "무엇으로 구현했는가"가 먼저 보임
+
+Intent-First 구조:
+  intents/
+    purchase.pgy
+    refund.pgy
+    onboarding.pgy
+  → "무엇을 하려는가"가 먼저 보임
+```
+
+---
+
+## Intent 설계 체크리스트
+
+Intent를 선언한 후 다음을 점검하라:
+
+| 질문 | 검사 방법 | 위험 신호 |
+|------|-----------|-----------|
+| **목적이 명확한가?** | "성공하면 무엇이 달라지는가?" 한 문장 답 | "데이터를 처리한다"류의 모호한 답 |
+| **경계가 적당한가?** | 한 현실 목적과 fact 귀속이 한 binder로 닫히는지 확인 | step 수만으로 intent 여부나 분할을 결정 |
+| **실패 지점이 보이는가?** | full rollback의 effectful step마다 compensate 또는 irreversible 확인 | 되돌릴 수 없는 효과를 암묵적으로 숨김 |
+| **권한이 명확한가?** | 모든 step에 직접 또는 호출 action이 소유한 authorized by/requires | 권한 주체 불명확 또는 계약 중복 |
+| **하위 owner를 침범하지 않는가?** | 상태·지역 불변식·권한 판정은 participant action/zone에 남고 intent는 typed 결과만 결속 | intent가 참여자의 상태나 정책을 직접 다시 구현 |
+| **일관성 종류가 구분되는가?** | 조건을 지역 불변식·경계 안전 조건·시간에 걸친 목표로 분류 | 분산된 완료 조건을 전역 원자성이나 즉시 rollback으로 표현 |
+| **Subject가 유도되는가?** | intent에서 등장하는 who/involves로 subject 목록 작성 | intent와 무관한 subject 존재 |
+| **Zone이 유도되는가?** | where로 참조하는 zone이 실제로 존재 | zone이 namespace 정도로 전락 |
+| **Ability가 유도되는가?** | requires로 참조하는 ability가 실제로 구현됨 | ability가 interface 정도로 전락 |
+| **C/LLVM parity가 되는가?** | `pgy --run` + `pgy --run --llvm` 동일 결과 | 백엔드별 다른 동작 |
+
+---
+
+## Intent의 역산 패턴 (Backward Derivation)
+
+Intent를 선언하면 설계자는 필요한 축을 역산한다. 아래의 자동 TODO 진단은
+목표 개발자 경험을 설명한다. 실제 구현으로 주장하려면 해당 진단의 executable
+gate와 owner registry 근거가 있어야 한다.
+
+```pergyra
+intent Purchase(buyer: Member, seller: Merchant)
+{
+    step browse
+    {
+        where: ProductView;
+        who: buyer;
+    }
+
+    step pay
+    {
+        where: PaymentZone;
+        who: buyer;
+        requires: Purchasable;
+        causes: PaymentEffect;
+    }
+}
+```
+
+이 선언에서 다음 설계 체크리스트를 역산할 수 있다. 컴파일러가 같은 진단을
+자동으로 생성하는 것은 구현 목표다.
+
+```
+error: subject 'Member' not found       → subjects/member.pgy 생성
+error: subject 'Merchant' not found     → subjects/merchant.pgy 생성
+error: zone 'ProductView' not found     → zones/shop.pgy에 ProductView 추가
+error: zone 'PaymentZone' not found     → zones/payment.pgy에 PaymentZone 추가
+error: ability 'Purchasable' not found  → ability Purchasable 생성
+error: effect 'PaymentEffect' not found → effect PaymentEffect 생성
+```
+
+이것은 단순한 오류가 아니라 **아직 만들어야 할 조각 목록**이다.
+
+```
+기존 OOP:
+  class 하나를 만들었다고 해서
+  다음에 무엇을 만들어야 하는지는 바로 드러나지 않는다.
+
+Intent-First:
+  intent 하나를 쓰면
+  필요한 world, zone, subject, ability, effect를 한 목적에서 추적할 수 있다.
+```
+
+---
+
+## Intent vs Function — 언제 무엇을 쓸 것인가
+
+### Intent가 적합한 경우
+
+| 특징 | 예시 |
+|------|------|
+| **여러 주체가 관여** | 구매자 + 판매자 + 결제대행사 |
+| **경계를 넘나듦** | ShopWorld → PaymentWorld → ShippingWorld |
+| **실패 시 보상 필요** | 환불, 롤백, 취소 |
+| **권한/자격 검증** | 관리자 승인, 운영자 자격 |
+| **상태 전이 추적** | 주문 → 결제 → 배송 → 완료 |
+
+### Function이 적합한 경우
+
+| 특징 | 예시 |
+|------|------|
+| **순수 계산** | `CalculateTax(amount, rate)` |
+| **데이터 변환** | `FormatDate(date, format)` |
+| **알고리즘** | `SortArray(arr)`, `BinarySearch(arr, key)` |
+| **유틸리티** | `StringSplit(s, delim)`, `Max(a, b)` |
+
+### 판단 기준
+
+한 현실 목적의 participant, coordination, authority, effect, boundary,
+compensation, trace 의무를 하나의 source-level binder에 귀속해야 하면
+`intent`가 적합하다. 순수 계산이나 값 변환 책임이면 `func`가 적합하다.
+보상 유무, action 수, step 수는 어느 쪽도 단독 판정 기준이 아니다.
+
+---
+
+## Intent의 계층 구조 — 대목차와 소목차
+
+Intent는 중첩 가능하다. 대목차 안에 소목차가 있는 것과 같다.
+
+```pergyra
+// 소목차 intent들
+intent BrowseCatalog(buyer: Member)
+{
+    step search  { where: SearchZone; who: buyer; }
+    step filter  { where: SearchZone; who: buyer; }
+    success: buyer.cart.size > 0;
+}
+
+intent ProcessPayment(buyer: Member)
+{
+    step verify  { where: PaymentZone; requires: Payable; }
+    step charge  { where: PaymentZone; authorized by: buyer; }
+    success: buyer.payment_done;
+}
+
+intent ArrangeShipping(buyer: Member)
+{
+    step address  { where: ShippingZone; who: buyer; }
+    step dispatch { where: ShippingZone; who: buyer; }
+    success: buyer.shipping_arranged;
+}
+
+// 대목차 — 하위 intent들을 오케스트레이션
+intent CompletePurchase(buyer: Member)
+{
+    exclusive;
+    who: buyer;
+
+    step browse
+    {
+        intent: BrowseCatalog(buyer);
+        post: buyer.cart.size > 0;
+    }
+
+    step pay
+    {
+        intent: ProcessPayment(buyer);
+        post: buyer.payment_done;
+    }
+
+    step ship
+    {
+        intent: ArrangeShipping(buyer);
+        post: buyer.shipping_arranged;
+    }
+
+    success: buyer.order_complete;
+    failure: rollback;
+}
+```
+
+### 규칙
+
+1. `step` 안에서 `intent:` 로 하위 intent를 호출할 수 있다
+2. 하위 intent가 실패하면 상위 step도 실패한다
+3. 상위 intent의 `compensate`는 하위 intent의 `compensate`를 역순으로 호출한다
+4. 하위 intent는 독립적으로도 호출 가능하다 (소목차만 단독 실행)
+5. 깊이 제한은 없지만, 3단 이상 중첩은 설계 냄새
+6. `intent:`로 부르는 하위 intent는 반환 타입이 없는 Bool intent다. typed intent
+   (`-> Outcome`)는 이 자리에 올 수 없고, native와 default 경로 모두 거부한다.
+   typed 하위 intent는 typed step의 `on <binding>: Child(...)`로 부른다. 자식의
+   결과 enum이 부모 step의 success/failure 패턴에 대응된다(docs/34 §9.2.1).
+
+---
+
+## Intent-First의 장점
+
+### 1. 현실과 코드의 거리가 짧아진다
+
+대부분의 언어는 현실의 목적을 함수, 클래스, DTO, 서비스, 컨트롤러로 흩어놓고 나중에 사람이 다시 조립해야 한다.
+
+Intent-First는 애초에 "이 시스템이 하려는 일"을 먼저 표면에 올린다. 코드가 구현 이전에 **설명 가능한 구조**가 된다.
+
+### 2. 복잡한 워크플로우에 강해진다
+
+현실의 복잡한 시스템은 단순 계산보다 다음이 중요하다:
+- 누가 시작하는가
+- 어떤 권한이 필요한가
+- 어디서 실패하는가
+- 무엇이 보상되어야 하는가
+- 어떤 상태 변화가 허용되는가
+
+Intent-First는 이런 문제를 **컴파일타임에 검증**한다.
+
+### 3. 시스템의 "왜"가 안 사라진다
+
+구현을 오래 하다 보면 "왜 이 코드가 존재하는가"가 사라진다.
+
+Intent가 구조의 중심이면 핵심 유스케이스의 "왜"가 언어 표면에 남는다. 장기 유지보수에서 꽤 큰 힘이다.
+
+---
+
+## Intent-First의 단점과 대처
+
+### 1. 작은 문제에도 의미론이 무거워질 수 있다
+
+**문제:** 간단한 유틸 코드, 알고리즘, 데이터 변환에도 Intent 구조가 과할 수 있다.
+
+**대처:** 순수 계산은 Function으로 둔다. Intent는 행위와 경계가 있을 때만 쓴다.
+
+```pergyra
+// Function — 가벼운 계산
+func CalculateTax(amount: Int, rate: Float) -> Float
+{
+    return amount * rate;
+}
+
+// Intent — 행위와 경계
+intent ProcessRefund(buyer: Member, order: Order)
+{
+    step return_item   { ... }
+    step refund_payment { ... }
+    compensate: ...
+}
+```
+
+### 2. 순수 함수 조합에는 부자연스러울 수 있다
+
+**문제:** Intent는 행위와 경계에 강하지만, 순수 함수 조합이나 자료구조 중심 abstraction에는 최적이 아닐 수 있다.
+
+**대처:** Pergyra는 intent-first이지 intent-only가 아니다. Function, Class, Struct는 여전히 유용하다.
+
+### 3. 설계자의 해석 부담이 크다
+
+**문제:** Intent는 자동으로 주어지지 않는다. 설계자가 현실을 해석해 "무엇이 한 intent인가"를 정해야 한다.
+
+**대처:** 4가지 질문(Purpose, Boundary, Failure, Authority)을 사용하면 체계적으로 접근 가능하다.
+
+---
+
+## Intent-First vs DDD — 결과적 유사성, 근본적 차이
+
+Pergyra를 보면 "이거 DDD 아닌가?"라는 생각이 들 수 있다.
+표면적으로는 유사해 보이지만, 동기가 다르다.
+
+### DDD에서 시작한 경우
+
+```
+DDD:
+  "소프트웨어 복잡도를 관리하려면 도메인 모델을 잘 만들어야 한다"
+  → bounded context, aggregate, entity, value object
+  → 도메인 전문가와 개발자의 소통 언어 (ubiquitous language)
+  → 결과: 코드 구조가 도메인 개념을 반영
+```
+
+### Intent-First에서 시작한 경우
+
+```
+Pergyra:
+  "프로그램의 핵심은 현실의 의도를 실행 단위로 닫는 것이다"
+  → intent가 1차, 나머지는 역산으로 유도
+  → 결과: 코드 구조가 도메인 개념을 반영
+```
+
+**같은 결과가 다른 원인에서 나왔다.**
+
+### 핵심 차이
+
+| 차원 | DDD | Pergyra Intent-First |
+|------|-----|---------------------|
+| **출발점** | 도메인 모델링 | 의도(Intent) 닫기 |
+| **1차 요소** | Aggregate / Entity | Intent |
+| **검증** | 사람이 코드 리뷰로 | 컴파일러가 정적으로 |
+| **실패 처리** | 명시적 아님 | Intent 수준에서 compensate/rollback |
+| **경계** | Bounded Context (개념적) | Zone/World (실행적) |
+| **도구** | 패턴, 원칙, 소통 | 언어 구문, 타입 시스템 |
+
+### 요약
+
+```
+DDD를 흉내 낸 것이 아니라
+intent를 최상위 설계 축으로 잡았고
+그 결과 도메인 중심 구조가 자연히 따라 나온 것
+
+즉 핵심은 DDD가 아니라 intent-first ontology다.
+DDD스러움은 결과이고
+원인은 현실의 복잡계를 목적 단위로 닫아야 한다는 믿음이다.
+```
+
+---
+
+## Intent의 3가지 크기 — Macro / Meso / Micro
+
+Intent는 크기에 따라 역할이 다르다.
+
+### Macro Intent — 시스템 전체의 목적
+
+```
+시스템 수준에서 "이 프로그램이 무엇을 하려는가"
+→ 1-3개 정도가 적정
+→ 예: CompletePurchase, OnboardUser, RunCampaign
+```
+
+```pergyra
+intent CompletePurchase(buyer: Member, cart: Cart)
+{
+    // 전체 구매 플로우를 오케스트레이션
+    step browse    { intent: BrowseCatalog(buyer); }
+    step pay       { intent: ProcessPayment(buyer); }
+    step ship      { intent: ArrangeShipping(buyer); }
+    
+    success: buyer.order_complete;
+}
+```
+
+### Meso Intent — 서브시스템의 목적
+
+```
+Macro intent의 하위 단계, 또는 독립 실행 가능한 단위
+→ 5-15개 정도
+→ 예: BrowseCatalog, ProcessPayment, ArrangeShipping
+```
+
+```pergyra
+intent ProcessPayment(buyer: Member)
+{
+    step verify  { where: PaymentZone; requires: Payable; }
+    step charge  { where: PaymentZone; authorized by: buyer; }
+    step confirm { where: PaymentZone; }
+    
+    success: buyer.payment_done;
+}
+```
+
+### Micro Intent — 단일 행위의 목적
+
+```
+Meso intent 내부의 step, 또는 매우 작은 독립 행위
+→ 10-30개 정도
+→ 예: VerifyCard, ChargeAmount, SendReceipt
+```
+
+```pergyra
+intent VerifyCard(buyer: Member)
+{
+    step check_funds
+    {
+        where: PaymentZone;
+        on: PaymentGateway.VerifyFunds(buyer.card);
+        post: buyer.funds_verified;
+    }
+    success: buyer.funds_sufficient;
+}
+```
+
+### 크기별 사용 패턴
+
+```
+Macro Intent (1-3개)
+  └── Meso Intent (5-15개)
+        └── Micro Intent (10-30개)
+              └── Function (계산/변환/유틸)
+```
+
+아래 개수는 구성 규모를 설명하는 예시이지 admission 규칙이나 분할 할당량이 아니다.
+
+**규칙:**
+
+- Macro는 Meso를 오케스트레이션만 한다 (직접 행동 안 함)
+- Meso는 독립 실행 가능해야 한다 (재사용성)
+- Micro도 한 목적에 묶인 terminal 결과 귀속, authority/boundary, compensation
+  등의 의무를 compiler가 함께 검사해야 할 때 Intent로 쓴다. 보상 유무와
+  action/step 개수는 단독 판정 기준이 아니다. 그런 의무를 더하지 않는 계산이나
+  호출 wrapper는 `func` 또는 `action`에 남긴다.
+
+단일 action에서도 승인된 outcome payload를 같은 값의 새 receipt로 바꾸면
+typed terminal이 거절하는 [삭제·대체 실행 사례](../audits/2026-09-05_intent_graph_semantic_audit.md)가
+있다. 결과값·호출 횟수의 동치와 목적별 귀속 보장의 동치를 구별한다.
+
+---
+
+## Intent 설계 안티패턴
+
+### 1. Intent가 함수가 된 경우
+
+```pergyra
+// 나쁜 예 — intent가 단순 함수 호출
+intent CalculateTotal(cart: Cart) -> Float
+{
+    step sum
+    {
+        on: cart.CalculateSum();
+    }
+    success: true;
+}
+
+// 좋은 예 — function으로
+func CalculateTotal(cart: Cart) -> Float
+{
+    return cart.SumItems() + cart.CalculateTax();
+}
+```
+
+**검사:** `compensate`가 비어있거나 `success: true`만 있으면 함수일 가능성 높음.
+
+### 2. Intent가 main 함수가 된 경우
+
+```pergyra
+// 나쁜 예 — intent가 너무 큼
+intent RunEntireSystem()
+{
+    step init        { ... }
+    step run_game    { ... }   // 50줄
+    step cleanup     { ... }
+    success: true;
+}
+
+// 좋은 예 — macro/meso로 분리
+intent StartGameSession(player: Player)
+{
+    step load_profile  { ... }
+    step init_world    { ... }
+    step spawn_player  { ... }
+    success: player.in_world;
+}
+
+intent RunGameLoop(world: GameWorld)
+{
+    step process_input { ... }
+    step update_state  { ... }
+    step render        { ... }
+    success: world.running;
+}
+```
+
+**검사:** step 수와 body 길이는 검토 신호이지 자동 분할 기준이 아니다.
+독립 목적·실패/보상 경계·소유 책임이 섞였는지 먼저 확인한다. 하나의 checked
+bundle을 나누어 귀속 증거를 잃거나 다시 조립해야 한다면, 줄 수만으로 쪼개지 않는다.
+
+### 3. Intent가 상태 머신이 된 경우
+
+```pergyra
+// 나쁜 예 — intent가 상태 전이만 관리
+intent ManageTrafficLight(light: TrafficLight)
+{
+    step red_to_green    { on: light.SetGreen(); }
+    step green_to_yellow { on: light.SetYellow(); }
+    step yellow_to_red   { on: light.SetRed(); }
+    success: true;  // 무한 루프?
+}
+
+// 좋은 예 — intent가 목적을 가짐
+intent AllowCrosswalk(pedestrian: Pedestrian, light: TrafficLight)
+{
+    step stop_traffic
+    {
+        on: light.SetRed();
+        post: light.status == Red;
+    }
+    step allow_walk
+    {
+        where: Crosswalk;
+        who: pedestrian;
+        post: pedestrian.crossed;
+    }
+    step resume_traffic
+    {
+        on: light.SetGreen();
+        compensate: light.SetRed();  // 보행자 안전
+    }
+    success: pedestrian.crossed && light.status == Green;
+}
+```
+
+**검사:** `success` 조건이 모호하거나 intent에 "누가" 없으면 상태 머신일 가능성.
+
+### 4. Intent가 이벤트 핸들러가 된 경우
+
+```pergyra
+// 나쁜 예 — intent가 이벤트 반응형
+intent OnButtonClick(button: Button)
+{
+    step handle
+    {
+        on: button.ProcessClick();
+    }
+    success: true;
+}
+
+// 좋은 예 — intent가 목적 기반
+intent SubmitOrder(buyer: Member, cart: Cart)
+{
+    step validate  { ... }
+    step process   { ... }
+    compensate: ...
+    success: buyer.order_submitted;
+}
+```
+
+**검사:** Intent 이름이 `OnXxx`, `HandleXxx`, `WhenXxx`면 이벤트 핸들러일 가능성.
+
+---
+
+## Intent에서 Function으로 내려가는 경계
+
+```
+질문: "이것을 Intent로 해야 하나, Function으로 해야 하나?"
+```
+
+### 결정 트리
+
+```
+1. 실패 시 보상(compensate)이 필요한가?
+   YES → Intent
+   NO  → 2번으로
+   
+2. 여러 주체(subject)가 관여하는가?
+   YES → Intent
+   NO  → 3번으로
+   
+3. 경계(zone/world)를 넘나드는가?
+   YES → Intent
+   NO  → 4번으로
+   
+4. 권한/자격 검증이 필요한가?
+   YES → Intent (또는 Function + ability 체크)
+   NO  → Function
+```
+
+### 실전 예시
+
+| 작업 | Intent | Function | 이유 |
+|------|--------|----------|------|
+| 사용자 로그인 | ✅ | | 세션, 권한, 여러 주체 |
+| 비밀번호 해싱 | | ✅ | 순수 계산 |
+| 주문 처리 | ✅ | | 결제, 배송, 여러 경계 |
+| 세금 계산 | | ✅ | 수식 적용 |
+| 재고 업데이트 | ✅ | | 트랜잭션, 보상 필요 |
+| 문자열 포맷팅 | | ✅ | 데이터 변환 |
+| 파일 업로드 | ✅ | | 외부 시스템, 실툴 가능 |
+| 배열 정렬 | | ✅ | 알고리즘 |
+
+---
+
+## Intent 설계 리뷰 프로세스
+
+팀에서 Intent를 검토할 때 사용할 체크리스트:
+
+### 1단계: 목적 검토
+
+```
+□ "이 intent가 성공하면 무엇이 달라지는가?"에 한 문장으로 답되는가?
+□ intent 이름이 목적을 명확히 표현하는가? (동사+명사 권장)
+□ success/failure 조건이 구체적인 상태 변화를 나타내는가?
+```
+
+### 2단계: 경계 검토
+
+```
+□ 한 현실 목적과 fact 귀속이 이 binder 안에서 닫히는가?
+□ 각 step이 단일 책임을 가지는가?
+□ step 수나 줄 수가 아니라 authority/effect/success/failure 경계가 응집돼 있는가?
+```
+
+### 3단계: 실패 검토
+
+```
+□ full rollback의 effectful step마다 compensate 또는 irreversible이 명시됐는가?
+□ compensate가 유효한 이전 상태로 복구하는가?
+□ failure 조건이 모든 실패 케이스를 커버하는가?
+```
+
+### 4단계: 권한 검토
+
+```
+□ 모든 step에 who가 정의되었는가?
+□ requires/authorized by가 필요한 곳에 정의되었는가?
+□ 권한 주체가 실제 존재하는 subject인가?
+```
+
+### 5단계: 유도 검토
+
+```
+□ intent에서 필요한 subject가 모두 유도되는가?
+□ intent에서 필요한 zone이 모두 유도되는가?
+□ intent에서 필요한 ability/effect가 모두 유도되는가?
+□ intent와 무관한 subject/zone이 프로젝트에 없는가?
+```
+
+---
+
+## 요약
+
+```
+Pergyra는:
+  intent를 최상위 설계 축으로 잡아
+  현실의 복잡한 행위를 목적 단위로 닫고
+  나머지 구조를 유도하는 언어
+
+그 근거는:
+  intent가 정해지면 subject, zone, ability, effect가 자동 유도됨
+  intent가 틀리면 전부 흔들림
+  intent만 정확하면 나머지는 붙이기 쉬움
+
+그 방법은:
+  1. "누가 무엇을 이루려 하는가?" (Purpose)
+  2. "어디까지가 한 행위인가?" (Boundary)
+  3. "실패를 어디서 끊을 것인가?" (Failure Point)
+  4. "누가 책임을 질 것인가?" (Authority)
+
+그 결과는:
+  코드가 구현 이전에 설명 가능한 구조가 됨
+  시스템의 "왜"가 안 사라짐
+  복잡한 워크플로우를 컴파일타임에 검증
+
+그 주의점은:
+  intent-only가 아님 — 순수 계산은 function으로
+  intent 크기가 중요함 — macro/meso/micro 구분
+  설계자의 해석 부담이 큼 — 4질문으로 체계화
+```
+
+
+---
+
+## Intent 설계 가이드 — 실전 예제
+
+### 예제 1: 게임 퀘스트
+
+```pergyra
+// 1. Purpose: "플레이어가 퀘스트를 완료하고 보상을 받는다"
+// 2. Boundary: 퀘스트 시작 → 목표 달성 → 보상 수령 (4단계)
+// 3. Failure: 각 단계 실패 시 보상 정의
+// 4. Authority: 플레이어가 자신의 행동 승인
+
+intent CompleteQuest(player: Player, quest: Quest)
+{
+    exclusive;
+    who: player;
+
+    step accept_quest
+    {
+        where: QuestBoard;
+        on: player.AcceptQuest(quest);
+        pre: player.level >= quest.min_level;
+        compensate: player.DeclineQuest(quest);
+    }
+
+    step achieve_goal
+    {
+        where: QuestZone;
+        requires: Questable;
+        on: player.CompleteObjective(quest);
+        post: quest.is_complete;
+        compensate: player.AbandonQuest(quest);
+    }
+
+    step report_completion
+    {
+        where: QuestBoard;
+        on: player.ReportToNPC(quest.npc);
+        pre: quest.is_complete;
+    }
+
+    step receive_reward
+    {
+        where: QuestBoard;
+        on: player.ClaimReward(quest.reward);
+        post: player.HasItem(quest.reward);
+    }
+
+    success: quest.complete && player.HasItem(quest.reward);
+    failure: quest.abandoned;
+}
+```
+
+### 예제 2: 쇼핑몰 환불
+
+```pergyra
+// 1. Purpose: "구매자가 상품을 환불하고 돈을 돌려받는다"
+// 2. Boundary: 환불 요청 → 검증 → 환불 처리 → 완료 (4단계)
+// 3. Failure: 각 단계 실패 시 원래 상태로 복구
+// 4. Authority: 구매자가 환불 승인, 관리자가 고가 환불 승인
+
+intent RefundOrder(buyer: Member, order: Order)
+{
+    who: buyer;
+
+    step request_refund
+    {
+        where: RefundCenter;
+        on: buyer.SubmitRefundRequest(order);
+        pre: order.status == Delivered;
+        pre: order.days_since_delivery <= 30;
+    }
+
+    step verify_condition
+    {
+        where: RefundCenter;
+        requires: Refundable;
+        on: RefundInspector.Verify(order);
+        post: order.return_condition == Approved;
+    }
+
+    step process_refund
+    {
+        where: PaymentZone;
+        authorized by: buyer;
+        on: PaymentGateway.Refund(order.payment_id);
+        compensate: PaymentGateway.ReverseRefund(order.payment_id);
+    }
+
+    step confirm_refund
+    {
+        where: RefundCenter;
+        on: order.MarkRefunded();
+        post: order.status == Refunded;
+    }
+
+    success: order.status == Refunded && buyer.refund_received;
+    failure: order.refund_rejected;
+}
+```
+
+### 예제 3: IoT 장치 제어 (A2M)
+
+```pergyra
+// 1. Purpose: "AI 에이전트가 공작기계를 가동하고 생산 목표를 달성한다"
+// 2. Boundary: 준비 → 가동 → 모니터링 → 완료 (4단계)
+// 3. Failure: 각 단계 실패 시 긴급 정지
+// 4. Authority: AI가 행동, 인간이 승인
+
+intent StartProduction(agent: AIAgent)
+{
+    exclusive;
+    who: agent;
+
+    step prepare_machine
+    {
+        where: FactoryFloor;
+        requires: MachineOperator;
+        authorized by: supervisor;          // 인간 승인 필요
+        on: agent.InitMachine();
+        compensate: agent.EmergencyStop();
+        pre: machine.status == Ready;
+    }
+
+    step run_cycle
+    {
+        where: FactoryFloor;
+        on: agent.RunCycle();
+        guard: machine.temperature < 100;   // 실시간 안전 조건
+        post: machine.output > 0;
+        compensate: agent.EmergencyStop();
+    }
+
+    step monitor_output
+    {
+        where: FactoryFloor;
+        on: agent.CheckQuality();
+        post: machine.quality_score >= threshold;
+    }
+
+    step complete_batch
+    {
+        where: FactoryFloor;
+        on: machine.FinishBatch();
+        post: machine.produced >= target;
+    }
+
+    success: machine.produced >= target && machine.quality_score >= threshold;
+    failure: machine.emergency_stopped;
+}
+```

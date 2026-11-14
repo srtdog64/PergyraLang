@@ -77,7 +77,7 @@ PgyCompilerWorld
   receipt나 typed rejection을 남긴다. 따라서 `ArtifactTransactionZone`의 실체는
   이미 있다. 다만 경로마다 따로 있다. source→LLVM은 `CompilePergyraProgram`
   intent를 거친다.
-  - `AGENTS.md`, `docs/55_keyword_progress_board.md`,
+  - `AGENTS.md`, `docs/release/55_keyword_progress_board.md`,
     `18_c_oracle_bootstrap_contract.md`는 world가 direct-MIR 조각
     (`--mir-json-backend`)에서만 실행 루트라고 적고 있었다. 2026-09-29에 이
     도달 범위로 고쳤다. MIR 입력 플래그는 둘 다 `direct_mir` zone을 거친다.
@@ -211,7 +211,7 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
     거부한다. 기능을 넣기 전에도 위치와 이유가 있는 거부여야 한다.
   - **H3. PP-066.** `SubIndexOf`/`SubIndexOfWithLen`은 시작 위치를 받는 할당
     없는 검색 빌트인이다. 그런데 성능 문서에만 있고, 문자열 API 문서
-    (`docs/108_stdlib_beta_freeze.md`)에는 없다. 새 이름을 더하지 않고 문서에
+    (`docs/stdlib/108_stdlib_beta_freeze.md`)에는 없다. 새 이름을 더하지 않고 문서에
     올린다.
     - 3a(문서): docs/108에 창 의미, `source_len` 전제, 경로별 표를 올렸다.
     - 3b(다음): 경로를 재 보니 default LLVM 경로가 `SubIndexOfWithLen`과
@@ -538,5 +538,5 @@ projection-nerve rule. This target document adds the next gate direction:
 - `../semantics/14_air_erasure_measurement.md` - measured erased, summarized,
   and materialized runtime residue.
 - `../semantics/pass_contract_manifest.md` - pass-level owner contract.
-- `../180_compiler_logical_spine_handles_gates.md` - stable handles, movable
+- `../compiler/180_compiler_logical_spine_handles_gates.md` - stable handles, movable
   boundaries, migration protocol, and gate map.

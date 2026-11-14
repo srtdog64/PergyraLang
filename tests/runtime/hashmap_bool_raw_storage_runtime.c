@@ -37,7 +37,7 @@ drop_raw_map(PgyHashMapRaw *map, bool string_values)
 }
 
 /* Child modes. A failed allocation now panics with class oom
- * (docs/105_runtime_panic_contract.md), so each injected constructor failure
+ * (docs/runtime/105_runtime_panic_contract.md), so each injected constructor failure
  * runs in its own process and the smoke script checks the exit status and
  * stderr. The check that a failed constructor returned an empty invalid map
  * described a process that kept running; the abort replaces it. */

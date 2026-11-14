@@ -6,7 +6,7 @@
 관련 문서:
 - 최소 요약: [01_syntax.md](01_syntax.md)
 - 네이밍 규칙: [03_naming.md](03_naming.md)
-- 비전: [00_vision.md](../00_vision.md)
+- 비전: [00_vision.md](../language/00_vision.md)
 
 ## 1. 기본 규칙
 
@@ -54,7 +54,7 @@
 - 이 규칙은 함수 인자 carriage다. hosted receiver는 별도이며 `subject`와
   `vessel`은 pointer-self, `class`/`object`/현재 `tobject`는 value-self다.
   구성체별 authoring contract는
-  [`../200_object_to_action_boundary_patterns.md`](../200_object_to_action_boundary_patterns.md)를 따른다.
+  [`../language/200_object_to_action_boundary_patterns.md`](../language/200_object_to_action_boundary_patterns.md)를 따른다.
 
 ## 2. 리터럴과 표현식
 
@@ -784,7 +784,7 @@ This means module visibility is expressed directly on the declaration that owns 
 ## Common Syntax Pattern Grammar Policy
 
 The syntax pattern status table lives in
-[../124_syntax_pattern_matrix.md](../124_syntax_pattern_matrix.md).
+[../language/124_syntax_pattern_matrix.md](../language/124_syntax_pattern_matrix.md).
 This grammar reference mirrors the current contract rather than redefining it.
 
 Grammar-level classification for common patterns:

@@ -7,7 +7,7 @@ complete because a new owner exists; it is complete only when consumers read
 the new owner, missing facts fail closed, the old producer is gone, and a gate
 rejects the retired path.
 
-Canonical protocol: `docs/180_compiler_logical_spine_handles_gates.md`, section
+Canonical protocol: `docs/compiler/180_compiler_logical_spine_handles_gates.md`, section
 "Boundary Migration Protocol".
 
 ## Row Contract

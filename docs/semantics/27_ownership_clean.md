@@ -409,7 +409,7 @@ Two consequences matter for the implementation:
 ### 2.6 Composition laws and read-only alias elision (adopted)
 
 Adopted on 2026-10-08 after review. The design is the one in
-[`../207_compiler_owned_cleanup_algorithm.md`](../207_compiler_owned_cleanup_algorithm.md)
+[`../compiler/207_compiler_owned_cleanup_algorithm.md`](../compiler/207_compiler_owned_cleanup_algorithm.md)
 sections 9 and 10. Two supplementary proofs import the core and reuse its
 source and target semantics. Neither adds a heap, an ownership rule, or
 syntax. Rocq 9.3.0 and `rocqchk` check both, with no assumptions.
@@ -684,7 +684,7 @@ Contract identity: `pgy.mir.ownership.v1`.
   `docs/semantics/sot_owner_spine_registry.md` or makes the family the
   successor identity of `semantic.hashmap_collection_ownership`
   (registry line 110). The MIR JSON change is a row in
-  `docs/192_protocol_abi_api_registry.md`. That registry rejects unknown
+  `docs/compiler/192_protocol_abi_api_registry.md`. That registry rejects unknown
   fields, so every producer and every JSON consumer (`mir_lower`,
   `direct_mir_*`) changes in the same slice.
 - **Forbidden:**

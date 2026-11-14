@@ -144,7 +144,7 @@ do not restore the obsolete fixture unchanged merely to obtain rc1.
 Historical `5f14ef00` had exact readonly-ref -> inout and mixed ref/inout checks
 in `type_checker_helpers_late.c`. Current native lines 199-210 collect only
 MUT_REF names, while current `ast_inout_argument_alias_verdict_owner.pgy`
-collects only mode-1 inout bindings. The current docs/mut_borrow_parameters.md
+collects only mode-1 inout bindings. The current docs/language/mut_borrow_parameters.md
 explicitly document named variables and inout/inout exclusion, but do not by
 themselves settle all mixed-mode authority. Existing 5f14 intent and actual
 current acceptances require root's ownership decision and a joined native /

@@ -23,7 +23,7 @@ checks; or making the self-host compiler's functional style language canon.
 
 ## Current source and executable findings
 
-- `docs/mut_borrow_parameters.md` selects value-result inout inspired by Swift.
+- `docs/language/mut_borrow_parameters.md` selects value-result inout inspired by Swift.
   This does not prove general Swift copy-on-write is implemented: aggregate /
   collection copy-out and physical exclusivity (C2) remain open.
 - Native `type_checker_helpers_late.c` rejects non-identifier inout actuals and

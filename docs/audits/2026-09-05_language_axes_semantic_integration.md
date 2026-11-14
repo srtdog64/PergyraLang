@@ -130,8 +130,8 @@ Native는 다른 세션의 rebuild 결과다. base commit의 CI binary와 같다
 
 ## 문서 정정과 다음 보강 후보
 
-[docs/01](../01_intent_first_design.md)의 compensation-only Micro 규칙과
-[docs/200](../200_object_to_action_boundary_patterns.md)의 action 두 개 이상 규칙을
+[docs/01](../language/01_intent_first_design.md)의 compensation-only Micro 규칙과
+[docs/200](../language/200_object_to_action_boundary_patterns.md)의 action 두 개 이상 규칙을
 기존 purpose-bound checked-bundle 원칙에 맞췄다. step/body 개수는 검토 신호이며
 자동 분할 기준이 아니라고 정정했다. 앞선 matrix의 cross-step 필요조건도 후속
 실행 증거에 따른 정정임을 표시했다. 새 언어 의미나 키워드는 도입하지 않았다.

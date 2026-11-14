@@ -93,9 +93,9 @@ The native C TOML-subset admission has these observable rules:
 
 The contract accurately describes the authority chain as `pgy.toml ->
 Seashell manifest graph -> pgy.lock -> AIR/MIR facts` and prohibits raw TOML as
-a backend shortcut (`docs/109_package_module_resolver_contract.md:35-44`). It
+a backend shortcut (`docs/stdlib/109_package_module_resolver_contract.md:35-44`). It
 also freezes the entry/backend, fail-closed declaration, lock-drift and command
-behavior (`docs/109_package_module_resolver_contract.md:53-130`).
+behavior (`docs/stdlib/109_package_module_resolver_contract.md:53-130`).
 
 ### 3. Entry/backend selection versus compiler execution
 
@@ -171,7 +171,7 @@ observable behavior is:
 `src/self_hosted/tools/module_manifest_resolver/main.pgy` is not a partial
 Seashell owner:
 
-- It reads `docs/language_module_manifest.json`, not `pgy.toml`, through the
+- It reads `docs/stdlib/language_module_manifest.json`, not `pgy.toml`, through the
   shared JSON fact table
   (`src/self_hosted/tools/module_manifest_resolver/main.pgy:81-104`).
 - It counts roadmap module objects and validates only `layer`, `status`, and

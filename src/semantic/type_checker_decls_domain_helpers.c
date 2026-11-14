@@ -6,7 +6,7 @@
  * across declaration kinds (subject, object, zone, world, relation, effect,
  * projection).  These helpers live in their own translation unit so future
  * declaration kinds can depend on them without hidden include-order coupling.
- * See docs/101_semantic_split_template.md (5-A slice).
+ * See docs/compiler/101_semantic_split_template.md (5-A slice).
  */
 
 #include "type_checker_internal.h"

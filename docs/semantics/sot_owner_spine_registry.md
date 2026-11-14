@@ -4,8 +4,8 @@ Status: `architecture-owner-registry`
 Date: 2026-08-29
 
 This registry fixes the first whole-compiler owner outline. It is the
-machine-gated companion to `docs/125_source_of_truth_spine.md` and
-`docs/180_compiler_logical_spine_handles_gates.md`.
+machine-gated companion to `docs/compiler/125_source_of_truth_spine.md` and
+`docs/compiler/180_compiler_logical_spine_handles_gates.md`.
 
 An owner row declares authority identity. It does not by itself prove that all
 implementation consumers have migrated. `CLOSED` is permitted only when the

@@ -106,7 +106,7 @@ Audit logs are append-only; do not delete past runs.
   dependencies.
 - Knowledge of Pergyra type system, ownership classes, runtime ABI
   (point it at `docs/semantics/`, `pgy_abi_spec.h`,
-  `docs/118_slot_model_rigor_audit.md`).
+  `docs/runtime/118_slot_model_rigor_audit.md`).
 - Ability to reason about C and LLVM IR if backend-compare is being
   used as oracle.
 
@@ -150,7 +150,7 @@ Non-coverage:
 These limits are inherent to fuzzing-class methods. To upgrade from
 counterexample search to proof, the path is mechanized verification
 (Coq/Lean), which is post-1.0 academic work. See
-`docs/118_slot_model_rigor_audit.md` §9.
+`docs/runtime/118_slot_model_rigor_audit.md` §9.
 
 The honest claim after a green audit:
 

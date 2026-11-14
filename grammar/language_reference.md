@@ -1040,9 +1040,9 @@ C와 LLVM은 **첫 번째 검증 투영**이지 최종 실행 존재론(ontology
 
 - [grammar/README.md](README.md) — 컴팩트 문법 맵
 - [grammar/syntax_units/README.md](syntax_units/README.md) — 문법 단위별 설명
-- [docs/124_syntax_pattern_matrix.md](../docs/124_syntax_pattern_matrix.md) — 타 언어 패턴 대조표
-- [docs/00_vision.md](../docs/00_vision.md) — 언어 비전
-- [docs/104_air_compiler_architecture.md](../docs/104_air_compiler_architecture.md) — AIR/증거 아키텍처
+- [docs/language/124_syntax_pattern_matrix.md](../docs/language/124_syntax_pattern_matrix.md) — 타 언어 패턴 대조표
+- [docs/language/00_vision.md](../docs/language/00_vision.md) — 언어 비전
+- [docs/compiler/104_air_compiler_architecture.md](../docs/compiler/104_air_compiler_architecture.md) — AIR/증거 아키텍처
 - [docs/semantics/proofs/PergyraCore.v](../docs/semantics/proofs/PergyraCore.v) — 추상 기계(권위)
 - [docs/semantics/proofs/SlotCalculus.v](../docs/semantics/proofs/SlotCalculus.v) — Slot 계산(권위)
 - [src/lexer/language_keyword_registry.def](../src/lexer/language_keyword_registry.def) — 키워드 레지스트리(권위)

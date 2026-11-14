@@ -20,9 +20,9 @@ identity nominal merely to obtain a pointer ABI. Identity receivers are not
 limited to subject: `callable_receiver_carriage_policy_owner.pgy` also names
 vessel, party, roster, world, relation, effect, role and zone.
 
-`docs/10_role_interface_design.md` distinguishes class values with methods from
+`docs/language/10_role_interface_design.md` distinguishes class values with methods from
 subject identity. `src/parser/parser_decl.c` already accepts `inout self`.
-`docs/mut_borrow_parameters.md` owns copy-in/copy-out on normal exit, named
+`docs/language/mut_borrow_parameters.md` owns copy-in/copy-out on normal exit, named
 addressable arguments and rejection of duplicate inout arguments. This is not
 a live mutable borrow; passing an lvalue address alone is not its full meaning.
 

@@ -103,6 +103,6 @@ flowchart LR
 
 - 네이티브 실행 흐름: [02_native_compiler_pipeline.md](02_native_compiler_pipeline.md)
 - self-host world: [03_self_host_world.md](03_self_host_world.md)
-- 현재/목표 논리 계층: [180번 문서](../180_compiler_logical_spine_handles_gates.md)
+- 현재/목표 논리 계층: [180번 문서](../compiler/180_compiler_logical_spine_handles_gates.md)
 - 최신 상태: [truth/state](../truth/state/)
 

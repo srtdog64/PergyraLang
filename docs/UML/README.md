@@ -44,7 +44,7 @@ V1 종료선은
 
 | 변경 종류 | 먼저 볼 UML | 실제 권위 |
 |---|---|---|
-| 문법·타입·진단 | 02 | parser/semantic source, [compiler contracts](../37_compiler_contracts.md) |
+| 문법·타입·진단 | 02 | parser/semantic source, [compiler contracts](../compiler/37_compiler_contracts.md) |
 | 소유권·Clone·cleanup | 04 → 02 | [Ownership Clean](../semantics/27_ownership_clean.md), 도달한 typed/MIR owner, 실행 gate |
 | MIR instruction·expression·ABI | 02 → 03 | MIR owner, ABI/runtime-call registry, 일반 C/LLVM emitter |
 | self-host route·world·zone | 03 → 05 | `src/self_hosted/compiler/world.pgy`, [dogfood contract](../self_hosted/17_pergyra_native_dogfood_contract.md) |
@@ -65,11 +65,11 @@ V1 종료선은
 
 ## 대조한 주요 원본
 
-- [현재 네이티브 파이프라인 안내](../20_compiler_pipeline_guide.md)
-- [IR 계층 계약](../36_ir_pipeline_architecture.md)
-- [논리 spine과 handle/gate](../180_compiler_logical_spine_handles_gates.md)
+- [현재 네이티브 파이프라인 안내](../compiler/20_compiler_pipeline_guide.md)
+- [IR 계층 계약](../compiler/36_ir_pipeline_architecture.md)
+- [논리 spine과 handle/gate](../compiler/180_compiler_logical_spine_handles_gates.md)
 - [Self-host substrate](../self_hosted/13_compiler_substrate_architecture.md)
 - [Target compiler world](../self_hosted/14_target_compiler_world.md)
-- [Ownership cleanup 알고리즘](../207_compiler_owned_cleanup_algorithm.md)
-- [Ownership lifecycle 설명](../209_ownership_lifecycle_algorithm_code.md)
+- [Ownership cleanup 알고리즘](../compiler/207_compiler_owned_cleanup_algorithm.md)
+- [Ownership lifecycle 설명](../compiler/209_ownership_lifecycle_algorithm_code.md)
 

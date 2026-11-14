@@ -225,7 +225,7 @@ parallel_block  ::= "parallel" "(" x "in" expr [ ".." expr ] ")"
 ## 5. 약점 재검증 (이전 오독 정정)
 
 - `+=`/`-=` → `TOKEN_SUBSCRIBE`/`TOKEN_UNSUBSCRIBE`는 **이벤트 구독/해지
-  연산자**이며, `docs/124_syntax_pattern_matrix.md` L258/L369가 "일반 복합
+  연산자**이며, `docs/language/124_syntax_pattern_matrix.md` L258/L369가 "일반 복합
   대입은 CFG cleanup facts가 소유하기 전까지 `out-of-beta`"라고 명시한
   의도된 설계. 파서가 `expr += handler` → `ast_create_event_subscribe()`
   (`parser_expr.c` L147-L155). 네이밍 정확, 수정 금지.

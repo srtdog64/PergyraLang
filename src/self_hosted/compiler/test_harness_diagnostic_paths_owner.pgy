@@ -28,7 +28,7 @@ func CompilerHarnessDiagnosticCatalogCodeOwnerPath() -> String {
 }
 
 func CompilerHarnessDiagnosticCatalogDocsOwnerPath() -> String {
-    return "docs/72_diagnostic_codes.md";
+    return "docs/tooling/72_diagnostic_codes.md";
 }
 
 func CompilerHarnessDiagnosticCatalogCOraclePath() -> String {

@@ -188,7 +188,7 @@ func BuildOrphanFindingFacts(docs: String, header: String) -> String {
             if StringLength(literal) > 0 {
                 let quoted: String = Concat(Concat("\"", literal), "\"");
                 if !StringContains(header, quoted) {
-                    let entry: String = FindingFact("orphan", literal, "docs/72_diagnostic_codes.md");
+                    let entry: String = FindingFact("orphan", literal, "docs/tooling/72_diagnostic_codes.md");
                     facts = AppendFindingFact(facts, entry);
                 }
             }

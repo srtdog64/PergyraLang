@@ -2,7 +2,7 @@
 
 Companion to `AsyncScopeCore.v`, `CapabilityFlowCore.v`,
 `SuspensionRevalidationCore.v` and `DeterministicSubsetCore.v`: the four
-theorem targets `docs/204_concurrency_direction_pscc_review.md` §5 set for the
+theorem targets `docs/concurrency/204_concurrency_direction_pscc_review.md` §5 set for the
 async direction, minus data-race freedom, which `WitnessDataRace.v` already
 carried.
 

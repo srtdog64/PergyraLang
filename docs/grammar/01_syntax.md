@@ -43,7 +43,7 @@
   인자로는 값 전달되고 hosted `func`에서만 pointer-self다. 현재 C/LLVM이 일반
   vessel 파라미터도 포인터로 내리는 결함은 언어 규칙이 아니다. 구성체 선택,
   실제 구현 차이, mutation 계약은
-  [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md)를 따른다.
+  [../language/200_object_to_action_boundary_patterns.md](../language/200_object_to_action_boundary_patterns.md)를 따른다.
 
 ### 예약 키워드 (reserved — 식별자로 사용 불가)
 
@@ -424,7 +424,7 @@ func Pick(flag: Bool) -> Int {
 - `Never`는 값이 아니다. `let x: Int = Die("x");`처럼 값 위치에 쓰면 타입 불일치다.
 - native와 self-host 컴파일러는 같은 흐름 규칙으로 검사한다. 모든 분기가 `Never`로 끝나는
   본문은 받고, 끝까지 흘러갈 수 있는 non-`Void` 본문은 `PGY_SEM_MISSING_RETURN`으로
-  거부한다(`docs/205_language_limit_and_fact_gap_closure_design.md` L1).
+  거부한다(`docs/compiler/205_language_limit_and_fact_gap_closure_design.md` L1).
 
 ### 2.3 타입 선언
 
@@ -962,14 +962,14 @@ zone과 world의 method에 대해 현재 성립하는 규칙:
 ## 10. 문서 사용법
 
 - 실제 구현 문법 확인: 이 문서
-- 설계/비전 확인: [00_vision.md](../00_vision.md)
+- 설계/비전 확인: [00_vision.md](../language/00_vision.md)
 - 상세 문법 레퍼런스: [02_grammar.md](02_grammar.md)
 - 네이밍 규칙: [03_naming.md](03_naming.md)
 
 ## Common Syntax Pattern Contract
 
 The canonical crosswalk for common language syntax patterns is
-[../124_syntax_pattern_matrix.md](../124_syntax_pattern_matrix.md).
+[../language/124_syntax_pattern_matrix.md](../language/124_syntax_pattern_matrix.md).
 This grammar document must not imply that a familiar syntax is beta-stable
 unless that matrix marks it stable or beta-stable.
 

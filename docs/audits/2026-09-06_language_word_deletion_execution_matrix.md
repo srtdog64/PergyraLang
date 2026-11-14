@@ -101,7 +101,7 @@ All three are `admitted/admitted` in the seven-difference census above, so the
 admission denominator classifies them as agreement. Each passes a `subject` to
 a function whose body calls a mutating method: the native route observes the
 caller's value afterwards, the public route observes the original. That is the
-identity axis `docs/10_role_interface_design.md` uses to separate `subject`
+identity axis `docs/language/10_role_interface_design.md` uses to separate `subject`
 from `class` and `struct`, and it is the axis a source-to-MIR status pair
 cannot observe. In `07_intent_compensate` the same difference also hides
 whether compensation ran. This states the difference; it does not decide which
@@ -213,7 +213,7 @@ func Main() -> Void {
 
 The C backend lowers the concatenation to nested runtime calls whose argument
 evaluation order C leaves unspecified; the LLVM backend evaluates left to
-right. `docs/180_compiler_logical_spine_handles_gates.md` already states for
+right. `docs/compiler/180_compiler_logical_spine_handles_gates.md` already states for
 array-literal elements that "a C initializer whose evaluation order is not the
 language contract" must be sequenced; the same rule is not applied to binary
 operator operands. This is a runtime-equal parity violation between the two

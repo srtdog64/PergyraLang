@@ -45,7 +45,7 @@ the status of this publication. In particular, lines 13–16 record
 `CLOSED=49`, `BRIDGE=36`, `ACTIVE=1`, and bootstrap/CI evidence `4/4`.
 
 The current registry was independently counted during this review: 88 rows,
-55 `CLOSED`, 32 `BRIDGE`, and 1 `ACTIVE`. Current `docs/00_progress.md` also
+55 `CLOSED`, 32 `BRIDGE`, and 1 `ACTIVE`. Current `docs/release/00_progress.md` also
 distinguishes published regular CI from missing exact-commit Platform full
 evidence and from unpublished dirty-tree validation. This report did not query
 remote CI and does not replace that evidence owner.
@@ -105,7 +105,7 @@ The strongest internal distinctions are preserved:
 
 - LLVM/Clang and MLIR notes identify Pergyra AIR as verification-only, not a
   codegen stage. Zig's AIR is explicitly not equated with Pergyra AIR.
-  This agrees with `docs/104_air_compiler_architecture.md:5` and the separate
+  This agrees with `docs/compiler/104_air_compiler_architecture.md:5` and the separate
   codegen/verification paths in
   `docs/semantics/09_abstraction_loss_contracts.md`.
 - GHC/Swift lessons are framed as information-lifetime and verifier contracts,
@@ -113,7 +113,7 @@ The strongest internal distinctions are preserved:
 - The rustc/Swift sections reject making a central evaluator/cache a second
   semantic authority. Swift's request API is explicitly not the definition of
   Pergyra Intent.
-- `docs/180_compiler_logical_spine_handles_gates.md` remains an architecture
+- `docs/compiler/180_compiler_logical_spine_handles_gates.md` remains an architecture
   frame with partial/absent targets, not evidence of whole-pipeline completion.
   The adoption notes point to this owner rather than redefining it.
 - The current dogfood contract already records bounded source-C compiler-
@@ -122,7 +122,7 @@ The strongest internal distinctions are preserved:
   proposals into current production guarantees.
 - The language word registry was independently counted at 146 declaration
   rows. The notes' separate selector/no-`channel` history remains attributed to
-  `docs/199_language_word_and_dogfood_grammar.md`; this lane did not rerun its
+  `docs/language/199_language_word_and_dogfood_grammar.md`; this lane did not rerun its
   generated inventory gate or count selectors as substitution progress.
 
 ## Inspected source snapshot
@@ -182,7 +182,7 @@ directory and each target exists as a file:
 
 | Relative link | Resolved repository target |
 | --- | --- |
-| `../00_progress.md` | `docs/00_progress.md` |
+| `../release/00_progress.md` | `docs/release/00_progress.md` |
 | `../semantics/sot_owner_spine_registry.md` | `docs/semantics/sot_owner_spine_registry.md` |
 | `../self_hosted/17_pergyra_native_dogfood_contract.md` | `docs/self_hosted/17_pergyra_native_dogfood_contract.md` |
 

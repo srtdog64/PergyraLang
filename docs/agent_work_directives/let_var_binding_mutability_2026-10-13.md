@@ -37,7 +37,7 @@ protection and no visible mutation intent); keeping `let mut` with enforcement
    default that matches "fail closed".
 2. One vocabulary for value semantics. Pergyra's value model is Swift's:
    collections are values and caller-visible mutation is copy-in/copy-out
-   `inout`. `docs/mut_borrow_parameters.md` already removed Rust's `&mut` for that
+   `inout`. `docs/language/mut_borrow_parameters.md` already removed Rust's `&mut` for that
    reason. `let`/`var` finishes the same move for bindings.
 3. Ceremony. About 11,000 reassigned locals must be marked either way. With `var`
    the marker replaces `let` (zero added tokens). With `let mut` every one of them

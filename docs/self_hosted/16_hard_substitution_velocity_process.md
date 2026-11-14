@@ -8,7 +8,7 @@ Date: 2026-07-12
 This section records the baseline that motivated the accepted process. It is
 not the live frontier owner. For current executable status, read
 `src/self_hosted/PROGRESS.md` and the hard self-host operating lane in
-`docs/193_mir_only_abi_first_backend_closure.md`.
+`docs/compiler/193_mir_only_abi_first_backend_closure.md`.
 
 The self-host track has nine ACTIVE blockers in the pre-self-host expansion
 ledger. Five are direct substitution blockers and four are process/evidence

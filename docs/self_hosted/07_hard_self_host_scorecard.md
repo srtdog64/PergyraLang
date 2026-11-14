@@ -7,7 +7,7 @@ prints the tier without a build. This document records the reasoning behind
 each tier and the work that remains.
 
 The scorecard is not a live full-suite CI result. After an isolated SoT edit,
-use `docs/152_validation_isolation_policy.md`: rerun the narrow owner gate
+use `docs/release/152_validation_isolation_policy.md`: rerun the narrow owner gate
 first, and treat broad self-host preparation or backend parity as escalation
 evidence only when a broader owner artifact changed or broad parity is
 explicitly requested.

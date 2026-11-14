@@ -58,7 +58,7 @@ explicitly outside this cleanup claim, not a declaration of leak freedom.
 
 This lane owns this directive, its new audit/evidence records, the reached
 region-copy changes and their tests. Preserve the existing edits to
-`docs/01_intent_first_design.md`, `src/self_hosted/mir/artifact_lower_owner.pgy`
+`docs/language/01_intent_first_design.md`, `src/self_hosted/mir/artifact_lower_owner.pgy`
 and the untracked indexed-String directive. Do not edit main's truth-state
 files or the other worker's active MIR routine path. No new worktree/branch.
 

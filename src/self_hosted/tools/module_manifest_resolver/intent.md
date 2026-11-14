@@ -1,7 +1,7 @@
 # Module Manifest Resolver -- Intent / Contract
 
 **Status:** *rung-2 fact-table owned* (2026-07-06). Reads
-[`docs/language_module_manifest.json`](../../../../docs/language_module_manifest.json)
+[`docs/stdlib/language_module_manifest.json`](../../../../docs/stdlib/language_module_manifest.json)
 from the default manifest path or an explicit runner argument, counts modules,
 beta_blocker entries, and stable-subset
 modules, validates that every module has a complete required-field set
@@ -19,7 +19,7 @@ caught at the manifest level, not at consumer level.
 
 ## Input Contract
 
-- **manifest_owner**: `docs/language_module_manifest.json` by default, or
+- **manifest_owner**: `docs/stdlib/language_module_manifest.json` by default, or
   `Args()[0]` when supplied by a TestHarness parity runner. The manifest is
   source-of-truth for the module roadmap and is hand-edited by the BDFL
   on roadmap changes.
@@ -38,7 +38,7 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.module-manifest-resolver.v1",
   "ok": true,
   "source": {
-    "manifest_owner": "docs/language_module_manifest.json"
+    "manifest_owner": "docs/stdlib/language_module_manifest.json"
   },
   "counts": {
     "modules": 17,

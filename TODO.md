@@ -208,7 +208,7 @@ and identifier auto-read now consume that same owner instead of local row
   bash runtime and fail-fasts if a Windows-hosted MinGW build is routed through
   Git Bash. `build-source-inventory-test-smoke` gates the MSYS2-first Makefile
   terms so this does not regress into silent first-`gcc` failures.
-- Validation isolation policy: `docs/152_validation_isolation_policy.md` now
+- Validation isolation policy: `docs/release/152_validation_isolation_policy.md` now
   makes owner-scoped validation the default. A CI failure list is triage input,
   not a dependency graph; broad backend compare, shard sweeps, `test-all`, and
   platform CI wrappers require a crossed owner artifact, a release checkpoint,
@@ -412,7 +412,7 @@ and identifier auto-read now consume that same owner instead of local row
   or LLVM-local mask/shift shortcuts.
   Documentation anchors: `docs/semantics/04_ownership_abi.md` records the
   `Packed Layout Is Not Ordinary Mutability` theorem boundary, and
-  `docs/136_abi_niche_and_explicit_layout.md` owns the ABI-facing policy.
+  `docs/compiler/136_abi_niche_and_explicit_layout.md` owns the ABI-facing policy.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. `docs/semantics/pass_contract_manifest.md` now pins the major
@@ -471,7 +471,7 @@ and identifier auto-read now consume that same owner instead of local row
   the remaining direct `ParserCharAt`/`CharAt` consumers; do not change String
   ownership to hide their allocation cost.
 - Broad improvement ledger: active TODO must track open work, not completed
-  history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
+  history. Move closed implementation evidence to `docs/release/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a
   hygiene gate if completed task lists reappear. The local build graph is also a
   quality target: narrow semantic/object compile checks should not require a
@@ -1015,7 +1015,7 @@ and identifier auto-read now consume that same owner instead of local row
   with the same owner/name, and `mir_link_decl_method_routines(...)` now uses
   the same owner/name predicate before forming the link. The declaration smoke
   gates the linker negative test, validator negative test, and row-level proof
-  table in `docs/125_source_of_truth_spine.md`. The linker and validator now
+  table in `docs/compiler/125_source_of_truth_spine.md`. The linker and validator now
   also consume MIR routines through `mir_program_inventory.c` accessors instead
   of raw `mir->routines` / `mir->routine_count`, and the program validator uses
   the same inventory view for routine-shape checks. This closes the hosted-method
@@ -1592,7 +1592,7 @@ and identifier auto-read now consume that same owner instead of local row
 - Diagnostic catalog groundwork: when Python is unavailable,
   `diagnostic-registry-test-smoke` no longer degrades to a bare literal probe;
   the shell fallback now checks every `PGY_CODE_*` literal in
-  `diag_codes.h` is documented in `docs/72_diagnostic_codes.md`. This keeps
+  `diag_codes.h` is documented in `docs/tooling/72_diagnostic_codes.md`. This keeps
   the first soft self-host tool useful on minimal CI images.
 - Diagnostic registry extraction now normalizes C backslash-newline macros
   before scanning, so multiline `PGY_CODE_*` definitions are checked by both
@@ -1811,7 +1811,7 @@ and identifier auto-read now consume that same owner instead of local row
   fallback lookup.
 - Party compiler stale-surface cleanup: the unused `src/compiler/party_compiler.h`
   FiberMap proposal header was removed, and
-  `docs/12_party_compiler_integration.md` now records the implemented party /
+  `docs/language/12_party_compiler_integration.md` now records the implemented party /
   role / roster source-of-truth path instead of a broken legacy design note.
   Runtime FiberMap APIs remain runtime-owned; standalone compiler-only FiberMap
   extraction/generation APIs must not return without AIR/MIR evidence and build
@@ -2530,8 +2530,8 @@ and identifier auto-read now consume that same owner instead of local row
   declaration-only. The remaining C backend implementation-header scan no
   longer includes a production implementation body; LLVM internal private API
   headers are now body-free and smoke-gated as declaration-only.
-- README, `docs/37_compiler_contracts.md`, and
-  `docs/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
+- README, `docs/compiler/37_compiler_contracts.md`, and
+  `docs/language/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
   ASCII surface text. The docs now state the Resource / Execution / Domain /
   Type-Contract axes, that `intent` is not a universal owner, that AIR verifies
   boundary evidence rather than owning domain semantics, and that layered
@@ -3836,7 +3836,7 @@ and identifier auto-read now consume that same owner instead of local row
   `build_source_inventory_smoke` gate both splits.
 - Compact intent documentation is now aligned with implementation: README uses
   compact `on:`-driven step authoring as the preferred beta style, while
-  `docs/124_syntax_pattern_matrix.md` records the active partial inference
+  `docs/language/124_syntax_pattern_matrix.md` records the active partial inference
   surface (`who`, action `within`, `requires`, `causes`, simple/parameter
   `authorized by`, and unambiguous `using`). Remaining compact-intent work is
   richer conflict diagnostics and edge-case provenance, not default
@@ -4387,7 +4387,7 @@ and identifier auto-read now consume that same owner instead of local row
   Do not expand self-host implementation ahead of C/LLVM parity closure.
 - Exact beta-exit handoff criteria live in `docs/self_hosted/04_beta_exit_handoff.md`.
 - Compiler architecture source-of-truth spine lives in
-  `docs/125_source_of_truth_spine.md`. Read it before changing CFG/MIR, AIR,
+  `docs/compiler/125_source_of_truth_spine.md`. Read it before changing CFG/MIR, AIR,
   DAG, DIR/RIR, runtime policy, backend inventory, or ABI ownership paths. Its
   job is to stop A -> B -> A refactoring loops by freezing which layer owns
   each fact.
@@ -4512,7 +4512,7 @@ and identifier auto-read now consume that same owner instead of local row
   append/provenance writes now use parser-owned mutators too.
 - Slot boilerplate surface trust closure: `examples/hello.pgy` now uses the
   ordinary value/log path and no longer presents `ClaimSlot` / `Write` / `Read`
-  / `Release` as Hello World. README and `docs/118_slot_model_rigor_audit.md`
+  / `Release` as Hello World. README and `docs/runtime/118_slot_model_rigor_audit.md`
   now state that Slot is the explicit resource-boundary model, not the default
   value model. `documentation_quality_smoke.sh` gates this wording and forbids
   `ClaimSlot` / `Release(` from re-entering `examples/hello.pgy`. The same
@@ -4522,7 +4522,7 @@ and identifier auto-read now consume that same owner instead of local row
   probes. README stable example guidance now separates ordinary entry examples,
   domain examples, resource-boundary examples, and dogfood bridge examples so
   resource semantics are visible without being presented as the default entry
-  path. `docs/65_stable_example_surface_board.md` now carries the same tier
+  path. `docs/release/65_stable_example_surface_board.md` now carries the same tier
   contract and `documentation_quality_smoke.sh` gates that ordinary entry
   examples must not present Slot lifecycle as the default value model.
 - `backend_inc_size_smoke.sh` now gates production runtime/codegen/compiler
@@ -4672,13 +4672,13 @@ and identifier auto-read now consume that same owner instead of local row
 - First dogfood targets are compiler-adjacent tools: diagnostic catalog checker, AIR graph JSON validator, MIR dump diff tool, C/LLVM backend output comparator, and module/package resolver helper.
 - full self-host remains a long-term proof target, not a current capability.
 - Common-language syntax/modeling pattern tracking lives in
-  `docs/124_syntax_pattern_matrix.md`. Use it before copying a familiar
+  `docs/language/124_syntax_pattern_matrix.md`. Use it before copying a familiar
   C#/Rust/TypeScript/Python/Go/Swift/Zig pattern into the parser. Most gaps
   should become intent inference, module APIs, or post-beta library/module work
   rather than new core keywords.
 - D is tracked as a compiler-engineering and multi-paradigm reference, not as a
-  metaprogramming source. See `docs/124_syntax_pattern_matrix.md` Section 1a
-  and `docs/127_compiler_speed_engineering.md`: UFCS, in-source dogfood tests,
+  metaprogramming source. See `docs/language/124_syntax_pattern_matrix.md` Section 1a
+  and `docs/tooling/127_compiler_speed_engineering.md`: UFCS, in-source dogfood tests,
   ranges/iteration ability, and compile-speed discipline are candidates;
   CTFE, string mixins, template metaprogramming, and default GC stay off-axis.
 - Documentation quality gating is split into a fast beta contract smoke and an
@@ -4775,7 +4775,7 @@ and identifier auto-read now consume that same owner instead of local row
   is allowed only as an acceleration over MIR/AIR/ABI owner facts and must fail
   closed on stale generation, missing layout, authority/token mismatch, or an
   async/parallel/cleanup invalidation edge. Source of truth:
-  `docs/74_slot_pinning_caching.md`,
+  `docs/runtime/74_slot_pinning_caching.md`,
   `docs/semantics/09_abstraction_loss_contracts.md`, and
   `docs/semantics/14_air_erasure_measurement.md`. Remaining work: add write,
   SecureSlot local-token, stale-generation reject, and async/parallel reject
@@ -5206,7 +5206,7 @@ and identifier auto-read now consume that same owner instead of local row
   stable key subset. `MapSet` duplicates incoming string values, `MapGet`
   returns the map-owned borrowed value pointer, and `MapRemove` frees both the
   key and value while preserving the tombstone probe chain.
-- Added `docs/128_pointer_risk_register.md` as the pointer/lifetime risk source
+- Added `docs/security/128_pointer_risk_register.md` as the pointer/lifetime risk source
   of truth. The register classifies ABI and container pointers as
   `borrowed` / `result-owned` / `runtime-owned` / `container-owned` /
   `scratch`, records the now-gated `Channel<String>` and
@@ -5778,17 +5778,17 @@ and identifier auto-read now consume that same owner instead of local row
   every existing metadata entry was inserted successfully. Index rebuild
   failure therefore preserves the previous lookup index instead of replacing it
   with a partially rebuilt one.
-- `docs/124_syntax_pattern_matrix.md` Section 16 tracks essential common patterns that
+- `docs/language/124_syntax_pattern_matrix.md` Section 16 tracks essential common patterns that
   are not unique to Pergyra but are required for ordinary programming
   ergonomics. Missing essentials must be marked as beta blocker, post-beta gap,
   or intentional reject; they must not disappear behind Pergyra-unique surface
   work.
-- `docs/124_syntax_pattern_matrix.md` Section 18 tracks core syntax patterns that
+- `docs/language/124_syntax_pattern_matrix.md` Section 18 tracks core syntax patterns that
   should be reserved before beta freeze even if implementation lands later.
   This list is intentionally about language grammar only, not package manager,
   module ecosystem, WebGL/GPU libraries, or external tooling.
 - 2026-05-11 recheck added the missing common-pattern rows that were not
-  represented clearly enough in `docs/124_syntax_pattern_matrix.md`:
+  represented clearly enough in `docs/language/124_syntax_pattern_matrix.md`:
   member/index access, pipeline composition, slicing/keyed indexing, object
   initializer/builder sugar, cast/type-test syntax, compound assignment,
   spread/rest, and doc-comment metadata. These are taxonomy entries, not
@@ -6538,7 +6538,7 @@ and identifier auto-read now consume that same owner instead of local row
   `air_drift_smoke.sh`, `gcc -fsyntax-only src/test_air.c`, `test-air`
   (`105/0`).
 - 2026-05-11 AIR consumer coverage status refresh:
-  `docs/104_air_compiler_architecture.md` no longer lists RIR effect/relation
+  `docs/compiler/104_air_compiler_architecture.md` no longer lists RIR effect/relation
   propagation as missing AIR 1.0 evidence coverage. Those paths now have global
   `AIREvidenceNode` entries plus strict counter-only drift checks; remaining AIR
   1.0 evidence work is narrower module/generic ability edge coverage and full
@@ -6726,7 +6726,7 @@ and identifier auto-read now consume that same owner instead of local row
   source-list drift from being hidden by repeated object/source rows. Gate used:
   `build-source-inventory-smoke`.
 - 2026-05-10 JS backend policy UTF recovery follow-up:
-  `docs/23_js_backend_policy.md` was rewritten as a clean UTF-8 policy note
+  `docs/compiler/23_js_backend_policy.md` was rewritten as a clean UTF-8 policy note
   after mojibake made the historical text unreadable. The recovered contract is
   intentionally narrow: direct `.pgy -> JS` is beta+1, WebGL dogfood goes
   through `Pergyra -> C --emit-c -> optional Emscripten/WebGL bridge`, and
@@ -7878,7 +7878,7 @@ Progress log, 2026-05-08:
   the current Windows/Git Bash environment: preflight correctly reports missing
   OpenSSL development headers/libraries.
 - Added a security portability/claim-scope contract gate:
-  `docs/03_security_mode_design.md` now states that current security is runtime
+  `docs/security/03_security_mode_design.md` now states that current security is runtime
   validation plus targeted regression evidence, not a completed third-party
   cryptographic audit, and ties platform claims to executable CI evidence.
   `security-portability-contract-test-smoke` keeps that wording connected to
@@ -9607,7 +9607,7 @@ multi-element `Array<String>` joins. Gates: `runtime-abi-lifetime-test-smoke`
 and targeted `tests/backend/compare_backends.sh tests/cases/backend_compare/string_join`.
 
 **Self-host second tool (2026-05-27):** `stable_subset_section_checker`
-under `src/self_hosted/tools/`. Reads `docs/107_beta_stable_subset.md`,
+under `src/self_hosted/tools/`. Reads `docs/release/107_beta_stable_subset.md`,
 line-scans for `^## ` headings, validates a canonical anchor list, emits
 schema `pgy.selfhost.stable-subset-section.v1`. Live counts on the clean
 repo: `sections=6 expected=6 missing=0`. Parity rung 2 asserts: clean
@@ -9675,7 +9675,7 @@ shipped without any further runtime/codegen lift -- the existing surface
 `==`, `!=`, `Exit`, `FileExists`) was sufficient.
 
 **Self-host fifth tool (2026-05-27):** `module_manifest_resolver` under
-`src/self_hosted/tools/`. Reads `docs/language_module_manifest.json`, counts
+`src/self_hosted/tools/`. Reads `docs/stdlib/language_module_manifest.json`, counts
 modules (`"name":` = 17), beta_blocker entries (`"beta_blocker": true` = 3),
 stable-subset entries (`"status": "stable-subset"` = 3), and validates that
 every module has parallel `"layer":` / `"status":` / `"beta_blocker":`
@@ -9948,7 +9948,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 1. **세션 시작 절차**: `git status --short` + `git log --oneline -10` 먼저.
    동시 세션이 수정 중인 파일(2026-07-02 기준: SEA lane 계열 —
    `src/compiler/air_execution_lane.c`, `src/self_hosted/sea/*`,
-   `docs/146_sea_execution_lanes.md`, 관련 smoke)은 읽기만 하고 수정/롤백/
+   `docs/concurrency/146_sea_execution_lanes.md`, 관련 smoke)은 읽기만 하고 수정/롤백/
    스테이징 금지. 커밋은 `git add <내 파일 명시>`만.
 2. **빌드 채널**: PowerShell에서 `bash.exe -c "make -j ..."`. 로그인 셸
    (`bash -lc`)은 빌드를 EXIT=0으로 무음 삼킴 — 금지. Bash 도구는
@@ -10451,7 +10451,7 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
      신규 lifetime 어휘 발명 금지(WO-0-6).
   3. 런타임 backstop: debug 모드 owner 세대 태그 검사(항상-on 여부는
      slot 검사 일관성 결정과 정합 유지).
-  4. perf 재측정: `docs/perf_close_to_c.md`의 window-class 표에 StrView
+  4. perf 재측정: `docs/tooling/perf_close_to_c.md`의 window-class 표에 StrView
      정적화 이후 수치 추가.
 - **게이트**: `string-window-builtins-test-smoke` + 신규 lifetime smoke +
   backend parity fixture.
@@ -11913,9 +11913,9 @@ is the longer execution plan.
 | `tests/` / generated / `.inc` ??편 | 면제 | ??|
 
 **Split ??턴:**
-- `.inc` field-fragment 분리 ??`docs/92_inc_split_roadmap.md`
-- 별개 translation unit + ??퍼 ??더 ??`docs/101_semantic_split_template.md`
-- 진행 ??태 ??`docs/115_inc_cleanup_status.md`
+- `.inc` field-fragment 분리 ??`docs/compiler/92_inc_split_roadmap.md`
+- 별개 translation unit + ??퍼 ??더 ??`docs/compiler/101_semantic_split_template.md`
+- 진행 ??태 ??`docs/compiler/115_inc_cleanup_status.md`
 
 **Split application guide (2026-05-02):**
 - This is not a rule change. 600 LOC remains the signal; it is not the
@@ -12303,9 +12303,9 @@ memory: `project_killer_usecase_dungeon_crawler.md` ?? 1:1 ??치.
 - Phase 2: ??전 floor 60fps ??정, ??용????드??evidence ??집
 
 ### 참조
-- `docs/117_backend_strategy_positioning.md` ??dual-emit ??책. WASM??
+- `docs/compiler/117_backend_strategy_positioning.md` ??dual-emit ??책. WASM??
   LLVM family target 추??지 ??backend ??님
-- `docs/120_vision_and_capability_audit.md` §4 ??vision territory ??합??- `docs/122_managing_intent_drift.md` §4 ??falsification ??로??콜 ??용
+- `docs/release/120_vision_and_capability_audit.md` §4 ??vision territory ??합??- `docs/language/122_managing_intent_drift.md` §4 ??falsification ??로??콜 ??용
 - memory: `project_killer_usecase_dungeon_crawler.md` ????심 ??기
 
 ## 0b2. Forward Plan ??JIT / Hot-Reload (post-beta, 게임 ??이????집)
@@ -12449,9 +12449,9 @@ Intent-Compress??척추 변경이므??"며칠 ????로 고정???? ??는?? Phase 1
 
 ### 참조
 
-- `docs/121_types_as_domain_medium.md` §3 ??carrier/coherence/negative-space
-- `docs/120_vision_and_capability_audit.md` §4.4 ??self-host 진입 ??격
-- `docs/122_managing_intent_drift.md` §4 ??falsification ??로??콜 (sprint
+- `docs/language/121_types_as_domain_medium.md` §3 ??carrier/coherence/negative-space
+- `docs/release/120_vision_and_capability_audit.md` §4.4 ??self-host 진입 ??격
+- `docs/language/122_managing_intent_drift.md` §4 ??falsification ??로??콜 (sprint
   ????용)
 - memory `feedback_marketing_language_drift.md` ??marketing claim ??  syntax ??합????리
 - ??Core Goal step 3 ????퀀????리 anchor
@@ -12986,8 +12986,8 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   reduce the need to spell `subject`/`authorized by`/projection clauses for
   every rich business object and avoid turning domain modeling into a compiler
   puzzle.
-- Follow-up modeling guard: `docs/121_types_as_domain_medium.md`,
-  `docs/19_design_philosophy.md`, zone-shape diagnostics, semantic regression,
+- Follow-up modeling guard: `docs/language/121_types_as_domain_medium.md`,
+  `docs/language/19_design_philosophy.md`, zone-shape diagnostics, semantic regression,
   and `documentation-quality-test-smoke` now agree that `subject` is an
   identity-bearing state-transition host, not "important information";
   `authority` is boundary/mutation permission, not an importance rank; and
@@ -13686,7 +13686,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   lives in `transpiler_projection_method_invalidation.c`. The matching header
   is declaration-only, so method-call invalidation no longer ships as static
   implementation code through the C backend helper include chain.
-- Owner migration guardrail: `docs/130_c_backend_owner_migration_map.md`
+- Owner migration guardrail: `docs/compiler/130_c_backend_owner_migration_map.md`
   records which C backend implementation headers are safe to promote and which
   are blocked by private static seams. In particular, enum declaration emission
   is blocked by `emit_func_decl_from_mir_named`, and constructor dispatch is
@@ -14720,8 +14720,8 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   `air:invariant:invalid` and `report-compiler-bug`, so compiler graph
   corruption is not conflated with user-facing intent boundary drift.
 - Systems-language identity is now beta-gated through
-  `docs/19_design_philosophy.md`, `docs/100_beta_readiness_checklist.md`, and
-  `docs/107_beta_stable_subset.md`: Pergyra is a systems language with domain
+  `docs/language/19_design_philosophy.md`, `docs/release/100_beta_readiness_checklist.md`, and
+  `docs/release/107_beta_stable_subset.md`: Pergyra is a systems language with domain
   extensions, and raw escape / optional runtime / C FFI ABI stability /
   compile-time determinism are non-negotiable substrate obligations.
 - `make codegen-determinism-test-smoke` now emits representative frozen
@@ -14743,7 +14743,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   Plain `unsafe { ... }` must not become a universal escape hatch; raw, FFI,
   layout, runtime, and concurrency escapes need named lexical scopes such as
   `unsafe(raw) { ... }`, semantic gates, AIR evidence, ABI lowering, and
-  backend parity. Source of truth: `docs/132_unsafe_capability_scope.md`.
+  backend parity. Source of truth: `docs/security/132_unsafe_capability_scope.md`.
   Implementation order:
   1. Keep `unsafe(raw) { ... }` parser-reserved with an explicit diagnostic
      until the semantic capability model is ready. Current gate:
@@ -14814,7 +14814,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   handled by a layered contract: arena lane checks, CFG/body dataflow,
   zone/world channel-only crossing, token transport rejection, and runtime
   generation/token validation.
-- `docs/118_slot_model_rigor_audit.md` now records the stale-handle scenario
+- `docs/runtime/118_slot_model_rigor_audit.md` now records the stale-handle scenario
   matrix: function escape, long-lived collection/field storage, async/spawn
   capture, channel/world handoff, and copied-handle release divergence.
 - First-class Zone-Bound Handle typing is now a beta-freeze decision item. If
@@ -14837,9 +14837,9 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   id recycle with generation advance, stale recycled-handle rejection,
   generation-exhausted recycle rejection, tampered-view generation unpin
   rejection, and double-unpin rejection as part of the Slot pin/lease runtime
-  test. `docs/74_slot_pinning_caching.md`,
+  test. `docs/runtime/74_slot_pinning_caching.md`,
   `docs/semantics/08_slot_capability_calculus.md`, and
-  `docs/118_slot_model_rigor_audit.md` now state this honestly instead of
+  `docs/runtime/118_slot_model_rigor_audit.md` now state this honestly instead of
   implying a 64-bit/tombstone ABI that was not implemented.
 - `docs/semantics/proofs/SlotCalculus.v` now mirrors the implementation model:
   claim requires a fresh non-sentinel id, zero/wrap ids cannot be claimed,
@@ -15634,7 +15634,7 @@ not marketing claims.
 - ??재 ??현: `late-stage alpha / beta-closure sprint`
 - 보정 ??유:
   - 기능 ??면??보면 core/foundation 구현?? ?????? beta??기능 개수가 ??니??end-to-end ??뢰??다
-  - HIR/MIR CFG skeleton?? ???? ?????? ??수/action/intent body ??전??의 semantic source-of-truth가 ??직 CFG/dataflow????격???? ??았?? all-path retun, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary??AST/helper traversal만으????으??strict beta ??뢰???? 부족하??  - AIR abstraction safety??Phase 1 ??이??구조 / synthesis / drift checker baseline??driver semantic-validation wiring????어??다. Intent ??implementation drift 검출?? `docs/104_air_compiler_architecture.md`?? `make air-drift-test-smoke`??gate????어??고, strict evidence??기본값으????격??다. missing HIR CFG / RIR boundary / RIR authority evidence??`PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`??hard-fail ??며, `authorized by` participant ??름??RIR authority fact / authorize op subject가 ??치??야 ??다. authority evidence ??락 진단?? `Reason:` ??에 expected authority participant list????함??다. AIR drift message?? synthesized intent/boundary/authority name?? owned lifetime??로 관리되?? repeated drift check가 ??전 message????전??게 ??제??는 ???? ??스???? parsed-source AIR teardown-safe boundary source ????가 ??다. `where + transfer`??????상 zone boundary ??나????히지 ??고 zone boundary?? world-handoff boundary??모두 ??성??다. world-handoff evidence????제 matching RIR intent scope만으????과???? ??고 boundary source alias??????RIR `Move`/`Claim` transfer op????구??다. implementation boundary evidence????제 HIR CFG proof????구??????`parallel` / `channel` / IO / execution boundary??RIR evidence만으????과???? ??는?? parsed-source missing-authority-evidence negative?? parsed-source IO execution-boundary missing-evidence negative??full driver JSON path??서 step source span??`stage/code/cause_ir/fix_source`까?? 고정??다. expression boundary evidence??????상 owner-name-only RIR scope match????과???? ??는?? AIR transfer/world source negative??`AIR world boundary rejects mismatched transfer AST evidence`?? `AIR parsed transfer reports zone missing authority evidence`??gate????어갔다. `PGY_AIR_STRICT_EVIDENCE=0`?? 개발/??버??opt-out??다. `make air-backend-nonimpact-test-smoke`??relaxed AIR?? default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set??서 같?? C/LLVM ??스???? ??성??는지 비교??다. `make air-backend-nonimpact-full-test-smoke`??full frozen backend-compare fixture sweep??같?? 방식??로 ??리??Linux CI gate????격??다. `make air-strict-backend-compare-test-smoke`??strict evidence ??태??서 C/LLVM ??행 parity까?? 검증한?? parser/lexer baseline JSON routing?? `stage`, `code`, `cause_ir`, `fix_source`까?? ??혔?? remaining blocker: Windows native evidence, parser-specific code split / multi-error accumulation.
+  - HIR/MIR CFG skeleton?? ???? ?????? ??수/action/intent body ??전??의 semantic source-of-truth가 ??직 CFG/dataflow????격???? ??았?? all-path retun, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary??AST/helper traversal만으????으??strict beta ??뢰???? 부족하??  - AIR abstraction safety??Phase 1 ??이??구조 / synthesis / drift checker baseline??driver semantic-validation wiring????어??다. Intent ??implementation drift 검출?? `docs/compiler/104_air_compiler_architecture.md`?? `make air-drift-test-smoke`??gate????어??고, strict evidence??기본값으????격??다. missing HIR CFG / RIR boundary / RIR authority evidence??`PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`??hard-fail ??며, `authorized by` participant ??름??RIR authority fact / authorize op subject가 ??치??야 ??다. authority evidence ??락 진단?? `Reason:` ??에 expected authority participant list????함??다. AIR drift message?? synthesized intent/boundary/authority name?? owned lifetime??로 관리되?? repeated drift check가 ??전 message????전??게 ??제??는 ???? ??스???? parsed-source AIR teardown-safe boundary source ????가 ??다. `where + transfer`??????상 zone boundary ??나????히지 ??고 zone boundary?? world-handoff boundary??모두 ??성??다. world-handoff evidence????제 matching RIR intent scope만으????과???? ??고 boundary source alias??????RIR `Move`/`Claim` transfer op????구??다. implementation boundary evidence????제 HIR CFG proof????구??????`parallel` / `channel` / IO / execution boundary??RIR evidence만으????과???? ??는?? parsed-source missing-authority-evidence negative?? parsed-source IO execution-boundary missing-evidence negative??full driver JSON path??서 step source span??`stage/code/cause_ir/fix_source`까?? 고정??다. expression boundary evidence??????상 owner-name-only RIR scope match????과???? ??는?? AIR transfer/world source negative??`AIR world boundary rejects mismatched transfer AST evidence`?? `AIR parsed transfer reports zone missing authority evidence`??gate????어갔다. `PGY_AIR_STRICT_EVIDENCE=0`?? 개발/??버??opt-out??다. `make air-backend-nonimpact-test-smoke`??relaxed AIR?? default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set??서 같?? C/LLVM ??스???? ??성??는지 비교??다. `make air-backend-nonimpact-full-test-smoke`??full frozen backend-compare fixture sweep??같?? 방식??로 ??리??Linux CI gate????격??다. `make air-strict-backend-compare-test-smoke`??strict evidence ??태??서 C/LLVM ??행 parity까?? 검증한?? parser/lexer baseline JSON routing?? `stage`, `code`, `cause_ir`, `fix_source`까?? ??혔?? remaining blocker: Windows native evidence, parser-specific code split / multi-error accumulation.
   - CFG ??비????리: `type_checker_flow_match.c`가 match patten binding, match exhaustiveness, redundancy, total-coverage lattice????유??다. `type_checker_flow.c`??branch/join, loop/defer/parallel boundary, body retun/unreachable flow orchestration??집중??며 435 LOC????려갔다. `semantic-core-shape-test-smoke`??`type_checker_flow.c`?? `type_checker_flow_match.c`가 모두 600 LOC ??하???? 검??한??
   - 2026-04-27 AIR IO boundary tightening: intent-step execution scan now treats the stable resource IO/time builtin set as AIR `io` boundaries, not only `ReadFile` / `WriteFile` / `ReadLine`. The gated set is `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`; `Print` / `Log*` remain observability output calls rather than AIR resource-boundary evidence in Phase 1. `src/test_air.c` keeps the set synchronized with `src/compiler/io_boundary_builtin.c`.
   - 2026-04-27 AIR owner split: dump/vocabulary functions moved out of `src/compiler/air.c`; current ownership is `src/compiler/air_dump.c` for human-readable debug output, `src/compiler/air_dump_json.c` for stable JSON graph output, and `src/compiler/air_vocabulary.c` for public AIR string vocabulary. `src/compiler/air.c` stays below the 600 LOC split-review threshold and keeps synthesis/drift ownership focused.
@@ -15676,23 +15676,23 @@ not marketing claims.
 - `pgy.accel.spray`??post-beta design surface?? 베?? ??에????GPU ??워??나 backend-specific CUDA/ROCm/Metal 문법?????? ??고, module boundary?? ownership ??칙??고정??다.
 - `pgy.render.skia`?? `pgy.compat.dop`??post-beta design surface?? 베?? ??에??shader/layout keyword?????? ??고 module boundary??고정??다.
 - ?? `parallel`?? core??????slot/resource/effect conflict, cancellation/fainess, C/LLVM lowering parity??beta ??질 기????로 계속 관리한??
-- Source of truth: `docs/99_language_module_taxonomy.md`
-- Machine-readable manifest: `docs/language_module_manifest.json`
-- Representative case tags: `docs/language_module_cases.json`
+- Source of truth: `docs/stdlib/99_language_module_taxonomy.md`
+- Machine-readable manifest: `docs/stdlib/language_module_manifest.json`
+- Representative case tags: `docs/stdlib/language_module_cases.json`
 - Drift gate: `make module-taxonomy-test-smoke`
 - Parallel core/execution split gate: `make parallel-core-contract-test-smoke`
-- Operational beta checklist: `docs/100_beta_readiness_checklist.md`
+- Operational beta checklist: `docs/release/100_beta_readiness_checklist.md`
 
 ## Formal semantics / mathematical proof obligations
 
 베??????테??트가 ??과??다??만??로 ??히지 ??는?? stable subset마다 ????보존, 진행, ownership safety, authority soundness, projection freshness, DAG soundness, module visibility non-interference, backend parity 같?? ??학??불????이 문서??되??야 ??다.
 
 - Source of truth: `docs/semantics/`
-- Stable index: `docs/102_formal_semantics_and_proof_obligations.md`
+- Stable index: `docs/semantics/102_formal_semantics_and_proof_obligations.md`
 - Drift gate: `make formal-semantics-test-smoke`
 - ??태: `IN PROGRESS / BLOCKER-DOC`
 - 베?? 기??:
-  - [x] ??학 library 문서(`docs/45_math_layer_design.md`)?? ??어 ??????증명 문서??분리??다.
+  - [x] ??학 library 문서(`docs/language/45_math_layer_design.md`)?? ??어 ??????증명 문서??분리??다.
   - [x] stable beta subset??semantic domain, judgment, theorem/proof-obligation vocabulary??고정??다.
   - [ ] B0 ????마다 theorem statement + current regression evidence + remaining proof obligation??최신 코드 ??태?? 맞춘??
   - [ ] runtime propagation, DAG, MIR declaration inventory, ABI ownership, C/LLVM parity?????? blocker??proof obligation??로 추적??다.
@@ -15720,35 +15720,35 @@ not marketing claims.
 - [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS??support level??stable/experimental/out-of-beta??명시??다.
   - 진행: Windows LLVM support detection?? executable `llvm-config --libs core` evidence가 ??을 ??만 `WINDOWS_LLVM_READY=1`????도??좁혔?? `C:/Program Files/LLVM/lib` 같?? library folder 존재만으??LLVM smoke/backend-compare????행???? ??는?? ??재 beta 계약?? Linux C+LLVM, Windows C-only??며 Windows LLVM?? ??제 MSYS2 runner green evidence가 ??길 ??만 ??격??다.
   - 진행: README support matrix??macOS??dedicated runner/support contract가 ??길 ??까지 out-of-beta??명시??다.
-- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위??`docs/107_beta_stable_subset.md`??서 freeze??다. ???? ???? ??문서????stable ????????당 semantic/runtime/C/LLVM regression row?? 1:1????결??는 것이??
+- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위??`docs/release/107_beta_stable_subset.md`??서 freeze??다. ???? ???? ??문서????stable ????????당 semantic/runtime/C/LLVM regression row?? 1:1????결??는 것이??
 - [~] Stdlib beta freeze list: stable/experimental/out-of-beta API?? breaking-change policy??명시??다.
-  - 진행: `docs/108_stdlib_beta_freeze.md`가 builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work??분리??다. `make stdlib-test-smoke`가 builtin stdlib probe?? stable `use` module probe??C/LLVM ??쪽??서 고정??다. ???? ???? third-party package/version/supply-chain policy??
+  - 진행: `docs/stdlib/108_stdlib_beta_freeze.md`가 builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work??분리??다. `make stdlib-test-smoke`가 builtin stdlib probe?? stable `use` module probe??C/LLVM ??쪽??서 고정??다. ???? ???? third-party package/version/supply-chain policy??
 - [~] Tooling conformance: LSP/fmt/debugger??beta-stable 범위??명시??다.
   - 진행: `make tooling-conformance-test-smoke`가 formatter idempotence/compile smoke, LSP initialize/hover/completion capability, debugger CLI parse+semantic+quit path??executable gate??고정??다. DAP, binary breakpoint, variable watch, rich refactor, multi-file workspace LSP????직 beta-stable tooling subset????니??
 - [~] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity??stable/experimental/out-of-beta??분류??다.
-  - 진행: `docs/109_package_module_resolver_contract.md`가 beta-stable module surface??`import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection??로 고정??다. package surface??`pgy init <name>` scaffolding??stable??다.
+  - 진행: `docs/stdlib/109_package_module_resolver_contract.md`가 beta-stable module surface??`import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection??로 고정??다. package surface??`pgy init <name>` scaffolding??stable??다.
   - 진행: `pgy install`?? ????상 ??스 ??일 경로????인???? ??고 explicit out-of-beta rejection????다. `make package-module-resolver-test-smoke`가 doc contract, `pgy init`, `pgy install` reject, missing import JSON, circular import JSON??고정??다.
   - ??음: dependency version solving, lockfile, registry, checksum/signature verification, remote import, supply-chain integrity??beta ??후 resolver/package-manager track??로 ??????다.
 - [~] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline??추적??다.
-  - 진행: `docs/111_beta_test_suite_freeze.md`가 mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy??freeze??다. `make beta-test-suite-freeze-test-smoke`가 freeze doc??Makefile target 존재??검??한??
+  - 진행: `docs/release/111_beta_test_suite_freeze.md`가 mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy??freeze??다. `make beta-test-suite-freeze-test-smoke`가 freeze doc??Makefile target 존재??검??한??
   - ??음: ??제 fuzz corpus, property-based generator, coverage percentage threshold??beta ??후 ??질 ??랙??로 ??????다. ??재 beta gate??named stable-surface coverage??
 - [~] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version??고정??다.
-  - 진행: `docs/112_observability_trace_schema.md`가 beta-stable schema??`IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output??로 고정??다.
+  - 진행: `docs/tooling/112_observability_trace_schema.md`가 beta-stable schema??`IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output??로 고정??다.
   - 진행: `make observability-schema-test-smoke`가 `intent_trace_abi`, `intent_recent_abi`, `intent_active_abi`, `intent_failure_abi`, `authority_failure_abi`??C/LLVM ??쪽??서 expected stdout??비교??다.
   - ??음: general event streaming, structured JSON trace export, distributed trace correlation, user-code registry hooks, stable binary trace format, richer multi-instance timeline query??beta ??후????????다.
 - [~] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 최소 계약??문서??한??
-  - 진행: `docs/113_memory_concurrency_model.md`가 beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 범위??고정??다. `parallel` join visibility, shared `ref`/`ref` ??용, `ref`/`own` ??`own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close??stable contract??묶었??
+  - 진행: `docs/concurrency/113_memory_concurrency_model.md`가 beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 범위??고정??다. `parallel` join visibility, shared `ref`/`ref` ??용, `ref`/`own` ??`own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close??stable contract??묶었??
   - 진행: `make memory-concurrency-model-test-smoke`가 `parallel-core-contract-test-smoke`?? targeted C/LLVM backend compare(`parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`)????행??다.
   - ??음: full weak-memory ordering, user-selectable memory order, scheduler fainess guarantee, lock-free correctness, anonymous async closure capture/lifetime, cross-thread `Arc<T>` / `Send` / `Sync` trait system?? beta ??후????????다.
 - [~] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy??명시??다.
-  - 진행: `docs/110_string_unicode_policy.md`가 UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search??beta-stable??고정??다.
+  - 진행: `docs/language/110_string_unicode_policy.md`가 UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search??beta-stable??고정??다.
   - 진행: Unicode identifiers, normalization, locale-sensitive collation/case folding, grapheme iteration, display width, mixed-encoding source files??explicit out-of-beta??고정??다. `make unicode-policy-test-smoke`가 C/LLVM UTF-8 string execution??Unicode identifier reject??검증한??
   - ??음: full Unicode text model????입??려??post-beta??scalar/grapheme/locale vocabulary?? 별도 stdlib text module????계??다.
 
 Checklist source of truth:
 
-- `docs/100_beta_readiness_checklist.md`
-- AIR source of truth: `docs/104_air_compiler_architecture.md`
+- `docs/release/100_beta_readiness_checklist.md`
+- AIR source of truth: `docs/compiler/104_air_compiler_architecture.md`
 - Drift gate: `make beta-readiness-checklist-test-smoke`
 - AIR drift gate: `make air-drift-test-smoke`
 - AIR backend non-impact gate: `make air-backend-nonimpact-test-smoke`
@@ -15766,8 +15766,8 @@ Checklist source of truth:
 - `P3`: type-category vocabulary??2-3층으????축
 - `P4`: 빌드/??드박스/중간-stage JSON/artifact 문제??공식 경로 기????로 ??리
 - `P9`: arena ??턴??scratch/result lifetime 기????로 명시 ??입
-- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 문서 기????로 분리??다. 기본 path??????근 검증이?? fast path??scope-entry capability lease + automatic unpin cleanup??어????다. Runtime ABI baseline?? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ????????작??고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence????았?? Generated inline `PgySlot_*` / `PgySecureSlot_*` ABI now also has typed `PgyPinnedSlotView_*` / `PgyPinnedSecureSlotView_*` wrappers plus LLVM-linkable `pgy_pin_read_*`, `pgy_pin_write_*`, and `pgy_unpin_*` exports; `make test-memory` covers occupied/token validation, cleanup helper behavior, double-unpin hard-fail, and secure invalid-token pin rejection. C source-block emission now lowers pin blocks to typed wrapper variables with GCC cleanup hooks through `src/codegen/transpiler_block_emit.c`, while `src/runtime/pgy_runtime_plain_slot_inline.h` owns the plain Slot wrapper macro under the 600 LOC split threshold. C and LLVM MIR emission now consume MIR pin-region/view-alias metadata on successor/retun exits, emitting explicit typed `pgy_pin_*` / `pgy_unpin_*` calls before control leaves the pin region; `tests/backend/compare_backends.sh` covers plain read, secure read, plain write, secure write, mixed plain+secure source-level pin blocks, normal successor cleanup, direct retun cleanup, conditional branch-to-retun cleanup, loop `break`/`continue` cleanup, and secure boundary-slot parameter pinning. Source syntax `pin slot as view: ReadView<T>|WriteView<T> { ... }`??parser/semantic surface????성??됐?? AST `Pin Block` metadata, HIR/MIR pin-region metadata, MIR `pin-unpin-cleanup-edge` cleanup fact까?? ??려간다. MIR validator now rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact for source slot/view/access mode, and `src/test_mir.c` has a negative corruption regression for that contract. Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`??registry/docs??고정??고 `make diagnostic-registry-test-smoke`, `make beta-readiness-checklist-test-smoke`, `make diagnostics-json-test-smoke`가 drift??막는?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for retun escape, await boundary, parallel boundary/acquisition, defer cleanup registration, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline?? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`??분류??generic `own/ref`가 조용??copy-only????과???? 못하??막는?? Source-level `PGY_SEM_PIN_TOKEN_INVALID` now fires when `ViewRead/ViewWrite` is applied to a `SecureSlot<T>` whose paired capability token symbol is not reachable in the current scope, with runtime ABI hard-fail as the deeper backstop. ???? 것?? exceptional/cancellation all-exit proof expansion and richer invalid-token source provenance. Source of truth: `docs/74_slot_pinning_caching.md`
-- `P9c`: `Rc<T>` / `Weak<T>` 최소 subset?? beta-stable????았?? 범위??single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare?? 범위 ??payload??backend fallback????니??semantic explicit reject?? `Arc<T>`, cross-thread shared ownership, generic/object payload ??장, default ARC??beta 밖이?? Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 문서 기????로 분리??다. 기본 path??????근 검증이?? fast path??scope-entry capability lease + automatic unpin cleanup??어????다. Runtime ABI baseline?? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ????????작??고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence????았?? Generated inline `PgySlot_*` / `PgySecureSlot_*` ABI now also has typed `PgyPinnedSlotView_*` / `PgyPinnedSecureSlotView_*` wrappers plus LLVM-linkable `pgy_pin_read_*`, `pgy_pin_write_*`, and `pgy_unpin_*` exports; `make test-memory` covers occupied/token validation, cleanup helper behavior, double-unpin hard-fail, and secure invalid-token pin rejection. C source-block emission now lowers pin blocks to typed wrapper variables with GCC cleanup hooks through `src/codegen/transpiler_block_emit.c`, while `src/runtime/pgy_runtime_plain_slot_inline.h` owns the plain Slot wrapper macro under the 600 LOC split threshold. C and LLVM MIR emission now consume MIR pin-region/view-alias metadata on successor/retun exits, emitting explicit typed `pgy_pin_*` / `pgy_unpin_*` calls before control leaves the pin region; `tests/backend/compare_backends.sh` covers plain read, secure read, plain write, secure write, mixed plain+secure source-level pin blocks, normal successor cleanup, direct retun cleanup, conditional branch-to-retun cleanup, loop `break`/`continue` cleanup, and secure boundary-slot parameter pinning. Source syntax `pin slot as view: ReadView<T>|WriteView<T> { ... }`??parser/semantic surface????성??됐?? AST `Pin Block` metadata, HIR/MIR pin-region metadata, MIR `pin-unpin-cleanup-edge` cleanup fact까?? ??려간다. MIR validator now rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact for source slot/view/access mode, and `src/test_mir.c` has a negative corruption regression for that contract. Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`??registry/docs??고정??고 `make diagnostic-registry-test-smoke`, `make beta-readiness-checklist-test-smoke`, `make diagnostics-json-test-smoke`가 drift??막는?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for retun escape, await boundary, parallel boundary/acquisition, defer cleanup registration, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline?? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`??분류??generic `own/ref`가 조용??copy-only????과???? 못하??막는?? Source-level `PGY_SEM_PIN_TOKEN_INVALID` now fires when `ViewRead/ViewWrite` is applied to a `SecureSlot<T>` whose paired capability token symbol is not reachable in the current scope, with runtime ABI hard-fail as the deeper backstop. ???? 것?? exceptional/cancellation all-exit proof expansion and richer invalid-token source provenance. Source of truth: `docs/runtime/74_slot_pinning_caching.md`
+- `P9c`: `Rc<T>` / `Weak<T>` 최소 subset?? beta-stable????았?? 범위??single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare?? 범위 ??payload??backend fallback????니??semantic explicit reject?? `Arc<T>`, cross-thread shared ownership, generic/object payload ??장, default ARC??beta 밖이?? Source of truth: `docs/release/100_beta_readiness_checklist.md`, `docs/semantics/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
 - `P10`: 모듈????파 고도??의 compile/runtime ??도 ??????별도 baseline??로 추적
 
 ### P0. Function CFG / Body Dataflow Closure
@@ -15811,7 +15811,7 @@ Checklist source of truth:
 
 Source of truth:
 
-- `docs/103_cfg_body_dataflow_need.md`
+- `docs/compiler/103_cfg_body_dataflow_need.md`
 
 ### P1. `.inc` ??파게티????제 모듈????단
 
@@ -15823,7 +15823,7 @@ Source of truth:
 - 기본 방침:
   - ??선 `semantic/type_checker_*`??서 ownership / generic / module-contract / diagnostics 축??????제 `.c`/`.h` export 구조????단
   - declaration-side MIR-only hot path??helper family??`.c` 경계??분리
-  - ??기 목표???? `docs/92_inc_split_roadmap.md`??Target State A-D??고정??다
+  - ??기 목표???? `docs/compiler/92_inc_split_roadmap.md`??Target State A-D??고정??다
   - stop condition: semantic??는 800 LOC 초과 `.inc` ??음, codegen/runtime??는 1,000 LOC 초과 `.inc` ??음, `type_checker.c`??orchestration-only, backend declaration path??dedicated inventory reader ??는 hard error????용
   - speed stop condition: `test-abi-perf`?? `perf-summary` baseline????????고, 모듈??slice ??worst-case compile time??2????상 ???????? ??보??기록
   - `.inc`??generated table / local macro table / private test fixture 같?? ??한 ??도로만 ??긴??- 준????업:
@@ -15931,7 +15931,7 @@ Source of truth:
   - `code`, `cause_ir`, `fix_source`??모두 registry/enum-like literal set??로 관??  - 문서?? 코드 리뷰 기????서 ??새 literal 추?? ??registry + docs ??시 갱신??을 강제
 - 준????업:
   - [x] diagnostic literal registry 초안 추??
-    - ??료: `src/semantic/diag_codes.h`가 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth????작??고 `docs/72_diagnostic_codes.md`가 ???? 문서??  - [x] `cause_ir` / `fix_source` ??이??규칙 문서??    - ??료: `docs/72_diagnostic_codes.md`??`cause_ir` stage/subsystem/condition 규칙??`fix_source` source-action token 규칙 고정
+    - ??료: `src/semantic/diag_codes.h`가 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth????작??고 `docs/tooling/72_diagnostic_codes.md`가 ???? 문서??  - [x] `cause_ir` / `fix_source` ??이??규칙 문서??    - ??료: `docs/tooling/72_diagnostic_codes.md`??`cause_ir` stage/subsystem/condition 규칙??`fix_source` source-action token 규칙 고정
   - [x] free-form 문자????규 추?? 지??에 smoke gate 마련
     - ??료: `tests/registry/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke`가 semantic diagnostic call-site??`PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro ??용??diagnostic code 문서 sync??검??
 ### P3. ????ownership ??어 ??축
@@ -16030,7 +16030,7 @@ Source of truth:
     - transpiler temporary strings
     - semantic diagnostic formatting scratch strings
     - type-name rendering scratch helpers
-  - 진행: `docs/94_arena_index_lifetime_plan.md`??방향 고정
+  - 진행: `docs/runtime/94_arena_index_lifetime_plan.md`??방향 고정
   - 진행: `TranspilerCtx`??`arena`??scratch arena??명시
   - 진행: transpiler scratch-only temporary 1??vertical slice ??료
     - zone authority temporary expression
@@ -16093,14 +16093,14 @@ Source of truth:
 - ??????: transpile world-derived chain test + `world_fixpoint_abi` smoke가 C/LLVM ??쪽??서 ??색
 - ??재 ??석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)?? ??제 beta 계약????????간주??고 ??시 ??화??키지 ??음
 - 추?? closure: zone lifecycle sync????제 C/LLVM ??쪽??서 bounded frontier loop??가지?? state/layer replay가 single-batch??만 묶이지 ??는??- 추?? closure: embedded world-zone source assignment????제 projection dirty mark ??에 같?? tun??zone sync????워 stale `ready/value` drift ??이 projection recompute????는??- 추?? ????: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`가 C/LLVM ABI smoke??서 ??색??며 embedded zone projection read-after-mutate path??straight-line assignment, method-call, branch-join slice까?? ??근??- 추?? ????: `handoff_projection_frontier_abi`가 C/LLVM ABI smoke??서 ??색??고 `handoff_projection_frontier`가 backend-compare??서 ??색??다. v1 handoff materialization ??후 source projection?? source snapshot?? target projection?? target mutation 결과??보도????근??- 추?? ????: `handoff_world_state_frontier_abi`?? `handoff_world_state_frontier`가 C/LLVM??서 ??색??다. active world-owned zone??`transfer:` ????으????긴 ??projection-backed world state?? `all` composed state가 같?? tick??서 fresh??게 보이??최소 frontier????근??- 추?? ????: `handoff_layer_state_frontier_abi`?? `handoff_layer_state_frontier`가 C/LLVM??서 ??색??다. `transfer:` ??후 action-caused effect가 target zone layer/state?? active world-derived layer/state alias까?? 같?? tick??서 fresh??게 ??파??는 경로????근??- 추?? ????: `world_embedded_action_frontier_abi`?? `world_embedded_action_frontier`가 C/LLVM??서 ??색??다. embedded world-zone subject action call??action-caused effect layer/state?? active world-derived layer/state alias까?? 같?? tick??서 fresh??게 ??파??는 경로????근??- 추?? ????: `world_embedded_action_pool_frontier_abi`?? `world_embedded_action_pool_frontier`가 C/LLVM??서 ??색??다. embedded world-zone subject action call??fixed-capacity effect pool 경로??같?? frontier 계약??로 ??근??- 추?? closure: authority/failure handoff queryable baseline?? `intent_authority_snapshot(_abi)`?? `authority_failure(_abi|_surface)`가 C/LLVM ??쪽??서 ??그?? authority reject가 process abort ????`last_ok / zone / participant / code / reason` ??태?? intent failure trace????려??는 최소 recoverable path??가진다
-- 강한 ???? 과제: full bounded fixpoint / transitive frontier scheduler??**명시??beta blocker**??????. ??만 stable world outer frontier??C/LLVM ??쪽??서 `pgy_frontier_world_transitive_pass_limit(...)`????비??도????라??으므?? ???? debt??zone/world frontier loop??부??나 authority/failure handoff 최소 baseline 부???? ??니???????? world-zone propagation family??같?? source-of-truth frontier policy????반??하????이??- 추?? closure: relation/effect/zone projection sync??bounded transitive recompute loop????라??고 declaration order??기??지 ??는??- 추?? ????: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`??서 ??겼??- 추?? gate: `make runtime-frontier-contract-test-smoke`가 C emitter?? LLVM emitter??서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, authority/failure handoff queryable baseline, pass-limit overflow hard-fail, ABI smoke ??록, backend-compare ??록??검??한?? ??한 `src/codegen/domain_frontier_policy.h`??pass-limit source-of-truth helper?? `pgy_frontier_world_transitive_pass_limit(...)`??C/LLVM emitter가 ??비??는지 ??인??고, `make runtime-frontier-policy-test-smoke`가 saturating pass-limit arithmetic????제 컴파????행??로 ??근?? ??gate??full bounded fixpoint / transitive frontier scheduler가 ??시 single-pass 구현??나 non-queryable authority failure????퇴???? 못하??막는 beta blocker gate?? ???? runtime propagation closure??broader world-zone propagation family??같?? source-of-truth frontier policy????반??하????이??- Beta readiness source of truth: `docs/100_beta_readiness_checklist.md` records
-  the current live blocker map and closure order. `docs/98_beta_closure_readiness_report.md`
+- 강한 ???? 과제: full bounded fixpoint / transitive frontier scheduler??**명시??beta blocker**??????. ??만 stable world outer frontier??C/LLVM ??쪽??서 `pgy_frontier_world_transitive_pass_limit(...)`????비??도????라??으므?? ???? debt??zone/world frontier loop??부??나 authority/failure handoff 최소 baseline 부???? ??니???????? world-zone propagation family??같?? source-of-truth frontier policy????반??하????이??- 추?? closure: relation/effect/zone projection sync??bounded transitive recompute loop????라??고 declaration order??기??지 ??는??- 추?? ????: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`??서 ??겼??- 추?? gate: `make runtime-frontier-contract-test-smoke`가 C emitter?? LLVM emitter??서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, authority/failure handoff queryable baseline, pass-limit overflow hard-fail, ABI smoke ??록, backend-compare ??록??검??한?? ??한 `src/codegen/domain_frontier_policy.h`??pass-limit source-of-truth helper?? `pgy_frontier_world_transitive_pass_limit(...)`??C/LLVM emitter가 ??비??는지 ??인??고, `make runtime-frontier-policy-test-smoke`가 saturating pass-limit arithmetic????제 컴파????행??로 ??근?? ??gate??full bounded fixpoint / transitive frontier scheduler가 ??시 single-pass 구현??나 non-queryable authority failure????퇴???? 못하??막는 beta blocker gate?? ???? runtime propagation closure??broader world-zone propagation family??같?? source-of-truth frontier policy????반??하????이??- Beta readiness source of truth: `docs/release/100_beta_readiness_checklist.md` records
+  the current live blocker map and closure order. `docs/release/98_beta_closure_readiness_report.md`
   remains a historical snapshot from the earlier 50% readiness line and should
   not be cited as the current verdict.
 
 ### 최근 closure 진행 (2026-04-23)
 
-- AST ??????스??치 partition 규칙 공식????`docs/95_ast_dispatch_partition.md`
+- AST ??????스??치 partition 규칙 공식????`docs/compiler/95_ast_dispatch_partition.md`
   - ??체 AST ????(??재 93?? ??4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) disjoint 분할
   - ??카테고리별로 "????정 switch ??서 ??달 불??????" ??**??서 invariant 근거** ??문서??  - case label 추??/금??/safety-net 결정 기?? ??정
   - ??AST ????추?? ??체크리스????함
@@ -16109,7 +16109,7 @@ Source of truth:
 
 ### 최근 closure 진행 (2026-04-22)
 
-- arena scratch slice 3??추?? ??수 ??`docs/94_arena_index_lifetime_plan.md` ??데??트
+- arena scratch slice 3??추?? ??수 ??`docs/runtime/94_arena_index_lifetime_plan.md` ??데??트
   - `semantic.c:50` `semantic_preload_stdlib_uses` ??per-iteration `malloc/free` module path 조립??function-local `PgyArena` ????동. 배치 alloc ??나????렴
   - `type_checker.c:1109` enum method name mangling??`malloc/snprintf/free` ??`pgy_arena_fmt(&ctx->scratch_arena, ...)` ????동. `symbol_create_function` ?????? ???? `pergyra_strdup` ??로 ??름??복사??????arena ??출 ??음
   - `slot_analyzer.c:1067` `slot_analyze_parallel_block` ??outer task metadata 배열 3??(`task_accesses`/`task_counts`/`task_caps`) ??`sa->ctx->scratch_arena` ????동. per-task inner 배열?? ??전??`collect_slot_accesses` 가 heap-owned??관??- arena scratch 2??slice 추?? (같?? ??
@@ -16149,7 +16149,7 @@ Source of truth:
 
 ### 최근 closure 진행 (2026-04-21)
 
-- C/LLVM init idiom ??감사 + 1????비 ??료 (`docs/93_codegen_idiom_audit.md`)
+- C/LLVM init idiom ??감사 + 1????비 ??료 (`docs/compiler/93_codegen_idiom_audit.md`)
   - 6 case × 2 backend 매트???? 고정
   - **Case 1 HIGH divergence ??소**: ??수-바디 `let x: T;` (annotation + no init)??`PGY_CODE_SEM_UNINIT_LOCAL` ??거??. C??scalar-zero, LLVM?? store ??략??로 ??read??서 ??????가 갈라지????복 경로??semantic ??벨??서 차단
   - **Case 2 C backend L815 ??리**: `transpiler_c_type_uses_scalar_zero` helper??scalar/aggregate 분기. 기존 ??복 버그 (`struct Foo x = 0;` invalid C) ??거 (defense in depth)
@@ -16243,7 +16243,7 @@ Source of truth:
 
 ### 베?? 기????추?? (2026-04-15)
 
-- `docs/70_beta_closure_master_board.md` 추??
+- `docs/release/70_beta_closure_master_board.md` 추??
   - B0 4?? declaration-side MIR-only debt, parity, runtime observability, surface trust??????으??고정
   - 베?? acceptance line??exit rule??명시
   - ??으??TODO??개별 ??업?? ??보드 기????로 ??선??위????른??
@@ -16780,7 +16780,7 @@ Source of truth:
 ### 메????로그래????장 (결정 ??료)
 - [ ] **??후 코드 ??성 ??요 ??* ??컴파????????러그인 (proc_macro 모델) ??는 ??스 ??성??검??
 ### ??어 ??성??Tier 2 ????사????의
-- [ ] **innate ability** ??같?? 모듈 ??role??impl ??용 (sealed ????innate 채택. 문서: `docs/24_visibility_model.md`)
+- [ ] **innate ability** ??같?? 모듈 ??role??impl ??용 (sealed ????innate 채택. 문서: `docs/language/24_visibility_model.md`)
   - ??서 ??료, ??맨??에??`innate` ??워????식 (type_checker_decls.inc 참조)
   - ??음: 모듈 경계 검??로직 ??성
 ### ability 차별??## P1.6 ????원/??????트??이??방향 고정
@@ -16991,7 +16991,7 @@ Source of truth:
       - `PGY_SEM_PARALLEL_SLOT_CONFLICT` (error: mutate-mutate across tasks)
       - `PGY_SEM_PARALLEL_SLOT_RACE_RISK` (waning: read-mutate across tasks)
       - `PGY_SEM_EFFECT_CONFLICT` (waning: effect class 충돌)
-    - `docs/72_diagnostic_codes.md` 카탈로그 문서 ??규 ??16??코드 ????/??인/교정 방법, AI ??우??가??드, ??후 ??장 ??드 문서??    - smoke test ??장: `PGY_SEM_SLOT_RELEASED` 감?? 케??스 추??
+    - `docs/tooling/72_diagnostic_codes.md` 카탈로그 문서 ??규 ??16??코드 ????/??인/교정 방법, AI ??우??가??드, ??후 ??장 ??드 문서??    - smoke test ??장: `PGY_SEM_SLOT_RELEASED` 감?? 케??스 추??
     - ??용??기여: `semantic_error_code` / `semantic_waning_code` ??언??`PGY_PRINTF_LIKE` ??성 추?? (clang/gcc format 경고 체크)
     - ????: 1694 semantic + 601 transpile, 0 failed
     - ??재 ??16????정 코드, ~25 ??이??커버. ??머지 ~460 ??이??는 4?? 증분 ????  - 4??증분 ??료 (2026-04-19):
@@ -17008,7 +17008,7 @@ Source of truth:
       - `PGY_MIR_SSA_LIMIT` ??SSA local 4096 초과
       - `PGY_MIR_INTENT_CARRIER_MISSING` ??intent step metadata ??락 (C/LLVM 공통, 21 ??이????괄 ??그??이??
       - `PGY_LLVM_SPEC_LIMIT` ??Result\<T,E\> ??수????도(MAX_LLVM_RESULT_SPECS=32) 초과
-    - 카탈로그 ??장: `docs/72_diagnostic_codes.md`??"MIR Contract" ??션 5????트??+ "LLVM Backend" ??션 1????트??    - smoke test ??장: 33??Result\<Int, E*\> ??수??로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 검??(`tests/language/diagnostics_json_smoke.sh`)
+    - 카탈로그 ??장: `docs/tooling/72_diagnostic_codes.md`??"MIR Contract" ??션 5????트??+ "LLVM Backend" ??션 1????트??    - smoke test ??장: 33??Result\<Int, E*\> ??수??로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 검??(`tests/language/diagnostics_json_smoke.sh`)
     - 검?? `[{"severity":"error","stage":"llvm_codegen","code":"PGY_LLVM_SPEC_LIMIT",...}]` end-to-end ??인
     - ????: 1694 semantic + 601 transpile, 0 failed (??거??경로 무손??
     - ??재 ??22????정 코드 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 ??이??커버. `mir_validation` / `llvm_codegen` stage 가 기존 `backend_*_native`?? 분리??  - ???? ??업 (5??증분 ??보):
@@ -18655,7 +18655,7 @@ Local verification for this debt refresh:
   `src/codegen/transpiler_lambda_emit.c`; the old lambda-specific compatibility
   header was removed because `transpiler.h` already owns the public emitter
   prototype. The Makefile source inventory owns the new compiled owner.
-  `docs/130_c_backend_owner_migration_map.md` records this as a safe promotion
+  `docs/compiler/130_c_backend_owner_migration_map.md` records this as a safe promotion
   and records `transpiler_relation_effect_emit.h` as blocked by the same
   hosted-method MIR static seam that blocks enum declaration emission. The same
   map previously recorded destructuring emission as blocked by local type lookup
@@ -18703,8 +18703,8 @@ Local verification for this debt refresh:
   plus the naming owner and rejects a regression back into
   `transpiler_generic_class_specialization_emit.h`.
 - Rechecked the beta status anchors after the current source-of-truth gates:
-  `docs/100_beta_readiness_checklist.md`,
-  `docs/70_beta_closure_master_board.md`, and this TODO now use the same
+  `docs/release/100_beta_readiness_checklist.md`,
+  `docs/release/70_beta_closure_master_board.md`, and this TODO now use the same
   strict beta readiness range: about 83%, not beta-complete. The remaining
   beta-complete line is explicitly CFG/AIR consumer-completeness, MIR/LLVM
   declaration bootstrap, compatibility-fallback tightening, and ABI/Slot/Pin
@@ -18719,7 +18719,7 @@ Local verification for this debt refresh:
   `transpiler_mir_ssa_emit.h` into the compiled owner
   `transpiler_mir_effective_type.c`. MIR SSA emission now consumes a named
   owner seam instead of carrying generic-specialized local type rendering
-  inline. `docs/130_c_backend_owner_migration_map.md` now marks this seam as
+  inline. `docs/compiler/130_c_backend_owner_migration_map.md` now marks this seam as
   closed and narrows the remaining pending-use blocker to generic class
   specialization ensure still living in the specialization orchestration
   header. That ensure path still emits hosted generic methods through the same
@@ -18765,7 +18765,7 @@ Local verification for this debt refresh:
   still exposes hidden include-order seams in builtin dispatch, domain
   constructor dispatch, Result/Option/std/event dispatch, and user/generic
   calls. This is
-  recorded in `docs/130_c_backend_owner_migration_map.md` as a blocked
+  recorded in `docs/compiler/130_c_backend_owner_migration_map.md` as a blocked
   promotion so the project does not repeat another A -> B -> A refactor loop.
 - Moved stateless role/ability naming policy out of
   `transpiler_domain_role_ability_emit.h` into the compiled owner
@@ -18923,7 +18923,7 @@ Local verification for this debt refresh:
 - Attempted C backend parallel capture owner promotion and stopped before
   committing the move because the capture walker still depends on the
   static `transpiler_find_local_type_name(...)` implementation-header seam.
-  The blocker is recorded in `docs/130_c_backend_owner_migration_map.md`; the
+  The blocker is recorded in `docs/compiler/130_c_backend_owner_migration_map.md`; the
   required first step is a public current-function local-type query owner shared
   by MIR block emission, destructuring, and parallel capture.
 - Promoted C backend `parallel` and `async` block emission from

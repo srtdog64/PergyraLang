@@ -122,7 +122,7 @@ flowchart LR
 ## 권위 링크
 
 - owner registry: [SoT Owner Spine Registry](../semantics/sot_owner_spine_registry.md)
-- migration protocol: [180번 문서](../180_compiler_logical_spine_handles_gates.md)
+- migration protocol: [180번 문서](../compiler/180_compiler_logical_spine_handles_gates.md)
 - truth layout: [Project truth](../truth/README.md)
 - V1 finish line: [V1 scope](../agent_work_directives/v1_scope_ownership_and_selfhost_generality_2026-10-14.md)
 - active facade: [current work handoff](../current_work_handoff.md)

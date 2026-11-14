@@ -12,7 +12,7 @@
  * against an attacker who already runs at the same privilege level as the
  * process (e.g. a debugger such as Cheat Engine): such a process can read the
  * master key and plaintext from memory, so client-binary secrets are not a
- * security boundary (docs/00_vision.md). Hardware-bound tokens bind to a
+ * security boundary (docs/language/00_vision.md). Hardware-bound tokens bind to a
  * platform fingerprint to deter cross-machine token replay; they do not defeat
  * a same-machine debugger.
  */

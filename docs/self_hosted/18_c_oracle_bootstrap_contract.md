@@ -7,7 +7,7 @@ Date: 2026-07-29
 production 도달성과 `SURFACE` / `REACHABLE` / `SUBSTITUTING` 등급은
 [`17_pergyra_native_dogfood_contract.md`](17_pergyra_native_dogfood_contract.md)가,
 실행 순서와 fixed-point 계획은
-[`../158_self_bootstrap_execution_blueprint.md`](../158_self_bootstrap_execution_blueprint.md)가
+[`158_self_bootstrap_execution_blueprint.md`](158_self_bootstrap_execution_blueprint.md)가
 소유한다. 이 문서의 상태 문장이 현재 source, owner registry 또는 실행 gate와
 다르면 후자가 우선하며 이 문서를 교정한다.
 

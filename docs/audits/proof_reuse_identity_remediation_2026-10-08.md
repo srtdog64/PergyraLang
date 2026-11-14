@@ -77,5 +77,5 @@ worktree, 설치, commit/push, shared process 종료는 추가하지 않았다.
 
 공유 인용 수정 대상은 `docs/semantics/README.md`의 SlotLifecycle 문단,
 `docs/semantics/19_theoretical_foundations.md`의 slot proof 문단,
-`docs/206_minimal_unit_decisions.md`의 해제/foreign copy 인용 및 docs/173의
+`docs/language/206_minimal_unit_decisions.md`의 해제/foreign copy 인용 및 docs/173의
 runtime parent cycle 인용이다. 이 파일들은 main에 전달했고 레인에서 수정하지 않았다.

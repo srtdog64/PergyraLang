@@ -27,7 +27,7 @@ until an embedder binds the board/MMU provider.
 
 **Region is address evidence. Possession of an address does not authorize contact.**
 
-The source-level [Intent identity](../../01_intent_first_design.md) attributes
+The source-level [Intent identity](../../language/01_intent_first_design.md) attributes
 facts to a declared purpose. Machine admission answers a different question:
 whether this operation may contact this declared range with the required
 authority, live lease and mode. An Intent neither owns all of those facts nor

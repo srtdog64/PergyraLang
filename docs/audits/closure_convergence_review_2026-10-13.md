@@ -8,7 +8,7 @@ DRV-2 소유권 admission 복구와 그 검증에 묶여 있다.** 국소 검증
 구현량 증가는 마지막 소비자 이전·옛 경로 삭제·설치본·CI를 대신하지 않는다.
 사용자는 더 많은 핵심 개념을 도입하기 어렵다고 판단했고, 기존 계약의 구현과
 검증에 수렴하도록 요청했다. 채택한 방향은
-[VISION의 기존 핵심 수렴과 완료 기준](../00_vision.md#기존-핵심-수렴과-완료-기준)에 둔다.
+[VISION의 기존 핵심 수렴과 완료 기준](../language/00_vision.md#기존-핵심-수렴과-완료-기준)에 둔다.
 이 검토는 새 의미 소유자나 구현 rung을 만들지 않으며 registry 상태를 바꾸지 않는다.
 
 ## 소유권과 SoT와 DRV-2의 관계
@@ -21,7 +21,7 @@ DRV-2 소유권 admission 복구와 그 검증에 묶여 있다.** 국소 검증
 
 `DRV`는 Driver 사다리의 약어다. DRV-0은 단계 조립, DRV-1은 CLI 표면,
 DRV-2는 artifact-body semantic source 변환, DRV-3는 외부 native compile까지
-소유하는 단계로 [doc150](../150_selfhost_driver_lsp_wiring.md#1-driver-사다리-drv)에 정의됐다.
+소유하는 단계로 [doc150](../self_hosted/150_selfhost_driver_lsp_wiring.md#1-driver-사다리-drv)에 정의됐다.
 현재 소유권 작업에 DRV-2 이름이 붙는 것은 그 실제 경로가 컴파일러 자신의
 소스를 처리하면서 막히기 때문이다. `DRV-2 = 소유권 완성`이라는 동일시는 부정확하다.
 

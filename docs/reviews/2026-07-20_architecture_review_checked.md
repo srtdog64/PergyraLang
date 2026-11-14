@@ -49,7 +49,7 @@ correctness and per-instance sandboxing remains valid.
 The source review reported that codegen still used
 `ast_spawn_is_blocking`. That finding is no longer current:
 
-- `docs/146_sea_execution_lanes.md` records the codegen-consumption landing;
+- `docs/concurrency/146_sea_execution_lanes.md` records the codegen-consumption landing;
 - C and LLVM receive the verified spawn-lane plan from AIR;
 - a current source scan finds `ast_spawn_is_blocking` only in the AIR boundary
   evidence producer, not in codegen emitters;

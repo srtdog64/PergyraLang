@@ -4,7 +4,7 @@ Last updated: 2026-04-30 (declared *before* Sprint 1 work begins)
 
 ## Why this file exists
 
-`docs/122_managing_intent_drift.md` §4 mandates: declare falsification
+`docs/language/122_managing_intent_drift.md` §4 mandates: declare falsification
 criteria *before* writing the program. After-the-fact rationalization
 defeats drift recognition (docs/122 §2.5).
 

@@ -105,7 +105,7 @@ unfilled row is exactly the `Unhandled` verdict the theorem forbids.
 
 - `docs/semantics/11_arithmetic_ub_model.md` — the 2-layer UB model this
   position generalizes (surface UB vs backend-inherited UB).
-- `docs/118_slot_model_rigor_audit.md` §2/§4.4/§7 — slot is not a borrow
+- `docs/runtime/118_slot_model_rigor_audit.md` §2/§4.4/§7 — slot is not a borrow
   checker; the runtime tier is Vale/Verona-pattern; comparison to Rust over
   time.
 - `docs/semantics/19_theoretical_foundations.md` — the per-primitive theory

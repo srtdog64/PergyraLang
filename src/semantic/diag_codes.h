@@ -7,7 +7,7 @@
  * Single source of truth for stable diagnostic literals.  Adding a new
  * literal at a call site WITHOUT first defining it here is a code-review
  * smell — downstream consumers need a stable set to route on, and
- * docs/72_diagnostic_codes.md mirrors this header.
+ * docs/tooling/72_diagnostic_codes.md mirrors this header.
  *
  * Usage:
  *

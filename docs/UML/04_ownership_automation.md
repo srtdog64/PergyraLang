@@ -118,8 +118,8 @@ flowchart LR
 ## 권위 링크
 
 - 언어 정책: [Ownership Clean](../semantics/27_ownership_clean.md)
-- 전체 알고리즘 설명: [207번 문서](../207_compiler_owned_cleanup_algorithm.md)
-- lifecycle/graph 설명: [209번 문서](../209_ownership_lifecycle_algorithm_code.md)
+- 전체 알고리즘 설명: [207번 문서](../compiler/207_compiler_owned_cleanup_algorithm.md)
+- lifecycle/graph 설명: [209번 문서](../compiler/209_ownership_lifecycle_algorithm_code.md)
 - 메모리 경계 합성: [28번 문서](../semantics/28_memory_boundary_composition.md)
 - 실제 완료 상태: [truth/state](../truth/state/)
 

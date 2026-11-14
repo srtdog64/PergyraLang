@@ -3,7 +3,7 @@
 // SubIndexOf(s, start, len, needle) is the zero-allocation equivalent of
 // StringIndexOf(Substring(s, start, len), needle): it searches the window
 // s[start..start+len) in place instead of materializing a heap copy. Keep the
-// Rust/C/Pergyra timing ledger in docs/perf_close_to_c.md; this fixture is the
+// Rust/C/Pergyra timing ledger in docs/tooling/perf_close_to_c.md; this fixture is the
 // executable source for the Pergyra length-fact fused-builtin row. Output:
 // total=58400000.
 func Main() -> Void {

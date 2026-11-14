@@ -3,7 +3,7 @@
 **Status:** *rung-2 complete* (2026-07-06). All five counters
 (`codes`, `documented`, `missing`, `duplicates`, `orphans`) are **live**: the
 Pergyra candidate reads `src/semantic/diag_codes.h` and
-`docs/72_diagnostic_codes.md`, scans `#define PGY_CODE_` macros, counts
+`docs/tooling/72_diagnostic_codes.md`, scans `#define PGY_CODE_` macros, counts
 documented `PGY_*` catalog headings, checks every code literal for a docs
 entry, detects duplicate header literal strings via a delimited seen-set, and
 checks docs headings for orphan entries.
@@ -30,14 +30,14 @@ Follow-up rungs: rung-3 three-way agreement (C / LLVM / Pergyra origin).
 
 Verify that every `PGY_CODE_*` literal defined in
 [`src/semantic/diag_codes.h`](../../../../src/semantic/diag_codes.h) is documented
-in [`docs/72_diagnostic_codes.md`](../../../../docs/72_diagnostic_codes.md), and
+in [`docs/tooling/72_diagnostic_codes.md`](../../../../docs/tooling/72_diagnostic_codes.md), and
 that the docs contain no orphan codes.
 
 ## Input Contract
 
 - **code_owner**: `src/semantic/diag_codes.h` (text, UTF-8, `#define` macros
   for `PGY_CODE_*` / `PGY_CAUSE_*` / `PGY_FIX_*` literals).
-- **docs_owner**: `docs/72_diagnostic_codes.md` (text, UTF-8, Markdown).
+- **docs_owner**: `docs/tooling/72_diagnostic_codes.md` (text, UTF-8, Markdown).
 
 Both paths are passed relative to the repository root. The default no-arg run
 uses the two paths above; parity runs pass them through `Args()` from the
@@ -55,7 +55,7 @@ JSON document on stdout, conforming to schema `pgy.selfhost.diagnostic-catalog.v
   "ok": true,
   "source": {
     "code_owner": "src/semantic/diag_codes.h",
-    "docs_owner": "docs/72_diagnostic_codes.md"
+    "docs_owner": "docs/tooling/72_diagnostic_codes.md"
   },
   "counts": {
     "codes": 0,

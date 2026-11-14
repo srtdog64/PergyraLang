@@ -52,7 +52,7 @@ R6, R8, R9 및 R10의 일부 근거는 source/document/gate 정적 검사이고,
 | R5 | `PARTIAL`, divergence 추가 | 현재 native C/LLVM은 `pin = 3`을 같은 parse 오류로 거부한다. stale 설치 self-host C는 이를 받아 `3`을 출력했다. native 문법 함정뿐 아니라 parser divergence 반례이지만, 현재 self-host source 재빌드 전에는 현행 default-route 판정으로 승격하지 않는다. |
 | R6 | `VERIFIED` | `every`/`continuous`는 keyword registry에 있으나 `unavailable` 집합으로 gate되며 native parser가 vision surface로 명시적으로 거부한다. 유지/삭제는 여전히 설계 결정이다. |
 | R7 | `PARTIAL` | generic `is`는 현재 native C/LLVM에서 `true`, `false`를 출력하고 String target은 scalar-only 진단으로 거부된다. 다만 이것이 `reflect`와 동일 계약이라는 결론은 증명되지 않았고, 현재 `reflect`는 `projection` 결과를 내는 별도 질의다. 현재 증거는 `is`의 scalar compile-time predicate 동작까지만 고정한다. |
-| R8 | `NOT A NEW DEFECT` | 단어 재사용 자체는 사실이지만 `docs/reflect_operator_design.md`가 domain projection과 reflect 결과의 같은 이름 사용을 "vocabulary economy" 결정으로 명시한다. 레지스트리 TYPE 문맥 누락 여부는 별도 정합성 문제일 수 있으나, 단순 rename 권고는 현재 설계 SoT를 다시 여는 제안이지 발견된 우발적 누수가 아니다. |
+| R8 | `NOT A NEW DEFECT` | 단어 재사용 자체는 사실이지만 `docs/language/reflect_operator_design.md`가 domain projection과 reflect 결과의 같은 이름 사용을 "vocabulary economy" 결정으로 명시한다. 레지스트리 TYPE 문맥 누락 여부는 별도 정합성 문제일 수 있으나, 단순 rename 권고는 현재 설계 SoT를 다시 여는 제안이지 발견된 우발적 누수가 아니다. |
 | R9 | `VERIFIED` | native `AST_LET_DECL` printer는 `is_mutable`을 출력하지 않고 self-host printer는 `mut `를 출력한다. duration도 숫자 텍스트만 남긴다. 현재 parser parity는 이 손실 텍스트를 비교하므로 의미 동등성 오라클이 될 수 없다. |
 | R10 | `VERIFIED`, 범위 제한 | `PGY_CAP_GRANT=io_read`에서 native C의 `Print("print ok")`는 첫 바이트 전에 `capability-denied`로 멈추지만 설치 self-host C는 `print ok`를 출력한다. 현재 source에는 `pgy_host_now_ms`도 존재하며, `StringRuntimeCPrintBlock`과 `HostIORuntimeCClockBlock`을 포함한 private runtime 방출에는 `pgy_cap_require_export`가 없다. 다만 설치 driver는 9월 21일 산출물이므로 이 실행 divergence와 현재 dirty source 사이의 artifact receipt는 없다. shared native runtime에 검사가 있다는 사실은 source-generated private runtime의 정적 우회를 닫지 않는다. |
 | R11 | 사실 `VERIFIED`, 정책 `DECISION` | native runtime과 self-host private runtime source 모두 Windows에서 `GetTickCount64()`, POSIX에서 `CLOCK_REALTIME`을 사용하고 결과를 Pergyra `Int` 폭으로 줄인다. 따라서 플랫폼별 clock domain과 약 24.8일 이후 signed wrap 지적은 맞다. 다만 `Now()`를 monotonic으로 유지할지 wall clock으로 바꿀지는 버그 수정이 아니라 언어/API 결정이다. |
@@ -279,7 +279,7 @@ origin/main`이다. checkout에는 이 문서와 진행 중 compiler 작업을 �
   - reflect 결과 타입으로: `let p: projection = reflect Account;`.
   - 레지스트리 행의 문맥은 `CLAUSE | ZONE_BODY`이고, 타입 위치 사용은 선언되어 있지
     않다.
-- **기존 결정**: `docs/reflect_operator_design.md`는 두 표면이 같은 이름을 쓰는 것을
+- **기존 결정**: `docs/language/reflect_operator_design.md`는 두 표면이 같은 이름을 쓰는 것을
   이미 인식하고 vocabulary economy를 이유로 선택했다. 따라서 재사용 자체는 새
   결함이 아니다. 다만 타입 위치가 keyword registry 문맥과 정합적인지는 별도 검증
   대상이다.

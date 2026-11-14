@@ -168,8 +168,8 @@ safe”는 현재 주장이 아니다.
 진행하지 않는다. 새 문법·64-bit handle·Region 확대는 베타 핵심 폐쇄 뒤 실제
 workload가 요구할 때 재판정한다.
 
-주요 권위: `docs/107_beta_stable_subset.md`, `docs/semantics/08_slot_capability_calculus.md`,
+주요 권위: `docs/release/107_beta_stable_subset.md`, `docs/semantics/08_slot_capability_calculus.md`,
 `docs/semantics/04_ownership_abi.md`, `docs/semantics/13_slot_abi_single_owner.md`,
-`docs/94_arena_index_lifetime_plan.md`, `docs/197_region_arena_strategy.md`,
-`docs/136_abi_niche_and_explicit_layout.md`,
+`docs/runtime/94_arena_index_lifetime_plan.md`, `docs/runtime/197_region_arena_strategy.md`,
+`docs/compiler/136_abi_niche_and_explicit_layout.md`,
 `docs/semantics/sot_owner_spine_registry.md`, `docs/current_work_handoff.md`.

@@ -68,7 +68,7 @@ This document does not prove static borrow facts:
 - no proof that every cleanup path inserts `unpin` / `release` exactly once;
 - no proof that pinned views cannot escape without the CFG no-escape checker;
 - no proof that async/task/channel boundaries preserve borrow validity without
-  the body-dataflow summaries in `docs/100_beta_readiness_checklist.md` section
+  the body-dataflow summaries in `docs/release/100_beta_readiness_checklist.md` section
   `0b`.
 
 The beta-safe claim is therefore:

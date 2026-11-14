@@ -2,7 +2,7 @@
 
 > 헷갈리면 **여기부터**. 깊은 규칙·예외는 [01_syntax.md](01_syntax.md), 형식 문법은
 > [02_grammar.md](02_grammar.md), 네이밍은 [03_naming.md](03_naming.md),
-> 구성체 선택은 [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md).
+> 구성체 선택은 [../language/200_object_to_action_boundary_patterns.md](../language/200_object_to_action_boundary_patterns.md).
 > 이 문서는 *현재 파서가 실제로 받는 것*을 요약한다(미래 계획은 맨 아래 §9).
 
 ## 처음에는 `func`와 `struct`부터
@@ -183,7 +183,7 @@ select { ... }
 구분은 [언어 단어 레지스트리](../../src/lexer/language_keyword_registry.def)가 소유한다.
 런타임 타입 `Channel<T>`와 송수신 연산자 `<-`는 그대로 유효하다 — 사라진 것은
 소문자 키워드 형태(`channel<Int> ch;`)뿐이다. 제거 결정 기록은
-`docs/199_language_word_and_dogfood_grammar.md` §5가 소유한다.
+`docs/language/199_language_word_and_dogfood_grammar.md` §5가 소유한다.
 
 ## 8. Callable capability / effect-mask clause
 
@@ -210,7 +210,7 @@ zone authority나 action의 `causes`를 대신하지 않는다.
   승격(현재는 파서가 관용 허용). 그 전까지는 게이트가 스타일을 지킨다.
 - **`fields` → `require`**: `ability { require x: Int; }` (또는 `require let x: Int`)로 규칙화.
   내부 AST가 이미 `AST_REQUIRE_FIELD`. `let`로 통일하지 *않음*(계약≠저장 신호 보존).
-  [docs/134](../134_language_surface_hygiene.md) "allowed debt must be named" 하에 추적.
+  [docs/134](../language/134_language_surface_hygiene.md) "allowed debt must be named" 하에 추적.
 
 > 일관성 원칙(이걸로 미래 drift 판정): **같은 *개념*이 다른 *철자/구두점* = 버그.
 > 다른 *축*이 다른 어휘 = 직교성(정상).**

@@ -12,7 +12,7 @@ Published revisions: `cf66092b594f9e83525d3df9da68e56e7446186f`,
 Exact replacement CI: `33708971493`, 30/30 green in 36m28s.
 
 This directive coordinates the lifecycle rung adopted by
-`docs/204_concurrency_direction_pscc_review.md`. It is temporary coordination
+`docs/concurrency/204_concurrency_direction_pscc_review.md`. It is temporary coordination
 evidence, not compiler semantics, a SoT row, or a completion claim.
 
 ## Shared objective card

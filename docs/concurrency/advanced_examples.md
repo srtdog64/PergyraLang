@@ -3,9 +3,9 @@
 Updated: 2026-09-05
 
 이 문서는 현재 실행 예제와 미구현 조합을 구분하는 안내서다. 의미론의 정전은
-[memory/concurrency contract](../113_memory_concurrency_model.md),
-[parallel boundary evidence](../178_parallel_boundary_evidence.md),
-[join surface](../181_parallel_surface_full_design.md)다. 이 문서나 예제 수는
+[memory/concurrency contract](113_memory_concurrency_model.md),
+[parallel boundary evidence](178_parallel_boundary_evidence.md),
+[join surface](181_parallel_surface_full_design.md)다. 이 문서나 예제 수는
 SoT 폐쇄율 또는 self-host 대체율을 올리지 않는다.
 
 ## Evidence boundaries
@@ -27,13 +27,13 @@ owner를 연결한 표이지 새로운 async 계약을 선언한 표가 아니�
 
 | Dimension | Pergyra에서 현재 읽을 수 있는 계약 | 남은 경계 / 근거 |
 |---|---|---|
-| Eagerness | named `spawn`이 작업 생성 경계다. `async` 선언만으로 병렬 시작을 뜻하지 않는다. | 일반 async 호출의 시작 순서를 논문의 한 분류로 고정할 충분한 계약은 이 표에서 주장하지 않는다. [user guide](../05_async_concurrency.md) §2–3 |
-| Suspension | `await`는 완료 join이다. 반드시 양보한다거나 다른 작업이 반드시 실행된다고 추론하지 않는다. | 완료된 Future와 각 lane의 대기 경로를 구분해야 한다. [contract](../113_memory_concurrency_model.md), Future Await Contract |
+| Eagerness | named `spawn`이 작업 생성 경계다. `async` 선언만으로 병렬 시작을 뜻하지 않는다. | 일반 async 호출의 시작 순서를 논문의 한 분류로 고정할 충분한 계약은 이 표에서 주장하지 않는다. [user guide](05_async_concurrency.md) §2–3 |
+| Suspension | `await`는 완료 join이다. 반드시 양보한다거나 다른 작업이 반드시 실행된다고 추론하지 않는다. | 완료된 Future와 각 lane의 대기 경로를 구분해야 한다. [contract](113_memory_concurrency_model.md), Future Await Contract |
 | Extent | named Future는 모든 정상 exit에서 `await` 또는 명시 `own Future` 인계로 retire해야 한다. `parallel`은 자기 블록을 join한다. | 익명 capture/detach, exceptional exit 전체 보장은 별도다. [lifecycle owner](../../src/semantic/type_checker_future_lifecycle.c) |
 | Reference Strength | Future는 복사 가능한 일반 task reference가 아니라 affine handle 계약이다. | GC의 strong/weak 분류와 동일시하지 않는다. aggregate carriage의 알려진 반례가 남아 있다. [기존 감사](../audits/2026-09-05_counterexample_attack_results.md) |
-| Destruction | named handle의 미처리 scope exit를 거절한다. 숨은 finalizer나 자동 cancel+join으로 설명하지 않는다. | `parallel`의 암묵 join과 named Future의 명시 retirement는 서로 다른 규칙이다. [contract](../113_memory_concurrency_model.md) |
+| Destruction | named handle의 미처리 scope exit를 거절한다. 숨은 finalizer나 자동 cancel+join으로 설명하지 않는다. | `parallel`의 암묵 join과 named Future의 명시 retirement는 서로 다른 규칙이다. [contract](113_memory_concurrency_model.md) |
 | Propagation | `RemoteFuture<T>`의 join 결과는 `Result<T>`다. | 일반 panic-to-sibling cancellation, 모든 실패의 집계·정리는 미완성 범위다. [proof obligations](../semantics/proofs/ProofSpine.md) |
-| Awareness | `Cancel`은 협조적 요청, `IsCancelled`는 관찰이다. 요청만으로 handle은 retire하지 않는다. | 실행 중 임의 외부 호출의 강제 중단을 보장하지 않는다. [guide](../05_async_concurrency.md) §6 |
+| Awareness | `Cancel`은 협조적 요청, `IsCancelled`는 관찰이다. 요청만으로 handle은 retire하지 않는다. | 실행 중 임의 외부 호출의 강제 중단을 보장하지 않는다. [guide](05_async_concurrency.md) §6 |
 | Direction | 현재 spawn runtime은 parent context와 cancellation chain을 전달한다. | 이를 모든 lane에서 동일한 취소 관찰 순서 또는 동시 전파라고 확대하지 않는다. [async models](../semantics/proofs/AsyncModelCores.md) |
 | Persistence | 취소를 관찰하고 계속 실행하는 것과 취소 요청을 지우는 것은 다르다. | 논문의 transient/persistent 한 칸으로 전체 runtime을 고정하는 반복 관찰·cleanup 계약은 OPEN이다. [direction models](../semantics/proofs/AsyncDirectionCores.md) |
 

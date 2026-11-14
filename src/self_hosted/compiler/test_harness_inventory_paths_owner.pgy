@@ -17,7 +17,7 @@ func CompilerHarnessModuleManifestResolverExpectedJsonPath() -> String {
 }
 
 func CompilerHarnessModuleManifestResolverInputManifestPath() -> String {
-    return "docs/language_module_manifest.json";
+    return "docs/stdlib/language_module_manifest.json";
 }
 
 func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson() -> String {

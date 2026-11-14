@@ -73,7 +73,7 @@ Primary owns implementation and the eventual semantic parity integration gate.
 ### Border registry and runtime twin checker
 
 - The parser's exact `callable_contract_vocabulary.h` face is registered in
-  `docs/154_border_registry.md` and excluded by fixed-string spelling in the
+  `docs/security/154_border_registry.md` and excluded by fixed-string spelling in the
   existing parser-to-semantic allowlist. This matches the existing
   [Callable Contract Vocabulary](../semantics/callable_contract_vocabulary.md)
   contract: parser membership/canonical-order consumers ask the `.def` owner.

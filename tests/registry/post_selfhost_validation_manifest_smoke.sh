@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-MANIFEST="$ROOT_DIR/docs/post_selfhost_validation_bug_classes.json"
-DOCUMENT="$ROOT_DIR/docs/post_selfhost_validation_milestone.md"
+MANIFEST="$ROOT_DIR/docs/self_hosted/post_selfhost_validation_bug_classes.json"
+DOCUMENT="$ROOT_DIR/docs/self_hosted/post_selfhost_validation_milestone.md"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
 if [[ -z "$PYTHON_BIN" ]]; then

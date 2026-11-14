@@ -20,9 +20,9 @@ analyzer / fuzzer), not as a code Generator.
 
 ## What This Folder Is NOT
 
-- Not implementation documentation (see `docs/03_security_mode_design.md`,
-  `docs/15_compiler_security_modifications.md`). The file
-  `docs/16_security_implementation_report.md` is a historical/imported
+- Not implementation documentation (see `docs/security/03_security_mode_design.md`,
+  `docs/security/15_compiler_security_modifications.md`). The file
+  `docs/security/16_security_implementation_report.md` is a historical/imported
   snapshot, not the current beta source of truth.
 - Not formal proof obligations (see `docs/semantics/`).
 - Not regression test fixtures (see `tests/cases/`).
@@ -65,7 +65,7 @@ correctness bugs were found in Rust stdlib `unsafe` blocks
 For Pergyra specifically:
 
 - Tier 3 runtime checks (generation, token, authority — see
-  `docs/118_slot_model_rigor_audit.md` §4.4) are the safety net that
+  `docs/runtime/118_slot_model_rigor_audit.md` §4.4) are the safety net that
   Tier 1/Tier 2 static rules fall back on. Their soundness is
   incompletely proven; only enumerated edge cases are regression-tested
   (currently `make test-security` 182/182). Adversarial audit covers
@@ -110,9 +110,9 @@ For Pergyra specifically:
 - `docs/security/02_red_team_threat_model.md` - red-team attack model and
   claim rules for current security surfaces.
 
-- `docs/118_slot_model_rigor_audit.md` — Tier 3 invariants are the
+- `docs/runtime/118_slot_model_rigor_audit.md` — Tier 3 invariants are the
   primary audit targets here.
-- `docs/100_beta_readiness_checklist.md` §0 / §0d — formal semantics
+- `docs/release/100_beta_readiness_checklist.md` §0 / §0d — formal semantics
   + secure invariant closure.
 - `docs/semantics/04_ownership_abi.md` — secure token unforgeability
   theorem statement.

@@ -11,8 +11,8 @@ This facade provides the shortest route through the self-host documentation.
 4. [`11_compiler_world_architecture.md`](11_compiler_world_architecture.md) - PgyCompilerWorld shape.
 5. [`13_compiler_substrate_architecture.md`](13_compiler_substrate_architecture.md) - substrate owners and boundaries.
 6. [`15_pre_self_host_expansion_ledger.md`](15_pre_self_host_expansion_ledger.md) - executable blockers and held surfaces.
-7. [`../158_self_bootstrap_execution_blueprint.md`](../158_self_bootstrap_execution_blueprint.md) - bootstrap fixed-point plan.
-8. [`../160_m2_completeness_execution_plan.md`](../160_m2_completeness_execution_plan.md) - whole-compiler completeness plan.
+7. [`158_self_bootstrap_execution_blueprint.md`](158_self_bootstrap_execution_blueprint.md) - bootstrap fixed-point plan.
+8. [`160_m2_completeness_execution_plan.md`](160_m2_completeness_execution_plan.md) - whole-compiler completeness plan.
 
 ## Progress Rule
 

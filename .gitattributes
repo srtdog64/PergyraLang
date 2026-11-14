@@ -5,7 +5,7 @@
 # ignores the attribute (no harm).  Once merged, `.pgy` files will be
 # counted toward the "Pergyra" slice of every repo's language bar.
 #
-# See docs/96_linguist_submission.md for the submission plan.
+# See docs/tooling/96_linguist_submission.md for the submission plan.
 
 *.pgy linguist-language=Pergyra
 *.pgy linguist-detectable=true

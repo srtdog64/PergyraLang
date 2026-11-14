@@ -37,7 +37,7 @@ Legs: native = `--native-pipeline`; self-host = the default route, which
 
 | ID | Counterexample | Expected (source) | native C | native LLVM | self-host C | self-host LLVM |
 | --- | --- | --- | --- | --- | --- | --- |
-| R1 | `let mut b: Array<Int> = a; b[0] = 99; Log(a[0]);` | `1` -- value semantics are "not permission to shallow-copy" (`docs/mut_borrow_parameters.md:50`) | **99** | **99** (lane) | **99** | refused |
+| R1 | `let mut b: Array<Int> = a; b[0] = 99; Log(a[0]);` | `1` -- value semantics are "not permission to shallow-copy" (`docs/language/mut_borrow_parameters.md:50`) | **99** | **99** (lane) | **99** | refused |
 | R2 | `ArrayPush(names, "a"); let copy = names; ArrayPush(copy, "b");` then two `Log`s; no drop anywhere | prints `1`, `2` | 1, 2 | -- | **heap corruption `0xC0000374`, no output** | -- |
 | R3 | `Unwrap(Fail())` where `Fail` returns `Err("boom")` | panic (`docs/105`) | semantic passes with 0 errors, then gcc fails: `PgyResult_Int_String` undefined | -- | **prints uninitialized memory** (`1977106432`, `1799569408` on two runs), continues, exit 0 | -- |
 | R4 | `Log(ToString(9223372036854775807L))` | the literal | **-9223372036854775808** | **-9223372036854775808** | correct | refused |

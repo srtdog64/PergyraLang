@@ -22,7 +22,7 @@ Intent is a static identity that preserves the attribution of compiler facts to
 one purpose, not a comment about programmer intention. It binds independently
 owned facts without replacing their owners or granting authority. Attribution
 is checked against declaration identity, not merely equal names or values.
-This is the [canonical design contract](docs/01_intent_first_design.md), not a
+This is the [canonical design contract](docs/language/01_intent_first_design.md), not a
 claim that every self-host path already enforces it end to end; see the
 [bounded implementation audit](docs/audits/2026-09-05_intent_graph_semantic_audit.md).
 
@@ -37,7 +37,7 @@ not beta-stable user syntax. See the
 
 <p align="center">
   <a href="docs/README_ko.md">Korean README</a> ·
-  <a href="docs/01_intent_first_design.md">Intent-First Design</a> ·
+  <a href="docs/language/01_intent_first_design.md">Intent-First Design</a> ·
   <a href="docs/grammar/01_syntax.md">Syntax Reference</a> ·
   <a href="docs/grammar/02_grammar.md">Grammar</a> ·
   <a href="docs/grammar/03_naming.md">Naming Convention</a> ·
@@ -46,10 +46,10 @@ not beta-stable user syntax. See the
 
 > **Current Status**: Executable experimental alpha, currently in a **late-stage alpha / beta-closure sprint**. The remaining beta work is not about widening the language surface; it is about freezing a narrower stable subset and aligning `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression -> docs` on that subset.
 > **Beta subset candidate being frozen**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`Array<T>`, local borrowed `Slice<T>` plus `SliceCopy`, `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`), and runtime observability (`last / history / active / recent`). This is a scoped beta contract candidate, not a whole-language stability claim.
-> **Stable subset source of truth**: `docs/107_beta_stable_subset.md`.
+> **Stable subset source of truth**: `docs/release/107_beta_stable_subset.md`.
 > **Explicit reject / beta-out-of-scope**: unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, the full quantum resource model, and any ownership combination that still escapes the current semantic contract. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
 > **Memory (design, not yet implemented)**: ordinary values are planned to be released by compiler-inserted drops at their last use (ownership-based automatic memory management, no runtime collector). The model is proven on a core calculus ([`docs/semantics/27_ownership_clean.md`](docs/semantics/27_ownership_clean.md)); generated code does not free collection or String storage yet.
-> **Anti-hype rule**: Do not describe Pergyra as production-ready, Rust-level memory safe, AI-first, quantum-ready, zero-cost, or fully proven. Current external claims must match `docs/118_slot_model_rigor_audit.md`, `docs/119_pergyra_lineage_positioning.md`, and `docs/120_vision_and_capability_audit.md`.
+> **Anti-hype rule**: Do not describe Pergyra as production-ready, Rust-level memory safe, AI-first, quantum-ready, zero-cost, or fully proven. Current external claims must match `docs/runtime/118_slot_model_rigor_audit.md`, `docs/language/119_pergyra_lineage_positioning.md`, and `docs/release/120_vision_and_capability_audit.md`.
 
 ---
 
@@ -78,10 +78,10 @@ Current classification snapshot:
   - `spawn`, `async`, `await`, `select`, `channel`, cancellation, coroutine/fiber machinery, OOP-style class convenience, and FP combinator libraries are support/style surfaces unless explicitly promoted
   - fiber / coroutine support is runtime machinery for suspension and scheduling; it is not the same layer as the `parallel` execution primitive
   - beta support may smoke-test these surfaces, but beta identity and blocker status are anchored on `pgy.core + pgy.foundation`; `pgy.execution` keeps the `parallel` family explicit without promoting fiber/coroutine to core identity
-  - source of truth: [docs/99_language_module_taxonomy.md](docs/99_language_module_taxonomy.md), [docs/language_module_manifest.json](docs/language_module_manifest.json), and [docs/language_module_cases.json](docs/language_module_cases.json)
+  - source of truth: [docs/stdlib/99_language_module_taxonomy.md](docs/stdlib/99_language_module_taxonomy.md), [docs/stdlib/language_module_manifest.json](docs/stdlib/language_module_manifest.json), and [docs/stdlib/language_module_cases.json](docs/stdlib/language_module_cases.json)
 - generics
   - stable subset: exact/ability/multi-bound baseline plus implemented default type argument resolution on supported declaration/call/module-consumer paths
-  - beta-out-of-scope: broader generic generalization, higher-kinded types, Functor / `fmap`-style abstraction (soft-no - see [docs/04_generic_design.md](docs/04_generic_design.md))
+  - beta-out-of-scope: broader generic generalization, higher-kinded types, Functor / `fmap`-style abstraction (soft-no - see [docs/language/04_generic_design.md](docs/language/04_generic_design.md))
 - own/ref
   - stable subset: anchored slot-handle boundaries plus generalized provenance/escape diagnostics on the currently-closed consumer paths
   - explicit reject: any general own/ref combination that still falls outside the current semantic contract
@@ -114,7 +114,7 @@ Pergyra is a compiled language with C and LLVM backends. It distinguishes **who 
 - `RIR` locks slot/resource/projection/authority/lifecycle semantics
 - `MIR` locks CFG/SSA/cleanup/resource-flow before backend emission
 - Backends consume `MIR`, not `RIR`
-- `AIR` is a side-loaded verification IR synthesized from `HIR`/`RIR`; it never lowers to backends and exists solely for intent-to-implementation abstraction-safety checks (see `docs/104_air_compiler_architecture.md`)
+- `AIR` is a side-loaded verification IR synthesized from `HIR`/`RIR`; it never lowers to backends and exists solely for intent-to-implementation abstraction-safety checks (see `docs/compiler/104_air_compiler_architecture.md`)
 
 ## How to read Pergyra examples
 
@@ -185,7 +185,7 @@ make dogfood-webgl-test-smoke
 
 Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `intent_authority_snapshot_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, and `world_embedded_action_pool_frontier_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
 
-Current beta-readiness source of truth: [docs/100_beta_readiness_checklist.md](docs/100_beta_readiness_checklist.md). The older [docs/98_beta_closure_readiness_report.md](docs/98_beta_closure_readiness_report.md) is a historical snapshot.
+Current beta-readiness source of truth: [docs/release/100_beta_readiness_checklist.md](docs/release/100_beta_readiness_checklist.md). The older [docs/release/98_beta_closure_readiness_report.md](docs/release/98_beta_closure_readiness_report.md) is a historical snapshot.
 
 Current CI support matrix:
 
@@ -231,7 +231,7 @@ WebGL note: `examples/wasm_hello/` is a dogfood host-bridge example over C
 `--emit-c`, not stable WebGL language surface. Real WebGL APIs belong to the
 post-beta `pgy.render.webgl` module track.
 
-- smoke-covered examples: see [docs/65_stable_example_surface_board.md](docs/65_stable_example_surface_board.md)
+- smoke-covered examples: see [docs/release/65_stable_example_surface_board.md](docs/release/65_stable_example_surface_board.md)
 - ordinary entry examples:
   - `examples/hello.pgy` - smallest ordinary log/value path
   - `examples/basic.pgy` - basic ordinary-value syntax; no Slot lifecycle APIs
@@ -254,9 +254,9 @@ post-beta `pgy.render.webgl` module track.
 
 Authoring-surface references:
 
-- compression overview: [docs/61_surface_compression_examples.md](docs/61_surface_compression_examples.md)
-- pain-point board: [docs/58_keyword_authorship_pain_points.md](docs/58_keyword_authorship_pain_points.md)
-- compression plan: [docs/59_authoring_surface_compression_plan.md](docs/59_authoring_surface_compression_plan.md)
+- compression overview: [docs/language/61_surface_compression_examples.md](docs/language/61_surface_compression_examples.md)
+- pain-point board: [docs/language/58_keyword_authorship_pain_points.md](docs/language/58_keyword_authorship_pain_points.md)
+- compression plan: [docs/language/59_authoring_surface_compression_plan.md](docs/language/59_authoring_surface_compression_plan.md)
 
 ## Basics
 
@@ -620,7 +620,7 @@ Not every example has the same contract strength.
 
 Source of truth:
 
-- [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
+- [Stable Example Surface Board](docs/release/65_stable_example_surface_board.md)
 
 Recommended examples to start from:
 
@@ -657,7 +657,7 @@ make rebuild                   # Clean + rebuild the default compiler/LSP binari
 ```
 
 If a build looks stale ("Nothing to be done" while sources changed), see
-[Build Troubleshooting](docs/91_build_troubleshooting.md).
+[Build Troubleshooting](docs/tooling/91_build_troubleshooting.md).
 
 ## Editor Support
 
@@ -681,18 +681,18 @@ and then activates automatically.
 
 The submission checklist (sample selection, TextMate grammar extraction, color
 candidates, "in use" adoption strategy) is tracked in
-[docs/96_linguist_submission.md](docs/96_linguist_submission.md).
+[docs/tooling/96_linguist_submission.md](docs/tooling/96_linguist_submission.md).
 
 ## Documentation
 
 - [Syntax Reference](docs/grammar/01_syntax.md)
 - [Grammar Definition](docs/grammar/02_grammar.md)
 - [Naming Convention](docs/grammar/03_naming.md)
-- [Compiler Pipeline](docs/20_compiler_pipeline_guide.md)
-- [Language Status](docs/18_language_status.md)
-- [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
-- [Design Vision](docs/00_vision.md)
-- [Linguist Submission Checklist](docs/96_linguist_submission.md)
+- [Compiler Pipeline](docs/compiler/20_compiler_pipeline_guide.md)
+- [Language Status](docs/release/18_language_status.md)
+- [Stable Example Surface Board](docs/release/65_stable_example_surface_board.md)
+- [Design Vision](docs/language/00_vision.md)
+- [Linguist Submission Checklist](docs/tooling/96_linguist_submission.md)
 - [Korean README](docs/README_ko.md)
 
 ## License

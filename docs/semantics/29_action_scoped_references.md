@@ -15,7 +15,7 @@ redefine graph storage, cleanup or Slot. Their owners remain
 [Memory Boundary Composition](28_memory_boundary_composition.md),
 [Ownership Clean](27_ownership_clean.md) and the
 [graph design model](proofs/OwnershipGraphLinks.v). Lifetime annotation
-syntax stays forbidden ([docs/118 §2.1](../118_slot_model_rigor_audit.md)).
+syntax stays forbidden ([docs/118 §2.1](../runtime/118_slot_model_rigor_audit.md)).
 
 ## The contract
 
@@ -172,7 +172,7 @@ that interface here. The boundary and falsifiers are collected in
 - [`CompensationCore.v`](proofs/CompensationCore.v) owns the
   snapshot-restoration interface. Here a compensation is any admitted step;
   that it undoes its forward step is not shown.
-- [docs/173](../173_intent_axis_strengthening.md) owns the intent fact
+- [docs/173](173_intent_axis_strengthening.md) owns the intent fact
   families, including compensation and steps. The mapping of a model step
   to a source `step`, `action` or `intent` is OPEN.
 - [`OwnershipTeardownAuthority.v`](proofs/OwnershipTeardownAuthority.v) owns

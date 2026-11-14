@@ -18,7 +18,7 @@ contract core is mathematically closed.
 
 These are already part of the beta proof surface:
 
-- `docs/125_source_of_truth_spine.md` names the owner of each semantic fact and
+- `docs/compiler/125_source_of_truth_spine.md` names the owner of each semantic fact and
   rejects downstream rediscovery.
 - `docs/semantics/07_air_abstraction_safety.md` defines AIR intent/boundary
   evidence obligations and default strict evidence diagnostics.
@@ -166,7 +166,7 @@ Current state:
 
 - `docs/semantics/09_abstraction_loss_contracts.md` defines the seven-field
   loss contract.
-- `docs/125_source_of_truth_spine.md` defines the source-of-truth rule.
+- `docs/compiler/125_source_of_truth_spine.md` defines the source-of-truth rule.
 
 Remaining closure:
 

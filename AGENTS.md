@@ -125,10 +125,10 @@ scope. The plan, the measurements and the current state are in
 - If the prompt leaves priorities implicit, use this repository order:
   semantic identity and one SoT, owner-directed facts, fallback removal,
   behavioral negative gate, then patch size and conventional architecture.
-- See `docs/131_ai_coding_atomic_units.md` section 3.1 for the objective-card
+- See `docs/tooling/131_ai_coding_atomic_units.md` section 3.1 for the objective-card
   template. An AI-probable next step is not proof of the right next step.
 - When ownership moves as the compiler grows, follow
-  `docs/180_compiler_logical_spine_handles_gates.md`: keep identity stable,
+  `docs/compiler/180_compiler_logical_spine_handles_gates.md`: keep identity stable,
   migrate consumers, fail closed, delete the old owner, and add a behavioral
   negative gate for the old read path. Do not leave dual-read or `new ? old`
   compatibility authority.
@@ -339,8 +339,8 @@ scope. The plan, the measurements and the current state are in
   success/failure meaning and its participant, coordination, authority,
   effect, boundary, compensation, and trace obligations must be attributed to
   one source-level binder. Action count is neither necessary nor sufficient;
-  follow `docs/01_intent_first_design.md` and
-  `docs/173_intent_axis_strengthening.md` instead of inferring intent from a
+  follow `docs/language/01_intent_first_design.md` and
+  `docs/semantics/173_intent_axis_strengthening.md` instead of inferring intent from a
   fixture's number of steps or actions.
 - Each migration rung names the production entrypoint, the direct bypass being
   deleted, the existing fact owner, the last orchestration consumer, and one

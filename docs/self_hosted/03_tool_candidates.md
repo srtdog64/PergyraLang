@@ -30,7 +30,7 @@ Minimum JSON contract:
   "ok": true,
   "source": {
     "code_owner": "src/semantic/diag_codes.h",
-    "docs_owner": "docs/72_diagnostic_codes.md"
+    "docs_owner": "docs/tooling/72_diagnostic_codes.md"
   },
   "counts": {
     "codes": 0,

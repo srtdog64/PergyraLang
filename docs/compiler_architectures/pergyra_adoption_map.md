@@ -20,7 +20,7 @@ Updated: 2026-08-26
 - language word registry는 146개 단어를 소유하며 양쪽 parser selector가 모두 없는
   단어는 0개다. 과거 `channel`은 예약어인데 구현 selector가 없어 삭제됐다.
 
-최신 상태는 이 비교 문서가 아니라 [진행 상황](../00_progress.md),
+최신 상태는 이 비교 문서가 아니라 [진행 상황](../release/00_progress.md),
 [SoT registry](../semantics/sot_owner_spine_registry.md),
 [native dogfood 계약](../self_hosted/17_pergyra_native_dogfood_contract.md)과
 executable gate에서 확인한다. 위 과거 수치를 현재 완료율로 인용하지 않는다.
@@ -175,9 +175,9 @@ Pergyra의 기존 abstraction-loss contract와 AIR epsilon quarantine이 이 역
 ## Pergyra 내부 근거
 
 - `docs/semantics/sot_owner_spine_registry.md`
-- `docs/180_compiler_logical_spine_handles_gates.md`
+- `docs/compiler/180_compiler_logical_spine_handles_gates.md`
 - `docs/semantics/09_abstraction_loss_contracts.md`
-- `docs/104_air_compiler_architecture.md`
+- `docs/compiler/104_air_compiler_architecture.md`
 - `docs/self_hosted/17_pergyra_native_dogfood_contract.md`
-- `docs/199_language_word_and_dogfood_grammar.md`
-- `docs/200_object_to_action_boundary_patterns.md`
+- `docs/language/199_language_word_and_dogfood_grammar.md`
+- `docs/language/200_object_to_action_boundary_patterns.md`

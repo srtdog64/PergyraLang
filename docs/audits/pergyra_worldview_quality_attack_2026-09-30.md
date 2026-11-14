@@ -16,7 +16,7 @@ Status: AUDIT COMPLETE / implementation preparation only
 - 최종 검증 때 HEAD: `64f250e1f26f411cc3921e1bcf72e0ef499a7db0`.
   다른 작업의 statement-transition gate 수정이 착지했다. 두 핵심 owned String
   source owner와 고정 실행 번들의 해시는 그대로였다.
-- 원래 dirty: `docs/00_vision.md`, `docs/current_work_handoff.md`,
+- 원래 dirty: `docs/language/00_vision.md`, `docs/current_work_handoff.md`,
   `src/compiler/self_host_driver.c`; untracked 과거 감사와 conditional-push fixture.
   이후 driver 수정은 다른 작업에 의해 착지했고 collection semantic gate에 변경이 생겼다.
 - 활성 작업은 P1 collection ownership이다. registry의 해당 행은 ACTIVE다.

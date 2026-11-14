@@ -2021,7 +2021,7 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 
 | 축 | 현재치 | 분모와 근거 | 다음 상승 조건 |
 | --- | ---: | --- | --- |
-| 언어 strict beta | 83% | `docs/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
+| 언어 strict beta | 83% | `docs/release/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
 | SoT hard closure | 52/88 = 59.1% CLOSED | owner registry의 `CLOSED 52 / BRIDGE 35 / ACTIVE 1` | 새 행 추가가 아니라 기존 BRIDGE consumer migration, old read 삭제, negative gate로 `35 -> 34` |
 | SoT migration index | 79.3% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | 기존 BRIDGE 하나를 실제 hard substitution으로 CLOSED 승격 |
 | self-host substrate | 10/10 READY | executable scorecard의 capability 4는 allocator lanes, `BoxArray`, explicit destroy, TextBuilder/result assembly를 포함해 이미 READY이고 본문의 measured closure도 Phase 1 closure를 선언한다. | remaining compiler-scale String scope reclamation은 효율 전선이며 새 native fallback의 근거가 아님 |
@@ -3054,7 +3054,7 @@ Coq fact를 가리키던 두 Array<String> exact-shape pseudo-owner는 독립 �
 사용자가 명시적으로 다시 열지 않는 한 여기서 후속 작업을 고르지 않는다.
 
 - 사용자 소유 `F:/insere`와 `F:/zeno`의 채택 계약을
-  `docs/201_insere_zeno_lineage_and_library_adoption.md`에 revision까지 고정했다.
+  `docs/stdlib/201_insere_zeno_lineage_and_library_adoption.md`에 revision까지 고정했다.
   외부 source는 provenance/falsifier이고 Pergyra semantic SoT는 아니다. Zeno의
   기존 dirty package/`llms.txt` 작업은 수정하지 않았다.
 - Insere의 latest-only start admission은 기존 `HostTaskSlot` 위의 typed
@@ -3322,7 +3322,7 @@ Coq fact를 가리키던 두 Array<String> exact-shape pseudo-owner는 독립 �
 - 과거 20 GiB처럼 보인 현상은 compiler 고유 비용이 아니라 sealed whole graph를
   다시 검증한 lifetime 결함과 중복 process-tree build 합산이었다. 현재 focused
   driver build 관측은 `pgy` 약 674 MiB + `cc1` 약 791 MiB였고, 대응 절차는
-  `docs/127_compiler_speed_engineering.md` §8.1에 고정돼 있다.
+  `docs/tooling/127_compiler_speed_engineering.md` §8.1에 고정돼 있다.
 - 오래된 tracked 실행 transcript `testall_run.txt`는 삭제하고 ignore했다. 실제
   fixture와 owner gate만 실행 증거로 유지한다.
 
@@ -3676,7 +3676,7 @@ Coq fact를 가리키던 두 Array<String> exact-shape pseudo-owner는 독립 �
   검사 밖으로 빠진다. 이것들은 언어 규칙이 아니라 executable negative가 필요한
   현재 결함이다.
 - 세부 authoring 규칙, 실제 반례, 폐쇄 순서는
-  `docs/200_object_to_action_boundary_patterns.md`가 소유한다. 선언/import 수는
+  `docs/language/200_object_to_action_boundary_patterns.md`가 소유한다. 선언/import 수는
   `IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING`
   사다리와 분리하며 마지막 단계만 hard self-host 진척으로 센다.
 

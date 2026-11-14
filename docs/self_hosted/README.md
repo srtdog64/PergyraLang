@@ -142,7 +142,7 @@ work, and use `make self-host-preparation-test-smoke` when developing or
 validating a full rung because it also runs the heavy C/LLVM/Pergyra parity
 bundle. A normal compiler build must not imply the full self-host parity suite.
 For isolated SoT edits, follow
-[`../152_validation_isolation_policy.md`](../152_validation_isolation_policy.md)
+[`../release/152_validation_isolation_policy.md`](../release/152_validation_isolation_policy.md)
 before running the wrapper: name the rung owner, artifact, and oracle first,
 then run only the contract or focused parity evidence for that owner unless a
 shared compiler-world fact crossed the boundary.
@@ -158,11 +158,11 @@ its own ecosystem.
 
 ## Required Reading
 
-- `../00_vision.md` - beta then self-hosting decision.
-- `../117_backend_strategy_positioning.md` - why full self-host is deferred.
-- `../120_vision_and_capability_audit.md` - self-host claims allowed/forbidden.
-- `../131_ai_coding_atomic_units.md` - intent-verification pair workflow.
-- `../100_beta_readiness_checklist.md` - beta gates that must close first.
+- `../language/00_vision.md` - beta then self-hosting decision.
+- `../compiler/117_backend_strategy_positioning.md` - why full self-host is deferred.
+- `../release/120_vision_and_capability_audit.md` - self-host claims allowed/forbidden.
+- `../tooling/131_ai_coding_atomic_units.md` - intent-verification pair workflow.
+- `../release/100_beta_readiness_checklist.md` - beta gates that must close first.
 - `04_beta_exit_handoff.md` - exact handoff checklist from beta closure to
   soft self-host.
 

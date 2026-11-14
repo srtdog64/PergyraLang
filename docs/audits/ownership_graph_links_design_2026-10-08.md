@@ -140,7 +140,7 @@ self-host/SoT 폐쇄가 아니다.
 
 ## 기존 계약과 연구 참고
 
-[WO-REG 전략](../197_region_arena_strategy.md)의 현재 구현은 인증된 transient
+[WO-REG 전략](../runtime/197_region_arena_strategy.md)의 현재 구현은 인증된 transient
 String의 할당 경로다. 일반 그래프 저장소나 recursive aggregate 정리를
 이미 제공한다는 근거로 사용하지 않는다. arena는 가능한 내부 할당 방식이지
 사용자가 링크마다 넘기는 allocator 표면이 아니다.

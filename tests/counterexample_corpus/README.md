@@ -1,7 +1,7 @@
 # 반례 코퍼스 (counterexample corpus)
 
 Pergyra는 주류 범용 언어가 되려는 것이 아니라, 다른 언어가 그대로 받아들이는 버그 부류의
-반례가 되려 한다. 이 코퍼스는 `docs/198_market_safety_positioning.md`의 "필요한 bug corpus"
+반례가 되려 한다. 이 코퍼스는 `docs/language/198_market_safety_positioning.md`의 "필요한 bug corpus"
 16개 부류를 같은 이야기(다중 테넌트 서비스 AgentHub에서 AI 에이전트가 테넌트 `acme`,
 `globex`를 대신해 도구를 호출한다)로 쓰고, Pergyra와 TypeScript, C#, Python, Rust를 나란히
 놓는다.

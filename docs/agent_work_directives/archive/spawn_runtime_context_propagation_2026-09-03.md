@@ -7,7 +7,7 @@ Status: DONE — PUBLISHED AND EXACT CI GREEN
 Exact base revision: `a6ba51a996438c7de089a6cd495b20b6a6b74844`
 
 This directive coordinates the first executable rung adopted by
-`docs/204_concurrency_direction_pscc_review.md`. It is temporary coordination
+`docs/concurrency/204_concurrency_direction_pscc_review.md`. It is temporary coordination
 evidence, not semantic authority, a SoT row, or a completion claim.
 
 ## Shared objective card

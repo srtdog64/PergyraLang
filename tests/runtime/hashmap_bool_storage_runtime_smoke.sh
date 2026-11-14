@@ -32,7 +32,7 @@ expect_success_run() {
 expect_success_run runtime 'hashmap bool storage runtime: ok'
 expect_success_run raw-runtime 'hashmap raw bool storage runtime: ok'
 
-# A failed allocation panics (docs/105_runtime_panic_contract.md, class oom),
+# A failed allocation panics (docs/runtime/105_runtime_panic_contract.md, class oom),
 # so each injected failure runs as a child mode that must abort: exit 0 means
 # it continued, 99 that the operation returned, 98 an unknown mode. <detail>
 # is the text after "[PGY PANIC] collection "; an empty detail means the

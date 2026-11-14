@@ -179,7 +179,7 @@ C/LLVM/Pergyra parity bundle.
 
 Validation is also owner-isolated. Before running a self-host wrapper, classify
 the changed owner through
-[docs/152_validation_isolation_policy.md](../../docs/152_validation_isolation_policy.md).
+[docs/release/152_validation_isolation_policy.md](../../docs/release/152_validation_isolation_policy.md).
 Compiler-world vocabulary/envelope edits start with static inspection or
 `self-host-compiler-world-contract-test-smoke`. A stage owner edit starts with
 that stage's component contract or one named parity fixture. The broad

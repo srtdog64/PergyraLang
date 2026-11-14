@@ -6,8 +6,8 @@ semantics remain under this directory and in the linked top-level contracts.
 ## Read First
 
 1. [`README.md`](README.md) - detailed semantics index.
-2. [`../102_formal_semantics_and_proof_obligations.md`](../102_formal_semantics_and_proof_obligations.md) - proof obligations.
-3. [`../125_source_of_truth_spine.md`](../125_source_of_truth_spine.md) - SoT spine.
+2. [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md) - proof obligations.
+3. [`../compiler/125_source_of_truth_spine.md`](../compiler/125_source_of_truth_spine.md) - SoT spine.
 4. [`sot_owner_spine_registry.md`](sot_owner_spine_registry.md) - canonical owner registry.
 5. [`pass_contract_manifest.md`](pass_contract_manifest.md) - pass-level fact contracts.
 
@@ -23,7 +23,7 @@ semantics remain under this directory and in the linked top-level contracts.
 | Basis convergence | [`21_basis_convergence_triangulation.md`](21_basis_convergence_triangulation.md) |
 | Axis expressibility | [`22_axis_macro_expressibility.md`](22_axis_macro_expressibility.md) |
 | Multiplication proof and benchmark | [`proofs/PergyraMulCost.md`](proofs/PergyraMulCost.md) |
-| SoT gate inventory | [`../185_sot_gate_catalog.md`](../185_sot_gate_catalog.md) |
+| SoT gate inventory | [`185_sot_gate_catalog.md`](185_sot_gate_catalog.md) |
 
 Proof documents validate models; executable owner and mutation gates bind those
 models to the implementation.

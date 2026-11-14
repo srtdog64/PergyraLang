@@ -109,7 +109,7 @@ single global lifecycle is inferred from that coincidence.
 | `SecureSlot + Token + Write` | Same slot and same zone, but an issued token and a foreign/stale token must produce different verdicts. `tests/ir/slot_contract_smoke.sh:45-60` covers secure success, wrong-token write, and released secure read. | `Capability` can say `write` is permitted in general; it does not identify the token issued for this handle generation. |
 | `Slot + pin + ReadView/WriteView + loop exits` | A view must be cleaned on normal exit, return, branch, `break`, and `continue`, while release/move or owner access conflicting with the live view is rejected. The positive control exercises loop `break`/`continue` in `tests/cases/slot_contract/positive/pin_read_write_cleanup/main.pgy:1-27`; the owner contract lists the explicit cleanup edges at `docs/semantics/08_slot_capability_calculus.md:115-151`. | `Scope` supplies the lexical interval but not which resource generation is pinned or whether the lease is read/write. `Capability` supplies mode but not cleanup identity. |
 | `DeviceSlot + RemoteFuture + Result` | A device-backed read may complete after the dynamic resource was released and must become the owned failure rather than a valid value. The C/LLVM contract matrix includes `device_slot_async_read`, `device_released_read`, and `device_double_release` (`tests/ir/slot_contract_smoke.sh:45-60`). | Future completion owns join and `Result` owns failure shape; neither owns device-handle freshness. |
-| `Slot + parallel` | Same task structure and same declared permissions, but sibling read/read is admissible while read/write and write/write are not (`docs/113_memory_concurrency_model.md:70-82`). | `parallel` knows concurrency but needs Slot's stable resource identity to know that two accesses alias. |
+| `Slot + parallel` | Same task structure and same declared permissions, but sibling read/read is admissible while read/write and write/write are not (`docs/concurrency/113_memory_concurrency_model.md:70-82`). | `parallel` knows concurrency but needs Slot's stable resource identity to know that two accesses alias. |
 
 **Observed run (2026-09-05):** `tests/ir/slot_contract_smoke.sh` passed on C and
 LLVM with four positive families and seven rejection families.
@@ -126,7 +126,7 @@ complete borrow checker”; the owner contract explicitly rejects that claim.
 
 - The language orthogonality contract defines a zone as the immediate
   execution, authority, and resource boundary
-  (`docs/42_keyword_orthogonality.md:103-120`, `198-202`).
+  (`docs/language/42_keyword_orthogonality.md:103-120`, `198-202`).
 - `src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy:1-5` refuses to
   infer zone authority from a subject's type and binds the explicit authority
   row to one exact subject-slot identity.
@@ -183,7 +183,7 @@ of implementation completeness.
 | --- | --- | --- |
 | `func with caps + call graph + clock` | `entry` declares `io_read`, calls a helper, and only the helper calls `Now()`. The compiler must still reject `entry` for missing `clock` (`tests/capability/manifest_interproc.pgy:1-11`; `tests/capability/run_manifest.sh:2-14,53-70`). | A lexical scope sees no local clock call. An `Ability` bound on `entry` does not compute transitive ambient effects. A coarse nondeterministic effect cannot distinguish clock from random. |
 | `file handle + host grant + no partial artifact` | The same compiled write operation is allowed under `io_write` and denied under `io_read`; denial must occur before the success marker and leave no file artifact (`tests/capability/run_runtime_enforce.sh:128-148`). | Zone says where the file operation occurs, not whether the host granted write. Authority may name an approver, but it does not replace the host's fine-grained operation mask. |
-| `spawn/coroutine + capability context` | A child running on inline, blocking, worker, movable, C-extern, or LLVM lanes must inherit the parent's exact mask and restore the surrounding mask; executor TLS must not widen it (`docs/113_memory_concurrency_model.md:38-68`; `tests/parallel/runtime_spawn_context_propagation_smoke.sh:61-71,131-166`). | Scope contains the child but has no permission lattice. Zone residence can stay unchanged while the parent grant differs. |
+| `spawn/coroutine + capability context` | A child running on inline, blocking, worker, movable, C-extern, or LLVM lanes must inherit the parent's exact mask and restore the surrounding mask; executor TLS must not widen it (`docs/concurrency/113_memory_concurrency_model.md:38-68`; `tests/parallel/runtime_spawn_context_propagation_smoke.sh:61-71,131-166`). | Scope contains the child but has no permission lattice. Zone residence can stay unchanged while the parent grant differs. |
 | `Zone crossing + Capability + Authority` | Same origin/destination zone and actor, but a held and missing entry capability must yield different crossing judgments (`docs/semantics/proofs/ZoneCrossingCore.v:94-117`). | Folding the bit into Zone makes every host grant a different zone. Folding it into Authority loses the distinction between a capability set and the grant/delegation history; `AuthorityIrreducibility.v:72-97` separately proves that authority is not reducible to capability × zone. |
 
 **Observed runs (2026-09-05):**
@@ -215,7 +215,7 @@ would also erase the repository's deliberate coarse/fine distinction.
   rejected at lexical or function exit, while `await`/explicit `own` transfer
   retires the obligation.
 - `parallel` owns a join-before-continuation boundary
-  (`docs/113_memory_concurrency_model.md:70-82`), and pin/view owners use lexical
+  (`docs/concurrency/113_memory_concurrency_model.md:70-82`), and pin/view owners use lexical
   scope to delimit a resource lease.
 - `AsyncScopeCore.v` makes the semantic need precise: a running task whose
   owning scope is closed is an orphan (`docs/semantics/proofs/AsyncScopeCore.v:81-100`),
@@ -230,7 +230,7 @@ would also erase the repository's deliberate coarse/fine distinction.
 | `spawn + Future + nested if block` | A child Future created in the inner block and not awaited must fail when the block exits (`tests/cases/structured_spawn_lifecycle/negative_nested_scope.pgy:1-8`). The same code with `await` is valid. | `Future` identifies the obligation but needs an owner boundary at which liveness becomes an error. Zone may outlive the function and cannot be that boundary. |
 | `parallel + Slot access + continuation` | Accepted sibling work must join before the following read, and overlapping Slot writes must be rejected. | Slot identifies the resource but not when sibling execution ends. Capability grants access but not happens-before. `parallel` therefore instantiates a scope/join fact. |
 | `pin + WriteView + return/break/continue` | Cleanup must happen on every exit from the pin block and the view cannot survive the block. | Slot and view mode identify what is leased; only the lexical scope says how long. Turning every Slot into a globally pinned value would change semantics and cost. |
-| `Cancel + Future + scope exit` | `Cancel` requests cancellation but does not retire or free the handle; an await or own transfer is still required before scope exit (`docs/113_memory_concurrency_model.md:232-275,277-282`). | Cancellation state and completion ownership are distinct. Treating cancel as scope closure would admit a still-running/orphaned task. |
+| `Cancel + Future + scope exit` | `Cancel` requests cancellation but does not retire or free the handle; an await or own transfer is still required before scope exit (`docs/concurrency/113_memory_concurrency_model.md:232-275,277-282`). | Cancellation state and completion ownership are distinct. Treating cancel as scope closure would admit a still-running/orphaned task. |
 
 **Observed run (2026-09-05):**
 `tests/parallel/structured_spawn_lifecycle_smoke.sh` passed: its matrix includes nineteen
@@ -251,10 +251,10 @@ cancellation subtree or an authorized detach boundary before admission.
 
 - Intent is explicitly not a universal owner. It binds provenance while
   participant, zone, ability/capability, authority, effect, and resource facts
-  retain their own owners (`docs/42_keyword_orthogonality.md:122-144`).
+  retain their own owners (`docs/language/42_keyword_orthogonality.md:122-144`).
 - The canonical formulation is a source binder elaborating to separate
   coordination, authority, effect, boundary, compensation, and trace facts
-  (`docs/173_intent_axis_strengthening.md:50-100`). Purpose and trace by
+  (`docs/semantics/173_intent_axis_strengthening.md:50-100`). Purpose and trace by
   themselves are classified as library-expressible.
 - `IntentSpine.v` forbids a hidden monolith: exact family facts sharing one
   spine identity determine exactly one intent, and an intent is nothing beyond

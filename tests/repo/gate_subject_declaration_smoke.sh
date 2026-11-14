@@ -120,7 +120,7 @@ for oracle_script in \
 done
 
 if (( failures > 0 )); then
-    echo "[gate-subject] $failures violation(s); see docs/152_validation_isolation_policy.md" >&2
+    echo "[gate-subject] $failures violation(s); see docs/release/152_validation_isolation_policy.md" >&2
     exit 1
 fi
 

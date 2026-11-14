@@ -43,7 +43,7 @@ Required shape for each proof document:
 - [pass_contract_manifest.md](pass_contract_manifest.md): pass-level fact
   contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
   parity, and ABI/Slot/Pin layout closure.
-- [../192_protocol_abi_api_registry.md](../192_protocol_abi_api_registry.md):
+- [../compiler/192_protocol_abi_api_registry.md](../compiler/192_protocol_abi_api_registry.md):
   derived Protocol/ABI/API crosswalk. It joins protocol version, existing SoT
   owner, wire/layout, producer, final consumer, C/LLVM/self-host projection,
   missing-fact failure, compatibility policy, and gate without becoming a new
@@ -106,8 +106,8 @@ Required shape for each proof document:
   completed steps when a node vanished between steps; compensation completion
   is not restoration. Surface syntax, acquisition inference, deletion-authority
   binding for compensation targets and production remain OPEN.
-- [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
-- [../207_compiler_owned_cleanup_algorithm.md](../207_compiler_owned_cleanup_algorithm.md):
+- [173_intent_axis_strengthening.md](173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
+- [../compiler/207_compiler_owned_cleanup_algorithm.md](../compiler/207_compiler_owned_cleanup_algorithm.md):
   explanatory core-algorithm companion with move/copy/end/drop, branch/loop and
   inferred-sink diagrams, dated kernel evidence, and research applicability.
   It bounds the normal-exit whole-value model separately from production
@@ -585,7 +585,7 @@ Mechanized artifacts:
   binds this model to the live Stage 1 certificate envelope gate.
 - [proofs/VerificationMethodology.v](proofs/VerificationMethodology.v): Coq
   proof sketch for the evidence-ladder discipline behind
-  `docs/139_golden_adt_verification_methodology.md`: golden fixtures,
+  `docs/semantics/139_golden_adt_verification_methodology.md`: golden fixtures,
   differential oracles, verifier gates, ADT owners, and mechanized models are
   separate evidence forms and cannot be substituted for each other. The smoke
   gate binds this model to the methodology document and the proof-pack index.

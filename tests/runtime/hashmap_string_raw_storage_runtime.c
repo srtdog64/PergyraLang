@@ -113,7 +113,7 @@ static void fill_twelve_scalar_keys(PgyHashMapRaw *map) {
 }
 
 /* Child modes. A failed allocation now panics with class oom
- * (docs/105_runtime_panic_contract.md), so each injected failure runs in its
+ * (docs/runtime/105_runtime_panic_contract.md), so each injected failure runs in its
  * own process and the smoke script checks the exit status and stderr. The
  * physical-rollback checks that used to follow a failed constructor, grow or
  * duplication (same arrays, same count, key absent) described a process that

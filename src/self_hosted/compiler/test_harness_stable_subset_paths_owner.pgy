@@ -17,7 +17,7 @@ func CompilerHarnessStableSubsetSectionExpectedJsonPath() -> String {
 }
 
 func CompilerHarnessStableSubsetSectionInputManifestPath() -> String {
-    return "docs/107_beta_stable_subset.md";
+    return "docs/release/107_beta_stable_subset.md";
 }
 
 func CompilerHarnessStableSubsetSectionMissingAnchor() -> String {

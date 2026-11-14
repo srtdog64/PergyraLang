@@ -18,12 +18,12 @@ require_max_lines() {
         fail "$rel has $line_count lines; expected <= $max_lines"
 }
 
-require_max_lines "docs/100_beta_readiness_checklist.md" 120
+require_max_lines "docs/release/100_beta_readiness_checklist.md" 120
 for rel in \
-    "docs/100a_beta_active_status.md" \
-    "docs/100b_beta_p0_semantics_systems_air.md" \
-    "docs/100c_beta_dag_mir_abi_runtime.md" \
-    "docs/100d_beta_execution_log.md"; do
+    "docs/release/100a_beta_active_status.md" \
+    "docs/release/100b_beta_p0_semantics_systems_air.md" \
+    "docs/release/100c_beta_dag_mir_abi_runtime.md" \
+    "docs/release/100d_beta_execution_log.md"; do
     require_max_lines "$rel" 2600
 done
 

@@ -5,7 +5,7 @@
  * Compile-time reflection (`reflect`) projection field folding.
  *
  * Split out of type_checker_expr_ops.c so that file stays under its size cap
- * and the reflection logic has a single owner. See docs/reflect_operator_design.md
+ * and the reflection logic has a single owner. See docs/language/reflect_operator_design.md
  * and docs/reflect_domain_reflection_design.md.
  */
 

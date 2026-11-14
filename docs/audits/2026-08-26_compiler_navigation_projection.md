@@ -108,8 +108,8 @@ Observed importer and blast-radius evidence:
   `expected/compatibility_evolution.txt`; it does not need to move.
 - Registry/document references: both
   `docs/semantics/sot_owner_spine_registry.md` and
-  `docs/192_protocol_abi_api_registry.md` name the owner path;
-  `docs/166_production_bar_review_2026_07.md` and `src/self_hosted/OWNERS.md`
+  `docs/compiler/192_protocol_abi_api_registry.md` name the owner path;
+  `docs/release/166_production_bar_review_2026_07.md` and `src/self_hosted/OWNERS.md`
   also require path correction. Historical prose that uses only the basename
   does not require a mechanical rewrite.
 - Cycle risk: low. The owner imports no Pergyra file, the manifest points only
@@ -209,7 +209,7 @@ Observed importer and blast-radius evidence:
   structural tests.
 - Generated/registry/document references: no generated artifact owns these
   paths. `docs/semantics/sot_owner_spine_registry.md` and
-  `docs/192_protocol_abi_api_registry.md` do, and their identity rows must not
+  `docs/compiler/192_protocol_abi_api_registry.md` do, and their identity rows must not
   change while the physical paths move.
 - Cycle risk: no current cycle, but the slice crosses compiler world, MIR,
   MIR-lowering, source-LLVM, and CLI consumers. A folder-level driver facade

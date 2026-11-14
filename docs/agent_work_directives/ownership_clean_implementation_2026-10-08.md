@@ -54,7 +54,7 @@ Semantic authority is not in this file. It lives in:
   | `docs/semantics/proofs/OwnershipCleanExits.v` | `0258fb65e1e3102b02ff3b3b9d5c779ec36b4cd43af494c0e1ee496a96070d36` | break, continue, return, throw, try; release of partial parts on error |
 
 - Explanation and design history:
-  [`docs/207_compiler_owned_cleanup_algorithm.md`](../207_compiler_owned_cleanup_algorithm.md).
+  [`docs/compiler/207_compiler_owned_cleanup_algorithm.md`](../compiler/207_compiler_owned_cleanup_algorithm.md).
   This file is not normative.
 
 Current source and observed gates establish facts about today's behavior,
@@ -179,9 +179,9 @@ A review the user passed on, and where each point now stands:
   - `docs/semantics/27_ownership_clean.md`, which is normative; GPT proposes
     changes in the coordination log;
   - the three proofs above and new proof cores;
-  - `docs/207_compiler_owned_cleanup_algorithm.md` §11.
+  - `docs/compiler/207_compiler_owned_cleanup_algorithm.md` §11.
 - **Shared, append-only:** `tests/proof/formal_semantics_smoke.sh` (the proof list),
-  `docs/102_formal_semantics_and_proof_obligations.md`,
+  `docs/semantics/102_formal_semantics_and_proof_obligations.md`,
   `docs/semantics/README.md`, `src/self_hosted/OWNERS.md`, and
   `docs/current_work_handoff.md` (each agent edits only its own card).
 - Overlap rule: stop, write a line in the coordination log, and wait for the

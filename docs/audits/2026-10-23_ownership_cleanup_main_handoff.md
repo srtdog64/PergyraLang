@@ -93,7 +93,7 @@ func Main() -> Void
 
 ## 통합 경계
 
-다른 작업자의 변경을 보존했다: `docs/01_intent_first_design.md`,
+다른 작업자의 변경을 보존했다: `docs/language/01_intent_first_design.md`,
 `src/self_hosted/dir/intent_fact_owner.pgy`, `src/self_hosted/mir/artifact_lower_owner.pgy`,
 미추적 indexed-String ownership directive. 새 worktree/branch를 만들지 않았다.
 이 레인은 해당 MIR/DRV-2 작업을 병렬로 재설계하지 않는다.

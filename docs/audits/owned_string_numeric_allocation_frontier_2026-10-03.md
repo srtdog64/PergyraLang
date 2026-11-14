@@ -56,7 +56,7 @@ fixture green. Typed index/call operands remain source-level probes.
   No numeric runtime executable or installed self-driver success was observed.
 - The C native request removed a pre-existing dummy .exe sentinel at preflight,
   before MIR validation. This matches driver_binary_output_owner.h/c and
-  docs/205_language_limit_and_fact_gap_closure_design.md section11.3: invalidate
+  docs/compiler/205_language_limit_and_fact_gap_closure_design.md section11.3: invalidate
   stale binaries first, publish a new staging binary only after success.
   binary_output_refusal_owner.sh explicitly requires absence after refusal.
   This is NOT a publication-cleanup bug or an additional OPEN implementation
